@@ -35,6 +35,11 @@ export async function createOrUpdateUser({
         $setOnInsert: {
             createdAt: new Date(),
             balance: 30,
+            settings: {
+                output: {
+                    format: 'svg'
+                }
+            }
         },
         $push: {
             sessions: session

@@ -2,7 +2,7 @@
     <header class="header">
         <component :is="logoTag" v-bind="logoHref" class="header__logo logo">
             <span class="logo__label">
-                Nest2D
+                CutKit
             </span>
         </component>
         <nav v-if="isSecondaryTheme" :class="navClasses" class="header__nav nav">

@@ -1,6 +1,7 @@
 import { connectDB } from "../db/mongo";
 import logger from "../utils/logger";
 import { sendNestFinishEmail } from "../features/notification/sendEmail";
+import { updateProjectStatistics } from "../features/nesting/statistics.js";
 
 export default defineNitroPlugin(async (nitroApp) => {
   logger.info("Nitro plugin start");
@@ -21,6 +22,7 @@ export default defineNitroPlugin(async (nitroApp) => {
       })
 
       if (result) {
+        await updateProjectStatistics(result.projectSlug, result);
         try {
           await sendNestFinishEmail(result);
           await db.collection('nesting_jobs').updateOne(

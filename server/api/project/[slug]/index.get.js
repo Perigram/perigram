@@ -32,10 +32,13 @@ export default defineEventHandler(async (event) => {
     .sort({ uploadAt: 1 })
     .toArray();
 
+  const tables = await db.collection('tables').find({ projectId: slug, ownerId: userId }).toArray();
+
   return {
     name: project.name,
     slug: project.slug,
     files: projectFiles.map((file) => mapFileToUi(file)),
+    tables: tables,
   };
 });
 

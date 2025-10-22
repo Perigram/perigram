@@ -1,7 +1,20 @@
 <template>
     <div class="content">
-        <MainTitle :label="`Files: ${filesCount}`" class="content__title" />
-        <ProjectFiles :projectFiles="projectFiles" @addFiles="addFiles" class="content__files" />
+        <MainTitle :label="`Project: ${projectName}`" class="content__title" />
+
+        <Tabs :tabs="tabs" initial-tab="Files">
+            <template #Files>
+                <ProjectFiles :projectFiles="projectFiles" @addFiles="addFiles" class="content__files" />
+            </template>
+            <template #Tables>
+                <ProjectTables :project-slug="slug" />
+                <TableEditor />
+            </template>
+            <template #Statistics>
+                <ProjectStatistics :statistics="projectStatistics" />
+            </template>
+        </Tabs>
+
         <MainSettings />
         <MainButton :theme="themeType.primary" :label="btnLabel" :isDisable="btnIsDisable" @click="startsNest"
             class="content__btn" />
@@ -21,12 +34,24 @@
 
 <script setup async>
 import { themeType } from "~~/constants/theme.constants";
+import ProjectStatistics from '~/components/ProjectStatistics.vue';
+import ProjectTables from '~/components/ProjectTables.vue';
+import TableEditor from '~/components/TableEditor.vue';
+import Tabs from '~/components/Tabs.vue';
+import { tablesStore } from '~/composables/tables';
+
 const infoAboutNestDialog = useInfoAboutNest();
 
 definePageMeta({
     layout: "auth",
     middleware: "auth",
 });
+
+const tabs = [
+    { name: 'Files' },
+    { name: 'Tables' },
+    { name: 'Statistics' },
+];
 
 const headers = useRequestHeaders(['cookie']);
 
@@ -36,6 +61,7 @@ const { getters: filesGetters, actions } = filesStore;
 const params = computed(() => filesGetters.params);
 const { setProjectFiles, setProjectName, nest } = actions;
 const filesCount = computed(() => filesGetters.filesCount);
+const projectName = computed(() => filesGetters.projectName);
 const isNewParams = computed(() => filesGetters.isNewParams);
 const nestRequestError = computed(() => filesGetters.nestRequestError);
 const route = useRoute();
@@ -43,6 +69,8 @@ const slug = route.params.slug;
 const apiPath = API_ROUTES.PROJECT(slug);
 const data = filesGetters.projectFiles || await $fetch(apiPath, { headers });
 
+
+const projectStatistics = computed(() => data.statistics);
 
 const projectFiles = computed(() => {
     return filesGetters.projectFiles || data.files.map(file => ({ ...file, count: 1 }))
@@ -73,11 +101,14 @@ const sizesIsAvailable = computed(() => {
     const { width: partWidth, height: partHeight } = unref(biggestPartSizes);
     return width >= partWidth && height >= partHeight;
 })
+const { actions: tableActions } = tablesStore;
+
 onMounted(() => {
     if (!filesGetters.projectFiles) {
         setProjectFiles(data.files, apiPath)
         setProjectName(data.name)
     }
+    tableActions.setTables(data.tables);
 
     trackEvent("page_view", {
         page: "project",

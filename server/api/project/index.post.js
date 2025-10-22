@@ -24,6 +24,11 @@ export default defineEventHandler(async (event) => {
     name: projectName,
     createdAt: new Date(),
     ownerId: userId,
+    statistics: {
+        sheetsUsed: 0,
+        totalAreaUsed: 0,
+        utilizationRate: 0,
+    },
   });
 
   await saveFilesToProject(event, projectSlug, userId);
