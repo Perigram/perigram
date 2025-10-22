@@ -12,6 +12,7 @@
   "dependencies": {
     "@nuxtjs/tailwindcss": "^6.12.2",
     "archiver": "^7.0.1",
+    "formidable": "^3.5.4",
     "mongodb": "6.8",
     "multiparty": "^4.2.3",
     "nodemailer": "^7.0.3",

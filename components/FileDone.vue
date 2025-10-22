@@ -37,15 +37,16 @@
                 class="counter__btn"
             />
         </div>
-        <!-- <div class="file__btn">
+        <div class="file__btn">
             <MainButton 
                 :label="`delete ${file.name}`"
                 :size="sizeType.s"
                 :icon="iconType.trash"
-                :isLabelShow=false
-                @click="console.log(`delete ${file.name}`)"
+                :isLabelShow="false"
+                :theme="themeType.ghost"
+                @click="handleDelete"
             />
-        </div> -->
+        </div>
         <div
             @click="openModal()"
             class="file__area"
@@ -55,6 +56,7 @@
 <script setup>
     import { sizeType } from '~~/constants/size.constants'
     import { iconType } from '~~/constants/icon.constants'
+    import { themeType } from '~~/constants/theme.constants'
 
     const props = defineProps({
         file: {
@@ -72,13 +74,20 @@
         set: value => updateCount(value, props.fileIndex),
     });
 
-    const emit = defineEmits(['openModal'])
+    const emit = defineEmits(['openModal', 'delete'])
 
     const { actions } = filesStore
     const { increment, decrement, updateCount } = actions
 
     const openModal = () => {
         emit('openModal')
+    }
+
+    const handleDelete = (event) => {
+        event.stopPropagation();
+        if (confirm(`Delete ${props.file.name}?`)) {
+            emit('delete', props.file.slug);
+        }
     }
 </script>
 

@@ -21,16 +21,15 @@
                 {{ resultsLabel }}
             </p>
         </div>
-        <!-- <div class="project__btn">
+        <div class="project__btn" @click.prevent="handleDelete">
             <MainButton 
                 :label="`delete ${project.name}`"
                 :size="sizeType.s"
-                :theme="themeType.secondary"
+                :theme="themeType.ghost"
                 :icon="iconType.trash"
-                :isLabelShow=false
-                @click="console.log(`delete ${project.name}`)"
+                :isLabelShow="false"
             />
-        </div> -->
+        </div>
     </div>
 </template>
 
@@ -47,10 +46,31 @@ const { project } = defineProps({
     },
 }) 
 const route = useRoute()
+const router = useRouter()
 const now = ref(new Date())
 
 const { actions } = filesStore;
 const { getProject } = actions;
+
+const { actions: globalActions } = globalStore;
+const { getProjects } = globalActions;
+
+const handleDelete = async (event) => {
+    event.stopPropagation();
+    if (confirm(`Delete project "${project.name}"?`)) {
+        try {
+            await $fetch(`/api/project/${project.slug}`, {
+                method: 'DELETE'
+            });
+            await getProjects();
+            if (route.params.slug === project.slug) {
+                router.push({ name: 'home' });
+            }
+        } catch (error) {
+            console.error('Failed to delete project:', error);
+        }
+    }
+}
 
 const projectClasses = computed(() => ({
     'project--active': unref(project).slug === route.params.slug

@@ -6,6 +6,7 @@
             <MainButton :theme="themeType.primary" @click="logoutHandler" label="Logout" class="profile__btn" />
         </div>
         <UserBalance class="profile__balance" />
+        <MainButton :theme="themeType.secondary" @click="addCredits" label="Add 100 coins (dev)" class="profile__add-credits" />
         <BuyCredits />
     </div>
 </template>
@@ -27,6 +28,17 @@ const logoutHandler = async () => {
     await logout();
     router.push({ path: '/' })
 };
+
+const addCredits = async () => {
+    try {
+        await $fetch('/api/user/add-credits', {
+            method: 'POST',
+            body: { amount: 100 }
+        });
+    } catch (error) {
+        console.error('Failed to add credits:', error);
+    }
+};
 </script>
 <style lang="scss" scoped>
 .profile {
@@ -45,6 +57,10 @@ const logoutHandler = async () => {
 
     &__balance {
         margin-top: 24px;
+        margin-bottom: 24px;
+    }
+
+    &__add-credits {
         margin-bottom: 24px;
     }
 }

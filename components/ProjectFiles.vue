@@ -9,6 +9,7 @@
                 :file="file"
                 :fileIndex="fileIndex"
                 @openModal="openModal(file)"
+                @delete="handleDeleteFile"
                 v-if="fileIsDone(file.processingStatus)"
                 class="files__item file"
             />
@@ -37,9 +38,13 @@ defineProps({
     }
 })
 
-const emit = defineEmits(["addFiles"])
+const emit = defineEmits(["addFiles", "deleteFile"])
 
 const addFiles = (files) => emit("addFiles", files)
+
+const handleDeleteFile = (fileSlug) => {
+    emit("deleteFile", fileSlug)
+}
 
 const fileIsDone = (status) => status === processingType.done
 const fileIsProcessing = (status) => status === processingType.inProgress

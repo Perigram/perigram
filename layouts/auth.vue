@@ -15,6 +15,13 @@
                     label="Open projects"
                 />
                 <MainButton
+                    to="/cassettes"
+                    :tag="NuxtLink"
+                    class="controls__btn controls__btn--cassettes"
+                    :theme="themeType.secondary"
+                    label="Cassettes"
+                />
+                <MainButton
                     @click="openResults"
                     class="controls__btn controls__btn--results"
                     :theme="themeType.secondary"
@@ -45,6 +52,7 @@
     </div>
 </template>
 <script setup>
+import { NuxtLink } from '#components';
 import { themeType } from '~~/constants/theme.constants';
 const route = useRoute()
 const supportDialog = useSupportDialog();

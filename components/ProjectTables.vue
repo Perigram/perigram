@@ -1,26 +1,26 @@
 <template>
-    <div class="mt-8">
-        <div class="flex items-center space-x-2 mb-4 overflow-x-auto">
+    <div class="project-tables">
+        <div class="project-tables__tabs">
             <span v-for="table in tables" :key="table._id" 
                   @click="selectTable(table._id)"
-                  :class="['whitespace-nowrap cursor-pointer px-3 py-1 rounded-full text-sm', { 
-                      'bg-indigo-600 text-white': selectedTable && selectedTable._id === table._id, 
-                      'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200': !selectedTable || selectedTable._id !== table._id 
+                  :class="['project-tables__tab', { 
+                      'project-tables__tab--active': selectedTable && selectedTable._id === table._id
                   }]">
                 {{ table.name }}
             </span>
         </div>
         
-        <div class="mt-4 grid grid-cols-2 gap-4">
-            <MainButton @click="showUploadWizard = true" label="Upload Table" :theme="'primary'" :size="'m'" />
-            <MainButton @click="showCreateForm = true" label="Create Table" :theme="'secondary'" :size="'m'" />
+        <div class="project-tables__actions">
+            <MainButton @click="showUploadWizard = true" label="Upload Table" :theme="themeType.primary" :size="sizeType.m" />
+            <MainButton @click="showCreateForm = true" label="Create Table" :theme="themeType.secondary" :size="sizeType.m" />
+            <MainButton v-if="selectedTable" @click="handleDeleteTable" label="Delete Table" :theme="themeType.ghost" :size="sizeType.m" />
         </div>
 
-        <div v-if="showCreateForm" class="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-            <input type="text" v-model="newTableName" placeholder="New table name" class="w-full p-2 border rounded-md bg-white dark:bg-gray-700"/>
-            <div class="mt-2 flex justify-end space-x-2">
-                <MainButton @click="showCreateForm = false" label="Cancel" :theme="'secondary'" :size="'s'" />
-                <MainButton @click="handleCreateTable" label="Create" :theme="'primary'" :size="'s'" />
+        <div v-if="showCreateForm" class="project-tables__form">
+            <input type="text" v-model="newTableName" placeholder="New table name" class="project-tables__input"/>
+            <div class="project-tables__form-actions">
+                <MainButton @click="showCreateForm = false" label="Cancel" :theme="themeType.secondary" :size="sizeType.s" />
+                <MainButton @click="handleCreateTable" label="Create" :theme="themeType.primary" :size="sizeType.s" />
             </div>
         </div>
         <TableUploadWizard v-if="showUploadWizard" @close="showUploadWizard = false" :project-slug="projectSlug" />
@@ -30,6 +30,8 @@
 <script setup>
 import { ref, onMounted, computed, toRefs } from 'vue';
 import { tablesStore } from '~/composables/tables';
+import { themeType } from '~/constants/theme.constants';
+import { sizeType } from '~/constants/size.constants';
 import TableUploadWizard from './TableUploadWizard.vue';
 import MainButton from './MainButton.vue';
 
@@ -42,13 +44,11 @@ const props = defineProps({
 
 const { getters, actions } = tablesStore;
 const { tables, selectedTable } = toRefs(getters);
-const { selectTable, createTable } = actions;
+const { selectTable, createTable, deleteTable } = actions;
 
 const showUploadWizard = ref(false);
 const showCreateForm = ref(false);
 const newTableName = ref('');
-
-
 
 const handleCreateTable = () => {
     if (newTableName.value) {
@@ -57,4 +57,74 @@ const handleCreateTable = () => {
         showCreateForm.value = false;
     }
 };
+
+const handleDeleteTable = async () => {
+    if (selectedTable.value && confirm(`Delete table "${selectedTable.value.name}"?`)) {
+        await deleteTable(selectedTable.value._id);
+    }
+};
 </script>
+
+<style lang="scss" scoped>
+.project-tables {
+    $self: &;
+
+    &__tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        overflow-x: auto;
+    }
+
+    &__tab {
+        white-space: nowrap;
+        cursor: pointer;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        background-color: var(--fill-secondary);
+        color: var(--label-secondary);
+        transition: all 0.2s;
+
+        &:hover {
+            background-color: var(--fill-tertiary);
+        }
+
+        &--active {
+            background-color: var(--accent-primary);
+            color: var(--background-primary);
+        }
+    }
+
+    &__actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    &__form {
+        padding: 16px;
+        background-color: var(--fill-secondary);
+        border-radius: 8px;
+        margin-bottom: 16px;
+    }
+
+    &__input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--separator-primary);
+        border-radius: 8px;
+        background-color: var(--background-primary);
+        color: var(--label-primary);
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    &__form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+}
+</style>

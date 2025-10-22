@@ -1,14 +1,13 @@
 <template>
-    <div class="mt-8">
-        <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">Table Editor</h3>
-        <div v-if="!selectedTable" class="text-center text-gray-500 dark:text-gray-400 py-4">
+    <div class="table-editor">
+        <div v-if="!selectedTable" class="table-editor__empty">
             Select a table to view its content.
         </div>
-        <div v-else>
-            <div ref="tabulator" class="mt-4"></div>
-            <div class="mt-4 flex justify-end space-x-2">
-                <MainButton @click="addRow" label="Add Row" :theme="'secondary'" :size="'m'" />
-                <MainButton @click="saveChanges" label="Save Changes" :theme="'primary'" :size="'m'" />
+        <div v-else class="table-editor__content">
+            <div ref="tabulator" class="table-editor__tabulator"></div>
+            <div class="table-editor__actions">
+                <MainButton @click="addRow" label="Add Row" :theme="themeType.secondary" :size="sizeType.m" />
+                <MainButton @click="saveChanges" label="Save Changes" :theme="themeType.primary" :size="sizeType.m" />
             </div>
         </div>
     </div>
@@ -20,6 +19,8 @@ import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import '~/assets/css/tabulator-theme.css';
 import { tablesStore } from '~/composables/tables';
 import { tableSchema } from '~/server/schemas/table.js';
+import { themeType } from '~/constants/theme.constants';
+import { sizeType } from '~/constants/size.constants';
 import MainButton from './MainButton.vue';
 
 const { getters: tableGetters, actions: tableActions } = tablesStore;
@@ -40,7 +41,8 @@ const initializeTabulator = (table) => {
         tabulatorInstance.value = new Tabulator(tabulator.value, {
             data: table.data || [],
             columns: tableColumns,
-            layout: "fitColumns",
+            layout: "fitDataStretch",
+            responsiveLayout: "collapse",
             pagination: "local",
             paginationSize: 10,
             dataLoaded: function(data) {
@@ -100,3 +102,32 @@ const saveChanges = async () => {
     }
 };
 </script>
+
+<style lang="scss" scoped>
+.table-editor {
+    $self: &;
+
+    &__empty {
+        text-align: center;
+        color: var(--label-tertiary);
+        padding: 24px;
+    }
+
+    &__content {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    &__tabulator {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    &__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+}
+</style>

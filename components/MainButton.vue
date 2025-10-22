@@ -16,12 +16,16 @@ import { computed, unref } from 'vue';
 import { defaultSizeType } from '~~/constants/size.constants';
 import { defaultThemeType } from '~~/constants/theme.constants';
 
-const { label, icon, target, href, size, theme, isDisable, isLabelShow, isNotClickable } = defineProps({
+const { label, icon, target, href, to, size, theme, isDisable, isLabelShow, isNotClickable } = defineProps({
     label: {
         type: String,
         default: '',
     },
     href: {
+        type: String,
+        default: '',
+    },
+    to: {
         type: String,
         default: '',
     },
@@ -60,10 +64,12 @@ const { label, icon, target, href, size, theme, isDisable, isLabelShow, isNotCli
 }) 
 const attr = computed(() => {
     const hrefValue = Boolean(unref(href)) ? { href: unref(href) } : {} 
+    const toValue = Boolean(unref(to)) ? { to: unref(to) } : {}
     const targetValue = Boolean(unref(target)) ? { target: unref(target) } : {}
     const titleValue = !unref(isLabelShow)  ? { tilte: unref(label), 'aria-label': unref(label) } : {}
     return {
         ...hrefValue,
+        ...toValue,
         ...targetValue,
         ...titleValue,
     }

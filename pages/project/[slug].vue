@@ -1,33 +1,32 @@
 <template>
     <div class="content">
-        <MainTitle :label="`Project: ${projectName}`" class="content__title" />
-
         <Tabs :tabs="tabs" initial-tab="Files">
             <template #Files>
-                <ProjectFiles :projectFiles="projectFiles" @addFiles="addFiles" class="content__files" />
+                <ProjectFiles :projectFiles="projectFiles" @addFiles="addFiles" @deleteFile="deleteFile" class="content__files" />
             </template>
             <template #Tables>
                 <ProjectTables :project-slug="slug" />
                 <TableEditor />
             </template>
+            <template #Nesting>
+                <MainSettings />
+                <MainButton :theme="themeType.primary" :label="btnLabel" :isDisable="btnIsDisable" @click="startsNest"
+                    class="content__btn" />
+                <div v-if="nestRequestError" class="content__error">
+                    {{ nestRequestError }}
+                </div>
+                <div v-if="!sizesIsAvailable && !nestRequestError" class="content__error">
+                    The plate size needs to be at least {{ biggestPartSizes.width }} x {{ biggestPartSizes.height }} mm. The
+                    current plate size is {{ params.widthPlate }} x {{ params.heightPlate }} mm, which is too small
+                </div>
+                <div v-if="!isNewParams" class="content__text">
+                    Change settings or files to generate again
+                </div>
+            </template>
             <template #Statistics>
                 <ProjectStatistics :statistics="projectStatistics" />
             </template>
         </Tabs>
-
-        <MainSettings />
-        <MainButton :theme="themeType.primary" :label="btnLabel" :isDisable="btnIsDisable" @click="startsNest"
-            class="content__btn" />
-        <div v-if="nestRequestError" class="content__error">
-            {{ nestRequestError }}
-        </div>
-        <div v-if="!sizesIsAvailable && !nestRequestError" class="content__error">
-            The plate size needs to be at least {{ biggestPartSizes.width }} x {{ biggestPartSizes.height }} mm. The
-            current plate size is {{ params.widthPlate }} x {{ params.heightPlate }} mm, which is too small
-        </div>
-        <div v-if="!isNewParams" class="content__text">
-            Change settings or files to generate again
-        </div>
     </div>
     <InfoAboutNestModal v-model:isModalOpen="infoAboutNestDialog" />
 </template>
@@ -50,6 +49,7 @@ definePageMeta({
 const tabs = [
     { name: 'Files' },
     { name: 'Tables' },
+    { name: 'Nesting' },
     { name: 'Statistics' },
 ];
 
@@ -125,6 +125,19 @@ const addFiles = (files) => {
     actions.addFiles(files, slug)
 }
 
+const deleteFile = async (fileSlug) => {
+    try {
+        await $fetch(`/api/project/${slug}/files/${fileSlug}`, {
+            method: 'DELETE'
+        });
+        // Refresh project data
+        const updatedData = await $fetch(apiPath);
+        setProjectFiles(updatedData.files, apiPath);
+    } catch (error) {
+        console.error('Failed to delete file:', error);
+    }
+}
+
 const startsNest = () => {
     if (btnIsDisable.value) return;
     nest(slug);
@@ -140,10 +153,6 @@ const startsNest = () => {
 
 .content {
     text-align: center;
-
-    &__title {
-        margin-bottom: 16px;
-    }
 
     &__files {
         margin-bottom: 40px;
