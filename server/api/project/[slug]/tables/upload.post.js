@@ -72,10 +72,5 @@ export default defineEventHandler(async (event) => {
         // For now, we'll keep it simple and always require mapping
     }
 
-    return {
-        status: 'needs_mapping',
-        tableId: result.insertedId,
-        detectedHeaders,
-        requiredHeaders,
-    };
+    return { ...newTable, _id: result.insertedId };
 });

@@ -67,7 +67,7 @@ const nestRequestError = computed(() => filesGetters.nestRequestError);
 const route = useRoute();
 const slug = route.params.slug;
 const apiPath = API_ROUTES.PROJECT(slug);
-const data = filesGetters.projectFiles || await $fetch(apiPath, { headers });
+const data = await $fetch(apiPath, { headers });
 
 
 const projectStatistics = computed(() => data.statistics);

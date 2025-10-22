@@ -15,15 +15,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue';
+import { ref, onMounted, watch, nextTick, toRefs } from 'vue';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
-import 'tabulator-tables/dist/css/tabulator_simple.min.css';
+import '~/assets/css/tabulator-theme.css';
 import { tablesStore } from '~/composables/tables';
 import { tableSchema } from '~/server/schemas/table.js';
 import MainButton from './MainButton.vue';
 
 const { getters: tableGetters, actions: tableActions } = tablesStore;
-const { selectedTable } = tableGetters;
+const { selectedTable } = toRefs(tableGetters);
 
 const tabulator = ref(null);
 const tabulatorInstance = ref(null);
@@ -43,6 +43,13 @@ const initializeTabulator = (table) => {
             layout: "fitColumns",
             pagination: "local",
             paginationSize: 10,
+            dataLoaded: function(data) {
+                if (this.getPageMax() <= 1) {
+                    this.element.querySelector('.tabulator-footer').style.display = 'none';
+                } else {
+                    this.element.querySelector('.tabulator-footer').style.display = 'block';
+                }
+            },
         });
     }
 };
@@ -83,11 +90,11 @@ const saveChanges = async () => {
     const projectId = selectedTable.value.projectId;
 
     try {
-        await $fetch(`/api/tables/${tableId}`, {
+        const updatedTable = await $fetch(`/api/tables/${tableId}`, {
             method: 'PUT',
             body: { data: updatedData },
         });
-        await tableActions.fetchTables(projectId);
+        tableActions.updateTable(updatedTable);
     } catch (error) {
         console.error('Failed to save table data:', error);
     }

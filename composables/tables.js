@@ -41,13 +41,8 @@ const actions = {
             state.uploadStatus = 'mapping';
             state.detectedHeaders = result.detectedHeaders;
             state.requiredHeaders = result.requiredHeaders;
-            await this.fetchTables(projectSlug);
-            
-            // Automatically select the new table
-            const newTable = state.tables.find(t => t._id === result.tableId);
-            if (newTable) {
-                state.selectedTableId = newTable._id;
-            }
+            state.tables.push(result);
+            state.selectedTableId = result._id;
         } catch (error) {
             state.uploadStatus = 'error';
             console.error('Failed to upload table:', error);
@@ -57,12 +52,13 @@ const actions = {
     async mapAndValidateTable(tableId, mappings) {
         state.uploadStatus = 'validating';
         try {
-            await $fetch(`/api/tables/${tableId}/map`, {
-                method: 'POST',
-                body: { mappings },
-            });
+            const updatedTable = await $fetch(`/api/tables/${tableId}`,
+                {
+                    method: 'PUT',
+                    body: { columnMappings: mappings, status: 'validated' },
+                });
             state.uploadStatus = 'idle';
-            await this.fetchTables(projectSlug); // Refresh tables
+            this.updateTable(updatedTable);
         } catch (error) {
             state.uploadStatus = 'error';
             state.validationErrors = error.data.data;
@@ -103,6 +99,13 @@ const actions = {
         state.tables = tables;
         if (tables.length > 0) {
             state.selectedTableId = tables[0]._id;
+        }
+    },
+
+    updateTable(table) {
+        const index = state.tables.findIndex(t => t._id === table._id);
+        if (index !== -1) {
+            state.tables[index] = table;
         }
     },
 

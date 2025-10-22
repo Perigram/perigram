@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, toRefs } from 'vue';
 import { tablesStore } from '~/composables/tables';
 import TableUploadWizard from './TableUploadWizard.vue';
 import MainButton from './MainButton.vue';
@@ -41,8 +41,8 @@ const props = defineProps({
 });
 
 const { getters, actions } = tablesStore;
-const { tables, selectedTable } = getters;
-const { fetchTables, deleteTable, selectTable, createTable } = actions;
+const { tables, selectedTable } = toRefs(getters);
+const { selectTable, createTable } = actions;
 
 const showUploadWizard = ref(false);
 const showCreateForm = ref(false);

@@ -1,0 +1,46 @@
+
+.tabulator {
+    background-color: var(--background-primary);
+    color: var(--label-primary);
+    border: 1px solid var(--separator-secondary);
+    font-size: 14px;
+}
+
+.tabulator-header {
+    background-color: var(--fill-tertiary);
+    color: var(--label-secondary);
+    border-bottom: 1px solid var(--separator-secondary);
+}
+
+.tabulator-col-content {
+    padding: 10px;
+}
+
+.tabulator-row {
+    background-color: var(--background-primary);
+    border-bottom: 1px solid var(--separator-secondary);
+}
+
+.tabulator-row:hover {
+    background-color: var(--fill-tertiary);
+}
+
+.tabulator-cell {
+    padding: 10px;
+    border-right: 1px solid var(--separator-secondary);
+}
+
+.tabulator-footer {
+    background-color: var(--fill-tertiary);
+    color: var(--label-secondary);
+    border-top: 1px solid var(--separator-secondary);
+    padding: 10px;
+}
+
+.tabulator-paginator button {
+    color: var(--label-primary);
+}
+
+.tabulator-paginator button:disabled {
+    color: var(--label-tertiary);
+}

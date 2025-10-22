@@ -34,5 +34,7 @@ export default defineEventHandler(async (event) => {
         );
     }
 
-    return { success: true };
+    const updatedTable = await db.collection('tables').findOne({ _id: new ObjectId(tableId) });
+
+    return updatedTable;
 });
