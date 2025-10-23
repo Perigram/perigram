@@ -28,8 +28,9 @@ export default defineNuxtConfig({
     },
 
     runtimeConfig: {
-        // Map MONGODB_URI (from Vercel) to mongoUri
-        mongoUri: process.env.MONGODB_URI || '',
+        // Railway: Set NUXT_MONGODB_URI in environment variables
+        // The NUXT_ prefix allows runtime override
+        mongoUri: process.env.NUXT_MONGODB_URI || process.env.MONGODB_URI || '',
         stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
         githubClientSecret: process.env.GITHUB_CLIENT_SECRET || '',
         resendToken: process.env.RESEND_TOKEN || '',
