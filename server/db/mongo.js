@@ -129,6 +129,14 @@ export async function getValidUserDxfBucket() {
 export async function connectDB() {
   if (!client) {
     try {
+      // Debug: Log what URI we're trying to use (hide password)
+      const debugUri = uri ? uri.replace(/:([^:@]+)@/, ':****@') : 'EMPTY/UNDEFINED';
+      logger.info(`Attempting MongoDB connection with URI: ${debugUri}`);
+      
+      if (!uri) {
+        throw new Error('MongoDB URI is not configured. Set NUXT_MONGODB_URI or MONGODB_URI environment variable.');
+      }
+      
       client = new MongoClient(uri);
       await client.connect();
       logger.info("Connected to MongoDB");
