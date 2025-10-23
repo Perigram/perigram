@@ -16,6 +16,7 @@
 <script setup>
 import { ref, onMounted, watch, nextTick, toRefs } from 'vue';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
+import 'tabulator-tables/dist/css/tabulator.min.css';
 import '~/assets/css/tabulator-theme.css';
 import { tablesStore } from '~/composables/tables';
 import { tableSchema } from '~/server/schemas/table.js';
@@ -34,7 +35,7 @@ const tableColumns = tableSchema.columns.map((col, index) => {
         title: col.name,
         field: col.field,
         editor: "input",
-        headerFilter: "input",
+        headerFilter: false, // Disabled header filters
     };
     
     // Set widths for specific columns
@@ -66,10 +67,7 @@ const initializeTabulator = (table) => {
             pagination: dataLength > 10,
             paginationSize: 10,
             autoColumns: false,
-            headerVisible: true,
-            columnHeaderVertAlign: "middle",
-            renderHorizontal: "virtual",
-            layout: "fitColumns",
+            layout: "fitData",
         });
     }
 };

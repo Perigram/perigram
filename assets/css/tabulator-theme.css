@@ -1,10 +1,12 @@
-/* Tabulator Minimal Theme - Colors Only, Default Layout */
+/* Tabulator Custom Theme */
 
 .tabulator {
     background-color: var(--background-primary);
     color: var(--label-primary);
     border: 1px solid var(--separator-primary);
-    border-radius: 8px;
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 14px;
 }
 
 .tabulator-header {
@@ -12,20 +14,37 @@
     border-bottom: 2px solid var(--separator-primary);
 }
 
+.tabulator-header-contents {
+    width: 100%;
+}
+
 .tabulator-col {
     background-color: var(--fill-tertiary);
+    border-right: 1px solid var(--separator-secondary);
+}
+
+.tabulator-col:last-child {
+    border-right: none;
 }
 
 .tabulator-col-content {
-    padding: 12px 8px;
+    padding: 16px 12px;
     color: var(--label-primary);
+}
+
+.tabulator-col-title {
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 /* Row Styling */
 .tabulator-row {
     background-color: var(--background-primary);
     border-bottom: 1px solid var(--separator-secondary);
-    min-height: 40px;
+    min-height: 48px;
+    transition: background-color 0.15s ease;
 }
 
 .tabulator-row:hover {
@@ -42,7 +61,7 @@
 
 /* Cell Styling */
 .tabulator-cell {
-    padding: 12px 8px;
+    padding: 14px 12px;
     border-right: 1px solid var(--separator-secondary);
     color: var(--label-primary);
     vertical-align: middle;
@@ -55,20 +74,30 @@
 /* Editable cells */
 .tabulator-cell.tabulator-editing {
     border: 2px solid var(--accent-primary);
-    padding: 10px 6px;
+    padding: 12px 10px;
     background-color: var(--background-primary);
+    border-radius: 4px;
 }
 
 .tabulator-cell.tabulator-editing input,
 .tabulator-cell.tabulator-editing select,
 .tabulator-cell.tabulator-editing textarea {
-    background-color: var(--background-primary);
+    background-color: var(--background-secondary);
     color: var(--label-primary);
-    border: none;
+    border: 1px solid var(--separator-primary);
+    border-radius: 6px;
     outline: none;
-    padding: 4px;
+    padding: 8px 10px;
     width: 100%;
     font-size: 14px;
+    font-family: inherit;
+}
+
+.tabulator-cell.tabulator-editing input:focus,
+.tabulator-cell.tabulator-editing select:focus,
+.tabulator-cell.tabulator-editing textarea:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-secondary);
 }
 
 /* Validation */
@@ -76,11 +105,15 @@
     border: 2px solid #ff4444;
 }
 
+.tabulator-cell.tabulator-validation-fail input {
+    border-color: #ff4444;
+}
+
 /* Footer & Pagination */
 .tabulator-footer {
     background-color: var(--fill-tertiary);
     border-top: 2px solid var(--separator-primary);
-    padding: 12px;
+    padding: 16px;
     color: var(--label-primary);
 }
 
@@ -93,55 +126,58 @@
     display: inline-block;
     background-color: var(--fill-secondary);
     border: 1px solid var(--separator-primary);
-    border-radius: 4px;
-    padding: 6px 12px;
+    border-radius: 8px;
+    padding: 8px 14px;
     margin: 0 4px;
     color: var(--label-primary);
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 14px;
+    font-weight: 500;
 }
 
 .tabulator-page:hover {
     background-color: var(--accent-secondary);
+    border-color: var(--accent-primary);
 }
 
 .tabulator-page.active {
     background-color: var(--accent-primary);
-    color: var(--background-primary);
+    color: white;
     font-weight: 600;
+    border-color: var(--accent-primary);
 }
 
 .tabulator-page[disabled] {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
     pointer-events: none;
 }
 
 /* Table Holder - Scrollable Area */
-.tabulator-tableHolder {
+.tabulator-tableholder {
     overflow-x: auto;
     overflow-y: auto;
     max-height: 600px;
 }
 
 /* Scrollbar Styling */
-.tabulator-tableHolder::-webkit-scrollbar {
+.tabulator-tableholder::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
-.tabulator-tableHolder::-webkit-scrollbar-track {
+.tabulator-tableholder::-webkit-scrollbar-track {
     background: var(--fill-secondary);
     border-radius: 4px;
 }
 
-.tabulator-tableHolder::-webkit-scrollbar-thumb {
+.tabulator-tableholder::-webkit-scrollbar-thumb {
     background: var(--separator-primary);
     border-radius: 4px;
 }
 
-.tabulator-tableHolder::-webkit-scrollbar-thumb:hover {
+.tabulator-tableholder::-webkit-scrollbar-thumb:hover {
     background: var(--accent-primary);
 }
 
@@ -162,8 +198,24 @@
 .tabulator-placeholder {
     color: var(--label-tertiary);
     text-align: center;
-    padding: 40px 20px;
+    padding: 60px 20px;
     font-size: 14px;
+}
+
+/* Header filter inputs (hidden by default via JS config) */
+.tabulator-header-filter {
+    display: none;
+}
+
+/* Sorting arrows */
+.tabulator-col.tabulator-sortable .tabulator-col-title {
+    padding-right: 20px;
+}
+
+.tabulator-arrow {
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 4px solid var(--label-secondary);
 }
 
 /* Responsive - Mobile */
