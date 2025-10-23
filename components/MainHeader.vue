@@ -20,18 +20,19 @@
                 <MainButton :theme="themeType.primary" :icon="themeIcon" :isLabelShow=false @click="updateTheme"
                     label="toogle theme" />
             </div>
+            <LanguageSwitcher class="header__language" />
             <MainButton href="https://github.com/VovaStelmashchuk/nest2d/issues/new" target="_blank"
-                label="Report a problem" tag="a" class="header__btn" v-if="isSecondaryTheme" />
+                :label="$t('auth.reportProblem')" tag="a" class="header__btn" v-if="isSecondaryTheme" />
             <MainButton 
                 v-if="isPrimaryTheme"
                 to="/cassettes"
                 :tag="NuxtLink"
                 :theme="themeType.secondary"
-                label="Cassettes" 
+                :label="$t('nav.cassettes')"
                 class="header__btn header__btn--cassettes" 
             />
             <UserBalance class="header__btn" v-if="isPrimaryTheme" />
-            <MainButton v-if="isSecondaryTheme" :theme="themeType.primary" @click="onLoginClick" label="Login / Sign Up"
+            <MainButton v-if="isSecondaryTheme" :theme="themeType.primary" @click="onLoginClick" :label="$t('auth.loginSignup')"
                 class="header__btn header__btn--login" />
             <Avatar v-if="isPrimaryTheme" :size="sizeType.s" class="header__avatar" />
             <div v-if="isSecondaryTheme" class="header__toggler">
@@ -218,6 +219,12 @@ const themeIcon = computed(() => {
     &__toggler {
         @media (min-width: 1199px) {
             display: none;
+        }
+    }
+
+    &__language {
+        @media (max-width: 567px) {
+            order: -1;
         }
     }
 

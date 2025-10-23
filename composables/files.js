@@ -13,7 +13,10 @@ const state = reactive({
         widthPlate: '400',
         heightPlate: '560',
         space: '0.1',
-        sheetCount: 100
+        sheetCount: 100,
+        useTable: false,
+        tableId: null,
+        cassetteId: null
     },
     isSvgLoaded: computed(
         () =>
@@ -36,9 +39,10 @@ const state = reactive({
     currentFilesSlug: computed(
         () => new Set(state.projectFiles?.map((file) => file.slug) || [])
     ),
-    isValidParams: computed(() =>
-        Object.values(state.params).some((param) => !isValidNumber(param))
-    ),
+    isValidParams: computed(() => {
+        const { widthPlate, heightPlate, space } = state.params;
+        return isValidNumber(widthPlate) && isValidNumber(heightPlate) && isValidNumber(space);
+    }),
     requestBody: computed(() =>
         JSON.stringify({
             files: state.filesToNest,
@@ -47,7 +51,10 @@ const state = reactive({
                 height: Number(state.params.heightPlate),
                 tolerance: Number(state.params.tolerance),
                 space: Number(state.params.space),
-                sheetCount: Number(state.params.sheetCount)
+                sheetCount: Number(state.params.sheetCount),
+                useTable: state.params.useTable || false,
+                tableId: state.params.tableId,
+                cassetteId: state.params.cassetteId
             }
         })
     )
@@ -165,17 +172,21 @@ async function nest(slug) {
 export const filesStore = readonly({
     getters: {
         projectFiles: computed(() => state.projectFiles),
+        files: computed(() => state.projectFiles),
         filesCount: computed(() =>
             state.filesStatusDone.reduce((acc, curr) => acc + curr.count, 0)
         ),
         isNewParams: computed(() => state.requestBody !== state.lastParams),
         params: computed(() => state.params),
         nestRequestError: computed(() => {
-            if (filesStore.getters.filesCount < 1) {
+            if (state.params.useTable && !state.params.tableId) {
+                return 'Please select a table for nesting.'
+            }
+            if (!state.params.useTable && filesStore.getters.filesCount < 1) {
                 return 'Please select at least one file to nest.'
             }
-            if (state.isValidParams) {
-                return 'Please enter valid values for width, height, tolerance and space.'
+            if (!state.isValidParams) {
+                return 'Please enter valid values for width, height and space.'
             }
 
             return ''

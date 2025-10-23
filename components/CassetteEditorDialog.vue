@@ -1,11 +1,11 @@
 <template>
     <DialogWrapper v-model:isModalOpen="isOpen" @close="$emit('close')">
         <div class="cassette-editor">
-            <h3 class="cassette-editor__title">Edit Cassette: {{ cassette.name }}</h3>
+            <h3 class="cassette-editor__title">{{ $t('cassette.edit') }}: {{ cassette.name }}</h3>
             
             <div class="cassette-editor__content">
                 <p class="cassette-editor__description">
-                    Map DXF layers to cassette layers:
+                    {{ $t('cassette.mapLayers') }}
                 </p>
 
                 <div class="cassette-editor__mapping">
@@ -34,13 +34,13 @@
                 <div class="cassette-editor__actions">
                     <MainButton 
                         @click="$emit('close')" 
-                        label="Cancel" 
+                        :label="$t('common.cancel')" 
                         :theme="themeType.secondary" 
                         :size="sizeType.m" 
                     />
                     <MainButton 
                         @click="handleSave" 
-                        label="Save" 
+                        :label="$t('common.save')" 
                         :theme="themeType.primary" 
                         :size="sizeType.m"
                     />

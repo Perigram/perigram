@@ -79,13 +79,15 @@
     const { actions } = filesStore
     const { increment, decrement, updateCount } = actions
 
+    const { $t } = useNuxtApp();
+
     const openModal = () => {
         emit('openModal')
     }
 
     const handleDelete = (event) => {
         event.stopPropagation();
-        if (confirm(`Delete ${props.file.name}?`)) {
+        if (confirm($t('messages.confirmDeleteFile', { name: props.file.name }))) {
             emit('delete', props.file.slug);
         }
     }

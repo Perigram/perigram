@@ -1,17 +1,17 @@
 <template>
     <div class="cassette-manager">
         <div class="cassette-manager__header">
-            <MainTitle label="Cassettes" class="cassette-manager__title" />
+            <MainTitle :label="$t('cassette.title')" class="cassette-manager__title" />
             <MainButton 
                 @click="showUploadDialog = true" 
-                label="Upload Cassette" 
+                :label="$t('cassette.upload')" 
                 :theme="themeType.primary" 
                 :size="sizeType.m" 
             />
         </div>
 
         <div v-if="cassettes.length === 0" class="cassette-manager__empty">
-            No cassettes yet. Upload a DXF file to create one.
+            {{ $t('cassette.noCassettes') }}
         </div>
 
         <div v-else class="cassette-manager__list">
@@ -30,13 +30,13 @@
                 <div class="cassette-manager__item-actions">
                     <MainButton 
                         @click.stop="editCassette(cassette)" 
-                        label="Edit" 
+                        :label="$t('common.edit')" 
                         :theme="themeType.secondary" 
                         :size="sizeType.s" 
                     />
                     <MainButton 
                         @click.stop="handleDelete(cassette._id)" 
-                        label="Delete" 
+                        :label="$t('common.delete')" 
                         :theme="themeType.ghost" 
                         :size="sizeType.s" 
                     />

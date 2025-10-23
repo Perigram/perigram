@@ -1,15 +1,15 @@
 <template>
     <div class="modal">
-        <MainTitle label="Buy Credits" class="modal__title" />
+        <MainTitle :label="$t('profile.buyCredits')" class="modal__title" />
         <UserBalance class="modal__balance" />
         <div class="buy-credits__options">
             <div v-for="option in data.options" :key="option.stripePriceId" class="buy-credits__option">
                 <div class="buy-credits__info">
                     <div class="buy-credits__title">{{ option.title }}</div>
                     <div class="buy-credits__desc">{{ option.description }}</div>
-                    <div class="buy-credits__credit">Credits: <b>{{ option.credit }}</b></div>
+                    <div class="buy-credits__credit">{{ $t('profile.credits') }}: <b>{{ option.credit }}</b></div>
                 </div>
-                <MainButton :label="'Buy'" :theme="themeType.primary" :size="sizeType.m" class="buy-credits__buy-btn"
+                <MainButton :label="$t('profile.buy')" :theme="themeType.primary" :size="sizeType.m" class="buy-credits__buy-btn"
                     @click="buy(option)" />
             </div>
         </div>

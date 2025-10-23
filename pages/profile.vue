@@ -3,10 +3,10 @@
         <MainTitle :label="user.name" class="profile__title" />
         <div class="profile__content">
             <Avatar />
-            <MainButton :theme="themeType.primary" @click="logoutHandler" label="Logout" class="profile__btn" />
+            <MainButton :theme="themeType.primary" @click="logoutHandler" :label="$t('profile.logout')" class="profile__btn" />
         </div>
         <UserBalance class="profile__balance" />
-        <MainButton :theme="themeType.secondary" @click="addCredits" label="Add 100 coins (dev)" class="profile__add-credits" />
+        <MainButton :theme="themeType.secondary" @click="addCredits" :label="$t('profile.addCredits')" class="profile__add-credits" />
         <BuyCredits />
     </div>
 </template>
@@ -31,10 +31,12 @@ const logoutHandler = async () => {
 
 const addCredits = async () => {
     try {
-        await $fetch('/api/user/add-credits', {
-            method: 'POST',
-            body: { amount: 100 }
+        const result = await $fetch('/api/user/add-test-credits', {
+            method: 'POST'
         });
+        // Refresh user data to show new balance
+        await actions.setUser();
+        console.log('Added 100 credits! New balance:', result.newBalance);
     } catch (error) {
         console.error('Failed to add credits:', error);
     }

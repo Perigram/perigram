@@ -55,9 +55,11 @@ const { getProject } = actions;
 const { actions: globalActions } = globalStore;
 const { getProjects } = globalActions;
 
+const { $t } = useNuxtApp();
+
 const handleDelete = async (event) => {
     event.stopPropagation();
-    if (confirm(`Delete project "${project.name}"?`)) {
+    if (confirm($t('messages.confirmDeleteProject', { name: project.name }))) {
         try {
             await $fetch(`/api/project/${project.slug}`, {
                 method: 'DELETE'

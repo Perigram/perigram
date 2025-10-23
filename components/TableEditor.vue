@@ -1,13 +1,13 @@
 <template>
     <div class="table-editor">
         <div v-if="!selectedTable" class="table-editor__empty">
-            Select a table to view its content.
+            {{ $t('table.selectTable') }}
         </div>
         <div v-else class="table-editor__content">
             <div ref="tabulator" class="table-editor__tabulator"></div>
             <div class="table-editor__actions">
-                <MainButton @click="addRow" label="Add Row" :theme="themeType.secondary" :size="sizeType.m" />
-                <MainButton @click="saveChanges" label="Save Changes" :theme="themeType.primary" :size="sizeType.m" />
+                <MainButton @click="addRow" :label="$t('table.addRow')" :theme="themeType.secondary" :size="sizeType.m" />
+                <MainButton @click="saveChanges" :label="$t('table.saveChanges')" :theme="themeType.primary" :size="sizeType.m" />
             </div>
         </div>
     </div>
@@ -29,29 +29,47 @@ const { selectedTable } = toRefs(tableGetters);
 const tabulator = ref(null);
 const tabulatorInstance = ref(null);
 
-const tableColumns = tableSchema.columns.map(col => ({
-    title: col.name,
-    field: col.name,
-    editor: "input",
-    headerFilter: "input",
-}));
+const tableColumns = tableSchema.columns.map((col, index) => {
+    const baseColumn = {
+        title: col.name,
+        field: col.field,
+        editor: "input",
+        headerFilter: "input",
+    };
+    
+    // Set widths for specific columns
+    if (col.name === 'Type') {
+        baseColumn.minWidth = 150;
+    } else if (col.name === 'Amount') {
+        baseColumn.width = 100;
+    } else if (col.name === 'Rotation') {
+        baseColumn.width = 100;
+    } else {
+        baseColumn.width = 80;
+    }
+    
+    return baseColumn;
+});
 
 const initializeTabulator = (table) => {
     if (tabulator.value && table) {
+        const dataLength = (table.data || []).length;
+        
+        // Destroy any existing instance
+        if (tabulatorInstance.value) {
+            tabulatorInstance.value.destroy();
+        }
+        
         tabulatorInstance.value = new Tabulator(tabulator.value, {
             data: table.data || [],
             columns: tableColumns,
-            layout: "fitDataStretch",
-            responsiveLayout: "collapse",
-            pagination: "local",
+            pagination: dataLength > 10,
             paginationSize: 10,
-            dataLoaded: function(data) {
-                if (this.getPageMax() <= 1) {
-                    this.element.querySelector('.tabulator-footer').style.display = 'none';
-                } else {
-                    this.element.querySelector('.tabulator-footer').style.display = 'block';
-                }
-            },
+            autoColumns: false,
+            headerVisible: true,
+            columnHeaderVertAlign: "middle",
+            renderHorizontal: "virtual",
+            layout: "fitColumns",
         });
     }
 };
@@ -64,12 +82,12 @@ onMounted(() => {
 
 watch(selectedTable, async (newTable) => {
     if (newTable) {
-        if (!tabulatorInstance.value) {
-            await nextTick();
-            initializeTabulator(newTable);
-        } else {
-            tabulatorInstance.value.setData(newTable.data || []);
+        if (tabulatorInstance.value) {
+            tabulatorInstance.value.destroy();
+            tabulatorInstance.value = null;
         }
+        await nextTick();
+        initializeTabulator(newTable);
     } else {
         if (tabulatorInstance.value) {
             tabulatorInstance.value.destroy();

@@ -12,20 +12,20 @@
                     @click="openProjects"
                     class="controls__btn controls__btn--projects"
                     :theme="themeType.secondary"
-                    label="Open projects"
+                    :label="$t('project.openProjects')"
                 />
                 <MainButton
                     to="/cassettes"
                     :tag="NuxtLink"
                     class="controls__btn controls__btn--cassettes"
                     :theme="themeType.secondary"
-                    label="Cassettes"
+                    :label="$t('nav.cassettes')"
                 />
                 <MainButton
                     @click="openResults"
                     class="controls__btn controls__btn--results"
                     :theme="themeType.secondary"
-                    :label="isHomePage ? 'Open all results' : 'Open results'"
+                    :label="isHomePage ? $t('project.openAllResults') : $t('project.openResults')"
                 />
             </div>
             <UserProjects @closeAside="close" :class="{'content__projects--open': projectsIsOpen}" class="content__projects"/>
@@ -44,7 +44,7 @@
                 </span>
             </span>
             <span class="btn__label">
-                Support
+                {{ $t('support.button') }}
             </span>
         </button>
         <Footer />

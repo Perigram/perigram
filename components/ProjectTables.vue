@@ -11,16 +11,16 @@
         </div>
         
         <div class="project-tables__actions">
-            <MainButton @click="showUploadWizard = true" label="Upload Table" :theme="themeType.primary" :size="sizeType.m" />
-            <MainButton @click="showCreateForm = true" label="Create Table" :theme="themeType.secondary" :size="sizeType.m" />
-            <MainButton v-if="selectedTable" @click="handleDeleteTable" label="Delete Table" :theme="themeType.ghost" :size="sizeType.m" />
+            <MainButton @click="showUploadWizard = true" :label="$t('table.upload')" :theme="themeType.primary" :size="sizeType.m" />
+            <MainButton @click="showCreateForm = true" :label="$t('table.create')" :theme="themeType.secondary" :size="sizeType.m" />
+            <MainButton v-if="selectedTable" @click="handleDeleteTable" :label="$t('table.delete')" :theme="themeType.ghost" :size="sizeType.m" />
         </div>
 
         <div v-if="showCreateForm" class="project-tables__form">
-            <input type="text" v-model="newTableName" placeholder="New table name" class="project-tables__input"/>
+            <input type="text" v-model="newTableName" :placeholder="$t('table.newTableName')" class="project-tables__input"/>
             <div class="project-tables__form-actions">
-                <MainButton @click="showCreateForm = false" label="Cancel" :theme="themeType.secondary" :size="sizeType.s" />
-                <MainButton @click="handleCreateTable" label="Create" :theme="themeType.primary" :size="sizeType.s" />
+                <MainButton @click="showCreateForm = false" :label="$t('common.cancel')" :theme="themeType.secondary" :size="sizeType.s" />
+                <MainButton @click="handleCreateTable" :label="$t('common.create')" :theme="themeType.primary" :size="sizeType.s" />
             </div>
         </div>
         <TableUploadWizard v-if="showUploadWizard" @close="showUploadWizard = false" :project-slug="projectSlug" />

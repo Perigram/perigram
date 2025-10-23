@@ -1,8 +1,7 @@
 import { connectDB } from '~~/server/db/mongo'
-import { ObjectId } from 'mongodb'
-import formidable from 'formidable'
-import fs from 'fs'
-import path from 'path'
+import { readMultipartFormData } from 'h3'
+import { generateRandomString } from '~~/server/utils/strings'
+import standardSlugify from 'standard-slugify'
 
 export default defineEventHandler(async (event) => {
     const userId = event.context?.auth?.userId
@@ -13,48 +12,46 @@ export default defineEventHandler(async (event) => {
         })
     }
 
-    const form = formidable({
-        maxFileSize: 50 * 1024 * 1024, // 50MB
-        keepExtensions: true,
-    })
-
-    const [fields, files] = await new Promise((resolve, reject) => {
-        form.parse(event.node.req, (err, fields, files) => {
-            if (err) reject(err)
-            else resolve([fields, files])
-        })
-    })
-
-    const file = files.file?.[0]
-    const name = fields.name?.[0] || 'Unnamed Cassette'
-
-    if (!file) {
+    const fields = await readMultipartFormData(event)
+    
+    const fileField = fields.find(f => f.name === 'file')
+    const nameField = fields.find(f => f.name === 'name')
+    
+    if (!fileField) {
         throw createError({
             statusCode: 400,
             message: 'No file uploaded'
         })
     }
 
+    const name = nameField?.data?.toString() || 'Unnamed Cassette'
+    const fileName = fileField.filename || 'cassette.dxf'
+    const fileBuffer = fileField.data
+    
+    const slug = standardSlugify(fileName, { keepCase: false }) + `-${generateRandomString(6)}.dxf`
+
     const db = await connectDB()
-    const cassetteBucket = db.bucket('cassettes')
+    const { GridFSBucket } = await import('mongodb')
+    const cassetteBucket = new GridFSBucket(db, { bucketName: 'cassettes' })
     
     // Upload DXF to GridFS
-    const dxfStream = fs.createReadStream(file.filepath)
-    const dxfUpload = cassetteBucket.openUploadStream(file.originalFilename || 'cassette.dxf', {
+    const uploadStream = cassetteBucket.openUploadStream(slug, {
         metadata: { userId }
     })
     
     await new Promise((resolve, reject) => {
-        dxfStream.pipe(dxfUpload)
-            .on('finish', resolve)
-            .on('error', reject)
+        uploadStream.on('finish', resolve)
+        uploadStream.on('error', reject)
+        uploadStream.write(fileBuffer)
+        uploadStream.end()
     })
 
     // Create cassette document
     const cassette = {
+        slug,
         name,
         userId,
-        dxfId: dxfUpload.id.toString(),
+        dxfId: uploadStream.id.toString(),
         svgId: null,
         layerMapping: {
             cut: [],
@@ -71,11 +68,7 @@ export default defineEventHandler(async (event) => {
     cassette._id = result.insertedId.toString()
 
     // TODO: Trigger worker to process DXF and detect layers
-    // For now, return mock detected layers
     cassette.detectedLayers = ['Layer 0', 'Cut', 'Bend', 'Frame']
-
-    // Cleanup temp file
-    fs.unlinkSync(file.filepath)
 
     return cassette
 })

@@ -19,16 +19,16 @@
                 class="upload__input"
             />
             <MainButton 
-                label="Choose files"
+                :label="$t('file.upload')"
                 tag="div"
                 :theme="themeType.primary"
                 class="upload__btn"
             />
             <span class="upload__text">
-                or drop your files here
+                {{ $t('file.dropFilesHere') }}
             </span>
             <span class="upload__text upload__text--gray">
-                Up to 20 files, max 5 MB each
+                {{ $t('file.uploadLimits') }}
             </span>
         </label>
     </div>

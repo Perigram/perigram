@@ -16,7 +16,7 @@
                     class="controls__prev"
                 />
                 <MainButton 
-                    :label="`Part ${activePart + 1} / ${resultModalData.dxfs.length}`" 
+                    :label="$t('results.partOf', { current: activePart + 1, total: resultModalData.dxfs.length })" 
                     :size="sizeType.s"
                     :theme="themeType.primary"
                     isNotClickable
@@ -48,7 +48,7 @@
                         class="modal__part-download"
                         v-if="resultModalData.isMultiSheet" 
                         :href="resultModalData.dxfs[activePart]"
-                        :label="`Download part ${activePart + 1}`" 
+                        :label="$t('results.downloadPart', { number: activePart + 1 })" 
                         tag="a" 
                         :isDisable="isHaveError" 
                         :size="sizeType.s"
@@ -69,15 +69,13 @@
             <div class="modal__name modal__info info">
                 <template v-if="isHaveError">
                     <span class="info__label">
-                        No solution found try to increase plate size or reduce
-                        requested object count
+                        {{ $t('results.noSolution') }}
                     </span>
                     <span class="info__label">
-                        {{ resultModalData.requested }} parts needed to be
-                        placed
+                        {{ $t('results.partsRequested', { count: resultModalData.requested }) }}
                     </span>
                     <span class="info__label">
-                        {{ resultModalData.placed }} parts placed
+                        {{ $t('results.partsPlaced', { count: resultModalData.placed }) }}
                     </span>
                 </template>
                 <template v-else> 

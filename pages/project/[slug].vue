@@ -16,11 +16,15 @@
                     {{ nestRequestError }}
                 </div>
                 <div v-if="!sizesIsAvailable && !nestRequestError" class="content__error">
-                    The plate size needs to be at least {{ biggestPartSizes.width }} x {{ biggestPartSizes.height }} mm. The
-                    current plate size is {{ params.widthPlate }} x {{ params.heightPlate }} mm, which is too small
+                    {{ $t('nesting.errors.plateTooSmall', { 
+                        width: biggestPartSizes.width, 
+                        height: biggestPartSizes.height,
+                        currentWidth: params.widthPlate,
+                        currentHeight: params.heightPlate
+                    }) }}
                 </div>
                 <div v-if="!isNewParams" class="content__text">
-                    Change settings or files to generate again
+                    {{ $t('nesting.errors.noChanges') }}
                 </div>
             </template>
             <template #Statistics>
@@ -38,6 +42,9 @@ import ProjectTables from '~/components/ProjectTables.vue';
 import TableEditor from '~/components/TableEditor.vue';
 import Tabs from '~/components/Tabs.vue';
 import { tablesStore } from '~/composables/tables';
+import { cassettesStore } from '~/composables/cassettes';
+
+const { t } = useI18n();
 
 const infoAboutNestDialog = useInfoAboutNest();
 
@@ -47,10 +54,10 @@ definePageMeta({
 });
 
 const tabs = [
-    { name: 'Files' },
-    { name: 'Tables' },
-    { name: 'Nesting' },
-    { name: 'Statistics' },
+    { name: 'Files', label: computed(() => t('project.files')) },
+    { name: 'Tables', label: computed(() => t('project.tables')) },
+    { name: 'Nesting', label: computed(() => t('project.nesting')) },
+    { name: 'Statistics', label: computed(() => t('project.statistics')) },
 ];
 
 const headers = useRequestHeaders(['cookie']);
@@ -63,64 +70,91 @@ const { setProjectFiles, setProjectName, nest } = actions;
 const filesCount = computed(() => filesGetters.filesCount);
 const projectName = computed(() => filesGetters.projectName);
 const isNewParams = computed(() => filesGetters.isNewParams);
-const nestRequestError = computed(() => filesGetters.nestRequestError);
+const isAllFilesDone = computed(
+  () => filesGetters.files.every((file) => file.progress === 100) && filesGetters.files.length > 0
+);
+
+const openInfoModal = () => {
+    infoAboutNestDialog.value = true;
+}
+
 const route = useRoute();
 const slug = route.params.slug;
-const apiPath = API_ROUTES.PROJECT(slug);
-const data = await $fetch(apiPath, { headers });
 
+const apiPath = `/api/project/${slug}`;
 
-const projectStatistics = computed(() => data.statistics);
+const { data } = await useFetch(apiPath, {
+    headers,
+    key: slug,
+});
 
-const projectFiles = computed(() => {
-    return filesGetters.projectFiles || data.files.map(file => ({ ...file, count: 1 }))
-})
+const projectFiles = computed(() => filesGetters.files);
+const projectStatistics = computed(() => data.value?.statistics || null);
+const nestRequestError = computed(() => filesGetters.nestRequestError);
+
 const biggestPartSizes = computed(() => {
-    const parts = projectFiles.value
-        .filter(file => file.count !== 0) // skip files with count 0
-        .reduce((acc, file) => [...acc, ...file.parts], [])
-        .map(part => ({
-            width: part.width > part.height ? part.width : part.height,
-            height: part.width > part.height ? part.height : part.width
-        }));
+    const files = unref(projectFiles);
+    if (!files || files.length === 0) return { width: 0, height: 0 };
+    
+    const allParts = files.flatMap(file => file.parts || []);
+    if (allParts.length === 0) return { width: 0, height: 0 };
+    
+    const maxWidth = Math.max(...allParts.map(part => Math.max(part.width, part.height)));
+    const maxHeight = Math.max(...allParts.map(part => Math.min(part.width, part.height)));
 
     return {
-        width: Math.max(...parts.map(part => part.width), 0),
-        height: Math.max(...parts.map(part => part.height), 0)
+        width: maxWidth || 0,
+        height: maxHeight || 0
     };
 })
+
 const currentSizes = computed(() => {
     const { widthPlate, heightPlate } = unref(params);
+    const width = Number(widthPlate) || 0;
+    const height = Number(heightPlate) || 0;
     return {
-        width: widthPlate > heightPlate ? widthPlate : heightPlate,
-        height: widthPlate > heightPlate ? heightPlate : widthPlate
+        width: Math.max(width, height),
+        height: Math.min(width, height)
     };
-})
+});
+
+
 const sizesIsAvailable = computed(() => {
     const { width, height } = unref(currentSizes);
     const { width: partWidth, height: partHeight } = unref(biggestPartSizes);
     return width >= partWidth && height >= partHeight;
-})
+});
+
+
 const { actions: tableActions } = tablesStore;
 
 onMounted(() => {
     if (!filesGetters.projectFiles) {
-        setProjectFiles(data.files, apiPath)
-        setProjectName(data.name)
+        setProjectFiles(data.value.files, apiPath);
+        setProjectName(data.value.name);
     }
-    tableActions.setTables(data.tables);
+    tableActions.setTables(data.value.tables || []);
+    cassettesStore.actions.fetchCassettes();
 
-    trackEvent("page_view", {
-        page: "project",
-        projectSlug: slug,
-    });
-})
+    if (typeof trackEvent !== 'undefined') {
+        trackEvent("page_view", {
+            page: "project",
+            projectSlug: slug,
+        });
+    }
+});
+
+
 const btnLabel = computed(() => {
-    return `Nest ${unref(filesCount)} files`
-})
+    return t('nesting.nest', { count: unref(filesCount) });
+});
+
+
 const btnIsDisable = computed(() => {
-    return Boolean(unref(nestRequestError)) || !unref(isNewParams) || !unref(resultsList) || !unref(sizesIsAvailable)
-})
+    return Boolean(unref(nestRequestError)) || !unref(isNewParams) || !unref(isAllFilesDone) || !unref(sizesIsAvailable);
+});
+
+
 const addFiles = (files) => {
     actions.addFiles(files, slug)
 }

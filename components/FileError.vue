@@ -11,7 +11,7 @@
             :theme="themeType.secondary"
             href="https://github.com/VovaStelmashchuk/nest2d/issues/new"
             target="_blank"
-            label="Report a problem"
+            :label="$t('files.reportProblem')"
             tag="a"
             class="file__problem"
         />

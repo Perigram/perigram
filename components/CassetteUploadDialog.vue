@@ -1,13 +1,13 @@
 <template>
     <DialogWrapper v-model:isModalOpen="isOpen" @close="$emit('close')">
         <div class="cassette-upload">
-            <h3 class="cassette-upload__title">Upload Cassette</h3>
+            <h3 class="cassette-upload__title">{{ $t('cassette.uploadTitle') }}</h3>
             
             <div class="cassette-upload__form">
                 <input 
                     type="text" 
                     v-model="name" 
-                    placeholder="Cassette name"
+                    :placeholder="$t('cassette.name')"
                     class="cassette-upload__input"
                 />
                 
@@ -20,27 +20,27 @@
                 />
 
                 <div v-if="selectedFile" class="cassette-upload__file-info">
-                    Selected: {{ selectedFile.name }}
+                    {{ $t('files.selected') }}: {{ selectedFile.name }}
                 </div>
 
                 <div v-if="uploadStatus === 'uploading'" class="cassette-upload__progress">
-                    Uploading...
+                    {{ $t('common.loading') }}
                 </div>
 
                 <div v-if="uploadStatus === 'error'" class="cassette-upload__error">
-                    Upload failed. Please try again.
+                    {{ $t('common.error') }}
                 </div>
 
                 <div class="cassette-upload__actions">
                     <MainButton 
                         @click="$emit('close')" 
-                        label="Cancel" 
+                        :label="$t('common.cancel')" 
                         :theme="themeType.secondary" 
                         :size="sizeType.m" 
                     />
                     <MainButton 
                         @click="handleUpload" 
-                        label="Upload" 
+                        :label="$t('common.upload')" 
                         :theme="themeType.primary" 
                         :size="sizeType.m"
                         :isDisable="!canUpload"

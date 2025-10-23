@@ -1,9 +1,9 @@
 <template>
     <div class="home">
-        <MainTitle label="Upload your .DXF files" class="home__title" />
+        <MainTitle :label="$t('project.uploadDxf')" class="home__title" />
         <DxfUpload @files="handleSubmit" />
         <p class="home__text">
-            All files will be save secure and available only for you
+            {{ $t('project.allFilesSecure') }}
         </p>
         <div v-if="error" class="home__error">
             {{ error }}

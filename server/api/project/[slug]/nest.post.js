@@ -43,11 +43,34 @@ export default defineEventHandler(async (event) => {
   }
   const body = await readBody(event);
   /**
-   * @type {{originFiles: {name: string, count: int}[], params: {height: float, width: float, space: float}}}
+   * @type {{originFiles: {name: string, count: int}[], params: {height: float, width: float, space: float, useTable: boolean, tableId: string, cassetteId: string}}}
    **/
   const { files, params } = body;
 
-  const filteredFiles = files.filter((file) => file.count > 0);
+  let filteredFiles;
+  
+  // If using table, fetch file counts from table
+  if (params.useTable && params.tableId) {
+    const { ObjectId } = await import('mongodb');
+    const table = await db.collection('tables').findOne({ _id: new ObjectId(params.tableId) });
+    if (!table) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: "Table not found",
+      });
+    }
+    
+    // Extract file counts from table rows
+    // Each row should have: { Type: 'filename', Amount: 5, fileSlug: 'file-slug-123.dxf' }
+    filteredFiles = table.data
+      .filter(row => row.Amount > 0 && row.fileSlug)
+      .map(row => ({
+        slug: row.fileSlug,
+        count: row.Amount
+      }));
+  } else {
+    filteredFiles = files.filter((file) => file.count > 0);
+  }
 
   const userDxfFilesDatabase = await db.collection("user_dxf_files").find({
     slug: { $in: filteredFiles.map((file) => file.slug) }
@@ -75,6 +98,9 @@ export default defineEventHandler(async (event) => {
     width: params.width,
     space: params.space,
     sheetCount: params.sheetCount,
+    useTable: params.useTable || false,
+    tableId: params.tableId || null,
+    cassetteId: params.cassetteId || null
   }
 
   await db.collection("nesting_jobs").insertOne({

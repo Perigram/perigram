@@ -3,7 +3,7 @@
         <template v-if="isResultNexting">
             <MainLoader :size="sizeType.s" :theme="themeType.secondary" class="result__display" />
             <p class="result__text">
-                Nesting</p>
+                {{ $t('results.nesting') }}</p>
         </template>
         <template v-else>
             <div v-if="isResultFailed" class="result__placeholder">
@@ -49,11 +49,13 @@ const downloadUrl = computed(() => {
     return unref(result).downloadUrl
 })
 
+const { t } = useI18n();
+
 const downloadButtonText = computed(() => {
     if (isMultiSheet.value) {
-        return 'Download All'
+        return t('results.downloadAll')
     }
-    return 'Download'
+    return t('common.download')
 })
 
 const isResultNexting = computed(() => {
