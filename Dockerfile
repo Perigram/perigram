@@ -13,7 +13,7 @@ WORKDIR /src
 FROM base as build
 
 COPY --link package.json package-lock.json .
-RUN npm install
+RUN npm ci
 
 COPY --link . .
 
@@ -26,6 +26,7 @@ ENV NODE_ENV=production
 ENV NUXT_PUBLIC_GIT_COMMIT_SHA=$GIT_COMMIT_SHA
 
 COPY --from=build /src/.output /src/.output
+COPY --from=build /src/node_modules /src/node_modules
 
 COPY --link entrypoint.sh .
 RUN chmod +x entrypoint.sh
