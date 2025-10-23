@@ -31,4 +31,4 @@ COPY --from=build /src/node_modules /src/node_modules
 COPY --link entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
-CMD ["./entrypoint.sh"]
+CMD ["/bin/sh", "-c", "printenv"]
