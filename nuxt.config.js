@@ -1,7 +1,5 @@
 import { schemaWebSite } from './utils/schema'
 
-console.log('MONGODB_URI:', process.env.MONGODB_URI);
-
 export default defineNuxtConfig({
     compatibilityDate: '2024-11-01',
     devtools: { enabled: true },
