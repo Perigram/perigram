@@ -17,6 +17,7 @@ RUN npm ci
 
 COPY --link . .
 
+RUN ls -l /src/node_modules/@nuxtjs
 RUN npm run build
 
 FROM base
