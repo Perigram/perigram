@@ -1,8 +1,7 @@
 import { MongoClient, GridFSBucket } from "mongodb";
 import logger from "../utils/logger";
 
-const uri = useRuntimeConfig().mongoUri;
-
+// Don't read from process.env directly - use useRuntimeConfig() in server context
 let client;
 /**
  * @type {import('mongodb').Db}
@@ -129,6 +128,10 @@ export async function getValidUserDxfBucket() {
 export async function connectDB() {
   if (!client) {
     try {
+      // Get runtime config inside the function, not at module load time
+      const config = useRuntimeConfig();
+      const uri = config.mongoUri;
+      
       // Debug: Log what URI we're trying to use (hide password)
       const debugUri = uri ? uri.replace(/:([^:@]+)@/, ':****@') : 'EMPTY/UNDEFINED';
       logger.info(`Attempting MongoDB connection with URI: ${debugUri}`);
