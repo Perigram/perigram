@@ -5,6 +5,7 @@ FROM node:${NODE_VERSION}-slim as base
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
+ARG PORT=3000
 ARG GIT_COMMIT_SHA
 
 WORKDIR /src
@@ -19,6 +20,9 @@ COPY --link . .
 RUN npm run build
 
 FROM base
+
+ENV PORT=$PORT
+ENV HOST=0.0.0.0
 ENV NODE_ENV=production
 ENV NUXT_PUBLIC_GIT_COMMIT_SHA=$GIT_COMMIT_SHA
 
@@ -27,3 +31,5 @@ COPY --from=build /src/node_modules /src/node_modules
 
 COPY --link entrypoint.sh .
 RUN chmod +x entrypoint.sh
+
+EXPOSE $PORT
