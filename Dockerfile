@@ -33,3 +33,5 @@ COPY --link entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
 EXPOSE $PORT
+
+CMD ["./entrypoint.sh"]
