@@ -128,16 +128,23 @@ export async function getValidUserDxfBucket() {
 export async function connectDB() {
   if (!client) {
     try {
-      // Get runtime config inside the function, not at module load time
-      const config = useRuntimeConfig();
-      const uri = config.mongoUri;
+      // Try multiple sources for MongoDB URI
+      // 1. Direct from process.env (works in Railway)
+      // 2. From Nuxt runtime config (works in Vercel)
+      const uri = process.env.NUXT_MONGODB_URI 
+                  || process.env.MONGODB_URI 
+                  || useRuntimeConfig().mongoUri;
+      
+      // DEBUG: Log all available env vars (without values for security)
+      logger.info(`Available MONGO env vars: ${Object.keys(process.env).filter(k => k.includes('MONGO')).join(', ')}`);
+      logger.info(`Using URI from: ${process.env.NUXT_MONGODB_URI ? 'NUXT_MONGODB_URI' : process.env.MONGODB_URI ? 'MONGODB_URI' : 'runtimeConfig'}`);
       
       // Debug: Log what URI we're trying to use (hide password)
       const debugUri = uri ? uri.replace(/:([^:@]+)@/, ':****@') : 'EMPTY/UNDEFINED';
       logger.info(`Attempting MongoDB connection with URI: ${debugUri}`);
       
       if (!uri) {
-        throw new Error('MongoDB URI is not configured. Set NUXT_MONGODB_URI or MONGODB_URI environment variable.');
+        throw new Error('MongoDB URI is not configured. Set NUXT_MONGODB_URI or MONGODB_URI environment variable in Railway.');
       }
       
       client = new MongoClient(uri);

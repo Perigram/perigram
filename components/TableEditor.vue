@@ -7,7 +7,6 @@
             <div ref="tabulator" class="table-editor__tabulator"></div>
             <div class="table-editor__actions">
                 <MainButton @click="addRow" :label="$t('table.addRow')" :theme="themeType.secondary" :size="sizeType.m" />
-                <MainButton @click="saveChanges" :label="$t('table.saveChanges')" :theme="themeType.primary" :size="sizeType.m" />
             </div>
         </div>
     </div>
@@ -68,6 +67,11 @@ const initializeTabulator = (table) => {
             paginationSize: 10,
             autoColumns: false,
             layout: "fitData",
+        });
+
+        // Auto-save on cell edit
+        tabulatorInstance.value.on("cellEdited", async (cell) => {
+            await saveChanges();
         });
     }
 };

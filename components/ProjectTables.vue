@@ -1,19 +1,21 @@
 <template>
     <div class="project-tables">
-        <div class="project-tables__tabs">
-            <span v-for="table in tables" :key="table._id" 
-                  @click="selectTable(table._id)"
-                  :class="['project-tables__tab', { 
-                      'project-tables__tab--active': selectedTable && selectedTable._id === table._id
-                  }]">
-                {{ table.name }}
-            </span>
-        </div>
-        
-        <div class="project-tables__actions">
-            <MainButton @click="showUploadWizard = true" :label="$t('table.upload')" :theme="themeType.primary" :size="sizeType.m" />
-            <MainButton @click="showCreateForm = true" :label="$t('table.create')" :theme="themeType.secondary" :size="sizeType.m" />
-            <MainButton v-if="selectedTable" @click="handleDeleteTable" :label="$t('table.delete')" :theme="themeType.ghost" :size="sizeType.m" />
+        <div class="project-tables__header">
+            <div class="project-tables__tabs">
+                <span v-for="table in tables" :key="table._id" 
+                      @click="selectTable(table._id)"
+                      :class="['project-tables__tab', { 
+                          'project-tables__tab--active': selectedTable && selectedTable._id === table._id
+                      }]">
+                    {{ table.name }}
+                </span>
+            </div>
+            
+            <div class="project-tables__actions">
+                <MainButton @click="showUploadWizard = true" :label="$t('table.upload')" :theme="themeType.primary" :size="sizeType.m" />
+                <MainButton @click="showCreateForm = true" :label="$t('table.create')" :theme="themeType.secondary" :size="sizeType.m" />
+                <MainButton v-if="selectedTable" @click="handleDeleteTable" :label="$t('table.delete')" :theme="themeType.ghost" :size="sizeType.m" />
+            </div>
         </div>
 
         <div v-if="showCreateForm" class="project-tables__form">
@@ -69,11 +71,20 @@ const handleDeleteTable = async () => {
 .project-tables {
     $self: &;
 
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
     &__tabs {
         display: flex;
         gap: 8px;
-        margin-bottom: 16px;
         overflow-x: auto;
+        flex: 1;
     }
 
     &__tab {
@@ -99,7 +110,6 @@ const handleDeleteTable = async () => {
     &__actions {
         display: flex;
         gap: 8px;
-        margin-bottom: 16px;
         flex-wrap: wrap;
     }
 
