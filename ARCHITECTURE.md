@@ -386,6 +386,70 @@ See `/docs/planning/implementation_plan.md` for complete API specification.
 
 ---
 
+## Workers
+
+### Nesting Worker Integration
+
+**Architecture:** Python worker + MongoDB job queue
+
+```
+API → nesting_jobs collection → Python Worker → Results → Artifacts
+```
+
+**Batch Flow:**
+1. User creates Batch with cassettes + quantities
+2. Frontend calls `POST /api/batch/:id/nest` with material params
+3. API creates `nesting_job` document (worker compatibility layer)
+4. API updates batch status → NESTING
+5. API creates placeholder Artifacts (GENERATING status)
+6. Python worker polls `nesting_jobs` collection
+7. Worker fetches DXF files from GridFS
+8. Worker runs nesting algorithm
+9. Worker uploads results to GridFS
+10. Worker updates nesting_job status → complete
+11. Worker updates Artifact fileIds + status → READY
+12. API updates Batch status → COMPLETE
+
+**Job Document:**
+```javascript
+{
+  slug: "batch-123-abc456",
+  projectSlug: "my-project",
+  batchId: ObjectId("..."),
+  files: [
+    { slug: "cassette-1", simpleName: "Part_A", count: 10 },
+    { slug: "cassette-2", simpleName: "Part_B", count: 5 }
+  ],
+  params: {
+    height: 2440,
+    width: 1220,
+    space: 5,
+    sheetCount: 10
+  },
+  status: "pending" | "processing" | "complete" | "failed",
+  createdAt: Date,
+  ownerId: ObjectId("...")
+}
+```
+
+**Worker Responsibilities:**
+- Poll nesting_jobs for status="pending"
+- Download DXF files via slug
+- Run nesting algorithm
+- Generate outputs (SVG, DXF, PDF, reports)
+- Upload to GridFS
+- Update Artifact documents with fileIds
+- Update nesting_job status
+- Update Batch status via API
+
+**Error Handling:**
+- Worker failures set nesting_job.status = "failed"
+- API monitors jobs and updates Batch.status = "FAILED"
+- Artifacts marked as FAILED
+- User can retry nesting
+
+---
+
 ## Workflows
 
 ### Current: Project Creation & Nesting
