@@ -6,7 +6,7 @@ import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 import { toObjectId } from '../../utils/objectid.js';
 
-const COLLECTION = 'cassette_templates';
+const COLLECTION = 'cassettes';
 
 export async function findById(id) {
   const db = await connectDB();
