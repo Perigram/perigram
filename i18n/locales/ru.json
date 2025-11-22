@@ -18,7 +18,9 @@
     "next": "Далее",
     "search": "Поиск",
     "filter": "Фильтр",
-    "units": "шт"
+    "units": "шт",
+    "uploading": "Загрузка...",
+    "created": "Создано"
   },
   "nav": {
     "projects": "Проекты",
@@ -110,7 +112,12 @@
       "processing": "Обработка",
       "done": "Готово",
       "error": "Ошибка"
-    }
+    },
+    "nameExample": "Стандартная кассета",
+    "selectFile": "Выбрать DXF файл",
+    "detectingLayers": "Определение слоёв...",
+    "detectedLayers": "Обнаруженные слои",
+    "selectLayers": "Выберите слои..."
   },
   "nesting": {
     "title": "Раскрой",

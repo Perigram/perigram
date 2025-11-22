@@ -18,7 +18,9 @@
     "next": "Next",
     "search": "Search",
     "filter": "Filter",
-    "units": "units"
+    "units": "units",
+    "uploading": "Uploading...",
+    "created": "Created"
   },
   "nav": {
     "projects": "Projects",
@@ -106,7 +108,12 @@
       "processing": "Processing",
       "done": "Done",
       "error": "Error"
-    }
+    },
+    "nameExample": "Standard Cassette",
+    "selectFile": "Choose DXF File",
+    "detectingLayers": "Detecting layers...",
+    "detectedLayers": "Detected Layers",
+    "selectLayers": "Select layers..."
   },
   "nesting": {
     "title": "Nesting",
