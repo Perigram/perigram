@@ -4,6 +4,57 @@
 
 import * as repository from './repository.js';
 import { ObjectId } from 'mongodb';
+import { connectDB } from '../../db/mongo.js';
+import { GridFSBucket } from 'mongodb';
+import { generateRandomString } from '../../utils/strings.js';
+import standardSlugify from 'standard-slugify';
+
+export async function upload(fileBuffer, fileName, cassetteName, userId) {
+  if (!fileBuffer || fileBuffer.length === 0) {
+    throw createError({ statusCode: 400, message: 'No file data provided' });
+  }
+  
+  const name = cassetteName || 'Unnamed Cassette';
+  const slug = standardSlugify(fileName, { keepCase: false }) + `-${generateRandomString(6)}`;
+  
+  // Upload DXF to GridFS
+  const db = await connectDB();
+  const cassetteBucket = new GridFSBucket(db, { bucketName: 'cassettes' });
+  
+  const uploadStream = cassetteBucket.openUploadStream(slug + '.dxf', {
+    metadata: { userId, originalName: fileName }
+  });
+  
+  await new Promise((resolve, reject) => {
+    uploadStream.on('finish', resolve);
+    uploadStream.on('error', reject);
+    uploadStream.write(fileBuffer);
+    uploadStream.end();
+  });
+  
+  // Create cassette document
+  const cassetteData = {
+    name,
+    slug,
+    ownerId: new ObjectId(userId),
+    dxfId: uploadStream.id,
+    svgId: null,
+    layerMappings: [],
+    parameters: [],
+    status: 'DRAFT',
+    processingStatus: 'pending',
+    boundingBox: null,
+    area: 0,
+    defaultMaterial: null
+  };
+  
+  const cassette = await repository.create(cassetteData);
+  
+  // TODO: Trigger worker to process DXF and detect layers
+  // For now, return with pending status
+  
+  return cassette;
+}
 
 export async function getById(id, userId) {
   if (!ObjectId.isValid(id)) {
