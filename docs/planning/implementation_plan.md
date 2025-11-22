@@ -109,13 +109,13 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 **Documentation:** Update `/ARCHITECTURE.md` sections "Module Structure" and "API Patterns"
 
 #### Tool Profiles Module
-- [ ] Create `/server/features/tool-profiles/repository.js`
-- [ ] Create `/server/features/tool-profiles/service.js`
-- [ ] Create `/server/features/tool-profiles/index.js`
-- [ ] Create `GET /api/templates/tools` endpoint
-- [ ] Create `POST /api/templates/tools` endpoint
-- [ ] Create `PUT /api/templates/tools/:id` endpoint
-- [ ] Create `DELETE /api/templates/tools/:id` endpoint
+- [x] Create `/server/features/tool-profiles/repository.js` (2025-11-22)
+- [x] Create `/server/features/tool-profiles/service.js` (2025-11-22)
+- [x] Create `/server/features/tool-profiles/index.js` (2025-11-22)
+- [x] Create `GET /api/templates/tools` endpoint (2025-11-22)
+- [x] Create `POST /api/templates/tools` endpoint (2025-11-22)
+- [x] Create `PUT /api/templates/tools/:id` endpoint (2025-11-22)
+- [x] Create `DELETE /api/templates/tools/:id` endpoint (2025-11-22)
 - [ ] Seed default system tools
 - [ ] Document service API in `/ARCHITECTURE.md`
 - [ ] Code review & merge
