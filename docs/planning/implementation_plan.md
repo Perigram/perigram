@@ -199,7 +199,7 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Install PrimeVue packages (2025-11-22)
 - [x] Configure in `nuxt.config.js` (2025-11-22)
 - [x] Test basic PrimeVue component renders (2025-11-22)
-- [ ] Document PrimeVue setup in `/ONBOARDING.md`
+- [x] Document PrimeVue setup in `/ONBOARDING.md` (2025-11-22)
 
 **Documentation:** Update `/ONBOARDING.md` section "Setup"
 

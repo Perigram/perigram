@@ -171,6 +171,123 @@ const batch = await $fetch('/api/project/my-project/batches', {
 
 ---
 
+## UI Development with PrimeVue
+
+### Setup
+
+PrimeVue is configured in `nuxt.config.js`:
+
+```javascript
+modules: ['@primevue/nuxt-module'],
+primevue: {
+  options: {
+    theme: {
+      preset: Aura  // Default theme
+    }
+  }
+}
+```
+
+PrimeIcons included via CSS import:
+```javascript
+css: ['primeicons/primeicons.css']
+```
+
+### Using PrimeVue Components
+
+**Import pattern:**
+```vue
+<script setup>
+import Button from 'primevue/button';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Dialog from 'primevue/dialog';
+import InputText from 'primevue/inputtext';
+</script>
+```
+
+**Common components:**
+- `Button` - Primary actions with icon support
+- `DataTable` + `Column` - Data grids with sorting/pagination
+- `Dialog` - Modal dialogs
+- `InputText`, `Dropdown`, `Calendar` - Form inputs
+- `Tag` - Status badges
+- `Message`, `Toast` - Notifications
+- `ProgressSpinner` - Loading indicators
+- `TabView` + `TabPanel` - Tabbed interfaces
+
+**Example usage:**
+```vue
+<template>
+  <DataTable :value="items" :paginator="true" :rows="10">
+    <Column field="name" header="Name" />
+    <Column field="status" header="Status">
+      <template #body="slotProps">
+        <Tag :value="slotProps.data.status" :severity="getSeverity(slotProps.data.status)" />
+      </template>
+    </Column>
+    <Column header="Actions">
+      <template #body="slotProps">
+        <Button icon="pi pi-pencil" @click="edit(slotProps.data)" />
+      </template>
+    </Column>
+  </DataTable>
+</template>
+```
+
+**Icons:**
+See [PrimeIcons](https://primevue.org/icons) for full list.
+Common: `pi-plus`, `pi-pencil`, `pi-trash`, `pi-check`, `pi-times`, `pi-play`
+
+### Store Integration
+
+All stores follow readonly reactive pattern:
+
+```javascript
+// composables/myStore.js
+const state = reactive({
+  items: [],
+  loading: false,
+  error: null
+});
+
+export const myStore = readonly({
+  getters: {
+    items: computed(() => state.items),
+    loading: computed(() => state.loading),
+    error: computed(() => state.error)
+  },
+  actions: {
+    async loadItems() {
+      state.loading = true;
+      try {
+        state.items = await $fetch('/api/items');
+      } catch (err) {
+        state.error = err.message;
+      } finally {
+        state.loading = false;
+      }
+    }
+  }
+});
+```
+
+**Usage in component:**
+```vue
+<script setup>
+import { myStore } from '~/composables/myStore';
+
+const items = computed(() => myStore.getters.items.value);
+const loading = computed(() => myStore.getters.loading.value);
+
+onMounted(() => {
+  myStore.actions.loadItems();
+});
+</script>
+```
+
+---
+
 ## Database Operations
 
 ### Create Indexes
