@@ -104,7 +104,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { useCassettesStore } from '~/composables/cassettes';
+import { cassettesStore } from '~/composables/cassettes';
 
 const props = defineProps({
   modelValue: {
@@ -118,8 +118,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue', 'uploaded', 'saved']);
-
-const cassettesStore = useCassettesStore();
 
 const isOpen = computed({
   get: () => props.modelValue,
