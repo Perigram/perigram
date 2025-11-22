@@ -226,13 +226,51 @@ Then update:
 3. Export in `index.js`
 
 **Modules:**
-- `layer-standards/` - System catalogue
+- `layer-standards/` - Parametric layer templates
 - `pen-templates/` - Display styles
 - `tool-profiles/` - Tool library
-- `cassettes/` - Cassette management
-- `batches/` - Production runs
-- `artifacts/` - Output generation
+- `cassettes/` - Cassette template management
+- `batches/` - Production run management
+- `artifacts/` - Generated output files
 - `nesting/` - Orchestrator (doesn't own data)
+
+### Module APIs
+
+**Layer Standards:**
+- `GET /api/layer-standards` - List all standards
+- `GET /api/layer-standards?category=CUT` - Filter by category
+- Parametric templates with nameTemplate + parameters
+
+**Pen Templates:**
+- `GET /api/templates/pens` - List system + user
+- `POST /api/templates/pens` - Create user pen
+- `PUT /api/templates/pens/:id` - Update
+- `DELETE /api/templates/pens/:id` - Delete
+- System pens read-only
+
+**Tool Profiles:**
+- `GET /api/templates/tools` - List all
+- `POST /api/templates/tools` - Create (diameter, angle)
+- `PUT /api/templates/tools/:id` - Update
+- `DELETE /api/templates/tools/:id` - Delete
+
+**Cassettes:**
+- `GET /api/cassettes` - List user cassettes
+- `GET /api/cassettes/:id` - Get by ID
+- `PUT /api/cassettes/:id/mappings` - Update layer mappings
+- `PUT /api/cassettes/:id/parameters` - Update parameters
+- `DELETE /api/cassettes/:id` - Delete
+
+**Batches:**
+- `POST /api/project/:slug/batches` - Create
+- `GET /api/project/:slug/batches` - List for project
+- `GET /api/batch/:id` - Get details
+- `PUT /api/batch/:id` - Update
+- `GET /api/batch/:id/artifacts` - Get artifacts
+
+**Artifacts:**
+- `GET /api/artifacts/:id` - Get metadata
+- `DELETE /api/artifacts/:id` - Delete
 
 ---
 
