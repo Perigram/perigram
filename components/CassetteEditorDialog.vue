@@ -262,7 +262,7 @@ const handleUpload = async () => {
 
   try {
     const formData = new FormData();
-    formData.append('dxf', selectedFile.value);
+    formData.append('file', selectedFile.value);
     formData.append('name', name.value);
 
     const cassette = await $fetch('/api/cassettes/upload', {
