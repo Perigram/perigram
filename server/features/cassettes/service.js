@@ -36,7 +36,7 @@ export async function upload(fileBuffer, fileName, cassetteName, userId) {
   const cassetteData = {
     name,
     slug,
-    userId: new ObjectId(userId),  // Old schema uses userId, not ownerId
+    userId: userId,  // Old schema uses userId as string (not ObjectId)
     dxfId: uploadStream.id,
     svgId: null,
     layerMapping: {  // Old schema uses layerMapping (singular)
@@ -67,7 +67,7 @@ export async function getById(id, userId) {
   if (!cassette) {
     throw createError({ statusCode: 404, message: 'Cassette not found' });
   }
-  if (cassette.userId.toString() !== userId.toString()) {
+  if (cassette.userId !== userId) {  // Direct string comparison
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
   
@@ -79,7 +79,7 @@ export async function getBySlug(slug, userId) {
   if (!cassette) {
     throw createError({ statusCode: 404, message: 'Cassette not found' });
   }
-  if (cassette.userId.toString() !== userId.toString()) {
+  if (cassette.userId !== userId) {  // Direct string comparison
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
   return cassette;
