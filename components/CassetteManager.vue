@@ -80,9 +80,9 @@ const { getters, actions } = cassettesStore;
 
 const { fetchCassettes, selectCassette, deleteCassette } = actions;
 
-// Don't destructure computed refs - use directly to maintain reactivity
-const cassettes = getters.allCassettes;
-const uploadStatus = getters.uploadStatus;
+// Access getters directly to maintain reactivity
+const cassettes = computed(() => getters.allCassettes.value);
+const uploadStatus = computed(() => getters.uploadStatus.value);
 
 const showUploadDialog = ref(false);
 const showEditDialog = ref(false);
