@@ -83,7 +83,7 @@ import CassetteUploadDialog from './CassetteUploadDialog.vue';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 
 const { getters, actions } = cassettesStore;
-const cassettes = computed(() => getters.cassettes.value);
+const cassettes = getters.cassettes;  // Already a computed
 const loading = computed(() => getters.uploadStatus.value === 'uploading');
 
 const { fetchCassettes, selectCassette, deleteCassette } = actions;
@@ -93,7 +93,9 @@ const showEditDialog = ref(false);
 const editingCassette = ref(null);
 
 onMounted(async () => {
+  console.log('[CassetteManager] Fetching cassettes...');
   await fetchCassettes();
+  console.log('[CassetteManager] Cassettes loaded:', cassettes.value);
 });
 
 const getStatusSeverity = (status) => {
