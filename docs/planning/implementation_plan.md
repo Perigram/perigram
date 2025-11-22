@@ -85,6 +85,9 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Create `/server/features/layer-standards/index.js` (2025-11-22)
 - [x] Create `GET /api/layer-standards` endpoint (2025-11-22)
 - [x] Create seed script `/server/scripts/seed-layer-standards.js` (2025-11-22)
+- [x] Schema updated for parametric templates (nameTemplate, parameters) (2025-11-22)
+- [ ] Update service to handle parametric templates
+- [ ] Update seed script with parametric data
 - [ ] Run seed script and verify data
 - [ ] Document service API in `/ARCHITECTURE.md`
 - [ ] Code review & merge
