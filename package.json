@@ -12,6 +12,7 @@
   "dependencies": {
     "@nuxtjs/i18n": "^10.1.1",
     "@nuxtjs/tailwindcss": "^6.12.2",
+    "@primevue/themes": "^4.4.1",
     "archiver": "^7.0.1",
     "formidable": "^3.5.4",
     "mongodb": "6.8",
@@ -19,6 +20,8 @@
     "nodemailer": "^7.0.3",
     "nuxt": "^3.15.3",
     "pdfkit": "^0.17.2",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.4.1",
     "standard-slugify": "^4.0.0",
     "tabulator-tables": "^6.3.1",
     "tslib": "^2.8.1",
@@ -32,7 +35,6 @@
     "@types/node": "^22.10.2",
     "kickstart-scripts": "^1.0.1",
     "patch-package": "^8.0.0",
-    
     "prettier": "3.5.3",
     "sass": "1.77.6",
     "sass-loader": "^16.0.2",
