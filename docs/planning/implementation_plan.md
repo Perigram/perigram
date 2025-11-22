@@ -205,27 +205,71 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 
 ---
 
-### 3.2 Core Components Migration
-- [ ] Replace Button with p-button
-- [ ] Replace Input with p-input-text
-- [ ] Replace Select with p-dropdown
-- [ ] Replace Checkbox with p-checkbox
-- [ ] Replace Dialog with p-dialog
-- [ ] Test all replaced components
-- [ ] Document component usage in `/ONBOARDING.md`
+### 3.2 PrimeVue Component Migration
 
-**Documentation:** Update `/ONBOARDING.md` section "Common Tasks"
+**Goal:** Replace custom components with PrimeVue components for consistency and maintainability.
+
+**Strategy:** Incremental migration - migrate most-used components first, test each replacement.
+
+#### Basic Form Components
+- [ ] Audit existing Button usage across codebase
+- [ ] Replace custom `MainButton` with PrimeVue `Button`
+- [ ] Replace custom `Input` with PrimeVue `InputText`
+- [ ] Replace custom `Select` with PrimeVue `Dropdown`
+- [ ] Replace custom `Checkbox` with PrimeVue `Checkbox`
+- [ ] Test form interactions and styling
+
+**PrimeVue Components:**
+```vue
+<Button label="Click Me" icon="pi pi-check" />
+<InputText v-model="value" placeholder="Enter text" />
+<Dropdown v-model="selected" :options="items" optionLabel="name" />
+<Checkbox v-model="checked" binary />
+```
+
+**Documentation:** Update `/ONBOARDING.md` with migration examples
 
 ---
 
-### 3.3 Complex Components Migration
-- [ ] Replace TableEditor with p-datatable
-- [ ] Replace FileUpload with p-fileupload
-- [ ] Replace Tabs with p-tabview
-- [ ] Test complex component interactions
-- [ ] Document component usage in `/ONBOARDING.md`
+### 3.3 PrimeVue Complex Components
 
-**Documentation:** Update `/ONBOARDING.md` section "Common Tasks"
+#### Data Display Components
+- [ ] Replace custom `TableEditor` with PrimeVue `DataTable`
+- [ ] Add inline editing with DataTable row editing
+- [ ] Test pagination, sorting, filtering
+- [ ] Document DataTable patterns
+
+#### Dialog Components  
+- [ ] Replace custom modals with PrimeVue `Dialog`
+- [ ] Update all dialog state management to use `v-model:visible`
+- [ ] Test modal backdrop and ESC key handling
+
+#### File Upload
+- [ ] Evaluate PrimeVue `FileUpload` vs existing custom solution
+- [ ] If suitable, migrate file upload components
+- [ ] Test FormData submission with GridFS
+
+#### Tab Navigation
+- [ ] Keep existing `Tabs` component (already working well)
+- [ ] Or migrate to PrimeVue `TabView` if needed
+- [ ] Update project page tabs
+
+**PrimeVue Components:**
+```vue
+<DataTable :value="data" editMode="row" @row-edit-save="onSave">
+  <Column field="name" header="Name" />
+</DataTable>
+
+<Dialog v-model:visible="showDialog" header="Title">
+  <template #footer>
+    <Button label="Save" @click="save" />
+  </template>
+</Dialog>
+
+<FileUpload mode="basic" accept=".dxf" @select="onSelect" />
+```
+
+**Documentation:** Update `/ONBOARDING.md` section "PrimeVue Components"
 
 ---
 
@@ -240,15 +284,24 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 
 ---
 
-### 3.5 New Pages
+### 3.5 New Pages with PrimeVue
 
 #### Cassettes Page
-- [ ] Create `/pages/cassettes/index.vue`
-- [ ] Create `CassetteUploadDialog.vue` component
-- [ ] Create `LayerMappingEditor.vue` component
-- [ ] Create `ParameterEditor.vue` component
+**Goal:** Manage user cassette templates with PrimeVue components
+
+- [ ] Update `/pages/cassettes/index.vue` (already exists, needs PrimeVue migration)
+- [ ] Update `CassetteUploadDialog.vue` to use PrimeVue `Dialog` + `FileUpload`
+- [ ] Create `LayerMappingEditor.vue` with PrimeVue `DataTable` for layer mapping
+- [ ] Create `ParameterEditor.vue` with PrimeVue form components
 - [ ] Test cassette CRUD operations
 - [ ] Document page structure in `/ONBOARDING.md`
+
+**PrimeVue Components to Use:**
+- `DataTable` with `Column` for cassette list
+- `Dialog` for upload/edit modals
+- `FileUpload` for DXF uploads
+- `Dropdown` for layer standard selection
+- `InputNumber` for parameter values
 
 **Documentation:** Update `/ONBOARDING.md` section "Project Structure"
 
@@ -257,13 +310,34 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Tabbed interface for Pens and Tools (2025-11-22)
 - [x] Full CRUD with PrimeVue components (2025-11-22)
 - [x] Test template CRUD operations (2025-11-22)
-- [ ] Document page structure in `/ONBOARDING.md`
+- [x] Document page structure in `/ONBOARDING.md`
+
+**PrimeVue Components Used:**
+- `TabView` with `TabPanel` for pen/tool tabs
+- `DataTable` for template lists
+- `Dialog` for create/edit forms
+- `ColorPicker` for pen colors
+- `InputNumber` for tool dimensions
 
 **Documentation:** Update `/ONBOARDING.md` section "Project Structure"
 
 #### Batch Management ✅ COMPLETE
 - [x] Create `/pages/project/[slug]/batches.vue` (integrated into project tabs) (2025-11-22)
 - [x] Create `BatchManagement.vue` component (2025-11-22)
+- [x] Create `BatchEditor.vue` component (via BatchManagement dialog) (2025-11-22)
+- [x] Create `BatchEntryEditor.vue` component (2025-11-22)
+- [x] Test batch operations (2025-11-22)
+- [ ] Document page structure in `/ONBOARDING.md`
+
+**PrimeVue Components Used:**
+- `DataTable` with inline row editing for batch entries
+- `Dialog` for batch creation and editing
+- `Dropdown` for cassette template selection
+- `InputNumber` for quantities and dimensions
+- `Tag` for status display
+- `Button` with icons for actions
+
+**Documentation:** Update `/ONBOARDING.md` section "Project Structure"
 - [x] Create `BatchEditor.vue` component (via BatchManagement dialog) (2025-11-22)
 - [x] Create `BatchEntryEditor.vue` component (2025-11-22)
 - [x] Test batch operations (2025-11-22)
