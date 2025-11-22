@@ -127,15 +127,15 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 ### 2.2 Core Services
 
 #### Cassettes Module
-- [ ] Create `/server/features/cassettes/repository.js`
-- [ ] Create `/server/features/cassettes/service.js`
-- [ ] Create `/server/features/cassettes/index.js`
+- [x] Create `/server/features/cassettes/repository.js` (2025-11-22)
+- [x] Create `/server/features/cassettes/service.js` (2025-11-22)
+- [x] Create `/server/features/cassettes/index.js` (2025-11-22)
 - [ ] Create `POST /api/cassettes/upload` endpoint
-- [ ] Create `GET /api/cassettes` endpoint
-- [ ] Create `GET /api/cassettes/:id` endpoint
-- [ ] Create `PUT /api/cassettes/:id/mappings` endpoint
-- [ ] Create `PUT /api/cassettes/:id/parameters` endpoint
-- [ ] Create `DELETE /api/cassettes/:id` endpoint
+- [x] Create `GET /api/cassettes` endpoint (2025-11-22)
+- [x] Create `GET /api/cassettes/:id` endpoint (2025-11-22)
+- [x] Create `PUT /api/cassettes/:id/mappings` endpoint (2025-11-22)
+- [x] Create `PUT /api/cassettes/:id/parameters` endpoint (2025-11-22)
+- [x] Create `DELETE /api/cassettes/:id` endpoint (2025-11-22)
 - [ ] Integrate DXF layer detection
 - [ ] Integrate SVG preview generation
 - [ ] Document service API in `/ARCHITECTURE.md`
