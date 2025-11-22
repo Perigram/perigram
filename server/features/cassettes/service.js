@@ -26,6 +26,9 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
   const name = cassetteName || 'Unnamed Cassette';
   const slug = standardSlugify(fileName, { keepCase: false }) + `-${generateRandomString(6)}`;
   
+  // Analyze file to detect layers
+  const analysis = await analyzeCassetteFile(fileBuffer, fileName);
+  
   // Upload DXF to GridFS
   const db = await connectDB();
   const cassetteBucket = new GridFSBucket(db, { bucketName: 'cassettes' });
@@ -48,6 +51,7 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
     userId: userId,  // Old schema uses userId as string (not ObjectId)
     dxfId: uploadStream.id,
     svgId: null,
+    detectedLayers: analysis.detectedLayers,  // Store detected layers
     layerMapping: layerMapping || {  // Use provided mapping or default
       cut: [],
       bend: [],
@@ -61,8 +65,8 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
   
   const cassette = await repository.create(cassetteData);
   
-  // TODO: Trigger worker to process DXF and detect layers
-  // For now, return with pending status
+  // TODO: Trigger worker to process DXF and generate SVG preview
+  // For now, return with detected layers
   
   return cassette;
 }
