@@ -77,7 +77,8 @@ import Tag from 'primevue/tag';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 
 const { getters, actions } = cassettesStore;
-const { cassettes, uploadStatus } = toRefs(getters);
+const cassettes = getters.cassettes;
+const { uploadStatus } = toRefs(getters);
 
 const { fetchCassettes, selectCassette, deleteCassette } = actions;
 
