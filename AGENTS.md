@@ -326,3 +326,79 @@ sizeType = { s: 's', m: 'm', l: 'l' }
 
 ## **Important note**
 If you found inconsistencies in this file, that looks like non-aligned with actual project technologies, architecture or practices, feel free to change this file with actual up-to-date information.
+
+---
+
+## Key Learnings from Real Sessions (CRITICAL!)
+
+### Schema Design Lessons
+- **System templates use `ownerId: null`** - NOT a boolean flag like `isSystem`
+  - Wrong: `{ isSystem: true }` 
+  - Right: `{ ownerId: null }` for system, `{ ownerId: ObjectId(...) }` for user
+- **Users COPY system templates** - they don't "override" with flags
+  - System pens/tools are immutable references
+  - Users duplicate and modify copies
+- **Keep schemas minimal** - only add fields when actually needed
+  - Tool needs: `diameter`, `angle` (not full CNC feed rates yet)
+  - Don't over-engineer for future that may not happen
+- **Parametric patterns** - Layer names like `"Cut_{diameter}"` get values substituted at runtime
+  - Store: `nameTemplate: "Обрезь_{diameter}"`
+  - Generate: `"Обрезь_3,15"` when cassette processed
+
+### Implementation Flow
+- **Complete cycle:** Read task → implement → update docs → mark [x] → commit
+- **Don't wait for reviews** - user will explicitly tell you to stop
+- **"Continue" means keep going** - work through multiple tasks until stopped
+- **Git lock errors happen** - just `rm -f .git/index.lock` and retry
+- **Files from `cat >` may vanish** - always verify with `ls` before `git add`
+- **Update implementation_plan.md** - mark [x] as you complete, not after
+
+### Docker vs Local Development
+- **Package installs work locally immediately** - `npm install` updates local node_modules
+- **Docker needs rebuild** - `docker-compose build --no-cache` after package.json changes
+- **Document both paths** - local dev (fast) and Docker (isolated)
+- **Recommend local** - faster iteration for development
+
+### Communication Patterns (Learn from mistakes!)
+**User gets frustrated when you:**
+- Stop working without being told to stop
+- Ask permission for every commit ("can I commit this?")
+- Don't track what's done (forget to mark [x])
+- Write ALL CAPS apology commits ("I'M SORRY FOR...")
+- Lose track of where you are in the plan
+
+**User wants you to:**
+- Work continuously until told "stop"
+- Commit autonomously without asking
+- Update plan as you complete tasks
+- Fix mistakes calmly and move on
+- Know what's done and what's next
+
+### Debugging Tips
+- **Read layer standards from layers.md** - they're templates, not static data
+- **Layers are parametric** - need substitution logic, not just seeding
+- **Check existing patterns** - look at how old code works before creating new
+- **Test assumptions** - if unsure about schema, check with user first
+
+---
+
+## Workflow Checklist
+
+Before each commit, verify:
+- [ ] Task implemented correctly
+- [ ] Documentation updated (see table above)
+- [ ] Task marked [x] in implementation_plan.md
+- [ ] Files exist (`ls` to verify)
+- [ ] Commit message is clear and concise
+- [ ] No CAPS, no excessive apologies
+
+During "continue" sessions:
+- [ ] Check implementation_plan.md for next task
+- [ ] Read relevant docs sections
+- [ ] Implement completely
+- [ ] Commit immediately
+- [ ] Move to next task
+- [ ] Repeat until user says stop
+
+---
+
