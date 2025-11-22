@@ -1,176 +1,172 @@
 <template>
-    <div class="cassette-manager">
-        <div class="cassette-manager__header">
-            <MainTitle :label="$t('cassette.title')" class="cassette-manager__title" />
-            <MainButton 
-                @click="showUploadDialog = true" 
-                :label="$t('cassette.upload')" 
-                :theme="themeType.primary" 
-                :size="sizeType.m" 
-            />
-        </div>
-
-        <div v-if="cassettes.length === 0" class="cassette-manager__empty">
-            {{ $t('cassette.noCassettes') }}
-        </div>
-
-        <div v-else class="cassette-manager__list">
-            <div 
-                v-for="cassette in cassettes" 
-                :key="cassette._id"
-                :class="['cassette-manager__item', {
-                    'cassette-manager__item--selected': selectedCassette?._id === cassette._id
-                }]"
-                @click="selectCassette(cassette._id)"
-            >
-                <div class="cassette-manager__item-info">
-                    <span class="cassette-manager__item-name">{{ cassette.name }}</span>
-                    <span class="cassette-manager__item-status">{{ cassette.processingStatus }}</span>
-                </div>
-                <div class="cassette-manager__item-actions">
-                    <MainButton 
-                        @click.stop="editCassette(cassette)" 
-                        :label="$t('common.edit')" 
-                        :theme="themeType.secondary" 
-                        :size="sizeType.s" 
-                    />
-                    <MainButton 
-                        @click.stop="handleDelete(cassette._id)" 
-                        :label="$t('common.delete')" 
-                        :theme="themeType.ghost" 
-                        :size="sizeType.s" 
-                    />
-                </div>
-            </div>
-        </div>
-
-        <CassetteUploadDialog 
-            v-if="showUploadDialog" 
-            @close="showUploadDialog = false"
-            @uploaded="handleUploaded"
-        />
-
-        <CassetteEditorDialog 
-            v-if="showEditDialog && editingCassette" 
-            :cassette="editingCassette"
-            @close="showEditDialog = false"
-            @saved="handleSaved"
-        />
+  <div class="cassette-manager">
+    <div class="header">
+      <h2>{{ $t('cassette.title') }}</h2>
+      <Button 
+        :label="$t('cassette.upload')" 
+        icon="pi pi-upload"
+        @click="showUploadDialog = true"
+      />
     </div>
+
+    <DataTable 
+      :value="cassettes" 
+      :loading="loading"
+      selectionMode="single"
+      v-model:selection="selectedCassetteData"
+      @row-select="onRowSelect"
+      :paginator="true" 
+      :rows="10"
+      responsiveLayout="scroll"
+    >
+      <template #empty>
+        <div class="empty-state">
+          {{ $t('cassette.noCassettes') }}
+        </div>
+      </template>
+
+      <Column field="name" :header="$t('cassette.name')" />
+      
+      <Column field="processingStatus" :header="$t('cassette.status')">
+        <template #body="slotProps">
+          <Tag 
+            :value="slotProps.data.processingStatus" 
+            :severity="getStatusSeverity(slotProps.data.processingStatus)"
+          />
+        </template>
+      </Column>
+
+      <Column field="createdAt" :header="$t('common.created')">
+        <template #body="slotProps">
+          {{ formatDate(slotProps.data.createdAt) }}
+        </template>
+      </Column>
+
+      <Column :header="$t('common.actions')">
+        <template #body="slotProps">
+          <div class="actions">
+            <Button 
+              icon="pi pi-pencil" 
+              severity="secondary"
+              size="small"
+              @click="editCassette(slotProps.data)"
+            />
+            <Button 
+              icon="pi pi-trash" 
+              severity="danger"
+              size="small"
+              @click="handleDelete(slotProps.data._id)"
+            />
+          </div>
+        </template>
+      </Column>
+    </DataTable>
+
+    <CassetteUploadDialog 
+      v-if="showUploadDialog" 
+      @close="showUploadDialog = false"
+      @uploaded="handleUploaded"
+    />
+
+    <CassetteEditorDialog 
+      v-if="showEditDialog && editingCassette" 
+      :cassette="editingCassette"
+      @close="showEditDialog = false"
+      @saved="handleSaved"
+    />
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, toRefs } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { cassettesStore } from '~/composables/cassettes';
-import { themeType } from '~/constants/theme.constants';
-import { sizeType } from '~/constants/size.constants';
-import MainButton from './MainButton.vue';
-import MainTitle from './MainTitle.vue';
+import Button from 'primevue/button';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Tag from 'primevue/tag';
 import CassetteUploadDialog from './CassetteUploadDialog.vue';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 
 const { getters, actions } = cassettesStore;
-const { cassettes, selectedCassette } = toRefs(getters);
+const cassettes = computed(() => getters.cassettes.value);
+const loading = computed(() => getters.uploadStatus.value === 'uploading');
+
 const { fetchCassettes, selectCassette, deleteCassette } = actions;
 
 const showUploadDialog = ref(false);
 const showEditDialog = ref(false);
 const editingCassette = ref(null);
+const selectedCassetteData = ref(null);
 
 onMounted(async () => {
-    await fetchCassettes();
+  await fetchCassettes();
 });
 
+const onRowSelect = (event) => {
+  selectCassette(event.data._id);
+};
+
+const getStatusSeverity = (status) => {
+  const severityMap = {
+    'done': 'success',
+    'pending': 'warning',
+    'error': 'danger'
+  };
+  return severityMap[status] || 'info';
+};
+
+const formatDate = (date) => {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString();
+};
+
 const handleDelete = async (cassetteId) => {
-    if (confirm('Delete this cassette?')) {
-        await deleteCassette(cassetteId);
-    }
+  if (confirm('Delete this cassette?')) {
+    await deleteCassette(cassetteId);
+  }
 };
 
 const editCassette = (cassette) => {
-    editingCassette.value = cassette;
-    showEditDialog.value = true;
+  editingCassette.value = cassette;
+  showEditDialog.value = true;
 };
 
 const handleUploaded = async (cassette) => {
-    showUploadDialog.value = false;
-    editingCassette.value = cassette;
-    showEditDialog.value = true;
+  showUploadDialog.value = false;
+  editingCassette.value = cassette;
+  showEditDialog.value = true;
 };
 
 const handleSaved = () => {
-    showEditDialog.value = false;
-    editingCassette.value = null;
+  showEditDialog.value = false;
+  editingCassette.value = null;
 };
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .cassette-manager {
-    $self: &;
+  padding: 20px;
+}
 
-    &__header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-    }
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
 
-    &__title {
-        margin: 0;
-    }
+.header h2 {
+  margin: 0;
+}
 
-    &__empty {
-        text-align: center;
-        color: var(--label-tertiary);
-        padding: 48px 24px;
-    }
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-color-secondary);
+}
 
-    &__list {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    &__item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 16px;
-        background-color: var(--fill-secondary);
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s;
-
-        &:hover {
-            background-color: var(--fill-tertiary);
-        }
-
-        &--selected {
-            background-color: var(--accent-secondary);
-            border: 2px solid var(--accent-primary);
-        }
-    }
-
-    &__item-info {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    &__item-name {
-        font-size: 16px;
-        font-weight: 500;
-        color: var(--label-primary);
-    }
-
-    &__item-status {
-        font-size: 12px;
-        color: var(--label-tertiary);
-    }
-
-    &__item-actions {
-        display: flex;
-        gap: 8px;
-    }
+.actions {
+  display: flex;
+  gap: 8px;
 }
 </style>

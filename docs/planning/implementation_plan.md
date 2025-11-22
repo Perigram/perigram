@@ -212,8 +212,12 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 **Strategy:** Incremental migration - migrate most-used components first, test each replacement.
 
 #### Basic Form Components
-- [ ] Audit existing Button usage across codebase
-- [ ] Replace custom `MainButton` with PrimeVue `Button`
+- [x] Audit existing Button usage across codebase (2025-11-22)
+  - 72 MainButton usages in 34 files
+  - 2 PrimeVue Button usages (new pages)
+  - Migration strategy: new pages first, then high-traffic pages
+- [ ] Replace custom `MainButton` with PrimeVue `Button` in cassettes page
+- [ ] Replace custom `MainButton` with PrimeVue `Button` in project page
 - [ ] Replace custom `Input` with PrimeVue `InputText`
 - [ ] Replace custom `Select` with PrimeVue `Dropdown`
 - [ ] Replace custom `Checkbox` with PrimeVue `Checkbox`
