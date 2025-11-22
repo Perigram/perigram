@@ -105,6 +105,15 @@
         />
       </template>
     </Dialog>
+
+    <!-- Edit Batch Dialog -->
+    <BatchEntryEditor 
+      v-if="showEditDialog && editingBatch"
+      v-model="showEditDialog"
+      :batch="editingBatch"
+      @close="showEditDialog = false"
+      @save="saveBatch"
+    />
   </div>
 </template>
 
@@ -112,6 +121,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { batchesStore } from '~/composables/batches';
+import BatchEntryEditor from './BatchEntryEditor.vue';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -167,9 +177,22 @@ const createBatch = async () => {
   }
 };
 
+const editingBatch = ref(null);
+const showEditDialog = ref(false);
+
 const editBatch = (batch) => {
-  // TODO: Navigate to batch editor
-  console.log('Edit batch:', batch);
+  editingBatch.value = batch;
+  showEditDialog.value = true;
+};
+
+const saveBatch = async (updatedBatch) => {
+  try {
+    await batchesStore.actions.update(updatedBatch._id, updatedBatch);
+    showEditDialog.value = false;
+    editingBatch.value = null;
+  } catch (err) {
+    console.error('Failed to update batch:', err);
+  }
 };
 
 const runNesting = async (batch) => {

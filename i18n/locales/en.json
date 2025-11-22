@@ -244,6 +244,17 @@
     "status": "Status",
     "created": "Created",
     "empty": "No batches yet. Create your first batch to get started.",
-    "confirmDelete": "Are you sure you want to delete this batch?"
+    "confirmDelete": "Are you sure you want to delete this batch?",
+    "editEntries": "Edit Batch Entries",
+    "addEntry": "Add Entry",
+    "entryId": "Entry ID",
+    "cassette": "Cassette",
+    "selectCassette": "Select cassette template",
+    "quantity": "Quantity",
+    "dimensions": "Dimensions",
+    "addNewEntry": "Add New Entry",
+    "unknownCassette": "Unknown Cassette",
+    "confirmDeleteEntry": "Are you sure you want to delete this entry?",
+    "dimensionKey": "Enter dimension key (e.g., A, B, C):"
   }
 }
