@@ -298,11 +298,21 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Update `CassetteEditorDialog.vue` to use PrimeVue components (2025-11-22)
 - [x] Fix cassettes store reactivity issue (2025-11-22)
 - [x] Fix auth check in GET /api/cassettes/[id] (2025-11-22)
-- [~] Refine layer mapping UI in dialog (2025-11-22)
-- [~] Add cassette preview display (2025-11-22)
+- [x] Implement layer mapping UI with MultiSelect (2025-11-22)
+- [x] Add analyze endpoint for DXF layer detection (2025-11-22)
+- [x] Add upload endpoint with layer mappings (2025-11-22)
+- [x] Fix cassettes getter name (allCassettes) (2025-11-22)
+- [ ] Add locales for new cassette UI strings
+- [ ] Implement SVG preview display in dialog
+- [ ] Polish cassette card display
 - [ ] Create `ParameterEditor.vue` with PrimeVue form components
 - [ ] Test cassette CRUD operations end-to-end
 - [ ] Document page structure in `/ONBOARDING.md`
+
+**Known Issues:**
+- Layer detection returns mock data (will be fixed with Python worker integration in Phase 3)
+- SVG preview not fetching from GridFS yet
+- Some UI strings not localized
 
 **PrimeVue Components to Use:**
 - `DataTable` with `Column` for cassette list
