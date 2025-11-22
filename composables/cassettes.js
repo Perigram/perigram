@@ -65,7 +65,7 @@ const actions = {
         try {
             const updatedCassette = await $fetch(`/api/cassettes/${cassetteId}/mappings`, {
                 method: 'PUT',
-                body: { layerMapping }
+                body: { layerMappings: layerMapping }
             });
             
             state.uploadStatus = 'idle';

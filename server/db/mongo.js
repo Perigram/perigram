@@ -125,6 +125,24 @@ export async function getValidUserDxfBucket() {
   return validUserDxfBucket;
 }
 
+/**
+ * @type {GridFSBucket}
+ */
+let cassettesSvgBucket;
+
+/**
+ * @returns {Promise<GridFSBucket>}
+ */
+export async function getCassettesSvgBucket() {
+  await connectDB();
+  if (!cassettesSvgBucket) {
+    cassettesSvgBucket = new GridFSBucket(db, {
+      bucketName: "cassettesSvg",
+    });
+  }
+  return cassettesSvgBucket;
+}
+
 export async function connectDB() {
   if (!client) {
     try {
