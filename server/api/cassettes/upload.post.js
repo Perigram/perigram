@@ -14,6 +14,7 @@ export default defineEventHandler(async (event) => {
   
   const fileField = fields.find(f => f.name === 'file');
   const nameField = fields.find(f => f.name === 'name');
+  const layerMappingField = fields.find(f => f.name === 'layerMapping');
   
   if (!fileField) {
     throw createError({
@@ -26,5 +27,14 @@ export default defineEventHandler(async (event) => {
   const fileName = fileField.filename || 'cassette.dxf';
   const fileBuffer = fileField.data;
   
-  return await service.upload(fileBuffer, fileName, name, userId);
+  let layerMapping = null;
+  if (layerMappingField) {
+    try {
+      layerMapping = JSON.parse(layerMappingField.data.toString());
+    } catch (e) {
+      console.error('Failed to parse layer mapping:', e);
+    }
+  }
+  
+  return await service.upload(fileBuffer, fileName, name, userId, layerMapping);
 });

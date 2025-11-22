@@ -9,7 +9,7 @@ import { GridFSBucket } from 'mongodb';
 import { generateRandomString } from '../../utils/strings.js';
 import standardSlugify from 'standard-slugify';
 
-export async function upload(fileBuffer, fileName, cassetteName, userId) {
+export async function upload(fileBuffer, fileName, cassetteName, userId, layerMapping = null) {
   if (!fileBuffer || fileBuffer.length === 0) {
     throw createError({ statusCode: 400, message: 'No file data provided' });
   }
@@ -39,7 +39,7 @@ export async function upload(fileBuffer, fileName, cassetteName, userId) {
     userId: userId,  // Old schema uses userId as string (not ObjectId)
     dxfId: uploadStream.id,
     svgId: null,
-    layerMapping: {  // Old schema uses layerMapping (singular)
+    layerMapping: layerMapping || {  // Use provided mapping or default
       cut: [],
       bend: [],
       frame: [],
@@ -155,4 +155,21 @@ export async function remove(id, userId) {
   await getById(id, userId);
   await repository.deleteById(id);
   return { success: true };
+}
+
+export async function analyzeFile(fileBuffer) {
+  if (!fileBuffer || fileBuffer.length === 0) {
+    throw createError({ statusCode: 400, message: 'No file data provided' });
+  }
+  
+  // TODO: Parse DXF to extract layers
+  // For now, return mock data - this should call Python worker
+  const mockLayers = ['Contour', 'Bend_Lines', 'Frame', 'Dimensions', 'Text'];
+  
+  return {
+    detectedLayers: mockLayers,
+    fileSize: fileBuffer.length,
+    // Preview SVG would come from worker processing
+    previewSvg: null
+  };
 }

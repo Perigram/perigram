@@ -20,6 +20,7 @@
             id="cassetteName"
             v-model="name" 
             :placeholder="$t('cassette.nameExample')"
+            :disabled="uploadStatus === 'analyzing'"
           />
         </div>
 
@@ -33,6 +34,7 @@
             :auto="false"
             :customUpload="true"
             :choose-label="selectedFile ? $t('common.changeFile') : $t('common.chooseFile')"
+            :disabled="uploadStatus === 'analyzing' || uploadStatus === 'mapping'"
             @select="handleFileSelect"
           />
           <small v-if="selectedFile" class="file-info">
@@ -40,7 +42,46 @@
           </small>
         </div>
 
+        <!-- Show analyzing status -->
+        <div v-if="uploadStatus === 'analyzing'" class="analyzing-section">
+          <ProgressSpinner style="width: 40px; height: 40px" />
+          <p>{{ $t('cassette.analyzingFile') }}</p>
+        </div>
+
+        <!-- Show layer mapping after analysis -->
+        <div v-if="uploadStatus === 'mapping' && detectedLayers.length > 0" class="layer-mapping-section">
+          <Divider />
+          <h4>{{ $t('cassette.layerMapping') }}</h4>
+          <Message severity="info" :closable="false">
+            {{ $t('cassette.layerMappingDescription') }}
+          </Message>
+
+          <div class="detected-layers">
+            <Tag v-for="layer in detectedLayers" :key="layer" :value="layer" class="layer-tag" />
+          </div>
+
+          <div class="mapping-fields">
+            <div v-for="layerType in layerTypes" :key="layerType" class="field">
+              <label>
+                <i :class="getLayerIcon(layerType)"></i>
+                {{ $t(`cassette.layerTypes.${layerType}`) }}
+              </label>
+              <MultiSelect
+                v-model="layerMapping[layerType]"
+                :options="detectedLayers"
+                :placeholder="$t('cassette.selectLayers')"
+                class="w-full"
+              />
+            </div>
+          </div>
+        </div>
+
+        <Message v-if="errorMessage" severity="error" :closable="false">
+          {{ errorMessage }}
+        </Message>
+
         <Button 
+          v-if="uploadStatus === 'mapping'"
           :label="$t('common.upload')" 
           icon="pi pi-upload"
           :loading="uploadStatus === 'uploading'"
@@ -202,7 +243,10 @@ const layerMapping = reactive({
 const currentCassette = computed(() => props.cassette || uploadedCassette.value);
 
 const canUpload = computed(() => {
-  return name.value.trim() !== '' && selectedFile.value !== null && uploadStatus.value === 'idle';
+  return name.value.trim() !== '' && 
+         selectedFile.value !== null && 
+         uploadStatus.value === 'mapping' &&
+         canSave.value;
 });
 
 const isProcessing = computed(() => {
@@ -244,13 +288,33 @@ const formatFileSize = (bytes) => {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
 
-const handleFileSelect = (event) => {
+const handleFileSelect = async (event) => {
   const file = event.files?.[0];
-  if (file) {
-    selectedFile.value = file;
-    if (!name.value) {
-      name.value = file.name.replace('.dxf', '').replace(/\.[^/.]+$/, '');
-    }
+  if (!file) return;
+  
+  selectedFile.value = file;
+  if (!name.value) {
+    name.value = file.name.replace('.dxf', '').replace(/\.[^/.]+$/, '');
+  }
+  
+  // Immediately analyze the file
+  uploadStatus.value = 'analyzing';
+  errorMessage.value = '';
+  
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const analysis = await $fetch('/api/cassettes/analyze', {
+      method: 'POST',
+      body: formData
+    });
+    
+    detectedLayers.value = analysis.detectedLayers || [];
+    uploadStatus.value = 'mapping';
+  } catch (error) {
+    uploadStatus.value = 'error';
+    errorMessage.value = error.data?.message || 'Failed to analyze file';
   }
 };
 
@@ -264,6 +328,7 @@ const handleUpload = async () => {
     const formData = new FormData();
     formData.append('file', selectedFile.value);
     formData.append('name', name.value);
+    formData.append('layerMapping', JSON.stringify(layerMapping));
 
     const cassette = await $fetch('/api/cassettes/upload', {
       method: 'POST',
@@ -509,6 +574,49 @@ onUnmounted(() => {
   gap: 16px;
   padding: 32px;
   color: var(--text-color-secondary);
+}
+
+.analyzing-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+}
+
+.layer-mapping-section {
+  margin-top: 24px;
+}
+
+.layer-mapping-section h4 {
+  margin: 12px 0;
+  font-size: 1.1rem;
+}
+
+.detected-layers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.layer-tag {
+  font-size: 0.875rem;
+}
+
+.mapping-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.mapping-fields .field label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 500;
 }
 
 .w-full {
