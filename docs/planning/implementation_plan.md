@@ -152,7 +152,7 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 
 **Documentation:** Update `/ARCHITECTURE.md` sections "Module Structure", "API Patterns", and "Workflows"
 
-#### Batches Module
+#### Batches Module ✅ COMPLETE
 - [x] Create `/server/features/batches/repository.js` (2025-11-22)
 - [x] Create `/server/features/batches/service.js` (2025-11-22)
 - [x] Create `/server/features/batches/index.js` (2025-11-22)
@@ -168,7 +168,7 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 
 **Documentation:** Update `/ARCHITECTURE.md` sections "Module Structure", "API Patterns", and "Workflows"
 
-#### Artifacts Module
+#### Artifacts Module ✅ COMPLETE
 - [x] Create `/server/features/artifacts/repository.js` (2025-11-22)
 - [x] Create `/server/features/artifacts/service.js` (2025-11-22)
 - [x] Create `/server/features/artifacts/index.js` (2025-11-22)
