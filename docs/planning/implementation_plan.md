@@ -95,13 +95,13 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 **Documentation:** Update `/ARCHITECTURE.md` sections "Module Structure" and "API Patterns"
 
 #### Pen Templates Module
-- [ ] Create `/server/features/pen-templates/repository.js`
-- [ ] Create `/server/features/pen-templates/service.js`
-- [ ] Create `/server/features/pen-templates/index.js`
-- [ ] Create `GET /api/templates/pens` endpoint
-- [ ] Create `POST /api/templates/pens` endpoint
-- [ ] Create `PUT /api/templates/pens/:id` endpoint
-- [ ] Create `DELETE /api/templates/pens/:id` endpoint
+- [x] Create `/server/features/pen-templates/repository.js` (2025-11-22)
+- [x] Create `/server/features/pen-templates/service.js` (2025-11-22)
+- [x] Create `/server/features/pen-templates/index.js` (2025-11-22)
+- [x] Create `GET /api/templates/pens` endpoint (2025-11-22)
+- [x] Create `POST /api/templates/pens` endpoint (2025-11-22)
+- [x] Create `PUT /api/templates/pens/:id` endpoint (2025-11-22)
+- [x] Create `DELETE /api/templates/pens/:id` endpoint (2025-11-22)
 - [ ] Seed default system pens
 - [ ] Document service API in `/ARCHITECTURE.md`
 - [ ] Code review & merge
