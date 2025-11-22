@@ -90,16 +90,6 @@ const actions = {
             throw error;
         }
     },
-            
-            state.uploadStatus = 'idle';
-            this.updateCassette(updatedCassette);
-            return updatedCassette;
-        } catch (error) {
-            state.uploadStatus = 'error';
-            console.error('Failed to map cassette layers:', error);
-            throw error;
-        }
-    },
 
     async deleteCassette(cassetteId) {
         try {
