@@ -11,69 +11,76 @@
 import { service } from '../features/layer-standards/index.js';
 import { connectDB } from '../db/mongo.js';
 
-// Layer standards data based on docs/specs/layers.md
+// Layer standards data - parametric templates
 const LAYER_STANDARDS = [
   {
     code: "1_1_FACE",
     category: "CONTOUR",
     i18n: {
-      ru: { name: "Лицо кассеты" },
-      en: { name: "Cassette Face" }
+      ru: { nameTemplate: "Лицо_Кассеты" },
+      en: { nameTemplate: "Cassette_Face" }
     },
-    defaultPenId: null  // Will be set after pen templates are created
+    parameters: [],
+    defaultPenId: null
   },
   {
     code: "1_2_UNFOLD",
     category: "CONTOUR",
     i18n: {
-      ru: { name: "Развертка кассеты" },
-      en: { name: "Cassette Unfold" }
+      ru: { nameTemplate: "Развертка_кассеты" },
+      en: { nameTemplate: "Cassette_Unfold" }
     },
+    parameters: [],
     defaultPenId: null
   },
   {
     code: "1_3_UNFOLD_BOUNDARY",
     category: "CONTOUR",
     i18n: {
-      ru: { name: "Габарит развертки + Ǿ фрезы" },
-      en: { name: "Unfold Boundary + Mill Diameter" }
+      ru: { nameTemplate: "Габарит_развертки" },
+      en: { nameTemplate: "Unfold_Boundary" }
     },
+    parameters: [],
     defaultPenId: null
   },
   {
-    code: "2_1_CUT_3_15",
+    code: "2_1_CUT",
     category: "CUT",
     i18n: {
-      ru: { name: "Обрезь 3.15" },
-      en: { name: "Cut 3.15mm" }
+      ru: { nameTemplate: "Обрезь_{diameter}" },
+      en: { nameTemplate: "Cut_{diameter}" }
     },
+    parameters: ["diameter"],
     defaultPenId: null
   },
   {
-    code: "2_2_HOLE_5",
+    code: "2_2_HOLE",
     category: "CUT",
     i18n: {
-      ru: { name: "Отверстие 5" },
-      en: { name: "Hole 5mm" }
+      ru: { nameTemplate: "Отверстие_{diameter}" },
+      en: { nameTemplate: "Hole_{diameter}" }
     },
+    parameters: ["diameter"],
     defaultPenId: null
   },
   {
-    code: "3_1_BEND_90",
+    code: "3_1_BEND",
     category: "BEND",
     i18n: {
-      ru: { name: "Фрезеровка 90°" },
-      en: { name: "Mill 90°" }
+      ru: { nameTemplate: "Фрезеровка_{angle}" },
+      en: { nameTemplate: "Mill_{angle}" }
     },
+    parameters: ["angle"],
     defaultPenId: null
   },
   {
     code: "3_2_ENGRAVE",
     category: "MARKING",
     i18n: {
-      ru: { name: "Гравировка" },
-      en: { name: "Engraving" }
+      ru: { nameTemplate: "Гравировка" },
+      en: { nameTemplate: "Engraving" }
     },
+    parameters: [],
     defaultPenId: null
   }
 ];
@@ -105,7 +112,8 @@ async function main() {
     // Display created standards
     const standards = await service.getAll();
     for (const std of standards) {
-      console.log(`   - ${std.code}: ${std.i18n.en.name} (${std.category})`);
+      const params = std.parameters?.length > 0 ? ` (params: ${std.parameters.join(', ')})` : '';
+      console.log(`   - ${std.code}: ${std.i18n.en.nameTemplate}${params} (${std.category})`);
     }
     
     console.log('\n✨ Seeding complete!');
