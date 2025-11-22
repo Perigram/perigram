@@ -58,16 +58,11 @@
       </template>
     </DataView>
 
-    <CassetteUploadDialog 
-      v-if="showUploadDialog" 
-      @close="showUploadDialog = false"
-      @uploaded="handleUploaded"
-    />
-
     <CassetteEditorDialog 
-      v-if="showEditDialog && editingCassette" 
+      v-if="showUploadDialog || (showEditDialog && editingCassette)" 
       :cassette="editingCassette"
-      @close="showEditDialog = false"
+      @close="closeDialogs"
+      @uploaded="handleUploaded"
       @saved="handleSaved"
     />
   </div>
@@ -79,7 +74,6 @@ import { cassettesStore } from '~/composables/cassettes';
 import Button from 'primevue/button';
 import DataView from 'primevue/dataview';
 import Tag from 'primevue/tag';
-import CassetteUploadDialog from './CassetteUploadDialog.vue';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 
 const { getters, actions } = cassettesStore;
@@ -122,13 +116,18 @@ const editCassette = (cassette) => {
   showEditDialog.value = true;
 };
 
-const handleUploaded = async (cassette) => {
-  showUploadDialog.value = false;
-  editingCassette.value = cassette;
-  showEditDialog.value = true;
+const handleUploaded = async () => {
+  closeDialogs();
+  await fetchCassettes();
 };
 
-const handleSaved = () => {
+const handleSaved = async () => {
+  closeDialogs();
+  await fetchCassettes();
+};
+
+const closeDialogs = () => {
+  showUploadDialog.value = false;
   showEditDialog.value = false;
   editingCassette.value = null;
 };
