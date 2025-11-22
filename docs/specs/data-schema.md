@@ -9,20 +9,25 @@ _Industrial-grade data structures for 2D vector cassette nesting platform_
 
 **Collection:** `layer_standards`
 
-System catalogue of standardized layer definitions. User maps their DXF layers to these standards during cassette upload.
+System catalogue of standardized layer patterns. Supports parametric layer names.
 
 ```typescript
 interface LayerStandard {
   _id: ObjectId;
-  code: string;              // e.g., "1_1_FACE", "2_1_CUT_3_15"
+  code: string;              // e.g., "1_1_FACE", "2_1_CUT", "3_1_BEND"
   category: LayerCategory;   // "CONTOUR" | "CUT" | "BEND" | "MARKING"
+  
+  // Localized name templates (can include parameters)
   i18n: {
-    en: { name: string; };
-    ru: { name: string; };
+    en: { nameTemplate: string; };  // e.g., "Cut_{diameter}", "Mill_{angle}"
+    ru: { nameTemplate: string; };  // e.g., "Обрезь_{diameter}", "Фрезеровка_{angle}"
   };
   
+  // Parameters that can be substituted in nameTemplate
+  parameters?: string[];     // e.g., ["diameter"], ["angle"]
+  
   // Display defaults (user can override per cassette)
-  defaultPenId: ObjectId;    // Reference to pen template
+  defaultPenId?: ObjectId;   // Reference to pen template
   
   isActive: boolean;         // Soft-delete capability
   createdAt: Date;
@@ -38,16 +43,42 @@ enum LayerCategory {
 
 **Indexes:** `code` (unique), `category`, `isActive`
 
-**Seed from layers.md:**
+**Examples:**
 ```json
 [
-  { "code": "1_1_FACE", "category": "CONTOUR", "i18n": { "ru": { "name": "Лицо кассеты" }, "en": { "name": "Cassette Face" } } },
-  { "code": "1_2_UNFOLD", "category": "CONTOUR", "i18n": { "ru": { "name": "Развертка кассеты" }, "en": { "name": "Cassette Unfold" } } },
-  { "code": "2_1_CUT_3_15", "category": "CUT", "i18n": { "ru": { "name": "Обрезь 3.15" }, "en": { "name": "Cut 3.15mm" } } },
-  { "code": "2_2_HOLE_5", "category": "CUT", "i18n": { "ru": { "name": "Отверстие 5" }, "en": { "name": "Hole 5mm" } } },
-  { "code": "3_1_BEND_90", "category": "BEND", "i18n": { "ru": { "name": "Фрезеровка 90°" }, "en": { "name": "Mill 90°" } } }
+  { 
+    "code": "1_1_FACE", 
+    "category": "CONTOUR", 
+    "i18n": { 
+      "ru": { "nameTemplate": "Лицо_Кассеты" }, 
+      "en": { "nameTemplate": "Cassette_Face" } 
+    },
+    "parameters": []
+  },
+  { 
+    "code": "2_1_CUT", 
+    "category": "CUT", 
+    "i18n": { 
+      "ru": { "nameTemplate": "Обрезь_{diameter}" }, 
+      "en": { "nameTemplate": "Cut_{diameter}" } 
+    },
+    "parameters": ["diameter"]
+  },
+  { 
+    "code": "3_1_BEND", 
+    "category": "BEND", 
+    "i18n": { 
+      "ru": { "nameTemplate": "Фрезеровка_{angle}" }, 
+      "en": { "nameTemplate": "Mill_{angle}" } 
+    },
+    "parameters": ["angle"]
+  }
 ]
 ```
+
+**Usage:** When creating cassette from template, substitute parameters:
+- Template: `"Обрезь_{diameter}"` + diameter=3.15 → Layer name: `"2_1_Обрезь_3,15"`
+- Template: `"Фрезеровка_{angle}"` + angle=90 → Layer name: `"3_1_Фрезеровка_90"`
 
 ---
 
@@ -153,11 +184,15 @@ interface CassetteTemplate {
 **Indexes:** `slug` (unique), `ownerId`, `status`, `dxfId`
 
 interface LayerMapping {
-  dxfLayerName: string;      // Original DXF layer name
   layerStandardId: ObjectId; // Reference to layer_standards
-  penId: ObjectId;           // User can override pen
+  penId: ObjectId;           // Display pen
   toolId?: ObjectId;         // Optional tool reference
-  // Note: disabled layers not stored (omit from array)
+  
+  // Parameter values for this instance
+  parameters?: Record<string, any>;  // e.g., { diameter: 3.15, angle: 90 }
+  
+  // Computed layer name (generated from template + parameters)
+  computedLayerName: string; // e.g., "2_1_Обрезь_3,15"
 }
 
 interface Parameter {
@@ -428,12 +463,19 @@ Artifact
 
 1. **Upload DXF:** User uploads multi-layer DXF cassette
 2. **Detect Layers:** System extracts all layer names from DXF
-3. **Hand-Mapping:** User maps each DXF layer → LayerStandard → Pen
-4. **Store Template:** Save as CassetteTemplate with mappings
-5. **Create Batch:** User selects cassettes, sets parameters, creates batch
-6. **Run Nesting:** Batch triggers nesting job
-7. **Generate Artifacts:** Create layouts, G-code, PDFs
-8. **Display Results:** Show with pen styles, download artifacts
+3. **Map to Standards:** User maps each DXF layer → LayerStandard → Pen + Tool
+4. **Set Parameters:** For parametric layers (e.g., CUT, BEND), user provides parameter values
+5. **Store Template:** Save as CassetteTemplate with layer mappings and parameter values
+6. **Create Batch:** User selects cassettes, sets cassette parameters, creates batch
+7. **Generate Layers:** When nesting, system generates actual layer names from templates + parameters
+8. **Run Nesting:** Batch triggers nesting job with computed layer names
+9. **Generate Artifacts:** Create layouts, G-code, PDFs with correct layer names
+10. **Display Results:** Show with pen styles, download artifacts
+
+**Layer Name Generation Example:**
+- LayerStandard: code="2_1_CUT", nameTemplate="Обрезь_{diameter}"
+- LayerMapping: layerStandardId=(ref), parameters={diameter: 3.15}
+- **Generated:** computedLayerName="2_1_Обрезь_3,15"
 
 ---
 
