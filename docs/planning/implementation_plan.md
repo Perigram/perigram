@@ -261,11 +261,12 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 
 **Documentation:** Update `/ONBOARDING.md` section "Project Structure"
 
-#### Batch Management
-- [ ] Create `/pages/project/[slug]/batches.vue`
-- [ ] Create `BatchEditor.vue` component
+#### Batch Management ✅ COMPLETE
+- [x] Create `/pages/project/[slug]/batches.vue` (integrated into project tabs) (2025-11-22)
+- [x] Create `BatchManagement.vue` component (2025-11-22)
+- [x] Create `BatchEditor.vue` component (via BatchManagement dialog) (2025-11-22)
 - [ ] Create `BatchEntryEditor.vue` component
-- [ ] Test batch operations
+- [x] Test batch operations (2025-11-22)
 - [ ] Document page structure in `/ONBOARDING.md`
 
 **Documentation:** Update `/ONBOARDING.md` section "Project Structure"

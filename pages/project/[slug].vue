@@ -8,6 +8,9 @@
                 <ProjectTables :project-slug="slug" />
                 <TableEditor />
             </template>
+            <template #Batches>
+                <BatchManagement :project-slug="slug" />
+            </template>
             <template #Nesting>
                 <MainSettings />
                 <MainButton :theme="themeType.primary" :label="btnLabel" :isDisable="btnIsDisable" @click="startsNest"
@@ -40,6 +43,7 @@ import { themeType } from "~~/constants/theme.constants";
 import ProjectStatistics from '~/components/ProjectStatistics.vue';
 import ProjectTables from '~/components/ProjectTables.vue';
 import TableEditor from '~/components/TableEditor.vue';
+import BatchManagement from '~/components/BatchManagement.vue';
 import Tabs from '~/components/Tabs.vue';
 import { tablesStore } from '~/composables/tables';
 import { cassettesStore } from '~/composables/cassettes';
@@ -56,6 +60,7 @@ definePageMeta({
 const tabs = [
     { name: 'Files', label: computed(() => t('project.files')) },
     { name: 'Tables', label: computed(() => t('project.tables')) },
+    { name: 'Batches', label: computed(() => t('project.batches')) },
     { name: 'Nesting', label: computed(() => t('project.nesting')) },
     { name: 'Statistics', label: computed(() => t('project.statistics')) },
 ];

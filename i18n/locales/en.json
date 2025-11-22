@@ -47,7 +47,8 @@
     "addFiles": "Add Files",
     "uploadDxf": "Upload your .DXF files",
     "allFilesSecure": "All files will be save secure and available only for you",
-    "filesWillBeSaved": "Files will be saved securely"
+    "filesWillBeSaved": "Files will be saved securely",
+    "batches": "Batches"
   },
   "file": {
     "upload": "Upload Files",
@@ -232,5 +233,17 @@
     "title": "Support",
     "description": "Need help? Contact us!",
     "button": "Support"
+  },
+  "batch": {
+    "title": "Batches",
+    "create": "Create Batch",
+    "createTitle": "Create New Batch",
+    "createFirst": "Create Your First Batch",
+    "name": "Batch Name",
+    "namePlaceholder": "Enter batch name",
+    "status": "Status",
+    "created": "Created",
+    "empty": "No batches yet. Create your first batch to get started.",
+    "confirmDelete": "Are you sure you want to delete this batch?"
   }
 }
