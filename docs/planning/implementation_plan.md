@@ -158,7 +158,7 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Create `GET /api/project/:slug/batches` endpoint (2025-11-22)
 - [x] Create `GET /api/batch/:id` endpoint (2025-11-22)
 - [x] Create `PUT /api/batch/:id` endpoint (2025-11-22)
-- [ ] Create `POST /api/batch/:id/nest` endpoint
+- [x] Create `POST /api/batch/:id/nest` endpoint (2025-11-22)
 - [x] Create `GET /api/batch/:id/artifacts` endpoint (2025-11-22)
 - [x] Document service API in `/ARCHITECTURE.md` (2025-11-22)
 - [ ] Document batch lifecycle workflow in `/ARCHITECTURE.md`
