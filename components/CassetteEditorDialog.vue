@@ -308,3 +308,40 @@ const handleClose = () => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.mapping-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mapping-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mapping-row label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--label-primary);
+}
+
+.mapping-select {
+  width: 100%;
+}
+
+.step-analyzing, .step-uploading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 20px;
+}
+
+.step-analyzing p, .step-uploading p {
+  font-size: 14px;
+  color: var(--label-secondary);
+}
+</style>
