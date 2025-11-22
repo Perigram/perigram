@@ -294,6 +294,7 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 **Goal:** Manage user cassette templates with PrimeVue components
 
 - [ ] Update `/pages/cassettes/index.vue` (already exists, needs PrimeVue migration)
+- [x] Migrate `CassetteManager.vue` to PrimeVue DataTable (2025-11-22)
 - [ ] Update `CassetteUploadDialog.vue` to use PrimeVue `Dialog` + `FileUpload`
 - [ ] Create `LayerMappingEditor.vue` with PrimeVue `DataTable` for layer mapping
 - [ ] Create `ParameterEditor.vue` with PrimeVue form components
