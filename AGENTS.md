@@ -42,12 +42,7 @@ Architecture guide for Cutkit-Demo: DXF nesting application (Nuxt.js 3 + Vue 3 +
 - `user_dxf_files` - Uploaded DXF files (slug, projectSlug, processingStatus, svgId, dxfId)
 - `nesting_jobs` - Nesting results (resultId, projectSlug, status, params, sheets, statistics)
 - `tables` - Project tables (projectId, name, data, columnMappings, status)
-- `cassettes` - User cassette templates (ownerId, name, slug, dxfId, svgId, layerMappings, parameters, status)
-- `layer_standards` - Layer type definitions (code, category, nameTemplate, parameters, defaultPenId)
-- `pen_templates` - Pen/stroke templates (ownerId, name, stroke color/weight/pattern)
-- `tool_profiles` - Tool definitions for CNC (ownerId, name, diameter, angle)
-- `batches` - Nesting batches (projectId, name, table data, status)
-- `artifacts` - Generated nesting results (batchId, svgId, dxfId, statistics)
+- `cassettes` - User cassettes (userId, name, dxfId, svgId, layerMapping, processingStatus)
 
 **GridFS Buckets:**
 - `avatars` - User profile images
@@ -85,10 +80,6 @@ export const myStore = readonly({
 - `themeStore` (`composables/theme.js`) - Theme switching (light/dark)
 - `tablesStore` (`composables/tables.js`) - Project tables, table data, upload/validation
 - `cassettesStore` (`composables/cassettes.js`) - User cassettes, layer mapping, cassette selection
-- `layerStandardsStore` (`composables/layerStandards.js`) - Layer type standards
-- `penTemplatesStore` (`composables/penTemplates.js`) - Pen/stroke templates
-- `toolProfilesStore` (`composables/toolProfiles.js`) - Tool profiles for CNC
-- `batchesStore` (`composables/batches.js`) - Batches and nesting jobs
 - `useModalState` - Dialog state management (useState pattern)
 
 **Store Rules:**
@@ -179,32 +170,14 @@ export const myStore = readonly({
 - `GET /api/project/:slug/tables` - Get project tables
 - `POST /api/project/:slug/tables/create` - Create new table
 - `POST /api/project/:slug/tables/upload` - Upload table from CSV/Excel
-- `POST /api/project/:slug/batches` - Create batch in project
-- `GET /api/project/:slug/batches` - Get project batches
 - `GET /api/tables/:id` - Get table data
 - `PUT /api/tables/:id` - Update table data
 - `DELETE /api/tables/:id` - Delete table
-- `GET /api/batch/:id` - Get batch details
-- `PUT /api/batch/:id` - Update batch
-- `POST /api/batch/:id/nest` - Trigger nesting for batch
-- `GET /api/batch/:id/artifacts` - Get batch artifacts
 - `GET /api/cassettes` - Get user cassettes
 - `POST /api/cassettes/upload` - Upload cassette DXF
 - `GET /api/cassettes/:id` - Get cassette details
-- `PUT /api/cassettes/:id/mappings` - Update layer mappings
-- `PUT /api/cassettes/:id/parameters` - Update cassette parameters
+- `PUT /api/cassettes/:id` - Update cassette (layer mapping)
 - `DELETE /api/cassettes/:id` - Delete cassette
-- `GET /api/layer-standards` - Get all layer standards
-- `GET /api/templates/pens` - Get pen templates (system + user)
-- `POST /api/templates/pens` - Create user pen template
-- `PUT /api/templates/pens/:id` - Update pen template
-- `DELETE /api/templates/pens/:id` - Delete user pen template
-- `GET /api/templates/tools` - Get tool profiles (system + user)
-- `POST /api/templates/tools` - Create user tool profile
-- `PUT /api/templates/tools/:id` - Update tool profile
-- `DELETE /api/templates/tools/:id` - Delete user tool profile
-- `GET /api/artifacts/:id` - Get artifact details
-- `DELETE /api/artifacts/:id` - Delete artifact
 - `POST /api/auth/logout` - Clear session
 - `GET /api/user` - Get current user
 - `POST /api/user/add-credits` - Add credits to user balance (dev only)
@@ -292,48 +265,6 @@ try {
 **5. Navigation:**
 - `navigateTo('/path')` for programmatic navigation
 - `definePageMeta({ middleware: 'auth' })` for protected pages
-
-**6. Service Layer Pattern:**
-All business logic organized in `/server/features/{module}/` with:
-- `repository.js` - Database operations (MongoDB queries)
-- `service.js` - Business logic and validation
-- `index.js` - Public exports
-
-Example modules:
-- `layer-standards` - Layer type definitions
-- `pen-templates` - Pen/stroke templates (system + user)
-- `tool-profiles` - Tool definitions (system + user)
-- `cassettes` - Cassette templates
-- `batches` - Nesting batches
-- `artifacts` - Nesting results
-
-Pattern:
-```javascript
-// repository.js - Direct DB access
-export async function findById(id) {
-  const db = await connectDB();
-  return await db.collection('my_collection').findOne({ _id: new ObjectId(id) });
-}
-
-// service.js - Business logic
-export async function getById(id, userId) {
-  if (!ObjectId.isValid(id)) {
-    throw createError({ statusCode: 400, message: 'Invalid ID' });
-  }
-  const item = await repository.findById(id);
-  if (!item) {
-    throw createError({ statusCode: 404, message: 'Not found' });
-  }
-  return item;
-}
-
-// API endpoint - Thin wrapper
-export default defineEventHandler(async (event) => {
-  const id = getRouterParam(event, 'id');
-  const userId = event.context.auth.userId;
-  return await service.getById(id, userId);
-});
-```
 
 ## Constants & Configuration
 
