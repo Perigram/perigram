@@ -230,8 +230,8 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 ### 3.4 New Composables ✅ COMPLETE
 - [x] Create `/composables/layerStandards.js` (2025-11-22)
 - [x] Create `/composables/penTemplates.js` (2025-11-22)
+- [x] Create `/composables/toolProfiles.js` (2025-11-22)
 - [x] Create `/composables/batches.js` (2025-11-22)
-- [ ] Create `/composables/toolProfiles.js`
 - [x] Document store pattern in `/ARCHITECTURE.md` (2025-11-22)
 
 **Documentation:** Update `/ARCHITECTURE.md` section "Frontend Architecture"
