@@ -15,7 +15,7 @@ const COLLECTION = 'collection_name'; // Replace with actual collection name
  */
 export async function findById(id) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
+  return await db.collection(COLLECTION).findOne({ _id: toObjectId(id) });
 }
 
 /**
@@ -54,7 +54,7 @@ export async function create(data) {
 export async function updateById(id, updates) {
   const db = await connectDB();
   const result = await db.collection(COLLECTION).updateOne(
-    { _id: new ObjectId(id) },
+    { _id: toObjectId(id) },
     { 
       $set: { 
         ...updates, 
@@ -71,7 +71,7 @@ export async function updateById(id, updates) {
  */
 export async function deleteById(id) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
+  const result = await db.collection(COLLECTION).deleteOne({ _id: toObjectId(id) });
   return result.deletedCount > 0;
 }
 
