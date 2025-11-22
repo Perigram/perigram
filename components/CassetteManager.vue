@@ -59,11 +59,8 @@
     </DataView>
 
     <CassetteEditorDialog 
-      v-if="showUploadDialog || (showEditDialog && editingCassette)" 
-      :cassette="editingCassette"
-      @close="closeDialogs"
+      v-model="showUploadDialog"
       @uploaded="handleUploaded"
-      @saved="handleSaved"
     />
   </div>
 </template>
@@ -123,19 +120,8 @@ const editCassette = (cassette) => {
 };
 
 const handleUploaded = async () => {
-  closeDialogs();
-  await fetchCassettes();
-};
-
-const handleSaved = async () => {
-  closeDialogs();
-  await fetchCassettes();
-};
-
-const closeDialogs = () => {
   showUploadDialog.value = false;
-  showEditDialog.value = false;
-  editingCassette.value = null;
+  await fetchCassettes();
 };
 </script>
 
