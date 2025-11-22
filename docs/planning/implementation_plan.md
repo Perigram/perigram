@@ -73,10 +73,16 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 
 ### 2.1 Foundation Services ✅ COMPLETE
 
-#### Layer Standards Module ✅ COMPLETE
-- [x] Module created with parametric templates (2025-11-22)
-- [x] API endpoint (2025-11-22)
-- [x] Seed script with parametric data (2025-11-22)
+#### Pen Templates Module ✅ COMPLETE
+- [x] Module created (2025-11-22)
+- [x] API endpoints (2025-11-22)
+- [x] Seed script for system pens (2025-11-22)
+- [x] Documented in ARCHITECTURE.md (2025-11-22)
+
+#### Tool Profiles Module ✅ COMPLETE
+- [x] Module created (2025-11-22)
+- [x] API endpoints (2025-11-22)
+- [x] Seed script for system tools (2025-11-22)
 - [x] Documented in ARCHITECTURE.md (2025-11-22)
 
 #### Layer Standards Module
