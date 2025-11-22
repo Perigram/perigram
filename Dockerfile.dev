@@ -1,0 +1,20 @@
+# Development Dockerfile with hot reload
+FROM node:20.19.0-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+
+# Copy package files
+COPY package.json package-lock.json ./
+
+# Install ALL dependencies (including dev dependencies)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]

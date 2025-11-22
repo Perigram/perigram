@@ -1,0 +1,52 @@
+# docker-compose.dev.yml
+# For local development with hot reload
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: nest2d_app_dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/src
+      - /src/node_modules
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/nest2d-v2
+      - NODE_ENV=development
+    depends_on:
+      - mongo
+    command: npm run dev
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:latest
+    container_name: nest2d_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    restart: always
+
+  user-file-processing-worker:
+    image: ghcr.io/vovastelmashchuk/user-file-processing-worker:latest
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/nest2d-v2
+      - WORKER_TAG=normal
+      - MAX_ENTITY_LIMIT=999
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  nesting-worker:
+    image: ghcr.io/vovastelmashchuk/nesting-worker:latest
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/nest2d-v2
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
