@@ -62,14 +62,14 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 ---
 
 ### 1.3 Database Indexes
-- [ ] Create `/server/db/indexes.js`
-- [ ] Add indexes for `layer_standards`
-- [ ] Add indexes for `pen_templates`
-- [ ] Add indexes for `tool_profiles`
-- [ ] Add indexes for `cassette_templates`
-- [ ] Add indexes for `batches`
-- [ ] Add indexes for `artifacts`
-- [ ] Document index strategy in `/ARCHITECTURE.md`
+- [x] Create `/server/db/indexes.js` (2025-11-22)
+- [x] Add indexes for `layer_standards` (2025-11-22)
+- [x] Add indexes for `pen_templates` (2025-11-22)
+- [x] Add indexes for `tool_profiles` (2025-11-22)
+- [x] Add indexes for `cassette_templates` (2025-11-22)
+- [x] Add indexes for `batches` (2025-11-22)
+- [x] Add indexes for `artifacts` (2025-11-22)
+- [x] Document index strategy in `/ARCHITECTURE.md` (2025-11-22)
 
 **Documentation:** Update `/ARCHITECTURE.md` section "Data Model"
 

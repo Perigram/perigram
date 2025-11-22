@@ -41,6 +41,35 @@ Cutkit-Demo is a DXF nesting application for CNC manufacturing. It handles multi
 - `projects` - Extended with metadata and TEP
 - `users` - Extended with template libraries
 
+### Indexes
+
+**Index Management:** `/server/db/indexes.js`
+
+All collections have indexes for efficient queries. Key indexes:
+
+- `layer_standards`: `code` (unique), `category`, `isActive`
+- `pen_templates`: `ownerId`, `name`
+- `tool_profiles`: `ownerId`, `diameter`
+- `cassette_templates`: `slug` (unique), `ownerId`, `status`, `dxfId`
+- `batches`: `(projectSlug, batchNumber)` compound unique, `ownerId`, `status`
+- `artifacts`: `batchId`, `type`, `status`, `createdAt`
+
+**Create indexes:**
+```bash
+node server/db/indexes.js create
+```
+
+**List indexes:**
+```bash
+node server/db/indexes.js list batches
+```
+
+**Strategy:**
+- Unique indexes on natural keys (slug, code)
+- Indexes on foreign keys (ownerId, batchId)
+- Indexes on filter fields (status, category)
+- Compound indexes for common query patterns
+
 ### GridFS Buckets
 
 - `avatars` - User profile images
