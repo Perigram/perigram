@@ -52,10 +52,10 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 ---
 
 ### 1.2 Module Architecture
-- [ ] Create `/server/features/` base structure
-- [ ] Create module template files (repository/service/index)
-- [ ] Document service pattern in `/ARCHITECTURE.md`
-- [ ] Document module boundaries in `/ARCHITECTURE.md`
+- [x] Create `/server/features/` base structure (2025-11-22: Already exists)
+- [x] Create module template files (repository/service/index) (2025-11-22)
+- [x] Document service pattern in `/ARCHITECTURE.md` (2025-11-22)
+- [x] Document module boundaries in `/ARCHITECTURE.md` (2025-11-22)
 
 **Documentation:** Update `/ARCHITECTURE.md` section "Module Structure"
 

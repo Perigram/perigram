@@ -1,0 +1,454 @@
+# Architecture Documentation
+
+**Last Updated:** 2025-11-22
+
+---
+
+## Overview
+
+Cutkit-Demo is a DXF nesting application for CNC manufacturing. It handles multi-layer cassette templates with parametric capabilities, batch production workflows, and generates artifacts (layouts, G-code, PDFs).
+
+**Stack:**
+- **Frontend:** Nuxt.js 3 (SSR), Vue 3, PrimeVue (migrating), Tailwind CSS
+- **Backend:** Nuxt.js Server (Nitro), MongoDB (native driver), GridFS
+- **Auth:** Session-based (cookies) + OAuth
+- **Workers:** Python workers for DXF processing and nesting
+- **Payment:** Stripe for credit purchases
+
+---
+
+## Data Model
+
+**Full schemas:** See `/docs/specs/data-schema.md`
+
+### Core Collections
+
+**Current (v1):**
+- `users` - User accounts, balance, sessions
+- `projects` - User projects (slug, name, ownerId, statistics)
+- `user_dxf_files` - Uploaded DXF files
+- `nesting_jobs` - Nesting results
+- `tables` - Project tables for batch data
+- `cassettes` - User cassette templates (basic)
+
+**Target (v2 - New Architecture):**
+- `layer_standards` - System layer catalogue (seeded from layers.md)
+- `pen_templates` - Display styles for layers
+- `tool_profiles` - CNC tool library
+- `cassette_templates` - Parametric templates with layer mappings
+- `batches` - Production runs
+- `artifacts` - Unified outputs (layouts, G-code, PDFs)
+- `projects` - Extended with metadata and TEP
+- `users` - Extended with template libraries
+
+### GridFS Buckets
+
+- `avatars` - User profile images
+- `userDxf` - Original uploaded DXF files
+- `userDxfFilesSvg` - SVG previews
+- `cassettes` - Cassette DXF files (migrating)
+- `artifacts` - Generated outputs (new)
+
+---
+
+## Module Structure
+
+### Service Pattern
+
+**Location:** `/server/features/[module]/`
+
+```
+module-name/
+├── repository.js      # Database operations only
+├── service.js         # Business logic + validation
+└── index.js           # Exported interface
+```
+
+**Principles:**
+1. Each module owns one collection
+2. Services export typed interfaces
+3. No cross-module DB access (use service calls)
+4. API handlers are thin wrappers
+
+**Layer Responsibilities:**
+
+**Repository Layer** (`repository.js`):
+- ONLY database operations (find, create, update, delete)
+- No business logic
+- No validation
+- No ownership checks
+- Returns raw MongoDB results
+
+```javascript
+// Example: repository.js
+import { connectDB } from '~~/server/db/mongo';
+import { ObjectId } from 'mongodb';
+
+const COLLECTION = 'pen_templates';
+
+export async function findById(id) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
+}
+
+export async function findMany(query = {}, options = {}) {
+  const db = await connectDB();
+  const { limit = 100, skip = 0, sort = { createdAt: -1 } } = options;
+  return await db.collection(COLLECTION)
+    .find(query)
+    .sort(sort)
+    .skip(skip)
+    .limit(limit)
+    .toArray();
+}
+
+export async function create(data) {
+  const db = await connectDB();
+  const doc = { ...data, createdAt: new Date() };
+  const result = await db.collection(COLLECTION).insertOne(doc);
+  return { ...doc, _id: result.insertedId };
+}
+```
+
+**Service Layer** (`service.js`):
+- ALL business logic
+- ALL validation
+- Ownership checks
+- Error handling with `createError()`
+- Orchestrates repository calls
+- NEVER accesses database directly
+
+```javascript
+// Example: service.js
+import * as repository from './repository.js';
+import { ObjectId } from 'mongodb';
+
+export async function getById(id, userId = null) {
+  if (!ObjectId.isValid(id)) {
+    throw createError({ statusCode: 400, message: 'Invalid ID format' });
+  }
+  
+  const item = await repository.findById(id);
+  
+  if (!item) {
+    throw createError({ statusCode: 404, message: 'Item not found' });
+  }
+  
+  // Validate ownership if userId provided
+  if (userId && item.ownerId?.toString() !== userId) {
+    throw createError({ statusCode: 403, message: 'Access denied' });
+  }
+  
+  return item;
+}
+
+export async function listForUser(userId) {
+  return await repository.findMany({ ownerId: new ObjectId(userId) });
+}
+
+export async function create(data, userId) {
+  // Validate required fields
+  if (!data.name || typeof data.name !== 'string') {
+    throw createError({ statusCode: 400, message: 'Name is required' });
+  }
+  
+  // Attach owner
+  return await repository.create({
+    ...data,
+    ownerId: userId ? new ObjectId(userId) : null
+  });
+}
+```
+
+**API Handler** (thin wrapper):
+- Extract auth from `event.context.auth`
+- Call service layer
+- Format response
+
+```javascript
+// Example: /server/api/pens/index.get.js
+import { service } from '~/server/features/pen-templates';
+
+export default defineEventHandler(async (event) => {
+  const userId = event.context.auth.userId;
+  
+  // Get both system and user pens
+  const [systemPens, userPens] = await Promise.all([
+    service.listSystem(),
+    service.listForUser(userId)
+  ]);
+  
+  return [...systemPens, ...userPens];
+});
+```
+
+### Module Template
+
+Template available at `/server/features/_template/`
+
+To create new module:
+```bash
+cp -r server/features/_template/ server/features/your-module/
+```
+
+Then update:
+1. `COLLECTION` constant in `repository.js`
+2. Validation logic in `service.js`
+3. Export in `index.js`
+
+**Modules:**
+- `layer-standards/` - System catalogue
+- `pen-templates/` - Display styles
+- `tool-profiles/` - Tool library
+- `cassettes/` - Cassette management
+- `batches/` - Production runs
+- `artifacts/` - Output generation
+- `nesting/` - Orchestrator (doesn't own data)
+
+---
+
+## Frontend Architecture
+
+### State Management
+
+**Pattern:** Readonly reactive stores (NOT Pinia)
+
+```javascript
+// Example: composables/layerStandards.js
+const state = reactive({ standards: [], loading: false });
+
+const actions = {
+  async fetchStandards() {
+    state.loading = true;
+    state.standards = await $fetch('/api/layer-standards');
+    state.loading = false;
+  }
+};
+
+export const layerStandardsStore = readonly({
+  getters: {
+    standards: computed(() => state.standards),
+    loading: computed(() => state.loading)
+  },
+  actions
+});
+```
+
+**Current Stores:**
+- `authStore` - User auth state
+- `filesStore` - Project files
+- `globalStore` - Projects list, modals, notifications
+- `themeStore` - Theme switching
+- `tablesStore` - Project tables
+- `cassettesStore` - User cassettes
+
+**New Stores (v2):**
+- `layerStandardsStore`
+- `penTemplatesStore`
+- `toolProfilesStore`
+- `batchesStore`
+
+### Component System
+
+**Current:** Custom components with BEM-like SCSS  
+**Migrating to:** PrimeVue
+
+**Design Tokens (CSS Variables):**
+```css
+--background-primary, --background-secondary
+--label-primary, --label-secondary, --label-tertiary
+--fill-secondary, --fill-tertiary
+--accent-primary, --accent-secondary
+--separator-primary, --separator-secondary
+```
+
+Themes applied via `data-theme` attribute on `<html>`.
+
+---
+
+## API Patterns
+
+### Current Endpoints
+
+```
+# Projects
+POST   /api/project
+GET    /api/project/:slug
+DELETE /api/project/:slug
+POST   /api/project/:slug/addfiles
+DELETE /api/project/:slug/files/:fileSlug
+POST   /api/project/:slug/nest
+GET    /api/project/:slug/results
+GET    /api/project/me
+
+# Tables
+GET    /api/project/:slug/tables
+POST   /api/project/:slug/tables/create
+POST   /api/project/:slug/tables/upload
+GET    /api/tables/:id
+PUT    /api/tables/:id
+DELETE /api/tables/:id
+
+# Cassettes
+GET    /api/cassettes
+POST   /api/cassettes/upload
+GET    /api/cassettes/:id
+PUT    /api/cassettes/:id
+DELETE /api/cassettes/:id
+
+# Auth
+POST   /api/auth/logout
+GET    /api/user
+POST   /api/user/add-credits
+```
+
+### New Endpoints (v2)
+
+See `/docs/planning/implementation_plan.md` for complete API specification.
+
+### Auth Flow
+
+**Middleware:** `/server/middleware/auth.js`
+- Runs on ALL requests
+- Reads `sessionId` cookie
+- Fetches user from DB
+- Attaches `event.context.auth = { userId, isAdmin }`
+
+**Client middleware:** `/middleware/auth.js`
+- Redirects unauthenticated users
+
+---
+
+## Workflows
+
+### Current: Project Creation & Nesting
+
+1. **Upload DXF Files**
+   - `POST /api/project` creates project with slug
+   - Files saved to GridFS `userDxf` bucket
+   - Worker processes DXF → SVG (async)
+   - `user_dxf_files` updated with `processingStatus: 'done'`
+   - Client polls until all files processed
+
+2. **Run Nesting**
+   - User sets params (plate width/height, spacing, sheet count)
+   - User selects files and quantities
+   - `POST /api/project/:slug/nest` triggers nesting job
+   - Worker calculates optimal layout (jagua-rs)
+   - Result saved to `nesting_jobs` with SVG/DXF in GridFS
+   - Client shows result modal with statistics
+
+### New: Batch-Based Workflow (v2)
+
+1. **Upload Cassette Template**
+   - User uploads multi-layer DXF
+   - System detects all layer names
+   - User maps DXF layers → layer standards → pens
+   - Cassette saved as template
+
+2. **Create Batch**
+   - User selects cassette templates
+   - Sets parameter values (A=width, B=height, etc.)
+   - Specifies quantities
+   - Batch created with entries
+
+3. **Run Nesting**
+   - `POST /api/batch/:id/nest`
+   - Worker fetches cassette DXFs with parameters
+   - Generates layout via jagua-rs
+   - Stores as artifacts (SVG, DXF, G-code, PDF)
+
+4. **View Artifacts**
+   - Download generated files
+   - View with pen-styled previews
+
+---
+
+## Workers
+
+### File Processing Worker
+- **Trigger:** Upload to `userDxf` GridFS bucket
+- **Function:** DXF → SVG conversion, layer detection
+- **Updates:** `user_dxf_files.processingStatus`
+
+### Nesting Worker
+- **Trigger:** POST to nest endpoint
+- **Function:** Optimal 2D bin packing (jagua-rs library)
+- **Outputs:** Layout SVG/DXF, statistics
+- **Updates:** `nesting_jobs.status`
+
+### Communication
+- **Current:** Polling from client
+- **New (v2):** Event bus with status updates
+
+---
+
+## Development Guidelines
+
+### Adding a New Entity
+1. Define schema in `/docs/specs/data-schema.md`
+2. Create validation schema in `/server/schemas/entities/`
+3. Document relationships and indexes
+
+### Adding a New Module
+1. Create `/server/features/[module]/` structure
+2. Implement repository (DB operations)
+3. Implement service (business logic)
+4. Export interface in `index.js`
+5. Document service API in this file
+
+### Adding a New API Endpoint
+1. Create handler in `/server/api/[module]/[endpoint].js`
+2. Use service layer (never direct DB access)
+3. Validate auth via `event.context.auth`
+4. Document request/response schemas below
+
+### Adding a New Component
+1. Follow PrimeVue conventions (migrating)
+2. Use design token CSS variables
+3. Emit events for parent communication
+4. Document in `/docs/ONBOARDING.md`
+
+### Documentation Rule
+**Every code change must update relevant docs in same commit.**
+
+---
+
+## Deployment
+
+### Environment Variables
+```
+MONGODB_URI=mongodb://localhost:27017/nest2d-v2
+NUXT_PUBLIC_BASE_URL=https://nest2d.stelmashchuk.dev
+STRIPE_SECRET_KEY=sk_...
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+```
+
+### Build & Deploy
+```bash
+npm run build
+node .output/server/index.mjs
+```
+
+### Docker Stack
+Workers deployed via docker-compose:
+```bash
+docker stack deploy -c docker-stack-external.yml nest2d
+```
+
+---
+
+## Future Architecture (v2)
+
+See full plan: `/docs/planning/implementation_plan.md`
+
+**Key Changes:**
+- Modular backend services with clean boundaries
+- Batch-centric production workflow
+- Parametric cassette templates
+- Unified artifact system
+- PrimeVue UI migration
+- Comprehensive documentation
+
+**Migration Status:** See `/docs/planning/implementation_plan.md` task tracker
