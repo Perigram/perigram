@@ -135,6 +135,11 @@ const isUploading = ref(false);
 const errorMessage = ref('');
 const cassette = ref(null);
 const layerMappings = ref({});
+const localSvgPreview = ref(null);
+
+const showMappingSection = computed(() => {
+  return cassette.value !== null;
+});
 
 const layerStandards = computed(() => [
   { label: 'Рез', value: 'cut' },
