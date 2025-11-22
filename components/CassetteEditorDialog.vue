@@ -9,7 +9,7 @@
   >
     <div class="cassette-editor">
       <!-- Upload Section -->
-      <div v-if="!cassette && !isUploading" class="upload-form">
+      <div v-if="!showMappingSection && !isUploading" class="upload-form">
         <div class="field">
           <label for="cassetteName">{{ $t('cassette.name') }}</label>
           <InputText 
@@ -39,11 +39,16 @@
       </div>
 
       <!-- Layer Mapping Section -->
-      <div v-if="cassette && !isUploading" class="mapping-layout">
+      <div v-if="showMappingSection && !isUploading" class="mapping-layout">
         <div class="preview-panel">
           <h3>{{ $t('cassette.preview') }}</h3>
-          <div v-if="cassette.svgId" class="svg-preview">
-            <img :src="`/api/files/svg/${cassette.svgId}`" :alt="cassette.name" />
+          <div v-if="cassette?.svgId || localSvgPreview" class="svg-preview">
+            <img 
+              v-if="cassette?.svgId" 
+              :src="`/api/files/svg/${cassette.svgId}`" 
+              :alt="name" 
+            />
+            <div v-else-if="localSvgPreview" v-html="localSvgPreview"></div>
           </div>
           <div v-else class="no-preview">
             <i class="pi pi-image" style="font-size: 3rem"></i>

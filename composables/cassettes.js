@@ -46,11 +46,14 @@ const actions = {
         }
     },
 
-    async uploadCassette(file, name) {
+    async uploadCassette(file, name, layerMapping) {
         state.uploadStatus = 'uploading';
         const formData = new FormData();
         formData.append('file', file);
         formData.append('name', name);
+        if (layerMapping) {
+            formData.append('layerMapping', JSON.stringify(layerMapping));
+        }
 
         try {
             const result = await $fetch('/api/cassettes/upload', {
@@ -58,10 +61,8 @@ const actions = {
                 body: formData,
             });
 
-            state.uploadStatus = 'mapping';
-            state.detectedLayers = result.detectedLayers;
             state.cassettes.push(result);
-            state.selectedCassetteId = result._id;
+            state.uploadStatus = 'idle';
             
             return result;
         } catch (error) {
@@ -71,13 +72,24 @@ const actions = {
         }
     },
 
-    async mapLayers(cassetteId, layerMapping) {
-        state.uploadStatus = 'processing';
+    async updateCassette(cassetteId, data) {
         try {
-            const updatedCassette = await $fetch(`/api/cassettes/${cassetteId}/mappings`, {
+            const updatedCassette = await $fetch(`/api/cassettes/${cassetteId}`, {
                 method: 'PUT',
-                body: { layerMappings: layerMapping }
+                body: data
             });
+            
+            const index = state.cassettes.findIndex(c => c._id === cassetteId);
+            if (index !== -1) {
+                state.cassettes[index] = updatedCassette;
+            }
+            
+            return updatedCassette;
+        } catch (error) {
+            console.error('Failed to update cassette:', error);
+            throw error;
+        }
+    },
             
             state.uploadStatus = 'idle';
             this.updateCassette(updatedCassette);
