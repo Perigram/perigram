@@ -1,9 +1,27 @@
 import { schemaWebSite } from './utils/schema'
+import Aura from '@primevue/themes/aura'
 
 export default defineNuxtConfig({
     compatibilityDate: '2024-11-01',
     devtools: { enabled: true },
-    modules: ['@nuxtjs/tailwindcss', '@nuxtjs/i18n'],
+    
+    css: [
+        'primeicons/primeicons.css'
+    ],
+    
+    modules: [
+        '@nuxtjs/tailwindcss', 
+        '@nuxtjs/i18n',
+        '@primevue/nuxt-module'
+    ],
+    
+    primevue: {
+        options: {
+            theme: {
+                preset: Aura
+            }
+        }
+    },
     
     i18n: {
         locales: [
