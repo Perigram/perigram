@@ -185,62 +185,37 @@ const handleFileSelect = async (event) => {
       name.value = event.files[0].name.replace(/\.dxf$/i, '');
     }
     
-    // Detect layers immediately after file selection
+    // Upload immediately to get detected layers from backend
     isUploading.value = true;
     errorMessage.value = '';
     
     try {
       const formData = new FormData();
       formData.append('file', selectedFile.value);
+      formData.append('name', name.value);
       
-      const response = await $fetch('/api/cassettes/detect-layers', {
+      const uploadedCassette = await $fetch('/api/cassettes/upload', {
         method: 'POST',
         body: formData
       });
       
-      detectedLayers.value = response.layers || [];
-      localSvgPreview.value = response.svgPreview || null;
+      // Set the cassette with detected layers
+      cassette.value = uploadedCassette;
+      detectedLayers.value = uploadedCassette.detectedLayers || [];
       
-      // Initialize mappings
+      // Initialize mappings for each detected layer
       detectedLayers.value.forEach(layer => {
         if (!layerMappings.value[layer]) {
           layerMappings.value[layer] = null;
         }
       });
     } catch (error) {
-      errorMessage.value = error.data?.message || 'Failed to detect layers';
-      console.error('Layer detection failed:', error);
+      errorMessage.value = error.data?.message || 'Failed to upload file';
+      console.error('File upload failed:', error);
       selectedFile.value = null;
     } finally {
       isUploading.value = false;
     }
-  }
-};
-
-const handleUpload = async () => {
-  if (!canUpload.value) return;
-  
-  isUploading.value = true;
-  errorMessage.value = '';
-
-  try {
-    const formData = new FormData();
-    formData.append('file', selectedFile.value);
-    formData.append('name', name.value);
-
-    const uploadedCassette = await $fetch('/api/cassettes/upload', {
-      method: 'POST',
-      body: formData
-    });
-
-    // Switch to mapping mode
-    cassette.value = uploadedCassette;
-    emit('uploaded', uploadedCassette);
-  } catch (error) {
-    errorMessage.value = error.data?.message || 'Upload failed';
-    console.error('Upload failed:', error);
-  } finally {
-    isUploading.value = false;
   }
 };
 
