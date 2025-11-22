@@ -5,9 +5,10 @@ export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id');
   const body = await readBody(event);
   
-  if (!body.layerMapping) {
-    throw createError({ statusCode: 400, message: 'layerMapping is required' });
+  const layerMapping = body.layerMappings || body.layerMapping;
+  if (!layerMapping) {
+    throw createError({ statusCode: 400, message: 'layerMapping or layerMappings is required' });
   }
   
-  return await service.updateLayerMapping(id, body.layerMapping, userId);
+  return await service.updateLayerMapping(id, layerMapping, userId);
 });

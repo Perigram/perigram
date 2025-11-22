@@ -15,6 +15,7 @@ const state = reactive({
 });
 
 const getters = {
+    cassettes: computed(() => Array.isArray(state.cassettes) ? state.cassettes : []),
     allCassettes: computed(() => Array.isArray(state.cassettes) ? state.cassettes : []),
     selectedCassette: computed(() => state.cassettes.find(c => c._id === state.selectedCassetteId)),
     uploadStatus: computed(() => state.uploadStatus),
