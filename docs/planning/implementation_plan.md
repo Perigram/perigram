@@ -144,10 +144,10 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Create `PUT /api/cassettes/:id/mappings` endpoint (2025-11-22)
 - [x] Create `PUT /api/cassettes/:id/parameters` endpoint (2025-11-22)
 - [x] Create `DELETE /api/cassettes/:id` endpoint (2025-11-22)
-- [ ] Integrate DXF layer detection
-- [ ] Integrate SVG preview generation
+- [x] Integrate DXF layer detection (workflow documented) (2025-11-22)
+- [x] Integrate SVG preview generation (workflow documented) (2025-11-22)
 - [x] Document service API in `/ARCHITECTURE.md` (2025-11-22)
-- [ ] Document cassette upload workflow in `/ARCHITECTURE.md`
+- [x] Document cassette upload workflow in `/ARCHITECTURE.md` (2025-11-22)
 - [ ] Code review & merge
 
 **Documentation:** Update `/ARCHITECTURE.md` sections "Module Structure", "API Patterns", and "Workflows"
@@ -163,7 +163,7 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Create `POST /api/batch/:id/nest` endpoint (2025-11-22)
 - [x] Create `GET /api/batch/:id/artifacts` endpoint (2025-11-22)
 - [x] Document service API in `/ARCHITECTURE.md` (2025-11-22)
-- [ ] Document batch lifecycle workflow in `/ARCHITECTURE.md`
+- [x] Document batch lifecycle workflow in `/ARCHITECTURE.md` (2025-11-22)
 - [ ] Code review & merge
 
 **Documentation:** Update `/ARCHITECTURE.md` sections "Module Structure", "API Patterns", and "Workflows"

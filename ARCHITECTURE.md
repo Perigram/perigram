@@ -583,3 +583,240 @@ See full plan: `/docs/planning/implementation_plan.md`
 - Comprehensive documentation
 
 **Migration Status:** See `/docs/planning/implementation_plan.md` task tracker
+
+---
+
+## Detailed Workflows
+
+### Cassette Upload Workflow
+
+**Purpose:** Create reusable template for parts with parametric dimensions
+
+**Steps:**
+
+1. **Upload DXF File**
+   ```
+   Client → POST /api/cassettes/upload
+   FormData: { file: cassette.dxf, name: "Bracket Template" }
+   
+   Server:
+   - Generates unique slug
+   - Uploads to GridFS (cassettes bucket)
+   - Creates cassette_templates document
+   - Sets processingStatus: 'pending'
+   ```
+
+2. **Worker Processes DXF**
+   ```
+   Worker:
+   - Reads DXF from GridFS
+   - Detects all layers
+   - Extracts bounding box and area
+   - Generates SVG preview
+   - Updates processingStatus: 'done'
+   ```
+
+3. **User Maps Layers**
+   ```
+   Client → PUT /api/cassettes/:id/mappings
+   Body: {
+     layerMappings: [
+       {
+         dxfLayerName: "0-CUT",
+         standardCode: "2_1_CUT",
+         penId: "<pen_id>",
+         toolId: "<tool_id>"
+       },
+       {
+         dxfLayerName: "1-BEND",
+         standardCode: "3_1_BEND",
+         penId: "<pen_id>",
+         toolId: "<tool_id>"
+       }
+     ]
+   }
+   
+   Server:
+   - Validates layer standards exist
+   - Validates pen/tool references
+   - Updates cassette document
+   ```
+
+4. **Define Parameters**
+   ```
+   Client → PUT /api/cassettes/:id/parameters
+   Body: {
+     parameters: [
+       { key: "A", label: "Width", defaultValue: 100 },
+       { key: "B", label: "Height", defaultValue: 50 }
+     ]
+   }
+   
+   Server:
+   - Stores parameter definitions
+   - Cassette now ready for use in batches
+   ```
+
+**Result:** Reusable cassette template with layer mappings and parametric dimensions
+
+---
+
+### Batch Lifecycle Workflow
+
+**Purpose:** Organize production run with multiple parts, quantities, and dimensions
+
+**Steps:**
+
+1. **Create Batch**
+   ```
+   Client → POST /api/project/:slug/batches
+   Body: {
+     name: "Production Run #42",
+     plateWidth: 2440,
+     plateHeight: 1220,
+     spacing: 3
+   }
+   
+   Server:
+   - Generates unique batch number
+   - Creates batch document with DRAFT status
+   - Initializes empty table data
+   ```
+
+2. **Add Cassette Entries**
+   ```
+   Client → PUT /api/batch/:id
+   Body: {
+     tableData: [
+       {
+         entryId: "A",
+         cassetteTemplateId: "<cassette_id>",
+         quantity: 10,
+         dimensions: { A: 120, B: 60 }
+       },
+       {
+         entryId: "B",
+         cassetteTemplateId: "<cassette_id>",
+         quantity: 5,
+         dimensions: { A: 80, B: 40 }
+       }
+     ]
+   }
+   
+   Server:
+   - Validates cassette templates exist
+   - Validates dimensions match template parameters
+   - Updates batch tableData
+   ```
+
+3. **Calculate Cost**
+   ```
+   Client → GET /api/batch/:id/cost
+   
+   Server:
+   - Counts total parts: sum(quantities)
+   - Estimates plates needed
+   - Calculates credit cost
+   - Returns estimate
+   ```
+
+4. **Trigger Nesting**
+   ```
+   Client → POST /api/batch/:id/nest
+   
+   Server:
+   - Checks user credit balance
+   - Deducts credits (or returns 402 Payment Required)
+   - Updates batch status: PROCESSING
+   - Queues nesting job
+   
+   Worker:
+   - Fetches cassette DXFs
+   - Substitutes dimensions per entry
+   - Runs jagua-rs nesting algorithm
+   - Generates layouts
+   ```
+
+5. **Generate Artifacts**
+   ```
+   Worker:
+   - For each plate layout:
+     * Renders SVG with pen styles
+     * Converts to DXF
+     * Generates G-code (if CNC)
+     * Creates PDF report
+   - Uploads all to GridFS
+   - Creates artifact documents
+   - Links artifacts to batch
+   - Updates batch status: COMPLETED
+   ```
+
+6. **Download Results**
+   ```
+   Client → GET /api/batch/:id/artifacts
+   
+   Returns:
+   [
+     {
+       _id: "...",
+       type: "layout_svg",
+       fileId: "<gridfs_id>",
+       downloadUrl: "/api/artifacts/:id/download",
+       metadata: {
+         plateNumber: 1,
+         efficiency: 87.5,
+         partCount: 15
+       }
+     },
+     ...
+   ]
+   ```
+
+**Result:** Optimized layouts ready for production, downloadable in multiple formats
+
+---
+
+### Complete User Journey Example
+
+**Scenario:** User wants to produce 100 brackets and 50 frames
+
+```
+1. Create Bracket Template
+   - Upload bracket.dxf
+   - Map: "CUT" → 2_1_CUT (Ø3.15mm tool)
+   - Map: "BEND" → 3_1_BEND (90° V-bit)
+   - Define: A=width, B=height
+
+2. Create Frame Template
+   - Upload frame.dxf
+   - Map layers
+   - Define: C=outer, D=inner
+
+3. Create Project
+   - Name: "Q1 2024 Production"
+   - Material: 3mm aluminum, 2440x1220mm
+
+4. Create Batch in Project
+   - Name: "January Batch"
+   - Add entry: Bracket (qty: 100, A: 120, B: 60)
+   - Add entry: Frame (qty: 50, C: 200, D: 180)
+
+5. Run Nesting
+   - Review cost: 150 parts @ 0.1 credits = 15 credits
+   - Confirm nesting
+   - Wait for processing (30-60s)
+
+6. Download Results
+   - 8 layout plates (SVG/DXF)
+   - CNC G-code files
+   - Production report (PDF)
+   - Material efficiency: 82.3%
+
+7. Production
+   - Load files into CNC controller
+   - Cut plates
+   - Track material usage
+```
+
+**Time:** ~5 minutes setup, 1 minute processing, infinite reuse of templates
+
