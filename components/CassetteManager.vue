@@ -9,43 +9,39 @@
       />
     </div>
 
-    <DataTable 
+    <DataView 
       :value="cassettes" 
-      :loading="loading"
-      selectionMode="single"
-      v-model:selection="selectedCassetteData"
-      @row-select="onRowSelect"
+      :layout="'grid'"
       :paginator="true" 
-      :rows="10"
-      responsiveLayout="scroll"
+      :rows="9"
     >
       <template #empty>
         <div class="empty-state">
-          {{ $t('cassette.noCassettes') }}
+          <i class="pi pi-inbox" style="font-size: 3rem; color: var(--text-color-secondary);"></i>
+          <p>{{ $t('cassette.noCassettes') }}</p>
         </div>
       </template>
 
-      <Column field="name" :header="$t('cassette.name')" />
-      
-      <Column field="processingStatus" :header="$t('cassette.status')">
-        <template #body="slotProps">
-          <Tag 
-            :value="slotProps.data.processingStatus" 
-            :severity="getStatusSeverity(slotProps.data.processingStatus)"
-          />
-        </template>
-      </Column>
+      <template #grid="slotProps">
+        <div class="cassette-card">
+          <div class="cassette-card-header">
+            <h3>{{ slotProps.data.name }}</h3>
+            <Tag 
+              :value="slotProps.data.processingStatus" 
+              :severity="getStatusSeverity(slotProps.data.processingStatus)"
+            />
+          </div>
 
-      <Column field="createdAt" :header="$t('common.created')">
-        <template #body="slotProps">
-          {{ formatDate(slotProps.data.createdAt) }}
-        </template>
-      </Column>
+          <div class="cassette-card-body">
+            <div class="info-row">
+              <span class="label">{{ $t('common.created') }}:</span>
+              <span>{{ formatDate(slotProps.data.createdAt) }}</span>
+            </div>
+          </div>
 
-      <Column :header="$t('common.actions')">
-        <template #body="slotProps">
-          <div class="actions">
+          <div class="cassette-card-actions">
             <Button 
+              :label="$t('common.edit')"
               icon="pi pi-pencil" 
               severity="secondary"
               size="small"
@@ -58,9 +54,9 @@
               @click="handleDelete(slotProps.data._id)"
             />
           </div>
-        </template>
-      </Column>
-    </DataTable>
+        </div>
+      </template>
+    </DataView>
 
     <CassetteUploadDialog 
       v-if="showUploadDialog" 
@@ -81,8 +77,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { cassettesStore } from '~/composables/cassettes';
 import Button from 'primevue/button';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
+import DataView from 'primevue/dataview';
 import Tag from 'primevue/tag';
 import CassetteUploadDialog from './CassetteUploadDialog.vue';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
@@ -96,15 +91,10 @@ const { fetchCassettes, selectCassette, deleteCassette } = actions;
 const showUploadDialog = ref(false);
 const showEditDialog = ref(false);
 const editingCassette = ref(null);
-const selectedCassetteData = ref(null);
 
 onMounted(async () => {
   await fetchCassettes();
 });
-
-const onRowSelect = (event) => {
-  selectCassette(event.data._id);
-};
 
 const getStatusSeverity = (status) => {
   const severityMap = {
@@ -163,10 +153,68 @@ const handleSaved = () => {
   text-align: center;
   padding: 48px 24px;
   color: var(--text-color-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 
-.actions {
+.cassette-card {
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--surface-card);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.cassette-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+}
+
+.cassette-card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  flex: 1;
+  word-break: break-word;
+}
+
+.cassette-card-body {
+  flex: 1;
+}
+
+.info-row {
   display: flex;
   gap: 8px;
+  font-size: 14px;
+}
+
+.info-row .label {
+  font-weight: 500;
+  color: var(--text-color-secondary);
+}
+
+.cassette-card-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--surface-border);
+}
+
+:deep(.p-dataview-content) {
+  background: transparent;
+}
+
+:deep(.p-dataview .p-grid) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
 }
 </style>

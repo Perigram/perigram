@@ -60,7 +60,7 @@ const actions = {
     async mapLayers(cassetteId, layerMapping) {
         state.uploadStatus = 'processing';
         try {
-            const updatedCassette = await $fetch(`/api/cassettes/${cassetteId}`, {
+            const updatedCassette = await $fetch(`/api/cassettes/${cassetteId}/mappings`, {
                 method: 'PUT',
                 body: { layerMapping }
             });
