@@ -393,10 +393,10 @@ const handleSave = async () => {
   errorMessage.value = '';
 
   try {
-    await $fetch(`/api/cassettes/${currentCassette.value._id}`, {
+    await $fetch(`/api/cassettes/${currentCassette.value._id}/mappings`, {
       method: 'PUT',
       body: {
-        layerMapping: layerMapping
+        layerMappings: layerMapping.value
       }
     });
     
