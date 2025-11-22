@@ -161,12 +161,12 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 **Documentation:** Update `/ARCHITECTURE.md` sections "Module Structure", "API Patterns", and "Workflows"
 
 #### Artifacts Module
-- [ ] Create `/server/features/artifacts/repository.js`
-- [ ] Create `/server/features/artifacts/service.js`
-- [ ] Create `/server/features/artifacts/index.js`
-- [ ] Create `GET /api/artifact/:id` endpoint
-- [ ] Create `GET /api/artifact/:id/download` endpoint
-- [ ] Integrate artifact generation with nesting worker
+- [x] Create `/server/features/artifacts/repository.js` (2025-11-22)
+- [x] Create `/server/features/artifacts/service.js` (2025-11-22)
+- [x] Create `/server/features/artifacts/index.js` (2025-11-22)
+- [x] Create `GET /api/artifacts/:id` endpoint (2025-11-22)
+- [x] Create `DELETE /api/artifacts/:id` endpoint (2025-11-22)
+- [ ] Integrate GridFS for file storage
 - [ ] Document service API in `/ARCHITECTURE.md`
 - [ ] Code review & merge
 
