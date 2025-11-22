@@ -74,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, toRefs } from 'vue';
 import { cassettesStore } from '~/composables/cassettes';
 import Button from 'primevue/button';
 import DataView from 'primevue/dataview';
@@ -83,8 +83,7 @@ import CassetteUploadDialog from './CassetteUploadDialog.vue';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 
 const { getters, actions } = cassettesStore;
-const cassettes = getters.cassettes;  // Already a computed
-const loading = computed(() => getters.uploadStatus.value === 'uploading');
+const { cassettes, uploadStatus } = toRefs(getters);
 
 const { fetchCassettes, selectCassette, deleteCassette } = actions;
 

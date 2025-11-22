@@ -25,8 +25,11 @@ const getters = {
 const actions = {
     async fetchCassettes() {
         try {
+            console.log('[cassettes.js] Fetching cassettes from API...');
             const cassettes = await $fetch('/api/cassettes');
+            console.log('[cassettes.js] API returned:', cassettes);
             state.cassettes = cassettes;
+            console.log('[cassettes.js] State updated:', state.cassettes);
         } catch (error) {
             console.error('Failed to fetch cassettes:', error);
         }
