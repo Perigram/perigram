@@ -25,14 +25,22 @@ export async function findByOwner(ownerId, options = {}) {
   // Old cassettes use 'userId' field with string IDs (not ObjectIds)
   // Auth returns strings like "google:117482666136714297322"
   const query = { userId: ownerId };  // Don't convert to ObjectId
-  if (status) query.status = status;
   
-  return await db.collection(COLLECTION)
+  // NOTE: Old schema uses 'processingStatus' not 'status'
+  if (status) query.processingStatus = status;
+  
+  console.log('[cassettes] Query:', query);
+  
+  const results = await db.collection(COLLECTION)
     .find(query)
     .sort({ updatedAt: -1 })
     .skip(skip)
     .limit(limit)
     .toArray();
+  
+  console.log('[cassettes] Found:', results.length, 'cassettes');
+  
+  return results;
 }
 
 export async function create(data) {
