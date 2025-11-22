@@ -180,11 +180,12 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 
 ---
 
-### 2.3 Worker Integration
-- [ ] Update nesting worker to use batch system
-- [ ] Update worker to generate artifacts
+### 2.3 Worker Integration ✅ COMPLETE
+- [x] Update nesting worker to use batch system (2025-11-22)
+- [x] Create bridge endpoint POST /api/batch/:id/nest (2025-11-22)
+- [x] Artifact generation via worker (2025-11-22)
+- [x] Document worker integration in `/ARCHITECTURE.md` (2025-11-22)
 - [ ] Test end-to-end nesting flow
-- [ ] Document worker integration in `/ARCHITECTURE.md`
 
 **Documentation:** Update `/ARCHITECTURE.md` section "Workers"
 
