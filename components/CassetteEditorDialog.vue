@@ -134,6 +134,7 @@ const selectedFile = ref(null);
 const isUploading = ref(false);
 const errorMessage = ref('');
 const cassette = ref(null);
+const detectedLayers = ref([]);
 const layerMappings = ref({});
 const localSvgPreview = ref(null);
 
