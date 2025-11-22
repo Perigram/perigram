@@ -36,6 +36,16 @@ const actions = {
         }
     },
 
+    async fetchById(id) {
+        try {
+            const cassette = await $fetch(`/api/cassettes/${id}`);
+            return cassette;
+        } catch (error) {
+            console.error('Failed to fetch cassette:', error);
+            throw error;
+        }
+    },
+
     async uploadCassette(file, name) {
         state.uploadStatus = 'uploading';
         const formData = new FormData();
