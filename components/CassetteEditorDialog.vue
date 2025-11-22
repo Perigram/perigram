@@ -138,7 +138,7 @@ const layerMappings = ref({});
 const localSvgPreview = ref(null);
 
 const showMappingSection = computed(() => {
-  return cassette.value !== null;
+  return selectedFile.value !== null && detectedLayers.value.length > 0;
 });
 
 const layerStandards = computed(() => [
@@ -178,11 +178,41 @@ watch(() => props.cassetteId, async (newId) => {
   }
 }, { immediate: true });
 
-const handleFileSelect = (event) => {
+const handleFileSelect = async (event) => {
   if (event.files && event.files.length > 0) {
     selectedFile.value = event.files[0];
     if (!name.value) {
       name.value = event.files[0].name.replace(/\.dxf$/i, '');
+    }
+    
+    // Detect layers immediately after file selection
+    isUploading.value = true;
+    errorMessage.value = '';
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile.value);
+      
+      const response = await $fetch('/api/cassettes/detect-layers', {
+        method: 'POST',
+        body: formData
+      });
+      
+      detectedLayers.value = response.layers || [];
+      localSvgPreview.value = response.svgPreview || null;
+      
+      // Initialize mappings
+      detectedLayers.value.forEach(layer => {
+        if (!layerMappings.value[layer]) {
+          layerMappings.value[layer] = null;
+        }
+      });
+    } catch (error) {
+      errorMessage.value = error.data?.message || 'Failed to detect layers';
+      console.error('Layer detection failed:', error);
+      selectedFile.value = null;
+    } finally {
+      isUploading.value = false;
     }
   }
 };
