@@ -145,43 +145,46 @@ interface ToolProfile {
 
 ## 4. Cassette Template
 
-**Collection:** `cassette_templates`
+**Collection:** `cassettes` (legacy collection name)
 
 Parametric 2D vector template with multi-layer DXF and parameter bindings.
+
+**IMPORTANT:** Current implementation uses the legacy schema for compatibility with existing data.
 
 ```typescript
 interface CassetteTemplate {
   _id: ObjectId;
-  slug: string;              // URL-safe identifier
+  slug?: string;             // URL-safe identifier (may not exist in old data)
   name: string;
-  ownerId: ObjectId;
+  userId: string;            // OAuth provider ID (e.g., "google:12345"), NOT ObjectId
   
   // Source files
   dxfId: ObjectId;           // GridFS: original uploaded DXF
-  svgId: ObjectId;           // GridFS: SVG preview
+  svgId: ObjectId | null;    // GridFS: SVG preview
   
-  // User hand-mapped layers
-  layerMappings: LayerMapping[];
-  
-  // Parametric definition
-  parameters: Parameter[];
-  
-  // Geometry metadata
-  boundingBox: { width: number; height: number; }; // mm
-  area: number;              // mm²
-  
-  // Default material
-  defaultMaterial: {
-    alloy: string;           // "Al5052", "Steel"
-    thickness: number;       // mm
+  // User hand-mapped layers (singular form in legacy schema)
+  layerMapping: {
+    cut: string[];
+    bend: string[];
+    frame: string[];
+    dimensions: string[];
   };
   
-  status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  // Processing status
+  processingStatus: "pending" | "done" | "error";
+  
   createdAt: Date;
   updatedAt: Date;
 }
+```
 
-**Indexes:** `slug` (unique), `ownerId`, `status`, `dxfId`
+**Indexes:** `userId`, `processingStatus`
+
+**Migration Notes:**
+- Uses `userId` (string) not `ownerId` (ObjectId) due to OAuth provider IDs
+- Uses `layerMapping` (singular object) not `layerMappings` (array)
+- Missing: parameters, boundingBox, area, defaultMaterial, status
+- Collection name is `cassettes` not `cassette_templates`
 
 interface LayerMapping {
   layerStandardId: ObjectId; // Reference to layer_standards
