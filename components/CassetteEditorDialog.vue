@@ -396,7 +396,7 @@ const handleSave = async () => {
     await $fetch(`/api/cassettes/${currentCassette.value._id}/mappings`, {
       method: 'PUT',
       body: {
-        layerMappings: layerMapping.value
+        layerMappings: layerMapping
       }
     });
     
