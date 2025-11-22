@@ -145,15 +145,15 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 **Documentation:** Update `/ARCHITECTURE.md` sections "Module Structure", "API Patterns", and "Workflows"
 
 #### Batches Module
-- [ ] Create `/server/features/batches/repository.js`
-- [ ] Create `/server/features/batches/service.js`
-- [ ] Create `/server/features/batches/index.js`
-- [ ] Create `POST /api/project/:slug/batches` endpoint
-- [ ] Create `GET /api/project/:slug/batches` endpoint
-- [ ] Create `GET /api/batch/:id` endpoint
-- [ ] Create `PUT /api/batch/:id` endpoint
+- [x] Create `/server/features/batches/repository.js` (2025-11-22)
+- [x] Create `/server/features/batches/service.js` (2025-11-22)
+- [x] Create `/server/features/batches/index.js` (2025-11-22)
+- [x] Create `POST /api/project/:slug/batches` endpoint (2025-11-22)
+- [x] Create `GET /api/project/:slug/batches` endpoint (2025-11-22)
+- [x] Create `GET /api/batch/:id` endpoint (2025-11-22)
+- [x] Create `PUT /api/batch/:id` endpoint (2025-11-22)
 - [ ] Create `POST /api/batch/:id/nest` endpoint
-- [ ] Create `GET /api/batch/:id/artifacts` endpoint
+- [x] Create `GET /api/batch/:id/artifacts` endpoint (2025-11-22)
 - [ ] Document service API in `/ARCHITECTURE.md`
 - [ ] Document batch lifecycle workflow in `/ARCHITECTURE.md`
 - [ ] Code review & merge
