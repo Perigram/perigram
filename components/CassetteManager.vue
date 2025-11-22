@@ -25,17 +25,17 @@
       <template #grid="slotProps">
         <div class="cassette-card">
           <div class="cassette-card-header">
-            <h3>{{ slotProps.data.name }}</h3>
+            <h3>{{ slotProps.item.name }}</h3>
             <Tag 
-              :value="slotProps.data.processingStatus" 
-              :severity="getStatusSeverity(slotProps.data.processingStatus)"
+              :value="slotProps.item.processingStatus" 
+              :severity="getStatusSeverity(slotProps.item.processingStatus)"
             />
           </div>
 
           <div class="cassette-card-body">
             <div class="info-row">
               <span class="label">{{ $t('common.created') }}:</span>
-              <span>{{ formatDate(slotProps.data.createdAt) }}</span>
+              <span>{{ formatDate(slotProps.item.createdAt) }}</span>
             </div>
           </div>
 
@@ -45,13 +45,13 @@
               icon="pi pi-pencil" 
               severity="secondary"
               size="small"
-              @click="editCassette(slotProps.data)"
+              @click="editCassette(slotProps.item)"
             />
             <Button 
               icon="pi pi-trash" 
               severity="danger"
               size="small"
-              @click="handleDelete(slotProps.data._id)"
+              @click="handleDelete(slotProps.item._id)"
             />
           </div>
         </div>
