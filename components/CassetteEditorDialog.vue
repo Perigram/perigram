@@ -1,179 +1,87 @@
 <template>
   <Dialog 
     v-model:visible="isOpen" 
-    :header="cassette ? $t('cassette.edit') : $t('cassette.uploadTitle')"
+    :header="$t('cassette.uploadTitle')"
     :modal="true"
     :closable="!isProcessing"
-    :style="{ width: '900px' }"
+    :style="{ width: '800px' }"
     @hide="handleClose"
   >
     <div class="cassette-editor">
-      <!-- Step 1: Upload (only for new cassettes) -->
-      <div v-if="!cassette && !uploadedCassette" class="upload-section">
-        <Message severity="info" :closable="false">
-          {{ $t('cassette.uploadDescription') }}
-        </Message>
-
+      <!-- File Selection -->
+      <div v-if="step === 'select'" class="step-select">
         <div class="field">
-          <label for="cassetteName">{{ $t('cassette.name') }}</label>
+          <label for="cassetteName">{{ $t('cassette.name') }} *</label>
           <InputText 
             id="cassetteName"
             v-model="name" 
             :placeholder="$t('cassette.nameExample')"
-            :disabled="uploadStatus === 'analyzing'"
           />
         </div>
 
         <div class="field">
-          <label>{{ $t('cassette.dxfFile') }}</label>
           <FileUpload 
-            ref="fileUploader"
             mode="basic" 
             accept=".dxf"
             :maxFileSize="10000000"
             :auto="false"
             :customUpload="true"
-            :choose-label="selectedFile ? $t('common.changeFile') : $t('common.chooseFile')"
-            :disabled="uploadStatus === 'analyzing' || uploadStatus === 'mapping'"
+            :chooseLabel="selectedFile ? selectedFile.name : $t('cassette.selectFile')"
             @select="handleFileSelect"
           />
-          <small v-if="selectedFile" class="file-info">
-            <i class="pi pi-file"></i> {{ selectedFile.name }} ({{ formatFileSize(selectedFile.size) }})
-          </small>
         </div>
-
-        <!-- Show analyzing status -->
-        <div v-if="uploadStatus === 'analyzing'" class="analyzing-section">
-          <ProgressSpinner style="width: 40px; height: 40px" />
-          <p>{{ $t('cassette.analyzingFile') }}</p>
-        </div>
-
-        <!-- Show layer mapping after analysis -->
-        <div v-if="uploadStatus === 'mapping' && detectedLayers.length > 0" class="layer-mapping-section">
-          <Divider />
-          <h4>{{ $t('cassette.layerMapping') }}</h4>
-          <Message severity="info" :closable="false">
-            {{ $t('cassette.layerMappingDescription') }}
-          </Message>
-
-          <div class="detected-layers">
-            <Tag v-for="layer in detectedLayers" :key="layer" :value="layer" class="layer-tag" />
-          </div>
-
-          <div class="mapping-fields">
-            <div v-for="layerType in layerTypes" :key="layerType" class="field">
-              <label>
-                <i :class="getLayerIcon(layerType)"></i>
-                {{ $t(`cassette.layerTypes.${layerType}`) }}
-              </label>
-              <MultiSelect
-                v-model="layerMapping[layerType]"
-                :options="detectedLayers"
-                :placeholder="$t('cassette.selectLayers')"
-                class="w-full"
-              />
-            </div>
-          </div>
-        </div>
-
-        <Message v-if="errorMessage" severity="error" :closable="false">
-          {{ errorMessage }}
-        </Message>
-
-        <Button 
-          v-if="uploadStatus === 'mapping'"
-          :label="$t('common.upload')" 
-          icon="pi pi-upload"
-          :loading="uploadStatus === 'uploading'"
-          :disabled="!canUpload"
-          @click="handleUpload"
-          class="w-full"
-        />
       </div>
 
-      <!-- Step 2: Processing & Preview -->
-      <div v-if="currentCassette" class="preview-section">
-        <div class="cassette-info">
-          <h3>{{ currentCassette.name }}</h3>
-          <Tag 
-            :value="currentCassette.processingStatus" 
-            :severity="getProcessingStatusSeverity(currentCassette.processingStatus)"
-          />
-        </div>
+      <!-- Analyzing -->
+      <div v-if="step === 'analyzing'" class="step-analyzing">
+        <ProgressSpinner style="width: 50px; height: 50px" />
+        <p>{{ $t('cassette.detectingLayers') }}</p>
+      </div>
 
-        <!-- SVG Preview -->
-        <div v-if="currentCassette.svgId || previewUrl" class="svg-preview">
-          <img 
-            v-if="previewUrl" 
-            :src="previewUrl" 
-            alt="Cassette preview"
-            @error="handlePreviewError"
-          />
-          <div v-else-if="currentCassette.processingStatus === 'processing'" class="preview-loading">
-            <ProgressSpinner style="width: 50px; height: 50px" />
-            <p>{{ $t('cassette.processingPreview') }}</p>
-          </div>
+      <!-- Layer Mapping with Preview -->
+      <div v-if="step === 'mapping'" class="step-mapping">
+        <!-- Preview -->
+        <div class="preview-container">
+          <SvgDisplay v-if="previewDataUri" :svgContent="previewDataUri" />
           <div v-else class="preview-placeholder">
             <i class="pi pi-image" style="font-size: 3rem"></i>
-            <p>{{ $t('cassette.noPreview') }}</p>
           </div>
         </div>
 
-        <!-- Detected Layers -->
-        <div v-if="detectedLayers.length > 0" class="layers-section">
-          <Divider />
-          
-          <h4>
-            <i class="pi pi-layer-group"></i>
-            {{ $t('cassette.detectedLayers') }}
-          </h4>
+        <!-- Layer Mapping -->
+        <div class="mapping-container">
+          <h4>{{ $t('cassette.detectedLayers') }}:</h4>
           <div class="detected-layers">
             <Tag 
               v-for="layer in detectedLayers" 
               :key="layer"
               :value="layer"
               severity="secondary"
-              icon="pi pi-tag"
             />
           </div>
 
           <Divider />
 
-          <h4>
-            <i class="pi pi-sitemap"></i>
-            {{ $t('cassette.mapToStandards') }}
-          </h4>
-          <Message severity="info" :closable="false">
-            {{ $t('cassette.mappingDescription') }}
-          </Message>
-
-          <div class="layer-mappings">
-            <div 
-              v-for="layerType in layerTypes" 
-              :key="layerType"
-              class="mapping-row"
-            >
-              <div class="mapping-label">
-                <i :class="getLayerIcon(layerType)"></i>
-                <span>{{ $t(`cassette.layers.${layerType}`) }}</span>
-              </div>
-              
-              <MultiSelect 
+          <h4>{{ $t('cassette.mapLayers') }}:</h4>
+          <div class="mapping-fields">
+            <div v-for="layerType in layerTypes" :key="layerType" class="mapping-row">
+              <label>{{ $t(`cassette.layers.${layerType}`) }}</label>
+              <MultiSelect
                 v-model="layerMapping[layerType]"
                 :options="detectedLayers"
                 :placeholder="$t('cassette.selectLayers')"
                 display="chip"
-                :maxSelectedLabels="3"
                 class="mapping-select"
               />
             </div>
           </div>
         </div>
+      </div>
 
-        <div v-else-if="currentCassette.processingStatus === 'processing'" class="processing-message">
-          <ProgressSpinner />
-          <p>{{ $t('cassette.detectingLayers') }}</p>
-        </div>
+      <!-- Uploading -->
+      <div v-if="step === 'uploading'" class="step-uploading">
+        <ProgressSpinner style="width: 50px; height: 50px" />
+        <p>{{ $t('common.uploading') }}</p>
       </div>
 
       <Message v-if="errorMessage" severity="error">
@@ -190,19 +98,26 @@
         @click="handleClose"
       />
       <Button 
-        v-if="showSaveButton"
-        :label="$t('common.save')" 
-        icon="pi pi-check"
-        :loading="uploadStatus === 'saving'"
-        :disabled="!canSave"
-        @click="handleSave"
+        v-if="step === 'select'"
+        :label="$t('common.next')" 
+        icon="pi pi-arrow-right"
+        iconPos="right"
+        :disabled="!canAnalyze"
+        @click="handleAnalyze"
+      />
+      <Button 
+        v-if="step === 'mapping'"
+        :label="$t('common.upload')" 
+        icon="pi pi-upload"
+        :disabled="!canUpload"
+        @click="handleUpload"
       />
     </template>
   </Dialog>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
@@ -212,81 +127,37 @@ import Message from 'primevue/message';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
 import ProgressSpinner from 'primevue/progressspinner';
+import SvgDisplay from './SvgDisplay.vue';
 
-const props = defineProps({
-  cassette: {
-    type: Object,
-    default: null
-  }
-});
-
-const emit = defineEmits(['close', 'saved']);
+const emit = defineEmits(['close', 'uploaded']);
 
 const isOpen = ref(true);
-const name = ref(props.cassette?.name || '');
+const step = ref('select'); // select, analyzing, mapping, uploading
+const name = ref('');
 const selectedFile = ref(null);
-const uploadStatus = ref('idle'); // idle, uploading, processing, saving, error
+const detectedLayers = ref([]);
+const previewDataUri = ref('');
 const errorMessage = ref('');
-const uploadedCassette = ref(null);
-const previewUrl = ref('');
-const pollingInterval = ref(null);
 
 const layerTypes = ['cut', 'bend', 'frame', 'dimensions'];
-const detectedLayers = ref(props.cassette?.detectedLayers || []);
 const layerMapping = reactive({
-  cut: props.cassette?.layerMapping?.cut || [],
-  bend: props.cassette?.layerMapping?.bend || [],
-  frame: props.cassette?.layerMapping?.frame || [],
-  dimensions: props.cassette?.layerMapping?.dimensions || []
-});
-
-const currentCassette = computed(() => props.cassette || uploadedCassette.value);
-
-const canUpload = computed(() => {
-  return name.value.trim() !== '' && 
-         selectedFile.value !== null && 
-         uploadStatus.value === 'mapping' &&
-         canSave.value;
+  cut: [],
+  bend: [],
+  frame: [],
+  dimensions: []
 });
 
 const isProcessing = computed(() => {
-  return uploadStatus.value === 'uploading' || uploadStatus.value === 'processing' || uploadStatus.value === 'saving';
+  return step.value === 'analyzing' || step.value === 'uploading';
 });
 
-const showSaveButton = computed(() => {
-  return currentCassette.value && detectedLayers.value.length > 0;
+const canAnalyze = computed(() => {
+  return name.value.trim() !== '' && selectedFile.value !== null;
 });
 
-const canSave = computed(() => {
-  // At least one layer type should be mapped
+const canUpload = computed(() => {
   return Object.values(layerMapping).some(layers => layers.length > 0);
 });
-
-const getLayerIcon = (type) => {
-  const icons = {
-    cut: 'pi pi-scissors',
-    bend: 'pi pi-arrows-alt',
-    frame: 'pi pi-stop',
-    dimensions: 'pi pi-pencil'
-  };
-  return icons[type] || 'pi pi-tag';
-};
-
-const getProcessingStatusSeverity = (status) => {
-  const severities = {
-    processing: 'info',
-    done: 'success',
-    error: 'danger',
-    pending: 'warning'
-  };
-  return severities[status] || 'secondary';
-};
-
-const formatFileSize = (bytes) => {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-};
 
 const handleFileSelect = async (event) => {
   const file = event.files?.[0];
@@ -294,16 +165,17 @@ const handleFileSelect = async (event) => {
   
   selectedFile.value = file;
   if (!name.value) {
-    name.value = file.name.replace('.dxf', '').replace(/\.[^/.]+$/, '');
+    name.value = file.name.replace(/\.dxf$/i, '');
   }
-  
-  // Immediately analyze the file
-  uploadStatus.value = 'analyzing';
+};
+
+const handleAnalyze = async () => {
+  step.value = 'analyzing';
   errorMessage.value = '';
   
   try {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', selectedFile.value);
     
     const analysis = await $fetch('/api/cassettes/analyze', {
       method: 'POST',
@@ -311,17 +183,25 @@ const handleFileSelect = async (event) => {
     });
     
     detectedLayers.value = analysis.detectedLayers || [];
-    uploadStatus.value = 'mapping';
+    
+    // Try to read file as text for preview (simplified)
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      // For now, just show that we have it
+      previewDataUri.value = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><text x="50%" y="50%" text-anchor="middle" fill="gray">DXF Preview</text></svg>';
+    };
+    reader.readAsText(selectedFile.value);
+    
+    step.value = 'mapping';
   } catch (error) {
-    uploadStatus.value = 'error';
+    step.value = 'select';
     errorMessage.value = error.data?.message || 'Failed to analyze file';
+    console.error('Analysis failed:', error);
   }
 };
 
 const handleUpload = async () => {
-  if (!canUpload.value) return;
-
-  uploadStatus.value = 'uploading';
+  step.value = 'uploading';
   errorMessage.value = '';
 
   try {
@@ -335,117 +215,45 @@ const handleUpload = async () => {
       body: formData
     });
 
-    uploadedCassette.value = cassette;
-    uploadStatus.value = 'processing';
-    
-    // Start polling for processing status
-    startPolling(cassette._id);
+    emit('uploaded', cassette);
+    isOpen.value = false;
   } catch (error) {
-    uploadStatus.value = 'error';
+    step.value = 'mapping';
     errorMessage.value = error.data?.message || error.message || 'Upload failed';
     console.error('Upload failed:', error);
   }
 };
 
-const startPolling = (cassetteId) => {
-  if (pollingInterval.value) clearInterval(pollingInterval.value);
-  
-  pollingInterval.value = setInterval(async () => {
-    try {
-      const updated = await $fetch(`/api/cassettes/${cassetteId}`);
-      uploadedCassette.value = updated;
-      
-      if (updated.detectedLayers) {
-        detectedLayers.value = updated.detectedLayers;
-      }
-      
-      if (updated.svgId) {
-        previewUrl.value = `/api/cassettes/${cassetteId}/svg`;
-      }
-      
-      // Stop polling if processing is done
-      if (updated.processingStatus === 'done' || updated.processingStatus === 'error') {
-        stopPolling();
-        uploadStatus.value = 'idle';
-        
-        if (updated.processingStatus === 'error') {
-          errorMessage.value = 'Processing failed';
-        }
-      }
-    } catch (error) {
-      console.error('Polling error:', error);
-      stopPolling();
-    }
-  }, 2000);
-};
-
-const stopPolling = () => {
-  if (pollingInterval.value) {
-    clearInterval(pollingInterval.value);
-    pollingInterval.value = null;
-  }
-};
-
-const handleSave = async () => {
-  if (!currentCassette.value) return;
-
-  uploadStatus.value = 'saving';
-  errorMessage.value = '';
-
-  try {
-    await $fetch(`/api/cassettes/${currentCassette.value._id}/mappings`, {
-      method: 'PUT',
-      body: {
-        layerMappings: layerMapping
-      }
-    });
-    
-    uploadStatus.value = 'idle';
-    emit('saved');
-  } catch (error) {
-    uploadStatus.value = 'error';
-    errorMessage.value = error.data?.message || error.message || 'Failed to save layer mapping';
-    console.error('Failed to save:', error);
-  }
-};
-
-const handlePreviewError = () => {
-  previewUrl.value = '';
-};
-
 const handleClose = () => {
   if (!isProcessing.value) {
-    stopPolling();
     emit('close');
   }
 };
-
-// Initialize preview URL if editing existing cassette
-onMounted(() => {
-  if (props.cassette?.svgId) {
-    previewUrl.value = `/api/cassettes/${props.cassette._id}/svg`;
-  }
-  if (props.cassette?.detectedLayers) {
-    detectedLayers.value = props.cassette.detectedLayers;
-  }
-});
-
-onUnmounted(() => {
-  stopPolling();
-});
 </script>
 
 <style scoped>
 .cassette-editor {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
+  min-height: 300px;
 }
 
-.upload-section {
+.step-select,
+.step-mapping {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+}
+
+.step-analyzing,
+.step-uploading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px 0;
 }
 
 .field {
@@ -456,170 +264,47 @@ onUnmounted(() => {
 
 .field label {
   font-weight: 600;
-  color: var(--text-color);
+  color: var(--label-primary);
 }
 
-.file-info {
+.step-mapping {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.preview-container {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  color: var(--text-color-secondary);
-  font-size: 0.875rem;
-}
-
-.preview-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.cassette-info {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  background: var(--surface-ground);
-  border-radius: 8px;
-}
-
-.cassette-info h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.svg-preview {
-  border: 1px solid var(--surface-border);
-  border-radius: 8px;
-  padding: 24px;
-  background: var(--surface-50);
-  display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 350px;
-  max-height: 500px;
-  overflow: hidden;
+  min-height: 300px;
+  background-color: var(--fill-tertiary);
+  border-radius: 8px;
+  padding: 16px;
 }
 
-.svg-preview img {
-  max-width: 100%;
-  max-height: 450px;
-  object-fit: contain;
-}
-
-.preview-loading,
 .preview-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  color: var(--text-color-secondary);
-}
-
-.layers-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.layers-section h4 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.detected-layers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.layer-mappings {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.mapping-row {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 16px;
-  align-items: center;
-}
-
-.mapping-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-}
-
-.mapping-label i {
-  font-size: 18px;
-  color: var(--primary-color);
-}
-
-.mapping-select {
-  width: 100%;
-}
-
-.processing-message {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 32px;
-  color: var(--text-color-secondary);
-}
-
-.analyzing-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 12px;
-  padding: 24px;
+  color: var(--label-secondary);
 }
 
-.layer-mapping-section {
-  margin-top: 24px;
+.mapping-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.layer-mapping-section h4 {
-  margin: 12px 0;
-  font-size: 1.1rem;
+.mapping-container h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--label-primary);
 }
 
 .detected-layers {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 12px 0;
-}
-
-.layer-tag {
-  font-size: 0.875rem;
-}
-
-.mapping-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.mapping-fields .field label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-.w-full {
-  width: 100%;
-}
-</style>
