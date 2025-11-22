@@ -1,404 +1,292 @@
 # AGENTS.md
 
-Architecture guide for Cutkit-Demo: DXF nesting application (Nuxt.js 3 + Vue 3 + MongoDB).
+**Purpose:** Instructions for AI agents working on the Cutkit-Demo project.
 
-## Stack
+This file tells you **HOW** to work with this codebase. For **WHAT** the architecture is, see the linked documents.
 
-- **Frontend:** Nuxt.js 3 SSR, Vue 3, Tailwind CSS, SCSS
-- **Backend:** Nuxt.js Server (Nitro), MongoDB (native driver), GridFS for file storage
-- **Auth:** Session-based (cookies) + OAuth (GitHub/Google)
-- **Workers:** Python workers for CPU-intensive tasks (fileprocessing, nesting)
-- **Payment:** Stripe for credit purchases
+---
 
-## Directory Structure
+## Quick Reference
 
+- **Architecture Details:** → `/ARCHITECTURE.md`
+- **Data Schemas:** → `/docs/specs/data-schema.md`
+- **Setup Guide:** → `/ONBOARDING.md`
+- **Implementation Plan:** → `/docs/planning/implementation_plan.md`
+
+---
+
+## Core Principles
+
+### 1. Documentation-First Development
+
+**Every code change MUST update relevant documentation in the SAME commit.**
+
+**Documentation locations:**
+- Schema changes → Update `/docs/specs/data-schema.md`
+- API changes → Update `/ARCHITECTURE.md` API section
+- New patterns → Update `/ARCHITECTURE.md` or `/ONBOARDING.md`
+- Task completion → Mark `[x]` in `/docs/planning/implementation_plan.md`
+
+**Example commit:**
 ```
-/components        - Vue components (40+ reusable UI components)
-/pages             - File-based routing
-/layouts           - Layout wrappers
-/composables       - State stores (reactive pattern)
-/constants         - Enums and constants
-/server
-  /api             - API endpoints (organized by resource)
-  /db              - MongoDB connection & GridFS buckets
-  /features        - Business logic (nesting, payment, support, results)
-  /utils           - Server utilities
-  /middleware      - Server middleware (auth)
-  /schemas         - Validation schemas
-/middleware        - Client route middleware
-/workers           - Python workers
-/assets
-  /css             - Global CSS (CSS variables for theming)
-  /scss            - SCSS variables, mixins, fonts
-/plugins           - Nuxt plugins (theme initialization)
-/public            - Static assets
+Add user authentication endpoint
+
+- Created POST /api/auth/login endpoint
+- Updated ARCHITECTURE.md API section
+- Marked task [x] in implementation_plan.md
 ```
 
-## Data Model (MongoDB Collections)
+### 2. Minimal Changes Philosophy
 
-**Collections:**
-- `users` - User accounts (id, email, credits, isAdmin, avatarId, sessions, balance)
-- `projects` - User projects (slug, name, ownerId, createdAt, statistics, tables)
-- `user_dxf_files` - Uploaded DXF files (slug, projectSlug, processingStatus, svgId, dxfId)
-- `nesting_jobs` - Nesting results (resultId, projectSlug, status, params, sheets, statistics)
-- `tables` - Project tables (projectId, name, data, columnMappings, status)
-- `cassettes` - User cassettes (userId, name, dxfId, svgId, layerMapping, processingStatus)
+- Change **only** what's needed to fix/implement the task
+- Don't refactor unrelated code
+- Don't fix unrelated bugs unless explicitly asked
+- Keep commits focused and small
 
-**GridFS Buckets:**
-- `avatars` - User profile images
-- `userDxf` - Original uploaded DXF files
-- `userDxfFilesSvg` - SVG previews of user files
-- `validDxf` - Processed/validated DXF files
-- `nestSvg` - Nesting result SVG visualizations
-- `nestDxf` - Nesting result DXF files
-- `cassettes` - Cassette DXF files (global user storage)
+### 3. Follow Existing Patterns
 
-## State Management Pattern
+**Before adding new code, check:**
+1. Is there already a similar implementation?
+2. What pattern does the existing code use?
+3. Can I reuse existing utilities/components?
 
-All stores follow the **readonly reactive pattern**:
+**Where to look:**
+- Service layer pattern → `/server/features/` (any module)
+- Component patterns → `/components/` (check existing)
+- Store pattern → `/composables/` (check any store file)
 
+---
+
+## Working with This Codebase
+
+### Service Layer Pattern
+
+**All backend logic follows:** `repository.js` → `service.js` → `API endpoint`
+
+**When adding a new feature:**
+1. Check `/server/features/` for existing similar modules
+2. Copy the pattern from an existing module
+3. Create: `repository.js` (DB operations), `service.js` (business logic), `index.js` (exports)
+4. Add API endpoint in `/server/api/` that calls service
+
+**Never:**
+- Access MongoDB directly from API endpoints
+- Put business logic in API handlers
+- Skip the service layer
+
+### Frontend Store Pattern
+
+**All stores use:** Readonly reactive pattern
+
+**Template:**
 ```javascript
+// composables/myFeature.js
+import { reactive, readonly, computed } from 'vue';
+
 const state = reactive({
-    data: null,
-    computed: computed(() => transform(state.data))
-})
+  data: null,
+  loading: false
+});
 
-export const myStore = readonly({
-    getters: {
-        data: computed(() => state.data)
-    },
-    actions: {
-        async fetchData() { /* modify state */ }
+export const myFeatureStore = readonly({
+  getters: {
+    data: computed(() => state.data),
+    loading: computed(() => state.loading)
+  },
+  actions: {
+    async fetch() {
+      state.loading = true;
+      state.data = await $fetch('/api/my-endpoint');
+      state.loading = false;
     }
-})
+  }
+});
 ```
 
-**Core Stores:**
-- `authStore` (`composables/auth.js`) - User authentication state, session management
-- `filesStore` (`composables/files.js`) - Project files, nesting params, file counts
-- `globalStore` (`composables/index.js`) - Projects list, results list, modal data, notifications
-- `themeStore` (`composables/theme.js`) - Theme switching (light/dark)
-- `tablesStore` (`composables/tables.js`) - Project tables, table data, upload/validation
-- `cassettesStore` (`composables/cassettes.js`) - User cassettes, layer mapping, cassette selection
-- `useModalState` - Dialog state management (useState pattern)
+**Never:**
+- Mutate state directly from components
+- Export mutable state
+- Use Vuex/Pinia (we use composables)
 
-**Store Rules:**
-- State is private reactive object
-- Export readonly wrapper with getters (computed) and actions
-- Only actions modify state
-- Use computed for derived values
-- Import from other stores via their readonly interface
+### Component Guidelines
 
-## Component Design System
+**Check first:** Is there an existing component that does something similar?
 
-**Design Tokens (CSS Variables):**
-```scss
-// Light theme (default)
---background-primary, --background-secondary
---label-primary, --label-secondary, --label-tertiary
---fill-secondary, --fill-tertiary
---accent-primary, --accent-secondary
---separator-primary, --separator-secondary
+**Current UI migration:** Custom components → PrimeVue components
+
+**When creating components:**
+- Use PrimeVue for new components
+- Follow existing file structure in `/components/`
+- Use design tokens from `/assets/css/main.css`
+
+---
+
+## Common Tasks
+
+### Adding a New API Endpoint
+
+1. Create service in `/server/features/{module}/service.js`
+2. Create endpoint in `/server/api/{resource}/{action}.{method}.js`
+3. Use `event.context.auth.userId` for authentication
+4. Update `/ARCHITECTURE.md` API section
+5. Test with curl or browser
+
+### Adding a New Database Collection
+
+1. Design schema in `/docs/specs/data-schema.md`
+2. Create indexes in `/server/db/indexes.js`
+3. Add repository in `/server/features/{module}/repository.js`
+4. Add service layer
+5. Update `/ARCHITECTURE.md` Data Model section
+
+### Fixing Bugs
+
+1. Reproduce the error
+2. Find root cause (check server logs, browser console)
+3. Make minimal fix
+4. Test the fix works
+5. Update documentation if schema/API changed
+6. Commit with clear description
+
+### Running Tests
+
+```bash
+# Backend
+node server/scripts/test-endpoint.js
+
+# Frontend
+npm run dev  # Manual testing in browser
 ```
 
-**Theme Switching:**
-- Themes stored in cookie, applied via `data-theme` attribute
-- Plugin sets theme on SSR and client hydration
-- `themeStore` toggles between themes
+---
 
-**Component Principles:**
+## Important Notes
 
-1. **Prop-driven variants:** Use constants for size, theme, icon types
-   ```javascript
-   // constants/size.constants.js
-   export const sizeType = { s: 's', m: 'm', l: 'l' }
-   export const defaultSizeType = sizeType.m
-   ```
+### User IDs are Strings, Not ObjectIds
 
-2. **BEM-like scoped styles:** Use `$self` reference pattern
-   ```scss
-   .button {
-       $self: &;
-       &__label { /* nested element */ }
-       &--size-m { /* modifier */ }
-       &--disabled { /* state */ }
-   }
-   ```
+**⚠️ Critical:** `userId` fields contain OAuth provider IDs like `"google:12345"`, not MongoDB ObjectIds.
 
-3. **Computed classes:** Build class objects dynamically
-   ```javascript
-   const buttonClasses = computed(() => ({
-       [`button--size-${size}`]: Boolean(size),
-       [`button--theme-${theme}`]: Boolean(theme),
-       'button--disabled': isDisable
-   }))
-   ```
-
-4. **Icon system:** SVG masks with background-color for themeable icons
-   ```scss
-   &__icon {
-       mask-image: url('/icons/svg/plus.svg');
-       background-color: var(--label-primary);
-   }
-   ```
-
-5. **Teleport for modals:** Use `<teleport to="body">` for overlays
-
-6. **Emit conventions:** Use `update:modelValue` for v-model, custom events for actions
-
-## API Architecture
-
-**Pattern:** RESTful endpoints organized by resource in `/server/api/{resource}/`
-
-**Request Flow:**
-1. Client makes request with `useFetch` or `$fetch`
-2. `server/middleware/auth.js` runs on ALL requests
-3. Reads `sessionId` cookie, fetches user from DB
-4. Attaches `event.context.auth = { userId, isAdmin }` to request
-5. API handler accesses `event.context.auth.userId`
-6. Response sent back to client
-
-**API Endpoints:**
-- `POST /api/project` - Create new project (returns slug)
-- `GET /api/project/:slug` - Get project + files + tables
-- `DELETE /api/project/:slug` - Delete project and associated data
-- `POST /api/project/:slug/addfiles` - Upload DXF files (FormData)
-- `DELETE /api/project/:slug/files/:fileSlug` - Delete specific file
-- `POST /api/project/:slug/nest` - Trigger nesting job (returns job data)
-- `GET /api/project/:slug/results` - Get nesting results for project
-- `GET /api/project/me` - Get all user projects
-- `GET /api/project/:slug/tables` - Get project tables
-- `POST /api/project/:slug/tables/create` - Create new table
-- `POST /api/project/:slug/tables/upload` - Upload table from CSV/Excel
-- `GET /api/tables/:id` - Get table data
-- `PUT /api/tables/:id` - Update table data
-- `DELETE /api/tables/:id` - Delete table
-- `GET /api/cassettes` - Get user cassettes
-- `POST /api/cassettes/upload` - Upload cassette DXF
-- `GET /api/cassettes/:id` - Get cassette details
-- `PUT /api/cassettes/:id` - Update cassette (layer mapping)
-- `DELETE /api/cassettes/:id` - Delete cassette
-- `POST /api/auth/logout` - Clear session
-- `GET /api/user` - Get current user
-- `POST /api/user/add-credits` - Add credits to user balance (dev only)
-- `POST /api/payment/*` - Stripe payment handlers
-
-**Auth Flow:**
-- Session created on login, stored in `users.sessions` array
-- SessionId stored in httpOnly cookie
-- `server/middleware/auth.js` validates on every request
-- Client middleware (`middleware/auth.js`) redirects unauthenticated users
-- `authStore.setUser()` fetches user on client initialization
-
-**File Upload Pattern:**
+**When querying by userId:**
 ```javascript
-const formData = new FormData()
-formData.append('projectName', name)
-files.forEach(file => formData.append('dxf', file))
-await $fetch('/api/project/:slug/addfiles', { method: 'POST', body: formData })
+// ❌ WRONG
+{ userId: new ObjectId(userId) }
+
+// ✅ CORRECT
+{ userId: userId }  // Direct string comparison
 ```
 
-## Data Flows
+### Collection Names
 
-### Project Creation Flow
-1. User uploads DXF files
-2. `POST /api/project` creates project with generated slug
-3. Files saved to GridFS (`userDxf` bucket)
-4. Worker processes DXF → SVG conversion (async)
-5. `user_dxf_files` updated with `processingStatus: 'done'`
-6. Client polls project endpoint until all `processingStatus === 'done'`
+**⚠️ Legacy:** Some collections use old names:
+- `cassettes` (not `cassette_templates`)
+- Check `/docs/specs/data-schema.md` for actual collection names
 
-### Nesting Flow
-1. User sets params (widthPlate, heightPlate, space, sheetCount)
-2. User selects files and counts
-3. Client validates params, checks credit balance
-4. `POST /api/project/:slug/nest` triggers nesting job
-5. Worker calculates optimal nesting (async)
-6. Result saved to `nesting_jobs` with SVG/DXF in GridFS
-7. Client shows result modal with statistics
+### Authentication Context
 
-### File Processing States
+All API endpoints get auth from middleware:
 ```javascript
-// constants/files.constants.js
-processingType = { done: 'done', inProgress: 'in-progress', error: 'error' }
-```
-
-### Cassette Flow
-1. User uploads DXF file as cassette template
-2. `POST /api/cassettes/upload` saves to GridFS (`cassettes` bucket)
-3. Worker detects DXF layers (async)
-4. User maps DXF layers to cassette layer types (cut, bend, frame, dimensions)
-5. Cassette available globally across all user projects
-6. Cassettes can be selected as templates when creating parts
-
-## Architectural Patterns
-
-**1. Polling for Async Jobs:**
-- Files processing: Poll every 5 seconds until `isSvgLoaded` (all files done)
-- Nesting jobs: Poll results endpoint for status changes
-
-**2. Modal Management:**
-- Use `useState` for dialog open/close state
-- Store modal data in global store (e.g., `resultModalData`)
-- `DialogWrapper` component handles ESC key, backdrop click
-
-**3. Credit System:**
-- Credits stored in `users.credits` field
-- Nesting costs credits (checked before job creation)
-- 402 Payment Required returned if insufficient credits
-- Shows `BuyCreditsDialog` on 402 error
-
-**4. Error Handling:**
-```javascript
-try {
-    const data = await $fetch('/api/endpoint')
-} catch (error) {
-    if (error?.response?.status === 402) {
-        // Show payment dialog
-    }
-    if (error?.response?.status === 401) {
-        // Redirect to login
-    }
+const userId = event.context?.auth?.userId;
+if (!userId) {
+  throw createError({ statusCode: 401, message: 'Unauthorized' });
 }
 ```
 
-**5. Navigation:**
-- `navigateTo('/path')` for programmatic navigation
-- `definePageMeta({ middleware: 'auth' })` for protected pages
+---
 
-## Constants & Configuration
+## Workflow
 
-**File Locations:**
-- `/constants/{resource}.constants.js` - Enums for size, theme, icon, status, processing
-- `/composables/apiRoutes.js` - Centralized API route definitions
-- `/nuxt.config.js` - Runtime config (env vars), Vite config, head meta
-- `/assets/css/main.css` - CSS variable definitions for themes
+### When Starting Work
 
-**Theme Constants:**
-```javascript
-themeType = { ghost: 'ghost', secondary: 'secondary', primary: 'primary' }
-```
+1. Read `/docs/planning/implementation_plan.md` for current task
+2. Check relevant section in `/ARCHITECTURE.md` or `/ONBOARDING.md`
+3. Review similar existing code
+4. Implement following existing patterns
+5. Update documentation
+6. Mark task `[x]` in implementation plan
+7. Commit
 
-**Size Constants:**
-```javascript
-sizeType = { s: 's', m: 'm', l: 'l' }
-```
+### When Asked to "Continue"
 
-## Development Principles
+1. Check implementation plan for next uncompleted `[ ]` task
+2. Complete that task
+3. Update docs + mark `[x]`
+4. Commit
+5. Move to next task
+6. Repeat until told to stop
 
-1. **Minimal Tailwind usage:** Custom SCSS components with design tokens
-2. **SSR-aware:** Check `process.client` vs `process.server` when needed
-3. **Type safety:** JSDoc comments for better IDE support (see `server/db/mongo.js`)
-4. **Feature-based server code:** Business logic in `/server/features/`
-5. **No Mongoose:** Direct MongoDB driver usage with native queries
-6. **GridFS for files:** All binary data in GridFS buckets, not collections
-7. **Computed-heavy:** Prefer computed properties over methods for derived state
-8. **Readonly stores:** Never mutate store state directly from components
+### When Finding Inconsistencies
 
-## Adding New Features
-
-**New Component:**
-1. Create in `/components/{Name}.vue`
-2. Follow BEM naming with `$self` pattern
-3. Define props with defaults from constants
-4. Use computed for class bindings
-5. Emit events for parent communication
-
-**New API Endpoint:**
-1. Create in `/server/api/{resource}/{slug?}/action.{get|post|delete}.js`
-2. Use `defineEventHandler(async (event) => { ... })`
-3. Get auth from `event.context.auth.userId`
-4. Validate with `createError({ statusCode, message })`
-5. Use `await connectDB()` to get db instance
-6. Return plain objects (auto-serialized to JSON)
-
-**New Store:**
-1. Create in `/composables/{feature}.js`
-2. Define reactive state object
-3. Create computed getters
-4. Export readonly({ getters: {}, actions: {} })
-5. Import API routes from `apiRoutes.js`
-
-**New Modal:**
-1. Add state to `useModalState.js`: `export const useMyDialog = () => useState('myDialog', () => false)`
-2. Use `DialogWrapper` with `v-model:isModalOpen`
-3. Store modal data in appropriate store (e.g., globalStore)
-
-## **Important note**
-If you found inconsistencies in this file, that looks like non-aligned with actual project technologies, architecture or practices, feel free to change this file with actual up-to-date information.
+**If documentation conflicts with code:**
+1. Check which is correct (usually code is truth)
+2. Update documentation to match reality
+3. Add note explaining the discrepancy
+4. Commit documentation fix
 
 ---
 
-## Key Learnings from Real Sessions (CRITICAL!)
+## Key Learnings from Real Sessions
 
-### Schema Design Lessons
-- **System templates use `ownerId: null`** - NOT a boolean flag like `isSystem`
-  - Wrong: `{ isSystem: true }` 
-  - Right: `{ ownerId: null }` for system, `{ ownerId: ObjectId(...) }` for user
-- **Users COPY system templates** - they don't "override" with flags
-  - System pens/tools are immutable references
-  - Users duplicate and modify copies
-- **Keep schemas minimal** - only add fields when actually needed
-  - Tool needs: `diameter`, `angle` (not full CNC feed rates yet)
-  - Don't over-engineer for future that may not happen
-- **Parametric patterns** - Layer names like `"Cut_{diameter}"` get values substituted at runtime
-  - Store: `nameTemplate: "Обрезь_{diameter}"`
-  - Generate: `"Обрезь_3,15"` when cassette processed
+### Schema Design
+- System templates use `ownerId: null` (not `isSystem: true`)
+- Users copy and modify, don't override
+- Keep schemas minimal - only add fields when needed
+- OAuth provider IDs are strings, not ObjectIds
 
 ### Implementation Flow
-- **Complete cycle:** Read task → implement → update docs → mark [x] → commit
-- **Don't wait for reviews** - user will explicitly tell you to stop
-- **"Continue" means keep going** - work through multiple tasks until stopped
-- **Git lock errors happen** - just `rm -f .git/index.lock` and retry
-- **Files from `cat >` may vanish** - always verify with `ls` before `git add`
-- **Update implementation_plan.md** - mark [x] as you complete, not after
+- Complete cycle: Read task → Implement → Update docs → Mark [x] → Commit
+- Don't wait for reviews - user will tell you to stop
+- "Continue" means keep working through tasks
+- Track progress in implementation_plan.md
 
-### Docker vs Local Development
-- **Package installs work locally immediately** - `npm install` updates local node_modules
-- **Docker needs rebuild** - `docker-compose build --no-cache` after package.json changes
-- **Document both paths** - local dev (fast) and Docker (isolated)
-- **Recommend local** - faster iteration for development
+### Communication
+**User wants:**
+- Continuous work until told "stop"
+- Autonomous commits without asking
+- Calm fixes of mistakes
+- Clear knowledge of what's done/what's next
 
-### Communication Patterns (Learn from mistakes!)
-**User gets frustrated when you:**
-- Stop working without being told to stop
-- Ask permission for every commit ("can I commit this?")
-- Don't track what's done (forget to mark [x])
-- Write ALL CAPS apology commits ("I'M SORRY FOR...")
-- Lose track of where you are in the plan
-
-**User wants you to:**
-- Work continuously until told "stop"
-- Commit autonomously without asking
-- Update plan as you complete tasks
-- Fix mistakes calmly and move on
-- Know what's done and what's next
-
-### Debugging Tips
-- **Read layer standards from layers.md** - they're templates, not static data
-- **Layers are parametric** - need substitution logic, not just seeding
-- **Check existing patterns** - look at how old code works before creating new
-- **Test assumptions** - if unsure about schema, check with user first
+**User gets frustrated when:**
+- You stop without being told
+- You ask permission for every commit
+- You forget what's done
+- You write CAPS apology commits
 
 ---
 
-## Workflow Checklist
+## Debugging Tips
 
-Before each commit, verify:
-- [ ] Task implemented correctly
-- [ ] Documentation updated (see table above)
-- [ ] Task marked [x] in implementation_plan.md
-- [ ] Files exist (`ls` to verify)
-- [ ] Commit message is clear and concise
-- [ ] No CAPS, no excessive apologies
-
-During "continue" sessions:
-- [ ] Check implementation_plan.md for next task
-- [ ] Read relevant docs sections
-- [ ] Implement completely
-- [ ] Commit immediately
-- [ ] Move to next task
-- [ ] Repeat until user says stop
+- Check server logs in terminal running `npm run dev`
+- Check browser console for frontend errors
+- Use `curl` to test API endpoints directly
+- Check `/server/middleware/auth.js` if auth issues
+- Look at similar working code for patterns
 
 ---
 
+## Emergency Fixes
+
+### Git Lock Error
+```bash
+rm -f .git/index.lock
+```
+
+### Files Disappeared After `cat >`
+```bash
+ls -la  # Verify files exist before git add
+```
+
+### MongoDB Connection Issues
+Check `.env` file has `MONGODB_URI=mongodb://localhost:27017/nest2d`
+
+---
+
+## When in Doubt
+
+1. Read the documentation files first
+2. Check existing similar code
+3. Ask user for clarification if truly unclear
+4. Don't guess - wrong changes waste time
+
+---
+
+**Remember:** This file is guidance for YOU (the AI). All actual architecture, schemas, and details live in other documented files.
