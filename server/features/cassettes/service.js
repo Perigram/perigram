@@ -117,14 +117,17 @@ export async function create(data, userId) {
   });
 }
 
-export async function updateLayerMappings(id, layerMappings, userId) {
+export async function updateLayerMapping(id, layerMapping, userId) {
   await getById(id, userId);
   
-  if (!Array.isArray(layerMappings)) {
-    throw createError({ statusCode: 400, message: 'Layer mappings must be an array' });
+  if (!layerMapping || typeof layerMapping !== 'object') {
+    throw createError({ statusCode: 400, message: 'Layer mapping must be an object' });
   }
   
-  await repository.updateById(id, { layerMappings });
+  await repository.updateById(id, { 
+    layerMapping,
+    updatedAt: new Date()
+  });
   return await repository.findById(id);
 }
 
