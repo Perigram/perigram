@@ -22,7 +22,8 @@ export async function findByOwner(ownerId, options = {}) {
   const db = await connectDB();
   const { status, limit = 100, skip = 0 } = options;
   
-  const query = { ownerId: toObjectId(ownerId) };
+  // Old cassettes use 'userId' field, not 'ownerId'
+  const query = { userId: toObjectId(ownerId) };
   if (status) query.status = status;
   
   return await db.collection(COLLECTION)
