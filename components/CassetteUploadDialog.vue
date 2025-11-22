@@ -1,158 +1,122 @@
 <template>
-    <DialogWrapper v-model:isModalOpen="isOpen" @close="$emit('close')">
-        <div class="cassette-upload">
-            <h3 class="cassette-upload__title">{{ $t('cassette.uploadTitle') }}</h3>
-            
-            <div class="cassette-upload__form">
-                <input 
-                    type="text" 
-                    v-model="name" 
-                    :placeholder="$t('cassette.name')"
-                    class="cassette-upload__input"
-                />
-                
-                <input 
-                    type="file" 
-                    ref="fileInput"
-                    accept=".dxf"
-                    @change="handleFileSelect"
-                    class="cassette-upload__file-input"
-                />
+  <Dialog 
+    v-model:visible="isOpen" 
+    :header="$t('cassette.uploadTitle')" 
+    :modal="true"
+    :style="{ width: '450px' }"
+    @hide="$emit('close')"
+  >
+    <div class="upload-form">
+      <div class="field">
+        <label for="cassetteName">{{ $t('cassette.name') }}</label>
+        <InputText 
+          id="cassetteName"
+          v-model="name" 
+          :placeholder="$t('cassette.name')"
+        />
+      </div>
 
-                <div v-if="selectedFile" class="cassette-upload__file-info">
-                    {{ $t('files.selected') }}: {{ selectedFile.name }}
-                </div>
+      <div class="field">
+        <label>{{ $t('cassette.file') }}</label>
+        <FileUpload 
+          mode="basic" 
+          accept=".dxf"
+          :maxFileSize="10000000"
+          :choose-label="$t('common.chooseFile')"
+          @select="handleFileSelect"
+        />
+        <small v-if="selectedFile" class="file-info">
+          {{ $t('files.selected') }}: {{ selectedFile.name }}
+        </small>
+      </div>
 
-                <div v-if="uploadStatus === 'uploading'" class="cassette-upload__progress">
-                    {{ $t('common.loading') }}
-                </div>
+      <Message v-if="uploadStatus === 'error'" severity="error">
+        {{ $t('common.error') }}
+      </Message>
+    </div>
 
-                <div v-if="uploadStatus === 'error'" class="cassette-upload__error">
-                    {{ $t('common.error') }}
-                </div>
-
-                <div class="cassette-upload__actions">
-                    <MainButton 
-                        @click="$emit('close')" 
-                        :label="$t('common.cancel')" 
-                        :theme="themeType.secondary" 
-                        :size="sizeType.m" 
-                    />
-                    <MainButton 
-                        @click="handleUpload" 
-                        :label="$t('common.upload')" 
-                        :theme="themeType.primary" 
-                        :size="sizeType.m"
-                        :isDisable="!canUpload"
-                    />
-                </div>
-            </div>
-        </div>
-    </DialogWrapper>
+    <template #footer>
+      <Button 
+        :label="$t('common.cancel')" 
+        severity="secondary"
+        @click="$emit('close')"
+      />
+      <Button 
+        :label="$t('common.upload')" 
+        icon="pi pi-upload"
+        :loading="uploadStatus === 'uploading'"
+        :disabled="!canUpload"
+        @click="handleUpload"
+      />
+    </template>
+  </Dialog>
 </template>
 
 <script setup>
-import { ref, computed, toRefs } from 'vue';
+import { ref, computed } from 'vue';
 import { cassettesStore } from '~/composables/cassettes';
-import { themeType } from '~/constants/theme.constants';
-import { sizeType } from '~/constants/size.constants';
-import DialogWrapper from './DialogWrapper.vue';
-import MainButton from './MainButton.vue';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import FileUpload from 'primevue/fileupload';
+import Message from 'primevue/message';
 
 const emit = defineEmits(['close', 'uploaded']);
 
 const { getters, actions } = cassettesStore;
-const { uploadStatus } = toRefs(getters);
+const uploadStatus = computed(() => getters.uploadStatus.value);
 const { uploadCassette } = actions;
 
 const isOpen = ref(true);
 const name = ref('');
 const selectedFile = ref(null);
-const fileInput = ref(null);
 
 const canUpload = computed(() => {
-    return name.value.trim() !== '' && selectedFile.value !== null && uploadStatus.value !== 'uploading';
+  return name.value.trim() !== '' && selectedFile.value !== null && uploadStatus.value !== 'uploading';
 });
 
 const handleFileSelect = (event) => {
-    const file = event.target.files?.[0];
-    if (file) {
-        selectedFile.value = file;
-        if (!name.value) {
-            name.value = file.name.replace('.dxf', '');
-        }
+  const file = event.files?.[0];
+  if (file) {
+    selectedFile.value = file;
+    if (!name.value) {
+      name.value = file.name.replace('.dxf', '');
     }
+  }
 };
 
 const handleUpload = async () => {
-    if (!canUpload.value) return;
+  if (!canUpload.value) return;
 
-    try {
-        const cassette = await uploadCassette(selectedFile.value, name.value);
-        emit('uploaded', cassette);
-    } catch (error) {
-        console.error('Upload failed:', error);
-    }
+  try {
+    const cassette = await uploadCassette(selectedFile.value, name.value);
+    emit('uploaded', cassette);
+  } catch (error) {
+    console.error('Upload failed:', error);
+  }
 };
 </script>
 
-<style lang="scss" scoped>
-.cassette-upload {
-    $self: &;
-    padding: 24px;
-    min-width: 400px;
+<style scoped>
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
-    &__title {
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--label-primary);
-        margin-bottom: 24px;
-    }
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-    &__form {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
+.field label {
+  font-weight: 500;
+}
 
-    &__input {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid var(--separator-primary);
-        border-radius: 8px;
-        background-color: var(--background-primary);
-        color: var(--label-primary);
-        font-size: 14px;
-    }
-
-    &__file-input {
-        padding: 12px;
-        border: 1px solid var(--separator-primary);
-        border-radius: 8px;
-        background-color: var(--background-primary);
-        color: var(--label-primary);
-    }
-
-    &__file-info {
-        font-size: 14px;
-        color: var(--label-secondary);
-    }
-
-    &__progress {
-        text-align: center;
-        color: var(--label-secondary);
-    }
-
-    &__error {
-        color: var(--error-text);
-        text-align: center;
-    }
-
-    &__actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
-        margin-top: 8px;
-    }
+.file-info {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-color-secondary);
 }
 </style>
