@@ -77,9 +77,12 @@ import Tag from 'primevue/tag';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 
 const { getters, actions } = cassettesStore;
-const { cassettes, uploadStatus } = getters;
 
 const { fetchCassettes, selectCassette, deleteCassette } = actions;
+
+// Don't destructure computed refs - use directly to maintain reactivity
+const cassettes = getters.cassettes;
+const uploadStatus = getters.uploadStatus;
 
 const showUploadDialog = ref(false);
 const showEditDialog = ref(false);
