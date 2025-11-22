@@ -69,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, toRefs } from 'vue';
+import { ref, onMounted, computed, toRefs, isRef, isReactive } from 'vue';
 import { cassettesStore } from '~/composables/cassettes';
 import Button from 'primevue/button';
 import DataView from 'primevue/dataview';
@@ -92,6 +92,9 @@ onMounted(async () => {
   console.log('[CassetteManager] Fetching cassettes...');
   await fetchCassettes();
   console.log('[CassetteManager] Cassettes loaded:', cassettes.value);
+  console.log('[CassetteManager] Cassettes type:', typeof cassettes);
+  console.log('[CassetteManager] Cassettes is ref:', isRef(cassettes));
+  console.log('[CassetteManager] Cassettes is reactive:', isReactive(cassettes));
 });
 
 const getStatusSeverity = (status) => {
