@@ -2,7 +2,7 @@
  * Pen Templates Repository
  */
 
-import { connectDB } from '~~/server/db/mongo';
+import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 
 const COLLECTION = 'pen_templates';

@@ -4,7 +4,7 @@
  * Database operations for layer_standards collection.
  */
 
-import { connectDB } from '~~/server/db/mongo';
+import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 
 const COLLECTION = 'layer_standards';

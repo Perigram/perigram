@@ -5,7 +5,7 @@
  * No business logic - just CRUD operations.
  */
 
-import { connectDB } from '~~/server/db/mongo';
+import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 
 const COLLECTION = 'collection_name'; // Replace with actual collection name

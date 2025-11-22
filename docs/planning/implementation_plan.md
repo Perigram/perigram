@@ -85,7 +85,7 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Seed script for system tools (2025-11-22)
 - [x] Documented in ARCHITECTURE.md (2025-11-22)
 
-#### Layer Standards Module
+#### Layer Standards Module ✅ COMPLETE
 - [x] Create `/server/features/layer-standards/repository.js` (2025-11-22)
 - [x] Create `/server/features/layer-standards/service.js` (2025-11-22)
 - [x] Create `/server/features/layer-standards/index.js` (2025-11-22)
@@ -94,13 +94,15 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Schema updated for parametric templates (2025-11-22)
 - [x] Seed script updated with parametric data (2025-11-22)
 - [x] Update service to handle parametric templates (2025-11-22)
-- [ ] Run seed script and verify data
+- [x] Run seed script and verify data (2025-11-22)
 - [x] Document service API in `/ARCHITECTURE.md` (2025-11-22)
+- [x] Fixed ESM imports in all repository files (2025-11-22)
+- [x] Fixed mongo.js to work with standalone scripts (2025-11-22)
 - [ ] Code review & merge
 
 **Documentation:** Update `/ARCHITECTURE.md` sections "Module Structure" and "API Patterns"
 
-#### Pen Templates Module
+#### Pen Templates Module ✅ COMPLETE
 - [x] Create `/server/features/pen-templates/repository.js` (2025-11-22)
 - [x] Create `/server/features/pen-templates/service.js` (2025-11-22)
 - [x] Create `/server/features/pen-templates/index.js` (2025-11-22)
@@ -108,13 +110,13 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Create `POST /api/templates/pens` endpoint (2025-11-22)
 - [x] Create `PUT /api/templates/pens/:id` endpoint (2025-11-22)
 - [x] Create `DELETE /api/templates/pens/:id` endpoint (2025-11-22)
-- [ ] Seed default system pens
+- [x] Seed default system pens (2025-11-22)
 - [x] Document service API in `/ARCHITECTURE.md` (2025-11-22)
 - [ ] Code review & merge
 
 **Documentation:** Update `/ARCHITECTURE.md` sections "Module Structure" and "API Patterns"
 
-#### Tool Profiles Module
+#### Tool Profiles Module ✅ COMPLETE
 - [x] Create `/server/features/tool-profiles/repository.js` (2025-11-22)
 - [x] Create `/server/features/tool-profiles/service.js` (2025-11-22)
 - [x] Create `/server/features/tool-profiles/index.js` (2025-11-22)
@@ -122,7 +124,7 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Create `POST /api/templates/tools` endpoint (2025-11-22)
 - [x] Create `PUT /api/templates/tools/:id` endpoint (2025-11-22)
 - [x] Create `DELETE /api/templates/tools/:id` endpoint (2025-11-22)
-- [ ] Seed default system tools
+- [x] Seed default system tools (2025-11-22)
 - [x] Document service API in `/ARCHITECTURE.md` (2025-11-22)
 - [ ] Code review & merge
 

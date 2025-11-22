@@ -2,6 +2,9 @@
  * Seed System Pens
  */
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { service } from '../features/pen-templates/index.js';
 import { connectDB } from '../db/mongo.js';
 

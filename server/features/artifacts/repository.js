@@ -2,7 +2,7 @@
  * Artifacts Repository
  */
 
-import { connectDB } from '~~/server/db/mongo';
+import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 
 const COLLECTION = 'artifacts';

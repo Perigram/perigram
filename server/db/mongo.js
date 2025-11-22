@@ -1,5 +1,5 @@
 import { MongoClient, GridFSBucket } from "mongodb";
-import logger from "../utils/logger";
+import logger from "../utils/logger.js";
 
 // Don't read from process.env directly - use useRuntimeConfig() in server context
 let client;
@@ -129,11 +129,18 @@ export async function connectDB() {
   if (!client) {
     try {
       // Try multiple sources for MongoDB URI
-      // 1. Direct from process.env (works in Railway)
-      // 2. From Nuxt runtime config (works in Vercel)
-      const uri = process.env.NUXT_MONGODB_URI 
-                  || process.env.MONGODB_URI 
-                  || useRuntimeConfig().mongoUri;
+      // 1. Direct from process.env (works in Railway and standalone scripts)
+      // 2. From Nuxt runtime config (works in Vercel - only available in Nuxt context)
+      let uri = process.env.NUXT_MONGODB_URI || process.env.MONGODB_URI;
+      
+      // Only try useRuntimeConfig if in Nuxt context (not standalone script)
+      if (!uri && typeof useRuntimeConfig !== 'undefined') {
+        try {
+          uri = useRuntimeConfig().mongoUri;
+        } catch (e) {
+          // useRuntimeConfig not available in standalone scripts
+        }
+      }
       
       // DEBUG: Log all available env vars (without values for security)
       logger.info(`Available MONGO env vars: ${Object.keys(process.env).filter(k => k.includes('MONGO')).join(', ')}`);

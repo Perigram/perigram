@@ -8,6 +8,9 @@
  *   node server/scripts/seed-layer-standards.js
  */
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { service } from '../features/layer-standards/index.js';
 import { connectDB } from '../db/mongo.js';
 
