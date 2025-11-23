@@ -6,7 +6,8 @@ export default defineNuxtConfig({
     devtools: { enabled: true },
     
     css: [
-        'primeicons/primeicons.css'
+        'primeicons/primeicons.css',
+        '@/assets/css/fonts.css'
     ],
     
     modules: [
