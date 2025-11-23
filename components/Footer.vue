@@ -3,28 +3,11 @@
         <div class="footer__content content">
             <ul class="list">
                 <li class="list__item">
-                    <a
-                        href="https://github.com/VovaStelmashchuk/nest2d"
-                        target="_blank"
-                        class="list__link"
-                    >
-                        GitHub
-                    </a>
-                </li>
-                <li class="list__item">
                     <NuxtLink 
                         to="/terms-and-conditions"
                         class="list__link"
                     >
-                        Terms and Conditions
-                    </NuxtLink>
-                </li>
-                <li class="list__item">
-                    <NuxtLink 
-                        to="/licences" 
-                        class="list__link"
-                    >
-                        Licences
+			{{$t('footer.termsAndConditions')}}
                     </NuxtLink>
                 </li>
                 <li class="list__item">
