@@ -72,7 +72,7 @@ const createBatch = async () => {
     creating.value = true;
     try {
         await createBatchAction(slug, {
-            name: newBatchName.value || \`Batch \${Date.now()}\`
+            name: newBatchName.value || `Batch ${Date.now()}`
         });
         
         showCreateDialog.value = false;

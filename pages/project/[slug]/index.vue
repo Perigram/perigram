@@ -64,19 +64,19 @@
                     <Button 
                         :label="$t('project.createBatch')"
                         icon="pi pi-plus"
-                        @click="router.push(\`/project/\${slug}/batches\`)"
+                        @click="router.push(`/project/${slug}/batches`)"
                     />
                     <Button 
                         :label="$t('project.uploadFiles')"
                         icon="pi pi-upload"
                         severity="secondary"
-                        @click="router.push(\`/project/\${slug}/files\`)"
+                        @click="router.push(`/project/${slug}/files`)"
                     />
                     <Button 
                         :label="$t('project.viewArtifacts')"
                         icon="pi pi-download"
                         severity="secondary"
-                        @click="router.push(\`/project/\${slug}/artifacts\`)"
+                        @click="router.push(`/project/${slug}/artifacts`)"
                     />
                 </div>
             </template>
@@ -104,7 +104,7 @@ const loading = ref(true);
 
 onMounted(async () => {
     try {
-        project.value = await $fetch(\`/api/project/\${slug}\`);
+        project.value = await $fetch(`/api/project/${slug}`);
     } catch (error) {
         console.error('Failed to load project:', error);
     } finally {
@@ -119,7 +119,7 @@ const formatDate = (date) => {
 
 const formatArea = (area) => {
     if (!area) return '0 m²';
-    return \`\${area.toFixed(2)} m²\`;
+    return `${area.toFixed(2)} m²`;
 };
 
 const getStatusSeverity = (status) => {
