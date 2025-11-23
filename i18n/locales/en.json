@@ -73,6 +73,14 @@
     "logout": "Logout",
     "login": "Login / Sign Up"
   },
+  "navigation": {
+    "assets": "Assets"
+  },
+  "project": {
+    "data": "Project Data",
+    "batches": "Batches",
+    "artifacts": "Artifacts"
+  },
   "project": {
     "title": "Project",
     "create": "Create Project",

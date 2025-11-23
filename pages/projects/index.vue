@@ -237,7 +237,7 @@ import ProgressSpinner from 'primevue/progressspinner';
 import { globalStore } from '~/composables/index';
 
 definePageMeta({
-    layout: 'dashboard',
+    layout: 'app',
     middleware: 'auth'
 });
 

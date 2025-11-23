@@ -1,5 +1,21 @@
 <template>
-    <div class="main">
+    <div></div>
+</template>
+
+<script setup>
+definePageMeta({
+    middleware: 'auth'
+});
+
+// Redirect to appropriate page
+const { data: user } = await useFetch('/api/user');
+if (user.value) {
+    navigateTo('/projects');
+} else {
+    navigateTo('/landing');
+}
+</script>
+
         <section class="main__header header">
             <h2 class="title title--large">
                 {{ header.title }}
