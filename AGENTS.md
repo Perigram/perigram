@@ -131,27 +131,6 @@ export const myFeatureStore = readonly({
 4. Update `/ARCHITECTURE.md` API section
 5. Test with curl or browser
 
-### Client-Side File Parsing
-
-**Pattern:** Parse files in browser before upload (better UX, less server load)
-
-**How it works:**
-1. Install client-side parser library (e.g., dxf-parser, csv-parser)
-2. Create utility in `/utils/` for parsing logic
-3. Use FileReader API in component to read file
-4. Extract metadata/layers/data in browser
-5. Show UI immediately with parsed data
-6. Upload file + metadata together in single request
-7. Server stores with status 'done' immediately
-
-**Benefits:**
-- Instant feedback (no server round-trip)
-- No worker queues or polling needed
-- Server just stores file + metadata
-- Status immediately 'done'
-
-**Example:** Cassettes use dxf-parser to detect layers in browser (see `/docs/CASSETTE_REFACTORING.md`)
-
 ### Adding a New Database Collection
 
 1. Design schema in `/docs/specs/data-schema.md`
