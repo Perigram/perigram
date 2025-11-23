@@ -44,15 +44,18 @@ const getBatch = async (batchId) => {
 };
 
 const createBatch = async (projectSlug, batchData) => {
+  console.log('batches.js createBatch called with:', { projectSlug, batchData });
   try {
     const batch = await $fetch(`/api/project/${projectSlug}/batches`, {
       method: 'POST',
       body: batchData
     });
+    console.log('batches.js createBatch response:', batch);
     state.batches.push(batch);
     return batch;
   } catch (error) {
     state.error = error.message;
+    console.error('batches.js createBatch error:', error);
     throw error;
   }
 };

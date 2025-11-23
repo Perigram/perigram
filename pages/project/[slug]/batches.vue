@@ -90,21 +90,28 @@ onMounted(async () => {
 });
 
 const createNewBatch = async () => {
+    console.log('createNewBatch called, slug:', slug);
     try {
         const currentBatches = batches.value || [];
         const batchNumber = currentBatches.length + 1;
         
-        await createBatch(slug, {
+        console.log('Creating batch:', { batchNumber, slug });
+        
+        const result = await createBatch(slug, {
             name: `Batch ${batchNumber}`,
             batchNumber,
             status: 'DRAFT',
             entries: []
         });
         
+        console.log('Batch created:', result);
+        
         // Refresh and select new batch
         await fetchBatches(slug);
         const updatedBatches = batches.value || [];
         activeTabIndex.value = updatedBatches.length - 1;
+        
+        console.log('Batches refreshed, count:', updatedBatches.length);
     } catch (error) {
         console.error('Failed to create batch:', error);
         alert('Failed to create batch: ' + error.message);
