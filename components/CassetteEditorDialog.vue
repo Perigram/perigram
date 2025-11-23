@@ -129,21 +129,23 @@ const dxfFile = ref(null);
 const { state: layerStandardsState, fetchStandards, getByCode } = useLayerStandards();
 const { state: penState, fetchPens, getSystemPens } = usePenTemplates();
 
-// Fetch layer standards and pens on mount
-onMounted(async () => {
-  try {
-    await Promise.all([
-      fetchStandards(),
-      fetchPens()
-    ]);
-    
-    // Ensure system pens exist
-    if (getSystemPens().length === 0) {
-      console.warn('No system pens found. Please run: node server/scripts/seed-system-pens.js');
+// Fetch layer standards and pens when dialog opens
+watch(isOpen, async (newValue) => {
+  if (newValue && layerStandardsState.standards.length === 0) {
+    try {
+      await Promise.all([
+        fetchStandards(),
+        fetchPens()
+      ]);
+      
+      // Ensure system pens exist
+      if (getSystemPens().length === 0) {
+        console.warn('No system pens found. Please run: node server/scripts/seed-system-pens.js');
+      }
+    } catch (error) {
+      console.error('Failed to fetch templates:', error);
+      // Continue anyway - we'll use fallback pens
     }
-  } catch (error) {
-    console.error('Failed to fetch templates:', error);
-    // Continue anyway - we'll use fallback pens
   }
 });
 
