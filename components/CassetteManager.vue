@@ -76,8 +76,8 @@ const { getters, actions, state } = cassettesStore;
 
 const { fetchCassettes, selectCassette, deleteCassette } = actions;
 
-// Try accessing state directly
-const cassettes = computed(() => state.cassettes);
+// Try accessing state directly, ensure it's an array
+const cassettes = computed(() => Array.isArray(state.cassettes) ? state.cassettes : []);
 const uploadStatus = computed(() => state.uploadStatus);
 
 const showUploadDialog = ref(false);
