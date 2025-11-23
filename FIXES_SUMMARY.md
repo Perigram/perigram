@@ -112,3 +112,40 @@ curl http://localhost:3000/api/cassettes       # Returns [] or cassettes
 - [ ] Add preview zoom/pan controls
 - [ ] Cache parsed DXF to avoid reparsing on every mapping change
 - [ ] Add visual layer grouping by category in mapping panel
+
+## Update 2025-11-23 09:32 - OAuth User ID Fix
+
+### Critical Bug Fixed: 500 Error on Pen Templates API
+
+**Root Cause:**
+- User authentication uses OAuth provider IDs (strings like `"google:117482666136714297322"`)
+- Pen templates repository tried to convert these to MongoDB ObjectIds
+- This caused: `Invalid ObjectId string: google:117482666136714297322`
+
+**Solution:**
+Modified `server/features/pen-templates/repository.js`:
+- Check if `ownerId` is an OAuth string (not a valid ObjectId)
+- Return empty array for OAuth users (user pens require internal ObjectId)
+- System pens still work for all users
+
+**Result:**
+✅ API now returns system pens successfully for authenticated OAuth users
+✅ No more 500 errors in browser console
+✅ Dialog opens and loads pen templates correctly
+
+### Additional Commits:
+1. `f678c60` - Added error handling for template fetching
+2. `6ed9c4e` - Fetch templates only when dialog opens (lazy loading)
+3. `3c0b7e6` - Fix pen templates repository to handle OAuth user IDs
+
+### Testing:
+```bash
+# API works with or without authentication
+curl http://localhost:3000/api/templates/pens
+# Returns: [{ name: "Black Solid 0.35mm", ... }, ...]
+
+# Opens cassette upload dialog without errors
+# Layer mappings work with pen preview colors
+```
+
+All issues resolved! 🎉
