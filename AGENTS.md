@@ -135,40 +135,22 @@ export const myFeatureStore = readonly({
 
 **Pattern:** Parse files in browser before upload (better UX, less server load)
 
-**Example (DXF cassettes):**
-```javascript
-// Install parser: npm install dxf-parser
-// Create utility: /utils/dxfParser.js
-import DxfParser from 'dxf-parser';
-
-export async function extractDxfLayers(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const parser = new DxfParser();
-      const dxf = parser.parseSync(e.target.result);
-      const layers = Array.from(new Set(
-        dxf.entities.map(e => e.layer)
-      )).sort();
-      resolve(layers);
-    };
-    reader.readAsText(file);
-  });
-}
-
-// Use in component:
-const handleFileSelect = async (event) => {
-  const file = event.files[0];
-  const layers = await extractDxfLayers(file);
-  // Show UI immediately, upload with parsed data
-};
-```
+**How it works:**
+1. Install client-side parser library (e.g., dxf-parser, csv-parser)
+2. Create utility in `/utils/` for parsing logic
+3. Use FileReader API in component to read file
+4. Extract metadata/layers/data in browser
+5. Show UI immediately with parsed data
+6. Upload file + metadata together in single request
+7. Server stores with status 'done' immediately
 
 **Benefits:**
 - Instant feedback (no server round-trip)
-- No worker queues or polling
+- No worker queues or polling needed
 - Server just stores file + metadata
 - Status immediately 'done'
+
+**Example:** Cassettes use dxf-parser to detect layers in browser (see `/docs/CASSETTE_REFACTORING.md`)
 
 ### Adding a New Database Collection
 
