@@ -736,11 +736,18 @@ See `/DOCS_INDEX.md` for documentation workflow reference.
 - Core Services (Cassettes, Batches, Artifacts) ✅ 100%
 - Worker Integration ⏳ 50% (endpoints ready, worker updates pending)
 
-**Phase 3: Frontend with PrimeVue** 🔄 40% COMPLETE
+**Phase 3: Frontend with PrimeVue** 🔄 25% COMPLETE (Plan revised 2025-11-23)
 - PrimeVue Setup ✅ 100%
-- Component Migration ⏳ 10%
+- UI/UX Complete Overhaul ⏳ 5% (comprehensive plan created)
+  - Phase 3.2.1: Core Layout System ⏳ 0%
+  - Phase 3.2.2: Dashboard Page ⏳ 0%
+  - Phase 3.2.3: Projects Hub ⏳ 0%
+  - Phase 3.2.4: Project Workspace ⏳ 0%
+  - Phase 3.2.5: Assets Management ⏳ 20% (pages exist, need polish)
+  - Phase 3.2.6: Profile & Settings ⏳ 0%
+  - Phase 3.2.7: Component Cleanup ⏳ 0%
+  - Phase 3.2.8: Polish & Consistency ⏳ 0%
 - New Composables ✅ 100%
-- New Pages 🔄 60% (Templates ✅, Batch Management ✅, Cassettes exists)
 
 **Phase 4: Integration & Testing** ⏳ 0% PENDING
 
@@ -757,7 +764,12 @@ See `/DOCS_INDEX.md` for documentation workflow reference.
 
 ### What's Pending
 - ⏳ Worker integration (DXF processing, SVG generation)
-- ⏳ Component migration to PrimeVue
+- ⏳ Complete UI/UX overhaul with PrimeVue (comprehensive plan created)
+  - New layout system (dashboard, project)
+  - Dashboard page replacing upload-first flow
+  - Projects hub for management
+  - Project workspace redesign
+  - Assets management centralization
 - ⏳ End-to-end testing
 - ⏳ Workflow documentation
 - ⏳ Deployment setup
