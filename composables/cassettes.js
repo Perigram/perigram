@@ -17,12 +17,10 @@ const state = reactive({
 const getters = {
     cassettes: computed(() => {
         const result = Array.isArray(state.cassettes) ? state.cassettes : [];
-        console.log('[cassettes.js getter] Returning cassettes:', result.length);
         return result;
     }),
     allCassettes: computed(() => {
         const result = Array.isArray(state.cassettes) ? state.cassettes : [];
-        console.log('[cassettes.js getter] Returning allCassettes:', result.length);
         return result;
     }),
     selectedCassette: computed(() => state.cassettes.find(c => c._id === state.selectedCassetteId)),
