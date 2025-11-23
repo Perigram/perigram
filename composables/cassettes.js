@@ -140,4 +140,6 @@ const actions = {
 export const cassettesStore = readonly({
     getters,
     actions,
+    // Export state for direct access if needed
+    state: readonly(state)
 });

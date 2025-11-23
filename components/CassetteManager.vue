@@ -72,13 +72,13 @@ import DataView from 'primevue/dataview';
 import Tag from 'primevue/tag';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 
-const { getters, actions } = cassettesStore;
+const { getters, actions, state } = cassettesStore;
 
 const { fetchCassettes, selectCassette, deleteCassette } = actions;
 
-// Access getters directly to maintain reactivity
-const cassettes = getters.allCassettes;
-const uploadStatus = getters.uploadStatus;
+// Try accessing state directly
+const cassettes = computed(() => state.cassettes);
+const uploadStatus = computed(() => state.uploadStatus);
 
 const showUploadDialog = ref(false);
 const showEditDialog = ref(false);
