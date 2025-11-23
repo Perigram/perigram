@@ -131,14 +131,19 @@ const { state: penState, fetchPens, getSystemPens } = usePenTemplates();
 
 // Fetch layer standards and pens on mount
 onMounted(async () => {
-  await Promise.all([
-    fetchStandards(),
-    fetchPens()
-  ]);
-  
-  // Ensure system pens exist
-  if (getSystemPens().length === 0) {
-    console.warn('No system pens found. Please run: node server/scripts/seed-system-pens.js');
+  try {
+    await Promise.all([
+      fetchStandards(),
+      fetchPens()
+    ]);
+    
+    // Ensure system pens exist
+    if (getSystemPens().length === 0) {
+      console.warn('No system pens found. Please run: node server/scripts/seed-system-pens.js');
+    }
+  } catch (error) {
+    console.error('Failed to fetch templates:', error);
+    // Continue anyway - we'll use fallback pens
   }
 });
 

@@ -17,10 +17,11 @@ export function usePenTemplates() {
     
     try {
       const data = await $fetch('/api/templates/pens');
-      state.pens = data;
+      state.pens = data || [];
     } catch (error) {
       state.error = error.message;
       console.error('Failed to fetch pen templates:', error);
+      state.pens = []; // Set empty array on error
     } finally {
       state.loading = false;
     }
