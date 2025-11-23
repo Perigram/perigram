@@ -226,19 +226,19 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 #### Phase 3.2.1: Core Layout System
 **Goal:** Create new layout system with proper navigation and structure.
 
-- [ ] Create new `dashboard` layout with PrimeVue components
-  - [ ] Use PrimeVue `Menubar` for top navigation
-  - [ ] Use PrimeVue `Menu` for sidebar (collapsible)
-  - [ ] Add breadcrumb navigation with PrimeVue `Breadcrumb`
-  - [ ] Integrate `UserBalance` display in header
-  - [ ] Add theme switcher (dark/light)
-  - [ ] Mobile-responsive with hamburger menu
+- [x] Create new `dashboard` layout with PrimeVue components (2025-11-23)
+  - [x] Use PrimeVue `Menubar` for top navigation
+  - [x] Use PrimeVue `Menu` for sidebar (collapsible)
+  - [x] Add breadcrumb navigation with PrimeVue `Breadcrumb`
+  - [x] Integrate `UserBalance` display in header
+  - [x] Add theme switcher (dark/light)
+  - [x] Mobile-responsive with hamburger menu
   
-- [ ] Create new `project` layout for project workspace
-  - [ ] Project-specific header with name and actions
-  - [ ] Persistent sidebar with project navigation
-  - [ ] Breadcrumb: Home > Projects > [Project Name]
-  - [ ] Quick actions toolbar
+- [x] Create new `project` layout for project workspace (2025-11-23)
+  - [x] Project-specific header with name and actions
+  - [x] Persistent sidebar with project navigation
+  - [x] Breadcrumb: Home > Projects > [Project Name]
+  - [x] Quick actions toolbar
   
 - [ ] Update `default` layout for landing page
   - [ ] Modern hero section with PrimeVue components

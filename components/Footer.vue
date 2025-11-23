@@ -15,12 +15,12 @@
                         to="/blog" 
                         class="list__link"
                     >
-                        Blog
+			      {{ $t('footer.blog') }}
                     </NuxtLink>
                 </li>
             </ul>
             <p class="footer__copyright">
-                © 2025 Vova Stelmashchuk. All rights reserved. Built with ♥ and open source principles
+	{{ new Date().getFullYear() }} © {{ $t('footer.companyName') }}. {{ $t('footer.allRightsReserved') }}
             </p>
         </div>
     </footer>

@@ -1,6 +1,6 @@
 <template>
     <div class="main">
-        <RunningLine class="main__line" />
+        <!-- <RunningLine class="main__line" /> -->
         <MainHeader
             :theme="themeType.primary"
             class="main__header"

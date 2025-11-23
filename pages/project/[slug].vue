@@ -13,8 +13,12 @@
             </template>
             <template #Nesting>
                 <MainSettings />
-                <MainButton :theme="themeType.primary" :label="btnLabel" :isDisable="btnIsDisable" @click="startsNest"
-                    class="content__btn" />
+                <Button 
+                    :label="btnLabel" 
+                    :disabled="btnIsDisable" 
+                    @click="startsNest"
+                    class="content__btn" 
+                />
                 <div v-if="nestRequestError" class="content__error">
                     {{ nestRequestError }}
                 </div>
@@ -39,7 +43,7 @@
 </template>
 
 <script setup async>
-import { themeType } from "~~/constants/theme.constants";
+import Button from 'primevue/button';
 import ProjectStatistics from '~/components/ProjectStatistics.vue';
 import ProjectTables from '~/components/ProjectTables.vue';
 import TableEditor from '~/components/TableEditor.vue';
