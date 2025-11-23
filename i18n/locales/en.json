@@ -74,6 +74,7 @@
     "title": "Project",
     "create": "Create Project",
     "name": "Project Name",
+    "status": "Status",
     "openProjects": "Open projects",
     "openResults": "Open results",
     "openAllResults": "Open all results",
@@ -91,7 +92,19 @@
     "uploadDxf": "Upload your .DXF files",
     "allFilesSecure": "All files will be save secure and available only for you",
     "filesWillBeSaved": "Files will be saved securely",
-    "batches": "Batches"
+    "batches": "Batches",
+    "quickActions": "Quick Actions",
+    "createBatch": "Create Batch",
+    "uploadFiles": "Upload Files",
+    "viewArtifacts": "View Artifacts",
+    "completedBatches": "Completed Batches",
+    "totalCassettes": "Total Cassettes",
+    "totalArea": "Total Area"
+  },
+  "batches": {
+    "create": "Create Batch",
+    "name": "Batch Name",
+    "enterName": "Enter batch name"
   },
   "file": {
     "upload": "Upload Files",

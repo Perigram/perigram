@@ -325,15 +325,14 @@ Project Layout Sidebar:
 #### Phase 3.2.4: Project Workspace Redesign
 **Goal:** Complete overhaul of `/pages/project/[slug].vue`
 
-- [ ] Restructure project page with new layout
-  - [ ] Move from tabs to sidebar navigation
-  - [ ] Persistent project context in header
-  - [ ] Use project layout (not auth layout)
+- [x] Restructure project page with new layout (2025-11-23)
+  - [x] Move from tabs to sidebar navigation
+  - [x] Persistent project context in header
+  - [x] Use project layout (not auth layout)
   
-- [ ] Create `/pages/project/[slug]/overview.vue`
-  - [ ] Project metadata, statistics
-  - [ ] Recent activity in this project
-  - [ ] Quick actions specific to project
+- [x] Create `/pages/project/[slug]/index.vue` (2025-11-23)
+  - [x] Project metadata, statistics
+  - [x] Quick actions specific to project
   
 - [ ] Update `/pages/project/[slug]/files.vue` (split from current)
   - [ ] File grid with PrimeVue `DataView`
@@ -341,12 +340,11 @@ Project Layout Sidebar:
   - [ ] File actions: View, Download, Delete
   - [ ] Show processing status with `ProgressBar`
   
-- [ ] Update `/pages/project/[slug]/batches.vue` (already exists)
-  - [ ] Polish existing BatchManagement component
-  - [ ] Improve entry editor UX
-  - [ ] Add batch templates feature (optional)
+- [x] Create `/pages/project/[slug]/batches.vue` (2025-11-23)
+  - [x] Uses existing BatchManagement component
+  - [x] Create batch dialog
   
-- [ ] Update `/pages/project/[slug]/nesting.vue` (split from current)
+- [ ] Create `/pages/project/[slug]/nesting.vue` (split from current)
   - [ ] Settings panel with PrimeVue form components
   - [ ] Large "Run Nesting" button with validation feedback
   - [ ] Real-time progress with `ProgressBar`
@@ -357,6 +355,9 @@ Project Layout Sidebar:
   - [ ] Preview modal for layouts (SVG/image)
   - [ ] Download actions with `SplitButton` (PDF, DXF, G-code)
   - [ ] Filter by type and status
+
+**Legacy:**
+- Old `/pages/project/[slug].vue` moved to `/pages/project/[slug]/legacy.vue`
 
 **Components to Refactor:**
 - `ProjectFiles.vue` → Simplify, use PrimeVue
