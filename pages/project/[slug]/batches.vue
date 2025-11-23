@@ -84,6 +84,7 @@ const batches = getters.batches; // Already a computed, don't wrap again
 const { fetchBatches, createBatch } = actions;
 
 onMounted(async () => {
+    console.log('onMounted START - batches.value:', batches.value);
     loading.value = true;
     try {
         // Load project data
@@ -92,15 +93,21 @@ onMounted(async () => {
         // Load batches
         await fetchBatches(slug);
         
+        console.log('onMounted AFTER fetchBatches - batches.value:', batches.value);
+        console.log('onMounted - batches.value.length:', batches.value?.length);
+        
         // Select last batch by default
         const currentBatches = batches.value || [];
         if (currentBatches.length > 0) {
             activeTabIndex.value = currentBatches.length - 1;
         }
+        
+        console.log('onMounted END - batches.value:', batches.value);
     } catch (error) {
         console.error('Failed to load project/batches:', error);
     } finally {
         loading.value = false;
+        console.log('onMounted FINALLY - loading set to false, batches.value:', batches.value);
     }
 });
 
