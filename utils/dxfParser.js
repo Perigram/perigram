@@ -130,6 +130,9 @@ export async function generateSvgPreview(file, layerMapping = {}, defaultPen = n
         
         // Generate SVG paths grouped by layer
         let paths = '';
+        console.log('[dxfParser] Generating SVG with layerMapping:', Object.keys(layerMapping));
+        console.log('[dxfParser] Default pen:', defaultPenSettings);
+        
         dxf.entities.forEach(entity => {
           try {
             const pen = getPenForLayer(entity.layer);
@@ -137,6 +140,11 @@ export async function generateSvgPreview(file, layerMapping = {}, defaultPen = n
             const weight = pen.stroke?.weight || 0.5;
             const dasharray = getStrokeDasharray(pen.stroke?.pattern || 'SOLID');
             const strokeAttrs = `stroke="${color}" stroke-width="${weight}" stroke-dasharray="${dasharray}"`;
+            
+            // Log first few entities to debug
+            if (paths.length < 500) {
+              console.log(`[dxfParser] Entity on layer "${entity.layer}": pen color=${color}, weight=${weight}`);
+            }
             
             if (entity.type === 'LINE' && entity.startPoint && entity.endPoint) {
               paths += `<line x1="${entity.startPoint.x}" y1="${-entity.startPoint.y}" x2="${entity.endPoint.x}" y2="${-entity.endPoint.y}" ${strokeAttrs} />`;
