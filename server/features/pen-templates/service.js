@@ -21,10 +21,13 @@ export async function getById(id, userId = null) {
 }
 
 export async function listAll(userId) {
-  const [systemPens, userPens] = await Promise.all([
-    repository.findSystem(),
-    repository.findByOwner(userId)
-  ]);
+  const systemPens = await repository.findSystem();
+  
+  if (!userId) {
+    return systemPens;
+  }
+  
+  const userPens = await repository.findByOwner(userId);
   return [...systemPens, ...userPens];
 }
 

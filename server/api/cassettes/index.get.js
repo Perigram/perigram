@@ -4,10 +4,8 @@ export default defineEventHandler(async (event) => {
   const userId = event.context?.auth?.userId;
   
   if (!userId) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    });
+    // Return empty array if not authenticated
+    return [];
   }
   
   const query = getQuery(event);

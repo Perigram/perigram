@@ -10,18 +10,12 @@
     </div>
 
     <DataView 
+      v-if="cassettes && cassettes.length > 0"
       :value="cassettes" 
       :layout="'grid'"
       :paginator="true" 
       :rows="9"
     >
-      <template #empty>
-        <div class="empty-state">
-          <i class="pi pi-inbox" style="font-size: 3rem; color: var(--text-color-secondary);"></i>
-          <p>{{ $t('cassette.noCassettes') }}</p>
-        </div>
-      </template>
-
       <template #grid="slotProps">
         <div class="cassette-card">
           <div class="cassette-card-header">
@@ -57,6 +51,11 @@
         </div>
       </template>
     </DataView>
+
+    <div v-else class="empty-state">
+      <i class="pi pi-inbox" style="font-size: 3rem; color: var(--text-color-secondary);"></i>
+      <p>{{ cassettes ? $t('cassette.noCassettes') : 'Loading cassettes...' }}</p>
+    </div>
 
     <CassetteEditorDialog 
       v-model="showUploadDialog"
