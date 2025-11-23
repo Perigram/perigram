@@ -12,7 +12,7 @@ html {
 }
 
 * {
-  font-family: inherit;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 /* Override PrimeVue components */
