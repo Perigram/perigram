@@ -39,12 +39,7 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
     userId: userId,  // Old schema uses userId as string (not ObjectId)
     dxfId: uploadStream.id,
     svgId: null,  // SVG preview generation can happen later if needed
-    layerMapping: layerMapping || {  // Use provided mapping from client
-      cut: [],
-      bend: [],
-      frame: [],
-      dimensions: []
-    },
+    layerMapping: layerMapping || {},  // Format: { [layerName]: layerStandardCode }
     processingStatus: 'done',  // No async processing needed
     createdAt: new Date(),
     updatedAt: new Date()

@@ -131,15 +131,22 @@ onMounted(async () => {
   await fetchStandards();
 });
 
-// Map layer standards to dropdown options
+// Map layer standards from server to dropdown options
 const layerStandards = computed(() => {
-  const options = [
-    { label: 'Рез', value: 'cut' },
-    { label: 'Гибка', value: 'bend' },
-    { label: 'Рамка', value: 'frame' },
-    { label: 'Размеры', value: 'dimensions' },
-    { label: 'Не использовать', value: null }
-  ];
+  if (!layerStandardsState.standards || layerStandardsState.standards.length === 0) {
+    return [];
+  }
+  
+  // Group standards by category for dropdown
+  const options = layerStandardsState.standards.map(standard => ({
+    label: standard.i18n?.ru?.nameTemplate || standard.code,
+    value: standard.code,
+    category: standard.category
+  }));
+  
+  // Add "do not use" option
+  options.push({ label: 'Не использовать', value: null, category: null });
+  
   return options;
 });
 
@@ -223,17 +230,11 @@ const handleUpload = async () => {
   errorMessage.value = '';
 
   try {
-    // Convert layerMappings to the expected format
-    const mappings = {
-      cut: [],
-      bend: [],
-      frame: [],
-      dimensions: []
-    };
-
-    Object.entries(layerMappings.value).forEach(([layer, type]) => {
-      if (type && mappings[type]) {
-        mappings[type].push(layer);
+    // Convert layerMappings to format: { [layerName]: layerStandardCode }
+    const mappings = {};
+    Object.entries(layerMappings.value).forEach(([layer, standardCode]) => {
+      if (standardCode) {
+        mappings[layer] = standardCode;
       }
     });
 
