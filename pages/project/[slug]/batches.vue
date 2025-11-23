@@ -109,6 +109,10 @@ const createNewBatch = async () => {
         
         // Refresh and select new batch
         await fetchBatches(slug);
+        
+        console.log('After fetch, batches.value is:', batches.value);
+        console.log('batches.value type:', typeof batches.value, Array.isArray(batches.value));
+        
         const updatedBatches = batches.value || [];
         activeTabIndex.value = updatedBatches.length - 1;
         
