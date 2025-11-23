@@ -9,8 +9,13 @@
       />
     </div>
 
+    <div v-if="!cassettes || cassettes.length === 0" class="empty-state">
+      <i class="pi pi-inbox" style="font-size: 3rem; color: var(--text-color-secondary);"></i>
+      <p>{{ !cassettes ? 'Loading cassettes...' : $t('cassette.noCassettes') }}</p>
+    </div>
+
     <DataView 
-      v-if="cassettes && cassettes.length > 0"
+      v-else
       :value="cassettes" 
       :layout="'grid'"
       :paginator="true" 
@@ -52,11 +57,6 @@
       </template>
     </DataView>
 
-    <div v-else class="empty-state">
-      <i class="pi pi-inbox" style="font-size: 3rem; color: var(--text-color-secondary);"></i>
-      <p>{{ cassettes ? $t('cassette.noCassettes') : 'Loading cassettes...' }}</p>
-    </div>
-
     <CassetteEditorDialog 
       v-model="showUploadDialog"
       @uploaded="handleUploaded"
@@ -85,12 +85,11 @@ const showEditDialog = ref(false);
 const editingCassette = ref(null);
 
 onMounted(async () => {
-  console.log('[CassetteManager] Fetching cassettes...');
+  console.log('[CassetteManager] Component mounted, fetching cassettes...');
   await fetchCassettes();
   console.log('[CassetteManager] Cassettes loaded:', cassettes.value);
-  console.log('[CassetteManager] Cassettes type:', typeof cassettes);
-  console.log('[CassetteManager] Cassettes is ref:', isRef(cassettes));
-  console.log('[CassetteManager] Cassettes is reactive:', isReactive(cassettes));
+  console.log('[CassetteManager] Cassettes length:', cassettes.value?.length);
+  console.log('[CassetteManager] Cassettes is array:', Array.isArray(cassettes.value));
 });
 
 const getStatusSeverity = (status) => {

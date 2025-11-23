@@ -250,9 +250,11 @@ const updatePreview = async () => {
     
     // Get default pen (first system pen or black)
     const systemPens = getSystemPens();
+    console.log('[CassetteDialog] System pens:', systemPens);
     const defaultPen = systemPens.length > 0 ? systemPens[0] : {
       stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' }
     };
+    console.log('[CassetteDialog] Default pen:', defaultPen);
     
     // Build layer to pen mapping from selected layer standards
     const layerToPenMap = {};
@@ -260,15 +262,19 @@ const updatePreview = async () => {
       if (standardCode) {
         // Find the layer standard
         const standard = layerStandardsState.standards.find(s => s.code === standardCode);
+        console.log('[CassetteDialog] Layer:', layerName, 'Standard:', standard);
         if (standard && standard.defaultPenId) {
           // Find the pen by ID
           const pen = penState.pens.find(p => p._id?.toString() === standard.defaultPenId?.toString());
+          console.log('[CassetteDialog] Found pen for', layerName, ':', pen);
           if (pen) {
             layerToPenMap[layerName] = pen;
           }
         }
       }
     }
+    
+    console.log('[CassetteDialog] Final layer-to-pen map:', layerToPenMap);
     
     // Generate SVG with pen mappings
     const svg = await generateSvgPreview(dxfFile.value, layerToPenMap, defaultPen);
