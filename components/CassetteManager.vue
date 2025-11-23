@@ -65,30 +65,27 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, toRefs, isRef, isReactive } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { cassettesStore } from '~/composables/cassettes';
 import Button from 'primevue/button';
 import DataView from 'primevue/dataview';
 import Tag from 'primevue/tag';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 
-const { getters, actions, state } = cassettesStore;
-
+const { actions } = cassettesStore;
 const { fetchCassettes, selectCassette, deleteCassette } = actions;
 
-// Try accessing state directly, ensure it's an array
-const cassettes = computed(() => Array.isArray(state.cassettes) ? state.cassettes : []);
-const uploadStatus = computed(() => state.uploadStatus);
-
+// Create local reactive state
+const cassettes = ref([]);
 const showUploadDialog = ref(false);
 const showEditDialog = ref(false);
 const editingCassette = ref(null);
 
 onMounted(async () => {
   console.log('[CassetteManager] Component mounted');
-  console.log('[CassetteManager] Initial cassettes:', cassettes.value);
-  await fetchCassettes();
-  console.log('[CassetteManager] After fetch, cassettes:', cassettes.value);
+  const result = await fetchCassettes();
+  cassettes.value = result || [];
+  console.log('[CassetteManager] Loaded cassettes:', cassettes.value.length);
 });
 
 const getStatusSeverity = (status) => {
@@ -118,7 +115,8 @@ const editCassette = (cassette) => {
 
 const handleUploaded = async () => {
   showUploadDialog.value = false;
-  await fetchCassettes();
+  const result = await fetchCassettes();
+  cassettes.value = result || [];
 };
 </script>
 

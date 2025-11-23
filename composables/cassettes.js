@@ -33,13 +33,15 @@ const actions = {
     async fetchCassettes() {
         try {
             console.log('[cassettes.js] Fetching cassettes from API...');
-            const cassettes = await $fetch('/api/cassettes');
-            console.log('[cassettes.js] API returned:', cassettes);
-            state.cassettes = Array.isArray(cassettes) ? cassettes : [];
+            const result = await $fetch('/api/cassettes');
+            console.log('[cassettes.js] API returned:', result);
+            state.cassettes = Array.isArray(result) ? result : [];
             console.log('[cassettes.js] State updated:', state.cassettes);
+            return state.cassettes;
         } catch (error) {
             console.error('Failed to fetch cassettes:', error);
             state.cassettes = [];
+            return [];
         }
     },
 
