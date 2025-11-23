@@ -204,6 +204,9 @@ export default defineNuxtConfig({
     nitro: {
         compressPublicAssets: true,
         routeRules: {
+            // Redirects for restructured routes
+            '/cassettes': { redirect: '/assets/cassettes' },
+            '/templates': { redirect: '/assets/library' },
             '/icons/**': {
                 headers: {
                     'cache-control': 'public,max-age=31536000,s-maxage=31536000,immutable',
