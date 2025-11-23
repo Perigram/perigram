@@ -299,22 +299,24 @@ Project Layout Sidebar:
 #### Phase 3.2.3: Projects Hub
 **Goal:** Dedicated page for managing all projects.
 
-- [ ] Create `/pages/projects/index.vue`
-  - [ ] Use PrimeVue `DataView` with grid/list toggle
-  - [ ] Filter/search with `InputText` and `Dropdown`
-  - [ ] Sort options (date, name, status)
-  - [ ] Pagination with PrimeVue `Paginator`
-  - [ ] Project cards show: name, date, file count, actions
-  - [ ] Actions: Open, Duplicate, Archive, Delete
+- [x] Create `/pages/projects/index.vue` (2025-11-23)
+  - [x] Use PrimeVue `DataView` with grid/list toggle
+  - [x] Filter/search with `InputText` and `Dropdown`
+  - [x] Sort options (date, name, status)
+  - [x] Pagination with PrimeVue `Paginator`
+  - [x] Project cards show: name, date, file count, actions
+  - [x] Actions: Open, Delete
+  - [x] Create project dialog with optional name
+  - [x] Delete confirmation dialog
   
 - [ ] Create `/pages/projects/new.vue` (or dialog)
-  - [ ] Simple form: name, description (optional)
+  - [x] Simple form: name, description (optional) - Implemented as dialog
   - [ ] DXF upload step (optional, can do later)
-  - [ ] Creates project and redirects to project workspace
+  - [x] Creates project and redirects to project workspace
 
 **Replace:**
-- Current `UserProjects` sidebar component
-- Current `home.vue` upload-first workflow
+- Current `UserProjects` sidebar component - ✅ Replaced
+- Current `home.vue` upload-first workflow - ✅ Replaced
 
 **Documentation:** Update `/ONBOARDING.md` section "Project Management"
 

@@ -38,6 +38,19 @@
     "createFirstProject": "Create First Project",
     "results": "results"
   },
+  "projects": {
+    "sortBy": "Sort By",
+    "sortNewest": "Newest First",
+    "sortOldest": "Oldest First",
+    "sortNameAZ": "Name (A-Z)",
+    "sortNameZA": "Name (Z-A)",
+    "noProjects": "No projects found",
+    "createFirst": "Create First Project",
+    "results": "results",
+    "enterName": "Enter project name (optional)",
+    "deleteConfirm": "Delete Project",
+    "deleteWarning": "Are you sure you want to delete \"{name}\"? This action cannot be undone."
+  },
   "nav": {
     "projects": "Projects",
     "allProjects": "All Projects",
