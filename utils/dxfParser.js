@@ -150,9 +150,9 @@ export async function generateSvgPreview(file, layerMapping = {}, defaultPen = n
             const dasharray = getStrokeDasharray(pen.stroke?.pattern || 'SOLID');
             const strokeAttrs = `stroke="${color}" stroke-width="${weight}" stroke-dasharray="${dasharray}"`;
             
-            // Log first few entities to debug
-            if (paths.length < 500) {
-              console.log(`[dxfParser] Entity on layer "${entity.layer}": pen color=${color}, weight=${weight}`);
+            // Log mapped layers specifically
+            if (layerMapping[entity.layer]) {
+              console.log(`[dxfParser] MAPPED layer "${entity.layer}": pen=`, pen, `color=${color}, weight=${weight}`);
             }
             
             if (entity.type === 'LINE' && entity.startPoint && entity.endPoint) {
