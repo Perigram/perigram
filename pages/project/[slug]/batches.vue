@@ -57,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import Button from 'primevue/button';
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
@@ -77,13 +77,19 @@ const slug = route.params.slug;
 const project = ref(null);
 const loading = ref(true);
 const activeTabIndex = ref(0);
+const localBatches = ref([]);
 
 const { getters, actions } = batchesStore;
 console.log('getters:', getters);
 console.log('getters.batches:', getters.batches);
 console.log('getters.batches.value:', getters.batches.value);
-const batches = getters.batches; // Already a computed, don't wrap again
 const { fetchBatches, createBatch } = actions;
+
+// Watch the store batches and copy to local ref for reactivity
+watch(() => getters.batches.value, (newBatches) => {
+    console.log('watch triggered, newBatches:', newBatches);
+    localBatches.value = newBatches || [];
+}, { immediate: true });
 
 onMounted(async () => {
     console.log('onMounted START - batches.value:', batches.value);
