@@ -87,34 +87,16 @@ const sidebarItems = computed(() => {
     
     return [
         {
-            label: t('project.overview'),
-            icon: 'pi pi-info-circle',
-            command: () => router.push(`/project/${slug}/overview`),
-            class: currentPath.includes('/overview') ? 'active-item' : ''
-        },
-        {
-            label: t('project.files'),
-            icon: 'pi pi-file',
-            command: () => router.push(`/project/${slug}/files`),
-            class: currentPath.includes('/files') ? 'active-item' : ''
-        },
-        {
             label: t('project.batches'),
             icon: 'pi pi-table',
             command: () => router.push(`/project/${slug}/batches`),
             class: currentPath.includes('/batches') ? 'active-item' : ''
         },
         {
-            label: t('project.nesting'),
-            icon: 'pi pi-th-large',
-            command: () => router.push(`/project/${slug}/nesting`),
-            class: currentPath.includes('/nesting') ? 'active-item' : ''
-        },
-        {
-            label: t('project.artifacts'),
-            icon: 'pi pi-download',
-            command: () => router.push(`/project/${slug}/artifacts`),
-            class: currentPath.includes('/artifacts') ? 'active-item' : ''
+            label: t('project.files'),
+            icon: 'pi pi-file',
+            command: () => router.push(`/project/${slug}/files`),
+            class: currentPath.includes('/files') ? 'active-item' : ''
         },
         {
             separator: true
