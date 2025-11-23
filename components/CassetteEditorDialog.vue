@@ -286,6 +286,7 @@ const updatePreview = async () => {
 
 // Watch layer mappings and regenerate preview
 watch(layerMappings, () => {
+  console.log('[CassetteDialog] Layer mappings changed:', layerMappings.value);
   updatePreview();
 }, { deep: true });
 
