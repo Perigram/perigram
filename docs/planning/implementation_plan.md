@@ -144,10 +144,14 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Create `PUT /api/cassettes/:id/mappings` endpoint (2025-11-22)
 - [x] Create `PUT /api/cassettes/:id/parameters` endpoint (2025-11-22)
 - [x] Create `DELETE /api/cassettes/:id` endpoint (2025-11-22)
-- [x] Integrate DXF layer detection (workflow documented) (2025-11-22)
-- [x] Integrate SVG preview generation (workflow documented) (2025-11-22)
-- [x] Document service API in `/ARCHITECTURE.md` (2025-11-22)
-- [x] Document cassette upload workflow in `/ARCHITECTURE.md` (2025-11-22)
+- [x] Refactored to client-side layer detection (2025-11-23)
+- [x] Install `dxf-parser` npm package (2025-11-23)
+- [x] Create `/utils/dxfParser.js` for client-side DXF parsing (2025-11-23)
+- [x] Update `CassetteEditorDialog.vue` to parse layers in browser (2025-11-23)
+- [x] Update upload endpoint to accept layer mappings with file (2025-11-23)
+- [x] Set cassettes to 'done' immediately (no async processing) (2025-11-23)
+- [x] Remove `/api/cassettes/analyze` endpoint (obsolete) (2025-11-23)
+- [x] Document client-side workflow in `/ARCHITECTURE.md` (2025-11-23)
 - [ ] Code review & merge
 
 **Documentation:** Update `/ARCHITECTURE.md` sections "Module Structure", "API Patterns", and "Workflows"

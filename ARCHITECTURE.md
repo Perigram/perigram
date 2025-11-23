@@ -255,6 +255,7 @@ Then update:
 - `DELETE /api/templates/tools/:id` - Delete
 
 **Cassettes:**
+- `POST /api/cassettes/upload` - Upload DXF with layer mappings
 - `GET /api/cassettes` - List user cassettes
 - `GET /api/cassettes/:id` - Get by ID
 - `PUT /api/cassettes/:id/mappings` - Update layer mappings
@@ -472,10 +473,13 @@ API → nesting_jobs collection → Python Worker → Results → Artifacts
 ### New: Batch-Based Workflow (v2)
 
 1. **Upload Cassette Template**
-   - User uploads multi-layer DXF
-   - System detects all layer names
-   - User maps DXF layers → layer standards → pens
-   - Cassette saved as template
+   - User selects DXF file in browser
+   - **Client-side:** DXF parsed with `dxf-parser` library
+   - All layer names extracted instantly
+   - User maps DXF layers → layer types (cut/bend/frame/dimensions)
+   - Single upload: DXF file + layer mappings sent to server
+   - Server stores in GridFS with `processingStatus: 'done'`
+   - **No async processing** - immediate feedback
 
 2. **Create Batch**
    - User selects cassette templates
@@ -498,9 +502,10 @@ API → nesting_jobs collection → Python Worker → Results → Artifacts
 ## Workers
 
 ### File Processing Worker
-- **Trigger:** Upload to `userDxf` GridFS bucket
-- **Function:** DXF → SVG conversion, layer detection
+- **Trigger:** Upload to `userDxf` GridFS bucket (old projects only)
+- **Function:** DXF → SVG conversion for legacy projects
 - **Updates:** `user_dxf_files.processingStatus`
+- **Note:** NOT used for cassettes - client-side parsing instead
 
 ### Nesting Worker
 - **Trigger:** POST to nest endpoint

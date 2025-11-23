@@ -131,6 +131,45 @@ export const myFeatureStore = readonly({
 4. Update `/ARCHITECTURE.md` API section
 5. Test with curl or browser
 
+### Client-Side File Parsing
+
+**Pattern:** Parse files in browser before upload (better UX, less server load)
+
+**Example (DXF cassettes):**
+```javascript
+// Install parser: npm install dxf-parser
+// Create utility: /utils/dxfParser.js
+import DxfParser from 'dxf-parser';
+
+export async function extractDxfLayers(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const parser = new DxfParser();
+      const dxf = parser.parseSync(e.target.result);
+      const layers = Array.from(new Set(
+        dxf.entities.map(e => e.layer)
+      )).sort();
+      resolve(layers);
+    };
+    reader.readAsText(file);
+  });
+}
+
+// Use in component:
+const handleFileSelect = async (event) => {
+  const file = event.files[0];
+  const layers = await extractDxfLayers(file);
+  // Show UI immediately, upload with parsed data
+};
+```
+
+**Benefits:**
+- Instant feedback (no server round-trip)
+- No worker queues or polling
+- Server just stores file + metadata
+- Status immediately 'done'
+
 ### Adding a New Database Collection
 
 1. Design schema in `/docs/specs/data-schema.md`

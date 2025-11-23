@@ -40,26 +40,10 @@
 
       <!-- Layer Mapping Section -->
       <div v-if="showMappingSection && !isUploading" class="mapping-layout">
-        <div class="preview-panel">
-          <h3>{{ $t('cassette.preview') }}</h3>
-          <div v-if="cassette?.svgId || localSvgPreview" class="svg-preview">
-            <img 
-              v-if="cassette?.svgId" 
-              :src="`/api/files/svg/${cassette.svgId}`" 
-              :alt="name" 
-            />
-            <div v-else-if="localSvgPreview" v-html="localSvgPreview"></div>
-          </div>
-          <div v-else class="no-preview">
-            <i class="pi pi-image" style="font-size: 3rem"></i>
-            <p>{{ $t('cassette.noPreview') }}</p>
-          </div>
-        </div>
-
         <div class="layers-panel">
           <h3>{{ $t('cassette.layerMapping') }}</h3>
-          <div v-if="cassette.detectedLayers && cassette.detectedLayers.length > 0" class="layer-list">
-            <div v-for="(layer, index) in cassette.detectedLayers" :key="index" class="layer-item">
+          <div v-if="detectedLayers && detectedLayers.length > 0" class="layer-list">
+            <div v-for="(layer, index) in detectedLayers" :key="index" class="layer-item">
               <label>{{ layer }}</label>
               <Dropdown 
                 v-model="layerMappings[layer]"
@@ -90,18 +74,10 @@
         @click="handleClose"
       />
       <Button 
-        v-if="!cassette"
         :label="$t('common.upload')" 
         icon="pi pi-upload"
         :disabled="!canUpload || isUploading"
         @click="handleUpload"
-      />
-      <Button 
-        v-else
-        :label="$t('common.save')" 
-        icon="pi pi-check"
-        :disabled="isUploading"
-        @click="handleSave"
       />
     </template>
   </Dialog>
@@ -186,23 +162,15 @@ const handleFileSelect = async (event) => {
       name.value = event.files[0].name.replace(/\.dxf$/i, '');
     }
     
-    // Upload immediately to get detected layers from backend
+    // Parse DXF layers on client side
     isUploading.value = true;
     errorMessage.value = '';
     
     try {
-      const formData = new FormData();
-      formData.append('file', selectedFile.value);
-      formData.append('name', name.value);
+      const { extractDxfLayers } = await import('~/utils/dxfParser');
+      const layers = await extractDxfLayers(selectedFile.value);
       
-      const uploadedCassette = await $fetch('/api/cassettes/upload', {
-        method: 'POST',
-        body: formData
-      });
-      
-      // Set the cassette with detected layers
-      cassette.value = uploadedCassette;
-      detectedLayers.value = uploadedCassette.detectedLayers || [];
+      detectedLayers.value = layers;
       
       // Initialize mappings for each detected layer
       detectedLayers.value.forEach(layer => {
@@ -211,12 +179,55 @@ const handleFileSelect = async (event) => {
         }
       });
     } catch (error) {
-      errorMessage.value = error.data?.message || 'Failed to upload file';
-      console.error('File upload failed:', error);
+      errorMessage.value = error.message || 'Failed to parse DXF file';
+      console.error('DXF parsing failed:', error);
       selectedFile.value = null;
+      detectedLayers.value = [];
     } finally {
       isUploading.value = false;
     }
+  }
+};
+
+const handleUpload = async () => {
+  if (!selectedFile.value || !name.value.trim()) return;
+
+  isUploading.value = true;
+  errorMessage.value = '';
+
+  try {
+    // Convert layerMappings to the expected format
+    const mappings = {
+      cut: [],
+      bend: [],
+      frame: [],
+      dimensions: []
+    };
+
+    Object.entries(layerMappings.value).forEach(([layer, type]) => {
+      if (type && mappings[type]) {
+        mappings[type].push(layer);
+      }
+    });
+
+    const formData = new FormData();
+    formData.append('file', selectedFile.value);
+    formData.append('name', name.value);
+    formData.append('layerMapping', JSON.stringify(mappings));
+
+    const uploadedCassette = await $fetch('/api/cassettes/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    emit('uploaded', uploadedCassette);
+    isOpen.value = false;
+    resetForm();
+  } catch (error) {
+    errorMessage.value = error.data?.message || 'Upload failed';
+    console.error('Upload failed:', error);
+  } finally {
+    isUploading.value = false;
   }
 };
 
@@ -271,6 +282,7 @@ const resetForm = () => {
   errorMessage.value = '';
   cassette.value = null;
   layerMappings.value = {};
+  detectedLayers.value = [];
 };
 </script>
 
