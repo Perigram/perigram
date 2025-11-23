@@ -735,11 +735,11 @@ See `/DOCS_INDEX.md` for documentation workflow reference.
 - Core Services (Cassettes, Batches, Artifacts) ✅ 100%
 - Worker Integration ⏳ 50% (endpoints ready, worker updates pending)
 
-**Phase 3: Frontend with PrimeVue** 🔄 25% COMPLETE (Plan revised 2025-11-23)
+**Phase 3: Frontend with PrimeVue** 🔄 35% COMPLETE (Updated 2025-11-23)
 - PrimeVue Setup ✅ 100%
-- UI/UX Complete Overhaul ⏳ 5% (comprehensive plan created)
-  - Phase 3.2.1: Core Layout System ⏳ 0%
-  - Phase 3.2.2: Dashboard Page ⏳ 0%
+- UI/UX Complete Overhaul 🔄 15%
+  - Phase 3.2.1: Core Layout System ✅ 85% (dashboard & project layouts done)
+  - Phase 3.2.2: Dashboard Page ✅ 85% (page & components done, landing pending)
   - Phase 3.2.3: Projects Hub ⏳ 0%
   - Phase 3.2.4: Project Workspace ⏳ 0%
   - Phase 3.2.5: Assets Management ⏳ 20% (pages exist, need polish)
