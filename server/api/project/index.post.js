@@ -42,12 +42,6 @@ export default defineEventHandler(async (event) => {
     },
   });
 
-  // Only save files if they were provided
-  const formData = await readMultipartFormData(event);
-  if (formData && formData.length > 0) {
-    await saveFilesToProject(event, projectSlug, userId);
-  }
-
   return {
     slug: projectSlug,
     name: projectName

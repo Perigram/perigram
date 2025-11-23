@@ -327,10 +327,8 @@ const openProject = (slug) => {
 const createProject = async () => {
     creating.value = true;
     try {
-        const formData = new FormData();
         const data = await $fetch('/api/project', {
-            method: 'POST',
-            body: formData
+            method: 'POST'
         });
         
         // Update project name if custom name was provided
@@ -351,6 +349,7 @@ const createProject = async () => {
         router.push(`/project/${data.slug}`);
     } catch (error) {
         console.error('Failed to create project:', error);
+        alert('Failed to create project: ' + error.message);
     } finally {
         creating.value = false;
     }
