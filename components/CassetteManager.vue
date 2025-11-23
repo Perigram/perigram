@@ -85,11 +85,10 @@ const showEditDialog = ref(false);
 const editingCassette = ref(null);
 
 onMounted(async () => {
-  console.log('[CassetteManager] Component mounted, fetching cassettes...');
+  console.log('[CassetteManager] Component mounted');
+  console.log('[CassetteManager] Initial cassettes:', cassettes.value);
   await fetchCassettes();
-  console.log('[CassetteManager] Cassettes loaded:', cassettes.value);
-  console.log('[CassetteManager] Cassettes length:', cassettes.value?.length);
-  console.log('[CassetteManager] Cassettes is array:', Array.isArray(cassettes.value));
+  console.log('[CassetteManager] After fetch, cassettes:', cassettes.value);
 });
 
 const getStatusSeverity = (status) => {

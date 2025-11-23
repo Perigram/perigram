@@ -138,6 +138,9 @@ watch(isOpen, async (newValue) => {
         fetchPens()
       ]);
       
+      console.log('[CassetteDialog] Loaded standards:', layerStandardsState.standards);
+      console.log('[CassetteDialog] Loaded pens:', penState.pens);
+      
       // Ensure system pens exist
       if (getSystemPens().length === 0) {
         console.warn('No system pens found. Please run: node server/scripts/seed-system-pens.js');
