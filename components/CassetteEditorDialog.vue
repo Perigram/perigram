@@ -280,6 +280,13 @@ const updatePreview = async () => {
     
     console.log('[CassetteDialog] Final layer-to-pen map:', layerToPenMap);
     
+    // Log what we're about to pass to generateSvgPreview
+    console.log('[CassetteDialog] About to call generateSvgPreview with:');
+    console.log('  - file:', dxfFile.value?.name);
+    console.log('  - layerToPenMap keys:', Object.keys(layerToPenMap));
+    console.log('  - layerToPenMap:', layerToPenMap);
+    console.log('  - defaultPen:', defaultPen);
+    
     // Generate SVG with pen mappings
     const svg = await generateSvgPreview(dxfFile.value, layerToPenMap, defaultPen);
     svgPreview.value = svg;
