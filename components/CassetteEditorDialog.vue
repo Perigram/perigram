@@ -60,6 +60,7 @@
                 optionLabel="label"
                 optionValue="value"
                 :placeholder="$t('cassette.selectLayerType')"
+                @change="(e) => console.log('[CassetteDialog] Dropdown changed for', layer, ':', e.value)"
               />
             </div>
           </div>
