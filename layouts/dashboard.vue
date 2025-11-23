@@ -3,34 +3,57 @@
         <header class="dashboard-header">
             <div class="header-content">
                 <NuxtLink to="/dashboard" class="logo">
+                    <i class="pi pi-th-large logo-icon"></i>
                     <span class="logo-text">CutKit</span>
                 </NuxtLink>
 
-                <Menubar :model="menuItems" class="main-nav">
-                    <template #start>
-                        <NuxtLink to="/dashboard" class="logo-mobile">
-                            CutKit
-                        </NuxtLink>
-                    </template>
-                    <template #end>
-                        <div class="header-actions">
-                            <Button 
-                                :icon="themeIcon" 
-                                text 
-                                rounded 
-                                @click="toggleTheme"
-                                class="theme-toggle"
-                            />
-                            <LanguageSwitcher />
-                            <UserBalance class="balance-display" />
-                            <Avatar :label="userInitials" shape="circle" />
-                        </div>
-                    </template>
-                </Menubar>
+                <div class="main-nav-wrapper">
+                    <Menubar :model="menuItems" class="main-nav">
+                        <template #item="{ item, props }">
+                            <a v-if="item.route" class="flex align-items-center" v-bind="props.action" @click="item.command">
+                                <span :class="item.icon" />
+                                <span class="ml-2">{{ item.label }}</span>
+                            </a>
+                            <a v-else class="flex align-items-center" v-bind="props.action">
+                                <span :class="item.icon" />
+                                <span class="ml-2">{{ item.label }}</span>
+                            </a>
+                        </template>
+                    </Menubar>
+                </div>
+                
+                <div class="header-actions">
+                    <Button 
+                        :icon="themeIcon" 
+                        text 
+                        rounded 
+                        severity="secondary"
+                        @click="toggleTheme"
+                        v-tooltip.bottom="$t('common.toggleTheme')"
+                        class="theme-toggle"
+                    />
+                    <LanguageSwitcher />
+                    <div class="balance-chip">
+                        <i class="pi pi-wallet"></i>
+                        <UserBalance />
+                    </div>
+                    <Button 
+                        icon="pi pi-user"
+                        :label="userInitials"
+                        text
+                        rounded
+                        @click="toggleProfileMenu"
+                        aria-haspopup="true"
+                        aria-controls="profile_menu"
+                    />
+                    <Menu ref="profileMenu" id="profile_menu" :model="profileMenuItems" :popup="true" />
+                </div>
 
                 <Button 
                     icon="pi pi-bars" 
                     text 
+                    rounded
+                    severity="secondary"
                     @click="toggleMobileMenu"
                     class="mobile-menu-toggle"
                 />
@@ -92,6 +115,7 @@ const currentTheme = computed(() => themeCookie.value || 'light');
 const themeIcon = computed(() => currentTheme.value === 'dark' ? 'pi pi-sun' : 'pi pi-moon');
 
 const mobileMenuVisible = ref(false);
+const profileMenu = ref();
 
 // User data (mock for now - should come from auth)
 const userInitials = computed(() => 'U');
@@ -104,29 +128,39 @@ const toggleMobileMenu = () => {
     mobileMenuVisible.value = !mobileMenuVisible.value;
 };
 
+const toggleProfileMenu = (event) => {
+    profileMenu.value.toggle(event);
+};
+
+// Profile menu
+const profileMenuItems = ref([
+    {
+        label: t('nav.profile'),
+        icon: 'pi pi-user',
+        command: () => router.push('/profile')
+    },
+    {
+        label: t('nav.buyCredits'),
+        icon: 'pi pi-wallet',
+        command: () => { buyCreditsDialog.value = true; }
+    },
+    { separator: true },
+    {
+        label: t('nav.logout'),
+        icon: 'pi pi-sign-out',
+        command: async () => {
+            await $fetch('/api/auth/logout', { method: 'POST' });
+            router.push('/');
+        }
+    }
+]);
+
 // Main navigation menu
 const menuItems = ref([
     {
         label: computed(() => t('nav.projects')),
         icon: 'pi pi-folder',
-        items: [
-            {
-                label: computed(() => t('nav.allProjects')),
-                icon: 'pi pi-list',
-                command: () => router.push('/projects')
-            },
-            {
-                label: computed(() => t('nav.newProject')),
-                icon: 'pi pi-plus',
-                command: () => router.push('/projects/new')
-            },
-            { separator: true },
-            {
-                label: computed(() => t('nav.recentProjects')),
-                icon: 'pi pi-clock',
-                items: [] // Will be populated with recent projects
-            }
-        ]
+        command: () => router.push('/projects')
     },
     {
         label: computed(() => t('nav.assets')),
@@ -141,31 +175,6 @@ const menuItems = ref([
                 label: computed(() => t('nav.library')),
                 icon: 'pi pi-book',
                 command: () => router.push('/assets/library')
-            }
-        ]
-    },
-    {
-        label: computed(() => t('nav.profile')),
-        icon: 'pi pi-user',
-        items: [
-            {
-                label: computed(() => t('nav.account')),
-                icon: 'pi pi-user-edit',
-                command: () => router.push('/profile')
-            },
-            {
-                label: computed(() => t('nav.buyCredits')),
-                icon: 'pi pi-wallet',
-                command: () => { buyCreditsDialog.value = true; }
-            },
-            { separator: true },
-            {
-                label: computed(() => t('nav.logout')),
-                icon: 'pi pi-sign-out',
-                command: async () => {
-                    await $fetch('/api/auth/logout', { method: 'POST' });
-                    router.push('/');
-                }
             }
         ]
     }
@@ -255,47 +264,57 @@ const breadcrumbItems = computed(() => {
     position: sticky;
     top: 0;
     z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     
     .header-content {
-        max-width: 1400px;
+        max-width: none;
         margin: 0 auto;
-        padding: 0 1rem;
+        padding: 0 1.5rem;
         display: flex;
         align-items: center;
-        gap: 1rem;
+        gap: 1.5rem;
+        height: 60px;
     }
     
     .logo {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--primary-color);
-        text-decoration: none;
-        margin-right: 2rem;
-        
-        @media (max-width: 960px) {
-            display: none;
-        }
-    }
-    
-    .logo-mobile {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
         font-size: 1.25rem;
         font-weight: 700;
         color: var(--primary-color);
         text-decoration: none;
+        transition: opacity 0.2s;
         
-        @media (min-width: 961px) {
+        &:hover {
+            opacity: 0.8;
+        }
+        
+        .logo-icon {
+            font-size: 1.5rem;
+        }
+        
+        @media (max-width: 960px) {
+            .logo-text {
+                display: none;
+            }
+        }
+    }
+    
+    .main-nav-wrapper {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        
+        @media (max-width: 960px) {
             display: none;
         }
     }
     
     .main-nav {
-        flex: 1;
         border: none;
         background: transparent;
-        
-        @media (max-width: 960px) {
-            display: none;
-        }
+        padding: 0;
     }
     
     .header-actions {
@@ -305,6 +324,21 @@ const breadcrumbItems = computed(() => {
         
         @media (max-width: 960px) {
             display: none;
+        }
+        
+        .balance-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: var(--surface-100);
+            border-radius: var(--border-radius);
+            font-size: 0.875rem;
+            font-weight: 600;
+            
+            i {
+                color: var(--primary-color);
+            }
         }
     }
     

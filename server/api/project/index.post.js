@@ -23,17 +23,33 @@ export default defineEventHandler(async (event) => {
     slug: projectSlug,
     name: projectName,
     createdAt: new Date(),
+    updatedAt: new Date(),
     ownerId: userId,
+    status: "ACTIVE",
+    batchIds: [],
+    metadata: {
+      custom: {}
+    },
+    tep: {
+      materialCostPerSqM: 0,
+      laborCostPerHour: 0,
+      totalEstimate: 0
+    },
     statistics: {
-        sheetsUsed: 0,
-        totalAreaUsed: 0,
-        utilizationRate: 0,
+      totalCassettes: 0,
+      totalArea: 0,
+      completedBatches: 0
     },
   });
 
-  await saveFilesToProject(event, projectSlug, userId);
+  // Only save files if they were provided
+  const formData = await readMultipartFormData(event);
+  if (formData && formData.length > 0) {
+    await saveFilesToProject(event, projectSlug, userId);
+  }
 
   return {
     slug: projectSlug,
+    name: projectName
   };
 });

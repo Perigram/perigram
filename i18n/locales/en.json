@@ -21,7 +21,8 @@
     "units": "units",
     "uploading": "Uploading...",
     "created": "Created",
-    "open": "Open"
+    "open": "Open",
+    "toggleTheme": "Toggle Theme"
   },
   "dashboard": {
     "welcome": "Welcome to CutKit",
