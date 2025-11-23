@@ -15,9 +15,11 @@
             <ProgressSpinner />
         </div>
 
-        <div v-else-if="!batches.value || batches.value.length === 0" class="empty-state">
+        <div v-else-if="batches.value?.length === 0" class="empty-state">
             <i class="pi pi-inbox empty-icon"></i>
             <p class="empty-text">{{ $t('batches.noBatches') }}</p>
+            <p>DEBUG: batches.value = {{ batches.value }}</p>
+            <p>DEBUG: length = {{ batches.value?.length }}</p>
             <Button 
                 :label="$t('batches.createFirst')"
                 icon="pi pi-plus"
