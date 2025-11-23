@@ -15,12 +15,16 @@ const fetchBatches = async (projectSlug) => {
   state.loading = true;
   state.error = null;
   
+  console.log('batches.js fetchBatches called for:', projectSlug);
+  
   try {
     const data = await $fetch(`/api/project/${projectSlug}/batches`);
+    console.log('batches.js fetchBatches response:', data);
     state.batches = data;
+    console.log('batches.js state.batches set to:', state.batches);
   } catch (error) {
     state.error = error.message;
-    console.error('Failed to fetch batches:', error);
+    console.error('batches.js fetchBatches error:', error);
   } finally {
     state.loading = false;
   }
