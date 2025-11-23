@@ -16,7 +16,6 @@ if (user.value) {
 }
 </script>
 
-        <section class="main__header header">
             <h2 class="title title--large">
                 {{ header.title }}
             </h2>
