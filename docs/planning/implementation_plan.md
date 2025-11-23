@@ -209,37 +209,294 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 
 ---
 
-### 3.2 PrimeVue Component Migration
+### 3.2 UI/UX Complete Overhaul with PrimeVue
 
-**Goal:** Replace custom components with PrimeVue components for consistency and maintainability.
+**Goal:** Replace obsolete UI with modern PrimeVue-based interface aligned to user workflows.
 
-**Strategy:** Incremental migration - migrate most-used components first, test each replacement.
+**Target User Workflows:**
+1. **Dashboard** - View projects, quick actions, credits
+2. **Assets Management** - Cassettes, pens, tools, layer standards
+3. **Project Workspace** - Files, batches, nesting, artifacts
+4. **User Profile** - Settings, billing, history
 
-#### Basic Form Components
-- [x] Audit existing Button usage across codebase (2025-11-22)
-  - 72 MainButton usages in 34 files
-  - 2 PrimeVue Button usages (new pages)
-  - Migration strategy: new pages first, then high-traffic pages
-- [ ] Replace custom `MainButton` with PrimeVue `Button` in cassettes page
-- [ ] Replace custom `MainButton` with PrimeVue `Button` in project page
-- [ ] Replace custom `Input` with PrimeVue `InputText`
-- [ ] Replace custom `Select` with PrimeVue `Dropdown`
-- [ ] Replace custom `Checkbox` with PrimeVue `Checkbox`
-- [ ] Test form interactions and styling
-
-**PrimeVue Components:**
-```vue
-<Button label="Click Me" icon="pi pi-check" />
-<InputText v-model="value" placeholder="Enter text" />
-<Dropdown v-model="selected" :options="items" optionLabel="name" />
-<Checkbox v-model="checked" binary />
-```
-
-**Documentation:** Update `/ONBOARDING.md` with migration examples
+**Strategy:** Complete redesign focused on functionality, not incremental migration.
 
 ---
 
-### 3.3 PrimeVue Complex Components
+#### Phase 3.2.1: Core Layout System
+**Goal:** Create new layout system with proper navigation and structure.
+
+- [ ] Create new `dashboard` layout with PrimeVue components
+  - [ ] Use PrimeVue `Menubar` for top navigation
+  - [ ] Use PrimeVue `Menu` for sidebar (collapsible)
+  - [ ] Add breadcrumb navigation with PrimeVue `Breadcrumb`
+  - [ ] Integrate `UserBalance` display in header
+  - [ ] Add theme switcher (dark/light)
+  - [ ] Mobile-responsive with hamburger menu
+  
+- [ ] Create new `project` layout for project workspace
+  - [ ] Project-specific header with name and actions
+  - [ ] Persistent sidebar with project navigation
+  - [ ] Breadcrumb: Home > Projects > [Project Name]
+  - [ ] Quick actions toolbar
+  
+- [ ] Update `default` layout for landing page
+  - [ ] Modern hero section with PrimeVue components
+  - [ ] Replace custom buttons with PrimeVue
+  - [ ] Keep minimal layout (no auth UI)
+  
+- [ ] Keep `auth` layout minimal (login callbacks only)
+
+**Navigation Structure:**
+```
+Top Nav (Dashboard Layout):
+├── Logo / Home
+├── Projects (dropdown: recent + "View All")
+├── Assets (dropdown: Cassettes, Pens, Tools, Standards)
+├── [User Menu] (dropdown: Profile, Credits, Logout)
+
+Project Layout Sidebar:
+├── Overview
+├── Files
+├── Batches
+├── Nesting
+├── Artifacts
+└── Settings
+```
+
+**Documentation:** Update `/ARCHITECTURE.md` section "Frontend Architecture - Layouts"
+
+---
+
+#### Phase 3.2.2: Dashboard Page (New Home)
+**Goal:** Replace `/pages/home.vue` with modern dashboard.
+
+- [ ] Create `/pages/dashboard.vue` (replace home.vue)
+  - [ ] Use PrimeVue `Card` for sections
+  - [ ] Recent Projects grid with `DataView`
+  - [ ] Quick actions panel (New Project, Upload Cassette, Buy Credits)
+  - [ ] Usage statistics with `Chart` (optional)
+  - [ ] Recent activity feed
+  
+- [ ] Create `/pages/index.vue` redirect logic
+  - [ ] Unauthenticated → Landing page
+  - [ ] Authenticated → Dashboard
+  
+- [ ] Create new landing page at `/pages/landing.vue`
+  - [ ] Move current index.vue content here
+  - [ ] Modernize with PrimeVue components
+  - [ ] Replace all MainButton with PrimeVue Button
+
+**Components to Create:**
+- `DashboardStats.vue` - Statistics cards
+- `RecentProjects.vue` - Project grid with actions
+- `QuickActions.vue` - Action buttons panel
+- `ActivityFeed.vue` - Recent activity list (optional v2)
+
+**Documentation:** Update `/ONBOARDING.md` section "User Workflows"
+
+---
+
+#### Phase 3.2.3: Projects Hub
+**Goal:** Dedicated page for managing all projects.
+
+- [ ] Create `/pages/projects/index.vue`
+  - [ ] Use PrimeVue `DataView` with grid/list toggle
+  - [ ] Filter/search with `InputText` and `Dropdown`
+  - [ ] Sort options (date, name, status)
+  - [ ] Pagination with PrimeVue `Paginator`
+  - [ ] Project cards show: name, date, file count, actions
+  - [ ] Actions: Open, Duplicate, Archive, Delete
+  
+- [ ] Create `/pages/projects/new.vue` (or dialog)
+  - [ ] Simple form: name, description (optional)
+  - [ ] DXF upload step (optional, can do later)
+  - [ ] Creates project and redirects to project workspace
+
+**Replace:**
+- Current `UserProjects` sidebar component
+- Current `home.vue` upload-first workflow
+
+**Documentation:** Update `/ONBOARDING.md` section "Project Management"
+
+---
+
+#### Phase 3.2.4: Project Workspace Redesign
+**Goal:** Complete overhaul of `/pages/project/[slug].vue`
+
+- [ ] Restructure project page with new layout
+  - [ ] Move from tabs to sidebar navigation
+  - [ ] Persistent project context in header
+  - [ ] Use project layout (not auth layout)
+  
+- [ ] Create `/pages/project/[slug]/overview.vue`
+  - [ ] Project metadata, statistics
+  - [ ] Recent activity in this project
+  - [ ] Quick actions specific to project
+  
+- [ ] Update `/pages/project/[slug]/files.vue` (split from current)
+  - [ ] File grid with PrimeVue `DataView`
+  - [ ] Upload with PrimeVue `FileUpload`
+  - [ ] File actions: View, Download, Delete
+  - [ ] Show processing status with `ProgressBar`
+  
+- [ ] Update `/pages/project/[slug]/batches.vue` (already exists)
+  - [ ] Polish existing BatchManagement component
+  - [ ] Improve entry editor UX
+  - [ ] Add batch templates feature (optional)
+  
+- [ ] Update `/pages/project/[slug]/nesting.vue` (split from current)
+  - [ ] Settings panel with PrimeVue form components
+  - [ ] Large "Run Nesting" button with validation feedback
+  - [ ] Real-time progress with `ProgressBar`
+  - [ ] Error/warning messages with `Message` component
+  
+- [ ] Create `/pages/project/[slug]/artifacts.vue`
+  - [ ] Artifact list with `DataTable`
+  - [ ] Preview modal for layouts (SVG/image)
+  - [ ] Download actions with `SplitButton` (PDF, DXF, G-code)
+  - [ ] Filter by type and status
+
+**Components to Refactor:**
+- `ProjectFiles.vue` → Simplify, use PrimeVue
+- `ProjectStatistics.vue` → Use PrimeVue `Card` and `Chart`
+- `MainSettings.vue` → Rebuild with PrimeVue form components
+
+**Documentation:** Update `/ARCHITECTURE.md` section "Workflows - Project Workflow"
+
+---
+
+#### Phase 3.2.5: Assets Management Pages
+**Goal:** Centralized asset management hub.
+
+- [ ] Create `/pages/assets/index.vue` (hub page)
+  - [ ] Tabbed interface: Cassettes, Pens, Tools, Standards
+  - [ ] Or separate pages with shared layout
+  
+- [ ] Update `/pages/cassettes.vue` → `/pages/assets/cassettes.vue`
+  - [ ] Already uses PrimeVue (mostly done)
+  - [ ] Add filter/search functionality
+  - [ ] Add bulk actions (delete, export)
+  - [ ] Polish card layout and empty states
+  
+- [ ] Update `/pages/templates/index.vue` → `/pages/assets/library.vue`
+  - [ ] Already uses PrimeVue (mostly done)
+  - [ ] Combine pens and tools in one page
+  - [ ] Add layer standards viewer (read-only)
+  - [ ] Add import/export functionality
+
+**Navigation:**
+```
+Assets Section:
+├── Cassettes (user-created templates)
+├── Library (pens, tools, standards)
+└── Import/Export (optional v2)
+```
+
+**Documentation:** Update `/ARCHITECTURE.md` section "Workflows - Asset Management"
+
+---
+
+#### Phase 3.2.6: User Profile & Settings
+**Goal:** Modern profile page with PrimeVue components.
+
+- [ ] Update `/pages/profile.vue`
+  - [ ] Use PrimeVue `TabView` for sections
+  - [ ] Account tab: Avatar, name, email (read-only), OAuth providers
+  - [ ] Billing tab: Credit balance, purchase history, buy credits
+  - [ ] Preferences tab: Theme, language, notifications
+  - [ ] Projects tab: Usage stats, storage info
+  
+- [ ] Update `BuyCreditsDialog.vue`
+  - [ ] Use PrimeVue `Dialog` and form components
+  - [ ] Package selection with `SelectButton`
+  - [ ] Payment integration (keep existing Stripe logic)
+
+**Components to Update:**
+- `UserBalance.vue` → Simplify with PrimeVue `Tag` or `Badge`
+- `BuyCreditsDialog.vue` → Rebuild with PrimeVue components
+- `Avatar.vue` → Keep or replace with PrimeVue `Avatar`
+
+**Documentation:** Update `/ONBOARDING.md` section "User Management"
+
+---
+
+#### Phase 3.2.7: Component Cleanup & Removal
+**Goal:** Remove obsolete custom components after migration.
+
+**Components to Remove (after replacing all usages):**
+- [ ] `MainButton.vue` → Replaced by PrimeVue `Button`
+- [ ] `InputField.vue` → Replaced by PrimeVue `InputText`
+- [ ] `MainTitle.vue` → Use native `<h1>` with Tailwind
+- [ ] `MainAside.vue` → Replaced by PrimeVue `Sidebar`
+- [ ] `DialogWrapper.vue` → Replaced by PrimeVue `Dialog`
+- [ ] `UserProjects.vue` → Functionality moved to `/pages/projects`
+- [ ] `UserResults.vue` → Functionality moved to artifacts page
+- [ ] `DxfUpload.vue` → Replaced by PrimeVue `FileUpload`
+
+**Components to Keep:**
+- [x] `Tabs.vue` (if still needed, or replace with PrimeVue `TabView`)
+- [x] `TableEditor.vue` (specialized, keep for now)
+- [x] `SvgDisplay.vue` (specialized)
+- [x] `Footer.vue` (update styling)
+- [x] `LanguageSwitcher.vue` (keep)
+
+**Process:**
+1. For each component, search for all usages
+2. Replace with PrimeVue equivalent
+3. Test functionality
+4. Delete obsolete component file
+5. Update documentation
+
+**Documentation:** Update `/ONBOARDING.md` section "Component Library"
+
+---
+
+#### Phase 3.2.8: Polish & Consistency
+**Goal:** Final touches for production-ready UI.
+
+- [ ] Consistent spacing and sizing (use PrimeVue design tokens)
+- [ ] Loading states with PrimeVue `Skeleton` and `ProgressSpinner`
+- [ ] Empty states with icons and helpful messages
+- [ ] Error states with PrimeVue `Message` component
+- [ ] Toast notifications with PrimeVue `Toast`
+- [ ] Confirmation dialogs with PrimeVue `ConfirmDialog`
+- [ ] Dark mode works perfectly (test all pages)
+- [ ] Mobile responsive (test all breakpoints)
+- [ ] Accessibility (ARIA labels, keyboard navigation)
+
+**Documentation:** Update `/ONBOARDING.md` section "UI Guidelines"
+
+---
+
+### 3.2.9: Migration Checklist
+
+**Before starting:**
+- [x] PrimeVue installed and configured
+- [ ] New layouts created (dashboard, project)
+- [ ] Navigation structure designed
+- [ ] Component inventory complete
+
+**During migration:**
+- [ ] Create new pages in parallel (don't break existing)
+- [ ] Test each page thoroughly before switching routes
+- [ ] Update routing progressively
+- [ ] Keep old components until fully replaced
+
+**After migration:**
+- [ ] Remove obsolete components
+- [ ] Clean up unused imports
+- [ ] Update all documentation
+- [ ] Perform full regression testing
+- [ ] Get user feedback
+
+**Documentation:** Mark tasks in this plan as complete
+
+---
+
+### 3.3 PrimeVue Complex Components (DEPRECATED - See 3.2 for new plan)
+
+**Note:** This section is superseded by Phase 3.2 UI/UX Complete Overhaul.
 
 #### Data Display Components
 - [ ] Replace custom `TableEditor` with PrimeVue `DataTable`
