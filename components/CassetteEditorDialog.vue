@@ -42,12 +42,7 @@
       <div v-if="showMappingSection && !isUploading" class="mapping-layout">
         <div class="preview-panel">
           <h3>{{ $t('cassette.preview') }}</h3>
-          <div v-if="cassette?.svgId" class="svg-preview">
-            <img 
-              :src="`/api/files/svg/${cassette.svgId}`" 
-              :alt="name" 
-            />
-          </div>
+          <div v-if="svgPreview" class="svg-preview" v-html="svgPreview"></div>
           <div v-else class="no-preview">
             <i class="pi pi-image" style="font-size: 3rem"></i>
             <p>{{ $t('cassette.noPreview') }}</p>
@@ -127,6 +122,7 @@ const errorMessage = ref('');
 const cassette = ref(null);
 const detectedLayers = ref([]);
 const layerMappings = ref({});
+const svgPreview = ref(null);
 
 const { state: layerStandardsState, fetchStandards } = useLayerStandards();
 
@@ -192,10 +188,15 @@ const handleFileSelect = async (event) => {
     errorMessage.value = '';
     
     try {
-      const { extractDxfLayers } = await import('~/utils/dxfParser');
-      const layers = await extractDxfLayers(selectedFile.value);
+      const { extractDxfLayers, generateSvgPreview } = await import('~/utils/dxfParser');
       
+      // Extract layers
+      const layers = await extractDxfLayers(selectedFile.value);
       detectedLayers.value = layers;
+      
+      // Generate SVG preview
+      const svg = await generateSvgPreview(selectedFile.value);
+      svgPreview.value = svg;
       
       // Initialize mappings for each detected layer
       detectedLayers.value.forEach(layer => {
@@ -208,6 +209,7 @@ const handleFileSelect = async (event) => {
       console.error('DXF parsing failed:', error);
       selectedFile.value = null;
       detectedLayers.value = [];
+      svgPreview.value = null;
     } finally {
       isUploading.value = false;
     }
@@ -308,6 +310,7 @@ const resetForm = () => {
   cassette.value = null;
   layerMappings.value = {};
   detectedLayers.value = [];
+  svgPreview.value = null;
 };
 </script>
 
