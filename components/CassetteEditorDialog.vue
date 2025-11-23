@@ -67,6 +67,18 @@
           <Message v-else severity="info">
             {{ $t('cassette.detectingLayers') }}
           </Message>
+          
+          <!-- Parameters Section -->
+          <div class="parameters-section">
+            <h3>{{ $t('cassette.parameters') }}</h3>
+            <p class="help-text">{{ $t('cassette.parametersHelp') }}</p>
+            <Chips 
+              v-model="parameters" 
+              :placeholder="$t('cassette.parametersPlaceholder')"
+              separator=","
+            />
+            <small class="hint-text">{{ $t('cassette.parametersHint') }}</small>
+          </div>
         </div>
       </div>
 
@@ -98,6 +110,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { cassettesStore } from '~/composables/cassettes';
 import { useLayerStandards } from '~/composables/layerStandards';
 import { usePenTemplates } from '~/composables/penTemplates';
+import Chips from 'primevue/chips';
 
 const props = defineProps({
   modelValue: {
@@ -126,6 +139,7 @@ const detectedLayers = ref([]);
 const layerMappings = ref({});
 const svgPreview = ref(null);
 const dxfFile = ref(null);
+const parameters = ref(['A', 'B', 'C', 'D', 'E', 'F', 'horizontal_seam_width']);
 
 const { state: layerStandardsState, fetchStandards, getByCode } = useLayerStandards();
 const { state: penState, fetchPens, getSystemPens } = usePenTemplates();
@@ -320,6 +334,7 @@ const handleUpload = async () => {
     formData.append('file', selectedFile.value);
     formData.append('name', name.value);
     formData.append('layerMapping', JSON.stringify(mappings));
+    formData.append('parameters', JSON.stringify(parameters.value));
 
     const uploadedCassette = await $fetch('/api/cassettes/upload', {
       method: 'POST',
@@ -327,6 +342,7 @@ const handleUpload = async () => {
     });
 
     emit('uploaded', uploadedCassette);
+    emit('saved', uploadedCassette);
     isOpen.value = false;
     resetForm();
   } catch (error) {
@@ -492,5 +508,32 @@ const resetForm = () => {
   font-size: 13px;
   font-weight: 500;
   color: var(--label-secondary);
+}
+
+.parameters-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--separator-primary);
+}
+
+.parameters-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--label-primary);
+}
+
+.parameters-section .help-text {
+  font-size: 13px;
+  color: var(--label-secondary);
+  margin-bottom: 12px;
+}
+
+.parameters-section .hint-text {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--label-tertiary);
+  font-style: italic;
 }
 </style>

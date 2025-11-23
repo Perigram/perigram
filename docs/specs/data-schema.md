@@ -170,6 +170,18 @@ interface CassetteTemplate {
     dimensions: string[];
   };
   
+  // Cassette parameters (dimensions that vary per batch entry)
+  // e.g., ["A", "B", "C", "D", "E", "F", "horizontal_seam_width"]
+  parameters?: string[];
+  
+  // Additional manufacturing options
+  options?: {
+    hasIkleHoles?: boolean;      // Holes for ikle fasteners
+    hasRivetHoles?: boolean;     // Holes for rivets
+    allowRotation?: boolean;     // Allow 180° rotation during nesting
+    negativeOffset?: number;     // Inward offset in mm (for bend compensation)
+  };
+  
   // Processing status
   processingStatus: "pending" | "done" | "error";
   
@@ -248,7 +260,7 @@ interface Batch {
   artifacts: ObjectId[];     // References to artifact documents
   
   // Lifecycle
-  status: "DRAFT" | "READY" | "NESTING" | "COMPLETE" | "FAILED";
+  status: "DRAFT" | "READY" | "NESTING" | "NESTED" | "COMPLETE" | "FAILED";
   
   createdAt: Date;
   updatedAt: Date;
@@ -256,13 +268,22 @@ interface Batch {
 
 **Indexes:** `projectSlug`, `ownerId`, `status`, `batchNumber` (unique within projectSlug)
 
+**Status Flow:**
+- `DRAFT` - Being edited, can add/remove entries
+- `READY` - Ready for nesting (optional, can go directly from DRAFT to NESTING)
+- `NESTING` - Worker is processing
+- `NESTED` - Nesting complete, artifacts generated
+- `COMPLETE` - Marked as cut/finished by user
+- `FAILED` - Nesting failed
+
 interface BatchEntry {
   entryId: string;           // Unique within batch
   cassetteTemplateId: ObjectId;
   quantity: number;
   
-  // Instantiated parameters
-  parameters: Record<string, number>;
+  // Instantiated parameters (from cassette.parameters)
+  // e.g., { A: 100, B: 2300, C: 150, horizontal_seam_width: 20 }
+  dimensions: Record<string, number>;
   
   // Material override
   material?: {

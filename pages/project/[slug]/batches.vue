@@ -1,25 +1,19 @@
 <template>
     <div class="batches-workspace">
         <div class="workspace-header">
-            <h1 class="project-title">{{ project?.name }}</h1>
-            <div class="header-actions">
-                <Button 
-                    :label="$t('batches.create')"
-                    icon="pi pi-plus"
-                    @click="createNewBatch"
-                />
-            </div>
+            <h1 class="project-title">{{ project?.name || 'Project' }}</h1>
+            <Button 
+                :label="$t('batches.create')"
+                icon="pi pi-plus"
+                @click="createNewBatch"
+            />
         </div>
 
-        <div v-if="loading" class="loading-state">
-            <ProgressSpinner />
-        </div>
+        <ProgressSpinner v-if="loading" />
 
-        <div v-else-if="localBatches.value?.length === 0" class="empty-state">
+        <div v-else-if="batches.length === 0" class="empty-state">
             <i class="pi pi-inbox empty-icon"></i>
             <p class="empty-text">{{ $t('batches.noBatches') }}</p>
-            <p>DEBUG: localBatches.value = {{ localBatches.value }}</p>
-            <p>DEBUG: length = {{ localBatches.value?.length }}</p>
             <Button 
                 :label="$t('batches.createFirst')"
                 icon="pi pi-plus"
@@ -28,42 +22,29 @@
             />
         </div>
 
-        <div v-else class="tabs-container">
-            <div class="debug-info" style="background: yellow; padding: 10px; margin-bottom: 10px;">
-                DEBUG: localBatches.value.length = {{ localBatches.value?.length }}
-                <br>Loading: {{ loading }}
-                <br>First batch: {{ localBatches.value?.[0]?.name }}
-            </div>
-            
-            <TabView v-model:activeIndex="activeTabIndex" class="batch-tabs">
-                <TabPanel 
-                    v-for="(batch, index) in localBatches.value" 
-                    :key="batch._id"
-                    :header="batch.name || `Batch ${batch.batchNumber}`"
-                >
-                    <div class="batch-content">
-                        <p>Batch ID: {{ batch._id }}</p>
-                        <p>Batch Name: {{ batch.name }}</p>
-                        <p>Batch Number: {{ batch.batchNumber }}</p>
-                        <BatchManagement 
-                            :project-slug="slug" 
-                            :batch-id="batch._id"
-                        />
-                    </div>
-                </TabPanel>
-            </TabView>
-        </div>
+        <TabView v-else v-model:activeIndex="activeTabIndex">
+            <TabPanel 
+                v-for="batch in batches" 
+                :key="batch._id"
+                :header="batch.name || `Batch ${batch.batchNumber}`"
+            >
+                <BatchEditor 
+                    :batch="batch"
+                    :project-slug="slug"
+                    @updated="reloadBatches"
+                />
+            </TabPanel>
+        </TabView>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 import Button from 'primevue/button';
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
 import ProgressSpinner from 'primevue/progressspinner';
-import BatchManagement from '~/components/BatchManagement.vue';
-import { batchesStore } from '~/composables/batches';
+import BatchEditor from '~/components/BatchEditor.vue';
 
 definePageMeta({
     layout: 'project',
@@ -71,85 +52,52 @@ definePageMeta({
 });
 
 const route = useRoute();
-const router = useRouter();
 const slug = route.params.slug;
 
 const project = ref(null);
+const batches = ref([]);
 const loading = ref(true);
 const activeTabIndex = ref(0);
-const localBatches = ref([]);
 
-const { getters, actions } = batchesStore;
-console.log('getters:', getters);
-console.log('getters.batches:', getters.batches);
-console.log('getters.batches.value:', getters.batches.value);
-const { fetchBatches, createBatch } = actions;
-
-// Watch the store batches and copy to local ref for reactivity
-watch(() => getters.batches.value, (newBatches) => {
-    console.log('watch triggered, newBatches:', newBatches);
-    localBatches.value = newBatches || [];
-}, { immediate: true });
-
-onMounted(async () => {
-    console.log('onMounted START - localBatches.value:', localBatches.value);
-    loading.value = true;
+const loadData = async () => {
     try {
-        // Load project data
         project.value = await $fetch(`/api/project/${slug}`);
-        
-        // Load batches
-        await fetchBatches(slug);
-        
-        console.log('onMounted AFTER fetchBatches - localBatches.value:', localBatches.value);
-        console.log('onMounted - localBatches.value.length:', localBatches.value?.length);
-        
-        // Select last batch by default
-        const currentBatches = localBatches.value || [];
-        if (currentBatches.length > 0) {
-            activeTabIndex.value = currentBatches.length - 1;
+        batches.value = await $fetch(`/api/project/${slug}/batches`);
+        if (batches.value.length > 0 && activeTabIndex.value === 0) {
+            activeTabIndex.value = batches.value.length - 1;
         }
-        
-        console.log('onMounted END - localBatches.value:', localBatches.value);
     } catch (error) {
-        console.error('Failed to load project/batches:', error);
+        console.error('Failed to load:', error);
     } finally {
         loading.value = false;
-        console.log('onMounted FINALLY - loading set to false, localBatches.value:', localBatches.value);
     }
-});
+};
+
+onMounted(loadData);
 
 const createNewBatch = async () => {
-    console.log('createNewBatch called, slug:', slug);
     try {
-        const currentBatches = localBatches.value || [];
-        const batchNumber = currentBatches.length + 1;
-        
-        console.log('Creating batch:', { batchNumber, slug });
-        
-        const result = await createBatch(slug, {
-            name: `Batch ${batchNumber}`,
-            batchNumber,
-            status: 'DRAFT',
-            entries: []
+        const batchNumber = batches.value.length + 1;
+        await $fetch(`/api/project/${slug}/batches`, {
+            method: 'POST',
+            body: {
+                name: `Batch ${batchNumber}`,
+                batchNumber,
+                status: 'DRAFT',
+                entries: []
+            }
         });
         
-        console.log('Batch created:', result);
-        
-        // Refresh and select new batch
-        await fetchBatches(slug);
-        
-        console.log('After fetch, localBatches.value is:', localBatches.value);
-        console.log('localBatches.value type:', typeof localBatches.value, Array.isArray(localBatches.value));
-        
-        const updatedBatches = localBatches.value || [];
-        activeTabIndex.value = updatedBatches.length - 1;
-        
-        console.log('Batches refreshed, count:', updatedBatches.length);
+        await reloadBatches();
+        activeTabIndex.value = batches.value.length - 1;
     } catch (error) {
         console.error('Failed to create batch:', error);
-        alert('Failed to create batch: ' + error.message);
+        alert('Failed to create batch');
     }
+};
+
+const reloadBatches = async () => {
+    batches.value = await $fetch(`/api/project/${slug}/batches`);
 };
 </script>
 
@@ -167,20 +115,8 @@ const createNewBatch = async () => {
             font-size: 1.75rem;
             font-weight: 600;
             margin: 0;
-            color: var(--text-color);
-        }
-        
-        .header-actions {
-            display: flex;
-            gap: 0.75rem;
         }
     }
-}
-
-.loading-state {
-    display: flex;
-    justify-content: center;
-    padding: 4rem 0;
 }
 
 .empty-state {
@@ -199,21 +135,5 @@ const createNewBatch = async () => {
         color: var(--text-color-secondary);
         margin-bottom: 1.5rem;
     }
-}
-
-.batch-tabs {
-    :deep(.p-tabview-nav) {
-        background: var(--surface-card);
-        border-bottom: 1px solid var(--surface-border);
-    }
-    
-    :deep(.p-tabview-panels) {
-        padding: 1.5rem 0;
-        background: transparent;
-    }
-}
-
-.batch-content {
-    min-height: 400px;
 }
 </style>

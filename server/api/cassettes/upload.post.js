@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
   const fileField = fields.find(f => f.name === 'file');
   const nameField = fields.find(f => f.name === 'name');
   const layerMappingField = fields.find(f => f.name === 'layerMapping');
+  const parametersField = fields.find(f => f.name === 'parameters');
   
   if (!fileField) {
     throw createError({
@@ -36,5 +37,14 @@ export default defineEventHandler(async (event) => {
     }
   }
   
-  return await service.upload(fileBuffer, fileName, name, userId, layerMapping);
+  let parameters = null;
+  if (parametersField) {
+    try {
+      parameters = JSON.parse(parametersField.data.toString());
+    } catch (e) {
+      console.error('Failed to parse parameters:', e);
+    }
+  }
+  
+  return await service.upload(fileBuffer, fileName, name, userId, layerMapping, parameters);
 });

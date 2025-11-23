@@ -9,7 +9,7 @@ import { GridFSBucket } from 'mongodb';
 import { generateRandomString } from '../../utils/strings.js';
 import standardSlugify from 'standard-slugify';
 
-export async function upload(fileBuffer, fileName, cassetteName, userId, layerMapping = null) {
+export async function upload(fileBuffer, fileName, cassetteName, userId, layerMapping = null, parameters = null) {
   if (!fileBuffer || fileBuffer.length === 0) {
     throw createError({ statusCode: 400, message: 'No file data provided' });
   }
@@ -32,6 +32,9 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
     uploadStream.end();
   });
   
+  // Default parameters if not provided
+  const defaultParameters = parameters || ['A', 'B', 'C', 'D', 'E', 'F', 'horizontal_seam_width'];
+  
   // Create cassette document (client already parsed layers)
   const cassetteData = {
     name,
@@ -40,6 +43,13 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
     dxfId: uploadStream.id,
     svgId: null,  // SVG preview generation can happen later if needed
     layerMapping: layerMapping || {},  // Format: { [layerName]: layerStandardCode }
+    parameters: defaultParameters,  // Parameter names for batch entries
+    options: {
+      hasIkleHoles: false,
+      hasRivetHoles: false,
+      allowRotation: true,
+      negativeOffset: 0
+    },
     processingStatus: 'done',  // No async processing needed
     createdAt: new Date(),
     updatedAt: new Date()

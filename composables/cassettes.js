@@ -136,6 +136,12 @@ const actions = {
 
     setLayerMapping(mapping) {
         state.layerMapping = { ...state.layerMapping, ...mapping };
+    },
+
+    // Alias for compatibility
+    loadAll() {
+        console.log('[cassettes.js] loadAll called');
+        return this.fetchCassettes();
     }
 };
 

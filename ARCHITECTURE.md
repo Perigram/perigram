@@ -514,23 +514,35 @@ API → nesting_jobs collection → Python Worker → Results → Artifacts
    - **Client-side:** DXF parsed with `dxf-parser` library
    - All layer names extracted instantly
    - User maps DXF layers → layer types (cut/bend/frame/dimensions)
-   - Single upload: DXF file + layer mappings sent to server
+   - User defines **parameters** (A, B, C, D, E, F, horizontal_seam_width, etc.)
+   - Single upload: DXF file + layer mappings + parameters sent to server
    - Server stores in GridFS with `processingStatus: 'done'`
    - **No async processing** - immediate feedback
 
 2. **Create Batch**
-   - User selects cassette templates
-   - Sets parameter values (A=width, B=height, etc.)
-   - Specifies quantities
-   - Batch created with entries
+   - User creates batch in project
+   - Opens batch editor with editable DataTable
+   - **Add entries:** Select cassette from dropdown + quantity
+   - System auto-generates entryId (Entry-1, Entry-2, etc.)
+   - Parameters columns appear dynamically based on cassette.parameters
+   - User edits parameter values inline (A=100mm, B=2300mm, etc.)
+   - **Batch status:** DRAFT (editable) → NESTING → NESTED → COMPLETE
+   - Only DRAFT batches are editable
 
 3. **Run Nesting**
+   - Click "Run Nesting" button (only enabled in DRAFT status)
    - `POST /api/batch/:id/nest`
-   - Worker fetches cassette DXFs with parameters
+   - Worker fetches cassette DXFs with parameter values
    - Generates layout via jagua-rs
    - Stores as artifacts (SVG, DXF, G-code, PDF)
+   - Batch status → NESTED
 
-4. **View Artifacts**
+4. **Mark Complete**
+   - After nesting, user can mark batch as COMPLETE (when physically cut)
+   - Button appears when status is NESTED
+   - Batch status → COMPLETE
+
+5. **View Artifacts**
    - Download generated files
    - View with pen-styled previews
 

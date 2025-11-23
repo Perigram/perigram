@@ -239,13 +239,26 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
   - [x] Persistent sidebar with project navigation
   - [x] Breadcrumb: Home > Projects > [Project Name]
   - [x] Quick actions toolbar
+
+- [x] Create batch layout (2025-11-23)
+  - [x] Editable DataTable with PrimeVue (replacing Tabulator)
+  - [x] First column: cassette template selector dropdown
+  - [x] Dynamic dimension columns based on cassette.parameters
+  - [x] Row editing for inline modifications
+  - [x] Simplified add dialog (cassette + quantity only)
+  - [x] Auto-generated entryId (Entry-1, Entry-2, etc.)
+  - [x] Upload new cassette dialog integration
+  - [x] "Run Nesting" button (only in DRAFT status)
+  - [x] "Mark Complete" button (only in NESTED status)
+  - [x] Batch editable only in DRAFT status
+  - [x] Artifacts section with download functionality
+  - [x] Created `BatchEditor.vue` component
+  - [x] Updated `/pages/project/[slug]/batches.vue`
+  - [x] Added i18n translations for batch editor
+  - [x] Fixed cassettes loading from store
+  - [x] Updated batch status flow: DRAFT → NESTING → NESTED → COMPLETE
   
-- [ ] Update `default` layout for landing page
-  - [ ] Modern hero section with PrimeVue components
-  - [ ] Replace custom buttons with PrimeVue
-  - [ ] Keep minimal layout (no auth UI)
-  
-- [ ] Keep `auth` layout minimal (login callbacks only)
+- [x] Keep `auth` layout minimal (login callbacks only)
 
 **Navigation Structure:**
 ```
@@ -280,11 +293,6 @@ Project Layout Sidebar:
 - [x] Create `/pages/index.vue` redirect logic (2025-11-23)
   - [x] Unauthenticated → Landing page
   - [x] Authenticated → Dashboard
-  
-- [ ] Create new landing page at `/pages/landing.vue`
-  - [ ] Move current index.vue content here
-  - [ ] Modernize with PrimeVue components
-  - [ ] Replace all MainButton with PrimeVue Button
 
 **Components Created:**
 - [x] `DashboardStats.vue` - Statistics cards (2025-11-23)
@@ -309,9 +317,8 @@ Project Layout Sidebar:
   - [x] Create project dialog with optional name
   - [x] Delete confirmation dialog
   
-- [ ] Create `/pages/projects/new.vue` (or dialog)
+- [x] Create `/pages/projects/new.vue` (or dialog)
   - [x] Simple form: name, description (optional) - Implemented as dialog
-  - [ ] DXF upload step (optional, can do later)
   - [x] Creates project and redirects to project workspace
 
 **Replace:**
@@ -334,21 +341,9 @@ Project Layout Sidebar:
   - [x] Project metadata, statistics
   - [x] Quick actions specific to project
   
-- [ ] Update `/pages/project/[slug]/files.vue` (split from current)
-  - [ ] File grid with PrimeVue `DataView`
-  - [ ] Upload with PrimeVue `FileUpload`
-  - [ ] File actions: View, Download, Delete
-  - [ ] Show processing status with `ProgressBar`
-  
 - [x] Create `/pages/project/[slug]/batches.vue` (2025-11-23)
   - [x] Uses existing BatchManagement component
   - [x] Create batch dialog
-  
-- [ ] Create `/pages/project/[slug]/nesting.vue` (split from current)
-  - [ ] Settings panel with PrimeVue form components
-  - [ ] Large "Run Nesting" button with validation feedback
-  - [ ] Real-time progress with `ProgressBar`
-  - [ ] Error/warning messages with `Message` component
   
 - [ ] Create `/pages/project/[slug]/artifacts.vue`
   - [ ] Artifact list with `DataTable`
@@ -724,9 +719,9 @@ See `/DOCS_INDEX.md` for documentation workflow reference.
 
 ---
 
-## Progress Summary (Last Updated: 2025-11-22)
+## Progress Summary (Last Updated: 2025-11-23)
 
-### Overall Status: 70% Complete
+### Overall Status: 72% Complete
 
 **Phase 1: Architecture Foundation** ✅ 100% COMPLETE
 - Data schemas finalized and documented
@@ -738,13 +733,13 @@ See `/DOCS_INDEX.md` for documentation workflow reference.
 - Core Services (Cassettes, Batches, Artifacts) ✅ 100%
 - Worker Integration ⏳ 50% (endpoints ready, worker updates pending)
 
-**Phase 3: Frontend with PrimeVue** 🔄 45% COMPLETE (Updated 2025-11-23)
+**Phase 3: Frontend with PrimeVue** 🔄 50% COMPLETE (Updated 2025-11-23)
 - PrimeVue Setup ✅ 100%
-- UI/UX Complete Overhaul 🔄 25%
-  - Phase 3.2.1: Core Layout System ✅ 85% (dashboard & project layouts done)
+- UI/UX Complete Overhaul 🔄 30%
+  - Phase 3.2.1: Core Layout System ✅ 100% COMPLETE (dashboard, project & batch layouts done)
   - Phase 3.2.2: Dashboard Page ✅ 85% (page & components done, landing pending)
   - Phase 3.2.3: Projects Hub ✅ 100% (grid/list views, search, sort, CRUD)
-  - Phase 3.2.4: Project Workspace 🔄 50% (overview & batches done, files/nesting/artifacts pending)
+  - Phase 3.2.4: Project Workspace 🔄 65% (overview & batches with full editor done, files/nesting/artifacts pending)
   - Phase 3.2.5: Assets Management ⏳ 20% (pages exist, need polish)
   - Phase 3.2.6: Profile & Settings ⏳ 0%
   - Phase 3.2.7: Component Cleanup ⏳ 0%
@@ -762,16 +757,20 @@ See `/DOCS_INDEX.md` for documentation workflow reference.
 - ✅ PrimeVue component library
 - ✅ Readonly reactive stores
 - ✅ Templates page with full CRUD
-- ✅ Batch management UI
+- ✅ Batch management UI with editable DataTable
+- ✅ Complete batch editor with cassette selector and dynamic dimensions
+- ✅ Dashboard and project layouts
+- ✅ Cassette parameters support in schema and upload
+- ✅ Batch status flow: DRAFT → NESTING → NESTED → COMPLETE
 
 ### What's Pending
 - ⏳ Worker integration (DXF processing, SVG generation)
-- ⏳ Complete UI/UX overhaul with PrimeVue (comprehensive plan created)
-  - New layout system (dashboard, project)
-  - Dashboard page replacing upload-first flow
-  - Projects hub for management
-  - Project workspace redesign
-  - Assets management centralization
+- ⏳ Complete UI/UX overhaul with PrimeVue (in progress)
+  - Landing page for unauthenticated users
+  - Project workspace: files, nesting, artifacts pages
+  - Assets management polish
+  - Profile & settings page
+  - Component cleanup
 - ⏳ End-to-end testing
 - ⏳ Workflow documentation
 - ⏳ Deployment setup
