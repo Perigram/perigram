@@ -44,7 +44,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import Button from 'primevue/button';
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
@@ -58,6 +58,7 @@ definePageMeta({
 });
 
 const route = useRoute();
+const router = useRouter();
 const slug = route.params.slug;
 
 const project = ref(null);
