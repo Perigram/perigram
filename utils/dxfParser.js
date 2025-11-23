@@ -47,9 +47,11 @@ export async function extractDxfLayers(file) {
 /**
  * Generate SVG preview from DXF file
  * @param {File} file - DXF file object
+ * @param {Object} layerMapping - Optional layer to pen mapping { layerName: penTemplate }
+ * @param {Object} defaultPen - Default pen for unmapped layers
  * @returns {Promise<string>} - SVG string
  */
-export async function generateSvgPreview(file) {
+export async function generateSvgPreview(file, layerMapping = {}, defaultPen = null) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -63,6 +65,11 @@ export async function generateSvgPreview(file) {
           reject(new Error('Invalid DXF file'));
           return;
         }
+        
+        // Default pen settings
+        const defaultPenSettings = defaultPen || {
+          stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' }
+        };
         
         // Calculate bounding box
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -108,22 +115,41 @@ export async function generateSvgPreview(file) {
         const height = maxY - minY;
         const padding = Math.max(width, height) * 0.1;
         
-        // Generate SVG paths
+        // Helper to get pen for layer
+        const getPenForLayer = (layerName) => {
+          const pen = layerMapping[layerName];
+          return pen || defaultPenSettings;
+        };
+        
+        // Helper to convert pen pattern to SVG stroke-dasharray
+        const getStrokeDasharray = (pattern) => {
+          if (pattern === 'DASHED') return '5,5';
+          if (pattern === 'DOTTED') return '1,3';
+          return 'none';
+        };
+        
+        // Generate SVG paths grouped by layer
         let paths = '';
         dxf.entities.forEach(entity => {
           try {
+            const pen = getPenForLayer(entity.layer);
+            const color = pen.stroke?.color || '#000000';
+            const weight = pen.stroke?.weight || 0.5;
+            const dasharray = getStrokeDasharray(pen.stroke?.pattern || 'SOLID');
+            const strokeAttrs = `stroke="${color}" stroke-width="${weight}" stroke-dasharray="${dasharray}"`;
+            
             if (entity.type === 'LINE' && entity.startPoint && entity.endPoint) {
-              paths += `<line x1="${entity.startPoint.x}" y1="${-entity.startPoint.y}" x2="${entity.endPoint.x}" y2="${-entity.endPoint.y}" stroke="black" stroke-width="0.5" />`;
+              paths += `<line x1="${entity.startPoint.x}" y1="${-entity.startPoint.y}" x2="${entity.endPoint.x}" y2="${-entity.endPoint.y}" ${strokeAttrs} />`;
             } else if ((entity.type === 'LWPOLYLINE' || entity.type === 'POLYLINE') && entity.vertices) {
               const points = entity.vertices
                 .filter(v => v && v.x !== undefined && v.y !== undefined)
                 .map(v => `${v.x},${-v.y}`)
                 .join(' ');
               if (points) {
-                paths += `<polyline points="${points}" stroke="black" stroke-width="0.5" fill="none" />`;
+                paths += `<polyline points="${points}" ${strokeAttrs} fill="none" />`;
               }
             } else if (entity.type === 'CIRCLE' && entity.center && entity.radius) {
-              paths += `<circle cx="${entity.center.x}" cy="${-entity.center.y}" r="${entity.radius}" stroke="black" stroke-width="0.5" fill="none" />`;
+              paths += `<circle cx="${entity.center.x}" cy="${-entity.center.y}" r="${entity.radius}" ${strokeAttrs} fill="none" />`;
             } else if (entity.type === 'ARC' && entity.center && entity.radius && entity.startAngle !== undefined && entity.endAngle !== undefined) {
               // Simplified arc rendering
               const startAngle = entity.startAngle * Math.PI / 180;
@@ -133,7 +159,7 @@ export async function generateSvgPreview(file) {
               const x2 = entity.center.x + entity.radius * Math.cos(endAngle);
               const y2 = entity.center.y + entity.radius * Math.sin(endAngle);
               const largeArc = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
-              paths += `<path d="M ${x1} ${-y1} A ${entity.radius} ${entity.radius} 0 ${largeArc} 1 ${x2} ${-y2}" stroke="black" stroke-width="0.5" fill="none" />`;
+              paths += `<path d="M ${x1} ${-y1} A ${entity.radius} ${entity.radius} 0 ${largeArc} 1 ${x2} ${-y2}" ${strokeAttrs} fill="none" />`;
             }
           } catch (err) {
             // Skip entities that fail to render

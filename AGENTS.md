@@ -224,35 +224,6 @@ if (!userId) {
 
 ---
 
-## Key Learnings from Real Sessions
-
-### Schema Design
-- System templates use `ownerId: null` (not `isSystem: true`)
-- Users copy and modify, don't override
-- Keep schemas minimal - only add fields when needed
-- OAuth provider IDs are strings, not ObjectIds
-
-### Implementation Flow
-- Complete cycle: Read task → Implement → Update docs → Mark [x] → Commit
-- Don't wait for reviews - user will tell you to stop
-- "Continue" means keep working through tasks
-- Track progress in implementation_plan.md
-
-### Communication
-**User wants:**
-- Continuous work until told "stop"
-- Autonomous commits without asking
-- Calm fixes of mistakes
-- Clear knowledge of what's done/what's next
-
-**User gets frustrated when:**
-- You stop without being told
-- You ask permission for every commit
-- You forget what's done
-- You write CAPS apology commits
-
----
-
 ## Debugging Tips
 
 - Check server logs in terminal running `npm run dev`
@@ -260,23 +231,6 @@ if (!userId) {
 - Use `curl` to test API endpoints directly
 - Check `/server/middleware/auth.js` if auth issues
 - Look at similar working code for patterns
-
----
-
-## Emergency Fixes
-
-### Git Lock Error
-```bash
-rm -f .git/index.lock
-```
-
-### Files Disappeared After `cat >`
-```bash
-ls -la  # Verify files exist before git add
-```
-
-### MongoDB Connection Issues
-Check `.env` file has `MONGODB_URI=mongodb://localhost:27017/nest2d`
 
 ---
 

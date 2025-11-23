@@ -4,7 +4,7 @@
     :header="cassette ? $t('cassette.editTitle') : $t('cassette.uploadTitle')"
     :modal="true"
     :closable="!isUploading"
-    :style="{ width: cassette ? '900px' : '500px' }"
+    :style="{ width: cassette ? '900px' : '900px' }"
     @hide="handleClose"
   >
     <div class="cassette-editor">
@@ -96,6 +96,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { cassettesStore } from '~/composables/cassettes';
 import { useLayerStandards } from '~/composables/layerStandards';
+import { usePenTemplates } from '~/composables/penTemplates';
 
 const props = defineProps({
   modelValue: {
@@ -123,12 +124,22 @@ const cassette = ref(null);
 const detectedLayers = ref([]);
 const layerMappings = ref({});
 const svgPreview = ref(null);
+const dxfFile = ref(null);
 
-const { state: layerStandardsState, fetchStandards } = useLayerStandards();
+const { state: layerStandardsState, fetchStandards, getByCode } = useLayerStandards();
+const { state: penState, fetchPens, getSystemPens } = usePenTemplates();
 
-// Fetch layer standards on mount
+// Fetch layer standards and pens on mount
 onMounted(async () => {
-  await fetchStandards();
+  await Promise.all([
+    fetchStandards(),
+    fetchPens()
+  ]);
+  
+  // Ensure system pens exist
+  if (getSystemPens().length === 0) {
+    console.warn('No system pens found. Please run: node server/scripts/seed-system-pens.js');
+  }
 });
 
 // Map layer standards from server to dropdown options
@@ -186,6 +197,7 @@ watch(() => props.cassetteId, async (newId) => {
 const handleFileSelect = async (event) => {
   if (event.files && event.files.length > 0) {
     selectedFile.value = event.files[0];
+    dxfFile.value = event.files[0];
     if (!name.value) {
       name.value = event.files[0].name.replace(/\.dxf$/i, '');
     }
@@ -195,15 +207,11 @@ const handleFileSelect = async (event) => {
     errorMessage.value = '';
     
     try {
-      const { extractDxfLayers, generateSvgPreview } = await import('~/utils/dxfParser');
+      const { extractDxfLayers } = await import('~/utils/dxfParser');
       
       // Extract layers
       const layers = await extractDxfLayers(selectedFile.value);
       detectedLayers.value = layers;
-      
-      // Generate SVG preview
-      const svg = await generateSvgPreview(selectedFile.value);
-      svgPreview.value = svg;
       
       // Initialize mappings for each detected layer
       detectedLayers.value.forEach(layer => {
@@ -211,6 +219,9 @@ const handleFileSelect = async (event) => {
           layerMappings.value[layer] = null;
         }
       });
+      
+      // Generate initial preview
+      await updatePreview();
     } catch (error) {
       errorMessage.value = error.message || 'Failed to parse DXF file';
       console.error('DXF parsing failed:', error);
@@ -222,6 +233,48 @@ const handleFileSelect = async (event) => {
     }
   }
 };
+
+// Update preview when layer mappings change
+const updatePreview = async () => {
+  if (!dxfFile.value) return;
+  
+  try {
+    const { generateSvgPreview } = await import('~/utils/dxfParser');
+    
+    // Get default pen (first system pen or black)
+    const systemPens = getSystemPens();
+    const defaultPen = systemPens.length > 0 ? systemPens[0] : {
+      stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' }
+    };
+    
+    // Build layer to pen mapping from selected layer standards
+    const layerToPenMap = {};
+    for (const [layerName, standardCode] of Object.entries(layerMappings.value)) {
+      if (standardCode) {
+        // Find the layer standard
+        const standard = layerStandardsState.standards.find(s => s.code === standardCode);
+        if (standard && standard.defaultPenId) {
+          // Find the pen by ID
+          const pen = penState.pens.find(p => p._id?.toString() === standard.defaultPenId?.toString());
+          if (pen) {
+            layerToPenMap[layerName] = pen;
+          }
+        }
+      }
+    }
+    
+    // Generate SVG with pen mappings
+    const svg = await generateSvgPreview(dxfFile.value, layerToPenMap, defaultPen);
+    svgPreview.value = svg;
+  } catch (error) {
+    console.error('Failed to update preview:', error);
+  }
+};
+
+// Watch layer mappings and regenerate preview
+watch(layerMappings, () => {
+  updatePreview();
+}, { deep: true });
 
 const handleUpload = async () => {
   if (!selectedFile.value || !name.value.trim()) return;
@@ -306,6 +359,7 @@ const handleClose = () => {
 const resetForm = () => {
   name.value = '';
   selectedFile.value = null;
+  dxfFile.value = null;
   isUploading.value = false;
   errorMessage.value = '';
   cassette.value = null;
@@ -369,7 +423,6 @@ const resetForm = () => {
   border: 1px solid var(--separator-primary);
   border-radius: 8px;
   padding: 16px;
-  background: var(--background-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -408,7 +461,6 @@ const resetForm = () => {
   padding: 12px;
   border: 1px solid var(--separator-primary);
   border-radius: 6px;
-  background: var(--background-secondary);
 }
 
 .layer-item label {

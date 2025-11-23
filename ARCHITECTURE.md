@@ -6,10 +6,10 @@
 
 ## Overview
 
-Cutkit-Demo is a DXF nesting application for CNC manufacturing. It handles multi-layer cassette templates with parametric capabilities, batch production workflows, and generates artifacts (layouts, G-code, PDFs).
+Cutkit-Demo is a DXF nesting application for CNC manufacturing. It handles multi-layer cassette templates with parametric capabilities, batch nesting workflows, and generates artifacts (layouts, G-code, PDFs).
 
 **Stack:**
-- **Frontend:** Nuxt.js 3 (SSR), Vue 3, PrimeVue (migrating), Tailwind CSS, PrimeVue
+- **Frontend:** Nuxt.js 3 (SSR), Vue 3, PrimeVue (migrating), Tailwind CSS
 - **Backend:** Nuxt.js Server (Nitro), MongoDB (native driver), GridFS
 - **Auth:** Session-based (cookies) + OAuth
 - **Workers:** Python workers for DXF processing and nesting
@@ -26,7 +26,7 @@ Cutkit-Demo is a DXF nesting application for CNC manufacturing. It handles multi
 **Current (v1):**
 - `users` - User accounts, balance, sessions
 - `projects` - User projects (slug, name, ownerId, statistics)
-- `user_dxf_files` - Uploaded DXF files
+- `user_dxf_files` - Uploaded DXF files (obsolete, replaced by cassettes)
 - `nesting_jobs` - Nesting results
 - `tables` - Project tables for batch data
 - `cassettes` - User cassette templates (basic)

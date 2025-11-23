@@ -204,7 +204,7 @@ const handleUploaded = async () => {
   background: transparent;
 }
 
-:deep(.p-dataview .p-grid) {
+:deep(.p-dataview .p-dataview-content) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 16px;
