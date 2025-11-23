@@ -65,7 +65,7 @@ const loading = ref(true);
 const activeTabIndex = ref(0);
 
 const { getters, actions } = batchesStore;
-const batches = computed(() => getters.batches.value);
+const batches = getters.batches; // Already a computed, don't wrap again
 const { fetchBatches, createBatch } = actions;
 
 onMounted(async () => {
