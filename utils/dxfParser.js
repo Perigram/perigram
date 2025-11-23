@@ -24,12 +24,14 @@ export async function extractDxfLayers(file) {
         const layerSet = new Set();
         dxf.entities.forEach(entity => {
           if (entity.layer) {
+            console.log('[extractDxfLayers] Found entity on layer:', entity.layer);
             layerSet.add(entity.layer);
           }
         });
         
         // Convert Set to sorted array
         const layers = Array.from(layerSet).sort();
+        console.log('[extractDxfLayers] Detected layers:', layers);
         resolve(layers);
       } catch (error) {
         reject(new Error(`Failed to parse DXF: ${error.message}`));
@@ -130,8 +132,15 @@ export async function generateSvgPreview(file, layerMapping = {}, defaultPen = n
         
         // Generate SVG paths grouped by layer
         let paths = '';
-        console.log('[dxfParser] Generating SVG with layerMapping:', Object.keys(layerMapping));
+        console.log('[dxfParser] Generating SVG with layerMapping keys:', Object.keys(layerMapping));
+        console.log('[dxfParser] layerMapping full:', layerMapping);
         console.log('[dxfParser] Default pen:', defaultPenSettings);
+        
+        // Sample first entity layer for debugging
+        if (dxf.entities.length > 0) {
+          console.log('[dxfParser] First entity layer name:', JSON.stringify(dxf.entities[0].layer));
+          console.log('[dxfParser] First mapping key:', JSON.stringify(Object.keys(layerMapping)[0]));
+        }
         
         dxf.entities.forEach(entity => {
           try {

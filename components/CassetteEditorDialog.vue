@@ -4,7 +4,7 @@
     :header="cassette ? $t('cassette.editTitle') : $t('cassette.uploadTitle')"
     :modal="true"
     :closable="!isUploading"
-    :style="{ width: cassette ? '900px' : '500px' }"
+    :style="{ width: cassette ? '900px' : '900px' }"
     @hide="handleClose"
   >
     <div class="cassette-editor">
