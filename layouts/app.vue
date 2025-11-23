@@ -1,33 +1,22 @@
 <template>
     <div class="app-layout">
-        <header class="app-header">
-            <div class="header-content">
-                <!-- Logo -->
+        <Menubar :model="menuItems" class="app-menubar">
+            <template #start>
                 <NuxtLink to="/projects" class="logo">
-                    <i class="pi pi-th-large logo-icon"></i>
-                    <span class="logo-text">CutKit</span>
+                    <i class="pi pi-th-large"></i>
+                    <span>CutKit</span>
                 </NuxtLink>
-
-                <!-- Breadcrumbs -->
-                <div class="breadcrumbs">
-                    <NuxtLink to="/projects" class="breadcrumb-item" :class="{ active: isProjectsPage }">
-                        {{ $t('projects.title') }}
-                    </NuxtLink>
-                    <template v-if="currentProject">
-                        <i class="pi pi-chevron-right separator"></i>
-                        <span class="breadcrumb-item active">{{ currentProject.name }}</span>
-                    </template>
-                </div>
-
-                <div class="spacer"></div>
-
-                <!-- Right side actions -->
-                <div class="header-actions">
+                <Divider layout="vertical" />
+                <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" />
+            </template>
+            
+            <template #end>
+                <div class="header-end">
                     <Button 
                         :label="$t('navigation.assets')"
                         text
-                        :class="{ 'active-nav': isAssetsPage }"
-                        @click="navigateTo('/assets')"
+                        :severity="isAssetsPage ? 'primary' : 'secondary'"
+                        @click="router.push('/assets')"
                     />
                     
                     <Button 
@@ -39,10 +28,10 @@
                         v-tooltip.bottom="$t('common.toggleTheme')"
                     />
                     
-                    <div class="balance-chip">
+                    <Chip>
                         <i class="pi pi-wallet"></i>
                         <UserBalance />
-                    </div>
+                    </Chip>
                     
                     <Button 
                         icon="pi pi-user"
@@ -55,8 +44,8 @@
                     />
                     <Menu ref="profileMenu" id="profile_menu" :model="profileMenuItems" :popup="true" />
                 </div>
-            </div>
-        </header>
+            </template>
+        </Menubar>
 
         <main class="app-main">
             <slot />
@@ -65,14 +54,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useColorMode } from '@vueuse/core';
 import Menubar from 'primevue/menubar';
+import Breadcrumb from 'primevue/breadcrumb';
+import Divider from 'primevue/divider';
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
+import Chip from 'primevue/chip';
 import UserBalance from '~/components/UserBalance.vue';
-import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -85,8 +76,21 @@ const currentProject = ref(null);
 const themeIcon = computed(() => mode.value === 'dark' ? 'pi pi-sun' : 'pi pi-moon');
 const userInitials = computed(() => 'U'); // TODO: Get from auth
 
-const isProjectsPage = computed(() => route.path === '/projects' || route.path === '/');
 const isAssetsPage = computed(() => route.path.startsWith('/assets'));
+
+const menuItems = ref([]); // Empty - using custom start/end templates
+
+const breadcrumbHome = computed(() => ({
+    icon: 'pi pi-home',
+    to: '/projects'
+}));
+
+const breadcrumbItems = computed(() => {
+    if (currentProject.value) {
+        return [{ label: currentProject.value.name }];
+    }
+    return [];
+});
 
 // Load current project if in project context
 onMounted(async () => {
@@ -145,20 +149,19 @@ const profileMenuItems = computed(() => [
     background: var(--surface-ground);
 }
 
-.app-header {
-    background: var(--surface-card);
-    border-bottom: 1px solid var(--surface-border);
+.app-menubar {
     position: sticky;
     top: 0;
     z-index: 1000;
     
-    .header-content {
+    :deep(.p-menubar-start) {
         display: flex;
         align-items: center;
-        gap: 1.5rem;
-        padding: 0.75rem 1.5rem;
-        max-width: 1600px;
-        margin: 0 auto;
+        gap: 1rem;
+    }
+    
+    :deep(.p-menubar-end) {
+        margin-left: auto;
     }
 }
 
@@ -172,7 +175,7 @@ const profileMenuItems = computed(() => [
     font-weight: 700;
     white-space: nowrap;
     
-    .logo-icon {
+    i {
         font-size: 1.5rem;
     }
     
@@ -181,65 +184,10 @@ const profileMenuItems = computed(() => [
     }
 }
 
-.breadcrumbs {
+.header-end {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.95rem;
-    
-    .breadcrumb-item {
-        color: var(--text-color-secondary);
-        text-decoration: none;
-        transition: color 0.2s;
-        
-        &:hover:not(.active) {
-            color: var(--primary-color);
-        }
-        
-        &.active {
-            color: var(--text-color);
-            font-weight: 600;
-        }
-    }
-    
-    .separator {
-        font-size: 0.75rem;
-        color: var(--text-color-secondary);
-    }
-}
-
-.spacer {
-    flex: 1;
-}
-
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    
-    .active-nav {
-        background: var(--primary-color);
-        color: white;
-        
-        &:hover {
-            background: var(--primary-color);
-            opacity: 0.9;
-        }
-    }
-}
-
-.balance-chip {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: var(--surface-100);
-    border-radius: var(--border-radius);
-    font-size: 0.9rem;
-    
-    i {
-        color: var(--primary-color);
-    }
 }
 
 .app-main {

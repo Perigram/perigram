@@ -1,28 +1,19 @@
 <template>
     <div class="project-workspace">
         <div class="project-header">
-            <h1>{{ project?.name || 'Project' }}</h1>
-            
-            <div class="project-tabs-and-actions">
-                <div class="project-tabs">
-                    <button 
-                        v-for="tab in tabs" 
-                        :key="tab.path"
-                        :class="['tab-button', { active: isActiveTab(tab.path) }]"
-                        @click="navigateToTab(tab.path)"
-                    >
-                        {{ tab.label }}
-                    </button>
-                </div>
+            <div class="header-row">
+                <h1>{{ project?.name || 'Project' }}</h1>
                 
                 <Button 
-                    v-if="isActiveTab('batches')"
+                    v-if="activeTab === 'batches'"
                     :label="$t('batches.create')"
                     icon="pi pi-plus"
                     size="small"
                     @click="createBatch"
                 />
             </div>
+            
+            <TabMenu :model="tabs" :activeIndex="activeTabIndex" @tab-change="onTabChange" />
         </div>
 
         <div class="project-content">
@@ -32,10 +23,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
+import TabMenu from 'primevue/tabmenu';
 
 definePageMeta({
     layout: 'app',
@@ -48,11 +40,13 @@ const { t } = useI18n();
 const slug = route.params.slug;
 
 const project = ref(null);
+const activeTab = ref('batches');
+const activeTabIndex = ref(1);
 
 const tabs = computed(() => [
-    { label: t('project.data'), path: 'data' },
-    { label: t('project.batches'), path: 'batches' },
-    { label: t('project.artifacts'), path: 'artifacts' }
+    { label: t('project.data'), to: `/project/${slug}/data`, key: 'data' },
+    { label: t('project.batches'), to: `/project/${slug}/batches`, key: 'batches' },
+    { label: t('project.artifacts'), to: `/project/${slug}/artifacts`, key: 'artifacts' }
 ]);
 
 onMounted(async () => {
@@ -62,23 +56,40 @@ onMounted(async () => {
         console.error('Failed to load project:', error);
     }
     
+    updateActiveTab();
+    
     // Redirect to batches if on index
     if (route.path === `/project/${slug}` || route.path === `/project/${slug}/`) {
         await router.push(`/project/${slug}/batches`);
     }
 });
 
-const isActiveTab = (tabPath) => {
-    return route.path.includes(`/project/${slug}/${tabPath}`);
+watch(() => route.path, () => {
+    updateActiveTab();
+});
+
+const updateActiveTab = () => {
+    if (route.path.includes('/data')) {
+        activeTab.value = 'data';
+        activeTabIndex.value = 0;
+    } else if (route.path.includes('/batches')) {
+        activeTab.value = 'batches';
+        activeTabIndex.value = 1;
+    } else if (route.path.includes('/artifacts')) {
+        activeTab.value = 'artifacts';
+        activeTabIndex.value = 2;
+    }
 };
 
-const navigateToTab = (tabPath) => {
-    router.push(`/project/${slug}/${tabPath}`);
+const onTabChange = (event) => {
+    const tab = tabs.value[event.index];
+    router.push(tab.to);
 };
 
 const createBatch = async () => {
     try {
-        const batchNumber = await $fetch(`/api/project/${slug}/batches`).then(batches => batches.length + 1);
+        const batches = await $fetch(`/api/project/${slug}/batches`);
+        const batchNumber = batches.length + 1;
         await $fetch(`/api/project/${slug}/batches`, {
             method: 'POST',
             body: {
@@ -106,46 +117,18 @@ const createBatch = async () => {
 .project-header {
     margin-bottom: 1.5rem;
     
-    h1 {
-        font-size: 1.75rem;
-        font-weight: 600;
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 1rem;
-        color: var(--text-color);
-    }
-}
-
-.project-tabs-and-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    border-bottom: 1px solid var(--surface-border);
-}
-
-.project-tabs {
-    display: flex;
-    gap: 0.5rem;
-    flex: 1;
-}
-
-.tab-button {
-    padding: 0.75rem 1.5rem;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    color: var(--text-color-secondary);
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    
-    &:hover {
-        color: var(--primary-color);
-        background: var(--surface-hover);
-    }
-    
-    &.active {
-        color: var(--primary-color);
-        border-bottom-color: var(--primary-color);
+        
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text-color);
+        }
     }
 }
 
