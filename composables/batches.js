@@ -110,19 +110,23 @@ const getArtifacts = async (batchId) => {
   }
 };
 
+const getters = {
+  batches: computed(() => state.batches),
+  currentBatch: computed(() => state.currentBatch),
+  loading: computed(() => state.loading),
+  error: computed(() => state.error)
+};
+
+const actions = {
+  fetchBatches,
+  getBatch,
+  createBatch,
+  updateBatch,
+  startNesting,
+  getArtifacts
+};
+
 export const batchesStore = readonly({
-  getters: {
-    batches: computed(() => state.batches),
-    currentBatch: computed(() => state.currentBatch),
-    loading: computed(() => state.loading),
-    error: computed(() => state.error)
-  },
-  actions: {
-    fetchBatches,
-    getBatch,
-    createBatch,
-    updateBatch,
-    startNesting,
-    getArtifacts
-  }
+  getters,
+  actions
 });
