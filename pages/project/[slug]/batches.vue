@@ -15,11 +15,11 @@
             <ProgressSpinner />
         </div>
 
-        <div v-else-if="batches.value?.length === 0" class="empty-state">
+        <div v-else-if="localBatches.value?.length === 0" class="empty-state">
             <i class="pi pi-inbox empty-icon"></i>
             <p class="empty-text">{{ $t('batches.noBatches') }}</p>
-            <p>DEBUG: batches.value = {{ batches.value }}</p>
-            <p>DEBUG: length = {{ batches.value?.length }}</p>
+            <p>DEBUG: localBatches.value = {{ localBatches.value }}</p>
+            <p>DEBUG: length = {{ localBatches.value?.length }}</p>
             <Button 
                 :label="$t('batches.createFirst')"
                 icon="pi pi-plus"
@@ -30,14 +30,14 @@
 
         <div v-else class="tabs-container">
             <div class="debug-info" style="background: yellow; padding: 10px; margin-bottom: 10px;">
-                DEBUG: batches.value.length = {{ batches.value?.length }}
+                DEBUG: localBatches.value.length = {{ localBatches.value?.length }}
                 <br>Loading: {{ loading }}
-                <br>First batch: {{ batches.value?.[0]?.name }}
+                <br>First batch: {{ localBatches.value?.[0]?.name }}
             </div>
             
             <TabView v-model:activeIndex="activeTabIndex" class="batch-tabs">
                 <TabPanel 
-                    v-for="(batch, index) in batches.value" 
+                    v-for="(batch, index) in localBatches.value" 
                     :key="batch._id"
                     :header="batch.name || `Batch ${batch.batchNumber}`"
                 >
@@ -92,7 +92,7 @@ watch(() => getters.batches.value, (newBatches) => {
 }, { immediate: true });
 
 onMounted(async () => {
-    console.log('onMounted START - batches.value:', batches.value);
+    console.log('onMounted START - localBatches.value:', localBatches.value);
     loading.value = true;
     try {
         // Load project data
@@ -101,28 +101,28 @@ onMounted(async () => {
         // Load batches
         await fetchBatches(slug);
         
-        console.log('onMounted AFTER fetchBatches - batches.value:', batches.value);
-        console.log('onMounted - batches.value.length:', batches.value?.length);
+        console.log('onMounted AFTER fetchBatches - localBatches.value:', localBatches.value);
+        console.log('onMounted - localBatches.value.length:', localBatches.value?.length);
         
         // Select last batch by default
-        const currentBatches = batches.value || [];
+        const currentBatches = localBatches.value || [];
         if (currentBatches.length > 0) {
             activeTabIndex.value = currentBatches.length - 1;
         }
         
-        console.log('onMounted END - batches.value:', batches.value);
+        console.log('onMounted END - localBatches.value:', localBatches.value);
     } catch (error) {
         console.error('Failed to load project/batches:', error);
     } finally {
         loading.value = false;
-        console.log('onMounted FINALLY - loading set to false, batches.value:', batches.value);
+        console.log('onMounted FINALLY - loading set to false, localBatches.value:', localBatches.value);
     }
 });
 
 const createNewBatch = async () => {
     console.log('createNewBatch called, slug:', slug);
     try {
-        const currentBatches = batches.value || [];
+        const currentBatches = localBatches.value || [];
         const batchNumber = currentBatches.length + 1;
         
         console.log('Creating batch:', { batchNumber, slug });
@@ -139,10 +139,10 @@ const createNewBatch = async () => {
         // Refresh and select new batch
         await fetchBatches(slug);
         
-        console.log('After fetch, batches.value is:', batches.value);
-        console.log('batches.value type:', typeof batches.value, Array.isArray(batches.value));
+        console.log('After fetch, localBatches.value is:', localBatches.value);
+        console.log('localBatches.value type:', typeof localBatches.value, Array.isArray(localBatches.value));
         
-        const updatedBatches = batches.value || [];
+        const updatedBatches = localBatches.value || [];
         activeTabIndex.value = updatedBatches.length - 1;
         
         console.log('Batches refreshed, count:', updatedBatches.length);
