@@ -66,6 +66,9 @@ const loading = ref(true);
 const activeTabIndex = ref(0);
 
 const { getters, actions } = batchesStore;
+console.log('getters:', getters);
+console.log('getters.batches:', getters.batches);
+console.log('getters.batches.value:', getters.batches.value);
 const batches = getters.batches; // Already a computed, don't wrap again
 const { fetchBatches, createBatch } = actions;
 
