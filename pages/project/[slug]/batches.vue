@@ -26,20 +26,31 @@
             />
         </div>
 
-        <TabView v-else v-model:activeIndex="activeTabIndex" class="batch-tabs">
-            <TabPanel 
-                v-for="(batch, index) in batches.value" 
-                :key="batch._id"
-                :header="batch.name || `Batch ${batch.batchNumber}`"
-            >
-                <div class="batch-content">
-                    <BatchManagement 
-                        :project-slug="slug" 
-                        :batch-id="batch._id"
-                    />
-                </div>
-            </TabPanel>
-        </TabView>
+        <div v-else class="tabs-container">
+            <div class="debug-info" style="background: yellow; padding: 10px; margin-bottom: 10px;">
+                DEBUG: batches.value.length = {{ batches.value?.length }}
+                <br>Loading: {{ loading }}
+                <br>First batch: {{ batches.value?.[0]?.name }}
+            </div>
+            
+            <TabView v-model:activeIndex="activeTabIndex" class="batch-tabs">
+                <TabPanel 
+                    v-for="(batch, index) in batches.value" 
+                    :key="batch._id"
+                    :header="batch.name || `Batch ${batch.batchNumber}`"
+                >
+                    <div class="batch-content">
+                        <p>Batch ID: {{ batch._id }}</p>
+                        <p>Batch Name: {{ batch.name }}</p>
+                        <p>Batch Number: {{ batch.batchNumber }}</p>
+                        <BatchManagement 
+                            :project-slug="slug" 
+                            :batch-id="batch._id"
+                        />
+                    </div>
+                </TabPanel>
+            </TabView>
+        </div>
     </div>
 </template>
 
