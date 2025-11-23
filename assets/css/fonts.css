@@ -2,13 +2,32 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
 
 /* Apply JetBrains Mono globally */
+:root {
+  --font-family: 'JetBrains Mono', monospace;
+}
+
 body,
-html,
-* {
+html {
   font-family: 'JetBrains Mono', monospace !important;
 }
 
+* {
+  font-family: inherit;
+}
+
 /* Override PrimeVue components */
-.p-component {
+.p-component,
+.p-inputtext,
+.p-button,
+.p-dropdown,
+.p-dialog {
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* Override all inputs and buttons */
+input,
+button,
+select,
+textarea {
   font-family: 'JetBrains Mono', monospace !important;
 }
