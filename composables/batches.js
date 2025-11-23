@@ -126,7 +126,7 @@ const actions = {
   getArtifacts
 };
 
-export const batchesStore = readonly({
+export const batchesStore = {
   getters,
   actions
-});
+};
