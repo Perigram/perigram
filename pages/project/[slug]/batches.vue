@@ -15,7 +15,7 @@
             <ProgressSpinner />
         </div>
 
-        <div v-else-if="!batches || batches.length === 0" class="empty-state">
+        <div v-else-if="!batches || batches.value?.length === 0" class="empty-state">
             <i class="pi pi-inbox empty-icon"></i>
             <p class="empty-text">{{ $t('batches.noBatches') }}</p>
             <Button 
@@ -28,7 +28,7 @@
 
         <TabView v-else v-model:activeIndex="activeTabIndex" class="batch-tabs">
             <TabPanel 
-                v-for="(batch, index) in batches" 
+                v-for="(batch, index) in batches.value" 
                 :key="batch._id"
                 :header="batch.name || `Batch ${batch.batchNumber}`"
             >
