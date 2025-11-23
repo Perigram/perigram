@@ -271,26 +271,25 @@ Project Layout Sidebar:
 #### Phase 3.2.2: Dashboard Page (New Home)
 **Goal:** Replace `/pages/home.vue` with modern dashboard.
 
-- [ ] Create `/pages/dashboard.vue` (replace home.vue)
-  - [ ] Use PrimeVue `Card` for sections
-  - [ ] Recent Projects grid with `DataView`
-  - [ ] Quick actions panel (New Project, Upload Cassette, Buy Credits)
-  - [ ] Usage statistics with `Chart` (optional)
-  - [ ] Recent activity feed
+- [x] Create `/pages/dashboard.vue` (replace home.vue) (2025-11-23)
+  - [x] Use PrimeVue `Card` for sections
+  - [x] Recent Projects grid with `DataView`
+  - [x] Quick actions panel (New Project, Upload Cassette, Buy Credits)
+  - [x] Usage statistics (Projects, Cassettes, Balance)
   
-- [ ] Create `/pages/index.vue` redirect logic
-  - [ ] Unauthenticated → Landing page
-  - [ ] Authenticated → Dashboard
+- [x] Create `/pages/index.vue` redirect logic (2025-11-23)
+  - [x] Unauthenticated → Landing page
+  - [x] Authenticated → Dashboard
   
 - [ ] Create new landing page at `/pages/landing.vue`
   - [ ] Move current index.vue content here
   - [ ] Modernize with PrimeVue components
   - [ ] Replace all MainButton with PrimeVue Button
 
-**Components to Create:**
-- `DashboardStats.vue` - Statistics cards
-- `RecentProjects.vue` - Project grid with actions
-- `QuickActions.vue` - Action buttons panel
+**Components Created:**
+- [x] `DashboardStats.vue` - Statistics cards (2025-11-23)
+- [x] `RecentProjects.vue` - Project grid with actions (2025-11-23)
+- [x] `QuickActions.vue` - Action buttons panel (2025-11-23)
 - `ActivityFeed.vue` - Recent activity list (optional v2)
 
 **Documentation:** Update `/ONBOARDING.md` section "User Workflows"

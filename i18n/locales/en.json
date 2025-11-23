@@ -20,7 +20,23 @@
     "filter": "Filter",
     "units": "units",
     "uploading": "Uploading...",
-    "created": "Created"
+    "created": "Created",
+    "open": "Open"
+  },
+  "dashboard": {
+    "welcome": "Welcome to CutKit",
+    "subtitle": "Manage your nesting projects and cassettes",
+    "newProject": "New Project",
+    "uploadCassette": "Upload Cassette",
+    "buyCredits": "Buy Credits",
+    "projects": "Projects",
+    "cassettes": "Cassettes",
+    "balance": "Credits Balance",
+    "recentProjects": "Recent Projects",
+    "viewAll": "View All",
+    "noProjects": "No projects yet. Create your first project to get started.",
+    "createFirstProject": "Create First Project",
+    "results": "results"
   },
   "nav": {
     "projects": "Projects",

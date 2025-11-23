@@ -130,6 +130,13 @@
 definePageMeta({
     middleware: 'auth'
 })
+
+// Redirect authenticated users to dashboard
+const { data: user } = await useFetch('/api/user');
+if (user.value) {
+    navigateTo('/dashboard');
+}
+
 onMounted(() => {
     trackEvent('page_view', { page: 'landing' })
 })
