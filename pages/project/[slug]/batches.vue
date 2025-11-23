@@ -65,7 +65,7 @@ const loading = ref(true);
 const activeTabIndex = ref(0);
 
 const { getters, actions } = batchesStore;
-const { batches } = getters;
+const batches = computed(() => getters.batches.value);
 const { fetchBatches, createBatch } = actions;
 
 onMounted(async () => {
@@ -78,8 +78,9 @@ onMounted(async () => {
         await fetchBatches(slug);
         
         // Select last batch by default
-        if (batches.value && batches.value.length > 0) {
-            activeTabIndex.value = batches.value.length - 1;
+        const currentBatches = batches.value || [];
+        if (currentBatches.length > 0) {
+            activeTabIndex.value = currentBatches.length - 1;
         }
     } catch (error) {
         console.error('Failed to load project/batches:', error);
@@ -90,8 +91,10 @@ onMounted(async () => {
 
 const createNewBatch = async () => {
     try {
-        const batchNumber = (batches.value?.length || 0) + 1;
-        const newBatch = await createBatch(slug, {
+        const currentBatches = batches.value || [];
+        const batchNumber = currentBatches.length + 1;
+        
+        await createBatch(slug, {
             name: `Batch ${batchNumber}`,
             batchNumber,
             status: 'DRAFT',
@@ -100,9 +103,11 @@ const createNewBatch = async () => {
         
         // Refresh and select new batch
         await fetchBatches(slug);
-        activeTabIndex.value = batches.value.length - 1;
+        const updatedBatches = batches.value || [];
+        activeTabIndex.value = updatedBatches.length - 1;
     } catch (error) {
         console.error('Failed to create batch:', error);
+        alert('Failed to create batch: ' + error.message);
     }
 };
 </script>
