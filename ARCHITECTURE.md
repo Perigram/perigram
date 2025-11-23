@@ -332,6 +332,43 @@ export const layerStandardsStore = readonly({
 
 Themes applied via `data-theme` attribute on `<html>`.
 
+### Layouts
+
+**New (2025-11-23):**
+
+1. **dashboard.vue** - Main authenticated app layout
+   - PrimeVue Menubar with Projects/Assets/Profile dropdowns
+   - Breadcrumb navigation
+   - Mobile responsive (sidebar for mobile)
+   - Integrated theme toggle, UserBalance, Avatar
+   - Support button (floating)
+   - Used for: Dashboard, Projects hub, Assets pages, Profile
+
+2. **project.vue** - Project workspace layout
+   - Sidebar navigation (Overview, Files, Batches, Nesting, Artifacts, Settings)
+   - Project-specific header with breadcrumbs
+   - Sticky sidebar (hidden on mobile)
+   - Quick access to project actions
+   - Used for: All `/project/:slug/*` pages
+
+**Legacy:**
+- **auth.vue** - Old sidebar-based layout (being phased out)
+- **default.vue** - Landing page layout
+- **profile.vue** - Profile-specific layout (may be replaced)
+
+**Navigation Structure:**
+```
+Dashboard Layout:
+├── Top Nav: Projects | Assets | Profile
+├── Breadcrumb: Home > Current Path
+└── Content Area
+
+Project Layout:
+├── Header: Back | Project Name | Actions
+├── Sidebar: Overview | Files | Batches | Nesting | Artifacts | Settings
+└── Main Content
+```
+
 ---
 
 ## API Patterns
