@@ -40,6 +40,20 @@
 
       <!-- Layer Mapping Section -->
       <div v-if="showMappingSection && !isUploading" class="mapping-layout">
+        <div class="preview-panel">
+          <h3>{{ $t('cassette.preview') }}</h3>
+          <div v-if="cassette?.svgId" class="svg-preview">
+            <img 
+              :src="`/api/files/svg/${cassette.svgId}`" 
+              :alt="name" 
+            />
+          </div>
+          <div v-else class="no-preview">
+            <i class="pi pi-image" style="font-size: 3rem"></i>
+            <p>{{ $t('cassette.noPreview') }}</p>
+          </div>
+        </div>
+
         <div class="layers-panel">
           <h3>{{ $t('cassette.layerMapping') }}</h3>
           <div v-if="detectedLayers && detectedLayers.length > 0" class="layer-list">
@@ -84,8 +98,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { cassettesStore } from '~/composables/cassettes';
+import { useLayerStandards } from '~/composables/layerStandards';
 
 const props = defineProps({
   modelValue: {
@@ -112,19 +127,29 @@ const errorMessage = ref('');
 const cassette = ref(null);
 const detectedLayers = ref([]);
 const layerMappings = ref({});
-const localSvgPreview = ref(null);
+
+const { state: layerStandardsState, fetchStandards } = useLayerStandards();
+
+// Fetch layer standards on mount
+onMounted(async () => {
+  await fetchStandards();
+});
+
+// Map layer standards to dropdown options
+const layerStandards = computed(() => {
+  const options = [
+    { label: 'Рез', value: 'cut' },
+    { label: 'Гибка', value: 'bend' },
+    { label: 'Рамка', value: 'frame' },
+    { label: 'Размеры', value: 'dimensions' },
+    { label: 'Не использовать', value: null }
+  ];
+  return options;
+});
 
 const showMappingSection = computed(() => {
   return selectedFile.value !== null && detectedLayers.value.length > 0;
 });
-
-const layerStandards = computed(() => [
-  { label: 'Рез', value: 'cut' },
-  { label: 'Гибка', value: 'bend' },
-  { label: 'Рамка', value: 'frame' },
-  { label: 'Размеры', value: 'dimensions' },
-  { label: 'Не использовать', value: null }
-]);
 
 const canUpload = computed(() => {
   return selectedFile.value && name.value.trim();
