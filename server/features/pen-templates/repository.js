@@ -22,9 +22,25 @@ export async function findSystem() {
 }
 
 export async function findByOwner(ownerId) {
+  if (!ownerId) {
+    return [];
+  }
+  
   const db = await connectDB();
+  
+  // ownerId for pen templates should be ObjectId (user's internal ID)
+  // But if string is passed (OAuth ID), try to find user first
+  let ownerObjectId;
+  if (typeof ownerId === 'string' && !ObjectId.isValid(ownerId)) {
+    // This is an OAuth ID like "google:117482666136714297322"
+    // For now, just return empty array (user pens use internal ObjectId)
+    return [];
+  }
+  
+  ownerObjectId = toObjectId(ownerId);
+  
   return await db.collection(COLLECTION)
-    .find({ ownerId: toObjectId(ownerId) })
+    .find({ ownerId: ownerObjectId })
     .sort({ name: 1 })
     .toArray();
 }
