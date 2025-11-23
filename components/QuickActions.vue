@@ -34,7 +34,7 @@ const router = useRouter();
 const buyCreditsDialog = useBuyCreditsDialog();
 
 const createProject = () => {
-    router.push('/projects/new');
+    router.push('/projects');
 };
 
 const uploadCassette = () => {

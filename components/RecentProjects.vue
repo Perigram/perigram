@@ -123,7 +123,7 @@ const viewAllProjects = () => {
 };
 
 const createProject = () => {
-    router.push('/projects/new');
+    router.push('/projects');
 };
 </script>
 
