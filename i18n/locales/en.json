@@ -103,6 +103,8 @@
   },
   "batches": {
     "create": "Create Batch",
+    "createFirst": "Create First Batch",
+    "noBatches": "No batches yet. Create your first batch to start working.",
     "name": "Batch Name",
     "enterName": "Enter batch name"
   },

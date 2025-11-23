@@ -1,4 +1,4 @@
-import { defineEventHandler, createError } from "h3";
+import { defineEventHandler, createError, readMultipartFormData } from "h3";
 
 import { connectDB } from "~~/server/db/mongo";
 import { saveFilesToProject } from "~~/server/core/project/dxf";

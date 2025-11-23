@@ -1,55 +1,54 @@
 <template>
-    <div class="batches-page">
-        <div class="page-header">
-            <h2>{{ $t('project.batches') }}</h2>
+    <div class="batches-workspace">
+        <div class="workspace-header">
+            <h1 class="project-title">{{ project?.name }}</h1>
+            <div class="header-actions">
+                <Button 
+                    :label="$t('batches.create')"
+                    icon="pi pi-plus"
+                    @click="createNewBatch"
+                />
+            </div>
+        </div>
+
+        <div v-if="loading" class="loading-state">
+            <ProgressSpinner />
+        </div>
+
+        <div v-else-if="!batches || batches.length === 0" class="empty-state">
+            <i class="pi pi-inbox empty-icon"></i>
+            <p class="empty-text">{{ $t('batches.noBatches') }}</p>
             <Button 
-                :label="$t('batches.create')"
+                :label="$t('batches.createFirst')"
                 icon="pi pi-plus"
-                @click="showCreateDialog = true"
+                size="large"
+                @click="createNewBatch"
             />
         </div>
 
-        <BatchManagement :project-slug="slug" />
-        
-        <!-- Create Batch Dialog -->
-        <Dialog 
-            v-model:visible="showCreateDialog"
-            :header="$t('batches.create')"
-            modal
-            :style="{ width: '500px' }"
-        >
-            <div class="create-form">
-                <div class="field">
-                    <label for="batchName">{{ $t('batches.name') }}</label>
-                    <InputText 
-                        id="batchName"
-                        v-model="newBatchName"
-                        :placeholder="$t('batches.enterName')"
-                        class="w-full"
+        <TabView v-else v-model:activeIndex="activeTabIndex" class="batch-tabs">
+            <TabPanel 
+                v-for="(batch, index) in batches" 
+                :key="batch._id"
+                :header="batch.name || `Batch ${batch.batchNumber}`"
+            >
+                <div class="batch-content">
+                    <BatchManagement 
+                        :project-slug="slug" 
+                        :batch-id="batch._id"
                     />
                 </div>
-            </div>
-            <template #footer>
-                <Button 
-                    :label="$t('common.cancel')"
-                    text
-                    @click="showCreateDialog = false"
-                />
-                <Button 
-                    :label="$t('common.create')"
-                    :loading="creating"
-                    @click="createBatch"
-                />
-            </template>
-        </Dialog>
+            </TabPanel>
+        </TabView>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
-import InputText from 'primevue/inputtext';
+import TabView from 'primevue/tabview';
+import TabPanel from 'primevue/tabpanel';
+import ProgressSpinner from 'primevue/progressspinner';
 import BatchManagement from '~/components/BatchManagement.vue';
 import { batchesStore } from '~/composables/batches';
 
@@ -61,61 +60,114 @@ definePageMeta({
 const route = useRoute();
 const slug = route.params.slug;
 
-const showCreateDialog = ref(false);
-const newBatchName = ref('');
-const creating = ref(false);
+const project = ref(null);
+const loading = ref(true);
+const activeTabIndex = ref(0);
 
-const { actions } = batchesStore;
-const { createBatch: createBatchAction, fetchBatches } = actions;
+const { getters, actions } = batchesStore;
+const { batches } = getters;
+const { fetchBatches, createBatch } = actions;
 
-const createBatch = async () => {
-    creating.value = true;
+onMounted(async () => {
+    loading.value = true;
     try {
-        await createBatchAction(slug, {
-            name: newBatchName.value || `Batch ${Date.now()}`
+        // Load project data
+        project.value = await $fetch(`/api/project/${slug}`);
+        
+        // Load batches
+        await fetchBatches(slug);
+        
+        // Select last batch by default
+        if (batches.value && batches.value.length > 0) {
+            activeTabIndex.value = batches.value.length - 1;
+        }
+    } catch (error) {
+        console.error('Failed to load project/batches:', error);
+    } finally {
+        loading.value = false;
+    }
+});
+
+const createNewBatch = async () => {
+    try {
+        const batchNumber = (batches.value?.length || 0) + 1;
+        const newBatch = await createBatch(slug, {
+            name: `Batch ${batchNumber}`,
+            batchNumber,
+            status: 'DRAFT',
+            entries: []
         });
         
-        showCreateDialog.value = false;
-        newBatchName.value = '';
-        
-        // Refresh batches
+        // Refresh and select new batch
         await fetchBatches(slug);
+        activeTabIndex.value = batches.value.length - 1;
     } catch (error) {
         console.error('Failed to create batch:', error);
-    } finally {
-        creating.value = false;
     }
 };
 </script>
 
 <style lang="scss" scoped>
-.batches-page {
-    .page-header {
+.batches-workspace {
+    .workspace-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--surface-border);
         
-        h2 {
-            font-size: 1.5rem;
+        .project-title {
+            font-size: 1.75rem;
             font-weight: 600;
             margin: 0;
+            color: var(--text-color);
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
         }
     }
 }
 
-.create-form {
-    padding: 1rem 0;
+.loading-state {
+    display: flex;
+    justify-content: center;
+    padding: 4rem 0;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
     
-    .field {
+    .empty-icon {
+        font-size: 4rem;
+        color: var(--text-color-secondary);
         margin-bottom: 1rem;
-        
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--text-color);
-        }
+        opacity: 0.5;
     }
+    
+    .empty-text {
+        font-size: 1.125rem;
+        color: var(--text-color-secondary);
+        margin-bottom: 1.5rem;
+    }
+}
+
+.batch-tabs {
+    :deep(.p-tabview-nav) {
+        background: var(--surface-card);
+        border-bottom: 1px solid var(--surface-border);
+    }
+    
+    :deep(.p-tabview-panels) {
+        padding: 1.5rem 0;
+        background: transparent;
+    }
+}
+
+.batch-content {
+    min-height: 400px;
 }
 </style>
