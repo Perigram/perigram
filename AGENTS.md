@@ -118,6 +118,7 @@ export const myFeatureStore = readonly({
 - Use PrimeVue for new components
 - Follow existing file structure in `/components/`
 - Use design tokens from `/assets/css/main.css`
+- Use Tailwind classes for layout/styling
 
 ---
 
@@ -155,7 +156,7 @@ export const myFeatureStore = readonly({
 node server/scripts/test-endpoint.js
 
 # Frontend
-npm run dev  # Manual testing in browser
+Don't run `npm run dev`  # It's already running
 ```
 
 ---
@@ -175,10 +176,14 @@ npm run dev  # Manual testing in browser
 { userId: userId }  // Direct string comparison
 ```
 
+### Collections usage
+If data from server is undefined, check direct fetching instead of using stores, as some collections might not have store implementations yet.
+
 ### Collection Names
 
 **⚠️ Legacy:** Some collections use old names:
 - `cassettes` (not `cassette_templates`)
+- `artifacts` (not `results` or `files`)
 - Check `/docs/specs/data-schema.md` for actual collection names
 
 ### Authentication Context

@@ -22,14 +22,6 @@
                     :disabled="batch.status !== 'DRAFT'"
                 />
                 <Button 
-                    :label="$t('batches.runNesting')"
-                    icon="pi pi-play"
-                    severity="success"
-                    @click="runNesting"
-                    :disabled="batch.status !== 'DRAFT' || entries.length === 0"
-                    :loading="nestingInProgress"
-                />
-                <Button 
                     v-if="batch.status === 'NESTED'"
                     :label="$t('batches.markComplete')"
                     icon="pi pi-check"
@@ -38,6 +30,35 @@
                 />
             </div>
         </div>
+
+        <!-- Nesting Options Section -->
+        <Fieldset :legend="$t('nesting.settings')" :toggleable="true" :collapsed="batch.status !== 'DRAFT'">
+            <div class="nesting-options-grid">
+                <div class="field">
+                    <label for="plateWidth">{{ $t('nesting.plateWidth') }} (mm)</label>
+                    <InputNumber id="plateWidth" v-model="nestingOptions.width" :min="0" />
+                </div>
+                <div class="field">
+                    <label for="plateHeight">{{ $t('nesting.plateHeight') }} (mm)</label>
+                    <InputNumber id="plateHeight" v-model="nestingOptions.height" :min="0" />
+                </div>
+                <div class="field">
+                    <label for="spacing">{{ $t('nesting.spacing') }} (mm)</label>
+                    <InputNumber id="spacing" v-model="nestingOptions.space" :min="0" />
+                </div>
+                <div class="field-action">
+                    <Button 
+                        :label="$t('batches.runNesting')"
+                        icon="pi pi-play"
+                        severity="success"
+                        @click="runNesting"
+                        :disabled="batch.status !== 'DRAFT' || entries.length === 0"
+                        :loading="nestingInProgress"
+                        class="w-full"
+                    />
+                </div>
+            </div>
+        </Fieldset>
 
         <!-- Entries DataTable -->
         <DataTable 
@@ -77,16 +98,6 @@
                 </template>
             </Column>
 
-            <!-- Entry ID Column -->
-            <Column field="entryId" :header="$t('batches.entryId')" style="width: 15%">
-                <template #body="slotProps">
-                    <span>{{ slotProps.data.entryId || '-' }}</span>
-                </template>
-                <template #editor="{ data }">
-                    <InputText v-model="data.entryId" class="w-full" />
-                </template>
-            </Column>
-
             <!-- Quantity Column -->
             <Column field="quantity" :header="$t('batches.quantity')" style="width: 10%">
                 <template #editor="{ data }">
@@ -113,6 +124,23 @@
                         :min="0"
                         class="w-full"
                     />
+                </template>
+            </Column>
+
+            <!-- Options Columns (Dynamic based on cassette options) -->
+            <Column
+                v-for="option in allOptions"
+                :key="option"
+                :field="`options.${option}`"
+                :header="option"
+                style="width: 10%"
+            >
+                <template #body="slotProps">
+                    <i v-if="slotProps.data.options?.[option]" class="pi pi-check-circle text-green-500"></i>
+                    <i v-else class="pi pi-times-circle text-red-500"></i>
+                </template>
+                <template #editor="{ data }">
+                    <InputSwitch v-model="data.options[option]" />
                 </template>
             </Column>
 
@@ -228,9 +256,11 @@ import Tag from 'primevue/tag';
 import Dropdown from 'primevue/dropdown';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
+import InputSwitch from 'primevue/inputswitch';
 import Dialog from 'primevue/dialog';
 import DataView from 'primevue/dataview';
 import ConfirmDialog from 'primevue/confirmdialog';
+import Fieldset from 'primevue/fieldset';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 
 const props = defineProps({
@@ -257,6 +287,12 @@ const nestingInProgress = ref(false);
 const showAddDialog = ref(false);
 const showUploadDialog = ref(false);
 const cassettes = ref([]);
+
+const nestingOptions = ref({
+    width: 2440,
+    height: 1220,
+    space: 5,
+});
 
 // New entry form
 const newEntry = ref({
@@ -311,6 +347,22 @@ const allParameters = computed(() => {
     const result = Array.from(params).sort();
     console.log('[BatchEditor] All parameters:', result);
     return result;
+});
+
+// Get all unique options from all entries based on their cassettes
+const allOptions = computed(() => {
+    const options = new Set();
+    entries.value.forEach(entry => {
+        const cassette = cassettes.value.find(c => c._id === entry.cassetteTemplateId);
+        if (cassette?.options) {
+            Object.keys(cassette.options).forEach(option => options.add(option));
+        }
+        // Also include any existing options on the entry itself
+        if (entry.options) {
+            Object.keys(entry.options).forEach(key => options.add(key));
+        }
+    });
+    return Array.from(options).sort();
 });
 
 const getCassetteName = (id) => {
@@ -444,7 +496,8 @@ const runNesting = async () => {
     nestingInProgress.value = true;
     try {
         await $fetch(`/api/batch/${props.batch._id}/nest`, {
-            method: 'POST'
+            method: 'POST',
+            body: nestingOptions.value
         });
         emit('updated');
         await loadArtifacts();
@@ -572,6 +625,19 @@ const onCassetteUploaded = async () => {
         }
     }
     
+    .nesting-options-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        align-items: end;
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+
     .add-entry-form {
         .field {
             margin-bottom: 1rem;

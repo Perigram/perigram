@@ -143,6 +143,24 @@ export async function getCassettesSvgBucket() {
   return cassettesSvgBucket;
 }
 
+/**
+ * @type {GridFSBucket}
+ */
+let artifactsBucket;
+
+/**
+ * @returns {Promise<GridFSBucket>}
+ */
+export async function getArtifactsBucket() {
+  await connectDB();
+  if (!artifactsBucket) {
+    artifactsBucket = new GridFSBucket(db, {
+      bucketName: "artifacts",
+    });
+  }
+  return artifactsBucket;
+}
+
 export async function connectDB() {
   if (!client) {
     try {

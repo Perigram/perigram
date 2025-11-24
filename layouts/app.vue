@@ -1,6 +1,6 @@
 <template>
     <div class="app-layout">
-        <Menubar :model="menuItems" class="app-menubar">
+    <Menubar :model="menuItems" class="app-menubar rounded-none border-x-0 border-t-0 border-b border-300">
             <template #start>
                 <NuxtLink to="/projects" class="logo">
                     <i class="pi pi-th-large"></i>

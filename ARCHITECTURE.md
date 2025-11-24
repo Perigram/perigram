@@ -72,11 +72,13 @@ node server/db/indexes.js list batches
 
 ### GridFS Buckets
 
-- `avatars` - User profile images
-- `userDxf` - Original uploaded DXF files
-- `userDxfFilesSvg` - SVG previews
-- `cassettes` - Cassette DXF files (migrating)
-- `artifacts` - Generated outputs (new)
+File storage for large binary data is handled by GridFS, MongoDB's file storage system. Each bucket is a separate namespace for files.
+
+- `avatars` - User profile images.
+- `userDxf` - Original uploaded DXF files for legacy projects.
+- `cassettes` - DXF files for cassette templates.
+- `artifacts` - Stores all generated output files from nesting jobs, such as layout SVGs, DXFs, G-code, and PDF reports. Files are streamed to the user via the `GET /api/artifacts/:id` endpoint.
+
 
 ---
 

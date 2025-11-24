@@ -35,6 +35,8 @@
             </main>
         </div>
 
+        <Toast />
+        <ConfirmDialog />
         <Footer />
         
         <ChatSupport v-if="supportDialog" />
@@ -58,6 +60,8 @@ import Breadcrumb from 'primevue/breadcrumb';
 import UserBalance from '~/components/UserBalance.vue';
 import Footer from '~/components/Footer.vue';
 import ChatSupport from '~/components/ChatSupport.vue';
+import Toast from 'primevue/toast';
+import ConfirmDialog from 'primevue/confirmdialog';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -91,6 +95,12 @@ const sidebarItems = computed(() => {
             icon: 'pi pi-table',
             command: () => router.push(`/project/${slug}/batches`),
             class: currentPath.includes('/batches') ? 'active-item' : ''
+        },
+        {
+            label: t('project.artifacts'),
+            icon: 'pi pi-file-excel',
+            command: () => router.push(`/project/${slug}/artifacts`),
+            class: currentPath.includes('/artifacts') ? 'active-item' : ''
         },
         {
             label: t('project.files'),

@@ -178,7 +178,7 @@ In a nut-shell, service is all about paid 2d cassette nesting. Cassette is a 2d 
 - [x] Create `/server/features/artifacts/index.js` (2025-11-22)
 - [x] Create `GET /api/artifacts/:id` endpoint (2025-11-22)
 - [x] Create `DELETE /api/artifacts/:id` endpoint (2025-11-22)
-- [ ] Integrate GridFS for file storage
+- [x] Integrate GridFS for file storage (2025-11-24)
 - [x] Document service API in `/ARCHITECTURE.md` (2025-11-22)
 - [ ] Code review & merge
 
@@ -345,11 +345,11 @@ Project Layout Sidebar:
   - [x] Uses existing BatchManagement component
   - [x] Create batch dialog
   
-- [ ] Create `/pages/project/[slug]/artifacts.vue`
-  - [ ] Artifact list with `DataTable`
-  - [ ] Preview modal for layouts (SVG/image)
-  - [ ] Download actions with `SplitButton` (PDF, DXF, G-code)
-  - [ ] Filter by type and status
+- [x] Create `/pages/project/[slug]/artifacts.vue` (2025-11-24)
+  - [x] Artifact list with `DataTable`
+  - [x] Preview modal for layouts (SVG/image)
+  - [x] Download actions
+  - [x] Filter by type and status (implicit in table)
 
 **Legacy:**
 - Old `/pages/project/[slug].vue` moved to `/pages/project/[slug]/legacy.vue`
@@ -452,7 +452,7 @@ Assets Section:
 #### Phase 3.2.8: Polish & Consistency
 **Goal:** Final touches for production-ready UI.
 
-- [ ] Consistent spacing and sizing (use PrimeVue design tokens)
+- [ ] Consistent spacing and sizing (use PrimeVue design tokens, themes and Tailwind)
 - [ ] Loading states with PrimeVue `Skeleton` and `ProgressSpinner`
 - [ ] Empty states with icons and helpful messages
 - [ ] Error states with PrimeVue `Message` component
@@ -491,31 +491,6 @@ Assets Section:
 
 ---
 
-### 3.3 PrimeVue Complex Components (DEPRECATED - See 3.2 for new plan)
-
-**Note:** This section is superseded by Phase 3.2 UI/UX Complete Overhaul.
-
-#### Data Display Components
-- [ ] Replace custom `TableEditor` with PrimeVue `DataTable`
-- [ ] Add inline editing with DataTable row editing
-- [ ] Test pagination, sorting, filtering
-- [ ] Document DataTable patterns
-
-#### Dialog Components  
-- [ ] Replace custom modals with PrimeVue `Dialog`
-- [ ] Update all dialog state management to use `v-model:visible`
-- [ ] Test modal backdrop and ESC key handling
-
-#### File Upload
-- [ ] Evaluate PrimeVue `FileUpload` vs existing custom solution
-- [ ] If suitable, migrate file upload components
-- [ ] Test FormData submission with GridFS
-
-#### Tab Navigation
-- [ ] Keep existing `Tabs` component (already working well)
-- [ ] Or migrate to PrimeVue `TabView` if needed
-- [ ] Update project page tabs
-
 **PrimeVue Components:**
 ```vue
 <DataTable :value="data" editMode="row" @row-edit-save="onSave">
@@ -535,11 +510,13 @@ Assets Section:
 
 ---
 
-### 3.4 New Composables ✅ COMPLETE
+### 3.4 New Composables
 - [x] Create `/composables/layerStandards.js` (2025-11-22)
 - [x] Create `/composables/penTemplates.js` (2025-11-22)
 - [x] Create `/composables/toolProfiles.js` (2025-11-22)
 - [x] Create `/composables/batches.js` (2025-11-22)
+- [x] Create `/composables/artifacts.js` (2025-11-24)
+- [ ] Check `/composables/cassettes.js`
 - [x] Document store pattern in `/ARCHITECTURE.md` (2025-11-22)
 
 **Documentation:** Update `/ARCHITECTURE.md` section "Frontend Architecture"
@@ -561,14 +538,13 @@ Assets Section:
 - [x] Add upload endpoint with layer mappings (2025-11-22)
 - [x] Fix cassettes getter name (allCassettes) (2025-11-22)
 - [ ] Add locales for new cassette UI strings
-- [ ] Implement SVG preview display in dialog
+- [ ] Add edit dialog for existing cassette (layer mappings + preview + name, take from upload dialog)
 - [ ] Polish cassette card display
-- [ ] Create `ParameterEditor.vue` with PrimeVue form components
-- [ ] Test cassette CRUD operations end-to-end
+- [x] Create `ParameterEditor.vue` with PrimeVue form components
+- [x] Test cassette CRUD operations end-to-end
 - [ ] Document page structure in `/ONBOARDING.md`
 
 **Known Issues:**
-- Layer detection returns mock data (will be fixed with Python worker integration in Phase 3)
 - SVG preview not fetching from GridFS yet
 - Some UI strings not localized
 
@@ -597,12 +573,16 @@ Assets Section:
 
 **Documentation:** Update `/ONBOARDING.md` section "Project Structure"
 
-#### Batch Management ✅ COMPLETE
+#### Batch Management
 - [x] Create `/pages/project/[slug]/batches.vue` (integrated into project tabs) (2025-11-22)
 - [x] Create `BatchManagement.vue` component (2025-11-22)
 - [x] Create `BatchEditor.vue` component (via BatchManagement dialog) (2025-11-22)
 - [x] Create `BatchEntryEditor.vue` component (2025-11-22)
 - [x] Test batch operations (2025-11-22)
+- [x] Add nesting options section: sheet size, spacing. Move "nesting" button here. (2025-11-24)
+- [x] In table, no entryId column needed (2025-11-24)
+- [x] In table, need delete action column (already existed)
+- [x] In table, add options as columns along with parameters (2025-11-24)
 - [ ] Document page structure in `/ONBOARDING.md`
 
 **PrimeVue Components Used:**
@@ -655,7 +635,7 @@ Assets Section:
 
 ---
 
-## Phase 5: Deployment
+## Phase 5: Deployment (NOT FOR AI TO COMPLETE)
 
 - [ ] Create deployment checklist
 - [ ] Deploy to staging

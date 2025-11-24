@@ -72,7 +72,15 @@ export async function updateStatus(id, status, fileData = {}) {
 }
 
 export async function remove(id) {
-  await getById(id);
+  const artifact = await getById(id);
+  
+  // If there's a file associated, delete it from GridFS first
+  if (artifact.fileId) {
+    await repository.deleteFile(artifact.fileId);
+  }
+  
+  // Then delete the artifact metadata document
   await repository.deleteById(id);
+  
   return { success: true };
 }

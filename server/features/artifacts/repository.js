@@ -2,7 +2,7 @@
  * Artifacts Repository
  */
 
-import { connectDB } from '../../db/mongo.js';
+import { connectDB, getArtifactsBucket } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 
 import { toObjectId } from '../../utils/objectid.js';
@@ -54,4 +54,19 @@ export async function deleteById(id) {
   const db = await connectDB();
   const result = await db.collection(COLLECTION).deleteOne({ _id: toObjectId(id) });
   return result.deletedCount > 0;
+}
+
+export async function deleteFile(fileId) {
+  if (!fileId) return;
+  try {
+    const bucket = await getArtifactsBucket();
+    await bucket.delete(toObjectId(fileId));
+  } catch (error) {
+    // If the file doesn't exist, GridFS throws an error. We can ignore it.
+    if (error.code !== 'ENOENT') {
+      // Log other errors
+      console.error(`Error deleting file from GridFS: ${fileId}`, error);
+      throw error; // Re-throw if it's not a "file not found" error
+    }
+  }
 }

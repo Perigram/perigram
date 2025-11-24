@@ -25,7 +25,8 @@
     "uploading": "Uploading...",
     "created": "Created",
     "open": "Open",
-    "toggleTheme": "Toggle Theme"
+    "toggleTheme": "Toggle Theme",
+    "preview": "Preview"
   },
   "dashboard": {
     "welcome": "Welcome to CutKit",
@@ -374,5 +375,15 @@
     "noEntriesToNest": "Add at least one entry before running nesting",
     "nestingFailed": "Failed to run nesting process",
     "markCompleteFailed": "Failed to mark batch as complete"
+  },
+  "artifacts": {
+    "noBatches": "This project has no batches yet.",
+    "createBatchFirst": "Create a batch to generate artifacts.",
+    "loading": "Loading artifacts...",
+    "noArtifacts": "This batch has no artifacts.",
+    "name": "Name",
+    "type": "Type",
+    "status": "Status",
+    "createdAt": "Created At"
   }
 }
