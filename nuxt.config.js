@@ -4,6 +4,10 @@ import Aura from '@primevue/themes/aura'
 export default defineNuxtConfig({
     compatibilityDate: '2024-11-01',
     devtools: { enabled: true },
+
+    future: {
+      compatibilityVersion: 4,
+    },
     
     app: {
         head: {
@@ -31,8 +35,8 @@ export default defineNuxtConfig({
     ],
     
     modules: [
-        '@nuxtjs/tailwindcss', 
         '@nuxtjs/i18n',
+        '@nuxt/ui',
         '@primevue/nuxt-module'
     ],
     

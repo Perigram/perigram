@@ -1,13 +1,13 @@
 <template>
-  <div class="artifacts-page">
-    <div v-if="loading" class="loading-state">
+  <div class="p-4">
+    <div v-if="loading" class="flex flex-col items-center justify-center p-16 text-center border border-dashed border-surface-d rounded-md bg-surface-a">
       <ProgressSpinner />
     </div>
 
-    <div v-else-if="!batches || batches.length === 0" class="empty-state">
-      <i class="pi pi-file-excel empty-icon"></i>
-      <p class="empty-text">{{ $t('artifacts.noBatches') }}</p>
-      <p class="empty-subtext">{{ $t('artifacts.createBatchFirst') }}</p>
+    <div v-else-if="!batches || batches.length === 0" class="flex flex-col items-center justify-center p-16 text-center border border-dashed border-surface-d rounded-md bg-surface-a">
+      <i class="pi pi-file-excel text-6xl text-surface-400 mb-4"></i>
+      <p class="text-xl font-medium text-surface-500">{{ $t('artifacts.noBatches') }}</p>
+      <p class="text-surface-400 mt-2">{{ $t('artifacts.createBatchFirst') }}</p>
     </div>
 
     <Accordion v-else :multiple="true" :activeIndex="[0]">
@@ -51,40 +51,3 @@ const loadBatches = async () => {
 
 onMounted(loadBatches);
 </script>
-
-<style lang="scss" scoped>
-.artifacts-page {
-  padding: 1rem;
-}
-
-.loading-state, .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  text-align: center;
-  border: 1px dashed var(--surface-d);
-  border-radius: var(--border-radius);
-  background-color: var(--surface-a);
-}
-
-.empty-icon {
-  font-size: 4rem;
-  color: var(--text-color-secondary);
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.empty-text {
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: var(--text-color-secondary);
-}
-
-.empty-subtext {
-  font-size: 1rem;
-  color: var(--text-color-secondary);
-  margin-top: 0.5rem;
-}
-</style>

@@ -1,12 +1,14 @@
 <template>
-    <div class="user-balance">
+  <Button class="user-balance" severity="secondary" >
         <span class="user-balance__label">Balance:</span>
         <span class="user-balance__count">{{ credits }}</span>
-    </div>
+  </Button>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+
+import Button from 'primevue/button'
 
 const credits = ref('')
 const eventSource = ref(null)
@@ -39,20 +41,4 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-.user-balance {
-    display: flex;
-    align-items: center;
-    font-size: 16px;
-    color: var(--label-primary);
-
-    &__label {
-        margin-right: 8px;
-        font-weight: 500;
-    }
-
-    &__count {
-        font-weight: bold;
-        color: var(--label-secondary);
-    }
-}
 </style>

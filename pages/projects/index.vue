@@ -1,8 +1,8 @@
 <template>
     <div class="projects-page">
-        <div class="page-header">
-            <div class="header-content">
-                <h1 class="page-title">{{ $t('nav.projects') }}</h1>
+    <div class="flex justify-content-between align-items-center mb-4">
+      <div class="flex gap-4">
+                <h1 class="text-2xl">{{ $t('navigation.projects') }}</h1>
                 <Button 
                     :label="$t('project.create')"
                     icon="pi pi-plus"
@@ -10,9 +10,8 @@
                 />
             </div>
             
-            <div class="header-controls">
+            <div class="flex gap-3">
                 <span class="p-input-icon-left search-input">
-                    <i class="pi pi-search" />
                     <InputText 
                         v-model="searchQuery"
                         :placeholder="$t('common.search')"
@@ -61,23 +60,21 @@
             :layout="viewMode"
             :paginator="filteredProjects.length > 12"
             :rows="12"
+      v-model:filters="filters"
+      dataKey="id" 
+      filterDisplay="row" 
+      :loading="loading"
+      :globalFilterFields="['name', 'slug']"
         >
             <template #grid="slotProps">
-                <div class="projects-grid">
+                <div class="">
                     <Card 
                         v-for="project in slotProps.items" 
                         :key="project.slug"
-                        class="project-card"
                     >
-                        <template #header>
-                            <div class="card-header">
-                                <i class="pi pi-folder"></i>
-                            </div>
-                        </template>
                         <template #title>
                             <NuxtLink 
                                 :to="`/project/${project.slug}`"
-                                class="project-name"
                             >
                                 {{ project.name }}
                             </NuxtLink>
@@ -95,18 +92,16 @@
                             </div>
                         </template>
                         <template #footer>
-                            <div class="card-actions">
+                            <div >
                                 <Button 
                                     icon="pi pi-folder-open"
                                     text
-                                    rounded
                                     @click="openProject(project.slug)"
                                     v-tooltip.top="$t('common.open')"
                                 />
                                 <Button 
                                     icon="pi pi-trash"
                                     text
-                                    rounded
                                     severity="danger"
                                     @click="confirmDelete(project)"
                                     v-tooltip.top="$t('common.delete')"
@@ -234,7 +229,7 @@ import Dropdown from 'primevue/dropdown';
 import SelectButton from 'primevue/selectbutton';
 import Dialog from 'primevue/dialog';
 import ProgressSpinner from 'primevue/progressspinner';
-import { globalStore } from '~/composables/index';
+import { globalStore } from '~/composables/global';
 
 definePageMeta({
     layout: 'app',
@@ -381,254 +376,3 @@ const deleteProject = async () => {
     }
 };
 </script>
-
-<style lang="scss" scoped>
-.projects-page {
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-.page-header {
-    margin-bottom: 2rem;
-    
-    .header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-        
-        .page-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-color);
-            margin: 0;
-        }
-    }
-    
-    .header-controls {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        align-items: center;
-        
-        .search-input {
-            flex: 1;
-            min-width: 250px;
-        }
-    }
-}
-
-.loading-state {
-    display: flex;
-    justify-content: center;
-    padding: 4rem 0;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    
-    .empty-icon {
-        font-size: 4rem;
-        color: var(--text-color-secondary);
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-    
-    .empty-text {
-        font-size: 1.125rem;
-        color: var(--text-color-secondary);
-        margin-bottom: 1.5rem;
-    }
-}
-
-.projects-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-}
-
-.project-card {
-    border: 1px solid var(--surface-border);
-    transition: all 0.2s;
-    
-    &:hover {
-        border-color: var(--primary-color);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
-    }
-    
-    .card-header {
-        padding: 2rem;
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-600) 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        
-        i {
-            font-size: 3rem;
-            color: white;
-        }
-    }
-    
-    .project-name {
-        color: var(--text-color);
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 1.125rem;
-        transition: color 0.2s;
-        
-        &:hover {
-            color: var(--primary-color);
-        }
-    }
-    
-    .project-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        margin-top: 0.5rem;
-        
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            color: var(--text-color-secondary);
-            
-            i {
-                font-size: 0.75rem;
-            }
-        }
-    }
-    
-    .card-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.5rem;
-    }
-}
-
-.projects-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.project-list-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.5rem;
-    background: var(--surface-card);
-    border: 1px solid var(--surface-border);
-    border-radius: var(--border-radius);
-    transition: all 0.2s;
-    
-    &:hover {
-        border-color: var(--primary-color);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    
-    .item-icon {
-        width: 50px;
-        height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-600) 100%);
-        border-radius: var(--border-radius);
-        
-        i {
-            font-size: 1.5rem;
-            color: white;
-        }
-    }
-    
-    .item-content {
-        flex: 1;
-        min-width: 0;
-        
-        .item-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: var(--text-color);
-            text-decoration: none;
-            display: block;
-            margin-bottom: 0.25rem;
-            
-            &:hover {
-                color: var(--primary-color);
-            }
-        }
-        
-        .item-meta {
-            display: flex;
-            gap: 1.5rem;
-            
-            .meta-item {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                font-size: 0.875rem;
-                color: var(--text-color-secondary);
-                
-                i {
-                    font-size: 0.75rem;
-                }
-            }
-        }
-    }
-    
-    .item-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
-}
-
-.create-form {
-    padding: 1rem 0;
-    
-    .field {
-        margin-bottom: 1rem;
-        
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--text-color);
-        }
-    }
-}
-
-.confirmation-content {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 0;
-    
-    p {
-        flex: 1;
-        margin: 0;
-        color: var(--text-color);
-    }
-}
-
-:deep(.p-card-body) {
-    padding: 1.25rem;
-}
-
-:deep(.p-card-footer) {
-    padding: 1rem 1.25rem;
-    background: var(--surface-50);
-    border-top: 1px solid var(--surface-border);
-}
-
-:deep(.p-dataview-content) {
-    background: transparent;
-}
-
-:deep(.p-paginator) {
-    margin-top: 2rem;
-}
-</style>

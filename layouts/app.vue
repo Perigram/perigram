@@ -3,7 +3,6 @@
     <Menubar :model="menuItems" class="app-menubar rounded-none border-x-0 border-t-0 border-b border-300">
             <template #start>
                 <NuxtLink to="/projects" class="logo">
-                    <i class="pi pi-th-large"></i>
                     <span>CutKit</span>
                 </NuxtLink>
                 <Divider layout="vertical" />
@@ -12,32 +11,13 @@
             
             <template #end>
                 <div class="header-end">
-                    <Button 
-                        :label="$t('navigation.assets')"
-                        text
-                        :severity="isAssetsPage ? 'primary' : 'secondary'"
-                        @click="router.push('/assets')"
-                    />
-                    
-                    <Button 
-                        :icon="themeIcon" 
-                        text 
-                        rounded 
-                        severity="secondary"
-                        @click="toggleTheme"
-                        v-tooltip.bottom="$t('common.toggleTheme')"
-                    />
-                    
-                    <Chip>
-                        <i class="pi pi-wallet"></i>
-                        <UserBalance />
-                    </Chip>
+                    <UserBalance />
                     
                     <Button 
                         icon="pi pi-user"
                         :label="userInitials"
+	                severity="info"
                         text
-                        rounded
                         @click="toggleProfileMenu"
                         aria-haspopup="true"
                         aria-controls="profile_menu"
@@ -81,8 +61,8 @@ const isAssetsPage = computed(() => route.path.startsWith('/assets'));
 const menuItems = ref([]); // Empty - using custom start/end templates
 
 const breadcrumbHome = computed(() => ({
-    icon: 'pi pi-home',
-    to: '/projects'
+    label: $i18n.t('navigation.projects'),
+  command: () => router.push('/projects')
 }));
 
 const breadcrumbItems = computed(() => {
@@ -126,9 +106,22 @@ const toggleProfileMenu = (event) => {
 
 const profileMenuItems = computed(() => [
     {
+        label: $i18n.t('navigation.assets'),
+        icon: 'pi pi-folder',
+        command: () => router.push('/assets')
+    },
+    {
         label: $i18n.t('profile.title'),
         icon: 'pi pi-user',
         command: () => router.push('/profile')
+    },
+    {
+        separator: true
+    },
+    {
+        label: $i18n.t('common.toggleTheme'),
+        icon: 'pi pi-' + (mode.value === 'dark' ? 'sun' : 'moon'),
+        command: () => toggleTheme()
     },
     {
         separator: true

@@ -27,7 +27,7 @@ import { ref, onMounted, computed } from 'vue';
 import QuickActions from '~/components/QuickActions.vue';
 import DashboardStats from '~/components/DashboardStats.vue';
 import RecentProjects from '~/components/RecentProjects.vue';
-import { globalStore } from '~/composables/index';
+import { globalStore } from '~/composables/global';
 import { cassettesStore } from '~/composables/cassettes';
 
 definePageMeta({

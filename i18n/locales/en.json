@@ -75,14 +75,11 @@
     "login": "Login / Sign Up"
   },
   "navigation": {
+    "projects": "Projects",
     "assets": "Assets"
   },
   "project": {
     "data": "Project Data",
-    "batches": "Batches",
-    "artifacts": "Artifacts"
-  },
-  "project": {
     "title": "Project",
     "create": "Create Project",
     "name": "Project Name",
@@ -112,13 +109,6 @@
     "completedBatches": "Completed Batches",
     "totalCassettes": "Total Cassettes",
     "totalArea": "Total Area"
-  },
-  "batches": {
-    "create": "Create Batch",
-    "createFirst": "Create First Batch",
-    "noBatches": "No batches yet. Create your first batch to start working.",
-    "name": "Batch Name",
-    "enterName": "Enter batch name"
   },
   "file": {
     "upload": "Upload Files",
@@ -282,6 +272,7 @@
   },
   "auth": {
     "login": "Login",
+    "logout": "Logout",
     "signup": "Sign Up",
     "loginSignup": "Login / Sign Up"
   },
@@ -352,6 +343,8 @@
     "nestingFailed": "Failed to run nesting process"
   },
   "batches": {
+    "name": "Batch Name",
+    "enterName": "Enter batch name",
     "create": "Create Batch",
     "noBatches": "No batches yet. Create your first batch to get started.",
     "createFirst": "Create First Batch",

@@ -1,6 +1,8 @@
 
 import { computed, reactive, readonly } from 'vue'
 import { processingType } from '~~/constants/files.constants'
+import { globalStore } from './global.js';
+import { API_ROUTES } from '~/composables/apiRoutes';
 
 const { actions } = globalStore
 const { getProjects, setModalNestData } = actions

@@ -1,12 +1,12 @@
 <template>
-  <div class="artifacts-table-wrapper">
-    <div v-if="loading" class="artifacts-loading">
+  <div>
+    <div v-if="loading" class="flex items-center justify-center p-8 bg-surface-ground rounded-md">
       <ProgressSpinner style="width: 30px; height: 30px" />
-      <span>{{ $t('artifacts.loading') }}</span>
+      <span class="ml-2 text-surface-500">{{ $t('artifacts.loading') }}</span>
     </div>
 
-    <div v-else-if="!artifacts || artifacts.length === 0" class="artifacts-empty">
-      <p>{{ $t('artifacts.noArtifacts') }}</p>
+    <div v-else-if="!artifacts || artifacts.length === 0" class="flex items-center justify-center p-8 bg-surface-ground rounded-md">
+      <p class="text-surface-500">{{ $t('artifacts.noArtifacts') }}</p>
     </div>
 
     <DataTable v-else :value="artifacts" responsiveLayout="scroll" size="small">
@@ -69,7 +69,6 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { artifactsStore } from '~/composables/artifacts';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
@@ -147,21 +146,3 @@ const deleteArtifact = async (artifact) => {
 };
 </script>
 
-<style lang="scss" scoped>
-.artifacts-table-wrapper {
-  .artifacts-loading, .artifacts-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    color: var(--text-color-secondary);
-    background-color: var(--surface-ground);
-    border-radius: var(--border-radius);
-    min-height: 100px;
-
-    span {
-      margin-left: 0.5rem;
-    }
-  }
-}
-</style>

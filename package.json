@@ -12,7 +12,6 @@
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@nuxtjs/i18n": "^10.1.1",
-    "@nuxtjs/tailwindcss": "^6.12.2",
     "@primeuix/themes": "^1.2.5",
     "@primevue/themes": "^4.4.1",
     "archiver": "^7.0.1",
@@ -35,6 +34,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@nuxt/ui": "^4.2.1",
     "@primevue/nuxt-module": "^4.4.1",
     "@types/node": "^22.10.2",
     "kickstart-scripts": "^1.0.1",

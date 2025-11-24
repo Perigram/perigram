@@ -64,22 +64,13 @@
         <DataTable 
             v-model:editingRows="editingRows"
             :value="entries"
-            editMode="row"
+            :editMode="batch.status === 'DRAFT' ? 'cell' : null"
             dataKey="_id"
-            @row-edit-save="onRowEditSave"
-            @row-edit-cancel="onRowEditCancel"
+            @cell-edit-complete="onRowEditSave"
             :paginator="entries.length > 10"
             :rows="10"
             responsiveLayout="scroll"
-            class="entries-table"
         >
-            <Column 
-                v-if="batch.status === 'DRAFT'"
-                :rowEditor="true" 
-                style="width: 5%; min-width: 4rem" 
-                bodyStyle="text-align:center" 
-            />
-            
             <!-- Cassette Template Column -->
             <Column field="cassetteTemplateId" :header="$t('batches.cassette')" style="width: 25%">
                 <template #body="slotProps">
@@ -92,7 +83,6 @@
                         optionLabel="name"
                         optionValue="_id"
                         :placeholder="$t('batches.selectCassette')"
-                        class="w-full"
                         @change="onCassetteChange(data)"
                     />
                 </template>
@@ -111,7 +101,6 @@
                 :key="param"
                 :field="`dimensions.${param}`"
                 :header="param"
-                style="width: 10%"
             >
                 <template #body="slotProps">
                     <span>{{ slotProps.data.dimensions?.[param] || '-' }}</span>
@@ -119,10 +108,6 @@
                 <template #editor="{ data }">
                     <InputNumber 
                         v-model="data.dimensions[param]"
-                        :minFractionDigits="2"
-                        :maxFractionDigits="2"
-                        :min="0"
-                        class="w-full"
                     />
                 </template>
             </Column>
@@ -133,14 +118,13 @@
                 :key="option"
                 :field="`options.${option}`"
                 :header="option"
-                style="width: 10%"
             >
                 <template #body="slotProps">
                     <i v-if="slotProps.data.options?.[option]" class="pi pi-check-circle text-green-500"></i>
                     <i v-else class="pi pi-times-circle text-red-500"></i>
                 </template>
                 <template #editor="{ data }">
-                    <InputSwitch v-model="data.options[option]" />
+                    <ToggleSwitch v-model="data.options[option]" />
                 </template>
             </Column>
 
@@ -256,7 +240,7 @@ import Tag from 'primevue/tag';
 import Dropdown from 'primevue/dropdown';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
-import InputSwitch from 'primevue/inputswitch';
+import ToggleSwitch from 'primevue/toggleswitch';
 import Dialog from 'primevue/dialog';
 import DataView from 'primevue/dataview';
 import ConfirmDialog from 'primevue/confirmdialog';

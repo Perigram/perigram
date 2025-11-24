@@ -22,7 +22,7 @@
     "uploading": "Загрузка...",
     "created": "Создано"
   },
-  "nav": {
+  "navigation": {
     "projects": "Проекты",
     "cassettes": "Кассеты",
     "results": "Результаты",
@@ -267,5 +267,16 @@
     "unknownCassette": "Неизвестная кассета",
     "confirmDeleteEntry": "Вы уверены, что хотите удалить эту запись?",
     "dimensionKey": "Введите ключ размера (например, A, B, C):"
+  },
+  "batches": {
+    "entries": "Записи",
+    "addFromTemplate": "Добавить из шаблона",
+    "uploadCassette": "Загрузить кассету",
+    "uploadNewCassette": "Загрузить новую кассету",
+    "runNesting": "Запустить раскрой",
+    "cassette": "Кассета",
+    "quantity": "Количество",
+    "noEntries": "Нет записей в этой партии",
+    "addEntry": "Добавить запись"
   }
 }
