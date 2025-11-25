@@ -9,7 +9,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
         await setUser()
     }
     if (unref(userIsSet) && to.name === "index") {
-        return navigateTo("/dashboard");
+        return navigateTo("/projects");
     }
     if (!unref(userIsSet) && to.name !== "index") {
         return navigateTo("/");

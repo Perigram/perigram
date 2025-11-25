@@ -1,16 +1,14 @@
 <template>
-  <Button class="user-balance" severity="secondary" >
-        <span class="user-balance__label">Balance:</span>
-        <span class="user-balance__count">{{ credits }}</span>
-  </Button>
+    <Tag severity="info" class="user-balance">
+        Balance: {{ credits }}
+    </Tag>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount, unref } from 'vue'
+import Tag from 'primevue/tag'
 
-import Button from 'primevue/button'
-
-const credits = ref('')
+const credits = ref(0)
 const eventSource = ref(null)
 
 onMounted(() => {
@@ -19,9 +17,7 @@ onMounted(() => {
     unref(eventSource).onmessage = (event) => {
         try {
             const parsed = JSON.parse(event.data)
-            if (parsed.type === 'initial') {
-                credits.value = parsed.data.balance
-            } else if (parsed.type === 'newBalance') {
+            if (parsed.type === 'initial' || parsed.type === 'newBalance') {
                 credits.value = parsed.data.balance
             }
         } catch (e) {
@@ -33,6 +29,7 @@ onMounted(() => {
         console.error('SSE connection error:', err)
     }
 })
+
 onBeforeUnmount(() => {
     if (unref(eventSource)) {
         unref(eventSource).close()
@@ -40,5 +37,9 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
+.user-balance {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
 </style>

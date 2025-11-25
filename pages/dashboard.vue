@@ -31,7 +31,6 @@ import { globalStore } from '~/composables/global';
 import { cassettesStore } from '~/composables/cassettes';
 
 definePageMeta({
-    layout: 'dashboard',
     middleware: 'auth'
 });
 

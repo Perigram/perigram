@@ -56,6 +56,13 @@ Open http://localhost:3000
 /docs/
   /specs/             # Data schemas
   /planning/          # Implementation roadmap
+
+/pages/
+  /dashboard/         # Main user dashboard
+  /projects/          # Project management hub
+  /project/[slug]/    # Project workspace
+  /assets/            # Asset management hub (Cassettes, Library)
+  /profile/           # User profile and settings
   
 ARCHITECTURE.md       # System design patterns
 AGENTS.md            # AI agent instructions

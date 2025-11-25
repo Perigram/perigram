@@ -1,20 +1,19 @@
 <template>
-    <div class="support">
+    <div class="support h-96 m-4 rounded-lg">
         <div @click="supportDialog = false" class="support__background"></div>
         <div class="support__wrapper">
             <div class="support__header">
-                <MainTitle label="Support Chat" class="support__title" />
-                <MainButton
-                    label="close modal"
-                    :isLabelShow="false"
-                    :size="sizeType.s"
-                    :icon="iconType.close"
-                    :theme="themeType.primary"
+                <h2 class="support__title">Support Chat</h2>
+                <Button
+                    icon="pi pi-times"
+                    severity="secondary"
+                    text
+                    rounded
                     @click="supportDialog = false"
                     class="support__close"
                 />
             </div>
-            <UiScrollbar ref="messagesContainer" class="support__messages message-list">
+            <div ref="messagesContainer" class="support__messages message-list">
                 <template
                     v-for="message in messagesList"
                     :key="message._id"
@@ -32,19 +31,19 @@
                         <span class="message__time">{{ formatTime(message.timestamp) }}</span>
                     </div>
                 </template>
-            </UiScrollbar>
+            </div>
             <div class="support__bottom bottom">
-                <InputField
-                    tag="textarea"
+                <Textarea
                     placeholder="Type your message..."
                     class="bottom__input"
                     v-model="message"
                     @keydown="handleKeyDown"
+                    rows="1"
+                    autoResize
                 />
-                <MainButton
-                    :theme="themeType.primary"
+                <Button
                     @click="sendMessage"
-                    :isDisable="!message.trim() || isLoading"
+                    :disabled="!message.trim() || isLoading"
                     label="Send"
                     class="bottom__btn"
                 />
@@ -54,10 +53,10 @@
 </template>
 
 <script setup>
-import { iconType } from '~~/constants/icon.constants'
-import { sizeType } from '~~/constants/size.constants'
-import { themeType } from '~~/constants/theme.constants'
-import { ref, onMounted, onBeforeUnmount, unref } from 'vue'
+import { ref, onMounted, onBeforeUnmount, unref, computed, nextTick } from 'vue'
+import Button from 'primevue/button'
+import Textarea from 'primevue/textarea'
+import { useSupportDialog } from '~/composables/useModalState'
 
 const supportDialog = useSupportDialog()
 
@@ -68,11 +67,9 @@ const eventSource = ref(null)
 const messagesContainer = ref(null)
 
 const handleKeyDown = (event) => {
-    if (event.key === 'Enter') {
-        if (event.shiftKey) {
-            event.preventDefault()
-            sendMessage()
-        }
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault()
+        sendMessage()
     }
 }
 
@@ -157,8 +154,7 @@ const scrollToBottom = async () => {
     await nextTick()
 
     if (messagesContainer.value) {
-        const element = messagesContainer.value.$el || messagesContainer.value
-
+        const element = messagesContainer.value
         element.scrollTo({
             top: element.scrollHeight,
         })
@@ -169,13 +165,12 @@ const scrollToBottom = async () => {
 <style lang="scss" scoped>
 .support {
     position: fixed;
-    top: 0;
+    bottom: 0;
     right: 0;
-    width: 100%;
-    height: 100%;
     z-index: 4;
     display: flex;
     justify-content: flex-end;
+    justify-items: flex-end;
 
     &__background {
         position: absolute;

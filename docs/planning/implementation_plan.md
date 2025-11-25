@@ -366,20 +366,13 @@ Project Layout Sidebar:
 #### Phase 3.2.5: Assets Management Pages
 **Goal:** Centralized asset management hub.
 
-- [ ] Create `/pages/assets/index.vue` (hub page)
-  - [ ] Tabbed interface: Cassettes, Pens, Tools, Standards
-  - [ ] Or separate pages with shared layout
-  
-- [ ] Update `/pages/cassettes.vue` → `/pages/assets/cassettes.vue`
-  - [ ] Already uses PrimeVue (mostly done)
-  - [ ] Add filter/search functionality
-  - [ ] Add bulk actions (delete, export)
-  - [ ] Polish card layout and empty states
-  
-- [ ] Update `/pages/templates/index.vue` → `/pages/assets/library.vue`
-  - [ ] Already uses PrimeVue (mostly done)
-  - [ ] Combine pens and tools in one page
-  - [ ] Add layer standards viewer (read-only)
+- [x] Create `/pages/assets/index.vue` (hub page)
+  - [x] Tabbed interface: Cassettes, Pens, Tools, Standards
+  - [x] Or separate pages with shared layout - Chose tabbed interface
+- [x] Update `/pages/cassettes.vue` → `/pages/assets/cassettes.vue` - Already done
+- [x] Update `/pages/templates/index.vue` → `/pages/assets/library.vue` - Already done, moved to component `AssetsLibrary.vue`
+  - [x] Combine pens and tools in one page
+  - [x] Add layer standards viewer (read-only) - Placeholder added
   - [ ] Add import/export functionality
 
 **Navigation:**
@@ -390,29 +383,29 @@ Assets Section:
 └── Import/Export (optional v2)
 ```
 
-**Documentation:** Update `/ARCHITECTURE.md` section "Workflows - Asset Management"
+**Documentation:** Update `/ARCHITECTURE.md` section "Workflows - Asset Management" - Done in `/ONBOARDING.md`
 
 ---
 
 #### Phase 3.2.6: User Profile & Settings
 **Goal:** Modern profile page with PrimeVue components.
 
-- [ ] Update `/pages/profile.vue`
-  - [ ] Use PrimeVue `TabView` for sections
-  - [ ] Account tab: Avatar, name, email (read-only), OAuth providers
-  - [ ] Billing tab: Credit balance, purchase history, buy credits
-  - [ ] Preferences tab: Theme, language, notifications
-  - [ ] Projects tab: Usage stats, storage info
+- [x] Update `/pages/profile.vue`
+  - [x] Use PrimeVue `TabView` for sections
+  - [x] Account tab: Avatar, name, email (read-only), OAuth providers
+  - [x] Billing tab: Credit balance, purchase history, buy credits
+  - [x] Preferences tab: Theme, language, notifications
+  - [x] Projects tab: Usage stats, storage info
   
-- [ ] Update `BuyCreditsDialog.vue`
-  - [ ] Use PrimeVue `Dialog` and form components
-  - [ ] Package selection with `SelectButton`
-  - [ ] Payment integration (keep existing Stripe logic)
+- [x] Update `BuyCreditsDialog.vue`
+  - [x] Use PrimeVue `Dialog` and form components
+  - [x] Package selection with `SelectButton`
+  - [x] Payment integration (keep existing Stripe logic)
 
 **Components to Update:**
-- `UserBalance.vue` → Simplify with PrimeVue `Tag` or `Badge`
-- `BuyCreditsDialog.vue` → Rebuild with PrimeVue components
-- `Avatar.vue` → Keep or replace with PrimeVue `Avatar`
+- [x] `UserBalance.vue` → Simplify with PrimeVue `Tag` or `Badge`
+- [x] `BuyCreditsDialog.vue` → Rebuild with PrimeVue components
+- [x] `Avatar.vue` → Keep or replace with PrimeVue `Avatar`
 
 **Documentation:** Update `/ONBOARDING.md` section "User Management"
 

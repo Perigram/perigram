@@ -1,32 +1,131 @@
 <template>
-    <div v-if="user.name" class="profile">
-        <MainTitle :label="user.name" class="profile__title" />
-        <div class="profile__content">
-            <Avatar />
-            <MainButton :theme="themeType.primary" @click="logoutHandler" :label="$t('profile.logout')" class="profile__btn" />
+    <div class="profile-page">
+        <div class="profile-header">
+            <h1>{{ user.name }}</h1>
+            <p>{{ user.email }}</p>
         </div>
-        <UserBalance class="profile__balance" />
-        <MainButton :theme="themeType.secondary" @click="addCredits" :label="$t('profile.addCredits')" class="profile__add-credits" />
-        <BuyCredits />
+
+        <TabView>
+            <TabPanel header="Account">
+                <div class="grid">
+                    <div class="col-12 md:col-4">
+                        <Card>
+                            <template #title>Profile</template>
+                            <template #content>
+                                <div class="flex align-items-center">
+                                    <Avatar :label="user.name ? user.name[0].toUpperCase() : 'U'" size="xlarge" shape="circle" />
+                                    <div class="ml-3">
+                                        <p class="font-bold">{{ user.name }}</p>
+                                        <p class="text-sm text-gray-500">{{ user.email }}</p>
+                                    </div>
+                                </div>
+                            </template>
+                        </Card>
+                    </div>
+                    <div class="col-12 md:col-8">
+                        <Card>
+                            <template #title>Authentication</template>
+                            <template #content>
+                                <p>You are logged in with your OAuth provider.</p>
+                                <Button label="Logout" icon="pi pi-sign-out" class="p-button-danger mt-4" @click="logoutHandler" />
+                            </template>
+                        </Card>
+                    </div>
+                </div>
+            </TabPanel>
+
+            <TabPanel header="Billing">
+                <div class="grid">
+                    <div class="col-12 md:col-6">
+                        <Card>
+                            <template #title>Credit Balance</template>
+                            <template #content>
+                                <div class="flex justify-content-between align-items-center">
+                                    <div>
+                                        <p class="text-2xl font-bold">{{ user.balance || 0 }} Credits</p>
+                                    </div>
+                                    <Button label="Buy Credits" icon="pi pi-shopping-cart" @click="showBuyCredits = true" />
+                                </div>
+                                <Button label="Add 100 Test Credits" icon="pi pi-plus" class="p-button-secondary mt-4" @click="addCredits" />
+                            </template>
+                        </Card>
+                    </div>
+                    <div class="col-12 md:col-6">
+                        <Card>
+                            <template #title>Purchase History</template>
+                            <template #content>
+                                <p>No purchase history yet.</p>
+                                <!-- TODO: Implement purchase history table -->
+                            </template>
+                        </Card>
+                    </div>
+                </div>
+            </TabPanel>
+
+            <TabPanel header="Preferences">
+                <div class="grid">
+                    <div class="col-12">
+                        <Card>
+                            <template #title>Settings</template>
+                            <template #content>
+                                <div class="field">
+                                    <label>Theme</label>
+                                    <p>Theme selection is not yet implemented.</p>
+                                </div>
+                                <div class="field mt-4">
+                                    <label>Language</label>
+                                    <p>Language selection is not yet implemented.</p>
+                                </div>
+                            </template>
+                        </Card>
+                    </div>
+                </div>
+            </TabPanel>
+
+            <TabPanel header="Projects">
+                <div class="grid">
+                    <div class="col-12">
+                        <Card>
+                            <template #title>Usage Statistics</template>
+                            <template #content>
+                                <p>Project usage statistics are not yet implemented.</p>
+                            </template>
+                        </Card>
+                    </div>
+                </div>
+            </TabPanel>
+        </TabView>
+
+        <BuyCreditsDialog v-if="showBuyCredits" @close="showBuyCredits = false" />
     </div>
 </template>
+
 <script setup>
-import { themeType } from '~~/constants/theme.constants';
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { authStore } from '~/composables/auth';
+import Button from 'primevue/button';
+import TabView from 'primevue/tabview';
+import TabPanel from 'primevue/tabpanel';
+import Card from 'primevue/card';
+import Avatar from 'primevue/avatar';
+import BuyCreditsDialog from '~/components/BuyCreditsDialog.vue';
 
 const router = useRouter();
 
 definePageMeta({
-    layout: "profile",
     middleware: "auth",
 });
 
 const { getters, actions } = authStore;
 const { logout } = actions;
-const user = computed(() => getters.user);
+const user = computed(() => getters.user.value || {});
+
+const showBuyCredits = ref(false);
 
 const logoutHandler = async () => {
     await logout();
-    router.push({ path: '/' })
+    router.push({ path: '/' });
 };
 
 const addCredits = async () => {
@@ -42,28 +141,16 @@ const addCredits = async () => {
     }
 };
 </script>
-<style lang="scss" scoped>
-.profile {
-    &__title {
-        margin-bottom: 16px;
-    }
 
-    &__content {
-        display: flex;
-        align-items: center;
-    }
-
-    &__btn {
-        margin-left: 24px;
-    }
-
-    &__balance {
-        margin-top: 24px;
-        margin-bottom: 24px;
-    }
-
-    &__add-credits {
-        margin-bottom: 24px;
-    }
+<style scoped>
+.profile-page {
+    padding: 2rem;
+}
+.profile-header {
+    margin-bottom: 2rem;
+}
+.profile-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
 }
 </style>

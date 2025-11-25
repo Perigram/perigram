@@ -1,12 +1,12 @@
 <template>
     <div class="chat">
         <div class="chat__header header">
-            <MainTitle label="Support Chat" class="header__title" />
+            <h2 class="header__title">Support Chat</h2>
             <span class="header__id">User ID: {{ userId }}</span>
         </div>
-        <UiScrollbar ref="messagesContainer" class="chat__messages messages">
+        <div ref="messagesContainer" class="chat__messages messages">
             <div v-if="loading" class="chat__loading loading">
-                <MainLoader :size="sizeType.l" class="loading__loader" />
+                <ProgressSpinner />
                 <p>Loading messages...</p>
             </div>
             <div v-else-if="messages.length === 0" class="chat__empty empty">
@@ -34,20 +34,30 @@
                     </div>
                 </template>
             </div>
-        </UiScrollbar>
+        </div>
         <div class="chat__footer footer">
-            <MainButton
-                :theme="themeType.primary"
-                :icon="iconType.arrowPrev"
-                :isLabelShow="false"
+            <Button
+                icon="pi pi-arrow-left"
                 @click="$emit('back')"
-                label="Send" 
                 class="footer__back" 
+                text
+                rounded
             />
-            <InputField tag="textarea" placeholder="Type your message..." class="footer__input" v-model="newMessage"
-                @keydown="handleKeyDown" :isDisable="!isConnected" />
-            <MainButton :theme="themeType.primary" :isDisable="!newMessage.trim() || !isConnected" @click="sendMessage"
-                label="Send" class="footer__btn" />
+            <Textarea 
+                placeholder="Type your message..." 
+                class="footer__input" 
+                v-model="newMessage"
+                @keydown="handleKeyDown" 
+                :disabled="!isConnected"
+                rows="1"
+                autoResize
+            />
+            <Button 
+                :disabled="!newMessage.trim() || !isConnected" 
+                @click="sendMessage"
+                label="Send" 
+                class="footer__btn" 
+            />
         </div>
 
         <div v-if="error" class="error-message">
@@ -58,10 +68,10 @@
 </template>
 
 <script setup>
-import { themeType } from '~~/constants/theme.constants'
-import { iconType } from '~~/constants/icon.constants';
-import { sizeType } from "~~/constants/size.constants"
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue';
+import Button from 'primevue/button';
+import Textarea from 'primevue/textarea';
+import ProgressSpinner from 'primevue/progressspinner';
 
 const props = defineProps({
     userId: {
@@ -78,11 +88,9 @@ const isConnected = ref(false)
 const messagesContainer = ref(null)
 let eventSource = null
 const handleKeyDown = (event) => {
-    if (event.key === 'Enter') {
-        if (event.shiftKey) {
-            event.preventDefault()
-            sendMessage()
-        }
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault()
+        sendMessage()
     }
 }
 
@@ -185,8 +193,7 @@ const scrollToBottom = async () => {
     await nextTick()
 
     if (messagesContainer.value) {
-        const element = messagesContainer.value.$el || messagesContainer.value
-
+        const element = messagesContainer.value
         element.scrollTo({
             top: element.scrollHeight,
         })

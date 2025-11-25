@@ -1,57 +1,51 @@
 import { schemaWebSite } from './utils/schema'
-import Aura from '@primevue/themes/aura'
+import Nora from '@primevue/themes/nora'
+import Re_L from './assets/presets/re_l'
 
 export default defineNuxtConfig({
-    compatibilityDate: '2024-11-01',
+    compatibilityDate: '2025-07-15',
+
     devtools: { enabled: true },
 
-    future: {
-      compatibilityVersion: 4,
-    },
-    
     app: {
         head: {
             link: [
                 {
                     rel: 'preconnect',
-                    href: 'https://fonts.googleapis.com'
+                    href: 'https://fonts.googleapis.com',
                 },
                 {
                     rel: 'preconnect',
                     href: 'https://fonts.gstatic.com',
-                    crossorigin: ''
+                    crossorigin: '',
                 },
                 {
                     rel: 'stylesheet',
-                    href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap'
-                }
-            ]
-        }
+                    href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap',
+                },
+            ],
+        },
     },
-    
-    css: [
-        'primeicons/primeicons.css',
-        '@/assets/css/fonts.css'
-    ],
-    
-    modules: [
-        '@nuxtjs/i18n',
-        '@nuxt/ui',
-        '@primevue/nuxt-module'
-    ],
-    
+
+    css: ['primeicons/primeicons.css', './assets/css/fonts.css', './assets/css/main.css'],
+
+    modules: ['@nuxtjs/i18n', '@primevue/nuxt-module', '@nuxtjs/tailwindcss'],
+
     primevue: {
         options: {
             theme: {
-                preset: Aura
-            }
-        }
+                preset: Re_L,
+                options: {
+                    darkModeSelector: '.dark-mode',
+                },
+            },
+        },
     },
-    
+
     i18n: {
         locales: [
             { code: 'en', file: 'en.json', name: 'English' },
-            { code: 'ru', file: 'ru.json', name: 'Русский' }
+            { code: 'ru', file: 'ru.json', name: 'Русский' },
         ],
         defaultLocale: 'ru',
         lazy: true,
@@ -61,10 +55,10 @@ export default defineNuxtConfig({
             useCookie: true,
             cookieKey: 'i18n_locale',
             redirectOn: 'root',
-            alwaysRedirect: false
-        }
+            alwaysRedirect: false,
+        },
     },
-    
+
     typescript: {
         strict: false,
         typeCheck: false,
@@ -123,7 +117,7 @@ export default defineNuxtConfig({
 
     site: {
         url: 'https://cutkit-demo-production.up.railway.app/',
-        name: 'Nest2D',
+        name: 'CutKit',
     },
 
     app: {
@@ -131,7 +125,7 @@ export default defineNuxtConfig({
             htmlAttrs: {
                 lang: 'en',
             },
-            title: 'Nest2D - Smart Nesting for Laser Cutting and CNC machining',
+            title: 'CutKit',
             meta: [
                 { charset: 'utf-8' },
                 {
@@ -142,7 +136,7 @@ export default defineNuxtConfig({
                     hid: 'description',
                     name: 'description',
                     content:
-                        'The service for nesting DXF files. Nest2D optimize your material usage. Fully open-source and built for efficiency.',
+                        'The service for nesting DXF files. Optimize your material usage. Fully open-source and built for efficiency.',
                 },
                 {
                     hid: 'keywords',
@@ -158,7 +152,7 @@ export default defineNuxtConfig({
                 {
                     hid: 'author',
                     name: 'author',
-                    content: 'Nest2D',
+                    content: 'CutKit Team',
                 },
             ],
             link: [

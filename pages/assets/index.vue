@@ -1,11 +1,18 @@
 <template>
     <div class="assets-page">
         <TabView>
-            <TabPanel :header="$t('cassette.title')">
+            <TabPanel header="Cassettes">
                 <CassetteManager />
             </TabPanel>
-            <TabPanel :header="$t('templates.title')">
-                <TemplatesManager />
+            <TabPanel header="Library">
+                <AssetsLibrary />
+            </TabPanel>
+            <TabPanel header="Standards">
+                <div class="p-4">
+                    <h2>Layer Standards</h2>
+                    <p>System-defined layer standards. These are read-only.</p>
+                    <!-- TODO: Implement Layer Standards viewer -->
+                </div>
             </TabPanel>
         </TabView>
     </div>
@@ -15,18 +22,11 @@
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
 import CassetteManager from '~/components/CassetteManager.vue';
-import TemplatesManager from '~/components/TemplatesManager.vue';
-
-definePageMeta({
-    layout: 'app',
-    middleware: 'auth'
-});
+import AssetsLibrary from '~/components/AssetsLibrary.vue';
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .assets-page {
-    width: 100%;
-    max-width: 1400px;
-    margin: 0 auto;
+    padding: 1rem;
 }
 </style>

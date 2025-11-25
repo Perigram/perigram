@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const db = await connectDB();
   const project = await db.collection("projects").findOne(
-    { slug: slug },
+    { slug: slug, ownerId: userId },
     {
       projection: {
         name: 1,
