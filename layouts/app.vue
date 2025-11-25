@@ -2,7 +2,7 @@
     <div class="surface-0">
         <Menubar
             :model="menuItems"
-            class="app-menubar rounded-none border-x-0 border-t-0 border-b border-300"
+            class="app-menubar rounded-none border-x-0 border-t-0 border-b border-300 py-0"
         >
             <template #start>
                 <NuxtLink
@@ -15,6 +15,7 @@
                 <Breadcrumb
                     :home="breadcrumbHome"
                     :model="breadcrumbItems"
+	  class="p-2 bg-transparent"
                 >
                     <template #item="{ item }">
                         <Select
