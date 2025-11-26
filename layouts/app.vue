@@ -15,7 +15,7 @@
                         {{ crumb.name }}
                     </NuxtLink>
                     <Select
-                        v-if="crumb.siblings && crumb.siblings.length"
+                        v-if="crumb.siblings && crumb.siblings.length > 1"
                         :model-value="crumb.id"
                         :options="crumb.siblings"
                         option-label="name"
@@ -41,6 +41,18 @@
             </template>
         </Menubar>
 
+        <!-- Second row: Project tabs -->
+        <div v-if="projectTabs" class="project-tabs-bar border-b border-300">
+            <div 
+                v-for="tab in projectTabs" 
+                :key="tab.id"
+                :class="['project-tab', { active: activeProjectTab === tab.id }]"
+                @click="router.push(tab.to)"
+            >
+                {{ tab.label }}
+            </div>
+        </div>
+
         <main class="app-main">
             <slot />
         </main>
@@ -57,7 +69,7 @@
     </div>
 </template>
 
-<script setup>
+    <script setup>
     import { ref, computed, watch, onMounted } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
     import { useI18n } from 'vue-i18n'
@@ -117,7 +129,7 @@
 
         if (parts.length === 0) return nav;
 
-        // --- Level 1: Main Section ---
+        // --- Level 1: Main Section (always shown) ---
         const mainSections = [
             { id: 'projects', name: 'Projects', to: '/projects' },
             { id: 'assets', name: 'Assets', to: '/assets' },
@@ -138,7 +150,7 @@
             });
         }
 
-        // --- Level 2: Project Details ---
+        // --- Level 2: Specific Item (Project Name OR Asset Tab) ---
         if (parts[0] === 'project' && parts[1] && projects.value && Array.isArray(projects.value)) {
             const currentProjectSlug = parts[1];
             const currentProject = projects.value.find(p => p.slug === currentProjectSlug);
@@ -146,52 +158,51 @@
                 nav.push({
                     id: currentProject.slug,
                     name: currentProject.name,
-                    to: `/project/${currentProject.slug}`,
-                    siblings: projects.value.map(p => ({ name: p.name, id: `/project/${p.slug}` })),
+                    to: `/project/${currentProject.slug}/batches`,
+                    siblings: projects.value.map(p => ({ name: p.name, id: `/project/${p.slug}/batches` })),
                 });
             }
-        }
-
-        // --- Level 2: Asset Tabs ---
-        if (currentSectionId === 'assets') {
+        } else if (currentSectionId === 'assets') {
             const assetTabs = [
-                { id: 'assets', name: 'Library', to: '/assets' },
+                { id: 'library', name: 'Library', to: '/assets' },
                 { id: 'cassettes', name: 'Cassettes', to: '/assets/cassettes' },
                 { id: 'parts', name: 'Parts', to: '/assets/parts' },
             ];
             
-            const currentAssetTabId = parts[1] || 'assets';
-            const currentAssetTab = assetTabs.find(t => t.id === currentAssetTabId);
+            const currentAssetTabId = parts[1] || 'library';
+            const currentAssetTab = assetTabs.find(t => t.id === currentAssetTabId) || assetTabs[0];
             
-            if (currentAssetTab) {
-                nav.push({
-                    ...currentAssetTab,
-                    siblings: assetTabs.map(t => ({...t, id: t.to})),
-                });
-            }
-        }
-
-        // --- Level 3: Project Tabs ---
-        if (parts[0] === 'project' && parts[1] && parts[2]) {
-            const projectSlug = parts[1];
-            const projectTabs = [
-                { id: 'data', name: t('project.data'), to: `/project/${projectSlug}/data` },
-                { id: 'batches', name: t('project.batches'), to: `/project/${projectSlug}/batches` },
-                { id: 'artifacts', name: t('project.artifacts'), to: `/project/${projectSlug}/artifacts` },
-            ];
-            
-            const currentTabId = parts[2];
-            const currentTab = projectTabs.find(t => t.id === currentTabId);
-            
-            if (currentTab) {
-                nav.push({
-                    ...currentTab,
-                    siblings: projectTabs.map(t => ({...t, id: t.to})),
-                });
-            }
+            nav.push({
+                ...currentAssetTab,
+                siblings: assetTabs.map(t => ({...t, id: t.to})),
+            });
         }
         
         return nav;
+    });
+
+    // --- Project Tabs (second row, only for project pages) ---
+    const projectTabs = computed(() => {
+        const parts = route.path.split('/').filter(p => p);
+        
+        if (parts[0] === 'project' && parts[1]) {
+            const projectSlug = parts[1];
+            return [
+                { id: 'batches', label: t('project.batches'), to: `/project/${projectSlug}/batches` },
+                { id: 'data', label: t('project.data'), to: `/project/${projectSlug}/data` },
+                { id: 'artifacts', label: t('project.artifacts'), to: `/project/${projectSlug}/artifacts` },
+            ];
+        }
+        
+        return null;
+    });
+
+    const activeProjectTab = computed(() => {
+        const parts = route.path.split('/').filter(p => p);
+        if (parts[0] === 'project' && parts[2]) {
+            return parts[2];
+        }
+        return 'batches';
     });
 </script>
 
@@ -216,6 +227,35 @@
 
         :deep(.p-menubar-end) {
             margin-left: auto;
+        }
+    }
+
+    .project-tabs-bar {
+        position: sticky;
+        top: 56px;
+        z-index: 999;
+        display: flex;
+        gap: 0;
+        background: var(--surface-0);
+        padding: 0 1.5rem;
+    }
+
+    .project-tab {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        color: var(--text-color-secondary);
+        font-weight: 500;
+        transition: all 0.2s;
+
+        &:hover {
+            color: var(--text-color);
+            background: var(--surface-100);
+        }
+
+        &.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
         }
     }
 

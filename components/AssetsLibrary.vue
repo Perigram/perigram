@@ -58,7 +58,6 @@
             </Card>
           </div>
         </div>
-      </div>
       
       <Divider />
       
