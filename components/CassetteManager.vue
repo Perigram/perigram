@@ -1,7 +1,6 @@
 <template>
   <div class="cassette-manager">
     <div class="header">
-      <h2>{{ $t('cassette.title') }}</h2>
       <Button 
         :label="$t('cassette.upload')" 
         icon="pi pi-upload"

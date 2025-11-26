@@ -1,7 +1,6 @@
 <template>
   <div class="batch-management">
     <div class="batch-header">
-      <h2>{{ $t('batch.title') }}</h2>
       <Button 
         :label="$t('batch.create')" 
         icon="pi pi-plus" 
