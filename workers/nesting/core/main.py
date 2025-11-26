@@ -44,6 +44,16 @@ class ResultContainer:
         return f"ResultContainer -> Container(ID): {self.container_id}, Transforms: {self.transforms}"
     
 def convert_files_to_input_items(files, space):
+    """
+    Convert batch entries to nesting input items.
+    
+    IMPORTANT: Uses polygonParts from cassettes, which contain ONLY entities
+    from the nesting layer (e.g., 1_3_UNFOLD_BOUNDARY).
+    
+    Each polygonPart has:
+    - coordinates: [[x, y], ...] polygon boundary
+    - handles: [handle1, ...] DXF entity handles for result reconstruction
+    """
     input_items = []
     id = 0
     for file in files:
@@ -61,11 +71,11 @@ def convert_files_to_input_items(files, space):
         if not cassette:
             raise Exception(f"Cassette {cassette_id} not found")
         
-        # Check if we should use parametric rectangles (for testing) or real DXF polygons
+        # Use polygonParts from cassette (NESTING LAYER ONLY)
         polygon_parts = cassette.get("polygonParts")
         
         if polygon_parts and len(polygon_parts) > 0:
-            # Use real DXF polygon data
+            # Use real DXF polygon data from nesting layer
             for part in polygon_parts:
                 coords = part.get("coordinates")
                 handles = part.get("handles")
@@ -222,8 +232,11 @@ dxf_document_cache = {}
 
 def get_entities_from_dxf_file(cassette_id_str, handles):
     """
-    Opens a DXF file from cassettes GridFS and returns the doc object and a list of entities 
-    matching the given handles.
+    Opens DXF from GridFS and returns entities matching the given handles.
+    
+    IMPORTANT: handles come from polygonParts, which were extracted from the
+    nesting layer ONLY during cassette upload. This ensures only nesting layer
+    entities are copied to result DXF.
     """
     from bson import ObjectId
     from utils.mongo import cassettes_bucket

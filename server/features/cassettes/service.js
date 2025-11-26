@@ -9,6 +9,7 @@ import { GridFSBucket } from 'mongodb';
 import { generateRandomString } from '../../utils/strings.js';
 import standardSlugify from 'standard-slugify';
 import { extractNestingPolygons } from '../../utils/dxf-extractor.js';
+import { service as systemSettingsService } from '../system-settings/index.js';
 
 export async function upload(fileBuffer, fileName, cassetteName, userId, layerMapping = null, parameters = null) {
   if (!fileBuffer || fileBuffer.length === 0) {
@@ -36,12 +37,23 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
   // Default parameters if not provided
   const defaultParameters = parameters || ['A', 'B', 'C', 'D', 'E', 'F', 'horizontal_seam_width'];
   
-  // Extract polygons from DXF for nesting (no worker needed!)
+  // Extract polygons from DXF for nesting
+  // Only entities from the nesting layer (1_3_UNFOLD_BOUNDARY) are extracted
   let polygonParts = [];
+  let nestingLayerCode = null;
+  
   if (layerMapping && Object.keys(layerMapping).length > 0) {
-    console.log('[Cassette Upload] Extracting polygons from DXF...');
-    polygonParts = extractNestingPolygons(fileBuffer, layerMapping, 'frame');
-    console.log(`[Cassette Upload] Extracted ${polygonParts.length} polygon parts`);
+    // Get system nesting layer code (default: "1_3_UNFOLD_BOUNDARY")
+    nestingLayerCode = await systemSettingsService.getNestingLayerCode();
+    console.log(`[Cassette Upload] Nesting layer code: ${nestingLayerCode}`);
+    
+    // Extract polygon coordinates + handles from nesting layer ONLY
+    polygonParts = extractNestingPolygons(fileBuffer, layerMapping, nestingLayerCode);
+    console.log(`[Cassette Upload] Extracted ${polygonParts.length} polygon parts from nesting layer`);
+    
+    if (polygonParts.length === 0) {
+      console.warn(`[Cassette Upload] No polygons found in nesting layer. Check layer mapping.`);
+    }
   } else {
     console.log('[Cassette Upload] No layer mapping provided, skipping polygon extraction');
   }
@@ -53,8 +65,8 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
     userId: userId,  // Old schema uses userId as string (not ObjectId)
     dxfId: uploadStream.id,
     svgId: null,  // SVG preview generation can happen later if needed
-    layerMapping: layerMapping || {},  // Format: { [layerName]: layerStandardCode }
-    nestingLayer: 'frame',  // Default to frame layer for nesting
+    layerMapping: layerMapping || {},  // Format: { [dxfLayerName]: layerStandardCode }
+    nestingLayerCode: nestingLayerCode,  // Which layer standard code used for nesting
     parameters: defaultParameters,  // Parameter names for batch entries
     polygonParts: polygonParts,  // Extracted polygon data for nesting!
     polygonPartsCount: polygonParts.length,

@@ -162,16 +162,13 @@ interface CassetteTemplate {
   dxfId: ObjectId;           // GridFS: original uploaded DXF
   svgId: ObjectId | null;    // GridFS: SVG preview
   
-  // User hand-mapped layers (singular form in legacy schema)
+  // User hand-mapped layers (maps DXF layer names to layer standard codes)
   layerMapping: {
-    cut: string[];
-    bend: string[];
-    frame: string[];
-    dimensions: string[];
+    [dxfLayerName: string]: layerStandardCode  // e.g., { "UNFOLD": "1_3_UNFOLD_BOUNDARY", "HOLES": "2_1_CUT" }
   };
   
-  // Nesting layer selection (which layer to use for nesting geometry)
-  nestingLayer?: 'cut' | 'bend' | 'frame' | 'dimensions';  // Default: 'frame'
+  // Which layer standard code is used for nesting (looked up from system settings)
+  nestingLayerCode?: string;  // e.g., "1_3_UNFOLD_BOUNDARY" (default from system_settings.NESTING_LAYER_CODE)
   
   // Cassette parameters (dimensions that vary per batch entry)
   // e.g., ["A", "B", "C", "D", "E", "F", "horizontal_seam_width"]

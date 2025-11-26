@@ -102,23 +102,38 @@ export function extractPolygonsFromDXF(dxfBuffer, layerName) {
 }
 
 /**
- * Extract polygons from DXF using layer mapping
+ * Extract polygons from DXF for nesting
+ * 
+ * NESTING WORKFLOW:
+ * 1. Upload cassette with layerMapping: { "UNFOLD_LAYER": "1_3_UNFOLD_BOUNDARY", ... }
+ * 2. System finds which DXF layer is mapped to "1_3_UNFOLD_BOUNDARY"
+ * 3. Extract ALL entities from that layer as polygon parts (coords + handles)
+ * 4. Store polygonParts in cassette document
+ * 5. When nesting: Worker uses ONLY these polygonParts (nesting layer only!)
+ * 
  * @param {Buffer} dxfBuffer - DXF file buffer
- * @param {Object} layerMapping - Mapping of layer names to standard types
- * @param {string} nestingLayer - Which standard layer type to use for nesting (e.g., 'frame', 'cut')
- * @returns {Array} Array of polygon parts for the nesting layer
+ * @param {Object} layerMapping - Mapping: { [dxfLayerName]: layerStandardCode }
+ *                                Example: { "UNFOLD": "1_3_UNFOLD_BOUNDARY", "CUT": "2_1_CUT" }
+ * @param {string} nestingLayerCode - Layer code for nesting (default: "1_3_UNFOLD_BOUNDARY")
+ * @returns {Array} Array of { coordinates: [[x,y], ...], handles: [handle, ...] }
  */
-export function extractNestingPolygons(dxfBuffer, layerMapping, nestingLayer = 'frame') {
-  // Find which DXF layer is mapped to the nesting layer standard
-  const dxfLayerName = Object.keys(layerMapping).find(
-    layerName => layerMapping[layerName] === nestingLayer
-  );
-  
-  if (!dxfLayerName) {
-    console.warn(`No layer mapped to "${nestingLayer}" for nesting`);
+export function extractNestingPolygons(dxfBuffer, layerMapping, nestingLayerCode) {
+  if (!layerMapping || typeof layerMapping !== 'object') {
+    console.warn('No layer mapping provided');
     return [];
   }
   
-  console.log(`Extracting polygons from layer "${dxfLayerName}" (mapped as ${nestingLayer})`);
+  // Find which DXF layer is mapped to the nesting layer code
+  const dxfLayerName = Object.keys(layerMapping).find(
+    layerName => layerMapping[layerName] === nestingLayerCode
+  );
+  
+  if (!dxfLayerName) {
+    console.warn(`No DXF layer mapped to "${nestingLayerCode}" for nesting`);
+    console.log('Available mappings:', layerMapping);
+    return [];
+  }
+  
+  console.log(`Extracting nesting polygons from DXF layer "${dxfLayerName}" → ${nestingLayerCode}`);
   return extractPolygonsFromDXF(dxfBuffer, dxfLayerName);
 }
