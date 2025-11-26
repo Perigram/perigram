@@ -581,23 +581,13 @@ const markComplete = async () => {
 
 const downloadArtifact = async (artifact) => {
     try {
-        // Use native fetch to handle blob response properly
-        const response = await fetch(`/api/artifacts/${artifact._id}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = artifact.name || `artifact_${artifact._id}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        console.log('[BatchEditor] Downloading artifact:', artifact);
+        
+        // Use window.location for simple download
+        window.location.href = `/api/artifacts/${artifact._id}`;
     } catch (error) {
-        console.error('Failed to download artifact:', error);
-        alert(t('batches.downloadFailed'));
+        console.error('[BatchEditor] Failed to download artifact:', error);
+        alert('Failed to download artifact');
     }
 };
 
