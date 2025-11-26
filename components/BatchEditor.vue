@@ -539,8 +539,9 @@ const runNesting = async () => {
         const errorMessage = error.data?.message || error.message || 'Unknown error';
         alert(`${t('batches.nestingFailed')}: ${errorMessage}`);
         
-        // If batch is stuck in NESTING state, reload to get fresh status
-        emit('updated');
+        // Don't emit('updated') here - it reloads batch and can lose entries
+        // Just refresh artifacts in case any were created
+        await loadArtifacts();
     } finally {
         nestingInProgress.value = false;
     }
