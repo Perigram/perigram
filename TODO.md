@@ -1,8 +1,8 @@
 ### Second-level navigation
 If there is a second-level navigation (like tabs), it appears below the menubar navigation as a part of it. It shows the current tab name as clickable text, with a Select icon next to it to choose sibling tabs. For this, you should remove headers from pages that have second-level navigation, as the menubar navigation will serve that purpose.
-- [ ] Implement second-level navigation below menubar navigation as tab navigation.
-- [ ] Remove headers from pages with second-level navigation.
-- [ ] Move "create batch" to actual batch list page.
+- [x] Implement second-level navigation below menubar navigation as tab navigation.
+- [x] Remove headers from pages with second-level navigation.
+- [x] Move "create batch" to actual batch list page.
 
 ### Layouts and routing bugs
 - [x] Assets and profile pages should use app layout, not blank layout.
