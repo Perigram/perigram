@@ -19,18 +19,39 @@ ENVEOF
 
 ## Run
 
+**Option A: App only (no nesting)**
 ```bash
-# Start MongoDB (if not running)
-docker run -d -p 27017:27017 mongo:7
+# Start MongoDB
+docker run -d -p 27017:27017 --name mongo mongo:7
 
 # Start app
 npm run dev
 ```
 
-## Workers (Optional)
-
+**Option B: App + Workers (recommended)**
 ```bash
-docker-compose -f docker-compose.dev.yml up -d
+# Start MongoDB + workers from ghcr.io
+docker-compose -f docker-compose.local.yml up -d
+
+# Start app (not in Docker for hot reload)
+npm run dev
 ```
 
+**Workers included:**
+- `nesting-worker` - Runs nesting algorithm
+- `user-file-processing-worker` - Processes DXF uploads
+
 **OAuth Setup:** Get credentials from [Google Console](https://console.cloud.google.com/apis/credentials) or [GitHub Settings](https://github.com/settings/developers)
+
+## Common Commands
+
+```bash
+# View worker logs
+docker logs -f nesting-worker
+
+# Restart workers
+docker-compose -f docker-compose.local.yml restart
+
+# Stop everything
+docker-compose -f docker-compose.local.yml down
+```
