@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  nesting-worker:
+    image: ghcr.io/vovastelmashchuk/nesting-worker:${GIT_COMMIT_HASH:-latest}
+    environment:
+      - MONGO_URI
+    deploy:
+      replicas: ${WORKERS_REPLICAS:-1}
+      update_config:
+        order: start-first
+    networks:
+      - infra_mongo
+
+networks:
+  infra_mongo:
+    external: true
