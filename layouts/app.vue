@@ -139,15 +139,25 @@
         }
 
         // --- Level 2: Project Details ---
-        if (parts[0] === 'project' && parts[1] && projects.value && Array.isArray(projects.value)) {
-            const currentProjectSlug = parts[1];
-            const currentProject = projects.value.find(p => p.slug === currentProjectSlug);
-            if (currentProject) {
+        if (parts[0] === 'project' && parts[1]) {
+            if (projects.value && Array.isArray(projects.value)) {
+                const currentProjectSlug = parts[1];
+                const currentProject = projects.value.find(p => p.slug === currentProjectSlug);
+                if (currentProject) {
+                    nav.push({
+                        id: currentProject.slug,
+                        name: currentProject.name,
+                        to: `/project/${currentProject.slug}/batches`,
+                        siblings: projects.value.map(p => ({ name: p.name, id: `/project/${p.slug}/batches` })),
+                    });
+                }
+            } else {
+                // Fallback when projects not loaded yet
                 nav.push({
-                    id: currentProject.slug,
-                    name: currentProject.name,
-                    to: `/project/${currentProject.slug}/batches`,
-                    siblings: projects.value.map(p => ({ name: p.name, id: `/project/${p.slug}/batches` })),
+                    id: parts[1],
+                    name: parts[1],
+                    to: `/project/${parts[1]}/batches`,
+                    siblings: []
                 });
             }
         }
