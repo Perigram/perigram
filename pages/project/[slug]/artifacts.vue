@@ -27,7 +27,8 @@ import ProgressSpinner from 'primevue/progressspinner';
 import ArtifactsTable from '~/components/ArtifactsTable.vue';
 
 definePageMeta({
-  layout: 'project',
+  layout: 'app',
+  middleware: 'auth',
 });
 
 const route = useRoute();

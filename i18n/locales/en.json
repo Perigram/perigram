@@ -274,7 +274,12 @@
     "login": "Login",
     "logout": "Logout",
     "signup": "Sign Up",
-    "loginSignup": "Login / Sign Up"
+    "loginSignup": "Login / Sign Up",
+    "welcome": "Welcome to Cutkit",
+    "subtitle": "Please sign in to continue",
+    "signInWithGitHub": "Sign in with GitHub",
+    "signInWithGoogle": "Sign in with Google",
+    "redirecting": "Redirecting to your projects..."
   },
   "statistics": {
     "title": "Statistics",
@@ -340,7 +345,10 @@
     "artifacts": "Nesting Results",
     "saveFailed": "Failed to save batch changes",
     "noEntriesToNest": "Add at least one entry before running nesting",
-    "nestingFailed": "Failed to run nesting process"
+    "nestingFailed": "Failed to run nesting process",
+    "pageTitle": "Batch Details",
+    "loading": "Loading batch...",
+    "notFound": "Batch not found."
   },
   "batches": {
     "name": "Batch Name",

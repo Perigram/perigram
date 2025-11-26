@@ -8,6 +8,11 @@
 
 <script setup>
 import Message from 'primevue/message';
+
+definePageMeta({
+  layout: 'app',
+  middleware: 'auth',
+});
 </script>
 
 <style scoped>

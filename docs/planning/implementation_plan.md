@@ -372,8 +372,7 @@ Project Layout Sidebar:
 - [x] Update `/pages/cassettes.vue` → `/pages/assets/cassettes.vue` - Already done
 - [x] Update `/pages/templates/index.vue` → `/pages/assets/library.vue` - Already done, moved to component `AssetsLibrary.vue`
   - [x] Combine pens and tools in one page
-  - [x] Add layer standards viewer (read-only) - Placeholder added
-  - [ ] Add import/export functionality
+  - [ ] Add layer standards viewer (read-only)
 
 **Navigation:**
 ```
@@ -415,14 +414,14 @@ Assets Section:
 **Goal:** Remove obsolete custom components after migration.
 
 **Components to Remove (after replacing all usages):**
-- [ ] `MainButton.vue` → Replaced by PrimeVue `Button`
-- [ ] `InputField.vue` → Replaced by PrimeVue `InputText`
-- [ ] `MainTitle.vue` → Use native `<h1>` with Tailwind
-- [ ] `MainAside.vue` → Replaced by PrimeVue `Sidebar`
-- [ ] `DialogWrapper.vue` → Replaced by PrimeVue `Dialog`
-- [ ] `UserProjects.vue` → Functionality moved to `/pages/projects`
-- [ ] `UserResults.vue` → Functionality moved to artifacts page
-- [ ] `DxfUpload.vue` → Replaced by PrimeVue `FileUpload`
+- [x] `MainButton.vue` → Replaced by PrimeVue `Button`
+- [x] `InputField.vue` → Replaced by PrimeVue `InputText`
+- [x] `MainTitle.vue` → Use native `<h1>` with Tailwind
+- [x] `MainAside.vue` → Replaced by PrimeVue `Sidebar`
+- [x] `DialogWrapper.vue` → Replaced by PrimeVue `Dialog`
+- [x] `UserProjects.vue` → Functionality moved to `/pages/projects`
+- [x] `UserResults.vue` → Functionality moved to artifacts page
+- [x] `DxfUpload.vue` → Replaced by PrimeVue `FileUpload`
 
 **Components to Keep:**
 - [x] `Tabs.vue` (if still needed, or replace with PrimeVue `TabView`)

@@ -33,7 +33,7 @@ Add user authentication endpoint
 
 - Created POST /api/auth/login endpoint
 - Updated ARCHITECTURE.md API section
-- Marked task [x] in implementation_plan.md
+- Marked task [x] in TODO.md
 ```
 
 ### 2. Minimal Changes Philosophy
@@ -50,10 +50,12 @@ Add user authentication endpoint
 2. What pattern does the existing code use?
 3. Can I reuse existing utilities/components?
 
-**Where to look:**
-- Service layer pattern → `/server/features/` (any module)
-- Component patterns → `/components/` (check existing)
-- Store pattern → `/composables/` (check any store file)
+**Where to look:** `/docs/ARCHITECTURE.md`
+
+### 4. Implement Fully Before Moving On 
+- Complete one task fully before starting the next
+- Don't leave half-done features
+- Don't leave placeholders or TODOs in place of real implementations
 
 ---
 

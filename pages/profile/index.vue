@@ -1,10 +1,5 @@
 <template>
     <div class="profile-page">
-        <div class="profile-header">
-            <h1>{{ user.name }}</h1>
-            <p>{{ user.email }}</p>
-        </div>
-
         <TabView>
             <TabPanel header="Account">
                 <div class="grid">
@@ -73,8 +68,16 @@
                                     <p>Theme selection is not yet implemented.</p>
                                 </div>
                                 <div class="field mt-4">
-                                    <label>Language</label>
-                                    <p>Language selection is not yet implemented.</p>
+                                    <label for="language-select">Language</label>
+                                    <Dropdown
+                                        id="language-select"
+                                        v-model="currentLocale"
+                                        :options="availableLocales"
+                                        optionLabel="name"
+                                        optionValue="code"
+                                        @change="onLocaleChange"
+                                        class="w-full"
+                                    />
                                 </div>
                             </template>
                         </Card>
@@ -103,17 +106,21 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { authStore } from '~/composables/auth';
 import Button from 'primevue/button';
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
 import Card from 'primevue/card';
 import Avatar from 'primevue/avatar';
+import Dropdown from 'primevue/dropdown';
 import BuyCreditsDialog from '~/components/BuyCreditsDialog.vue';
 
 const router = useRouter();
+const { locale, locales, setLocale } = useI18n();
 
 definePageMeta({
+    layout: "app",
     middleware: "auth",
 });
 
@@ -122,6 +129,13 @@ const { logout } = actions;
 const user = computed(() => getters.user.value || {});
 
 const showBuyCredits = ref(false);
+
+const currentLocale = ref(locale.value);
+const availableLocales = computed(() => locales.value);
+
+const onLocaleChange = (event) => {
+    setLocale(event.value);
+};
 
 const logoutHandler = async () => {
     await logout();
@@ -145,12 +159,5 @@ const addCredits = async () => {
 <style scoped>
 .profile-page {
     padding: 2rem;
-}
-.profile-header {
-    margin-bottom: 2rem;
-}
-.profile-header h1 {
-    font-size: 2rem;
-    font-weight: 700;
 }
 </style>

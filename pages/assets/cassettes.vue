@@ -8,7 +8,7 @@
 import CassetteManager from '~/components/CassetteManager.vue';
 
 definePageMeta({
-    layout: "dashboard",
+    layout: "app",
     middleware: "auth",
 });
 </script>

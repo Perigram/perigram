@@ -1,31 +1,10 @@
 import { schemaWebSite } from './utils/schema'
-import Nora from '@primevue/themes/nora'
 import Re_L from './assets/presets/re_l'
 
 export default defineNuxtConfig({
     compatibilityDate: '2025-07-15',
 
     devtools: { enabled: true },
-
-    app: {
-        head: {
-            link: [
-                {
-                    rel: 'preconnect',
-                    href: 'https://fonts.googleapis.com',
-                },
-                {
-                    rel: 'preconnect',
-                    href: 'https://fonts.gstatic.com',
-                    crossorigin: '',
-                },
-                {
-                    rel: 'stylesheet',
-                    href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap',
-                },
-            ],
-        },
-    },
 
     css: ['primeicons/primeicons.css', './assets/css/fonts.css', './assets/css/main.css'],
 
@@ -78,23 +57,6 @@ export default defineNuxtConfig({
             githubClientId: process.env.GITHUB_CLIENT_ID || '',
         },
     },
-    // // default
-    // runtimeConfig: {
-    //     mongoUri: '',
-    //     stripeSecretKey: '',
-    //     githubClientSecret: '',
-    //     resendToken: '',
-    //     public: {
-    //         baseUrl: 'http://localhost:3000',
-    //         gitCommitSha: '',
-    //         googleClientId: '',
-    //         githubClientId: '',
-    //     },
-    // },
-
-    css: ['@/assets/css/main.css'],
-
-    plugins: ['@/plugins/theme.js'],
 
     vite: {
         css: {
@@ -177,6 +139,19 @@ export default defineNuxtConfig({
                     rel: 'icon',
                     type: 'image/x-icon',
                     href: '/favicon/favicon.ico',
+                },
+                {
+                    rel: 'preconnect',
+                    href: 'https://fonts.googleapis.com',
+                },
+                {
+                    rel: 'preconnect',
+                    href: 'https://fonts.gstatic.com',
+                    crossorigin: '',
+                },
+                {
+                    rel: 'stylesheet',
+                    href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap',
                 },
             ],
             script: [

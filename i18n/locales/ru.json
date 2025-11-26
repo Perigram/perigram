@@ -211,7 +211,12 @@
   "auth": {
     "login": "Войти",
     "signup": "Регистрация",
-    "loginSignup": "Войти / Регистрация"
+    "loginSignup": "Войти / Регистрация",
+    "welcome": "Добро пожаловать в Cutkit",
+    "subtitle": "Пожалуйста, войдите, чтобы продолжить",
+    "signInWithGitHub": "Войти через GitHub",
+    "signInWithGoogle": "Войти через Google",
+    "redirecting": "Перенаправление к вашим проектам..."
   },
   "statistics": {
     "title": "Статистика",
@@ -266,7 +271,10 @@
     "addNewEntry": "Добавить новую запись",
     "unknownCassette": "Неизвестная кассета",
     "confirmDeleteEntry": "Вы уверены, что хотите удалить эту запись?",
-    "dimensionKey": "Введите ключ размера (например, A, B, C):"
+    "dimensionKey": "Введите ключ размера (например, A, B, C):",
+    "pageTitle": "Детали партии",
+    "loading": "Загрузка партии...",
+    "notFound": "Партия не найдена."
   },
   "batches": {
     "entries": "Записи",

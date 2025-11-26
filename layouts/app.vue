@@ -1,53 +1,41 @@
 <template>
     <div class="surface-0">
         <Menubar
-            :model="menuItems"
-            class="app-menubar rounded-none border-x-0 border-t-0 border-b border-300 py-0"
+            :model="[]"
+            class="app-menubar rounded-none border-x-0 border-t-0 border-b border-300 "
         >
             <template #start>
-                <NuxtLink
-                    to="/projects"
-                    class="logo"
-                >
+                <NuxtLink to="/projects" class="logo">
                     <span>CutKit</span>
                 </NuxtLink>
                 <Divider layout="vertical" />
-                <Breadcrumb
-                    :home="breadcrumbHome"
-                    :model="breadcrumbItems"
-	  class="p-2 bg-transparent"
-                >
-                    <template #item="{ item }">
-                        <Select
-                            v-model="breadcrumbItems[0]"
-			    :options="breadcrumbItems[0] ? [breadcrumbItems[0]] : []"
-                            class="mr-2"
-	                    icon="pi pi-chevron-down"
-                        />
-                    </template>
-
-                    <template #separator> / </template>
-                </Breadcrumb>
+                <div v-for="(crumb, index) in breadcrumbs" :key="index" class="flex items-center gap-2">
+                    <span v-if="index > 0">/</span>
+                    <NuxtLink :to="crumb.to" class="p-button p-button-text p-button-sm">
+                        {{ crumb.name }}
+                    </NuxtLink>
+                    <Select
+                        v-if="crumb.siblings && crumb.siblings.length"
+                        :model-value="crumb.id"
+                        :options="crumb.siblings"
+                        option-label="name"
+                        option-value="id"
+                        @change="(e) => router.push(e.value)"
+                        pt:label:class="hidden"
+                        pt:dropdown:class="p-2"
+                        class="p-0 bg-transparent"
+                    />
+                </div>
             </template>
 
             <template #end>
                 <div class="header-end">
-                    <UserBalance />
-
                     <Button
-                        icon="pi pi-user"
-                        :label="userInitials"
-                        severity="info"
+                        :icon="themeIcon"
+                        @click="toggleTheme"
                         text
-                        @click="toggleProfileMenu"
-                        aria-haspopup="true"
-                        aria-controls="profile_menu"
-                    />
-                    <Menu
-                        ref="profileMenu"
-                        id="profile_menu"
-                        :model="profileMenuItems"
-                        :popup="true"
+                        rounded
+                        aria-label="Theme Switcher"
                     />
                 </div>
             </template>
@@ -58,8 +46,8 @@
         </main>
 
         <ChatSupport v-if="supportDialog" />
-        <Button 
-            icon="pi pi-comment" 
+        <Button
+            icon="pi pi-comment"
             label="Support"
             severity="secondary"
             @click="supportDialog = true"
@@ -70,107 +58,141 @@
 </template>
 
 <script setup>
-    import { ref, computed, watch } from 'vue'
+    import { ref, computed, watch, onMounted } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
-    import { useColorMode } from '@vueuse/core'
+    import { useI18n } from 'vue-i18n'
     import Menubar from 'primevue/menubar'
-    import Breadcrumb from 'primevue/breadcrumb'
     import Divider from 'primevue/divider'
     import Button from 'primevue/button'
-    import Menu from 'primevue/menu'
-    import Chip from 'primevue/chip'
-    import UserBalance from '~/components/UserBalance.vue'
+    import Select from 'primevue/select'
     import ChatSupport from '~/components/ChatSupport.vue'
     import { useSupportDialog } from '~/composables/useModalState'
+    import { API_ROUTES } from '~/composables/apiRoutes'
 
     const router = useRouter()
     const route = useRoute()
-    const { $i18n } = useNuxtApp()
+    const { t } = useI18n()
     const supportDialog = useSupportDialog()
 
-    const mode = useColorMode()
-    const profileMenu = ref()
+    // --- Theme Switcher ---
+    const themeCookie = useCookie('theme-mode');
 
-    const isDarkMode = ref(localStorage.getItem('darkMode') === 'true')
-    const themeIcon = computed(() => (!isDarkMode ? 'pi pi-sun' : 'pi pi-moon'))
-    
-    const userInitials = computed(() => 'U') // TODO: Get from auth
-
-    const { data: currentProject } = await useAsyncData(
-        'current-project',
-        () => {
-            const slug = route.params.slug
-            if (slug) {
-                return $fetch(`/api/project/${slug}`)
-            }
-            return Promise.resolve(null)
-        },
-        {
-            watch: [() => route.params.slug]
-        }
-    )
-
-    const isAssetsPage = computed(() => route.path.startsWith('/assets'))
-
-    const menuItems = ref([]) // Empty - using custom start/end templates
-
-    const breadcrumbHome = computed(() => ({
-        label: $i18n.t('navigation.projects'),
-        command: () => router.push('/projects'),
-    }))
-
-    const breadcrumbItems = computed(() => {
-        if (currentProject.value) {
-            return [{ label: currentProject.value.name }]
-        }
-        return []
-    })
-
-    watch(isDarkMode, (value) => {
-        if (value) {
-            document.documentElement.classList.add('dark-mode')
-        } else {
-            document.documentElement.classList.remove('dark-mode')
-        }
-        localStorage.setItem('dark-mode', String(value))
-    })
+    const isDarkMode = computed(() => themeCookie.value === 'dark');
+    const themeIcon = computed(() => (isDarkMode.value ? 'pi pi-sun' : 'pi pi-moon'));
 
     const toggleTheme = () => {
-        isDarkMode.value = !isDarkMode.value
-    }
+        themeCookie.value = isDarkMode.value ? 'light' : 'dark';
+    };
 
-    const toggleProfileMenu = (event) => {
-        profileMenu.value.toggle(event)
-    }
+    const updateThemeClass = (theme) => {
+        if (process.client) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+                document.documentElement.classList.remove('light-mode');
+            } else {
+                document.documentElement.classList.remove('dark-mode');
+                document.documentElement.classList.add('light-mode');
+            }
+        }
+    };
 
-    const profileMenuItems = computed(() => [
-        {
-            label: $i18n.t('navigation.assets'),
-            icon: 'pi pi-folder',
-            command: () => router.push('/assets'),
-        },
-        {
-            label: $i18n.t('profile.title'),
-            icon: 'pi pi-user',
-            command: () => router.push('/profile'),
-        },
-        {
-            separator: true,
-        },
-        {
-            label: $i18n.t('common.toggleTheme'),
-            icon: 'pi pi-' + (mode.value === 'dark' ? 'sun' : 'moon'),
-            command: () => toggleTheme(),
-        },
-        {
-            separator: true,
-        },
-        {
-            label: $i18n.t('auth.logout'),
-            icon: 'pi pi-sign-out',
-            command: () => router.push('/auth/logout'),
-        },
-    ])
+    watch(themeCookie, (newTheme) => {
+        updateThemeClass(newTheme);
+    });
+
+    onMounted(() => {
+        if (!themeCookie.value) {
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            themeCookie.value = prefersDark ? 'dark' : 'light';
+        }
+        updateThemeClass(themeCookie.value);
+    });
+
+    // --- Breadcrumb Navigation ---
+    const { data: projects } = await useAsyncData('projects', () => $fetch(API_ROUTES.PROJECTS));
+
+    const breadcrumbs = computed(() => {
+        const parts = route.path.split('/').filter(p => p);
+        const nav = [];
+
+        if (parts.length === 0) return nav;
+
+        // --- Level 1: Main Section ---
+        const mainSections = [
+            { id: 'projects', name: 'Projects', to: '/projects' },
+            { id: 'assets', name: 'Assets', to: '/assets' },
+            { id: 'profile', name: 'Profile', to: '/profile' },
+        ];
+
+        let currentSectionId = parts[0];
+        if (currentSectionId === 'project') {
+            currentSectionId = 'projects';
+        }
+
+        const currentSection = mainSections.find(s => s.id === currentSectionId);
+
+        if (currentSection) {
+            nav.push({
+                ...currentSection,
+                siblings: mainSections.map(s => ({...s, id: s.to})),
+            });
+        }
+
+        // --- Level 2: Project Details ---
+        if (parts[0] === 'project' && parts[1] && projects.value) {
+            const currentProjectSlug = parts[1];
+            const currentProject = projects.value.find(p => p.slug === currentProjectSlug);
+            if (currentProject) {
+                nav.push({
+                    id: currentProject.slug,
+                    name: currentProject.name,
+                    to: `/project/${currentProject.slug}`,
+                    siblings: projects.value.map(p => ({ name: p.name, id: `/project/${p.slug}` })),
+                });
+            }
+        }
+
+        // --- Level 2: Asset Tabs ---
+        if (currentSectionId === 'assets') {
+            const assetTabs = [
+                { id: 'assets', name: 'Library', to: '/assets' },
+                { id: 'cassettes', name: 'Cassettes', to: '/assets/cassettes' },
+                { id: 'parts', name: 'Parts', to: '/assets/parts' },
+            ];
+            
+            const currentAssetTabId = parts[1] || 'assets';
+            const currentAssetTab = assetTabs.find(t => t.id === currentAssetTabId);
+            
+            if (currentAssetTab) {
+                nav.push({
+                    ...currentAssetTab,
+                    siblings: assetTabs.map(t => ({...t, id: t.to})),
+                });
+            }
+        }
+
+        // --- Level 3: Project Tabs ---
+        if (parts[0] === 'project' && parts[1] && parts[2]) {
+            const projectSlug = parts[1];
+            const projectTabs = [
+                { id: 'data', name: t('project.data'), to: `/project/${projectSlug}/data` },
+                { id: 'batches', name: t('project.batches'), to: `/project/${projectSlug}/batches` },
+                { id: 'artifacts', name: t('project.artifacts'), to: `/project/${projectSlug}/artifacts` },
+            ];
+            
+            const currentTabId = parts[2];
+            const currentTab = projectTabs.find(t => t.id === currentTabId);
+            
+            if (currentTab) {
+                nav.push({
+                    ...currentTab,
+                    siblings: projectTabs.map(t => ({...t, id: t.to})),
+                });
+            }
+        }
+        
+        return nav;
+    });
 </script>
 
 <style scoped lang="scss">

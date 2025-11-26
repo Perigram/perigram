@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-const defaultTitle = 'Nest2D - Smart Nesting for Laser Cutting and CNC machining'
+const defaultTitle = 'CutKit'
 
 export default defineNuxtPlugin((nuxtApp) => {
     let interval

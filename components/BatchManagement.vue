@@ -120,6 +120,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { batchesStore } from '~/composables/batches';
 import BatchEntryEditor from './BatchEntryEditor.vue';
 import Button from 'primevue/button';
@@ -139,6 +140,7 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+const router = useRouter();
 
 const showCreateDialog = ref(false);
 const newBatchName = ref('');
@@ -167,11 +169,12 @@ const formatDate = (date) => {
 
 const createBatch = async () => {
   try {
-    await batchesStore.actions.create(props.projectSlug, {
+    const newBatch = await batchesStore.actions.createBatch(props.projectSlug, {
       name: newBatchName.value
     });
     showCreateDialog.value = false;
     newBatchName.value = '';
+    router.push(`/project/${props.projectSlug}/batch/${newBatch._id}`);
   } catch (err) {
     console.error('Failed to create batch:', err);
   }

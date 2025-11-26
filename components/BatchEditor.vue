@@ -429,9 +429,7 @@ const addEntry = async () => {
     showAddDialog.value = false;
 };
 
-const onRowEditSave = async (event) => {
-    const { newData, index } = event;
-    entries.value[index] = newData;
+const onRowEditSave = async () => {
     await saveBatch();
 };
 
