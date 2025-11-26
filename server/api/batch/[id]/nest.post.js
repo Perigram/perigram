@@ -30,11 +30,9 @@ export default defineEventHandler(async (event) => {
   );
   
   // Build file list for nesting worker
-  const files = batch.entries.map((entry, index) => {
-    const cassette = cassettes[index];
+  const files = batch.entries.map((entry) => {
     return {
-      slug: cassette.dxfId || cassette.slug,
-      name: cassette.name,
+      cassetteId: entry.cassetteTemplateId.toString(),
       count: entry.quantity
     };
   });
@@ -56,11 +54,7 @@ export default defineEventHandler(async (event) => {
     slug: nestingSlug,
     projectSlug: batch.projectSlug,
     batchId: batch._id,
-    files: files.map(f => ({
-      slug: f.slug,
-      simpleName: f.name.replace('.dxf', ''),
-      count: f.count
-    })),
+    files: files,  // Now contains cassetteId and count
     params,
     status: 'pending',
     createdAt: new Date(),

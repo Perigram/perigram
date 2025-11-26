@@ -35,7 +35,7 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
   // Default parameters if not provided
   const defaultParameters = parameters || ['A', 'B', 'C', 'D', 'E', 'F', 'horizontal_seam_width'];
   
-  // Create cassette document (client already parsed layers)
+  // Create cassette document (will be processed by worker)
   const cassetteData = {
     name,
     slug,
@@ -43,6 +43,7 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
     dxfId: uploadStream.id,
     svgId: null,  // SVG preview generation can happen later if needed
     layerMapping: layerMapping || {},  // Format: { [layerName]: layerStandardCode }
+    nestingLayer: 'frame',  // Default to frame layer for nesting
     parameters: defaultParameters,  // Parameter names for batch entries
     options: {
       hasIkleHoles: false,
@@ -50,7 +51,7 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
       allowRotation: true,
       negativeOffset: 0
     },
-    processingStatus: 'done',  // No async processing needed
+    processingStatus: 'pending',  // Will be processed by cassette-processing worker
     createdAt: new Date(),
     updatedAt: new Date()
   };

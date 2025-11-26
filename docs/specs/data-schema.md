@@ -170,6 +170,9 @@ interface CassetteTemplate {
     dimensions: string[];
   };
   
+  // Nesting layer selection (which layer to use for nesting geometry)
+  nestingLayer?: 'cut' | 'bend' | 'frame' | 'dimensions';  // Default: 'frame'
+  
   // Cassette parameters (dimensions that vary per batch entry)
   // e.g., ["A", "B", "C", "D", "E", "F", "horizontal_seam_width"]
   parameters?: string[];
@@ -182,8 +185,16 @@ interface CassetteTemplate {
     negativeOffset?: number;     // Inward offset in mm (for bend compensation)
   };
   
+  // Polygon geometry for nesting (generated from nestingLayer)
+  polygonParts?: Array<{
+    coordinates: [number, number][];  // Polygon vertices
+    handles: string[];                // DXF entity handles
+    width: number;                    // Bounding box width
+    height: number;                   // Bounding box height
+  }>;
+  
   // Processing status
-  processingStatus: "pending" | "done" | "error";
+  processingStatus: "pending" | "processing" | "done" | "error";
   
   createdAt: Date;
   updatedAt: Date;

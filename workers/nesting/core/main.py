@@ -25,15 +25,15 @@ from utils.logger import setup_logger
 logger = setup_logger("core_nesting")
 
 class Transform:
-    def __init__(self, file_slug: str, handles, x, y, angle):
-        self.file_slug = file_slug
+    def __init__(self, cassette_id: str, handles, x, y, angle):
+        self.cassette_id = cassette_id
         self.handles = handles
         self.x = x
         self.y = y
         self.angle = angle
 
     def __str__(self) -> str:
-        return f"Transform -> File(Parts): {self.file_slug}, Handles: {self.handles}, X: {self.x}, Y: {self.y}, Angle: {self.angle}"
+        return f"Transform -> Cassette: {self.cassette_id}, Handles: {self.handles}, X: {self.x}, Y: {self.y}, Angle: {self.angle}"
     
 class ResultContainer:
     def __init__(self, container_id, transforms):
@@ -47,12 +47,25 @@ def convert_files_to_input_items(files, space):
     input_items = []
     id = 0
     for file in files:
-        file_slug = file.get("slug")
+        cassette_id_str = file.get("cassetteId")
         count = file.get("count")
         
-        user_dxf_file = db["user_dxf_files"].find_one({"slug": file_slug})
-        plogonParts = user_dxf_file.get("polygonParts")
-        for part in plogonParts:
+        # Convert string ID to ObjectId
+        from bson import ObjectId
+        cassette_id = ObjectId(cassette_id_str)
+        
+        # Read from cassettes collection instead of user_dxf_files
+        cassette = db["cassettes"].find_one({"_id": cassette_id})
+        
+        if not cassette:
+            raise Exception(f"Cassette {cassette_id} not found")
+        
+        polygon_parts = cassette.get("polygonParts")
+        
+        if not polygon_parts:
+            raise Exception(f"Cassette {cassette.get('name')} has no polygon data. ProcessingStatus: {cassette.get('processingStatus')}")
+        
+        for part in polygon_parts:
             coords = part.get("coordinates")
             handles = part.get("handles")
             
@@ -62,7 +75,7 @@ def convert_files_to_input_items(files, space):
             
             item = {
                 'id': id,
-                'file_slug': file_slug,
+                'cassette_id': cassette_id_str,
                 'coords': buffered_polygon_coords,
                 'handles': handles,
                 'count': count
@@ -134,11 +147,11 @@ def build_part(transforms):
     for transform in transforms:
         try:
             source_doc, entities_to_process = get_entities_from_dxf_file(
-                transform.file_slug, transform.handles
+                transform.cassette_id, transform.handles
             )
             
             if not entities_to_process:
-                logger.warning("No entities found in file", extra={"file_slug": transform.file_slug})
+                logger.warning("No entities found in cassette", extra={"cassette_id": transform.cassette_id})
                 continue
             required_layers = {entity.dxf.layer for entity in entities_to_process}
             
@@ -159,29 +172,40 @@ def build_part(transforms):
                 new_msp.add_entity(new_entity)
             
             logger.info(
-                "Entities from file moved to file", 
-                extra={"file_slug": transform.file_slug, "count": len(entities_to_process)}
+                "Entities from cassette moved to result", 
+                extra={"cassette_id": transform.cassette_id, "count": len(entities_to_process)}
             )
 
         except Exception as e:
-            logger.error("Error processing transform", extra={"file_slug": transform.file_slug, "error": e})
+            logger.error("Error processing transform", extra={"cassette_id": transform.cassette_id, "error": e})
             raise e
    
     return new_doc
 
 dxf_document_cache = {}
 
-def get_entities_from_dxf_file(dxf_file_slug, handles):
+def get_entities_from_dxf_file(cassette_id_str, handles):
     """
-    Opens a DXF file and returns the doc object and a list of entities 
+    Opens a DXF file from cassettes GridFS and returns the doc object and a list of entities 
     matching the given handles.
     """
-    if dxf_file_slug in dxf_document_cache:
-        doc = dxf_document_cache[dxf_file_slug]
+    from bson import ObjectId
+    from utils.mongo import cassettes_bucket
+    
+    if cassette_id_str in dxf_document_cache:
+        doc = dxf_document_cache[cassette_id_str]
     else:
-        dxf_file = valid_dxf_bucket.open_download_stream_by_name(filename=dxf_file_slug)
+        # Get cassette from collection
+        cassette_id = ObjectId(cassette_id_str)
+        cassette = db["cassettes"].find_one({"_id": cassette_id})
+        
+        if not cassette:
+            raise Exception(f"Cassette {cassette_id_str} not found")
+        
+        # Read DXF from GridFS cassettes bucket
+        dxf_file = cassettes_bucket.open_download_stream(cassette['dxfId'])
         doc = read_dxf(dxf_file)
-        dxf_document_cache[dxf_file_slug] = doc
+        dxf_document_cache[cassette_id_str] = doc
         
     msp = doc.modelspace()
     
@@ -272,10 +296,10 @@ def nesting_process(doc):
             x = translation[0]
             y = translation[1]
             
-            file_slug = next(item for item in input_items if item.get("id") == item_id).get("file_slug")
+            cassette_id = next(item for item in input_items if item.get("id") == item_id).get("cassette_id")
             handles = next(item for item in input_items if item.get("id") == item_id).get("handles")
             
-            transforms.append(Transform(file_slug, handles, x, y, rotation))
+            transforms.append(Transform(cassette_id, handles, x, y, rotation))
             total_placed_count += 1
         
         result_containers.append(ResultContainer(container_id, transforms))
