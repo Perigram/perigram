@@ -5,14 +5,30 @@
 - [x] Boolean options in datatable now work
 
 ### Nesting in worker
-- [ ] Need to re-develop data structures and nesting logic in worker to support nested cassettes and artifacts properly.
-- [ ] Sending correct data from frontend to worker for nesting.
-- [ ] Need to update request handling logic to support cassettes and artifacts.
-- [ ] Nesting should use selected cassette layer and ignore other layers. This layer has to be set in nesting options from system layers
+**Status:** ❌ BLOCKED - Worker incompatible with new cassette system (see NESTING_ANALYSIS.md)
+
+**Root Cause:**
+- Worker expects `user_dxf_files` collection with `polygonParts` data
+- New `cassettes` collection doesn't have polygon processing
+- Worker cannot find geometry data to perform nesting
+
+**Required Fix:**
+- [ ] Add polygon processing to cassettes (generate polygonParts from DXF)
+- [ ] Update nesting worker to read from cassettes collection
+- [ ] Update batch nest endpoint to pass cassetteId instead of slug
+- [ ] Test end-to-end: cassette upload → batch → nesting → artifacts
+
+**See:** `/NESTING_ANALYSIS.md` for detailed analysis and solution options
 
 ### Artifact page
+**Status:** ⏳ BLOCKED by nesting worker issues
+
 - [ ] Inspect how results are generated in nesting and send it as artifacts to frontend for display
-- [ ] Display artifacts grouped by batches in project artifact page's accordion view.
+      → Worker currently saves to dxf_result_bucket and svg_result_bucket (GridFS)
+      → Need to update to save via artifacts service API
+- [ ] Display artifacts grouped by batches in project artifact page
+      → Page exists at /pages/project/[slug]/artifacts.vue
+      → Need to implement artifact preview and download's accordion view.
 
 ### Bug fixes
 - [x] Fixed: Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'allowRotation')
