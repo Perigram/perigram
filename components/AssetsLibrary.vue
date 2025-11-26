@@ -1,14 +1,18 @@
 <template>
   <div class="templates-page">
-    <div class="template-section">
-      <div class="section-header">
-        <h2>Pen Templates</h2>
-        <Button 
-          label="New Pen" 
-          icon="pi pi-plus" 
-          @click="showPenDialog = true"
-        />
-      </div>
+    <h1>Templates</h1>
+    
+    <TabView>
+      <TabPanel header="Pen Templates">
+        <div class="template-section">
+          <div class="section-header">
+            <h2>Pen Templates</h2>
+            <Button 
+              label="New Pen" 
+              icon="pi pi-plus" 
+              @click="showPenDialog = true"
+            />
+          </div>
           
           <div v-if="penState.loading">Loading pens...</div>
           <div v-else-if="penState.error" class="error">{{ penState.error }}</div>
@@ -58,18 +62,18 @@
             </Card>
           </div>
         </div>
+      </TabPanel>
       
-      <Divider />
-      
-      <div class="template-section">
-        <div class="section-header">
-          <h2>Tool Profiles</h2>
-          <Button 
-            label="New Tool" 
-            icon="pi pi-plus" 
-            @click="showToolDialog = true"
-          />
-        </div>
+      <TabPanel header="Tool Profiles">
+        <div class="template-section">
+          <div class="section-header">
+            <h2>Tool Profiles</h2>
+            <Button 
+              label="New Tool" 
+              icon="pi pi-plus" 
+              @click="showToolDialog = true"
+            />
+          </div>
           
           <div v-if="toolState.loading">Loading tools...</div>
           <div v-else-if="toolState.error" class="error">{{ toolState.error }}</div>
@@ -107,7 +111,8 @@
             </Card>
           </div>
         </div>
-    </div>
+      </TabPanel>
+    </TabView>
     
     <!-- Pen Dialog -->
     <Dialog 
@@ -176,7 +181,6 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import Divider from 'primevue/divider';
 import { usePenTemplates } from '~/composables/penTemplates';
 import { useToolProfiles } from '~/composables/toolProfiles';
 import { useConfirm } from 'primevue/useconfirm';
@@ -357,4 +361,3 @@ const deleteToolConfirm = (tool) => {
   border-radius: 4px;
 }
 </style>
-
