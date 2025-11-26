@@ -21,10 +21,11 @@
                         option-label="name"
                         option-value="id"
                         @change="(e) => router.push(e.value)"
-                        class="w-8"
+                        pt:root:class="p-0 bg-transparent border-none"
+                        pt:dropdown:class="p-1"
                     >
                         <template #value>
-                            <i class="pi pi-chevron-down text-xs"></i>
+                            <i class="pi pi-chevron-down text-sm opacity-60"></i>
                         </template>
                     </Select>
                 </div>
