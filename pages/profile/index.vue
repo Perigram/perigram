@@ -116,13 +116,13 @@ import Avatar from 'primevue/avatar';
 import Dropdown from 'primevue/dropdown';
 import BuyCreditsDialog from '~/components/BuyCreditsDialog.vue';
 
-const router = useRouter();
-const { locale, locales, setLocale } = useI18n();
-
 definePageMeta({
     layout: "app",
     middleware: "auth",
 });
+
+const router = useRouter();
+const { locale, locales, setLocale } = useI18n();
 
 const { getters, actions } = authStore;
 const { logout } = actions;

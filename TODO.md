@@ -12,7 +12,7 @@
 
 ### Artifact page
 - [ ] Inspect how results are generated in nesting and send it as artifacts to frontend for display
-- [ ] Display artifacts grouped by batches in project artifact page
+- [ ] Display artifacts grouped by batches in project artifact page's accordion view.
 
 ### Bug fixes
 - [x] Fixed: Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'allowRotation')
