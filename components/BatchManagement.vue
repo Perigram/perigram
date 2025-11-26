@@ -1,6 +1,6 @@
 <template>
-  <div class="batch-management">
-    <div class="batch-header">
+  <div class="p-5">
+    <div class="flex justify-end items-center mb-5">
       <Button 
         :label="$t('batch.create')" 
         icon="pi pi-plus" 
@@ -8,15 +8,15 @@
       />
     </div>
 
-    <div v-if="loading" class="batch-loading">
+    <div v-if="loading" class="text-center p-10">
       <ProgressSpinner />
     </div>
 
-    <div v-else-if="error" class="batch-error">
+    <div v-else-if="error" class="mb-5">
       <Message severity="error">{{ error }}</Message>
     </div>
 
-    <div v-else-if="batches.length === 0" class="batch-empty">
+    <div v-else-if="batches.length === 0" class="text-center p-10">
       <p>{{ $t('batch.empty') }}</p>
       <Button 
         :label="$t('batch.createFirst')" 
@@ -25,7 +25,7 @@
       />
     </div>
 
-    <div v-else class="batch-list">
+    <div v-else>
       <DataTable 
         :value="batches" 
         :paginator="true" 
@@ -48,7 +48,7 @@
         </Column>
         <Column :header="$t('common.actions')">
           <template #body="slotProps">
-            <div class="batch-actions">
+            <div class="flex gap-2">
               <Button 
                 icon="pi pi-pencil" 
                 severity="secondary" 
@@ -81,13 +81,14 @@
       :modal="true"
       :style="{ width: '450px' }"
     >
-      <div class="batch-form">
-        <div class="field">
-          <label for="batchName">{{ $t('batch.name') }}</label>
+      <div class="space-y-5">
+        <div>
+          <label for="batchName" class="block mb-2 font-medium">{{ $t('batch.name') }}</label>
           <InputText 
             id="batchName" 
             v-model="newBatchName" 
             :placeholder="$t('batch.namePlaceholder')"
+            class="w-full"
           />
         </div>
       </div>
@@ -215,43 +216,4 @@ const deleteBatch = async (batch) => {
   }
 };
 </script>
-
-<style scoped lang="scss">
-.batch-management {
-  padding: 20px;
-}
-
-.batch-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.batch-loading,
-.batch-empty {
-  text-align: center;
-  padding: 40px;
-}
-
-.batch-error {
-  margin-bottom: 20px;
-}
-
-.batch-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.batch-form {
-  .field {
-    margin-bottom: 20px;
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 500;
-    }
-  }
-}
 </style>

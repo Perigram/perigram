@@ -42,18 +42,22 @@
         </Menubar>
 
         <!-- Second row: Project tabs -->
-        <div v-if="projectTabs" class="project-tabs-bar border-b border-300">
+        <div v-if="projectTabs" class="sticky top-14 z-[999] flex gap-0 bg-surface-0 border-b border-surface-d px-6">
             <div 
                 v-for="tab in projectTabs" 
                 :key="tab.id"
-                :class="['project-tab', { active: activeProjectTab === tab.id }]"
+                :class="[
+                    'px-4 py-3 cursor-pointer border-b-2 border-transparent font-medium transition-all',
+                    'hover:text-surface-900 hover:bg-surface-100',
+                    activeProjectTab === tab.id ? 'text-primary border-primary' : 'text-surface-500'
+                ]"
                 @click="router.push(tab.to)"
             >
                 {{ tab.label }}
             </div>
         </div>
 
-        <main class="app-main">
+        <main class="flex-1 max-w-[1600px] w-full mx-auto p-6">
             <slot />
         </main>
 
@@ -64,7 +68,7 @@
             severity="secondary"
             @click="supportDialog = true"
             v-if="!supportDialog"
-            class="support-button"
+            class="fixed bottom-8 right-8 z-[999]"
         />
     </div>
 </template>
@@ -206,96 +210,23 @@
     });
 </script>
 
-<style scoped lang="scss">
-    .app-layout {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-        background: var(--surface-ground);
-    }
+<style scoped>
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: var(--primary-color);
+    font-size: 1.25rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
 
-    .app-menubar {
-        position: sticky;
-        top: 0;
-        z-index: 1000;
+.logo i {
+    font-size: 1.5rem;
+}
 
-        :deep(.p-menubar-start) {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        :deep(.p-menubar-end) {
-            margin-left: auto;
-        }
-    }
-
-    .project-tabs-bar {
-        position: sticky;
-        top: 56px;
-        z-index: 999;
-        display: flex;
-        gap: 0;
-        background: var(--surface-0);
-        padding: 0 1.5rem;
-    }
-
-    .project-tab {
-        padding: 0.75rem 1rem;
-        cursor: pointer;
-        border-bottom: 2px solid transparent;
-        color: var(--text-color-secondary);
-        font-weight: 500;
-        transition: all 0.2s;
-
-        &:hover {
-            color: var(--text-color);
-            background: var(--surface-100);
-        }
-
-        &.active {
-            color: var(--primary-color);
-            border-bottom-color: var(--primary-color);
-        }
-    }
-
-    .logo {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
-        color: var(--primary-color);
-        font-size: 1.25rem;
-        font-weight: 700;
-        white-space: nowrap;
-
-        i {
-            font-size: 1.5rem;
-        }
-
-        &:hover {
-            opacity: 0.8;
-        }
-    }
-
-    .header-end {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .app-main {
-        flex: 1;
-        max-width: 1600px;
-        width: 100%;
-        margin: 0 auto;
-        padding: 1.5rem;
-    }
-
-    .support-button {
-        position: fixed;
-        bottom: 2rem;
-        right: 2rem;
-        z-index: 999;
-    }
+.logo:hover {
+    opacity: 0.8;
+}
 </style>

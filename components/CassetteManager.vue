@@ -1,6 +1,6 @@
 <template>
-  <div class="cassette-manager">
-    <div class="header">
+  <div>
+    <div class="flex justify-end mb-5">
       <Button 
         :label="$t('cassette.upload')" 
         icon="pi pi-upload"
@@ -8,34 +8,35 @@
       />
     </div>
 
-    <div v-if="!cassettes || cassettes.length === 0" class="empty-state">
-      <i class="pi pi-inbox" style="font-size: 3rem; color: var(--text-color-secondary);"></i>
+    <div v-if="!cassettes || cassettes.length === 0" class="flex flex-col items-center justify-center p-16 text-center border-2 border-dashed border-surface-d rounded-lg text-surface-500">
+      <i class="pi pi-inbox text-5xl mb-4"></i>
       <p>{{ !cassettes ? 'Loading cassettes...' : $t('cassette.noCassettes') }}</p>
     </div>
 
-    <div v-else class="cassettes-grid">
-      <div v-for="cassette in cassettes" :key="cassette._id" class="cassette-card">
-        <div class="cassette-card-header">
-          <h3>{{ cassette.name }}</h3>
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-for="cassette in cassettes" :key="cassette._id" class="border border-surface-d rounded-lg overflow-hidden bg-surface-0">
+        <div class="flex justify-between items-start p-4 bg-surface-50">
+          <h3 class="text-lg font-semibold">{{ cassette.name }}</h3>
           <Tag 
             :value="cassette.processingStatus" 
             :severity="getStatusSeverity(cassette.processingStatus)"
           />
         </div>
 
-        <div class="cassette-card-body">
-          <div class="info-row">
-            <span class="label">{{ $t('common.created') }}:</span>
+        <div class="p-4">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="text-surface-600">{{ $t('common.created') }}:</span>
             <span>{{ formatDate(cassette.createdAt) }}</span>
           </div>
         </div>
 
-        <div class="cassette-card-actions">
+        <div class="flex gap-2 p-4 pt-0">
           <Button 
             :label="$t('common.edit')"
             icon="pi pi-pencil" 
             severity="secondary"
             size="small"
+            class="flex-1"
             @click="editCassette(cassette)"
           />
           <Button 
@@ -109,86 +110,3 @@ const handleUploaded = async () => {
   cassettes.value = result || [];
 };
 </script>
-
-<style scoped>
-.cassette-manager {
-  padding: 20px;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.header h2 {
-  margin: 0;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--text-color-secondary);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.cassettes-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
-  padding: 20px 0;
-}
-
-.cassette-card {
-  border: 1px solid var(--surface-border);
-  border-radius: 8px;
-  padding: 16px;
-  background: var(--surface-card);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  height: 100%;
-}
-
-.cassette-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: start;
-  gap: 12px;
-}
-
-.cassette-card-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  flex: 1;
-  word-break: break-word;
-}
-
-.cassette-card-body {
-  flex: 1;
-}
-
-.info-row {
-  display: flex;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.info-row .label {
-  font-weight: 500;
-  color: var(--text-color-secondary);
-}
-
-.cassette-card-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding-top: 8px;
-  border-top: 1px solid var(--surface-border);
-}
-</style>
