@@ -583,17 +583,37 @@ const downloadArtifact = async (artifact) => {
     try {
         console.log('[BatchEditor] Downloading artifact:', artifact);
         
-        // Create a hidden link and click it to trigger download without navigation
-        const link = document.createElement('a');
-        link.href = `/api/artifacts/${artifact._id}`;
-        link.download = artifact.name || `artifact_${artifact._id}`;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Fetch the file as a blob
+        const response = await fetch(`/api/artifacts/${artifact._id}`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || `HTTP error! status: ${response.status}`);
+        }
+        
+        // Get the blob
+        const blob = await response.blob();
+        
+        // Create object URL and download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = artifact.name || `artifact_${artifact._id}`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+        
     } catch (error) {
         console.error('[BatchEditor] Failed to download artifact:', error);
-        alert('Failed to download artifact');
+        alert(`Failed to download artifact: ${error.message}`);
     }
 };
 
