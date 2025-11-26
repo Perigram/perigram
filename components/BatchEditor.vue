@@ -46,6 +46,16 @@
                     <label for="spacing">{{ $t('nesting.spacing') }} (mm)</label>
                     <InputNumber id="spacing" v-model="nestingOptions.space" :min="0" />
                 </div>
+                <div class="field">
+                    <label for="nestingLayer">{{ $t('nesting.nestingLayer') }}</label>
+                    <Select 
+                        id="nestingLayer" 
+                        v-model="nestingOptions.nestingLayer" 
+                        :options="nestingLayerOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                    />
+                </div>
                 <div class="field-action">
                     <Button 
                         :label="$t('batches.runNesting')"
@@ -276,7 +286,15 @@ const nestingOptions = ref({
     width: 2440,
     height: 1220,
     space: 5,
+    nestingLayer: 'frame'
 });
+
+const nestingLayerOptions = [
+    { label: 'Frame (Outer)', value: 'frame' },
+    { label: 'Cut', value: 'cut' },
+    { label: 'Bend', value: 'bend' },
+    { label: 'Dimensions', value: 'dimensions' }
+];
 
 // New entry form
 const newEntry = ref({

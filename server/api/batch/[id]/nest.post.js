@@ -79,7 +79,8 @@ export default defineEventHandler(async (event) => {
   const files = batch.entries.map((entry) => {
     return {
       cassetteId: entry.cassetteTemplateId.toString(),
-      count: entry.quantity
+      count: entry.quantity,
+      dimensions: entry.dimensions || {}  // Pass dimensions (A, B, etc)
     };
   });
   

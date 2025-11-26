@@ -49,25 +49,62 @@ def convert_files_to_input_items(files, space):
     for file in files:
         cassette_id_str = file.get("cassetteId")
         count = file.get("count")
+        dimensions = file.get("dimensions", {})
         
         # Convert string ID to ObjectId
         from bson import ObjectId
         cassette_id = ObjectId(cassette_id_str)
         
-        # Read from cassettes collection instead of user_dxf_files
+        # Read cassette from collection
         cassette = db["cassettes"].find_one({"_id": cassette_id})
         
         if not cassette:
             raise Exception(f"Cassette {cassette_id} not found")
         
+        # Check if we should use parametric rectangles (for testing) or real DXF polygons
         polygon_parts = cassette.get("polygonParts")
         
-        if not polygon_parts:
-            raise Exception(f"Cassette {cassette.get('name')} has no polygon data. ProcessingStatus: {cassette.get('processingStatus')}")
-        
-        for part in polygon_parts:
-            coords = part.get("coordinates")
-            handles = part.get("handles")
+        if polygon_parts and len(polygon_parts) > 0:
+            # Use real DXF polygon data
+            for part in polygon_parts:
+                coords = part.get("coordinates")
+                handles = part.get("handles")
+                
+                shapely_polygon = Polygon(coords)
+                buffered_polygon = shapely_polygon.buffer(space)
+                buffered_polygon_coords = list(buffered_polygon.exterior.coords)
+                
+                item = {
+                    'id': id,
+                    'cassette_id': cassette_id_str,
+                    'coords': buffered_polygon_coords,
+                    'handles': handles,
+                    'count': count
+                }
+                
+                id += 1
+                input_items.append(item)
+        else:
+            # Fallback to parametric rectangles from dimensions (for testing)
+            logger.warning(f"Cassette {cassette.get('name')} has no polygon data, using parametric rectangle from dimensions")
+            
+            dim_values = list(dimensions.values())
+            if len(dim_values) >= 2:
+                width = float(dim_values[0])
+                height = float(dim_values[1])
+            elif len(dim_values) == 1:
+                width = height = float(dim_values[0])
+            else:
+                raise Exception(f"Cassette {cassette.get('name')} has no polygon data and entry has no dimensions")
+            
+            # Create rectangle coordinates
+            coords = [
+                (0, 0),
+                (width, 0),
+                (width, height),
+                (0, height),
+                (0, 0)
+            ]
             
             shapely_polygon = Polygon(coords)
             buffered_polygon = shapely_polygon.buffer(space)
@@ -77,12 +114,11 @@ def convert_files_to_input_items(files, space):
                 'id': id,
                 'cassette_id': cassette_id_str,
                 'coords': buffered_polygon_coords,
-                'handles': handles,
+                'handles': [],
                 'count': count
             }
             
             id += 1
-        
             input_items.append(item)
     
     return input_items
