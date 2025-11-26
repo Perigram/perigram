@@ -23,7 +23,7 @@ services:
     restart: unless-stopped
 
   nesting-worker:
-    image: ghcr.io/vovastelmashchuk/nesting-worker:latest
+    image: ghcr.io/1suo/nesting-worker:latest
     container_name: nesting-worker
     environment:
       - MONGO_URI=mongodb://mongo:27017/nest2d

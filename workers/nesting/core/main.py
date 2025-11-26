@@ -65,7 +65,7 @@ def convert_files_to_input_items(files, space):
         from bson import ObjectId
         cassette_id = ObjectId(cassette_id_str)
         
-        # Read cassette from collection
+        # Read cassette from NEW schema (cassettes collection)
         cassette = db["cassettes"].find_one({"_id": cassette_id})
         
         if not cassette:
@@ -237,21 +237,23 @@ def get_entities_from_dxf_file(cassette_id_str, handles):
     IMPORTANT: handles come from polygonParts, which were extracted from the
     nesting layer ONLY during cassette upload. This ensures only nesting layer
     entities are copied to result DXF.
+    
+    Uses NEW schema: cassettes GridFS bucket (not userDxf)
     """
     from bson import ObjectId
-    from utils.mongo import cassettes_bucket
+    from utils.mongo import cassettes_bucket  # Use cassettes bucket, not userDxf
     
     if cassette_id_str in dxf_document_cache:
         doc = dxf_document_cache[cassette_id_str]
     else:
-        # Get cassette from collection
+        # Get cassette from NEW collection
         cassette_id = ObjectId(cassette_id_str)
         cassette = db["cassettes"].find_one({"_id": cassette_id})
         
         if not cassette:
             raise Exception(f"Cassette {cassette_id_str} not found")
         
-        # Read DXF from GridFS cassettes bucket
+        # Read DXF from GridFS cassettes bucket (NEW schema)
         dxf_file = cassettes_bucket.open_download_stream(cassette['dxfId'])
         doc = read_dxf(dxf_file)
         dxf_document_cache[cassette_id_str] = doc

@@ -70,12 +70,10 @@ export default defineEventHandler(async (event) => {
       // Note: We allow missing polygonParts - worker will use parametric rectangles from dimensions as fallback
     }
   
-  // Build file list for nesting worker
-  // Note: ghcr.io/vovastelmashchuk worker expects 'slug' not 'cassetteId'
+  // Build file list for nesting worker (NEW schema)
   const files = batch.entries.map((entry) => {
-    const cassette = cassettes.find(c => c._id.toString() === entry.cassetteTemplateId.toString());
     return {
-      slug: cassette.slug,  // Worker looks up by slug in user_dxf_files
+      cassetteId: entry.cassetteTemplateId.toString(),
       count: entry.quantity,
       dimensions: entry.dimensions || {}
     };
