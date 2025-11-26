@@ -29,7 +29,19 @@ export default defineEventHandler(async (event) => {
     });
     
     if (batch.status === 'NESTING') {
-      throw createError({ statusCode: 400, message: 'Batch is already nesting' });
+      // Check if there's actually a nesting job in progress
+      const db = await connectDB();
+      const existingJob = await db.collection('nesting_jobs').findOne({
+        batchId: batch._id,
+        status: { $in: ['pending', 'processing'] }
+      });
+      
+      if (existingJob) {
+        throw createError({ statusCode: 400, message: 'Batch is already nesting' });
+      } else {
+        // No active job found, allow re-nesting (previous attempt failed)
+        console.log('No active nesting job found, allowing re-nest');
+      }
     }
     
     // Check batch has entries
@@ -46,6 +58,22 @@ export default defineEventHandler(async (event) => {
     );
     
     console.log('Cassettes validated:', cassettes.length);
+    
+    // Check if any cassette is not processed yet
+    for (const cassette of cassettes) {
+      if (cassette.processingStatus !== 'done') {
+        throw createError({ 
+          statusCode: 400, 
+          message: `Cassette "${cassette.name}" is not ready (status: ${cassette.processingStatus}). Please wait for processing to complete.` 
+        });
+      }
+      if (!cassette.polygonParts || cassette.polygonParts.length === 0) {
+        throw createError({ 
+          statusCode: 400, 
+          message: `Cassette "${cassette.name}" has no polygon data. Please re-upload or contact support.` 
+        });
+      }
+    }
   
   // Build file list for nesting worker
   const files = batch.entries.map((entry) => {

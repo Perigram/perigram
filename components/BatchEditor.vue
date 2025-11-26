@@ -507,15 +507,22 @@ const runNesting = async () => {
 
     nestingInProgress.value = true;
     try {
-        await $fetch(`/api/batch/${props.batch._id}/nest`, {
+        const result = await $fetch(`/api/batch/${props.batch._id}/nest`, {
             method: 'POST',
             body: nestingOptions.value
         });
+        console.log('Nesting started:', result);
         emit('updated');
         await loadArtifacts();
     } catch (error) {
         console.error('Failed to run nesting:', error);
-        alert(t('batches.nestingFailed'));
+        
+        // Extract error message from response
+        const errorMessage = error.data?.message || error.message || 'Unknown error';
+        alert(`${t('batches.nestingFailed')}: ${errorMessage}`);
+        
+        // If batch is stuck in NESTING state, reload to get fresh status
+        emit('updated');
     } finally {
         nestingInProgress.value = false;
     }
