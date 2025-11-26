@@ -171,6 +171,7 @@
                             </div>
                             <div class="artifact-info">
                                 <span class="artifact-type">{{ artifact.type }}</span>
+                                <span class="artifact-status" :class="artifact.status">{{ artifact.status }}</span>
                                 <span class="artifact-date">{{ formatDate(artifact.createdAt) }}</span>
                             </div>
                             <div class="artifact-actions">
@@ -178,6 +179,7 @@
                                     icon="pi pi-download"
                                     severity="secondary"
                                     size="small"
+                                    :disabled="artifact.status !== 'READY'"
                                     @click="downloadArtifact(artifact)"
                                 />
                                 <Button 
