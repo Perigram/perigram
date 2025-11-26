@@ -1,4 +1,4 @@
-import gridfs
+from gridfs import GridFSBucket
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
@@ -21,15 +21,15 @@ def create_mongo_client():
 _client : MongoClient = create_mongo_client()
 db = _client.get_default_database()
 
-user_dxf_bucket = gridfs.GridFSBucket(db, bucket_name="userDxf")
-valid_dxf_bucket = gridfs.GridFSBucket(db, bucket_name="validDxf")
+user_dxf_bucket = GridFSBucket(db, bucket_name="userDxf")
+valid_dxf_bucket = GridFSBucket(db, bucket_name="validDxf")
 
-user_dxf_files_svg_bucket = gridfs.GridFSBucket(db, bucket_name="userDxfFilesSvg")
+user_dxf_files_svg_bucket = GridFSBucket(db, bucket_name="userDxfFilesSvg")
 
 
-svg_result_bucket = gridfs.GridFSBucket(db, bucket_name="nestSvg")
-dxf_result_bucket = gridfs.GridFSBucket(db, bucket_name="nestDxf")
+svg_result_bucket = GridFSBucket(db, bucket_name="nestSvg")
+dxf_result_bucket = GridFSBucket(db, bucket_name="nestDxf")
 
 # Add cassettes bucket for new cassette system
-cassettes_bucket = gridfs.GridFSBucket(db, bucket_name="cassettes")
+cassettes_bucket = GridFSBucket(db, bucket_name="cassettes")
 
