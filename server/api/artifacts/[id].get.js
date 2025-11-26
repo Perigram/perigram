@@ -5,14 +5,29 @@ import { toObjectId } from '~/server/utils/objectid';
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id');
   
+  console.log('[artifacts/[id].get] Downloading artifact:', id);
+  
   // Auth and basic checks are assumed to be in the service layer
   const artifact = await service.getById(id);
+  
+  console.log('[artifacts/[id].get] Artifact found:', { 
+    id: artifact._id, 
+    status: artifact.status, 
+    hasFileId: !!artifact.fileId 
+  });
 
   // Check if the artifact is ready and has a file
-  if (artifact.status !== 'READY' || !artifact.fileId) {
+  if (artifact.status !== 'READY') {
+    throw createError({
+      statusCode: 400,
+      message: `Artifact is not ready yet. Current status: ${artifact.status}`,
+    });
+  }
+  
+  if (!artifact.fileId) {
     throw createError({
       statusCode: 404,
-      message: 'Artifact file not found or not ready.',
+      message: 'Artifact has no file attached.',
     });
   }
 
@@ -31,7 +46,7 @@ export default defineEventHandler(async (event) => {
   setResponseHeaders(event, {
     'Content-Type': artifact.mimeType || 'application/octet-stream',
     'Content-Length': file.length,
-    'Content-Disposition': `inline; filename="${encodeURIComponent(artifact.name)}"`,
+    'Content-Disposition': `attachment; filename="${encodeURIComponent(artifact.name)}"`,
     'Cache-Control': 'public, max-age=31536000, immutable' // Cache for 1 year
   });
 
