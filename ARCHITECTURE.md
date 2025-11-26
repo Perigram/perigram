@@ -397,11 +397,11 @@ PUT    /api/tables/:id
 DELETE /api/tables/:id
 
 # Cassettes
-GET    /api/cassettes
-POST   /api/cassettes/upload
-GET    /api/cassettes/:id
-PUT    /api/cassettes/:id
-DELETE /api/cassettes/:id
+GET    /api/cassettes              # List user's cassettes
+POST   /api/cassettes/upload       # Upload DXF + extract polygons (no worker needed!)
+GET    /api/cassettes/:id          # Get cassette details
+PUT    /api/cassettes/:id          # Update cassette metadata
+DELETE /api/cassettes/:id          # Delete cassette
 
 # Auth
 POST   /api/auth/logout

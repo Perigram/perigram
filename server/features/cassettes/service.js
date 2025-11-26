@@ -8,6 +8,7 @@ import { connectDB } from '../../db/mongo.js';
 import { GridFSBucket } from 'mongodb';
 import { generateRandomString } from '../../utils/strings.js';
 import standardSlugify from 'standard-slugify';
+import { extractNestingPolygons } from '../../utils/dxf-extractor.js';
 
 export async function upload(fileBuffer, fileName, cassetteName, userId, layerMapping = null, parameters = null) {
   if (!fileBuffer || fileBuffer.length === 0) {
@@ -35,7 +36,17 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
   // Default parameters if not provided
   const defaultParameters = parameters || ['A', 'B', 'C', 'D', 'E', 'F', 'horizontal_seam_width'];
   
-  // Create cassette document (will be processed by worker)
+  // Extract polygons from DXF for nesting (no worker needed!)
+  let polygonParts = [];
+  if (layerMapping && Object.keys(layerMapping).length > 0) {
+    console.log('[Cassette Upload] Extracting polygons from DXF...');
+    polygonParts = extractNestingPolygons(fileBuffer, layerMapping, 'frame');
+    console.log(`[Cassette Upload] Extracted ${polygonParts.length} polygon parts`);
+  } else {
+    console.log('[Cassette Upload] No layer mapping provided, skipping polygon extraction');
+  }
+  
+  // Create cassette document with polygonParts
   const cassetteData = {
     name,
     slug,
@@ -45,20 +56,22 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
     layerMapping: layerMapping || {},  // Format: { [layerName]: layerStandardCode }
     nestingLayer: 'frame',  // Default to frame layer for nesting
     parameters: defaultParameters,  // Parameter names for batch entries
+    polygonParts: polygonParts,  // Extracted polygon data for nesting!
+    polygonPartsCount: polygonParts.length,
     options: {
       hasIkleHoles: false,
       hasRivetHoles: false,
       allowRotation: true,
       negativeOffset: 0
     },
-    processingStatus: 'pending',  // Will be processed by cassette-processing worker
+    processingStatus: polygonParts.length > 0 ? 'completed' : 'pending',
     createdAt: new Date(),
     updatedAt: new Date()
   };
   
   const cassette = await repository.create(cassetteData);
   
-  // No worker needed - client already detected layers
+  console.log(`[Cassette Upload] Created cassette ${cassette._id} with ${polygonParts.length} polygon parts`);
   
   return cassette;
 }

@@ -185,16 +185,15 @@ interface CassetteTemplate {
     negativeOffset?: number;     // Inward offset in mm (for bend compensation)
   };
   
-  // Polygon geometry for nesting (generated from nestingLayer)
+  // Polygon geometry for nesting (extracted on upload from nestingLayer)
   polygonParts?: Array<{
-    coordinates: [number, number][];  // Polygon vertices
-    handles: string[];                // DXF entity handles
-    width: number;                    // Bounding box width
-    height: number;                   // Bounding box height
+    coordinates: [number, number][];  // Polygon vertices [[x,y], [x,y], ...]
+    handles: string[];                // DXF entity handles (optional)
   }>;
+  polygonPartsCount?: number;         // Number of polygon parts extracted
   
-  // Processing status
-  processingStatus: "pending" | "processing" | "done" | "error";
+  // Processing status (updated to 'completed' when polygonParts extracted)
+  processingStatus: "pending" | "processing" | "completed" | "error";
   
   createdAt: Date;
   updatedAt: Date;
