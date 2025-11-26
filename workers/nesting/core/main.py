@@ -334,10 +334,16 @@ def nesting_process(doc):
             
         logger.info("✅ lbf executed successfully!")
         
-        # Read solution from file
-        solution_file = os.path.join(solution_folder, 'solution.json')
-        if not os.path.exists(solution_file):
-            raise Exception(f"Solution file not found: {solution_file}")
+        # List files in solution folder to see what lbf created
+        logger.info(f"Solution folder contents: {os.listdir(solution_folder)}")
+        
+        # Read solution from file (lbf might use different filename)
+        json_files = [f for f in os.listdir(solution_folder) if f.endswith('.json')]
+        if not json_files:
+            raise Exception(f"No JSON files found in solution folder: {solution_folder}")
+        
+        solution_file = os.path.join(solution_folder, json_files[0])
+        logger.info(f"Reading solution from: {solution_file}")
         
         with open(solution_file, 'r') as f:
             output = json.load(f)
