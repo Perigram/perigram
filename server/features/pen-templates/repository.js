@@ -28,19 +28,9 @@ export async function findByOwner(ownerId) {
   
   const db = await connectDB();
   
-  // ownerId for pen templates should be ObjectId (user's internal ID)
-  // But if string is passed (OAuth ID), try to find user first
-  let ownerObjectId;
-  if (typeof ownerId === 'string' && !ObjectId.isValid(ownerId)) {
-    // This is an OAuth ID like "google:117482666136714297322"
-    // For now, just return empty array (user pens use internal ObjectId)
-    return [];
-  }
-  
-  ownerObjectId = toObjectId(ownerId);
-  
+  // Handle OAuth userId strings (e.g., "google:12345") - use as-is, not as ObjectId
   return await db.collection(COLLECTION)
-    .find({ ownerId: ownerObjectId })
+    .find({ ownerId: ownerId })
     .sort({ name: 1 })
     .toArray();
 }

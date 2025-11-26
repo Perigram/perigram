@@ -1,7 +1,5 @@
 <template>
   <div class="templates-page">
-    <h1>Templates</h1>
-    
     <TabView>
       <TabPanel header="Pen Templates">
         <div class="template-section">
@@ -303,7 +301,6 @@ const deleteToolConfirm = (tool) => {
 
 <style scoped>
 .templates-page {
-  padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
 }

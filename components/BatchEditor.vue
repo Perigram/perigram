@@ -124,7 +124,7 @@
                     <i v-else class="pi pi-times-circle text-red-500"></i>
                 </template>
                 <template #editor="{ data }">
-                    <ToggleSwitch v-model="data.options[option]" />
+                    <ToggleSwitch v-model="data.options[option]" v-if="data.options" />
                 </template>
             </Column>
 
@@ -283,7 +283,8 @@ const newEntry = ref({
     cassetteTemplateId: null,
     entryId: '',
     quantity: 1,
-    dimensions: {}
+    dimensions: {},
+    options: {}
 });
 const newEntryParameters = ref([]);
 
@@ -370,14 +371,26 @@ const formatDate = (date) => {
     return new Date(date).toLocaleString();
 };
 
-// When cassette changes, update dimensions based on parameters
+// When cassette changes, update dimensions and options based on cassette template
 const onCassetteChange = (entry) => {
     const cassette = cassettes.value.find(c => c._id === entry.cassetteTemplateId);
+    
+    // Initialize dimensions
     if (cassette?.parameters) {
         entry.dimensions = entry.dimensions || {};
         cassette.parameters.forEach(param => {
             if (!(param in entry.dimensions)) {
                 entry.dimensions[param] = 0;
+            }
+        });
+    }
+    
+    // Initialize options from cassette defaults
+    if (cassette?.options) {
+        entry.options = entry.options || {};
+        Object.keys(cassette.options).forEach(option => {
+            if (!(option in entry.options)) {
+                entry.options[option] = cassette.options[option];
             }
         });
     }
@@ -395,6 +408,13 @@ const onNewCassetteChange = () => {
         newEntryParameters.value = [];
         newEntry.value.dimensions = {};
     }
+    
+    // Initialize options from cassette defaults
+    if (cassette?.options) {
+        newEntry.value.options = { ...cassette.options };
+    } else {
+        newEntry.value.options = {};
+    }
 };
 
 const addEntry = async () => {
@@ -408,11 +428,20 @@ const addEntry = async () => {
         });
     }
     
+    // Initialize options from cassette defaults
+    const options = {};
+    if (cassette?.options) {
+        Object.keys(cassette.options).forEach(option => {
+            options[option] = cassette.options[option];
+        });
+    }
+    
     const entry = {
         ...newEntry.value,
         _id: `temp_${Date.now()}`,
         entryId: `Entry-${entries.value.length + 1}`,
-        dimensions
+        dimensions,
+        options
     };
     
     entries.value.push(entry);
@@ -423,7 +452,8 @@ const addEntry = async () => {
         cassetteTemplateId: null,
         entryId: '',
         quantity: 1,
-        dimensions: {}
+        dimensions: {},
+        options: {}
     };
     newEntryParameters.value = [];
     showAddDialog.value = false;

@@ -1,5 +1,5 @@
 <template>
-    <div class="profile-page">
+    <div class="">
         <TabView>
             <TabPanel header="Account">
                 <div class="grid">
@@ -131,10 +131,17 @@ const user = computed(() => getters.user.value || {});
 const showBuyCredits = ref(false);
 
 const currentLocale = ref(locale.value);
-const availableLocales = computed(() => locales.value);
+const availableLocales = computed(() => {
+    return locales.value.map(l => ({
+        code: l.code || l,
+        name: l.name || l.toUpperCase()
+    }));
+});
 
-const onLocaleChange = (event) => {
-    setLocale(event.value);
+const onLocaleChange = async (event) => {
+    const newLocale = event.value;
+    await setLocale(newLocale);
+    currentLocale.value = newLocale;
 };
 
 const logoutHandler = async () => {
@@ -157,7 +164,4 @@ const addCredits = async () => {
 </script>
 
 <style scoped>
-.profile-page {
-    padding: 2rem;
-}
 </style>

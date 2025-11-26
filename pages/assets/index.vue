@@ -1,5 +1,5 @@
 <template>
-    <div class="assets-page">
+    <div class="">
         <AssetsLibrary />
     </div>
 </template>
@@ -14,7 +14,4 @@ definePageMeta({
 </script>
 
 <style scoped>
-.assets-page {
-    padding: 1rem;
-}
 </style>

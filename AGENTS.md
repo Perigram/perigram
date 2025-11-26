@@ -11,7 +11,7 @@ This file tells you **HOW** to work with this codebase. For **WHAT** the archite
 - **Architecture Details:** → `/ARCHITECTURE.md`
 - **Data Schemas:** → `/docs/specs/data-schema.md`
 - **Setup Guide:** → `/ONBOARDING.md`
-- **Implementation Plan:** → `/docs/planning/implementation_plan.md`
+- **TODO:** → `/TODO.md`
 
 ---
 
@@ -25,7 +25,7 @@ This file tells you **HOW** to work with this codebase. For **WHAT** the archite
 - Schema changes → Update `/docs/specs/data-schema.md`
 - API changes → Update `/ARCHITECTURE.md` API section
 - New patterns → Update `/ARCHITECTURE.md` or `/ONBOARDING.md`
-- Task completion → Mark `[x]` in `/docs/planning/implementation_plan.md`
+- Task completion → Mark `[x]` in `/TODO.md`
 
 **Example commit:**
 ```

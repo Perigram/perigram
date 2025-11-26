@@ -1,17 +1,27 @@
 <template>
-    <div class="surface-0">
+    <div class="bg-transparent">
         <Menubar
             :model="[]"
-            class="app-menubar rounded-none border-x-0 border-t-0 border-b border-300 "
+            class="rounded-none border-0"
         >
             <template #start>
-                <NuxtLink to="/projects" class="logo">
+                <NuxtLink
+                    to="/projects"
+                    class="logo"
+                >
                     <span>CutKit</span>
                 </NuxtLink>
                 <Divider layout="vertical" />
-                <div v-for="(crumb, index) in breadcrumbs" :key="index" class="flex items-center gap-2">
+                <div
+                    v-for="(crumb, index) in breadcrumbs"
+                    :key="index"
+                    class="flex items-center gap-0"
+                >
                     <span v-if="index > 0">/</span>
-                    <NuxtLink :to="crumb.to" class="p-button p-button-text p-button-sm">
+                    <NuxtLink
+                        :to="crumb.to"
+                        class="p-button p-component p-button-text p-button-secondary"
+                    >
                         {{ crumb.name }}
                     </NuxtLink>
                     <Select
@@ -21,13 +31,10 @@
                         option-label="name"
                         option-value="id"
                         @change="(e) => router.push(e.value)"
-                        pt:root:class="p-0 bg-transparent border-none"
-                        pt:dropdown:class="p-1"
-                    >
-                        <template #value>
-                            <i class="pi pi-chevron-down text-sm opacity-60"></i>
-                        </template>
-                    </Select>
+                        pt:root:class="p-button p-component p-button-text p-button-secondary px-0 mr-2"
+                        pt:label:class="hidden"
+                        pt:dropdown:class="p-0 m-0"
+                    />
                 </div>
             </template>
 
@@ -78,97 +85,98 @@
     const supportDialog = useSupportDialog()
 
     // --- Theme Switcher ---
-    const themeCookie = useCookie('theme-mode');
+    const themeCookie = useCookie('theme-mode')
 
-    const isDarkMode = computed(() => themeCookie.value === 'dark');
-    const themeIcon = computed(() => (isDarkMode.value ? 'pi pi-sun' : 'pi pi-moon'));
+    const isDarkMode = computed(() => themeCookie.value === 'dark')
+    const themeIcon = computed(() => (isDarkMode.value ? 'pi pi-sun' : 'pi pi-moon'))
 
     const toggleTheme = () => {
-        themeCookie.value = isDarkMode.value ? 'light' : 'dark';
-    };
+        themeCookie.value = isDarkMode.value ? 'light' : 'dark'
+    }
 
     const updateThemeClass = (theme) => {
         if (process.client) {
             if (theme === 'dark') {
-                document.documentElement.classList.add('dark-mode');
-                document.documentElement.classList.remove('light-mode');
+                document.documentElement.classList.add('dark-mode')
+                document.documentElement.classList.remove('light-mode')
             } else {
-                document.documentElement.classList.remove('dark-mode');
-                document.documentElement.classList.add('light-mode');
+                document.documentElement.classList.remove('dark-mode')
+                document.documentElement.classList.add('light-mode')
             }
         }
-    };
+    }
 
     watch(themeCookie, (newTheme) => {
-        updateThemeClass(newTheme);
-    });
+        updateThemeClass(newTheme)
+    })
 
     onMounted(() => {
         if (!themeCookie.value) {
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            themeCookie.value = prefersDark ? 'dark' : 'light';
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+            themeCookie.value = prefersDark ? 'dark' : 'light'
         }
-        updateThemeClass(themeCookie.value);
-    });
+        updateThemeClass(themeCookie.value)
+    })
 
     // --- Breadcrumb Navigation ---
-    const { data: projects } = await useAsyncData('projects', () => $fetch(API_ROUTES.PROJECTS));
-    
+    const { data: projects } = await useAsyncData('projects', () => $fetch(API_ROUTES.PROJECTS))
+
     // Fetch current project if on project page
     const currentProjectSlug = computed(() => {
-        const parts = route.path.split('/').filter(p => p);
+        const parts = route.path.split('/').filter((p) => p)
         if (parts[0] === 'project' && parts[1]) {
-            return parts[1];
+            return parts[1]
         }
-        return null;
-    });
-    
+        return null
+    })
+
     const { data: currentProject } = await useAsyncData(
         'currentProject',
-        () => currentProjectSlug.value ? $fetch(`/api/project/${currentProjectSlug.value}`) : null,
-        { watch: [currentProjectSlug] }
-    );
+        () => (currentProjectSlug.value ? $fetch(`/api/project/${currentProjectSlug.value}`) : null),
+        { watch: [currentProjectSlug] },
+    )
 
     const breadcrumbs = computed(() => {
-        const parts = route.path.split('/').filter(p => p);
-        const nav = [];
+        const parts = route.path.split('/').filter((p) => p)
+        const nav = []
 
-        if (parts.length === 0) return nav;
+        if (parts.length === 0) return nav
 
         // --- Level 1: Main Section ---
         const mainSections = [
             { id: 'projects', name: 'Projects', to: '/projects' },
             { id: 'assets', name: 'Assets', to: '/assets' },
             { id: 'profile', name: 'Profile', to: '/profile' },
-        ];
+        ]
 
-        let currentSectionId = parts[0];
+        let currentSectionId = parts[0]
         if (currentSectionId === 'project') {
-            currentSectionId = 'projects';
+            currentSectionId = 'projects'
         }
 
-        const currentSection = mainSections.find(s => s.id === currentSectionId);
+        const currentSection = mainSections.find((s) => s.id === currentSectionId)
 
         if (currentSection) {
             nav.push({
                 ...currentSection,
-                siblings: mainSections.map(s => ({...s, id: s.to})),
-            });
+                siblings: mainSections.map((s) => ({ ...s, id: s.to })),
+            })
         }
 
         // --- Level 2: Project Details ---
         if (parts[0] === 'project' && parts[1]) {
-            const projectName = currentProject.value?.name || parts[1];
-            const projectSlug = parts[1];
-            
+            const projectName = currentProject.value?.name || parts[1]
+            const projectSlug = parts[1]
+
             nav.push({
                 id: projectSlug,
                 name: projectName,
                 to: `/project/${projectSlug}/batches`,
-                siblings: projects.value && Array.isArray(projects.value) 
-                    ? projects.value.map(p => ({ name: p.name, id: `/project/${p.slug}/batches` }))
-                    : []
-            });
+                siblings:
+                    projects.value && Array.isArray(projects.value)
+                        ? projects.value.map((p) => ({ name: p.name, id: `/project/${p.slug}/batches` }))
+                        : [],
+            })
         }
 
         // --- Level 2: Asset Tabs ---
@@ -177,21 +185,21 @@
                 { id: 'assets', name: 'Library', to: '/assets' },
                 { id: 'cassettes', name: 'Cassettes', to: '/assets/cassettes' },
                 { id: 'parts', name: 'Parts', to: '/assets/parts' },
-            ];
-            
-            const currentAssetTabId = parts[1] || 'assets';
-            const currentAssetTab = assetTabs.find(t => t.id === currentAssetTabId);
-            
+            ]
+
+            const currentAssetTabId = parts[1] || 'assets'
+            const currentAssetTab = assetTabs.find((t) => t.id === currentAssetTabId)
+
             if (currentAssetTab) {
                 nav.push({
                     ...currentAssetTab,
-                    siblings: assetTabs.map(t => ({...t, id: t.to})),
-                });
+                    siblings: assetTabs.map((t) => ({ ...t, id: t.to })),
+                })
             }
         }
-        
-        return nav;
-    });
+
+        return nav
+    })
 </script>
 
 <style scoped lang="scss">
@@ -200,22 +208,6 @@
         flex-direction: column;
         min-height: 100vh;
         background: var(--surface-ground);
-    }
-
-    .app-menubar {
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-
-        :deep(.p-menubar-start) {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        :deep(.p-menubar-end) {
-            margin-left: auto;
-        }
     }
 
     .logo {
@@ -248,7 +240,6 @@
         max-width: 1600px;
         width: 100%;
         margin: 0 auto;
-        padding: 1.5rem;
     }
 
     .support-button {

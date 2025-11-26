@@ -41,7 +41,7 @@ export async function create(data, userId) {
   
   return await repository.create({
     name: data.name,
-    ownerId: userId ? new ObjectId(userId) : null,
+    ownerId: userId || null, // Store userId as string (OAuth format)
     diameter: data.diameter,
     angle: data.angle
   });

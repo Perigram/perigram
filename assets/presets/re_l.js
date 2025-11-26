@@ -45,6 +45,17 @@ const Re_L = definePreset(Lara, {
                 borderWidth: '0',
             },
         },
+        tabview: {
+            root: {
+                background: '{indigo.100}',
+            },
+        },
+        card: {
+            root: {
+                boxShadow: 'none',
+                borderWidth: '1',
+            },
+        },
     },
 })
 
