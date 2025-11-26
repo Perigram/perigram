@@ -5,30 +5,38 @@
 - [x] Boolean options in datatable now work
 
 ### Nesting in worker
-**Status:** ❌ BLOCKED - Worker incompatible with new cassette system (see NESTING_ANALYSIS.md)
+**Status:** ✅ IMPLEMENTED - Testing required
 
-**Root Cause:**
-- Worker expects `user_dxf_files` collection with `polygonParts` data
-- New `cassettes` collection doesn't have polygon processing
-- Worker cannot find geometry data to perform nesting
+**Completed:**
+- [x] Added nestingLayer and polygonParts fields to cassettes schema
+- [x] Created cassette-processing worker to generate polygon data from DXF
+- [x] Updated nesting worker to read from cassettes collection (not user_dxf_files)
+- [x] Modified nest endpoint to pass cassetteId instead of file slug
+- [x] Worker now uses cassettes GridFS bucket for DXF access
 
-**Required Fix:**
-- [ ] Add polygon processing to cassettes (generate polygonParts from DXF)
-- [ ] Update nesting worker to read from cassettes collection
-- [ ] Update batch nest endpoint to pass cassetteId instead of slug
-- [ ] Test end-to-end: cassette upload → batch → nesting → artifacts
+**Testing Required:**
+- [ ] Start cassette-processing worker: `cd workers/cassette-processing && python3 main.py`
+- [ ] Upload test rectangle DXF with "Frame" layer
+- [ ] Verify cassette processingStatus changes pending→done
+- [ ] Verify polygonParts field populated in cassettes collection
+- [ ] Create batch with test cassettes
+- [ ] Run nesting and verify artifacts generated
+- [ ] Check nested layout makes sense
 
-**See:** `/NESTING_ANALYSIS.md` for detailed analysis and solution options
+**Test Files:** Rectangle DXFs available in repository root (need ezdxf to generate)
+
+**See:** `/NESTING_IMPLEMENTATION_PLAN.md` for full implementation details
 
 ### Artifact page
-**Status:** ⏳ BLOCKED by nesting worker issues
+**Status:** ⏳ Ready for testing (depends on nesting worker)
 
-- [ ] Inspect how results are generated in nesting and send it as artifacts to frontend for display
-      → Worker currently saves to dxf_result_bucket and svg_result_bucket (GridFS)
-      → Need to update to save via artifacts service API
+- [ ] Test artifact generation after nesting completes
+      → Worker saves to dxf_result_bucket and svg_result_bucket (GridFS)
+      → Artifacts service should link these files
 - [ ] Display artifacts grouped by batches in project artifact page
-      → Page exists at /pages/project/[slug]/artifacts.vue
-      → Need to implement artifact preview and download's accordion view.
+      → Page exists at /pages/project/[slug]/artifacts.vue  
+      → Implement artifact preview (SVG) and download (DXF)
+      → Group by batch with expandable sections
 
 ### Bug fixes
 - [x] Fixed: Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'allowRotation')
