@@ -59,20 +59,15 @@ export default defineEventHandler(async (event) => {
     
     console.log('Cassettes validated:', cassettes.length);
     
-    // Check if any cassette is not processed yet
+    // Check if any cassette is not ready (allow fallback to parametric rectangles for testing)
     for (const cassette of cassettes) {
-      if (cassette.processingStatus !== 'done') {
+      if (cassette.processingStatus === 'pending' || cassette.processingStatus === 'processing') {
         throw createError({ 
           statusCode: 400, 
-          message: `Cassette "${cassette.name}" is not ready (status: ${cassette.processingStatus}). Please wait for processing to complete.` 
+          message: `Cassette "${cassette.name}" is still being processed (status: ${cassette.processingStatus}). Please wait.` 
         });
       }
-      if (!cassette.polygonParts || cassette.polygonParts.length === 0) {
-        throw createError({ 
-          statusCode: 400, 
-          message: `Cassette "${cassette.name}" has no polygon data. Please re-upload or contact support.` 
-        });
-      }
+      // Note: We allow missing polygonParts - worker will use parametric rectangles from dimensions as fallback
     }
   
   // Build file list for nesting worker
