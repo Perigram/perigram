@@ -180,6 +180,13 @@
                                     size="small"
                                     @click="downloadArtifact(artifact)"
                                 />
+                                <Button 
+                                    icon="pi pi-trash"
+                                    severity="danger"
+                                    size="small"
+                                    text
+                                    @click="deleteArtifact(artifact)"
+                                />
                             </div>
                         </div>
                     </div>
@@ -572,18 +579,43 @@ const markComplete = async () => {
 
 const downloadArtifact = async (artifact) => {
     try {
-        const response = await $fetch(`/api/artifacts/${artifact._id}`, {
-            responseType: 'blob'
-        });
-        const url = window.URL.createObjectURL(response);
+        // Use native fetch to handle blob response properly
+        const response = await fetch(`/api/artifacts/${artifact._id}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = artifact.filename || `artifact_${artifact._id}`;
+        link.download = artifact.name || `artifact_${artifact._id}`;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
     } catch (error) {
         console.error('Failed to download artifact:', error);
+        alert(t('batches.downloadFailed'));
     }
+};
+
+const deleteArtifact = async (artifact) => {
+    confirm.require({
+        message: t('batches.confirmDeleteArtifact'),
+        header: t('common.confirmation'),
+        icon: 'pi pi-exclamation-triangle',
+        accept: async () => {
+            try {
+                await $fetch(`/api/artifacts/${artifact._id}`, {
+                    method: 'DELETE'
+                });
+                await loadArtifacts();
+            } catch (error) {
+                console.error('Failed to delete artifact:', error);
+                alert(t('batches.deleteFailed'));
+            }
+        }
+    });
 };
 
 const onCassetteUploaded = async () => {
