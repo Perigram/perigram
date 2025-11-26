@@ -181,6 +181,31 @@ def build_result_dxf_files(owner_id, slug, result_containers):
             },
         }
     )
+    
+    # Update artifacts with file IDs
+    if dxf_files:
+        dxf_file_id = db["nestDxf.files"].find_one({"filename": dxf_files[0]})["_id"]
+        db["artifacts"].update_one(
+            {"generatedBy": slug, "type": "LAYOUT_DXF"},
+            {"$set": {
+                "status": "READY",
+                "fileId": dxf_file_id,
+                "mimeType": "application/dxf",
+                "updatedAt": datetime.now()
+            }}
+        )
+    
+    if svg_files:
+        svg_file_id = db["nestSvg.files"].find_one({"filename": svg_files[0]})["_id"]
+        db["artifacts"].update_one(
+            {"generatedBy": slug, "type": "LAYOUT_SVG"},
+            {"$set": {
+                "status": "READY",
+                "fileId": svg_file_id,
+                "mimeType": "image/svg+xml",
+                "updatedAt": datetime.now()
+            }}
+        )
  
 def build_part(transforms):
     """

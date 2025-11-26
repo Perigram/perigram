@@ -113,5 +113,15 @@ export async function remove(id, userId) {
 
 export async function getArtifacts(id, userId) {
   const batch = await getById(id, userId);
-  return batch.artifacts || [];
+  
+  // Get artifacts from artifacts collection
+  const { connectDB } = await import('../../db/mongo.js');
+  const db = await connectDB();
+  
+  const artifacts = await db.collection('artifacts')
+    .find({ batchId: new ObjectId(id) })
+    .sort({ createdAt: -1 })
+    .toArray();
+  
+  return artifacts;
 }
