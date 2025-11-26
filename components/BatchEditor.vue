@@ -583,8 +583,14 @@ const downloadArtifact = async (artifact) => {
     try {
         console.log('[BatchEditor] Downloading artifact:', artifact);
         
-        // Use window.location for simple download
-        window.location.href = `/api/artifacts/${artifact._id}`;
+        // Create a hidden link and click it to trigger download without navigation
+        const link = document.createElement('a');
+        link.href = `/api/artifacts/${artifact._id}`;
+        link.download = artifact.name || `artifact_${artifact._id}`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     } catch (error) {
         console.error('[BatchEditor] Failed to download artifact:', error);
         alert('Failed to download artifact');
