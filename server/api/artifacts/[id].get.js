@@ -1,5 +1,5 @@
 import { service } from '~/server/features/artifacts';
-import { getArtifactsBucket } from '~/server/db/mongo';
+import { getNestSvgBucket, getNestDxfBucket } from '~/server/db/mongo';
 import { toObjectId } from '~/server/utils/objectid';
 
 export default defineEventHandler(async (event) => {
@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
   
   console.log('[artifacts/[id].get] Artifact found:', { 
     id: artifact._id, 
+    type: artifact.type,
     status: artifact.status, 
     hasFileId: !!artifact.fileId 
   });
@@ -31,9 +32,20 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const bucket = await getArtifactsBucket();
+  // Get the correct bucket based on artifact type
+  let bucket;
+  if (artifact.type === 'LAYOUT_SVG') {
+    bucket = await getNestSvgBucket();
+  } else if (artifact.type === 'LAYOUT_DXF') {
+    bucket = await getNestDxfBucket();
+  } else {
+    throw createError({
+      statusCode: 400,
+      message: `Unsupported artifact type: ${artifact.type}`,
+    });
+  }
   
-  // It's good practice to check if the file actually exists in GridFS
+  // Check if the file actually exists in GridFS
   const file = await bucket.find({ _id: toObjectId(artifact.fileId) }).next();
   if (!file) {
     throw createError({
@@ -47,10 +59,9 @@ export default defineEventHandler(async (event) => {
     'Content-Type': artifact.mimeType || 'application/octet-stream',
     'Content-Length': file.length,
     'Content-Disposition': `attachment; filename="${encodeURIComponent(artifact.name)}"`,
-    'Cache-Control': 'public, max-age=31536000, immutable' // Cache for 1 year
+    'Cache-Control': 'public, max-age=31536000, immutable'
   });
 
   // Create a download stream and return it
-  // H3/Nitro will automatically handle piping the stream to the response
   return bucket.openDownloadStream(toObjectId(artifact.fileId));
 });
