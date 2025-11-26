@@ -71,11 +71,13 @@ export default defineEventHandler(async (event) => {
     }
   
   // Build file list for nesting worker
+  // Note: ghcr.io/vovastelmashchuk worker expects 'slug' not 'cassetteId'
   const files = batch.entries.map((entry) => {
+    const cassette = cassettes.find(c => c._id.toString() === entry.cassetteTemplateId.toString());
     return {
-      cassetteId: entry.cassetteTemplateId.toString(),
+      slug: cassette.slug,  // Worker looks up by slug in user_dxf_files
       count: entry.quantity,
-      dimensions: entry.dimensions || {}  // Pass dimensions (A, B, etc)
+      dimensions: entry.dimensions || {}
     };
   });
   
