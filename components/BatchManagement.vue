@@ -150,7 +150,7 @@ const error = computed(() => batchesStore.getters.error.value);
 const batches = computed(() => batchesStore.getters.batches.value);
 
 onMounted(async () => {
-  await batchesStore.actions.loadBatches(props.projectSlug);
+  await batchesStore.actions.fetchBatches(props.projectSlug);
 });
 
 const getStatusSeverity = (status) => {
