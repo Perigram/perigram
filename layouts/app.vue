@@ -15,7 +15,7 @@
                         {{ crumb.name }}
                     </NuxtLink>
                     <Select
-                        v-if="crumb.siblings && crumb.siblings.length"
+                        v-if="crumb.siblings && crumb.siblings.length > 1"
                         :model-value="crumb.id"
                         :options="crumb.siblings"
                         option-label="name"
