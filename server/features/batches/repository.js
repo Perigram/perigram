@@ -32,8 +32,9 @@ export async function findByOwner(ownerId, options = {}) {
   const db = await connectDB();
   const { limit = 100, skip = 0 } = options;
   
+  // Handle OAuth userId strings (e.g., "google:12345") - use as-is, not as ObjectId
   return await db.collection(COLLECTION)
-    .find({ ownerId: toObjectId(ownerId) })
+    .find({ ownerId: ownerId })
     .sort({ updatedAt: -1 })
     .skip(skip)
     .limit(limit)

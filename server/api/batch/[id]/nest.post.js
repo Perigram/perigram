@@ -12,22 +12,40 @@ import { generateRandomString } from '~~/server/utils/strings';
 import standardSlugify from 'standard-slugify';
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.auth.userId;
-  const batchId = getRouterParam(event, 'id');
-  const body = await readBody(event);
-  
-  // Get batch
-  const batch = await batchService.getById(batchId, userId);
-  
-  if (batch.status === 'NESTING') {
-    throw createError({ statusCode: 400, message: 'Batch is already nesting' });
-  }
-  
-  // Validate all cassettes exist
-  const cassetteIds = batch.entries.map(e => e.cassetteTemplateId.toString());
-  const cassettes = await Promise.all(
-    cassetteIds.map(id => cassetteService.getById(id, userId))
-  );
+  try {
+    const userId = event.context.auth.userId;
+    const batchId = getRouterParam(event, 'id');
+    const body = await readBody(event);
+    
+    console.log('Nest request:', { batchId, userId, body });
+    
+    // Get batch
+    const batch = await batchService.getById(batchId, userId);
+    
+    console.log('Batch loaded:', { 
+      id: batch._id, 
+      status: batch.status, 
+      entriesCount: batch.entries?.length 
+    });
+    
+    if (batch.status === 'NESTING') {
+      throw createError({ statusCode: 400, message: 'Batch is already nesting' });
+    }
+    
+    // Check batch has entries
+    if (!batch.entries || batch.entries.length === 0) {
+      throw createError({ statusCode: 400, message: 'Batch has no entries' });
+    }
+    
+    // Validate all cassettes exist
+    const cassetteIds = batch.entries.map(e => e.cassetteTemplateId.toString());
+    console.log('Validating cassettes:', cassetteIds);
+    
+    const cassettes = await Promise.all(
+      cassetteIds.map(id => cassetteService.getById(id, userId))
+    );
+    
+    console.log('Cassettes validated:', cassettes.length);
   
   // Build file list for nesting worker
   const files = batch.entries.map((entry) => {
@@ -42,9 +60,9 @@ export default defineEventHandler(async (event) => {
   
   // Material dimensions from request
   const params = {
-    height: body.materialHeight || 2440,
-    width: body.materialWidth || 1220,
-    space: body.spacing || 5,
+    height: body.materialHeight || body.height || 2440,
+    width: body.materialWidth || body.width || 1220,
+    space: body.spacing || body.space || 5,
     sheetCount: body.maxSheets || 10
   };
   
@@ -82,4 +100,8 @@ export default defineEventHandler(async (event) => {
     status: 'NESTING',
     artifacts: artifacts.map(a => a._id)
   };
+} catch (error) {
+  console.error('Nesting endpoint error:', error);
+  throw error;
+}
 });

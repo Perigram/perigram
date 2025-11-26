@@ -14,7 +14,9 @@ export async function getById(id, userId) {
   if (!batch) {
     throw createError({ statusCode: 404, message: 'Batch not found' });
   }
-  if (batch.ownerId.toString() !== userId) {
+  
+  // Direct string comparison (userId is OAuth string)
+  if (batch.ownerId !== userId) {
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
   
@@ -56,7 +58,7 @@ export async function create(data, userId) {
     projectSlug: data.projectSlug,
     batchNumber,
     name: data.name,
-    ownerId: new ObjectId(userId),
+    ownerId: userId,  // Store as string (OAuth format), not ObjectId
     entries: data.entries.map(e => ({
       ...e,
       cassetteTemplateId: new ObjectId(e.cassetteTemplateId)
