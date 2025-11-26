@@ -1,5 +1,5 @@
 import { service } from '~/server/features/artifacts';
-import { getNestSvgBucket, getNestDxfBucket } from '~/server/db/mongo';
+import { getSvgResultBucket, getDxfResultBucket } from '~/server/db/mongo';
 import { toObjectId } from '~/server/utils/objectid';
 
 export default defineEventHandler(async (event) => {
@@ -35,9 +35,9 @@ export default defineEventHandler(async (event) => {
   // Get the correct bucket based on artifact type
   let bucket;
   if (artifact.type === 'LAYOUT_SVG') {
-    bucket = await getNestSvgBucket();
+    bucket = await getSvgResultBucket();
   } else if (artifact.type === 'LAYOUT_DXF') {
-    bucket = await getNestDxfBucket();
+    bucket = await getDxfResultBucket();
   } else {
     throw createError({
       statusCode: 400,
