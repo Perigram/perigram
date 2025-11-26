@@ -303,25 +303,48 @@ def nesting_process(doc):
     )
         
     input_json = build_input_json(bin_count, width, height, jaguar_items)
-    input_json_as_string : str = json.dumps(input_json)
     
-    result = subprocess.run(
-        ['lbf'],
-        input=input_json_as_string,
-        capture_output=True,
-        text=True,
-        timeout=3600
-    )
+    # Write input to temp file (new lbf interface requires files)
+    import tempfile
+    import os
     
-    if result.returncode != 0:
-        logger.error("❌ lbf failed with return code:", result.returncode)
-        logger.error("Error output:")
-        logger.error(result.stderr)
-        raise Exception("❌ lbf failed with return code:", result.returncode)
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(input_json, f)
+        input_file = f.name
+    
+    # Create temp folder for solution
+    solution_folder = tempfile.mkdtemp()
+    
+    try:
+        result = subprocess.run(
+            ['lbf', '--input-file', input_file, '--solution-folder', solution_folder, '--prob-var', 'bpp'],
+            capture_output=True,
+            text=True,
+            timeout=3600
+        )
         
-    logger.info("✅ lbf executed successfully!")
-    
-    output = json.loads(result.stdout)
+        if result.returncode != 0:
+            logger.error(f"❌ lbf failed with return code: {result.returncode}")
+            logger.error("Error output:")
+            logger.error(result.stderr)
+            raise Exception(f"❌ lbf failed with return code: {result.returncode}")
+            
+        logger.info("✅ lbf executed successfully!")
+        
+        # Read solution from file
+        solution_file = os.path.join(solution_folder, 'solution.json')
+        if not os.path.exists(solution_file):
+            raise Exception(f"Solution file not found: {solution_file}")
+        
+        with open(solution_file, 'r') as f:
+            output = json.load(f)
+    finally:
+        # Clean up temp files
+        if os.path.exists(input_file):
+            os.unlink(input_file)
+        import shutil
+        if os.path.exists(solution_folder):
+            shutil.rmtree(solution_folder)
     logger.info("Solution:")
     
     solution = output.get("solution")

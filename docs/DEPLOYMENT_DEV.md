@@ -19,16 +19,8 @@ ENVEOF
 
 ## Run
 
-**Option A: App only (no nesting)**
-```bash
-# Start MongoDB
-docker run -d -p 27017:27017 --name mongo mongo:7
+**App + Workers**
 
-# Start app
-npm run dev
-```
-
-**Option B: App + Workers (recommended)**
 ```bash
 # Start MongoDB + workers from ghcr.io
 docker-compose -f docker-compose.local.yml up -d
@@ -38,6 +30,7 @@ npm run dev
 ```
 
 **Workers included:**
+
 - `nesting-worker` - Runs nesting algorithm
 - `user-file-processing-worker` - Processes DXF uploads
 
@@ -49,9 +42,17 @@ npm run dev
 # View worker logs
 docker logs -f nesting-worker
 
+# View latest nesting job in MongoDB
+docker exec nest2d_mongo mongosh nest2d --eval "db.nesting_jobs.find().sort({createdAt: -1}).limit(1).pretty()" --quiet
+
 # Restart workers
 docker-compose -f docker-compose.local.yml restart
 
 # Stop everything
 docker-compose -f docker-compose.local.yml down
+
+# Build updated worker images
+cd workers/nesting-worker
+docker build -t ghcr.io/1suo/nesting-worker:latest .
+docker push ghcr.io/1suo/nesting-worker:latest
 ```
