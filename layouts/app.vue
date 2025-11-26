@@ -139,15 +139,15 @@
         }
 
         // --- Level 2: Project Details ---
-        if (parts[0] === 'project' && parts[1] && projects.value) {
+        if (parts[0] === 'project' && parts[1] && projects.value && Array.isArray(projects.value)) {
             const currentProjectSlug = parts[1];
             const currentProject = projects.value.find(p => p.slug === currentProjectSlug);
             if (currentProject) {
                 nav.push({
                     id: currentProject.slug,
                     name: currentProject.name,
-                    to: `/project/${currentProject.slug}`,
-                    siblings: projects.value.map(p => ({ name: p.name, id: `/project/${p.slug}` })),
+                    to: `/project/${currentProject.slug}/batches`,
+                    siblings: projects.value.map(p => ({ name: p.name, id: `/project/${p.slug}/batches` })),
                 });
             }
         }
@@ -167,26 +167,6 @@
                 nav.push({
                     ...currentAssetTab,
                     siblings: assetTabs.map(t => ({...t, id: t.to})),
-                });
-            }
-        }
-
-        // --- Level 3: Project Tabs ---
-        if (parts[0] === 'project' && parts[1] && parts[2]) {
-            const projectSlug = parts[1];
-            const projectTabs = [
-                { id: 'data', name: t('project.data'), to: `/project/${projectSlug}/data` },
-                { id: 'batches', name: t('project.batches'), to: `/project/${projectSlug}/batches` },
-                { id: 'artifacts', name: t('project.artifacts'), to: `/project/${projectSlug}/artifacts` },
-            ];
-            
-            const currentTabId = parts[2];
-            const currentTab = projectTabs.find(t => t.id === currentTabId);
-            
-            if (currentTab) {
-                nav.push({
-                    ...currentTab,
-                    siblings: projectTabs.map(t => ({...t, id: t.to})),
                 });
             }
         }
