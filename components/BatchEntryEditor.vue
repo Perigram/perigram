@@ -197,7 +197,7 @@ const cassettes = computed(() => cassettesStore.getters.cassettes.value || []);
 
 onMounted(async () => {
   // Load cassettes
-  await cassettesStore.actions.loadCassettes();
+  await cassettesStore.actions.fetchCassettes();
   
   // Load batch entries from table
   if (props.batch?.tableData) {
