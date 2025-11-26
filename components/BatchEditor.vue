@@ -164,21 +164,23 @@
             <h3>{{ $t('batches.artifacts') }}</h3>
             <DataView :value="artifacts" layout="grid">
                 <template #grid="slotProps">
-                    <div class="artifact-card">
-                        <div class="artifact-preview">
-                            <i class="pi pi-file"></i>
-                        </div>
-                        <div class="artifact-info">
-                            <span class="artifact-type">{{ slotProps.data.type }}</span>
-                            <span class="artifact-date">{{ formatDate(slotProps.data.createdAt) }}</span>
-                        </div>
-                        <div class="artifact-actions">
-                            <Button 
-                                icon="pi pi-download"
-                                severity="secondary"
-                                size="small"
-                                @click="downloadArtifact(slotProps.data)"
-                            />
+                    <div class="artifacts-grid">
+                        <div v-for="artifact in slotProps.items" :key="artifact._id" class="artifact-card">
+                            <div class="artifact-preview">
+                                <i class="pi pi-file"></i>
+                            </div>
+                            <div class="artifact-info">
+                                <span class="artifact-type">{{ artifact.type }}</span>
+                                <span class="artifact-date">{{ formatDate(artifact.createdAt) }}</span>
+                            </div>
+                            <div class="artifact-actions">
+                                <Button 
+                                    icon="pi pi-download"
+                                    severity="secondary"
+                                    size="small"
+                                    @click="downloadArtifact(artifact)"
+                                />
+                            </div>
                         </div>
                     </div>
                 </template>
