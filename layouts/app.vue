@@ -16,15 +16,17 @@
                     </NuxtLink>
                     <Select
                         v-if="crumb.siblings && crumb.siblings.length > 1"
-                        :model-value="crumb.id"
+                        :model-value="crumb.to"
                         :options="crumb.siblings"
                         option-label="name"
                         option-value="id"
                         @change="(e) => router.push(e.value)"
-                        pt:label:class="hidden"
-                        pt:dropdown:class="p-2"
-                        class="p-0 bg-transparent"
-                    />
+                        class="w-8"
+                    >
+                        <template #value>
+                            <i class="pi pi-chevron-down text-xs"></i>
+                        </template>
+                    </Select>
                 </div>
             </template>
 
