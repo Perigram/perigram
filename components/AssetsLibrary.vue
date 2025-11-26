@@ -107,7 +107,6 @@
             </Card>
           </div>
         </div>
-      </div>
     </div>
     
     <!-- Pen Dialog -->

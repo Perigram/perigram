@@ -216,4 +216,3 @@ const deleteBatch = async (batch) => {
   }
 };
 </script>
-</style>
