@@ -139,7 +139,7 @@
         }
 
         // --- Level 2: Project Details ---
-        if (parts[0] === 'project' && parts[1] && projects.value) {
+        if (parts[0] === 'project' && parts[1] && projects.value && Array.isArray(projects.value)) {
             const currentProjectSlug = parts[1];
             const currentProject = projects.value.find(p => p.slug === currentProjectSlug);
             if (currentProject) {
