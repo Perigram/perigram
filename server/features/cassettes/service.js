@@ -83,6 +83,46 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
   
   const cassette = await repository.create(cassetteData);
   
+  // Sync to old schema for worker compatibility (ghcr.io/vovastelmashchuk)
+  // Worker expects cassette in user_dxf_files collection with DXF in userDxf bucket
+  await db.collection('user_dxf_files').updateOne(
+    { slug: cassette.slug },
+    { $set: cassette },
+    { upsert: true }
+  );
+  
+  // Copy DXF file to userDxf bucket (if not already there)
+  const existingFile = await db.collection('userDxf.files').findOne({
+    filename: cassette.slug
+  });
+  
+  if (!existingFile && cassette.dxfId) {
+    const srcFile = await db.collection('cassettes.files').findOne({
+      _id: cassette.dxfId
+    });
+    
+    if (srcFile) {
+      await db.collection('userDxf.files').insertOne({
+        _id: srcFile._id,
+        filename: cassette.slug,
+        length: srcFile.length,
+        chunkSize: srcFile.chunkSize,
+        uploadDate: srcFile.uploadDate,
+        metadata: srcFile.metadata
+      });
+      
+      const chunks = await db.collection('cassettes.chunks')
+        .find({ files_id: cassette.dxfId })
+        .toArray();
+      
+      if (chunks.length > 0) {
+        await db.collection('userDxf.chunks').insertMany(chunks);
+      }
+      
+      console.log(`[Cassette Upload] Synced DXF to userDxf bucket for worker compatibility`);
+    }
+  }
+  
   console.log(`[Cassette Upload] Created cassette ${cassette._id} with ${polygonParts.length} polygon parts`);
   
   return cassette;
