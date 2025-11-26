@@ -325,9 +325,17 @@ const loadBatchData = () => {
 
 const loadArtifacts = async () => {
     try {
-        artifacts.value = await $fetch(`/api/batch/${props.batch._id}/artifacts`);
+        console.log('[BatchEditor] Loading artifacts for batch:', props.batch._id);
+        if (!props.batch._id) {
+            console.warn('[BatchEditor] No batch _id, skipping artifact load');
+            artifacts.value = [];
+            return;
+        }
+        const result = await $fetch(`/api/batch/${props.batch._id}/artifacts`);
+        console.log('[BatchEditor] Artifacts loaded:', result);
+        artifacts.value = result || [];
     } catch (error) {
-        console.error('Failed to load artifacts:', error);
+        console.error('[BatchEditor] Failed to load artifacts:', error);
         artifacts.value = [];
     }
 };
