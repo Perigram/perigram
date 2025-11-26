@@ -12,7 +12,7 @@ If there is a second-level navigation (like tabs), it appears below the menubar 
 
 ### Locales and translations
 - [x] Impement locale switcher in profile page.
-- [ ] Add missing translations in various places (check console warnings for missing keys).
+- [x] Add missing translations in various places (check console warnings for missing keys).
 
 ### Batch page
 - [x] Boolean options in datatable don't work
