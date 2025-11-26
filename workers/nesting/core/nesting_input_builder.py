@@ -49,13 +49,9 @@ def build_bin(stock, width, height):
 
 def build_input_json(sheet_count, bin_width, bin_height, items):
     return {
-        'config': build_config(),
-        'problem_type': 'bpp',
-        'instance': {
-            'name': 'Test',
-            'items': items,
-            'bins': [
-                build_bin(sheet_count, bin_width, bin_height)
-            ]
-        },
+        'name': 'nesting_job',
+        'items': items,
+        'bins': [
+            build_bin(sheet_count, bin_width, bin_height)
+        ]
     }

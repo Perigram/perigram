@@ -312,6 +312,9 @@ def nesting_process(doc):
         json.dump(input_json, f)
         input_file = f.name
     
+    logger.info(f"Input JSON written to: {input_file}")
+    logger.info(f"Input preview: {json.dumps(input_json)[:500]}...")
+    
     # Create temp folder for solution
     solution_folder = tempfile.mkdtemp()
     
