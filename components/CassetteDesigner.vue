@@ -1,405 +1,409 @@
 <template>
-  <div class="cassette-designer">
-    <div class="designer-header">
-      <h2>Cassette Designer v0.1</h2>
-      <div class="controls">
-        <Button label="Reset" @click="reset" size="small" />
+  <div class="flex gap-4 h-full">
+    <!-- Controls Panel -->
+    <div class="w-64 flex flex-col gap-4">
+      <div v-if="!modular" class="text-sm">
+        Loading nodi3d...
       </div>
+      
+      <template v-else>
+        <div class="flex flex-col gap-2">
+          <label class="font-semibold">Rectangle Width</label>
+          <InputNumber v-model="rectWidth" :min="100" :max="1000" :step="50" @update:modelValue="updateRectangle" />
+        </div>
+        
+        <div class="flex flex-col gap-2">
+          <label class="font-semibold">Rectangle Height</label>
+          <InputNumber v-model="rectHeight" :min="100" :max="1000" :step="50" @update:modelValue="updateRectangle" />
+        </div>
+
+        <Divider />
+
+        <div class="flex flex-col gap-2">
+          <label class="font-semibold">Extrusion Length</label>
+          <InputNumber v-model="extrusionLength" :min="10" :max="500" :step="10" />
+        </div>
+
+        <Button 
+          label="Add Extrusion"
+          icon="pi pi-plus"
+          @click="addExtrusion"
+          :disabled="selectedEdge === null"
+        />
+
+        <Divider />
+
+        <div class="flex flex-col gap-2">
+          <label class="font-semibold">Extrusions ({{ extrusions.length }})</label>
+          <div v-if="extrusions.length === 0" class="text-sm opacity-60">
+            Click edge on shape to select, then add extrusion
+          </div>
+          <div v-for="(ext, idx) in extrusions" :key="idx" class="flex items-center gap-2 text-sm">
+            <span>Edge {{ ext.edge }}: {{ ext.length }}mm</span>
+            <Button 
+              icon="pi pi-times" 
+              text 
+              severity="danger"
+              size="small"
+              @click="removeExtrusion(idx)"
+            />
+          </div>
+        </div>
+
+        <Button 
+          label="Reset"
+          icon="pi pi-refresh"
+          severity="secondary"
+          @click="reset"
+        />
+      </template>
     </div>
 
-    <div class="designer-content">
-      <div class="svg-viewport">
-        <svg
-          ref="svgRef"
-          :viewBox="viewBox"
-          @click="handleSvgClick"
-          @mousemove="handleSvgMouseMove"
+    <!-- SVG Canvas -->
+    <div class="flex-1 border rounded p-4 bg-surface-50">
+      <svg 
+        :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`"
+        class="w-full h-full"
+        @mousemove="handleMouseMove"
+        @click="handleClick"
+      >
+        <!-- Grid -->
+        <defs>
+          <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#e0e0e0" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect :x="viewBox.x" :y="viewBox.y" :width="viewBox.width" :height="viewBox.height" fill="url(#grid)" />
+
+        <!-- Individual extrusions (2nd outputs) -->
+        <path
+          v-for="(ext, idx) in extrusionPaths"
+          :key="`ext-${idx}`"
+          :d="ext"
+          fill="rgba(34, 197, 94, 0.2)"
+          stroke="#22c55e"
+          stroke-width="1.5"
+        />
+
+        <!-- Final union (for edge picking) -->
+        <path
+          v-if="unionPath"
+          :d="unionPath"
+          fill="none"
+          stroke="#3b82f6"
+          stroke-width="2"
+        />
+
+        <!-- Edges for interaction -->
+        <line
+          v-for="(edge, idx) in edges"
+          :key="`edge-${idx}`"
+          :x1="edge.x1"
+          :y1="edge.y1"
+          :x2="edge.x2"
+          :y2="edge.y2"
+          :stroke="getEdgeColor(idx)"
+          :stroke-width="getEdgeWidth(idx)"
+          stroke-linecap="round"
+          class="cursor-pointer"
+        />
+
+        <!-- Edge labels -->
+        <text
+          v-for="(edge, idx) in edges"
+          :key="`label-${idx}`"
+          :x="(edge.x1 + edge.x2) / 2"
+          :y="(edge.y1 + edge.y2) / 2"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          class="text-xs fill-gray-700 pointer-events-none"
         >
-          <!-- Polygon shape -->
-          <polygon
-            v-if="currentPolygon.length > 0"
-            :points="polygonPoints"
-            fill="#e8dcc4"
-            stroke="#2c3e50"
-            stroke-width="2"
-          />
-          
-          <!-- Edge highlights on hover -->
-          <line
-            v-for="(edge, idx) in edges"
-            :key="'edge-' + idx"
-            :x1="edge.x1"
-            :y1="edge.y1"
-            :x2="edge.x2"
-            :y2="edge.y2"
-            :stroke="hoveredEdgeIndex === idx ? '#e74c3c' : 'transparent'"
-            stroke-width="6"
-            stroke-opacity="0.5"
-            style="cursor: pointer"
-            @mouseenter="hoveredEdgeIndex = idx"
-            @mouseleave="hoveredEdgeIndex = null"
-            @click.stop="selectEdge(idx)"
-          />
-          
-          <!-- Edge labels -->
-          <text
-            v-for="(edge, idx) in edges"
-            :key="'label-' + idx"
-            :x="(edge.x1 + edge.x2) / 2"
-            :y="(edge.y1 + edge.y2) / 2"
-            text-anchor="middle"
-            dominant-baseline="middle"
-            fill="#34495e"
-            font-size="14"
-            font-weight="bold"
-            pointer-events="none"
-          >
-            {{ idx }}
-          </text>
-        </svg>
-      </div>
-
-      <div class="controls-panel">
-        <Card>
-          <template #title>Parameters</template>
-          <template #content>
-            <div class="parameter-group">
-              <label>Width</label>
-              <InputNumber v-model="width" :min="100" :max="2000" :step="50" @input="updateShape" />
-            </div>
-            
-            <div class="parameter-group">
-              <label>Height</label>
-              <InputNumber v-model="height" :min="100" :max="2000" :step="50" @input="updateShape" />
-            </div>
-
-            <Divider />
-
-            <div v-if="selectedEdgeIndex !== null" class="extrusion-controls">
-              <h4>Add Extrusion to Edge {{ selectedEdgeIndex }}</h4>
-              <div class="parameter-group">
-                <label>Extrusion Length</label>
-                <InputNumber 
-                  v-model="extrusionLength" 
-                  :min="50" 
-                  :max="500" 
-                  :step="10" 
-                />
-              </div>
-              <Button label="Add Extrusion" @click="addExtrusion" />
-            </div>
-
-            <div v-else class="help-text">
-              <p>Click on an edge (hover to highlight) to add an extrusion</p>
-            </div>
-
-            <Divider />
-
-            <div class="extrusions-list">
-              <h4>Extrusions ({{ extrusions.length }})</h4>
-              <div v-for="(ext, idx) in extrusions" :key="idx" class="extrusion-item">
-                <span>Edge {{ ext.edgeIndex }}: {{ ext.length }}mm</span>
-                <Button 
-                  icon="pi pi-times" 
-                  size="small" 
-                  text 
-                  severity="danger"
-                  @click="removeExtrusion(idx)" 
-                />
-              </div>
-              <p v-if="extrusions.length === 0" class="empty-state">No extrusions yet</p>
-            </div>
-          </template>
-        </Card>
-      </div>
+          {{ idx }}
+        </text>
+      </svg>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
 import InputNumber from 'primevue/inputnumber';
 import Divider from 'primevue/divider';
+import init, { Modular } from 'nodi-modular';
+import cassetteGraph from '~/ref/Cassette.json';
 
-// Base dimensions
-const width = ref(500);
-const height = ref(600);
-
-// Current polygon vertices (as computed from nodi3d or manual calculation)
-const currentPolygon = ref([]);
-
-// Extrusions list
+// State
+const modular = ref(null);
+const rectWidth = ref(500);
+const rectHeight = ref(600);
+const extrusionLength = ref(400);
 const extrusions = ref([]);
+const hoveredEdge = ref(null);
+const selectedEdge = ref(null);
 
-// UI state
-const selectedEdgeIndex = ref(null);
-const hoveredEdgeIndex = ref(null);
-const extrusionLength = ref(100);
-const svgRef = ref(null);
+// Geometry data from nodi3d
+const extrusionPaths = ref([]);
+const unionPath = ref('');
+const edges = ref([]);
+const viewBox = ref({ x: -400, y: -400, width: 800, height: 800 });
 
-// Initialize with basic rectangle
-const initializeRectangle = () => {
-  const w = width.value;
-  const h = height.value;
-  currentPolygon.value = [
-    { x: -w/2, y: -h/2 },
-    { x: w/2, y: -h/2 },
-    { x: w/2, y: h/2 },
-    { x: -w/2, y: h/2 }
-  ];
-};
-
-// Compute edges from polygon
-const edges = computed(() => {
-  if (currentPolygon.value.length < 2) return [];
-  
-  const edgeList = [];
-  for (let i = 0; i < currentPolygon.value.length; i++) {
-    const p1 = currentPolygon.value[i];
-    const p2 = currentPolygon.value[(i + 1) % currentPolygon.value.length];
-    edgeList.push({
-      x1: p1.x,
-      y1: p1.y,
-      x2: p2.x,
-      y2: p2.y,
-      index: i
-    });
+// Initialize nodi3d
+onMounted(async () => {
+  try {
+    await init();
+    modular.value = Modular.new();
+    modular.value.loadGraph(JSON.stringify(cassetteGraph));
+    await evaluateGraph();
+  } catch (error) {
+    console.error('Failed to initialize nodi3d:', error);
   }
-  return edgeList;
 });
 
-// Convert polygon to SVG points string
-const polygonPoints = computed(() => {
-  return currentPolygon.value.map(p => `${p.x},${p.y}`).join(' ');
-});
-
-// Compute viewBox to fit the polygon with padding
-const viewBox = computed(() => {
-  if (currentPolygon.value.length === 0) return '-500 -500 1000 1000';
+// Update rectangle parameters in graph
+const updateRectangle = async () => {
+  if (!modular.value) return;
   
-  const xs = currentPolygon.value.map(p => p.x);
-  const ys = currentPolygon.value.map(p => p.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-  
-  const padding = 100;
-  const w = maxX - minX + padding * 2;
-  const h = maxY - minY + padding * 2;
-  
-  return `${minX - padding} ${minY - padding} ${w} ${h}`;
-});
-
-// Select an edge for extrusion
-const selectEdge = (edgeIndex) => {
-  selectedEdgeIndex.value = edgeIndex;
+  try {
+    const nodes = modular.value.getNodes();
+    
+    // Find the two Number nodes that feed into Rectangle subgraph
+    const numberNodes = nodes.filter(n => n.variant === 'Number' && n.label === '');
+    
+    if (numberNodes.length >= 2) {
+      // First Number is width (500), second is height (600)
+      modular.value.changeNodeProperty(numberNodes[0].id, {
+        name: 'value',
+        value: { type: 'Number', content: rectWidth.value }
+      });
+      
+      modular.value.changeNodeProperty(numberNodes[1].id, {
+        name: 'value',
+        value: { type: 'Number', content: rectHeight.value }
+      });
+    }
+    
+    await evaluateGraph();
+  } catch (error) {
+    console.error('Failed to update rectangle:', error);
+  }
 };
 
-// Add extrusion to selected edge
-const addExtrusion = () => {
-  if (selectedEdgeIndex.value === null) return;
+// Evaluate graph and extract geometry
+const evaluateGraph = async () => {
+  if (!modular.value) return;
+  
+  try {
+    const result = await modular.value.evaluate();
+    const { geometryIdentifiers } = result;
+    
+    const extrusions = [];
+    let unionCurve = null;
+    
+    geometryIdentifiers.forEach((id, index) => {
+      const interop = modular.value.findGeometryInteropById(id);
+      
+      if (interop?.variant === 'Curve') {
+        const { vertices } = interop.data;
+        const path = verticesToSVGPath(vertices);
+        
+        // The first geometry from "Grow Side Face" outputs:
+        // - 0th output (1st) goes to next subgraph input (union)
+        // - 1th output (2nd) is the individual extrusion
+        // We need to identify which is which based on the graph structure
+        
+        // For now, assume last one is final union (from BoundarySurfaces input)
+        // Others are intermediate curves
+        extrusions.push({ path, vertices });
+      }
+    });
+    
+    // Last one should be the accumulating union
+    if (extrusions.length > 0) {
+      unionCurve = extrusions[extrusions.length - 1];
+      extrusionPaths.value = extrusions.slice(0, -1).map(e => e.path);
+      unionPath.value = unionCurve.path;
+      updateEdgesFromCurve(unionCurve.vertices);
+      updateViewBox(unionCurve.vertices);
+    }
+  } catch (error) {
+    console.error('Failed to evaluate graph:', error);
+  }
+};
+
+// Convert 3D vertices to SVG path (project to XY plane)
+const verticesToSVGPath = (vertices) => {
+  if (vertices.length === 0) return '';
+  
+  const commands = vertices.map((v, idx) => {
+    const [x, y] = v;
+    // Flip Y for SVG coordinate system
+    return idx === 0 ? `M ${x} ${-y}` : `L ${x} ${-y}`;
+  });
+  
+  return commands.join(' ') + ' Z';
+};
+
+// Extract edges from curve vertices
+const updateEdgesFromCurve = (vertices) => {
+  edges.value = vertices.map((v, idx) => {
+    const next = vertices[(idx + 1) % vertices.length];
+    return {
+      x1: v[0],
+      y1: -v[1],
+      x2: next[0],
+      y2: -next[1]
+    };
+  });
+};
+
+// Update viewBox to fit geometry
+const updateViewBox = (vertices) => {
+  const padding = 100;
+  const xs = vertices.map(v => v[0]);
+  const ys = vertices.map(v => v[1]);
+  const minX = Math.min(...xs) - padding;
+  const maxX = Math.max(...xs) + padding;
+  const minY = Math.min(...ys) - padding;
+  const maxY = Math.max(...ys) + padding;
+  
+  viewBox.value = {
+    x: minX,
+    y: -maxY,
+    width: maxX - minX,
+    height: maxY - minY
+  };
+};
+
+// Edge color based on state
+const getEdgeColor = (idx) => {
+  if (selectedEdge.value === idx) return '#ef4444';
+  if (hoveredEdge.value === idx) return '#f59e0b';
+  return '#3b82f6';
+};
+
+const getEdgeWidth = (idx) => {
+  if (selectedEdge.value === idx || hoveredEdge.value === idx) return 4;
+  return 2;
+};
+
+// Mouse interaction
+const handleMouseMove = (event) => {
+  const svg = event.currentTarget;
+  const pt = svg.createSVGPoint();
+  pt.x = event.clientX;
+  pt.y = event.clientY;
+  const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+  
+  let closestIdx = null;
+  let minDist = 15;
+  
+  edges.value.forEach((edge, idx) => {
+    const dist = distanceToSegment(svgP.x, svgP.y, edge.x1, edge.y1, edge.x2, edge.y2);
+    if (dist < minDist) {
+      minDist = dist;
+      closestIdx = idx;
+    }
+  });
+  
+  hoveredEdge.value = closestIdx;
+};
+
+const handleClick = () => {
+  if (hoveredEdge.value !== null) {
+    selectedEdge.value = hoveredEdge.value;
+  }
+};
+
+const distanceToSegment = (px, py, x1, y1, x2, y2) => {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const l2 = dx * dx + dy * dy;
+  if (l2 === 0) return Math.sqrt((px - x1) ** 2 + (py - y1) ** 2);
+  
+  let t = ((px - x1) * dx + (py - y1) * dy) / l2;
+  t = Math.max(0, Math.min(1, t));
+  
+  const projX = x1 + t * dx;
+  const projY = y1 + t * dy;
+  
+  return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2);
+};
+
+// Add new extrusion subgraph
+const addExtrusion = async () => {
+  if (selectedEdge.value === null || !modular.value) return;
   
   extrusions.value.push({
-    edgeIndex: selectedEdgeIndex.value,
+    edge: selectedEdge.value,
     length: extrusionLength.value
   });
   
-  applyExtrusions();
-  selectedEdgeIndex.value = null;
+  await rebuildGraph();
+  selectedEdge.value = null;
 };
 
-// Remove an extrusion
-const removeExtrusion = (index) => {
-  extrusions.value.splice(index, 1);
-  applyExtrusions();
-};
-
-// Apply all extrusions cumulatively
-const applyExtrusions = () => {
-  // Start with base rectangle
-  initializeRectangle();
+// Rebuild graph with current extrusions by modifying existing subgraph parameters
+const rebuildGraph = async () => {
+  if (!modular.value) return;
   
-  // Apply each extrusion in sequence
-  for (const ext of extrusions.value) {
-    applyExtrusionToPolygon(ext.edgeIndex, ext.length);
+  try {
+    const nodes = modular.value.getNodes();
+    
+    // Find "Grow Side Face" subgraph nodes
+    const growNodes = nodes.filter(n => n.variant === 'SubGraph' && n.label === 'Grow Side Face');
+    
+    // Update parameters for each extrusion
+    extrusions.value.forEach((ext, idx) => {
+      if (idx < growNodes.length) {
+        const node = growNodes[idx];
+        
+        // Find NumberSlider and Number nodes feeding into this subgraph
+        // Need to update edge index (slider) and length (number)
+        // This requires finding the connected input nodes
+        
+        // For now, just update the slider value if we can find it
+        const sliderNodes = nodes.filter(n => n.variant === 'NumberSlider');
+        if (sliderNodes[idx]) {
+          modular.value.changeNodeProperty(sliderNodes[idx].id, {
+            name: 'value',
+            value: { type: 'Number', content: ext.edge }
+          });
+        }
+        
+        const numberNodes = nodes.filter(n => n.variant === 'Number' && n.label === '');
+        // Skip first 2 (rectangle dimensions)
+        if (numberNodes[idx + 2]) {
+          modular.value.changeNodeProperty(numberNodes[idx + 2].id, {
+            name: 'value',
+            value: { type: 'Number', content: ext.length }
+          });
+        }
+      }
+    });
+    
+    await evaluateGraph();
+  } catch (error) {
+    console.error('Failed to rebuild graph:', error);
   }
 };
 
-// Apply a single extrusion to the current polygon
-const applyExtrusionToPolygon = (edgeIndex, length) => {
-  if (edgeIndex >= currentPolygon.value.length) return;
-  
-  const p1 = currentPolygon.value[edgeIndex];
-  const p2 = currentPolygon.value[(edgeIndex + 1) % currentPolygon.value.length];
-  
-  // Calculate perpendicular direction (outward normal)
-  const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
-  const len = Math.sqrt(dx * dx + dy * dy);
-  
-  // Perpendicular vector (rotated 90 degrees clockwise for outward)
-  const nx = dy / len;
-  const ny = -dx / len;
-  
-  // New vertices for the extrusion
-  const newP1 = { x: p1.x + nx * length, y: p1.y + ny * length };
-  const newP2 = { x: p2.x + nx * length, y: p2.y + ny * length };
-  
-  // Insert new vertices into polygon
-  const newPolygon = [...currentPolygon.value];
-  newPolygon.splice(edgeIndex + 1, 0, newP2, newP1);
-  
-  currentPolygon.value = newPolygon;
+const removeExtrusion = async (idx) => {
+  extrusions.value.splice(idx, 1);
+  await rebuildGraph();
 };
 
-// Update shape when dimensions change
-const updateShape = () => {
-  applyExtrusions();
-};
-
-// Reset to initial state
-const reset = () => {
-  width.value = 500;
-  height.value = 600;
+const reset = async () => {
   extrusions.value = [];
-  selectedEdgeIndex.value = null;
-  initializeRectangle();
-};
-
-// Handle SVG interactions
-const handleSvgClick = (event) => {
-  // Deselect if clicking on empty space
-  if (event.target.tagName === 'svg' || event.target.tagName === 'polygon') {
-    selectedEdgeIndex.value = null;
-  }
-};
-
-const handleSvgMouseMove = (event) => {
-  // Could add more interactive features here
-};
-
-// Initialize on mount
-onMounted(() => {
-  initializeRectangle();
-});
-</script>
-
-<style scoped>
-.cassette-designer {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: var(--background-primary, #f5f5f5);
-}
-
-.designer-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  background: var(--background-secondary, #fff);
-  border-bottom: 1px solid var(--separator-primary, #e0e0e0);
-}
-
-.designer-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  color: var(--label-primary, #000);
-}
-
-.designer-content {
-  display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 1rem;
-  padding: 1rem;
-  flex: 1;
-  overflow: hidden;
-}
-
-.svg-viewport {
-  background: white;
-  border-radius: 8px;
-  border: 1px solid var(--separator-primary, #e0e0e0);
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.svg-viewport svg {
-  width: 100%;
-  height: 100%;
-  min-height: 400px;
-}
-
-.controls-panel {
-  overflow-y: auto;
-}
-
-.parameter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.parameter-group label {
-  font-weight: 600;
-  color: var(--label-primary, #000);
-}
-
-.extrusion-controls h4,
-.extrusions-list h4 {
-  margin: 0 0 1rem 0;
-  font-size: 1rem;
-  color: var(--label-primary, #000);
-}
-
-.help-text {
-  padding: 1rem;
-  background: var(--fill-tertiary, #f0f0f0);
-  border-radius: 4px;
-  color: var(--label-secondary, #666);
-}
-
-.help-text p {
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.extrusions-list {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.extrusion-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  background: var(--fill-tertiary, #f8f8f8);
-  border-radius: 4px;
-  font-size: 0.9rem;
-}
-
-.empty-state {
-  color: var(--label-tertiary, #999);
-  font-style: italic;
-  text-align: center;
-  padding: 1rem;
-}
-
-@media (max-width: 1024px) {
-  .designer-content {
-    grid-template-columns: 1fr;
-  }
+  selectedEdge.value = null;
+  hoveredEdge.value = null;
+  rectWidth.value = 500;
+  rectHeight.value = 600;
+  extrusionLength.value = 400;
   
-  .controls-panel {
-    max-height: 400px;
+  if (modular.value) {
+    modular.value.loadGraph(JSON.stringify(cassetteGraph));
+    await evaluateGraph();
   }
-}
-</style>
+};
+</script>
