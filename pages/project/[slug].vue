@@ -70,8 +70,5 @@
 </script>
 
 <style scoped lang="scss">
-    .project-workspace {
-        width: 100%;
-    }
 </style>
 

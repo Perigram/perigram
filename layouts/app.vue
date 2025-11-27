@@ -182,11 +182,13 @@
         // --- Level 2: Asset Tabs ---
         if (currentSectionId === 'assets') {
             const assetTabs = [
-                { id: 'assets', name: 'Library', to: '/assets' },
                 { id: 'cassettes', name: 'Cassettes', to: '/assets/cassettes' },
+                { id: 'pens', name: 'Pens', to: '/assets/pens' },
+                { id: 'tools', name: 'Tools', to: '/assets/tools' },
+                { id: 'templates', name: 'Templates', to: '/assets/templates' },
             ]
 
-            const currentAssetTabId = parts[1] || 'assets'
+            const currentAssetTabId = parts[1] || 'cassettes'
             const currentAssetTab = assetTabs.find((t) => t.id === currentAssetTabId)
 
             if (currentAssetTab) {

@@ -1,7 +1,7 @@
 # UI
 - [x] Go througn all components and remove all styles. Replace custom classes with Tailwind classes only where layout is concerned. Colors, borders, fonts etc should be default Primevue without customizations.
 - [x] Menubar is sticky on top. Now it scrolls away.
-- [x] Replace project[slug].vue obsolete TabMenu with Tabs component
+- [x] Replace project[slug].vue obsolete TabMenu with Tabs component (using TabView)
 - [x] In all top-level panels in Tabs components, add padding around the content so it doesn't touch the edges. (project, assets, profile, etc)
 - [x] Artifacts in project[slug].vue: should be displayed in a grid, not a list.
 - [x] In project[slug].vue, change composition of tabs: batches, project data. Remove artifacts tab as artifacts are now part of batches.
