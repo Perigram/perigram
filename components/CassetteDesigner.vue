@@ -69,7 +69,8 @@
       <svg 
         ref="svgElement"
         :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`"
-        class="w-full h-full cursor-move"
+        :class="isPanning ? 'cursor-move' : 'cursor-default'"
+        class="w-full h-full"
         @mousemove="handleMouseMove"
         @mousedown="handleMouseDown"
         @mouseup="handleMouseUp"
@@ -214,34 +215,45 @@ const evaluateGraph = async () => {
     const result = await modular.value.evaluate();
     const { geometryIdentifiers } = result;
     
-    const extrusions = [];
-    let unionCurve = null;
+    const individualExtrusions = [];
+    let finalUnion = null;
     
-    geometryIdentifiers.forEach((id, index) => {
+    // Get nodes to understand the graph structure
+    const nodes = modular.value.getNodes();
+    const extrusionNodes = nodes.filter(n => n.variant === 'SubGraph' && n.label === 'Grow Side Face');
+    
+    geometryIdentifiers.forEach((id) => {
       const interop = modular.value.findGeometryInteropById(id);
       
       if (interop?.variant === 'Curve') {
         const { vertices } = interop.data;
         const path = verticesToSVGPath(vertices);
         
-        // The first geometry from "Grow Side Face" outputs:
-        // - 0th output (1st) goes to next subgraph input (union)
-        // - 1th output (2nd) is the individual extrusion
-        // We need to identify which is which based on the graph structure
-        
-        // For now, assume last one is final union (from BoundarySurfaces input)
-        // Others are intermediate curves
-        extrusions.push({ path, vertices });
+        // Store all curves - we'll separate them below
+        individualExtrusions.push({ path, vertices });
       }
     });
     
-    // Last one should be the accumulating union
-    if (extrusions.length > 0) {
-      unionCurve = extrusions[extrusions.length - 1];
-      extrusionPaths.value = extrusions.slice(0, -1).map(e => e.path);
-      unionPath.value = unionCurve.path;
-      updateEdgesFromCurve(unionCurve.vertices);
-      updateViewBox(unionCurve.vertices);
+    // If we have extrusions, last curve is the final union (0th output of last Grow Side Face)
+    // Other curves are individual extrusions (1th outputs)
+    if (individualExtrusions.length > 0) {
+      if (extrusions.value.length > 0) {
+        // With extrusions: last is union, others are individual extrusions
+        finalUnion = individualExtrusions[individualExtrusions.length - 1];
+        extrusionPaths.value = individualExtrusions.slice(0, -1).map(e => e.path);
+      } else {
+        // Just rectangle, no extrusions yet
+        finalUnion = individualExtrusions[0];
+        extrusionPaths.value = [];
+      }
+      
+      unionPath.value = finalUnion.path;
+      updateEdgesFromCurve(finalUnion.vertices);
+      
+      // Only update viewBox on initial load or reset
+      if (!baseViewBox.value.width || baseViewBox.value.width === 800) {
+        updateViewBox(finalUnion.vertices);
+      }
     }
   } catch (error) {
     console.error('Failed to evaluate graph:', error);
@@ -443,45 +455,136 @@ const addExtrusion = async () => {
   selectedEdge.value = null;
 };
 
-// Rebuild graph with current extrusions by modifying existing subgraph parameters
+// Build graph dynamically from scratch
 const rebuildGraph = async () => {
   if (!modular.value) return;
   
   try {
-    const nodes = modular.value.getNodes();
+    // Start with clean base: Rectangle subgraph + dimension numbers
+    const graph = {
+      nodes: {},
+      sub_graphs: cassetteGraph.graph.sub_graphs
+    };
     
-    // Find "Grow Side Face" subgraph nodes
-    const growNodes = nodes.filter(n => n.variant === 'SubGraph' && n.label === 'Grow Side Face');
+    // Add width Number node
+    const widthNodeId = 'width-' + Date.now();
+    graph.nodes[widthNodeId] = {
+      id: widthNodeId,
+      name: 'Number',
+      label: '',
+      input: { parameters: [
+        { id: widthNodeId + '-val', name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
+        { id: widthNodeId + '-int', name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
+      ]},
+      output: { parameters: [
+        { id: widthNodeId + '-out', name: 'output value', access_type: 'Item', hint: 'Number', connections: ['rect-in-0'] }
+      ]},
+      entity: { variant: 'Number', data: { value: rectWidth.value, integer: true, precision: 10 }},
+      enabled: true,
+      visible: true
+    };
     
-    // Update parameters for each extrusion
+    // Add height Number node
+    const heightNodeId = 'height-' + Date.now();
+    graph.nodes[heightNodeId] = {
+      id: heightNodeId,
+      name: 'Number',
+      label: '',
+      input: { parameters: [
+        { id: heightNodeId + '-val', name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
+        { id: heightNodeId + '-int', name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
+      ]},
+      output: { parameters: [
+        { id: heightNodeId + '-out', name: 'output value', access_type: 'Item', hint: 'Number', connections: ['rect-in-1'] }
+      ]},
+      entity: { variant: 'Number', data: { value: rectHeight.value, integer: true, precision: 10 }},
+      enabled: true,
+      visible: true
+    };
+    
+    // Add Rectangle subgraph
+    const rectNodeId = 'rect-' + Date.now();
+    graph.nodes[rectNodeId] = {
+      id: rectNodeId,
+      name: 'Sub Graph',
+      label: 'Rectangle!',
+      input: { parameters: [
+        { id: 'rect-in-0', name: '0th target', access_type: 'Tree', hint: '', connections: [widthNodeId + '-out'] },
+        { id: 'rect-in-1', name: '1th target', access_type: 'Tree', hint: '', connections: [heightNodeId + '-out'] }
+      ]},
+      output: { parameters: [
+        { id: 'rect-out-0', name: '0th output', access_type: 'Tree', hint: '', connections: [] }
+      ]},
+      entity: { variant: 'SubGraph', data: { instance_id: 'd8963104-a40a-4faf-9762-4dc76607da7d' }},
+      enabled: true,
+      visible: false
+    };
+    
+    let prevOutputId = 'rect-out-0';
+    
+    // Add extrusion subgraphs
     extrusions.value.forEach((ext, idx) => {
-      if (idx < growNodes.length) {
-        const node = growNodes[idx];
-        
-        // Find NumberSlider and Number nodes feeding into this subgraph
-        // Need to update edge index (slider) and length (number)
-        // This requires finding the connected input nodes
-        
-        // For now, just update the slider value if we can find it
-        const sliderNodes = nodes.filter(n => n.variant === 'NumberSlider');
-        if (sliderNodes[idx]) {
-          modular.value.changeNodeProperty(sliderNodes[idx].id, {
-            name: 'value',
-            value: { type: 'Number', content: ext.edge }
-          });
-        }
-        
-        const numberNodes = nodes.filter(n => n.variant === 'Number' && n.label === '');
-        // Skip first 2 (rectangle dimensions)
-        if (numberNodes[idx + 2]) {
-          modular.value.changeNodeProperty(numberNodes[idx + 2].id, {
-            name: 'value',
-            value: { type: 'Number', content: ext.length }
-          });
-        }
-      }
+      const extId = 'ext-' + idx + '-' + Date.now();
+      
+      // Edge index slider
+      const sliderId = extId + '-slider';
+      graph.nodes[sliderId] = {
+        id: sliderId,
+        name: 'Number Slider',
+        label: '',
+        input: { parameters: [] },
+        output: { parameters: [
+          { id: sliderId + '-out', name: 'output value', access_type: 'Item', hint: 'Number', connections: [extId + '-in-1'] }
+        ]},
+        entity: { variant: 'NumberSlider', data: { domain: { min: 0, max: 10 }, step: 1, value: ext.edge }},
+        enabled: true,
+        visible: false
+      };
+      
+      // Extrusion length number
+      const lengthId = extId + '-length';
+      graph.nodes[lengthId] = {
+        id: lengthId,
+        name: 'Number',
+        label: '',
+        input: { parameters: [
+          { id: lengthId + '-val', name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
+          { id: lengthId + '-int', name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
+        ]},
+        output: { parameters: [
+          { id: lengthId + '-out', name: 'output value', access_type: 'Item', hint: 'Number', connections: [extId + '-in-2'] }
+        ]},
+        entity: { variant: 'Number', data: { value: ext.length, integer: true, precision: 1 }},
+        enabled: true,
+        visible: false
+      };
+      
+      // Grow Side Face subgraph
+      const newOutputId = extId + '-out-0';
+      const extrusionOutputId = extId + '-out-1';
+      
+      graph.nodes[extId] = {
+        id: extId,
+        name: 'Sub Graph',
+        label: 'Grow Side Face',
+        input: { parameters: [
+          { id: extId + '-in-0', name: '0th target', access_type: 'Tree', hint: '', connections: [prevOutputId] },
+          { id: extId + '-in-1', name: '1th target', access_type: 'Tree', hint: '', connections: [sliderId + '-out'] },
+          { id: extId + '-in-2', name: '2th target', access_type: 'Tree', hint: '', connections: [lengthId + '-out'] }
+        ]},
+        output: { parameters: [
+          { id: newOutputId, name: '0th output', access_type: 'Tree', hint: '', connections: [] },
+          { id: extrusionOutputId, name: '1th output', access_type: 'Tree', hint: '', connections: [] }
+        ]},
+        entity: { variant: 'SubGraph', data: { instance_id: '65f3238f-d937-45ce-bbee-494fc860ba3b' }},
+        enabled: true,
+        visible: true
+      };
+      
+      prevOutputId = newOutputId;
     });
     
+    modular.value.loadGraph(JSON.stringify(graph));
     await evaluateGraph();
   } catch (error) {
     console.error('Failed to rebuild graph:', error);
