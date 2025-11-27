@@ -1,5 +1,5 @@
 <template>
-    <div class="">
+    <div class="p-4">
         <TabView>
             <TabPanel header="Account">
                 <div class="grid">

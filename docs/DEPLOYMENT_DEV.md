@@ -24,6 +24,11 @@ ENVEOF
 ```bash
 # Start MongoDB + workers from ghcr.io
 docker-compose -f docker-compose.local.yml up -d
+# In swarm mode, use:
+docker stack deploy -c docker-compose.local.yml cutkit-demo
+# Delete stack, network, services:
+docker stack rm cutkit-demo
+docker network rm cutkit-demo_default
 
 # Start app (not in Docker for hot reload)
 npm run dev
@@ -63,6 +68,6 @@ docker run -d --name nesting-worker --network cutkit-demo_default \
   -e MONGO_URI=mongodb://mongo:27017/nest2d \
   ghcr.io/1suo/nesting-worker:latest
 
-# Push to registry (after testing)
+# Push to registry
 docker push ghcr.io/1suo/nesting-worker:latest
 ```

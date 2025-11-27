@@ -1,63 +1,58 @@
 <template>
   <div>
-    <div v-if="loading" class="flex items-center justify-center p-8 bg-surface-ground rounded-md">
+    <div v-if="loading" class="flex items-center justify-center p-8 rounded-md">
       <ProgressSpinner style="width: 30px; height: 30px" />
-      <span class="ml-2 text-surface-500">{{ $t('artifacts.loading') }}</span>
+      <span class="ml-2">{{ $t('artifacts.loading') }}</span>
     </div>
 
-    <div v-else-if="!artifacts || artifacts.length === 0" class="flex items-center justify-center p-8 bg-surface-ground rounded-md">
-      <p class="text-surface-500">{{ $t('artifacts.noArtifacts') }}</p>
+    <div v-else-if="!artifacts || artifacts.length === 0" class="flex items-center justify-center p-8 rounded-md">
+      <p>{{ $t('artifacts.noArtifacts') }}</p>
     </div>
 
-    <DataTable v-else :value="artifacts" responsiveLayout="scroll" size="small">
-      <Column :header="$t('artifacts.name')" field="name" :sortable="true"></Column>
-      
-      <Column :header="$t('artifacts.type')" field="type" :sortable="true">
-        <template #body="{ data }">
-          <Tag :value="data.type" severity="info" />
-        </template>
-      </Column>
+    <DataView v-else :value="artifacts" layout="grid">
+      <template #grid="slotProps">
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
+          <div v-for="artifact in slotProps.items" :key="artifact._id" class="flex flex-col gap-3 p-4 border rounded">
+            <div class="flex justify-between items-start">
+              <span class="font-semibold break-words flex-1">{{ artifact.name }}</span>
+              <Tag :value="artifact.status" :severity="getStatusSeverity(artifact.status)" />
+            </div>
+            
+            <div class="flex gap-2">
+              <Tag :value="artifact.type" severity="info" />
+              <span class="text-sm">{{ new Date(artifact.createdAt).toLocaleString() }}</span>
+            </div>
 
-      <Column :header="$t('artifacts.status')" field="status" :sortable="true">
-        <template #body="{ data }">
-          <Tag :value="data.status" :severity="getStatusSeverity(data.status)" />
-        </template>
-      </Column>
-
-      <Column :header="$t('artifacts.createdAt')" field="createdAt" :sortable="true">
-        <template #body="{ data }">
-          {{ new Date(data.createdAt).toLocaleString() }}
-        </template>
-      </Column>
-
-      <Column header="Actions" style="width: 10rem; text-align: right;">
-        <template #body="{ data }">
-          <Button 
-            v-if="data.status === 'READY'"
-            icon="pi pi-download" 
-            class="p-button-rounded p-button-text"
-            v-tooltip.top="$t('actions.download')"
-            :aria-label="$t('actions.download')"
-            @click="downloadArtifact(data)" 
-          />
-          <Button 
-            v-if="data.status === 'READY' && isPreviewable(data.mimeType)"
-            icon="pi pi-eye" 
-            class="p-button-rounded p-button-text"
-            v-tooltip.top="$t('actions.preview')"
-            :aria-label="$t('actions.preview')"
-            @click="previewArtifact(data)"
-          />
-          <Button 
-            icon="pi pi-trash" 
-            class="p-button-rounded p-button-text p-button-danger"
-            v-tooltip.top="$t('actions.delete')"
-            :aria-label="$t('actions.delete')"
-            @click="confirmDelete(data)" 
-          />
-        </template>
-      </Column>
-    </DataTable>
+            <div class="flex gap-2 justify-end pt-2 border-t">
+              <Button 
+                v-if="artifact.status === 'READY'"
+                icon="pi pi-download" 
+                text
+                v-tooltip.top="$t('actions.download')"
+                :aria-label="$t('actions.download')"
+                @click="downloadArtifact(artifact)" 
+              />
+              <Button 
+                v-if="artifact.status === 'READY' && isPreviewable(artifact.mimeType)"
+                icon="pi pi-eye" 
+                text
+                v-tooltip.top="$t('actions.preview')"
+                :aria-label="$t('actions.preview')"
+                @click="previewArtifact(artifact)"
+              />
+              <Button 
+                icon="pi pi-trash" 
+                severity="danger"
+                text
+                v-tooltip.top="$t('actions.delete')"
+                :aria-label="$t('actions.delete')"
+                @click="confirmDelete(artifact)" 
+              />
+            </div>
+          </div>
+        </div>
+      </template>
+    </DataView>
 
     <Dialog v-model:visible="showPreview" :header="previewName" :modal="true" :style="{ width: '75vw', height: '80vh' }">
       <img v-if="previewUrl" :src="previewUrl" :alt="previewName" style="width: 100%; height: 100%; object-fit: contain;" />
@@ -69,8 +64,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
+import DataView from 'primevue/dataview';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';

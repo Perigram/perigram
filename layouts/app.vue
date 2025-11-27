@@ -2,7 +2,7 @@
     <div class="bg-transparent">
         <Menubar
             :model="[]"
-            class="rounded-none border-0"
+            class="rounded-none border-0 sticky top-0 z-50"
         >
             <template #start>
                 <NuxtLink
@@ -184,7 +184,6 @@
             const assetTabs = [
                 { id: 'assets', name: 'Library', to: '/assets' },
                 { id: 'cassettes', name: 'Cassettes', to: '/assets/cassettes' },
-                { id: 'parts', name: 'Parts', to: '/assets/parts' },
             ]
 
             const currentAssetTabId = parts[1] || 'assets'

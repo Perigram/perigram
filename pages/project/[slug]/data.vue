@@ -1,5 +1,5 @@
 <template>
-    <div class="project-data">
+    <div class="p-4">
         <Message severity="info">
             Project data management coming soon
         </Message>
@@ -14,9 +14,3 @@ definePageMeta({
   middleware: 'auth',
 });
 </script>
-
-<style scoped>
-.project-data {
-    padding: 1rem;
-}
-</style>

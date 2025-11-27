@@ -1,47 +1,17 @@
-### Locales and translations
-- [x] Implement locale switcher in profile page (now it works correctly).
+# UI
+- [x] Go througn all components and remove all styles. Replace custom classes with Tailwind classes only where layout is concerned. Colors, borders, fonts etc should be default Primevue without customizations.
+- [x] Menubar is sticky on top. Now it scrolls away.
+- [x] Replace project[slug].vue obsolete TabMenu with Tabs component
+- [x] In all top-level panels in Tabs components, add padding around the content so it doesn't touch the edges. (project, assets, profile, etc)
+- [x] Artifacts in project[slug].vue: should be displayed in a grid, not a list.
+- [x] In project[slug].vue, change composition of tabs: batches, project data. Remove artifacts tab as artifacts are now part of batches.
+- [x] BatchEditor: remove header with status and entries. 
+- [x] BatchEditor: move both "add cassette" buttons under the datatable. 
+- [x] BatchEditor: put batch sections into accordion panels: one for nesting options (remove layer select, remove space input, add tool select, tool.diameter will define space) one for cassettes datatable, one for artifacts dataview (make it decent).
+- [x] Remove headers from all pages, they are redundant with the menubar.
 
-### Batch page
-- [x] Boolean options in datatable now work
 
-### Nesting in worker
-**Status:** ✅ IMPLEMENTED - Testing required
+# Routing
+- [x] Assets routing is misused. "Parts" shouldn't exist at all. Other routes in assets should be direct children of /assets. (cassettes, pens, tools, templates)
 
-**Completed:**
-- [x] Added nestingLayer and polygonParts fields to cassettes schema
-- [x] Created cassette-processing worker to generate polygon data from DXF
-- [x] Updated nesting worker to read from cassettes collection (not user_dxf_files)
-- [x] Modified nest endpoint to pass cassetteId instead of file slug
-- [x] Worker now uses cassettes GridFS bucket for DXF access
-
-**Testing Required:**
-- [ ] Start cassette-processing worker: `cd workers/cassette-processing && python3 main.py`
-- [ ] Upload test rectangle DXF with "Frame" layer
-- [ ] Verify cassette processingStatus changes pending→done
-- [ ] Verify polygonParts field populated in cassettes collection
-- [ ] Create batch with test cassettes
-- [ ] Run nesting and verify artifacts generated
-- [ ] Check nested layout makes sense
-
-**Test Files:** Rectangle DXFs available in repository root (need ezdxf to generate)
-
-**See:** `/NESTING_IMPLEMENTATION_PLAN.md` for full implementation details
-
-### Artifact page
-**Status:** ⏳ Ready for testing (depends on nesting worker)
-
-- [ ] Test artifact generation after nesting completes
-      → Worker saves to dxf_result_bucket and svg_result_bucket (GridFS)
-      → Artifacts service should link these files
-- [ ] Display artifacts grouped by batches in project artifact page
-      → Page exists at /pages/project/[slug]/artifacts.vue  
-      → Implement artifact preview (SVG) and download (DXF)
-      → Group by batch with expandable sections
-
-### Bug fixes
-- [x] Fixed: Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'allowRotation')
-    at BatchEditor.vue:127:56 (and other cassette options in BatchEditor.vue now work)
-- [x] Fixed: toolProfiles.js:23 Failed to fetch tool profiles: FetchError: [GET] "/api/templates/tools": 500 Server Error
-    at async fetchTools (toolProfiles.js:19:20)
-    at async AssetsLibrary.vue:213:3 (fixed OAuth userId handling in repository)
 

@@ -1,8 +1,7 @@
 <template>
-    <div class="">
+    <div class="p-4">
         <div class="">
-            <div class="flex gap-4 justify-between mb-4">
-                <h1 class="text-2xl">{{ $t('navigation.projects') }}</h1>
+            <div class="flex gap-4 justify-end mb-4">
                 <Button
                     :label="$t('project.create')"
                     icon="pi pi-plus"

@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="p-4">
         <!-- Batch selector and actions -->
         <div class="flex items-center gap-3 mb-4">
             <Select

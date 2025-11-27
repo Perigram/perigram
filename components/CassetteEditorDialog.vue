@@ -7,10 +7,10 @@
     :style="{ width: cassette ? '900px' : '900px' }"
     @hide="handleClose"
   >
-    <div class="cassette-editor">
+    <div class="flex flex-col gap-4">
       <!-- Upload Section -->
-      <div v-if="!showMappingSection && !isUploading" class="upload-form">
-        <div class="field">
+      <div v-if="!showMappingSection && !isUploading" class="flex flex-col gap-3">
+        <div class="">
           <label for="cassetteName">{{ $t('cassette.name') }}</label>
           <InputText 
             id="cassetteName"
@@ -33,26 +33,25 @@
       </div>
 
       <!-- Loading State -->
-      <div v-if="isUploading" class="uploading-state">
+      <div v-if="isUploading" class="flex items-center justify-center flex-col gap-4">
         <ProgressSpinner style="width: 50px; height: 50px" />
         <p>{{ $t('common.uploading') }}</p>
       </div>
 
       <!-- Layer Mapping Section -->
-      <div v-if="showMappingSection && !isUploading" class="mapping-layout">
-        <div class="preview-panel">
-          <h3>{{ $t('cassette.preview') }}</h3>
-          <div v-if="svgPreview" class="svg-preview" v-html="svgPreview"></div>
-          <div v-else class="no-preview">
+      <div v-if="showMappingSection && !isUploading" class="flex gap-4 flex-grow">
+	<div class="bg-zinc-50 border border-zinc-200 p-4 rounded-md flex flex-col items-center flex-grow">
+          <div v-if="svgPreview" class="" v-html="svgPreview"></div>
+          <div v-else class="">
             <i class="pi pi-image" style="font-size: 3rem"></i>
             <p>{{ $t('cassette.noPreview') }}</p>
           </div>
         </div>
 
-        <div class="layers-panel">
+	<div class="w-1/2">
           <h3>{{ $t('cassette.layerMapping') }}</h3>
-          <div v-if="detectedLayers && detectedLayers.length > 0" class="layer-list">
-            <div v-for="(layer, index) in detectedLayers" :key="index" class="layer-item">
+	  <div v-if="detectedLayers && detectedLayers.length > 0" class="flex flex-col gap-3 max-h-96 overflow-y-auto pr-2">
+	    <div v-for="(layer, index) in detectedLayers" :key="index" class="flex flex-col gap-1">
               <label>{{ layer }}</label>
               <Dropdown 
                 v-model="layerMappings[layer]"
@@ -410,130 +409,4 @@ const resetForm = () => {
 };
 </script>
 
-<style scoped>
-.cassette-editor {
-  padding: 20px 0;
-}
-
-.upload-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.field label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--label-primary);
-}
-
-.uploading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 40px 20px;
-}
-
-.uploading-state p {
-  font-size: 14px;
-  color: var(--label-secondary);
-}
-
-.mapping-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-.preview-panel h3,
-.layers-panel h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: var(--label-primary);
-}
-
-.svg-preview {
-  border: 1px solid var(--separator-primary);
-  border-radius: 8px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 300px;
-}
-
-.svg-preview img {
-  max-width: 100%;
-  max-height: 400px;
-}
-
-.no-preview {
-  border: 2px dashed var(--separator-primary);
-  border-radius: 8px;
-  padding: 40px;
-  text-align: center;
-  color: var(--label-tertiary);
-  min-height: 300px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-
-.layer-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.layer-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid var(--separator-primary);
-  border-radius: 6px;
-}
-
-.layer-item label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--label-secondary);
-}
-
-.parameters-section {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid var(--separator-primary);
-}
-
-.parameters-section h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: var(--label-primary);
-}
-
-.parameters-section .help-text {
-  font-size: 13px;
-  color: var(--label-secondary);
-  margin-bottom: 12px;
-}
-
-.parameters-section .hint-text {
-  display: block;
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--label-tertiary);
-  font-style: italic;
-}
-</style>
+<style scoped></style>

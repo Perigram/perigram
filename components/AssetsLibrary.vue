@@ -1,10 +1,9 @@
 <template>
-  <div class="templates-page">
+  <div class="p-4">
     <TabView>
       <TabPanel header="Pen Templates">
-        <div class="template-section">
-          <div class="section-header">
-            <h2>Pen Templates</h2>
+        <div class="py-4">
+          <div class="flex justify-end items-center mb-8">
             <Button 
               label="New Pen" 
               icon="pi pi-plus" 
@@ -13,18 +12,18 @@
           </div>
           
           <div v-if="penState.loading">Loading pens...</div>
-          <div v-else-if="penState.error" class="error">{{ penState.error }}</div>
+          <div v-else-if="penState.error">{{ penState.error }}</div>
           
-          <div v-else class="templates-grid">
-            <Card v-for="pen in penState.pens" :key="pen._id" class="template-card">
+          <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+            <Card v-for="pen in penState.pens" :key="pen._id" class="h-full">
               <template #title>
                 {{ pen.name }}
                 <Tag v-if="!pen.ownerId" value="System" severity="info" />
               </template>
               <template #content>
-                <div class="pen-preview">
+                <div class="py-4">
                   <div 
-                    class="pen-stroke"
+                    class="w-full mb-4 border"
                     :style="{
                       backgroundColor: pen.stroke.color,
                       height: `${pen.stroke.weight}px`,
@@ -40,7 +39,7 @@
                 </div>
               </template>
               <template #footer>
-                <div class="card-actions" v-if="pen.ownerId">
+                <div class="flex gap-2" v-if="pen.ownerId">
                   <Button 
                     label="Edit" 
                     icon="pi pi-pencil" 
@@ -63,9 +62,8 @@
       </TabPanel>
       
       <TabPanel header="Tool Profiles">
-        <div class="template-section">
-          <div class="section-header">
-            <h2>Tool Profiles</h2>
+        <div class="py-4">
+          <div class="flex justify-end items-center mb-8">
             <Button 
               label="New Tool" 
               icon="pi pi-plus" 
@@ -74,10 +72,10 @@
           </div>
           
           <div v-if="toolState.loading">Loading tools...</div>
-          <div v-else-if="toolState.error" class="error">{{ toolState.error }}</div>
+          <div v-else-if="toolState.error">{{ toolState.error }}</div>
           
-          <div v-else class="templates-grid">
-            <Card v-for="tool in toolState.tools" :key="tool._id" class="template-card">
+          <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+            <Card v-for="tool in toolState.tools" :key="tool._id" class="h-full">
               <template #title>
                 {{ tool.name }}
                 <Tag v-if="!tool.ownerId" value="System" severity="info" />
@@ -89,7 +87,7 @@
                 </p>
               </template>
               <template #footer>
-                <div class="card-actions" v-if="tool.ownerId">
+                <div class="flex gap-2" v-if="tool.ownerId">
                   <Button 
                     label="Edit" 
                     icon="pi pi-pencil" 
@@ -119,23 +117,23 @@
       :modal="true"
       :style="{ width: '500px' }"
     >
-      <div class="form-field">
-        <label>Name</label>
+      <div class="mb-6">
+        <label class="block mb-2">Name</label>
         <InputText v-model="penForm.name" placeholder="My Pen" />
       </div>
       
-      <div class="form-field">
-        <label>Color</label>
+      <div class="mb-6">
+        <label class="block mb-2">Color</label>
         <InputText v-model="penForm.stroke.color" placeholder="#FF0000" />
       </div>
       
-      <div class="form-field">
-        <label>Weight (mm)</label>
+      <div class="mb-6">
+        <label class="block mb-2">Weight (mm)</label>
         <InputNumber v-model="penForm.stroke.weight" :min="0.1" :max="10" :step="0.1" />
       </div>
       
-      <div class="form-field">
-        <label>Pattern</label>
+      <div class="mb-6">
+        <label class="block mb-2">Pattern</label>
         <Select v-model="penForm.stroke.pattern" :options="['SOLID', 'DASHED', 'DOTTED']" />
       </div>
       
@@ -152,18 +150,18 @@
       :modal="true"
       :style="{ width: '500px' }"
     >
-      <div class="form-field">
-        <label>Name</label>
+      <div class="mb-6">
+        <label class="block mb-2">Name</label>
         <InputText v-model="toolForm.name" placeholder="My Tool" />
       </div>
       
-      <div class="form-field">
-        <label>Diameter (mm)</label>
+      <div class="mb-6">
+        <label class="block mb-2">Diameter (mm)</label>
         <InputNumber v-model="toolForm.diameter" :min="0.1" :max="100" :step="0.1" />
       </div>
       
-      <div class="form-field">
-        <label>Angle (degrees)</label>
+      <div class="mb-6">
+        <label class="block mb-2">Angle (degrees)</label>
         <InputNumber v-model="toolForm.angle" :min="0" :max="180" :step="1" />
       </div>
       
@@ -299,62 +297,4 @@ const deleteToolConfirm = (tool) => {
 };
 </script>
 
-<style scoped>
-.templates-page {
-  max-width: 1400px;
-  margin: 0 auto;
-}
 
-.template-section {
-  padding: 1rem 0;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.templates-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-.template-card {
-  height: 100%;
-}
-
-.pen-preview {
-  padding: 1rem 0;
-}
-
-.pen-stroke {
-  width: 100%;
-  margin-bottom: 1rem;
-  border: 1px solid #ccc;
-}
-
-.card-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.form-field {
-  margin-bottom: 1.5rem;
-}
-
-.form-field label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-.error {
-  color: red;
-  padding: 1rem;
-  background: #fee;
-  border-radius: 4px;
-}
-</style>

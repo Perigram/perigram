@@ -1,12 +1,12 @@
 <template>
     <div class="project-workspace">
-        <div class="project-header">
-            <TabMenu
-                :model="tabs"
-                :activeIndex="activeTabIndex"
-                @tab-change="onTabChange"
-            />
-        </div>
+        <Tabs :value="activeTabIndex" @update:value="onTabChange">
+            <TabList>
+                <Tab v-for="(tab, index) in tabs" :key="tab.key" :value="index">
+                    {{ tab.label }}
+                </Tab>
+            </TabList>
+        </Tabs>
         <NuxtPage />
     </div>
 </template>
@@ -15,7 +15,9 @@
     import { ref, computed, watch, onMounted } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { useI18n } from 'vue-i18n'
-    import TabMenu from 'primevue/tabmenu'
+    import Tabs from 'primevue/tabs'
+    import TabList from 'primevue/tablist'
+    import Tab from 'primevue/tab'
 
     definePageMeta({
         layout: 'app',
@@ -28,12 +30,11 @@
     const slug = route.params.slug
 
     const project = ref(null)
-    const activeTabIndex = ref(1)
+    const activeTabIndex = ref(0)
 
     const tabs = computed(() => [
-        { label: t('project.data'), to: `/project/${slug}/data`, key: 'data' },
         { label: t('project.batches'), to: `/project/${slug}/batches`, key: 'batches' },
-        { label: t('project.artifacts'), to: `/project/${slug}/artifacts`, key: 'artifacts' },
+        { label: t('project.data'), to: `/project/${slug}/data`, key: 'data' },
     ])
 
     onMounted(async () => {
@@ -59,17 +60,15 @@
     )
 
     const updateActiveTab = () => {
-        if (route.path.includes('/data')) {
+        if (route.path.includes('/batches')) {
             activeTabIndex.value = 0
-        } else if (route.path.includes('/batches')) {
+        } else if (route.path.includes('/data')) {
             activeTabIndex.value = 1
-        } else if (route.path.includes('/artifacts')) {
-            activeTabIndex.value = 2
         }
     }
 
-    const onTabChange = (event) => {
-        const tab = tabs.value[event.index]
+    const onTabChange = (index) => {
+        const tab = tabs.value[index]
         router.push(tab.to)
     }
 </script>
@@ -77,17 +76,6 @@
 <style scoped lang="scss">
     .project-workspace {
         width: 100%;
-    }
-
-    .project-header {
-        margin-bottom: 1.5rem;
-
-        h1 {
-            font-size: 1.75rem;
-            font-weight: 600;
-            margin: 0 0 1rem 0;
-            color: var(--text-color);
-        }
     }
 </style>
 

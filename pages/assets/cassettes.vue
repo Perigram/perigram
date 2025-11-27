@@ -1,5 +1,5 @@
 <template>
-    <div class="cassettes-page">
+    <div class="p-4">
         <CassetteManager />
     </div>
 </template>
@@ -12,11 +12,3 @@ definePageMeta({
     middleware: "auth",
 });
 </script>
-
-<style lang="scss" scoped>
-.cassettes-page {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 24px;
-}
-</style>
