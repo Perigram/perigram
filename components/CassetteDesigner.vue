@@ -144,7 +144,7 @@ import Divider from 'primevue/divider';
 import init, { Modular } from 'nodi-modular';
 
 // Load minimal base graph
-const baseGraph = await $fetch('/minimal_rect.json');
+const baseGraph = await $fetch('/test_full.json').then(data => data.graph);
 
 // State
 const modular = ref(null);
