@@ -153,7 +153,8 @@ onMounted(async () => {
   try {
     await init();
     modular.value = Modular.new();
-    modular.value.loadGraph(JSON.stringify(cassetteGraph));
+    // Pass the graph property, not the whole JSON
+    modular.value.loadGraph(JSON.stringify(cassetteGraph.graph));
     await evaluateGraph();
   } catch (error) {
     console.error('Failed to initialize nodi3d:', error);
@@ -402,7 +403,7 @@ const reset = async () => {
   extrusionLength.value = 400;
   
   if (modular.value) {
-    modular.value.loadGraph(JSON.stringify(cassetteGraph));
+    modular.value.loadGraph(JSON.stringify(cassetteGraph.graph));
     await evaluateGraph();
   }
 };
