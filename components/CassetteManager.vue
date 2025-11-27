@@ -1,10 +1,15 @@
 <template>
   <div class="p-5">
-    <div class="flex justify-end items-center mb-5">
+    <div class="flex justify-end items-center mb-5 gap-2">
       <Button 
         :label="$t('cassette.upload')" 
         icon="pi pi-upload"
         @click="showUploadDialog = true"
+      />
+      <Button 
+        label="Designer" 
+        icon="pi pi-pencil"
+        @click="showDesignerDialog = true"
       />
     </div>
 
@@ -52,6 +57,15 @@
       v-model="showUploadDialog"
       @uploaded="handleUploaded"
     />
+
+    <Dialog 
+      v-model:visible="showDesignerDialog"
+      header="Cassette Designer"
+      :style="{ width: '90vw', height: '90vh' }"
+      :modal="true"
+    >
+      <CassetteDesigner />
+    </Dialog>
   </div>
 </template>
 
@@ -60,7 +74,9 @@ import { ref, onMounted } from 'vue';
 import { cassettesStore } from '~/composables/cassettes';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
+import Dialog from 'primevue/dialog';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
+import CassetteDesigner from './CassetteDesigner.vue';
 
 const { actions } = cassettesStore;
 const { fetchCassettes, selectCassette, deleteCassette } = actions;
@@ -69,6 +85,7 @@ const { fetchCassettes, selectCassette, deleteCassette } = actions;
 const cassettes = ref([]);
 const showUploadDialog = ref(false);
 const showEditDialog = ref(false);
+const showDesignerDialog = ref(false);
 const editingCassette = ref(null);
 
 onMounted(async () => {
