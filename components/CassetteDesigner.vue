@@ -170,9 +170,8 @@ onMounted(async () => {
   try {
     await init();
     modular.value = Modular.new();
-    // Pass the graph property, not the whole JSON
-    modular.value.loadGraph(JSON.stringify(cassetteGraph.graph));
-    await evaluateGraph();
+    // Start with just rectangle, no extrusions
+    await rebuildGraph();
   } catch (error) {
     console.error('Failed to initialize nodi3d:', error);
   }
@@ -531,7 +530,7 @@ const rebuildGraph = async () => {
           { id: rectOutId, name: '0th output', access_type: 'Tree', hint: '', connections: [] }
         ]
       },
-      entity: { variant: 'SubGraph', data: { instance_id: 'd8963104-a40a-4faf-9762-4dc76607da7d' }},
+      entity: { variant: 'SubGraph', data: { instance_id: '72f3bb6f-3cb2-40be-8497-714c51dfa6c1' }},
       enabled: true,
       visible: false
     };
@@ -615,6 +614,7 @@ const rebuildGraph = async () => {
     });
     
     modular.value.loadGraph(JSON.stringify(graph));
+    console.log('Built graph:', JSON.stringify(graph, null, 2));
     await evaluateGraph();
   } catch (error) {
     console.error('Failed to rebuild graph:', error);
