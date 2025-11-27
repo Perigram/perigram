@@ -215,27 +215,35 @@ const evaluateGraph = async () => {
   if (!modular.value) return;
   
   try {
+    console.log('Evaluating graph...');
     const result = await modular.value.evaluate();
+    console.log('Evaluation result:', result);
     const { geometryIdentifiers } = result;
+    console.log('Geometry identifiers:', geometryIdentifiers);
     
     const individualExtrusions = [];
     let finalUnion = null;
     
     // Get nodes to understand the graph structure
     const nodes = modular.value.getNodes();
+    console.log('Graph nodes:', nodes);
     const extrusionNodes = nodes.filter(n => n.variant === 'SubGraph' && n.label === 'Grow Side Face');
     
     geometryIdentifiers.forEach((id) => {
       const interop = modular.value.findGeometryInteropById(id);
+      console.log('Geometry interop:', id, interop);
       
       if (interop?.variant === 'Curve') {
         const { vertices } = interop.data;
+        console.log('Curve vertices:', vertices);
         const path = verticesToSVGPath(vertices);
         
         // Store all curves - we'll separate them below
         individualExtrusions.push({ path, vertices });
       }
     });
+    
+    console.log('Individual extrusions:', individualExtrusions);
     
     // If we have extrusions, last curve is the final union (0th output of last Grow Side Face)
     // Other curves are individual extrusions (1th outputs)
@@ -251,12 +259,15 @@ const evaluateGraph = async () => {
       }
       
       unionPath.value = finalUnion.path;
+      console.log('Union path:', unionPath.value);
       updateEdgesFromCurve(finalUnion.vertices);
       
       // Only update viewBox on initial load or reset
       if (!baseViewBox.value.width || baseViewBox.value.width === 800) {
         updateViewBox(finalUnion.vertices);
       }
+    } else {
+      console.log('No geometries found!');
     }
   } catch (error) {
     console.error('Failed to evaluate graph:', error);
