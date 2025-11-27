@@ -143,8 +143,8 @@ import InputNumber from 'primevue/inputnumber';
 import Divider from 'primevue/divider';
 import init, { Modular } from 'nodi-modular';
 
-// Load minimal base graph
-const baseGraph = await $fetch('/rect_exact_working.json');
+// Load the full working graph as base
+const cassetteGraph = await $fetch('/test_full.json').then(data => data.graph);
 
 // State
 const modular = ref(null);
@@ -173,41 +173,16 @@ onMounted(async () => {
     await init();
     modular.value = Modular.new();
     
-    // Load the minimal graph with just rectangle
-    modular.value.loadGraph(JSON.stringify(baseGraph));
+    // Load the full working graph
+    modular.value.loadGraph(JSON.stringify(cassetteGraph));
     await evaluateGraph();
   } catch (error) {
     console.error('Failed to initialize nodi3d:', error);
   }
 });
 
-// Update rectangle parameters in graph
 const updateRectangle = async () => {
-  if (!modular.value) return;
-  
-  try {
-    const nodes = modular.value.getNodes();
-    
-    // Find the two Number nodes that feed into Rectangle subgraph
-    const numberNodes = nodes.filter(n => n.variant === 'Number' && n.label === '');
-    
-    if (numberNodes.length >= 2) {
-      // First Number is width (500), second is height (600)
-      modular.value.changeNodeProperty(numberNodes[0].id, {
-        name: 'value',
-        value: { type: 'Number', content: rectWidth.value }
-      });
-      
-      modular.value.changeNodeProperty(numberNodes[1].id, {
-        name: 'value',
-        value: { type: 'Number', content: rectHeight.value }
-      });
-    }
-    
-    await evaluateGraph();
-  } catch (error) {
-    console.error('Failed to update rectangle:', error);
-  }
+  await updateParameters();
 };
 
 // Evaluate graph and extract geometry
@@ -471,86 +446,26 @@ const addExtrusion = async () => {
   selectedEdge.value = null;
 };
 
-// Build graph by adding to existing base
-const rebuildGraph = async () => {
+// Update rectangle or extrusion parameters (not structure)
+const updateParameters = async () => {
   if (!modular.value) return;
   
   try {
-    // Start with base graph (rectangle only)
-    const graph = JSON.parse(JSON.stringify(cassetteGraph.graph));
-    
-    // Keep only rectangle, width, height nodes
-    const baseNodes = {
-      '57dd9ad5-6200-467e-b725-26eab3b447da': graph.nodes['57dd9ad5-6200-467e-b725-26eab3b447da'], // width
-      'dc38f790-713e-4b81-a9e1-34ad7b3309ac': graph.nodes['dc38f790-713e-4b81-a9e1-34ad7b3309ac'], // height
-      'ef23971b-777c-428f-9fcf-0f112a36bc78': graph.nodes['ef23971b-777c-428f-9fcf-0f112a36bc78']  // rectangle
-    };
-    
-    graph.nodes = JSON.parse(JSON.stringify(baseNodes));
-    
-    // Update width/height values
-    graph.nodes['57dd9ad5-6200-467e-b725-26eab3b447da'].entity.data.value = rectWidth.value;
-    graph.nodes['dc38f790-713e-4b81-a9e1-34ad7b3309ac'].entity.data.value = rectHeight.value;
-    
-    let prevOutputParamId = 'e59cfe92-4f38-4ba8-847c-d73e9fb65dd3'; // Rectangle output
-    
-    // Add extrusions
-    extrusions.value.forEach((ext, idx) => {
-      const timestamp = Date.now() + idx;
-      
-      // Copy a Grow Side Face subgraph from reference
-      const refGrowNode = cassetteGraph.graph.nodes['0e8ce44f-fe7a-4ecc-8a34-706542fc6168'];
-      const refSlider = cassetteGraph.graph.nodes['4177ac52-850c-4d0c-940e-e822cc658ac0'];
-      const refNumber = cassetteGraph.graph.nodes['52a92793-711f-4076-b2d3-053c7c9cb425'];
-      
-      const growNodeId = 'grow-' + timestamp;
-      const sliderId = 'slider-' + timestamp;
-      const numberId = 'number-' + timestamp;
-      
-      const growInputId0 = growNodeId + '-in-0';
-      const growInputId1 = growNodeId + '-in-1';
-      const growInputId2 = growNodeId + '-in-2';
-      const growOutputId0 = growNodeId + '-out-0';
-      const growOutputId1 = growNodeId + '-out-1';
-      const sliderOutId = sliderId + '-out';
-      const numberOutId = numberId + '-out';
-      
-      // Add slider
-      graph.nodes[sliderId] = JSON.parse(JSON.stringify(refSlider));
-      graph.nodes[sliderId].id = sliderId;
-      graph.nodes[sliderId].entity.data.value = ext.edge;
-      graph.nodes[sliderId].output.parameters[0].id = sliderOutId;
-      graph.nodes[sliderId].output.parameters[0].connections = [growInputId1];
-      
-      // Add number
-      graph.nodes[numberId] = JSON.parse(JSON.stringify(refNumber));
-      graph.nodes[numberId].id = numberId;
-      graph.nodes[numberId].entity.data.value = ext.length;
-      graph.nodes[numberId].output.parameters[0].id = numberOutId;
-      graph.nodes[numberId].output.parameters[0].connections = [growInputId2];
-      
-      // Add Grow Side Face
-      graph.nodes[growNodeId] = JSON.parse(JSON.stringify(refGrowNode));
-      graph.nodes[growNodeId].id = growNodeId;
-      graph.nodes[growNodeId].input.parameters[0].id = growInputId0;
-      graph.nodes[growNodeId].input.parameters[0].connections = [prevOutputParamId];
-      graph.nodes[growNodeId].input.parameters[1].id = growInputId1;
-      graph.nodes[growNodeId].input.parameters[1].connections = [sliderOutId];
-      graph.nodes[growNodeId].input.parameters[2].id = growInputId2;
-      graph.nodes[growNodeId].input.parameters[2].connections = [numberOutId];
-      graph.nodes[growNodeId].output.parameters[0].id = growOutputId0;
-      graph.nodes[growNodeId].output.parameters[0].connections = [];
-      graph.nodes[growNodeId].output.parameters[1].id = growOutputId1;
-      graph.nodes[growNodeId].output.parameters[1].connections = [];
-      
-      prevOutputParamId = growOutputId0;
+    // Update width
+    modular.value.changeNodeProperty('57dd9ad5-6200-467e-b725-26eab3b447da', {
+      name: 'value',
+      value: { type: 'Number', content: rectWidth.value }
     });
     
-    console.log('Rebuilt graph:', JSON.stringify(graph, null, 2));
-    modular.value.loadGraph(JSON.stringify(graph));
+    // Update height
+    modular.value.changeNodeProperty('dc38f790-713e-4b81-a9e1-34ad7b3309ac', {
+      name: 'value',
+      value: { type: 'Number', content: rectHeight.value }
+    });
+    
     await evaluateGraph();
   } catch (error) {
-    console.error('Failed to rebuild graph:', error);
+    console.error('Failed to update parameters:', error);
   }
 };
 
