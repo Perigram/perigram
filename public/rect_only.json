@@ -1,0 +1,2126 @@
+{
+  "nodes": {
+    "57dd9ad5-6200-467e-b725-26eab3b447da": {
+      "id": "57dd9ad5-6200-467e-b725-26eab3b447da",
+      "name": "Number",
+      "label": "",
+      "input": {
+        "parameters": [
+          {
+            "id": "ebdd2906-7c48-4afa-b1b8-da278392c4e8",
+            "name": "value",
+            "access_type": "Item",
+            "hint": "Number | Bool | String",
+            "connections": []
+          },
+          {
+            "id": "3f996283-7e96-4716-a5e0-0a3b2e46caf8",
+            "name": "integer or not",
+            "access_type": "Item",
+            "hint": "Bool",
+            "connections": []
+          }
+        ]
+      },
+      "output": {
+        "parameters": [
+          {
+            "id": "4d358f82-058e-450b-a081-79be454e68c5",
+            "name": "output value",
+            "access_type": "Item",
+            "hint": "Number",
+            "connections": [
+              "d7da3890-cb92-4cd3-986c-d6ad6d6f2345"
+            ]
+          }
+        ]
+      },
+      "entity": {
+        "variant": "Number",
+        "data": {
+          "value": 500,
+          "integer": true,
+          "precision": 10
+        }
+      },
+      "enabled": true,
+      "visible": true
+    },
+    "dc38f790-713e-4b81-a9e1-34ad7b3309ac": {
+      "id": "dc38f790-713e-4b81-a9e1-34ad7b3309ac",
+      "name": "Number",
+      "label": "",
+      "input": {
+        "parameters": [
+          {
+            "id": "8bc23578-4029-442e-8f55-bc9120b07a69",
+            "name": "value",
+            "access_type": "Item",
+            "hint": "Number | Bool | String",
+            "connections": []
+          },
+          {
+            "id": "45e8add1-5912-494c-afe9-8460f1fc2285",
+            "name": "integer or not",
+            "access_type": "Item",
+            "hint": "Bool",
+            "connections": []
+          }
+        ]
+      },
+      "output": {
+        "parameters": [
+          {
+            "id": "3cc89c61-3598-4d7b-b7c7-b52788925758",
+            "name": "output value",
+            "access_type": "Item",
+            "hint": "Number",
+            "connections": [
+              "4a854b0d-8c98-4f96-97a1-543cdecf3706"
+            ]
+          }
+        ]
+      },
+      "entity": {
+        "variant": "Number",
+        "data": {
+          "value": 600,
+          "integer": true,
+          "precision": 10
+        }
+      },
+      "enabled": true,
+      "visible": true
+    },
+    "ef23971b-777c-428f-9fcf-0f112a36bc78": {
+      "id": "ef23971b-777c-428f-9fcf-0f112a36bc78",
+      "name": "Sub Graph",
+      "label": "Rectangle!",
+      "input": {
+        "parameters": [
+          {
+            "id": "d7da3890-cb92-4cd3-986c-d6ad6d6f2345",
+            "name": "0th target",
+            "access_type": "Tree",
+            "hint": "",
+            "connections": [
+              "4d358f82-058e-450b-a081-79be454e68c5"
+            ]
+          },
+          {
+            "id": "4a854b0d-8c98-4f96-97a1-543cdecf3706",
+            "name": "1th target",
+            "access_type": "Tree",
+            "hint": "",
+            "connections": [
+              "3cc89c61-3598-4d7b-b7c7-b52788925758"
+            ]
+          }
+        ]
+      },
+      "output": {
+        "parameters": [
+          {
+            "id": "e59cfe92-4f38-4ba8-847c-d73e9fb65dd3",
+            "name": "0th output",
+            "access_type": "Tree",
+            "hint": "",
+            "connections": [
+              "a79f8b0f-2591-4970-ae50-9c8a62a1bbf7"
+            ]
+          }
+        ]
+      },
+      "entity": {
+        "variant": "SubGraph",
+        "data": {
+          "instance_id": "72f3bb6f-3cb2-40be-8497-714c51dfa6c1"
+        }
+      },
+      "enabled": true,
+      "visible": true
+    }
+  },
+  "sub_graphs": {
+    "65f3238f-d937-45ce-bbee-494fc860ba3b": {
+      "id": "65f3238f-d937-45ce-bbee-494fc860ba3b",
+      "graph": {
+        "nodes": {
+          "241267c9-4001-48db-86b5-d8eacf525ba7": {
+            "id": "241267c9-4001-48db-86b5-d8eacf525ba7",
+            "name": "Explode",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "b26cd782-3795-4bcf-b006-1e9b6a849c22",
+                  "name": "curve to explode",
+                  "access_type": "Item",
+                  "hint": "Curve",
+                  "connections": [
+                    "6aab8044-127d-468b-8816-b8b70e95721f"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "fee2a17d-4782-4d80-9d03-53a8d58b75ae",
+                  "name": "exploded segments",
+                  "access_type": "List",
+                  "hint": "Curve",
+                  "connections": [
+                    "80ba42be-04c1-4c01-875c-41b52bce8b22"
+                  ]
+                },
+                {
+                  "id": "3bae39e8-879c-4a66-b301-cd7c36f96bc0",
+                  "name": "verticies of the exploded segments",
+                  "access_type": "List",
+                  "hint": "Point",
+                  "connections": []
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Explode",
+              "data": {}
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "dcf0d26c-7133-40b8-aa62-e8201a49b466": {
+            "id": "dcf0d26c-7133-40b8-aa62-e8201a49b466",
+            "name": "Simplify",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "94abe3b9-8d46-4aad-9e7e-dfd6275e3bfe",
+                  "name": "data tree to simplify",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "125c5b46-8848-4dc7-b904-7eeb2a1ce88c"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "98326a95-c6f3-4f6e-a6c3-fe0fc4565395",
+                  "name": "simplified data tree",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "01b32c02-dab5-44d3-8b27-2a27d00238d6"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "SimplifyTree",
+              "data": {}
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "011f3d00-46a5-4cfb-b2e9-5e394c927785": {
+            "id": "011f3d00-46a5-4cfb-b2e9-5e394c927785",
+            "name": "Join Curves",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "9031e658-718e-4f6b-8062-e1363cdf8bc3",
+                  "name": "curves to join",
+                  "access_type": "List",
+                  "hint": "Curve",
+                  "connections": [
+                    "0b8f3894-a3d8-4ee3-8a10-c132fbd68f78"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "0e583982-5894-4a42-a06d-56ae77302a26",
+                  "name": "joined curves",
+                  "access_type": "List",
+                  "hint": "Curve",
+                  "connections": [
+                    "64d00ae0-b58c-44b0-88e5-5362d7a9989f"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "JoinCurves",
+              "data": {
+                "threshold": 0.01
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "6c709c8c-62cf-47f0-adaa-5b611589a923": {
+            "id": "6c709c8c-62cf-47f0-adaa-5b611589a923",
+            "name": "DeVec",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "7d5007f2-0960-4a63-b0a1-198e7e582bba",
+                  "name": "vector to deconstruct",
+                  "access_type": "Item",
+                  "hint": "Point | Vector | Plane",
+                  "connections": [
+                    "2b50878c-a279-4a39-8201-26eba365f459"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "e723f78c-48ef-4562-8d4e-67c1ac506662",
+                  "name": "x component of a vector",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "bc317013-a963-4b2b-82d7-4d71114dcbe5"
+                  ]
+                },
+                {
+                  "id": "3e1ff447-c302-4be3-9c42-18855f7da2d4",
+                  "name": "y component of a vector",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "e18db1ed-cbf9-4b72-878c-6e5456784c47"
+                  ]
+                },
+                {
+                  "id": "69b48311-4773-405d-a8f7-61fb5e8b7251",
+                  "name": "z component of a vector",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": []
+                }
+              ]
+            },
+            "entity": {
+              "variant": "DeconstructVector",
+              "data": {}
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "b8e1ba7b-2cbf-4485-a15e-27407c65a9c8": {
+            "id": "b8e1ba7b-2cbf-4485-a15e-27407c65a9c8",
+            "name": "Cull Index",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "daf29e13-4a09-4859-acb1-5dc26519aa2a",
+                  "name": "list to cull",
+                  "access_type": "List",
+                  "hint": "",
+                  "connections": [
+                    "9c0ba655-d625-4743-b9fa-e5c7bb8b7d8f"
+                  ]
+                },
+                {
+                  "id": "6291f181-1f65-4954-82e1-33c319ccc90e",
+                  "name": "culling indices",
+                  "access_type": "List",
+                  "hint": "Number",
+                  "connections": [
+                    "eff3c8a0-809a-42a6-858e-0e63b4467483"
+                  ]
+                },
+                {
+                  "id": "34f67b78-2e26-4060-96b8-19437b05e628",
+                  "name": "wrap indices to list range",
+                  "access_type": "Item",
+                  "hint": "Bool",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "f31db268-9bed-4ba5-afd6-de13c244f6cc",
+                  "name": "culled list",
+                  "access_type": "List",
+                  "hint": "",
+                  "connections": [
+                    "f5ed8305-eda2-4c58-81e8-9e4b57be35ca"
+                  ]
+                },
+                {
+                  "id": "4b6b7e1e-447f-4a6d-9030-6ff5e5c08fe3",
+                  "name": "rest list",
+                  "access_type": "List",
+                  "hint": "",
+                  "connections": []
+                }
+              ]
+            },
+            "entity": {
+              "variant": "CullIndex",
+              "data": {
+                "index": 0,
+                "wrap": false
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "0b577970-7b5b-4f7f-8fce-90a62c5bb17c": {
+            "id": "0b577970-7b5b-4f7f-8fce-90a62c5bb17c",
+            "name": "Expression",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "bc317013-a963-4b2b-82d7-4d71114dcbe5",
+                  "name": "IN[0]",
+                  "access_type": "Item",
+                  "hint": "",
+                  "connections": [
+                    "e723f78c-48ef-4562-8d4e-67c1ac506662"
+                  ]
+                },
+                {
+                  "id": "e18db1ed-cbf9-4b72-878c-6e5456784c47",
+                  "name": "IN[1]",
+                  "access_type": "Item",
+                  "hint": "",
+                  "connections": [
+                    "3e1ff447-c302-4be3-9c42-18855f7da2d4"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "eff3c8a0-809a-42a6-858e-0e63b4467483",
+                  "name": "result",
+                  "access_type": "List",
+                  "hint": "",
+                  "connections": [
+                    "6291f181-1f65-4954-82e1-33c319ccc90e"
+                  ]
+                },
+                {
+                  "id": "90597d21-d066-4a71-9874-65bf0a6aafb1",
+                  "name": "log",
+                  "access_type": "List",
+                  "hint": "String",
+                  "connections": []
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Expression",
+              "data": {
+                "expression": "[[1,0],[0,1],[-1,0],[0,-1]].index_of([IN[0], IN[1]])"
+              }
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "3e05dc86-b017-4921-8093-7e4d62755764": {
+            "id": "3e05dc86-b017-4921-8093-7e4d62755764",
+            "name": "Cull Index",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "80ba42be-04c1-4c01-875c-41b52bce8b22",
+                  "name": "list to cull",
+                  "access_type": "List",
+                  "hint": "",
+                  "connections": [
+                    "fee2a17d-4782-4d80-9d03-53a8d58b75ae"
+                  ]
+                },
+                {
+                  "id": "dbde1912-c188-4067-879e-da5fcda5a777",
+                  "name": "culling indices",
+                  "access_type": "List",
+                  "hint": "Number",
+                  "connections": [
+                    "1466b32e-22a3-4d96-af3a-a7fd486cd27a"
+                  ]
+                },
+                {
+                  "id": "7804a430-ab28-43e6-aac4-3997349eebe6",
+                  "name": "wrap indices to list range",
+                  "access_type": "Item",
+                  "hint": "Bool",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "125c5b46-8848-4dc7-b904-7eeb2a1ce88c",
+                  "name": "culled list",
+                  "access_type": "List",
+                  "hint": "",
+                  "connections": [
+                    "94abe3b9-8d46-4aad-9e7e-dfd6275e3bfe"
+                  ]
+                },
+                {
+                  "id": "450555b0-80d3-48a0-ad44-ac7ad2afecaa",
+                  "name": "rest list",
+                  "access_type": "List",
+                  "hint": "",
+                  "connections": []
+                }
+              ]
+            },
+            "entity": {
+              "variant": "CullIndex",
+              "data": {
+                "index": 0,
+                "wrap": false
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "2ffe15d7-7abf-4df1-81ed-02a2830cb082": {
+            "id": "2ffe15d7-7abf-4df1-81ed-02a2830cb082",
+            "name": "Explode",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "43c1d39e-3bd6-48c2-a09c-7b87abc9e3a4",
+                  "name": "curve to explode",
+                  "access_type": "Item",
+                  "hint": "Curve",
+                  "connections": [
+                    "a64ab35c-eb0d-44ab-9780-4595148f403a"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "9c0ba655-d625-4743-b9fa-e5c7bb8b7d8f",
+                  "name": "exploded segments",
+                  "access_type": "List",
+                  "hint": "Curve",
+                  "connections": [
+                    "daf29e13-4a09-4859-acb1-5dc26519aa2a"
+                  ]
+                },
+                {
+                  "id": "fe84eeab-0b8d-4d37-80de-dc18db7ed868",
+                  "name": "verticies of the exploded segments",
+                  "access_type": "List",
+                  "hint": "Point",
+                  "connections": []
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Explode",
+              "data": {}
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "3b768806-7ed8-4d9b-8e52-d73980f7cae4": {
+            "id": "3b768806-7ed8-4d9b-8e52-d73980f7cae4",
+            "name": "Simplify",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "f5ed8305-eda2-4c58-81e8-9e4b57be35ca",
+                  "name": "data tree to simplify",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "f31db268-9bed-4ba5-afd6-de13c244f6cc"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "b13ceca2-49ae-4844-b98c-de7c5ca80243",
+                  "name": "simplified data tree",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "6b3f73f6-3bb6-47b1-9814-34aa9da39e55"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "SimplifyTree",
+              "data": {}
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "14978356-3319-4c6d-aa86-0937ea1f1bf1": {
+            "id": "14978356-3319-4c6d-aa86-0937ea1f1bf1",
+            "name": "Merge",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "01b32c02-dab5-44d3-8b27-2a27d00238d6",
+                  "name": "0th target",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "98326a95-c6f3-4f6e-a6c3-fe0fc4565395"
+                  ]
+                },
+                {
+                  "id": "6b3f73f6-3bb6-47b1-9814-34aa9da39e55",
+                  "name": "1th target",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "b13ceca2-49ae-4844-b98c-de7c5ca80243"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "0b8f3894-a3d8-4ee3-8a10-c132fbd68f78",
+                  "name": "merged output",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "9031e658-718e-4f6b-8062-e1363cdf8bc3"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Merge",
+              "data": {}
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "c26313ae-1af0-4e80-92de-91094d630a13": {
+            "id": "c26313ae-1af0-4e80-92de-91094d630a13",
+            "name": "DeBrep",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "b4fcb8bd-846c-4f88-a355-deb762353005",
+                  "name": "brep to deconstruct",
+                  "access_type": "Item",
+                  "hint": "Brep | Box",
+                  "connections": [
+                    "b1ce2e22-ecbd-4564-9d60-be71a628f71d"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "ad85e05d-0476-4615-ab22-2d3d7bba62e0",
+                  "name": "faces of brep",
+                  "access_type": "List",
+                  "hint": "Surface",
+                  "connections": []
+                },
+                {
+                  "id": "54d106d7-7afc-41bb-9e7d-c458d34607f4",
+                  "name": "edges of brep",
+                  "access_type": "List",
+                  "hint": "Curve",
+                  "connections": []
+                },
+                {
+                  "id": "b2332620-9cad-4fc4-8441-b779822fea12",
+                  "name": "vertices of brep",
+                  "access_type": "List",
+                  "hint": "Point",
+                  "connections": [
+                    "fc2c765a-65d7-43ec-999d-fe86b1005b5f"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "DeconstructBrep",
+              "data": {}
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "4fcf0259-dd2d-4b4c-a271-aeeed6a0ac54": {
+            "id": "4fcf0259-dd2d-4b4c-a271-aeeed6a0ac54",
+            "name": "BBox",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "d0b8ae8a-5bfe-42b3-a49b-8c41335d5fca",
+                  "name": "geometry to contain",
+                  "access_type": "Item",
+                  "hint": "Point | Curve | Surface | Brep | Mesh | Box",
+                  "connections": [
+                    "e7dd90a8-ff38-4749-80ee-24d781e84740"
+                  ]
+                },
+                {
+                  "id": "3eb6fa9d-f582-418f-b190-21b052c77ea6",
+                  "name": "bounding box orientation plane",
+                  "access_type": "Item",
+                  "hint": "Point | Plane",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "b1ce2e22-ecbd-4564-9d60-be71a628f71d",
+                  "name": "aligned bounding box in world coordinates",
+                  "access_type": "Item",
+                  "hint": "Box",
+                  "connections": [
+                    "b4fcb8bd-846c-4f88-a355-deb762353005"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "BoundingBox",
+              "data": {
+                "orientation_plane": {
+                  "origin": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "normal": [
+                    0,
+                    0,
+                    1
+                  ],
+                  "xAxis": [
+                    1,
+                    0,
+                    0
+                  ],
+                  "yAxis": [
+                    0,
+                    1,
+                    0
+                  ]
+                },
+                "union": false
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "a8c863e7-3ba6-46ba-9f7c-0e4ddc7427e7": {
+            "id": "a8c863e7-3ba6-46ba-9f7c-0e4ddc7427e7",
+            "name": "Amplitude",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "18fe97fb-35cd-4b3a-a7a1-017ea74186be",
+                  "name": "base vector",
+                  "access_type": "Item",
+                  "hint": "Vector | Plane",
+                  "connections": [
+                    "51dd27bf-80c2-444d-b3a6-bfc05d532929"
+                  ]
+                },
+                {
+                  "id": "1b9d1769-2e26-4ac8-9979-93e77934eb1b",
+                  "name": "amplitude factor",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "5bd08d6e-5160-46f1-a5b3-e96ec09ce59e"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "c4442151-3ef7-4112-9c54-c3011ce8e90a",
+                  "name": "resulting vector",
+                  "access_type": "Item",
+                  "hint": "Vector",
+                  "connections": [
+                    "3969424b-9b53-48a2-a522-d44dd96a8247"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Amplitude",
+              "data": {
+                "factor": 1
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "3e0adfbd-0b1f-4479-851b-9ad49f680c42": {
+            "id": "3e0adfbd-0b1f-4479-851b-9ad49f680c42",
+            "name": "Item",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "c7964389-722f-493c-9638-97cef497a95d",
+                  "name": "base list",
+                  "access_type": "List",
+                  "hint": "",
+                  "connections": [
+                    "aa1a97ef-411a-471b-b3f4-e2ab06bc3e8b"
+                  ]
+                },
+                {
+                  "id": "0fb5d0c0-0c21-468b-8ac7-728c9384470e",
+                  "name": "index",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "1466b32e-22a3-4d96-af3a-a7fd486cd27a"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "a6cd2379-9d23-45ea-a0ca-25397cd95aed",
+                  "name": "item at index",
+                  "access_type": "Item",
+                  "hint": "",
+                  "connections": [
+                    "993d0c26-171a-4c18-bc8c-6226acbe8523",
+                    "3f46d05b-d5e3-4669-ba24-edacc4433289"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "ListItem",
+              "data": {
+                "index": 0
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "0e1ae786-1e56-4fd9-a24e-ae619202841c": {
+            "id": "0e1ae786-1e56-4fd9-a24e-ae619202841c",
+            "name": "Extrude",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "993d0c26-171a-4c18-bc8c-6226acbe8523",
+                  "name": "profile surface or curve",
+                  "access_type": "Item",
+                  "hint": "Curve | Surface",
+                  "connections": [
+                    "a6cd2379-9d23-45ea-a0ca-25397cd95aed"
+                  ]
+                },
+                {
+                  "id": "3969424b-9b53-48a2-a522-d44dd96a8247",
+                  "name": "extrusion direction",
+                  "access_type": "Item",
+                  "hint": "Vector",
+                  "connections": [
+                    "c4442151-3ef7-4112-9c54-c3011ce8e90a"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "e7dd90a8-ff38-4749-80ee-24d781e84740",
+                  "name": "extrusion result",
+                  "access_type": "Item",
+                  "hint": "Surface | Brep",
+                  "connections": [
+                    "d0b8ae8a-5bfe-42b3-a49b-8c41335d5fca"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Extrude",
+              "data": {}
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "ece59f6e-5e1e-4f31-813a-718b2af6cfee": {
+            "id": "ece59f6e-5e1e-4f31-813a-718b2af6cfee",
+            "name": "Explode",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "8f6498a8-b59b-4cca-995f-f5b86074202d",
+                  "name": "curve to explode",
+                  "access_type": "Item",
+                  "hint": "Curve",
+                  "connections": [
+                    "6aab8044-127d-468b-8816-b8b70e95721f"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "aa1a97ef-411a-471b-b3f4-e2ab06bc3e8b",
+                  "name": "exploded segments",
+                  "access_type": "List",
+                  "hint": "Curve",
+                  "connections": [
+                    "c7964389-722f-493c-9638-97cef497a95d"
+                  ]
+                },
+                {
+                  "id": "2d6db66c-a25d-454a-8c00-5c7b5bfdf621",
+                  "name": "verticies of the exploded segments",
+                  "access_type": "List",
+                  "hint": "Point",
+                  "connections": []
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Explode",
+              "data": {}
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "f3a29f4a-d601-44ca-b2de-544d84dd1c3a": {
+            "id": "f3a29f4a-d601-44ca-b2de-544d84dd1c3a",
+            "name": "Sub Graph Input",
+            "input": {
+              "parameters": []
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "5bd08d6e-5160-46f1-a5b3-e96ec09ce59e",
+                  "name": "output",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "1b9d1769-2e26-4ac8-9979-93e77934eb1b"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "SubGraphInput",
+              "data": {
+                "index": 2
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "c0cb9f34-a43c-4a92-839f-7639b27fc83f": {
+            "id": "c0cb9f34-a43c-4a92-839f-7639b27fc83f",
+            "name": "VRot",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "3f46d05b-d5e3-4669-ba24-edacc4433289",
+                  "name": "vector to rotate",
+                  "access_type": "Item",
+                  "hint": "Vector | Plane | Curve",
+                  "connections": [
+                    "a6cd2379-9d23-45ea-a0ca-25397cd95aed"
+                  ]
+                },
+                {
+                  "id": "f0b67241-504a-4344-a54a-b01af18bd15c",
+                  "name": "rotation axis",
+                  "access_type": "Item",
+                  "hint": "Vector | Plane | Curve",
+                  "connections": []
+                },
+                {
+                  "id": "ab487d3b-d972-4f00-9a85-34361bce6bf9",
+                  "name": "rotation angle in radians",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "8cda960e-e5e6-44b8-a263-87ac73580c1c"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "0bd03d66-cb83-46cd-aa1d-1ad5f3702377",
+                  "name": "rotated vector",
+                  "access_type": "Item",
+                  "hint": "Vector",
+                  "connections": [
+                    "877450b5-4442-47d0-bf4f-2c1fd0213955"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "RotateVectorAround",
+              "data": {
+                "axis": [
+                  0,
+                  0,
+                  1
+                ],
+                "angle": 0.000008351257781945858
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "f8b77e1a-a2da-4f45-bed5-f55102a3d24b": {
+            "id": "f8b77e1a-a2da-4f45-bed5-f55102a3d24b",
+            "name": "Expression",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "3159e4b3-4a7e-4d20-ae27-664860062649",
+                  "name": "IN[0]",
+                  "access_type": "Item",
+                  "hint": "",
+                  "connections": []
+                },
+                {
+                  "id": "ce92d943-5ea4-4bf0-b074-670f12f837f3",
+                  "name": "IN[1]",
+                  "access_type": "Item",
+                  "hint": "",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "d0038b3a-d4d6-4eb8-b5ea-1ab1bce9085b",
+                  "name": "result",
+                  "access_type": "List",
+                  "hint": "",
+                  "connections": []
+                },
+                {
+                  "id": "8edfda18-1d2d-4de7-8d4a-6f07ab58dba8",
+                  "name": "log",
+                  "access_type": "List",
+                  "hint": "String",
+                  "connections": []
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Expression",
+              "data": {
+                "expression": "IN[0] + IN[1]"
+              }
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "e63bd1d8-2e6f-462e-a2e8-b70eb7766869": {
+            "id": "e63bd1d8-2e6f-462e-a2e8-b70eb7766869",
+            "name": "π",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "f9017ef9-7d39-4f2b-9d70-1c61e004554d",
+                  "name": "factor",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "8cda960e-e5e6-44b8-a263-87ac73580c1c",
+                  "name": "PI multiplied by factor",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "ab487d3b-d972-4f00-9a85-34361bce6bf9"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "PI",
+              "data": {
+                "factor": -0.5
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "8bc09df4-ad38-463a-ac6b-5210a5dba1b2": {
+            "id": "8bc09df4-ad38-463a-ac6b-5210a5dba1b2",
+            "name": "Round",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "f8db2ff4-93df-491a-9a73-eecfcfcd08c2",
+                  "name": "input value",
+                  "access_type": "Item",
+                  "hint": "Number | Matrix | Point | Vector",
+                  "connections": [
+                    "6059186e-68eb-4c03-a453-1e01325eded0"
+                  ]
+                },
+                {
+                  "id": "bad227d2-62f4-4172-af14-828d3db4756c",
+                  "name": "round precision",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "71f1a473-e54f-41f6-bbad-7a0cdeae705e",
+                  "name": "output value",
+                  "access_type": "Item",
+                  "hint": "Number | Matrix | Point | Vector",
+                  "connections": [
+                    "d7c692d4-b778-46de-b5ea-d329480169d6"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Round",
+              "data": {
+                "precision": 0
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "0234fe39-c206-4c3d-830c-58d18f25a484": {
+            "id": "0234fe39-c206-4c3d-830c-58d18f25a484",
+            "name": "Round",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "dbea6d20-c5fe-457d-8395-497c0049044c",
+                  "name": "input value",
+                  "access_type": "Item",
+                  "hint": "Number | Matrix | Point | Vector",
+                  "connections": [
+                    "1a707ed1-32c1-4ace-a4fa-c303649781f3"
+                  ]
+                },
+                {
+                  "id": "c76a72d0-af71-4263-8a09-2a7d38c87f82",
+                  "name": "round precision",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "803e417d-31c1-44e5-ab7a-25c4d142ac3b",
+                  "name": "output value",
+                  "access_type": "Item",
+                  "hint": "Number | Matrix | Point | Vector",
+                  "connections": [
+                    "b296fd0f-b065-469d-8f57-fb34b941f36c"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Round",
+              "data": {
+                "precision": 0
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "00f44e08-c738-4326-bb46-38aa41744356": {
+            "id": "00f44e08-c738-4326-bb46-38aa41744356",
+            "name": "Round",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "79e603bf-e1a3-4bff-a37a-3b76f05e52e9",
+                  "name": "input value",
+                  "access_type": "Item",
+                  "hint": "Number | Matrix | Point | Vector",
+                  "connections": [
+                    "693149ad-f90b-4d55-89ba-a600da1e4baa"
+                  ]
+                },
+                {
+                  "id": "a6f765c1-a970-43d6-8e74-3eec4e93c389",
+                  "name": "round precision",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "035dcb29-dfc1-43e4-836e-05dc93bfb2fd",
+                  "name": "output value",
+                  "access_type": "Item",
+                  "hint": "Number | Matrix | Point | Vector",
+                  "connections": [
+                    "c498a29b-a3ea-405a-97ce-3d323ba26fda"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Round",
+              "data": {
+                "precision": 0
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "e0e8021e-dfc9-4c48-bd42-7eacde7cb5b4": {
+            "id": "e0e8021e-dfc9-4c48-bd42-7eacde7cb5b4",
+            "name": "DeVec",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "877450b5-4442-47d0-bf4f-2c1fd0213955",
+                  "name": "vector to deconstruct",
+                  "access_type": "Item",
+                  "hint": "Point | Vector | Plane",
+                  "connections": [
+                    "0bd03d66-cb83-46cd-aa1d-1ad5f3702377"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "6059186e-68eb-4c03-a453-1e01325eded0",
+                  "name": "x component of a vector",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "f8db2ff4-93df-491a-9a73-eecfcfcd08c2"
+                  ]
+                },
+                {
+                  "id": "1a707ed1-32c1-4ace-a4fa-c303649781f3",
+                  "name": "y component of a vector",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "dbea6d20-c5fe-457d-8395-497c0049044c"
+                  ]
+                },
+                {
+                  "id": "693149ad-f90b-4d55-89ba-a600da1e4baa",
+                  "name": "z component of a vector",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "79e603bf-e1a3-4bff-a37a-3b76f05e52e9"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "DeconstructVector",
+              "data": {}
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "91702f9c-e279-41a6-a72d-2000f42aa0a1": {
+            "id": "91702f9c-e279-41a6-a72d-2000f42aa0a1",
+            "name": "Construct Vector",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "d7c692d4-b778-46de-b5ea-d329480169d6",
+                  "name": "x",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "71f1a473-e54f-41f6-bbad-7a0cdeae705e"
+                  ]
+                },
+                {
+                  "id": "b296fd0f-b065-469d-8f57-fb34b941f36c",
+                  "name": "y",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "803e417d-31c1-44e5-ab7a-25c4d142ac3b"
+                  ]
+                },
+                {
+                  "id": "c498a29b-a3ea-405a-97ce-3d323ba26fda",
+                  "name": "z",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "035dcb29-dfc1-43e4-836e-05dc93bfb2fd"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "51dd27bf-80c2-444d-b3a6-bfc05d532929",
+                  "name": "vector with components",
+                  "access_type": "Item",
+                  "hint": "Vector",
+                  "connections": [
+                    "18fe97fb-35cd-4b3a-a7a1-017ea74186be",
+                    "41ffa29d-f9ad-4c00-9407-795d4b248e50"
+                  ]
+                },
+                {
+                  "id": "b7702dfb-8a26-4c4f-8ab3-d08f06a684e3",
+                  "name": "vector length",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": []
+                }
+              ]
+            },
+            "entity": {
+              "variant": "ConstructVector",
+              "data": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "92d3c3e6-eaec-41d4-b85f-ec560bc621cd": {
+            "id": "92d3c3e6-eaec-41d4-b85f-ec560bc621cd",
+            "name": "Convex Hull 2D",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "fc2c765a-65d7-43ec-999d-fe86b1005b5f",
+                  "name": "points to project",
+                  "access_type": "List",
+                  "hint": "Point",
+                  "connections": [
+                    "b2332620-9cad-4fc4-8441-b779822fea12"
+                  ]
+                },
+                {
+                  "id": "d83740e8-cafe-452d-ac24-77a106066def",
+                  "name": "projection plane",
+                  "access_type": "Item",
+                  "hint": "Vector | Plane",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "a64ab35c-eb0d-44ab-9780-4595148f403a",
+                  "name": "convex hull polyline",
+                  "access_type": "Item",
+                  "hint": "Curve",
+                  "connections": [
+                    "62b81ff0-9135-42db-9029-691c09d7e878",
+                    "43c1d39e-3bd6-48c2-a09c-7b87abc9e3a4"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "ConvexHull2D",
+              "data": {
+                "normal": [
+                  0,
+                  0,
+                  1
+                ]
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "468eac8a-a9d2-498e-acca-c94b704b3fb8": {
+            "id": "468eac8a-a9d2-498e-acca-c94b704b3fb8",
+            "name": "Sub Graph Input",
+            "input": {
+              "parameters": []
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "6aab8044-127d-468b-8816-b8b70e95721f",
+                  "name": "output",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "8f6498a8-b59b-4cca-995f-f5b86074202d",
+                    "b26cd782-3795-4bcf-b006-1e9b6a849c22"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "SubGraphInput",
+              "data": {
+                "index": 0
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "8e8df490-f012-4616-9b8b-0a2b4cb2e538": {
+            "id": "8e8df490-f012-4616-9b8b-0a2b4cb2e538",
+            "name": "Sub Graph Output",
+            "input": {
+              "parameters": [
+                {
+                  "id": "62b81ff0-9135-42db-9029-691c09d7e878",
+                  "name": "input",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "a64ab35c-eb0d-44ab-9780-4595148f403a"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": []
+            },
+            "entity": {
+              "variant": "SubGraphOutput",
+              "data": {
+                "index": 1
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "17edc3d7-c189-48bf-8ab8-52474e4c1efc": {
+            "id": "17edc3d7-c189-48bf-8ab8-52474e4c1efc",
+            "name": "Sub Graph Output",
+            "input": {
+              "parameters": [
+                {
+                  "id": "64d00ae0-b58c-44b0-88e5-5362d7a9989f",
+                  "name": "input",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "0e583982-5894-4a42-a06d-56ae77302a26"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": []
+            },
+            "entity": {
+              "variant": "SubGraphOutput",
+              "data": {
+                "index": 0
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "541254c3-1879-479b-989e-1655a9d8a27e": {
+            "id": "541254c3-1879-479b-989e-1655a9d8a27e",
+            "name": "Sub Graph Input",
+            "input": {
+              "parameters": []
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "1466b32e-22a3-4d96-af3a-a7fd486cd27a",
+                  "name": "output",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "dbde1912-c188-4067-879e-da5fcda5a777",
+                    "0fb5d0c0-0c21-468b-8ac7-728c9384470e"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "SubGraphInput",
+              "data": {
+                "index": 1
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "9883438b-edcb-4366-a617-19b18269c8ba": {
+            "id": "9883438b-edcb-4366-a617-19b18269c8ba",
+            "name": "Simplify",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "41ffa29d-f9ad-4c00-9407-795d4b248e50",
+                  "name": "data tree to simplify",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "51dd27bf-80c2-444d-b3a6-bfc05d532929"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "2b50878c-a279-4a39-8201-26eba365f459",
+                  "name": "simplified data tree",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "7d5007f2-0960-4a63-b0a1-198e7e582bba"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "SimplifyTree",
+              "data": {}
+            },
+            "enabled": true,
+            "visible": true
+          }
+        },
+        "sub_graphs": {}
+      },
+      "instances": [
+        "1e13c50f-f4ba-4010-bb44-774ee3b9b81f",
+        "12c3d43c-8342-467c-b023-eba7df49de5e",
+        "231f9b71-996e-4c43-8041-8465a2013145"
+      ]
+    },
+    "d8963104-a40a-4faf-9762-4dc76607da7d": {
+      "id": "d8963104-a40a-4faf-9762-4dc76607da7d",
+      "graph": {
+        "nodes": {
+          "ab88c97a-5cd2-448f-afd9-7f81eb0b8df7": {
+            "id": "ab88c97a-5cd2-448f-afd9-7f81eb0b8df7",
+            "name": "Rectangle",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "733d2b83-3b8d-4480-a2ce-87a80b7e77f7",
+                  "name": "base plane",
+                  "access_type": "Item",
+                  "hint": "Point | Plane",
+                  "connections": []
+                },
+                {
+                  "id": "a4b55655-5dd7-4b54-a745-904ca5d84c40",
+                  "name": "x domain",
+                  "access_type": "Item",
+                  "hint": "Number | Domain",
+                  "connections": [
+                    "707d11b2-e6b3-47da-87c0-485aef0bb6d8"
+                  ]
+                },
+                {
+                  "id": "1ac42fd2-3c16-44ff-beaf-ec988bbe187a",
+                  "name": "y domain",
+                  "access_type": "Item",
+                  "hint": "Number | Domain",
+                  "connections": [
+                    "63ec06d8-94f5-4eb8-bfc6-e12bf6a96ded"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "9beac256-55ef-4edf-a548-c3e525c730b6",
+                  "name": "rectangle curve",
+                  "access_type": "Item",
+                  "hint": "Curve",
+                  "connections": [
+                    "9dcf0609-40b4-4f9f-a269-6e90aa55f02c"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Rectangle",
+              "data": {
+                "origin": [
+                  0,
+                  0,
+                  0
+                ],
+                "x_domain": {
+                  "min": -0.5,
+                  "max": 0.5
+                },
+                "y_domain": {
+                  "min": -0.5,
+                  "max": 0.5
+                }
+              }
+            },
+            "enabled": true,
+            "visible": false
+          },
+          "b9bafb9c-c00e-4604-bebc-0e3288877307": {
+            "id": "b9bafb9c-c00e-4604-bebc-0e3288877307",
+            "name": "Explode",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "9dcf0609-40b4-4f9f-a269-6e90aa55f02c",
+                  "name": "curve to explode",
+                  "access_type": "Item",
+                  "hint": "Curve",
+                  "connections": [
+                    "9beac256-55ef-4edf-a548-c3e525c730b6"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "b980fbc0-5b91-4c62-9604-12a46aac4966",
+                  "name": "exploded segments",
+                  "access_type": "List",
+                  "hint": "Curve",
+                  "connections": []
+                },
+                {
+                  "id": "7360d733-ba13-4671-927d-f1037707d11d",
+                  "name": "verticies of the exploded segments",
+                  "access_type": "List",
+                  "hint": "Point",
+                  "connections": [
+                    "ef22e2e8-6b37-46d5-a43b-118952c26fb3"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Explode",
+              "data": {}
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "135f168b-6d49-4080-87a1-e75805d82d0e": {
+            "id": "135f168b-6d49-4080-87a1-e75805d82d0e",
+            "name": "Convex Hull 2D",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "ef22e2e8-6b37-46d5-a43b-118952c26fb3",
+                  "name": "points to project",
+                  "access_type": "List",
+                  "hint": "Point",
+                  "connections": [
+                    "7360d733-ba13-4671-927d-f1037707d11d"
+                  ]
+                },
+                {
+                  "id": "1012c30e-29e6-4395-aced-fbf45ba08219",
+                  "name": "projection plane",
+                  "access_type": "Item",
+                  "hint": "Vector | Plane",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "67fc471b-533d-49e1-a0dc-769897889de2",
+                  "name": "convex hull polyline",
+                  "access_type": "Item",
+                  "hint": "Curve",
+                  "connections": [
+                    "61ae120f-0c2f-42c6-b39b-99f66a1e0cb1"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "ConvexHull2D",
+              "data": {
+                "normal": [
+                  0,
+                  0,
+                  1
+                ]
+              }
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "560b4da6-5a5c-4c33-814f-0008370237f8": {
+            "id": "560b4da6-5a5c-4c33-814f-0008370237f8",
+            "name": "Domain",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "3e260284-ba50-4486-85ce-a270895edb01",
+                  "name": "start value of numeric domain",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "8eb808a2-f067-498f-ac24-280ddb3323d0"
+                  ]
+                },
+                {
+                  "id": "3975f946-d07d-4bcf-a4d3-a4284c651336",
+                  "name": "end value of numeric domain",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "0680cdb3-37df-4cb7-bbb1-536a5afb9792"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "707d11b2-e6b3-47da-87c0-485aef0bb6d8",
+                  "name": "numeric domain",
+                  "access_type": "Item",
+                  "hint": "Domain",
+                  "connections": [
+                    "a4b55655-5dd7-4b54-a745-904ca5d84c40"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "ConstructDomain",
+              "data": {
+                "min": 0,
+                "max": 1
+              }
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "9eaf0713-ae27-4583-a799-cbcba966511f": {
+            "id": "9eaf0713-ae27-4583-a799-cbcba966511f",
+            "name": "÷",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "83706f50-b21c-4a75-8411-df5b56b12a8c",
+                  "name": "a",
+                  "access_type": "Item",
+                  "hint": "Number | Complex | Point | Vector",
+                  "connections": [
+                    "a8982275-f96c-41fb-a6ad-e977590d5f8a"
+                  ]
+                },
+                {
+                  "id": "f25032af-b7e3-41f6-94e1-5127f1e0ba52",
+                  "name": "b",
+                  "access_type": "Item",
+                  "hint": "Number | Complex | Point | Vector",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "0680cdb3-37df-4cb7-bbb1-536a5afb9792",
+                  "name": "output",
+                  "access_type": "Item",
+                  "hint": "Number | Complex | Point | Vector",
+                  "connections": [
+                    "3975f946-d07d-4bcf-a4d3-a4284c651336",
+                    "14e1cafb-7338-4bf3-8f8a-40ac9186ae1e"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Divide",
+              "data": {
+                "a": 1,
+                "b": 2
+              }
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "9d22e883-0848-4c4b-aa1f-75a3ebc11a58": {
+            "id": "9d22e883-0848-4c4b-aa1f-75a3ebc11a58",
+            "name": "×",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "14e1cafb-7338-4bf3-8f8a-40ac9186ae1e",
+                  "name": "a",
+                  "access_type": "Item",
+                  "hint": "Number | Complex | Point | Vector",
+                  "connections": [
+                    "0680cdb3-37df-4cb7-bbb1-536a5afb9792"
+                  ]
+                },
+                {
+                  "id": "31b6d75b-4e92-4ae9-9f4e-60f50529915b",
+                  "name": "b",
+                  "access_type": "Item",
+                  "hint": "Number | Complex | Point | Vector",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "8eb808a2-f067-498f-ac24-280ddb3323d0",
+                  "name": "output",
+                  "access_type": "Item",
+                  "hint": "Number | Complex | Point | Vector",
+                  "connections": [
+                    "3e260284-ba50-4486-85ce-a270895edb01"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Multiply",
+              "data": {
+                "a": 1,
+                "b": -1
+              }
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "51ce55a0-19b7-4f4b-8d51-16b37849d790": {
+            "id": "51ce55a0-19b7-4f4b-8d51-16b37849d790",
+            "name": "Domain",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "32719e50-a30c-49d4-802a-c4bd6fe077dc",
+                  "name": "start value of numeric domain",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "c60c3006-c414-4b0b-b44f-c732d9ccc8ab"
+                  ]
+                },
+                {
+                  "id": "ba5bffe1-05dc-40af-a306-0d3e74c3b73c",
+                  "name": "end value of numeric domain",
+                  "access_type": "Item",
+                  "hint": "Number",
+                  "connections": [
+                    "12153b58-8cca-4d02-9372-4af443de4a77"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "63ec06d8-94f5-4eb8-bfc6-e12bf6a96ded",
+                  "name": "numeric domain",
+                  "access_type": "Item",
+                  "hint": "Domain",
+                  "connections": [
+                    "1ac42fd2-3c16-44ff-beaf-ec988bbe187a"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "ConstructDomain",
+              "data": {
+                "min": 0,
+                "max": 1
+              }
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "1a7ae27e-bd11-499c-9b96-bbf6611c9006": {
+            "id": "1a7ae27e-bd11-499c-9b96-bbf6611c9006",
+            "name": "÷",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "cca17869-ee4c-4334-9890-7c0c5bc1e879",
+                  "name": "a",
+                  "access_type": "Item",
+                  "hint": "Number | Complex | Point | Vector",
+                  "connections": [
+                    "fca27497-0384-46ba-b829-ddf65a78a48b"
+                  ]
+                },
+                {
+                  "id": "10090d13-ff9a-4724-acbf-6c4703a6e373",
+                  "name": "b",
+                  "access_type": "Item",
+                  "hint": "Number | Complex | Point | Vector",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "12153b58-8cca-4d02-9372-4af443de4a77",
+                  "name": "output",
+                  "access_type": "Item",
+                  "hint": "Number | Complex | Point | Vector",
+                  "connections": [
+                    "ba5bffe1-05dc-40af-a306-0d3e74c3b73c",
+                    "faca140d-10cf-48d1-8a1d-31dd23c73c3f"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Divide",
+              "data": {
+                "a": 1,
+                "b": 2
+              }
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "1001b06e-b62d-4de3-9a1d-c5b29ab34753": {
+            "id": "1001b06e-b62d-4de3-9a1d-c5b29ab34753",
+            "name": "×",
+            "label": "",
+            "input": {
+              "parameters": [
+                {
+                  "id": "faca140d-10cf-48d1-8a1d-31dd23c73c3f",
+                  "name": "a",
+                  "access_type": "Item",
+                  "hint": "Number | Complex | Point | Vector",
+                  "connections": [
+                    "12153b58-8cca-4d02-9372-4af443de4a77"
+                  ]
+                },
+                {
+                  "id": "9f061f7e-ea3e-40ba-9683-c57c73ff3370",
+                  "name": "b",
+                  "access_type": "Item",
+                  "hint": "Number | Complex | Point | Vector",
+                  "connections": []
+                }
+              ]
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "c60c3006-c414-4b0b-b44f-c732d9ccc8ab",
+                  "name": "output",
+                  "access_type": "Item",
+                  "hint": "Number | Complex | Point | Vector",
+                  "connections": [
+                    "32719e50-a30c-49d4-802a-c4bd6fe077dc"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "Multiply",
+              "data": {
+                "a": 1,
+                "b": -1
+              }
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "f1289d49-9405-421f-990f-f1469d9c101f": {
+            "id": "f1289d49-9405-421f-990f-f1469d9c101f",
+            "name": "Sub Graph Output",
+            "input": {
+              "parameters": [
+                {
+                  "id": "61ae120f-0c2f-42c6-b39b-99f66a1e0cb1",
+                  "name": "input",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "67fc471b-533d-49e1-a0dc-769897889de2"
+                  ]
+                }
+              ]
+            },
+            "output": {
+              "parameters": []
+            },
+            "entity": {
+              "variant": "SubGraphOutput",
+              "data": {
+                "index": 0
+              }
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "204db498-f145-4d6c-bbc1-991772b4866b": {
+            "id": "204db498-f145-4d6c-bbc1-991772b4866b",
+            "name": "Sub Graph Input",
+            "input": {
+              "parameters": []
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "a8982275-f96c-41fb-a6ad-e977590d5f8a",
+                  "name": "output",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "83706f50-b21c-4a75-8411-df5b56b12a8c"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "SubGraphInput",
+              "data": {
+                "index": 0
+              }
+            },
+            "enabled": true,
+            "visible": true
+          },
+          "c2d32242-f042-463f-9ec9-751d0fb4180d": {
+            "id": "c2d32242-f042-463f-9ec9-751d0fb4180d",
+            "name": "Sub Graph Input",
+            "input": {
+              "parameters": []
+            },
+            "output": {
+              "parameters": [
+                {
+                  "id": "fca27497-0384-46ba-b829-ddf65a78a48b",
+                  "name": "output",
+                  "access_type": "Tree",
+                  "hint": "",
+                  "connections": [
+                    "cca17869-ee4c-4334-9890-7c0c5bc1e879"
+                  ]
+                }
+              ]
+            },
+            "entity": {
+              "variant": "SubGraphInput",
+              "data": {
+                "index": 1
+              }
+            },
+            "enabled": true,
+            "visible": true
+          }
+        },
+        "sub_graphs": {}
+      },
+      "instances": [
+        "72f3bb6f-3cb2-40be-8497-714c51dfa6c1"
+      ]
+    }
+  }
+}

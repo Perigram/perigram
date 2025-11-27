@@ -144,7 +144,7 @@ import Divider from 'primevue/divider';
 import init, { Modular } from 'nodi-modular';
 
 // Load the full working graph as base
-const cassetteGraph = await $fetch('/rect_only.json');
+const cassetteGraph = await $fetch('/base_graph.json');
 
 // State
 const modular = ref(null);
