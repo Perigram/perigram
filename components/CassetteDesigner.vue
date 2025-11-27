@@ -235,11 +235,13 @@ const evaluateGraph = async () => {
       
       if (interop?.variant === 'Curve') {
         const { vertices } = interop.data;
-        console.log('Curve vertices:', vertices);
-        const path = verticesToSVGPath(vertices);
         
-        // Store all curves - we'll separate them below
-        individualExtrusions.push({ path, vertices });
+        // Only keep closed curves (more than 2 vertices)
+        if (vertices.length > 2) {
+          console.log('Closed curve vertices:', vertices);
+          const path = verticesToSVGPath(vertices);
+          individualExtrusions.push({ path, vertices, outputId: id.outputId });
+        }
       }
     });
     
