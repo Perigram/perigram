@@ -1,12 +1,9 @@
 <template>
     <div class="project-workspace">
-        <Tabs :value="activeTabIndex" @update:value="onTabChange">
-            <TabList>
-                <Tab v-for="(tab, index) in tabs" :key="tab.key" :value="index">
-                    {{ tab.label }}
-                </Tab>
-            </TabList>
-        </Tabs>
+        <TabView :activeIndex="activeTabIndex" @tab-change="onTabChange">
+            <TabPanel v-for="(tab, index) in tabs" :key="tab.key" :header="tab.label">
+            </TabPanel>
+        </TabView>
         <NuxtPage />
     </div>
 </template>
@@ -15,9 +12,8 @@
     import { ref, computed, watch, onMounted } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { useI18n } from 'vue-i18n'
-    import Tabs from 'primevue/tabs'
-    import TabList from 'primevue/tablist'
-    import Tab from 'primevue/tab'
+    import TabView from 'primevue/tabview'
+    import TabPanel from 'primevue/tabpanel'
 
     definePageMeta({
         layout: 'app',
@@ -67,8 +63,8 @@
         }
     }
 
-    const onTabChange = (index) => {
-        const tab = tabs.value[index]
+    const onTabChange = (event) => {
+        const tab = tabs.value[event.index]
         router.push(tab.to)
     }
 </script>
