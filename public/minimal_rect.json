@@ -138,7 +138,7 @@
         }
       },
       "enabled": true,
-      "visible": false
+      "visible": true
     }
   },
   "sub_graphs": {
