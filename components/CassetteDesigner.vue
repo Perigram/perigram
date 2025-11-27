@@ -60,12 +60,22 @@
     </div>
 
     <!-- SVG Canvas -->
-    <div class="flex-1 border rounded p-4 bg-surface-50">
+    <div class="flex-1 border rounded p-4 bg-surface-50 relative">
+      <div class="absolute top-6 right-6 flex gap-2 z-10">
+        <Button icon="pi pi-plus" @click="zoomIn" size="small" />
+        <Button icon="pi pi-minus" @click="zoomOut" size="small" />
+        <Button icon="pi pi-refresh" @click="resetView" size="small" />
+      </div>
       <svg 
+        ref="svgElement"
         :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`"
-        class="w-full h-full"
+        class="w-full h-full cursor-move"
         @mousemove="handleMouseMove"
+        @mousedown="handleMouseDown"
+        @mouseup="handleMouseUp"
+        @mouseleave="handleMouseUp"
         @click="handleClick"
+        @wheel.prevent="handleWheel"
       >
         <!-- Grid -->
         <defs>
@@ -147,6 +157,12 @@ const extrusionPaths = ref([]);
 const unionPath = ref('');
 const edges = ref([]);
 const viewBox = ref({ x: -400, y: -400, width: 800, height: 800 });
+const baseViewBox = ref({ x: -400, y: -400, width: 800, height: 800 });
+
+// Pan/zoom state
+const svgElement = ref(null);
+const isPanning = ref(false);
+const panStart = ref({ x: 0, y: 0 });
 
 // Initialize nodi3d
 onMounted(async () => {
@@ -268,12 +284,15 @@ const updateViewBox = (vertices) => {
   const minY = Math.min(...ys) - padding;
   const maxY = Math.max(...ys) + padding;
   
-  viewBox.value = {
+  const box = {
     x: minX,
     y: -maxY,
     width: maxX - minX,
     height: maxY - minY
   };
+  
+  viewBox.value = box;
+  baseViewBox.value = { ...box };
 };
 
 // Edge color based on state
@@ -288,8 +307,88 @@ const getEdgeWidth = (idx) => {
   return 2;
 };
 
+// Pan/Zoom controls
+const handleMouseDown = (event) => {
+  if (event.button === 0 && event.shiftKey) {
+    isPanning.value = true;
+    panStart.value = { x: event.clientX, y: event.clientY };
+    event.preventDefault();
+  }
+};
+
+const handleMouseUp = () => {
+  isPanning.value = false;
+};
+
+const handleWheel = (event) => {
+  const delta = event.deltaY > 0 ? 1.1 : 0.9;
+  const box = viewBox.value;
+  
+  const newWidth = box.width * delta;
+  const newHeight = box.height * delta;
+  const dx = (newWidth - box.width) / 2;
+  const dy = (newHeight - box.height) / 2;
+  
+  viewBox.value = {
+    x: box.x - dx,
+    y: box.y - dy,
+    width: newWidth,
+    height: newHeight
+  };
+};
+
+const zoomIn = () => {
+  const box = viewBox.value;
+  const scale = 0.8;
+  const newWidth = box.width * scale;
+  const newHeight = box.height * scale;
+  const dx = (box.width - newWidth) / 2;
+  const dy = (box.height - newHeight) / 2;
+  
+  viewBox.value = {
+    x: box.x + dx,
+    y: box.y + dy,
+    width: newWidth,
+    height: newHeight
+  };
+};
+
+const zoomOut = () => {
+  const box = viewBox.value;
+  const scale = 1.25;
+  const newWidth = box.width * scale;
+  const newHeight = box.height * scale;
+  const dx = (box.width - newWidth) / 2;
+  const dy = (box.height - newHeight) / 2;
+  
+  viewBox.value = {
+    x: box.x + dx,
+    y: box.y + dy,
+    width: newWidth,
+    height: newHeight
+  };
+};
+
+const resetView = () => {
+  viewBox.value = { ...baseViewBox.value };
+};
+
 // Mouse interaction
 const handleMouseMove = (event) => {
+  if (isPanning.value) {
+    const dx = (event.clientX - panStart.value.x) * (viewBox.value.width / svgElement.value.clientWidth);
+    const dy = (event.clientY - panStart.value.y) * (viewBox.value.height / svgElement.value.clientHeight);
+    
+    viewBox.value = {
+      ...viewBox.value,
+      x: viewBox.value.x - dx,
+      y: viewBox.value.y - dy
+    };
+    
+    panStart.value = { x: event.clientX, y: event.clientY };
+    return;
+  }
+  
   const svg = event.currentTarget;
   const pt = svg.createSVGPoint();
   pt.x = event.clientX;
@@ -311,7 +410,7 @@ const handleMouseMove = (event) => {
 };
 
 const handleClick = () => {
-  if (hoveredEdge.value !== null) {
+  if (!isPanning.value && hoveredEdge.value !== null) {
     selectedEdge.value = hoveredEdge.value;
   }
 };
