@@ -142,7 +142,9 @@ import Button from 'primevue/button';
 import InputNumber from 'primevue/inputnumber';
 import Divider from 'primevue/divider';
 import init, { Modular } from 'nodi-modular';
-import cassetteGraph from '~/ref/Cassette.json';
+
+// Load minimal base graph
+const baseGraph = await $fetch('/minimal_rect.json');
 
 // State
 const modular = ref(null);
@@ -171,25 +173,7 @@ onMounted(async () => {
     await init();
     modular.value = Modular.new();
     
-    // Start with base graph stripped down to rectangle only
-    const baseGraph = JSON.parse(JSON.stringify(cassetteGraph.graph));
-    
-    // Keep only rectangle, width, height nodes
-    const nodesToKeep = [
-      '57dd9ad5-6200-467e-b725-26eab3b447da', // width Number
-      'dc38f790-713e-4b81-a9e1-34ad7b3309ac', // height Number  
-      'ef23971b-777c-428f-9fcf-0f112a36bc78'  // Rectangle subgraph
-    ];
-    
-    const cleanNodes = {};
-    nodesToKeep.forEach(id => {
-      if (baseGraph.nodes[id]) {
-        cleanNodes[id] = JSON.parse(JSON.stringify(baseGraph.nodes[id]));
-      }
-    });
-    
-    baseGraph.nodes = cleanNodes;
-    
+    // Load the minimal graph with just rectangle
     modular.value.loadGraph(JSON.stringify(baseGraph));
     await evaluateGraph();
   } catch (error) {
