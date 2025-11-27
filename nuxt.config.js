@@ -75,6 +75,14 @@ export default defineNuxtConfig({
             minify: 'terser',
             chunkSizeWarningLimit: 1000,
         },
+        optimizeDeps: {
+            exclude: ['nodi-modular']
+        },
+        server: {
+            fs: {
+                allow: ['..']
+            }
+        }
     },
 
     site: {
