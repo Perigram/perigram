@@ -125,8 +125,8 @@ export async function generateSvgPreview(file, layerMapping = {}, defaultPen = n
         
         // Helper to convert pen pattern to SVG stroke-dasharray
         const getStrokeDasharray = (pattern) => {
-          if (pattern === 'DASHED') return '5,5';
-          if (pattern === 'DOTTED') return '1,3';
+          if (pattern === 'DASHED') return '55';
+          if (pattern === 'DOTTED') return '13';
           return 'none';
         };
         
@@ -146,7 +146,7 @@ export async function generateSvgPreview(file, layerMapping = {}, defaultPen = n
           try {
             const pen = getPenForLayer(entity.layer);
             const color = pen.stroke?.color || '#000000';
-            const weight = pen.stroke?.weight || 0.5;
+            const weight = pen.stroke?.weight * 10 || 0.5;
             const dasharray = getStrokeDasharray(pen.stroke?.pattern || 'SOLID');
             const strokeAttrs = `stroke="${color}" stroke-width="${weight}" stroke-dasharray="${dasharray}"`;
             

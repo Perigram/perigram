@@ -71,3 +71,19 @@ docker run -d --name nesting-worker --network cutkit-demo_default \
 # Push to registry
 docker push ghcr.io/1suo/nesting-worker:latest
 ```
+
+## Testing workers locally without Docker
+
+```bash
+cd workers/nesting
+
+# Install Python 3.12 venv if not already installed
+sudo apt install python3.12-venv
+sudo python3 -m venv cutkit-demo
+pip install -r requirements.txt
+
+# Activate venv and run test script
+source cutkit-demo/bin/activate
+python3 test_local.py
+```
+
