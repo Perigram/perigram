@@ -144,7 +144,7 @@ import Divider from 'primevue/divider';
 import init, { Modular } from 'nodi-modular';
 
 // Load minimal base graph
-const baseGraph = await $fetch('/rect_with_one_grow.json');
+const baseGraph = await $fetch('/rect_exact_working.json');
 
 // State
 const modular = ref(null);

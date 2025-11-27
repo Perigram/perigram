@@ -183,7 +183,7 @@
             "access_type": "Tree",
             "hint": "",
             "connections": [
-              "2ae532e2-2f5b-4fe8-98d0-819167538cf1"
+              "7dac3081-ebc3-4d2c-b49f-b70292423b9d"
             ]
           },
           {
@@ -283,6 +283,41 @@
       },
       "enabled": true,
       "visible": false
+    },
+    "120cee4f-87cc-44a8-81fe-66c0c0a6825b": {
+      "id": "120cee4f-87cc-44a8-81fe-66c0c0a6825b",
+      "name": "Boundary Surfaces",
+      "label": "",
+      "input": {
+        "parameters": [
+          {
+            "id": "7dac3081-ebc3-4d2c-b49f-b70292423b9d",
+            "name": "boundary curves",
+            "access_type": "List",
+            "hint": "Curve",
+            "connections": [
+              "ac3cdaa9-cbd7-406b-b290-543cfeaf4a1e"
+            ]
+          }
+        ]
+      },
+      "output": {
+        "parameters": [
+          {
+            "id": "7af336db-f997-4b24-9103-1f92cdb64b91",
+            "name": "boundary surfaces",
+            "access_type": "List",
+            "hint": "Surface",
+            "connections": []
+          }
+        ]
+      },
+      "entity": {
+        "variant": "BoundarySurfaces",
+        "data": {}
+      },
+      "enabled": true,
+      "visible": true
     }
   },
   "sub_graphs": {
