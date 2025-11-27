@@ -470,6 +470,7 @@ const rebuildGraph = async () => {
     
     // Add width Number node
     const widthNodeId = 'width-' + Date.now();
+    const widthOutId = widthNodeId + '-out';
     graph.nodes[widthNodeId] = {
       id: widthNodeId,
       name: 'Number',
@@ -482,7 +483,7 @@ const rebuildGraph = async () => {
       },
       output: { 
         parameters: [
-          { id: widthNodeId + '-out', name: 'output value', access_type: 'Item', hint: 'Number', connections: ['rect-in-0'] }
+          { id: widthOutId, name: 'output value', access_type: 'Item', hint: 'Number', connections: ['rect-in-0'] }
         ]
       },
       entity: { variant: 'Number', data: { value: rectWidth.value, integer: true, precision: 10 }},
@@ -492,6 +493,7 @@ const rebuildGraph = async () => {
     
     // Add height Number node
     const heightNodeId = 'height-' + Date.now();
+    const heightOutId = heightNodeId + '-out';
     graph.nodes[heightNodeId] = {
       id: heightNodeId,
       name: 'Number',
@@ -504,7 +506,7 @@ const rebuildGraph = async () => {
       },
       output: { 
         parameters: [
-          { id: heightNodeId + '-out', name: 'output value', access_type: 'Item', hint: 'Number', connections: ['rect-in-1'] }
+          { id: heightOutId, name: 'output value', access_type: 'Item', hint: 'Number', connections: ['rect-in-1'] }
         ]
       },
       entity: { variant: 'Number', data: { value: rectHeight.value, integer: true, precision: 10 }},
@@ -515,14 +517,16 @@ const rebuildGraph = async () => {
     // Add Rectangle subgraph
     const rectNodeId = 'rect-' + Date.now();
     const rectOutId = rectNodeId + '-out-0';
+    const rectInId0 = 'rect-in-0';
+    const rectInId1 = 'rect-in-1';
     graph.nodes[rectNodeId] = {
       id: rectNodeId,
       name: 'Sub Graph',
       label: 'Rectangle!',
       input: { 
         parameters: [
-          { id: 'rect-in-0', name: '0th target', access_type: 'Tree', hint: '', connections: [widthNodeId + '-out'] },
-          { id: 'rect-in-1', name: '1th target', access_type: 'Tree', hint: '', connections: [heightNodeId + '-out'] }
+          { id: rectInId0, name: '0th target', access_type: 'Tree', hint: '', connections: [widthOutId] },
+          { id: rectInId1, name: '1th target', access_type: 'Tree', hint: '', connections: [heightOutId] }
         ]
       },
       output: { 
@@ -534,6 +538,10 @@ const rebuildGraph = async () => {
       enabled: true,
       visible: false
     };
+    
+    // Update output connections to point to inputs
+    graph.nodes[widthNodeId].output.parameters[0].connections = [rectInId0];
+    graph.nodes[heightNodeId].output.parameters[0].connections = [rectInId1];
     
     let prevOutputId = rectOutId;
     
