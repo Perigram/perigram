@@ -1,5 +1,5 @@
 <template>
-    <div class="project-workspace">
+    <div class="">
         <TabView :activeIndex="activeTabIndex" @tab-change="onTabChange">
             <TabPanel v-for="(tab, index) in tabs" :key="tab.key" :header="tab.label">
             </TabPanel>
