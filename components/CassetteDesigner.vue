@@ -460,10 +460,13 @@ const rebuildGraph = async () => {
   if (!modular.value) return;
   
   try {
+    // Deep clone sub_graphs to avoid circular reference issues
+    const subGraphs = JSON.parse(JSON.stringify(cassetteGraph.graph.sub_graphs));
+    
     // Start with clean base: Rectangle subgraph + dimension numbers
     const graph = {
       nodes: {},
-      sub_graphs: cassetteGraph.graph.sub_graphs
+      sub_graphs: subGraphs
     };
     
     // Add width Number node
@@ -472,13 +475,17 @@ const rebuildGraph = async () => {
       id: widthNodeId,
       name: 'Number',
       label: '',
-      input: { parameters: [
-        { id: widthNodeId + '-val', name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
-        { id: widthNodeId + '-int', name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
-      ]},
-      output: { parameters: [
-        { id: widthNodeId + '-out', name: 'output value', access_type: 'Item', hint: 'Number', connections: ['rect-in-0'] }
-      ]},
+      input: { 
+        parameters: [
+          { id: widthNodeId + '-val', name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
+          { id: widthNodeId + '-int', name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
+        ]
+      },
+      output: { 
+        parameters: [
+          { id: widthNodeId + '-out', name: 'output value', access_type: 'Item', hint: 'Number', connections: ['rect-in-0'] }
+        ]
+      },
       entity: { variant: 'Number', data: { value: rectWidth.value, integer: true, precision: 10 }},
       enabled: true,
       visible: true
@@ -490,13 +497,17 @@ const rebuildGraph = async () => {
       id: heightNodeId,
       name: 'Number',
       label: '',
-      input: { parameters: [
-        { id: heightNodeId + '-val', name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
-        { id: heightNodeId + '-int', name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
-      ]},
-      output: { parameters: [
-        { id: heightNodeId + '-out', name: 'output value', access_type: 'Item', hint: 'Number', connections: ['rect-in-1'] }
-      ]},
+      input: { 
+        parameters: [
+          { id: heightNodeId + '-val', name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
+          { id: heightNodeId + '-int', name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
+        ]
+      },
+      output: { 
+        parameters: [
+          { id: heightNodeId + '-out', name: 'output value', access_type: 'Item', hint: 'Number', connections: ['rect-in-1'] }
+        ]
+      },
       entity: { variant: 'Number', data: { value: rectHeight.value, integer: true, precision: 10 }},
       enabled: true,
       visible: true
@@ -504,84 +515,103 @@ const rebuildGraph = async () => {
     
     // Add Rectangle subgraph
     const rectNodeId = 'rect-' + Date.now();
+    const rectOutId = rectNodeId + '-out-0';
     graph.nodes[rectNodeId] = {
       id: rectNodeId,
       name: 'Sub Graph',
       label: 'Rectangle!',
-      input: { parameters: [
-        { id: 'rect-in-0', name: '0th target', access_type: 'Tree', hint: '', connections: [widthNodeId + '-out'] },
-        { id: 'rect-in-1', name: '1th target', access_type: 'Tree', hint: '', connections: [heightNodeId + '-out'] }
-      ]},
-      output: { parameters: [
-        { id: 'rect-out-0', name: '0th output', access_type: 'Tree', hint: '', connections: [] }
-      ]},
+      input: { 
+        parameters: [
+          { id: 'rect-in-0', name: '0th target', access_type: 'Tree', hint: '', connections: [widthNodeId + '-out'] },
+          { id: 'rect-in-1', name: '1th target', access_type: 'Tree', hint: '', connections: [heightNodeId + '-out'] }
+        ]
+      },
+      output: { 
+        parameters: [
+          { id: rectOutId, name: '0th output', access_type: 'Tree', hint: '', connections: [] }
+        ]
+      },
       entity: { variant: 'SubGraph', data: { instance_id: 'd8963104-a40a-4faf-9762-4dc76607da7d' }},
       enabled: true,
       visible: false
     };
     
-    let prevOutputId = 'rect-out-0';
+    let prevOutputId = rectOutId;
     
     // Add extrusion subgraphs
     extrusions.value.forEach((ext, idx) => {
       const extId = 'ext-' + idx + '-' + Date.now();
+      const sliderId = extId + '-slider';
+      const lengthId = extId + '-length';
+      const extInputId0 = extId + '-in-0';
+      const extInputId1 = extId + '-in-1';
+      const extInputId2 = extId + '-in-2';
+      const extOutputId0 = extId + '-out-0';
+      const extOutputId1 = extId + '-out-1';
+      const sliderOutId = sliderId + '-out';
+      const lengthOutId = lengthId + '-out';
       
       // Edge index slider
-      const sliderId = extId + '-slider';
       graph.nodes[sliderId] = {
         id: sliderId,
         name: 'Number Slider',
         label: '',
         input: { parameters: [] },
-        output: { parameters: [
-          { id: sliderId + '-out', name: 'output value', access_type: 'Item', hint: 'Number', connections: [extId + '-in-1'] }
-        ]},
+        output: { 
+          parameters: [
+            { id: sliderOutId, name: 'output value', access_type: 'Item', hint: 'Number', connections: [extInputId1] }
+          ]
+        },
         entity: { variant: 'NumberSlider', data: { domain: { min: 0, max: 10 }, step: 1, value: ext.edge }},
         enabled: true,
         visible: false
       };
       
       // Extrusion length number
-      const lengthId = extId + '-length';
       graph.nodes[lengthId] = {
         id: lengthId,
         name: 'Number',
         label: '',
-        input: { parameters: [
-          { id: lengthId + '-val', name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
-          { id: lengthId + '-int', name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
-        ]},
-        output: { parameters: [
-          { id: lengthId + '-out', name: 'output value', access_type: 'Item', hint: 'Number', connections: [extId + '-in-2'] }
-        ]},
+        input: { 
+          parameters: [
+            { id: lengthId + '-val', name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
+            { id: lengthId + '-int', name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
+          ]
+        },
+        output: { 
+          parameters: [
+            { id: lengthOutId, name: 'output value', access_type: 'Item', hint: 'Number', connections: [extInputId2] }
+          ]
+        },
         entity: { variant: 'Number', data: { value: ext.length, integer: true, precision: 1 }},
         enabled: true,
         visible: false
       };
       
       // Grow Side Face subgraph
-      const newOutputId = extId + '-out-0';
-      const extrusionOutputId = extId + '-out-1';
-      
       graph.nodes[extId] = {
         id: extId,
         name: 'Sub Graph',
         label: 'Grow Side Face',
-        input: { parameters: [
-          { id: extId + '-in-0', name: '0th target', access_type: 'Tree', hint: '', connections: [prevOutputId] },
-          { id: extId + '-in-1', name: '1th target', access_type: 'Tree', hint: '', connections: [sliderId + '-out'] },
-          { id: extId + '-in-2', name: '2th target', access_type: 'Tree', hint: '', connections: [lengthId + '-out'] }
-        ]},
-        output: { parameters: [
-          { id: newOutputId, name: '0th output', access_type: 'Tree', hint: '', connections: [] },
-          { id: extrusionOutputId, name: '1th output', access_type: 'Tree', hint: '', connections: [] }
-        ]},
+        input: { 
+          parameters: [
+            { id: extInputId0, name: '0th target', access_type: 'Tree', hint: '', connections: [prevOutputId] },
+            { id: extInputId1, name: '1th target', access_type: 'Tree', hint: '', connections: [sliderOutId] },
+            { id: extInputId2, name: '2th target', access_type: 'Tree', hint: '', connections: [lengthOutId] }
+          ]
+        },
+        output: { 
+          parameters: [
+            { id: extOutputId0, name: '0th output', access_type: 'Tree', hint: '', connections: [] },
+            { id: extOutputId1, name: '1th output', access_type: 'Tree', hint: '', connections: [] }
+          ]
+        },
         entity: { variant: 'SubGraph', data: { instance_id: '65f3238f-d937-45ce-bbee-494fc860ba3b' }},
         enabled: true,
         visible: true
       };
       
-      prevOutputId = newOutputId;
+      prevOutputId = extOutputId0;
     });
     
     modular.value.loadGraph(JSON.stringify(graph));
