@@ -170,8 +170,28 @@ onMounted(async () => {
   try {
     await init();
     modular.value = Modular.new();
-    // Start with just rectangle, no extrusions
-    await rebuildGraph();
+    
+    // Start with base graph stripped down to rectangle only
+    const baseGraph = JSON.parse(JSON.stringify(cassetteGraph.graph));
+    
+    // Keep only rectangle, width, height nodes
+    const nodesToKeep = [
+      '57dd9ad5-6200-467e-b725-26eab3b447da', // width Number
+      'dc38f790-713e-4b81-a9e1-34ad7b3309ac', // height Number  
+      'ef23971b-777c-428f-9fcf-0f112a36bc78'  // Rectangle subgraph
+    ];
+    
+    const cleanNodes = {};
+    nodesToKeep.forEach(id => {
+      if (baseGraph.nodes[id]) {
+        cleanNodes[id] = JSON.parse(JSON.stringify(baseGraph.nodes[id]));
+      }
+    });
+    
+    baseGraph.nodes = cleanNodes;
+    
+    modular.value.loadGraph(JSON.stringify(baseGraph));
+    await evaluateGraph();
   } catch (error) {
     console.error('Failed to initialize nodi3d:', error);
   }
@@ -454,175 +474,83 @@ const addExtrusion = async () => {
   selectedEdge.value = null;
 };
 
-// Build graph dynamically from scratch
+// Build graph by adding to existing base
 const rebuildGraph = async () => {
   if (!modular.value) return;
   
   try {
-    // Deep clone sub_graphs to avoid circular reference issues
-    const subGraphs = JSON.parse(JSON.stringify(cassetteGraph.graph.sub_graphs));
+    // Start with base graph (rectangle only)
+    const graph = JSON.parse(JSON.stringify(cassetteGraph.graph));
     
-    // Start with clean base: Rectangle subgraph + dimension numbers
-    const graph = {
-      nodes: {},
-      sub_graphs: subGraphs
+    // Keep only rectangle, width, height nodes
+    const baseNodes = {
+      '57dd9ad5-6200-467e-b725-26eab3b447da': graph.nodes['57dd9ad5-6200-467e-b725-26eab3b447da'], // width
+      'dc38f790-713e-4b81-a9e1-34ad7b3309ac': graph.nodes['dc38f790-713e-4b81-a9e1-34ad7b3309ac'], // height
+      'ef23971b-777c-428f-9fcf-0f112a36bc78': graph.nodes['ef23971b-777c-428f-9fcf-0f112a36bc78']  // rectangle
     };
     
-    // Add width Number node
-    const widthNodeId = 'width-' + Date.now();
-    const widthOutId = widthNodeId + '-out';
-    graph.nodes[widthNodeId] = {
-      id: widthNodeId,
-      name: 'Number',
-      label: '',
-      input: { 
-        parameters: [
-          { id: widthNodeId + '-val', name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
-          { id: widthNodeId + '-int', name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
-        ]
-      },
-      output: { 
-        parameters: [
-          { id: widthOutId, name: 'output value', access_type: 'Item', hint: 'Number', connections: ['rect-in-0'] }
-        ]
-      },
-      entity: { variant: 'Number', data: { value: rectWidth.value, integer: true, precision: 10 }},
-      enabled: true,
-      visible: true
-    };
+    graph.nodes = JSON.parse(JSON.stringify(baseNodes));
     
-    // Add height Number node
-    const heightNodeId = 'height-' + Date.now();
-    const heightOutId = heightNodeId + '-out';
-    graph.nodes[heightNodeId] = {
-      id: heightNodeId,
-      name: 'Number',
-      label: '',
-      input: { 
-        parameters: [
-          { id: heightNodeId + '-val', name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
-          { id: heightNodeId + '-int', name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
-        ]
-      },
-      output: { 
-        parameters: [
-          { id: heightOutId, name: 'output value', access_type: 'Item', hint: 'Number', connections: ['rect-in-1'] }
-        ]
-      },
-      entity: { variant: 'Number', data: { value: rectHeight.value, integer: true, precision: 10 }},
-      enabled: true,
-      visible: true
-    };
+    // Update width/height values
+    graph.nodes['57dd9ad5-6200-467e-b725-26eab3b447da'].entity.data.value = rectWidth.value;
+    graph.nodes['dc38f790-713e-4b81-a9e1-34ad7b3309ac'].entity.data.value = rectHeight.value;
     
-    // Add Rectangle subgraph
-    const rectNodeId = 'rect-' + Date.now();
-    const rectOutId = rectNodeId + '-out-0';
-    const rectInId0 = 'rect-in-0';
-    const rectInId1 = 'rect-in-1';
-    graph.nodes[rectNodeId] = {
-      id: rectNodeId,
-      name: 'Sub Graph',
-      label: 'Rectangle!',
-      input: { 
-        parameters: [
-          { id: rectInId0, name: '0th target', access_type: 'Tree', hint: '', connections: [widthOutId] },
-          { id: rectInId1, name: '1th target', access_type: 'Tree', hint: '', connections: [heightOutId] }
-        ]
-      },
-      output: { 
-        parameters: [
-          { id: rectOutId, name: '0th output', access_type: 'Tree', hint: '', connections: [] }
-        ]
-      },
-      entity: { variant: 'SubGraph', data: { instance_id: '72f3bb6f-3cb2-40be-8497-714c51dfa6c1' }},
-      enabled: true,
-      visible: false
-    };
+    let prevOutputParamId = 'e59cfe92-4f38-4ba8-847c-d73e9fb65dd3'; // Rectangle output
     
-    // Update output connections to point to inputs
-    graph.nodes[widthNodeId].output.parameters[0].connections = [rectInId0];
-    graph.nodes[heightNodeId].output.parameters[0].connections = [rectInId1];
-    
-    let prevOutputId = rectOutId;
-    
-    // Add extrusion subgraphs
+    // Add extrusions
     extrusions.value.forEach((ext, idx) => {
-      const extId = 'ext-' + idx + '-' + Date.now();
-      const sliderId = extId + '-slider';
-      const lengthId = extId + '-length';
-      const extInputId0 = extId + '-in-0';
-      const extInputId1 = extId + '-in-1';
-      const extInputId2 = extId + '-in-2';
-      const extOutputId0 = extId + '-out-0';
-      const extOutputId1 = extId + '-out-1';
+      const timestamp = Date.now() + idx;
+      
+      // Copy a Grow Side Face subgraph from reference
+      const refGrowNode = cassetteGraph.graph.nodes['0e8ce44f-fe7a-4ecc-8a34-706542fc6168'];
+      const refSlider = cassetteGraph.graph.nodes['4177ac52-850c-4d0c-940e-e822cc658ac0'];
+      const refNumber = cassetteGraph.graph.nodes['52a92793-711f-4076-b2d3-053c7c9cb425'];
+      
+      const growNodeId = 'grow-' + timestamp;
+      const sliderId = 'slider-' + timestamp;
+      const numberId = 'number-' + timestamp;
+      
+      const growInputId0 = growNodeId + '-in-0';
+      const growInputId1 = growNodeId + '-in-1';
+      const growInputId2 = growNodeId + '-in-2';
+      const growOutputId0 = growNodeId + '-out-0';
+      const growOutputId1 = growNodeId + '-out-1';
       const sliderOutId = sliderId + '-out';
-      const lengthOutId = lengthId + '-out';
+      const numberOutId = numberId + '-out';
       
-      // Edge index slider
-      graph.nodes[sliderId] = {
-        id: sliderId,
-        name: 'Number Slider',
-        label: '',
-        input: { parameters: [] },
-        output: { 
-          parameters: [
-            { id: sliderOutId, name: 'output value', access_type: 'Item', hint: 'Number', connections: [extInputId1] }
-          ]
-        },
-        entity: { variant: 'NumberSlider', data: { domain: { min: 0, max: 10 }, step: 1, value: ext.edge }},
-        enabled: true,
-        visible: false
-      };
+      // Add slider
+      graph.nodes[sliderId] = JSON.parse(JSON.stringify(refSlider));
+      graph.nodes[sliderId].id = sliderId;
+      graph.nodes[sliderId].entity.data.value = ext.edge;
+      graph.nodes[sliderId].output.parameters[0].id = sliderOutId;
+      graph.nodes[sliderId].output.parameters[0].connections = [growInputId1];
       
-      // Extrusion length number
-      graph.nodes[lengthId] = {
-        id: lengthId,
-        name: 'Number',
-        label: '',
-        input: { 
-          parameters: [
-            { id: lengthId + '-val', name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
-            { id: lengthId + '-int', name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
-          ]
-        },
-        output: { 
-          parameters: [
-            { id: lengthOutId, name: 'output value', access_type: 'Item', hint: 'Number', connections: [extInputId2] }
-          ]
-        },
-        entity: { variant: 'Number', data: { value: ext.length, integer: true, precision: 1 }},
-        enabled: true,
-        visible: false
-      };
+      // Add number
+      graph.nodes[numberId] = JSON.parse(JSON.stringify(refNumber));
+      graph.nodes[numberId].id = numberId;
+      graph.nodes[numberId].entity.data.value = ext.length;
+      graph.nodes[numberId].output.parameters[0].id = numberOutId;
+      graph.nodes[numberId].output.parameters[0].connections = [growInputId2];
       
-      // Grow Side Face subgraph
-      graph.nodes[extId] = {
-        id: extId,
-        name: 'Sub Graph',
-        label: 'Grow Side Face',
-        input: { 
-          parameters: [
-            { id: extInputId0, name: '0th target', access_type: 'Tree', hint: '', connections: [prevOutputId] },
-            { id: extInputId1, name: '1th target', access_type: 'Tree', hint: '', connections: [sliderOutId] },
-            { id: extInputId2, name: '2th target', access_type: 'Tree', hint: '', connections: [lengthOutId] }
-          ]
-        },
-        output: { 
-          parameters: [
-            { id: extOutputId0, name: '0th output', access_type: 'Tree', hint: '', connections: [] },
-            { id: extOutputId1, name: '1th output', access_type: 'Tree', hint: '', connections: [] }
-          ]
-        },
-        entity: { variant: 'SubGraph', data: { instance_id: '65f3238f-d937-45ce-bbee-494fc860ba3b' }},
-        enabled: true,
-        visible: true
-      };
+      // Add Grow Side Face
+      graph.nodes[growNodeId] = JSON.parse(JSON.stringify(refGrowNode));
+      graph.nodes[growNodeId].id = growNodeId;
+      graph.nodes[growNodeId].input.parameters[0].id = growInputId0;
+      graph.nodes[growNodeId].input.parameters[0].connections = [prevOutputParamId];
+      graph.nodes[growNodeId].input.parameters[1].id = growInputId1;
+      graph.nodes[growNodeId].input.parameters[1].connections = [sliderOutId];
+      graph.nodes[growNodeId].input.parameters[2].id = growInputId2;
+      graph.nodes[growNodeId].input.parameters[2].connections = [numberOutId];
+      graph.nodes[growNodeId].output.parameters[0].id = growOutputId0;
+      graph.nodes[growNodeId].output.parameters[0].connections = [];
+      graph.nodes[growNodeId].output.parameters[1].id = growOutputId1;
+      graph.nodes[growNodeId].output.parameters[1].connections = [];
       
-      prevOutputId = extOutputId0;
+      prevOutputParamId = growOutputId0;
     });
     
+    console.log('Rebuilt graph:', JSON.stringify(graph, null, 2));
     modular.value.loadGraph(JSON.stringify(graph));
-    console.log('Built graph:', JSON.stringify(graph, null, 2));
     await evaluateGraph();
   } catch (error) {
     console.error('Failed to rebuild graph:', error);
