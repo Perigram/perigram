@@ -169,23 +169,23 @@
             </div>
 
             <!-- Delete buttons overlay (HTML, not SVG) -->
-            <div
-                v-for="(ext, idx) in extrusionShapes"
-                :key="`delete-${idx}`"
-                v-if="ext.centroid && ext.screenCentroid"
-                :style="{
-                    position: 'absolute',
-                    left: ext.screenCentroid.x + 'px',
-                    top: ext.screenCentroid.y + 'px',
-                    transform: 'translate(-50%, -50%)',
-                }"
-                class="pointer-events-auto"
-                @click.stop="removeExtrusion(ext.extrusionIndex)"
-            >
-                <button class="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg cursor-pointer border-2 border-white" title="Delete Extrusion">
-                    <span class="text-lg font-bold">×</span>
-                </button>
-            </div>
+            <template v-for="(ext, idx) in extrusionShapes" :key="`delete-${idx}`">
+                <div
+                    v-if="ext.centroid"
+                    :style="{
+                        position: 'absolute',
+                        left: svgToScreenX(ext.centroid.x) + 'px',
+                        top: svgToScreenY(ext.centroid.y) + 'px',
+                        transform: 'translate(-50%, -50%)',
+                    }"
+                    class="pointer-events-auto"
+                    @click.stop="removeExtrusion(idx)"
+                >
+                    <button class="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg cursor-pointer border-2 border-white" title="Delete Extrusion">
+                        <span class="text-lg font-bold">×</span>
+                    </button>
+                </div>
+            </template>
         </div>
     </div>
 </template>
@@ -624,6 +624,36 @@
         addFaceDialog.value.visible = false
 
         await addExtrusion(edgeIndex, length)
+    }
+
+    // Convert SVG X coordinate to screen X coordinate
+    const svgToScreenX = (svgX) => {
+        if (!svgElement.value) return 0
+        try {
+            const svg = svgElement.value
+            const pt = svg.createSVGPoint()
+            pt.x = svgX
+            pt.y = 0
+            const screenPt = pt.matrixTransform(svg.getScreenCTM())
+            return screenPt.x
+        } catch (e) {
+            return 0
+        }
+    }
+
+    // Convert SVG Y coordinate to screen Y coordinate
+    const svgToScreenY = (svgY) => {
+        if (!svgElement.value) return 0
+        try {
+            const svg = svgElement.value
+            const pt = svg.createSVGPoint()
+            pt.x = 0
+            pt.y = svgY
+            const screenPt = pt.matrixTransform(svg.getScreenCTM())
+            return screenPt.y
+        } catch (e) {
+            return 0
+        }
     }
 
     const addExtrusion = async (edgeIndex, length) => {
