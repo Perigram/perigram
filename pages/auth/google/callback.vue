@@ -31,6 +31,6 @@ onMounted(async () => {
         body: JSON.stringify(request),
     });
 
-    router.push({ path: '/home' })
+    router.push({ path: '/projects' })
 });
 </script>
