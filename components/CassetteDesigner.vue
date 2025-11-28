@@ -426,9 +426,6 @@
             const result = await modular.value.evaluate()
             const { geometryIdentifiers } = result
 
-            console.log('Evaluation - geometry count:', geometryIdentifiers.length)
-            console.log('Extrusions count:', extrusions.value.length)
-
             const allCurves = []
 
             geometryIdentifiers.forEach((id) => {
@@ -442,20 +439,19 @@
                 }
             })
 
-            console.log('Found curves:', allCurves.length)
-
             if (allCurves.length > 0) {
-                // We should have: 1 current polygon + N extrusions
-                // Current polygon is the one from currentPolygonOutputId
-                // But geometryIdentifiers don't map to output IDs directly
-                // So we assume: last curve = current polygon, others = extrusions
+                // Pattern: Rectangle gives 1 curve
+                // Each Grow Face gives 2 curves: extrusion shape (2nd output) + union (1st output)
+                // So: 0 extrusions = 1 curve (rectangle)
+                //     1 extrusion = 2 curves (1 extrusion + 1 union)
+                //     N extrusions = N+1 curves (N extrusions + 1 union)
+                // Last curve is always the current polygon
                 
                 const currentPolygon = allCurves[allCurves.length - 1]
                 currentPolygonPath.value = verticesToSVGPath(currentPolygon.vertices)
                 currentPolygonEdges.value = extractEdges(currentPolygon.vertices)
 
-                // All other curves are individual extrusions (second outputs)
-                // Skip first curve if we have no extrusions (it's the rectangle)
+                // All other curves are individual extrusions
                 extrusionShapes.value = allCurves.slice(0, -1).map((c) => ({
                     path: verticesToSVGPath(c.vertices),
                     centroid: calculateCentroid(c.vertices),
