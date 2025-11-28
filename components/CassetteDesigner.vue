@@ -200,13 +200,9 @@
 
     const cassetteGraph = await $fetch('/Cassette.json')
 
-    // Extract templates from full graph
+    // Subgraph definition IDs
     const RECT_SUBGRAPH_ID = 'd8963104-a40a-4faf-9762-4dc76607da7d'
     const GROW_SUBGRAPH_ID = '65f3238f-d937-45ce-bbee-494fc860ba3b'
-    
-    // Get instance IDs from the subgraphs
-    const RECT_INSTANCE_ID = cassetteGraph.graph.sub_graphs[RECT_SUBGRAPH_ID].instances[0]
-    const GROW_INSTANCE_ID = cassetteGraph.graph.sub_graphs[GROW_SUBGRAPH_ID].instances[0]
 
     const generateUUID = () => {
         return crypto.randomUUID()
@@ -246,6 +242,10 @@
             nodes: {},
             sub_graphs: cassetteGraph.graph.sub_graphs,
         }
+
+        // Reset instances arrays
+        graph.sub_graphs[RECT_SUBGRAPH_ID].instances = []
+        graph.sub_graphs[GROW_SUBGRAPH_ID].instances = []
 
         // Create width number node
         const widthId = generateUUID()
@@ -303,7 +303,10 @@
         }
         rectHeightNodeId.value = heightId
 
-        // Create rectangle subgraph node
+        // Create rectangle subgraph instance
+        const rectInstanceId = generateUUID()
+        graph.sub_graphs[RECT_SUBGRAPH_ID].instances.push(rectInstanceId)
+        
         const rectSubId = generateUUID()
         const rectInput0Id = generateUUID()
         const rectInput1Id = generateUUID()
@@ -344,7 +347,7 @@
             },
             entity: {
                 variant: 'SubGraph',
-                data: { instance_id: RECT_INSTANCE_ID },
+                data: { instance_id: rectInstanceId },
             },
             enabled: true,
             visible: true,
@@ -651,6 +654,10 @@
             visible: true,
         }
 
+        // Create new instance of Grow Side Face subgraph
+        const growInstanceId = generateUUID()
+        currentGraph.value.sub_graphs[GROW_SUBGRAPH_ID].instances.push(growInstanceId)
+
         // Create Grow Side Face subgraph node
         const growNodeId = generateUUID()
         const growInput0Id = generateUUID()
@@ -708,7 +715,7 @@
             },
             entity: {
                 variant: 'SubGraph',
-                data: { instance_id: GROW_INSTANCE_ID },
+                data: { instance_id: growInstanceId },
             },
             enabled: true,
             visible: true,
@@ -736,6 +743,7 @@
             edge: selectedEdge.value,
             length: extrusionLength.value,
             growNodeId,
+            growInstanceId,
             edgeNodeId,
             lengthNodeId,
         })
@@ -751,6 +759,10 @@
         if (!currentGraph.value || !modular.value) return
 
         const ext = extrusions.value[idx]
+
+        // Remove instance from subgraph instances array
+        currentGraph.value.sub_graphs[GROW_SUBGRAPH_ID].instances = 
+            currentGraph.value.sub_graphs[GROW_SUBGRAPH_ID].instances.filter(id => id !== ext.growInstanceId)
 
         // Remove the three nodes
         delete currentGraph.value.nodes[ext.growNodeId]
