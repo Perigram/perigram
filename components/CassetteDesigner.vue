@@ -483,17 +483,21 @@
                     const { vertices } = interop.data
                     if (vertices && vertices.length > 0) {
                         allCurves.push({ vertices, id })
-                        console.log(`Curve[${idx}]: ${vertices.length} vertices`)
+                        console.log(`Curve[${idx}]: ${vertices.length} vertices, id: ${id}`)
                     }
+                } else if (interop) {
+                    console.log(`Geometry[${idx}]: ${interop.variant}, id: ${id}`)
                 }
             })
 
             console.log('Total curves found:', allCurves.length)
+            console.log('Expected extrusions:', extrusions.value.length)
+            console.log('Extrusion output IDs:', extrusions.value.map(e => e.extrusionOutputId))
 
             if (allCurves.length === 0) return
 
             // HEURISTIC: Current polygon (union) should have the most vertices
-            // Individual extrusion rectangles have exactly 4 vertices
+            // Individual extrusion rectangles have exactly 5 vertices (4 corners + closing vertex)
             const sortedByVertices = [...allCurves].sort((a, b) => b.vertices.length - a.vertices.length)
             const currentPolygon = sortedByVertices[0] // Most vertices = union
             
@@ -503,15 +507,16 @@
             currentPolygonPath.value = verticesToSVGPath(currentPolygon.vertices)
             currentPolygonEdges.value = extractEdges(currentPolygon.vertices)
 
-            // ONLY 4-vertex curves are extrusion rectangles (from Grow Face 1th output)
+            // ONLY 5-vertex curves are extrusion rectangles (from Grow Face 1th output)
+            // 5 vertices = 4 corners + 1 closing vertex
             extrusionShapes.value = allCurves
-                .filter(c => c !== currentPolygon && c.vertices.length === 4)
+                .filter(c => c !== currentPolygon && c.vertices.length === 5)
                 .map((c) => ({
                     path: verticesToSVGPath(c.vertices),
                     centroid: calculateCentroid(c.vertices),
                 }))
 
-            console.log('Extrusion shapes (4-vertex rectangles):', extrusionShapes.value.length)
+            console.log('Extrusion shapes (5-vertex rectangles):', extrusionShapes.value.length)
 
             if (baseViewBox.value.width === 1600) {
                 updateViewBox(currentPolygon.vertices)
