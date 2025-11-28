@@ -238,8 +238,11 @@
     
     // Computed: extrusion shapes with screen coordinates (reactive to viewBox changes)
     const extrusionShapesWithScreen = computed(() => {
+        // Reference viewBox to make this reactive to zoom/pan
+        const vb = viewBox.value
+        
         return extrusionShapes.value.map((ext, idx) => {
-            if (!ext.centroid) return { ...ext, screenX: 0, screenY: 0, idx }
+            if (!ext.centroid || !svgElement.value) return { ...ext, screenX: 0, screenY: 0, idx }
             
             return {
                 ...ext,
@@ -388,9 +391,51 @@
         rectSubgraphNodeId.value = rectSubId
         currentPolygonOutputId.value = rectOutputId
 
+        // Create Boundary Surfaces node (converts curve to hatch/surface)
+        const boundaryId = generateUUID()
+        const boundaryInputId = generateUUID()
+        const boundaryOutputId = generateUUID()
+
+        graph.nodes[boundaryId] = {
+            id: boundaryId,
+            name: 'Boundary Surfaces',
+            label: '',
+            input: {
+                parameters: [
+                    {
+                        id: boundaryInputId,
+                        name: 'Geometry',
+                        access_type: 'Item',
+                        hint: 'Curve',
+                        connections: [rectOutputId],
+                    },
+                ],
+            },
+            output: {
+                parameters: [
+                    {
+                        id: boundaryOutputId,
+                        name: 'Geometry',
+                        access_type: 'Item',
+                        hint: 'Curve',
+                        connections: [],
+                    },
+                ],
+            },
+            entity: {
+                variant: 'BoundarySurfaces',
+                data: {},
+            },
+            enabled: true,
+            visible: true,
+        }
+        boundarySurfacesNodeId.value = boundaryId
+
         // Connect width and height to rectangle
         graph.nodes[widthId].output.parameters[0].connections = [rectInput0Id]
         graph.nodes[heightId].output.parameters[0].connections = [rectInput1Id]
+        // Connect rectangle to boundary surfaces
+        graph.nodes[rectSubId].output.parameters[0].connections = [boundaryInputId]
 
         return graph
     }
@@ -631,8 +676,11 @@
 
         // Focus input after dialog appears
         setTimeout(() => {
-            lengthInput.value?.$el?.querySelector('input')?.focus()
-            lengthInput.value?.$el?.querySelector('input')?.select()
+            const input = lengthInput.value?.$el?.querySelector('input')
+            if (input) {
+                input.focus()
+                input.select()
+            }
         }, 50)
     }
 
@@ -805,6 +853,7 @@
         currentGraph.value.nodes[edgeNodeId].output.parameters[0].connections = [growInput1Id]
         currentGraph.value.nodes[lengthNodeId].output.parameters[0].connections = [growInput2Id]
 
+        // Connect previous node output to Grow Face input
         for (const nodeId in currentGraph.value.nodes) {
             const node = currentGraph.value.nodes[nodeId]
             for (const param of node.output.parameters) {
@@ -815,10 +864,29 @@
             }
         }
 
-        // Update current polygon to be the new output
+        // Disconnect Boundary Surfaces from old source and connect to new Grow Face 0th output
+        const boundaryNode = currentGraph.value.nodes[boundarySurfacesNodeId.value]
+        const oldBoundaryConnection = boundaryNode.input.parameters[0].connections[0]
+        
+        // Remove old connection from source node
+        for (const nodeId in currentGraph.value.nodes) {
+            const node = currentGraph.value.nodes[nodeId]
+            if (!node.output) continue
+            for (const param of node.output.parameters) {
+                if (param.id === oldBoundaryConnection) {
+                    param.connections = param.connections.filter(id => id !== boundaryNode.input.parameters[0].id)
+                }
+            }
+        }
+        
+        // Connect Grow Face 0th output to Boundary Surfaces
+        boundaryNode.input.parameters[0].connections = [growOutput0Id]
+        currentGraph.value.nodes[growNodeId].output.parameters[0].connections = [boundaryNode.input.parameters[0].id]
+
+        // Update current polygon to be the new Grow Face 0th output
         currentPolygonOutputId.value = growOutput0Id
 
-        // Store extrusion info
+        // Store extrusion info (including 1th output ID for tracking geometry)
         extrusions.value.push({
             edge: edgeIndex,
             length,
@@ -826,6 +894,7 @@
             growInstanceId,
             edgeNodeId,
             lengthNodeId,
+            extrusionOutputId: growOutput1Id,  // 1th output = individual extrusion rectangle
         })
 
         // Reload graph and evaluate
