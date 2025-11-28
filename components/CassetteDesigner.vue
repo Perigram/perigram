@@ -157,7 +157,7 @@
                         max="3000"
                         step="10"
                         @keyup.enter="confirmAddFace"
-                        @keyup.escape="addFaceDialog.visible = false"
+                        @keyup.escape="closeAddFaceDialog"
                     />
                     <Button
                         @click="confirmAddFace"
@@ -168,18 +168,26 @@
                 </InputGroup>
             </div>
 
+            <!-- Click outside to close dialog -->
+            <div
+                v-if="addFaceDialog.visible"
+                @click="closeAddFaceDialog"
+                class="fixed inset-0 z-40"
+                style="background: transparent;"
+            ></div>
+
             <!-- Delete buttons overlay (HTML, not SVG) -->
-            <template v-for="(ext, idx) in extrusionShapes" :key="`delete-${idx}`">
+            <template v-for="ext in extrusionShapesWithScreen" :key="`delete-${ext.idx}`">
                 <div
                     v-if="ext.centroid"
                     :style="{
                         position: 'absolute',
-                        left: svgToScreenX(ext.centroid.x) + 'px',
-                        top: svgToScreenY(ext.centroid.y) + 'px',
+                        left: ext.screenX + 'px',
+                        top: ext.screenY + 'px',
                         transform: 'translate(-50%, -50%)',
                     }"
                     class="pointer-events-auto"
-                    @click.stop="removeExtrusion(idx)"
+                    @click.stop="removeExtrusion(ext.idx)"
                 >
                     <button class="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg cursor-pointer border-2 border-white" title="Delete Extrusion">
                         <span class="text-lg font-bold">×</span>
@@ -191,7 +199,7 @@
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref, onMounted, computed } from 'vue'
     import Button from 'primevue/button'
     import InputNumber from 'primevue/inputnumber'
     import Divider from 'primevue/divider'
@@ -227,6 +235,20 @@
     const extrusionShapes = ref([])
     const currentPolygonPath = ref('')
     const currentPolygonEdges = ref([])
+    
+    // Computed: extrusion shapes with screen coordinates (reactive to viewBox changes)
+    const extrusionShapesWithScreen = computed(() => {
+        return extrusionShapes.value.map((ext, idx) => {
+            if (!ext.centroid) return { ...ext, screenX: 0, screenY: 0, idx }
+            
+            return {
+                ...ext,
+                screenX: svgToScreenX(ext.centroid.x),
+                screenY: svgToScreenY(ext.centroid.y),
+                idx
+            }
+        })
+    })
     
     // Add face dialog
     const addFaceDialog = ref({
@@ -426,8 +448,7 @@
             if (allCurves.length === 0) return
 
             // HEURISTIC: Current polygon (union) should have the most vertices
-            // because it's the combination of rectangle + all extrusions
-            // Individual extrusion rectangles have only 4 vertices
+            // Individual extrusion rectangles have exactly 4 vertices
             const sortedByVertices = [...allCurves].sort((a, b) => b.vertices.length - a.vertices.length)
             const currentPolygon = sortedByVertices[0] // Most vertices = union
             
@@ -437,15 +458,15 @@
             currentPolygonPath.value = verticesToSVGPath(currentPolygon.vertices)
             currentPolygonEdges.value = extractEdges(currentPolygon.vertices)
 
-            // All other curves are extrusion shapes
+            // ONLY 4-vertex curves are extrusion rectangles (from Grow Face 1th output)
             extrusionShapes.value = allCurves
-                .filter(c => c !== currentPolygon)
+                .filter(c => c !== currentPolygon && c.vertices.length === 4)
                 .map((c) => ({
                     path: verticesToSVGPath(c.vertices),
                     centroid: calculateCentroid(c.vertices),
                 }))
 
-            console.log('Extrusion shapes:', extrusionShapes.value.length)
+            console.log('Extrusion shapes (4-vertex rectangles):', extrusionShapes.value.length)
 
             if (baseViewBox.value.width === 1600) {
                 updateViewBox(currentPolygon.vertices)
