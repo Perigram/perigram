@@ -69,13 +69,13 @@
                         fill="rgba(34, 197, 94, 0.2)"
                         stroke="#22c55e"
                         stroke-width="1.5"
+                        style="pointer-events: none"
                     />
                     <!-- Delete button at centroid -->
                     <g
                         v-if="ext.centroid"
                         @click.stop="removeExtrusion(idx)"
                         class="cursor-pointer"
-                        style="pointer-events: all"
                     >
                         <circle
                             :cx="ext.centroid.x"
@@ -113,6 +113,7 @@
                     fill="none"
                     stroke="#3b82f6"
                     stroke-width="2"
+                    style="pointer-events: none"
                 />
 
                 <!-- Add face buttons on each edge -->
@@ -123,8 +124,8 @@
                         :y1="edge.y1"
                         :x2="edge.x2"
                         :y2="edge.y2"
-                        :stroke="hoveredEdge === idx ? '#f59e0b' : 'transparent'"
-                        stroke-width="10"
+                        stroke="transparent"
+                        stroke-width="15"
                         stroke-linecap="round"
                         class="cursor-pointer"
                         @mouseenter="hoveredEdge = idx"
@@ -136,39 +137,38 @@
                         v-if="hoveredEdge === idx"
                         @click.stop="showAddFaceDialog(idx, edge)"
                         class="cursor-pointer"
-                        style="pointer-events: all"
                     >
                         <circle
                             :cx="edge.midX"
                             :cy="edge.midY"
-                            r="15"
-                            fill="rgba(59, 130, 246, 0.9)"
+                            r="12"
+                            fill="rgba(59, 130, 246, 0.95)"
                             stroke="white"
                             stroke-width="2"
                         />
                         <line
                             :x1="edge.midX"
-                            :y1="edge.midY - 8"
+                            :y1="edge.midY - 6"
                             :x2="edge.midX"
-                            :y2="edge.midY + 8"
+                            :y2="edge.midY + 6"
                             stroke="white"
-                            stroke-width="2.5"
+                            stroke-width="2"
                             stroke-linecap="round"
                         />
                         <line
-                            :x1="edge.midX - 8"
+                            :x1="edge.midX - 6"
                             :y1="edge.midY"
-                            :x2="edge.midX + 8"
+                            :x2="edge.midX + 6"
                             :y2="edge.midY"
                             stroke="white"
-                            stroke-width="2.5"
+                            stroke-width="2"
                             stroke-linecap="round"
                         />
                     </g>
                 </g>
             </svg>
 
-            <!-- Add face dialog - outside SVG for fixed positioning -->
+            <!-- Add face dialog - minimal, outside SVG -->
             <div
                 v-if="addFaceDialog.visible"
                 :style="{
@@ -177,36 +177,35 @@
                     top: addFaceDialog.screenY + 'px',
                     transform: 'translate(-50%, -50%)',
                 }"
-                class="bg-white border-2 border-blue-500 rounded-lg shadow-lg p-3 z-50"
+                class="bg-white rounded shadow-xl p-2 z-50 border border-gray-300"
                 @click.stop
             >
-                <div class="flex flex-col gap-2" style="width: 200px">
-                    <label class="text-xs font-semibold">Extrusion Length (mm)</label>
+                <div class="flex items-center gap-2">
                     <input
                         ref="lengthInput"
                         type="number"
                         v-model.number="addFaceDialog.length"
-                        class="border rounded px-2 py-1 text-sm"
+                        class="border rounded px-2 py-1 text-sm w-20"
                         min="10"
                         max="800"
                         step="10"
                         @keyup.enter="confirmAddFace"
                         @keyup.escape="addFaceDialog.visible = false"
                     />
-                    <div class="flex gap-2">
-                        <button
-                            @click="confirmAddFace"
-                            class="flex-1 bg-blue-500 text-white text-sm px-3 py-1 rounded hover:bg-blue-600 font-medium"
-                        >
-                            Add Face
-                        </button>
-                        <button
-                            @click="addFaceDialog.visible = false"
-                            class="flex-1 bg-gray-300 text-gray-700 text-sm px-3 py-1 rounded hover:bg-gray-400"
-                        >
-                            Cancel
-                        </button>
-                    </div>
+                    <button
+                        @click="confirmAddFace"
+                        class="bg-blue-500 text-white text-sm px-2 py-1 rounded hover:bg-blue-600"
+                        title="Add Face"
+                    >
+                        ✓
+                    </button>
+                    <button
+                        @click="addFaceDialog.visible = false"
+                        class="bg-gray-300 text-gray-700 text-sm px-2 py-1 rounded hover:bg-gray-400"
+                        title="Cancel"
+                    >
+                        ✕
+                    </button>
                 </div>
             </div>
         </div>
@@ -426,11 +425,10 @@
             const result = await modular.value.evaluate()
             const { geometryIdentifiers } = result
 
+            // Get all curve geometries
             const allCurves = []
-
             geometryIdentifiers.forEach((id) => {
                 const interop = modular.value.findGeometryInteropById(id)
-
                 if (interop?.variant === 'Curve') {
                     const { vertices } = interop.data
                     if (vertices && vertices.length > 0) {
@@ -439,27 +437,37 @@
                 }
             })
 
-            if (allCurves.length > 0) {
-                // Pattern: Rectangle gives 1 curve
-                // Each Grow Face gives 2 curves: extrusion shape (2nd output) + union (1st output)
-                // So: 0 extrusions = 1 curve (rectangle)
-                //     1 extrusion = 2 curves (1 extrusion + 1 union)
-                //     N extrusions = N+1 curves (N extrusions + 1 union)
-                // Last curve is always the current polygon
-                
-                const currentPolygon = allCurves[allCurves.length - 1]
-                currentPolygonPath.value = verticesToSVGPath(currentPolygon.vertices)
-                currentPolygonEdges.value = extractEdges(currentPolygon.vertices)
+            if (allCurves.length === 0) return
 
-                // All other curves are individual extrusions
-                extrusionShapes.value = allCurves.slice(0, -1).map((c) => ({
-                    path: verticesToSVGPath(c.vertices),
-                    centroid: calculateCentroid(c.vertices),
-                }))
+            // CRITICAL: We need the geometry from currentPolygonOutputId
+            // But geometryIdentifiers don't directly map to output parameter IDs
+            // The evaluation order should be: Rectangle, then each Grow Face in order
+            // Each Grow Face outputs 2 geometries: extrusion (2nd) then union (1st)
+            
+            // Expected pattern:
+            // - 0 extrusions: 1 curve (rectangle)
+            // - 1 extrusion: 2 curves (extrusion#1, union#1)
+            // - 2 extrusions: 3 curves (extrusion#1, union#1/extrusion#2, union#2)
+            // Wait no... each Grow Face outputs 2, so:
+            // - 1 extrusion: 2 curves (extrusion, union)
+            // - 2 extrusions: 4 curves (ext1, ext2, union1?, union2?) - NO
+            
+            // Actually: Rectangle outputs curve. Grow Face takes curve, outputs 2 curves.
+            // So evaluation gives us all OUTPUT geometries in order of execution.
+            // We want: LAST curve = current polygon from last Grow Face (or Rectangle if no extrusions)
+            
+            const currentPolygon = allCurves[allCurves.length - 1]
+            currentPolygonPath.value = verticesToSVGPath(currentPolygon.vertices)
+            currentPolygonEdges.value = extractEdges(currentPolygon.vertices)
 
-                if (baseViewBox.value.width === 1600) {
-                    updateViewBox(currentPolygon.vertices)
-                }
+            // Extrusion shapes: all curves except the last one
+            extrusionShapes.value = allCurves.slice(0, -1).map((c) => ({
+                path: verticesToSVGPath(c.vertices),
+                centroid: calculateCentroid(c.vertices),
+            }))
+
+            if (baseViewBox.value.width === 1600) {
+                updateViewBox(currentPolygon.vertices)
             }
         } catch (error) {
             console.error('Failed to evaluate graph:', error)
@@ -795,6 +803,73 @@
         const ext = extrusions.value[idx]
         if (!ext) return
 
+        const growNode = currentGraph.value.nodes[ext.growNodeId]
+        if (!growNode) return
+
+        // Get the input connection (what feeds into this Grow Face)
+        const inputParamId = growNode.input.parameters[0].connections[0] // Connection from previous node
+        
+        // Get the output connection (what this Grow Face feeds into)
+        const outputParamId = growNode.output.parameters[0].id
+        
+        // Find what node is connected to our output
+        let nextNodeInputParamId = null
+        for (const nodeId in currentGraph.value.nodes) {
+            const node = currentGraph.value.nodes[nodeId]
+            if (!node || node.id === ext.growNodeId) continue
+            
+            for (const param of node.input.parameters) {
+                if (param.connections.includes(outputParamId)) {
+                    nextNodeInputParamId = param.id
+                    break
+                }
+            }
+            if (nextNodeInputParamId) break
+        }
+
+        // Reconnect: previous node → next node (bypassing this one)
+        if (nextNodeInputParamId && inputParamId) {
+            // Find the node that has inputParamId as output
+            for (const nodeId in currentGraph.value.nodes) {
+                const node = currentGraph.value.nodes[nodeId]
+                if (!node) continue
+                
+                for (const param of node.output.parameters) {
+                    if (param.id === inputParamId) {
+                        // Remove connection to our node
+                        param.connections = param.connections.filter(id => id !== growNode.input.parameters[0].id)
+                        // Add connection to next node
+                        param.connections.push(nextNodeInputParamId)
+                    }
+                }
+            }
+            
+            // Update next node's input connections
+            for (const nodeId in currentGraph.value.nodes) {
+                const node = currentGraph.value.nodes[nodeId]
+                if (!node) continue
+                
+                for (const param of node.input.parameters) {
+                    if (param.id === nextNodeInputParamId) {
+                        param.connections = param.connections.filter(id => id !== outputParamId)
+                        param.connections.push(inputParamId)
+                    }
+                }
+            }
+        }
+
+        // Update currentPolygonOutputId if we're removing the last extrusion
+        if (idx === extrusions.value.length - 1) {
+            if (idx === 0) {
+                // Was the only extrusion, go back to rectangle
+                currentPolygonOutputId.value = currentGraph.value.nodes[rectSubgraphNodeId.value].output.parameters[0].id
+            } else {
+                // Go back to previous extrusion's first output
+                const prevExt = extrusions.value[idx - 1]
+                currentPolygonOutputId.value = currentGraph.value.nodes[prevExt.growNodeId].output.parameters[0].id
+            }
+        }
+
         // Remove instance from subgraph instances array
         currentGraph.value.sub_graphs[GROW_SUBGRAPH_ID].instances = 
             currentGraph.value.sub_graphs[GROW_SUBGRAPH_ID].instances.filter(id => id !== ext.growInstanceId)
@@ -804,49 +879,10 @@
         delete currentGraph.value.nodes[ext.edgeNodeId]
         delete currentGraph.value.nodes[ext.lengthNodeId]
 
-        // Update current polygon output ID
-        if (idx === extrusions.value.length - 1) {
-            // Removing last extrusion
-            if (idx === 0) {
-                // Was the only extrusion, go back to rectangle
-                currentPolygonOutputId.value = currentGraph.value.nodes[rectSubgraphNodeId.value].output.parameters[0].id
-            } else {
-                // Go back to previous extrusion's output
-                const prevExt = extrusions.value[idx - 1]
-                currentPolygonOutputId.value = currentGraph.value.nodes[prevExt.growNodeId].output.parameters[0].id
-            }
-        }
-
-        // Clean up connections - check if node exists before accessing it
-        for (const nodeId in currentGraph.value.nodes) {
-            const node = currentGraph.value.nodes[nodeId]
-            if (!node) continue
-            
-            if (node.output?.parameters) {
-                for (const param of node.output.parameters) {
-                    param.connections = param.connections.filter((connId) => {
-                        // Keep connection if target node still exists
-                        return !Object.values(currentGraph.value.nodes).some(n => 
-                            n?.input?.parameters?.some(p => p.id === connId && n.id === ext.growNodeId)
-                        )
-                    })
-                }
-            }
-            
-            if (node.input?.parameters) {
-                for (const param of node.input.parameters) {
-                    param.connections = param.connections.filter((connId) => {
-                        // Keep connection if source node still exists
-                        return !Object.values(currentGraph.value.nodes).some(n => 
-                            n?.output?.parameters?.some(p => p.id === connId && n.id === ext.growNodeId)
-                        )
-                    })
-                }
-            }
-        }
-
+        // Remove from extrusions array
         extrusions.value.splice(idx, 1)
 
+        // Reload and re-evaluate
         modular.value.loadGraph(JSON.stringify(currentGraph.value))
         await evaluate()
     }
