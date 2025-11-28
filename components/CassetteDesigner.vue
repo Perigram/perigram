@@ -425,46 +425,49 @@
             const result = await modular.value.evaluate()
             const { geometryIdentifiers } = result
 
+            console.log('=== EVALUATION DEBUG ===')
+            console.log('Total geometries:', geometryIdentifiers.length)
+            console.log('Extrusions count:', extrusions.value.length)
+            console.log('Current polygon output ID:', currentPolygonOutputId.value)
+
             // Get all curve geometries
             const allCurves = []
-            geometryIdentifiers.forEach((id) => {
+            geometryIdentifiers.forEach((id, idx) => {
                 const interop = modular.value.findGeometryInteropById(id)
+                console.log(`Geometry[${idx}]:`, id, interop?.variant)
                 if (interop?.variant === 'Curve') {
                     const { vertices } = interop.data
+                    console.log(`  -> Curve with ${vertices.length} vertices`)
                     if (vertices && vertices.length > 0) {
                         allCurves.push({ vertices, id })
                     }
                 }
             })
 
+            console.log('Total curves found:', allCurves.length)
+
             if (allCurves.length === 0) return
 
-            // CRITICAL: We need the geometry from currentPolygonOutputId
-            // But geometryIdentifiers don't directly map to output parameter IDs
-            // The evaluation order should be: Rectangle, then each Grow Face in order
-            // Each Grow Face outputs 2 geometries: extrusion (2nd) then union (1st)
+            // Try different approaches: check if order is reversed or mixed
+            console.log('First curve vertices:', allCurves[0].vertices.length)
+            console.log('Last curve vertices:', allCurves[allCurves.length - 1].vertices.length)
             
-            // Expected pattern:
-            // - 0 extrusions: 1 curve (rectangle)
-            // - 1 extrusion: 2 curves (extrusion#1, union#1)
-            // - 2 extrusions: 3 curves (extrusion#1, union#1/extrusion#2, union#2)
-            // Wait no... each Grow Face outputs 2, so:
-            // - 1 extrusion: 2 curves (extrusion, union)
-            // - 2 extrusions: 4 curves (ext1, ext2, union1?, union2?) - NO
-            
-            // Actually: Rectangle outputs curve. Grow Face takes curve, outputs 2 curves.
-            // So evaluation gives us all OUTPUT geometries in order of execution.
-            // We want: LAST curve = current polygon from last Grow Face (or Rectangle if no extrusions)
-            
-            const currentPolygon = allCurves[allCurves.length - 1]
+            // THE GEOMETRY ORDER MUST BE WRONG
+            // Let's use FIRST curve as current polygon (opposite of what we thought)
+            const currentPolygon = allCurves[0]  // TRY FIRST INSTEAD OF LAST
             currentPolygonPath.value = verticesToSVGPath(currentPolygon.vertices)
             currentPolygonEdges.value = extractEdges(currentPolygon.vertices)
 
-            // Extrusion shapes: all curves except the last one
-            extrusionShapes.value = allCurves.slice(0, -1).map((c) => ({
+            console.log('Using curve[0] as current polygon')
+            console.log('Current polygon edges:', currentPolygonEdges.value.length)
+
+            // Extrusion shapes: all OTHER curves
+            extrusionShapes.value = allCurves.slice(1).map((c) => ({
                 path: verticesToSVGPath(c.vertices),
                 centroid: calculateCentroid(c.vertices),
             }))
+
+            console.log('Extrusion shapes:', extrusionShapes.value.length)
 
             if (baseViewBox.value.width === 1600) {
                 updateViewBox(currentPolygon.vertices)
