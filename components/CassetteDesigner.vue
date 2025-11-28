@@ -200,34 +200,29 @@
 
     const cassetteGraph = await $fetch('/Cassette.json')
 
-    // Node IDs from Cassette.json
-    const NODE_IDS = {
-        rectWidth: '57dd9ad5-6200-467e-b725-26eab3b447da',
-        rectHeight: 'dc38f790-713e-4b81-a9e1-34ad7b3309ac',
-        rectSubgraph: 'ef23971b-777c-428f-9fcf-0f112a36bc78',
-        extrusion1: '0e8ce44f-fe7a-4ecc-8a34-706542fc6168',
-        extrusion1Edge: '4177ac52-850c-4d0c-940e-e822cc658ac0',
-        extrusion1Length: '52a92793-711f-4076-b2d3-053c7c9cb425',
-        extrusion2: '1e5fd0a3-afbb-42a9-874f-578d84d10b66',
-        extrusion2Edge: '1f894a78-7b14-4e0b-a539-8f5769807ef6',
-        extrusion2Length: 'e60e4aa7-60da-48c3-a7f6-bac5ee89fc2e',
-        extrusion3: '70cc047c-ef81-4a16-af66-a285f1d6e872',
-        extrusion3Edge: '66fb4a11-13a5-4c42-a900-730280373a1d',
-        extrusion3Length: '62218188-13e3-421b-9a83-de5ab8f9e599',
+    // Extract templates from full graph
+    const RECT_SUBGRAPH_ID = 'd8963104-a40a-4faf-9762-4dc76607da7d'
+    const GROW_SUBGRAPH_ID = '65f3238f-d937-45ce-bbee-494fc860ba3b'
+
+    const generateUUID = () => {
+        return crypto.randomUUID()
     }
 
     // State
     const modular = ref(null)
+    const currentGraph = ref(null)
     const rectWidth = ref(500)
     const rectHeight = ref(600)
     const extrusionLength = ref(400)
-    const extrusions = ref([
-        { edge: 3, length: 400 },
-        { edge: 2, length: 600 },
-        { edge: 1, length: 200 },
-    ])
+    const extrusions = ref([])
     const hoveredEdge = ref(null)
     const selectedEdge = ref(null)
+
+    // Track node IDs
+    const rectWidthNodeId = ref(null)
+    const rectHeightNodeId = ref(null)
+    const rectSubgraphNodeId = ref(null)
+    const currentPolygonOutputId = ref(null)
 
     // Geometry data from nodi3d
     const extrusionPaths = ref([])
@@ -241,13 +236,133 @@
     const isPanning = ref(false)
     const panStart = ref({ x: 0, y: 0 })
 
+    // Create initial graph with just rectangle
+    const createInitialGraph = () => {
+        const graph = {
+            nodes: {},
+            sub_graphs: cassetteGraph.graph.sub_graphs,
+        }
+
+        // Create width number node
+        const widthId = generateUUID()
+        const widthOutputId = generateUUID()
+        graph.nodes[widthId] = {
+            id: widthId,
+            name: 'Number',
+            label: 'Width',
+            input: { parameters: [] },
+            output: {
+                parameters: [
+                    {
+                        id: widthOutputId,
+                        name: 'output value',
+                        access_type: 'Item',
+                        hint: 'Number',
+                        connections: [],
+                    },
+                ],
+            },
+            entity: {
+                variant: 'Number',
+                data: { value: rectWidth.value, integer: true, precision: 10 },
+            },
+            enabled: true,
+            visible: true,
+        }
+        rectWidthNodeId.value = widthId
+
+        // Create height number node
+        const heightId = generateUUID()
+        const heightOutputId = generateUUID()
+        graph.nodes[heightId] = {
+            id: heightId,
+            name: 'Number',
+            label: 'Height',
+            input: { parameters: [] },
+            output: {
+                parameters: [
+                    {
+                        id: heightOutputId,
+                        name: 'output value',
+                        access_type: 'Item',
+                        hint: 'Number',
+                        connections: [],
+                    },
+                ],
+            },
+            entity: {
+                variant: 'Number',
+                data: { value: rectHeight.value, integer: true, precision: 10 },
+            },
+            enabled: true,
+            visible: true,
+        }
+        rectHeightNodeId.value = heightId
+
+        // Create rectangle subgraph node
+        const rectSubId = generateUUID()
+        const rectInput0Id = generateUUID()
+        const rectInput1Id = generateUUID()
+        const rectOutputId = generateUUID()
+        
+        graph.nodes[rectSubId] = {
+            id: rectSubId,
+            name: 'Sub Graph',
+            label: 'Rectangle!',
+            input: {
+                parameters: [
+                    {
+                        id: rectInput0Id,
+                        name: '0th target',
+                        access_type: 'Tree',
+                        hint: '',
+                        connections: [widthOutputId],
+                    },
+                    {
+                        id: rectInput1Id,
+                        name: '1th target',
+                        access_type: 'Tree',
+                        hint: '',
+                        connections: [heightOutputId],
+                    },
+                ],
+            },
+            output: {
+                parameters: [
+                    {
+                        id: rectOutputId,
+                        name: '0th output',
+                        access_type: 'Tree',
+                        hint: '',
+                        connections: [],
+                    },
+                ],
+            },
+            entity: {
+                variant: 'SubGraph',
+                data: { instance_id: RECT_SUBGRAPH_ID },
+            },
+            enabled: true,
+            visible: true,
+        }
+        rectSubgraphNodeId.value = rectSubId
+        currentPolygonOutputId.value = rectOutputId
+
+        // Connect width and height to rectangle
+        graph.nodes[widthId].output.parameters[0].connections = [rectInput0Id]
+        graph.nodes[heightId].output.parameters[0].connections = [rectInput1Id]
+
+        return graph
+    }
+
     // Initialize nodi3d
     onMounted(async () => {
         try {
             await init()
             modular.value = Modular.new()
 
-            modular.value.loadGraph(JSON.stringify(cassetteGraph.graph))
+            currentGraph.value = createInitialGraph()
+            modular.value.loadGraph(JSON.stringify(currentGraph.value))
             await evaluate()
         } catch (error) {
             console.error('Failed to initialize nodi3d:', error)
@@ -255,18 +370,12 @@
     })
 
     const updateRectangleDimensions = async () => {
-        if (!modular.value) return
+        if (!modular.value || !currentGraph.value) return
 
-        modular.value.changeNodeProperty(NODE_IDS.rectWidth, {
-            name: 'value',
-            value: { type: 'Number', content: rectWidth.value },
-        })
+        currentGraph.value.nodes[rectWidthNodeId.value].entity.data.value = rectWidth.value
+        currentGraph.value.nodes[rectHeightNodeId.value].entity.data.value = rectHeight.value
 
-        modular.value.changeNodeProperty(NODE_IDS.rectHeight, {
-            name: 'value',
-            value: { type: 'Number', content: rectHeight.value },
-        })
-
+        modular.value.loadGraph(JSON.stringify(currentGraph.value))
         await evaluate()
     }
 
@@ -482,46 +591,204 @@
     }
 
     const addExtrusion = async () => {
-        if (selectedEdge.value === null || !modular.value) return
+        if (selectedEdge.value === null || !modular.value || !currentGraph.value) return
 
-        extrusions.value.push({
-            edge: selectedEdge.value,
-            length: extrusionLength.value,
-        })
+        // Create edge index number node
+        const edgeNodeId = generateUUID()
+        const edgeOutputId = generateUUID()
+        currentGraph.value.nodes[edgeNodeId] = {
+            id: edgeNodeId,
+            name: 'Number',
+            label: `Edge ${selectedEdge.value}`,
+            input: { parameters: [] },
+            output: {
+                parameters: [
+                    {
+                        id: edgeOutputId,
+                        name: 'output value',
+                        access_type: 'Item',
+                        hint: 'Number',
+                        connections: [],
+                    },
+                ],
+            },
+            entity: {
+                variant: 'Number',
+                data: { value: selectedEdge.value, integer: true, precision: 1 },
+            },
+            enabled: true,
+            visible: true,
+        }
 
-        await updateExtrusionNodes()
-        selectedEdge.value = null
-    }
+        // Create length number node
+        const lengthNodeId = generateUUID()
+        const lengthOutputId = generateUUID()
+        currentGraph.value.nodes[lengthNodeId] = {
+            id: lengthNodeId,
+            name: 'Number',
+            label: `Length ${extrusionLength.value}`,
+            input: { parameters: [] },
+            output: {
+                parameters: [
+                    {
+                        id: lengthOutputId,
+                        name: 'output value',
+                        access_type: 'Item',
+                        hint: 'Number',
+                        connections: [],
+                    },
+                ],
+            },
+            entity: {
+                variant: 'Number',
+                data: { value: extrusionLength.value, integer: true, precision: 1 },
+            },
+            enabled: true,
+            visible: true,
+        }
 
-    const updateExtrusionNodes = async () => {
-        if (!modular.value) return
+        // Create Grow Side Face subgraph node
+        const growNodeId = generateUUID()
+        const growInput0Id = generateUUID()
+        const growInput1Id = generateUUID()
+        const growInput2Id = generateUUID()
+        const growOutput0Id = generateUUID()
+        const growOutput1Id = generateUUID()
 
-        const extrusionNodes = [
-            { edge: NODE_IDS.extrusion1Edge, length: NODE_IDS.extrusion1Length },
-            { edge: NODE_IDS.extrusion2Edge, length: NODE_IDS.extrusion2Length },
-            { edge: NODE_IDS.extrusion3Edge, length: NODE_IDS.extrusion3Length },
-        ]
+        currentGraph.value.nodes[growNodeId] = {
+            id: growNodeId,
+            name: 'Sub Graph',
+            label: 'Grow Side Face',
+            input: {
+                parameters: [
+                    {
+                        id: growInput0Id,
+                        name: '0th target',
+                        access_type: 'Tree',
+                        hint: '',
+                        connections: [currentPolygonOutputId.value],
+                    },
+                    {
+                        id: growInput1Id,
+                        name: '1th target',
+                        access_type: 'Tree',
+                        hint: '',
+                        connections: [edgeOutputId],
+                    },
+                    {
+                        id: growInput2Id,
+                        name: '2th target',
+                        access_type: 'Tree',
+                        hint: '',
+                        connections: [lengthOutputId],
+                    },
+                ],
+            },
+            output: {
+                parameters: [
+                    {
+                        id: growOutput0Id,
+                        name: '0th output',
+                        access_type: 'Tree',
+                        hint: '',
+                        connections: [],
+                    },
+                    {
+                        id: growOutput1Id,
+                        name: '1th output',
+                        access_type: 'Tree',
+                        hint: '',
+                        connections: [],
+                    },
+                ],
+            },
+            entity: {
+                variant: 'SubGraph',
+                data: { instance_id: GROW_SUBGRAPH_ID },
+            },
+            enabled: true,
+            visible: true,
+        }
 
-        for (let i = 0; i < 3; i++) {
-            if (i < extrusions.value.length) {
-                const ext = extrusions.value[i]
-                modular.value.changeNodeProperty(extrusionNodes[i].edge, {
-                    name: 'value',
-                    value: { type: 'Number', content: ext.edge },
-                })
-                modular.value.changeNodeProperty(extrusionNodes[i].length, {
-                    name: 'value',
-                    value: { type: 'Number', content: ext.length },
-                })
+        // Update connections - find node with current polygon output and add connection
+        currentGraph.value.nodes[edgeNodeId].output.parameters[0].connections = [growInput1Id]
+        currentGraph.value.nodes[lengthNodeId].output.parameters[0].connections = [growInput2Id]
+
+        for (const nodeId in currentGraph.value.nodes) {
+            const node = currentGraph.value.nodes[nodeId]
+            for (const param of node.output.parameters) {
+                if (param.id === currentPolygonOutputId.value) {
+                    param.connections.push(growInput0Id)
+                    break
+                }
             }
         }
 
+        // Update current polygon to be the new output
+        currentPolygonOutputId.value = growOutput0Id
+
+        // Store extrusion info
+        extrusions.value.push({
+            edge: selectedEdge.value,
+            length: extrusionLength.value,
+            growNodeId,
+            edgeNodeId,
+            lengthNodeId,
+        })
+
+        // Reload graph and evaluate
+        modular.value.loadGraph(JSON.stringify(currentGraph.value))
         await evaluate()
+
+        selectedEdge.value = null
     }
 
     const removeExtrusion = async (idx) => {
+        if (!currentGraph.value || !modular.value) return
+
+        const ext = extrusions.value[idx]
+
+        // Remove the three nodes
+        delete currentGraph.value.nodes[ext.growNodeId]
+        delete currentGraph.value.nodes[ext.edgeNodeId]
+        delete currentGraph.value.nodes[ext.lengthNodeId]
+
+        // Update current polygon output ID
+        if (idx === extrusions.value.length - 1) {
+            // Removing last extrusion
+            if (idx === 0) {
+                // Was the only extrusion, go back to rectangle
+                currentPolygonOutputId.value = currentGraph.value.nodes[rectSubgraphNodeId.value].output.parameters[0].id
+            } else {
+                // Go back to previous extrusion's output
+                const prevExt = extrusions.value[idx - 1]
+                currentPolygonOutputId.value = currentGraph.value.nodes[prevExt.growNodeId].output.parameters[0].id
+            }
+        }
+
+        // Clean up connections
+        for (const nodeId in currentGraph.value.nodes) {
+            const node = currentGraph.value.nodes[nodeId]
+            for (const param of node.output.parameters) {
+                param.connections = param.connections.filter(
+                    (connId) =>
+                        !currentGraph.value.nodes[ext.growNodeId] ||
+                        !currentGraph.value.nodes[ext.growNodeId].input.parameters.some((p) => p.id === connId),
+                )
+            }
+            for (const param of node.input.parameters) {
+                param.connections = param.connections.filter(
+                    (connId) =>
+                        !currentGraph.value.nodes[ext.growNodeId] ||
+                        !currentGraph.value.nodes[ext.growNodeId].output.parameters.some((p) => p.id === connId),
+                )
+            }
+        }
+
         extrusions.value.splice(idx, 1)
-        await updateExtrusionNodes()
+
+        modular.value.loadGraph(JSON.stringify(currentGraph.value))
+        await evaluate()
     }
 
     const reset = async () => {
@@ -533,8 +800,9 @@
         extrusionLength.value = 400
 
         if (modular.value) {
-            modular.value.loadGraph(JSON.stringify(cassetteGraph.graph))
-            await updateRectangleDimensions()
+            currentGraph.value = createInitialGraph()
+            modular.value.loadGraph(JSON.stringify(currentGraph.value))
+            await evaluate()
         }
     }
 </script>

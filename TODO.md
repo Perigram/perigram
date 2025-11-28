@@ -1,33 +1,42 @@
 # CassetteDesigner (new feature)
-[x] COMPLETED - nodi3d working in Vue3 component
+[x] COMPLETED - Dynamic graph manipulation with nodi3d
 
 ## Implementation Details
-- Fixed `/components/CassetteDesigner.vue` to use fresh Cassette.json without base_graph manipulations
+- Implemented proper dynamic graph manipulation in `/components/CassetteDesigner.vue`
+- Starts with only Rectangle subgraph + two Number nodes for dimensions
+- Dynamically adds "Grow Side Face" subgraphs with connections on demand
 - Uses nodi-modular library to evaluate and render geometry
 - Test page available at `/designer-test`
 
 ## Features Implemented
 - ✅ nodi3d integration working in Vue3 component
-- ✅ Load and evaluate Cassette.json graph
-- ✅ Interactive SVG display with edge selection
+- ✅ Dynamic graph node creation and manipulation
+- ✅ Interactive SVG display with edge selection on current polygon
 - ✅ Rectangle dimensions adjustable (width/height)
-- ✅ Up to 3 extrusions supported (limited by pre-existing graph structure)
-- ✅ Visual display of individual extrusions (green) and union outline (blue)
+- ✅ **Unlimited extrusions** supported via dynamic graph manipulation
+- ✅ Visual display of individual extrusions (green) and current polygon (blue)
 - ✅ Edge picking with hover/selection states
 - ✅ Pan/Zoom controls for SVG canvas
-- ✅ Extrusion management (add/remove)
-- ✅ Reset functionality
+- ✅ Extrusion management (add/remove/reset)
+- ✅ Current polygon tracks latest output for edge selection
 
 ## Technical Implementation
-- Uses actual Cassette.json from ref folder (copied to /public)
-- Modifies existing graph nodes rather than rebuilding graph structure
-- Updates Number node properties for edge index and extrusion length
-- Renders curves from nodi3d evaluation as SVG paths
-- Projects 3D geometry to 2D for SVG display
+- Creates initial graph with Rectangle subgraph programmatically
+- On each extrusion: creates 3 new nodes (edge Number, length Number, Grow Side Face subgraph)
+- Properly chains connections: previous output → Grow Face input → new output
+- Tracks `currentPolygonOutputId` to always select edges from latest shape
+- First output of each Grow Face becomes new current polygon
+- Second output renders as individual extrusion rectangle
+- Removes nodes and updates connections when extrusions are deleted
+- Follows NODI3D_GRAPH_GUIDE.md for proper parameter ID connections
 
-## Known Limitations
-- Currently supports max 3 extrusions (graph has 3 pre-existing "Grow Side Face" subgraphs)
-- To support unlimited extrusions would require dynamic graph node creation (complex)
+## How It Works
+1. Start: Rectangle subgraph (2 inputs: width, height) → outputs current polygon
+2. Add extrusion: Create Grow Face node connected to current polygon output
+3. Current polygon updates to Grow Face's first output (union)
+4. Individual extrusion shown from Grow Face's second output
+5. Next extrusion connects to updated current polygon
+6. Chain continues indefinitely
 
 
 
