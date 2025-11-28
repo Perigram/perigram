@@ -203,6 +203,10 @@
     // Extract templates from full graph
     const RECT_SUBGRAPH_ID = 'd8963104-a40a-4faf-9762-4dc76607da7d'
     const GROW_SUBGRAPH_ID = '65f3238f-d937-45ce-bbee-494fc860ba3b'
+    
+    // Get instance IDs from the subgraphs
+    const RECT_INSTANCE_ID = cassetteGraph.graph.sub_graphs[RECT_SUBGRAPH_ID].instances[0]
+    const GROW_INSTANCE_ID = cassetteGraph.graph.sub_graphs[GROW_SUBGRAPH_ID].instances[0]
 
     const generateUUID = () => {
         return crypto.randomUUID()
@@ -340,7 +344,7 @@
             },
             entity: {
                 variant: 'SubGraph',
-                data: { instance_id: RECT_SUBGRAPH_ID },
+                data: { instance_id: RECT_INSTANCE_ID },
             },
             enabled: true,
             visible: true,
@@ -704,7 +708,7 @@
             },
             entity: {
                 variant: 'SubGraph',
-                data: { instance_id: GROW_SUBGRAPH_ID },
+                data: { instance_id: GROW_INSTANCE_ID },
             },
             enabled: true,
             visible: true,
