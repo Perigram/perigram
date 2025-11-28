@@ -4,14 +4,14 @@
       <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">{{ $t('auth.welcome') }}</h1>
       <p class="text-center text-gray-600 mb-6">{{ $t('auth.subtitle') }}</p>
       <div class="space-y-4">
-        <a href="/api/auth/github" class="flex items-center justify-center w-full px-4 py-2 text-white bg-gray-800 rounded-md hover:bg-gray-900">
+        <button @click="loginWithGithub" class="flex items-center justify-center w-full px-4 py-2 text-white bg-gray-800 rounded-md hover:bg-gray-900">
           <img src="/github-logo.svg" alt="GitHub" class="w-6 h-6 mr-2" />
           <span>{{ $t('auth.signInWithGitHub') }}</span>
-        </a>
-        <a href="/api/auth/google" class="flex items-center justify-center w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+        </button>
+        <button @click="loginWithGoogle" class="flex items-center justify-center w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
           <img src="/google-logo.svg" alt="Google" class="w-6 h-6 mr-2" />
           <span>{{ $t('auth.signInWithGoogle') }}</span>
-        </a>
+        </button>
       </div>
     </div>
   </div>
@@ -39,6 +39,16 @@ const { getters } = authStore;
 const router = useRouter();
 
 const isLoggedIn = ref(getters.userIsSet.value);
+
+const loginWithGithub = async () => {
+  const response = await $fetch('/api/auth/github/redirect');
+  window.location.href = response.url;
+};
+
+const loginWithGoogle = async () => {
+  const response = await $fetch('/api/auth/google/redirect');
+  window.location.href = response.url;
+};
 
 onMounted(() => {
   // Try to set user on client side if not already set
