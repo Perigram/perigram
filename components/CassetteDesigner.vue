@@ -428,18 +428,16 @@
             console.log('=== EVALUATION DEBUG ===')
             console.log('Total geometries:', geometryIdentifiers.length)
             console.log('Extrusions count:', extrusions.value.length)
-            console.log('Current polygon output ID:', currentPolygonOutputId.value)
 
             // Get all curve geometries
             const allCurves = []
             geometryIdentifiers.forEach((id, idx) => {
                 const interop = modular.value.findGeometryInteropById(id)
-                console.log(`Geometry[${idx}]:`, id, interop?.variant)
                 if (interop?.variant === 'Curve') {
                     const { vertices } = interop.data
-                    console.log(`  -> Curve with ${vertices.length} vertices`)
                     if (vertices && vertices.length > 0) {
                         allCurves.push({ vertices, id })
+                        console.log(`Curve[${idx}]: ${vertices.length} vertices`)
                     }
                 }
             })
@@ -448,24 +446,25 @@
 
             if (allCurves.length === 0) return
 
-            // Try different approaches: check if order is reversed or mixed
-            console.log('First curve vertices:', allCurves[0].vertices.length)
-            console.log('Last curve vertices:', allCurves[allCurves.length - 1].vertices.length)
+            // HEURISTIC: Current polygon (union) should have the most vertices
+            // because it's the combination of rectangle + all extrusions
+            // Individual extrusion rectangles have only 4 vertices
+            const sortedByVertices = [...allCurves].sort((a, b) => b.vertices.length - a.vertices.length)
+            const currentPolygon = sortedByVertices[0] // Most vertices = union
             
-            // THE GEOMETRY ORDER MUST BE WRONG
-            // Let's use FIRST curve as current polygon (opposite of what we thought)
-            const currentPolygon = allCurves[0]  // TRY FIRST INSTEAD OF LAST
+            console.log('Largest curve has', currentPolygon.vertices.length, 'vertices')
+            console.log('Using it as current polygon')
+            
             currentPolygonPath.value = verticesToSVGPath(currentPolygon.vertices)
             currentPolygonEdges.value = extractEdges(currentPolygon.vertices)
 
-            console.log('Using curve[0] as current polygon')
-            console.log('Current polygon edges:', currentPolygonEdges.value.length)
-
-            // Extrusion shapes: all OTHER curves
-            extrusionShapes.value = allCurves.slice(1).map((c) => ({
-                path: verticesToSVGPath(c.vertices),
-                centroid: calculateCentroid(c.vertices),
-            }))
+            // All other curves are extrusion shapes
+            extrusionShapes.value = allCurves
+                .filter(c => c !== currentPolygon)
+                .map((c) => ({
+                    path: verticesToSVGPath(c.vertices),
+                    centroid: calculateCentroid(c.vertices),
+                }))
 
             console.log('Extrusion shapes:', extrusionShapes.value.length)
 
