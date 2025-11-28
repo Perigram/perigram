@@ -50,12 +50,17 @@ const loginWithGoogle = async () => {
   window.location.href = response.url;
 };
 
-onMounted(() => {
+onMounted(async () => {
   // Try to set user on client side if not already set
   if (!isLoggedIn.value) {
-    authStore.actions.setUser().then(() => {
-      isLoggedIn.value = getters.userIsSet.value;
-    });
+    await authStore.actions.setUser();
+    isLoggedIn.value = getters.userIsSet.value;
+  }
+
+  // If already logged in, redirect immediately
+  if (isLoggedIn.value) {
+    router.push('/projects');
+    return;
   }
 
   watch(getters.userIsSet, (isSet) => {
@@ -63,6 +68,6 @@ onMounted(() => {
     if (isSet) {
       router.push('/projects');
     }
-  }, { immediate: true });
+  });
 });
 </script>
