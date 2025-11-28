@@ -80,25 +80,28 @@
                         <circle
                             :cx="ext.centroid.x"
                             :cy="ext.centroid.y"
-                            r="12"
+                            r="15"
                             fill="rgba(239, 68, 68, 0.9)"
-                            class="hover:fill-red-600"
-                        />
-                        <line
-                            :x1="ext.centroid.x - 6"
-                            :y1="ext.centroid.y - 6"
-                            :x2="ext.centroid.x + 6"
-                            :y2="ext.centroid.y + 6"
                             stroke="white"
                             stroke-width="2"
                         />
                         <line
-                            :x1="ext.centroid.x + 6"
-                            :y1="ext.centroid.y - 6"
-                            :x2="ext.centroid.x - 6"
-                            :y2="ext.centroid.y + 6"
+                            :x1="ext.centroid.x - 8"
+                            :y1="ext.centroid.y - 8"
+                            :x2="ext.centroid.x + 8"
+                            :y2="ext.centroid.y + 8"
                             stroke="white"
-                            stroke-width="2"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                        />
+                        <line
+                            :x1="ext.centroid.x + 8"
+                            :y1="ext.centroid.y - 8"
+                            :x2="ext.centroid.x - 8"
+                            :y2="ext.centroid.y + 8"
+                            stroke="white"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
                         />
                     </g>
                 </g>
@@ -121,61 +124,91 @@
                         :x2="edge.x2"
                         :y2="edge.y2"
                         :stroke="hoveredEdge === idx ? '#f59e0b' : 'transparent'"
-                        stroke-width="8"
+                        stroke-width="10"
                         stroke-linecap="round"
                         class="cursor-pointer"
                         @mouseenter="hoveredEdge = idx"
                         @mouseleave="hoveredEdge = null"
                         @click.stop="showAddFaceDialog(idx, edge)"
                     />
-                </g>
-
-                <!-- Add face dialog -->
-                <g v-if="addFaceDialog.visible">
-                    <rect
-                        :x="addFaceDialog.x - 80"
-                        :y="addFaceDialog.y - 50"
-                        width="160"
-                        height="100"
-                        fill="white"
-                        stroke="#3b82f6"
-                        stroke-width="2"
-                        rx="8"
-                    />
-                    <foreignObject
-                        :x="addFaceDialog.x - 75"
-                        :y="addFaceDialog.y - 45"
-                        width="150"
-                        height="90"
+                    <!-- Add button at edge midpoint -->
+                    <g
+                        v-if="hoveredEdge === idx"
+                        @click.stop="showAddFaceDialog(idx, edge)"
+                        class="cursor-pointer"
+                        style="pointer-events: all"
                     >
-                        <div xmlns="http://www.w3.org/1999/xhtml" class="flex flex-col gap-2 p-2">
-                            <label class="text-xs font-semibold">Extrusion Length</label>
-                            <input
-                                type="number"
-                                v-model="addFaceDialog.length"
-                                class="border rounded px-2 py-1 text-sm"
-                                min="10"
-                                max="800"
-                                step="10"
-                            />
-                            <div class="flex gap-1">
-                                <button
-                                    @click="confirmAddFace"
-                                    class="flex-1 bg-blue-500 text-white text-xs px-2 py-1 rounded hover:bg-blue-600"
-                                >
-                                    Add
-                                </button>
-                                <button
-                                    @click="addFaceDialog.visible = false"
-                                    class="flex-1 bg-gray-300 text-gray-700 text-xs px-2 py-1 rounded hover:bg-gray-400"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </foreignObject>
+                        <circle
+                            :cx="edge.midX"
+                            :cy="edge.midY"
+                            r="15"
+                            fill="rgba(59, 130, 246, 0.9)"
+                            stroke="white"
+                            stroke-width="2"
+                        />
+                        <line
+                            :x1="edge.midX"
+                            :y1="edge.midY - 8"
+                            :x2="edge.midX"
+                            :y2="edge.midY + 8"
+                            stroke="white"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                        />
+                        <line
+                            :x1="edge.midX - 8"
+                            :y1="edge.midY"
+                            :x2="edge.midX + 8"
+                            :y2="edge.midY"
+                            stroke="white"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                        />
+                    </g>
                 </g>
             </svg>
+
+            <!-- Add face dialog - outside SVG for fixed positioning -->
+            <div
+                v-if="addFaceDialog.visible"
+                :style="{
+                    position: 'absolute',
+                    left: addFaceDialog.screenX + 'px',
+                    top: addFaceDialog.screenY + 'px',
+                    transform: 'translate(-50%, -50%)',
+                }"
+                class="bg-white border-2 border-blue-500 rounded-lg shadow-lg p-3 z-50"
+                @click.stop
+            >
+                <div class="flex flex-col gap-2" style="width: 200px">
+                    <label class="text-xs font-semibold">Extrusion Length (mm)</label>
+                    <input
+                        ref="lengthInput"
+                        type="number"
+                        v-model.number="addFaceDialog.length"
+                        class="border rounded px-2 py-1 text-sm"
+                        min="10"
+                        max="800"
+                        step="10"
+                        @keyup.enter="confirmAddFace"
+                        @keyup.escape="addFaceDialog.visible = false"
+                    />
+                    <div class="flex gap-2">
+                        <button
+                            @click="confirmAddFace"
+                            class="flex-1 bg-blue-500 text-white text-sm px-3 py-1 rounded hover:bg-blue-600 font-medium"
+                        >
+                            Add Face
+                        </button>
+                        <button
+                            @click="addFaceDialog.visible = false"
+                            class="flex-1 bg-gray-300 text-gray-700 text-sm px-3 py-1 rounded hover:bg-gray-400"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -220,11 +253,13 @@
     // Add face dialog
     const addFaceDialog = ref({
         visible: false,
-        x: 0,
-        y: 0,
+        screenX: 0,
+        screenY: 0,
         edgeIndex: null,
         length: 200,
     })
+    
+    const lengthInput = ref(null)
     
     const viewBox = ref({ x: -800, y: -800, width: 1600, height: 1600 })
     const baseViewBox = ref({ x: -800, y: -800, width: 1600, height: 1600 })
@@ -391,6 +426,9 @@
             const result = await modular.value.evaluate()
             const { geometryIdentifiers } = result
 
+            console.log('Evaluation - geometry count:', geometryIdentifiers.length)
+            console.log('Extrusions count:', extrusions.value.length)
+
             const allCurves = []
 
             geometryIdentifiers.forEach((id) => {
@@ -404,13 +442,20 @@
                 }
             })
 
+            console.log('Found curves:', allCurves.length)
+
             if (allCurves.length > 0) {
-                // The last curve is always the current polygon (latest first output)
+                // We should have: 1 current polygon + N extrusions
+                // Current polygon is the one from currentPolygonOutputId
+                // But geometryIdentifiers don't map to output IDs directly
+                // So we assume: last curve = current polygon, others = extrusions
+                
                 const currentPolygon = allCurves[allCurves.length - 1]
                 currentPolygonPath.value = verticesToSVGPath(currentPolygon.vertices)
                 currentPolygonEdges.value = extractEdges(currentPolygon.vertices)
 
                 // All other curves are individual extrusions (second outputs)
+                // Skip first curve if we have no extrusions (it's the rectangle)
                 extrusionShapes.value = allCurves.slice(0, -1).map((c) => ({
                     path: verticesToSVGPath(c.vertices),
                     centroid: calculateCentroid(c.vertices),
@@ -561,13 +606,28 @@
     }
 
     const showAddFaceDialog = (edgeIndex, edge) => {
+        if (!svgElement.value) return
+
+        // Convert SVG coordinates to screen coordinates
+        const svg = svgElement.value
+        const pt = svg.createSVGPoint()
+        pt.x = edge.midX
+        pt.y = edge.midY
+        const screenPt = pt.matrixTransform(svg.getScreenCTM())
+
         addFaceDialog.value = {
             visible: true,
-            x: edge.midX,
-            y: edge.midY,
+            screenX: screenPt.x,
+            screenY: screenPt.y,
             edgeIndex,
             length: 200,
         }
+
+        // Focus input after dialog appears
+        setTimeout(() => {
+            lengthInput.value?.focus()
+            lengthInput.value?.select()
+        }, 50)
     }
 
     const confirmAddFace = async () => {
@@ -734,9 +794,10 @@
     }
 
     const removeExtrusion = async (idx) => {
-        if (!currentGraph.value || !modular.value) return
+        if (!currentGraph.value || !modular.value || idx < 0 || idx >= extrusions.value.length) return
 
         const ext = extrusions.value[idx]
+        if (!ext) return
 
         // Remove instance from subgraph instances array
         currentGraph.value.sub_graphs[GROW_SUBGRAPH_ID].instances = 
@@ -760,22 +821,31 @@
             }
         }
 
-        // Clean up connections
+        // Clean up connections - check if node exists before accessing it
         for (const nodeId in currentGraph.value.nodes) {
             const node = currentGraph.value.nodes[nodeId]
-            for (const param of node.output.parameters) {
-                param.connections = param.connections.filter(
-                    (connId) =>
-                        !currentGraph.value.nodes[ext.growNodeId] ||
-                        !currentGraph.value.nodes[ext.growNodeId].input.parameters.some((p) => p.id === connId),
-                )
+            if (!node) continue
+            
+            if (node.output?.parameters) {
+                for (const param of node.output.parameters) {
+                    param.connections = param.connections.filter((connId) => {
+                        // Keep connection if target node still exists
+                        return !Object.values(currentGraph.value.nodes).some(n => 
+                            n?.input?.parameters?.some(p => p.id === connId && n.id === ext.growNodeId)
+                        )
+                    })
+                }
             }
-            for (const param of node.input.parameters) {
-                param.connections = param.connections.filter(
-                    (connId) =>
-                        !currentGraph.value.nodes[ext.growNodeId] ||
-                        !currentGraph.value.nodes[ext.growNodeId].output.parameters.some((p) => p.id === connId),
-                )
+            
+            if (node.input?.parameters) {
+                for (const param of node.input.parameters) {
+                    param.connections = param.connections.filter((connId) => {
+                        // Keep connection if source node still exists
+                        return !Object.values(currentGraph.value.nodes).some(n => 
+                            n?.output?.parameters?.some(p => p.id === connId && n.id === ext.growNodeId)
+                        )
+                    })
+                }
             }
         }
 
