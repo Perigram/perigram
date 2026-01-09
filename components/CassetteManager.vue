@@ -63,8 +63,9 @@
       header="Cassette Designer"
       :style="{ width: '90vw', height: '90vh' }"
       :modal="true"
+      @hide="editingCassette = null"
     >
-      <CassetteDesigner />
+      <CassetteDesigner :initial-data="editingCassette" />
     </Dialog>
   </div>
 </template>
@@ -121,7 +122,7 @@ const handleDelete = async (cassetteId) => {
 
 const editCassette = (cassette) => {
   editingCassette.value = cassette;
-  showEditDialog.value = true;
+  showDesignerDialog.value = true;
 };
 
 const handleUploaded = async () => {

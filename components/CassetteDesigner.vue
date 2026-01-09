@@ -2,6 +2,16 @@
     <div class="h-full flex overflow-hidden bg-[var(--background-primary)] text-[var(--label-primary)]">
         <!-- Left Sidebar: Parameters & History -->
         <div class="w-80 border-r border-[var(--separator-primary)] flex flex-col bg-[var(--fill-tertiary)]">
+            <div class="p-4 border-b border-[var(--separator-primary)]">
+                <Inplace :closable="true">
+                    <template #display>
+                        <span class="text-sm font-bold truncate block">{{ cassetteName }}</span>
+                    </template>
+                    <template #content>
+                        <InputText v-model="cassetteName" size="small" class="w-full" autofocus />
+                    </template>
+                </Inplace>
+            </div>
             <div class="p-4 border-b border-[var(--separator-primary)] font-bold uppercase text-[10px] text-[var(--label-tertiary)] tracking-widest flex justify-between items-center">
                 <span>Cassette Parameters</span>
                 <Button icon="pi pi-plus" text size="small" @click="showAddParamDialog = true" class="h-6 w-6 text-[var(--label-secondary)]" />
@@ -252,6 +262,7 @@
     // State
     const modular = ref(null)
     const templateGraph = ref(null)
+    const cassetteName = ref(props.initialData?.name || 'New Cassette')
     const cassetteData = reactive({
         params: { 
             A: 600, 
@@ -487,7 +498,7 @@
     const save = async () => {
         try {
             const body = {
-                name: props.initialData?.name || 'Parametric Cassette ' + new Date().toLocaleTimeString(),
+                name: cassetteName.value,
                 data: JSON.parse(JSON.stringify(cassetteData))
             }
 
