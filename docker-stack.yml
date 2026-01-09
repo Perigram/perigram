@@ -2,7 +2,7 @@
 version: "3.8"
 services:
   app:
-    image: ghcr.io/vovastelmashchuk/main-app:${GIT_COMMIT_HASH:-latest}
+    image: ghcr.io/1suo/cutkit-app:${GIT_COMMIT_HASH:-latest}
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -15,9 +15,9 @@ services:
       - MONGODB_URI
       - NUXT_RESEND_TOKEN=${RESEND_TOKEN}
     secrets:
-      - source: nest2d_stripe_secret_key
+      - source: cutkit_stripe_secret_key
         target: stripe_secret_key
-      - source: nest2d_github_client_secret
+      - source: cutkit_github_client_secret
         target: github_client_secret
     deploy:
       update_config:
@@ -33,7 +33,7 @@ services:
       start_period: 60s
   
   user-file-processing-worker-normal:
-    image: ghcr.io/vovastelmashchuk/user-file-processing-worker:${GIT_COMMIT_HASH:-latest}
+    image: ghcr.io/1suo/file-processing-worker:${GIT_COMMIT_HASH:-latest}
     environment:
       - MONGODB_URI
       - WORKER_TAG=normal
@@ -46,7 +46,7 @@ services:
       - infra_mongo
 
   user-file-processing-worker-1k-entity-count:
-    image: ghcr.io/vovastelmashchuk/user-file-processing-worker:${GIT_COMMIT_HASH:-latest}
+    image: ghcr.io/1suo/file-processing-worker:${GIT_COMMIT_HASH:-latest}
     environment:
       - MONGODB_URI
       - WORKER_TAG=1k_entity_count
@@ -70,9 +70,9 @@ services:
       - infra_mongo
 
 secrets:
-  nest2d_stripe_secret_key:
+  cutkit_stripe_secret_key:
     external: true
-  nest2d_github_client_secret:
+  cutkit_github_client_secret:
     external: true
 
 networks:

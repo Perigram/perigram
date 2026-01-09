@@ -71,15 +71,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { cassettesStore } from '~/composables/cassettes';
+import { useCassettesStore } from '~/stores/cassettes';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteDesigner from './CassetteDesigner.vue';
 
-const { actions } = cassettesStore;
-const { fetchCassettes, selectCassette, deleteCassette } = actions;
+const cassettesStore = useCassettesStore();
 
 // Create local reactive state
 const cassettes = ref([]);
@@ -90,7 +89,7 @@ const editingCassette = ref(null);
 
 onMounted(async () => {
   console.log('[CassetteManager] Component mounted');
-  const result = await fetchCassettes();
+  const result = await cassettesStore.fetchCassettes();
   cassettes.value = result || [];
   console.log('[CassetteManager] Loaded cassettes:', cassettes.value.length);
 });
@@ -111,7 +110,12 @@ const formatDate = (date) => {
 
 const handleDelete = async (cassetteId) => {
   if (confirm('Delete this cassette?')) {
-    await deleteCassette(cassetteId);
+    await cassettesStore.deleteCassette(cassetteId);
+    // Since cassettes is a local ref copy/reference, we might need to refresh
+    // But if fetchCassettes returned the store state array reference, it might be auto-updated.
+    // To be safe and cleaner with Pinia:
+    const result = await cassettesStore.fetchCassettes();
+    cassettes.value = result || [];
   }
 };
 
@@ -122,7 +126,7 @@ const editCassette = (cassette) => {
 
 const handleUploaded = async () => {
   showUploadDialog.value = false;
-  const result = await fetchCassettes();
+  const result = await cassettesStore.fetchCassettes();
   cassettes.value = result || [];
 };
 </script>

@@ -13,32 +13,61 @@
 </template>
 
 <script setup>
+
 import { ref, onMounted } from 'vue';
+
 import { useRoute } from 'vue-router';
+
 import { useI18n } from 'vue-i18n';
-import { batchesStore } from '~/composables/batches';
+
+import { useBatchesStore } from '~/stores/batches';
+
+
 
 definePageMeta({
+
   layout: 'app',
+
   middleware: 'auth',
+
 });
+
+
 
 const route = useRoute();
+
 const { t } = useI18n();
+
 const { batchId } = route.params;
-const { getters, actions } = batchesStore;
+
+const batchesStore = useBatchesStore();
+
+
 
 const loading = ref(true);
+
 const batch = ref(null);
 
+
+
 onMounted(async () => {
+
   loading.value = true;
+
   try {
-    batch.value = await actions.getBatch(batchId);
+
+    batch.value = await batchesStore.getBatch(batchId);
+
   } catch (error) {
+
     console.error('Failed to load batch:', error);
+
   } finally {
+
     loading.value = false;
+
   }
+
 });
+
 </script>

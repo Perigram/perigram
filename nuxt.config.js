@@ -8,7 +8,11 @@ export default defineNuxtConfig({
 
     css: ['primeicons/primeicons.css', './assets/css/fonts.css', './assets/css/main.css'],
 
-    modules: ['@nuxtjs/i18n', '@primevue/nuxt-module', '@nuxtjs/tailwindcss'],
+    modules: ['@nuxtjs/i18n', '@primevue/nuxt-module', '@nuxtjs/tailwindcss', '@pinia/nuxt'],
+
+    imports: {
+        dirs: ['stores']
+    },
 
     primevue: {
         options: {
@@ -112,7 +116,7 @@ export default defineNuxtConfig({
                     hid: 'keywords',
                     name: 'keywords',
                     content:
-                        'Nest DXF online, DXF files, material dimensions, Nest2D, maximize material usage, open-source, efficiency, smart nesting, laser cutting',
+                        'Nest DXF online, DXF files, material dimensions, CutKit, maximize material usage, open-source, efficiency, smart nesting, laser cutting',
                 },
                 {
                     hid: 'robots',

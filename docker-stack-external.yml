@@ -1,9 +1,9 @@
 version: "3.8"
 services:
   user-file-processing-worker-normal:
-    image: ghcr.io/vovastelmashchuk/user-file-processing-worker:latest
+    image: ghcr.io/1suo/file-processing-worker:latest
     environment:
-      - MONGO_URI=mongodb://mongo:27017/nest2d
+      - MONGO_URI=mongodb://mongo:27017/cutkit
       - WORKER_TAG=normal
       - MAX_ENTITY_LIMIT=999
     deploy:
@@ -12,17 +12,17 @@ services:
         order: start-first
 
   nesting-worker:
-    image: ghcr.io/vovastelmashchuk/nesting-worker:latest
+    image: ghcr.io/1suo/nesting-worker:latest
     environment:
-      - MONGO_URI=mongodb://mongo:27017/nest2d
+      - MONGO_URI=mongodb://mongo:27017/cutkit
     deploy:
       replicas: 1
       update_config:
         order: start-first
 
   mongo:
-    image: mongo:latest
-    container_name: nest2d_mongo
+    image: mongo:4.4
+    container_name: cutkit_mongo
     ports:
       - "27017:27017"
     volumes:

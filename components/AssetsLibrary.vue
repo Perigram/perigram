@@ -11,11 +11,11 @@
             />
           </div>
           
-          <div v-if="penState.loading">Loading pens...</div>
-          <div v-else-if="penState.error">{{ penState.error }}</div>
+          <div v-if="pensLoading">Loading pens...</div>
+          <div v-else-if="pensError">{{ pensError }}</div>
           
           <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-            <Card v-for="pen in penState.pens" :key="pen._id" class="h-full">
+            <Card v-for="pen in pens" :key="pen._id" class="h-full">
               <template #title>
                 {{ pen.name }}
                 <Tag v-if="!pen.ownerId" value="System" severity="info" />
@@ -71,11 +71,11 @@
             />
           </div>
           
-          <div v-if="toolState.loading">Loading tools...</div>
-          <div v-else-if="toolState.error">{{ toolState.error }}</div>
+          <div v-if="toolsLoading">Loading tools...</div>
+          <div v-else-if="toolsError">{{ toolsError }}</div>
           
           <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-            <Card v-for="tool in toolState.tools" :key="tool._id" class="h-full">
+            <Card v-for="tool in tools" :key="tool._id" class="h-full">
               <template #title>
                 {{ tool.name }}
                 <Tag v-if="!tool.ownerId" value="System" severity="info" />
@@ -177,12 +177,27 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { usePenTemplates } from '~/composables/penTemplates';
-import { useToolProfiles } from '~/composables/toolProfiles';
+import { usePenTemplatesStore } from '~/stores/penTemplates';
+import { useToolProfilesStore } from '~/stores/toolProfiles';
+import { storeToRefs } from 'pinia';
 import { useConfirm } from 'primevue/useconfirm';
+import Button from 'primevue/button';
+import Card from 'primevue/card';
+import Tag from 'primevue/tag';
+import Dialog from 'primevue/dialog';
+import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
+import Select from 'primevue/select';
+import TabView from 'primevue/tabview';
+import TabPanel from 'primevue/tabpanel';
+import ConfirmDialog from 'primevue/confirmdialog';
 
-const { state: penState, fetchPens, createPen, updatePen, deletePen } = usePenTemplates();
-const { state: toolState, fetchTools, createTool, updateTool, deleteTool } = useToolProfiles();
+const penTemplatesStore = usePenTemplatesStore();
+const { pens, loading: pensLoading, error: pensError } = storeToRefs(penTemplatesStore);
+
+const toolProfilesStore = useToolProfilesStore();
+const { tools, loading: toolsLoading, error: toolsError } = storeToRefs(toolProfilesStore);
+
 const confirm = useConfirm();
 
 // Pen dialog
@@ -207,8 +222,8 @@ const toolForm = ref({
 });
 
 onMounted(async () => {
-  await fetchPens();
-  await fetchTools();
+  await penTemplatesStore.fetchPens();
+  await toolProfilesStore.fetchTools();
 });
 
 // Pen methods
@@ -230,9 +245,9 @@ const closePenDialog = () => {
 const savePen = async () => {
   try {
     if (editingPen.value) {
-      await updatePen(editingPen.value._id, penForm.value);
+      await penTemplatesStore.updatePen(editingPen.value._id, penForm.value);
     } else {
-      await createPen(penForm.value);
+      await penTemplatesStore.createPen(penForm.value);
     }
     closePenDialog();
   } catch (error) {
@@ -247,7 +262,7 @@ const deletePenConfirm = (pen) => {
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {
       try {
-        await deletePen(pen._id);
+        await penTemplatesStore.deletePen(pen._id);
       } catch (error) {
         alert('Failed to delete pen: ' + error.message);
       }
@@ -271,9 +286,9 @@ const closeToolDialog = () => {
 const saveTool = async () => {
   try {
     if (editingTool.value) {
-      await updateTool(editingTool.value._id, toolForm.value);
+      await toolProfilesStore.updateTool(editingTool.value._id, toolForm.value);
     } else {
-      await createTool(toolForm.value);
+      await toolProfilesStore.createTool(toolForm.value);
     }
     closeToolDialog();
   } catch (error) {
@@ -288,7 +303,7 @@ const deleteToolConfirm = (tool) => {
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {
       try {
-        await deleteTool(tool._id);
+        await toolProfilesStore.deleteTool(tool._id);
       } catch (error) {
         alert('Failed to delete tool: ' + error.message);
       }

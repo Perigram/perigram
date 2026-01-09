@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!isLoggedIn" class="flex items-center justify-center min-h-screen bg-gray-100">
+  <div v-if="!userIsSet" class="flex items-center justify-center min-h-screen bg-gray-100">
     <div class="w-full max-w-sm p-6 bg-white rounded-lg shadow-md">
       <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">{{ $t('auth.welcome') }}</h1>
       <p class="text-center text-gray-600 mb-6">{{ $t('auth.subtitle') }}</p>
@@ -27,7 +27,8 @@
 import { ref, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { authStore } from '~/composables/auth';
+import { useAuthStore } from '~/stores/auth';
+import { storeToRefs } from 'pinia';
 
 definePageMeta({
   // No middleware here. Let the page handle its own logic.
@@ -35,10 +36,9 @@ definePageMeta({
 });
 
 const { t } = useI18n();
-const { getters } = authStore;
+const authStore = useAuthStore();
+const { userIsSet } = storeToRefs(authStore);
 const router = useRouter();
-
-const isLoggedIn = ref(getters.userIsSet.value);
 
 const loginWithGithub = async () => {
   const response = await $fetch('/api/auth/github/redirect');
@@ -52,19 +52,17 @@ const loginWithGoogle = async () => {
 
 onMounted(async () => {
   // Try to set user on client side if not already set
-  if (!isLoggedIn.value) {
-    await authStore.actions.setUser();
-    isLoggedIn.value = getters.userIsSet.value;
+  if (!userIsSet.value) {
+    await authStore.setUser();
   }
 
   // If already logged in, redirect immediately
-  if (isLoggedIn.value) {
+  if (userIsSet.value) {
     router.push('/projects');
     return;
   }
 
-  watch(getters.userIsSet, (isSet) => {
-    isLoggedIn.value = isSet;
+  watch(userIsSet, (isSet) => {
     if (isSet) {
       router.push('/projects');
     }

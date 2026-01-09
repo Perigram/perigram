@@ -240,7 +240,8 @@
     import SelectButton from 'primevue/selectbutton'
     import Dialog from 'primevue/dialog'
     import ProgressSpinner from 'primevue/progressspinner'
-    import { globalStore } from '~/composables/global'
+    import { useGlobalStore } from '~/stores/global'
+    import { storeToRefs } from 'pinia'
 
     definePageMeta({
         layout: 'app',
@@ -249,10 +250,10 @@
 
     const { t } = useI18n()
     const router = useRouter()
-    const { getters, actions } = globalStore
-    const { getProjects } = actions
-
-    const projects = computed(() => getters.projectsList)
+    const globalStore = useGlobalStore()
+    const { projectsList } = storeToRefs(globalStore)
+    
+    const projects = projectsList
     const loading = ref(true)
     const searchQuery = ref('')
     const sortBy = ref('date-desc')
@@ -312,7 +313,7 @@
 
     onMounted(async () => {
         loading.value = true
-        await getProjects()
+        await globalStore.getProjects()
         loading.value = false
 
         if (typeof trackEvent !== 'undefined') {
@@ -348,7 +349,7 @@
             newProjectName.value = ''
 
             // Refresh projects list
-            await getProjects()
+            await globalStore.getProjects()
 
             // Navigate to new project
             router.push(`/project/${data.slug}`)
@@ -378,7 +379,7 @@
             projectToDelete.value = null
 
             // Refresh projects list
-            await getProjects()
+            await globalStore.getProjects()
         } catch (error) {
             console.error('Failed to delete project:', error)
         } finally {

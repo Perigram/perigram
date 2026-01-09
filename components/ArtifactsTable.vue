@@ -64,6 +64,8 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useArtifactsStore } from '~/stores/artifacts';
+import { storeToRefs } from 'pinia';
 import DataView from 'primevue/dataview';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
@@ -80,19 +82,17 @@ const props = defineProps({
   }
 });
 
-const { getters, actions } = artifactsStore;
+const artifactsStore = useArtifactsStore();
+const { artifacts, loading } = storeToRefs(artifactsStore);
 const confirm = useConfirm();
 const toast = useToast();
-
-const artifacts = computed(() => getters.artifacts.value);
-const loading = computed(() => getters.loading.value);
 
 const showPreview = ref(false);
 const previewUrl = ref('');
 const previewName = ref('');
 
 onMounted(() => {
-  actions.fetchArtifacts(props.batchId);
+  artifactsStore.fetchArtifacts(props.batchId);
 });
 
 const getStatusSeverity = (status) => {
@@ -132,7 +132,7 @@ const deleteArtifact = async (artifact) => {
     await $fetch(`/api/artifacts/${artifact._id}`, { method: 'DELETE' });
     toast.add({ severity: 'success', summary: 'Success', detail: 'Artifact deleted', life: 3000 });
     // Refresh the list
-    await actions.fetchArtifacts(props.batchId);
+    await artifactsStore.fetchArtifacts(props.batchId);
   } catch (error) {
     console.error('Failed to delete artifact:', error);
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete artifact', life: 3000 });

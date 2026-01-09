@@ -69,7 +69,8 @@
 <script setup>
     import { ref, computed, watch, onMounted } from 'vue'
     import { useRoute } from 'vue-router'
-    import { batchesStore } from '~/composables/batches'
+    import { useBatchesStore } from '~/stores/batches'
+    import { storeToRefs } from 'pinia'
     import BatchEditor from '~/components/BatchEditor.vue'
     import Button from 'primevue/button'
     import Select from 'primevue/select'
@@ -82,14 +83,15 @@
     const route = useRoute()
     const slug = route.params.slug
 
+    const batchesStore = useBatchesStore()
+    const { batches } = storeToRefs(batchesStore)
     const currentBatchId = ref(null)
-    const batches = computed(() => batchesStore.getters.batches.value)
     const currentBatch = computed(() => batches.value.find((b) => b._id === currentBatchId.value))
 
     watch(currentBatchId, async (newId) => {
         if (newId) {
             // Fetch full batch details if needed
-            const fullBatch = await batchesStore.actions.getBatch(newId)
+            const fullBatch = await batchesStore.getBatch(newId)
             if (fullBatch) {
                 // Update in store
                 await refreshBatches()
@@ -107,11 +109,11 @@
     })
 
     const refreshBatches = async () => {
-        await batchesStore.actions.fetchBatches(slug)
+        await batchesStore.fetchBatches(slug)
     }
 
     const createNewBatch = async () => {
-        const newBatch = await batchesStore.actions.createBatch(slug, {
+        const newBatch = await batchesStore.createBatch(slug, {
             name: `Batch ${batches.value.length + 1}`,
         })
         currentBatchId.value = newBatch._id

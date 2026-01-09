@@ -8,11 +8,11 @@
       />
     </div>
     
-    <div v-if="state.loading">Loading tools...</div>
-    <div v-else-if="state.error">{{ state.error }}</div>
+    <div v-if="loading">Loading tools...</div>
+    <div v-else-if="error">{{ error }}</div>
     
     <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-      <Card v-for="tool in state.tools" :key="tool._id" class="h-full">
+      <Card v-for="tool in tools" :key="tool._id" class="h-full">
         <template #title>
           {{ tool.name }}
           <Tag v-if="!tool.ownerId" value="System" severity="info" />
@@ -78,7 +78,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useToolProfiles } from '~/composables/toolProfiles';
+import { useToolProfilesStore } from '~/stores/toolProfiles';
+import { storeToRefs } from 'pinia';
 import { useConfirm } from 'primevue/useconfirm';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -93,7 +94,8 @@ definePageMeta({
   middleware: 'auth',
 });
 
-const { state, fetchTools, createTool, updateTool, deleteTool } = useToolProfiles();
+const toolProfilesStore = useToolProfilesStore();
+const { tools, loading, error } = storeToRefs(toolProfilesStore);
 const confirm = useConfirm();
 
 const showDialog = ref(false);
@@ -105,7 +107,7 @@ const form = ref({
 });
 
 onMounted(async () => {
-  await fetchTools();
+  await toolProfilesStore.fetchTools();
 });
 
 const editTool = (tool) => {
@@ -123,9 +125,9 @@ const closeDialog = () => {
 const saveTool = async () => {
   try {
     if (editingTool.value) {
-      await updateTool(editingTool.value._id, form.value);
+      await toolProfilesStore.updateTool(editingTool.value._id, form.value);
     } else {
-      await createTool(form.value);
+      await toolProfilesStore.createTool(form.value);
     }
     closeDialog();
   } catch (error) {
@@ -140,7 +142,7 @@ const deleteToolConfirm = (tool) => {
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {
       try {
-        await deleteTool(tool._id);
+        await toolProfilesStore.deleteTool(tool._id);
       } catch (error) {
         alert('Failed to delete tool: ' + error.message);
       }

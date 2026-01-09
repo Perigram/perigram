@@ -7,14 +7,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: nest2d_app_dev
+    container_name: cutkit_app_dev
     ports:
       - "3000:3000"
     volumes:
       - .:/src
       - /src/node_modules
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/nest2d-v2
+      - MONGODB_URI=mongodb://mongo:27017/cutkit_dev
       - NODE_ENV=development
     depends_on:
       - mongo
@@ -22,8 +22,8 @@ services:
     restart: unless-stopped
 
   mongo:
-    image: mongo:latest
-    container_name: nest2d_mongo
+    image: mongo:4.4
+    container_name: cutkit_mongo
     ports:
       - "27017:27017"
     volumes:
@@ -31,9 +31,9 @@ services:
     restart: always
 
   user-file-processing-worker:
-    image: ghcr.io/vovastelmashchuk/user-file-processing-worker:latest
+    image: ghcr.io/1suo/file-processing-worker:latest
     environment:
-      - MONGO_URI=mongodb://mongo:27017/nest2d-v2
+      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
       - WORKER_TAG=normal
       - MAX_ENTITY_LIMIT=999
     depends_on:
@@ -41,9 +41,9 @@ services:
     restart: unless-stopped
 
   nesting-worker:
-    image: ghcr.io/vovastelmashchuk/nesting-worker:latest
+    image: ghcr.io/1suo/nesting-worker:latest
     environment:
-      - MONGO_URI=mongodb://mongo:27017/nest2d-v2
+      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
     depends_on:
       - mongo
     restart: unless-stopped

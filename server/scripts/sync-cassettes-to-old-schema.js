@@ -1,7 +1,7 @@
 /**
  * Sync cassettes to user_dxf_files for old worker compatibility
  * 
- * The worker from ghcr.io/vovastelmashchuk expects:
+ * The worker from ghcr.io/1suo expects:
  * - Collection: user_dxf_files (not cassettes)
  * - GridFS bucket: userDxf (not cassettes)
  * 

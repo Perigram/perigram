@@ -53,7 +53,8 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { authStore } from '~/composables/auth';
+import { useAuthStore } from '~/stores/auth';
+import { storeToRefs } from 'pinia';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import SelectButton from 'primevue/selectbutton';
@@ -63,8 +64,9 @@ import Message from 'primevue/message';
 
 const emit = defineEmits(['close']);
 
-const { getters } = authStore;
-const user = computed(() => getters.user.value || {});
+const authStore = useAuthStore();
+const { user: userRef } = storeToRefs(authStore);
+const user = computed(() => userRef.value || {});
 
 const dialogVisible = ref(true);
 const paymentOptions = ref([]);

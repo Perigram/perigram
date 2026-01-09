@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   nesting-worker:
-    image: ghcr.io/vovastelmashchuk/nesting-worker:${GIT_COMMIT_HASH:-latest}
+    image: ghcr.io/1suo/nesting-worker:${GIT_COMMIT_HASH:-latest}
     environment:
       - MONGO_URI
     deploy:

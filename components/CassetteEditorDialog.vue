@@ -106,9 +106,10 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { cassettesStore } from '~/composables/cassettes';
-import { useLayerStandards } from '~/composables/layerStandards';
-import { usePenTemplates } from '~/composables/penTemplates';
+import { useCassettesStore } from '~/stores/cassettes';
+import { useLayerStandardsStore } from '~/stores/layerStandards';
+import { usePenTemplatesStore } from '~/stores/penTemplates';
+import { storeToRefs } from 'pinia';
 import Chips from 'primevue/chips';
 
 const props = defineProps({
@@ -140,23 +141,27 @@ const svgPreview = ref(null);
 const dxfFile = ref(null);
 const parameters = ref(['A', 'B', 'C', 'D', 'E', 'F', 'horizontal_seam_width']);
 
-const { state: layerStandardsState, fetchStandards, getByCode } = useLayerStandards();
-const { state: penState, fetchPens, getSystemPens } = usePenTemplates();
+const cassettesStore = useCassettesStore();
+const layerStandardsStore = useLayerStandardsStore();
+const penTemplatesStore = usePenTemplatesStore();
+
+const { standards } = storeToRefs(layerStandardsStore);
+const { pens, systemPens } = storeToRefs(penTemplatesStore);
 
 // Fetch layer standards and pens when dialog opens
 watch(isOpen, async (newValue) => {
-  if (newValue && layerStandardsState.standards.length === 0) {
+  if (newValue && standards.value.length === 0) {
     try {
       await Promise.all([
-        fetchStandards(),
-        fetchPens()
+        layerStandardsStore.fetchStandards(),
+        penTemplatesStore.fetchPens()
       ]);
       
-      console.log('[CassetteDialog] Loaded standards:', layerStandardsState.standards);
-      console.log('[CassetteDialog] Loaded pens:', penState.pens);
+      console.log('[CassetteDialog] Loaded standards:', standards.value);
+      console.log('[CassetteDialog] Loaded pens:', pens.value);
       
       // Ensure system pens exist
-      if (getSystemPens().length === 0) {
+      if (systemPens.value.length === 0) {
         console.warn('No system pens found. Please run: node server/scripts/seed-system-pens.js');
       }
     } catch (error) {
@@ -168,12 +173,12 @@ watch(isOpen, async (newValue) => {
 
 // Map layer standards from server to dropdown options
 const layerStandards = computed(() => {
-  if (!layerStandardsState.standards || layerStandardsState.standards.length === 0) {
+  if (!standards.value || standards.value.length === 0) {
     return [];
   }
   
   // Group standards by category for dropdown
-  const options = layerStandardsState.standards.map(standard => ({
+  const options = standards.value.map(standard => ({
     label: standard.i18n?.ru?.nameTemplate || standard.code,
     value: standard.code,
     category: standard.category
@@ -197,7 +202,7 @@ const canUpload = computed(() => {
 watch(() => props.cassetteId, async (newId) => {
   if (newId) {
     try {
-      cassette.value = await cassettesStore.actions.fetchById(newId);
+      cassette.value = await cassettesStore.fetchById(newId);
       // Initialize layer mappings from existing data
       if (cassette.value.layerMapping) {
         const mappings = {};
@@ -266,9 +271,10 @@ const updatePreview = async () => {
     const { generateSvgPreview } = await import('~/utils/dxfParser');
     
     // Get default pen (first system pen or black)
-    const systemPens = getSystemPens();
-    console.log('[CassetteDialog] System pens:', systemPens);
-    const defaultPen = systemPens.length > 0 ? systemPens[0] : {
+    // systemPens is a Ref<Array>
+    const currentSystemPens = systemPens.value;
+    console.log('[CassetteDialog] System pens:', currentSystemPens);
+    const defaultPen = currentSystemPens.length > 0 ? currentSystemPens[0] : {
       stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' }
     };
     console.log('[CassetteDialog] Default pen:', defaultPen);
@@ -278,11 +284,11 @@ const updatePreview = async () => {
     for (const [layerName, standardCode] of Object.entries(layerMappings.value)) {
       if (standardCode) {
         // Find the layer standard
-        const standard = layerStandardsState.standards.find(s => s.code === standardCode);
+        const standard = standards.value.find(s => s.code === standardCode);
         console.log('[CassetteDialog] Layer:', layerName, 'Standard:', standard);
         if (standard && standard.defaultPenId) {
           // Find the pen by ID
-          const pen = penState.pens.find(p => p._id?.toString() === standard.defaultPenId?.toString());
+          const pen = pens.value.find(p => p._id?.toString() === standard.defaultPenId?.toString());
           console.log('[CassetteDialog] Found pen for', layerName, ':', pen);
           if (pen) {
             layerToPenMap[layerName] = pen;

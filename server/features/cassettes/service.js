@@ -83,7 +83,7 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
   
   const cassette = await repository.create(cassetteData);
   
-  // Sync to old schema for worker compatibility (ghcr.io/vovastelmashchuk)
+  // Sync to old schema for worker compatibility (ghcr.io/1suo)
   // Worker expects cassette in user_dxf_files collection with DXF in userDxf bucket
   await db.collection('user_dxf_files').updateOne(
     { slug: cassette.slug },

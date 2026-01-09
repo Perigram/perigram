@@ -119,7 +119,8 @@
     })
 
     // --- Breadcrumb Navigation ---
-    const { data: projects } = await useAsyncData('projects', () => $fetch(API_ROUTES.PROJECTS))
+    const { data: projectsData } = await useAsyncData('projects', () => $fetch(API_ROUTES.PROJECTS))
+    const projects = computed(() => projectsData.value?.projects || [])
 
     // Fetch current project if on project page
     const currentProjectSlug = computed(() => {

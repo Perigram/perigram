@@ -101,7 +101,7 @@ async function main() {
     if (existingCount > 0) {
       console.log(`⚠️  Layer standards already exist (count: ${existingCount})`);
       console.log('   To reseed, drop the collection first:\n');
-      console.log('   use nest2d-v2;');
+      console.log('   use cutkit;');
       console.log('   db.layer_standards.drop();\n');
       process.exit(1);
     }

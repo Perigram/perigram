@@ -162,7 +162,7 @@
             </AccordionTab>
 
             <!-- Artifacts Panel -->
-            <AccordionTab v-if="artifacts.length > 0" :header="$t('batches.artifacts')">
+            <AccordionTab v-if="artifacts?.length > 0" :header="$t('batches.artifacts')">
                 <DataView :value="artifacts" layout="grid">
                     <template #grid="slotProps">
                         <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
@@ -255,7 +255,10 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
-import { cassettesStore } from '~/composables/cassettes';
+import { useCassettesStore } from '~/stores/cassettes';
+import { useToolProfilesStore } from '~/stores/toolProfiles';
+import { useArtifactsStore } from '~/stores/artifacts';
+import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -288,15 +291,20 @@ const emit = defineEmits(['updated']);
 const { t } = useI18n();
 const confirm = useConfirm();
 
+// Stores
+const cassettesStore = useCassettesStore();
+const artifactsStore = useArtifactsStore();
+const toolProfilesStore = useToolProfilesStore();
+
 // State
 const entries = ref([]);
 const editingRows = ref([]);
-const artifacts = ref([]);
+const { artifacts } = storeToRefs(artifactsStore);
 const nestingInProgress = ref(false);
 const showAddDialog = ref(false);
 const showUploadDialog = ref(false);
 const cassettes = ref([]);
-const tools = ref([]);
+const { tools } = storeToRefs(toolProfilesStore);
 
 const nestingOptions = ref({
     width: 2440,
@@ -316,17 +324,11 @@ const newEntryParameters = ref([]);
 
 onMounted(async () => {
     console.log('[BatchEditor] Mounted, loading cassettes and tools...');
-    const cassetteResult = await cassettesStore.actions.fetchCassettes();
+    const cassetteResult = await cassettesStore.fetchCassettes();
     cassettes.value = cassetteResult || [];
     
     // Load tools
-    try {
-        const toolResult = await $fetch('/api/tools');
-        tools.value = toolResult || [];
-    } catch (error) {
-        console.error('[BatchEditor] Failed to load tools:', error);
-        tools.value = [];
-    }
+    await toolProfilesStore.fetchTools();
     
     console.log('[BatchEditor] Cassettes loaded:', cassettes.value.length);
     console.log('[BatchEditor] Tools loaded:', tools.value.length);
@@ -345,17 +347,9 @@ const loadBatchData = () => {
 const loadArtifacts = async () => {
     try {
         console.log('[BatchEditor] Loading artifacts for batch:', props.batch._id);
-        if (!props.batch._id) {
-            console.warn('[BatchEditor] No batch _id, skipping artifact load');
-            artifacts.value = [];
-            return;
-        }
-        const result = await $fetch(`/api/batch/${props.batch._id}/artifacts`);
-        console.log('[BatchEditor] Artifacts loaded:', result);
-        artifacts.value = result || [];
+        await artifactsStore.fetchArtifacts(props.batch._id);
     } catch (error) {
         console.error('[BatchEditor] Failed to load artifacts:', error);
-        artifacts.value = [];
     }
 };
 
@@ -646,7 +640,7 @@ const deleteArtifact = async (artifact) => {
 
 const onCassetteUploaded = async () => {
     showUploadDialog.value = false;
-    const result = await cassettesStore.actions.fetchCassettes();
+    const result = await cassettesStore.fetchCassettes();
     cassettes.value = result || [];
 };
 </script>

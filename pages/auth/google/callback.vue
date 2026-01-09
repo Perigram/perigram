@@ -3,6 +3,7 @@
 </template>
 
 <script setup>
+import { API_ROUTES } from '~/composables/apiRoutes';
 definePageMeta({
     layout: "doc",
 });

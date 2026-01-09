@@ -121,7 +121,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import { batchesStore } from '~/composables/batches';
+import { useBatchesStore } from '~/stores/batches';
+import { storeToRefs } from 'pinia';
 import BatchEntryEditor from './BatchEntryEditor.vue';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
@@ -141,16 +142,14 @@ const props = defineProps({
 
 const { t } = useI18n();
 const router = useRouter();
+const batchesStore = useBatchesStore();
+const { batches, loading, error } = storeToRefs(batchesStore);
 
 const showCreateDialog = ref(false);
 const newBatchName = ref('');
 
-const loading = computed(() => batchesStore.getters.loading.value);
-const error = computed(() => batchesStore.getters.error.value);
-const batches = computed(() => batchesStore.getters.batches.value);
-
 onMounted(async () => {
-  await batchesStore.actions.fetchBatches(props.projectSlug);
+  await batchesStore.fetchBatches(props.projectSlug);
 });
 
 const getStatusSeverity = (status) => {
@@ -169,7 +168,7 @@ const formatDate = (date) => {
 
 const createBatch = async () => {
   try {
-    const newBatch = await batchesStore.actions.createBatch(props.projectSlug, {
+    const newBatch = await batchesStore.createBatch(props.projectSlug, {
       name: newBatchName.value
     });
     showCreateDialog.value = false;
@@ -190,7 +189,7 @@ const editBatch = (batch) => {
 
 const saveBatch = async (updatedBatch) => {
   try {
-    await batchesStore.actions.update(updatedBatch._id, updatedBatch);
+    await batchesStore.updateBatch(updatedBatch._id, updatedBatch);
     showEditDialog.value = false;
     editingBatch.value = null;
   } catch (err) {
@@ -200,7 +199,7 @@ const saveBatch = async (updatedBatch) => {
 
 const runNesting = async (batch) => {
   try {
-    await batchesStore.actions.triggerNesting(batch._id);
+    await batchesStore.startNesting(batch._id);
   } catch (err) {
     console.error('Failed to run nesting:', err);
   }
@@ -209,7 +208,7 @@ const runNesting = async (batch) => {
 const deleteBatch = async (batch) => {
   if (confirm(t('batch.confirmDelete'))) {
     try {
-      await batchesStore.actions.delete(batch._id);
+      await batchesStore.deleteBatch(batch._id);
     } catch (err) {
       console.error('Failed to delete batch:', err);
     }

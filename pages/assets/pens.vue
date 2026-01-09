@@ -8,11 +8,11 @@
       />
     </div>
     
-    <div v-if="state.loading">Loading pens...</div>
-    <div v-else-if="state.error">{{ state.error }}</div>
+    <div v-if="loading">Loading pens...</div>
+    <div v-else-if="error">{{ error }}</div>
     
     <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-      <Card v-for="pen in state.pens" :key="pen._id" class="h-full">
+      <Card v-for="pen in pens" :key="pen._id" class="h-full">
         <template #title>
           {{ pen.name }}
           <Tag v-if="!pen.ownerId" value="System" severity="info" />
@@ -95,7 +95,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { usePenTemplates } from '~/composables/penTemplates';
+import { usePenTemplatesStore } from '~/stores/penTemplates';
+import { storeToRefs } from 'pinia';
 import { useConfirm } from 'primevue/useconfirm';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -111,7 +112,8 @@ definePageMeta({
   middleware: 'auth',
 });
 
-const { state, fetchPens, createPen, updatePen, deletePen } = usePenTemplates();
+const penTemplatesStore = usePenTemplatesStore();
+const { pens, loading, error } = storeToRefs(penTemplatesStore);
 const confirm = useConfirm();
 
 const showDialog = ref(false);
@@ -126,7 +128,7 @@ const form = ref({
 });
 
 onMounted(async () => {
-  await fetchPens();
+  await penTemplatesStore.fetchPens();
 });
 
 const editPen = (pen) => {
@@ -147,9 +149,9 @@ const closeDialog = () => {
 const savePen = async () => {
   try {
     if (editingPen.value) {
-      await updatePen(editingPen.value._id, form.value);
+      await penTemplatesStore.updatePen(editingPen.value._id, form.value);
     } else {
-      await createPen(form.value);
+      await penTemplatesStore.createPen(form.value);
     }
     closeDialog();
   } catch (error) {
@@ -164,7 +166,7 @@ const deletePenConfirm = (pen) => {
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {
       try {
-        await deletePen(pen._id);
+        await penTemplatesStore.deletePen(pen._id);
       } catch (error) {
         alert('Failed to delete pen: ' + error.message);
       }

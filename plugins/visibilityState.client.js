@@ -1,7 +1,10 @@
 import { ref, computed } from 'vue'
+import { useGlobalStore } from '~/stores/global'
+
 const defaultTitle = 'CutKit'
 
 export default defineNuxtPlugin((nuxtApp) => {
+    const globalStore = useGlobalStore()
     let interval
     const isTabActive = ref(true)
     const nestTitle = ref('Nest ready')
@@ -9,8 +12,8 @@ export default defineNuxtPlugin((nuxtApp) => {
     const updateVisibility = () => {
         isTabActive.value = document.visibilityState === 'visible'
 
-        if (globalStore.getters.needNotification && isTabActive.value) {
-            globalStore.actions.updateNotification(false)
+        if (globalStore.needNotification && isTabActive.value) {
+            globalStore.updateNotification(false)
         }
 
         clearInterval(interval)
@@ -27,7 +30,7 @@ export default defineNuxtPlugin((nuxtApp) => {
     updateVisibility()
     document.addEventListener('visibilitychange', () => updateVisibility())
 
-    const title = computed(() => globalStore.getters.needNotification && !isTabActive.value ? nestTitle.value : defaultTitle)
+    const title = computed(() => globalStore.needNotification && !isTabActive.value ? nestTitle.value : defaultTitle)
 
     useHead({
         title: title

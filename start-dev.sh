@@ -3,6 +3,7 @@
 # Define paths
 SESSION_NAME="cutkit"
 ROOT_DIR=$(pwd)
+export NODE_OPTIONS="--max-old-space-size=4096"
 
 # Check if the tmux session already exists
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
@@ -12,10 +13,11 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
 fi
 
 # Ensure Mongo is running
-if ! docker ps | grep -q nest2d_mongo; then
+if ! docker ps --format '{{.Names}}' | grep -q "^cutkit_mongo$"; then
     echo "Starting MongoDB container..."
     mkdir -p .mongo-data
-    docker run -d --name nest2d_mongo -p 27017:27017 --user "$(id -u):$(id -g)" -v "$ROOT_DIR/.mongo-data":/data/db mongo
+    docker rm -f cutkit_mongo 2>/dev/null
+    docker run -d --name cutkit_mongo -p 27017:27017 --user "$(id -u):$(id -g)" -v "$ROOT_DIR/.mongo-data":/data/db mongo:4.4
 fi
 
 # Start a new tmux session with named window
@@ -30,11 +32,11 @@ tmux send-keys -t "$SESSION_NAME:1" "vi ." C-m
 
 # Window 2: AI / CLI tools
 tmux new-window -t "$SESSION_NAME" -n "cli" -c "$ROOT_DIR"
-tmux send-keys -t "$SESSION_NAME:2" "echo 'Ready for CLI commands'" C-m
+tmux send-keys -t "$SESSION_NAME:2" "copilot --allow-all-tools" C-m
 
 # Window 3: Workers & Logs
 tmux new-window -t "$SESSION_NAME" -n "workers" -c "$ROOT_DIR"
-tmux send-keys -t "$SESSION_NAME:3" "docker stack deploy -c docker-stack-external.yml nest2d" C-m
+tmux send-keys -t "$SESSION_NAME:3" "docker stack deploy -c docker-stack-external.yml cutkit" C-m
 tmux send-keys -t "$SESSION_NAME:3" "docker service ls" C-m
 
 # Attach to the tmux session

@@ -9,6 +9,10 @@ export default defineEventHandler(async (event) => {
 
   const db = await connectDB();
   const user = await db.collection("users").findOne({ id: userId });
+  if (!user) {
+    setResponseStatus(401);
+    return {};
+  }
   return {
     id: user.id,
     name: user.name,

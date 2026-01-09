@@ -1,11 +1,10 @@
-import { authStore } from '~/composables/auth';
-import { toRefs, unref } from 'vue';
-
-const { getters, actions } = authStore;
-const { setUser } = actions;
-const { userIsSet } = toRefs(getters);
+import { useAuthStore } from '~/stores/auth';
+import { storeToRefs } from 'pinia';
 
 export default defineNuxtRouteMiddleware(async (to) => {
+    const authStore = useAuthStore();
+    const { userIsSet } = storeToRefs(authStore);
+
     // The index page has its own auth logic to handle redirection.
     if (to.name === 'index') {
         return;
@@ -13,11 +12,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     // On the server, always try to set the user.
     // On the client, only set the user if they are not already set.
-    if (process.server || !unref(userIsSet)) {
-        await setUser();
+    if (process.server || !userIsSet.value) {
+        await authStore.setUser();
     }
 
-    const isLoggedIn = unref(userIsSet);
+    const isLoggedIn = userIsSet.value;
 
     // If the user is NOT logged in...
     if (!isLoggedIn) {

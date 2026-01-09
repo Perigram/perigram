@@ -107,7 +107,8 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { authStore } from '~/composables/auth';
+import { useAuthStore } from '~/stores/auth';
+import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
@@ -124,9 +125,9 @@ definePageMeta({
 const router = useRouter();
 const { locale, locales, setLocale } = useI18n();
 
-const { getters, actions } = authStore;
-const { logout } = actions;
-const user = computed(() => getters.user.value || {});
+const authStore = useAuthStore();
+const { user: userRef } = storeToRefs(authStore);
+const user = computed(() => userRef.value || {});
 
 const showBuyCredits = ref(false);
 
@@ -145,7 +146,7 @@ const onLocaleChange = async (event) => {
 };
 
 const logoutHandler = async () => {
-    await logout();
+    await authStore.logout();
     router.push({ path: '/' });
 };
 
@@ -155,7 +156,7 @@ const addCredits = async () => {
             method: 'POST'
         });
         // Refresh user data to show new balance
-        await actions.setUser();
+        await authStore.setUser();
         console.log('Added 100 credits! New balance:', result.newBalance);
     } catch (error) {
         console.error('Failed to add credits:', error);
