@@ -28,7 +28,7 @@
 
 * Cassette Renaming
 *** Agent Notes
-     [2026-01-09] Implemented cassette renaming in Cassette Manager.
+     [2026-01-09] Implemented improved cassette renaming flow in Cassette Manager.
      Files changed: components/CassetteManager.vue
      Docs updated: server/features/cassettes/NEOLIT.md
-     Notes: Added inline renaming using PrimeVue Inplace component. Renaming is handled via Pinia store and validated for non-empty names.
+     Notes: Added explicit Save/Cancel flow for renaming using PrimeVue Inplace component with temporary state. Renaming is validated and synchronized with the backend via Pinia store.

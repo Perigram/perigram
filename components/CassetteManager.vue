@@ -22,12 +22,16 @@
       <div v-for="cassette in cassettes" :key="cassette._id" class="flex flex-col gap-3 h-full p-4 border border-[var(--separator-primary)] rounded-lg bg-[var(--fill-tertiary)]">
         <div class="flex justify-between items-start gap-3">
           <div class="flex-1 overflow-hidden">
-            <Inplace :closable="true" @close="onRename(cassette)">
+            <Inplace @open="onRenameStart(cassette)">
               <template #display>
-                <h3 class="m-0 text-lg font-semibold break-words cursor-pointer hover:text-[var(--accent-primary)]">{{ cassette.name }}</h3>
+                <h3 class="m-0 text-lg font-semibold break-words cursor-pointer hover:text-[var(--accent-primary)]" v-tooltip.top="'Click to rename'">{{ cassette.name }}</h3>
               </template>
-              <template #content>
-                <InputText v-model="cassette.name" size="small" class="w-full" autofocus @keyup.enter="$event.target.blur()" />
+              <template #content="{ closeCallback }">
+                <div class="flex items-center gap-2 w-full">
+                  <InputText v-model="editingName" size="small" class="flex-1" autofocus @keyup.enter="onRename(cassette, closeCallback)" @keyup.esc="closeCallback" />
+                  <Button icon="pi pi-check" size="small" text rounded severity="success" @click="onRename(cassette, closeCallback)" />
+                  <Button icon="pi pi-times" size="small" text rounded severity="danger" @click="closeCallback" />
+                </div>
               </template>
             </Inplace>
           </div>
@@ -100,6 +104,7 @@ const showUploadDialog = ref(false);
 const showEditDialog = ref(false);
 const showDesignerDialog = ref(false);
 const editingCassette = ref(null);
+const editingName = ref('');
 
 onMounted(async () => {
   console.log('[CassetteManager] Component mounted');
@@ -138,16 +143,26 @@ const editCassette = (cassette) => {
   showDesignerDialog.value = true;
 };
 
-const onRename = async (cassette) => {
-  if (!cassette.name.trim()) {
+const onRenameStart = (cassette) => {
+  editingName.value = cassette.name;
+};
+
+const onRename = async (cassette, closeCallback) => {
+  const newName = editingName.value.trim();
+  if (!newName) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Name cannot be empty', life: 3000 });
-    const original = await cassettesStore.fetchById(cassette._id);
-    cassette.name = original.name;
     return;
   }
+  
+  if (newName === cassette.name) {
+    closeCallback();
+    return;
+  }
+
   try {
-    await cassettesStore.updateCassette(cassette._id, { name: cassette.name });
+    await cassettesStore.updateCassette(cassette._id, { name: newName });
     toast.add({ severity: 'success', summary: 'Success', detail: 'Cassette renamed', life: 2000 });
+    closeCallback();
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to rename cassette', life: 3000 });
   }
