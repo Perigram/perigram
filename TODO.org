@@ -20,3 +20,8 @@
     - Fixed 500 error caused by missing `composables/penTemplates.js` import in `pages/assets/pens.vue`.
     - Added explicit imports for stores in components to ensure SSR stability.
 
+*** Agent Notes
+     [2026-01-09] Finalized documentation and project renaming.
+     Files changed: README.md, NEOLIT.md, docker configs, GitHub actions
+     Docs updated: NEOLIT.md (SYSTEM, CONTAINER, COMPONENT levels)
+     Notes: Renamed project from Nest2D to CutKit. Cleaned up obsolete docs and reorganized deployment guides.
