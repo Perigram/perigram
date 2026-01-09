@@ -1,253 +1,126 @@
 # AGENTS.md
 
-**Purpose:** Instructions for AI agents working on the Cutkit-Demo project.
+In this project, coding agents work in strict documentation-first mode and follow some mandatory rules. Following rules must be internalized and followed strictly by all coding agents working on this project, so if you are an AI agent, read and understand them fully before proceeding.
 
-This file tells you **HOW** to work with this codebase. For **WHAT** the architecture is, see the linked documents.
-
----
-
-## Quick Reference
-
-- **Architecture Details:** → `/ARCHITECTURE.md`
-- **Data Schemas:** → `/docs/specs/data-schema.md`
-- **Setup Guide:** → `/ONBOARDING.md`
-- **TODO:** → `/TODO.md`
+NEOLIT.md documentation files are created at different places in the project and contain information about the code in that directory. It's purpose is to help humans and AI agents understand, maintain, and extend the codebase without need for deep code analysis, guesses, grepping, etc. On other hand, documentation should not overwhelm with unnecessary details or duplicate self-evident information.
 
 ---
 
-## Core Principles
+# Documentation Workflow 
+C4 levels are used internally to interpret the scope and detail of NEOLIT.md documentation files.
 
-### 1. Documentation-First Development
+## When to Use Each Level
 
-**Every code change MUST update relevant documentation in the SAME commit.**
+### SYSTEM Level (always)
+- **Location:** Project root
+- **Use:** Every project has one SYSTEM level NEOLIT.md
+- **Purpose:** Project overview, tech stack and conventions, containers/components list, critical project-wide workflows and data flows
 
-**Documentation locations:**
-- Schema changes → Update `/docs/specs/data-schema.md`
-- API changes → Update `/ARCHITECTURE.md` API section
-- New patterns → Update `/ARCHITECTURE.md` or `/ONBOARDING.md`
-- Task completion → Mark `[x]` in `/TODO.md`
+### CONTAINER Level (optional)
+- **Location:** Separately deployable unit directories (api/, worker/, frontend/)
+- **Use ONLY when:**
+  - Multiple separately deployable units (microservices)
+  - Each unit runs independently
+  - Example: API server, worker service, frontend app
+- **Skip when:**
+  - Single deployable application
+  - Just source code directories (src/)
 
-**Example commit:**
-```
-Add user authentication endpoint
+### COMPONENT Level (always)
+- **Location:** Functional unit directories (src/auth/, api/users/)
+- **Use:** For every functional component
+- **Purpose:** Detailed architecture + implementation helping understand, maintain and extend the component
 
-- Created POST /api/auth/login endpoint
-- Updated ARCHITECTURE.md API section
-- Marked task [x] in TODO.md
-```
+### CODE Level (optional)
+- **Location:** Sub-component directories (src/auth/utils/)
+- **Use ONLY when:**
+  - Sub-component has 3+ files
+  - Complex logic needs documentation
+- **Skip when:**
+  - Simple utilities
+  - Self-explanatory code
 
-### 2. Minimal Changes Philosophy
+## Document Component Guide (read when creating or modifying NEOLIT.md)
 
-- Change **only** what's needed to fix/implement the task
-- Don't refactor unrelated code
-- Don't fix unrelated bugs unless explicitly asked
-- Keep commits focused and small
+NEOLIT.md file should contain accurate, concise information about the code in that directory. It's purpose is to help humans and AI agents understand, maintain, and extend the codebase, not to overwhelm with unnecessary details or to duplicate self-evident information.
 
-### 3. Follow Existing Patterns
+### Step 1: Determine C4 Level
 
-**Before adding new code, check:**
-1. Is there already a similar implementation?
-2. What pattern does the existing code use?
-3. Can I reuse existing utilities/components?
+**Quick check:**
+- Root directory → SYSTEM
+- Separately deployable (api/, worker/) → CONTAINER (optional)
+- Functional component (src/auth/) → COMPONENT (most common)
+- Sub-component (src/auth/utils/) → CODE (optional, if 3+ files)
 
-**Where to look:** `/docs/ARCHITECTURE.md`
+### Step 2: Identify Scope
 
-### 4. Implement Fully Before Moving On 
-- Complete one task fully before starting the next
-- Don't leave half-done features
-- Don't leave placeholders or TODOs in place of real implementations
+Depending on level and system architecture, determine:
+- Core files
+- Tech stack
+- Entry points
+- Dependencies
+- Key functions/classes
+- Data structures
+- Data flows
+- Patterns and conventions
+- Workflows
 
----
+### Step 3: Create NEOLIT.md
 
-## Working with This Codebase
+Read actual folders and code files in the directory.
+Write information extracted from code, that would help understand, maintain and extend it. Need only relevant info in readable understandabe format, no guesses, no obvious details, no placeholders, no self-explanatory parts such as schema/structure duplicates (but include references and links). Can use mermaid diagrams, tables, plain text, checklists, etc. Main goal is clarity and completeness.
+What to extract from code is dependending on multiple factors such as C4 level, system architecture, technology stack, coding patterns and conventions used in the project. But generally, extract fundamental information and avoid trivial details. If found something unusual or complex, document it. Remember to keep it concise and to the point, avoiding unnecessary verbosity, examples and duplicating what is already obvious from code.
 
-### Service Layer Pattern
+### Step 4: Add Cross-Links
 
-**All backend logic follows:** `repository.js` → `service.js` → `API endpoint`
-
-**When adding a new feature:**
-1. Check `/server/features/` for existing similar modules
-2. Copy the pattern from an existing module
-3. Create: `repository.js` (DB operations), `service.js` (business logic), `index.js` (exports)
-4. Add API endpoint in `/server/api/` that calls service
-
-**Never:**
-- Access MongoDB directly from API endpoints
-- Put business logic in API handlers
-- Skip the service layer
-
-### Frontend Store Pattern
-
-**All stores use:** Readonly reactive pattern
-
-**Template:**
-```javascript
-// composables/myFeature.js
-import { reactive, readonly, computed } from 'vue';
-
-const state = reactive({
-  data: null,
-  loading: false
-});
-
-export const myFeatureStore = readonly({
-  getters: {
-    data: computed(() => state.data),
-    loading: computed(() => state.loading)
-  },
-  actions: {
-    async fetch() {
-      state.loading = true;
-      state.data = await $fetch('/api/my-endpoint');
-      state.loading = false;
-    }
-  }
-});
-```
-
-**Never:**
-- Mutate state directly from components
-- Export mutable state
-- Use Vuex/Pinia (we use composables)
-
-### Component Guidelines
-
-**Check first:** Is there an existing component that does something similar?
-
-**Current UI migration:** Custom components → PrimeVue components
-
-**When creating components:**
-- Use PrimeVue for new components
-- Follow existing file structure in `/components/`
-- Use design tokens from `/assets/css/main.css`
-- Use Tailwind classes for layout/styling
+Add links to file, find and update related NEOLIT.md files:
+- Parent level → add to components list
+- Related components → add to Related section
+- System workflows → add references if used
 
 ---
 
-## Common Tasks
+## Tasks Workflow
 
-### Adding a New API Endpoint
+### Phase 0: Verify Docs Exist
 
-1. Create service in `/server/features/{module}/service.js`
-2. Create endpoint in `/server/api/{resource}/{action}.{method}.js`
-3. Use `event.context.auth.userId` for authentication
-4. Update `/ARCHITECTURE.md` API section
-5. Test with curl or browser
+When starting a new task, first verify that NEOLIT.md documentation files exist at all required levels (SYSTEM in project root and local COMPONENT where code change is needed) and contain all required information (data structures, flows, APIs, links to NEOLIT files in related components) so that you don't need to guess, grep, or hallucinate anything.
+If any NEOLIT.md is missing or incomplete, create or update it first using "Document Component Guide" above.
 
-### Adding a New Database Collection
+### Phase 1: Context Assembly
 
-1. Design schema in `/docs/specs/data-schema.md`
-2. Create indexes in `/server/db/indexes.js`
-3. Add repository in `/server/features/{module}/repository.js`
-4. Add service layer
-5. Update `/ARCHITECTURE.md` Data Model section
+- Read relevant NEOLIT.md files to assemble full context for the task - data structures, patterns, APIs, flows, technologies involved.
+- Read code parts that are directly related to the task.
+- If NEOLIT.md doesn't match code, update it using "Document Component Guide" above.
 
-### Fixing Bugs
+### Phase 2: Implement
 
-1. Reproduce the error
-2. Find root cause (check server logs, browser console)
-3. Make minimal fix
-4. Test the fix works
-5. Update documentation if schema/API changed
-6. Commit with clear description
+1. Complete task FULLY (no placeholders, TODOs, or "later" comments)
+2. Implement error handling and edge cases
+3. Move to WAITING status (not DONE, so reviewer can verify)
+4. Change ONLY what task requires
+5. Must not refactor unrelated code or fix unrelated bugs
+6. Follow existing structures, patterns, conventions, APIs
+7. Do not modify structures and flows without explicit task requirement
+8. Do not run npm build or dev servers
 
-### Running Tests
+### Phase 3: Documentation Synchronization
 
-```bash
-# Backend
-node server/scripts/test-endpoint.js
+1. Update NEOLIT.md when changing implementation or adding/removing features (use "Document Component Guide" above)
+2. Write execution log in Agent Notes format under TODO.org task:
+    ```org
+    *** Agent Notes
+         [YYYY-MM-DD] Task description
+         Files changed: file1.js, file2.js
+         Docs updated: NEOLIT.md (COMPONENT level)
+         Notes: key decisions, patterns used
+    ```
 
-# Frontend
-Don't run `npm run dev`  # It's already running
-```
+### Phase 4: Commit Strategy
 
----
+1. Commit code changes first with message starting with "feat:", "fix:", etc. as appropriate
+2. Commit documentation separately from code (any TODO.org(_archive) or NEOLIT.md should go in separate commit with "neo: ..." prefix)
+3. If project uses "local" branch, use only it. Do not commit directly to main or other branches.
+4. Do not revert commits or modify git history unless explicitly instructed.
+5. Pay attention to unstaged changes before committing - they can contain changes done by user or other agents.
 
-## Important Notes
-
-### User IDs are Strings, Not ObjectIds
-
-**⚠️ Critical:** `userId` fields contain OAuth provider IDs like `"google:12345"`, not MongoDB ObjectIds.
-
-**When querying by userId:**
-```javascript
-// ❌ WRONG
-{ userId: new ObjectId(userId) }
-
-// ✅ CORRECT
-{ userId: userId }  // Direct string comparison
-```
-
-### Collections usage
-If data from server is undefined, check direct fetching instead of using stores, as some collections might not have store implementations yet.
-
-### Collection Names
-
-**⚠️ Legacy:** Some collections use old names:
-- `cassettes` (not `cassette_templates`)
-- `artifacts` (not `results` or `files`)
-- Check `/docs/specs/data-schema.md` for actual collection names
-
-### Authentication Context
-
-All API endpoints get auth from middleware:
-```javascript
-const userId = event.context?.auth?.userId;
-if (!userId) {
-  throw createError({ statusCode: 401, message: 'Unauthorized' });
-}
-```
-
----
-
-## Workflow
-
-### When Starting Work
-
-1. Read `/docs/planning/implementation_plan.md` for current task
-2. Check relevant section in `/ARCHITECTURE.md` or `/ONBOARDING.md`
-3. Review similar existing code
-4. Implement following existing patterns
-5. Update documentation
-6. Mark task `[x]` in implementation plan
-7. Commit
-
-### When Asked to "Continue"
-
-1. Check implementation plan for next uncompleted `[ ]` task
-2. Complete that task
-3. Update docs + mark `[x]`
-4. Commit
-5. Move to next task
-6. Repeat until told to stop
-
-### When Finding Inconsistencies
-
-**If documentation conflicts with code:**
-1. Check which is correct (usually code is truth)
-2. Update documentation to match reality
-3. Add note explaining the discrepancy
-4. Commit documentation fix
-
----
-
-## Debugging Tips
-
-- Check server logs in terminal running `npm run dev`
-- Check browser console for frontend errors
-- Use `curl` to test API endpoints directly
-- Check `/server/middleware/auth.js` if auth issues
-- Look at similar working code for patterns
-
----
-
-## When in Doubt
-
-1. Read the documentation files first
-2. Check existing similar code
-3. Ask user for clarification if truly unclear
-4. Don't guess - wrong changes waste time
-
----
-
-**Remember:** This file is guidance for YOU (the AI). All actual architecture, schemas, and details live in other documented files.
