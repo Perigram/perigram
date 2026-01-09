@@ -126,7 +126,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useBatchesStore } from '~/stores/batches';
@@ -160,6 +160,12 @@ const newBatchName = ref('');
 
 onMounted(async () => {
   await batchesStore.fetchBatches(props.projectSlug);
+});
+
+onUnmounted(() => {
+  batches.value.forEach(batch => {
+    batchesStore.stopPolling(batch._id);
+  });
 });
 
 const getStatusSeverity = (status) => {

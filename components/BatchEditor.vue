@@ -260,7 +260,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
@@ -345,6 +345,10 @@ onMounted(async () => {
     console.log('[BatchEditor] Cassettes loaded:', cassettes.value.length);
     console.log('[BatchEditor] Tools loaded:', tools.value.length);
     loadBatchData();
+});
+
+onUnmounted(() => {
+    batchesStore.stopPolling(props.batch._id);
 });
 
 watch(() => props.batch, () => {
@@ -558,23 +562,12 @@ const runNesting = async () => {
 
     nestingInProgress.value = true;
     try {
-        const result = await $fetch(`/api/batch/${props.batch._id}/nest`, {
-            method: 'POST',
-            body: nestingOptions.value
-        });
-        console.log('Nesting started:', result);
-        emit('updated');
-        await loadArtifacts();
+        await batchesStore.startNesting(props.batch._id, nestingOptions.value);
+        toast.add({ severity: 'info', summary: 'Nesting Started', detail: 'Nesting process initiated in background', life: 3000 });
     } catch (error) {
         console.error('Failed to run nesting:', error);
-        
-        // Extract error message from response
         const errorMessage = error.data?.message || error.message || 'Unknown error';
         alert(`${t('batches.nestingFailed')}: ${errorMessage}`);
-        
-        // Don't emit('updated') here - it reloads batch and can lose entries
-        // Just refresh artifacts in case any were created
-        await loadArtifacts();
     } finally {
         nestingInProgress.value = false;
     }
