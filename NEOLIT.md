@@ -11,6 +11,16 @@ Cutkit-Demo is a professional DXF nesting application for CNC manufacturing. It 
 ## Core Architecture
 The system follows a modular architecture with a clean separation between the API/Frontend (Nuxt) and the processing units (Workers).
 
+### Data Model (v2 Target)
+- `layer_standards`: System layer catalogue.
+- `pen_templates`: Display styles for layers.
+- `tool_profiles`: CNC tool library.
+- `cassette_templates`: Parametric templates with layer mappings.
+- `batches`: Production runs with specific quantities and parameters.
+- `artifacts`: Unified outputs (layouts, G-code, PDFs).
+- `projects`: Extended with metadata and statistics.
+- `users`: User accounts and template libraries.
+
 ### Containers
 - **Web App (Nuxt):** Handles UI, user management, and business logic orchestration.
 - **Nesting Worker:** Python service that polls the database for nesting jobs and executes the nesting algorithm.

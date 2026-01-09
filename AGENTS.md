@@ -124,3 +124,28 @@ If any NEOLIT.md is missing or incomplete, create or update it first using "Docu
 4. Do not revert commits or modify git history unless explicitly instructed.
 5. Pay attention to unstaged changes before committing - they can contain changes done by user or other agents.
 
+---
+
+# Technical Constraints
+
+## Backend Pattern: Service-Repository
+Location: `server/features/[module]/`
+
+### Repository Layer (`repository.js`)
+- ONLY database operations (find, create, update, delete).
+- NO business logic or validation.
+- NO ownership checks.
+- Returns raw MongoDB results.
+
+### Service Layer (`service.js`)
+- ALL business logic and validation.
+- Ownership checks (verify `userId` owns the resource).
+- Error handling with `createError()`.
+- Orchestrates repository calls.
+- NEVER access database directly.
+
+## Critical Conventions
+- **User IDs:** Authenticated user IDs (`userId`) are strings (OAuth IDs), not MongoDB ObjectIds.
+- **Data Access:** No cross-module DB access (use service calls).
+- **Documentation Rule:** Every code change MUST update relevant NEOLIT.md docs in the same task session.
+

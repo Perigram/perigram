@@ -8,14 +8,15 @@ This directory manages the connection to MongoDB and handles schema indexing.
 
 ## Storage
 - **Collections:** Standard documents (users, projects, etc.).
-- **GridFS:** Large files (DXF, SVG, PDF) are stored in buckets:
-  - `cassettes`: Cassette DXF files.
+- **GridFS:** MongoDB file storage system with buckets:
+  - `avatars`: User profile images.
+  - `cassettes`: DXF files for cassette templates.
   - `userDxf`: Legacy DXF storage for workers.
-  - `artifacts`: Generated nesting results.
+  - `artifacts`: Generated nesting results (SVG, DXF, G-code, PDF).
 
 ## Index Management
 Indexes are defined in `indexes.js` and can be managed via CLI:
-```bash
-node server/db/indexes.js create
-```
-Key indexes include unique constraints on slugs and compound indexes for project-based queries.
+- `node server/db/indexes.js create` - Apply all defined indexes.
+- `node server/db/indexes.js list [collection]` - View current indexes.
+
+Key indexes include unique constraints on natural keys (`slug`, `code`), foreign keys (`ownerId`), and compound indexes for common query patterns.
