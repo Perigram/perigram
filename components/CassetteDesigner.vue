@@ -75,8 +75,8 @@
             <!-- Canvas Toolbar -->
             <div class="absolute top-6 right-6 z-10 flex flex-col gap-2">
                 <div class="flex gap-1 bg-[var(--background-primary)]/60 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-[var(--separator-primary)]">
-                    <Button icon="pi pi-plus" @click="zoomIn" text rounded class="h-9 w-9 text-[var(--label-secondary)]" />
-                    <Button icon="pi pi-minus" @click="zoomOut" text rounded class="h-9 w-9 text-[var(--label-secondary)]" />
+                    <Button icon="pi pi-plus" @click="zoomInAtCenter" text rounded class="h-9 w-9 text-[var(--label-secondary)]" />
+                    <Button icon="pi pi-minus" @click="zoomOutAtCenter" text rounded class="h-9 w-9 text-[var(--label-secondary)]" />
                     <Button icon="pi pi-expand" @click="resetView" text rounded class="h-9 w-9 text-[var(--label-secondary)]" />
                 </div>
             </div>
@@ -155,6 +155,22 @@
                         @mouseleave="hoveredEdge = null"
                         @click.stop="showAddFaceDialog(idx, edge)"
                     />
+                    
+                    <!-- Dimension Label -->
+                    <g :transform="`translate(${edge.midX}, ${edge.midY})`" class="pointer-events-none">
+                        <rect 
+                            :x="-30" :y="-10" :width="60" :height="20" 
+                            rx="4" fill="var(--background-primary)" 
+                            stroke="var(--separator-primary)" stroke-width="1"
+                        />
+                        <text 
+                            text-anchor="middle" dominant-baseline="middle" 
+                            class="fill-[var(--label-primary)] font-bold text-[10px]"
+                        >
+                            {{ getEdgeAlias(idx) }}
+                        </text>
+                    </g>
+                    
                     <g v-if="hoveredEdge === idx" class="pointer-events-none">
                         <circle :cx="edge.midX" :cy="edge.midY" r="14" fill="currentColor" class="text-[var(--background-primary)]" stroke="currentColor" pt:stroke:class="text-[var(--accent-primary)]" stroke-width="2" />
                         <path d="M-4 0 L4 0 M0 -4 L0 4" :transform="`translate(${edge.midX}, ${edge.midY})`" stroke="currentColor" class="text-[var(--accent-primary)]" stroke-width="2.5" stroke-linecap="round" />
@@ -187,6 +203,24 @@
         </div>
         
         <Toast />
+        
+        <!-- Add Parameter Dialog -->
+        <Dialog v-model:visible="showAddParamDialog" header="Add Custom Parameter" :modal="true" :style="{ width: '300px' }">
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-2">
+                    <label class="text-xs font-bold">Name</label>
+                    <InputText v-model="newParam.name" placeholder="e.g. X, Y, Z" />
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="text-xs font-bold">Initial Value</label>
+                    <InputNumber v-model="newParam.value" />
+                </div>
+            </div>
+            <template #footer>
+                <Button label="Cancel" text @click="showAddParamDialog = false" />
+                <Button label="Add" @click="addCustomParam" :disabled="!newParam.name" />
+            </template>
+        </Dialog>
     </div>
 </template>
 
@@ -194,12 +228,21 @@
     import { ref, onMounted, reactive, computed } from 'vue'
     import Button from 'primevue/button'
     import InputNumber from 'primevue/inputnumber'
+    import InputText from 'primevue/inputtext'
     import Select from 'primevue/select'
+    import Dialog from 'primevue/dialog'
     import Toast from 'primevue/toast'
     import ProgressSpinner from 'primevue/progressspinner'
     import { useToast } from 'primevue/usetoast'
     import init, { Modular } from 'nodi-modular'
     import { buildNodiGraph } from '~/utils/cassetteGraphBuilder'
+
+    const props = defineProps({
+        initialData: {
+            type: Object,
+            default: null
+        }
+    })
 
     const toast = useToast()
 
@@ -213,6 +256,15 @@
         },
         extrusions: [],
     })
+
+    const showAddParamDialog = ref(false)
+    const newParam = reactive({ name: '', value: 100 })
+
+    // Load initial data if provided
+    if (props.initialData?.data) {
+        Object.assign(cassetteData.params, props.initialData.data.params)
+        cassetteData.extrusions = [...props.initialData.data.extrusions]
+    }
 
     // UI State
     const hoveredEdge = ref(null)
@@ -317,6 +369,30 @@
         })
     }
 
+    const getEdgeAlias = (idx) => {
+        const edge = currentPolygonEdges.value[idx];
+        if (!edge) return '';
+        
+        const dx = edge.x2 - edge.x1;
+        const dy = edge.y2 - edge.y1;
+        const length = Math.round(Math.sqrt(dx*dx + dy*dy));
+        
+        // Find best matching parameter
+        let bestMatch = null;
+        let minDiff = 2;
+        
+        for (const [key, val] of Object.entries(cassetteData.params)) {
+            const diff = Math.abs(val - length);
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestMatch = key;
+            }
+        }
+        
+        if (bestMatch) return `${bestMatch}: ${length}`;
+        return `${length}`;
+    }
+
     const showAddFaceDialog = (edgeIndex, edge) => {
         if (!svgElement.value) return
         const svg = svgElement.value
@@ -325,9 +401,22 @@
         pt.y = edge.midY
         const screenPt = pt.matrixTransform(svg.getScreenCTM())
 
+        // Adjust positioning to keep within screen
+        let x = screenPt.x
+        let y = screenPt.y
+
+        const padding = 100
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+
+        if (x < padding) x = padding
+        if (x > viewportWidth - padding) x = viewportWidth - padding
+        if (y < padding) y = padding
+        if (y > viewportHeight - padding) y = viewportHeight - padding
+
         addDialog.visible = true
-        addDialog.screenX = screenPt.x
-        addDialog.screenY = screenPt.y
+        addDialog.screenX = x
+        addDialog.screenY = y
         addDialog.edgeIndex = edgeIndex
     }
 
@@ -377,6 +466,15 @@
         await rebuildAndEvaluate()
     }
 
+    const addCustomParam = () => {
+        if (newParam.name && !cassetteData.params[newParam.name]) {
+            cassetteData.params[newParam.name] = newParam.value
+            showAddParamDialog.value = false
+            newParam.name = ''
+            rebuildAndEvaluate()
+        }
+    }
+
     const reset = async () => {
         cassetteData.params = { A: 600, B: 600 }
         cassetteData.extrusions = []
@@ -385,11 +483,13 @@
 
     const save = async () => {
         try {
-            await $fetch('/api/cassettes', {
-                method: 'POST',
+            const endpoint = props.initialData?._id ? `/api/cassettes/${props.initialData._id}` : '/api/cassettes'
+            const method = props.initialData?._id ? 'PUT' : 'POST'
+            
+            await $fetch(endpoint, {
+                method,
                 body: {
-                    name: 'Parametric Cassette ' + new Date().toLocaleTimeString(),
-                    slug: 'cassette-' + Date.now(),
+                    name: props.initialData?.name || 'Parametric Cassette ' + new Date().toLocaleTimeString(),
                     data: JSON.parse(JSON.stringify(cassetteData))
                 }
             })
@@ -400,19 +500,74 @@
     }
 
     // Viewport Controls
-    const zoomIn = () => { viewBox.value.width *= 0.8; viewBox.value.height *= 0.8; }
-    const zoomOut = () => { viewBox.value.width *= 1.25; viewBox.value.height *= 1.25; }
-    const resetView = () => { viewBox.value = { x: -1000, y: -1000, width: 2000, height: 2000 }; }
-    const handleWheel = (e) => { const delta = e.deltaY > 0 ? 1.1 : 0.9; viewBox.value.width *= delta; viewBox.value.height *= delta; }
-    const handleMouseDown = (e) => { if (e.button === 0 && e.shiftKey) { isPanning.value = true; panStart.value = { x: e.clientX, y: e.clientY }; e.preventDefault(); } }
-    const handleMouseMove = (e) => {
-        if (isPanning.value) {
-            const dx = (e.clientX - panStart.value.x) * (viewBox.value.width / svgElement.value.clientWidth)
-            const dy = (e.clientY - panStart.value.y) * (viewBox.value.height / svgElement.value.clientHeight)
-            viewBox.value.x -= dx; viewBox.value.y -= dy;
-            panStart.value = { x: e.clientX, y: e.clientY };
+    const getPointFromEvent = (event) => {
+        const svg = svgElement.value
+        const pt = svg.createSVGPoint()
+        pt.x = event.clientX
+        pt.y = event.clientY
+        return pt.matrixTransform(svg.getScreenCTM().inverse())
+    }
+
+    const handleWheel = (event) => {
+        const svg = svgElement.value
+        const mousePoint = getPointFromEvent(event)
+        
+        const zoomFactor = event.deltaY > 0 ? 1.1 : 0.9
+        
+        const newWidth = viewBox.value.width * zoomFactor
+        const newHeight = viewBox.value.height * zoomFactor
+        
+        // Calculate new X and Y to zoom into mouse point
+        const dx = (mousePoint.x - viewBox.value.x) * (zoomFactor - 1)
+        const dy = (mousePoint.y - viewBox.value.y) * (zoomFactor - 1)
+        
+        viewBox.value = {
+            x: viewBox.value.x - dx,
+            y: viewBox.value.y - dy,
+            width: newWidth,
+            height: newHeight
         }
     }
+
+    const zoomInAtCenter = () => {
+        const zoomFactor = 0.8
+        const newWidth = viewBox.value.width * zoomFactor
+        const newHeight = viewBox.value.height * zoomFactor
+        const dx = (viewBox.value.width - newWidth) / 2
+        const dy = (viewBox.value.height - newHeight) / 2
+        viewBox.value = { x: viewBox.value.x + dx, y: viewBox.value.y + dy, width: newWidth, height: newHeight }
+    }
+
+    const zoomOutAtCenter = () => {
+        const zoomFactor = 1.25
+        const newWidth = viewBox.value.width * zoomFactor
+        const newHeight = viewBox.value.height * zoomFactor
+        const dx = (viewBox.value.width - newWidth) / 2
+        const dy = (viewBox.value.height - newHeight) / 2
+        viewBox.value = { x: viewBox.value.x + dx, y: viewBox.value.y + dy, width: newWidth, height: newHeight }
+    }
+
+    const resetView = () => {
+        viewBox.value = { x: -1000, y: -1000, width: 2000, height: 2000 };
+    }
+
+    const handleMouseDown = (event) => {
+        if (event.button === 0 && event.shiftKey) {
+            isPanning.value = true
+            panStart.value = { x: event.clientX, y: event.clientY }
+            event.preventDefault()
+        }
+    }
+
+    const handleMouseMove = (event) => {
+        if (isPanning.value) {
+            const dx = (event.clientX - panStart.value.x) * (viewBox.value.width / svgElement.value.clientWidth)
+            const dy = (event.clientY - panStart.value.y) * (viewBox.value.height / svgElement.value.clientHeight)
+            viewBox.value.x -= dx; viewBox.value.y -= dy;
+            panStart.value = { x: event.clientX, y: event.clientY };
+        }
+    }
+
     const handleMouseUp = () => (isPanning.value = false)
 </script>
 
