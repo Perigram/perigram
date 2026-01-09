@@ -24,6 +24,20 @@ export const myStore = { getters, actions };
 - **[globalStore](./global.js):** Global application state including navigation, notifications, and shared UI states.
 - **[layerStandardsStore](./layerStandards.js):** Provides access to system-defined DXF layer standards.
 
+## UI Architecture
+The project is migrating to **PrimeVue** for its component system.
+
+### Design Tokens (CSS Variables)
+Used for consistent styling across custom and PrimeVue components:
+- `--background-primary`, `--background-secondary`
+- `--label-primary`, `--label-secondary`, `--label-tertiary`
+- `--accent-primary`, `--accent-secondary`
+- `--separator-primary`, `--separator-secondary`
+
+### Layouts
+- **[dashboard.vue](../layouts/app.vue):** Main app layout with Menubar and UserBalance. Used for general authenticated views.
+- **[project.vue](../layouts/app.vue):** Specialized workspace layout with a project sidebar (Files, Batches, Settings). Used for `/project/:slug/*` routes.
+
 ## Usage in Components
 Composables are automatically imported by Nuxt. In a component:
 ```javascript
