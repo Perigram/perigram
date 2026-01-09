@@ -31,9 +31,9 @@
 
     --primary-svg-filter: brightness(0) saturate(100%);
 }
-[data-theme="primary"] *,
-[data-theme="primary"] *::before,
-[data-theme="primary"] *::after {
+.dark-mode *,
+.dark-mode *::before,
+.dark-mode *::after {
     --fill-secondary: rgb(245, 243, 240, 0.08);
     --fill-tertiary: rgb(245, 243, 240, 0.05);
 

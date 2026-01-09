@@ -4,7 +4,7 @@
         <div class="w-80 border-r border-[var(--separator-primary)] flex flex-col bg-[var(--fill-tertiary)]">
             <div class="p-4 border-b border-[var(--separator-primary)] font-bold uppercase text-[10px] text-[var(--label-tertiary)] tracking-widest flex justify-between items-center">
                 <span>Cassette Parameters</span>
-                <Button icon="pi pi-plus" text size="small" @click="showAddParamDialog = true" class="h-6 w-6" />
+                <Button icon="pi pi-plus" text size="small" @click="showAddParamDialog = true" class="h-6 w-6 text-[var(--label-secondary)]" />
             </div>
             
             <div class="flex-1 overflow-y-auto custom-scrollbar">
@@ -18,14 +18,14 @@
                         <InputNumber 
                             v-model="cassetteData.params[key]" 
                             @update:modelValue="rebuildAndEvaluate" 
-                            class="w-full h-9" 
-                            inputClass="bg-white/50 border-[var(--separator-secondary)] focus:border-[var(--accent-primary)] text-sm"
+                            class="w-full" 
+                            size="small"
                         />
                     </div>
                 </div>
 
                 <!-- Extrusion History -->
-                <div class="p-4 border-b border-[var(--separator-primary)] font-bold uppercase text-[10px] text-[var(--label-tertiary)] tracking-widest">
+                <div class="p-4 border-b border-[var(--separator-primary)] font-bold uppercase text-[10px] text-[var(--label-tertiary)] tracking-widest text-[var(--label-tertiary)]">
                     Faces & Flanges
                 </div>
                 <div class="p-2 flex flex-col gap-1">
@@ -33,13 +33,13 @@
                         No faces or flanges yet.<br>Click on an edge to start growing.
                     </div>
                     <div v-for="(ext, idx) in cassetteData.extrusions" :key="idx" 
-                        class="group p-3 rounded-lg border border-transparent hover:border-[var(--separator-secondary)] hover:bg-white/40 transition-all flex flex-col gap-2"
+                        class="group p-3 rounded-lg border border-transparent hover:border-[var(--separator-secondary)] hover:bg-[var(--fill-secondary)] transition-all flex flex-col gap-2"
                         @mouseenter="highlightExtrusion(idx)"
                         @mouseleave="highlightExtrusion(null)"
                     >
                         <div class="flex justify-between items-center">
                             <div class="flex items-center gap-2">
-                                <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent-primary)] text-white">{{ ext.param }}</span>
+                                <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent-primary)] text-[var(--background-primary)]">{{ ext.param }}</span>
                                 <span class="text-[10px] text-[var(--label-tertiary)]">Edge {{ ext.edge }}</span>
                             </div>
                             <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="removeExtrusion(idx)" class="opacity-0 group-hover:opacity-100 h-7 w-7" />
@@ -48,7 +48,7 @@
                             <Select 
                                 v-model="ext.param" 
                                 :options="availableParams" 
-                                class="flex-1 h-8 text-[11px] bg-white/50 border-[var(--separator-secondary)]" 
+                                class="flex-1 h-8 text-[11px]" 
                                 @change="rebuildAndEvaluate"
                             />
                         </div>
@@ -59,22 +59,22 @@
             <!-- Sidebar Footer -->
             <div class="p-4 border-t border-[var(--separator-primary)] flex gap-2 bg-[var(--background-primary)]">
                 <Button label="Reset" icon="pi pi-refresh" severity="secondary" outlined class="flex-1 h-10 text-[11px] font-bold uppercase" @click="reset" />
-                <Button label="Save Template" icon="pi pi-save" class="flex-1 h-10 text-[11px] font-bold uppercase bg-[var(--accent-primary)] border-none" @click="save" />
+                <Button label="Save" icon="pi pi-save" class="flex-1 h-10 text-[11px] font-bold uppercase bg-[var(--accent-primary)] text-[var(--background-primary)] border-none" @click="save" />
             </div>
         </div>
 
         <!-- Main Content: SVG Canvas -->
-        <div class="flex-1 relative overflow-hidden bg-[var(--background-primary)]">
+        <div class="flex-1 relative overflow-hidden">
             <div v-if="!modular" class="absolute inset-0 flex items-center justify-center bg-[var(--background-primary)]/80 z-20 backdrop-blur-md">
                 <div class="flex flex-col items-center gap-3">
-                    <div class="w-12 h-12 border-4 border-[var(--separator-primary)] border-t-[var(--accent-primary)] rounded-full animate-spin"></div>
+                    <ProgressSpinner style="width: 40px; height: 40px" />
                     <span class="text-[11px] font-bold uppercase tracking-widest text-[var(--label-tertiary)]">Initializing Engine</span>
                 </div>
             </div>
 
             <!-- Canvas Toolbar -->
             <div class="absolute top-6 right-6 z-10 flex flex-col gap-2">
-                <div class="flex gap-1 bg-white/60 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-white/20">
+                <div class="flex gap-1 bg-[var(--background-primary)]/60 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-[var(--separator-primary)]">
                     <Button icon="pi pi-plus" @click="zoomIn" text rounded class="h-9 w-9 text-[var(--label-secondary)]" />
                     <Button icon="pi pi-minus" @click="zoomOut" text rounded class="h-9 w-9 text-[var(--label-secondary)]" />
                     <Button icon="pi pi-expand" @click="resetView" text rounded class="h-9 w-9 text-[var(--label-secondary)]" />
@@ -105,7 +105,7 @@
                     <path 
                         :d="ext.path" 
                         fill="currentColor" 
-                        :class="highlightedIdx === idx ? 'text-[var(--accent-primary)] opacity-10' : 'text-[var(--accent-secondary)] opacity-5'"
+                        :class="highlightedIdx === idx ? 'text-[var(--accent-primary)] opacity-20' : 'text-[var(--accent-secondary)] opacity-10'"
                         class="transition-opacity duration-300"
                         style="pointer-events: none" 
                     />
@@ -124,13 +124,20 @@
                 <!-- Union Polygon -->
                 <path v-if="currentPolygonPath" 
                     :d="currentPolygonPath" 
-                    fill="white" 
-                    fill-opacity="0.9" 
+                    fill="currentColor" 
+                    class="text-[var(--background-primary)] opacity-90"
+                    stroke="currentColor" 
+                    pt:stroke:class="text-[var(--accent-primary)]"
+                    stroke-width="2.5" 
+                    stroke-linejoin="round"
+                />
+                <path v-if="currentPolygonPath" 
+                    :d="currentPolygonPath" 
+                    fill="none" 
                     stroke="currentColor" 
                     class="text-[var(--accent-primary)]"
                     stroke-width="2.5" 
                     stroke-linejoin="round"
-                    style="filter: drop-shadow(0 10px 15px rgba(0,0,0,0.05))"
                 />
 
                 <!-- Interactive Edges -->
@@ -143,13 +150,13 @@
                         stroke="transparent"
                         stroke-width="16"
                         stroke-linecap="round"
-                        class="cursor-pointer hover:stroke-[var(--accent-primary)]/10"
+                        class="cursor-pointer hover:stroke-[var(--accent-primary)]/20"
                         @mouseenter="hoveredEdge = idx"
                         @mouseleave="hoveredEdge = null"
                         @click.stop="showAddFaceDialog(idx, edge)"
                     />
                     <g v-if="hoveredEdge === idx" class="pointer-events-none">
-                        <circle :cx="edge.midX" :cy="edge.midY" r="14" fill="white" stroke="currentColor" class="text-[var(--accent-primary)]" stroke-width="2" />
+                        <circle :cx="edge.midX" :cy="edge.midY" r="14" fill="currentColor" class="text-[var(--background-primary)]" stroke="currentColor" pt:stroke:class="text-[var(--accent-primary)]" stroke-width="2" />
                         <path d="M-4 0 L4 0 M0 -4 L0 4" :transform="`translate(${edge.midX}, ${edge.midY})`" stroke="currentColor" class="text-[var(--accent-primary)]" stroke-width="2.5" stroke-linecap="round" />
                     </g>
                 </g>
@@ -159,23 +166,23 @@
             <div
                 v-if="addDialog.visible"
                 :style="{ position: 'absolute', left: addDialog.screenX + 'px', top: addDialog.screenY + 'px', transform: 'translate(-50%, -100%)' }"
-                class="z-50 mb-6 bg-white/90 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-2xl border border-white p-3 flex flex-col gap-3 min-w-[180px] animate-in fade-in zoom-in slide-in-from-bottom-4 duration-300"
+                class="z-50 mb-6 bg-[var(--background-primary)] shadow-xl rounded-2xl border border-[var(--separator-primary)] p-3 flex flex-col gap-3 min-w-[180px] animate-in fade-in zoom-in slide-in-from-bottom-4 duration-300"
             >
                 <div class="flex flex-col gap-1 px-1">
                     <span class="text-[10px] font-black uppercase tracking-widest text-[var(--label-tertiary)]">Add Geometry</span>
                     <span class="text-[11px] text-[var(--label-secondary)]">Edge {{ addDialog.edgeIndex }}</span>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
-                    <button @click="confirmAdd('face')" class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-[var(--accent-primary)] hover:text-white transition-all group">
+                    <button @click="confirmAdd('face')" class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-[var(--accent-primary)] hover:text-[var(--background-primary)] transition-all group">
                         <i class="pi pi-box text-lg"></i>
                         <span class="text-[10px] font-bold uppercase">Face</span>
                     </button>
-                    <button @click="confirmAdd('flange')" class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-[var(--accent-primary)] hover:text-white transition-all group">
+                    <button @click="confirmAdd('flange')" class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-[var(--accent-primary)] hover:text-[var(--background-primary)] transition-all group">
                         <i class="pi pi-minus text-lg"></i>
                         <span class="text-[10px] font-bold uppercase">Flange</span>
                     </button>
                 </div>
-                <Button icon="pi pi-times" text rounded size="small" @click="addDialog.visible = false" class="absolute -top-2 -right-2 bg-white shadow-md h-6 w-6" />
+                <Button icon="pi pi-times" text rounded size="small" @click="addDialog.visible = false" class="absolute -top-2 -right-2 bg-[var(--background-primary)] shadow-md h-6 w-6 text-[var(--label-secondary)]" />
             </div>
         </div>
         
@@ -189,6 +196,7 @@
     import InputNumber from 'primevue/inputnumber'
     import Select from 'primevue/select'
     import Toast from 'primevue/toast'
+    import ProgressSpinner from 'primevue/progressspinner'
     import { useToast } from 'primevue/usetoast'
     import init, { Modular } from 'nodi-modular'
     import { buildNodiGraph } from '~/utils/cassetteGraphBuilder'
