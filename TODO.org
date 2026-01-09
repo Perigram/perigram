@@ -52,3 +52,13 @@
      - Added "Reset to DRAFT" buttons in Batch Management list and Batch Editor for FAILED or stuck batches.
      - Updated UI Tag mapping to support COMPLETE status and NESTING warning severity.
      - Redeployed workers using docker stack with overlay network for reliable mongo resolution.
+
+* State Management Rework (Batch Statuses)
+*** Agent Notes
+     [2026-01-09] Implemented Optimistic UI and State Polling pattern for batch statuses.
+     Files changed: stores/batches.js, components/BatchManagement.vue, components/BatchEditor.vue
+     Notes: 
+     - Replaced manual re-fetching with transparent polling in Pinia store.
+     - Store now automatically detects transient statuses (NESTING, PROCESSING) and initiates background polling.
+     - Implemented optimistic status updates for `startNesting` and `resetStatus` actions with automatic rollback on failure.
+     - Cleaned up component-level logic to rely on store-driven state updates.
