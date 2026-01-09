@@ -15,13 +15,9 @@ export function buildNodiGraph(cassetteData, templateGraph) {
     const genId = () => crypto.randomUUID()
 
     // 1. Create Parameters (Number nodes)
-    const paramNodes = {}
-    const paramsToCreate = {
-        A: cassetteData.params.A || 600,
-        B: cassetteData.params.B || 600
-    }
-
-    for (const [key, value] of Object.entries(paramsToCreate)) {
+    const paramOutIds = {}
+    
+    for (const [key, value] of Object.entries(cassetteData.params)) {
         const id = genId()
         const outId = genId()
         const inValueId = genId()
@@ -53,10 +49,11 @@ export function buildNodiGraph(cassetteData, templateGraph) {
             enabled: true,
             visible: true
         }
-        paramNodes[key] = { id, outId }
+        paramOutIds[key] = outId
     }
 
     // 2. Root Rectangle (Sub Graph)
+    // Uses 'A' and 'B' by convention
     const rectInstanceId = genId()
     graph.sub_graphs[RECT_SUBGRAPH_ID].instances.push(rectInstanceId)
 
@@ -71,8 +68,8 @@ export function buildNodiGraph(cassetteData, templateGraph) {
         label: 'Root Face',
         input: {
             parameters: [
-                { id: rectIn0Id, name: '0th target', access_type: 'Tree', hint: '', connections: [paramNodes.A.outId] },
-                { id: rectIn1Id, name: '1th target', access_type: 'Tree', hint: '', connections: [paramNodes.B.outId] }
+                { id: rectIn0Id, name: '0th target', access_type: 'Tree', hint: '', connections: [paramOutIds.A] },
+                { id: rectIn1Id, name: '1th target', access_type: 'Tree', hint: '', connections: [paramOutIds.B] }
             ]
         },
         output: {
@@ -83,8 +80,8 @@ export function buildNodiGraph(cassetteData, templateGraph) {
         visible: true
     }
 
-    graph.nodes[paramNodes.A.id].output.parameters[0].connections.push(rectIn0Id)
-    graph.nodes[paramNodes.B.id].output.parameters[0].connections.push(rectIn1Id)
+    if (paramOutIds.A) graph.nodes[Object.keys(graph.nodes).find(id => graph.nodes[id].label === 'A')].output.parameters[0].connections.push(rectIn0Id)
+    if (paramOutIds.B) graph.nodes[Object.keys(graph.nodes).find(id => graph.nodes[id].label === 'B')].output.parameters[0].connections.push(rectIn1Id)
 
     // 3. Extrusions (linear chain)
     let currentUnionOutId = rectOutId
@@ -123,35 +120,22 @@ export function buildNodiGraph(cassetteData, templateGraph) {
                 enabled: true, visible: false
             }
 
-            // Length constant
-            const lengthConstId = genId()
-            const lengthConstOutId = genId()
-            const lengthIn0Id = genId()
-            const lengthIn1Id = genId()
-            graph.nodes[lengthConstId] = {
-                id: lengthConstId,
-                name: 'Number',
-                label: `Length`,
-                input: {
-                    parameters: [
-                        { id: lengthIn0Id, name: 'value', access_type: 'Item', hint: 'Number | Bool | String', connections: [] },
-                        { id: lengthIn1Id, name: 'integer or not', access_type: 'Item', hint: 'Bool', connections: [] }
-                    ]
-                },
-                output: { parameters: [{ id: lengthConstOutId, name: 'output value', access_type: 'Item', hint: 'Number', connections: [growIn2Id] }] },
-                entity: { variant: 'Number', data: { value: parseFloat(ext.length), integer: true, precision: 10 } },
-                enabled: true, visible: false
+            // Depth comes from a parameter
+            const depthParamId = paramOutIds[ext.param]
+            if (!depthParamId) {
+                console.error(`Parameter ${ext.param} not found for extrusion`);
+                continue;
             }
 
             graph.nodes[growNodeId] = {
                 id: growNodeId,
                 name: 'Sub Graph',
-                label: 'Grow Face',
+                label: `Grow ${ext.param}`,
                 input: {
                     parameters: [
                         { id: growIn0Id, name: '0th target', access_type: 'Tree', hint: '', connections: [currentUnionOutId] },
                         { id: growIn1Id, name: '1th target', access_type: 'Tree', hint: '', connections: [edgeConstOutId] },
-                        { id: growIn2Id, name: '2th target', access_type: 'Tree', hint: '', connections: [lengthConstOutId] }
+                        { id: growIn2Id, name: '2th target', access_type: 'Tree', hint: '', connections: [depthParamId] }
                     ]
                 },
                 output: {
@@ -168,6 +152,10 @@ export function buildNodiGraph(cassetteData, templateGraph) {
             const prevNode = graph.nodes[currentUnionNodeId]
             const prevOut = prevNode.output.parameters.find(p => p.id === currentUnionOutId)
             prevOut.connections.push(growIn0Id)
+
+            // Connect parameter to this grow node
+            const paramNodeId = Object.keys(graph.nodes).find(id => graph.nodes[id].label === ext.param)
+            graph.nodes[paramNodeId].output.parameters[0].connections.push(growIn2Id)
 
             currentUnionOutId = growOut0Id
             currentUnionNodeId = growNodeId
@@ -194,22 +182,12 @@ export function buildNodiGraph(cassetteData, templateGraph) {
         enabled: true, visible: true
     }
 
-        const lastNode = graph.nodes[currentUnionNodeId]
+    const lastNode = graph.nodes[currentUnionNodeId]
+    const lastOut = lastNode.output.parameters.find(p => p.id === currentUnionOutId)
+    lastOut.connections.push(boundaryInId)
 
-        const lastOut = lastNode.output.parameters.find(p => p.id === currentUnionOutId)
-
-        lastOut.connections.push(boundaryInId)
-
-    
-
-        return {
-
-            graph,
-
-            extrusionOutputIds
-
-        }
-
+    return {
+        graph,
+        extrusionOutputIds
     }
-
-    
+}

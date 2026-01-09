@@ -8,7 +8,7 @@ export class Cassette {
             },
             params: {
                 A: 600,
-                B: 400,
+                B: 600,
             },
             root: {
                 id: crypto.randomUUID(),
@@ -36,14 +36,33 @@ export class Cassette {
         return null
     }
 
-    addNode(parentId, edge, kind = 'return_flange', depth = '100') {
+    addNode(parentId, edge, kind = 'return_flange') {
         const parent = this.findNode(parentId)
         if (!parent) return null
+
+        let depthParam = ''
+        let defaultValue = 0
+
+        if (kind === 'face') {
+            const usedLetters = Object.keys(this.data.params).filter(k => /^[C-Z]$/.test(k)).sort()
+            const lastLetter = usedLetters.length ? usedLetters[usedLetters.length - 1] : 'B'
+            depthParam = String.fromCharCode(lastLetter.charCodeAt(0) + 1)
+            defaultValue = 600
+        } else {
+            const usedR = Object.keys(this.data.params).filter(k => /^R\d+$/.test(k))
+            const lastNum = usedR.length ? Math.max(...usedR.map(k => parseInt(k.substring(1)))) : 0
+            depthParam = `R${lastNum + 1}`
+            defaultValue = 30
+        }
+
+        if (!this.data.params[depthParam]) {
+            this.data.params[depthParam] = defaultValue
+        }
 
         const newNode = {
             id: crypto.randomUUID(),
             kind,
-            depth: depth.toString(),
+            depth: depthParam,
             attach: {
                 bendAngle: 90,
             },

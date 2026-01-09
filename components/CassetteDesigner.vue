@@ -1,63 +1,91 @@
 <template>
-    <div class="h-full flex">
+    <div class="h-full flex overflow-hidden bg-[var(--background-primary)] text-[var(--label-primary)]">
         <!-- Left Sidebar: Parameters & History -->
-        <div class="w-80 border-r flex flex-col bg-surface-50">
-            <div class="p-4 border-b font-bold uppercase text-xs text-surface-500 tracking-wider">Global Parameters</div>
-            <div class="p-4 flex flex-col gap-4">
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-surface-700">Width (A):</label>
-                    <InputNumber v-model="cassetteData.params.A" @update:modelValue="rebuildAndEvaluate" class="w-full" />
-                </div>
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-surface-700">Height (B):</label>
-                    <InputNumber v-model="cassetteData.params.B" @update:modelValue="rebuildAndEvaluate" class="w-full" />
-                </div>
+        <div class="w-80 border-r border-[var(--separator-primary)] flex flex-col bg-[var(--fill-tertiary)]">
+            <div class="p-4 border-b border-[var(--separator-primary)] font-bold uppercase text-[10px] text-[var(--label-tertiary)] tracking-widest flex justify-between items-center">
+                <span>Cassette Parameters</span>
+                <Button icon="pi pi-plus" text size="small" @click="showAddParamDialog = true" class="h-6 w-6" />
             </div>
-
-            <div class="p-4 border-b border-t font-bold uppercase text-xs text-surface-500 tracking-wider">History / Extrusions</div>
-            <div class="flex-1 overflow-y-auto p-4">
-                <div v-if="cassetteData.extrusions.length === 0" class="text-sm text-surface-400 text-center py-8">No extrusions yet. Click on an edge to add one.</div>
-                <div v-else class="flex flex-col gap-2">
-                    <div v-for="(ext, idx) in cassetteData.extrusions" :key="idx" class="p-3 bg-white border rounded-lg shadow-sm flex flex-col gap-2">
+            
+            <div class="flex-1 overflow-y-auto custom-scrollbar">
+                <!-- Global Dimensions -->
+                <div class="p-4 flex flex-col gap-4 border-b border-[var(--separator-primary)]">
+                    <div v-for="(val, key) in cassetteData.params" :key="key" class="flex flex-col gap-1.5">
                         <div class="flex justify-between items-center">
-                            <span class="text-sm font-medium">Edge {{ ext.edge }}</span>
-                            <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="removeExtrusion(idx)" />
+                            <label class="text-[11px] font-bold text-[var(--label-secondary)]">{{ key }}</label>
+                            <span class="text-[10px] text-[var(--label-tertiary)]">{{ getParamType(key) }}</span>
+                        </div>
+                        <InputNumber 
+                            v-model="cassetteData.params[key]" 
+                            @update:modelValue="rebuildAndEvaluate" 
+                            class="w-full h-9" 
+                            inputClass="bg-white/50 border-[var(--separator-secondary)] focus:border-[var(--accent-primary)] text-sm"
+                        />
+                    </div>
+                </div>
+
+                <!-- Extrusion History -->
+                <div class="p-4 border-b border-[var(--separator-primary)] font-bold uppercase text-[10px] text-[var(--label-tertiary)] tracking-widest">
+                    Faces & Flanges
+                </div>
+                <div class="p-2 flex flex-col gap-1">
+                    <div v-if="cassetteData.extrusions.length === 0" class="text-[11px] text-[var(--label-tertiary)] text-center py-12 px-4 italic leading-relaxed">
+                        No faces or flanges yet.<br>Click on an edge to start growing.
+                    </div>
+                    <div v-for="(ext, idx) in cassetteData.extrusions" :key="idx" 
+                        class="group p-3 rounded-lg border border-transparent hover:border-[var(--separator-secondary)] hover:bg-white/40 transition-all flex flex-col gap-2"
+                        @mouseenter="highlightExtrusion(idx)"
+                        @mouseleave="highlightExtrusion(null)"
+                    >
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent-primary)] text-white">{{ ext.param }}</span>
+                                <span class="text-[10px] text-[var(--label-tertiary)]">Edge {{ ext.edge }}</span>
+                            </div>
+                            <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="removeExtrusion(idx)" class="opacity-0 group-hover:opacity-100 h-7 w-7" />
                         </div>
                         <div class="flex items-center gap-2">
-                            <label class="text-xs text-surface-500">Depth:</label>
-                            <InputNumber v-model="ext.length" @update:modelValue="rebuildAndEvaluate" size="small" class="w-full" />
+                            <Select 
+                                v-model="ext.param" 
+                                :options="availableParams" 
+                                class="flex-1 h-8 text-[11px] bg-white/50 border-[var(--separator-secondary)]" 
+                                @change="rebuildAndEvaluate"
+                            />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="p-4 border-t flex gap-2">
-                <Button label="Reset" icon="pi pi-refresh" severity="secondary" outlined class="flex-1" @click="reset" />
-                <Button label="Save" icon="pi pi-save" class="flex-1" @click="save" />
+            <!-- Sidebar Footer -->
+            <div class="p-4 border-t border-[var(--separator-primary)] flex gap-2 bg-[var(--background-primary)]">
+                <Button label="Reset" icon="pi pi-refresh" severity="secondary" outlined class="flex-1 h-10 text-[11px] font-bold uppercase" @click="reset" />
+                <Button label="Save Template" icon="pi pi-save" class="flex-1 h-10 text-[11px] font-bold uppercase bg-[var(--accent-primary)] border-none" @click="save" />
             </div>
         </div>
 
         <!-- Main Content: SVG Canvas -->
-        <div class="flex-1 relative bg-surface-100 overflow-hidden">
-            <div v-if="!modular" class="absolute inset-0 flex items-center justify-center bg-white/50 z-20 backdrop-blur-sm">
-                <div class="flex flex-col items-center gap-2">
-                    <i class="pi pi-spin pi-spinner text-3xl text-blue-500"></i>
-                    <span class="text-sm font-medium">Initializing Geometry Engine...</span>
+        <div class="flex-1 relative overflow-hidden bg-[var(--background-primary)]">
+            <div v-if="!modular" class="absolute inset-0 flex items-center justify-center bg-[var(--background-primary)]/80 z-20 backdrop-blur-md">
+                <div class="flex flex-col items-center gap-3">
+                    <div class="w-12 h-12 border-4 border-[var(--separator-primary)] border-t-[var(--accent-primary)] rounded-full animate-spin"></div>
+                    <span class="text-[11px] font-bold uppercase tracking-widest text-[var(--label-tertiary)]">Initializing Engine</span>
                 </div>
             </div>
 
             <!-- Canvas Toolbar -->
-            <div class="absolute top-4 right-4 z-10 flex gap-2 bg-white/80 backdrop-blur p-2 rounded-lg shadow-md border">
-                <Button icon="pi pi-plus" @click="zoomIn" text rounded />
-                <Button icon="pi pi-minus" @click="zoomOut" text rounded />
-                <Button icon="pi pi-expand" @click="resetView" text rounded />
+            <div class="absolute top-6 right-6 z-10 flex flex-col gap-2">
+                <div class="flex gap-1 bg-white/60 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-white/20">
+                    <Button icon="pi pi-plus" @click="zoomIn" text rounded class="h-9 w-9 text-[var(--label-secondary)]" />
+                    <Button icon="pi pi-minus" @click="zoomOut" text rounded class="h-9 w-9 text-[var(--label-secondary)]" />
+                    <Button icon="pi pi-expand" @click="resetView" text rounded class="h-9 w-9 text-[var(--label-secondary)]" />
+                </div>
             </div>
 
             <svg
                 ref="svgElement"
                 :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`"
-                :class="isPanning ? 'cursor-move' : 'cursor-default'"
-                class="w-full h-full"
+                :class="isPanning ? 'cursor-grabbing' : 'cursor-crosshair'"
+                class="w-full h-full transition-colors duration-500"
                 @mousemove="handleMouseMove"
                 @mousedown="handleMouseDown"
                 @mouseup="handleMouseUp"
@@ -65,19 +93,45 @@
                 @wheel.prevent="handleWheel"
             >
                 <defs>
-                    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                        <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#e0e0e0" stroke-width="0.5" />
+                    <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
+                        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="currentColor" class="text-[var(--separator-secondary)]" stroke-width="0.5" />
+                        <circle cx="0" cy="0" r="1.5" fill="currentColor" class="text-[var(--separator-primary)]" />
                     </pattern>
                 </defs>
                 <rect :x="viewBox.x" :y="viewBox.y" :width="viewBox.width" :height="viewBox.height" fill="url(#grid)" />
 
                 <!-- Extrusion Highlights -->
                 <g v-for="(ext, idx) in extrusionShapes" :key="`ext-${idx}`">
-                    <path :d="ext.path" fill="rgba(34, 197, 94, 0.05)" stroke="#22c55e" stroke-width="1" stroke-dasharray="4,4" style="pointer-events: none" />
+                    <path 
+                        :d="ext.path" 
+                        fill="currentColor" 
+                        :class="highlightedIdx === idx ? 'text-[var(--accent-primary)] opacity-10' : 'text-[var(--accent-secondary)] opacity-5'"
+                        class="transition-opacity duration-300"
+                        style="pointer-events: none" 
+                    />
+                    <path 
+                        :d="ext.path" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        :stroke-width="highlightedIdx === idx ? 2 : 0.5"
+                        :class="highlightedIdx === idx ? 'text-[var(--accent-primary)]' : 'text-[var(--separator-primary)]'"
+                        class="transition-all duration-300"
+                        stroke-dasharray="4,4"
+                        style="pointer-events: none" 
+                    />
                 </g>
 
                 <!-- Union Polygon -->
-                <path v-if="currentPolygonPath" :d="currentPolygonPath" fill="white" fill-opacity="0.8" stroke="#3b82f6" stroke-width="2" />
+                <path v-if="currentPolygonPath" 
+                    :d="currentPolygonPath" 
+                    fill="white" 
+                    fill-opacity="0.9" 
+                    stroke="currentColor" 
+                    class="text-[var(--accent-primary)]"
+                    stroke-width="2.5" 
+                    stroke-linejoin="round"
+                    style="filter: drop-shadow(0 10px 15px rgba(0,0,0,0.05))"
+                />
 
                 <!-- Interactive Edges -->
                 <g v-for="(edge, idx) in currentPolygonEdges" :key="`edge-${idx}`">
@@ -87,40 +141,45 @@
                         :x2="edge.x2"
                         :y2="edge.y2"
                         stroke="transparent"
-                        stroke-width="12"
+                        stroke-width="16"
                         stroke-linecap="round"
-                        class="cursor-pointer hover:stroke-blue-400/30"
+                        class="cursor-pointer hover:stroke-[var(--accent-primary)]/10"
                         @mouseenter="hoveredEdge = idx"
                         @mouseleave="hoveredEdge = null"
                         @click.stop="showAddFaceDialog(idx, edge)"
                     />
                     <g v-if="hoveredEdge === idx" class="pointer-events-none">
-                        <circle :cx="edge.midX" :cy="edge.midY" r="10" fill="#3b82f6" stroke="white" stroke-width="2" />
-                        <path d="M-4 0 L4 0 M0 -4 L0 4" :transform="`translate(${edge.midX}, ${edge.midY})`" stroke="white" stroke-width="2" stroke-linecap="round" />
+                        <circle :cx="edge.midX" :cy="edge.midY" r="14" fill="white" stroke="currentColor" class="text-[var(--accent-primary)]" stroke-width="2" />
+                        <path d="M-4 0 L4 0 M0 -4 L0 4" :transform="`translate(${edge.midX}, ${edge.midY})`" stroke="currentColor" class="text-[var(--accent-primary)]" stroke-width="2.5" stroke-linecap="round" />
                     </g>
                 </g>
             </svg>
 
-            <!-- Floating Add Dialog -->
+            <!-- Floating Type Selector -->
             <div
                 v-if="addDialog.visible"
                 :style="{ position: 'absolute', left: addDialog.screenX + 'px', top: addDialog.screenY + 'px', transform: 'translate(-50%, -100%)' }"
-                class="z-50 mb-4 bg-white shadow-2xl rounded-xl border p-2 flex items-center gap-2"
+                class="z-50 mb-6 bg-white/90 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-2xl border border-white p-3 flex flex-col gap-3 min-w-[180px] animate-in fade-in zoom-in slide-in-from-bottom-4 duration-300"
             >
-                <InputNumber
-                    v-model="addDialog.length"
-                    :min="10"
-                    :max="2000"
-                    class="w-32"
-                    size="small"
-                    placeholder="Depth"
-                    ref="addInput"
-                    @keyup.enter="confirmAdd"
-                    @keyup.escape="addDialog.visible = false"
-                />
-                <Button icon="pi pi-check" size="small" @click="confirmAdd" />
+                <div class="flex flex-col gap-1 px-1">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-[var(--label-tertiary)]">Add Geometry</span>
+                    <span class="text-[11px] text-[var(--label-secondary)]">Edge {{ addDialog.edgeIndex }}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button @click="confirmAdd('face')" class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-[var(--accent-primary)] hover:text-white transition-all group">
+                        <i class="pi pi-box text-lg"></i>
+                        <span class="text-[10px] font-bold uppercase">Face</span>
+                    </button>
+                    <button @click="confirmAdd('flange')" class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-[var(--accent-primary)] hover:text-white transition-all group">
+                        <i class="pi pi-minus text-lg"></i>
+                        <span class="text-[10px] font-bold uppercase">Flange</span>
+                    </button>
+                </div>
+                <Button icon="pi pi-times" text rounded size="small" @click="addDialog.visible = false" class="absolute -top-2 -right-2 bg-white shadow-md h-6 w-6" />
             </div>
         </div>
+        
+        <Toast />
     </div>
 </template>
 
@@ -128,27 +187,34 @@
     import { ref, onMounted, reactive, computed } from 'vue'
     import Button from 'primevue/button'
     import InputNumber from 'primevue/inputnumber'
+    import Select from 'primevue/select'
+    import Toast from 'primevue/toast'
+    import { useToast } from 'primevue/usetoast'
     import init, { Modular } from 'nodi-modular'
     import { buildNodiGraph } from '~/utils/cassetteGraphBuilder'
+
+    const toast = useToast()
 
     // State
     const modular = ref(null)
     const templateGraph = ref(null)
     const cassetteData = reactive({
-        params: { A: 600, B: 600 },
+        params: { 
+            A: 600, 
+            B: 600 
+        },
         extrusions: [],
     })
 
     // UI State
     const hoveredEdge = ref(null)
+    const highlightedIdx = ref(null)
     const addDialog = reactive({
         visible: false,
         screenX: 0,
         screenY: 0,
         edgeIndex: null,
-        length: 200,
     })
-    const addInput = ref(null)
 
     // Geometry Data
     const currentPolygonPath = ref('')
@@ -157,9 +223,11 @@
 
     // Viewport State
     const svgElement = ref(null)
-    const viewBox = ref({ x: -800, y: -800, width: 1600, height: 1600 })
+    const viewBox = ref({ x: -1000, y: -1000, width: 2000, height: 2000 })
     const isPanning = ref(false)
     const panStart = ref({ x: 0, y: 0 })
+
+    const availableParams = computed(() => Object.keys(cassetteData.params))
 
     onMounted(async () => {
         try {
@@ -175,7 +243,7 @@
     const rebuildAndEvaluate = async () => {
         if (!modular.value || !templateGraph.value) return
 
-        const { graph, extrusionOutputIds } = buildNodiGraph(cassetteData, templateGraph.value)
+        const { graph } = buildNodiGraph(cassetteData, templateGraph.value)
         modular.value.loadGraph(JSON.stringify(graph))
 
         try {
@@ -192,14 +260,14 @@
 
             if (allCurves.length === 0) return
 
-            // Heuristic to find the largest (union) polygon
+            // Largest polygon is the union
             const sorted = [...allCurves].sort((a, b) => b.vertices.length - a.vertices.length)
             const largest = sorted[0]
 
             currentPolygonPath.value = verticesToSVGPath(largest.vertices)
             currentPolygonEdges.value = extractEdges(largest.vertices)
 
-            // Other 5-vertex curves are individual face rectangles
+            // Other 5-vertex curves are individual face/flange rectangles
             extrusionShapes.value = allCurves
                 .filter((c) => c !== largest && c.vertices.length === 5)
                 .map((c) => ({
@@ -208,6 +276,17 @@
         } catch (e) {
             console.error('Evaluation failed:', e)
         }
+    }
+
+    const getParamType = (key) => {
+        if (['A', 'B'].includes(key)) return 'Root Dim'
+        if (/^[C-Z]$/.test(key)) return 'Face Depth'
+        if (/^R\d+$/.test(key)) return 'Flange Depth'
+        return 'Custom'
+    }
+
+    const highlightExtrusion = (idx) => {
+        highlightedIdx.value = idx
     }
 
     const verticesToSVGPath = (vertices) => {
@@ -242,21 +321,51 @@
         addDialog.screenX = screenPt.x
         addDialog.screenY = screenPt.y
         addDialog.edgeIndex = edgeIndex
-
-        setTimeout(() => addInput.value?.$el?.querySelector('input')?.focus(), 50)
     }
 
-    const confirmAdd = async () => {
+    const confirmAdd = async (type) => {
+        let nextParam = ''
+        let defaultValue = 0
+
+        if (type === 'face') {
+            // Find next letter from C
+            const usedLetters = Object.keys(cassetteData.params).filter(k => /^[C-Z]$/.test(k)).sort()
+            const lastLetter = usedLetters.length ? usedLetters[usedLetters.length - 1] : 'B'
+            nextParam = String.fromCharCode(lastLetter.charCodeAt(0) + 1)
+            defaultValue = 600
+        } else {
+            // Find next R number
+            const usedR = Object.keys(cassetteData.params).filter(k => /^R\d+$/.test(k))
+            const lastNum = usedR.length ? Math.max(...usedR.map(k => parseInt(k.substring(1)))) : 0
+            nextParam = `R${lastNum + 1}`
+            defaultValue = 30
+        }
+
+        // Add parameter if not exists
+        if (!cassetteData.params[nextParam]) {
+            cassetteData.params[nextParam] = defaultValue
+        }
+
         cassetteData.extrusions.push({
             edge: addDialog.edgeIndex,
-            length: addDialog.length,
+            param: nextParam,
+            type
         })
+        
         addDialog.visible = false
         await rebuildAndEvaluate()
     }
 
     const removeExtrusion = async (idx) => {
+        const ext = cassetteData.extrusions[idx]
         cassetteData.extrusions.splice(idx, 1)
+        
+        // Check if parameter is still used
+        const isStillUsed = cassetteData.extrusions.some(e => e.param === ext.param)
+        if (!isStillUsed && !['A', 'B'].includes(ext.param)) {
+            delete cassetteData.params[ext.param]
+        }
+        
         await rebuildAndEvaluate()
     }
 
@@ -266,43 +375,51 @@
         await rebuildAndEvaluate()
     }
 
-    // Viewport Controls
-    const zoomIn = () => {
-        viewBox.value.width *= 0.8
-        viewBox.value.height *= 0.8
-    }
-    const zoomOut = () => {
-        viewBox.value.width *= 1.25
-        viewBox.value.height *= 1.25
-    }
-    const resetView = () => {
-        viewBox.value = { x: -800, y: -800, width: 1600, height: 1600 }
-    }
-    const handleWheel = (e) => {
-        const delta = e.deltaY > 0 ? 1.1 : 0.9
-        viewBox.value.width *= delta
-        viewBox.value.height *= delta
-    }
-    const handleMouseDown = (e) => {
-        if (e.button === 0 && e.shiftKey) {
-            isPanning.value = true
-            panStart.value = { x: e.clientX, y: e.clientY }
-            e.preventDefault()
+    const save = async () => {
+        try {
+            await $fetch('/api/cassettes', {
+                method: 'POST',
+                body: {
+                    name: 'Parametric Cassette ' + new Date().toLocaleTimeString(),
+                    slug: 'cassette-' + Date.now(),
+                    data: JSON.parse(JSON.stringify(cassetteData))
+                }
+            })
+            toast.add({ severity: 'success', summary: 'Success', detail: 'Template saved successfully', life: 3000 })
+        } catch (e) {
+            toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to save template', life: 3000 })
         }
     }
+
+    // Viewport Controls
+    const zoomIn = () => { viewBox.value.width *= 0.8; viewBox.value.height *= 0.8; }
+    const zoomOut = () => { viewBox.value.width *= 1.25; viewBox.value.height *= 1.25; }
+    const resetView = () => { viewBox.value = { x: -1000, y: -1000, width: 2000, height: 2000 }; }
+    const handleWheel = (e) => { const delta = e.deltaY > 0 ? 1.1 : 0.9; viewBox.value.width *= delta; viewBox.value.height *= delta; }
+    const handleMouseDown = (e) => { if (e.button === 0 && e.shiftKey) { isPanning.value = true; panStart.value = { x: e.clientX, y: e.clientY }; e.preventDefault(); } }
     const handleMouseMove = (e) => {
         if (isPanning.value) {
             const dx = (e.clientX - panStart.value.x) * (viewBox.value.width / svgElement.value.clientWidth)
             const dy = (e.clientY - panStart.value.y) * (viewBox.value.height / svgElement.value.clientHeight)
-            viewBox.value.x -= dx
-            viewBox.value.y -= dy
-            panStart.value = { x: e.clientX, y: e.clientY }
+            viewBox.value.x -= dx; viewBox.value.y -= dy;
+            panStart.value = { x: e.clientX, y: e.clientY };
         }
     }
     const handleMouseUp = () => (isPanning.value = false)
-
-    const save = () => {
-        console.log('Saving cassette data:', JSON.stringify(cassetteData))
-        // Implement actual save logic here
-    }
 </script>
+
+<style>
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--separator-primary);
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--label-tertiary);
+}
+</style>
