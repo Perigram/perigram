@@ -5,12 +5,20 @@
             <Tag :value="batch.status" :severity="getStatusSeverity(batch.status)" />
             <span>{{ entries.length }} {{ $t('batches.entries') }}</span>
             <Button 
-                v-if="batch.status === 'NESTED'"
+                v-if="batch.status === 'NESTED' || batch.status === 'COMPLETE'"
                 :label="$t('batches.markComplete')"
                 icon="pi pi-check"
                 severity="success"
                 @click="markComplete"
                 class="ml-auto"
+            />
+            <Button 
+                v-if="batch.status === 'FAILED' || batch.status === 'NESTING'"
+                label="Reset to Draft"
+                icon="pi pi-refresh"
+                severity="warning"
+                @click="resetToDraft"
+                :class="batch.status === 'FAILED' || batch.status === 'NESTING' ? 'ml-auto' : ''"
             />
         </div>
 
@@ -255,9 +263,11 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
+import { useToast } from 'primevue/usetoast';
 import { useCassettesStore } from '~/stores/cassettes';
 import { useToolProfilesStore } from '~/stores/toolProfiles';
 import { useArtifactsStore } from '~/stores/artifacts';
+import { useBatchesStore } from '~/stores/batches';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
@@ -290,8 +300,10 @@ const emit = defineEmits(['updated']);
 
 const { t } = useI18n();
 const confirm = useConfirm();
+const toast = useToast();
 
 // Stores
+const batchesStore = useBatchesStore();
 const cassettesStore = useCassettesStore();
 const artifactsStore = useArtifactsStore();
 const toolProfilesStore = useToolProfilesStore();
@@ -579,6 +591,24 @@ const markComplete = async () => {
         console.error('Failed to mark as complete:', error);
         alert(t('batches.markCompleteFailed'));
     }
+};
+
+const resetToDraft = async () => {
+    confirm.require({
+        message: 'Are you sure you want to reset this batch to DRAFT? This will allow you to edit entries and run nesting again.',
+        header: 'Confirm Reset',
+        icon: 'pi pi-exclamation-triangle',
+        accept: async () => {
+            try {
+                await batchesStore.resetStatus(props.batch._id);
+                toast.add({ severity: 'success', summary: 'Success', detail: 'Batch reset to DRAFT', life: 3000 });
+                emit('updated');
+            } catch (error) {
+                console.error('Failed to reset batch:', error);
+                toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to reset batch', life: 3000 });
+            }
+        }
+    });
 };
 
 const downloadArtifact = async (artifact) => {

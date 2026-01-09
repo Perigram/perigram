@@ -136,5 +136,16 @@ while not shutdown_requested:
                 "finishedAt": datetime.now()
             }}
         )
+        
+        # Update associated batch status to FAILED
+        if "batchId" in doc:
+            try:
+                db["batches"].update_one(
+                    {"_id": doc["batchId"]},
+                    {"$set": {"status": "FAILED", "updatedAt": datetime.now()}}
+                )
+                logger.info(f"Updated batch {doc['batchId']} status to FAILED")
+            except Exception as batch_err:
+                logger.error(f"Failed to update batch {doc['batchId']} status: {batch_err}")
     finally:
         current_doc_id = None

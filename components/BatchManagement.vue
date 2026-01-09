@@ -64,6 +64,14 @@
                 @click="runNesting(slotProps.data)"
               />
               <Button 
+                v-if="slotProps.data.status === 'FAILED'"
+                icon="pi pi-refresh" 
+                severity="warning" 
+                size="small"
+                v-tooltip.top="'Reset to DRAFT'"
+                @click="resetBatch(slotProps.data)"
+              />
+              <Button 
                 icon="pi pi-trash" 
                 severity="danger" 
                 size="small"
@@ -132,6 +140,7 @@ import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import ProgressSpinner from 'primevue/progressspinner';
 import Message from 'primevue/message';
+import { useToast } from 'primevue/usetoast';
 
 const props = defineProps({
   projectSlug: {
@@ -142,6 +151,7 @@ const props = defineProps({
 
 const { t } = useI18n();
 const router = useRouter();
+const toast = useToast();
 const batchesStore = useBatchesStore();
 const { batches, loading, error } = storeToRefs(batchesStore);
 
@@ -202,6 +212,16 @@ const runNesting = async (batch) => {
     await batchesStore.startNesting(batch._id);
   } catch (err) {
     console.error('Failed to run nesting:', err);
+  }
+};
+
+const resetBatch = async (batch) => {
+  try {
+    await batchesStore.resetStatus(batch._id);
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Batch reset to DRAFT', life: 3000 });
+  } catch (err) {
+    console.error('Failed to reset batch:', err);
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to reset batch', life: 3000 });
   }
 };
 

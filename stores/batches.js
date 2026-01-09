@@ -113,6 +113,23 @@ export const useBatchesStore = defineStore('batches', () => {
         }
     }
 
+    async function resetStatus(batchId) {
+        try {
+            const result = await $fetch(`/api/batch/${batchId}/reset-status`, {
+                method: 'POST'
+            });
+            await getBatch(batchId);
+            const index = batches.value.findIndex(b => b._id === batchId);
+            if (index !== -1) {
+                batches.value[index] = currentBatch.value;
+            }
+            return result;
+        } catch (err) {
+            error.value = err.message;
+            throw err;
+        }
+    }
+
     return {
         batches,
         currentBatch,
@@ -124,6 +141,7 @@ export const useBatchesStore = defineStore('batches', () => {
         updateBatch,
         deleteBatch,
         startNesting,
-        getArtifacts
+        getArtifacts,
+        resetStatus
     };
 });
