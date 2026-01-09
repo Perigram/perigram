@@ -44,8 +44,11 @@
 * Nesting Error Handling & Batch Reset
 *** Agent Notes
      [2026-01-09] Implemented error reporting from worker to batch and reset functionality.
-     Files changed: workers/nesting/main.py, stores/batches.js, components/BatchManagement.vue, components/BatchEditor.vue
+     Files changed: workers/nesting/main.py, stores/batches.js, components/BatchManagement.vue, components/BatchEditor.vue, docker-compose.local.yml
      Notes: 
      - Worker now updates associated batch status to FAILED upon unhandled exception.
+     - Worker now updates associated batch status to COMPLETE upon successful completion.
      - Added `resetStatus` to batches store calling `reset-status` API.
      - Added "Reset to DRAFT" buttons in Batch Management list and Batch Editor for FAILED or stuck batches.
+     - Updated UI Tag mapping to support COMPLETE status and NESTING warning severity.
+     - Redeployed workers using docker stack with overlay network for reliable mongo resolution.
