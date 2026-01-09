@@ -1,0 +1,27 @@
+* TODO CassetteDesigner rework
+  First, need to understand rework direction.
+  CassetteDesigner is a tool for designing cassette templates. It's top-level workflow:
+  1. User-driven design of cassette in 2d editor. Cassette is basically a tree of connected shapes (faces and flanges). See /home/suo/cutkit-demo/docs/specs/cassette-schema.md
+     User can click on shape edges to add child shapes, delete child shapes, modify dimensions, etc.
+  2. Storing cassette template as JSON with tree stucture and variables (cassette schema).
+  3. Conversion to DXF (probably not needed in this component, need to find proper place for this logic).
+     Currently, CassetteDesigner is a Vue component with a lot of logic inside. It uses SVG which is probably not optimal for complex shapes and transformations. It uses nodi-modular for shape building and some 2d work like intersections, unions, etc. Need to figure out best way to rework this component.
+
+*** Agent Notes
+     [2026-01-09] Reworked CassetteDesigner component.
+     Files changed: components/CassetteDesigner.vue, utils/cassetteGraphBuilder.js, utils/cassette.js
+     Docs updated: components/NEOLIT.md (COMPONENT level)
+     Notes: 
+     - Extracted Nodi3D graph building logic to a separate utility.
+     - Implemented a more structured state management for cassette data (params and extrusions).
+     - Improved UI with a side panel for editing parameters and managing extrusion history.
+     - SVG rendering is now driven by the high-level cassette data.
+
+*** User Notes
+    Colors in your component don't follow project conventions. Global parameters are not global parameters but just root node dimensions.
+    Also need to extend cassette lifecycle and usage. Need to save creation as cassette template, display in cassette library, use in batches. 
+    Need named dimension aliases as in schema. For example, root node has "A" and "B" dimensions, it's children inherit those have shared edge and their depths are "C", "D", etc. Also separate flange dimensions "F1", "F2, etc.
+    Need previews in dataview cards, need to display dimension aliases as dimensions.
+    Need to convert cassette template to DXF when used in batch using exact values from batch.
+
+
