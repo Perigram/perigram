@@ -4,22 +4,35 @@ The Nesting Worker is a Python-based service responsible for executing the 2D bi
 
 ## Core Files
 - `main.py`: Entry point that polls MongoDB for pending nesting jobs.
+- `core/main.py`: Main processing logic for geometry transformation and DXF generation.
 - `core/nesting_input_builder.py`: Prepares geometry and parameters for the nesting engine.
 - `core/svg_generator.py`: Generates SVG previews of the nesting results.
 - `utils/mongo.py`: Helper for database and GridFS interactions.
 
 ## Nesting Engine
 The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesting library written in Rust.
-- Communication with Rust is handled via CLI calls or FFI (depending on the specific implementation in `core/`).
+- Communication with Rust is handled via CLI calls or FFI.
 - The engine supports parametric part generation and complex polygon handling.
 
-## Nesting Workflow (v2)
-1. **Trigger:** `POST /api/batch/:id/nest` creates a `nesting_job` entry.
-2. **Polling:** Worker picks up `pending` jobs from the `nesting_jobs` collection.
-3. **Execution:** Worker downloads DXFs from GridFS, applies parametric values, and runs `jagua-rs`.
-4. **Artifacts:** Worker generates SVG layouts, DXF files, G-code, and PDF reports.
-5. **Storage:** Results are uploaded to the `artifacts` GridFS bucket.
-6. **Completion:** Worker updates job status to `complete` and sets `fileId` references in the Batch's artifacts.
+## Nesting Workflow
+1.  **Cassette Upload**: User uploads DXF. `server/features/cassettes/service.js` extracts entities from the mapped nesting layer (default: `1_3_UNFOLD_BOUNDARY`) into `polygonParts`.
+2.  **Trigger**: `POST /api/batch/:id/nest` creates a `nesting_jobs` entry.
+3.  **Polling**: Worker picks up `pending` jobs.
+4.  **Processing**:
+    *   Reads `polygonParts` from MongoDB.
+    *   Runs nesting algorithm via `jagua-rs`.
+    *   Returns transformations: `{ cassetteId, handles, x, y, angle }`.
+5.  **Result Generation**:
+    *   Opens cassette DXF.
+    *   Extracts entities by `handles` (nesting layer only).
+    *   Applies transformations and generates result DXF/SVG.
+6.  **Storage**: Results are uploaded to GridFS artifacts.
+7.  **Completion**: Updates job status to `complete`.
+
+## Troubleshooting
+- **No polygons?**: Check if the DXF layer is correctly mapped to `1_3_UNFOLD_BOUNDARY` during upload.
+- **Fallback to rectangles?**: Occurs when `polygonParts` is empty; worker uses batch dimensions instead.
+- **Wrong entities?**: Verify `layerMapping` points to the correct boundary layer in the original DXF.
 
 ## Job Document Schema
 ```javascript
@@ -28,7 +41,7 @@ The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesti
   projectSlug: string,
   batchId: ObjectId,
   files: [
-    { slug: string, simpleName: string, count: number }
+    { cassetteId: string, count: number, dimensions: object }
   ],
   params: {
     height: number,
@@ -37,10 +50,6 @@ The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesti
     sheetCount: number
   },
   status: "pending" | "processing" | "complete" | "failed",
-  ownerId: string      // Auth provider ID
+  ownerId: string
 }
 ```
-
-## Setup
-Requires a Python 3.12 environment and compiled Rust binaries for `jagua-rs`.
-Managed via `requirements.txt` and `Cargo.toml`.

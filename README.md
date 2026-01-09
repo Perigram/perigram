@@ -1,37 +1,68 @@
-# Cutkit-Demo (Nest2D)
+# CutKit
 
-Professional DXF nesting application for CNC manufacturing. Optimized material usage for laser, plasma, and waterjet cutters.
+A modern, open-source nesting application for laser cutting and CNC machining.
 
-## Key Features
-- **Parametric Cassettes:** define templates with variables (A, B, C...) and map DXF layers to system standards.
-- **Batch Processing:** organize production runs into batches with dynamic parameter values.
-- **High Performance:** Rust-based nesting engine ([jagua-rs](https://github.com/JeroenGar/jagua-rs)).
-- **Unified Artifacts:** generates optimal material layouts (SVG, DXF), G-code, and PDF reports.
-
-## Getting Started
-
-### Documentation
-- **[System Overview](./NEOLIT.md)** - High-level architecture and tech stack.
-- **[Development Setup](./docs/development/DEVELOPMENT.md)** - Guide for local development.
-- **[Onboarding](./docs/development/ONBOARDING.md)** - Essential guide for new developers.
-- **[Documentation Index](./docs/)** - Comprehensive list of guides and specs.
-
-### Local Development
-1. **Setup Environment:**
-   ```bash
-   npm install
-   ```
-2. **Start Dev Session (tmux):**
-   ```bash
-   ./start-dev.sh
-   ```
-   This script ensures MongoDB is running and starts the Nuxt app and workers.
-
-## Credits
-This project is built upon the amazing work of:
-- [JeroenGar (jagua-rs)](https://github.com/JeroenGar/jagua-rs)
-- [Jack000 (SVGNest)](https://github.com/Jack000/SVGnest)
-- and many others in the open-source CNC community.
+[Visit Web Application](https://cutkit.stelmashchuk.dev/)
 
 ---
-[Visit Web Application](https://nest2d.stelmashchuk.dev/)
+
+## 🚀 Quick Start
+
+**1. Prerequisites:**
+- Node.js v18+
+- Docker & Docker Compose
+
+**2. Setup:**
+```bash
+git clone <repo-url>
+cd cutkit-demo
+npm install
+```
+
+**3. Run Development Environment:**
+```bash
+./start-dev.sh
+```
+*This script starts MongoDB (v4.4), the background workers, and the Nuxt development server in a tmux session.*
+
+**4. Seed Initial Data:**
+```bash
+node server/scripts/seed-all.js
+```
+
+---
+
+## 🏗 Architecture & Patterns
+
+- **Frontend**: Nuxt 3 (Vue 3), Tailwind CSS, PrimeVue.
+- **Backend**: Nitro (Server Engine), MongoDB (GridFS for files).
+- **Workers**: Python-based nesting and file processing workers.
+- **Patterns**: Strict **Service-Repository** pattern for all backend features.
+
+For detailed architecture info, see [ARCHITECTURE.md](./ARCHITECTURE.md).
+For AI agent instructions and project rules, see [AGENTS.md](./AGENTS.md).
+
+---
+
+## 📖 Documentation
+
+- **[Deployment](./docs/DEPLOYMENT.md)**: Local, Railway, and Self-hosted guides.
+- **[Component Docs](./NEOLIT.md)**: Every major directory contains a `NEOLIT.md` file describing its purpose and implementation.
+
+---
+
+## 🛠 Common Tasks
+
+### Database Seeding
+To reset and re-seed all system data (layer standards, pen templates, etc.):
+```bash
+# MongoDB shell
+use cutkit;
+db.layer_standards.drop();
+# ...
+node server/scripts/seed-all.js
+```
+
+### Increasing Memory
+If you encounter "JS heap out of memory", set:
+`export NODE_OPTIONS="--max-old-space-size=4096"`

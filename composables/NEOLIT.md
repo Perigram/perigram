@@ -1,21 +1,28 @@
-# COMPONENT: Composables (State Management)
+# COMPONENT: Composables & Stores
 
-This directory contains the frontend state management logic using Nuxt 3 composables. The project follows a "Readonly Reactive" store pattern instead of using Pinia.
+## State Management (Pinia)
+The project uses **Pinia** for global state management. Stores are located in the `stores/` directory and are auto-imported.
 
-## Store Pattern
-Each store typically consists of:
-- A private `reactive` state object.
-- A set of `computed` getters.
-- A set of `async` actions for API interaction.
-- An exported object containing `getters` and `actions`.
+### Key Stores
+- **[authStore](../stores/auth.js):** Manages user session, login status, and user profile data.
+- **[batchesStore](../stores/batches.js):** Handles batch creation, updates, fetching, and nesting.
+- **[cassettesStore](../stores/cassettes.js):** Manages user cassette templates.
+- **[globalStore](../stores/global.js):** Global application state (projects list, notifications).
+- **[layerStandardsStore](../stores/layerStandards.js):** System-defined DXF layer standards.
 
-Example structure:
+### Usage
 ```javascript
-const state = reactive({ items: [], loading: false });
-const getters = { items: computed(() => state.items) };
-const actions = { async fetch() { ... } };
-export const myStore = { getters, actions };
+const authStore = useAuthStore();
+const { user } = storeToRefs(authStore);
+
+await authStore.setUser();
 ```
+
+## Composables
+This directory contains reusable logic that leverages Nuxt's `useState` for component-local or request-scoped state, and other utility functions.
+
+- **[apiRoutes.js](./apiRoutes.js):** API endpoint constants.
+- **[useModalState.js](./useModalState.js):** UI state for dialogs (uses `useState`).
 
 ## Key Stores
 - **[authStore](./auth.js):** Manages user session, login status, and user profile data.

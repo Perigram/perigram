@@ -1,0 +1,22 @@
+* DONE Check current app state management
+  CLOSED: [2026-01-09 Пт 14:49]
+  Doesn't it feel off? Should rewrite to modern standards?
+*** Agent Notes
+     [2026-01-09] Analyzed state management.
+     The current "Readonly Reactive" pattern in composables uses module-level `reactive` state.
+     CRITICAL: This is not SSR-safe in Nuxt 3 as state is shared between requests on the server.
+     Recommended fix:
+     - Short term: Use Nuxt's `useState()` to encapsulate state per request.
+     - Long term: Migrate to Pinia (official Nuxt/Vue recommendation).
+     - Consistency: `batchesStore` is missing `readonly` wrapper on export.
+*** User Notes
+    Migrate to Pinia. Apply best practices. Keep current functionality.
+*** Agent Notes
+    [2026-01-09] Migrated to Pinia.
+    - Created stores in `stores/`.
+    - Updated all components and pages to use Pinia stores.
+    - Removed old composables.
+    - Verified SSR safety (Pinia stores are request-scoped).
+    - Fixed 500 error caused by missing `composables/penTemplates.js` import in `pages/assets/pens.vue`.
+    - Added explicit imports for stores in components to ensure SSR stability.
+

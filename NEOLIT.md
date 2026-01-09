@@ -38,25 +38,5 @@ See details in sub-directories:
 - [workers](./workers/NEOLIT.md) - Specialized processing units.
 - [composables](./composables/NEOLIT.md) - Frontend state management.
 
-## Documentation Index
-- [Development Setup](./docs/development/DEVELOPMENT.md)
-- [Onboarding Guide](./docs/development/ONBOARDING.md)
-- [Deployment Guides](./docs/deployment/)
-- [Feature Guides](./docs/guides/)
-- [Historical Docs](./docs/history/)
-
 ## Deployment & Ops
-### Essential Env Vars
-- `MONGODB_URI`: Primary database connection.
-- `NUXT_PUBLIC_BASE_URL`: Public endpoint for the UI.
-- `GITHUB_CLIENT_ID` / `SECRET`: OAuth credentials.
-
-### Production Build
-```bash
-npm run build
-node .output/server/index.mjs
-```
-Worker deployment via Docker Stack:
-```bash
-docker stack deploy -c docker-stack.yml nest2d
-```
+See [DEPLOYMENT.md](./docs/DEPLOYMENT.md) for Docker stack setup, environment configuration, and monitoring strategies.
