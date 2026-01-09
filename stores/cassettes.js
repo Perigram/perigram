@@ -63,6 +63,20 @@ export const useCassettesStore = defineStore('cassettes', () => {
         }
     }
 
+    async function createCassette(data) {
+        try {
+            const result = await $fetch('/api/cassettes', {
+                method: 'POST',
+                body: data,
+            });
+            cassettes.value.push(result);
+            return result;
+        } catch (error) {
+            console.error('Failed to create cassette:', error);
+            throw error;
+        }
+    }
+
     async function updateCassette(cassetteId, data) {
         try {
             const updatedCassette = await $fetch(`/api/cassettes/${cassetteId}`, {

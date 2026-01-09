@@ -44,5 +44,5 @@ export default defineEventHandler(async (event) => {
     { $set: updates }
   );
 
-  return { success: true };
+  return await db.collection('cassettes').findOne({ _id: new ObjectId(id) });
 });

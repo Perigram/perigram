@@ -237,6 +237,8 @@
     import init, { Modular } from 'nodi-modular'
     import { buildNodiGraph } from '~/utils/cassetteGraphBuilder'
 
+    import { useCassettesStore } from '~/stores/cassettes'
+
     const props = defineProps({
         initialData: {
             type: Object,
@@ -245,6 +247,7 @@
     })
 
     const toast = useToast()
+    const cassettesStore = useCassettesStore()
 
     // State
     const modular = ref(null)
@@ -483,16 +486,17 @@
 
     const save = async () => {
         try {
-            const endpoint = props.initialData?._id ? `/api/cassettes/${props.initialData._id}` : '/api/cassettes'
-            const method = props.initialData?._id ? 'PUT' : 'POST'
+            const body = {
+                name: props.initialData?.name || 'Parametric Cassette ' + new Date().toLocaleTimeString(),
+                data: JSON.parse(JSON.stringify(cassetteData))
+            }
+
+            if (props.initialData?._id) {
+                await cassettesStore.updateCassette(props.initialData._id, body)
+            } else {
+                await cassettesStore.createCassette(body)
+            }
             
-            await $fetch(endpoint, {
-                method,
-                body: {
-                    name: props.initialData?.name || 'Parametric Cassette ' + new Date().toLocaleTimeString(),
-                    data: JSON.parse(JSON.stringify(cassetteData))
-                }
-            })
             toast.add({ severity: 'success', summary: 'Success', detail: 'Template saved successfully', life: 3000 })
         } catch (e) {
             toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to save template', life: 3000 })
