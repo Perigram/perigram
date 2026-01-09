@@ -64,7 +64,7 @@
                 @click="runNesting(slotProps.data)"
               />
               <Button 
-                v-if="slotProps.data.status === 'FAILED'"
+                v-if="['FAILED', 'NESTING'].includes(slotProps.data.status)"
                 icon="pi pi-refresh" 
                 severity="warning" 
                 size="small"
@@ -166,7 +166,9 @@ const getStatusSeverity = (status) => {
   const severityMap = {
     'DRAFT': 'info',
     'PROCESSING': 'warning',
+    'NESTING': 'warning',
     'COMPLETED': 'success',
+    'COMPLETE': 'success',
     'FAILED': 'danger'
   };
   return severityMap[status] || 'info';

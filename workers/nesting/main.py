@@ -115,6 +115,17 @@ while not shutdown_requested:
                 }
             }
         )
+
+        # Update associated batch status to COMPLETE
+        if "batchId" in doc:
+            try:
+                db["batches"].update_one(
+                    {"_id": doc["batchId"]},
+                    {"$set": {"status": "COMPLETE", "updatedAt": datetime.now()}}
+                )
+                logger.info(f"Updated batch {doc['batchId']} status to COMPLETE")
+            except Exception as batch_err:
+                logger.error(f"Failed to update batch {doc['batchId']} status to COMPLETE: {batch_err}")
         
         db["users"].update_one(
             {"id": doc["ownerId"]},
