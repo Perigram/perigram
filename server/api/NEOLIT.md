@@ -13,7 +13,13 @@ Routes are grouped into sub-directories corresponding to features:
 ## Conventions
 - **Method Suffixes:** Files are named `[action].[method].js` (e.g., `index.get.js`, `create.post.js`).
 - **Thin Wrappers:** API handlers should be minimal, delegating all business logic to the corresponding [Server Features](../features/NEOLIT.md).
-- **Authentication:** Most routes require authentication, which is handled by the `server/middleware/auth.js`. The user ID is accessible via `event.context.auth.userId`.
+## Authentication
+Most routes require authentication, which is handled by `server/middleware/auth.js`.
+Responsibilities:
+- Runs on ALL requests.
+- Reads `sessionId` from cookies.
+- Fetches user from the database.
+- Attaches session info: `event.context.auth = { userId, isAdmin }`.
 
 ## Example Handler
 ```javascript
