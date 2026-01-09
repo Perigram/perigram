@@ -19,9 +19,18 @@
     </div>
 
     <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4 py-5">
-      <div v-for="cassette in cassettes" :key="cassette._id" class="flex flex-col gap-3 h-full p-4">
+      <div v-for="cassette in cassettes" :key="cassette._id" class="flex flex-col gap-3 h-full p-4 border border-[var(--separator-primary)] rounded-lg bg-[var(--fill-tertiary)]">
         <div class="flex justify-between items-start gap-3">
-          <h3 class="m-0 text-lg font-semibold flex-1 break-words">{{ cassette.name }}</h3>
+          <div class="flex-1 overflow-hidden">
+            <Inplace :closable="true" @close="onRename(cassette)">
+              <template #display>
+                <h3 class="m-0 text-lg font-semibold break-words cursor-pointer hover:text-[var(--accent-primary)]">{{ cassette.name }}</h3>
+              </template>
+              <template #content>
+                <InputText v-model="cassette.name" size="small" class="w-full" autofocus @keyup.enter="$event.target.blur()" />
+              </template>
+            </Inplace>
+          </div>
           <Tag 
             :value="cassette.processingStatus" 
             :severity="getStatusSeverity(cassette.processingStatus)"
@@ -76,10 +85,14 @@ import { useCassettesStore } from '~/stores/cassettes';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
+import Inplace from 'primevue/inplace';
+import InputText from 'primevue/inputtext';
+import { useToast } from 'primevue/usetoast';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteDesigner from './CassetteDesigner.vue';
 
 const cassettesStore = useCassettesStore();
+const toast = useToast();
 
 // Create local reactive state
 const cassettes = ref([]);
@@ -123,6 +136,21 @@ const handleDelete = async (cassetteId) => {
 const editCassette = (cassette) => {
   editingCassette.value = cassette;
   showDesignerDialog.value = true;
+};
+
+const onRename = async (cassette) => {
+  if (!cassette.name.trim()) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Name cannot be empty', life: 3000 });
+    const original = await cassettesStore.fetchById(cassette._id);
+    cassette.name = original.name;
+    return;
+  }
+  try {
+    await cassettesStore.updateCassette(cassette._id, { name: cassette.name });
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Cassette renamed', life: 2000 });
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to rename cassette', life: 3000 });
+  }
 };
 
 const handleUploaded = async () => {
