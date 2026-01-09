@@ -9,6 +9,8 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+    networks:
+      - cutkit-network
     restart: always
 
   user-file-processing-worker:
@@ -20,6 +22,8 @@ services:
       - MAX_ENTITY_LIMIT=999
     depends_on:
       - mongo
+    networks:
+      - cutkit-network
     restart: unless-stopped
 
   nesting-worker:
@@ -29,7 +33,13 @@ services:
       - MONGO_URI=mongodb://mongo:27017/cutkit
     depends_on:
       - mongo
+    networks:
+      - cutkit-network
     restart: unless-stopped
+
+networks:
+  cutkit-network:
+    driver: bridge
 
 volumes:
   mongo-data:

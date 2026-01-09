@@ -26,6 +26,9 @@ RUN apt-get update && apt-get install -y \
 # Create a non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
+# Create cache directory for ezdxf
+RUN mkdir -p /home/appuser/.cache/ezdxf && chown -R appuser:appuser /home/appuser/.cache
+
 WORKDIR /app
 
 # Upgrade pip to latest version
