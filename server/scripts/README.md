@@ -50,7 +50,7 @@ To reset system data:
 
 ```bash
 # In MongoDB shell
-use nest2d-v2;
+use cutkit;
 db.layer_standards.deleteMany({ownerId: null});
 db.pen_templates.deleteMany({ownerId: null});
 db.tool_profiles.deleteMany({ownerId: null});

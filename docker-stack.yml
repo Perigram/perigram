@@ -12,7 +12,7 @@ services:
       - NUXT_PUBLIC_BASE_URL=https://cutkit-demo-production.up.railway.app/
       - NUXT_PUBLIC_GOOGLE_CLIENT_ID=${NUXT_PUBLIC_GOOGLE_CLIENT_ID}
       - NUXT_PUBLIC_GITHUB_CLIENT_ID=${NUXT_PUBLIC_GITHUB_CLIENT_ID}
-      - MONGODB_URI
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
       - NUXT_RESEND_TOKEN=${RESEND_TOKEN}
     secrets:
       - source: cutkit_stripe_secret_key
@@ -24,18 +24,29 @@ services:
         order: start-first
     networks:
       - infra_reverse-proxy
-      - infra_mongo
+      - cutkit-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/service/health"]
       interval: 60s
       timeout: 10s
       retries: 3
       start_period: 60s
+
+  mongo:
+    image: mongo:4.4
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - cutkit-network
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
   
   user-file-processing-worker-normal:
     image: ghcr.io/1suo/file-processing-worker:${GIT_COMMIT_HASH:-latest}
     environment:
-      - MONGODB_URI
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
       - WORKER_TAG=normal
       - MAX_ENTITY_LIMIT=999
     deploy:
@@ -43,12 +54,12 @@ services:
       update_config:
         order: start-first
     networks:
-      - infra_mongo
+      - cutkit-network
 
   user-file-processing-worker-1k-entity-count:
     image: ghcr.io/1suo/file-processing-worker:${GIT_COMMIT_HASH:-latest}
     environment:
-      - MONGODB_URI
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
       - WORKER_TAG=1k_entity_count
       - MAX_ENTITY_LIMIT=999999
     deploy:
@@ -56,18 +67,18 @@ services:
       update_config:
         order: start-first
     networks:
-      - infra_mongo
+      - cutkit-network
 
   nesting-worker:
     image: ghcr.io/1suo/nesting-worker:${GIT_COMMIT_HASH:-latest}
     environment:
-      - MONGO_URI=${MONGO_URI}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
     deploy:
       replicas: ${WORKERS_REPLICAS}
       update_config:
         order: start-first
     networks:
-      - infra_mongo
+      - cutkit-network
 
 secrets:
   cutkit_stripe_secret_key:
@@ -78,5 +89,8 @@ secrets:
 networks:
   infra_reverse-proxy:
     external: true
-  infra_mongo:
+  cutkit-network:
     external: true
+
+volumes:
+  mongo-data:

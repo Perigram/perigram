@@ -7,6 +7,7 @@
 import { service as batchService } from '~/server/features/batches';
 import { service as cassetteService } from '~/server/features/cassettes';
 import { service as artifactService } from '~/server/features/artifacts';
+import { bakeTemplateInstance } from '~/server/features/parametric-cassettes/service';
 import { connectDB } from '~~/server/db/mongo';
 import { generateRandomString } from '~~/server/utils/strings';
 import standardSlugify from 'standard-slugify';
@@ -49,7 +50,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: 'Batch has no entries' });
     }
     
-    // Validate all cassettes exist
+    // Validate all cassettes exist and bake parametric ones
     const cassetteIds = batch.entries.map(e => e.cassetteTemplateId.toString());
     console.log('Validating cassettes:', cassetteIds);
     
@@ -59,25 +60,29 @@ export default defineEventHandler(async (event) => {
     
     console.log('Cassettes validated:', cassettes.length);
     
-    // Check if any cassette is not ready (allow fallback to parametric rectangles for testing)
-    for (const cassette of cassettes) {
-      if (cassette.processingStatus === 'pending' || cassette.processingStatus === 'processing') {
-        throw createError({ 
-          statusCode: 400, 
-          message: `Cassette "${cassette.name}" is still being processed (status: ${cassette.processingStatus}). Please wait.` 
-        });
-      }
-      // Note: We allow missing polygonParts - worker will use parametric rectangles from dimensions as fallback
-    }
-  
-  // Build file list for nesting worker (NEW schema)
-  const files = batch.entries.map((entry) => {
-    return {
-      cassetteId: entry.cassetteTemplateId.toString(),
-      count: entry.quantity,
-      dimensions: entry.dimensions || {}
-    };
-  });
+    // Bake parametric cassettes and prepare files list for worker
+    // Each baked entry becomes a unique "cassette" document for the worker
+    const jobFiles = await Promise.all(
+      batch.entries.map(async (entry) => {
+        const template = cassettes.find(c => c._id.toString() === entry.cassetteTemplateId.toString());
+        
+        if (template.type === 'PARAMETRIC') {
+          console.log(`Baking parametric template: ${template.name} for batch entry`);
+          const bakedCassette = await bakeTemplateInstance(template._id, entry.dimensions || {}, userId);
+          return {
+            cassetteId: bakedCassette._id.toString(),
+            count: entry.quantity,
+            dimensions: entry.dimensions || {}
+          };
+        } else {
+          return {
+            cassetteId: template._id.toString(),
+            count: entry.quantity,
+            dimensions: entry.dimensions || {}
+          };
+        }
+      })
+    );
   
   // Generate nesting slug
   const nestingSlug = `batch-${batch.batchNumber}-${generateRandomString(6)}`;
@@ -90,13 +95,13 @@ export default defineEventHandler(async (event) => {
     sheetCount: body.maxSheets || 10
   };
   
-  // Create nesting job (for worker compatibility)
+  // Create nesting job (generic schema, works for both standard and baked)
   const db = await connectDB();
   await db.collection('nesting_jobs').insertOne({
     slug: nestingSlug,
     projectSlug: batch.projectSlug,
     batchId: batch._id,
-    files: files,  // Now contains cassetteId and count
+    files: jobFiles, 
     params,
     status: 'pending',
     createdAt: new Date(),

@@ -163,53 +163,58 @@ export async function create(data, userId) {
   if (!data.name) {
     throw createError({ statusCode: 400, message: 'Name is required' });
   }
-  if (!data.slug) {
-    throw createError({ statusCode: 400, message: 'Slug is required' });
-  }
+  
+  const slug = data.slug || (data.data ? `parametric-${Date.now()}` : standardSlugify(data.name, { keepCase: false }) + `-${generateRandomString(6)}`);
   
   // Check slug uniqueness
-  const existing = await repository.findBySlug(data.slug);
+  const existing = await repository.findBySlug(slug);
   if (existing) {
     throw createError({ statusCode: 409, message: 'Slug already exists' });
   }
   
-  return await repository.create({
+  const cassetteData = {
     name: data.name,
-    slug: data.slug,
-    ownerId: new ObjectId(userId),
+    slug: slug,
+    userId: userId,
+    type: data.data ? 'PARAMETRIC' : 'STANDARD',
+    data: data.data || null,
     dxfId: data.dxfId || null,
     svgId: data.svgId || null,
-    layerMappings: data.layerMappings || [],
-    parameters: data.parameters || [],
-    boundingBox: data.boundingBox || null,
-    area: data.area || 0,
-    defaultMaterial: data.defaultMaterial || null
-  });
+    layerMapping: data.layerMapping || {},
+    parameters: data.data ? Object.keys(data.data.params || {}) : (data.parameters || []),
+    processingStatus: data.data ? 'completed' : 'pending',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+  
+  return await repository.create(cassetteData);
+}
+
+export async function update(id, data, userId) {
+  const cassette = await getById(id, userId);
+  
+  const updates = {
+    updatedAt: new Date()
+  };
+  
+  if (data.name) updates.name = data.name;
+  if (data.data) {
+    updates.data = data.data;
+    updates.parameters = Object.keys(data.data.params || {});
+  }
+  if (data.layerMapping) updates.layerMapping = data.layerMapping;
+  if (data.parameters && !data.data) updates.parameters = data.parameters;
+  
+  await repository.updateById(id, updates);
+  return await repository.findById(id);
 }
 
 export async function updateLayerMapping(id, layerMapping, userId) {
-  await getById(id, userId);
-  
-  if (!layerMapping || typeof layerMapping !== 'object') {
-    throw createError({ statusCode: 400, message: 'Layer mapping must be an object' });
-  }
-  
-  await repository.updateById(id, { 
-    layerMapping,
-    updatedAt: new Date()
-  });
-  return await repository.findById(id);
+  return await update(id, { layerMapping }, userId);
 }
 
 export async function updateParameters(id, parameters, userId) {
-  await getById(id, userId);
-  
-  if (!Array.isArray(parameters)) {
-    throw createError({ statusCode: 400, message: 'Parameters must be an array' });
-  }
-  
-  await repository.updateById(id, { parameters });
-  return await repository.findById(id);
+  return await update(id, { parameters }, userId);
 }
 
 export async function updateStatus(id, status, userId) {

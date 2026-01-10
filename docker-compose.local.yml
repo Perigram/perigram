@@ -19,7 +19,7 @@ services:
       context: ./workers/fileprocessing
     container_name: user-file-processing-worker
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit
+      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
       - WORKER_TAG=normal
       - MAX_ENTITY_LIMIT=999
     depends_on:
@@ -34,7 +34,7 @@ services:
       context: ./workers/nesting
     container_name: nesting-worker
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit
+      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
     depends_on:
       - mongo
     networks:

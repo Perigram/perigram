@@ -36,10 +36,13 @@
 * Nesting Worker Fixes
 *** Agent Notes
      [2026-01-09] Fixed nesting worker connection and permission issues.
-     Files changed: workers/nesting/Dockerfile, docker-compose.local.yml, docker-compose.dev.yml
+     Files changed: workers/nesting/Dockerfile, docker-stack.yml, docker-stack-workers-only.yml
+     Docs updated: NEOLIT.md (SYSTEM level)
      Notes: 
-     - Created ezdxf cache directory in Dockerfile to fix permission errors.
-     - Added dedicated Docker network `cutkit-network` to ensure reliable service resolution for `mongo` host.
+     - Set `ENV HOME=/home/appuser` in Dockerfile to fix ezdxf cache access.
+     - Standardized all stack deployment files to use `cutkit-network` (external) for reliable service discovery.
+     - Switched to `MONGODB_URI` environment variable for consistency across all services.
+     - Ensured workers correctly resolve the `mongo` host by aligning Docker networks.
 
 * Nesting Error Handling & Batch Reset
 *** Agent Notes
@@ -62,3 +65,23 @@
      - Store now automatically detects transient statuses (NESTING, PROCESSING) and initiates background polling.
      - Implemented optimistic status updates for `startNesting` and `resetStatus` actions with automatic rollback on failure.
      - Cleaned up component-level logic to rely on store-driven state updates.
+
+* Cassette Designer Save Fix
+*** Agent Notes
+    [2026-01-09] Fixed "Failed to save template" bug in Cassette Designer.
+    - Added missing `createCassette` export to Pinia store.
+    - Refactored backend to use Service-Repository pattern for parametric cassettes.
+    - Fixed `userId` consistency (OAuth string vs ObjectId) in service layer.
+    - Parametric cassettes now correctly store their data and parameters.
+
+*** Agent Notes
+     [2026-01-09] Implemented Parametric Cassette Baking and Reverted Worker Changes.
+     Files changed: workers/nesting/core/main.py, server/api/batch/[id]/nest.post.js, server/api/cassettes/[id]/export.get.js, server/features/parametric-cassettes/*
+     Docs updated: server/features/parametric-cassettes/NEOLIT.md, server/features/NEOLIT.md
+     Notes: 
+     - Reverted worker changes to keep it generic and independent of baked/standard status.
+     - Implemented `parametric-cassettes` service to "bake" templates into temporary DXF instances.
+     - Baking process creates a temporary cassette document in DB that the generic worker can process normally.
+     - Integrated `nodi-modular` WASM on the server to handle full parametric geometry (A, B, and all extrusions).
+     - Added instant DXF export endpoint for parametric templates using the same evaluation engine.
+     - Followed Service-Repository pattern and added JSDoc documentation.

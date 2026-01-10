@@ -26,8 +26,8 @@ RUN apt-get update && apt-get install -y \
 # Create a non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Create cache directory for ezdxf
-RUN mkdir -p /home/appuser/.cache/ezdxf && chown -R appuser:appuser /home/appuser/.cache
+# Create home and cache directory for ezdxf
+RUN mkdir -p /home/appuser/.cache/ezdxf && chown -R appuser:appuser /home/appuser
 
 WORKDIR /app
 
@@ -47,6 +47,9 @@ COPY . .
 
 # Change ownership of the app directory to the non-root user
 RUN chown -R appuser:appuser /app
+
+# Set HOME environment variable for the non-root user
+ENV HOME=/home/appuser
 
 # Switch to non-root user
 USER appuser

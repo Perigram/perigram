@@ -245,7 +245,7 @@
     import ProgressSpinner from 'primevue/progressspinner'
     import { useToast } from 'primevue/usetoast'
     import init, { Modular } from 'nodi-modular'
-    import { buildNodiGraph } from '~/utils/cassetteGraphBuilder'
+    import { buildNodiGraph } from '~/server/utils/cassetteGraphBuilder'
 
     import { useCassettesStore } from '~/stores/cassettes'
 

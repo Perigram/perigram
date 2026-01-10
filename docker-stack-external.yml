@@ -3,7 +3,7 @@ services:
   user-file-processing-worker-normal:
     image: ghcr.io/1suo/file-processing-worker:latest
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit
+      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
       - WORKER_TAG=normal
       - MAX_ENTITY_LIMIT=999
     deploy:
@@ -14,7 +14,7 @@ services:
   nesting-worker:
     image: ghcr.io/1suo/nesting-worker:latest
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit
+      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
     deploy:
       replicas: 1
       update_config:

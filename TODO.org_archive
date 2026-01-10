@@ -1,0 +1,34 @@
+* DONE Check current app state management
+  CLOSED: [2026-01-09 Пт 14:49]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2026-01-09 Пт 20:39
+  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_CATEGORY: TODO
+  :ARCHIVE_TODO: DONE
+  :END:
+  Doesn't it feel off? Should rewrite to modern standards?
+*** Agent Notes
+     [2026-01-09] Analyzed state management.
+     The current "Readonly Reactive" pattern in composables uses module-level `reactive` state.
+     CRITICAL: This is not SSR-safe in Nuxt 3 as state is shared between requests on the server.
+     Recommended fix:
+     - Short term: Use Nuxt's `useState()` to encapsulate state per request.
+     - Long term: Migrate to Pinia (official Nuxt/Vue recommendation).
+     - Consistency: `batchesStore` is missing `readonly` wrapper on export.
+*** User Notes
+    Migrate to Pinia. Apply best practices. Keep current functionality.
+*** Agent Notes
+    [2026-01-09] Migrated to Pinia.
+    - Created stores in `stores/`.
+    - Updated all components and pages to use Pinia stores.
+    - Removed old composables.
+    - Verified SSR safety (Pinia stores are request-scoped).
+    - Fixed 500 error caused by missing `composables/penTemplates.js` import in `pages/assets/pens.vue`.
+    - Added explicit imports for stores in components to ensure SSR stability.
+
+*** Agent Notes
+     [2026-01-09] Finalized documentation and project renaming.
+     Files changed: README.md, NEOLIT.md, docker configs, GitHub actions
+     Docs updated: NEOLIT.md (SYSTEM, CONTAINER, COMPONENT levels)
+     Notes: Renamed project from Nest2D to CutKit. Cleaned up obsolete docs and reorganized deployment guides.
+

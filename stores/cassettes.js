@@ -7,6 +7,7 @@ export const useCassettesStore = defineStore('cassettes', () => {
     const uploadStatus = ref('idle');
     const uploadProgress = ref(0);
     const detectedLayers = ref([]);
+    const pollingIntervals = ref({});
     const layerMapping = ref({
         cut: [],
         bend: [],
@@ -18,10 +19,48 @@ export const useCassettesStore = defineStore('cassettes', () => {
         cassettes.value.find(c => c._id === selectedCassetteId.value)
     );
 
+    function stopPolling(cassetteId) {
+        if (pollingIntervals.value[cassetteId]) {
+            clearInterval(pollingIntervals.value[cassetteId]);
+            delete pollingIntervals.value[cassetteId];
+        }
+    }
+
+    async function pollCassetteStatus(cassetteId) {
+        if (pollingIntervals.value[cassetteId]) return;
+
+        pollingIntervals.value[cassetteId] = setInterval(async () => {
+            try {
+                const data = await $fetch(`/api/cassettes/${cassetteId}`);
+                
+                const index = cassettes.value.findIndex(c => c._id === cassetteId);
+                if (index !== -1) {
+                    cassettes.value[index] = data;
+                }
+
+                if (!['pending', 'processing'].includes(data.processingStatus)) {
+                    stopPolling(cassetteId);
+                }
+            } catch (err) {
+                console.error(`Polling error for cassette ${cassetteId}:`, err);
+                stopPolling(cassetteId);
+            }
+        }, 3000);
+    }
+
+    function checkTransientStatuses() {
+        cassettes.value.forEach(cassette => {
+            if (['pending', 'processing'].includes(cassette.processingStatus)) {
+                pollCassetteStatus(cassette._id);
+            }
+        });
+    }
+
     async function fetchCassettes() {
         try {
             const result = await $fetch('/api/cassettes');
             cassettes.value = Array.isArray(result) ? result : [];
+            checkTransientStatuses();
             return cassettes.value;
         } catch (error) {
             console.error('Failed to fetch cassettes:', error);
@@ -32,7 +71,11 @@ export const useCassettesStore = defineStore('cassettes', () => {
 
     async function fetchById(id) {
         try {
-            return await $fetch(`/api/cassettes/${id}`);
+            const data = await $fetch(`/api/cassettes/${id}`);
+            if (['pending', 'processing'].includes(data.processingStatus)) {
+                pollCassetteStatus(id);
+            }
+            return data;
         } catch (error) {
             console.error('Failed to fetch cassette:', error);
             throw error;
@@ -55,6 +98,7 @@ export const useCassettesStore = defineStore('cassettes', () => {
             });
             cassettes.value.push(result);
             uploadStatus.value = 'idle';
+            pollCassetteStatus(result._id);
             return result;
         } catch (error) {
             uploadStatus.value = 'error';
@@ -136,11 +180,13 @@ export const useCassettesStore = defineStore('cassettes', () => {
         fetchCassettes,
         fetchById,
         uploadCassette,
+        createCassette,
         updateCassette,
         deleteCassette,
         setCassettes,
         selectCassette,
         setLayerMapping,
+        stopPolling,
         // Compatibility alias
         loadAll() { return fetchCassettes(); }
     };

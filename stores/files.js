@@ -8,6 +8,7 @@ export const useFilesStore = defineStore('files', () => {
     const projectFiles = ref(null);
     const projectName = ref('');
     const lastParams = ref('');
+    const pollingIntervals = ref({});
     const params = ref({
         widthPlate: '400',
         heightPlate: '560',
@@ -18,8 +19,51 @@ export const useFilesStore = defineStore('files', () => {
         cassetteId: null
     });
     
-    // Timer reference for polling
-    let updateTimer = null;
+    function stopPolling(fileSlug) {
+        if (pollingIntervals.value[fileSlug]) {
+            clearInterval(pollingIntervals.value[fileSlug]);
+            delete pollingIntervals.value[fileSlug];
+        }
+    }
+
+    async function pollFileStatus(fileSlug, projectSlug) {
+        if (pollingIntervals.value[fileSlug]) return;
+
+        pollingIntervals.value[fileSlug] = setInterval(async () => {
+            try {
+                // Currently files don't have direct GET by slug, we re-fetch project
+                const data = await $fetch(API_ROUTES.PROJECT(projectSlug));
+                const file = data.files.find(f => f.slug === fileSlug);
+                
+                if (file) {
+                    const index = projectFiles.value.findIndex(f => f.slug === fileSlug);
+                    if (index !== -1) {
+                        projectFiles.value[index] = {
+                            ...file,
+                            count: projectFiles.value[index].count
+                        };
+                    }
+
+                    if (file.processingStatus !== processingType.inProgress) {
+                        stopPolling(fileSlug);
+                    }
+                } else {
+                    stopPolling(fileSlug);
+                }
+            } catch (err) {
+                console.error(`Polling error for file ${fileSlug}:`, err);
+                stopPolling(fileSlug);
+            }
+        }, 3000);
+    }
+
+    function checkTransientStatuses(projectSlug) {
+        projectFiles.value?.forEach(file => {
+            if (file.processingStatus === processingType.inProgress) {
+                pollFileStatus(file.slug, projectSlug);
+            }
+        });
+    }
 
     // Getters
     const isSvgLoaded = computed(() => 

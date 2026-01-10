@@ -12,13 +12,8 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
     exit 0
 fi
 
-# Ensure Mongo is running
-if ! docker ps --format '{{.Names}}' | grep -q "^cutkit_mongo$"; then
-    echo "Starting MongoDB container..."
-    mkdir -p .mongo-data
-    docker rm -f cutkit_mongo 2>/dev/null
-    docker run -d --name cutkit_mongo -p 27017:27017 --user "$(id -u):$(id -g)" -v "$ROOT_DIR/.mongo-data":/data/db mongo:4.4
-fi
+# Ensure network exists
+docker network create --driver overlay --attachable cutkit-network 2>/dev/null || true
 
 # Start a new tmux session with named window
 tmux new-session -d -s "$SESSION_NAME" -n "dev" -c "$ROOT_DIR"

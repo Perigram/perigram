@@ -10,6 +10,7 @@ Each feature is organized into a directory containing:
 
 ## Key Modules
 - **[cassettes](./cassettes/):** Manages parametric cassette templates and DXF layer mappings.
+- **[parametric-cassettes](./parametric-cassettes/):** Evaluates and bakes parametric templates into static DXFs.
 - **[batches](./batches/):** Orchestrates production runs, entry management, and nesting status.
 - **[artifacts](./artifacts/):** Handles generated files (SVG, DXF, PDF, G-code) stored in GridFS.
 - **[nesting](./nesting/):** Orchestrator for nesting jobs and worker communication.
