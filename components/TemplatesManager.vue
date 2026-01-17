@@ -1,9 +1,6 @@
 <template>
-    <div class="templates-manager">
-        <p>Pens and Tools templates will be managed here</p>
-        <Message severity="info">
-            Templates management (pens, tools, layer standards) coming soon
-        </Message>
+    <div class="p-4">
+        <p>{{ $t('profile.templatesComingSoon') }}</p>
     </div>
 </template>
 

@@ -1,6 +1,6 @@
 <template>
     <Tag severity="info" class="user-balance">
-        Balance: {{ credits }}
+        {{ $t('profile.balance') }}: {{ credits }}
     </Tag>
 </template>
 

@@ -1,7 +1,7 @@
 <template>
     <div class="p-4">
         <Message severity="info">
-            Project data management coming soon
+            {{ $t('profile.projectDataComingSoon') }}
         </Message>
     </div>
 </template>

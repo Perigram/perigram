@@ -2,7 +2,7 @@
     <div class="chats">
         <div class="chats__header header">
             <MainTitle
-                label="Support Chat List"
+                :label="$t('admin.supportChatList')"
                 class="header__title"
             />
         </div>
@@ -25,8 +25,8 @@
                             </p>
                         </div>
                         <div class="user__details">
-                            <div class="user__name">{{ chat.user?.name || 'Unknown User' }}</div>
-                            <div class="user__id">ID: {{ chat.userId }}</div>
+                            <div class="user__name">{{ chat.user?.name || $t('admin.unknownUser') }}</div>
+                            <div class="user__id">{{ $t('admin.userId') }}: {{ chat.userId }}</div>
                         </div>
                     </div>
                     <div class="chats-item__message message">
@@ -40,15 +40,15 @@
                     :size="sizeType.l"
                     class="loading__loader"
                 />
-                <p class="loading__text">Loading chat list...</p>
+                <p class="loading__text">{{ $t('admin.loadingChatList') }}</p>
             </div>
             <div v-else class="chats__empty empty">
-                <p class="empty__text">No support chats found</p>
+                <p class="empty__text">{{ $t('admin.noChats') }}</p>
             </div>
             <div v-if="error" class="chats__error error">
-                <p class="error__text">1231{{ error }}</p>
+                <p class="error__text">{{ error }}</p>
                 <MainButton 
-                    label="Retry"
+                    :label="$t('admin.retry')"
                     tag="button"
                     :theme="themeType.primary"
                     class="error__btn"
@@ -61,9 +61,11 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { sizeType } from "~~/constants/size.constants"
 import { themeType } from '~~/constants/theme.constants'
 
+const { t } = useI18n()
 const chatList = ref([])
 const loading = ref(true)
 const error = ref(null)
@@ -100,12 +102,12 @@ const connectToChatList = () => {
 
         eventSource.onerror = (error) => {
             console.error('EventSource error:', error)
-            error.value = 'Connection failed. Please try again.'
+            error.value = t('admin.connectionFailed')
             loading.value = false
         }
     } catch (err) {
         console.error('Error connecting to chat list:', err)
-        error.value = 'Failed to connect to chat list'
+        error.value = t('admin.failedToConnect')
         loading.value = false
     }
 }
@@ -144,10 +146,13 @@ const getTimeAgo = (timestamp) => {
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
 
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    if (minutes > 0) return `${minutes}m ago`;
-    return `${seconds}s ago`;
+    let timeStr = '';
+    if (days > 0) timeStr = t('admin.daysShort', { count: days });
+    else if (hours > 0) timeStr = t('admin.hoursShort', { count: hours });
+    else if (minutes > 0) timeStr = t('admin.minutesShort', { count: minutes });
+    else timeStr = t('admin.secondsShort', { count: seconds });
+
+    return t('admin.ago', { time: timeStr });
 }
 </script>
 

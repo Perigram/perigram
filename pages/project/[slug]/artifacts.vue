@@ -11,7 +11,7 @@
     </div>
 
     <Accordion v-else :multiple="true" :activeIndex="[0]">
-      <AccordionTab v-for="batch in batches" :key="batch._id" :header="batch.name || `Batch ${batch.batchNumber}`">
+      <AccordionTab v-for="batch in batches" :key="batch._id" :header="batch.name || `${$t('batch.title')} ${batch.batchNumber}`">
         <ArtifactsTable :batch-id="batch._id" />
       </AccordionTab>
     </Accordion>

@@ -185,7 +185,7 @@ const layerStandards = computed(() => {
   }));
   
   // Add "do not use" option
-  options.push({ label: 'Не использовать', value: null, category: null });
+  options.push({ label: t('common.doNotUse'), value: null, category: null });
   
   return options;
 });

@@ -3,7 +3,7 @@
         <div @click="supportDialog = false" class="support__background"></div>
         <div class="support__wrapper">
             <div class="support__header">
-                <h2 class="support__title">Support Chat</h2>
+                <h2 class="support__title">{{ $t('support.chatTitle') }}</h2>
                 <Button
                     icon="pi pi-times"
                     severity="secondary"
@@ -34,7 +34,7 @@
             </div>
             <div class="support__bottom bottom">
                 <Textarea
-                    placeholder="Type your message..."
+                    :placeholder="$t('support.typeMessage')"
                     class="bottom__input"
                     v-model="message"
                     @keydown="handleKeyDown"
@@ -44,7 +44,7 @@
                 <Button
                     @click="sendMessage"
                     :disabled="!message.trim() || isLoading"
-                    label="Send"
+                    :label="$t('support.send')"
                     class="bottom__btn"
                 />
             </div>
@@ -127,11 +127,8 @@ const getMessageClasses = (sender) => ({
 
 const formatTime = (timestamp, withoutTime) => {
     const date = new Date(timestamp)
-    const day = date.getDate().toString().padStart(2, '0')
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const year = date.getFullYear()
     const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    return withoutTime ? `${day}.${month}.${year}` : `${time}`
+    return withoutTime ? date.toLocaleDateString() : `${time}`
 }
 const messagesList = computed(() => {
     const usedDates = []

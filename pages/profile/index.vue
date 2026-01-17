@@ -1,11 +1,11 @@
 <template>
     <div class="p-4">
         <TabView>
-            <TabPanel header="Account">
+            <TabPanel :header="$t('profile.account')">
                 <div class="grid">
                     <div class="col-12 md:col-4">
                         <Card>
-                            <template #title>Profile</template>
+                            <template #title>{{ $t('profile.title') }}</template>
                             <template #content>
                                 <div class="flex align-items-center">
                                     <Avatar :label="user.name ? user.name[0].toUpperCase() : 'U'" size="xlarge" shape="circle" />
@@ -19,37 +19,37 @@
                     </div>
                     <div class="col-12 md:col-8">
                         <Card>
-                            <template #title>Authentication</template>
+                            <template #title>{{ $t('profile.authentication') }}</template>
                             <template #content>
-                                <p>You are logged in with your OAuth provider.</p>
-                                <Button label="Logout" icon="pi pi-sign-out" class="p-button-danger mt-4" @click="logoutHandler" />
+                                <p>{{ $t('profile.loggedInOAuth') }}</p>
+                                <Button :label="$t('nav.logout')" icon="pi pi-sign-out" class="p-button-danger mt-4" @click="logoutHandler" />
                             </template>
                         </Card>
                     </div>
                 </div>
             </TabPanel>
 
-            <TabPanel header="Billing">
+            <TabPanel :header="$t('profile.billing')">
                 <div class="grid">
                     <div class="col-12 md:col-6">
                         <Card>
-                            <template #title>Credit Balance</template>
+                            <template #title>{{ $t('billing.creditBalance') }}</template>
                             <template #content>
                                 <div class="flex justify-content-between align-items-center">
                                     <div>
-                                        <p class="text-2xl font-bold">{{ user.balance || 0 }} Credits</p>
+                                        <p class="text-2xl font-bold">{{ user.balance || 0 }} {{ $t('billing.credits') }}</p>
                                     </div>
-                                    <Button label="Buy Credits" icon="pi pi-shopping-cart" @click="showBuyCredits = true" />
+                                    <Button :label="$t('profile.buyCredits')" icon="pi pi-shopping-cart" @click="showBuyCredits = true" />
                                 </div>
-                                <Button label="Add 100 Test Credits" icon="pi pi-plus" class="p-button-secondary mt-4" @click="addCredits" />
+                                <Button :label="$t('billing.addTestCredits')" icon="pi pi-plus" class="p-button-secondary mt-4" @click="addCredits" />
                             </template>
                         </Card>
                     </div>
                     <div class="col-12 md:col-6">
                         <Card>
-                            <template #title>Purchase History</template>
+                            <template #title>{{ $t('billing.purchaseHistory') }}</template>
                             <template #content>
-                                <p>No purchase history yet.</p>
+                                <p>{{ $t('billing.noHistory') }}</p>
                                 <!-- TODO: Implement purchase history table -->
                             </template>
                         </Card>
@@ -57,18 +57,18 @@
                 </div>
             </TabPanel>
 
-            <TabPanel header="Preferences">
+            <TabPanel :header="$t('profile.preferences')">
                 <div class="grid">
                     <div class="col-12">
                         <Card>
-                            <template #title>Settings</template>
+                            <template #title>{{ $t('profile.settings') }}</template>
                             <template #content>
                                 <div class="field">
-                                    <label>Theme</label>
-                                    <p>Theme selection is not yet implemented.</p>
+                                    <label>{{ $t('profile.theme') }}</label>
+                                    <p>{{ $t('profile.themeNotImplemented') }}</p>
                                 </div>
                                 <div class="field mt-4">
-                                    <label for="language-select">Language</label>
+                                    <label for="language-select">{{ $t('profile.language') }}</label>
                                     <Dropdown
                                         id="language-select"
                                         v-model="currentLocale"
@@ -85,13 +85,13 @@
                 </div>
             </TabPanel>
 
-            <TabPanel header="Projects">
+            <TabPanel :header="$t('nav.projects')">
                 <div class="grid">
                     <div class="col-12">
                         <Card>
-                            <template #title>Usage Statistics</template>
+                            <template #title>{{ $t('profile.usageStatistics') }}</template>
                             <template #content>
-                                <p>Project usage statistics are not yet implemented.</p>
+                                <p>{{ $t('profile.usageStatisticsComingSoon') }}</p>
                             </template>
                         </Card>
                     </div>

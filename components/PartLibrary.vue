@@ -2,7 +2,7 @@
   <div class="part-library">
     <div class="header">
       <Button 
-        label="Upload Part" 
+        :label="$t('profile.uploadPart')" 
         icon="pi pi-upload"
         @click="showUploadDialog = true"
       />
@@ -10,17 +10,17 @@
 
     <div class="empty-state">
       <i class="pi pi-inbox" style="font-size: 3rem; color: var(--text-color-secondary);"></i>
-      <p>Part library coming soon</p>
+      <p>{{ $t('profile.partLibraryComingSoon') }}</p>
     </div>
 
     <!-- Upload Dialog Placeholder -->
     <Dialog 
       v-model:visible="showUploadDialog" 
-      header="Upload Part"
+      :header="$t('profile.uploadPart')"
       :modal="true"
       :style="{ width: '500px' }"
     >
-      <p>Part upload functionality coming soon</p>
+      <p>{{ $t('profile.partUploadComingSoon') }}</p>
     </Dialog>
   </div>
 </template>

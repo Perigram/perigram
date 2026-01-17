@@ -13,7 +13,7 @@
                 </Inplace>
             </div>
             <div class="p-4 border-b border-[var(--separator-primary)] font-bold uppercase text-[10px] text-[var(--label-tertiary)] tracking-widest flex justify-between items-center">
-                <span>Cassette Parameters</span>
+                <span>{{ $t('cassette.parametersTitle') }}</span>
                 <Button icon="pi pi-plus" text size="small" @click="showAddParamDialog = true" class="h-6 w-6 text-[var(--label-secondary)]" />
             </div>
             
@@ -23,7 +23,7 @@
                     <div v-for="(val, key) in cassetteData.params" :key="key" class="flex flex-col gap-1.5">
                         <div class="flex justify-between items-center">
                             <label class="text-[11px] font-bold text-[var(--label-secondary)]">{{ key }}</label>
-                            <span class="text-[10px] text-[var(--label-tertiary)]">{{ getParamType(key) }}</span>
+                            <span class="text-[10px] text-[var(--label-tertiary)]">{{ $t(`cassette.${getParamType(key)}`) }}</span>
                         </div>
                         <InputNumber 
                             v-model="cassetteData.params[key]" 
@@ -36,11 +36,11 @@
 
                 <!-- Extrusion History -->
                 <div class="p-4 border-b border-[var(--separator-primary)] font-bold uppercase text-[10px] text-[var(--label-tertiary)] tracking-widest text-[var(--label-tertiary)]">
-                    Faces & Flanges
+                    {{ $t('cassette.facesAndFlanges') }}
                 </div>
                 <div class="p-2 flex flex-col gap-1">
                     <div v-if="cassetteData.extrusions.length === 0" class="text-[11px] text-[var(--label-tertiary)] text-center py-12 px-4 italic leading-relaxed">
-                        No faces or flanges yet.<br>Click on an edge to start growing.
+                        {{ $t('cassette.noFaces') }}<br>{{ $t('cassette.clickEdgeToGrow') }}
                     </div>
                     <div v-for="(ext, idx) in cassetteData.extrusions" :key="idx" 
                         class="group p-3 rounded-lg border border-transparent hover:border-[var(--separator-secondary)] hover:bg-[var(--fill-secondary)] transition-all flex flex-col gap-2"
@@ -50,7 +50,7 @@
                         <div class="flex justify-between items-center">
                             <div class="flex items-center gap-2">
                                 <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent-primary)] text-[var(--background-primary)]">{{ ext.param }}</span>
-                                <span class="text-[10px] text-[var(--label-tertiary)]">Edge {{ ext.edge }}</span>
+                                <span class="text-[10px] text-[var(--label-tertiary)]">{{ $t('cassette.edge') }} {{ ext.edge }}</span>
                             </div>
                             <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="removeExtrusion(idx)" class="opacity-0 group-hover:opacity-100 h-7 w-7" />
                         </div>
@@ -68,8 +68,8 @@
 
             <!-- Sidebar Footer -->
             <div class="p-4 border-t border-[var(--separator-primary)] flex gap-2 bg-[var(--background-primary)]">
-                <Button label="Reset" icon="pi pi-refresh" severity="secondary" outlined class="flex-1 h-10 text-[11px] font-bold uppercase" @click="reset" />
-                <Button label="Save" icon="pi pi-save" class="flex-1 h-10 text-[11px] font-bold uppercase bg-[var(--accent-primary)] text-[var(--background-primary)] border-none" @click="save" />
+                <Button :label="$t('common.reset')" icon="pi pi-refresh" severity="secondary" outlined class="flex-1 h-10 text-[11px] font-bold uppercase" @click="reset" />
+                <Button :label="$t('common.save')" icon="pi pi-save" class="flex-1 h-10 text-[11px] font-bold uppercase bg-[var(--accent-primary)] text-[var(--background-primary)] border-none" @click="save" />
             </div>
         </div>
 
@@ -78,7 +78,7 @@
             <div v-if="!modular" class="absolute inset-0 flex items-center justify-center bg-[var(--background-primary)]/80 z-20 backdrop-blur-md">
                 <div class="flex flex-col items-center gap-3">
                     <ProgressSpinner style="width: 40px; height: 40px" />
-                    <span class="text-[11px] font-bold uppercase tracking-widest text-[var(--label-tertiary)]">Initializing Engine</span>
+                    <span class="text-[11px] font-bold uppercase tracking-widest text-[var(--label-tertiary)]">{{ $t('cassette.initializingEngine') }}</span>
                 </div>
             </div>
 
@@ -195,17 +195,17 @@
                 class="z-50 mb-6 bg-[var(--background-primary)] shadow-xl rounded-2xl border border-[var(--separator-primary)] p-3 flex flex-col gap-3 min-w-[180px] animate-in fade-in zoom-in slide-in-from-bottom-4 duration-300"
             >
                 <div class="flex flex-col gap-1 px-1">
-                    <span class="text-[10px] font-black uppercase tracking-widest text-[var(--label-tertiary)]">Add Geometry</span>
-                    <span class="text-[11px] text-[var(--label-secondary)]">Edge {{ addDialog.edgeIndex }}</span>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-[var(--label-tertiary)]">{{ $t('cassette.addGeometry') }}</span>
+                    <span class="text-[11px] text-[var(--label-secondary)]">{{ $t('cassette.edge') }} {{ addDialog.edgeIndex }}</span>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <button @click="confirmAdd('face')" class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-[var(--accent-primary)] hover:text-[var(--background-primary)] transition-all group">
                         <i class="pi pi-box text-lg"></i>
-                        <span class="text-[10px] font-bold uppercase">Face</span>
+                        <span class="text-[10px] font-bold uppercase">{{ $t('cassette.face') }}</span>
                     </button>
                     <button @click="confirmAdd('flange')" class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-[var(--accent-primary)] hover:text-[var(--background-primary)] transition-all group">
                         <i class="pi pi-minus text-lg"></i>
-                        <span class="text-[10px] font-bold uppercase">Flange</span>
+                        <span class="text-[10px] font-bold uppercase">{{ $t('cassette.flange') }}</span>
                     </button>
                 </div>
                 <Button icon="pi pi-times" text rounded size="small" @click="addDialog.visible = false" class="absolute -top-2 -right-2 bg-[var(--background-primary)] shadow-md h-6 w-6 text-[var(--label-secondary)]" />
@@ -215,20 +215,20 @@
         <Toast />
         
         <!-- Add Parameter Dialog -->
-        <Dialog v-model:visible="showAddParamDialog" header="Add Custom Parameter" :modal="true" :style="{ width: '300px' }">
+        <Dialog v-model:visible="showAddParamDialog" :header="$t('cassette.addCustomParameter')" :modal="true" :style="{ width: '300px' }">
             <div class="flex flex-col gap-4">
                 <div class="flex flex-col gap-2">
-                    <label class="text-xs font-bold">Name</label>
-                    <InputText v-model="newParam.name" placeholder="e.g. X, Y, Z" />
+                    <label class="text-xs font-bold">{{ $t('cassette.parameterName') }}</label>
+                    <InputText v-model="newParam.name" :placeholder="$t('cassette.parametersPlaceholder')" />
                 </div>
                 <div class="flex flex-col gap-2">
-                    <label class="text-xs font-bold">Initial Value</label>
+                    <label class="text-xs font-bold">{{ $t('cassette.initialValue') }}</label>
                     <InputNumber v-model="newParam.value" />
                 </div>
             </div>
             <template #footer>
-                <Button label="Cancel" text @click="showAddParamDialog = false" />
-                <Button label="Add" @click="addCustomParam" :disabled="!newParam.name" />
+                <Button :label="$t('common.cancel')" text @click="showAddParamDialog = false" />
+                <Button :label="$t('common.add')" @click="addCustomParam" :disabled="!newParam.name" />
             </template>
         </Dialog>
     </div>
@@ -236,6 +236,7 @@
 
 <script setup>
     import { ref, onMounted, reactive, computed } from 'vue'
+    import { useI18n } from 'vue-i18n'
     import Button from 'primevue/button'
     import InputNumber from 'primevue/inputnumber'
     import InputText from 'primevue/inputtext'
@@ -249,6 +250,7 @@
 
     import { useCassettesStore } from '~/stores/cassettes'
 
+    const { t } = useI18n()
     const props = defineProps({
         initialData: {
             type: Object,
@@ -262,7 +264,7 @@
     // State
     const modular = ref(null)
     const templateGraph = ref(null)
-    const cassetteName = ref(props.initialData?.name || 'New Cassette')
+    const cassetteName = ref(props.initialData?.name || t('cassette.newCassette'))
     const cassetteData = reactive({
         params: { 
             A: 600, 
@@ -353,10 +355,10 @@
     }
 
     const getParamType = (key) => {
-        if (['A', 'B'].includes(key)) return 'Root Dim'
-        if (/^[C-Z]$/.test(key)) return 'Face Depth'
-        if (/^R\d+$/.test(key)) return 'Flange Depth'
-        return 'Custom'
+        if (['A', 'B'].includes(key)) return 'rootDim'
+        if (/^[C-Z]$/.test(key)) return 'faceDepth'
+        if (/^R\d+$/.test(key)) return 'flangeDepth'
+        return 'custom'
     }
 
     const highlightExtrusion = (idx) => {
@@ -508,9 +510,9 @@
                 await cassettesStore.createCassette(body)
             }
             
-            toast.add({ severity: 'success', summary: 'Success', detail: 'Template saved successfully', life: 3000 })
+            toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.messages.saveSuccess'), life: 3000 })
         } catch (e) {
-            toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to save template', life: 3000 })
+            toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassette.errors.saveFailed'), life: 3000 })
         }
     }
 

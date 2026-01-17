@@ -8,7 +8,7 @@
                 :options="batches"
                 option-label="name"
                 option-value="_id"
-                placeholder="Select batch"
+                :placeholder="$t('batches.selectCassette')"
                 class=""
             >
                 <template #value="slotProps">
@@ -80,6 +80,7 @@
         middleware: 'auth',
     })
 
+    const { t } = useI18n()
     const route = useRoute()
     const slug = route.params.slug
 
@@ -114,7 +115,7 @@
 
     const createNewBatch = async () => {
         const newBatch = await batchesStore.createBatch(slug, {
-            name: `Batch ${batches.value.length + 1}`,
+            name: `${t('batch.title')} ${batches.value.length + 1}`,
         })
         currentBatchId.value = newBatch._id
         await refreshBatches()

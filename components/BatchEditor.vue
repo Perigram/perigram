@@ -2,7 +2,7 @@
     <div>
         <!-- Batch Header with Status -->
         <div class="flex items-center gap-4 mb-6">
-            <Tag :value="batch.status" :severity="getStatusSeverity(batch.status)" />
+            <Tag :value="$t(`batch.batchStatus.${batch.status}`)" :severity="getStatusSeverity(batch.status)" />
             <span>{{ entries.length }} {{ $t('batches.entries') }}</span>
             <Button 
                 v-if="batch.status === 'NESTED' || batch.status === 'COMPLETE'"
@@ -14,7 +14,7 @@
             />
             <Button 
                 v-if="batch.status === 'FAILED' || batch.status === 'NESTING'"
-                label="Reset to Draft"
+                :label="$t('batch.resetToDraft')"
                 icon="pi pi-refresh"
                 severity="warning"
                 @click="resetToDraft"
@@ -226,7 +226,7 @@
                         @change="onNewCassetteChange"
                         @show="() => console.log('[BatchEditor] Dropdown opened, cassettes:', cassettes)"
                     />
-                    <small v-if="cassettes.length === 0" class="text-red-500">No cassettes available. Please upload a cassette first.</small>
+                    <small v-if="cassettes.length === 0" class="text-red-500">{{ $t('batches.noCassettes') }}</small>
                 </div>
                 <div class="mb-4">
                     <label class="block mb-2">{{ $t('batches.quantity') }}</label>
@@ -407,7 +407,7 @@ const allOptions = computed(() => {
 
 const getCassetteName = (id) => {
     const cassette = cassettes.value.find(c => c._id === id);
-    return cassette?.name || 'Unknown';
+    return cassette?.name || t('batch.unknownCassette');
 };
 
 const getStatusSeverity = (status) => {
@@ -563,10 +563,10 @@ const runNesting = async () => {
     nestingInProgress.value = true;
     try {
         await batchesStore.startNesting(props.batch._id, nestingOptions.value);
-        toast.add({ severity: 'info', summary: 'Nesting Started', detail: 'Nesting process initiated in background', life: 3000 });
+        toast.add({ severity: 'info', summary: t('batches.nestingStarted'), detail: t('batches.nestingInitiated'), life: 3000 });
     } catch (error) {
         console.error('Failed to run nesting:', error);
-        const errorMessage = error.data?.message || error.message || 'Unknown error';
+        const errorMessage = error.data?.message || error.message || t('common.error');
         alert(`${t('batches.nestingFailed')}: ${errorMessage}`);
     } finally {
         nestingInProgress.value = false;
@@ -588,17 +588,17 @@ const markComplete = async () => {
 
 const resetToDraft = async () => {
     confirm.require({
-        message: 'Are you sure you want to reset this batch to DRAFT? This will allow you to edit entries and run nesting again.',
-        header: 'Confirm Reset',
+        message: t('batches.confirmResetMessage'),
+        header: t('batches.confirmResetTitle'),
         icon: 'pi pi-exclamation-triangle',
         accept: async () => {
             try {
                 await batchesStore.resetStatus(props.batch._id);
-                toast.add({ severity: 'success', summary: 'Success', detail: 'Batch reset to DRAFT', life: 3000 });
+                toast.add({ severity: 'success', summary: t('common.success'), detail: t('batch.resetSuccess'), life: 3000 });
                 emit('updated');
             } catch (error) {
                 console.error('Failed to reset batch:', error);
-                toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to reset batch', life: 3000 });
+                toast.add({ severity: 'error', summary: t('common.error'), detail: t('batch.resetFailed'), life: 3000 });
             }
         }
     });
@@ -638,7 +638,7 @@ const downloadArtifact = async (artifact) => {
         
     } catch (error) {
         console.error('[BatchEditor] Failed to download artifact:', error);
-        alert(`Failed to download artifact: ${error.message}`);
+        alert(`${t('artifacts.downloadFailed')}: ${error.message}`);
     }
 };
 

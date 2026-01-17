@@ -2,10 +2,10 @@
     <div class="h-full flex flex-col">
         <!-- Top controls -->
         <div class="flex items-center gap-4 p-4 border-b">
-            <div v-if="!modular" class="text-sm">Loading nodi3d...</div>
+            <div v-if="!modular" class="text-sm">{{ $t('cassette.initializingEngine') }}</div>
             <template v-else>
                 <div class="flex items-center gap-2">
-                    <label class="text-sm font-semibold">Width:</label>
+                    <label class="text-sm font-semibold">{{ $t('nesting.plateWidth') }}:</label>
                     <InputNumber
                         v-model="rectWidth"
                         :min="100"
@@ -16,7 +16,7 @@
                     />
                 </div>
                 <div class="flex items-center gap-2">
-                    <label class="text-sm font-semibold">Height:</label>
+                    <label class="text-sm font-semibold">{{ $t('nesting.plateHeight') }}:</label>
                     <InputNumber
                         v-model="rectHeight"
                         :min="100"
@@ -30,7 +30,7 @@
                     <Button icon="pi pi-plus" @click="zoomIn" size="small" />
                     <Button icon="pi pi-minus" @click="zoomOut" size="small" />
                     <Button icon="pi pi-refresh" @click="resetView" size="small" />
-                    <Button label="Reset" icon="pi pi-replay" @click="reset" severity="secondary" size="small" />
+                    <Button :label="$t('common.reset')" icon="pi pi-replay" @click="reset" severity="secondary" size="small" />
                 </div>
             </template>
         </div>

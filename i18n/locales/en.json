@@ -5,6 +5,7 @@
     "success": "Success",
     "cancel": "Cancel",
     "save": "Save",
+    "reset": "Reset",
     "delete": "Delete",
     "edit": "Edit",
     "create": "Create",
@@ -20,13 +21,25 @@
     "next": "Next",
     "search": "Search",
     "filter": "Filter",
-    "actions": "Actions",
+    "actions": {
+      "title": "Actions",
+      "download": "Download",
+      "preview": "Preview",
+      "delete": "Delete"
+    },
     "units": "units",
     "uploading": "Uploading...",
     "created": "Created",
     "open": "Open",
     "toggleTheme": "Toggle Theme",
-    "preview": "Preview"
+    "preview": "Preview",
+    "doNotUse": "Do not use"
+  },
+  "footer": {
+    "termsAndConditions": "Terms and Conditions",
+    "blog": "Blog",
+    "companyName": "CutKit",
+    "allRightsReserved": "All rights reserved"
   },
   "dashboard": {
     "welcome": "Welcome to CutKit",
@@ -61,8 +74,11 @@
     "allProjects": "All Projects",
     "newProject": "New Project",
     "recentProjects": "Recent Projects",
-    "assets": "Assets",
+    "assets": "Library",
     "cassettes": "Cassettes",
+    "pens": "Pens",
+    "tools": "Tools",
+    "templates": "Templates",
     "library": "Library",
     "results": "Results",
     "profile": "Profile",
@@ -74,11 +90,8 @@
     "logout": "Logout",
     "login": "Login / Sign Up"
   },
-  "navigation": {
-    "projects": "Projects",
-    "assets": "Assets"
-  },
   "project": {
+    "batches": "Batches",
     "data": "Project Data",
     "title": "Project",
     "create": "Create Project",
@@ -176,16 +189,48 @@
       "error": "Error"
     },
     "nameExample": "Standard Cassette",
+    "newCassette": "New Cassette",
     "selectFile": "Choose DXF File",
     "detectingLayers": "Detecting layers...",
     "detectedLayers": "Detected Layers",
-    "selectLayers": "Select layers..."
+    "selectLayers": "Select layers...",
+    "designer": "Designer",
+    "designerTitle": "Cassette Designer",
+    "loading": "Loading cassettes...",
+    "clickToRename": "Click to rename",
+    "parametersTitle": "Cassette Parameters",
+    "rootDim": "Root Dim",
+    "faceDepth": "Face Depth",
+    "flangeDepth": "Flange Depth",
+    "custom": "Custom",
+    "facesAndFlanges": "Faces & Flanges",
+    "noFaces": "No faces or flanges yet.",
+    "clickEdgeToGrow": "Click on an edge to start growing.",
+    "edge": "Edge",
+    "initializingEngine": "Initializing Engine",
+    "addGeometry": "Add Geometry",
+    "face": "Face",
+    "flange": "Flange",
+    "addCustomParameter": "Add Custom Parameter",
+    "parameterName": "Parameter Name",
+    "initialValue": "Initial Value",
+    "errors": {
+      "nameRequired": "Name cannot be empty",
+      "renameFailed": "Failed to rename cassette",
+      "saveFailed": "Failed to save template"
+    },
+    "messages": {
+      "renamed": "Cassette renamed",
+      "saveSuccess": "Template saved successfully"
+    }
   },
   "nesting": {
     "title": "Nesting",
     "start": "Start Nesting",
     "nest": "Nest {count} files",
     "settings": "Nesting Settings",
+    "tool": "Tool",
+    "selectTool": "Select Tool",
     "plateWidth": "Plate Width",
     "plateHeight": "Plate Height",
     "spacing": "Spacing",
@@ -268,7 +313,85 @@
     "buy": "Buy",
     "logout": "Logout",
     "settings": "Settings",
-    "language": "Language"
+    "language": "Language",
+    "account": "Account",
+    "billing": "Billing",
+    "preferences": "Preferences",
+    "authentication": "Authentication",
+    "loggedInOAuth": "You are logged in with your OAuth provider.",
+    "usageStatistics": "Usage Statistics",
+    "comingSoon": "coming soon",
+    "projectDataComingSoon": "Project data management coming soon",
+    "partLibraryComingSoon": "Part library coming soon",
+    "partUploadComingSoon": "Part upload functionality coming soon",
+    "uploadPart": "Upload Part",
+    "templatesComingSoon": "Pens and Tools templates will be managed here",
+    "usageStatisticsComingSoon": "Project usage statistics are not yet implemented.",
+    "themeNotImplemented": "Theme selection is not yet implemented.",
+    "theme": "Theme",
+    "termsAndConditions": "Terms and Conditions"
+  },
+  "terms": {
+    "title": "Terms and Conditions",
+    "welcome": "Welcome to CutKit! Thank you for engaging with our open-source project.",
+    "agreement": "By accessing CutKit, its website, repositories, or any related services (collectively referred to as \"Project\"), you agree to abide by the terms and conditions outlined below. If you do not agree to these terms, please refrain from using or contributing to the Project.",
+    "philosophyTitle": "Open Source Philosophy",
+    "philosophyText": "CutKit is built on open-source principles of collaboration, transparency, and community-driven development. Contributions, usage, and feedback are encouraged to enhance the Project and benefit the community.",
+    "licenseTitle": "License",
+    "licenseText": "The source code and related materials of CutKit are licensed under the MIT License. By contributing or using the Project, you agree to the terms of this license.",
+    "guidelinesTitle": "Contribution Guidelines",
+    "guideline1": "Contributions must adhere to the Project's coding standards and documentation requirements.",
+    "guideline2": "Ensure that all contributions respect the intellectual property rights of others.",
+    "guideline3": "By submitting contributions, you grant CutKit a perpetual, non-exclusive right to use, modify, and distribute your contributions.",
+    "restrictionsTitle": "Usage Restrictions",
+    "restriction1": "Do not use CutKit for malicious or illegal purposes.",
+    "restriction2": "Respect the terms of the MIT License when using or distributing any part of the Project.",
+    "restriction3": "Do not misrepresent the origin or authorship of the Project when redistributing or forking it.",
+    "disclaimerTitle": "Disclaimer",
+    "disclaimerText": "CutKit is provided \"as is\" without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages, or other liability arising from the use or inability to use the Project.",
+    "contactTitle": "Contact Us",
+    "contactText": "If you have any questions about these Terms, please contact us at:",
+    "contactEmail": "isuo1991{'@'}outlook.com",
+    "mitLicense": "MIT License",
+    "githubRepository": "GitHub Repository",
+    "lastUpdated": "Last updated: January 2026"
+  },
+  "admin": {
+    "supportChat": "Support Chat",
+    "userId": "User ID",
+    "loadingMessages": "Loading messages...",
+    "noMessages": "No messages yet. Start the conversation!",
+    "retry": "Retry",
+    "loadingChatList": "Loading chat list...",
+    "noChats": "No support chats found",
+    "typeMessage": "Type your message...",
+    "send": "Send",
+    "connectionFailed": "Connection failed. Please try again.",
+    "failedToConnect": "Failed to connect to chat",
+    "failedToSend": "Failed to send message",
+    "supportChatList": "Support Chat List",
+    "unknownUser": "Unknown User",
+    "ago": "{time} ago",
+    "daysShort": "{count}d",
+    "hoursShort": "{count}h",
+    "minutesShort": "{count}m",
+    "secondsShort": "{count}s",
+    "selectChatPrompt": "Select a chat from the list to start messaging"
+  },
+  "billing": {
+    "title": "Billing",
+    "currentBalance": "Your current balance:",
+    "creditBalance": "Credit Balance",
+    "selectPackage": "Select a package:",
+    "buyNow": "Buy Now",
+    "addTestCredits": "Add 100 Test Credits",
+    "purchaseHistory": "Purchase History",
+    "noHistory": "No purchase history yet.",
+    "credits": "Credits",
+    "errors": {
+      "loadOptionsFailed": "Failed to load payment options.",
+      "createLinkFailed": "Failed to create payment link."
+    }
   },
   "auth": {
     "login": "Login",
@@ -279,7 +402,9 @@
     "subtitle": "Please sign in to continue",
     "signInWithGitHub": "Sign in with GitHub",
     "signInWithGoogle": "Sign in with Google",
-    "redirecting": "Redirecting to your projects..."
+    "redirecting": "Redirecting to your projects...",
+    "authenticating": "Authenticating...",
+    "authenticatingWait": "Please wait a moment while we process your authentication."
   },
   "statistics": {
     "title": "Statistics",
@@ -296,6 +421,8 @@
     "invalidData": "Invalid data.",
     "unauthorized": "You are not authorized to perform this action.",
     "notFound": "Resource not found.",
+    "pageNotFound": "Page Not Found",
+    "goHome": "Go Home",
     "serverError": "Server error. Please try again later."
   },
   "messages": {
@@ -310,8 +437,11 @@
   },
   "support": {
     "title": "Support",
+    "chatTitle": "Support Chat",
     "description": "Need help? Contact us!",
-    "button": "Support"
+    "button": "Support",
+    "typeMessage": "Type your message...",
+    "send": "Send"
   },
   "batch": {
     "title": "Batches",
@@ -321,9 +451,20 @@
     "name": "Batch Name",
     "namePlaceholder": "Enter batch name",
     "status": "Status",
+    "batchStatus": {
+      "DRAFT": "Draft",
+      "READY": "Ready",
+      "NESTING": "Nesting...",
+      "NESTED": "Nested",
+      "COMPLETE": "Complete",
+      "FAILED": "Failed"
+    },
     "created": "Created",
     "empty": "No batches yet. Create your first batch to get started.",
     "confirmDelete": "Are you sure you want to delete this batch?",
+    "resetToDraft": "Reset to DRAFT",
+    "resetSuccess": "Batch reset to DRAFT",
+    "resetFailed": "Failed to reset batch",
     "editEntries": "Edit Batch Entries",
     "addEntry": "Add Entry",
     "entryId": "Entry ID",
@@ -334,6 +475,8 @@
     "addNewEntry": "Add New Entry",
     "unknownCassette": "Unknown Cassette",
     "confirmDeleteEntry": "Are you sure you want to delete this entry?",
+    "resetSuccess": "Batch reset to DRAFT",
+    "resetFailed": "Failed to reset batch",
     "dimensionKey": "Enter dimension key (e.g., A, B, C):",
     "entries": "entries",
     "noEntries": "No entries in this batch. Add entries to begin nesting.",
@@ -369,10 +512,17 @@
     "uploadNote": "Upload a new cassette DXF file to use in this batch.",
     "runNesting": "Run Nesting",
     "markComplete": "Mark as Complete",
-    "artifacts": "Nesting Results",
+    "artifacts": "Artifacts",
+    "cassettes": "Cassettes",
     "noEntries": "No entries in this batch. Add entries to begin nesting.",
     "confirmDeleteEntry": "Are you sure you want to delete this entry?",
+    "confirmDeleteArtifact": "Are you sure you want to delete this artifact?",
+    "nestingStarted": "Nesting Started",
+    "nestingInitiated": "Nesting process initiated in background",
+    "confirmResetMessage": "Are you sure you want to reset this batch to DRAFT? This will allow you to edit entries and run nesting again.",
+    "confirmResetTitle": "Confirm Reset",
     "saveFailed": "Failed to save batch changes",
+    "noCassettes": "No cassettes available. Please upload a cassette first.",
     "noEntriesToNest": "Add at least one entry before running nesting",
     "nestingFailed": "Failed to run nesting process",
     "markCompleteFailed": "Failed to mark batch as complete"
@@ -385,6 +535,54 @@
     "name": "Name",
     "type": "Type",
     "status": "Status",
-    "createdAt": "Created At"
+    "createdAt": "Created At",
+    "deleteConfirm": "Are you sure you want to delete this artifact?",
+    "deleteTitle": "Delete Confirmation",
+    "deleted": "Artifact deleted",
+    "deleteFailed": "Failed to delete artifact",
+    "downloadFailed": "Failed to download artifact"
+  },
+  "assets": {
+    "cassettes": "Cassettes",
+    "templates": "Templates",
+    "pens": "Pen Templates",
+    "tools": "Tool Profiles",
+    "newPen": "New Pen",
+    "newTool": "New Tool",
+    "loadingPens": "Loading pens...",
+    "loadingTools": "Loading tools...",
+    "system": "System",
+    "color": "Color",
+    "weight": "Weight",
+    "pattern": "Pattern",
+    "patterns": {
+      "SOLID": "Solid",
+      "DASHED": "Dashed",
+      "DOTTED": "Dotted"
+    },
+    "diameter": "Diameter",
+    "angle": "Angle",
+    "editPen": "Edit Pen",
+    "editTool": "Edit Tool",
+    "penName": "Pen Name",
+    "toolName": "Tool Name",
+    "newTemplate": "New Template",
+    "templateManagementComingSoon": "Template management coming soon",
+    "templateCreationComingSoon": "Template creation coming soon",
+    "viewModes": {
+      "grid": "Grid",
+      "list": "List"
+    },
+    "placeholders": {
+      "penName": "My Pen",
+      "toolName": "My Tool",
+      "color": "#FF0000"
+    },
+    "errors": {
+      "savePenFailed": "Failed to save pen",
+      "deletePenFailed": "Failed to delete pen",
+      "saveToolFailed": "Failed to save tool",
+      "deleteToolFailed": "Failed to delete tool"
+    }
   }
 }

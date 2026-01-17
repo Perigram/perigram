@@ -1,103 +1,75 @@
 <template>
   <div class="max-w-4xl mx-auto p-6 bg-gray-50 text-gray-800 shadow-lg rounded-lg">
-    <h1 class="text-3xl font-bold mb-4">Terms and Conditions</h1>
+    <h1 class="text-3xl font-bold mb-4">{{ $t('terms.title') }}</h1>
     <p class="mb-4">
-      Welcome to <span class="text-blue-600 font-semibold">CutKit</span>! Thank
-      you for engaging with our open-source project.
+      {{ $t('terms.welcome') }}
     </p>
     <p class="mb-4">
-      By accessing <span class="text-blue-600 font-semibold">CutKit</span>, its
-      website, repositories, or any related services (collectively referred to
-      as "Project"), you agree to abide by the terms and conditions outlined
-      below. If you do not agree to these terms, please refrain from using or
-      contributing to the Project.
+      {{ $t('terms.agreement') }}
     </p>
 
-    <h2 class="text-2xl font-semibold mt-6 mb-4">Open Source Philosophy</h2>
+    <h2 class="text-2xl font-semibold mt-6 mb-4">{{ $t('terms.philosophyTitle') }}</h2>
     <p class="mb-4">
-      <span class="text-blue-600 font-semibold">CutKit</span> is built on
-      open-source principles of collaboration, transparency, and
-      community-driven development. Contributions, usage, and feedback are
-      encouraged to enhance the Project and benefit the community.
+      {{ $t('terms.philosophyText') }}
     </p>
 
-    <h2 class="text-2xl font-semibold mt-6 mb-4">License</h2>
+    <h2 class="text-2xl font-semibold mt-6 mb-4">{{ $t('terms.licenseTitle') }}</h2>
     <p class="mb-4">
-      The source code and related materials of
-      <span class="text-blue-600 font-semibold">CutKit</span> are licensed under
-      the
+      {{ $t('terms.licenseText') }}
       <a
         href="https://opensource.org/licenses/MIT"
         class="text-blue-500 underline"
-        >MIT License</a
-      >. By contributing or using the Project, you agree to the terms of this
-      license.
+        >{{ $t('terms.mitLicense') }}</a
+      >.
     </p>
 
-    <h2 class="text-2xl font-semibold mt-6 mb-4">Contribution Guidelines</h2>
+    <h2 class="text-2xl font-semibold mt-6 mb-4">{{ $t('terms.guidelinesTitle') }}</h2>
     <ul class="list-disc pl-6 mb-4">
       <li>
-        Contributions must adhere to the Project's coding standards and
-        documentation requirements.
+        {{ $t('terms.guideline1') }}
       </li>
       <li>
-        Ensure that all contributions respect the intellectual property rights
-        of others.
+        {{ $t('terms.guideline2') }}
       </li>
       <li>
-        By submitting contributions, you grant
-        <span class="text-blue-600 font-semibold">CutKit</span> a perpetual,
-        non-exclusive right to use, modify, and distribute your contributions.
+        {{ $t('terms.guideline3') }}
       </li>
     </ul>
 
-    <h2 class="text-2xl font-semibold mt-6 mb-4">Usage Restrictions</h2>
+    <h2 class="text-2xl font-semibold mt-6 mb-4">{{ $t('terms.restrictionsTitle') }}</h2>
     <ul class="list-disc pl-6 mb-4">
       <li>
-        Do not use <span class="text-blue-600 font-semibold">CutKit</span> for
-        malicious or illegal purposes.
+        {{ $t('terms.restriction1') }}
       </li>
       <li>
-        Respect the terms of the
-        <a
-          href="https://opensource.org/licenses/MIT"
-          class="text-blue-500 underline"
-          >MIT License</a
-        >
-        when using or distributing any part of the Project.
+        {{ $t('terms.restriction2') }}
       </li>
       <li>
-        Do not misrepresent the origin or authorship of the Project when
-        redistributing or forking it.
+        {{ $t('terms.restriction3') }}
       </li>
     </ul>
 
-    <h2 class="text-2xl font-semibold mt-6 mb-4">Disclaimer</h2>
+    <h2 class="text-2xl font-semibold mt-6 mb-4">{{ $t('terms.disclaimerTitle') }}</h2>
     <p class="mb-4">
-      <span class="text-blue-600 font-semibold">CutKit</span> is provided "as
-      is" without warranty of any kind, express or implied, including but not
-      limited to the warranties of merchantability, fitness for a particular
-      purpose, and noninfringement. In no event shall the authors or copyright
-      holders be liable for any claim, damages, or other liability arising from
-      the use or inability to use the Project.
+      {{ $t('terms.disclaimerText') }}
     </p>
 
-    <h2 class="text-2xl font-semibold mt-6 mb-4">Contact Us</h2>
+    <h2 class="text-2xl font-semibold mt-6 mb-4">{{ $t('terms.contactTitle') }}</h2>
     <p class="mb-4">
-      If you have any questions about these Terms, please contact us at:
+      {{ $t('terms.contactText') }}
       <a
-        href="mailto:isuo1991@outlook.com"
+        :href="`mailto:${$t('terms.contactEmail')}`"
         class="text-blue-600 hover:underline"
-        >isuo1991@outlook.com</a
+        >{{ $t('terms.contactEmail') }}</a
       >
     </p>
 
     <p class="mt-8 text-sm text-gray-500">
-      Last updated: January 2026<br />
+      {{ $t('terms.lastUpdated') }}<br />
       <a
         href="https://github.com/1suo/cutkit"
         class="hover:underline"
-        >GitHub Repository</a
+        >{{ $t('terms.githubRepository') }}</a
       >
     </p>
   </div>

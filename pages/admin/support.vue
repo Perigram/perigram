@@ -16,7 +16,7 @@
             v-else
             class="support__chat placeholder"
         >
-            <p class="placeholder__text">Select a chat from the list to start messaging</p>
+            <p class="placeholder__text">{{ $t('admin.selectChatPrompt') }}</p>
         </div>
     </div>
 </template>

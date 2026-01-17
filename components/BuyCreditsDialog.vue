@@ -1,14 +1,14 @@
 <template>
     <Dialog 
         v-model:visible="dialogVisible" 
-        header="Buy Credits" 
+        :header="$t('profile.buyCredits')" 
         :modal="true"
         :style="{ width: '500px' }"
         @update:visible="$emit('close')"
     >
         <div class="buy-credits-content">
             <div class="current-balance">
-                <p>Your current balance:</p>
+                <p>{{ $t('billing.currentBalance') }}</p>
                 <Tag :value="user.balance || 0" severity="info" />
             </div>
 
@@ -21,7 +21,7 @@
             </div>
 
             <div v-else class="options-container">
-                <label>Select a package:</label>
+                <label>{{ $t('billing.selectPackage') }}</label>
                 <SelectButton 
                     v-model="selectedOption" 
                     :options="paymentOptions" 
@@ -32,7 +32,7 @@
                         <div class="credit-option">
                             <div class="font-bold">{{ slotProps.option.title }}</div>
                             <div>{{ slotProps.option.description }}</div>
-                            <div class="font-bold mt-2">{{ slotProps.option.credit }} credits</div>
+                            <div class="font-bold mt-2">{{ slotProps.option.credit }} {{ $t('billing.credits') }}</div>
                         </div>
                     </template>
                 </SelectButton>
@@ -40,9 +40,9 @@
         </div>
 
         <template #footer>
-            <Button label="Cancel" severity="secondary" @click="$emit('close')" />
+            <Button :label="$t('common.cancel')" severity="secondary" @click="$emit('close')" />
             <Button 
-                label="Buy Now" 
+                :label="$t('billing.buyNow')" 
                 @click="buy" 
                 :disabled="!selectedOption || buying"
                 :loading="buying"
@@ -53,6 +53,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { storeToRefs } from 'pinia';
 import Dialog from 'primevue/dialog';
@@ -65,6 +66,7 @@ import Message from 'primevue/message';
 const emit = defineEmits(['close']);
 
 const authStore = useAuthStore();
+const { t } = useI18n();
 const { user: userRef } = storeToRefs(authStore);
 const user = computed(() => userRef.value || {});
 
@@ -83,7 +85,7 @@ onMounted(async () => {
             selectedOption.value = data.options[0];
         }
     } catch (err) {
-        error.value = 'Failed to load payment options.';
+        error.value = t('billing.errors.loadOptionsFailed');
         console.error(err);
     } finally {
         loading.value = false;
@@ -98,7 +100,7 @@ const buy = async () => {
         const response = await $fetch(`/api/payment/paywalllink?stripePriceId=${selectedOption.value.stripePriceId}`);
         navigateTo(response.url, { external: true });
     } catch (err) {
-        error.value = 'Failed to create payment link.';
+        error.value = t('billing.errors.createLinkFailed');
         console.error(err);
     } finally {
         buying.value = false;

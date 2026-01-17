@@ -2,38 +2,38 @@
   <div class="p-4">
     <div class="flex justify-end items-center mb-8">
       <Button 
-        label="New Tool" 
+        :label="$t('assets.newTool')" 
         icon="pi pi-plus" 
         @click="showDialog = true"
       />
     </div>
     
-    <div v-if="loading">Loading tools...</div>
+    <div v-if="loading">{{ $t('assets.loadingTools') }}</div>
     <div v-else-if="error">{{ error }}</div>
     
     <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
       <Card v-for="tool in tools" :key="tool._id" class="h-full">
         <template #title>
           {{ tool.name }}
-          <Tag v-if="!tool.ownerId" value="System" severity="info" />
+          <Tag v-if="!tool.ownerId" :value="$t('assets.system')" severity="info" />
         </template>
         <template #content>
           <p>
-            Diameter: Ø{{ tool.diameter }}mm<br>
-            Angle: {{ tool.angle }}°
+            {{ $t('assets.diameter') }}: Ø{{ tool.diameter }}mm<br>
+            {{ $t('assets.angle') }}: {{ tool.angle }}°
           </p>
         </template>
         <template #footer>
           <div class="flex gap-2" v-if="tool.ownerId">
             <Button 
-              label="Edit" 
+              :label="$t('common.edit')" 
               icon="pi pi-pencil" 
               severity="secondary"
               size="small"
               @click="editTool(tool)"
             />
             <Button 
-              label="Delete" 
+              :label="$t('common.delete')" 
               icon="pi pi-trash" 
               severity="danger"
               size="small"
@@ -47,28 +47,28 @@
     <!-- Tool Dialog -->
     <Dialog 
       v-model:visible="showDialog" 
-      :header="editingTool ? 'Edit Tool' : 'New Tool'"
+      :header="editingTool ? $t('assets.editTool') : $t('assets.newTool')"
       :modal="true"
       :style="{ width: '500px' }"
     >
       <div class="mb-6">
-        <label class="block mb-2">Name</label>
-        <InputText v-model="form.name" placeholder="My Tool" />
+        <label class="block mb-2">{{ $t('batch.name') }}</label>
+        <InputText v-model="form.name" :placeholder="$t('assets.placeholders.toolName')" />
       </div>
       
       <div class="mb-6">
-        <label class="block mb-2">Diameter (mm)</label>
+        <label class="block mb-2">{{ $t('assets.diameter') }} (mm)</label>
         <InputNumber v-model="form.diameter" :min="0.1" :max="100" :step="0.1" />
       </div>
       
       <div class="mb-6">
-        <label class="block mb-2">Angle (degrees)</label>
+        <label class="block mb-2">{{ $t('assets.angle') }} (°)</label>
         <InputNumber v-model="form.angle" :min="0" :max="180" :step="1" />
       </div>
       
       <template #footer>
-        <Button label="Cancel" severity="secondary" @click="closeDialog" />
-        <Button label="Save" @click="saveTool" />
+        <Button :label="$t('common.cancel')" severity="secondary" @click="closeDialog" />
+        <Button :label="$t('common.save')" @click="saveTool" />
       </template>
     </Dialog>
     
@@ -78,9 +78,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useToolProfilesStore } from '~/stores/toolProfiles';
 import { storeToRefs } from 'pinia';
 import { useConfirm } from 'primevue/useconfirm';
+import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
@@ -94,9 +96,11 @@ definePageMeta({
   middleware: 'auth',
 });
 
+const { t } = useI18n();
 const toolProfilesStore = useToolProfilesStore();
 const { tools, loading, error } = storeToRefs(toolProfilesStore);
 const confirm = useConfirm();
+const toast = useToast();
 
 const showDialog = ref(false);
 const editingTool = ref(null);
@@ -131,20 +135,20 @@ const saveTool = async () => {
     }
     closeDialog();
   } catch (error) {
-    alert('Failed to save tool: ' + error.message);
+    toast.add({ severity: 'error', summary: t('common.error'), detail: t('assets.errors.saveToolFailed') + ': ' + error.message, life: 3000 });
   }
 };
 
 const deleteToolConfirm = (tool) => {
   confirm.require({
-    message: `Delete "${tool.name}"?`,
-    header: 'Confirm Delete',
+    message: t('messages.confirmDeleteFile', { name: tool.name }),
+    header: t('artifacts.deleteTitle'),
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {
       try {
         await toolProfilesStore.deleteTool(tool._id);
       } catch (error) {
-        alert('Failed to delete tool: ' + error.message);
+        toast.add({ severity: 'error', summary: t('common.error'), detail: t('assets.errors.deleteToolFailed') + ': ' + error.message, life: 3000 });
       }
     }
   });

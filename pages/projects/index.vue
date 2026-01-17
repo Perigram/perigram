@@ -274,10 +274,10 @@
         { label: t('projects.sortNameZA'), value: 'name-desc' },
     ])
 
-    const viewModes = [
-        { label: 'Grid', value: 'grid', icon: 'pi pi-th-large' },
-        { label: 'List', value: 'list', icon: 'pi pi-list' },
-    ]
+    const viewModes = computed(() => [
+        { label: t('assets.viewModes.grid'), value: 'grid', icon: 'pi pi-th-large' },
+        { label: t('assets.viewModes.list'), value: 'list', icon: 'pi pi-list' },
+    ])
 
     const filteredProjects = computed(() => {
         if (!projects.value) return []
@@ -355,7 +355,7 @@
             router.push(`/project/${data.slug}`)
         } catch (error) {
             console.error('Failed to create project:', error)
-            alert('Failed to create project: ' + error.message)
+            alert(t('errors.saveFailed') + ': ' + error.message)
         } finally {
             creating.value = false
         }

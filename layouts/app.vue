@@ -45,7 +45,7 @@
                         @click="toggleTheme"
                         text
                         rounded
-                        aria-label="Theme Switcher"
+                        :aria-label="$t('common.toggleTheme')"
                     />
                 </div>
             </template>
@@ -58,7 +58,7 @@
         <ChatSupport v-if="supportDialog" />
         <Button
             icon="pi pi-comment"
-            label="Support"
+            :label="$t('support.button')"
             severity="secondary"
             @click="supportDialog = true"
             v-if="!supportDialog"
@@ -145,9 +145,9 @@
 
         // --- Level 1: Main Section ---
         const mainSections = [
-            { id: 'projects', name: 'Projects', to: '/projects' },
-            { id: 'assets', name: 'Assets', to: '/assets' },
-            { id: 'profile', name: 'Profile', to: '/profile' },
+            { id: 'projects', name: t('nav.projects'), to: '/projects' },
+            { id: 'assets', name: t('nav.assets'), to: '/assets' },
+            { id: 'profile', name: t('nav.profile'), to: '/profile' },
         ]
 
         let currentSectionId = parts[0]
@@ -183,10 +183,10 @@
         // --- Level 2: Asset Tabs ---
         if (currentSectionId === 'assets') {
             const assetTabs = [
-                { id: 'cassettes', name: 'Cassettes', to: '/assets/cassettes' },
-                { id: 'pens', name: 'Pens', to: '/assets/pens' },
-                { id: 'tools', name: 'Tools', to: '/assets/tools' },
-                { id: 'templates', name: 'Templates', to: '/assets/templates' },
+                { id: 'cassettes', name: t('nav.cassettes'), to: '/assets/cassettes' },
+                { id: 'pens', name: t('nav.pens'), to: '/assets/pens' },
+                { id: 'tools', name: t('nav.tools'), to: '/assets/tools' },
+                { id: 'templates', name: t('nav.templates'), to: '/assets/templates' },
             ]
 
             const currentAssetTabId = parts[1] || 'cassettes'

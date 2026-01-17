@@ -37,7 +37,7 @@
         <Column field="status" :header="$t('batch.status')">
           <template #body="slotProps">
             <Tag 
-              :value="slotProps.data.status" 
+              :value="$t(`batch.batchStatus.${slotProps.data.status}`)" 
               :severity="getStatusSeverity(slotProps.data.status)"
             />
           </template>
@@ -68,7 +68,7 @@
                 icon="pi pi-refresh" 
                 severity="warning" 
                 size="small"
-                v-tooltip.top="'Reset to DRAFT'"
+                v-tooltip.top="$t('batch.resetToDraft')"
                 @click="resetBatch(slotProps.data)"
               />
               <Button 
@@ -226,10 +226,10 @@ const runNesting = async (batch) => {
 const resetBatch = async (batch) => {
   try {
     await batchesStore.resetStatus(batch._id);
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Batch reset to DRAFT', life: 3000 });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('batch.resetSuccess'), life: 3000 });
   } catch (err) {
     console.error('Failed to reset batch:', err);
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to reset batch', life: 3000 });
+    toast.add({ severity: 'error', summary: t('common.error'), detail: t('batch.resetFailed'), life: 3000 });
   }
 };
 

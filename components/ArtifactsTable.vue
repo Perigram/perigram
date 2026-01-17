@@ -64,6 +64,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useArtifactsStore } from '~/stores/artifacts';
 import { storeToRefs } from 'pinia';
 import DataView from 'primevue/dataview';
@@ -82,6 +83,7 @@ const props = defineProps({
   }
 });
 
+const { t } = useI18n();
 const artifactsStore = useArtifactsStore();
 const { artifacts, loading } = storeToRefs(artifactsStore);
 const confirm = useConfirm();
@@ -120,8 +122,8 @@ const previewArtifact = (artifact) => {
 
 const confirmDelete = (artifact) => {
   confirm.require({
-    message: 'Are you sure you want to delete this artifact?',
-    header: 'Delete Confirmation',
+    message: t('artifacts.deleteConfirm'),
+    header: t('artifacts.deleteTitle'),
     icon: 'pi pi-exclamation-triangle',
     accept: () => deleteArtifact(artifact),
   });
@@ -130,12 +132,12 @@ const confirmDelete = (artifact) => {
 const deleteArtifact = async (artifact) => {
   try {
     await $fetch(`/api/artifacts/${artifact._id}`, { method: 'DELETE' });
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Artifact deleted', life: 3000 });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('artifacts.deleted'), life: 3000 });
     // Refresh the list
     await artifactsStore.fetchArtifacts(props.batchId);
   } catch (error) {
     console.error('Failed to delete artifact:', error);
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete artifact', life: 3000 });
+    toast.add({ severity: 'error', summary: t('common.error'), detail: t('artifacts.deleteFailed'), life: 3000 });
   }
 };
 </script>

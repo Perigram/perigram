@@ -7,7 +7,7 @@
         @click="showUploadDialog = true"
       />
       <Button 
-        label="Designer" 
+        :label="$t('cassette.designer')" 
         icon="pi pi-pencil"
         @click="showDesignerDialog = true"
       />
@@ -15,7 +15,7 @@
 
     <div v-if="!cassettes || cassettes.length === 0" class="text-center py-12 flex flex-col items-center gap-4">
       <i class="pi pi-inbox text-5xl"></i>
-      <p>{{ !cassettes ? 'Loading cassettes...' : $t('cassette.noCassettes') }}</p>
+      <p>{{ !cassettes ? $t('cassette.loading') : $t('cassette.noCassettes') }}</p>
     </div>
 
     <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4 py-5">
@@ -24,7 +24,7 @@
           <div class="flex-1 overflow-hidden">
             <Inplace @open="onRenameStart(cassette)">
               <template #display>
-                <h3 class="m-0 text-lg font-semibold break-words cursor-pointer hover:text-[var(--accent-primary)]" v-tooltip.top="'Click to rename'">{{ cassette.name }}</h3>
+                <h3 class="m-0 text-lg font-semibold break-words cursor-pointer hover:text-[var(--accent-primary)]" v-tooltip.top="$t('cassette.clickToRename')">{{ cassette.name }}</h3>
               </template>
               <template #content="{ closeCallback }">
                 <div class="flex items-center gap-2 w-full">
@@ -73,7 +73,7 @@
 
     <Dialog 
       v-model:visible="showDesignerDialog"
-      header="Cassette Designer"
+      :header="$t('cassette.designerTitle')"
       :style="{ width: '90vw', height: '90vh' }"
       :modal="true"
       @hide="editingCassette = null"
@@ -85,6 +85,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useCassettesStore } from '~/stores/cassettes';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
@@ -95,6 +96,7 @@ import { useToast } from 'primevue/usetoast';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteDesigner from './CassetteDesigner.vue';
 
+const { t } = useI18n();
 const cassettesStore = useCassettesStore();
 const toast = useToast();
 
@@ -128,7 +130,7 @@ const formatDate = (date) => {
 };
 
 const handleDelete = async (cassetteId) => {
-  if (confirm('Delete this cassette?')) {
+  if (confirm(t('messages.confirmDeleteCassette'))) {
     await cassettesStore.deleteCassette(cassetteId);
     // Since cassettes is a local ref copy/reference, we might need to refresh
     // But if fetchCassettes returned the store state array reference, it might be auto-updated.
@@ -150,7 +152,7 @@ const onRenameStart = (cassette) => {
 const onRename = async (cassette, closeCallback) => {
   const newName = editingName.value.trim();
   if (!newName) {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Name cannot be empty', life: 3000 });
+    toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassette.errors.nameRequired'), life: 3000 });
     return;
   }
   
@@ -161,10 +163,10 @@ const onRename = async (cassette, closeCallback) => {
 
   try {
     await cassettesStore.updateCassette(cassette._id, { name: newName });
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Cassette renamed', life: 2000 });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.messages.renamed'), life: 2000 });
     closeCallback();
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to rename cassette', life: 3000 });
+    toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassette.errors.renameFailed'), life: 3000 });
   }
 };
 

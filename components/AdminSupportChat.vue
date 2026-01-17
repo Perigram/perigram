@@ -1,16 +1,16 @@
 <template>
     <div class="chat">
         <div class="chat__header header">
-            <h2 class="header__title">Support Chat</h2>
-            <span class="header__id">User ID: {{ userId }}</span>
+            <h2 class="header__title">{{ $t('admin.supportChat') }}</h2>
+            <span class="header__id">{{ $t('admin.userId') }}: {{ userId }}</span>
         </div>
         <div ref="messagesContainer" class="chat__messages messages">
             <div v-if="loading" class="chat__loading loading">
                 <ProgressSpinner />
-                <p>Loading messages...</p>
+                <p>{{ $t('admin.loadingMessages') }}</p>
             </div>
             <div v-else-if="messages.length === 0" class="chat__empty empty">
-                <p class="empty__text">No messages yet. Start the conversation!</p>
+                <p class="empty__text">{{ $t('admin.noMessages') }}</p>
             </div>
             <div 
                 class="message-list" 
@@ -44,7 +44,7 @@
                 rounded
             />
             <Textarea 
-                placeholder="Type your message..." 
+                :placeholder="$t('admin.typeMessage')" 
                 class="footer__input" 
                 v-model="newMessage"
                 @keydown="handleKeyDown" 
@@ -55,24 +55,26 @@
             <Button 
                 :disabled="!newMessage.trim() || !isConnected" 
                 @click="sendMessage"
-                label="Send" 
+                :label="$t('admin.send')" 
                 class="footer__btn" 
             />
         </div>
 
         <div v-if="error" class="error-message">
             <p>{{ error }}</p>
-            <button @click="connectToChat">Retry</button>
+            <button @click="connectToChat">{{ $t('admin.retry') }}</button>
         </div>
     </div>
 </template>
 
 <script setup>
 import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Textarea from 'primevue/textarea';
 import ProgressSpinner from 'primevue/progressspinner';
 
+const { t } = useI18n();
 const props = defineProps({
     userId: {
         type: String,
@@ -96,11 +98,8 @@ const handleKeyDown = (event) => {
 
 const formatTime = (timestamp, withoutTime) => {
     const date = new Date(timestamp)
-    const day = date.getDate().toString().padStart(2, '0')
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const year = date.getFullYear()
     const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    return withoutTime ? `${day}.${month}.${year}` : `${time}`
+    return withoutTime ? date.toLocaleDateString() : `${time}`
 }
 const messagesList = computed(() => {
     const usedDates = []
@@ -154,12 +153,12 @@ const connectToChat = () => {
         eventSource.onerror = (error) => {
             console.error('EventSource error:', error)
             isConnected.value = false
-            error.value = 'Connection failed. Please try again.'
+            error.value = t('admin.connectionFailed')
             loading.value = false
         }
     } catch (err) {
         console.error('Error connecting to chat:', err)
-        error.value = 'Failed to connect to chat'
+        error.value = t('admin.failedToConnect')
         loading.value = false
     }
 
@@ -185,7 +184,7 @@ const sendMessage = async () => {
         scrollToBottom()
     } catch (error) {
         console.error('Error sending message:', error)
-        error.value = 'Failed to send message'
+        error.value = t('admin.failedToSend')
     }
 }
 

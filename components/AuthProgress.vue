@@ -1,7 +1,7 @@
 <template>
     <div class="authenticating">
         <MainTitle 
-            label="Authenticating..."
+            :label="$t('auth.authenticating')"
             class="authenticating__title"
         />
         <MainLoader
@@ -9,7 +9,7 @@
             class="authenticating__loader"
         />
         <p class="authenticating__text">
-            Please wait a moment while we process your authentication.
+            {{ $t('auth.authenticatingWait') }}
         </p>
     </div>
 </template>

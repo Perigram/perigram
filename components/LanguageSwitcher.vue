@@ -5,14 +5,15 @@
             @change="changeLocale"
             class="language-switcher__select"
         >
-            <option value="ru">Русский</option>
-            <option value="en">English</option>
+            <option v-for="loc in locales" :key="loc.code" :value="loc.code">
+                {{ loc.name }}
+            </option>
         </select>
     </div>
 </template>
 
 <script setup>
-const { locale, setLocale } = useI18n()
+const { locale, locales, setLocale } = useI18n()
 const currentLocale = ref(locale.value)
 
 const changeLocale = () => {
