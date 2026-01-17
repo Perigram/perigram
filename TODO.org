@@ -1,87 +1,23 @@
-* DONE Check current app state management
-  CLOSED: [2026-01-09 Пт 14:49]
-  Doesn't it feel off? Should rewrite to modern standards?
-*** Agent Notes
-     [2026-01-09] Analyzed state management.
-     The current "Readonly Reactive" pattern in composables uses module-level `reactive` state.
-     CRITICAL: This is not SSR-safe in Nuxt 3 as state is shared between requests on the server.
-     Recommended fix:
-     - Short term: Use Nuxt's `useState()` to encapsulate state per request.
-     - Long term: Migrate to Pinia (official Nuxt/Vue recommendation).
-     - Consistency: `batchesStore` is missing `readonly` wrapper on export.
-*** User Notes
-    Migrate to Pinia. Apply best practices. Keep current functionality.
-*** Agent Notes
-    [2026-01-09] Migrated to Pinia.
-    - Created stores in `stores/`.
-    - Updated all components and pages to use Pinia stores.
-    - Removed old composables.
-    - Verified SSR safety (Pinia stores are request-scoped).
-    - Fixed 500 error caused by missing `composables/penTemplates.js` import in `pages/assets/pens.vue`.
-    - Added explicit imports for stores in components to ensure SSR stability.
+* TODO run through all the components and pages and check locales usage.
+  For each hardcoded string found, replace them with locale key, and ensure that the keys exist in the locale files.
+  Don't modify TODO file for this task results. 
 
-*** Agent Notes
-     [2026-01-09] Finalized documentation and project renaming.
-     Files changed: README.md, NEOLIT.md, docker configs, GitHub actions
-     Docs updated: NEOLIT.md (SYSTEM, CONTAINER, COMPONENT levels)
-     Notes: Renamed project from Nest2D to CutKit. Cleaned up obsolete docs and reorganized deployment guides.
+* TODO run through all the components and pages and check layout and styling.
+  For each component/page, ensure that the layout is responsive and works well on different screen sizes.
+  Check for consistent use of margins, paddings, font sizes, and colors according to the design guidelines.
+  Ensure that all elements are using as least hardcoded css as possible (in favor of primevue design tokens), and use project-wide css where applicable.
+  Don't modify TODO file for this task results.
 
-* Cassette Renaming
-*** Agent Notes
-     [2026-01-09] Implemented improved cassette renaming flow in Cassette Manager.
-     Files changed: components/CassetteManager.vue
-     Docs updated: server/features/cassettes/NEOLIT.md
-     Notes: Added explicit Save/Cancel flow for renaming using PrimeVue Inplace component with temporary state. Renaming is validated and synchronized with the backend via Pinia store.
+* TODO review nesting batch workflow
+  1. Need new status "cut" for batch that was cut already. There can't be "error" or "complete" status for batch (only for runs, see pt3), only "cut" or "draft".
+  2. On "complete" need to reset to "draft", just like on "error" status now.
+  3. Need to add "runs" for each batch. Run has it's own statuses: "nesting", "error", "complete", "chosen". "Chosen" is human selected, one for each batch, only for runs that are complete. In batch, "cut" status can be toggled only when there is "chosen" run exist.
+  4. Runs created automatically on each nesting attempt. Artifacts are associated with runs. Runs can be displayed in batch as tabs or dropdown. Number of runs can be displayed in batch header. Chosen run's artifacts become batch artifacts.
 
-* Nesting Worker Fixes
-*** Agent Notes
-     [2026-01-09] Fixed nesting worker connection and permission issues.
-     Files changed: workers/nesting/Dockerfile, docker-stack.yml, docker-stack-workers-only.yml
-     Docs updated: NEOLIT.md (SYSTEM level)
-     Notes: 
-     - Set `ENV HOME=/home/appuser` in Dockerfile to fix ezdxf cache access.
-     - Standardized all stack deployment files to use `cutkit-network` (external) for reliable service discovery.
-     - Switched to `MONGODB_URI` environment variable for consistency across all services.
-     - Ensured workers correctly resolve the `mongo` host by aligning Docker networks.
+* TODO review cassette baking and usage in nesting
+  Baked cassette should include all the layers using layer standard. Only the one layer should be used in nesting, that in marked as nesting layer in standard. Artifacts created during nesting should use transform data for placing other layers data back to nested cassettes. Of course, everything should be done procedurally without hardcoding layer names etc.
 
-* Nesting Error Handling & Batch Reset
-*** Agent Notes
-     [2026-01-09] Implemented error reporting from worker to batch and reset functionality.
-     Files changed: workers/nesting/main.py, stores/batches.js, components/BatchManagement.vue, components/BatchEditor.vue, docker-compose.local.yml
-     Notes: 
-     - Worker now updates associated batch status to FAILED upon unhandled exception.
-     - Worker now updates associated batch status to COMPLETE upon successful completion.
-     - Added `resetStatus` to batches store calling `reset-status` API.
-     - Added "Reset to DRAFT" buttons in Batch Management list and Batch Editor for FAILED or stuck batches.
-     - Updated UI Tag mapping to support COMPLETE status and NESTING warning severity.
-     - Redeployed workers using docker stack with overlay network for reliable mongo resolution.
+* TODO batch table improvements
+  Need to rewrite table to dataview with grid and table views. In grid view, need cassette preview and only needed parameters. In table view, need all the parameters as columns, but for cassettes that don't have some parameters, need to show "-" or empty cell that can't be edited (for those who have, need 0 or default values). 
 
-* State Management Rework (Batch Statuses)
-*** Agent Notes
-     [2026-01-09] Implemented Optimistic UI and State Polling pattern for batch statuses.
-     Files changed: stores/batches.js, components/BatchManagement.vue, components/BatchEditor.vue
-     Notes: 
-     - Replaced manual re-fetching with transparent polling in Pinia store.
-     - Store now automatically detects transient statuses (NESTING, PROCESSING) and initiates background polling.
-     - Implemented optimistic status updates for `startNesting` and `resetStatus` actions with automatic rollback on failure.
-     - Cleaned up component-level logic to rely on store-driven state updates.
 
-* Cassette Designer Save Fix
-*** Agent Notes
-    [2026-01-09] Fixed "Failed to save template" bug in Cassette Designer.
-    - Added missing `createCassette` export to Pinia store.
-    - Refactored backend to use Service-Repository pattern for parametric cassettes.
-    - Fixed `userId` consistency (OAuth string vs ObjectId) in service layer.
-    - Parametric cassettes now correctly store their data and parameters.
-
-*** Agent Notes
-     [2026-01-09] Implemented Parametric Cassette Baking and Reverted Worker Changes.
-     Files changed: workers/nesting/core/main.py, server/api/batch/[id]/nest.post.js, server/api/cassettes/[id]/export.get.js, server/features/parametric-cassettes/*
-     Docs updated: server/features/parametric-cassettes/NEOLIT.md, server/features/NEOLIT.md
-     Notes: 
-     - Reverted worker changes to keep it generic and independent of baked/standard status.
-     - Implemented `parametric-cassettes` service to "bake" templates into temporary DXF instances.
-     - Baking process creates a temporary cassette document in DB that the generic worker can process normally.
-     - Integrated `nodi-modular` WASM on the server to handle full parametric geometry (A, B, and all extrusions).
-     - Added instant DXF export endpoint for parametric templates using the same evaluation engine.
-     - Followed Service-Repository pattern and added JSDoc documentation.
