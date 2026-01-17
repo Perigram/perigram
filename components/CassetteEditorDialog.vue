@@ -4,113 +4,124 @@
     :header="cassette ? $t('cassette.editTitle') : $t('cassette.uploadTitle')"
     :modal="true"
     :closable="!isUploading"
-    :style="{ width: cassette ? '900px' : '900px' }"
+    :style="{ width: '95vw', maxWidth: '900px' }"
     @hide="handleClose"
   >
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-6 py-2">
       <!-- Upload Section -->
-      <div v-if="!showMappingSection && !isUploading" class="flex flex-col gap-3">
-        <div class="">
-          <label for="cassetteName">{{ $t('cassette.name') }}</label>
+      <div v-if="!showMappingSection && !isUploading" class="flex flex-col gap-6">
+        <div class="flex flex-col gap-2">
+          <label for="cassetteName" class="font-medium text-[var(--p-text-color)]">{{ $t('cassette.name') }}</label>
           <InputText 
             id="cassetteName"
             v-model="name" 
             :placeholder="$t('cassette.nameExample')"
+            class="w-full"
+            autofocus
           />
         </div>
 
-        <div class="field">
+        <div class="flex flex-col gap-2">
+          <label class="font-medium text-[var(--p-text-color)]">{{ $t('cassette.selectFile') }}</label>
           <FileUpload 
             mode="basic" 
             accept=".dxf"
             :maxFileSize="10000000"
             :auto="false"
             :customUpload="true"
-            :chooseLabel="selectedFile ? selectedFile.name : $t('cassette.selectFile')"
+            :chooseLabel="selectedFile ? selectedFile.name : $t('common.upload')"
             @select="handleFileSelect"
+            class="w-full"
           />
         </div>
       </div>
 
       <!-- Loading State -->
-      <div v-if="isUploading" class="flex items-center justify-center flex-col gap-4">
+      <div v-if="isUploading" class="flex flex-col items-center justify-center py-12 gap-4">
         <ProgressSpinner style="width: 50px; height: 50px" />
-        <p>{{ $t('common.uploading') }}</p>
+        <p class="text-[var(--p-text-secondary-color)] font-medium">{{ $t('common.uploading') }}</p>
       </div>
 
       <!-- Layer Mapping Section -->
-      <div v-if="showMappingSection && !isUploading" class="flex gap-4 flex-grow">
-	<div class="bg-zinc-50 border border-zinc-200 p-4 rounded-md flex flex-col items-center flex-grow">
-          <div v-if="svgPreview" class="" v-html="svgPreview"></div>
-          <div v-else class="">
-            <i class="pi pi-image" style="font-size: 3rem"></i>
-            <p>{{ $t('cassette.noPreview') }}</p>
+      <div v-if="showMappingSection && !isUploading" class="flex flex-col lg:flex-row gap-8">
+        <div class="flex-1 min-h-[300px] bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] p-6 rounded-xl flex items-center justify-center relative overflow-hidden shadow-inner">
+          <div v-if="svgPreview" class="w-full h-full flex items-center justify-center [&>svg]:max-w-full [&>svg]:max-h-full" v-html="svgPreview"></div>
+          <div v-else class="flex flex-col items-center gap-3 text-[var(--p-text-muted-color)]">
+            <i class="pi pi-image text-5xl opacity-20"></i>
+            <p class="text-sm font-medium">{{ $t('cassette.noPreview') }}</p>
           </div>
         </div>
 
-	<div class="w-1/2">
-          <h3>{{ $t('cassette.layerMapping') }}</h3>
-	  <div v-if="detectedLayers && detectedLayers.length > 0" class="flex flex-col gap-3 max-h-96 overflow-y-auto pr-2">
-	    <div v-for="(layer, index) in detectedLayers" :key="index" class="flex flex-col gap-1">
-              <label>{{ layer }}</label>
-              <Dropdown 
-                v-model="layerMappings[layer]"
-                :options="layerStandards"
-                optionLabel="label"
-                optionValue="value"
-                :placeholder="$t('cassette.selectLayerType')"
-                @change="(e) => console.log('[CassetteDialog] Dropdown changed for', layer, ':', e.value)"
-              />
+        <div class="w-full lg:w-80 flex flex-col gap-6">
+          <div class="flex flex-col gap-4">
+            <h3 class="text-sm font-bold uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('cassette.layerMapping') }}</h3>
+            <div v-if="detectedLayers && detectedLayers.length > 0" class="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              <div v-for="(layer, index) in detectedLayers" :key="index" class="flex flex-col gap-1.5 p-3 rounded-lg bg-[var(--p-content-background)] border border-[var(--p-content-border-color)]">
+                <label class="text-xs font-bold text-[var(--p-text-color)] truncate" :title="layer">{{ layer }}</label>
+                <Select 
+                  v-model="layerMappings[layer]"
+                  :options="layerStandards"
+                  optionLabel="label"
+                  optionValue="value"
+                  :placeholder="$t('cassette.selectLayerType')"
+                  class="w-full text-sm"
+                />
+              </div>
             </div>
+            <Message v-else severity="info" size="small">
+              {{ $t('cassette.detectingLayers') }}
+            </Message>
           </div>
-          <Message v-else severity="info">
-            {{ $t('cassette.detectingLayers') }}
-          </Message>
           
-          <!-- Parameters Section -->
-          <div class="parameters-section">
-            <h3>{{ $t('cassette.parameters') }}</h3>
-            <p class="help-text">{{ $t('cassette.parametersHelp') }}</p>
-            <Chips 
-              v-model="parameters" 
-              :placeholder="$t('cassette.parametersPlaceholder')"
-              separator=","
-            />
-            <small class="hint-text">{{ $t('cassette.parametersHint') }}</small>
+          <div class="flex flex-col gap-4 pt-4 border-t border-[var(--p-content-border-color)]">
+            <h3 class="text-sm font-bold uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('cassette.parameters') }}</h3>
+            <div class="flex flex-col gap-2">
+              <p class="text-xs text-[var(--p-text-secondary-color)] leading-relaxed">{{ $t('cassette.parametersHelp') }}</p>
+              <Chips 
+                v-model="parameters" 
+                :placeholder="$t('cassette.parametersPlaceholder')"
+                separator=","
+                class="w-full"
+              />
+              <small class="text-[10px] text-[var(--p-text-muted-color)] italic font-mono">{{ $t('cassette.parametersHint') }}</small>
+            </div>
           </div>
         </div>
       </div>
 
-      <Message v-if="errorMessage" severity="error">
+      <Message v-if="errorMessage" severity="error" class="mt-4">
         {{ errorMessage }}
       </Message>
     </div>
 
     <template #footer>
-      <Button 
-        :label="$t('common.cancel')" 
-        severity="secondary"
-        text
-        :disabled="isUploading"
-        @click="handleClose"
-      />
-      <Button 
-        :label="$t('common.upload')" 
-        icon="pi pi-upload"
-        :disabled="!canUpload || isUploading"
-        @click="handleUpload"
-      />
+      <div class="flex justify-end gap-2">
+        <Button 
+          :label="$t('common.cancel')" 
+          severity="secondary"
+          text
+          :disabled="isUploading"
+          @click="handleClose"
+        />
+        <Button 
+          :label="showMappingSection ? $t('common.save') : $t('common.upload')" 
+          :icon="showMappingSection ? 'pi pi-check' : 'pi pi-upload'"
+          :disabled="!canUpload || isUploading"
+          @click="handleUpload"
+        />
+      </div>
     </template>
   </Dialog>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useCassettesStore } from '~/stores/cassettes';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { storeToRefs } from 'pinia';
 import Chips from 'primevue/chips';
+import Select from 'primevue/select';
 
 const props = defineProps({
   modelValue: {
@@ -156,17 +167,8 @@ watch(isOpen, async (newValue) => {
         layerStandardsStore.fetchStandards(),
         penTemplatesStore.fetchPens()
       ]);
-      
-      console.log('[CassetteDialog] Loaded standards:', standards.value);
-      console.log('[CassetteDialog] Loaded pens:', pens.value);
-      
-      // Ensure system pens exist
-      if (systemPens.value.length === 0) {
-        console.warn('No system pens found. Please run: node server/scripts/seed-system-pens.js');
-      }
     } catch (error) {
       console.error('Failed to fetch templates:', error);
-      // Continue anyway - we'll use fallback pens
     }
   }
 });
@@ -177,14 +179,12 @@ const layerStandards = computed(() => {
     return [];
   }
   
-  // Group standards by category for dropdown
   const options = standards.value.map(standard => ({
     label: standard.i18n?.ru?.nameTemplate || standard.code,
     value: standard.code,
     category: standard.category
   }));
   
-  // Add "do not use" option
   options.push({ label: t('common.doNotUse'), value: null, category: null });
   
   return options;
@@ -203,7 +203,6 @@ watch(() => props.cassetteId, async (newId) => {
   if (newId) {
     try {
       cassette.value = await cassettesStore.fetchById(newId);
-      // Initialize layer mappings from existing data
       if (cassette.value.layerMapping) {
         const mappings = {};
         Object.entries(cassette.value.layerMapping).forEach(([type, layers]) => {
@@ -231,25 +230,20 @@ const handleFileSelect = async (event) => {
       name.value = event.files[0].name.replace(/\.dxf$/i, '');
     }
     
-    // Parse DXF layers on client side
     isUploading.value = true;
     errorMessage.value = '';
     
     try {
       const { extractDxfLayers } = await import('~/utils/dxfParser');
-      
-      // Extract layers
       const layers = await extractDxfLayers(selectedFile.value);
       detectedLayers.value = layers;
       
-      // Initialize mappings for each detected layer
       detectedLayers.value.forEach(layer => {
         if (!layerMappings.value[layer]) {
           layerMappings.value[layer] = null;
         }
       });
       
-      // Generate initial preview
       await updatePreview();
     } catch (error) {
       errorMessage.value = error.message || 'Failed to parse DXF file';
@@ -263,33 +257,22 @@ const handleFileSelect = async (event) => {
   }
 };
 
-// Update preview when layer mappings change
 const updatePreview = async () => {
   if (!dxfFile.value) return;
   
   try {
     const { generateSvgPreview } = await import('~/utils/dxfParser');
-    
-    // Get default pen (first system pen or black)
-    // systemPens is a Ref<Array>
     const currentSystemPens = systemPens.value;
-    console.log('[CassetteDialog] System pens:', currentSystemPens);
     const defaultPen = currentSystemPens.length > 0 ? currentSystemPens[0] : {
       stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' }
     };
-    console.log('[CassetteDialog] Default pen:', defaultPen);
     
-    // Build layer to pen mapping from selected layer standards
     const layerToPenMap = {};
     for (const [layerName, standardCode] of Object.entries(layerMappings.value)) {
       if (standardCode) {
-        // Find the layer standard
         const standard = standards.value.find(s => s.code === standardCode);
-        console.log('[CassetteDialog] Layer:', layerName, 'Standard:', standard);
         if (standard && standard.defaultPenId) {
-          // Find the pen by ID
           const pen = pens.value.find(p => p._id?.toString() === standard.defaultPenId?.toString());
-          console.log('[CassetteDialog] Found pen for', layerName, ':', pen);
           if (pen) {
             layerToPenMap[layerName] = pen;
           }
@@ -297,16 +280,6 @@ const updatePreview = async () => {
       }
     }
     
-    console.log('[CassetteDialog] Final layer-to-pen map:', layerToPenMap);
-    
-    // Log what we're about to pass to generateSvgPreview
-    console.log('[CassetteDialog] About to call generateSvgPreview with:');
-    console.log('  - file:', dxfFile.value?.name);
-    console.log('  - layerToPenMap keys:', Object.keys(layerToPenMap));
-    console.log('  - layerToPenMap:', layerToPenMap);
-    console.log('  - defaultPen:', defaultPen);
-    
-    // Generate SVG with pen mappings
     const svg = await generateSvgPreview(dxfFile.value, layerToPenMap, defaultPen);
     svgPreview.value = svg;
   } catch (error) {
@@ -314,9 +287,7 @@ const updatePreview = async () => {
   }
 };
 
-// Watch layer mappings and regenerate preview
 watch(layerMappings, () => {
-  console.log('[CassetteDialog] Layer mappings changed:', layerMappings.value);
   updatePreview();
 }, { deep: true });
 
@@ -327,7 +298,6 @@ const handleUpload = async () => {
   errorMessage.value = '';
 
   try {
-    // Convert layerMappings to format: { [layerName]: layerStandardCode }
     const mappings = {};
     Object.entries(layerMappings.value).forEach(([layer, standardCode]) => {
       if (standardCode) {
@@ -358,43 +328,6 @@ const handleUpload = async () => {
   }
 };
 
-const handleSave = async () => {
-  if (!cassette.value) return;
-
-  isUploading.value = true;
-  errorMessage.value = '';
-
-  try {
-    // Convert layerMappings to the expected format
-    const mappings = {
-      cut: [],
-      bend: [],
-      frame: [],
-      dimensions: []
-    };
-
-    Object.entries(layerMappings.value).forEach(([layer, type]) => {
-      if (type && mappings[type]) {
-        mappings[type].push(layer);
-      }
-    });
-
-    await $fetch(`/api/cassettes/${cassette.value._id}/mappings`, {
-      method: 'PUT',
-      body: { layerMapping: mappings }
-    });
-
-    emit('saved', cassette.value);
-    isOpen.value = false;
-    resetForm();
-  } catch (error) {
-    errorMessage.value = error.data?.message || 'Save failed';
-    console.error('Save failed:', error);
-  } finally {
-    isUploading.value = false;
-  }
-};
-
 const handleClose = () => {
   if (!isUploading.value) {
     resetForm();
@@ -415,4 +348,18 @@ const resetForm = () => {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--p-content-border-color);
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--p-primary-color);
+}
+</style>

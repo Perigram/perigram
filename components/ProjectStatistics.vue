@@ -1,22 +1,23 @@
 <template>
-    <div class="mt-8 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-        <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">{{ $t('statistics.title') }}</h3>
-        <div v-if="statistics && statistics.sheetsUsed !== undefined" class="grid grid-cols-3 gap-4 mt-4 text-center">
-            <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('results.sheets') }}</p>
-                <p class="text-2xl font-bold">{{ statistics.sheetsUsed || 0 }}</p>
+    <div class="mt-8 p-6 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl shadow-sm">
+        <h3 class="text-base font-bold uppercase tracking-widest text-[var(--p-text-muted-color)] mb-6">{{ $t('statistics.title') }}</h3>
+        <div v-if="statistics && statistics.sheetsUsed !== undefined" class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+            <div class="flex flex-col gap-1 p-4 rounded-lg bg-[var(--p-surface-50)] border border-[var(--p-content-border-color)]">
+                <p class="text-xs font-black uppercase tracking-tighter text-[var(--p-text-muted-color)] m-0">{{ $t('results.sheets') }}</p>
+                <p class="text-3xl font-black text-[var(--p-primary-color)] m-0">{{ statistics.sheetsUsed || 0 }}</p>
             </div>
-            <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('statistics.totalArea') }}</p>
-                <p class="text-2xl font-bold">{{ (statistics.totalAreaUsed || 0).toFixed(2) }}</p>
+            <div class="flex flex-col gap-1 p-4 rounded-lg bg-[var(--p-surface-50)] border border-[var(--p-content-border-color)]">
+                <p class="text-xs font-black uppercase tracking-tighter text-[var(--p-text-muted-color)] m-0">{{ $t('statistics.totalArea') }}</p>
+                <p class="text-3xl font-black text-[var(--p-text-color)] m-0">{{ (statistics.totalAreaUsed || 0).toFixed(2) }}<small class="text-sm ml-1 opacity-50">m²</small></p>
             </div>
-            <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('statistics.efficiency') }}</p>
-                <p class="text-2xl font-bold">{{ (statistics.utilizationRate || 0).toFixed(2) }}%</p>
+            <div class="flex flex-col gap-1 p-4 rounded-lg bg-[var(--p-primary-50)] border border-[var(--p-primary-100)]">
+                <p class="text-xs font-black uppercase tracking-tighter text-[var(--p-primary-color)] m-0">{{ $t('statistics.efficiency') }}</p>
+                <p class="text-3xl font-black text-[var(--p-primary-color)] m-0">{{ (statistics.utilizationRate || 0).toFixed(2) }}%</p>
             </div>
         </div>
-        <div v-else class="text-center text-gray-500 dark:text-gray-400 mt-4">
-            {{ $t('results.noResults') }}
+        <div v-else class="text-center py-8 opacity-40 italic flex flex-col items-center gap-2">
+            <i class="pi pi-chart-line text-3xl"></i>
+            <span class="text-sm font-medium">{{ $t('results.noResults') }}</span>
         </div>
     </div>
 </template>

@@ -1,7 +1,7 @@
 <template>
-  <div class="batch-management">
-    <div class="batch-header">
-      <h2>{{ $t('batch.title') }}</h2>
+  <div class="flex flex-col gap-6">
+    <div class="flex items-center justify-between gap-4 px-1">
+      <h2 class="text-xl font-bold text-[var(--p-text-color)]">{{ $t('batch.title') }}</h2>
       <Button 
         :label="$t('batch.create')" 
         icon="pi pi-plus" 
@@ -9,16 +9,17 @@
       />
     </div>
 
-    <div v-if="loading" class="batch-loading">
+    <div v-if="loading" class="flex items-center justify-center py-12">
       <ProgressSpinner />
     </div>
 
-    <div v-else-if="error" class="batch-error">
+    <div v-else-if="error" class="mb-4">
       <Message severity="error">{{ error }}</Message>
     </div>
 
-    <div v-else-if="batches.length === 0" class="batch-empty">
-      <p>{{ $t('batch.empty') }}</p>
+    <div v-else-if="batches.length === 0" class="text-center py-16 px-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)]">
+      <i class="pi pi-inbox text-5xl text-[var(--p-text-muted-color)] mb-4 opacity-50 block"></i>
+      <p class="text-lg text-[var(--p-text-secondary-color)] mb-6">{{ $t('batch.empty') }}</p>
       <Button 
         :label="$t('batch.createFirst')" 
         icon="pi pi-plus" 
@@ -26,14 +27,15 @@
       />
     </div>
 
-    <div v-else class="batch-list">
+    <div v-else>
       <DataTable 
         :value="batches" 
-        :paginator="true" 
+        :paginator="batches.length > 10" 
         :rows="10"
         responsiveLayout="scroll"
+        class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden"
       >
-        <Column field="name" :header="$t('batch.name')" />
+        <Column field="name" :header="$t('batch.name')" class="font-medium" />
         <Column field="status" :header="$t('batch.status')">
           <template #body="slotProps">
             <Tag 
@@ -44,29 +46,39 @@
         </Column>
         <Column field="createdAt" :header="$t('batch.created')">
           <template #body="slotProps">
-            {{ formatDate(slotProps.data.createdAt) }}
+            <span class="text-sm text-[var(--p-text-muted-color)]">
+              {{ formatDate(slotProps.data.createdAt) }}
+            </span>
           </template>
         </Column>
-        <Column :header="$t('common.actions')">
+        <Column :header="$t('common.actions')" class="text-right">
           <template #body="slotProps">
-            <div class="batch-actions">
+            <div class="flex justify-end gap-2">
               <Button 
                 icon="pi pi-pencil" 
                 severity="secondary" 
+                text
+                rounded
                 size="small"
                 @click="editBatch(slotProps.data)"
+                v-tooltip.top="$t('common.edit')"
               />
               <Button 
                 icon="pi pi-play" 
                 severity="success" 
+                text
+                rounded
                 size="small"
                 :disabled="slotProps.data.status !== 'DRAFT'"
                 @click="runNesting(slotProps.data)"
+                v-tooltip.top="$t('batches.runNesting')"
               />
               <Button 
                 v-if="['FAILED', 'NESTING'].includes(slotProps.data.status)"
                 icon="pi pi-refresh" 
                 severity="warning" 
+                text
+                rounded
                 size="small"
                 v-tooltip.top="$t('batch.resetToDraft')"
                 @click="resetBatch(slotProps.data)"
@@ -74,8 +86,11 @@
               <Button 
                 icon="pi pi-trash" 
                 severity="danger" 
+                text
+                rounded
                 size="small"
                 @click="deleteBatch(slotProps.data)"
+                v-tooltip.top="$t('common.delete')"
               />
             </div>
           </template>
@@ -88,21 +103,24 @@
       v-model:visible="showCreateDialog" 
       :header="$t('batch.createTitle')" 
       :modal="true"
-      :style="{ width: '450px' }"
+      :style="{ width: '95vw', maxWidth: '450px' }"
     >
-      <div class="batch-form">
-        <div class="field">
-          <label for="batchName">{{ $t('batch.name') }}</label>
+      <div class="py-4">
+        <div class="flex flex-col gap-2">
+          <label for="batchName" class="font-medium text-[var(--p-text-color)]">{{ $t('batch.name') }}</label>
           <InputText 
             id="batchName" 
             v-model="newBatchName" 
             :placeholder="$t('batch.namePlaceholder')"
+            class="w-full"
+            autofocus
           />
         </div>
       </div>
       <template #footer>
         <Button 
           :label="$t('common.cancel')" 
+          text
           severity="secondary" 
           @click="showCreateDialog = false"
         />
@@ -245,41 +263,5 @@ const deleteBatch = async (batch) => {
 </script>
 
 <style scoped lang="scss">
-.batch-management {
-  padding: 20px;
-}
-
-.batch-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.batch-loading,
-.batch-empty {
-  text-align: center;
-  padding: 40px;
-}
-
-.batch-error {
-  margin-bottom: 20px;
-}
-
-.batch-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.batch-form {
-  .field {
-    margin-bottom: 20px;
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 500;
-    }
-  }
-}
 </style>
+

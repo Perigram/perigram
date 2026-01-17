@@ -3,36 +3,38 @@
         v-model:visible="dialogVisible" 
         :header="$t('profile.buyCredits')" 
         :modal="true"
-        :style="{ width: '500px' }"
+        :style="{ width: '95vw', maxWidth: '500px' }"
         @update:visible="$emit('close')"
     >
-        <div class="buy-credits-content">
-            <div class="current-balance">
-                <p>{{ $t('billing.currentBalance') }}</p>
-                <Tag :value="user.balance || 0" severity="info" />
+        <div class="flex flex-col gap-6 py-2">
+            <div class="flex justify-between items-center bg-[var(--p-surface-50)] p-4 rounded-xl border border-[var(--p-content-border-color)]">
+                <p class="m-0 font-medium text-[var(--p-text-color)]">{{ $t('billing.currentBalance') }}</p>
+                <Tag :value="user.balance || 0" severity="info" class="text-base font-bold px-3" />
             </div>
 
-            <div v-if="loading" class="text-center">
-                <ProgressSpinner />
+            <div v-if="loading" class="flex items-center justify-center py-12">
+                <ProgressSpinner style="width: 40px; height: 40px" />
             </div>
 
-            <div v-else-if="error" class="error-message">
-                <Message severity="error">{{ error }}</Message>
+            <div v-else-if="error">
+                <Message severity="error" class="w-full">{{ error }}</Message>
             </div>
 
-            <div v-else class="options-container">
-                <label>{{ $t('billing.selectPackage') }}</label>
+            <div v-else class="flex flex-col gap-3">
+                <label class="font-bold text-sm uppercase tracking-wider text-[var(--p-text-muted-color)]">{{ $t('billing.selectPackage') }}</label>
                 <SelectButton 
                     v-model="selectedOption" 
                     :options="paymentOptions" 
                     optionLabel="title"
-                    class="w-full"
+                    class="w-full flex flex-col gap-2 !bg-transparent !border-none"
+                    pt:root:class="!bg-transparent !border-none !flex-col !gap-2"
+                    pt:button:class="!border !border-[var(--p-content-border-color)] !rounded-xl !text-left !px-4 !py-3 hover:!border-[var(--p-primary-color)] transition-all"
                 >
                     <template #option="slotProps">
-                        <div class="credit-option">
-                            <div class="font-bold">{{ slotProps.option.title }}</div>
-                            <div>{{ slotProps.option.description }}</div>
-                            <div class="font-bold mt-2">{{ slotProps.option.credit }} {{ $t('billing.credits') }}</div>
+                        <div class="flex flex-col gap-1">
+                            <div class="font-bold text-base">{{ slotProps.option.title }}</div>
+                            <div class="text-xs text-[var(--p-text-muted-color)]">{{ slotProps.option.description }}</div>
+                            <div class="font-black text-[var(--p-primary-color)] mt-1 tracking-tight">{{ slotProps.option.credit }} {{ $t('billing.credits') }}</div>
                         </div>
                     </template>
                 </SelectButton>
@@ -40,13 +42,17 @@
         </div>
 
         <template #footer>
-            <Button :label="$t('common.cancel')" severity="secondary" @click="$emit('close')" />
-            <Button 
-                :label="$t('billing.buyNow')" 
-                @click="buy" 
-                :disabled="!selectedOption || buying"
-                :loading="buying"
-            />
+            <div class="flex justify-end gap-2 pt-2">
+                <Button :label="$t('common.cancel')" severity="secondary" text @click="$emit('close')" />
+                <Button 
+                    :label="$t('billing.buyNow')" 
+                    icon="pi pi-shopping-cart"
+                    @click="buy" 
+                    :disabled="!selectedOption || buying"
+                    :loading="buying"
+                    class="px-6"
+                />
+            </div>
         </template>
     </Dialog>
 </template>
@@ -109,28 +115,5 @@ const buy = async () => {
 </script>
 
 <style scoped>
-.buy-credits-content {
-    padding: 1rem 0;
-}
-.current-balance {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    background-color: var(--surface-ground);
-    border-radius: 6px;
-    margin-bottom: 1.5rem;
-}
-.options-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-.credit-option {
-    padding: 0.5rem;
-    text-align: center;
-}
-.error-message {
-    margin-top: 1rem;
-}
 </style>
+

@@ -5,7 +5,7 @@
 <script setup>
 import { API_ROUTES } from '~/composables/apiRoutes';
 definePageMeta({
-    layout: "doc",
+    layout: "app",
 });
 const router = useRouter()
 const route = useRoute();

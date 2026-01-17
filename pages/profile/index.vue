@@ -1,28 +1,41 @@
 <template>
-    <div class="p-4">
+    <div class="flex flex-col gap-6">
+        <h1 class="text-2xl font-bold text-[var(--p-text-color)] px-1">{{ $t('nav.profile') }}</h1>
+        
         <TabView>
             <TabPanel :header="$t('profile.account')">
-                <div class="grid">
-                    <div class="col-12 md:col-4">
-                        <Card>
-                            <template #title>{{ $t('profile.title') }}</template>
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 py-4">
+                    <div class="md:col-span-4">
+                        <Card class="h-full border border-[var(--p-content-border-color)]">
+                            <template #title>
+                                <span class="text-lg font-bold">{{ $t('profile.title') }}</span>
+                            </template>
                             <template #content>
-                                <div class="flex align-items-center">
-                                    <Avatar :label="user.name ? user.name[0].toUpperCase() : 'U'" size="xlarge" shape="circle" />
-                                    <div class="ml-3">
-                                        <p class="font-bold">{{ user.name }}</p>
-                                        <p class="text-sm text-gray-500">{{ user.email }}</p>
+                                <div class="flex flex-col items-center text-center gap-4 py-4">
+                                    <Avatar :label="user.name ? user.name[0].toUpperCase() : 'U'" size="xlarge" shape="circle" class="bg-[var(--p-primary-color)] text-white w-20 h-20 text-2xl" />
+                                    <div class="flex flex-col gap-1">
+                                        <p class="text-xl font-bold m-0 text-[var(--p-text-color)]">{{ user.name }}</p>
+                                        <p class="text-sm text-[var(--p-text-muted-color)] m-0">{{ user.email }}</p>
                                     </div>
                                 </div>
                             </template>
                         </Card>
                     </div>
-                    <div class="col-12 md:col-8">
-                        <Card>
-                            <template #title>{{ $t('profile.authentication') }}</template>
+                    <div class="md:col-span-8">
+                        <Card class="h-full border border-[var(--p-content-border-color)]">
+                            <template #title>
+                                <span class="text-lg font-bold">{{ $t('profile.authentication') }}</span>
+                            </template>
                             <template #content>
-                                <p>{{ $t('profile.loggedInOAuth') }}</p>
-                                <Button :label="$t('nav.logout')" icon="pi pi-sign-out" class="p-button-danger mt-4" @click="logoutHandler" />
+                                <div class="flex flex-col gap-6 py-2">
+                                    <div class="flex items-center gap-3 bg-[var(--p-primary-50)] p-4 rounded-lg border border-[var(--p-primary-100)]">
+                                        <i class="pi pi-shield text-[var(--p-primary-color)] text-xl"></i>
+                                        <p class="m-0 text-[var(--p-text-color)] font-medium">{{ $t('profile.loggedInOAuth') }}</p>
+                                    </div>
+                                    <div class="mt-auto">
+                                        <Button :label="$t('nav.logout')" icon="pi pi-sign-out" severity="danger" outlined @click="logoutHandler" />
+                                    </div>
+                                </div>
                             </template>
                         </Card>
                     </div>
@@ -30,71 +43,92 @@
             </TabPanel>
 
             <TabPanel :header="$t('profile.billing')">
-                <div class="grid">
-                    <div class="col-12 md:col-6">
-                        <Card>
-                            <template #title>{{ $t('billing.creditBalance') }}</template>
-                            <template #content>
-                                <div class="flex justify-content-between align-items-center">
-                                    <div>
-                                        <p class="text-2xl font-bold">{{ user.balance || 0 }} {{ $t('billing.credits') }}</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
+                    <Card class="border border-[var(--p-content-border-color)] shadow-sm">
+                        <template #title>
+                            <span class="text-lg font-bold">{{ $t('billing.creditBalance') }}</span>
+                        </template>
+                        <template #content>
+                            <div class="flex flex-col gap-6 py-2">
+                                <div class="flex justify-between items-center bg-[var(--p-content-background)] p-6 rounded-xl border border-[var(--p-content-border-color)]">
+                                    <div class="flex flex-col gap-1">
+                                        <span class="text-sm text-[var(--p-text-muted-color)] uppercase tracking-wider font-bold">{{ $t('profile.balance') }}</span>
+                                        <span class="text-4xl font-black text-[var(--p-primary-color)]">{{ user.balance || 0 }}</span>
                                     </div>
-                                    <Button :label="$t('profile.buyCredits')" icon="pi pi-shopping-cart" @click="showBuyCredits = true" />
+                                    <Button :label="$t('profile.buyCredits')" icon="pi pi-shopping-cart" size="large" @click="showBuyCredits = true" />
                                 </div>
-                                <Button :label="$t('billing.addTestCredits')" icon="pi pi-plus" class="p-button-secondary mt-4" @click="addCredits" />
-                            </template>
-                        </Card>
-                    </div>
-                    <div class="col-12 md:col-6">
-                        <Card>
-                            <template #title>{{ $t('billing.purchaseHistory') }}</template>
-                            <template #content>
-                                <p>{{ $t('billing.noHistory') }}</p>
-                                <!-- TODO: Implement purchase history table -->
-                            </template>
-                        </Card>
-                    </div>
+                                <div class="pt-4 border-t border-[var(--p-content-border-color)]">
+                                    <p class="text-xs text-[var(--p-text-muted-color)] mb-3 uppercase font-bold tracking-tighter">Developer Tools</p>
+                                    <Button :label="$t('billing.addTestCredits')" icon="pi pi-plus" severity="secondary" text @click="addCredits" />
+                                </div>
+                            </div>
+                        </template>
+                    </Card>
+                    
+                    <Card class="border border-[var(--p-content-border-color)] shadow-sm">
+                        <template #title>
+                            <span class="text-lg font-bold">{{ $t('billing.purchaseHistory') }}</span>
+                        </template>
+                        <template #content>
+                            <div class="flex flex-col items-center justify-center py-12 text-center gap-4 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl opacity-60">
+                                <i class="pi pi-history text-4xl text-[var(--p-text-muted-color)]"></i>
+                                <p class="m-0 text-[var(--p-text-secondary-color)] font-medium">{{ $t('billing.noHistory') }}</p>
+                            </div>
+                        </template>
+                    </Card>
                 </div>
             </TabPanel>
 
             <TabPanel :header="$t('profile.preferences')">
-                <div class="grid">
-                    <div class="col-12">
-                        <Card>
-                            <template #title>{{ $t('profile.settings') }}</template>
-                            <template #content>
-                                <div class="field">
-                                    <label>{{ $t('profile.theme') }}</label>
-                                    <p>{{ $t('profile.themeNotImplemented') }}</p>
+                <div class="max-w-2xl py-4">
+                    <Card class="border border-[var(--p-content-border-color)]">
+                        <template #title>
+                            <span class="text-lg font-bold">{{ $t('profile.settings') }}</span>
+                        </template>
+                        <template #content>
+                            <div class="flex flex-col gap-8 py-2">
+                                <div class="flex flex-col gap-3">
+                                    <label class="font-bold text-sm uppercase tracking-wider text-[var(--p-text-muted-color)]">{{ $t('profile.theme') }}</label>
+                                    <div class="flex items-center gap-3 p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-lg">
+                                        <i class="pi pi-palette text-xl opacity-50"></i>
+                                        <p class="m-0 text-[var(--p-text-color)]">{{ $t('profile.themeNotImplemented') }}</p>
+                                    </div>
                                 </div>
-                                <div class="field mt-4">
-                                    <label for="language-select">{{ $t('profile.language') }}</label>
-                                    <Dropdown
-                                        id="language-select"
-                                        v-model="currentLocale"
-                                        :options="availableLocales"
-                                        optionLabel="name"
-                                        optionValue="code"
-                                        @change="onLocaleChange"
-                                        class="w-full"
-                                    />
+                                
+                                <div class="flex flex-col gap-3">
+                                    <label for="language-select" class="font-bold text-sm uppercase tracking-wider text-[var(--p-text-muted-color)]">{{ $t('profile.language') }}</label>
+                                    <div class="flex flex-col gap-2">
+                                        <Select
+                                            id="language-select"
+                                            v-model="currentLocale"
+                                            :options="availableLocales"
+                                            optionLabel="name"
+                                            optionValue="code"
+                                            @change="onLocaleChange"
+                                            class="w-full md:w-80"
+                                        />
+                                        <small class="text-[var(--p-text-muted-color)]">Choose your preferred interface language.</small>
+                                    </div>
                                 </div>
-                            </template>
-                        </Card>
-                    </div>
+                            </div>
+                        </template>
+                    </Card>
                 </div>
             </TabPanel>
 
             <TabPanel :header="$t('nav.projects')">
-                <div class="grid">
-                    <div class="col-12">
-                        <Card>
-                            <template #title>{{ $t('profile.usageStatistics') }}</template>
-                            <template #content>
-                                <p>{{ $t('profile.usageStatisticsComingSoon') }}</p>
-                            </template>
-                        </Card>
-                    </div>
+                <div class="py-4">
+                    <Card class="border border-[var(--p-content-border-color)]">
+                        <template #title>
+                            <span class="text-lg font-bold">{{ $t('profile.usageStatistics') }}</span>
+                        </template>
+                        <template #content>
+                            <div class="flex flex-col items-center justify-center py-20 text-center gap-4 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl opacity-60">
+                                <i class="pi pi-chart-bar text-5xl text-[var(--p-text-muted-color)]"></i>
+                                <p class="text-lg m-0 text-[var(--p-text-secondary-color)] font-medium">{{ $t('profile.usageStatisticsComingSoon') }}</p>
+                            </div>
+                        </template>
+                    </Card>
                 </div>
             </TabPanel>
         </TabView>
@@ -114,7 +148,7 @@ import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
 import Card from 'primevue/card';
 import Avatar from 'primevue/avatar';
-import Dropdown from 'primevue/dropdown';
+import Select from 'primevue/select';
 import BuyCreditsDialog from '~/components/BuyCreditsDialog.vue';
 
 definePageMeta({
@@ -166,3 +200,4 @@ const addCredits = async () => {
 
 <style scoped>
 </style>
+

@@ -1,26 +1,26 @@
 <template>
-    <div class="bg-transparent">
+    <div class="flex flex-col min-h-screen bg-[var(--p-surface-ground)]">
         <Menubar
             :model="[]"
-            class="rounded-none border-0 sticky top-0 z-50"
+            class="rounded-none border-0 sticky top-0 z-50 px-4 py-2"
         >
             <template #start>
                 <NuxtLink
                     to="/projects"
-                    class="logo"
+                    class="flex items-center gap-2 no-underline text-[var(--p-primary-color)] text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity"
                 >
                     <span>CutKit</span>
                 </NuxtLink>
-                <Divider layout="vertical" />
+                <Divider layout="vertical" class="mx-2" />
                 <div
                     v-for="(crumb, index) in breadcrumbs"
                     :key="index"
                     class="flex items-center gap-0"
                 >
-                    <span v-if="index > 0">/</span>
+                    <span v-if="index > 0" class="mx-1 opacity-50">/</span>
                     <NuxtLink
                         :to="crumb.to"
-                        class="p-button p-component p-button-text p-button-secondary"
+                        class="p-button p-component p-button-text p-button-secondary text-sm font-medium"
                     >
                         {{ crumb.name }}
                     </NuxtLink>
@@ -31,7 +31,7 @@
                         option-label="name"
                         option-value="id"
                         @change="(e) => router.push(e.value)"
-                        pt:root:class="p-button p-component p-button-text p-button-secondary px-0 mr-2"
+                        pt:root:class="p-button p-component p-button-text p-button-secondary px-0 mr-2 border-none"
                         pt:label:class="hidden"
                         pt:dropdown:class="p-0 m-0"
                     />
@@ -39,7 +39,7 @@
             </template>
 
             <template #end>
-                <div class="header-end">
+                <div class="flex items-center gap-2">
                     <Button
                         :icon="themeIcon"
                         @click="toggleTheme"
@@ -51,7 +51,7 @@
             </template>
         </Menubar>
 
-        <main class="app-main">
+        <main class="flex-1 max-w-[1600px] w-full mx-auto p-4 md:p-6 lg:p-8">
             <slot />
         </main>
 
@@ -62,7 +62,7 @@
             severity="secondary"
             @click="supportDialog = true"
             v-if="!supportDialog"
-            class="support-button"
+            class="fixed bottom-8 right-8 z-[999] shadow-lg"
         />
     </div>
 </template>
@@ -205,49 +205,5 @@
 </script>
 
 <style scoped lang="scss">
-    .app-layout {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-        background: var(--surface-ground);
-    }
-
-    .logo {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
-        color: var(--primary-color);
-        font-size: 1.25rem;
-        font-weight: 700;
-        white-space: nowrap;
-
-        i {
-            font-size: 1.5rem;
-        }
-
-        &:hover {
-            opacity: 0.8;
-        }
-    }
-
-    .header-end {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .app-main {
-        flex: 1;
-        max-width: 1600px;
-        width: 100%;
-        margin: 0 auto;
-    }
-
-    .support-button {
-        position: fixed;
-        bottom: 2rem;
-        right: 2rem;
-        z-index: 999;
-    }
 </style>
+

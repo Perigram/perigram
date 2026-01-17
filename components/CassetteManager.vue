@@ -1,30 +1,38 @@
 <template>
-  <div class="p-5">
-    <div class="flex justify-end items-center mb-5 gap-2">
-      <Button 
-        :label="$t('cassette.upload')" 
-        icon="pi pi-upload"
-        @click="showUploadDialog = true"
-      />
-      <Button 
-        :label="$t('cassette.designer')" 
-        icon="pi pi-pencil"
-        @click="showDesignerDialog = true"
-      />
+  <div class="flex flex-col gap-6">
+    <div class="flex items-center justify-between gap-4 px-1">
+      <h2 class="text-xl font-bold text-[var(--p-text-color)]">{{ $t('nav.cassettes') }}</h2>
+      <div class="flex gap-2">
+        <Button 
+          :label="$t('cassette.upload')" 
+          icon="pi pi-upload"
+          outlined
+          @click="showUploadDialog = true"
+        />
+        <Button 
+          :label="$t('cassette.designer')" 
+          icon="pi pi-pencil"
+          @click="showDesignerDialog = true"
+        />
+      </div>
     </div>
 
-    <div v-if="!cassettes || cassettes.length === 0" class="text-center py-12 flex flex-col items-center gap-4">
-      <i class="pi pi-inbox text-5xl"></i>
-      <p>{{ !cassettes ? $t('cassette.loading') : $t('cassette.noCassettes') }}</p>
+    <div v-if="!cassettes || cassettes.length === 0" class="text-center py-20 px-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)]">
+      <i class="pi pi-inbox text-6xl text-[var(--p-text-muted-color)] mb-4 opacity-50 block"></i>
+      <p class="text-lg text-[var(--p-text-secondary-color)]">{{ !cassettes ? $t('cassette.loading') : $t('cassette.noCassettes') }}</p>
     </div>
 
-    <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4 py-5">
-      <div v-for="cassette in cassettes" :key="cassette._id" class="flex flex-col gap-3 h-full p-4 border border-[var(--separator-primary)] rounded-lg bg-[var(--fill-tertiary)]">
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div v-for="cassette in cassettes" :key="cassette._id" 
+        class="flex flex-col gap-4 p-5 border border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)] hover:border-[var(--p-primary-color)] hover:shadow-lg transition-all duration-300"
+      >
         <div class="flex justify-between items-start gap-3">
-          <div class="flex-1 overflow-hidden">
+          <div class="flex-1 min-w-0">
             <Inplace @open="onRenameStart(cassette)">
               <template #display>
-                <h3 class="m-0 text-lg font-semibold break-words cursor-pointer hover:text-[var(--accent-primary)]" v-tooltip.top="$t('cassette.clickToRename')">{{ cassette.name }}</h3>
+                <h3 class="m-0 text-lg font-bold text-[var(--p-text-color)] truncate cursor-pointer hover:text-[var(--p-primary-color)] transition-colors" v-tooltip.top="$t('cassette.clickToRename')">
+                  {{ cassette.name }}
+                </h3>
               </template>
               <template #content="{ closeCallback }">
                 <div class="flex items-center gap-2 w-full">
@@ -38,29 +46,33 @@
           <Tag 
             :value="cassette.processingStatus" 
             :severity="getStatusSeverity(cassette.processingStatus)"
+            class="uppercase text-[10px]"
           />
         </div>
 
-        <div class="flex-1">
-          <div class="flex gap-2 text-sm">
-            <span>{{ $t('common.created') }}:</span>
-            <span>{{ formatDate(cassette.createdAt) }}</span>
-          </div>
+        <div class="flex items-center gap-2 text-xs text-[var(--p-text-muted-color)]">
+          <i class="pi pi-calendar"></i>
+          <span>{{ $t('common.created') }}: {{ formatDate(cassette.createdAt) }}</span>
         </div>
 
-        <div class="flex gap-2 justify-end pt-2">
+        <div class="flex justify-end gap-2 pt-2 border-t border-[var(--p-content-border-color)] mt-auto">
           <Button 
-            :label="$t('common.edit')"
             icon="pi pi-pencil" 
             severity="secondary"
+            text
+            rounded
             size="small"
             @click="editCassette(cassette)"
+            v-tooltip.top="$t('common.edit')"
           />
           <Button 
             icon="pi pi-trash" 
             severity="danger"
+            text
+            rounded
             size="small"
             @click="handleDelete(cassette._id)"
+            v-tooltip.top="$t('common.delete')"
           />
         </div>
       </div>
@@ -74,7 +86,7 @@
     <Dialog 
       v-model:visible="showDesignerDialog"
       :header="$t('cassette.designerTitle')"
-      :style="{ width: '90vw', height: '90vh' }"
+      :style="{ width: '95vw', height: '95vh' }"
       :modal="true"
       @hide="editingCassette = null"
     >
@@ -176,3 +188,6 @@ const handleUploaded = async () => {
   cassettes.value = result || [];
 };
 </script>
+
+<style scoped lang="scss">
+</style>

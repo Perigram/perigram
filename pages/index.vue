@@ -1,24 +1,44 @@
 <template>
-  <div v-if="!userIsSet" class="flex items-center justify-center min-h-screen bg-gray-100">
-    <div class="w-full max-w-sm p-6 bg-white rounded-lg shadow-md">
-      <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">{{ $t('auth.welcome') }}</h1>
-      <p class="text-center text-gray-600 mb-6">{{ $t('auth.subtitle') }}</p>
-      <div class="space-y-4">
-        <button @click="loginWithGithub" class="flex items-center justify-center w-full px-4 py-2 text-white bg-gray-800 rounded-md hover:bg-gray-900">
-          <img src="/github-logo.svg" alt="GitHub" class="w-6 h-6 mr-2" />
+  <div v-if="!userIsSet" class="flex items-center justify-center min-h-screen bg-[var(--p-surface-50)] p-4">
+    <div class="w-full max-w-md p-8 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-2xl shadow-xl flex flex-col gap-8 animate-in zoom-in duration-500">
+      <div class="flex flex-col items-center gap-2">
+        <div class="w-16 h-16 bg-[var(--p-primary-color)] text-white rounded-2xl flex items-center justify-center shadow-lg mb-2">
+          <span class="text-3xl font-black">CK</span>
+        </div>
+        <h1 class="text-3xl font-black text-[var(--p-text-color)] m-0 tracking-tight">{{ $t('auth.welcome') }}</h1>
+        <p class="text-center text-[var(--p-text-muted-color)] font-medium leading-relaxed">{{ $t('auth.subtitle') }}</p>
+      </div>
+
+      <div class="flex flex-col gap-3">
+        <Button 
+          @click="loginWithGithub" 
+          severity="contrast"
+          class="w-full h-12 rounded-xl font-bold flex items-center justify-center gap-3"
+        >
+          <img src="/github-logo.svg" alt="GitHub" class="w-5 h-5 invert" />
           <span>{{ $t('auth.signInWithGitHub') }}</span>
-        </button>
-        <button @click="loginWithGoogle" class="flex items-center justify-center w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-          <img src="/google-logo.svg" alt="Google" class="w-6 h-6 mr-2" />
+        </Button>
+        
+        <Button 
+          @click="loginWithGoogle" 
+          outlined
+          severity="secondary"
+          class="w-full h-12 rounded-xl font-bold flex items-center justify-center gap-3"
+        >
+          <img src="/google-logo.svg" alt="Google" class="w-5 h-5" />
           <span>{{ $t('auth.signInWithGoogle') }}</span>
-        </button>
+        </Button>
+      </div>
+
+      <div class="pt-4 border-t border-[var(--p-content-border-color)] text-center">
+        <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--p-text-muted-color)] m-0">Secure Cloud Nesting Platform</p>
       </div>
     </div>
   </div>
   <div v-else>
-    <!-- Optional: show a loading/redirecting message -->
-    <div class="flex items-center justify-center min-h-screen">
-      <p>{{ $t('auth.redirecting') }}</p>
+    <div class="flex flex-col items-center justify-center min-h-screen bg-[var(--p-surface-50)] gap-4">
+      <ProgressSpinner style="width: 40px; height: 40px" strokeWidth="4" />
+      <p class="text-sm font-bold uppercase tracking-widest text-[var(--p-text-muted-color)] animate-pulse">{{ $t('auth.redirecting') }}</p>
     </div>
   </div>
 </template>
@@ -29,10 +49,11 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { storeToRefs } from 'pinia';
+import Button from 'primevue/button';
+import ProgressSpinner from 'primevue/progressspinner';
 
 definePageMeta({
   // No middleware here. Let the page handle its own logic.
-  // The middleware was causing issues.
 });
 
 const { t } = useI18n();

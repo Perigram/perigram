@@ -1,22 +1,28 @@
 <template>
-    <div class="support">
+    <div class="flex h-[calc(100vh-12rem)] min-h-[500px] border border-[var(--p-content-border-color)] rounded-2xl overflow-hidden shadow-sm bg-[var(--p-content-background)]">
         <AdminSupportChatList
-            :class="{'support__chats--active': selectedUserId}"
-            class="support__chats" 
+            class="w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-[var(--p-content-border-color)]"
+            :class="{'hidden md:flex': selectedUserId, 'flex': !selectedUserId}"
             @select-chat="handleChatSelection"
         />
-        <AdminSupportChat 
-            v-if="selectedUserId"
-            :key="selectedUserId"
-            :userId="selectedUserId" 
-            @back="handleBack"
-            class="support__chat" 
-        />
-        <div 
-            v-else
-            class="support__chat placeholder"
-        >
-            <p class="placeholder__text">{{ $t('admin.selectChatPrompt') }}</p>
+        
+        <div class="flex-1 min-w-0 bg-[var(--p-surface-50)]">
+            <AdminSupportChat 
+                v-if="selectedUserId"
+                :key="selectedUserId"
+                :userId="selectedUserId" 
+                @back="handleBack"
+                class="h-full" 
+            />
+            <div 
+                v-else
+                class="hidden md:flex h-full items-center justify-center p-8 text-center"
+            >
+                <div class="flex flex-col items-center gap-4 opacity-40">
+                    <i class="pi pi-comments text-6xl"></i>
+                    <p class="text-lg font-bold uppercase tracking-widest m-0">{{ $t('admin.selectChatPrompt') }}</p>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -25,7 +31,7 @@
 import { ref } from 'vue'
 
 definePageMeta({
-    layout: "support",
+    layout: "app",
     middleware: "auth",
 });
 
@@ -40,58 +46,5 @@ const handleBack = () => {
 }
 </script>
 
-<style lang="scss" scoped>
-.support {
-    display: flex;
-    height: calc(100vh - 260px);
-    min-height: 391px;
-
-    @media (min-width: 567px) {
-        height: calc(100vh - 280px);
-    }
-    &__chats {
-        width: 100%;
-
-        @media (min-width: 567px) {
-            width: 200px;
-        }
-        @media (min-width: 1199px) {
-            width: 400px;
-        }
-
-        &--active {
-            display: none;
-
-            @media (min-width: 567px) {
-                display: flex;
-            }
-        }
-    }
-    &__chat {
-        width: 100%;
-
-        @media (min-width: 567px) {
-            width: initial;
-            flex: 1 1 0;
-            margin-left: 8px;
-        }
-    }
-}
-
-.placeholder {
-    display: none;
-
-    @media (min-width: 567px) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    &__text {
-        border: 1px solid var(--separator-secondary);
-        border-radius: 8px;
-        padding: 15px;
-        color: var(--label-primary);
-    }
-}
+<style scoped>
 </style>

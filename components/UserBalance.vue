@@ -1,6 +1,9 @@
 <template>
-    <Tag severity="info" class="user-balance">
-        {{ $t('profile.balance') }}: {{ credits }}
+    <Tag severity="info" class="px-3 py-2 text-sm font-bold shadow-sm">
+        <div class="flex items-center gap-2">
+            <i class="pi pi-wallet text-xs opacity-70"></i>
+            <span>{{ $t('profile.balance') }}: {{ credits }}</span>
+        </div>
     </Tag>
 </template>
 
@@ -38,8 +41,4 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.user-balance {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-}
 </style>

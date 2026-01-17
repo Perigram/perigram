@@ -1,12 +1,14 @@
 <template>
-    <div class="p-4">
+    <div class="flex flex-col gap-6">
         <TabView :activeIndex="activeTabIndex" @tab-change="onTabChange">
             <TabPanel :header="$t('assets.cassettes')"></TabPanel>
             <TabPanel :header="$t('assets.pens')"></TabPanel>
             <TabPanel :header="$t('assets.tools')"></TabPanel>
             <TabPanel :header="$t('assets.templates')"></TabPanel>
         </TabView>
-        <NuxtPage />
+        <div class="px-1">
+            <NuxtPage />
+        </div>
     </div>
 </template>
 

@@ -1,14 +1,17 @@
 <template>
-    <div class="language-switcher">
+    <div class="relative inline-block">
         <select 
             v-model="currentLocale" 
             @change="changeLocale"
-            class="language-switcher__select"
+            class="appearance-none bg-[var(--p-content-background)] text-[var(--p-text-color)] border border-[var(--p-content-border-color)] rounded-lg px-3 py-2 pr-8 text-sm font-medium cursor-pointer hover:border-[var(--p-primary-color)] transition-all outline-none focus:ring-2 focus:ring-[var(--p-primary-color)] focus:ring-opacity-20"
         >
             <option v-for="loc in locales" :key="loc.code" :value="loc.code">
                 {{ loc.name }}
             </option>
         </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[var(--p-text-muted-color)]">
+            <i class="pi pi-chevron-down text-[10px]"></i>
+        </div>
     </div>
 </template>
 
@@ -26,40 +29,5 @@ watch(locale, (newLocale) => {
 })
 </script>
 
-<style lang="scss" scoped>
-.language-switcher {
-    $self: &;
-    
-    &__select {
-        background-color: var(--fill-secondary);
-        color: var(--label-primary);
-        border: 1px solid var(--separator-primary);
-        border-radius: 6px;
-        padding: 8px 12px;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        outline: none;
-        
-        &:hover {
-            background-color: var(--fill-tertiary);
-            border-color: var(--accent-primary);
-        }
-        
-        &:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-    }
-}
-
-@media (max-width: 768px) {
-    .language-switcher {
-        &__select {
-            padding: 6px 10px;
-            font-size: 13px;
-        }
-    }
-}
+<style scoped>
 </style>

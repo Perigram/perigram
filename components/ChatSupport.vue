@@ -1,52 +1,80 @@
 <template>
-    <div class="support h-96 m-4 rounded-lg">
-        <div @click="supportDialog = false" class="support__background"></div>
-        <div class="support__wrapper">
-            <div class="support__header">
-                <h2 class="support__title">{{ $t('support.chatTitle') }}</h2>
+    <div class="fixed bottom-0 right-0 z-[1000] flex justify-end items-end p-4 md:p-6 pointer-events-none">
+        <div 
+            v-if="supportDialog"
+            class="w-full sm:w-[400px] h-[500px] max-h-[80vh] bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-2xl shadow-2xl flex flex-col overflow-hidden pointer-events-auto animate-in slide-in-from-bottom-4 duration-300"
+        >
+            <!-- Header -->
+            <div class="flex items-center justify-between p-4 border-b border-[var(--p-content-border-color)] bg-[var(--p-content-background)]">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-[var(--p-primary-color)] flex items-center justify-center text-white">
+                        <i class="pi pi-comment text-sm"></i>
+                    </div>
+                    <h2 class="m-0 text-base font-bold text-[var(--p-text-color)]">{{ $t('support.chatTitle') }}</h2>
+                </div>
                 <Button
                     icon="pi pi-times"
                     severity="secondary"
                     text
                     rounded
+                    size="small"
                     @click="supportDialog = false"
-                    class="support__close"
                 />
             </div>
-            <div ref="messagesContainer" class="support__messages message-list">
+
+            <!-- Messages -->
+            <div ref="messagesContainer" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-[var(--p-surface-50)] custom-scrollbar">
                 <template
                     v-for="message in messagesList"
                     :key="message._id"
                 >
-                    <div v-if="message.day" class="message-list__day day">
-                        <span class="day__label">
+                    <!-- Date Separator -->
+                    <div v-if="message.day" class="flex items-center gap-4 my-2">
+                        <div class="flex-1 h-px bg-[var(--p-content-border-color)]"></div>
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-[var(--p-text-muted-color)] bg-[var(--p-content-background)] px-2 py-0.5 rounded-full border border-[var(--p-content-border-color)]">
                             {{ message.day }}
                         </span>
+                        <div class="flex-1 h-px bg-[var(--p-content-border-color)]"></div>
                     </div>
+
+                    <!-- Message Bubble -->
                     <div 
-                        class="message-list__item message"
-                        :class="getMessageClasses(message.sender)"
+                        class="max-w-[85%] flex flex-col gap-1"
+                        :class="message.sender === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'"
                     >
-                        <p>{{ message.message }}</p>
-                        <span class="message__time">{{ formatTime(message.timestamp) }}</span>
+                        <div 
+                            class="px-4 py-2 rounded-2xl text-sm shadow-sm"
+                            :class="message.sender === 'user' 
+                                ? 'bg-[var(--p-primary-color)] text-white rounded-tr-none' 
+                                : 'bg-[var(--p-content-background)] text-[var(--p-text-color)] border border-[var(--p-content-border-color)] rounded-tl-none'"
+                        >
+                            <p class="m-0 leading-relaxed break-words">{{ message.message }}</p>
+                        </div>
+                        <span class="text-[10px] text-[var(--p-text-muted-color)] px-1">{{ formatTime(message.timestamp) }}</span>
                     </div>
                 </template>
             </div>
-            <div class="support__bottom bottom">
-                <Textarea
-                    :placeholder="$t('support.typeMessage')"
-                    class="bottom__input"
-                    v-model="message"
-                    @keydown="handleKeyDown"
-                    rows="1"
-                    autoResize
-                />
-                <Button
-                    @click="sendMessage"
-                    :disabled="!message.trim() || isLoading"
-                    :label="$t('support.send')"
-                    class="bottom__btn"
-                />
+
+            <!-- Input Area -->
+            <div class="p-4 border-t border-[var(--p-content-border-color)] bg-[var(--p-content-background)]">
+                <div class="flex items-end gap-2 bg-[var(--p-surface-50)] p-2 rounded-xl border border-[var(--p-content-border-color)] focus-within:border-[var(--p-primary-color)] transition-colors">
+                    <Textarea
+                        :placeholder="$t('support.typeMessage')"
+                        class="flex-1 !bg-transparent !border-none !shadow-none !ring-0 text-sm py-1 custom-scrollbar"
+                        v-model="message"
+                        @keydown="handleKeyDown"
+                        rows="1"
+                        autoResize
+                    />
+                    <Button
+                        icon="pi pi-send"
+                        @click="sendMessage"
+                        :disabled="!message.trim() || isLoading"
+                        rounded
+                        size="small"
+                        class="flex-shrink-0"
+                    />
+                </div>
             </div>
         </div>
     </div>
@@ -95,7 +123,6 @@ onMounted(() => {
     eventSource.value = new EventSource('/api/support/messages')
 
     unref(eventSource).onmessage = async (event) => {
-        console.log('Received SSE message:', event.data)
         try {
             const parsed = JSON.parse(event.data)
             if (parsed.type === 'initial') {
@@ -121,10 +148,6 @@ onBeforeUnmount(() => {
     }
 })
 
-const getMessageClasses = (sender) => ({
-    'message--is-user': sender === 'user'
-})
-
 const formatTime = (timestamp, withoutTime) => {
     const date = new Date(timestamp)
     const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -134,11 +157,12 @@ const messagesList = computed(() => {
     const usedDates = []
     const getDay = (timestamp) => {
         const date = new Date(timestamp)
-        if(usedDates.includes(formatTime(date, true))) {
+        const dateStr = date.toLocaleDateString()
+        if(usedDates.includes(dateStr)) {
             return
         }
-        usedDates.push(formatTime(date, true))
-        return formatTime(date, true)
+        usedDates.push(dateStr)
+        return dateStr
     }
     return messages.value.map(message => {
         return {
@@ -154,154 +178,25 @@ const scrollToBottom = async () => {
         const element = messagesContainer.value
         element.scrollTo({
             top: element.scrollHeight,
+            behavior: 'smooth'
         })
     }
 }
 </script>
 
-<style lang="scss" scoped>
-.support {
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    z-index: 4;
-    display: flex;
-    justify-content: flex-end;
-    justify-items: flex-end;
-
-    &__background {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 100%;
-        height: 100%;
-        background-color: var(--label-tertiary);
-    }
-
-    &__wrapper {
-        z-index: 1;
-        position: relative;
-        background-color: var(--background-primary);
-        width: 100%;
-        padding: 15px;
-        display: flex;
-        flex-direction: column;
-
-        @media (min-width: 567px) {
-            width: 400px;
-        }
-    }
-
-    &__header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    &__messages {
-        flex-grow: 1;
-        margin-top: 10px;
-        margin-bottom: 10px;
-        overflow: auto;
-        margin-right: 0;
-    }
-
-    &__item  {
-        max-width: 70%;
-
-        &:not(:last-child) {
-            margin-bottom: 10px;
-        }
-    }
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
 }
-.message-list {
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid var(--separator-secondary);
-    display: flex;
-    flex-direction: column;
-
-    &__day {
-        margin-bottom: 20px;
-        margin-top: 10px;
-    }
-    &__item {
-        max-width: 70%;
-
-        &:not(:last-child) {
-            margin-bottom: 10px;
-        }
-    }
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
 }
-.message {
-    background-color: var(--fill-tertiary);
-    border-radius: 8px 0 8px 8px;
-    color: var(--label-secondary);
-    font-size: 14px;
-    line-height: 1.4;
-    padding: 6px 8px;
-    margin-left: auto;
-
-    &--is-user {
-        background-color: var(--fill-secondary);
-        border-radius: 0 8px 8px;
-        color: var(--label-primary);
-        text-align: left;
-        margin-right: auto;
-        margin-left: initial;
-    }
-
-    &__time {
-        color: var(--label-tertiary);
-        font-size: 12px;
-        margin-top: 8px;
-        display: block;
-    }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--p-content-border-color);
+    border-radius: 10px;
 }
-
-.day {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    justify-content: center;
-
-    &__label {
-        margin-left: auto;
-        margin-right: auto;
-        background-color: var(--fill-tertiary);
-        border-radius: 8px;
-        padding: 6px 8px;
-        color: var(--label-primary);
-    }
-    &::before,
-    &::after {
-        content: '';
-        position: absolute;
-        left: 2%;
-        right: 2%;
-        height: 1px;
-        border: dashed 1px var(--fill-tertiary);
-    }
-    &::before {
-        bottom: calc(100% + 4px);
-    }
-    &::after {
-        top: calc(100% + 4px);
-    }
-}
-
-
-.bottom {
-    display: flex;
-    align-items: flex-end;
-
-    &__btn {
-        margin-left: 10px;
-    }
-
-    &__input {
-        flex-grow: 1;
-    }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--p-primary-color);
 }
 </style>
 

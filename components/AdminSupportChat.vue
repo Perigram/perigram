@@ -1,68 +1,85 @@
 <template>
-    <div class="chat">
-        <div class="chat__header header">
-            <h2 class="header__title">{{ $t('admin.supportChat') }}</h2>
-            <span class="header__id">{{ $t('admin.userId') }}: {{ userId }}</span>
-        </div>
-        <div ref="messagesContainer" class="chat__messages messages">
-            <div v-if="loading" class="chat__loading loading">
-                <ProgressSpinner />
-                <p>{{ $t('admin.loadingMessages') }}</p>
+    <div class="flex flex-col h-full bg-[var(--p-content-background)]">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b border-[var(--p-content-border-color)]">
+            <div class="flex flex-col">
+                <h2 class="m-0 text-base font-bold text-[var(--p-text-color)]">{{ $t('admin.supportChat') }}</h2>
+                <span class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('admin.userId') }}: {{ userId.slice(-8) }}</span>
             </div>
-            <div v-else-if="messages.length === 0" class="chat__empty empty">
-                <p class="empty__text">{{ $t('admin.noMessages') }}</p>
-            </div>
-            <div 
-                class="message-list" 
-                v-else
-            >
-                <template 
-                    :key="message._id"
-                    v-for="message in messagesList"
-                >
-                    <div v-if="message.day" class="message-list__day day">
-                            <span class="day__label">
-                                {{ message.day }}
-                            </span>
-                    </div>
-                    <div 
-                        class="message-list__item message"
-                        :class="[message.sender === 'support' ? '' : 'message--is-user']"
-                    >
-                        <p>{{ message.message }}</p>
-                        <span class="message__time">{{ formatTime(message.timestamp) }}</span>
-                    </div>
-                </template>
-            </div>
-        </div>
-        <div class="chat__footer footer">
             <Button
                 icon="pi pi-arrow-left"
                 @click="$emit('back')"
-                class="footer__back" 
                 text
                 rounded
-            />
-            <Textarea 
-                :placeholder="$t('admin.typeMessage')" 
-                class="footer__input" 
-                v-model="newMessage"
-                @keydown="handleKeyDown" 
-                :disabled="!isConnected"
-                rows="1"
-                autoResize
-            />
-            <Button 
-                :disabled="!newMessage.trim() || !isConnected" 
-                @click="sendMessage"
-                :label="$t('admin.send')" 
-                class="footer__btn" 
+                class="md:hidden"
             />
         </div>
 
-        <div v-if="error" class="error-message">
-            <p>{{ error }}</p>
-            <button @click="connectToChat">{{ $t('admin.retry') }}</button>
+        <!-- Messages Area -->
+        <div ref="messagesContainer" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-[var(--p-surface-50)] custom-scrollbar">
+            <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
+                <ProgressSpinner style="width: 40px; height: 40px" strokeWidth="4" />
+                <p class="text-xs font-bold uppercase tracking-widest">{{ $t('admin.loadingMessages') }}</p>
+            </div>
+            <div v-else-if="messages.length === 0" class="flex flex-col items-center justify-center py-20 opacity-40">
+                <p class="text-sm font-medium">{{ $t('admin.noMessages') }}</p>
+            </div>
+            <template v-else>
+                <template v-for="message in messagesList" :key="message._id">
+                    <!-- Date Separator -->
+                    <div v-if="message.day" class="flex items-center gap-4 my-2">
+                        <div class="flex-1 h-px bg-[var(--p-content-border-color)]"></div>
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-[var(--p-text-muted-color)] bg-[var(--p-content-background)] px-2 py-0.5 rounded-full border border-[var(--p-content-border-color)]">
+                            {{ message.day }}
+                        </span>
+                        <div class="flex-1 h-px bg-[var(--p-content-border-color)]"></div>
+                    </div>
+
+                    <!-- Message Bubble -->
+                    <div 
+                        class="max-w-[80%] flex flex-col gap-1"
+                        :class="message.sender === 'support' ? 'ml-auto items-end' : 'mr-auto items-start'"
+                    >
+                        <div 
+                            class="px-4 py-2 rounded-2xl text-sm shadow-sm"
+                            :class="message.sender === 'support' 
+                                ? 'bg-[var(--p-primary-color)] text-white rounded-tr-none' 
+                                : 'bg-[var(--p-content-background)] text-[var(--p-text-color)] border border-[var(--p-content-border-color)] rounded-tl-none'"
+                        >
+                            <p class="m-0 leading-relaxed break-words">{{ message.message }}</p>
+                        </div>
+                        <span class="text-[10px] text-[var(--p-text-muted-color)] px-1">{{ formatTime(message.timestamp) }}</span>
+                    </div>
+                </template>
+            </template>
+        </div>
+
+        <!-- Footer / Input Area -->
+        <div class="p-4 border-t border-[var(--p-content-border-color)]">
+            <div class="flex items-end gap-2 bg-[var(--p-surface-50)] p-2 rounded-xl border border-[var(--p-content-border-color)] focus-within:border-[var(--p-primary-color)] transition-colors">
+                <Textarea 
+                    :placeholder="$t('admin.typeMessage')" 
+                    class="flex-1 !bg-transparent !border-none !shadow-none !ring-0 text-sm py-1 custom-scrollbar" 
+                    v-model="newMessage"
+                    @keydown="handleKeyDown" 
+                    :disabled="!isConnected"
+                    rows="1"
+                    autoResize
+                />
+                <Button 
+                    icon="pi pi-send"
+                    :disabled="!newMessage.trim() || !isConnected" 
+                    @click="sendMessage"
+                    rounded
+                    size="small"
+                    class="flex-shrink-0"
+                />
+            </div>
+            
+            <div v-if="error" class="mt-3 flex items-center justify-between bg-red-50 p-2 rounded-lg border border-red-100">
+                <span class="text-xs text-red-600 font-medium">{{ error }}</span>
+                <Button :label="$t('admin.retry')" text size="small" severity="danger" class="py-1" @click="connectToChat" />
+            </div>
         </div>
     </div>
 </template>
@@ -105,11 +122,12 @@ const messagesList = computed(() => {
     const usedDates = []
     const getDay = (timestamp) => {
         const date = new Date(timestamp)
-        if(usedDates.includes(formatTime(date, true))) {
+        const dateStr = date.toLocaleDateString()
+        if(usedDates.includes(dateStr)) {
             return
         }
-        usedDates.push(formatTime(date, true))
-        return formatTime(date, true)
+        usedDates.push(dateStr)
+        return dateStr
     }
     return messages.value.map(message => {
         return {
@@ -195,6 +213,7 @@ const scrollToBottom = async () => {
         const element = messagesContainer.value
         element.scrollTo({
             top: element.scrollHeight,
+            behavior: 'smooth'
         })
     }
 }
@@ -213,161 +232,18 @@ onUnmounted(() => {
 })
 </script>
 
-<style lang="scss" scoped>
-.chat {
-    display: flex;
-    flex-direction: column;
-
-    &__header {
-        margin-bottom: 16px;
-    }
-
-    &__footer {
-        margin-top: 16px;
-    }
-
-    &__empty,
-    &__messages {
-        width: 100%;
-        height: 100%;
-    }
-
-    &__loading {
-        width: 100%;
-        height: 100%;
-    }
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
 }
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-
-    &__id {
-        color: var(--label-primary);
-    }
-    &__title {
-        margin-right: 20px;
-    }
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
 }
-
-.message-list {
-    display: flex;
-    flex-direction: column;
-
-    &__day {
-        margin-bottom: 20px;
-        margin-top: 10px;
-    }
-    &__item {
-        max-width: 70%;
-
-        &:not(:last-child) {
-            margin-bottom: 10px;
-        }
-    }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--p-content-border-color);
+    border-radius: 10px;
 }
-
-.message {
-    background-color: var(--fill-tertiary);
-    border-radius: 8px 0 8px 8px;
-    color: var(--label-secondary);
-    font-size: 14px;
-    line-height: 1.4;
-    padding: 6px 8px;
-    margin-left: auto;
-
-    &--is-user {
-        background-color: var(--fill-secondary);
-        border-radius: 0 8px 8px;
-        color: var(--label-primary);
-        text-align: left;
-        margin-right: auto;
-        margin-left: initial;
-    }
-
-    &__time {
-        color: var(--label-tertiary);
-        font-size: 12px;
-        margin-top: 8px;
-        display: block;
-    }
-}
-
-.day {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    justify-content: center;
-
-    &__label {
-        margin-left: auto;
-        margin-right: auto;
-        background-color: var(--fill-tertiary);
-        border-radius: 8px;
-        padding: 6px 8px;
-        color: var(--label-primary);
-    }
-    &::before,
-    &::after {
-        content: '';
-        position: absolute;
-        left: 2%;
-        right: 2%;
-        height: 1px;
-        border: dashed 1px var(--fill-tertiary);
-    }
-    &::before {
-        bottom: calc(100% + 4px);
-    }
-    &::after {
-        top: calc(100% + 4px);
-    }
-}
-
-.loading {
-    flex-direction: column;
-    text-align: center;
-    display: flex;
-    padding: 16px;
-    justify-content: center;
-    align-items: center;
-    color: var(--label-secondary);
-
-    &__loader {
-        margin-bottom: 60px;
-    }
-}
-
-.empty {
-    text-align: center;
-    display: flex;
-    padding: 16px;
-    justify-content: center;
-    align-items: center;
-    color: var(--label-secondary);
-}
-
-.footer {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-
-    &__input {
-        flex: 1;
-    }
-
-    &__btn {
-        margin-left: 10px;
-    }
-
-    &__back {
-        margin-right: 10px;
-
-        @media (min-width: 567px) {
-            display: none;
-        }
-    }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--p-primary-color);
 }
 </style>

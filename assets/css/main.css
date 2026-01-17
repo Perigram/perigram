@@ -1,58 +1,6 @@
-@import '@fontsource/jetbrains-mono/400.css';
-@import '@fontsource/jetbrains-mono/500.css';
-@import '@fontsource/jetbrains-mono/700.css';
 @import 'primeicons/primeicons.css';
 
-*,
-*::before,
-*::after {
-    --main-white: #fff;
-    --main-black: #000;
-
-    --fill-secondary: rgb(0, 11, 33, 0.08);
-    --fill-tertiary: rgb(0, 11, 33, 0.05);
-
-    --label-primary: rgb(0, 0, 0);
-    --label-secondary: rgb(22, 26, 33, 0.8);
-    --label-tertiary: rgb(22, 26, 33, 0.5);
-
-    --accent-primary: rgb(0, 0, 0);
-    --accent-secondary: rgb(0, 0, 0, 0.8);
-
-    --background-primary: rgb(245, 244, 240);
-    --background-secondary: rgb(0, 0, 0);
-
-    --separator-primary: rgb(0, 11, 33, 0.15);
-    --separator-secondary: rgb(0, 11, 33, 0.1);
-
-    --error-background: rgb(222, 0, 54, 0.05);
-    --error-border: rgb(222, 0, 54, 0.3);
-    --menu-background: rgb(22, 26, 33, 0.7);
-
-    --primary-svg-filter: brightness(0) saturate(100%);
-}
-.dark-mode *,
-.dark-mode *::before,
-.dark-mode *::after {
-    --fill-secondary: rgb(245, 243, 240, 0.08);
-    --fill-tertiary: rgb(245, 243, 240, 0.05);
-
-    --label-primary: rgb(245, 243, 240, 0.9);
-    --label-secondary: rgb(245, 243, 240, 0.6);
-    --label-tertiary: rgb(245, 243, 240, 0.3);
-
-    --accent-primary: rgb(245, 243, 240, 0.9);
-    --accent-secondary: rgb(245, 243, 240, 0.8);
-
-    --background-primary: rgb(36, 35, 34);
-    --background-secondary: rgb(245, 243, 240);
-
-    --separator-primary: rgb(245, 243, 240, 0.13);
-    --separator-secondary: rgb(245, 243, 240, 0.08);
-
-    --primary-svg-filter: brightness(0) saturate(100%) invert(1);
-}
-
+/* Global Scrollbar Styles */
 ::-webkit-scrollbar {
   -webkit-appearance: none;
   appearance: none;
@@ -65,8 +13,9 @@
 }
 ::-webkit-scrollbar-thumb {
   border-radius: 8px;
-  border: 6px solid transparent; /* should match background, can't be transparent */
+  border: 6px solid transparent;
   background-color: #77777744;
+  background-clip: content-box;
 }
 ::-webkit-scrollbar-track {
   background-color: transparent;
@@ -74,8 +23,6 @@
 }
 
 :root {
-		font-family: 'JetBrains Mono', monospace;
-		font-weight: 400;
 		font-size: 12px;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
@@ -84,4 +31,30 @@
 		-moz-text-size-adjust: 100%;
 		-ms-text-size-adjust: 100%;
 		text-size-adjust: 100%;
+}
+
+/* Custom classes for common patterns */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--p-content-border-color);
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--p-primary-color);
+}
+
+/* Fix for TabView overflow on small screens */
+.p-tabview-nav-container {
+    overflow-x: auto;
+}
+
+.p-tabview-nav {
+    white-space: nowrap;
+    flex-wrap: nowrap !important;
 }

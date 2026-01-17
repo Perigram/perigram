@@ -1,6 +1,6 @@
 <template>
-  <div class="p-4">
-    <div class="flex justify-end items-center mb-8">
+  <div class="flex flex-col gap-6">
+    <div class="flex justify-end items-center px-1">
       <Button 
         :label="$t('assets.newTemplate')" 
         icon="pi pi-plus" 
@@ -8,18 +8,20 @@
       />
     </div>
     
-    <div class="text-center py-12">
-      <i class="pi pi-inbox text-5xl mb-4 opacity-50"></i>
-      <p>{{ $t('assets.templateManagementComingSoon') }}</p>
+    <div class="text-center py-20 px-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)]">
+      <i class="pi pi-inbox text-6xl text-[var(--p-text-muted-color)] mb-4 opacity-50 block"></i>
+      <p class="text-lg text-[var(--p-text-secondary-color)]">{{ $t('assets.templateManagementComingSoon') }}</p>
     </div>
     
     <Dialog 
       v-model:visible="showDialog" 
       :header="$t('assets.newTemplate')"
       :modal="true"
-      :style="{ width: '500px' }"
+      :style="{ width: '95vw', maxWidth: '500px' }"
     >
-      <p>{{ $t('assets.templateCreationComingSoon') }}</p>
+      <div class="py-4 text-center opacity-60">
+        <p>{{ $t('assets.templateCreationComingSoon') }}</p>
+      </div>
     </Dialog>
   </div>
 </template>

@@ -1,105 +1,30 @@
 <template>
-    <footer class="footer"> 
-        <div class="footer__content content">
-            <ul class="list">
-                <li class="list__item">
+    <footer class="bg-zinc-950 text-white py-8 px-4 mt-auto border-t border-white/5"> 
+        <div class="max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <ul class="flex flex-wrap items-center gap-x-10 gap-y-4 list-none m-0 p-0">
+                <li>
                     <NuxtLink 
                         to="/terms-and-conditions"
-                        class="list__link"
+                        class="text-sm font-semibold text-white/60 hover:text-white no-underline transition-colors"
                     >
-			{{$t('footer.termsAndConditions')}}
+                        {{ $t('footer.termsAndConditions') }}
                     </NuxtLink>
                 </li>
-                <li class="list__item">
+                <li>
                     <NuxtLink 
                         to="/blog" 
-                        class="list__link"
+                        class="text-sm font-semibold text-white/60 hover:text-white no-underline transition-colors"
                     >
-			      {{ $t('footer.blog') }}
+                        {{ $t('footer.blog') }}
                     </NuxtLink>
                 </li>
             </ul>
-            <p class="footer__copyright">
-	{{ new Date().getFullYear() }} © {{ $t('footer.companyName') }}. {{ $t('footer.allRightsReserved') }}
+            <p class="text-sm font-semibold text-white/40 m-0">
+                {{ new Date().getFullYear() }} © {{ $t('footer.companyName') }}. {{ $t('footer.allRightsReserved') }}
             </p>
         </div>
     </footer>
 </template>
 
-<style lang="scss" scoped>
-.footer {
-    padding: 12px 8px;
-    background-color: var(--main-black);
-
-    @media (min-width: 567px) {
-        padding: 16px 10px;
-    }
-    &__content {
-        max-width: 1300px;
-        margin-right: auto;
-        margin-left: auto;
-    }
-    &__copyright {
-        text-align: center;
-        margin-top: 16px;
-        color: var(--main-white);
-        display: block;
-        font-weight: 600;
-        opacity: 0.7;
-
-        @media (min-width: 1199px) {
-            margin-top: initial;
-            text-align: initial;
-        }
-    }
-}
-.content {
-    @media (min-width: 567px) {
-        padding-right: 10px;
-        padding-left: 10px;
-    }
-    @media (min-width: 1199px) {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-}
-.list {
-    display: flex;
-    flex-wrap: wrap;
-    @media (min-width: 567px) {
-    }
-    &__item {
-        margin: 8px;
-
-        @media (min-width: 567px) {
-            margin: initial;
-        }
-        &:not(:last-child) {
-            @media (min-width: 567px) {
-                margin-right: 40px;
-                margin-bottom: initial;
-            }
-        }
-    }
-    &__link {
-        text-align: center;
-        color: var(--main-white);
-        display: block;
-        font-weight: 600;
-        transition: opacity 0.3s;
-        opacity: 0.7;
-
-        @media (min-width: 567px) {
-            text-align: initial;
-        }
-
-        @media (hover:hover) {
-            &:hover {
-                opacity: 1;
-            }
-        }
-    }
-}
-
+<style scoped>
 </style>

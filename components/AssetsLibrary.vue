@@ -1,9 +1,9 @@
 <template>
-  <div class="p-4">
-    <TabView>
+  <div class="flex flex-col gap-6">
+    <TabView class="flex flex-col">
       <TabPanel :header="$t('assets.pens')">
-        <div class="py-4">
-          <div class="flex justify-end items-center mb-8">
+        <div class="py-6 flex flex-col gap-6">
+          <div class="flex justify-end items-center px-1">
             <Button 
               :label="$t('assets.newPen')" 
               icon="pi pi-plus" 
@@ -11,48 +11,70 @@
             />
           </div>
           
-          <div v-if="pensLoading">{{ $t('assets.loadingPens') }}</div>
-          <div v-else-if="pensError">{{ pensError }}</div>
+          <div v-if="pensLoading" class="flex items-center justify-center py-12">
+            <ProgressSpinner />
+          </div>
+          <div v-else-if="pensError" class="px-1">
+            <Message severity="error">{{ pensError }}</Message>
+          </div>
           
-          <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-            <Card v-for="pen in pens" :key="pen._id" class="h-full">
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-1">
+            <Card v-for="pen in pens" :key="pen._id" 
+              class="h-full border border-[var(--p-content-border-color)] hover:border-[var(--p-primary-color)] transition-all duration-300 shadow-sm hover:shadow-md"
+            >
               <template #title>
-                {{ pen.name }}
-                <Tag v-if="!pen.ownerId" :value="$t('assets.system')" severity="info" />
+                <div class="flex items-center justify-between gap-3 min-w-0 pt-2 px-1">
+                  <span class="truncate font-bold text-lg text-[var(--p-text-color)]">{{ pen.name }}</span>
+                  <Tag v-if="!pen.ownerId" :value="$t('assets.system')" severity="info" class="text-[10px] uppercase flex-shrink-0" />
+                </div>
               </template>
               <template #content>
-                <div class="py-4">
+                <div class="py-4 px-1 flex flex-col gap-4">
                   <div 
-                    class="w-full mb-4 border"
+                    class="w-full h-8 rounded border border-[var(--p-content-border-color)] flex items-center justify-center"
                     :style="{
-                      backgroundColor: pen.stroke.color,
-                      height: `${pen.stroke.weight}px`,
-                      borderStyle: pen.stroke.pattern === 'DASHED' ? 'dashed' : 
-                                   pen.stroke.pattern === 'DOTTED' ? 'dotted' : 'solid'
+                      background: pen.stroke.color
                     }"
-                  ></div>
-                  <p>
-                    {{ $t('assets.color') }}: {{ pen.stroke.color }}<br>
-                    {{ $t('assets.weight') }}: {{ pen.stroke.weight }}mm<br>
-                    {{ $t('assets.pattern') }}: {{ pen.stroke.pattern }}
-                  </p>
+                  >
+                    <div 
+                      class="w-full mx-2"
+                      :style="{
+                        borderTop: `${pen.stroke.weight}px ${pen.stroke.pattern === 'DASHED' ? 'dashed' : pen.stroke.pattern === 'DOTTED' ? 'dotted' : 'solid'} white`,
+                        mixBlendMode: 'difference'
+                      }"
+                    ></div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-y-2 text-xs">
+                    <span class="font-medium text-[var(--p-text-muted-color)]">{{ $t('assets.color') }}:</span>
+                    <span class="font-mono text-right text-[var(--p-text-color)]">{{ pen.stroke.color }}</span>
+                    
+                    <span class="font-medium text-[var(--p-text-muted-color)]">{{ $t('assets.weight') }}:</span>
+                    <span class="text-right text-[var(--p-text-color)]">{{ pen.stroke.weight }}mm</span>
+                    
+                    <span class="font-medium text-[var(--p-text-muted-color)]">{{ $t('assets.pattern') }}:</span>
+                    <span class="text-right text-[var(--p-text-color)]">{{ $t(`assets.patterns.${pen.stroke.pattern}`) }}</span>
+                  </div>
                 </div>
               </template>
               <template #footer>
-                <div class="flex gap-2" v-if="pen.ownerId">
+                <div class="flex justify-end gap-2 pt-4 border-t border-[var(--p-content-border-color)] mt-auto px-1" v-if="pen.ownerId">
                   <Button 
-                    :label="$t('common.edit')" 
                     icon="pi pi-pencil" 
                     severity="secondary"
+                    text
+                    rounded
                     size="small"
                     @click="editPen(pen)"
+                    v-tooltip.top="$t('common.edit')"
                   />
                   <Button 
-                    :label="$t('common.delete')" 
                     icon="pi pi-trash" 
                     severity="danger"
+                    text
+                    rounded
                     size="small"
                     @click="deletePenConfirm(pen)"
+                    v-tooltip.top="$t('common.delete')"
                   />
                 </div>
               </template>
@@ -62,8 +84,8 @@
       </TabPanel>
       
       <TabPanel :header="$t('assets.tools')">
-        <div class="py-4">
-          <div class="flex justify-end items-center mb-8">
+        <div class="py-6 flex flex-col gap-6">
+          <div class="flex justify-end items-center px-1">
             <Button 
               :label="$t('assets.newTool')" 
               icon="pi pi-plus" 
@@ -71,36 +93,56 @@
             />
           </div>
           
-          <div v-if="toolsLoading">{{ $t('assets.loadingTools') }}</div>
-          <div v-else-if="toolsError">{{ toolsError }}</div>
+          <div v-if="toolsLoading" class="flex items-center justify-center py-12">
+            <ProgressSpinner />
+          </div>
+          <div v-else-if="toolsError" class="px-1">
+            <Message severity="error">{{ toolsError }}</Message>
+          </div>
           
-          <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-            <Card v-for="tool in tools" :key="tool._id" class="h-full">
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-1">
+            <Card v-for="tool in tools" :key="tool._id" 
+              class="h-full border border-[var(--p-content-border-color)] hover:border-[var(--p-primary-color)] transition-all duration-300 shadow-sm hover:shadow-md"
+            >
               <template #title>
-                {{ tool.name }}
-                <Tag v-if="!tool.ownerId" :value="$t('assets.system')" severity="info" />
+                <div class="flex items-center justify-between gap-3 min-w-0 pt-2 px-1">
+                  <span class="truncate font-bold text-lg text-[var(--p-text-color)]">{{ tool.name }}</span>
+                  <Tag v-if="!tool.ownerId" :value="$t('assets.system')" severity="info" class="text-[10px] uppercase flex-shrink-0" />
+                </div>
               </template>
               <template #content>
-                <p>
-                  {{ $t('assets.diameter') }}: Ø{{ tool.diameter }}mm<br>
-                  {{ $t('assets.angle') }}: {{ tool.angle }}°
-                </p>
+                <div class="py-4 px-1 flex flex-col gap-4">
+                  <div class="w-16 h-16 mx-auto flex items-center justify-center bg-[var(--p-primary-50)] text-[var(--p-primary-color)] rounded-full">
+                    <i class="pi pi-cog text-3xl"></i>
+                  </div>
+                  <div class="grid grid-cols-2 gap-y-2 text-xs">
+                    <span class="font-medium text-[var(--p-text-muted-color)]">{{ $t('assets.diameter') }}:</span>
+                    <span class="text-right font-bold text-[var(--p-text-color)]">Ø{{ tool.diameter }}mm</span>
+                    
+                    <span class="font-medium text-[var(--p-text-muted-color)]">{{ $t('assets.angle') }}:</span>
+                    <span class="text-right font-bold text-[var(--p-text-color)]">{{ tool.angle }}°</span>
+                  </div>
+                </div>
               </template>
               <template #footer>
-                <div class="flex gap-2" v-if="tool.ownerId">
+                <div class="flex justify-end gap-2 pt-4 border-t border-[var(--p-content-border-color)] mt-auto px-1" v-if="tool.ownerId">
                   <Button 
-                    :label="$t('common.edit')" 
                     icon="pi pi-pencil" 
-                    severity="secondary"
+                    severity="secondary" 
+                    text
+                    rounded
                     size="small"
                     @click="editTool(tool)"
+                    v-tooltip.top="$t('common.edit')"
                   />
                   <Button 
-                    :label="$t('common.delete')" 
                     icon="pi pi-trash" 
-                    severity="danger"
+                    severity="danger" 
+                    text
+                    rounded
                     size="small"
                     @click="deleteToolConfirm(tool)"
+                    v-tooltip.top="$t('common.delete')"
                   />
                 </div>
               </template>
@@ -115,35 +157,43 @@
       v-model:visible="showPenDialog" 
       :header="editingPen ? $t('assets.editPen') : $t('assets.newPen')"
       :modal="true"
-      :style="{ width: '500px' }"
+      :style="{ width: '95vw', maxWidth: '500px' }"
     >
-      <div class="mb-6">
-        <label class="block mb-2">{{ $t('batch.name') }}</label>
-        <InputText v-model="penForm.name" :placeholder="$t('assets.placeholders.penName')" />
-      </div>
-      
-      <div class="mb-6">
-        <label class="block mb-2">{{ $t('assets.color') }}</label>
-        <InputText v-model="penForm.stroke.color" :placeholder="$t('assets.placeholders.color')" />
-      </div>
-      
-      <div class="mb-6">
-        <label class="block mb-2">{{ $t('assets.weight') }} (mm)</label>
-        <InputNumber v-model="penForm.stroke.weight" :min="0.1" :max="10" :step="0.1" />
-      </div>
-      
-      <div class="mb-6">
-        <label class="block mb-2">{{ $t('assets.pattern') }}</label>
-        <Select 
-          v-model="penForm.stroke.pattern" 
-          :options="patternOptions" 
-          optionLabel="label" 
-          optionValue="value"
-        />
+      <div class="flex flex-col gap-6 py-4">
+        <div class="flex flex-col gap-2">
+          <label class="font-medium text-[var(--p-text-color)]">{{ $t('batch.name') }}</label>
+          <InputText v-model="penForm.name" :placeholder="$t('assets.placeholders.penName')" class="w-full" autofocus />
+        </div>
+        
+        <div class="flex flex-col gap-2">
+          <label class="font-medium text-[var(--p-text-color)]">{{ $t('assets.color') }}</label>
+          <div class="flex gap-2">
+            <InputText v-model="penForm.stroke.color" :placeholder="$t('assets.placeholders.color')" class="flex-1" />
+            <div class="w-[42px] h-[42px] border border-[var(--p-content-border-color)] rounded shrink-0" :style="{ background: penForm.stroke.color }"></div>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div class="flex flex-col gap-2">
+            <label class="font-medium text-[var(--p-text-color)]">{{ $t('assets.weight') }} (mm)</label>
+            <InputNumber v-model="penForm.stroke.weight" :min="0.1" :max="10" :step="0.1" mode="decimal" :minFractionDigits="2" class="w-full" />
+          </div>
+          
+          <div class="flex flex-col gap-2">
+            <label class="font-medium text-[var(--p-text-color)]">{{ $t('assets.pattern') }}</label>
+            <Select 
+              v-model="penForm.stroke.pattern" 
+              :options="patternOptions" 
+              optionLabel="label" 
+              optionValue="value"
+              class="w-full"
+            />
+          </div>
+        </div>
       </div>
       
       <template #footer>
-        <Button :label="$t('common.cancel')" severity="secondary" @click="closePenDialog" />
+        <Button :label="$t('common.cancel')" text severity="secondary" @click="closePenDialog" />
         <Button :label="$t('common.save')" @click="savePen" />
       </template>
     </Dialog>
@@ -153,25 +203,29 @@
       v-model:visible="showToolDialog" 
       :header="editingTool ? $t('assets.editTool') : $t('assets.newTool')"
       :modal="true"
-      :style="{ width: '500px' }"
+      :style="{ width: '95vw', maxWidth: '500px' }"
     >
-      <div class="mb-6">
-        <label class="block mb-2">{{ $t('batch.name') }}</label>
-        <InputText v-model="toolForm.name" :placeholder="$t('assets.placeholders.toolName')" />
-      </div>
-      
-      <div class="mb-6">
-        <label class="block mb-2">{{ $t('assets.diameter') }} (mm)</label>
-        <InputNumber v-model="toolForm.diameter" :min="0.1" :max="100" :step="0.1" />
-      </div>
-      
-      <div class="mb-6">
-        <label class="block mb-2">{{ $t('assets.angle') }} (°)</label>
-        <InputNumber v-model="toolForm.angle" :min="0" :max="180" :step="1" />
+      <div class="flex flex-col gap-6 py-4">
+        <div class="flex flex-col gap-2">
+          <label class="font-medium text-[var(--p-text-color)]">{{ $t('batch.name') }}</label>
+          <InputText v-model="toolForm.name" :placeholder="$t('assets.placeholders.toolName')" class="w-full" autofocus />
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div class="flex flex-col gap-2">
+            <label class="font-medium text-[var(--p-text-color)]">{{ $t('assets.diameter') }} (mm)</label>
+            <InputNumber v-model="toolForm.diameter" :min="0.1" :max="100" :step="0.1" mode="decimal" :minFractionDigits="2" class="w-full" />
+          </div>
+          
+          <div class="flex flex-col gap-2">
+            <label class="font-medium text-[var(--p-text-color)]">{{ $t('assets.angle') }} (°)</label>
+            <InputNumber v-model="toolForm.angle" :min="0" :max="180" :step="1" class="w-full" />
+          </div>
+        </div>
       </div>
       
       <template #footer>
-        <Button :label="$t('common.cancel')" severity="secondary" @click="closeToolDialog" />
+        <Button :label="$t('common.cancel')" text severity="secondary" @click="closeToolDialog" />
         <Button :label="$t('common.save')" @click="saveTool" />
       </template>
     </Dialog>
@@ -181,7 +235,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { useToolProfilesStore } from '~/stores/toolProfiles';
@@ -197,6 +251,9 @@ import Select from 'primevue/select';
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
 import ConfirmDialog from 'primevue/confirmdialog';
+import ProgressSpinner from 'primevue/progressspinner';
+import Message from 'primevue/message';
+import { useToast } from 'primevue/usetoast';
 
 const { t } = useI18n();
 const penTemplatesStore = usePenTemplatesStore();
@@ -243,7 +300,7 @@ onMounted(async () => {
 // Pen methods
 const editPen = (pen) => {
   editingPen.value = pen;
-  penForm.value = { ...pen };
+  penForm.value = JSON.parse(JSON.stringify(pen));
   showPenDialog.value = true;
 };
 
@@ -272,7 +329,7 @@ const savePen = async () => {
 const deletePenConfirm = (pen) => {
   confirm.require({
     message: t('messages.confirmDeleteFile', { name: pen.name }),
-    header: t('artifacts.deleteTitle'),
+    header: t('common.confirmation'),
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {
       try {
@@ -287,7 +344,7 @@ const deletePenConfirm = (pen) => {
 // Tool methods
 const editTool = (tool) => {
   editingTool.value = tool;
-  toolForm.value = { ...tool };
+  toolForm.value = JSON.parse(JSON.stringify(tool));
   showToolDialog.value = true;
 };
 
@@ -313,7 +370,7 @@ const saveTool = async () => {
 const deleteToolConfirm = (tool) => {
   confirm.require({
     message: t('messages.confirmDeleteFile', { name: tool.name }),
-    header: t('artifacts.deleteTitle'),
+    header: t('common.confirmation'),
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {
       try {
@@ -325,5 +382,3 @@ const deleteToolConfirm = (tool) => {
   });
 };
 </script>
-
-

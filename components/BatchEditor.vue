@@ -1,34 +1,36 @@
 <template>
-    <div>
+    <div class="flex flex-col gap-6">
         <!-- Batch Header with Status -->
-        <div class="flex items-center gap-4 mb-6">
-            <Tag :value="$t(`batch.batchStatus.${batch.status}`)" :severity="getStatusSeverity(batch.status)" />
-            <span>{{ entries.length }} {{ $t('batches.entries') }}</span>
-            <Button 
-                v-if="batch.status === 'NESTED' || batch.status === 'COMPLETE'"
-                :label="$t('batches.markComplete')"
-                icon="pi pi-check"
-                severity="success"
-                @click="markComplete"
-                class="ml-auto"
-            />
-            <Button 
-                v-if="batch.status === 'FAILED' || batch.status === 'NESTING'"
-                :label="$t('batch.resetToDraft')"
-                icon="pi pi-refresh"
-                severity="warning"
-                @click="resetToDraft"
-                :class="batch.status === 'FAILED' || batch.status === 'NESTING' ? 'ml-auto' : ''"
-            />
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 bg-[var(--p-content-background)] p-4 rounded-xl border border-[var(--p-content-border-color)]">
+            <div class="flex items-center gap-3">
+                <Tag :value="$t(`batch.batchStatus.${batch.status}`)" :severity="getStatusSeverity(batch.status)" />
+                <span class="text-sm font-medium text-[var(--p-text-muted-color)]">{{ entries.length }} {{ $t('batches.entries') }}</span>
+            </div>
+            <div class="flex flex-wrap gap-2 sm:ml-auto">
+                <Button 
+                    v-if="batch.status === 'NESTED' || batch.status === 'COMPLETE'"
+                    :label="$t('batches.markComplete')"
+                    icon="pi pi-check"
+                    severity="success"
+                    @click="markComplete"
+                />
+                <Button 
+                    v-if="batch.status === 'FAILED' || batch.status === 'NESTING'"
+                    :label="$t('batch.resetToDraft')"
+                    icon="pi pi-refresh"
+                    severity="warning"
+                    @click="resetToDraft"
+                />
+            </div>
         </div>
 
         <!-- Accordion Panels -->
-        <Accordion :multiple="true" :activeIndex="[0, 1]">
+        <Accordion :multiple="true" :activeIndex="[0, 1]" class="flex flex-col gap-4">
             <!-- Nesting Options Panel -->
             <AccordionTab :header="$t('nesting.settings')">
-                <div class="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4 items-end">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end py-2">
                     <div class="flex flex-col gap-2">
-                        <label for="toolSelect">{{ $t('nesting.tool') }}</label>
+                        <label for="toolSelect" class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.tool') }}</label>
                         <Select 
                             id="toolSelect" 
                             v-model="nestingOptions.toolId" 
@@ -36,15 +38,16 @@
                             optionLabel="name"
                             optionValue="_id"
                             :placeholder="$t('nesting.selectTool')"
+                            class="w-full"
                         />
                     </div>
                     <div class="flex flex-col gap-2">
-                        <label for="plateWidth">{{ $t('nesting.plateWidth') }} (mm)</label>
-                        <InputNumber id="plateWidth" v-model="nestingOptions.width" :min="0" />
+                        <label for="plateWidth" class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.plateWidth') }} (mm)</label>
+                        <InputNumber id="plateWidth" v-model="nestingOptions.width" :min="0" class="w-full" />
                     </div>
                     <div class="flex flex-col gap-2">
-                        <label for="plateHeight">{{ $t('nesting.plateHeight') }} (mm)</label>
-                        <InputNumber id="plateHeight" v-model="nestingOptions.height" :min="0" />
+                        <label for="plateHeight" class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.plateHeight') }} (mm)</label>
+                        <InputNumber id="plateHeight" v-model="nestingOptions.height" :min="0" class="w-full" />
                     </div>
                     <div>
                         <Button 
@@ -54,7 +57,7 @@
                             @click="runNesting"
                             :disabled="batch.status !== 'DRAFT' || entries.length === 0"
                             :loading="nestingInProgress"
-                            class="w-full"
+                            class="w-full h-[42px]"
                         />
                     </div>
                 </div>
@@ -62,147 +65,162 @@
 
             <!-- Cassettes DataTable Panel -->
             <AccordionTab :header="$t('batches.cassettes')">
-                <DataTable 
-                    v-model:editingRows="editingRows"
-                    :value="entries"
-                    :editMode="batch.status === 'DRAFT' ? 'cell' : null"
-                    dataKey="_id"
-                    @cell-edit-complete="onRowEditSave"
-                    :paginator="entries.length > 10"
-                    :rows="10"
-                    responsiveLayout="scroll"
-                >
-                    <!-- Cassette Template Column -->
-                    <Column field="cassetteTemplateId" :header="$t('batches.cassette')" style="width: 25%">
-                        <template #body="slotProps">
-                            <span>{{ getCassetteName(slotProps.data.cassetteTemplateId) }}</span>
-                        </template>
-                        <template #editor="{ data }">
-                            <Dropdown 
-                                v-model="data.cassetteTemplateId"
-                                :options="cassettes"
-                                optionLabel="name"
-                                optionValue="_id"
-                                :placeholder="$t('batches.selectCassette')"
-                                @change="onCassetteChange(data)"
-                            />
-                        </template>
-                    </Column>
-
-                    <!-- Quantity Column -->
-                    <Column field="quantity" :header="$t('batches.quantity')" style="width: 10%">
-                        <template #editor="{ data }">
-                            <InputNumber v-model="data.quantity" :min="1" :max="1000" showButtons class="w-full" />
-                        </template>
-                    </Column>
-
-                    <!-- Dimensions Columns (Dynamic based on parameters) -->
-                    <Column 
-                        v-for="param in allParameters" 
-                        :key="param"
-                        :field="`dimensions.${param}`"
-                        :header="param"
+                <div class="flex flex-col gap-4">
+                    <DataTable 
+                        v-model:editingRows="editingRows"
+                        :value="entries"
+                        :editMode="batch.status === 'DRAFT' ? 'cell' : null"
+                        dataKey="_id"
+                        @cell-edit-complete="onRowEditSave"
+                        :paginator="entries.length > 10"
+                        :rows="10"
+                        responsiveLayout="scroll"
+                        class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden"
                     >
-                        <template #body="slotProps">
-                            <span>{{ slotProps.data.dimensions?.[param] || '-' }}</span>
-                        </template>
-                        <template #editor="{ data }">
-                            <InputNumber 
-                                v-model="data.dimensions[param]"
-                            />
-                        </template>
-                    </Column>
+                        <!-- Cassette Template Column -->
+                        <Column field="cassetteTemplateId" :header="$t('batches.cassette')" style="min-width: 200px">
+                            <template #body="slotProps">
+                                <span class="font-medium">{{ getCassetteName(slotProps.data.cassetteTemplateId) }}</span>
+                            </template>
+                            <template #editor="{ data }">
+                                <Select 
+                                    v-model="data.cassetteTemplateId"
+                                    :options="cassettes"
+                                    optionLabel="name"
+                                    optionValue="_id"
+                                    :placeholder="$t('batches.selectCassette')"
+                                    @change="onCassetteChange(data)"
+                                    class="w-full"
+                                />
+                            </template>
+                        </Column>
 
-                    <!-- Options Columns (Dynamic based on cassette options) -->
-                    <Column
-                        v-for="option in allOptions"
-                        :key="option"
-                        :field="`options.${option}`"
-                        :header="option"
-                    >
-                        <template #body="slotProps">
-                            <i v-if="slotProps.data.options?.[option]" class="pi pi-check-circle text-green-500"></i>
-                            <i v-else class="pi pi-times-circle text-red-500"></i>
-                        </template>
-                        <template #editor="{ data }">
-                            <ToggleSwitch v-model="data.options[option]" v-if="data.options" />
-                        </template>
-                    </Column>
+                        <!-- Quantity Column -->
+                        <Column field="quantity" :header="$t('batches.quantity')" style="width: 120px">
+                            <template #editor="{ data }">
+                                <InputNumber v-model="data.quantity" :min="1" :max="1000" showButtons class="w-full" />
+                            </template>
+                        </Column>
 
-                    <!-- Actions Column -->
-                    <Column :header="$t('common.actions')" style="width: 10%">
-                        <template #body="slotProps">
-                            <Button 
-                                icon="pi pi-trash"
-                                severity="danger"
-                                text
-                                @click="confirmDelete(slotProps.data)"
-                                :disabled="batch.status !== 'DRAFT'"
-                            />
+                        <!-- Dimensions Columns (Dynamic) -->
+                        <Column 
+                            v-for="param in allParameters" 
+                            :key="param"
+                            :field="`dimensions.${param}`"
+                            :header="param"
+                            style="min-width: 100px"
+                        >
+                            <template #body="slotProps">
+                                <span>{{ slotProps.data.dimensions?.[param] || '-' }}</span>
+                            </template>
+                            <template #editor="{ data }">
+                                <InputNumber 
+                                    v-model="data.dimensions[param]"
+                                    class="w-full"
+                                />
+                            </template>
+                        </Column>
+
+                        <!-- Options Columns (Dynamic) -->
+                        <Column
+                            v-for="option in allOptions"
+                            :key="option"
+                            :field="`options.${option}`"
+                            :header="option"
+                            style="width: 100px"
+                        >
+                            <template #body="slotProps">
+                                <i v-if="slotProps.data.options?.[option]" class="pi pi-check-circle text-green-500"></i>
+                                <i v-else class="pi pi-times-circle text-red-400 opacity-50"></i>
+                            </template>
+                            <template #editor="{ data }">
+                                <ToggleSwitch v-model="data.options[option]" v-if="data.options" />
+                            </template>
+                        </Column>
+
+                        <!-- Actions Column -->
+                        <Column :header="$t('common.actions')" style="width: 80px" class="text-right">
+                            <template #body="slotProps">
+                                <Button 
+                                    icon="pi pi-trash"
+                                    severity="danger"
+                                    text
+                                    rounded
+                                    @click="confirmDelete(slotProps.data)"
+                                    :disabled="batch.status !== 'DRAFT'"
+                                />
+                            </template>
+                        </Column>
+
+                        <template #empty>
+                            <div class="text-center py-12">
+                                <i class="pi pi-inbox text-5xl mb-4 opacity-20"></i>
+                                <p class="text-[var(--p-text-secondary-color)]">{{ $t('batches.noEntries') }}</p>
+                            </div>
                         </template>
-                    </Column>
+                    </DataTable>
 
-                    <template #empty>
-                        <div class="text-center py-12">
-                            <i class="pi pi-inbox text-5xl mb-4 opacity-50"></i>
-                            <p>{{ $t('batches.noEntries') }}</p>
-                        </div>
-                    </template>
-                </DataTable>
-
-                <!-- Add Cassette Buttons -->
-                <div class="flex gap-2 mt-4">
-                    <Button 
-                        :label="$t('batches.addFromTemplate')"
-                        icon="pi pi-plus"
-                        severity="secondary"
-                        @click="showAddDialog = true"
-                        :disabled="batch.status !== 'DRAFT'"
-                    />
-                    <Button 
-                        :label="$t('batches.uploadCassette')"
-                        icon="pi pi-upload"
-                        severity="secondary"
-                        @click="showUploadDialog = true"
-                        :disabled="batch.status !== 'DRAFT'"
-                    />
+                    <!-- Add Cassette Buttons -->
+                    <div class="flex flex-wrap gap-3">
+                        <Button 
+                            :label="$t('batches.addFromTemplate')"
+                            icon="pi pi-plus"
+                            severity="secondary"
+                            outlined
+                            @click="showAddDialog = true"
+                            :disabled="batch.status !== 'DRAFT'"
+                        />
+                        <Button 
+                            :label="$t('batches.uploadCassette')"
+                            icon="pi pi-upload"
+                            severity="secondary"
+                            outlined
+                            @click="showUploadDialog = true"
+                            :disabled="batch.status !== 'DRAFT'"
+                        />
+                    </div>
                 </div>
             </AccordionTab>
 
             <!-- Artifacts Panel -->
             <AccordionTab v-if="artifacts?.length > 0" :header="$t('batches.artifacts')">
-                <DataView :value="artifacts" layout="grid">
-                    <template #grid="slotProps">
-                        <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
-                            <div v-for="artifact in slotProps.items" :key="artifact._id" class="flex items-center gap-4 p-4 border rounded">
-                                <div class="text-2xl">
-                                    <i class="pi pi-file"></i>
-                                </div>
-                                <div class="flex-1 flex flex-col">
-                                    <span class="font-semibold">{{ artifact.type }}</span>
-                                    <span :class="artifact.status">{{ artifact.status }}</span>
-                                    <span class="text-sm">{{ formatDate(artifact.createdAt) }}</span>
-                                </div>
-                                <div class="flex gap-2">
-                                    <Button 
-                                        icon="pi pi-download"
-                                        severity="secondary"
-                                        size="small"
-                                        :disabled="artifact.status !== 'READY'"
-                                        @click="downloadArtifact(artifact)"
-                                    />
-                                    <Button 
-                                        icon="pi pi-trash"
-                                        severity="danger"
-                                        size="small"
-                                        text
-                                        @click="deleteArtifact(artifact)"
-                                    />
-                                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 py-2">
+                    <div v-for="artifact in artifacts" :key="artifact._id" 
+                        class="flex items-center gap-4 p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl hover:border-[var(--p-primary-color)] transition-all group"
+                    >
+                        <div class="w-12 h-12 flex items-center justify-center bg-[var(--p-primary-50)] text-[var(--p-primary-color)] rounded-lg">
+                            <i class="pi pi-file text-xl"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-[var(--p-text-color)] truncate">{{ artifact.type }}</div>
+                            <div class="flex flex-col text-xs text-[var(--p-text-muted-color)] mt-1">
+                                <span :class="artifact.status === 'READY' ? 'text-green-500' : 'text-orange-500'">{{ artifact.status }}</span>
+                                <span>{{ formatDate(artifact.createdAt) }}</span>
                             </div>
                         </div>
-                    </template>
-                </DataView>
+                        <div class="flex flex-col gap-1">
+                            <Button 
+                                icon="pi pi-download"
+                                severity="secondary"
+                                text
+                                rounded
+                                size="small"
+                                :disabled="artifact.status !== 'READY'"
+                                @click="downloadArtifact(artifact)"
+                                v-tooltip.top="$t('actions.download')"
+                            />
+                            <Button 
+                                icon="pi pi-trash"
+                                severity="danger"
+                                text
+                                rounded
+                                size="small"
+                                @click="deleteArtifact(artifact)"
+                                v-tooltip.top="$t('actions.delete')"
+                            />
+                        </div>
+                    </div>
+                </div>
             </AccordionTab>
         </Accordion>
 
@@ -211,12 +229,12 @@
             v-model:visible="showAddDialog"
             :header="$t('batches.addEntry')"
             :modal="true"
-            :style="{ width: '500px' }"
+            :style="{ width: '95vw', maxWidth: '500px' }"
         >
-            <div>
-                <div class="mb-4">
-                    <label class="block mb-2">{{ $t('batches.cassette') }}</label>
-                    <Dropdown 
+            <div class="flex flex-col gap-6 py-4">
+                <div class="flex flex-col gap-2">
+                    <label class="font-medium text-[var(--p-text-color)]">{{ $t('batches.cassette') }}</label>
+                    <Select 
                         v-model="newEntry.cassetteTemplateId"
                         :options="cassettes"
                         optionLabel="name"
@@ -224,17 +242,16 @@
                         :placeholder="$t('batches.selectCassette')"
                         class="w-full"
                         @change="onNewCassetteChange"
-                        @show="() => console.log('[BatchEditor] Dropdown opened, cassettes:', cassettes)"
                     />
                     <small v-if="cassettes.length === 0" class="text-red-500">{{ $t('batches.noCassettes') }}</small>
                 </div>
-                <div class="mb-4">
-                    <label class="block mb-2">{{ $t('batches.quantity') }}</label>
+                <div class="flex flex-col gap-2">
+                    <label class="font-medium text-[var(--p-text-color)]">{{ $t('batches.quantity') }}</label>
                     <InputNumber v-model="newEntry.quantity" :min="1" showButtons class="w-full" />
                 </div>
             </div>
             <template #footer>
-                <Button :label="$t('common.cancel')" severity="secondary" @click="showAddDialog = false" />
+                <Button :label="$t('common.cancel')" text severity="secondary" @click="showAddDialog = false" />
                 <Button 
                     :label="$t('common.add')" 
                     @click="addEntry"
@@ -248,9 +265,9 @@
             v-model:visible="showUploadDialog"
             :header="$t('batches.uploadNewCassette')"
             :modal="true"
-            :style="{ width: '600px' }"
+            :style="{ width: '95vw', maxWidth: '600px' }"
         >
-            <p>{{ $t('batches.uploadNote') }}</p>
+            <p class="mb-4 text-[var(--p-text-secondary-color)]">{{ $t('batches.uploadNote') }}</p>
             <CassetteEditorDialog v-if="showUploadDialog" @saved="onCassetteUploaded" />
         </Dialog>
 
@@ -273,14 +290,13 @@ import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
-import Dropdown from 'primevue/dropdown';
+import Select from 'primevue/select';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Dialog from 'primevue/dialog';
 import DataView from 'primevue/dataview';
 import ConfirmDialog from 'primevue/confirmdialog';
-import Select from 'primevue/select';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
@@ -668,4 +684,5 @@ const onCassetteUploaded = async () => {
 };
 </script>
 
-
+<style scoped lang="scss">
+</style>

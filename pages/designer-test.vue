@@ -1,19 +1,14 @@
 <template>
-  <div class="designer-test-page">
+  <div class="fixed inset-0 top-[var(--p-menubar-height,64px)] overflow-hidden">
     <CassetteDesigner />
   </div>
 </template>
 
 <script setup>
 definePageMeta({
-  layout: 'default'
+  layout: 'app'
 });
 </script>
 
 <style scoped>
-.designer-test-page {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-}
 </style>

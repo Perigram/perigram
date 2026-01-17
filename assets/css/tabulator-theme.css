@@ -1,69 +1,101 @@
-/* Tabulator Custom Theme - Minimal */
+/* Tabulator Custom Theme - Minimal using PrimeVue Tokens */
 
 .tabulator {
     font-size: 14px;
-    color: var(--label-primary);
+    color: var(--p-text-color);
+    background-color: transparent;
+    border: none;
 }
 
 /* Header */
+.tabulator-header {
+    background-color: var(--p-content-background);
+    border-bottom: 1px solid var(--p-content-border-color);
+    color: var(--p-text-color);
+}
+
+.tabulator-col {
+    background-color: var(--p-content-background);
+}
+
 .tabulator-col-title {
-    font-weight: 600;
-    font-size: 12px;
+    font-weight: 700;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--label-secondary);
+    letter-spacing: 0.1em;
+    color: var(--p-text-muted-color);
 }
 
 /* Cells */
 .tabulator-cell {
-    color: var(--label-primary);
+    color: var(--p-text-color);
+    border-color: var(--p-content-border-color);
+}
+
+/* Row hover */
+.tabulator-row:hover {
+    background-color: var(--p-surface-50);
 }
 
 /* Editable cells */
 .tabulator-cell.tabulator-editing input,
 .tabulator-cell.tabulator-editing select,
 .tabulator-cell.tabulator-editing textarea {
-    background-color: var(--background-secondary);
-    color: var(--label-primary);
+    background-color: var(--p-content-background);
+    color: var(--p-text-color);
+    border: 1px solid var(--p-primary-color);
+    border-radius: 4px;
     font-size: 14px;
     font-family: inherit;
+    padding: 4px;
 }
 
 /* Footer */
 .tabulator-footer {
-    color: var(--label-primary);
+    background-color: var(--p-content-background);
+    border-top: 1px solid var(--p-content-border-color);
+    color: var(--p-text-color);
 }
 
 .tabulator-paginator {
-    color: var(--label-primary);
+    color: var(--p-text-color);
 }
 
 .tabulator-page {
-    color: var(--label-primary);
-    font-size: 14px;
-    font-weight: 500;
+    color: var(--p-text-color);
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 4px;
+    background: var(--p-content-background);
+    font-size: 12px;
+    font-weight: 600;
+    margin: 0 2px;
 }
 
 .tabulator-page.active {
-    color: var(--label-primary);
-    font-weight: 600;
+    color: white;
+    background-color: var(--p-primary-color);
+    border-color: var(--p-primary-color);
 }
 
 /* Loading */
 .tabulator-loader-msg {
-    color: var(--label-primary);
-    background-color: var(--background-primary);
+    color: var(--p-text-color);
+    background-color: var(--p-content-background);
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: bold;
 }
 
 /* Empty message */
 .tabulator-placeholder {
-    color: var(--label-tertiary);
+    color: var(--p-text-muted-color);
     font-size: 14px;
 }
 
 /* Sorting arrows */
 .tabulator-arrow {
-    border-bottom-color: var(--label-secondary);
+    border-bottom-color: var(--p-text-muted-color);
 }
 
 /* Responsive - Mobile */
@@ -73,7 +105,7 @@
     }
     
     .tabulator-page {
-        font-size: 12px;
+        font-size: 11px;
+        padding: 2px 6px;
     }
 }
-

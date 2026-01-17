@@ -1,69 +1,76 @@
 <template>
-    <div class="chats">
-        <div class="chats__header header">
-            <MainTitle
-                :label="$t('admin.supportChatList')"
-                class="header__title"
-            />
+    <div class="flex flex-col h-full bg-[var(--p-surface-50)]">
+        <div class="p-4 border-b border-[var(--p-content-border-color)] bg-[var(--p-content-background)]">
+            <h2 class="text-lg font-bold text-[var(--p-text-color)] m-0">{{ $t('admin.supportChatList') }}</h2>
         </div>
-        <UiScrollbar class="chats__scrollbar">
-            <div class="chats__list" v-if="chatList.length > 0">
+        
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-2">
+            <div v-if="chatList.length > 0" class="flex flex-col gap-2">
                 <div
                     v-for="chat in chatList" 
                     :key="chat.userId" 
-                    class="chats__item chats-item"
-                    :class="{ active: selectedUserId === chat.userId }" 
+                    class="p-4 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-3 group"
+                    :class="selectedUserId === chat.userId 
+                        ? 'bg-[var(--p-primary-color)] border-[var(--p-primary-color)] shadow-md' 
+                        : 'bg-[var(--p-content-background)] border-[var(--p-content-border-color)] hover:border-[var(--p-primary-color)]'"
                     @click="selectChat(chat.userId)"
                 >
-                    <div class="user">
+                    <div class="flex items-center gap-3">
                         <div 
                             :style="{ backgroundColor: letterToBg(getUserName(chat.user)) }"
-                            class="user__avatar avatar"
+                            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-sm flex-shrink-0"
                         >   
-                            <p class="avatar__text">
-                                {{ getUserName(chat.user) }}
-                            </p>
+                            {{ getUserName(chat.user) }}
                         </div>
-                        <div class="user__details">
-                            <div class="user__name">{{ chat.user?.name || $t('admin.unknownUser') }}</div>
-                            <div class="user__id">{{ $t('admin.userId') }}: {{ chat.userId }}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate" :class="selectedUserId === chat.userId ? 'text-white' : 'text-[var(--p-text-color)]'">
+                                {{ chat.user?.name || $t('admin.unknownUser') }}
+                            </div>
+                            <div class="text-[10px] uppercase tracking-widest font-black opacity-60" :class="selectedUserId === chat.userId ? 'text-white' : 'text-[var(--p-text-muted-color)]'">
+                                ID: {{ chat.userId.slice(-8) }}
+                            </div>
                         </div>
                     </div>
-                    <div class="chats-item__message message">
-                        <div class="message__text">{{ chat.lastMessage }}</div>
-                        <div class="message__time">{{ getTimeAgo(chat.timestamp) }}</div>
+                    
+                    <div class="flex flex-col gap-1 border-t pt-2" :class="selectedUserId === chat.userId ? 'border-white/20' : 'border-[var(--p-content-border-color)]'">
+                        <div class="text-xs italic truncate" :class="selectedUserId === chat.userId ? 'text-white/90' : 'text-[var(--p-text-secondary-color)]'">
+                            {{ chat.lastMessage }}
+                        </div>
+                        <div class="text-[10px] font-medium" :class="selectedUserId === chat.userId ? 'text-white/70' : 'text-[var(--p-text-muted-color)]'">
+                            {{ getTimeAgo(chat.timestamp) }}
+                        </div>
                     </div>
                 </div>
             </div> 
-            <div v-else-if="loading" class="chats__loading loading">
-                <MainLoader
-                    :size="sizeType.l"
-                    class="loading__loader"
-                />
-                <p class="loading__text">{{ $t('admin.loadingChatList') }}</p>
+
+            <div v-else-if="loading" class="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
+                <ProgressSpinner style="width: 40px; height: 40px" strokeWidth="4" />
+                <p class="text-sm font-bold uppercase tracking-widest">{{ $t('admin.loadingChatList') }}</p>
             </div>
-            <div v-else class="chats__empty empty">
-                <p class="empty__text">{{ $t('admin.noChats') }}</p>
+
+            <div v-else class="flex flex-col items-center justify-center py-20 gap-4 opacity-40">
+                <i class="pi pi-inbox text-5xl"></i>
+                <p class="text-sm font-bold uppercase tracking-widest text-center">{{ $t('admin.noChats') }}</p>
             </div>
-            <div v-if="error" class="chats__error error">
-                <p class="error__text">{{ error }}</p>
-                <MainButton 
+
+            <div v-if="error" class="p-4 bg-red-50 border border-red-100 rounded-xl flex flex-col gap-4">
+                <p class="text-sm text-red-600 font-medium m-0">{{ error }}</p>
+                <Button 
                     :label="$t('admin.retry')"
-                    tag="button"
-                    :theme="themeType.primary"
-                    class="error__btn"
+                    severity="danger"
+                    size="small"
                     @click="connectToChatList"
                 />
             </div>
-        </UiScrollbar>
+        </div>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { sizeType } from "~~/constants/size.constants"
-import { themeType } from '~~/constants/theme.constants'
+import ProgressSpinner from 'primevue/progressspinner'
+import Button from 'primevue/button'
 
 const { t } = useI18n()
 const chatList = ref([])
@@ -79,7 +86,6 @@ const connectToChatList = () => {
         loading.value = true
         eventSource = new EventSource('/api/support/admin/chatlist')
         eventSource.onopen = () => {
-            
             loading.value = false
         }
 
@@ -95,7 +101,6 @@ const connectToChatList = () => {
                     chatList.value = data.data
                     break
                 case 'heartbeat':
-                    // Connection is alive
                     break
             }
         }
@@ -132,10 +137,12 @@ const getUserName = (user) => {
 }
 
 const letterToBg = (letter) => {
-    let value = letter.split('').map(char => char.charCodeAt(0)).join('')
-    const hexValue = parseInt(value).toString(16)
-
-    return `#${hexValue.padStart(6, '0').substring(0, 6)}`
+    let val = 0;
+    for (let i = 0; i < letter.length; i++) {
+        val += letter.charCodeAt(i);
+    }
+    const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899'];
+    return colors[val % colors.length];
 }
 
 const getTimeAgo = (timestamp) => {
@@ -156,220 +163,18 @@ const getTimeAgo = (timestamp) => {
 }
 </script>
 
-<style lang="scss" scoped>
-$user: '.user';
-$message: '.message';
-.chats {
-    display: flex;
-    flex-direction: column;
-
-    &__header {
-        margin-bottom: 16px;
-    }
-
-    &__scrollbar {
-        width: 100%;
-        height: 100%;
-    }
-
-    &__empty,
-    &__loading,
-    &__error {
-        width: 100%;
-        height: 100%;  
-    }
-
-    &__item {
-        &:not(:last-child) {
-            margin-bottom: 8px;
-        }
-    }
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
 }
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
 }
-
-.chats-item {
-    border-radius: 8px;
-    color: var(--label-tertiary);
-    padding: 16px;
-    position: relative;
-    transition: color .3s;
-    cursor: pointer;
-
-    &:after {
-        border: 1px solid var(--separator-secondary);
-        border-radius: 8px;
-        bottom: 0;
-        content: "";
-        left: 0;
-        pointer-events: none;
-        position: absolute;
-        right: 0;
-        top: 0;
-        transition: border-color .3s;
-    }
-
-    &:hover {
-        &:after {
-            border-color: var(--separator-primary);
-        }
-
-        #{$user}__name {
-            color: var(--label-primary);
-        }
-        #{$user}__id {
-            color: var(--label-secondary);
-        }
-        #{$message}__text {
-            color: var(--label-primary);
-        }
-        #{$message}__time {
-            color: var(--label-secondary);
-        }
-    }
-
-    &.active {
-        pointer-events: none;
-
-        &:after {
-            border-width: 2px;
-            border-color: var(--accent-primary);
-        }
-
-        #{$user}__name {
-            color: var(--label-primary);
-        }
-        #{$user}__id {
-            color: var(--label-secondary);
-        }
-        #{$message}__text {
-            color: var(--label-primary);
-        }
-        #{$message}__time {
-            color: var(--label-secondary);
-        }
-    }
-
-    &__message {
-        margin-top: 16px;
-    }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--p-content-border-color);
+    border-radius: 10px;
 }
-
-.user {
-    display: flex;
-    align-items: center;
-
-    @media (min-width: 567px) {
-        flex-direction: column;
-    }
-
-    @media (min-width: 1199px) {
-        flex-direction: row;
-    }
-
-    &__avatar {
-        flex-shrink: 0;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        margin-right: 24px;
-        
-        @media (min-width: 567px) {
-            margin-bottom: 8px;
-            margin-right: initial;
-        }
-
-        @media (min-width: 1199px) {
-            margin-bottom: initial;
-            margin-right: 24px;
-        }
-    }
-
-    &__details {
-        flex: 1;
-    }
-
-    &__name {    
-        transition: color .3s;
-        font-weight: 500;
-        color: var(--label-secondary);
-        margin-bottom: 8px;
-    }
-
-    &__id {
-        word-break: break-word;
-        transition: color .3s;
-        font-size: 12px;
-        color: var(--label-tertiary);
-    }
-}
-
-.avatar {
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &__text {
-        color: #fff;
-    }
-}
-
-.message {
-    &__text {
-        transition: color .3s;
-        font-weight: 500;
-        color: var(--label-secondary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        margin-bottom: 8px;
-    }
-    &__time {
-        transition: color .3s;
-        font-size: 12px;
-        color: var(--label-tertiary);
-    }
-}
-
-.empty {
-    text-align: center;
-    display: flex;
-    padding: 16px;
-    justify-content: center;
-    align-items: center;
-    color: var(--label-secondary);
-}
-
-.loading  {
-    flex-direction: column;
-    text-align: center;
-    display: flex;
-    padding: 16px;
-    justify-content: center;
-    align-items: center;
-    color: var(--label-secondary);
-
-    &__loader {
-        margin-bottom: 60px;
-    }
-}
-
-.error {
-    flex-direction: column;
-    text-align: center;
-    display: flex;
-    padding: 16px;
-    justify-content: center;
-    align-items: center;
-
-    &__text {
-        color: #ef4444;
-        margin-bottom: 40px;
-    }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--p-primary-color);
 }
 </style>

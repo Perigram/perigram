@@ -1,10 +1,21 @@
 <template>
-    <div class="">
+    <div class="flex flex-col gap-6">
+        <div v-if="project" class="px-1 flex flex-col gap-1">
+            <h1 class="text-2xl font-black text-[var(--p-text-color)] m-0 tracking-tight">{{ project.name }}</h1>
+            <div class="flex items-center gap-2 text-[var(--p-text-muted-color)] text-xs font-bold uppercase tracking-widest">
+                <i class="pi pi-folder-open text-[10px]"></i>
+                <span>{{ slug }}</span>
+            </div>
+        </div>
+
         <TabView :activeIndex="activeTabIndex" @tab-change="onTabChange">
             <TabPanel v-for="(tab, index) in tabs" :key="tab.key" :header="tab.label">
             </TabPanel>
         </TabView>
-        <NuxtPage />
+        
+        <div class="px-1">
+            <NuxtPage />
+        </div>
     </div>
 </template>
 
@@ -42,7 +53,6 @@
 
         updateActiveTab()
 
-        // Redirect to batches if on project root
         if (route.path === `/project/${slug}` || route.path === `/project/${slug}/`) {
             router.replace(`/project/${slug}/batches`)
         }
@@ -69,6 +79,6 @@
     }
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 </style>
 

@@ -18,6 +18,6 @@
   Baked cassette should include all the layers using layer standard. Only the one layer should be used in nesting, that in marked as nesting layer in standard. Artifacts created during nesting should use transform data for placing other layers data back to nested cassettes. Of course, everything should be done procedurally without hardcoding layer names etc.
 
 * TODO batch table improvements
-  Need to rewrite table to dataview with grid and table views. In grid view, need cassette preview and only needed parameters. In table view, need all the parameters as columns, but for cassettes that don't have some parameters, need to show "-" or empty cell that can't be edited (for those who have, need 0 or default values). 
+  Need to rewrite table to dataview with grid and table views. In grid view, need cassette preview and only needed parameters. In table view, need all the parameters as columns, but for cassettes that don't have some parameters, need to show "-" or empty cell that can't be edited (for those who have, need 0 or default values). Editing should be possible in both views and should be user-friendly (now it becomes a huge input, etc; need comfortable experience). 
 
 
