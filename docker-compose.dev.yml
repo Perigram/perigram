@@ -47,7 +47,9 @@ services:
     restart: unless-stopped
 
   nesting-worker:
-    image: ghcr.io/1suo/nesting-worker:latest
+    build:
+      context: ./workers/nesting
+      dockerfile: Dockerfile
     environment:
       - MONGO_URI=mongodb://mongo:27017/cutkit_dev
     depends_on:
