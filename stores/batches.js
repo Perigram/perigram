@@ -33,8 +33,9 @@ export const useBatchesStore = defineStore('batches', () => {
                     currentBatch.value = data;
                 }
 
-                // Stop polling if reached final state
-                if (!['NESTING', 'PROCESSING'].includes(data.status)) {
+                // Stop polling if no runs are in NESTING status
+                const hasNestingRuns = (data.runs || []).some(run => run.status === 'NESTING');
+                if (!hasNestingRuns) {
                     stopPolling(batchId);
                 }
             } catch (err) {
@@ -46,7 +47,8 @@ export const useBatchesStore = defineStore('batches', () => {
 
     function checkTransientStatuses() {
         batches.value.forEach(batch => {
-            if (['NESTING', 'PROCESSING'].includes(batch.status)) {
+            const hasNestingRuns = (batch.runs || []).some(run => run.status === 'NESTING');
+            if (hasNestingRuns) {
                 pollBatchStatus(batch._id);
             }
         });
@@ -74,7 +76,8 @@ export const useBatchesStore = defineStore('batches', () => {
             const data = await $fetch(`/api/batch/${batchId}`);
             currentBatch.value = data;
             
-            if (['NESTING', 'PROCESSING'].includes(data.status)) {
+            const hasNestingRuns = (data.runs || []).some(run => run.status === 'NESTING');
+            if (hasNestingRuns) {
                 pollBatchStatus(batchId);
             }
             
@@ -124,17 +127,6 @@ export const useBatchesStore = defineStore('batches', () => {
     }
 
     async function startNesting(batchId, nestingParams) {
-        // Optimistic update
-        const index = batches.value.findIndex(b => b._id === batchId);
-        let previousStatus = 'DRAFT';
-        if (index !== -1) {
-            previousStatus = batches.value[index].status;
-            batches.value[index].status = 'NESTING';
-        }
-        if (currentBatch.value?._id === batchId) {
-            currentBatch.value.status = 'NESTING';
-        }
-
         try {
             const result = await $fetch(`/api/batch/${batchId}/nest`, {
                 method: 'POST',
@@ -143,13 +135,6 @@ export const useBatchesStore = defineStore('batches', () => {
             pollBatchStatus(batchId);
             return result;
         } catch (err) {
-            // Rollback on error
-            if (index !== -1) {
-                batches.value[index].status = previousStatus;
-            }
-            if (currentBatch.value?._id === batchId) {
-                currentBatch.value.status = previousStatus;
-            }
             error.value = err.message;
             throw err;
         }
@@ -184,17 +169,6 @@ export const useBatchesStore = defineStore('batches', () => {
     }
 
     async function resetStatus(batchId) {
-        // Optimistic update
-        const index = batches.value.findIndex(b => b._id === batchId);
-        let previousStatus = 'FAILED';
-        if (index !== -1) {
-            previousStatus = batches.value[index].status;
-            batches.value[index].status = 'DRAFT';
-        }
-        if (currentBatch.value?._id === batchId) {
-            currentBatch.value.status = 'DRAFT';
-        }
-
         try {
             const result = await $fetch(`/api/batch/${batchId}/reset-status`, {
                 method: 'POST'
@@ -202,13 +176,6 @@ export const useBatchesStore = defineStore('batches', () => {
             stopPolling(batchId);
             return result;
         } catch (err) {
-            // Rollback on error
-            if (index !== -1) {
-                batches.value[index].status = previousStatus;
-            }
-            if (currentBatch.value?._id === batchId) {
-                currentBatch.value.status = previousStatus;
-            }
             error.value = err.message;
             throw err;
         }

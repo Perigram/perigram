@@ -89,11 +89,15 @@ export async function update(id, updates, userId) {
 }
 
 export async function updateStatus(id, status, userId) {
-  await getById(id, userId);
+  const batch = await getById(id, userId);
   
-  const validStatuses = ['DRAFT', 'READY', 'NESTING', 'COMPLETE', 'FAILED'];
+  const validStatuses = ['DRAFT', 'CUT'];
   if (!validStatuses.includes(status)) {
     throw createError({ statusCode: 400, message: 'Invalid status' });
+  }
+
+  if (status === 'CUT' && !batch.chosenRunId) {
+    throw createError({ statusCode: 400, message: 'Choose a completed run before marking as cut' });
   }
   
   await repository.updateById(id, { status });
@@ -103,7 +107,8 @@ export async function updateStatus(id, status, userId) {
 export async function remove(id, userId) {
   const batch = await getById(id, userId);
   
-  if (batch.status === 'NESTING') {
+  const hasNestingRun = (batch.runs || []).some(run => run.status === 'NESTING');
+  if (hasNestingRun) {
     throw createError({ statusCode: 400, message: 'Cannot delete batch in progress' });
   }
   
@@ -111,17 +116,81 @@ export async function remove(id, userId) {
   return { success: true };
 }
 
-export async function getArtifacts(id, userId) {
+export async function getArtifacts(id, userId, options = {}) {
   const batch = await getById(id, userId);
-  
+  const query = { batchId: new ObjectId(id) };
+  const runId = options.runId || batch.chosenRunId || null;
+  if (runId) {
+    query.runId = new ObjectId(runId);
+  }
+
   // Get artifacts from artifacts collection
   const { connectDB } = await import('../../db/mongo.js');
   const db = await connectDB();
   
   const artifacts = await db.collection('artifacts')
-    .find({ batchId: new ObjectId(id) })
+    .find(query)
     .sort({ createdAt: -1 })
     .toArray();
   
   return artifacts;
+}
+
+export async function resetToDraft(id, userId) {
+  const now = new Date();
+  const updates = {
+    status: 'DRAFT',
+    updatedAt: now
+  };
+
+  await repository.updateById(id, updates);
+  await repository.setRunsStatusByStatus(id, 'NESTING', 'ERROR');
+  return await repository.findById(id);
+}
+
+export async function markCut(id, userId) {
+  return await updateStatus(id, 'CUT', userId);
+}
+
+export async function addRun(id, run, userId) {
+  await getById(id, userId);
+  const now = new Date();
+  const normalizedRun = {
+    _id: run._id || new ObjectId(),
+    status: run.status || 'NESTING',
+    createdAt: run.createdAt || now,
+    updatedAt: run.updatedAt || now,
+    ...run
+  };
+  await repository.addRun(id, normalizedRun);
+  return await repository.findById(id);
+}
+
+export async function setRunStatus(id, runId, status, userId) {
+  await getById(id, userId);
+  const validStatuses = ['NESTING', 'ERROR', 'COMPLETE', 'CHOSEN'];
+  if (!validStatuses.includes(status)) {
+    throw createError({ statusCode: 400, message: 'Invalid run status' });
+  }
+  await repository.setRunStatus(id, runId, status);
+  return await repository.findById(id);
+}
+
+export async function setRunsStatusByStatus(id, fromStatus, toStatus, userId) {
+  await getById(id, userId);
+  await repository.setRunsStatusByStatus(id, fromStatus, toStatus);
+  return await repository.findById(id);
+}
+
+export async function chooseRun(id, runId, userId) {
+  const batch = await getById(id, userId);
+  const run = (batch.runs || []).find(item => item._id?.toString() === runId.toString());
+  if (!run) {
+    throw createError({ statusCode: 404, message: 'Run not found' });
+  }
+  if (run.status !== 'COMPLETE') {
+    throw createError({ statusCode: 400, message: 'Run must be COMPLETE to choose' });
+  }
+  await repository.setChosenRun(id, runId);
+  return await repository.findById(id);
 }

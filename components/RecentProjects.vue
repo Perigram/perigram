@@ -42,7 +42,7 @@
             >
                 <template #header>
                     <div class="h-20 bg-gradient-to-br from-[var(--p-primary-color)] to-[var(--p-primary-700)] flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
-                        <i class="pi pi-folder text-3xl text-white"></i>
+                        <i class="pi pi-folder text-3xl text-[var(--p-primary-contrast-color)]"></i>
                     </div>
                 </template>
                 <template #title>

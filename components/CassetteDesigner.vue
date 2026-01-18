@@ -1,7 +1,7 @@
 <template>
     <div class="h-full flex overflow-hidden bg-[var(--p-content-background)] text-[var(--p-text-color)]">
         <!-- Left Sidebar: Parameters & History -->
-        <div class="w-80 border-r border-[var(--p-content-border-color)] flex flex-col bg-[var(--p-surface-50)]">
+        <div class="w-80 border-r border-[var(--p-content-border-color)] flex flex-col bg-[var(--p-content-background)]">
             <div class="p-4 border-b border-[var(--p-content-border-color)] bg-[var(--p-content-background)]">
                 <Inplace :closable="true" class="w-full">
                     <template #display>
@@ -47,13 +47,13 @@
                         {{ $t('cassette.noFaces') }}<br>{{ $t('cassette.clickEdgeToGrow') }}
                     </div>
                     <div v-for="(ext, idx) in cassetteData.extrusions" :key="idx" 
-                        class="group p-3 rounded-xl border border-transparent hover:border-[var(--p-primary-200)] hover:bg-[var(--p-content-background)] transition-all flex flex-col gap-3 shadow-sm hover:shadow-md"
+                        class="group p-3 rounded-xl border border-transparent hover:border-[var(--p-primary-color)] hover:bg-[var(--p-primary-50)] transition-all flex flex-col gap-3 shadow-sm hover:shadow-md"
                         @mouseenter="highlightExtrusion(idx)"
                         @mouseleave="highlightExtrusion(null)"
                     >
                         <div class="flex justify-between items-center">
                             <div class="flex items-center gap-2">
-                                <span class="text-[10px] font-black px-2 py-0.5 rounded bg-[var(--p-primary-color)] text-white shadow-sm">{{ ext.param }}</span>
+                                <span class="text-[10px] font-black px-2 py-0.5 rounded bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)] shadow-sm">{{ ext.param }}</span>
                                 <span class="text-[10px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-wider">{{ $t('cassette.edge') }} {{ ext.edge }}</span>
                             </div>
                             <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="removeExtrusion(idx)" class="opacity-0 group-hover:opacity-100 h-7 w-7 transition-opacity" />
@@ -137,18 +137,15 @@
                 <!-- Union Polygon -->
                 <path v-if="currentPolygonPath" 
                     :d="currentPolygonPath" 
-                    fill="currentColor" 
-                    class="text-[var(--p-content-background)] opacity-90 shadow-2xl"
-                    stroke="currentColor" 
-                    pt:stroke:class="text-[var(--p-primary-color)]"
+                    :style="{ fill: 'var(--p-content-background)', stroke: 'var(--p-primary-color)' }" 
+                    class="opacity-90 shadow-2xl"
                     stroke-width="3" 
                     stroke-linejoin="round"
                 />
                 <path v-if="currentPolygonPath" 
                     :d="currentPolygonPath" 
                     fill="none" 
-                    stroke="currentColor" 
-                    class="text-[var(--p-primary-color)]"
+                    :style="{ stroke: 'var(--p-primary-color)' }" 
                     stroke-width="3" 
                     stroke-linejoin="round"
                 />
@@ -173,8 +170,7 @@
                     <g :transform="`translate(${edge.midX}, ${edge.midY})`" class="pointer-events-none select-none">
                         <rect 
                             :x="-35" :y="-12" :width="70" :height="24" 
-                            rx="12" fill="var(--p-content-background)" 
-                            stroke="var(--p-content-border-color)" stroke-width="1"
+                            rx="12" :style="{ fill: 'var(--p-content-background)', stroke: 'var(--p-content-border-color)' }" stroke-width="1"
                             class="shadow-sm"
                         />
                         <text 
@@ -186,8 +182,8 @@
                     </g>
                     
                     <g v-if="hoveredEdge === idx" class="pointer-events-none animate-in fade-in zoom-in duration-200">
-                        <circle :cx="edge.midX" :cy="edge.midY" r="16" fill="var(--p-content-background)" stroke="var(--p-primary-color)" stroke-width="2" class="shadow-lg" />
-                        <path d="M-5 0 L5 0 M0 -5 L0 5" :transform="`translate(${edge.midX}, ${edge.midY})`" stroke="var(--p-primary-color)" stroke-width="3" stroke-linecap="round" />
+                        <circle :cx="edge.midX" :cy="edge.midY" r="16" :style="{ fill: 'var(--p-content-background)', stroke: 'var(--p-primary-color)' }" stroke-width="2" class="shadow-lg" />
+                        <path d="M-5 0 L5 0 M0 -5 L0 5" :transform="`translate(${edge.midX}, ${edge.midY})`" :style="{ stroke: 'var(--p-primary-color)' }" stroke-width="3" stroke-linecap="round" />
                     </g>
                 </g>
             </svg>

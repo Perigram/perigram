@@ -15,14 +15,7 @@
                     @click="markCutHandler"
                 />
                 <Button 
-                    v-if="batch.status === 'NESTED' || batch.status === 'COMPLETE'"
-                    :label="$t('batches.markComplete')"
-                    icon="pi pi-check"
-                    severity="success"
-                    @click="markComplete"
-                />
-                <Button 
-                    v-if="batch.status === 'FAILED' || batch.status === 'NESTING'"
+                    v-if="batch.runs && batch.runs.some(r => r.status === 'ERROR')"
                     :label="$t('batch.resetToDraft')"
                     icon="pi pi-refresh"
                     severity="warning"
@@ -43,16 +36,22 @@
                             'p-4 border-2 rounded-lg transition-all cursor-pointer',
                             run._id.toString() === batch.chosenRunId?.toString() 
                                 ? 'border-[var(--p-primary-color)] bg-[var(--p-primary-50)]' 
-                                : 'border-[var(--p-content-border-color)] bg-[var(--p-content-background)] hover:border-[var(--p-primary-300)]'
+                                : 'border-[var(--p-content-border-color)] bg-[var(--p-content-background)] hover:border-[var(--p-primary-300)]',
+                            run._id.toString() === selectedRunId 
+                                ? 'ring-2 ring-[var(--p-primary-color)]' 
+                                : ''
                         ]"
-                        @click="run.status === 'COMPLETE' && chooseRunHandler(run._id)"
+                        @click="selectedRunId = run._id.toString()"
                     >
                         <div class="flex items-start justify-between gap-2 mb-3">
-                            <Tag 
-                                :value="$t(`batch.runStatus.${run.status}`)" 
-                                :severity="getRunStatusSeverity(run.status)"
-                                class="text-[10px] uppercase"
-                            />
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg font-bold text-[var(--p-text-color)]">#{{ run.runNumber }}</span>
+                                <Tag 
+                                    :value="$t(`batch.runStatus.${run.status}`)" 
+                                    :severity="getRunStatusSeverity(run.status)"
+                                    class="text-[10px] uppercase"
+                                />
+                            </div>
                             <i 
                                 v-if="run._id.toString() === batch.chosenRunId?.toString()" 
                                 class="pi pi-check-circle text-[var(--p-primary-color)] text-xl"
@@ -70,6 +69,20 @@
                                 class="w-full"
                                 @click.stop="chooseRunHandler(run._id)"
                             />
+                        </div>
+                        
+                        <!-- Artifacts for this run -->
+                        <div v-if="getRunArtifacts(run._id).length > 0" class="mt-3 pt-3 border-t border-[var(--p-content-border-color)]">
+                            <div class="text-xs font-medium text-[var(--p-text-muted-color)] mb-2">{{ $t('batch.artifacts') }}: {{ getRunArtifacts(run._id).length }}</div>
+                            <div class="flex flex-wrap gap-1">
+                                <Tag 
+                                    v-for="artifact in getRunArtifacts(run._id)" 
+                                    :key="artifact._id"
+                                    :value="artifact.type.split('_')[1]"
+                                    :severity="artifact.status === 'READY' ? 'success' : 'secondary'"
+                                    class="text-[8px]"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -454,6 +467,7 @@ const showUploadDialog = ref(false);
 const cassettes = ref([]);
 const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
+const selectedRunId = ref(null);
 
 const nestingOptions = ref({
     width: 2440,
@@ -550,6 +564,11 @@ const getCassetteName = (id) => {
 const getEntryParameters = (entry) => {
     const cassette = cassettes.value.find(c => c._id === entry.cassetteTemplateId);
     return cassette?.parameters || [];
+};
+
+const getRunArtifacts = (runId) => {
+    if (!artifacts.value) return [];
+    return artifacts.value.filter(a => a.runId?.toString() === runId.toString());
 };
 
 const getStatusSeverity = (status) => {

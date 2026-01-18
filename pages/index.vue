@@ -2,7 +2,7 @@
   <div v-if="!userIsSet" class="flex items-center justify-center min-h-screen bg-[var(--p-surface-50)] p-4">
     <div class="w-full max-w-md p-8 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-2xl shadow-xl flex flex-col gap-8 animate-in zoom-in duration-500">
       <div class="flex flex-col items-center gap-2">
-        <div class="w-16 h-16 bg-[var(--p-primary-color)] text-white rounded-2xl flex items-center justify-center shadow-lg mb-2">
+        <div class="w-16 h-16 bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)] rounded-2xl flex items-center justify-center shadow-lg mb-2">
           <span class="text-3xl font-black">CK</span>
         </div>
         <h1 class="text-3xl font-black text-[var(--p-text-color)] m-0 tracking-tight">{{ $t('auth.welcome') }}</h1>

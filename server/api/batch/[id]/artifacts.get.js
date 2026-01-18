@@ -7,5 +7,6 @@ export default defineEventHandler(async (event) => {
   }
   const id = getRouterParam(event, 'id');
   
-  return await service.getArtifacts(id, userId);
+  const query = getQuery(event);
+  return await service.getArtifacts(id, userId, { runId: query.runId });
 });

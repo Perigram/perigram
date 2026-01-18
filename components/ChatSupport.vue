@@ -7,7 +7,7 @@
             <!-- Header -->
             <div class="flex items-center justify-between p-4 border-b border-[var(--p-content-border-color)] bg-[var(--p-content-background)]">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-[var(--p-primary-color)] flex items-center justify-center text-white">
+                    <div class="w-8 h-8 rounded-full bg-[var(--p-primary-color)] flex items-center justify-center text-[var(--p-primary-contrast-color)]">
                         <i class="pi pi-comment text-sm"></i>
                     </div>
                     <h2 class="m-0 text-base font-bold text-[var(--p-text-color)]">{{ $t('support.chatTitle') }}</h2>
@@ -45,7 +45,7 @@
                         <div 
                             class="px-4 py-2 rounded-2xl text-sm shadow-sm"
                             :class="message.sender === 'user' 
-                                ? 'bg-[var(--p-primary-color)] text-white rounded-tr-none' 
+                                ? 'bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)] rounded-tr-none' 
                                 : 'bg-[var(--p-content-background)] text-[var(--p-text-color)] border border-[var(--p-content-border-color)] rounded-tl-none'"
                         >
                             <p class="m-0 leading-relaxed break-words">{{ message.message }}</p>

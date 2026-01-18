@@ -9,6 +9,7 @@ import { service as cassetteService } from '~/server/features/cassettes';
 import { service as artifactService } from '~/server/features/artifacts';
 import { bakeTemplateInstance } from '~/server/features/parametric-cassettes/service';
 import { connectDB } from '~~/server/db/mongo';
+import { ObjectId } from 'mongodb';
 import { generateRandomString } from '~~/server/utils/strings';
 import standardSlugify from 'standard-slugify';
 
@@ -97,10 +98,13 @@ export default defineEventHandler(async (event) => {
   
   // Create nesting job (generic schema, works for both standard and baked)
   const db = await connectDB();
+  const runId = new ObjectId();
+  await batchService.addRun(batchId, { _id: runId, status: 'NESTING' }, userId);
   await db.collection('nesting_jobs').insertOne({
     slug: nestingSlug,
     projectSlug: batch.projectSlug,
     batchId: batch._id,
+    runId,
     files: jobFiles, 
     params,
     status: 'pending',
@@ -108,8 +112,16 @@ export default defineEventHandler(async (event) => {
     ownerId: userId
   });
   
-  // Update batch status
-  await batchService.updateStatus(batchId, 'NESTING', userId);
+  // Update batch status - set previous NESTING runs to ERROR and delete their artifacts
+  const errorRuns = batch.runs?.filter(r => r.status === 'NESTING') || [];
+  for (const errorRun of errorRuns) {
+    // Delete artifacts for this error run
+    await db.collection('artifacts').deleteMany({
+      batchId: batch._id,
+      runId: errorRun._id
+    });
+  }
+  await batchService.setRunsStatusByStatus(batchId, 'NESTING', 'ERROR', userId);
   
   // Create placeholder artifacts
   const artifactTypes = ['LAYOUT_SVG', 'LAYOUT_DXF', 'PDF_PASSPORT', 'NESTING_REPORT'];
@@ -118,6 +130,7 @@ export default defineEventHandler(async (event) => {
       artifactService.create({
         type,
         batchId: batch._id,
+        runId,
         name: `${batch.name} - ${type}`,
         generatedBy: nestingSlug
       })
@@ -127,6 +140,7 @@ export default defineEventHandler(async (event) => {
   return {
     nestingSlug,
     status: 'NESTING',
+    runId: runId.toString(),
     artifacts: artifacts.map(a => a._id)
   };
 } catch (error) {

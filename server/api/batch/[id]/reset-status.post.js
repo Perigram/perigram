@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const userId = event.context.auth.userId;
   const batchId = getRouterParam(event, 'id');
   
-  await batchService.updateStatus(batchId, 'DRAFT', userId);
+  const batch = await batchService.resetToDraft(batchId, userId);
   
-  return { success: true, status: 'DRAFT' };
+  return { success: true, status: batch.status, batch };
 });

@@ -65,8 +65,11 @@ def convert_files_to_input_items(files, space):
         from bson import ObjectId
         cassette_id = ObjectId(cassette_id_str)
         
-        # Read cassette from NEW schema (cassettes collection)
+        # Read cassette from NEW schema (cassettes or baked_cassettes collection)
         cassette = db["cassettes"].find_one({"_id": cassette_id})
+        
+        if not cassette:
+            cassette = db["baked_cassettes"].find_one({"_id": cassette_id})
         
         if not cassette:
             raise Exception(f"Cassette {cassette_id} not found")
@@ -218,7 +221,7 @@ def build_part(transforms):
     for transform in transforms:
         try:
             source_doc, entities_to_process = get_entities_from_dxf_file(
-                transform.cassette_id, transform.handles
+                transform.cassette_id, transform.handles, all_layers=True
             )
             
             if not entities_to_process:
@@ -255,13 +258,12 @@ def build_part(transforms):
 
 dxf_document_cache = {}
 
-def get_entities_from_dxf_file(cassette_id_str, handles):
+def get_entities_from_dxf_file(cassette_id_str, handles, all_layers=False):
     """
-    Opens DXF from GridFS and returns ALL entities from cassette DXF.
+    Opens DXF from GridFS and returns entities.
     
-    IMPORTANT: Returns ALL entities from the cassette, not just nesting layer.
-    Handles are only used for nesting algorithm, but result DXF should include
-    all layers (cuts, bends, markings, etc.) with proper transforms applied.
+    When all_layers=False (default): Returns only entities matching handles (nesting layer only)
+    When all_layers=True: Returns ALL entities from cassette for result generation
     
     Uses NEW schema: cassettes GridFS bucket (not userDxf)
     """
@@ -271,9 +273,13 @@ def get_entities_from_dxf_file(cassette_id_str, handles):
     if cassette_id_str in dxf_document_cache:
         doc = dxf_document_cache[cassette_id_str]
     else:
-        # Get cassette from NEW collection
+        # Get cassette from NEW collection or baked_cassettes
         cassette_id = ObjectId(cassette_id_str)
         cassette = db["cassettes"].find_one({"_id": cassette_id})
+        
+        if not cassette:
+            # Check baked cassettes collection
+            cassette = db["baked_cassettes"].find_one({"_id": cassette_id})
         
         if not cassette:
             raise Exception(f"Cassette {cassette_id_str} not found")
@@ -285,9 +291,17 @@ def get_entities_from_dxf_file(cassette_id_str, handles):
         
     msp = doc.modelspace()
     
-    # Return ALL entities from cassette DXF for result generation
-    # This ensures all layers (cut, bend, marking) are included
-    entities = list(msp)
+    if all_layers:
+        # Return ALL entities from cassette DXF for result generation
+        # This ensures all layers (cut, bend, marking) are included
+        entities = list(msp)
+    else:
+        # Return only entities matching handles (nesting layer only)
+        handle_set = set(handles)
+        entities = []
+        for entity in msp:
+            if entity.dxf.handle in handle_set:
+                entities.append(entity)
     
     return doc, entities
 

@@ -45,6 +45,7 @@ export async function create(data) {
   return await repository.create({
     type: data.type,
     batchId: new ObjectId(data.batchId),
+    runId: data.runId ? new ObjectId(data.runId) : null,
     name: data.name,
     fileId: data.fileId || null,
     mimeType: data.mimeType || null,

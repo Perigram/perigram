@@ -12,7 +12,7 @@
                             </template>
                             <template #content>
                                 <div class="flex flex-col items-center text-center gap-4 py-4">
-                                    <Avatar :label="user.name ? user.name[0].toUpperCase() : 'U'" size="xlarge" shape="circle" class="bg-[var(--p-primary-color)] text-white w-20 h-20 text-2xl" />
+                                    <Avatar :label="user.name ? user.name[0].toUpperCase() : 'U'" size="xlarge" shape="circle" class="bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)] w-20 h-20 text-2xl" />
                                     <div class="flex flex-col gap-1">
                                         <p class="text-xl font-bold m-0 text-[var(--p-text-color)]">{{ user.name }}</p>
                                         <p class="text-sm text-[var(--p-text-muted-color)] m-0">{{ user.email }}</p>

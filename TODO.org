@@ -10,8 +10,7 @@
   Ensure that all elements are using as least hardcoded css as possible (in favor of primevue design tokens), and use project-wide css where applicable.
   Don't modify TODO file for this task results.
 
-* DONE review nesting batch workflow
-  CLOSED: [2026-01-18 Сб 09:30]
+* PROGRESS review nesting batch workflow
   1. Need new status "cut" for batch that was cut already. There can't be "error" or "complete" status for batch (only for runs, see pt3), only "cut" or "draft".
   2. On "complete" need to reset to "draft", just like on "error" status now.
   3. Need to add "runs" for each batch. Run has it's own statuses: "nesting", "error", "complete", "chosen". "Chosen" is human selected, one for each batch, only for runs that are complete. In batch, "cut" status can be toggled only when there is "chosen" run exist.
@@ -26,8 +25,7 @@
     Docs updated: N/A
     Notes: Added runs display in AccordionTab, choose run functionality, mark as cut button. Store functions for chooseRun and markCut. Locales for all new UI elements.
 
-* DONE review cassette baking and usage in nesting
-  CLOSED: [2026-01-18 Сб 09:35]
+* PROGRESS review cassette baking and usage in nesting
   Baked cassette should include all the layers using layer standard. Only the one layer should be used in nesting, that in marked as nesting layer in standard. Artifacts created during nesting should use transform data for placing other layers data back to nested cassettes. Of course, everything should be done procedurally without hardcoding layer names etc.
 *** Agent Notes
     [2026-01-18] Analysis complete, requires significant refactoring
@@ -45,8 +43,7 @@
     Docs updated: workers/nesting/NEOLIT.md
     Notes: Modified worker to copy ALL entities from source cassette DXF, not just nesting layer entities. Now includes cuts, bends, markings, etc. in result. Nesting algorithm still uses only boundary polygons.
 
-* DONE batch table improvements
-  CLOSED: [2026-01-18 Сб 09:40]
+* PROGRESS batch table improvements
   Need to rewrite table to dataview with grid and table views. In grid view, need cassette preview and only needed parameters. In table view, need all the parameters as columns, but for cassettes that don't have some parameters, need to show "-" or empty cell that can't be edited (for those who have, need 0 or default values). Editing should be possible in both views and should be user-friendly (now it becomes a huge input, etc; need comfortable experience). 
 *** Agent Notes
     [2026-01-18] Analysis complete, UI refactoring required

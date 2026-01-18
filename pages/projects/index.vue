@@ -130,7 +130,7 @@
                         :key="project.slug"
                         class="flex items-center gap-4 p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl hover:border-[var(--p-primary-color)] hover:shadow-md transition-all group"
                     >
-                        <div class="w-12 h-12 flex items-center justify-center bg-[var(--p-primary-color)] text-white rounded-lg group-hover:scale-110 transition-transform flex-shrink-0">
+                        <div class="w-12 h-12 flex items-center justify-center bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)] rounded-lg group-hover:scale-110 transition-transform flex-shrink-0">
                             <i class="pi pi-folder text-xl"></i>
                         </div>
                         <div class="flex-1 min-w-0">

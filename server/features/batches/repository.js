@@ -55,6 +55,8 @@ export async function create(data) {
     ...data,
     status: 'DRAFT',
     artifacts: [],
+    runs: [],
+    chosenRunId: null,
     createdAt: new Date(),
     updatedAt: new Date()
   };
@@ -91,6 +93,86 @@ export async function addArtifact(id, artifactId) {
       $push: { artifacts: toObjectId(artifactId) },
       $set: { updatedAt: new Date() }
     }
+  );
+  return result.modifiedCount > 0;
+}
+
+export async function addRun(id, run) {
+  const db = await connectDB();
+  
+  // Get current runs to calculate run number
+  const batch = await db.collection(COLLECTION).findOne({ _id: toObjectId(id) });
+  const runNumber = (batch.runs || []).length + 1;
+  
+  run.runNumber = runNumber;
+  
+  const result = await db.collection(COLLECTION).updateOne(
+    { _id: toObjectId(id) },
+    {
+      $push: { runs: run },
+      $set: { updatedAt: new Date() }
+    }
+  );
+  return result.modifiedCount > 0;
+}
+
+export async function setRunStatus(id, runId, status) {
+  const db = await connectDB();
+  const result = await db.collection(COLLECTION).updateOne(
+    { _id: toObjectId(id), 'runs._id': toObjectId(runId) },
+    {
+      $set: {
+        'runs.$.status': status,
+        'runs.$.updatedAt': new Date(),
+        updatedAt: new Date()
+      }
+    }
+  );
+  return result.modifiedCount > 0;
+}
+
+export async function setRunsStatusByStatus(id, fromStatus, toStatus) {
+  const db = await connectDB();
+  const now = new Date();
+  const result = await db.collection(COLLECTION).updateOne(
+    { _id: toObjectId(id) },
+    {
+      $set: {
+        'runs.$[run].status': toStatus,
+        'runs.$[run].updatedAt': now,
+        updatedAt: now
+      }
+    },
+    { arrayFilters: [{ 'run.status': fromStatus }] }
+  );
+  return result.modifiedCount > 0;
+}
+
+export async function setChosenRun(id, runId) {
+  const db = await connectDB();
+  const now = new Date();
+  const chosenObjectId = toObjectId(runId);
+  await db.collection(COLLECTION).updateOne(
+    { _id: toObjectId(id), 'runs._id': chosenObjectId },
+    {
+      $set: {
+        chosenRunId: chosenObjectId,
+        'runs.$.status': 'CHOSEN',
+        'runs.$.updatedAt': now,
+        updatedAt: now
+      }
+    }
+  );
+  const result = await db.collection(COLLECTION).updateOne(
+    { _id: toObjectId(id) },
+    {
+      $set: {
+        'runs.$[run].status': 'COMPLETE',
+        'runs.$[run].updatedAt': now,
+        updatedAt: now
+      }
+    },
+    { arrayFilters: [{ 'run._id': { $ne: chosenObjectId }, 'run.status': 'CHOSEN' }] }
   );
   return result.modifiedCount > 0;
 }

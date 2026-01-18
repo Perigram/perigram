@@ -23,20 +23,20 @@
                             {{ getUserName(chat.user) }}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="font-bold truncate" :class="selectedUserId === chat.userId ? 'text-white' : 'text-[var(--p-text-color)]'">
+                            <div class="font-bold truncate" :class="selectedUserId === chat.userId ? 'text-[var(--p-primary-contrast-color)]' : 'text-[var(--p-text-color)]'">
                                 {{ chat.user?.name || $t('admin.unknownUser') }}
                             </div>
-                            <div class="text-[10px] uppercase tracking-widest font-black opacity-60" :class="selectedUserId === chat.userId ? 'text-white' : 'text-[var(--p-text-muted-color)]'">
+                            <div class="text-[10px] uppercase tracking-widest font-black opacity-60" :class="selectedUserId === chat.userId ? 'text-[var(--p-primary-contrast-color)]' : 'text-[var(--p-text-muted-color)]'">
                                 ID: {{ chat.userId.slice(-8) }}
                             </div>
                         </div>
                     </div>
                     
-                    <div class="flex flex-col gap-1 border-t pt-2" :class="selectedUserId === chat.userId ? 'border-white/20' : 'border-[var(--p-content-border-color)]'">
-                        <div class="text-xs italic truncate" :class="selectedUserId === chat.userId ? 'text-white/90' : 'text-[var(--p-text-secondary-color)]'">
+                    <div class="flex flex-col gap-1 border-t pt-2" :class="selectedUserId === chat.userId ? 'border-[var(--p-primary-contrast-color)]/20' : 'border-[var(--p-content-border-color)]'">
+                        <div class="text-xs italic truncate" :class="selectedUserId === chat.userId ? 'text-[var(--p-primary-contrast-color)]/90' : 'text-[var(--p-text-secondary-color)]'">
                             {{ chat.lastMessage }}
                         </div>
-                        <div class="text-[10px] font-medium" :class="selectedUserId === chat.userId ? 'text-white/70' : 'text-[var(--p-text-muted-color)]'">
+                        <div class="text-[10px] font-medium" :class="selectedUserId === chat.userId ? 'text-[var(--p-primary-contrast-color)]/70' : 'text-[var(--p-text-muted-color)]'">
                             {{ getTimeAgo(chat.timestamp) }}
                         </div>
                     </div>

@@ -43,7 +43,7 @@
                         <div 
                             class="px-4 py-2 rounded-2xl text-sm shadow-sm"
                             :class="message.sender === 'support' 
-                                ? 'bg-[var(--p-primary-color)] text-white rounded-tr-none' 
+                                ? 'bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)] rounded-tr-none' 
                                 : 'bg-[var(--p-content-background)] text-[var(--p-text-color)] border border-[var(--p-content-border-color)] rounded-tl-none'"
                         >
                             <p class="m-0 leading-relaxed break-words">{{ message.message }}</p>
