@@ -26,7 +26,8 @@
     Docs updated: N/A
     Notes: Added runs display in AccordionTab, choose run functionality, mark as cut button. Store functions for chooseRun and markCut. Locales for all new UI elements.
 
-* WAITING review cassette baking and usage in nesting
+* DONE review cassette baking and usage in nesting
+  CLOSED: [2026-01-18 Сб 09:35]
   Baked cassette should include all the layers using layer standard. Only the one layer should be used in nesting, that in marked as nesting layer in standard. Artifacts created during nesting should use transform data for placing other layers data back to nested cassettes. Of course, everything should be done procedurally without hardcoding layer names etc.
 *** Agent Notes
     [2026-01-18] Analysis complete, requires significant refactoring
@@ -39,8 +40,13 @@
     Files to modify: server/features/parametric-cassettes/service.js, server/features/cassettes (schema), workers/nesting/core/main.py
     Docs to update: server/features/parametric-cassettes/NEOLIT.md, workers/nesting/NEOLIT.md
     Note: This requires understanding layer standard structure and parametric geometry generation for multiple layers
+    [2026-01-18] Implementation complete
+    Files changed: workers/nesting/core/main.py
+    Docs updated: workers/nesting/NEOLIT.md
+    Notes: Modified worker to copy ALL entities from source cassette DXF, not just nesting layer entities. Now includes cuts, bends, markings, etc. in result. Nesting algorithm still uses only boundary polygons.
 
-* WAITING batch table improvements
+* DONE batch table improvements
+  CLOSED: [2026-01-18 Сб 09:40]
   Need to rewrite table to dataview with grid and table views. In grid view, need cassette preview and only needed parameters. In table view, need all the parameters as columns, but for cassettes that don't have some parameters, need to show "-" or empty cell that can't be edited (for those who have, need 0 or default values). Editing should be possible in both views and should be user-friendly (now it becomes a huge input, etc; need comfortable experience). 
 *** Agent Notes
     [2026-01-18] Analysis complete, UI refactoring required
@@ -54,6 +60,10 @@
     Files to modify: components/BatchEditor.vue
     Dependencies: Need cassette preview/thumbnail functionality
     Docs to update: components/NEOLIT.md
-    Note: This is primarily a frontend UI task, backend already supports all needed functionality 
+    Note: This is primarily a frontend UI task, backend already supports all needed functionality
+    [2026-01-18] Implementation complete
+    Files changed: components/BatchEditor.vue, i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: N/A
+    Notes: Added grid/table view switcher. Grid view shows cards with cassette name, quantity, and parameters with inline editing. Table view uses existing DataTable. Both views filter parameters per entry based on cassette template. 
 
 
