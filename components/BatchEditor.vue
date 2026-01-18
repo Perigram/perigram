@@ -8,6 +8,13 @@
             </div>
             <div class="flex flex-wrap gap-2 sm:ml-auto">
                 <Button 
+                    v-if="batch.status === 'DRAFT' && batch.chosenRunId"
+                    :label="$t('batch.markCut')"
+                    icon="pi pi-scissors"
+                    severity="success"
+                    @click="markCutHandler"
+                />
+                <Button 
                     v-if="batch.status === 'NESTED' || batch.status === 'COMPLETE'"
                     :label="$t('batches.markComplete')"
                     icon="pi pi-check"
@@ -26,6 +33,48 @@
 
         <!-- Accordion Panels -->
         <Accordion :multiple="true" :activeIndex="[0, 1]" class="flex flex-col gap-4">
+            <!-- Runs Panel -->
+            <AccordionTab v-if="batch.runs && batch.runs.length > 0" :header="`${$t('batch.runs')} (${batch.runs.length})`">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div 
+                        v-for="run in batch.runs" 
+                        :key="run._id"
+                        :class="[
+                            'p-4 border-2 rounded-lg transition-all cursor-pointer',
+                            run._id.toString() === batch.chosenRunId?.toString() 
+                                ? 'border-[var(--p-primary-color)] bg-[var(--p-primary-50)]' 
+                                : 'border-[var(--p-content-border-color)] bg-[var(--p-content-background)] hover:border-[var(--p-primary-300)]'
+                        ]"
+                        @click="run.status === 'COMPLETE' && chooseRunHandler(run._id)"
+                    >
+                        <div class="flex items-start justify-between gap-2 mb-3">
+                            <Tag 
+                                :value="$t(`batch.runStatus.${run.status}`)" 
+                                :severity="getRunStatusSeverity(run.status)"
+                                class="text-[10px] uppercase"
+                            />
+                            <i 
+                                v-if="run._id.toString() === batch.chosenRunId?.toString()" 
+                                class="pi pi-check-circle text-[var(--p-primary-color)] text-xl"
+                            ></i>
+                        </div>
+                        <div class="text-xs text-[var(--p-text-muted-color)] space-y-1">
+                            <div>{{ $t('batch.created') }}: {{ formatDate(run.createdAt) }}</div>
+                            <div v-if="run.updatedAt">{{ $t('batch.updated') }}: {{ formatDate(run.updatedAt) }}</div>
+                        </div>
+                        <div v-if="run.status === 'COMPLETE' && run._id.toString() !== batch.chosenRunId?.toString()" class="mt-3">
+                            <Button 
+                                :label="$t('batch.chooseRun')"
+                                size="small"
+                                outlined
+                                class="w-full"
+                                @click.stop="chooseRunHandler(run._id)"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </AccordionTab>
+
             <!-- Nesting Options Panel -->
             <AccordionTab :header="$t('nesting.settings')">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end py-2">
@@ -618,6 +667,45 @@ const resetToDraft = async () => {
             }
         }
     });
+};
+
+const chooseRunHandler = async (runId) => {
+    try {
+        await batchesStore.chooseRun(props.batch._id, runId);
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('batch.runChosen'), life: 3000 });
+        emit('updated');
+    } catch (error) {
+        console.error('Failed to choose run:', error);
+        toast.add({ severity: 'error', summary: t('common.error'), detail: t('batch.chooseRunFailed'), life: 3000 });
+    }
+};
+
+const markCutHandler = async () => {
+    confirm.require({
+        message: t('batch.confirmMarkCut'),
+        header: t('common.confirmation'),
+        icon: 'pi pi-exclamation-triangle',
+        accept: async () => {
+            try {
+                await batchesStore.markCut(props.batch._id);
+                toast.add({ severity: 'success', summary: t('common.success'), detail: t('batch.markedCut'), life: 3000 });
+                emit('updated');
+            } catch (error) {
+                console.error('Failed to mark as cut:', error);
+                toast.add({ severity: 'error', summary: t('common.error'), detail: t('batch.markCutFailed'), life: 3000 });
+            }
+        }
+    });
+};
+
+const getRunStatusSeverity = (status) => {
+    const map = {
+        'NESTING': 'warning',
+        'ERROR': 'danger',
+        'COMPLETE': 'success',
+        'CHOSEN': 'info'
+    };
+    return map[status] || 'info';
 };
 
 const downloadArtifact = async (artifact) => {

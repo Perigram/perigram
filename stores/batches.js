@@ -214,6 +214,49 @@ export const useBatchesStore = defineStore('batches', () => {
         }
     }
 
+    async function chooseRun(batchId, runId) {
+        try {
+            const result = await $fetch(`/api/batch/${batchId}/choose-run`, {
+                method: 'POST',
+                body: { runId }
+            });
+            
+            const index = batches.value.findIndex(b => b._id === batchId);
+            if (index !== -1) {
+                batches.value[index] = result.batch;
+            }
+            if (currentBatch.value?._id === batchId) {
+                currentBatch.value = result.batch;
+            }
+            
+            return result;
+        } catch (err) {
+            error.value = err.message;
+            throw err;
+        }
+    }
+
+    async function markCut(batchId) {
+        try {
+            const result = await $fetch(`/api/batch/${batchId}/mark-cut`, {
+                method: 'POST'
+            });
+            
+            const index = batches.value.findIndex(b => b._id === batchId);
+            if (index !== -1) {
+                batches.value[index] = result.batch;
+            }
+            if (currentBatch.value?._id === batchId) {
+                currentBatch.value = result.batch;
+            }
+            
+            return result;
+        } catch (err) {
+            error.value = err.message;
+            throw err;
+        }
+    }
+
     return {
         batches,
         currentBatch,
@@ -227,6 +270,8 @@ export const useBatchesStore = defineStore('batches', () => {
         startNesting,
         getArtifacts,
         resetStatus,
+        chooseRun,
+        markCut,
         stopPolling
     };
 });

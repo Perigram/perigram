@@ -475,7 +475,22 @@
     "dimensionKey": "Enter dimension key (e.g., A, B, C):",
     "pageTitle": "Batch Details",
     "loading": "Loading batch...",
-    "notFound": "Batch not found."
+    "notFound": "Batch not found.",
+    "runs": "Runs",
+    "runStatus": {
+      "NESTING": "Nesting",
+      "ERROR": "Error",
+      "COMPLETE": "Complete",
+      "CHOSEN": "Chosen"
+    },
+    "chooseRun": "Choose this run",
+    "markCut": "Mark as Cut",
+    "confirmMarkCut": "Are you sure you want to mark this batch as CUT? This means the batch has been physically cut.",
+    "markedCut": "Batch marked as CUT",
+    "markCutFailed": "Failed to mark batch as cut",
+    "runChosen": "Run chosen successfully",
+    "chooseRunFailed": "Failed to choose run",
+    "updated": "Updated"
   },
   "batches": {
     "entries": "entries",
