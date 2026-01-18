@@ -2,13 +2,13 @@
 
 This directory contains Vue components used in the Cutkit-Demo application.
 
+## Style Guide
+- Where not absolutely necessary, avoid using custom css, rely on PrimeVue default styles, design tokens and Tailwind utility classes.
+
 ## Core Components
 - `CassetteDesigner.vue`: Tool for designing parametric cassette templates.
 - `ArtifactsTable.vue`: Displays and manages production artifacts.
 - `BatchManagement.vue`: Interface for creating and tracking production batches.
-
-## CassetteDesigner Rework
-The `CassetteDesigner` is undergoing a major rework to align with the `cassette-schema.md`.
 
 ### Architecture (Target)
 - **Model Layer:** A high-level tree structure representing the cassette (faces, flanges, parameters).

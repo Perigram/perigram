@@ -166,3 +166,14 @@
     - Node handles job polling, fetching cassette geometry, and orchestration.
     - DXF generation is done via a python script executed by Node (hot-reloadable logic).
     - Result DXF includes all layers from source cassettes.
+
+*** Agent Notes
+     [2026-01-18] Fixed DXF artifact generation and missing dependencies
+     Files changed: server/scripts/generate_nest_dxf.py, server/api/batch/[id]/nest.post.js, server/plugins/nesting-processor.js
+     Docs updated: components/NEOLIT.md
+     Notes: 
+     - Restored core DXF generation logic in python script that was lost in previous commits.
+     - Fixed ModuleNotFoundError: No module named 'bson' by using bson.objectid.
+     - Restored placeholder artifacts creation in nesting endpoint to provide UI feedback.
+     - Improved nesting processor to update artifact status and handle failures.
+     - Added null guards to nesting processor to prevent 'length' errors.
