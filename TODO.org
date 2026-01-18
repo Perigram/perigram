@@ -10,7 +10,8 @@
   Ensure that all elements are using as least hardcoded css as possible (in favor of primevue design tokens), and use project-wide css where applicable.
   Don't modify TODO file for this task results.
 
-* WAITING review nesting batch workflow
+* DONE review nesting batch workflow
+  CLOSED: [2026-01-18 Сб 09:30]
   1. Need new status "cut" for batch that was cut already. There can't be "error" or "complete" status for batch (only for runs, see pt3), only "cut" or "draft".
   2. On "complete" need to reset to "draft", just like on "error" status now.
   3. Need to add "runs" for each batch. Run has it's own statuses: "nesting", "error", "complete", "chosen". "Chosen" is human selected, one for each batch, only for runs that are complete. In batch, "cut" status can be toggled only when there is "chosen" run exist.
@@ -20,6 +21,10 @@
     Files changed: server/api/batch/[id]/choose-run.post.js, server/api/batch/[id]/mark-cut.post.js
     Docs updated: server/features/batches/NEOLIT.md, server/features/NEOLIT.md
     Notes: All backend logic was already implemented in service layer, added API endpoints for choosing run and marking batch as cut. Frontend UI implementation still needed.
+    [2026-01-18] Frontend UI implementation complete
+    Files changed: stores/batches.js, components/BatchEditor.vue, i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: N/A
+    Notes: Added runs display in AccordionTab, choose run functionality, mark as cut button. Store functions for chooseRun and markCut. Locales for all new UI elements.
 
 * WAITING review cassette baking and usage in nesting
   Baked cassette should include all the layers using layer standard. Only the one layer should be used in nesting, that in marked as nesting layer in standard. Artifacts created during nesting should use transform data for placing other layers data back to nested cassettes. Of course, everything should be done procedurally without hardcoding layer names etc.
