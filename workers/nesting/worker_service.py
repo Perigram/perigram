@@ -81,13 +81,33 @@ def run_nesting(request: NestingRequest):
                 
             buffered_coords = list(buffered_poly.exterior.coords)
             
+            buffered_coords = list(buffered_poly.exterior.coords)
+            
             # Build item using core utility
-            j_item = build_item(item.id, item.count, buffered_coords)
+            # lbf requires consecutive IDs starting from 0
+            # We use len(jaguar_items) as the new ID
+            lbf_id = len(jaguar_items)
+            
+            # Store mapping to restore original ID later if needed (though result uses transforms)
+            # Actually, the result processing in Node matches by 'item_id' returned by lbf.
+            # So we need to map back the lbf output to match the original request IDs?
+            # Node's nesting-processor.js:
+            #   originalItem = items.find(i => i.id === placedItem.item_id);
+            # So yes, we MUST return the result using the ORIGINAL IDs, or Node needs to know the mapping.
+            # Since lbf is a black box, we can't force it to return original IDs if it demands 0..N input.
+            # We have to wrap the output.
+            
+            j_item = build_item(lbf_id, item.count, buffered_coords)
+            j_item['original_id'] = item.id # Store for internal mapping
             jaguar_items.append(j_item)
             
         except Exception as e:
             logger.error(f"Error processing item {item.id}: {e}")
-            raise HTTPException(status_code=400, detail=f"Invalid geometry for item {item.id}: {str(e)}")
+            # Skip invalid items instead of failing the whole batch
+            continue
+
+    if not jaguar_items:
+        raise HTTPException(status_code=400, detail="No valid items to nest")
 
     # Build full input json
     input_json = build_input_json(
@@ -126,6 +146,17 @@ def run_nesting(request: NestingRequest):
         solution_file = os.path.join(solution_folder, json_files[0])
         with open(solution_file, 'r') as f:
             output = json.load(f)
+            
+        # Map lbf IDs back to original item IDs in the solution
+        id_map = {item['id']: item['original_id'] for item in jaguar_items}
+        
+        if 'solution' in output and 'layouts' in output['solution']:
+            for layout in output['solution']['layouts']:
+                if 'placed_items' in layout:
+                    for placed in layout['placed_items']:
+                        lbf_id = placed.get('item_id')
+                        if lbf_id in id_map:
+                            placed['item_id'] = id_map[lbf_id]
             
         return output
 
