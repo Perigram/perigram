@@ -115,31 +115,7 @@ while not shutdown_requested:
                 }
             }
         )
-
-        # Update associated RUN status to COMPLETE (not batch status!)
-        if "batchId" in doc and "runId" in doc:
-            try:
-                db["batches"].update_one(
-                    {"_id": doc["batchId"], "runs._id": doc["runId"]},
-                    {"$set": {
-                        "runs.$.status": "COMPLETE",
-                        "runs.$.updatedAt": datetime.now(),
-                        "updatedAt": datetime.now()
-                    }}
-                )
-                logger.info(f"Updated run {doc['runId']} status to COMPLETE")
-            except Exception as run_err:
-                logger.error(f"Failed to update run {doc['runId']} status to COMPLETE: {run_err}")
         
-        db["users"].update_one(
-            {"id": doc["ownerId"]},
-            {
-                "$inc": {
-                    "nesting_count": 1,
-                    "balance": -10
-                }
-            }
-        )
     except Exception as e:
         logger.error("Error in project processing", extra={"error": str(e), "traceback": traceback.format_exc()})
         nesting_jobs.update_one(
@@ -151,20 +127,5 @@ while not shutdown_requested:
                 "finishedAt": datetime.now()
             }}
         )
-        
-        # Update associated RUN status to ERROR (not batch status!)
-        if "batchId" in doc and "runId" in doc:
-            try:
-                db["batches"].update_one(
-                    {"_id": doc["batchId"], "runs._id": doc["runId"]},
-                    {"$set": {
-                        "runs.$.status": "ERROR",
-                        "runs.$.updatedAt": datetime.now(),
-                        "updatedAt": datetime.now()
-                    }}
-                )
-                logger.info(f"Updated run {doc['runId']} status to ERROR")
-            except Exception as run_err:
-                logger.error(f"Failed to update run {doc['runId']} status: {run_err}")
     finally:
         current_doc_id = None
