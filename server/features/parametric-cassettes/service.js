@@ -271,19 +271,18 @@ export async function evaluateTemplate(cassetteId, dimensions) {
     const result = await engine.evaluate();
     const { geometryIdentifiers } = result;
 
-    const allCurves = [];
-    geometryIdentifiers.forEach((id) => {
-      const interop = engine.findGeometryInteropById(id);
-      if (interop?.variant === 'Curve' && interop.data.vertices?.length > 0) {
-        allCurves.push({
-          vertices: interop.data.vertices, 
-          id,
-          area: calculateArea(interop.data.vertices)
+        const allCurves = [];
+        geometryIdentifiers.forEach((id) => {
+          const interop = engine.findGeometryInteropById(id);
+          if (interop?.variant === 'Curve' && interop?.data?.vertices?.length > 0) {
+            allCurves.push({ 
+              vertices: interop.data.vertices, 
+              id,
+              area: calculateArea(interop.data.vertices)
+            });
+          }
         });
-      }
-    });
-
-    if (allCurves.length === 0) {
+        if (allCurves.length === 0) {
       throw new Error('Geometry evaluation produced no curves');
     }
 

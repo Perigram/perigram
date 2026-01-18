@@ -58,14 +58,13 @@
                             ></i>
                         </div>
 
-                        <div v-if="run.error" class="mb-3 p-2 bg-red-50 border border-red-100 rounded text-[10px] text-red-600 font-medium leading-relaxed">
+                        <div v-if="run.error" class="mb-3 p-2 bg-red-500/10 border border-red-500/20 rounded text-[10px] text-red-600 font-medium leading-relaxed max-h-24 overflow-y-auto custom-scrollbar">
                             <i class="pi pi-exclamation-circle mr-1"></i>
                             {{ run.error }}
                         </div>
 
                         <div class="text-xs text-[var(--p-text-muted-color)] space-y-1 mt-auto">
                             <div>{{ $t('batch.created') }}: {{ formatDate(run.createdAt) }}</div>
-                            <div v-if="run.updatedAt">{{ $t('batch.updated') }}: {{ formatDate(run.updatedAt) }}</div>
                         </div>
                         <div v-if="run.status === 'COMPLETE' && run._id.toString() !== batch.chosenRunId?.toString()" class="mt-3">
                             <Button 
@@ -116,6 +115,29 @@
                     <div class="flex flex-col gap-2">
                         <label for="plateHeight" class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.plateHeight') }} (mm)</label>
                         <InputNumber id="plateHeight" v-model="nestingOptions.height" :min="0" class="w-full" />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.customSheet') }}</label>
+                        <div class="flex gap-2">
+                            <FileUpload 
+                                mode="basic" 
+                                accept=".dxf" 
+                                :auto="true" 
+                                customUpload 
+                                @uploader="handleSheetSelect"
+                                :chooseLabel="selectedSheetFile ? selectedSheetFile.name : $t('common.upload')"
+                                class="flex-1"
+                                :disabled="batch.status !== 'DRAFT'"
+                            />
+                            <Button 
+                                v-if="selectedSheetFile" 
+                                icon="pi pi-times" 
+                                severity="danger" 
+                                text 
+                                @click="clearSheetFile" 
+                                :disabled="batch.status !== 'DRAFT'"
+                            />
+                        </div>
                     </div>
                     <div>
                         <Button 
@@ -446,8 +468,48 @@ const selectedRunId = ref(null);
 const nestingOptions = ref({
     width: 2440,
     height: 1220,
-    toolId: null
+    toolId: null,
+    sheetPolygon: null
 });
+const selectedSheetFile = ref(null);
+
+const handleSheetSelect = async (event) => {
+    if (event.files && event.files.length > 0) {
+        selectedSheetFile.value = event.files[0];
+        try {
+            const { extractPolygons } = await import('~/utils/dxfParser');
+            const polygons = await extractPolygons(selectedSheetFile.value);
+            if (polygons.length > 0) {
+                // Use the largest polygon as the sheet boundary
+                const largest = polygons.sort((a, b) => calculatePolygonArea(b) - calculatePolygonArea(a))[0];
+                nestingOptions.value.sheetPolygon = largest;
+                toast.add({ severity: 'success', summary: t('common.success'), detail: t('batches.sheetUploaded'), life: 3000 });
+            } else {
+                toast.add({ severity: 'error', summary: t('common.error'), detail: t('batches.noPolygonsInSheet'), life: 3000 });
+                selectedSheetFile.value = null;
+            }
+        } catch (error) {
+            console.error('Failed to parse sheet DXF:', error);
+            toast.add({ severity: 'error', summary: t('common.error'), detail: t('batches.sheetParseError'), life: 3000 });
+            selectedSheetFile.value = null;
+        }
+    }
+};
+
+const calculatePolygonArea = (vertices) => {
+    let area = 0;
+    for (let i = 0; i < vertices.length; i++) {
+        const j = (i + 1) % vertices.length;
+        area += vertices[i][0] * vertices[j][1];
+        area -= vertices[j][0] * vertices[i][1];
+    }
+    return Math.abs(area) / 2;
+};
+
+const clearSheetFile = () => {
+    selectedSheetFile.value = null;
+    nestingOptions.value.sheetPolygon = null;
+};
 
 // New entry form
 const newEntry = ref({
@@ -697,7 +759,13 @@ const runNesting = async () => {
 
     nestingInProgress.value = true;
     try {
-        await batchesStore.startNesting(props.batch._id, nestingOptions.value);
+        const payload = {
+            width: nestingOptions.value.width,
+            height: nestingOptions.value.height,
+            toolId: nestingOptions.value.toolId,
+            sheet_polygon: nestingOptions.value.sheetPolygon
+        };
+        await batchesStore.startNesting(props.batch._id, payload);
         toast.add({ severity: 'info', summary: t('batches.nestingStarted'), detail: t('batches.nestingInitiated'), life: 3000 });
     } catch (error) {
         console.error('Failed to run nesting:', error);

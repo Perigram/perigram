@@ -232,6 +232,7 @@
     "plateHeight": "Plate Height",
     "spacing": "Spacing",
     "sheetCount": "Sheet Count",
+    "customSheet": "Custom Sheet (DXF)",
     "selectTable": "Select Table",
     "useTable": "Use Table Data",
     "useFiles": "Use File Counts",
@@ -518,7 +519,10 @@
     "noCassettes": "No cassettes available. Please upload a cassette first.",
     "noEntriesToNest": "Add at least one entry before running nesting",
     "nestingFailed": "Failed to run nesting process",
-    "markCompleteFailed": "Failed to mark batch as complete"
+    "markCompleteFailed": "Failed to mark batch as complete",
+    "sheetUploaded": "Custom sheet uploaded successfully",
+    "noPolygonsInSheet": "No valid polygons found in sheet DXF",
+    "sheetParseError": "Failed to parse sheet DXF file"
   },
   "artifacts": {
     "noBatches": "This project has no batches yet.",

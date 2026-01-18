@@ -10,44 +10,29 @@
       <p class="text-[var(--p-text-secondary-color)]">{{ $t('artifacts.noArtifacts') }}</p>
     </div>
 
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
       <div v-for="artifact in filteredArtifacts" :key="artifact._id" 
-        class="flex flex-col gap-3 p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl hover:border-[var(--p-primary-color)] transition-all group cursor-pointer"
+        class="flex items-center justify-between gap-3 p-3 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-lg hover:border-[var(--p-primary-color)] transition-all group cursor-pointer"
         @click="onArtifactClick(artifact)"
       >
-        <div class="flex justify-between items-start gap-2">
-          <span class="font-bold text-[var(--p-text-color)] truncate flex-1" :title="artifact.name">{{ artifact.name }}</span>
-          <Tag :value="artifact.status" :severity="getStatusSeverity(artifact.status)" class="text-[10px] uppercase flex-shrink-0" />
-        </div>
-        
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 flex items-center justify-center bg-[var(--p-primary-50)] text-[var(--p-primary-color)] rounded-lg group-hover:bg-[var(--p-primary-color)] group-hover:text-white transition-colors">
-            <i class="pi pi-file text-lg"></i>
+        <div class="flex flex-col min-w-0 flex-1">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-[13px] text-[var(--p-text-color)] truncate" :title="artifact.name">{{ artifact.name }}</span>
+            <Tag :value="artifact.status" :severity="getStatusSeverity(artifact.status)" class="text-[8px] uppercase px-1 py-0" />
           </div>
-          <div class="flex flex-col min-w-0">
-            <span class="text-xs font-bold text-[var(--p-text-color)] uppercase tracking-wider">{{ artifact.type }}</span>
-            <span class="text-[10px] text-[var(--p-text-muted-color)]">{{ new Date(artifact.createdAt).toLocaleString() }}</span>
-          </div>
+          <span class="text-[10px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-tight">{{ artifact.type.replace('LAYOUT_', '') }}</span>
         </div>
 
-        <div class="flex justify-end gap-1 pt-3 border-t border-[var(--p-content-border-color)] mt-auto">
+        <div class="flex gap-1">
           <Button 
             v-if="artifact.status === 'READY'"
             icon="pi pi-download" 
             text
             rounded
             size="small"
+            class="h-7 w-7"
             v-tooltip.top="$t('common.actions.download')"
             @click.stop="downloadArtifact(artifact)" 
-          />
-          <Button 
-            v-if="artifact.status === 'READY' && isPreviewable(artifact.mimeType)"
-            icon="pi pi-eye" 
-            text
-            rounded
-            size="small"
-            v-tooltip.top="$t('common.actions.preview')"
-            @click.stop="previewArtifact(artifact)"
           />
           <Button 
             icon="pi pi-trash" 
@@ -55,6 +40,7 @@
             text
             rounded
             size="small"
+            class="h-7 w-7"
             v-tooltip.top="$t('common.actions.delete')"
             @click.stop="confirmDelete(artifact)" 
           />

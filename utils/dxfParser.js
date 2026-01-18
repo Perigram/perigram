@@ -204,6 +204,45 @@ export async function generateSvgPreview(file, layerMapping = {}, defaultPen = n
 }
 
 /**
+ * Extract all polygons (closed paths) from DXF
+ * @param {File} file - DXF file object
+ * @returns {Promise<Array<Array<[number, number]>>>} - Array of polygons
+ */
+export async function extractPolygons(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const dxfText = e.target.result;
+        const parser = new DxfParser();
+        const dxf = parser.parseSync(dxfText);
+        
+        if (!dxf || !dxf.entities) {
+          reject(new Error('Invalid DXF file'));
+          return;
+        }
+        
+        const polygons = [];
+        dxf.entities.forEach(entity => {
+          if ((entity.type === 'LWPOLYLINE' || entity.type === 'POLYLINE') && entity.vertices) {
+            const coords = entity.vertices
+              .filter(v => v && v.x !== undefined && v.y !== undefined)
+              .map(v => [v.x, v.y]);
+            if (coords.length >= 3) {
+              polygons.push(coords);
+            }
+          }
+        });
+        resolve(polygons);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+/**
  * Validate DXF file structure
  * @param {File} file - DXF file object
  * @returns {Promise<{ valid: boolean, error?: string }>}
