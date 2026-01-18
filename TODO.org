@@ -10,7 +10,8 @@
   Ensure that all elements are using as least hardcoded css as possible (in favor of primevue design tokens), and use project-wide css where applicable.
   Don't modify TODO file for this task results.
 
-* PROGRESS review nesting batch workflow
+* DONE review nesting batch workflow
+  CLOSED: [2026-01-18]
   1. Need new status "cut" for batch that was cut already. There can't be "error" or "complete" status for batch (only for runs, see pt3), only "cut" or "draft".
   2. On "complete" need to reset to "draft", just like on "error" status now.
   3. Need to add "runs" for each batch. Run has it's own statuses: "nesting", "error", "complete", "chosen". "Chosen" is human selected, one for each batch, only for runs that are complete. In batch, "cut" status can be toggled only when there is "chosen" run exist.
@@ -25,7 +26,8 @@
     Docs updated: N/A
     Notes: Added runs display in AccordionTab, choose run functionality, mark as cut button. Store functions for chooseRun and markCut. Locales for all new UI elements.
 
-* PROGRESS review cassette baking and usage in nesting
+* DONE review cassette baking and usage in nesting
+  CLOSED: [2026-01-18]
   Baked cassette should include all the layers using layer standard. Only the one layer should be used in nesting, that in marked as nesting layer in standard. Artifacts created during nesting should use transform data for placing other layers data back to nested cassettes. Of course, everything should be done procedurally without hardcoding layer names etc.
 *** Agent Notes
     [2026-01-18] Analysis complete, requires significant refactoring
@@ -42,8 +44,12 @@
     Files changed: workers/nesting/core/main.py
     Docs updated: workers/nesting/NEOLIT.md
     Notes: Modified worker to copy ALL entities from source cassette DXF, not just nesting layer entities. Now includes cuts, bends, markings, etc. in result. Nesting algorithm still uses only boundary polygons.
+    [2026-01-18] Improvement to parametric service
+    Files changed: server/features/parametric-cassettes/service.js
+    Notes: Updated evaluateTemplate to return all generated curves (including holes), ensuring baked DXF contains all geometry.
 
-* PROGRESS batch table improvements
+* DONE batch table improvements
+  CLOSED: [2026-01-18]
   Need to rewrite table to dataview with grid and table views. In grid view, need cassette preview and only needed parameters. In table view, need all the parameters as columns, but for cassettes that don't have some parameters, need to show "-" or empty cell that can't be edited (for those who have, need 0 or default values). Editing should be possible in both views and should be user-friendly (now it becomes a huge input, etc; need comfortable experience). 
 *** Agent Notes
     [2026-01-18] Analysis complete, UI refactoring required
@@ -63,21 +69,23 @@
     Docs updated: N/A
     Notes: Added grid/table view switcher. Grid view shows cards with cassette name, quantity, and parameters with inline editing. Table view uses existing DataTable. Both views filter parameters per entry based on cassette template. 
 
-* WAITING Refactor nesting architecture: separate algorithm from file generation
+* DONE Refactor nesting architecture: separate algorithm from file generation
+  CLOSED: [2026-01-18]
+  **Human Note (IMPORTANT)**: This task is written by AI based on my question about worker refactoring. It may be bloated and not meet architectural requirements. If have any changes/improvements, please modify the TODO directly.
   
   **Problem**: Worker currently mixes concerns (nesting algorithm + file generation + DB operations). Every code change requires 30min Docker rebuild. This blocks rapid development.
   
   **Goal**: Separate nesting algorithm (Python/lbf) from file generation and DB operations (Node). File generation logic should run in Node server where changes hot-reload instantly without Docker rebuild.
-  
+
   **Requirements**:
-  1. Worker becomes pure algorithm service: input polygons → output transforms (x, y, angle for each item)
+  1. Worker becomes pure algorithm service: input polygons → output transforms (x, y, angle for each item, needed to place other cassette layers later)
   2. Node handles: file generation, layer standards application, GridFS uploads, DB updates, run status tracking
   3. Background job processor in Node polls nesting_jobs and orchestrates workflow
   4. Result DXF files must include ALL cassette layers (not just nesting boundary) with proper layer standards and pen templates applied
   5. Baked parametric cassettes must work without requiring worker to access DB
   
   **Current Issues to Fix**:
-  - Worker updates batch/run statuses (should NOT - only nesting_jobs)
+  - Worker updates batch/run statuses (should NOT - only nesting_jobs) // seem fixed already by reverting to old code
   - Worker generates files and uploads to GridFS (should be in Node)
   - Baked cassettes in separate collection requires Docker rebuild for worker to access
   - No automatic run status updates (no polling mechanism)
@@ -105,5 +113,19 @@
   - Change to file generation code → restart Node (2 sec) works, no Docker rebuild needed
   - Worker is pure: JSON in stdin → lbf call → JSON out stdout, no DB/GridFS access
   - Baked cassettes work (Node provides all data to worker as JSON)
-
-
+*** Agent Notes
+    [2026-01-18] Implementation Complete
+    Files changed: 
+    - server/plugins/nesting-processor.js (New Node job processor)
+    - server/scripts/generate_nest_dxf.py (New DXF generator script)
+    - workers/nesting/worker_service.py (New pure algorithm service)
+    - workers/nesting/Dockerfile (Updated to run uvicorn)
+    - Dockerfile.dev (Updated to include python/ezdxf)
+    Docs updated: 
+    - workers/nesting/NEOLIT.md
+    - server/features/nesting/NEOLIT.md
+    Notes:
+    - Worker is now a stateless FastAPI service calling `lbf`.
+    - Node handles job polling, fetching cassette geometry, and orchestration.
+    - DXF generation is done via a python script executed by Node (hot-reloadable logic).
+    - Result DXF includes all layers from source cassettes.

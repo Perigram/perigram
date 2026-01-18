@@ -1,56 +1,46 @@
 # COMPONENT: Nesting Worker
 
-The Nesting Worker is a Python-based service responsible for executing the 2D bin packing algorithm to optimize material usage.
+The Nesting Worker is a Python-based HTTP service responsible for executing the 2D bin packing algorithm. It is a "pure algorithm" service that processes geometry and returns transformations, without accessing the database.
 
 ## Core Files
-- `main.py`: Entry point that polls MongoDB for pending nesting jobs.
-- `core/main.py`: Main processing logic for geometry transformation and DXF generation.
+- `worker_service.py`: FastAPI application entry point.
 - `core/nesting_input_builder.py`: Prepares geometry and parameters for the nesting engine.
-- `core/svg_generator.py`: Generates SVG previews of the nesting results.
-- `utils/mongo.py`: Helper for database and GridFS interactions.
+- `main.py`: (Deprecated) Old polling entry point.
 
 ## Nesting Engine
 The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesting library written in Rust.
-- Communication with Rust is handled via CLI calls or FFI.
-- The engine supports parametric part generation and complex polygon handling.
+- The `lbf` binary is executed to perform the nesting.
 
-## Nesting Workflow
-1.  **Cassette Upload**: User uploads DXF. `server/features/cassettes/service.js` extracts entities from the mapped nesting layer (default: `1_3_UNFOLD_BOUNDARY`) into `polygonParts`. Full DXF with all layers is stored in GridFS.
-2.  **Trigger**: `POST /api/batch/:id/nest` creates a `nesting_jobs` entry.
-3.  **Polling**: Worker picks up `pending` jobs.
-4.  **Processing**:
-    *   Reads `polygonParts` from MongoDB (nesting layer only).
-    *   Runs nesting algorithm via `jagua-rs` using boundary polygons.
-    *   Returns transformations: `{ cassetteId, handles, x, y, angle }`.
-5.  **Result Generation**:
-    *   Opens cassette DXF from GridFS.
-    *   Extracts ALL entities from cassette (all layers: boundary, cuts, bends, markings).
-    *   Applies transformations to all entities and generates result DXF/SVG with complete layer data.
-6.  **Storage**: Results are uploaded to GridFS artifacts.
-7.  **Completion**: Updates job status to `complete`.
+## Architecture & Workflow
+1.  **Input**: Receives POST request with items (polygons) and parameters.
+2.  **Processing**:
+    *   Buffers input polygons by the specified spacing.
+    *   Constructs input JSON for `lbf`.
+    *   Executes `lbf` binary.
+3.  **Output**: Returns nesting solution (layouts and transformations) as JSON.
 
-## Troubleshooting
-- **No polygons?**: Check if the DXF layer is correctly mapped to `1_3_UNFOLD_BOUNDARY` during upload.
-- **Fallback to rectangles?**: Occurs when `polygonParts` is empty; worker uses batch dimensions instead.
-- **Wrong entities?**: Verify `layerMapping` points to the correct boundary layer in the original DXF.
-- **Missing layers in result?**: Ensure all layers exist in source cassette DXF. Worker copies ALL entities, not just nesting layer.
-
-## Job Document Schema
-```javascript
+## API
+### POST /nest
+**Request:**
+```json
 {
-  slug: string,        // Unique job identifier
-  projectSlug: string,
-  batchId: ObjectId,
-  files: [
-    { cassetteId: string, count: number, dimensions: object }
+  "items": [
+    {
+      "id": 1,
+      "cassette_id": "...",
+      "coords": [[x,y], ...],
+      "handles": ["..."],
+      "count": 5
+    }
   ],
-  params: {
-    height: number,
-    width: number,
-    space: number,
-    sheetCount: number
-  },
-  status: "pending" | "processing" | "complete" | "failed",
-  ownerId: string
+  "params": {
+    "width": 1220,
+    "height": 2440,
+    "space": 5,
+    "sheetCount": 10
+  }
 }
 ```
+
+**Response:**
+Standard `lbf` JSON output containing layouts and placed items with transformations.
