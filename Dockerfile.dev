@@ -1,7 +1,7 @@
 # Development Dockerfile with hot reload
 FROM node:20.19.0-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+RUN apt-get update && apt-get install -y --no-install-recommends curl python3 python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
@@ -11,6 +11,11 @@ COPY package.json package-lock.json ./
 
 # Install ALL dependencies (including dev dependencies)
 RUN npm ci
+
+# Install python dependencies for local scripts (DXF generation)
+COPY workers/nesting/requirements.txt /tmp/requirements.txt
+# usage of --break-system-packages is necessary in newer debian/python versions or use venv
+RUN pip3 install -r /tmp/requirements.txt --break-system-packages
 
 # Copy source code
 COPY . .

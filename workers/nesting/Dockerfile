@@ -57,4 +57,6 @@ USER appuser
 # Verify lbf is available
 RUN lbf --help || echo "lbf help check failed"
 
-CMD ["python", "main.py"]
+EXPOSE 8000
+
+CMD ["uvicorn", "worker_service:app", "--host", "0.0.0.0", "--port", "8000"]

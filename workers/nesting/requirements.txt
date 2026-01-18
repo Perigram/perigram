@@ -5,3 +5,5 @@ python-dotenv==1.1.1
 Pillow==10.4.0
 matplotlib==3.10.5
 numpy>=1.21.0
+fastapi
+uvicorn

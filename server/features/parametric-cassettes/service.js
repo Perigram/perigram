@@ -260,14 +260,11 @@ export async function evaluateTemplate(cassetteId, dimensions) {
       throw new Error('Geometry evaluation produced no curves');
     }
 
-    // Identify the largest polygon (main boundary)
-    const sorted = [...allCurves].sort((a, b) => b.vertices.length - a.vertices.length);
-    const mainPolygon = {
-      coordinates: sorted[0].vertices
-    };
+    // Return all polygons
+    const polygons = allCurves.map(c => ({ coordinates: c.vertices }));
 
     return {
-      polygons: [mainPolygon],
+      polygons,
       dimensions: cassetteData.params
     };
   } catch (e) {
