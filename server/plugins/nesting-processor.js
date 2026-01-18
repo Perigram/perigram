@@ -177,12 +177,34 @@ async function processNextJob() {
     await fs.mkdir(outputDir, { recursive: true });
     await fs.writeFile(transformsPath, JSON.stringify(resultContainers));
 
-    console.log('Generating DXF files...');
-    // Run python script
-    const scriptPath = path.resolve(process.cwd(), 'server/scripts/generate_nest_dxf.py');
-
-    // We need to run this in a Promise wrapping spawn
-    const generatedFiles = await new Promise((resolve, reject) => {
+        console.log('Generating DXF files...');
+        // Run python script
+        // In production (Nuxt Nitro), the CWD might be different or scripts might be in .output
+        // We try to locate the script relative to CWD
+        
+        let scriptPath = path.resolve(process.cwd(), 'server/scripts/generate_nest_dxf.py');
+        
+        // Check if we are in production (built) mode where structure is different
+        try {
+            await fs.access(scriptPath);
+        } catch {
+            // Try production path: .output/server/scripts/generate_nest_dxf.py or similar
+            // If process.cwd() is root, and we are running from .output/server/index.mjs
+            // Usually in docker container WORKDIR is /src, and we run ./entrypoint -> node .output/server/index.mjs
+            // So CWD is /src.
+            // And we copied scripts to /src/.output/server/scripts in Dockerfile.
+            const prodPath = path.resolve(process.cwd(), '.output/server/scripts/generate_nest_dxf.py');
+            try {
+                await fs.access(prodPath);
+                scriptPath = prodPath;
+            } catch {
+                console.warn('Could not find generate_nest_dxf.py in standard paths. Using default:', scriptPath);
+            }
+        }
+    
+        console.log('Using DXF generation script at:', scriptPath);
+        
+        // We need to run this in a Promise wrapping spawn    const generatedFiles = await new Promise((resolve, reject) => {
       const py = spawn('python3', [
         scriptPath,
         '--transforms', transformsPath,
