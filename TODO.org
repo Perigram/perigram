@@ -63,4 +63,136 @@
     Docs updated: N/A
     Notes: Added grid/table view switcher. Grid view shows cards with cassette name, quantity, and parameters with inline editing. Table view uses existing DataTable. Both views filter parameters per entry based on cassette template. 
 
+* WAITING Refactor nesting architecture: separate algorithm from file generation
+  
+  **Context**: Worker (Python) currently does too much: nesting algorithm + DXF/SVG generation + GridFS uploads + MongoDB updates. Every change requires 30min Docker rebuild. Need to separate concerns so file generation/DB logic can be developed in Node without Docker rebuilds.
+  
+  **Architecture Goals**:
+  1. Worker (Python): ONLY nesting algorithm - receives polygons, calls lbf binary, returns transforms JSON
+  2. API (Node): File generation, layer standards application, GridFS uploads, DB updates
+  3. Background processor (Node): Polls nesting_jobs, orchestrates worker calls, updates run statuses
+  
+  **Current Investigation Results**:
+  - lbf binary supports polygon bins (can nest on pre-cut irregular sheets)
+  - layerMapping stores ALL DXF layers → layer standard codes
+  - polygonParts only extracts nesting boundary layer (1_3_UNFOLD_BOUNDARY)
+  - build_part() in worker already uses all_layers=True and transforms ALL entities
+  - nest-notify.js shows polling pattern: while(true) with 1sec sleep checking nesting_jobs
+  - Cassettes have full DXF stored in GridFS with all layers
+  
+  **Implementation Steps**:
+  
+  ### Phase 1: Create Result Generation Module (Node)
+  Location: `server/features/nesting-results/`
+  
+  Files to create:
+  - `service.js` - Main orchestration: load cassettes, call worker, generate files, upload GridFS, update artifacts/runs
+  - `worker-client.js` - Interface to call Python worker (spawn process, stdin/stdout communication)
+  - `dxf-generator.js` - Generate result DXF from cassettes + transforms, apply layer standards and pen templates
+  - `svg-generator.js` - Generate SVG preview from transforms
+  - `transforms.js` - Helper to apply rotation/translation matrices to DXF entities
+  
+  Key logic for dxf-generator.js:
+  - Read cassette DXF from GridFS (cassettes bucket)
+  - For each placement: load source cassette, get ALL entities from ALL layers (not just nesting)
+  - Apply transform (x, y, angle from worker output) to each entity
+  - Use cassette.layerMapping to get layer standard code for each layer
+  - Apply layer standards (layer name format, color, lineweight from pen templates)
+  - Combine all into single result DXF
+  - Use ezdxf patterns from current worker: Matrix44.z_rotate, Matrix44.translate, entity.copy(), entity.transform()
+  
+  Module should follow Service-Repository pattern, NO direct DB access from generators.
+  
+  ### Phase 2: Create Job Processor (Node)
+  Location: `server/plugins/nesting-processor.js`
+  
+  Pattern: Similar to nest-notify.js plugin
+  - Nitro plugin with while(true) loop
+  - Poll nesting_jobs collection for status="pending"
+  - Update status to "processing"
+  - Call worker via worker-client
+  - Call result generation module
+  - Update status to "done"/"error"
+  - Update run status via batches service
+  - Error handling with try/catch, set status to "error" on failure
+  - Sleep 1 second between polls
+  
+  Must NOT update batch status (only runs). Batch status managed by batches service (only DRAFT/CUT).
+  
+  ### Phase 3: Simplify Worker (Python)
+  Location: `workers/nesting/`
+  
+  Changes to main.py:
+  - Remove all MongoDB connection/operations (mongo.py no longer needed)
+  - Remove GridFS operations
+  - Remove file generation (DXF/SVG)
+  - Remove artifact updates
+  - Keep ONLY: read JSON from stdin, prepare lbf input, call lbf, parse output, write JSON to stdout
+  - Input format: { items: [{id, demand, shape}], bins: [{id, stock, shape}], config }
+  - Output format: { status: "success"/"error", placements: [{item_id, bin_id, x, y, angle}], utilization, message }
+  
+  Changes to core/main.py:
+  - Remove convert_files_to_input_items() - Node will provide items already
+  - Remove nesting_process() file generation logic
+  - Remove update_artifacts()
+  - Keep ONLY: call_lbf() and parse its output to JSON
+  
+  Worker should NOT know about batches, runs, cassettes, artifacts - pure algorithm service.
+  
+  ### Phase 4: Update API Endpoints
+  Location: `server/api/batch/[id]/nest.post.js`
+  
+  Changes:
+  - Remove direct worker expectations
+  - Create nesting_job with status="pending" (not "processing")
+  - Don't wait for result
+  - Return immediately with runId and status="NESTING"
+  - Job processor will handle the rest asynchronously
+  
+  ### Phase 5: Update Baked Cassettes Handling
+  Location: `server/features/parametric-cassettes/`
+  
+  Current issue: Baked cassettes in separate collection, worker can't find them, requires Docker rebuild.
+  
+  Solution: Node result generation loads both cassettes and baked_cassettes collections, provides full data to worker as JSON (not cassetteId references).
+  Worker no longer accesses DB, receives everything needed in input JSON.
+  
+  ### Phase 6: Testing & Validation
+  - Create test nesting job via API
+  - Check nesting_jobs status changes: pending → processing → done
+  - Check run status updates: NESTING → COMPLETE
+  - Verify result DXF has ALL layers (not just boundary)
+  - Verify layer standards applied (names, colors, lineweights)
+  - Verify baked cassettes work without Docker rebuild
+  - Test error handling (invalid input, lbf failure, etc)
+  
+  **Critical Constraints**:
+  - Follow AGENTS.md Phase 2: Change ONLY what task requires, don't refactor unrelated code
+  - NO batch status updates in worker or processor (only via batches service API)
+  - Batch status ONLY "DRAFT" or "CUT" (never NESTING/ERROR/COMPLETE)
+  - Run status: "NESTING" | "ERROR" | "COMPLETE" | "CHOSEN"
+  - Use Service-Repository pattern: no direct DB access in generators/transformers
+  - Commit code separately from docs (feat:/fix: vs neo:)
+  - Update NEOLIT.md for each modified component
+  
+  **Files to Modify**:
+  - NEW: server/features/nesting-results/ (all files)
+  - NEW: server/plugins/nesting-processor.js
+  - MODIFY: workers/nesting/main.py (simplify to stdin/stdout only)
+  - MODIFY: workers/nesting/core/main.py (remove DB/file operations)
+  - MODIFY: server/api/batch/[id]/nest.post.js (create job, return immediately)
+  - UPDATE: server/features/nesting-results/NEOLIT.md (new)
+  - UPDATE: workers/nesting/NEOLIT.md (document new pure CLI interface)
+  - UPDATE: server/plugins/NEOLIT.md (if exists, or create)
+  
+  **Deployment Note**: After implementation, requires ONE Docker rebuild (worker + app) to deploy new architecture. After that, file generation changes won't need rebuilds.
+  
+  **Success Criteria**:
+  - Nesting works end-to-end (API → job → worker → results → artifacts)
+  - Result files have ALL cassette layers with proper standards
+  - Run statuses update automatically
+  - Future file generation changes don't require Docker rebuild
+  - Worker is stateless pure function (stdin → stdout)
+  - All error cases handled gracefully
+
 
