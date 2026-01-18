@@ -112,10 +112,81 @@
                 </div>
             </AccordionTab>
 
-            <!-- Cassettes DataTable Panel -->
+            <!-- Cassettes DataView Panel -->
             <AccordionTab :header="$t('batches.cassettes')">
                 <div class="flex flex-col gap-4">
+                    <!-- View Switcher -->
+                    <div class="flex justify-between items-center">
+                        <div class="flex gap-2">
+                            <Button 
+                                :icon="viewMode === 'grid' ? 'pi pi-th-large' : 'pi pi-th-large'"
+                                :severity="viewMode === 'grid' ? 'primary' : 'secondary'"
+                                @click="viewMode = 'grid'"
+                                v-tooltip.top="$t('batch.gridView')"
+                                text
+                                :outlined="viewMode !== 'grid'"
+                            />
+                            <Button 
+                                :icon="viewMode === 'table' ? 'pi pi-table' : 'pi pi-table'"
+                                :severity="viewMode === 'table' ? 'primary' : 'secondary'"
+                                @click="viewMode = 'table'"
+                                v-tooltip.top="$t('batch.tableView')"
+                                text
+                                :outlined="viewMode !== 'table'"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Grid View -->
+                    <div v-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div 
+                            v-for="entry in entries" 
+                            :key="entry._id"
+                            class="border border-[var(--p-content-border-color)] rounded-lg p-4 bg-[var(--p-content-background)] hover:border-[var(--p-primary-color)] transition-all"
+                        >
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-semibold text-[var(--p-text-color)] truncate">{{ getCassetteName(entry.cassetteTemplateId) }}</h3>
+                                <Button 
+                                    icon="pi pi-trash"
+                                    severity="danger"
+                                    text
+                                    rounded
+                                    size="small"
+                                    @click="confirmDelete(entry)"
+                                    :disabled="batch.status !== 'DRAFT'"
+                                />
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-[var(--p-text-muted-color)]">{{ $t('batches.quantity') }}:</span>
+                                    <InputNumber 
+                                        v-model="entry.quantity" 
+                                        :min="1" 
+                                        :disabled="batch.status !== 'DRAFT'"
+                                        showButtons 
+                                        buttonLayout="horizontal"
+                                        size="small"
+                                        class="w-28"
+                                        @update:model-value="saveBatch"
+                                    />
+                                </div>
+                                <div v-for="param in getEntryParameters(entry)" :key="param" class="flex justify-between items-center">
+                                    <span class="text-[var(--p-text-muted-color)]">{{ param }}:</span>
+                                    <InputNumber 
+                                        v-model="entry.dimensions[param]"
+                                        :disabled="batch.status !== 'DRAFT'"
+                                        size="small"
+                                        class="w-20"
+                                        @update:model-value="saveBatch"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table View -->
                     <DataTable 
+                        v-if="viewMode === 'table'"
                         v-model:editingRows="editingRows"
                         :value="entries"
                         :editMode="batch.status === 'DRAFT' ? 'cell' : null"
@@ -382,6 +453,7 @@ const showAddDialog = ref(false);
 const showUploadDialog = ref(false);
 const cassettes = ref([]);
 const { tools } = storeToRefs(toolProfilesStore);
+const viewMode = ref('grid');
 
 const nestingOptions = ref({
     width: 2440,
@@ -473,6 +545,11 @@ const allOptions = computed(() => {
 const getCassetteName = (id) => {
     const cassette = cassettes.value.find(c => c._id === id);
     return cassette?.name || t('batch.unknownCassette');
+};
+
+const getEntryParameters = (entry) => {
+    const cassette = cassettes.value.find(c => c._id === entry.cassetteTemplateId);
+    return cassette?.parameters || [];
 };
 
 const getStatusSeverity = (status) => {

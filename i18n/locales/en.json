@@ -490,7 +490,9 @@
     "markCutFailed": "Failed to mark batch as cut",
     "runChosen": "Run chosen successfully",
     "chooseRunFailed": "Failed to choose run",
-    "updated": "Updated"
+    "updated": "Updated",
+    "gridView": "Grid View",
+    "tableView": "Table View"
   },
   "batches": {
     "entries": "entries",
