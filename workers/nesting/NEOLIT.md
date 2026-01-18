@@ -15,17 +15,17 @@ The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesti
 - The engine supports parametric part generation and complex polygon handling.
 
 ## Nesting Workflow
-1.  **Cassette Upload**: User uploads DXF. `server/features/cassettes/service.js` extracts entities from the mapped nesting layer (default: `1_3_UNFOLD_BOUNDARY`) into `polygonParts`.
+1.  **Cassette Upload**: User uploads DXF. `server/features/cassettes/service.js` extracts entities from the mapped nesting layer (default: `1_3_UNFOLD_BOUNDARY`) into `polygonParts`. Full DXF with all layers is stored in GridFS.
 2.  **Trigger**: `POST /api/batch/:id/nest` creates a `nesting_jobs` entry.
 3.  **Polling**: Worker picks up `pending` jobs.
 4.  **Processing**:
-    *   Reads `polygonParts` from MongoDB.
-    *   Runs nesting algorithm via `jagua-rs`.
+    *   Reads `polygonParts` from MongoDB (nesting layer only).
+    *   Runs nesting algorithm via `jagua-rs` using boundary polygons.
     *   Returns transformations: `{ cassetteId, handles, x, y, angle }`.
 5.  **Result Generation**:
-    *   Opens cassette DXF.
-    *   Extracts entities by `handles` (nesting layer only).
-    *   Applies transformations and generates result DXF/SVG.
+    *   Opens cassette DXF from GridFS.
+    *   Extracts ALL entities from cassette (all layers: boundary, cuts, bends, markings).
+    *   Applies transformations to all entities and generates result DXF/SVG with complete layer data.
 6.  **Storage**: Results are uploaded to GridFS artifacts.
 7.  **Completion**: Updates job status to `complete`.
 
@@ -33,6 +33,7 @@ The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesti
 - **No polygons?**: Check if the DXF layer is correctly mapped to `1_3_UNFOLD_BOUNDARY` during upload.
 - **Fallback to rectangles?**: Occurs when `polygonParts` is empty; worker uses batch dimensions instead.
 - **Wrong entities?**: Verify `layerMapping` points to the correct boundary layer in the original DXF.
+- **Missing layers in result?**: Ensure all layers exist in source cassette DXF. Worker copies ALL entities, not just nesting layer.
 
 ## Job Document Schema
 ```javascript

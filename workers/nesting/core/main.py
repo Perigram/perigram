@@ -257,11 +257,11 @@ dxf_document_cache = {}
 
 def get_entities_from_dxf_file(cassette_id_str, handles):
     """
-    Opens DXF from GridFS and returns entities matching the given handles.
+    Opens DXF from GridFS and returns ALL entities from cassette DXF.
     
-    IMPORTANT: handles come from polygonParts, which were extracted from the
-    nesting layer ONLY during cassette upload. This ensures only nesting layer
-    entities are copied to result DXF.
+    IMPORTANT: Returns ALL entities from the cassette, not just nesting layer.
+    Handles are only used for nesting algorithm, but result DXF should include
+    all layers (cuts, bends, markings, etc.) with proper transforms applied.
     
     Uses NEW schema: cassettes GridFS bucket (not userDxf)
     """
@@ -285,13 +285,10 @@ def get_entities_from_dxf_file(cassette_id_str, handles):
         
     msp = doc.modelspace()
     
-    handle_set = set(handles)
+    # Return ALL entities from cassette DXF for result generation
+    # This ensures all layers (cut, bend, marking) are included
+    entities = list(msp)
     
-    entities = []
-    for entity in msp:
-        if entity.dxf.handle in handle_set:
-            entities.append(entity)
-            
     return doc, entities
 
 def nesting_process(doc):
