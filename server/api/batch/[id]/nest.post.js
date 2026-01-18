@@ -70,6 +70,7 @@ export default defineEventHandler(async (event) => {
         if (template.type === 'PARAMETRIC') {
           console.log(`Baking parametric template: ${template.name} for batch entry`);
           const bakedCassette = await bakeTemplateInstance(template._id, entry.dimensions || {}, userId);
+          console.log(`Baked cassette created with ID: ${bakedCassette._id}`);
           return {
             cassetteId: bakedCassette._id.toString(),
             count: entry.quantity,

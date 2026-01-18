@@ -65,14 +65,19 @@ def convert_files_to_input_items(files, space):
         from bson import ObjectId
         cassette_id = ObjectId(cassette_id_str)
         
+        logger.info(f"Looking for cassette {cassette_id_str} in cassettes collection")
         # Read cassette from NEW schema (cassettes or baked_cassettes collection)
         cassette = db["cassettes"].find_one({"_id": cassette_id})
         
         if not cassette:
+            logger.info(f"Not found in cassettes, checking baked_cassettes collection")
             cassette = db["baked_cassettes"].find_one({"_id": cassette_id})
         
         if not cassette:
+            logger.error(f"Cassette {cassette_id} not found in cassettes or baked_cassettes collections")
             raise Exception(f"Cassette {cassette_id} not found")
+        
+        logger.info(f"Found cassette: {cassette.get('name', 'unknown')} in {cassette.get('type', 'unknown')} collection")
         
         # Use polygonParts from cassette (NESTING LAYER ONLY)
         polygon_parts = cassette.get("polygonParts")
