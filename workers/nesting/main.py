@@ -116,16 +116,20 @@ while not shutdown_requested:
             }
         )
 
-        # Update associated batch status to COMPLETE
-        if "batchId" in doc:
+        # Update associated RUN status to COMPLETE (not batch status!)
+        if "batchId" in doc and "runId" in doc:
             try:
                 db["batches"].update_one(
-                    {"_id": doc["batchId"]},
-                    {"$set": {"status": "COMPLETE", "updatedAt": datetime.now()}}
+                    {"_id": doc["batchId"], "runs._id": doc["runId"]},
+                    {"$set": {
+                        "runs.$.status": "COMPLETE",
+                        "runs.$.updatedAt": datetime.now(),
+                        "updatedAt": datetime.now()
+                    }}
                 )
-                logger.info(f"Updated batch {doc['batchId']} status to COMPLETE")
-            except Exception as batch_err:
-                logger.error(f"Failed to update batch {doc['batchId']} status to COMPLETE: {batch_err}")
+                logger.info(f"Updated run {doc['runId']} status to COMPLETE")
+            except Exception as run_err:
+                logger.error(f"Failed to update run {doc['runId']} status to COMPLETE: {run_err}")
         
         db["users"].update_one(
             {"id": doc["ownerId"]},
@@ -148,15 +152,19 @@ while not shutdown_requested:
             }}
         )
         
-        # Update associated batch status to FAILED
-        if "batchId" in doc:
+        # Update associated RUN status to ERROR (not batch status!)
+        if "batchId" in doc and "runId" in doc:
             try:
                 db["batches"].update_one(
-                    {"_id": doc["batchId"]},
-                    {"$set": {"status": "FAILED", "updatedAt": datetime.now()}}
+                    {"_id": doc["batchId"], "runs._id": doc["runId"]},
+                    {"$set": {
+                        "runs.$.status": "ERROR",
+                        "runs.$.updatedAt": datetime.now(),
+                        "updatedAt": datetime.now()
+                    }}
                 )
-                logger.info(f"Updated batch {doc['batchId']} status to FAILED")
-            except Exception as batch_err:
-                logger.error(f"Failed to update batch {doc['batchId']} status: {batch_err}")
+                logger.info(f"Updated run {doc['runId']} status to ERROR")
+            except Exception as run_err:
+                logger.error(f"Failed to update run {doc['runId']} status: {run_err}")
     finally:
         current_doc_id = None
