@@ -8,6 +8,7 @@ from pathlib import Path
 from utils.mongo import valid_dxf_bucket, dxf_result_bucket, svg_result_bucket
 from utils.mongo import db
 from core.nesting_input_builder import build_input_json, build_item
+from core.geometry_utils import create_safe_polygon
 from dxf.dxf_utils import read_dxf
 from core.svg_generator import create_svg_from_doc
 from ezdxf.document import Drawing
@@ -88,8 +89,16 @@ def convert_files_to_input_items(files, space):
                 coords = part.get("coordinates")
                 handles = part.get("handles")
                 
-                shapely_polygon = Polygon(coords)
+                shapely_polygon = create_safe_polygon(coords)
+                if not shapely_polygon:
+                    logger.warning(f"Skipping invalid polygon part for cassette {cassette_id_str}")
+                    continue
+                    
                 buffered_polygon = shapely_polygon.buffer(space)
+                if buffered_polygon.is_empty:
+                    logger.warning(f"Polygon part for cassette {cassette_id_str} became empty after buffering")
+                    continue
+
                 buffered_polygon_coords = list(buffered_polygon.exterior.coords)
                 
                 item = {
@@ -124,7 +133,11 @@ def convert_files_to_input_items(files, space):
                 (0, 0)
             ]
             
-            shapely_polygon = Polygon(coords)
+            shapely_polygon = create_safe_polygon(coords)
+            if not shapely_polygon:
+                logger.error(f"Failed to create parametric polygon for cassette {cassette.get('name')}")
+                continue
+                
             buffered_polygon = shapely_polygon.buffer(space)
             buffered_polygon_coords = list(buffered_polygon.exterior.coords)
             
@@ -326,11 +339,10 @@ def nesting_process(doc):
     input_items = convert_files_to_input_items(files, space)
     jaguar_items = []
    
-    total_requested_count = 0
+    total_requested_count = sum(file.get("count", 0) for file in files)
     for item in input_items:
         count = item.get("count")
         jaguar_item = build_item(item.get("id"), count, item.get("coords"))
-        total_requested_count += count
         jaguar_items.append(jaguar_item)
         
     db["nesting_jobs"].update_one(

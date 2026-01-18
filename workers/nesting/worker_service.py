@@ -15,6 +15,7 @@ import logging
 sys.path.append(str(Path(__file__).parent))
 
 from core.nesting_input_builder import build_input_json, build_item
+from core.geometry_utils import create_safe_polygon
 
 # Setup logger
 logging.basicConfig(level=logging.INFO)
@@ -53,49 +54,29 @@ def run_nesting(request: NestingRequest):
     for item in request.items:
         try:
             # Create shapely polygon from coords
-            poly = Polygon(item.coords)
+            poly = create_safe_polygon(item.coords)
+            
+            if not poly:
+                logger.warning(f"Item {item.id} has invalid coordinates, skipping")
+                continue
             
             # Buffer the polygon by space
-            # Note: space is applied to each item, essentially adding space/2 margin?
-            # In main.py: buffered_polygon = shapely_polygon.buffer(space)
-            # This adds 'space' amount to all sides. So distance between two items will be 2*space.
-            # If 'space' means gap between items, usually we buffer by space/2.
-            # But adhering to existing main.py logic:
             if request.params.space > 0:
                 buffered_poly = poly.buffer(request.params.space)
             else:
                 buffered_poly = poly
                 
-            # Simplify if needed (optional, existing main.py didn't simplify explicitly here but lbf might)
-            
-            # Get coords
             if buffered_poly.is_empty:
                 logger.warning(f"Item {item.id} became empty after buffering")
                 continue
                 
-            # Handle MultiPolygon if buffer creates it (unlikely for simple expansion but possible)
             if buffered_poly.geom_type == 'MultiPolygon':
-                # Take the largest one? Or fail?
-                # For nesting, we usually want the outer boundary.
                 buffered_poly = max(buffered_poly.geoms, key=lambda a: a.area)
                 
             buffered_coords = list(buffered_poly.exterior.coords)
             
-            buffered_coords = list(buffered_poly.exterior.coords)
-            
-            # Build item using core utility
             # lbf requires consecutive IDs starting from 0
-            # We use len(jaguar_items) as the new ID
             lbf_id = len(jaguar_items)
-            
-            # Store mapping to restore original ID later if needed (though result uses transforms)
-            # Actually, the result processing in Node matches by 'item_id' returned by lbf.
-            # So we need to map back the lbf output to match the original request IDs?
-            # Node's nesting-processor.js:
-            #   originalItem = items.find(i => i.id === placedItem.item_id);
-            # So yes, we MUST return the result using the ORIGINAL IDs, or Node needs to know the mapping.
-            # Since lbf is a black box, we can't force it to return original IDs if it demands 0..N input.
-            # We have to wrap the output.
             
             j_item = build_item(lbf_id, item.count, buffered_coords)
             j_item['original_id'] = item.id # Store for internal mapping
@@ -103,11 +84,14 @@ def run_nesting(request: NestingRequest):
             
         except Exception as e:
             logger.error(f"Error processing item {item.id}: {e}")
-            # Skip invalid items instead of failing the whole batch
             continue
 
     if not jaguar_items:
-        raise HTTPException(status_code=400, detail="No valid items to nest")
+        return {
+            "status": "error",
+            "message": "No valid items to nest (all items failed geometry validation)",
+            "solution": {"layouts": []}
+        }
 
     # Build full input json
     input_json = build_input_json(
@@ -140,7 +124,6 @@ def run_nesting(request: NestingRequest):
         # Read Output
         json_files = [f for f in os.listdir(solution_folder) if f.endswith('.json')]
         if not json_files:
-             # lbf might not produce output if no solution?
              raise HTTPException(status_code=500, detail="No solution file found from lbf")
              
         solution_file = os.path.join(solution_folder, json_files[0])

@@ -110,8 +110,8 @@ async function processNextJob() {
     };
 
     // 2. Call Worker
-    console.log('Sending request to nesting worker...');
     const workerUrl = process.env.NESTING_WORKER_URL || 'http://nesting-worker:8000/nest';
+    console.log(`Sending request to nesting worker at: ${workerUrl}`);
 
     // Need to use fetch (available in Node 18+)
     const response = await fetch(workerUrl, {

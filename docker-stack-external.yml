@@ -13,6 +13,8 @@ services:
 
   nesting-worker:
     image: ghcr.io/1suo/nesting-worker:latest
+    ports:
+      - "8000:8000"
     environment:
       - MONGO_URI=mongodb://mongo:27017/cutkit_dev
     deploy:
