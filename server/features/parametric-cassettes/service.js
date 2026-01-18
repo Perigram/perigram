@@ -269,21 +269,29 @@ export async function evaluateTemplate(cassetteId, dimensions) {
 
   try {
     const result = await engine.evaluate();
+    if (!result || !result.geometryIdentifiers) {
+      throw new Error('Geometry evaluation returned no identifiers');
+    }
+    
     const { geometryIdentifiers } = result;
 
-        const allCurves = [];
-        geometryIdentifiers.forEach((id) => {
-          const interop = engine.findGeometryInteropById(id);
-          if (interop?.variant === 'Curve' && interop?.data?.vertices?.length > 0) {
-            allCurves.push({ 
-              vertices: interop.data.vertices, 
-              id,
-              area: calculateArea(interop.data.vertices)
-            });
-          }
-        });
-        if (allCurves.length === 0) {
-      throw new Error('Geometry evaluation produced no curves');
+    const allCurves = [];
+    geometryIdentifiers.forEach((id) => {
+      const interop = engine.findGeometryInteropById(id);
+      if (interop?.variant === 'Curve' && interop?.data?.vertices) {
+        const vertices = interop.data.vertices;
+        if (Array.isArray(vertices) && vertices.length >= 3) {
+          allCurves.push({ 
+            vertices, 
+            id,
+            area: calculateArea(vertices)
+          });
+        }
+      }
+    });
+    
+    if (allCurves.length === 0) {
+      throw new Error('Geometry evaluation produced no valid curves');
     }
 
     // Sort by area descending so largest is first (assumed boundary)

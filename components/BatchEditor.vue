@@ -32,14 +32,13 @@
                     <div 
                         v-for="run in batch.runs" 
                         :key="run._id"
+                        class="p-4 border-2 rounded-xl transition-all cursor-pointer flex flex-col gap-2 relative h-48 overflow-hidden group"
                         :class="[
-                            'p-4 border-2 rounded-xl transition-all cursor-pointer flex flex-col gap-3 group relative h-48',
-                            run._id.toString() === batch.chosenRunId?.toString() 
-                                ? 'border-[var(--p-primary-color)] shadow-md' 
-                                : 'border-[var(--p-content-border-color)] bg-[var(--p-content-background)] hover:border-[var(--p-primary-300)]',
                             run._id.toString() === selectedRunId 
-                                ? 'border-[var(--p-primary-color)] shadow-lg scale-[1.02] z-10' 
-                                : ''
+                                ? 'border-[var(--p-primary-color)] shadow-md' 
+                                : (run._id.toString() === batch.chosenRunId?.toString() 
+                                    ? 'border-[var(--p-primary-300)] bg-[var(--p-primary-50)]/30' 
+                                    : 'border-[var(--p-content-border-color)] bg-[var(--p-content-background)] hover:border-[var(--p-primary-200)]')
                         ]"
                         @click="selectedRunId = run._id.toString()"
                     >

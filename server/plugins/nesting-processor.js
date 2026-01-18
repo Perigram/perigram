@@ -53,10 +53,16 @@ async function processNextJob() {
 
   try {
     // 1. Prepare Input for Worker
+    if (!job.files || !Array.isArray(job.files)) {
+      throw new Error('Job has no files or files is not an array');
+    }
+
     const items = [];
     let idCounter = 0;
 
     for (const file of job.files) {
+      if (!file.cassetteId) continue;
+      
       const cassetteId = new ObjectId(file.cassetteId);
       let cassette = await db.collection('cassettes').findOne({ _id: cassetteId });
 
@@ -65,26 +71,27 @@ async function processNextJob() {
       }
 
       if (!cassette) {
-        throw new Error(`Cassette ${file.cassetteId} not found`);
+        console.error(`Cassette ${file.cassetteId} not found for job ${job.slug}`);
+        continue;
       }
 
       const polygonParts = cassette.polygonParts || [];
 
-      // Handle fallback (copied logic from main.py)
+      // Handle fallback
       if (polygonParts.length > 0) {
         for (const part of polygonParts) {
            items.push({
              id: idCounter++,
              cassette_id: file.cassetteId,
              coords: part.coordinates,
-             handles: part.handles,
-             count: file.count
+             handles: part.handles || [],
+             count: file.count || 1
            });
         }
       } else {
         // Fallback to dimensions
         const dims = file.dimensions || {};
-        const width = dims.A || dims.width || 0; // Assuming A/B or width/height
+        const width = dims.A || dims.width || 0;
         const height = dims.B || dims.height || 0;
 
         if (width && height) {
@@ -96,24 +103,25 @@ async function processNextJob() {
              cassette_id: file.cassetteId,
              coords: rect,
              handles: [],
-             count: file.count
+             count: file.count || 1
            });
-        } else {
-          console.warn(`Cassette ${cassette.name} has no polygons and no dimensions`);
         }
       }
     }
 
+    if (items.length === 0) {
+      throw new Error('No valid items to nest');
+    }
+
     const payload = {
       items,
-      params: job.params
+      params: job.params || {}
     };
 
     // 2. Call Worker
     const workerUrl = process.env.NESTING_WORKER_URL || 'http://nesting-worker:8000/nest';
     console.log(`Sending request to nesting worker at: ${workerUrl}`);
 
-    // Need to use fetch (available in Node 18+)
     const response = await fetch(workerUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -126,88 +134,80 @@ async function processNextJob() {
     }
 
     const workerResult = await response.json();
-    console.log('Worker finished. Processing result...');
+    if (!workerResult || !workerResult.solution) {
+      console.error('Worker returned invalid response:', JSON.stringify(workerResult));
+      throw new Error('Worker returned invalid or empty solution');
+    }
+    
+    console.log(`Worker finished for job ${job.slug}. Solution found: ${!!workerResult.solution}`);
 
     // 3. Process Result (Convert to Transforms)
-    // workerResult is { solution: { layouts: [...] } } (from lbf)
-    const layouts = workerResult.solution?.layouts || [];
+    const layouts = workerResult.solution.layouts || [];
     const resultContainers = [];
 
-    let containerId = 1;
     let totalPlaced = 0;
 
     for (const layout of layouts) {
+      if (!layout) continue;
+      
       const transforms = [];
-      for (const placedItem of layout.placed_items) {
+      const placedItems = layout.placed_items || [];
+      
+      for (const placedItem of placedItems) {
+        if (!placedItem) continue;
+        
         const originalItem = items.find(i => i.id === placedItem.item_id);
         if (!originalItem) continue;
 
         const trans = placedItem.transformation;
-        // LBF returns translation as [x, y] and rotation (angle)
+        if (!trans || !trans.translation) continue;
+
         transforms.push({
           cassette_id: originalItem.cassette_id,
-          handles: originalItem.handles,
+          handles: originalItem.handles || [],
           x: trans.translation[0],
           y: trans.translation[1],
-          angle: trans.rotation
+          angle: trans.rotation || 0
         });
         totalPlaced++;
       }
 
       if (transforms.length > 0) {
         resultContainers.push({
-          container_id: containerId++,
-          width: job.params.width || 1220,
-          height: job.params.height || 2440,
+          container_id: resultContainers.length + 1,
+          width: job.params?.width || 1220,
+          height: job.params?.height || 2440,
           transforms
         });
       }
     }
 
-    // Update placed count
+    const layoutCount = resultContainers.length;
+    console.log(`Job ${job.slug}: Placed ${totalPlaced} items on ${layoutCount} containers`);
+
+    // Update nesting job record
     await db.collection('nesting_jobs').updateOne(
       { _id: job._id },
-      { $set: { placed: totalPlaced, layoutCount: layouts?.length || 0 } }
+      { $set: { placed: totalPlaced, layoutCount: layoutCount } }
     );
 
     // 4. Generate DXF
-    // Create temp file for transforms
-    const tmpDir = '/tmp'; // Docker container has /tmp
+    const tmpDir = '/tmp';
     const transformsPath = path.join(tmpDir, `transforms-${job.slug}.json`);
     const outputDir = path.join(tmpDir, `output-${job.slug}`);
 
     await fs.mkdir(outputDir, { recursive: true });
     await fs.writeFile(transformsPath, JSON.stringify(resultContainers));
 
-        console.log('Generating DXF files...');
-        // Run python script
-        // In production (Nuxt Nitro), the CWD might be different or scripts might be in .output
-        // We try to locate the script relative to CWD
-        
-        let scriptPath = path.resolve(process.cwd(), 'server/scripts/generate_nest_dxf.py');
-        
-        // Check if we are in production (built) mode where structure is different
-        try {
-            await fs.access(scriptPath);
-        } catch {
-            // Try production path: .output/server/scripts/generate_nest_dxf.py or similar
-            // If process.cwd() is root, and we are running from .output/server/index.mjs
-            // Usually in docker container WORKDIR is /src, and we run ./entrypoint -> node .output/server/index.mjs
-            // So CWD is /src.
-            // And we copied scripts to /src/.output/server/scripts in Dockerfile.
-            const prodPath = path.resolve(process.cwd(), '.output/server/scripts/generate_nest_dxf.py');
-            try {
-                await fs.access(prodPath);
-                scriptPath = prodPath;
-            } catch {
-                console.warn('Could not find generate_nest_dxf.py in standard paths. Using default:', scriptPath);
-            }
-        }
+    console.log('Generating DXF files...');
+    let scriptPath = path.resolve(process.cwd(), 'server/scripts/generate_nest_dxf.py');
     
-        console.log('Using DXF generation script at:', scriptPath);
-        
-        // We need to run this in a Promise wrapping spawn
-        const generatedFiles = await new Promise((resolve, reject) => {
+    try { await fs.access(scriptPath); } catch {
+        const prodPath = path.resolve(process.cwd(), '.output/server/scripts/generate_nest_dxf.py');
+        try { await fs.access(prodPath); scriptPath = prodPath; } catch {}
+    }
+
+    const generatedFiles = await new Promise((resolve, reject) => {
       const py = spawn('python3', [
         scriptPath,
         '--transforms', transformsPath,
@@ -219,123 +219,103 @@ async function processNextJob() {
 
       let stdout = '';
       let stderr = '';
-
       py.stdout.on('data', (data) => stdout += data.toString());
       py.stderr.on('data', (data) => stderr += data.toString());
 
       py.on('close', (code) => {
-        if (code !== 0) {
-          reject(new Error(`DXF Generation failed (code ${code}): ${stderr}`));
-        } else {
+        if (code !== 0) reject(new Error(`DXF Generation failed (code ${code}): ${stderr}`));
+        else {
           try {
-            // Last line should be JSON
             const lines = stdout.trim().split('\n');
+            if (lines.length === 0) throw new Error('Script output is empty');
             const lastLine = lines[lines.length - 1];
-            const files = JSON.parse(lastLine);
-            resolve(files);
-          } catch (e) {
-            console.error('Failed to parse script output:', stdout);
-            reject(new Error(`Failed to parse script output: ${e.message}`));
-          }
+            resolve(JSON.parse(lastLine));
+          } catch (e) { reject(new Error(`Failed to parse script output: ${e.message}`)); }
         }
       });
     });
 
-    console.log(`Generated ${generatedFiles.length} DXF files.`);
+    console.log(`Generated ${generatedFiles?.length || 0} DXF files.`);
 
     // 5. Upload to GridFS and Update Artifacts
     const bucket = new GridFSBucket(db, { bucketName: 'nestDxf' });
     const fileIds = [];
 
-    for (const file of generatedFiles) {
+    for (const file of (generatedFiles || [])) {
+      if (!file || !file.path) continue;
       const content = await fs.readFile(file.path);
-      const filename = file.filename;
-
-      const uploadStream = bucket.openUploadStream(filename, {
-        metadata: { ownerId: job.ownerId }
-      });
+      const uploadStream = bucket.openUploadStream(file.filename, { metadata: { ownerId: job.ownerId } });
 
       await new Promise((resolve, reject) => {
         uploadStream.write(content);
-        uploadStream.end((err) => {
-          if (err) reject(err);
-          else resolve();
-        });
+        uploadStream.end((err) => { err ? reject(err) : resolve(); });
       });
 
       fileIds.push(uploadStream.id);
-
-      // Cleanup local file
-      await fs.unlink(file.path);
+      try { await fs.unlink(file.path); } catch (e) { console.warn(`Failed to unlink ${file.path}:`, e.message); }
     }
 
-    // Cleanup temp dirs
-    await fs.unlink(transformsPath);
-    await fs.rm(outputDir, { recursive: true, force: true });
+    try { await fs.unlink(transformsPath); } catch (e) {}
+    try { await fs.rm(outputDir, { recursive: true, force: true }); } catch (e) {}
 
-    // Update Job Status
-    const dxfFilenames = generatedFiles.map(f => f.filename);
-
+    // Finalize Job and Batch
     await db.collection('nesting_jobs').updateOne(
       { _id: job._id },
-      {
-        $set: {
-          status: 'done',
-          dxf_files: dxfFilenames,
-          finishedAt: new Date()
-        }
-      }
+      { $set: { status: 'done', dxf_files: (generatedFiles || []).map(f => f.filename), finishedAt: new Date() } }
     );
     
-    // Update Batch Run Status to COMPLETE
+    // Update Batch Run Status to COMPLETE and include layoutCount
     await db.collection('batches').updateOne(
       { _id: job.batchId, "runs._id": job.runId },
-      { $set: { "runs.$.status": "COMPLETE", "runs.$.updatedAt": new Date() } }
+      { $set: { 
+          "runs.$.status": "COMPLETE", 
+          "runs.$.layoutCount": layoutCount,
+          "runs.$.placedCount": totalPlaced,
+          "runs.$.updatedAt": new Date() 
+        } 
+      }
     );
 
-    // Update Artifacts
+    // Update artifacts status
     if (fileIds.length > 0) {
-        // Find the artifact created in nest.post.js
-        // generatedBy: nestingSlug
+        // Update LAYOUT_DXF with fileId
         await db.collection('artifacts').updateOne(
-            { generatedBy: job.slug, type: 'LAYOUT_DXF' },
+            { runId: job.runId, type: 'LAYOUT_DXF' },
             {
                 $set: {
-                    status: 'READY',
-                    fileId: fileIds[0], // Link the first file? Or handle multiple?
-                    // Currently artifact schema links to single file.
-                    // If multiple layouts, maybe zip them? Or just link first for now.
+                    fileId: fileIds[0],
                     mimeType: 'application/dxf',
+                    status: 'READY',
                     updatedAt: new Date()
                 }
             }
         );
     }
+    
+    // Mark other placeholders as FAILED for now if not implemented
+    await db.collection('artifacts').updateMany(
+        { runId: job.runId, status: 'GENERATING' },
+        { $set: { status: 'FAILED', updatedAt: new Date() } }
+    );
 
-    console.log(`Job ${job.slug} completed successfully.`);
-
+    console.log(`Job ${job.slug} completed successfully. Placed ${totalPlaced} items on ${layoutCount} sheets.`);
   } catch (error) {
     console.error(`Job ${job.slug} failed:`, error);
     await db.collection('nesting_jobs').updateOne(
       { _id: job._id },
-      {
-        $set: {
-          status: 'error',
-          error: error.message,
-          finishedAt: new Date()
-        }
-      }
+      { $set: { status: 'error', error: error.message, finishedAt: new Date() } }
     );
-    
-    // Update Batch Run Status to ERROR
     if (job.batchId && job.runId) {
         await db.collection('batches').updateOne(
           { _id: job.batchId, "runs._id": job.runId },
           { $set: { "runs.$.status": "ERROR", "runs.$.error": error.message, "runs.$.updatedAt": new Date() } }
         );
+        
+        // Mark all artifacts for this run as FAILED
+        await db.collection('artifacts').updateMany(
+            { runId: job.runId },
+            { $set: { status: 'FAILED', error: error.message, updatedAt: new Date() } }
+        );
     }
-
-    // Update batch status to DRAFT? Or leave as is?
-    // BatchService should handle this?
   }
 }

@@ -10,27 +10,25 @@
       <p class="text-[var(--p-text-secondary-color)]">{{ $t('artifacts.noArtifacts') }}</p>
     </div>
 
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+    <div v-else class="flex flex-col gap-2">
       <div v-for="artifact in filteredArtifacts" :key="artifact._id" 
-        class="flex items-center justify-between gap-3 p-3 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-lg hover:border-[var(--p-primary-color)] transition-all group cursor-pointer"
+        class="flex items-center justify-between p-3 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-lg hover:border-[var(--p-primary-color)] transition-all group cursor-pointer"
         @click="onArtifactClick(artifact)"
       >
-        <div class="flex flex-col min-w-0 flex-1">
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-[13px] text-[var(--p-text-color)] truncate" :title="artifact.name">{{ artifact.name }}</span>
-            <Tag :value="artifact.status" :severity="getStatusSeverity(artifact.status)" class="text-[8px] uppercase px-1 py-0" />
-          </div>
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+          <span class="font-bold text-sm text-[var(--p-text-color)] truncate">{{ artifact.name }}</span>
+          <Tag :value="artifact.status" :severity="getStatusSeverity(artifact.status)" class="text-[8px] uppercase px-1 py-0 flex-shrink-0" />
           <span class="text-[10px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-tight">{{ artifact.type.replace('LAYOUT_', '') }}</span>
         </div>
 
-        <div class="flex gap-1">
+        <div class="flex items-center gap-1 ml-4">
           <Button 
             v-if="artifact.status === 'READY'"
             icon="pi pi-download" 
             text
             rounded
             size="small"
-            class="h-7 w-7"
+            class="h-8 w-8"
             v-tooltip.top="$t('common.actions.download')"
             @click.stop="downloadArtifact(artifact)" 
           />
@@ -40,7 +38,7 @@
             text
             rounded
             size="small"
-            class="h-7 w-7"
+            class="h-8 w-8"
             v-tooltip.top="$t('common.actions.delete')"
             @click.stop="confirmDelete(artifact)" 
           />

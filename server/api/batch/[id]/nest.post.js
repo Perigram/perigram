@@ -101,7 +101,16 @@ export default defineEventHandler(async (event) => {
   // Create nesting job (generic schema, works for both standard and baked)
   const db = await connectDB();
   const runId = new ObjectId();
-  await batchService.addRun(batchId, { _id: runId, status: 'NESTING' }, userId);
+  
+  // Calculate run number
+  const runNumber = (batch.runs?.length || 0) + 1;
+  
+  await batchService.addRun(batchId, { 
+    _id: runId, 
+    status: 'NESTING',
+    runNumber
+  }, userId);
+  
   await db.collection('nesting_jobs').insertOne({
     slug: nestingSlug,
     projectSlug: batch.projectSlug,
@@ -114,19 +123,11 @@ export default defineEventHandler(async (event) => {
     ownerId: userId
   });
   
-  // Update batch status - set previous NESTING runs to ERROR and delete their artifacts
-  const errorRuns = batch.runs?.filter(r => r.status === 'NESTING') || [];
-  for (const errorRun of errorRuns) {
-    // Delete artifacts for this error run
-    await db.collection('artifacts').deleteMany({
-      batchId: batch._id,
-      runId: errorRun._id
-    });
-  }
+  // Update batch status - set previous NESTING runs to ERROR
   await batchService.setRunsStatusByStatus(batchId, 'NESTING', 'ERROR', userId);
   
   // Create placeholder artifacts
-  const artifactTypes = ['LAYOUT_SVG', 'LAYOUT_DXF', 'PDF_PASSPORT', 'NESTING_REPORT'];
+  const artifactTypes = ['LAYOUT_DXF', 'LAYOUT_SVG', 'PDF_PASSPORT', 'NESTING_REPORT'];
   const artifacts = await Promise.all(
     artifactTypes.map(type => {
       let name = `${batch.name} - ${type}`;
@@ -137,7 +138,8 @@ export default defineEventHandler(async (event) => {
         batchId: batch._id,
         runId,
         name,
-        generatedBy: nestingSlug
+        generatedBy: nestingSlug,
+        status: 'GENERATING'
       });
     })
   );

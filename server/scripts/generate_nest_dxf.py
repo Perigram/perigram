@@ -5,7 +5,7 @@ import sys
 import logging
 import io
 import tempfile
-from bson import ObjectId
+from bson.objectid import ObjectId
 from pymongo import MongoClient
 from gridfs import GridFSBucket
 import ezdxf
@@ -130,6 +130,74 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client):
             
             # Draw rectangle
             new_msp.add_lwpolyline([(0, 0), (sheet_w, 0), (sheet_w, sheet_h), (0, sheet_h)], close=True, dxfattribs={'layer': 'SHEET'})
+
+        for transform in transforms:
+            cassette_id_str = transform.get("cassette_id")
+            cassette_id = ObjectId(cassette_id_str)
+            
+            cassette = cassettes_collection.find_one({"_id": cassette_id})
+            if not cassette:
+                cassette = baked_cassettes_collection.find_one({"_id": cassette_id})
+                
+            if not cassette:
+                logger.error(f"Cassette {cassette_id} not found")
+                continue
+                
+            dxf_id = cassette.get("dxfId")
+            if not dxf_id:
+                 continue
+                 
+            source_doc = read_dxf_from_gridfs(cassettes_bucket, dxf_id, doc_cache)
+            layer_mapping = cassette.get("layerMapping", {})
+            
+            source_msp = source_doc.modelspace()
+            entities = list(source_msp)
+            
+            if not entities:
+                continue
+            
+            # Use Loader to copy resources (blocks, linetypes)
+            loader = xref.Loader(source_doc, new_doc)
+            
+            # Transform matrix
+            x = transform.get("x", 0)
+            y = transform.get("y", 0)
+            angle = transform.get("angle", 0)
+            
+            rotationMatrix = Matrix44.z_rotate(angle)
+            translationMatrix = Matrix44.translate(x, y, 0)
+            matrix = rotationMatrix * translationMatrix
+            
+            for entity in entities:
+                try:
+                    source_layer = entity.dxf.layer
+                    target_layer = layer_mapping.get(source_layer)
+                    
+                    if not target_layer:
+                        target_layer = source_layer
+                    
+                    if target_layer not in new_doc.layers:
+                        new_doc.layers.new(target_layer)
+                    
+                    # Copy entity
+                    new_entity = entity.copy()
+                    new_msp.add_entity(new_entity)
+                    new_entity.dxf.layer = target_layer
+                    new_entity.transform(matrix)
+                except Exception as ex:
+                    logger.warning(f"Failed to copy entity: {ex}")
+            
+            # Execute loader to finalize resource copies if any
+            loader.execute()
+                
+        # Save file
+        filename = f"{slug}_part_{container_id}.dxf"
+        filepath = os.path.join(output_dir, filename)
+        new_doc.saveas(filepath)
+        generated_files.append({"filename": filename, "path": filepath})
+        logger.info(f"Saved {filepath}")
+        
+    return generated_files
 
 
 if __name__ == "__main__":
