@@ -41,6 +41,9 @@ Update `COLLECTION` in `repository.js`, validation in `service.js`, and exports 
 - `GET /api/project/:slug/batches` - List for project
 - `POST /api/batch/:id/nest` - Trigger nesting worker job
 - `GET /api/batch/:id/artifacts` - List generated files
+- `POST /api/batch/:id/choose-run` - Mark completed run as chosen
+- `POST /api/batch/:id/mark-cut` - Mark batch as cut (requires chosen run)
+- `POST /api/batch/:id/reset-status` - Reset to draft status
 
 ## Conventions
 - **User IDs:** Authenticated user IDs are strings (OAuth provider IDs), not MongoDB ObjectIds.
