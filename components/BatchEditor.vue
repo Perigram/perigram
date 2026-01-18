@@ -28,29 +28,29 @@
         <Accordion :multiple="true" :activeIndex="[0, 1]" class="flex flex-col gap-4">
             <!-- Runs Panel -->
             <AccordionTab v-if="batch.runs && batch.runs.length > 0" :header="`${$t('batch.runs')} (${batch.runs.length})`">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     <div 
                         v-for="run in batch.runs" 
                         :key="run._id"
                         :class="[
-                            'p-4 border-2 rounded-xl transition-all cursor-pointer flex flex-col gap-3 group relative',
+                            'p-4 border-2 rounded-xl transition-all cursor-pointer flex flex-col gap-3 group relative h-48',
                             run._id.toString() === batch.chosenRunId?.toString() 
                                 ? 'border-[var(--p-primary-color)] shadow-md' 
                                 : 'border-[var(--p-content-border-color)] bg-[var(--p-content-background)] hover:border-[var(--p-primary-300)]',
                             run._id.toString() === selectedRunId 
-                                ? 'ring-2 ring-[var(--p-primary-color)] ring-offset-2' 
+                                ? 'border-[var(--p-primary-color)] shadow-lg scale-[1.02] z-10' 
                                 : ''
                         ]"
                         @click="selectedRunId = run._id.toString()"
                     >
                         <!-- Delete button on hover -->
                         <Button 
-                            icon="pi pi-times" 
+                            icon="pi pi-trash" 
                             severity="danger" 
                             text 
                             rounded 
                             size="small"
-                            class="absolute -top-2 -right-2 h-7 w-7 bg-[var(--p-content-background)] shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                            class="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                             @click.stop="deleteRunHandler(run._id)"
                         />
 
@@ -63,19 +63,37 @@
                                     class="text-[9px] uppercase font-bold"
                                 />
                             </div>
-                            <i 
-                                v-if="run._id.toString() === batch.chosenRunId?.toString()" 
-                                class="pi pi-check-circle text-[var(--p-primary-color)] text-xl"
-                            ></i>
+                            <div v-if="run._id.toString() === batch.chosenRunId?.toString()" class="flex items-center gap-1 text-[var(--p-primary-color)]">
+                                <i class="pi pi-check-circle text-xl"></i>
+                                <span v-if="batch.status === 'CUT'" class="text-[9px] font-black uppercase tracking-tighter">{{ $t('results.sheetStatus.cut') }}</span>
+                            </div>
                         </div>
 
-                        <div v-if="run.error" class="p-2 bg-[var(--p-content-background)] border border-red-500/20 rounded-lg text-[10px] text-red-500 font-medium leading-relaxed max-h-20 overflow-y-auto custom-scrollbar shadow-inner">
+                        <div v-if="run.error" class="p-2 bg-red-500/5 border border-red-500/10 rounded-lg text-[10px] text-red-500 font-medium leading-relaxed overflow-y-auto custom-scrollbar flex-1">
                             <i class="pi pi-exclamation-circle mr-1"></i>
                             {{ run.error }}
                         </div>
 
-                        <div class="flex items-center justify-between mt-auto">
-                            <span class="text-[10px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-tight">
+                        <div v-else class="flex flex-col gap-2 flex-1">
+                            <div v-if="run.status === 'COMPLETE' || run.status === 'CHOSEN'" class="flex items-center gap-2 text-[var(--p-text-muted-color)]">
+                                <i class="pi pi-clone text-xs"></i>
+                                <span class="text-xs font-bold">{{ run.layoutCount || 0 }} {{ $t('results.sheets') }}</span>
+                            </div>
+                            
+                            <!-- Artifacts for this run -->
+                            <div v-if="(run.status === 'COMPLETE' || run.status === 'CHOSEN') && getRunArtifacts(run._id).length > 0" class="flex flex-wrap gap-1">
+                                <Tag 
+                                    v-for="artifact in getRunArtifacts(run._id)" 
+                                    :key="artifact._id"
+                                    :value="mapArtifactType(artifact.type)"
+                                    :severity="artifact.status === 'READY' ? 'success' : 'secondary'"
+                                    class="text-[7px] px-1 py-0 font-black"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between mt-auto pt-2 border-t border-[var(--p-content-border-color)]">
+                            <span class="text-[9px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-tight">
                                 {{ formatDate(run.createdAt) }}
                             </span>
                             
@@ -84,21 +102,8 @@
                                     :label="$t('batch.chooseRun')"
                                     size="small"
                                     text
-                                    class="p-0 text-[10px] font-bold uppercase"
+                                    class="p-0 text-[10px] font-black uppercase tracking-wider"
                                     @click.stop="chooseRunHandler(run._id)"
-                                />
-                            </div>
-                        </div>
-                        
-                        <!-- Artifacts for this run -->
-                        <div v-if="run.status === 'COMPLETE' && getRunArtifacts(run._id).length > 0" class="mt-1 pt-2 border-t border-[var(--p-content-border-color)]">
-                            <div class="flex flex-wrap gap-1">
-                                <Tag 
-                                    v-for="artifact in getRunArtifacts(run._id)" 
-                                    :key="artifact._id"
-                                    :value="artifact.type.split('_')[1]"
-                                    :severity="artifact.status === 'READY' ? 'success' : 'secondary'"
-                                    class="text-[7px] px-1 py-0"
                                 />
                             </div>
                         </div>
@@ -108,7 +113,7 @@
 
             <!-- Nesting Options Panel -->
             <AccordionTab :header="$t('nesting.settings')">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end py-2">
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 items-end py-2">
                     <div class="flex flex-col gap-2">
                         <label for="toolSelect" class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.tool') }}</label>
                         <Select 
@@ -121,37 +126,58 @@
                             class="w-full"
                         />
                     </div>
+
                     <div class="flex flex-col gap-2">
-                        <label for="plateWidth" class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.plateWidth') }} (mm)</label>
-                        <InputNumber id="plateWidth" v-model="nestingOptions.width" :min="0" class="w-full" />
+                        <label class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.sheetSource') }}</label>
+                        <Select 
+                            v-model="sheetSource"
+                            :options="[
+                                { label: $t('nesting.standard'), value: 'standard' },
+                                { label: $t('nesting.custom'), value: 'custom' }
+                            ]"
+                            optionLabel="label"
+                            optionValue="value"
+                            class="w-full"
+                        />
                     </div>
-                    <div class="flex flex-col gap-2">
-                        <label for="plateHeight" class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.plateHeight') }} (mm)</label>
-                        <InputNumber id="plateHeight" v-model="nestingOptions.height" :min="0" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <label class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.customSheet') }}</label>
-                        <div class="flex gap-2">
-                            <FileUpload 
-                                mode="basic" 
-                                accept=".dxf" 
-                                :auto="true" 
-                                customUpload 
-                                @uploader="handleSheetSelect"
-                                :chooseLabel="selectedSheetFile ? selectedSheetFile.name : $t('common.upload')"
-                                class="flex-1"
-                                :disabled="batch.status !== 'DRAFT'"
-                            />
-                            <Button 
-                                v-if="selectedSheetFile" 
-                                icon="pi pi-times" 
-                                severity="danger" 
-                                text 
-                                @click="clearSheetFile" 
-                                :disabled="batch.status !== 'DRAFT'"
-                            />
+
+                    <template v-if="sheetSource === 'standard'">
+                        <div class="flex flex-col gap-2 animate-in fade-in zoom-in duration-300">
+                            <label for="plateWidth" class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.plateWidth') }} (mm)</label>
+                            <InputNumber id="plateWidth" v-model="nestingOptions.width" :min="0" class="w-full" />
                         </div>
-                    </div>
+                        <div class="flex flex-col gap-2 animate-in fade-in zoom-in duration-300">
+                            <label for="plateHeight" class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.plateHeight') }} (mm)</label>
+                            <InputNumber id="plateHeight" v-model="nestingOptions.height" :min="0" class="w-full" />
+                        </div>
+                    </template>
+
+                    <template v-else>
+                        <div class="flex flex-col gap-2 lg:col-span-2 animate-in fade-in zoom-in duration-300">
+                            <label class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.customSheet') }}</label>
+                            <div class="flex gap-2">
+                                <FileUpload 
+                                    mode="basic" 
+                                    accept=".dxf" 
+                                    :auto="true" 
+                                    customUpload 
+                                    @uploader="handleSheetSelect"
+                                    :chooseLabel="selectedSheetFile ? selectedSheetFile.name : $t('common.upload')"
+                                    class="flex-1"
+                                    :disabled="batch.status !== 'DRAFT'"
+                                />
+                                <Button 
+                                    v-if="selectedSheetFile" 
+                                    icon="pi pi-times" 
+                                    severity="danger" 
+                                    text 
+                                    @click="clearSheetFile" 
+                                    :disabled="batch.status !== 'DRAFT'"
+                                />
+                            </div>
+                        </div>
+                    </template>
+
                     <div>
                         <Button 
                             :label="$t('batches.runNesting')"
@@ -196,24 +222,35 @@
                         <div 
                             v-for="entry in entries" 
                             :key="entry._id"
-                            class="border border-[var(--p-content-border-color)] rounded-lg p-4 bg-[var(--p-content-background)] hover:border-[var(--p-primary-color)] transition-all flex flex-col"
+                            class="border border-[var(--p-content-border-color)] rounded-xl p-4 bg-[var(--p-content-background)] hover:border-[var(--p-primary-color)] transition-all flex flex-col gap-4 shadow-sm group"
                         >
-                            <div class="flex justify-between items-start mb-3 gap-2">
-                                <h3 class="font-bold text-[var(--p-text-color)] truncate text-sm" :title="getCassetteName(entry.cassetteTemplateId)">{{ getCassetteName(entry.cassetteTemplateId) }}</h3>
-                                <Button 
-                                    icon="pi pi-trash"
-                                    severity="danger"
-                                    text
-                                    rounded
-                                    size="small"
-                                    class="h-7 w-7 flex-shrink-0"
-                                    @click="confirmDelete(entry)"
-                                    :disabled="batch.status !== 'DRAFT'"
-                                />
-                            </div>
                             <div class="flex flex-col gap-3">
+                                <div class="flex justify-between items-start gap-2 min-w-0">
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="font-black text-[var(--p-text-color)] truncate text-xs uppercase tracking-tight" :title="getCassetteName(entry.cassetteTemplateId)">{{ getCassetteName(entry.cassetteTemplateId) }}</h3>
+                                        <span class="text-[9px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-widest">{{ entry.entryId }}</span>
+                                    </div>
+                                    <Button 
+                                        icon="pi pi-trash"
+                                        severity="danger"
+                                        text
+                                        rounded
+                                        size="small"
+                                        class="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        @click="confirmDelete(entry)"
+                                        :disabled="batch.status !== 'DRAFT'"
+                                    />
+                                </div>
+
+                                <!-- Thumbnail -->
+                                <div class="h-32 w-full">
+                                    <CassetteThumbnail :cassette-id="entry.cassetteTemplateId" />
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-4 pt-4 border-t border-[var(--p-content-border-color)]">
                                 <div class="flex items-center justify-between gap-4">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--p-text-muted-color)]">{{ $t('batches.quantity') }}</span>
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-[var(--p-text-muted-color)]">{{ $t('batches.quantity') }}</span>
                                     <InputNumber 
                                         v-model="entry.quantity" 
                                         :min="1" 
@@ -225,9 +262,10 @@
                                         @update:model-value="saveBatch"
                                     />
                                 </div>
-                                <div class="grid grid-cols-2 gap-x-4 gap-y-2 pt-2 border-t border-[var(--p-content-border-color)]">
+                                
+                                <div class="grid grid-cols-2 gap-x-3 gap-y-3">
                                     <div v-for="param in getEntryParameters(entry)" :key="param" class="flex flex-col gap-1">
-                                        <span class="text-[9px] font-bold uppercase tracking-tighter text-[var(--p-text-muted-color)]">{{ param }}</span>
+                                        <span class="text-[9px] font-black uppercase tracking-tighter text-[var(--p-text-muted-color)]">{{ param }}</span>
                                         <InputNumber 
                                             v-model="entry.dimensions[param]"
                                             :disabled="batch.status !== 'DRAFT'"
@@ -442,6 +480,7 @@ import ConfirmDialog from 'primevue/confirmdialog';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
+import CassetteThumbnail from './CassetteThumbnail.vue';
 
 const props = defineProps({
     batch: {
@@ -491,6 +530,7 @@ const nestingOptions = ref({
     sheetPolygon: null
 });
 const selectedSheetFile = ref(null);
+const sheetSource = ref('standard'); // 'standard' or 'custom'
 
 const handleSheetSelect = async (event) => {
     if (event.files && event.files.length > 0) {
@@ -572,8 +612,8 @@ const loadBatchData = () => {
 
 const loadArtifacts = async () => {
     try {
-        console.log('[BatchEditor] Loading artifacts for batch:', props.batch._id);
-        await artifactsStore.fetchArtifacts(props.batch._id);
+        console.log('[BatchEditor] Loading artifacts for batch:', props.batch._id, 'run:', selectedRunId.value);
+        await artifactsStore.fetchArtifacts(props.batch._id, selectedRunId.value);
     } catch (error) {
         console.error('[BatchEditor] Failed to load artifacts:', error);
     }
@@ -628,6 +668,24 @@ const getEntryParameters = (entry) => {
 const getRunArtifacts = (runId) => {
     if (!artifacts.value) return [];
     return artifacts.value.filter(a => a.runId?.toString() === runId.toString());
+};
+
+const getRunSheetCount = (runId) => {
+    // This info is stored in nesting_jobs for the run
+    // Since we don't fetch all jobs here, we might need to store layoutCount in the run object itself
+    // Or fetch it. For now, we'll assume it's in run.layoutCount (added by processor)
+    const run = props.batch.runs.find(r => r._id.toString() === runId.toString());
+    return run?.layoutCount || 0;
+};
+
+const mapArtifactType = (type) => {
+    const map = {
+        'LAYOUT_DXF': 'DXF',
+        'LAYOUT_SVG': 'SVG',
+        'PDF_PASSPORT': 'PDF',
+        'NESTING_REPORT': 'REPORT'
+    };
+    return map[type] || type.split('_')[1] || type;
 };
 
 const getStatusSeverity = (status) => {
@@ -786,7 +844,7 @@ const runNesting = async () => {
             width: nestingOptions.value.width,
             height: nestingOptions.value.height,
             toolId: nestingOptions.value.toolId,
-            sheet_polygon: nestingOptions.value.sheetPolygon
+            sheet_polygon: sheetSource.value === 'custom' ? nestingOptions.value.sheetPolygon : null
         };
         await batchesStore.startNesting(props.batch._id, payload);
         toast.add({ severity: 'info', summary: t('batches.nestingStarted'), detail: t('batches.nestingInitiated'), life: 3000 });

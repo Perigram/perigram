@@ -260,6 +260,7 @@ export const useBatchesStore = defineStore('batches', () => {
         resetStatus,
         chooseRun,
         markCut,
+        deleteRun,
         stopPolling
     };
 });

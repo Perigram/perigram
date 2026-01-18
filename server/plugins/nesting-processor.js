@@ -167,7 +167,7 @@ async function processNextJob() {
     // Update placed count
     await db.collection('nesting_jobs').updateOne(
       { _id: job._id },
-      { $set: { placed: totalPlaced, layoutCount: layouts.length } }
+      { $set: { placed: totalPlaced, layoutCount: layouts?.length || 0 } }
     );
 
     // 4. Generate DXF

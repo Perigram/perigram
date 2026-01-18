@@ -234,3 +234,16 @@ export async function remove(id, userId) {
   await repository.deleteById(id);
   return { success: true };
 }
+
+export async function downloadDxf(id, userId) {
+  const cassette = await getById(id, userId);
+  if (!cassette.dxfId) {
+    throw createError({ statusCode: 404, message: 'DXF not found for this cassette' });
+  }
+  
+  const db = await connectDB();
+  const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
+  
+  const downloadStream = bucket.openDownloadStream(cassette.dxfId);
+  return downloadStream;
+}

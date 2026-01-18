@@ -6,7 +6,7 @@ export const useArtifactsStore = defineStore('artifacts', () => {
     const loading = ref(false);
     const error = ref(null);
 
-    async function fetchArtifacts(batchId) {
+    async function fetchArtifacts(batchId, runId = null) {
         loading.value = true;
         error.value = null;
 
@@ -18,7 +18,10 @@ export const useArtifactsStore = defineStore('artifacts', () => {
         }
 
         try {
-            const data = await $fetch(`/api/batch/${batchId}/artifacts`);
+            const url = runId 
+                ? `/api/batch/${batchId}/artifacts?runId=${runId}`
+                : `/api/batch/${batchId}/artifacts`;
+            const data = await $fetch(url);
             artifacts.value = data || [];
         } catch (err) {
             error.value = err.message;

@@ -47,6 +47,89 @@ export async function extractDxfLayers(file) {
 }
 
 /**
+ * Generate detailed SVG data from DXF text
+ * @param {string} dxfText - DXF file content
+ * @param {Object} layerMapping - Optional layer to pen mapping
+ * @param {Object} defaultPen - Default pen
+ * @returns {Object} - SVG data
+ */
+export function generateSvgDataFromText(dxfText, layerMapping = {}, defaultPen = null) {
+  try {
+    const parser = new DxfParser();
+    const dxf = parser.parseSync(dxfText);
+    
+    if (!dxf || !dxf.entities) {
+      throw new Error('Invalid DXF file');
+    }
+    
+    const defaultPenSettings = defaultPen || {
+      stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' }
+    };
+    
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    dxf.entities.forEach(entity => {
+      const checkPoint = (p) => {
+        if (p && p.x !== undefined && p.y !== undefined) {
+          minX = Math.min(minX, p.x);
+          minY = Math.min(minY, p.y);
+          maxX = Math.max(maxX, p.x);
+          maxY = Math.max(maxY, p.y);
+        }
+      };
+      
+      if (entity.vertices) entity.vertices.forEach(checkPoint);
+      if (entity.startPoint) checkPoint(entity.startPoint);
+      if (entity.endPoint) checkPoint(entity.endPoint);
+      if (entity.center && entity.radius) {
+        minX = Math.min(minX, entity.center.x - entity.radius);
+        minY = Math.min(minY, entity.center.y - entity.radius);
+        maxX = Math.max(maxX, entity.center.x + entity.radius);
+        maxY = Math.max(maxY, entity.center.y + entity.radius);
+      }
+    });
+    
+    if (!isFinite(minX)) return null;
+    
+    const width = maxX - minX;
+    const height = maxY - minY;
+    const layers = {};
+    const getStrokeDasharray = (pattern) => pattern === 'DASHED' ? '5,5' : (pattern === 'DOTTED' ? '1,3' : 'none');
+    
+    dxf.entities.forEach(entity => {
+      if (!layers[entity.layer]) {
+        const pen = layerMapping[entity.layer] || defaultPenSettings;
+        layers[entity.layer] = {
+          name: entity.layer,
+          color: pen.stroke?.color || '#000000',
+          weight: pen.stroke?.weight || 0.5,
+          dasharray: getStrokeDasharray(pen.stroke?.pattern),
+          paths: []
+        };
+      }
+      
+      const layer = layers[entity.layer];
+      if (entity.type === 'LINE') {
+        layer.paths.push(`<line x1="${entity.startPoint.x}" y1="${-entity.startPoint.y}" x2="${entity.endPoint.x}" y2="${-entity.endPoint.y}" />`);
+      } else if (entity.type === 'LWPOLYLINE' || entity.type === 'POLYLINE') {
+        const points = entity.vertices.map(v => `${v.x},${-v.y}`).join(' ');
+        layer.paths.push(`<polyline points="${points}" fill="none" />`);
+      } else if (entity.type === 'CIRCLE') {
+        layer.paths.push(`<circle cx="${entity.center.x}" cy="${-entity.center.y}" r="${entity.radius}" fill="none" />`);
+      }
+    });
+    
+    return {
+      viewBox: `${minX} ${-maxY} ${width} ${height}`,
+      layers: Object.values(layers)
+    };
+  } catch (e) {
+    console.error('generateSvgDataFromText error:', e);
+    return null;
+  }
+}
+
+/**
  * Generate detailed SVG data from DXF file
  * @param {File} file - DXF file object
  * @param {Object} layerMapping - Optional layer to pen mapping { layerName: penTemplate }
