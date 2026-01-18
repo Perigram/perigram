@@ -47,13 +47,13 @@ export async function extractDxfLayers(file) {
 }
 
 /**
- * Generate SVG preview from DXF file
+ * Generate detailed SVG data from DXF file
  * @param {File} file - DXF file object
  * @param {Object} layerMapping - Optional layer to pen mapping { layerName: penTemplate }
  * @param {Object} defaultPen - Default pen for unmapped layers
- * @returns {Promise<string>} - SVG string
+ * @returns {Promise<Object>} - Object with viewbox, and layers with paths
  */
-export async function generateSvgPreview(file, layerMapping = {}, defaultPen = null) {
+export async function generateSvgData(file, layerMapping = {}, defaultPen = null) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -68,7 +68,6 @@ export async function generateSvgPreview(file, layerMapping = {}, defaultPen = n
           return;
         }
         
-        // Default pen settings
         const defaultPenSettings = defaultPen || {
           stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' }
         };
@@ -77,29 +76,19 @@ export async function generateSvgPreview(file, layerMapping = {}, defaultPen = n
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         
         dxf.entities.forEach(entity => {
-          if (entity.vertices) {
-            entity.vertices.forEach(v => {
-              if (v && v.x !== undefined && v.y !== undefined) {
-                minX = Math.min(minX, v.x);
-                minY = Math.min(minY, v.y);
-                maxX = Math.max(maxX, v.x);
-                maxY = Math.max(maxY, v.y);
-              }
-            });
-          }
-          if (entity.startPoint && entity.startPoint.x !== undefined) {
-            minX = Math.min(minX, entity.startPoint.x);
-            minY = Math.min(minY, entity.startPoint.y);
-            maxX = Math.max(maxX, entity.startPoint.x);
-            maxY = Math.max(maxY, entity.startPoint.y);
-          }
-          if (entity.endPoint && entity.endPoint.x !== undefined) {
-            minX = Math.min(minX, entity.endPoint.x);
-            minY = Math.min(minY, entity.endPoint.y);
-            maxX = Math.max(maxX, entity.endPoint.x);
-            maxY = Math.max(maxY, entity.endPoint.y);
-          }
-          if (entity.center && entity.center.x !== undefined && entity.radius) {
+          const checkPoint = (p) => {
+            if (p && p.x !== undefined && p.y !== undefined) {
+              minX = Math.min(minX, p.x);
+              minY = Math.min(minY, p.y);
+              maxX = Math.max(maxX, p.x);
+              maxY = Math.max(maxY, p.y);
+            }
+          };
+          
+          if (entity.vertices) entity.vertices.forEach(checkPoint);
+          if (entity.startPoint) checkPoint(entity.startPoint);
+          if (entity.endPoint) checkPoint(entity.endPoint);
+          if (entity.center && entity.radius) {
             minX = Math.min(minX, entity.center.x - entity.radius);
             minY = Math.min(minY, entity.center.y - entity.radius);
             maxX = Math.max(maxX, entity.center.x + entity.radius);
@@ -107,7 +96,6 @@ export async function generateSvgPreview(file, layerMapping = {}, defaultPen = n
           }
         });
         
-        // Check if we got valid bounds
         if (!isFinite(minX) || !isFinite(maxX)) {
           reject(new Error('Could not determine DXF bounds'));
           return;
@@ -115,92 +103,77 @@ export async function generateSvgPreview(file, layerMapping = {}, defaultPen = n
         
         const width = maxX - minX;
         const height = maxY - minY;
-        const padding = Math.max(width, height) * 0.1;
         
-        // Helper to get pen for layer
-        const getPenForLayer = (layerName) => {
-          const pen = layerMapping[layerName];
-          return pen || defaultPenSettings;
-        };
+        const layers = {};
         
-        // Helper to convert pen pattern to SVG stroke-dasharray
+        const getPenForLayer = (layerName) => layerMapping[layerName] || defaultPenSettings;
         const getStrokeDasharray = (pattern) => {
-          if (pattern === 'DASHED') return '55';
-          if (pattern === 'DOTTED') return '13';
+          if (pattern === 'DASHED') return '5,5';
+          if (pattern === 'DOTTED') return '1,3';
           return 'none';
         };
         
-        // Generate SVG paths grouped by layer
-        let paths = '';
-        console.log('[dxfParser] Generating SVG with layerMapping keys:', Object.keys(layerMapping));
-        console.log('[dxfParser] layerMapping full:', layerMapping);
-        console.log('[dxfParser] Default pen:', defaultPenSettings);
-        
-        // Sample first entity layer for debugging
-        if (dxf.entities.length > 0) {
-          console.log('[dxfParser] First entity layer name:', JSON.stringify(dxf.entities[0].layer));
-          console.log('[dxfParser] First mapping key:', JSON.stringify(Object.keys(layerMapping)[0]));
-        }
-        
         dxf.entities.forEach(entity => {
-          try {
+          if (!layers[entity.layer]) {
             const pen = getPenForLayer(entity.layer);
-            const color = pen.stroke?.color || '#000000';
-            const weight = pen.stroke?.weight * 10 || 0.5;
-            const dasharray = getStrokeDasharray(pen.stroke?.pattern || 'SOLID');
-            const strokeAttrs = `stroke="${color}" stroke-width="${weight}" stroke-dasharray="${dasharray}"`;
-            
-            // Log mapped layers specifically
-            if (layerMapping[entity.layer]) {
-              console.log(`[dxfParser] MAPPED layer "${entity.layer}": pen=`, pen, `color=${color}, weight=${weight}`);
-            }
-            
-            if (entity.type === 'LINE' && entity.startPoint && entity.endPoint) {
-              paths += `<line x1="${entity.startPoint.x}" y1="${-entity.startPoint.y}" x2="${entity.endPoint.x}" y2="${-entity.endPoint.y}" ${strokeAttrs} />`;
-            } else if ((entity.type === 'LWPOLYLINE' || entity.type === 'POLYLINE') && entity.vertices) {
-              const points = entity.vertices
-                .filter(v => v && v.x !== undefined && v.y !== undefined)
-                .map(v => `${v.x},${-v.y}`)
-                .join(' ');
-              if (points) {
-                paths += `<polyline points="${points}" ${strokeAttrs} fill="none" />`;
-              }
-            } else if (entity.type === 'CIRCLE' && entity.center && entity.radius) {
-              paths += `<circle cx="${entity.center.x}" cy="${-entity.center.y}" r="${entity.radius}" ${strokeAttrs} fill="none" />`;
-            } else if (entity.type === 'ARC' && entity.center && entity.radius && entity.startAngle !== undefined && entity.endAngle !== undefined) {
-              // Simplified arc rendering
-              const startAngle = entity.startAngle * Math.PI / 180;
-              const endAngle = entity.endAngle * Math.PI / 180;
-              const x1 = entity.center.x + entity.radius * Math.cos(startAngle);
-              const y1 = entity.center.y + entity.radius * Math.sin(startAngle);
-              const x2 = entity.center.x + entity.radius * Math.cos(endAngle);
-              const y2 = entity.center.y + entity.radius * Math.sin(endAngle);
-              const largeArc = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
-              paths += `<path d="M ${x1} ${-y1} A ${entity.radius} ${entity.radius} 0 ${largeArc} 1 ${x2} ${-y2}" ${strokeAttrs} fill="none" />`;
-            }
-          } catch (err) {
-            // Skip entities that fail to render
-            console.warn('Failed to render entity:', entity.type, err);
+            layers[entity.layer] = {
+              name: entity.layer,
+              color: pen.stroke?.color || '#000000',
+              weight: pen.stroke?.weight || 0.5,
+              pattern: pen.stroke?.pattern || 'SOLID',
+              dasharray: getStrokeDasharray(pen.stroke?.pattern || 'SOLID'),
+              paths: []
+            };
+          }
+          
+          const layer = layers[entity.layer];
+          
+          if (entity.type === 'LINE' && entity.startPoint && entity.endPoint) {
+            layer.paths.push(`<line x1="${entity.startPoint.x}" y1="${-entity.startPoint.y}" x2="${entity.endPoint.x}" y2="${-entity.endPoint.y}" />`);
+          } else if ((entity.type === 'LWPOLYLINE' || entity.type === 'POLYLINE') && entity.vertices) {
+            const points = entity.vertices.map(v => `${v.x},${-v.y}`).join(' ');
+            layer.paths.push(`<polyline points="${points}" fill="none" ${entity.shape ? '' : ''} />`);
+          } else if (entity.type === 'CIRCLE' && entity.center && entity.radius) {
+            layer.paths.push(`<circle cx="${entity.center.x}" cy="${-entity.center.y}" r="${entity.radius}" fill="none" />`);
+          } else if (entity.type === 'ARC' && entity.center && entity.radius) {
+            const startAngle = entity.startAngle * Math.PI / 180;
+            const endAngle = entity.endAngle * Math.PI / 180;
+            const x1 = entity.center.x + entity.radius * Math.cos(startAngle);
+            const y1 = entity.center.y + entity.radius * Math.sin(startAngle);
+            const x2 = entity.center.x + entity.radius * Math.cos(endAngle);
+            const y2 = entity.center.y + entity.radius * Math.sin(endAngle);
+            const largeArc = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
+            layer.paths.push(`<path d="M ${x1} ${-y1} A ${entity.radius} ${entity.radius} 0 ${largeArc} 1 ${x2} ${-y2}" fill="none" />`);
           }
         });
         
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX - padding} ${-(maxY + padding)} ${width + 2 * padding} ${height + 2 * padding}" width="100%" height="100%">
-          <rect width="100%" height="100%" fill="white"/>
-          ${paths}
-        </svg>`;
-        
-        resolve(svg);
+        resolve({
+          viewBox: `${minX} ${-maxY} ${width} ${height}`,
+          minX, minY, maxX, maxY, width, height,
+          layers: Object.values(layers)
+        });
       } catch (error) {
-        reject(new Error(`Failed to generate SVG: ${error.message}`));
+        reject(error);
       }
     };
-    
-    reader.onerror = () => {
-      reject(new Error('Failed to read file'));
-    };
-    
     reader.readAsText(file);
   });
+}
+
+/**
+ * Generate SVG preview from DXF file (legacy support)
+ */
+export async function generateSvgPreview(file, layerMapping = {}, defaultPen = null) {
+  const data = await generateSvgData(file, layerMapping, defaultPen);
+  const paths = data.layers.map(l => {
+    const strokeAttrs = `stroke="${l.color}" stroke-width="${l.weight * 10}" stroke-dasharray="${l.dasharray}"`;
+    return `<g ${strokeAttrs}>${l.paths.join('')}</g>`;
+  }).join('');
+  
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${data.viewBox}" width="100%" height="100%">
+    <rect width="100%" height="100%" fill="white"/>
+    ${paths}
+  </svg>`;
 }
 
 /**

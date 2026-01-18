@@ -68,10 +68,10 @@ async function processNextJob() {
         throw new Error(`Cassette ${file.cassetteId} not found`);
       }
 
-      const polygonParts = cassette.polygonParts;
+      const polygonParts = cassette.polygonParts || [];
 
       // Handle fallback (copied logic from main.py)
-      if (polygonParts && polygonParts.length > 0) {
+      if (polygonParts.length > 0) {
         for (const part of polygonParts) {
            items.push({
              id: idCounter++,

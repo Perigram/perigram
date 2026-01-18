@@ -194,3 +194,32 @@ export async function chooseRun(id, runId, userId) {
   await repository.setChosenRun(id, runId);
   return await repository.findById(id);
 }
+
+export async function removeRun(id, runId, userId) {
+  const batch = await getById(id, userId);
+  const run = (batch.runs || []).find(item => item._id?.toString() === runId.toString());
+  if (!run) {
+    throw createError({ statusCode: 404, message: 'Run not found' });
+  }
+  
+  if (run.status === 'NESTING') {
+    throw createError({ statusCode: 400, message: 'Cannot delete run in progress' });
+  }
+  
+  await repository.pullRun(id, runId);
+  
+  // If this was the chosen run, unset it
+  if (batch.chosenRunId?.toString() === runId.toString()) {
+    await repository.updateById(id, { chosenRunId: null });
+  }
+  
+  // Also delete associated artifacts
+  const { connectDB } = await import('../../db/mongo.js');
+  const db = await connectDB();
+  await db.collection('artifacts').deleteMany({
+    batchId: new ObjectId(id),
+    runId: new ObjectId(runId)
+  });
+  
+  return await repository.findById(id);
+}

@@ -176,3 +176,15 @@ export async function setChosenRun(id, runId) {
   );
   return result.modifiedCount > 0;
 }
+
+export async function pullRun(id, runId) {
+  const db = await connectDB();
+  const result = await db.collection(COLLECTION).updateOne(
+    { _id: toObjectId(id) },
+    {
+      $pull: { runs: { _id: toObjectId(runId) } },
+      $set: { updatedAt: new Date() }
+    }
+  );
+  return result.modifiedCount > 0;
+}

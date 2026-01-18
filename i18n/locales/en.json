@@ -493,7 +493,9 @@
     "chooseRunFailed": "Failed to choose run",
     "updated": "Updated",
     "gridView": "Grid View",
-    "tableView": "Table View"
+    "tableView": "Table View",
+    "runDeleted": "Run deleted successfully",
+    "confirmDeleteRun": "Are you sure you want to delete this nesting run? All associated artifacts will also be deleted."
   },
   "batches": {
     "entries": "entries",

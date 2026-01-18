@@ -33,9 +33,9 @@
                         v-for="run in batch.runs" 
                         :key="run._id"
                         :class="[
-                            'p-4 border-2 rounded-lg transition-all cursor-pointer flex flex-col',
+                            'p-4 border-2 rounded-xl transition-all cursor-pointer flex flex-col gap-3 group relative',
                             run._id.toString() === batch.chosenRunId?.toString() 
-                                ? 'border-[var(--p-primary-color)] bg-[var(--p-primary-50)] shadow-md' 
+                                ? 'border-[var(--p-primary-color)] shadow-md' 
                                 : 'border-[var(--p-content-border-color)] bg-[var(--p-content-background)] hover:border-[var(--p-primary-300)]',
                             run._id.toString() === selectedRunId 
                                 ? 'ring-2 ring-[var(--p-primary-color)] ring-offset-2' 
@@ -43,13 +43,24 @@
                         ]"
                         @click="selectedRunId = run._id.toString()"
                     >
-                        <div class="flex items-start justify-between gap-2 mb-3">
+                        <!-- Delete button on hover -->
+                        <Button 
+                            icon="pi pi-times" 
+                            severity="danger" 
+                            text 
+                            rounded 
+                            size="small"
+                            class="absolute -top-2 -right-2 h-7 w-7 bg-[var(--p-content-background)] shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                            @click.stop="deleteRunHandler(run._id)"
+                        />
+
+                        <div class="flex items-start justify-between gap-2">
                             <div class="flex items-center gap-2">
-                                <span class="text-lg font-bold text-[var(--p-text-color)]">#{{ run.runNumber }}</span>
+                                <span class="text-lg font-black text-[var(--p-text-color)]">#{{ run.runNumber }}</span>
                                 <Tag 
                                     :value="$t(`batch.runStatus.${run.status}`)" 
                                     :severity="getRunStatusSeverity(run.status)"
-                                    class="text-[10px] uppercase"
+                                    class="text-[9px] uppercase font-bold"
                                 />
                             </div>
                             <i 
@@ -58,34 +69,36 @@
                             ></i>
                         </div>
 
-                        <div v-if="run.error" class="mb-3 p-2 bg-red-500/10 border border-red-500/20 rounded text-[10px] text-red-600 font-medium leading-relaxed max-h-24 overflow-y-auto custom-scrollbar">
+                        <div v-if="run.error" class="p-2 bg-[var(--p-content-background)] border border-red-500/20 rounded-lg text-[10px] text-red-500 font-medium leading-relaxed max-h-20 overflow-y-auto custom-scrollbar shadow-inner">
                             <i class="pi pi-exclamation-circle mr-1"></i>
                             {{ run.error }}
                         </div>
 
-                        <div class="text-xs text-[var(--p-text-muted-color)] space-y-1 mt-auto">
-                            <div>{{ $t('batch.created') }}: {{ formatDate(run.createdAt) }}</div>
-                        </div>
-                        <div v-if="run.status === 'COMPLETE' && run._id.toString() !== batch.chosenRunId?.toString()" class="mt-3">
-                            <Button 
-                                :label="$t('batch.chooseRun')"
-                                size="small"
-                                outlined
-                                class="w-full"
-                                @click.stop="chooseRunHandler(run._id)"
-                            />
+                        <div class="flex items-center justify-between mt-auto">
+                            <span class="text-[10px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-tight">
+                                {{ formatDate(run.createdAt) }}
+                            </span>
+                            
+                            <div v-if="run.status === 'COMPLETE' && run._id.toString() !== batch.chosenRunId?.toString()">
+                                <Button 
+                                    :label="$t('batch.chooseRun')"
+                                    size="small"
+                                    text
+                                    class="p-0 text-[10px] font-bold uppercase"
+                                    @click.stop="chooseRunHandler(run._id)"
+                                />
+                            </div>
                         </div>
                         
                         <!-- Artifacts for this run -->
-                        <div v-if="run.status === 'COMPLETE' && getRunArtifacts(run._id).length > 0" class="mt-3 pt-3 border-t border-[var(--p-content-border-color)]">
-                            <div class="text-xs font-medium text-[var(--p-text-muted-color)] mb-2">{{ $t('batch.artifacts') }}: {{ getRunArtifacts(run._id).length }}</div>
+                        <div v-if="run.status === 'COMPLETE' && getRunArtifacts(run._id).length > 0" class="mt-1 pt-2 border-t border-[var(--p-content-border-color)]">
                             <div class="flex flex-wrap gap-1">
                                 <Tag 
                                     v-for="artifact in getRunArtifacts(run._id)" 
                                     :key="artifact._id"
                                     :value="artifact.type.split('_')[1]"
                                     :severity="artifact.status === 'READY' ? 'success' : 'secondary'"
-                                    class="text-[8px]"
+                                    class="text-[7px] px-1 py-0"
                                 />
                             </div>
                         </div>
@@ -348,8 +361,8 @@
             </AccordionTab>
 
             <!-- Artifacts Panel -->
-            <AccordionTab v-if="batch.status !== 'FAILED' && artifacts?.length > 0" :header="$t('batches.artifacts')">
-                <ArtifactsTable :batch-id="batch._id" :batch="batch" />
+            <AccordionTab v-if="selectedRunId && filteredArtifactsBySelectedRun.length > 0" :header="$t('batches.artifacts')">
+                <ArtifactsTable :batch-id="batch._id" :batch="batch" :run-id="selectedRunId" />
             </AccordionTab>
         </Accordion>
 
@@ -465,6 +478,12 @@ const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
 const selectedRunId = ref(null);
 
+const filteredArtifactsBySelectedRun = computed(() => {
+    if (!selectedRunId.value) return [];
+    if (!artifacts.value) return [];
+    return artifacts.value.filter(a => a.runId?.toString() === selectedRunId.value);
+});
+
 const nestingOptions = ref({
     width: 2440,
     height: 1220,
@@ -541,6 +560,10 @@ onUnmounted(() => {
 watch(() => props.batch, () => {
     loadBatchData();
 }, { deep: true });
+
+watch(selectedRunId, () => {
+    loadArtifacts();
+});
 
 const loadBatchData = () => {
     entries.value = [...(props.batch.entries || [])];
@@ -831,6 +854,27 @@ const markCutHandler = async () => {
             } catch (error) {
                 console.error('Failed to mark as cut:', error);
                 toast.add({ severity: 'error', summary: t('common.error'), detail: t('batch.markCutFailed'), life: 3000 });
+            }
+        }
+    });
+};
+
+const deleteRunHandler = async (runId) => {
+    confirm.require({
+        message: t('batch.confirmDeleteRun'),
+        header: t('common.confirmation'),
+        icon: 'pi pi-trash',
+        accept: async () => {
+            try {
+                await batchesStore.deleteRun(props.batch._id, runId);
+                if (selectedRunId.value === runId.toString()) {
+                    selectedRunId.value = null;
+                }
+                toast.add({ severity: 'success', summary: t('common.success'), detail: t('batch.runDeleted'), life: 3000 });
+                emit('updated');
+            } catch (error) {
+                console.error('Failed to delete run:', error);
+                toast.add({ severity: 'error', summary: t('common.error'), detail: t('batch.deleteRunFailed'), life: 3000 });
             }
         }
     });

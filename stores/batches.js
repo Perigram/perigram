@@ -203,6 +203,27 @@ export const useBatchesStore = defineStore('batches', () => {
         }
     }
 
+    async function deleteRun(batchId, runId) {
+        try {
+            const updatedBatch = await $fetch(`/api/batch/${batchId}/run/${runId}`, {
+                method: 'DELETE'
+            });
+            
+            const index = batches.value.findIndex(b => b._id === batchId);
+            if (index !== -1) {
+                batches.value[index] = updatedBatch;
+            }
+            if (currentBatch.value?._id === batchId) {
+                currentBatch.value = updatedBatch;
+            }
+            
+            return updatedBatch;
+        } catch (err) {
+            error.value = err.message;
+            throw err;
+        }
+    }
+
     async function markCut(batchId) {
         try {
             const result = await $fetch(`/api/batch/${batchId}/mark-cut`, {
