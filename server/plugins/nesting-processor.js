@@ -204,7 +204,8 @@ async function processNextJob() {
     
         console.log('Using DXF generation script at:', scriptPath);
         
-        // We need to run this in a Promise wrapping spawn    const generatedFiles = await new Promise((resolve, reject) => {
+        // We need to run this in a Promise wrapping spawn
+        const generatedFiles = await new Promise((resolve, reject) => {
       const py = spawn('python3', [
         scriptPath,
         '--transforms', transformsPath,
@@ -283,6 +284,12 @@ async function processNextJob() {
         }
       }
     );
+    
+    // Update Batch Run Status to COMPLETE
+    await db.collection('batches').updateOne(
+      { _id: job.batchId, "runs._id": job.runId },
+      { $set: { "runs.$.status": "COMPLETE", "runs.$.updatedAt": new Date() } }
+    );
 
     // Update Artifacts
     if (fileIds.length > 0) {
@@ -317,6 +324,14 @@ async function processNextJob() {
         }
       }
     );
+    
+    // Update Batch Run Status to ERROR
+    if (job.batchId && job.runId) {
+        await db.collection('batches').updateOne(
+          { _id: job.batchId, "runs._id": job.runId },
+          { $set: { "runs.$.status": "ERROR", "runs.$.error": error.message, "runs.$.updatedAt": new Date() } }
+        );
+    }
 
     // Update batch status to DRAFT? Or leave as is?
     // BatchService should handle this?
