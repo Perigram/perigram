@@ -1,3 +1,27 @@
+* DONE Quckfix list 
+  CLOSED: [2026-01-18]
+  - [x] Need error transfer from worker to batch/run along with status update (now only status is updated, no error message)
+  - [x] Chosen run is displayed in primary bg which is not good for visibility; need border or different highlight
+  - [x] In batch table, fix parameters layout, they flow outside of card
+  - [x] Need proper state machine for batch and runs; now batch displays "revert to draft" when is already draft, etc. Can use xstate or simple library for that, or implement own simple solution
+  - [x] For failed runs, no artifacts needed. Not in batch, not in run details. Just error message.
+  - [x] Artifacts preview needs to be opened on click on card/item
+  - [x] dxf artifacts should have dxf extension in name
+  - [x] Why cassette faces are in "HOLE" layer? It should be "FACE" layer, and it's on cassette baking side probably; and in generating artifacts it should be mapped procedurally according to layer standards, not hardcoded. You didn't understand, there is no "boundary and holes", there is boundary layer (1_3_UNFOLD_BOUNDARY) and other layers (1_1_FACE, 2_2_HOLE, etc) which all are placed according to layer standards; need to check cassette baking first.
+  - [x] No pens applied in artifacts; need to check pen templates usage in cassette baking and in artifact generation; probably no pens associated by default in layer standards. Need to check system of layer standards and pen templates in general, and their usage in parametric cassettes baking and nesting artifacts generation.
+  - [x] Artifacts to generate need to be selectable in batch: dxf by default; pdf optional with template selection.
+  - [x] Don't see custom sheets uploaded in UI used in nesting; need to check worker input generation with sheets data from batch.
+*** Agent Notes
+    [2026-01-18] Quickfix batch completed
+    - Fixed error propagation from worker to UI runs panel.
+    - Improved UI for chosen runs (border + shadow) and grid view layout (2-column params).
+    - Refined batch state machine (Reset to Draft logic).
+    - Fixed parametric baking to use '1_1_FACE' and store 'layerData' for procedural artifact generation.
+    - Improved DXF styling with ACI colors and linetype support.
+    - Added '.dxf' extensions to layout artifacts.
+    - Enabled artifact preview on item click and filtered out artifacts for failed runs.
+    - Added support for custom sheet polygons in nesting job parameters.
+
 * DONE Check layers and pens standards usage in nesting and artifacts
   CLOSED: [2026-01-18]
   There should be system standards for both; for layers there should be a pen assigned; can be overridden in library. User-defined layer names with mapping to standard ones. Cassette uses standard layers internally, in artifacts user overrides are used.

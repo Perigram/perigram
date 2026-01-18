@@ -94,7 +94,8 @@ export default defineEventHandler(async (event) => {
     height: body.materialHeight || body.height || 2440,
     width: body.materialWidth || body.width || 1220,
     space: body.spacing || body.space || 5,
-    sheetCount: body.maxSheets || 10
+    sheetCount: body.maxSheets || 10,
+    sheet_polygon: body.sheetPolygon || null
   };
   
   // Create nesting job (generic schema, works for both standard and baked)
@@ -127,15 +128,18 @@ export default defineEventHandler(async (event) => {
   // Create placeholder artifacts
   const artifactTypes = ['LAYOUT_SVG', 'LAYOUT_DXF', 'PDF_PASSPORT', 'NESTING_REPORT'];
   const artifacts = await Promise.all(
-    artifactTypes.map(type => 
-      artifactService.create({
+    artifactTypes.map(type => {
+      let name = `${batch.name} - ${type}`;
+      if (type === 'LAYOUT_DXF') name += '.dxf';
+      
+      return artifactService.create({
         type,
         batchId: batch._id,
         runId,
-        name: `${batch.name} - ${type}`,
+        name,
         generatedBy: nestingSlug
-      })
-    )
+      });
+    })
   );
   
   return {

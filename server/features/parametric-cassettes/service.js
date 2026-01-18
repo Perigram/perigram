@@ -43,7 +43,7 @@ async function getEngine() {
 /**
  * Robust AC1015 DXF Generator for polygons
  */
-export function generateSimpleDxf(polygons, nestingLayer = '1_3_UNFOLD_BOUNDARY', internalLayer = '2_2_HOLE') {
+export function generateSimpleDxf(polygons, nestingLayer = '1_3_UNFOLD_BOUNDARY', internalLayer = '1_1_FACE') {
   let lines = [];
 
   const add = (code, value) => {
@@ -310,7 +310,12 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
   if (existing) return existing;
 
   const { polygons, dimensions: evalDims } = await evaluateTemplate(cassetteId, dimensions);
-  const dxfContent = generateSimpleDxf(polygons);
+  
+  // Default layers from standards
+  const nestingLayer = '1_3_UNFOLD_BOUNDARY';
+  const internalLayer = '1_1_FACE';
+  
+  const dxfContent = generateSimpleDxf(polygons, nestingLayer, internalLayer);
   
   const db = await connectDB();
   const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
@@ -330,6 +335,13 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
   
   // ONLY use the largest polygon for nesting to avoid duplicate items
   const nestingPolygons = [polygons[0]];
+  
+  // Store all polygons with their target layers in layerData for artifacts generation
+  const layerData = polygons.map((p, idx) => ({
+    layer: idx === 0 ? nestingLayer : internalLayer,
+    coordinates: p.coordinates,
+    handles: [(256 + idx).toString(16).toUpperCase()]
+  }));
 
   const bakedData = {
     name: `${template.name} (${evalDims.A}x${evalDims.B})`,
@@ -341,6 +353,7 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
       coordinates: p.coordinates,
       handles: [(256 + i).toString(16).toUpperCase()]
     })),
+    layerData: layerData, // Added layerData for better procedural placement
     metadata: {
       originalCassetteId: new ObjectId(cassetteId),
       dimensions: evalDims

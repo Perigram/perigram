@@ -11,8 +11,9 @@
     </div>
 
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      <div v-for="artifact in artifacts" :key="artifact._id" 
-        class="flex flex-col gap-3 p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl hover:border-[var(--p-primary-color)] transition-all group"
+      <div v-for="artifact in filteredArtifacts" :key="artifact._id" 
+        class="flex flex-col gap-3 p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl hover:border-[var(--p-primary-color)] transition-all group cursor-pointer"
+        @click="onArtifactClick(artifact)"
       >
         <div class="flex justify-between items-start gap-2">
           <span class="font-bold text-[var(--p-text-color)] truncate flex-1" :title="artifact.name">{{ artifact.name }}</span>
@@ -20,7 +21,7 @@
         </div>
         
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 flex items-center justify-center bg-[var(--p-primary-50)] text-[var(--p-primary-color)] rounded-lg">
+          <div class="w-10 h-10 flex items-center justify-center bg-[var(--p-primary-50)] text-[var(--p-primary-color)] rounded-lg group-hover:bg-[var(--p-primary-color)] group-hover:text-white transition-colors">
             <i class="pi pi-file text-lg"></i>
           </div>
           <div class="flex flex-col min-w-0">
@@ -37,7 +38,7 @@
             rounded
             size="small"
             v-tooltip.top="$t('common.actions.download')"
-            @click="downloadArtifact(artifact)" 
+            @click.stop="downloadArtifact(artifact)" 
           />
           <Button 
             v-if="artifact.status === 'READY' && isPreviewable(artifact.mimeType)"
@@ -46,7 +47,7 @@
             rounded
             size="small"
             v-tooltip.top="$t('common.actions.preview')"
-            @click="previewArtifact(artifact)"
+            @click.stop="previewArtifact(artifact)"
           />
           <Button 
             icon="pi pi-trash" 
@@ -55,7 +56,7 @@
             rounded
             size="small"
             v-tooltip.top="$t('common.actions.delete')"
-            @click="confirmDelete(artifact)" 
+            @click.stop="confirmDelete(artifact)" 
           />
         </div>
       </div>
@@ -119,6 +120,10 @@ const props = defineProps({
   batchId: {
     type: String,
     required: true
+  },
+  batch: {
+    type: Object,
+    default: null
   }
 });
 
@@ -148,6 +153,18 @@ onMounted(() => {
   artifactsStore.fetchArtifacts(props.batchId);
 });
 
+// Filter out artifacts for failed runs
+const filteredArtifacts = computed(() => {
+  if (!artifacts.value) return [];
+  if (!props.batch?.runs) return artifacts.value;
+  
+  const failedRunIds = props.batch.runs
+    .filter(r => r.status === 'ERROR')
+    .map(r => r._id.toString());
+    
+  return artifacts.value.filter(a => !a.runId || !failedRunIds.includes(a.runId.toString()));
+});
+
 const getStatusSeverity = (status) => {
   switch (status) {
     case 'READY': return 'success';
@@ -161,6 +178,12 @@ const isPreviewable = (mimeType) => {
   return mimeType === 'image/svg+xml' || 
          mimeType?.startsWith('image/') || 
          mimeType === 'application/dxf';
+};
+
+const onArtifactClick = (artifact) => {
+  if (artifact.status === 'READY' && isPreviewable(artifact.mimeType)) {
+    previewArtifact(artifact);
+  }
 };
 
 const downloadArtifact = (artifact) => {

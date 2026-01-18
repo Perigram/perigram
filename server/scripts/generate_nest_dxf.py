@@ -48,6 +48,20 @@ def read_dxf_from_gridfs(bucket, file_id, cache):
         logger.error(f"Error reading DXF {file_id}: {e}")
         raise
 
+def hex_to_aci(hex_color):
+    # Very simple mapping for common colors to AutoCAD Color Index (ACI)
+    hex_color = hex_color.upper().lstrip('#')
+    if hex_color == 'FF0000': return 1 # Red
+    if hex_color == 'FFFF00': return 2 # Yellow
+    if hex_color == '00FF00': return 3 # Green
+    if hex_color == '00FFFF': return 4 # Cyan
+    if hex_color == '0000FF': return 5 # Blue
+    if hex_color == 'FF00FF': return 6 # Magenta
+    if hex_color == 'FFFFFF': return 7 # White
+    if hex_color == '000000': return 7 # Black (on white bg) or white (on black bg)
+    if hex_color == '808080': return 8 # Gray
+    return 7 # Default White/Black
+
 def process_transforms(transforms_data, output_dir, slug, mongo_client):
     db = mongo_client.get_default_database()
     cassettes_collection = db["cassettes"]
@@ -70,17 +84,6 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client):
         logger.info(f"Processing container {container_id} with {len(transforms)} items")
         
         new_doc = ezdxf.new()
-        new_msp = new_doc.modelspace()
-        
-        # Add sheet boundary
-        if sheet_w > 0 and sheet_h > 0:
-            if "SHEET" not in new_doc.layers:
-                l = new_doc.layers.new("SHEET")
-                l.rgb = (128, 128, 128) # Gray
-                l.dxf.lineweight = 15 # 0.15mm
-            
-            # Draw rectangle
-            new_msp.add_lwpolyline([(0, 0), (sheet_w, 0), (sheet_w, sheet_h), (0, sheet_h)], close=True, dxfattribs={'layer': 'SHEET'})
         
         # Pre-create standard layers with styles
         for code, std in layer_standards.items():
@@ -92,91 +95,42 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client):
                 l = new_doc.layers.new(layer_name)
                 if pen:
                     stroke = pen.get("stroke", {})
-                    color_hex = stroke.get("color", "#FFFFFF").lstrip("#")
-                    if len(color_hex) == 6:
-                        rgb = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
+                    color_hex = stroke.get("color", "#FFFFFF")
+                    l.color = hex_to_aci(color_hex)
+                    
+                    # Set TrueColor if possible
+                    clean_hex = color_hex.lstrip("#")
+                    if len(clean_hex) == 6:
+                        rgb = tuple(int(clean_hex[i:i+2], 16) for i in (0, 2, 4))
                         l.rgb = rgb
                     
                     weight = stroke.get("weight", 0.25)
+                    # AutoCAD weight is in mm * 100
+                    # Standard weights: 0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106, 120, 140, 158, 200, 211
                     l.dxf.lineweight = int(weight * 100)
                     
-                    pattern = stroke.get("pattern", "SOLID")
+                    pattern = stroke.get("pattern", "SOLID").upper()
                     if pattern == "DASHED":
+                        if "DASHED" not in new_doc.linetypes:
+                            new_doc.linetypes.new("DASHED", dxfattribs={"description": "Dashed", "pattern": [10.0, 5.0, -5.0]})
                         l.dxf.linetype = "DASHED"
                     elif pattern == "DOTTED":
+                        if "DOTTED" not in new_doc.linetypes:
+                            new_doc.linetypes.new("DOTTED", dxfattribs={"description": "Dotted", "pattern": [0.0, 5.0, -5.0]})
                         l.dxf.linetype = "DOTTED"
 
-        for transform in transforms:
-            cassette_id_str = transform.get("cassette_id")
-            cassette_id = ObjectId(cassette_id_str)
-            
-            cassette = cassettes_collection.find_one({"_id": cassette_id})
-            if not cassette:
-                cassette = baked_cassettes_collection.find_one({"_id": cassette_id})
-                
-            if not cassette:
-                logger.error(f"Cassette {cassette_id} not found")
-                continue
-                
-            dxf_id = cassette.get("dxfId")
-            if not dxf_id:
-                 continue
-                 
-            source_doc = read_dxf_from_gridfs(cassettes_bucket, dxf_id, doc_cache)
-            layer_mapping = cassette.get("layerMapping", {})
-            
-            source_msp = source_doc.modelspace()
-            entities = list(source_msp)
-            
-            if not entities:
-                continue
-            
-            # Use Loader to copy resources (blocks, linetypes)
-            # but we will manually add entities to control layers
-            loader = xref.Loader(source_doc, new_doc)
-            
-            # Transform matrix
-            x = transform.get("x", 0)
-            y = transform.get("y", 0)
-            angle = transform.get("angle", 0)
-            
-            rotationMatrix = Matrix44.z_rotate(angle)
-            translationMatrix = Matrix44.translate(x, y, 0)
-            matrix = rotationMatrix * translationMatrix
-            
-            for entity in entities:
-                try:
-                    source_layer = entity.dxf.layer
-                    target_layer = layer_mapping.get(source_layer)
-                    
-                    if not target_layer:
-                        if source_layer in layer_standards:
-                            target_layer = source_layer
-                        else:
-                            target_layer = source_layer
-                    
-                    if target_layer not in new_doc.layers:
-                        new_doc.layers.new(target_layer)
-                    
-                    # Copy entity
-                    new_entity = entity.copy()
-                    new_msp.add_entity(new_entity)
-                    new_entity.dxf.layer = target_layer
-                    new_entity.transform(matrix)
-                except Exception as ex:
-                    logger.warning(f"Failed to copy entity: {ex}")
-            
-            # Execute loader to finalize resource copies if any
-            loader.execute()
-                
-        # Save file
-        filename = f"{slug}_part_{container_id}.dxf"
-        filepath = os.path.join(output_dir, filename)
-        new_doc.saveas(filepath)
-        generated_files.append({"filename": filename, "path": filepath})
-        logger.info(f"Saved {filepath}")
+        new_msp = new_doc.modelspace()
         
-    return generated_files
+        # Add sheet boundary
+        if sheet_w > 0 and sheet_h > 0:
+            if "SHEET" not in new_doc.layers:
+                l = new_doc.layers.new("SHEET")
+                l.color = 8 # Gray
+                l.dxf.lineweight = 15 # 0.15mm
+            
+            # Draw rectangle
+            new_msp.add_lwpolyline([(0, 0), (sheet_w, 0), (sheet_w, sheet_h), (0, sheet_h)], close=True, dxfattribs={'layer': 'SHEET'})
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

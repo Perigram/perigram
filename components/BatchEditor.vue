@@ -15,7 +15,7 @@
                     @click="markCutHandler"
                 />
                 <Button 
-                    v-if="batch.runs && batch.runs.some(r => r.status === 'ERROR')"
+                    v-if="batch.status !== 'DRAFT'"
                     :label="$t('batch.resetToDraft')"
                     icon="pi pi-refresh"
                     severity="warning"
@@ -33,12 +33,12 @@
                         v-for="run in batch.runs" 
                         :key="run._id"
                         :class="[
-                            'p-4 border-2 rounded-lg transition-all cursor-pointer',
+                            'p-4 border-2 rounded-lg transition-all cursor-pointer flex flex-col',
                             run._id.toString() === batch.chosenRunId?.toString() 
-                                ? 'border-[var(--p-primary-color)] bg-[var(--p-primary-50)]' 
+                                ? 'border-[var(--p-primary-color)] bg-[var(--p-primary-50)] shadow-md' 
                                 : 'border-[var(--p-content-border-color)] bg-[var(--p-content-background)] hover:border-[var(--p-primary-300)]',
                             run._id.toString() === selectedRunId 
-                                ? 'ring-2 ring-[var(--p-primary-color)]' 
+                                ? 'ring-2 ring-[var(--p-primary-color)] ring-offset-2' 
                                 : ''
                         ]"
                         @click="selectedRunId = run._id.toString()"
@@ -57,7 +57,13 @@
                                 class="pi pi-check-circle text-[var(--p-primary-color)] text-xl"
                             ></i>
                         </div>
-                        <div class="text-xs text-[var(--p-text-muted-color)] space-y-1">
+
+                        <div v-if="run.error" class="mb-3 p-2 bg-red-50 border border-red-100 rounded text-[10px] text-red-600 font-medium leading-relaxed">
+                            <i class="pi pi-exclamation-circle mr-1"></i>
+                            {{ run.error }}
+                        </div>
+
+                        <div class="text-xs text-[var(--p-text-muted-color)] space-y-1 mt-auto">
                             <div>{{ $t('batch.created') }}: {{ formatDate(run.createdAt) }}</div>
                             <div v-if="run.updatedAt">{{ $t('batch.updated') }}: {{ formatDate(run.updatedAt) }}</div>
                         </div>
@@ -72,7 +78,7 @@
                         </div>
                         
                         <!-- Artifacts for this run -->
-                        <div v-if="getRunArtifacts(run._id).length > 0" class="mt-3 pt-3 border-t border-[var(--p-content-border-color)]">
+                        <div v-if="run.status === 'COMPLETE' && getRunArtifacts(run._id).length > 0" class="mt-3 pt-3 border-t border-[var(--p-content-border-color)]">
                             <div class="text-xs font-medium text-[var(--p-text-muted-color)] mb-2">{{ $t('batch.artifacts') }}: {{ getRunArtifacts(run._id).length }}</div>
                             <div class="flex flex-wrap gap-1">
                                 <Tag 
@@ -151,27 +157,28 @@
                     </div>
 
                     <!-- Grid View -->
-                    <div v-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div v-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         <div 
                             v-for="entry in entries" 
                             :key="entry._id"
-                            class="border border-[var(--p-content-border-color)] rounded-lg p-4 bg-[var(--p-content-background)] hover:border-[var(--p-primary-color)] transition-all"
+                            class="border border-[var(--p-content-border-color)] rounded-lg p-4 bg-[var(--p-content-background)] hover:border-[var(--p-primary-color)] transition-all flex flex-col"
                         >
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-[var(--p-text-color)] truncate">{{ getCassetteName(entry.cassetteTemplateId) }}</h3>
+                            <div class="flex justify-between items-start mb-3 gap-2">
+                                <h3 class="font-bold text-[var(--p-text-color)] truncate text-sm" :title="getCassetteName(entry.cassetteTemplateId)">{{ getCassetteName(entry.cassetteTemplateId) }}</h3>
                                 <Button 
                                     icon="pi pi-trash"
                                     severity="danger"
                                     text
                                     rounded
                                     size="small"
+                                    class="h-7 w-7 flex-shrink-0"
                                     @click="confirmDelete(entry)"
                                     :disabled="batch.status !== 'DRAFT'"
                                 />
                             </div>
-                            <div class="space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-[var(--p-text-muted-color)]">{{ $t('batches.quantity') }}:</span>
+                            <div class="flex flex-col gap-3">
+                                <div class="flex items-center justify-between gap-4">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--p-text-muted-color)]">{{ $t('batches.quantity') }}</span>
                                     <InputNumber 
                                         v-model="entry.quantity" 
                                         :min="1" 
@@ -179,19 +186,22 @@
                                         showButtons 
                                         buttonLayout="horizontal"
                                         size="small"
-                                        class="w-28"
+                                        class="w-24"
                                         @update:model-value="saveBatch"
                                     />
                                 </div>
-                                <div v-for="param in getEntryParameters(entry)" :key="param" class="flex justify-between items-center">
-                                    <span class="text-[var(--p-text-muted-color)]">{{ param }}:</span>
-                                    <InputNumber 
-                                        v-model="entry.dimensions[param]"
-                                        :disabled="batch.status !== 'DRAFT'"
-                                        size="small"
-                                        class="w-20"
-                                        @update:model-value="saveBatch"
-                                    />
+                                <div class="grid grid-cols-2 gap-x-4 gap-y-2 pt-2 border-t border-[var(--p-content-border-color)]">
+                                    <div v-for="param in getEntryParameters(entry)" :key="param" class="flex flex-col gap-1">
+                                        <span class="text-[9px] font-bold uppercase tracking-tighter text-[var(--p-text-muted-color)]">{{ param }}</span>
+                                        <InputNumber 
+                                            v-model="entry.dimensions[param]"
+                                            :disabled="batch.status !== 'DRAFT'"
+                                            size="small"
+                                            class="w-full"
+                                            :min="0"
+                                            @update:model-value="saveBatch"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -316,44 +326,8 @@
             </AccordionTab>
 
             <!-- Artifacts Panel -->
-            <AccordionTab v-if="artifacts?.length > 0" :header="$t('batches.artifacts')">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 py-2">
-                    <div v-for="artifact in artifacts" :key="artifact._id" 
-                        class="flex items-center gap-4 p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl hover:border-[var(--p-primary-color)] transition-all group"
-                    >
-                        <div class="w-12 h-12 flex items-center justify-center bg-[var(--p-primary-50)] text-[var(--p-primary-color)] rounded-lg">
-                            <i class="pi pi-file text-xl"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-[var(--p-text-color)] truncate">{{ artifact.type }}</div>
-                            <div class="flex flex-col text-xs text-[var(--p-text-muted-color)] mt-1">
-                                <span :class="artifact.status === 'READY' ? 'text-green-500' : 'text-orange-500'">{{ artifact.status }}</span>
-                                <span>{{ formatDate(artifact.createdAt) }}</span>
-                            </div>
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <Button 
-                                icon="pi pi-download"
-                                severity="secondary"
-                                text
-                                rounded
-                                size="small"
-                                :disabled="artifact.status !== 'READY'"
-                                @click="downloadArtifact(artifact)"
-                                v-tooltip.top="$t('actions.download')"
-                            />
-                            <Button 
-                                icon="pi pi-trash"
-                                severity="danger"
-                                text
-                                rounded
-                                size="small"
-                                @click="deleteArtifact(artifact)"
-                                v-tooltip.top="$t('actions.delete')"
-                            />
-                        </div>
-                    </div>
-                </div>
+            <AccordionTab v-if="batch.status !== 'FAILED' && artifacts?.length > 0" :header="$t('batches.artifacts')">
+                <ArtifactsTable :batch-id="batch._id" :batch="batch" />
             </AccordionTab>
         </Accordion>
 
