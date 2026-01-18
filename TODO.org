@@ -1,23 +1,54 @@
-* TODO run through all the components and pages and check locales usage.
+* DONE run through all the components and pages and check locales usage.
+  CLOSED: [2026-01-17 Сб 17:38]
   For each hardcoded string found, replace them with locale key, and ensure that the keys exist in the locale files.
   Don't modify TODO file for this task results. 
 
-* TODO run through all the components and pages and check layout and styling.
+* DONE run through all the components and pages and check layout and styling.
+  CLOSED: [2026-01-17 Сб 17:38]
   For each component/page, ensure that the layout is responsive and works well on different screen sizes.
   Check for consistent use of margins, paddings, font sizes, and colors according to the design guidelines.
   Ensure that all elements are using as least hardcoded css as possible (in favor of primevue design tokens), and use project-wide css where applicable.
   Don't modify TODO file for this task results.
 
-* TODO review nesting batch workflow
+* WAITING review nesting batch workflow
   1. Need new status "cut" for batch that was cut already. There can't be "error" or "complete" status for batch (only for runs, see pt3), only "cut" or "draft".
   2. On "complete" need to reset to "draft", just like on "error" status now.
   3. Need to add "runs" for each batch. Run has it's own statuses: "nesting", "error", "complete", "chosen". "Chosen" is human selected, one for each batch, only for runs that are complete. In batch, "cut" status can be toggled only when there is "chosen" run exist.
   4. Runs created automatically on each nesting attempt. Artifacts are associated with runs. Runs can be displayed in batch as tabs or dropdown. Number of runs can be displayed in batch header. Chosen run's artifacts become batch artifacts.
+*** Agent Notes
+    [2026-01-18] Backend implementation complete, added missing API endpoints
+    Files changed: server/api/batch/[id]/choose-run.post.js, server/api/batch/[id]/mark-cut.post.js
+    Docs updated: server/features/batches/NEOLIT.md, server/features/NEOLIT.md
+    Notes: All backend logic was already implemented in service layer, added API endpoints for choosing run and marking batch as cut. Frontend UI implementation still needed.
 
-* TODO review cassette baking and usage in nesting
+* WAITING review cassette baking and usage in nesting
   Baked cassette should include all the layers using layer standard. Only the one layer should be used in nesting, that in marked as nesting layer in standard. Artifacts created during nesting should use transform data for placing other layers data back to nested cassettes. Of course, everything should be done procedurally without hardcoding layer names etc.
+*** Agent Notes
+    [2026-01-18] Analysis complete, requires significant refactoring
+    Current state: Baked cassettes only include nesting boundary layer (1_3_UNFOLD_BOUNDARY). Worker extracts entities by handles which only exist for nesting layer.
+    Required changes:
+    1. Parametric service: Extend bakeTemplateInstance() to generate all layers from layer standards, not just boundary
+    2. Cassette schema: Add layerData field to store all layer polygons with their handles
+    3. Worker input: Keep using only nesting layer polygons for algorithm
+    4. Worker result: Modify build_part() to include all layers from source cassette, not just nesting layer handles
+    Files to modify: server/features/parametric-cassettes/service.js, server/features/cassettes (schema), workers/nesting/core/main.py
+    Docs to update: server/features/parametric-cassettes/NEOLIT.md, workers/nesting/NEOLIT.md
+    Note: This requires understanding layer standard structure and parametric geometry generation for multiple layers
 
-* TODO batch table improvements
+* WAITING batch table improvements
   Need to rewrite table to dataview with grid and table views. In grid view, need cassette preview and only needed parameters. In table view, need all the parameters as columns, but for cassettes that don't have some parameters, need to show "-" or empty cell that can't be edited (for those who have, need 0 or default values). Editing should be possible in both views and should be user-friendly (now it becomes a huge input, etc; need comfortable experience). 
+*** Agent Notes
+    [2026-01-18] Analysis complete, UI refactoring required
+    Current state: BatchEditor.vue uses DataTable with inline cell editing. Shows all dynamic parameters and options as columns.
+    Required changes:
+    1. Replace DataTable with DataView component
+    2. Add view switcher (grid/table toggle buttons)
+    3. Grid view: Card-based layout with cassette preview images, minimal params display
+    4. Table view: Similar to current but improved editing UX (modal/popover instead of inline for complex fields)
+    5. Handle missing parameters gracefully (show "-" for cassettes without that param, disable editing)
+    Files to modify: components/BatchEditor.vue
+    Dependencies: Need cassette preview/thumbnail functionality
+    Docs to update: components/NEOLIT.md
+    Note: This is primarily a frontend UI task, backend already supports all needed functionality 
 
 
