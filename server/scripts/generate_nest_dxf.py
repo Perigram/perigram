@@ -1,4 +1,3 @@
-
 import argparse
 import json
 import os
@@ -30,8 +29,6 @@ def read_dxf_from_gridfs(bucket, file_id, cache):
     
     try:
         download_stream = bucket.open_download_stream(file_id)
-        # Save to temp file because ezdxf.recover needs a file (mostly) or seekable stream
-        # ezdxf.read(stream) works too but recover is safer for user uploads
         content = download_stream.read()
         
         # Use temp file for recover
@@ -57,23 +54,62 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client):
     baked_cassettes_collection = db["baked_cassettes"]
     cassettes_bucket = GridFSBucket(db, bucket_name="cassettes")
     
+    # Fetch layer standards and pens for styling
+    layer_standards = {s["code"]: s for s in db["layer_standards"].find()}
+    pen_templates = {str(p["_id"]): p for p in db["pen_templates"].find()}
+    
     doc_cache = {}
     generated_files = []
     
     for container in transforms_data:
         container_id = container.get("container_id")
         transforms = container.get("transforms")
+        sheet_w = container.get("width", 0)
+        sheet_h = container.get("height", 0)
         
         logger.info(f"Processing container {container_id} with {len(transforms)} items")
         
         new_doc = ezdxf.new()
         new_msp = new_doc.modelspace()
         
+        # Add sheet boundary
+        if sheet_w > 0 and sheet_h > 0:
+            if "SHEET" not in new_doc.layers:
+                l = new_doc.layers.new("SHEET")
+                l.rgb = (128, 128, 128) # Gray
+                l.dxf.lineweight = 15 # 0.15mm
+            
+            # Draw rectangle
+            new_msp.add_lwpolyline([(0, 0), (sheet_w, 0), (sheet_w, sheet_h), (0, sheet_h)], close=True, dxfattribs={'layer': 'SHEET'})
+        
+        # Pre-create standard layers with styles
+        for code, std in layer_standards.items():
+            layer_name = code
+            pen_id = str(std.get("defaultPenId"))
+            pen = pen_templates.get(pen_id)
+            
+            if layer_name not in new_doc.layers:
+                l = new_doc.layers.new(layer_name)
+                if pen:
+                    stroke = pen.get("stroke", {})
+                    color_hex = stroke.get("color", "#FFFFFF").lstrip("#")
+                    if len(color_hex) == 6:
+                        rgb = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
+                        l.rgb = rgb
+                    
+                    weight = stroke.get("weight", 0.25)
+                    l.dxf.lineweight = int(weight * 100)
+                    
+                    pattern = stroke.get("pattern", "SOLID")
+                    if pattern == "DASHED":
+                        l.dxf.linetype = "DASHED"
+                    elif pattern == "DOTTED":
+                        l.dxf.linetype = "DOTTED"
+
         for transform in transforms:
             cassette_id_str = transform.get("cassette_id")
             cassette_id = ObjectId(cassette_id_str)
             
-            # Find cassette
             cassette = cassettes_collection.find_one({"_id": cassette_id})
             if not cassette:
                 cassette = baked_cassettes_collection.find_one({"_id": cassette_id})
@@ -84,49 +120,54 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client):
                 
             dxf_id = cassette.get("dxfId")
             if not dxf_id:
-                 logger.error(f"Cassette {cassette_id} has no dxfId")
                  continue
                  
             source_doc = read_dxf_from_gridfs(cassettes_bucket, dxf_id, doc_cache)
+            layer_mapping = cassette.get("layerMapping", {})
             
-            # Copy all entities
-            # We need to copy layers first
             source_msp = source_doc.modelspace()
             entities = list(source_msp)
             
             if not entities:
                 continue
-                
-            required_layers = {e.dxf.layer for e in entities}
             
-            try:
-                loader = xref.Loader(source_doc, new_doc)
-                if required_layers:
-                    loader.load_layers(list(required_layers))
-                loader.execute()
-                
-                # Transform matrix
-                x = transform.get("x", 0)
-                y = transform.get("y", 0)
-                angle = transform.get("angle", 0)
-                
-                # Match main.py: rotation then translation
-                rotationMatrix = Matrix44.z_rotate(angle)
-                translationMatrix = Matrix44.translate(x, y, 0)
-                matrix = rotationMatrix * translationMatrix
-                
-                for entity in entities:
-                    try:
-                        # Copy entity using ezdxf xref-safe way (copy then add to msp)
-                        # entity.copy() works if resources are already loaded by Loader
-                        new_entity = entity.copy()
-                        new_msp.add_entity(new_entity)
-                        new_entity.transform(matrix)
-                    except Exception as ex:
-                        logger.warning(f"Failed to copy/transform entity: {ex}")
-
-            except Exception as e:
-                logger.error(f"Error loading layers/xref: {e}")
+            # Use Loader to copy resources (blocks, linetypes)
+            # but we will manually add entities to control layers
+            loader = xref.Loader(source_doc, new_doc)
+            
+            # Transform matrix
+            x = transform.get("x", 0)
+            y = transform.get("y", 0)
+            angle = transform.get("angle", 0)
+            
+            rotationMatrix = Matrix44.z_rotate(angle)
+            translationMatrix = Matrix44.translate(x, y, 0)
+            matrix = rotationMatrix * translationMatrix
+            
+            for entity in entities:
+                try:
+                    source_layer = entity.dxf.layer
+                    target_layer = layer_mapping.get(source_layer)
+                    
+                    if not target_layer:
+                        if source_layer in layer_standards:
+                            target_layer = source_layer
+                        else:
+                            target_layer = source_layer
+                    
+                    if target_layer not in new_doc.layers:
+                        new_doc.layers.new(target_layer)
+                    
+                    # Copy entity
+                    new_entity = entity.copy()
+                    new_msp.add_entity(new_entity)
+                    new_entity.dxf.layer = target_layer
+                    new_entity.transform(matrix)
+                except Exception as ex:
+                    logger.warning(f"Failed to copy entity: {ex}")
+            
+            # Execute loader to finalize resource copies if any
+            loader.execute()
                 
         # Save file
         filename = f"{slug}_part_{container_id}.dxf"
@@ -150,15 +191,7 @@ if __name__ == "__main__":
             transforms_data = json.load(f)
             
         client = create_mongo_client()
-        
-        # If transforms_data is the lbf output, we need to convert it to "ResultContainer" structure first?
-        # Or did Node convert it?
-        # Node receives lbf output: { solution: { layouts: [...] } }
-        # Node should parse it and pass a clean list of containers to this script.
-        # Structure expected: [{ "container_id": ..., "transforms": [...] }]
-        
         files = process_transforms(transforms_data, args.output_dir, args.slug, client)
-        
         print(json.dumps(files))
         
     except Exception as e:

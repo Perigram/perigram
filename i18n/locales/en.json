@@ -533,7 +533,9 @@
     "deleteTitle": "Delete Confirmation",
     "deleted": "Artifact deleted",
     "deleteFailed": "Failed to delete artifact",
-    "downloadFailed": "Failed to download artifact"
+    "downloadFailed": "Failed to download artifact",
+    "generatingPreview": "Generating preview...",
+    "previewFailed": "Failed to generate preview"
   },
   "assets": {
     "cassettes": "Cassettes",

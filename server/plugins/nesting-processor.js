@@ -157,6 +157,8 @@ async function processNextJob() {
       if (transforms.length > 0) {
         resultContainers.push({
           container_id: containerId++,
+          width: job.params.width || 1220,
+          height: job.params.height || 2440,
           transforms
         });
       }

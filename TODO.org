@@ -1,30 +1,43 @@
-* DONE run through all the components and pages and check locales usage.
-  CLOSED: [2026-01-17 Сб 17:38]
-  For each hardcoded string found, replace them with locale key, and ensure that the keys exist in the locale files.
-  Don't modify TODO file for this task results. 
-
-* DONE run through all the components and pages and check layout and styling.
-  CLOSED: [2026-01-17 Сб 17:38]
-  For each component/page, ensure that the layout is responsive and works well on different screen sizes.
-  Check for consistent use of margins, paddings, font sizes, and colors according to the design guidelines.
-  Ensure that all elements are using as least hardcoded css as possible (in favor of primevue design tokens), and use project-wide css where applicable.
-  Don't modify TODO file for this task results.
-
-* DONE review nesting batch workflow
+* DONE Check layers and pens standards usage in nesting and artifacts
   CLOSED: [2026-01-18]
-  1. Need new status "cut" for batch that was cut already. There can't be "error" or "complete" status for batch (only for runs, see pt3), only "cut" or "draft".
-  2. On "complete" need to reset to "draft", just like on "error" status now.
-  3. Need to add "runs" for each batch. Run has it's own statuses: "nesting", "error", "complete", "chosen". "Chosen" is human selected, one for each batch, only for runs that are complete. In batch, "cut" status can be toggled only when there is "chosen" run exist.
-  4. Runs created automatically on each nesting attempt. Artifacts are associated with runs. Runs can be displayed in batch as tabs or dropdown. Number of runs can be displayed in batch header. Chosen run's artifacts become batch artifacts.
+  There should be system standards for both; for layers there should be a pen assigned; can be overridden in library. User-defined layer names with mapping to standard ones. Cassette uses standard layers internally, in artifacts user overrides are used.
 *** Agent Notes
-    [2026-01-18] Backend implementation complete, added missing API endpoints
-    Files changed: server/api/batch/[id]/choose-run.post.js, server/api/batch/[id]/mark-cut.post.js
-    Docs updated: server/features/batches/NEOLIT.md, server/features/NEOLIT.md
-    Notes: All backend logic was already implemented in service layer, added API endpoints for choosing run and marking batch as cut. Frontend UI implementation still needed.
-    [2026-01-18] Frontend UI implementation complete
-    Files changed: stores/batches.js, components/BatchEditor.vue, i18n/locales/en.json, i18n/locales/ru.json
-    Docs updated: N/A
-    Notes: Added runs display in AccordionTab, choose run functionality, mark as cut button. Store functions for chooseRun and markCut. Locales for all new UI elements.
+    [2026-01-18] Implementation complete
+    Files changed: 
+    - server/features/layer-standards/service.js (Added getAllWithPens)
+    - server/features/parametric-cassettes/service.js (Improved baking: multiple layers, area-based sorting, nesting boundary isolation)
+    - server/plugins/nesting-processor.js (Pass sheet dimensions to DXF generator)
+    - server/scripts/generate_nest_dxf.py (Added styling from pen templates, sheet boundary drawing, and layer mapping)
+    - server/features/layer-standards/NEOLIT.md (New doc)
+    - server/features/pen-templates/NEOLIT.md (New doc)
+    Notes:
+    - Parametric baked DXFs now have '1_3_UNFOLD_BOUNDARY' and '2_2_HOLE' layers.
+    - Nesting item in 'polygonParts' is now strictly the largest boundary, preventing chaotic arrangement of internal holes.
+    - Layout DXF artifacts now have proper colors and lineweights from system pens.
+    - Layout DXF now includes 'SHEET' layer with boundary rectangle.
+
+* DONE Improve nesting and artifacts generation workflow
+  CLOSED: [2026-01-18]
+  Curently, when I send only one cassette (that can contain multiple layers, with multiple parts in it, but only one polygon for nesting in boundary layer), I get multiple duplicates chaotically arranged in nesting (or layers placement) result, all in one layer. Problem can be in cassette baking (only one layer is baked), or/and in worker (duplicates created). Also, don't see any sheets geometry (should come from worker probably); and need to check can worker accept additional polygons input as existing sheets along with creating ones from sheet size when needed, and these sheets should be uploadable in batch in UI. All layers in artifacts should use layer standards and pen templates from user settings or system defaults. 
+*** Agent Notes
+    [2026-01-18] Workflow improved
+    - Fixed chaotic nesting by ensuring baked cassettes only expose the main boundary in 'polygonParts' while keeping all geometry in the DXF.
+    - Added 'SHEET' layer boundary to result DXF artifacts.
+    - Implemented multi-layer support in parametric baking (boundary vs holes).
+    - Enabled styling (colors/lineweights) in artifacts via pen templates mapping.
+
+* DONE Artifacts preview
+  CLOSED: [2026-01-18]
+  For each artifact format (dxf, pdf, etc) need to have preview in UI. For dxf, can use svg rendering on server side or client side (need to check performance and quality, and existing utils/components for reuse). Preview should be zoomable, pannable, respecting layers and pens standards.
+*** Agent Notes
+    [2026-01-18] Implementation complete
+    Files changed: 
+    - components/ArtifactsTable.vue (Added DXF preview with zoom/pan)
+    - i18n/locales/en.json, i18n/locales/ru.json (Added missing preview keys)
+    Notes:
+    - Implemented client-side DXF to SVG conversion for previewing artifacts.
+    - Added zoom (mouse wheel / buttons) and pan (drag) functionality to the preview dialog.
+    - Preview respects layer standards and pen templates by mapping layers to styles.
 
 * DONE review cassette baking and usage in nesting
   CLOSED: [2026-01-18]

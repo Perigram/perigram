@@ -28,30 +28,31 @@ def build_item(id, demand, points):
         }
     }
     
-def build_bin(stock, width, height):
+def build_bin(stock, width, height, polygon=None):
+    shape_data = {
+        'outer': polygon if polygon else [
+            [0.0, 0.0],
+            [width, 0.0],
+            [width, height],
+            [0.0, height],
+            [0.0, 0.0]
+        ]
+    }
     return {
         'id': 0,
         'cost': 1,
         'stock': stock,
         'shape': {
             'type': 'polygon',
-            'data': {
-                'outer': [
-                    [0.0, 0.0],
-                    [width, 0.0],
-                    [width, height],
-                    [0.0, height],
-                    [0.0, 0.0]
-                ]
-            }
+            'data': shape_data
         }
     }
 
-def build_input_json(sheet_count, bin_width, bin_height, items):
+def build_input_json(sheet_count, bin_width, bin_height, items, bin_polygon=None):
     return {
         'name': 'nesting_job',
         'items': items,
         'bins': [
-            build_bin(sheet_count, bin_width, bin_height)
+            build_bin(sheet_count, bin_width, bin_height, bin_polygon)
         ]
     }

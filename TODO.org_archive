@@ -31,4 +31,47 @@
      Files changed: README.md, NEOLIT.md, docker configs, GitHub actions
      Docs updated: NEOLIT.md (SYSTEM, CONTAINER, COMPONENT levels)
      Notes: Renamed project from Nest2D to CutKit. Cleaned up obsolete docs and reorganized deployment guides.
+* DONE run through all the components and pages and check locales usage.
+  CLOSED: [2026-01-17 Сб 17:38]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2026-01-18 Вс 20:07
+  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_CATEGORY: TODO
+  :ARCHIVE_TODO: DONE
+  :END:
+  For each hardcoded string found, replace them with locale key, and ensure that the keys exist in the locale files.
+  Don't modify TODO file for this task results. 
+* DONE run through all the components and pages and check layout and styling.
+  CLOSED: [2026-01-17 Сб 17:38]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2026-01-18 Вс 20:07
+  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_CATEGORY: TODO
+  :ARCHIVE_TODO: DONE
+  :END:
+  For each component/page, ensure that the layout is responsive and works well on different screen sizes.
+  Check for consistent use of margins, paddings, font sizes, and colors according to the design guidelines.
+  Ensure that all elements are using as least hardcoded css as possible (in favor of primevue design tokens), and use project-wide css where applicable.
+  Don't modify TODO file for this task results.
+* DONE review nesting batch workflow
+  CLOSED: [2026-01-18]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2026-01-18 Вс 20:07
+  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_CATEGORY: TODO
+  :ARCHIVE_TODO: DONE
+  :END:
+  1. Need new status "cut" for batch that was cut already. There can't be "error" or "complete" status for batch (only for runs, see pt3), only "cut" or "draft".
+  2. On "complete" need to reset to "draft", just like on "error" status now.
+  3. Need to add "runs" for each batch. Run has it's own statuses: "nesting", "error", "complete", "chosen". "Chosen" is human selected, one for each batch, only for runs that are complete. In batch, "cut" status can be toggled only when there is "chosen" run exist.
+  4. Runs created automatically on each nesting attempt. Artifacts are associated with runs. Runs can be displayed in batch as tabs or dropdown. Number of runs can be displayed in batch header. Chosen run's artifacts become batch artifacts.
+*** Agent Notes
+    [2026-01-18] Backend implementation complete, added missing API endpoints
+    Files changed: server/api/batch/[id]/choose-run.post.js, server/api/batch/[id]/mark-cut.post.js
+    Docs updated: server/features/batches/NEOLIT.md, server/features/NEOLIT.md
+    Notes: All backend logic was already implemented in service layer, added API endpoints for choosing run and marking batch as cut. Frontend UI implementation still needed.
+    [2026-01-18] Frontend UI implementation complete
+    Files changed: stores/batches.js, components/BatchEditor.vue, i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: N/A
+    Notes: Added runs display in AccordionTab, choose run functionality, mark as cut button. Store functions for chooseRun and markCut. Locales for all new UI elements.
 

@@ -16,6 +16,26 @@ export async function getAll() {
 }
 
 /**
+ * Get all active layer standards with their default pens
+ */
+export async function getAllWithPens() {
+  const standards = await repository.findAllActive();
+  const db = await connectDB();
+  
+  // Fetch all pens to avoid multiple queries
+  const pens = await db.collection('pen_templates').find().toArray();
+  const penMap = pens.reduce((acc, pen) => {
+    acc[pen._id.toString()] = pen;
+    return acc;
+  }, {});
+  
+  return standards.map(std => ({
+    ...std,
+    defaultPen: std.defaultPenId ? penMap[std.defaultPenId.toString()] : null
+  }));
+}
+
+/**
  * Get layer standards by category
  */
 export async function getByCategory(category) {

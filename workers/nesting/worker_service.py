@@ -35,6 +35,7 @@ class NestingParams(BaseModel):
     height: float
     space: float
     sheetCount: int
+    sheet_polygon: Optional[List[List[float]]] = None
 
 class NestingRequest(BaseModel):
     items: List[NestingItem]
@@ -98,7 +99,8 @@ def run_nesting(request: NestingRequest):
         request.params.sheetCount,
         request.params.width,
         request.params.height,
-        jaguar_items
+        jaguar_items,
+        bin_polygon=request.params.sheet_polygon
     )
     
     # Create temp file

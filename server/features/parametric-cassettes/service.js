@@ -43,7 +43,7 @@ async function getEngine() {
 /**
  * Robust AC1015 DXF Generator for polygons
  */
-export function generateSimpleDxf(polygons, layerName = '1_3_UNFOLD_BOUNDARY') {
+export function generateSimpleDxf(polygons, nestingLayer = '1_3_UNFOLD_BOUNDARY', internalLayer = '2_2_HOLE') {
   let lines = [];
 
   const add = (code, value) => {
@@ -87,15 +87,26 @@ export function generateSimpleDxf(polygons, layerName = '1_3_UNFOLD_BOUNDARY') {
   add(2, 'LAYER');
   add(5, '2');
   add(100, 'AcDbSymbolTable');
-  add(70, 1);
+  add(70, 2);
+  
   add(0, 'LAYER');
   add(5, '11');
   add(100, 'AcDbSymbolTableRecord');
   add(100, 'AcDbLayerTableRecord');
-  add(2, layerName);
+  add(2, nestingLayer);
   add(70, 0);
   add(62, 7);
   add(6, 'Continuous');
+  
+  add(0, 'LAYER');
+  add(5, '12');
+  add(100, 'AcDbSymbolTableRecord');
+  add(100, 'AcDbLayerTableRecord');
+  add(2, internalLayer);
+  add(70, 0);
+  add(62, 1); // Red
+  add(6, 'Continuous');
+  
   add(0, 'ENDTAB');
 
   // STYLE
@@ -182,15 +193,17 @@ export function generateSimpleDxf(polygons, layerName = '1_3_UNFOLD_BOUNDARY') {
 
   let handleCount = 256;
 
-  for (const polygon of polygons) {
+  polygons.forEach((polygon, idx) => {
     const coords = polygon.coordinates || polygon;
-    if (!coords || coords.length < 3) continue;
+    if (!coords || coords.length < 3) return;
 
+    const layer = idx === 0 ? nestingLayer : internalLayer;
     const handle = (handleCount++).toString(16).toUpperCase();
+    
     add(0, 'LWPOLYLINE');
     add(5, handle);
     add(100, 'AcDbEntity');
-    add(8, layerName);
+    add(8, layer);
     add(100, 'AcDbPolyline');
     add(90, coords.length);
     add(70, 1); // Closed
@@ -199,7 +212,7 @@ export function generateSimpleDxf(polygons, layerName = '1_3_UNFOLD_BOUNDARY') {
       add(10, x);
       add(20, y);
     }
-  }
+  });
 
   add(0, 'ENDSEC');
 
@@ -223,6 +236,16 @@ export function generateSimpleDxf(polygons, layerName = '1_3_UNFOLD_BOUNDARY') {
   add(0, 'EOF');
 
   return lines.join('\n');
+}
+
+function calculateArea(vertices) {
+  let area = 0;
+  for (let i = 0; i < vertices.length; i++) {
+    const j = (i + 1) % vertices.length;
+    area += vertices[i][0] * vertices[j][1];
+    area -= vertices[j][0] * vertices[i][1];
+  }
+  return Math.abs(area) / 2;
 }
 
 /**
@@ -252,7 +275,11 @@ export async function evaluateTemplate(cassetteId, dimensions) {
     geometryIdentifiers.forEach((id) => {
       const interop = engine.findGeometryInteropById(id);
       if (interop?.variant === 'Curve' && interop.data.vertices?.length > 0) {
-        allCurves.push({ vertices: interop.data.vertices, id });
+        allCurves.push({
+          vertices: interop.data.vertices, 
+          id,
+          area: calculateArea(interop.data.vertices)
+        });
       }
     });
 
@@ -260,7 +287,9 @@ export async function evaluateTemplate(cassetteId, dimensions) {
       throw new Error('Geometry evaluation produced no curves');
     }
 
-    // Return all polygons
+    // Sort by area descending so largest is first (assumed boundary)
+    allCurves.sort((a, b) => b.area - a.area);
+
     const polygons = allCurves.map(c => ({ coordinates: c.vertices }));
 
     return {
@@ -299,13 +328,16 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
 
   const template = await repository.findTemplateById(cassetteId);
   
+  // ONLY use the largest polygon for nesting to avoid duplicate items
+  const nestingPolygons = [polygons[0]];
+
   const bakedData = {
     name: `${template.name} (${evalDims.A}x${evalDims.B})`,
     slug: `baked-${template.slug}-${Date.now()}`,
     userId: userId,
     type: 'BAKED_PARAMETRIC',
     dxfId: fileId,
-    polygonParts: polygons.map((p, i) => ({
+    polygonParts: nestingPolygons.map((p, i) => ({
       coordinates: p.coordinates,
       handles: [(256 + i).toString(16).toUpperCase()]
     })),
