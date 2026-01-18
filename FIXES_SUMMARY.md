@@ -10,13 +10,15 @@
 - Result generation uses all layers (`all_layers=True`)
 - Now includes cuts, bends, markings in result DXF
 
-### 2. Baked Cassettes Storage ✅
+### 2. Baked Cassettes Storage ⚠️ (In Progress)
 **Problem**: Baked parametric cassettes were saved in `cassettes` collection, polluting template library.  
 **Fix**:
 - Created separate `baked_cassettes` collection
 - Added 24-hour TTL expiration
 - Worker checks both collections
 - Templates remain clean, baked instances temporary
+
+**Status**: Worker not finding baked cassettes - debugging in progress with added logging
 
 ### 3. Run Numbers ✅
 **Problem**: Runs didn't have display numbers.  
