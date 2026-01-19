@@ -52,13 +52,10 @@ export default defineNuxtConfig({
         // The NUXT_ prefix allows runtime override
         mongoUri: process.env.NUXT_MONGODB_URI || process.env.MONGODB_URI || '',
         stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
-        githubClientSecret: process.env.GITHUB_CLIENT_SECRET || '',
         resendToken: process.env.RESEND_TOKEN || '',
         public: {
             baseUrl: process.env.BASE_URL || 'http://localhost:3000',
             gitCommitSha: process.env.GIT_COMMIT_SHA || '',
-            googleClientId: process.env.GOOGLE_CLIENT_ID || '',
-            githubClientId: process.env.GITHUB_CLIENT_ID || '',
         },
     },
 

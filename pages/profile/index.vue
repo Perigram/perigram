@@ -28,10 +28,6 @@
                             </template>
                             <template #content>
                                 <div class="flex flex-col gap-6 py-2">
-                                    <div class="flex items-center gap-3 bg-[var(--p-primary-50)] p-4 rounded-lg border border-[var(--p-primary-100)]">
-                                        <i class="pi pi-shield text-[var(--p-primary-color)] text-xl"></i>
-                                        <p class="m-0 text-[var(--p-text-color)] font-medium">{{ $t('profile.loggedInOAuth') }}</p>
-                                    </div>
                                     <div class="mt-auto">
                                         <Button :label="$t('nav.logout')" icon="pi pi-sign-out" severity="danger" outlined @click="logoutHandler" />
                                     </div>
