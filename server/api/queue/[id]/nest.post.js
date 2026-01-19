@@ -1,58 +1,66 @@
 /**
- * POST /api/batch/:id/nest
+ * POST /api/queue/:id/nest
  * 
- * Trigger nesting for a batch
+ * Trigger nesting for a queue
  */
 
-import { service as batchService } from '~/server/features/batches';
+import * as queuesService from '~/server/features/queues/service';
 import { service as cassetteService } from '~/server/features/cassettes';
 import { service as artifactService } from '~/server/features/artifacts';
 import { bakeTemplateInstance } from '~/server/features/parametric-cassettes/service';
 import { connectDB } from '~~/server/db/mongo';
 import { ObjectId } from 'mongodb';
 import { generateRandomString } from '~~/server/utils/strings';
-import standardSlugify from 'standard-slugify';
+import { requireAuth } from '~/server/utils/permissions';
 
 export default defineEventHandler(async (event) => {
   try {
-    const userId = event.context.auth.userId;
-    const batchId = getRouterParam(event, 'id');
+    requireAuth(event);
+    const auth = event.context.auth;
+    const userId = auth.userId;
+    const queueId = event.context.params.id;
     const body = await readBody(event);
     
-    console.log('Nest request:', { batchId, userId, body });
+    console.log('Nest request:', { queueId, userId, body });
     
-    // Get batch
-    const batch = await batchService.getById(batchId, userId);
+    // Get queue
+    const queue = await queuesService.getById(
+        queueId, 
+        auth.userId,
+        auth.organizationId,
+        auth.role,
+        auth.permissions
+    );
     
-    console.log('Batch loaded:', { 
-      id: batch._id, 
-      status: batch.status, 
-      entriesCount: batch.entries?.length 
+    console.log('Queue loaded:', { 
+      id: queue._id, 
+      status: queue.status, 
+      entriesCount: queue.entries?.length 
     });
     
-    if (batch.status === 'NESTING') {
+    if (queue.status === 'NESTING') {
       // Check if there's actually a nesting job in progress
       const db = await connectDB();
       const existingJob = await db.collection('nesting_jobs').findOne({
-        batchId: batch._id,
+        queueId: queue._id, // Updated to queueId
         status: { $in: ['pending', 'processing'] }
       });
       
       if (existingJob) {
-        throw createError({ statusCode: 400, message: 'Batch is already nesting' });
+        throw createError({ statusCode: 400, message: 'Queue is already nesting' });
       } else {
         // No active job found, allow re-nesting (previous attempt failed)
         console.log('No active nesting job found, allowing re-nest');
       }
     }
     
-    // Check batch has entries
-    if (!batch.entries || batch.entries.length === 0) {
-      throw createError({ statusCode: 400, message: 'Batch has no entries' });
+    // Check queue has entries
+    if (!queue.entries || queue.entries.length === 0) {
+      throw createError({ statusCode: 400, message: 'Queue has no entries' });
     }
     
     // Validate all cassettes exist and bake parametric ones
-    const cassetteIds = batch.entries.map(e => e.cassetteTemplateId.toString());
+    const cassetteIds = queue.entries.map(e => e.cassetteTemplateId.toString());
     console.log('Validating cassettes:', cassetteIds);
     
     const cassettes = await Promise.all(
@@ -64,11 +72,11 @@ export default defineEventHandler(async (event) => {
     // Bake parametric cassettes and prepare files list for worker
     // Each baked entry becomes a unique "cassette" document for the worker
     const jobFiles = await Promise.all(
-      batch.entries.map(async (entry) => {
+      queue.entries.map(async (entry) => {
         const template = cassettes.find(c => c._id.toString() === entry.cassetteTemplateId.toString());
         
         if (template.type === 'PARAMETRIC') {
-          console.log(`Baking parametric template: ${template.name} for batch entry`);
+          console.log(`Baking parametric template: ${template.name} for queue entry`);
           const bakedCassette = await bakeTemplateInstance(template._id, entry.dimensions || {}, userId);
           console.log(`Baked cassette created with ID: ${bakedCassette._id}`);
           return {
@@ -87,7 +95,7 @@ export default defineEventHandler(async (event) => {
     );
   
   // Generate nesting slug
-  const nestingSlug = `batch-${batch.batchNumber}-${generateRandomString(6)}`;
+  const nestingSlug = `queue-${queue.queueNumber}-${generateRandomString(6)}`;
   
   // Material dimensions and pool from request
   const params = {
@@ -103,19 +111,26 @@ export default defineEventHandler(async (event) => {
   const db = await connectDB();
   const runId = new ObjectId();
   
-  const runNumber = (batch.runs?.length || 0) + 1;
+  const runNumber = (queue.runs?.length || 0) + 1;
   
-  await batchService.addRun(batchId, { 
-    _id: runId, 
-    status: 'NESTING',
-    runNumber,
-    requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF']
-  }, userId);
+  await queuesService.addRun(
+      queueId, 
+      { 
+        _id: runId, 
+        status: 'NESTING',
+        runNumber,
+        requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF']
+      }, 
+      auth.userId,
+      auth.organizationId,
+      auth.role,
+      auth.permissions
+  );
   
   await db.collection('nesting_jobs').insertOne({
     slug: nestingSlug,
-    projectSlug: batch.projectSlug,
-    batchId: batch._id,
+    projectSlug: queue.projectSlug,
+    queueId: queue._id, // Updated field
     runId,
     files: jobFiles, 
     params,
@@ -124,7 +139,15 @@ export default defineEventHandler(async (event) => {
     ownerId: userId
   });
   
-  await batchService.setRunsStatusByStatus(batchId, 'NESTING', 'ERROR', userId);
+  await queuesService.setRunsStatusByStatus(
+      queueId, 
+      'NESTING', 
+      'ERROR', 
+      auth.userId,
+      auth.organizationId,
+      auth.role,
+      auth.permissions
+  );
   
   // Create placeholder artifacts based on request
   const requestedArtifacts = body.requestedArtifacts || ['LAYOUT_DXF'];
@@ -134,9 +157,9 @@ export default defineEventHandler(async (event) => {
     if (type === 'PDF_PASSPORT') {
         const art = await artifactService.create({
             type,
-            batchId: batch._id,
+            queueId: queue._id,
             runId,
-            name: `${batch.name} - Technical Passports`,
+            name: `${queue.name} - Technical Passports`,
             generatedBy: nestingSlug,
             status: 'GENERATING',
             metadata: { templateId: body.pdfTemplateId }
@@ -145,9 +168,9 @@ export default defineEventHandler(async (event) => {
     } else if (type === 'LAYOUT_DXF') {
         const art = await artifactService.create({
             type,
-            batchId: batch._id,
+            queueId: queue._id,
             runId,
-            name: `${batch.name} - LAYOUT_DXF.dxf`,
+            name: `${queue.name} - LAYOUT_DXF.dxf`,
             generatedBy: nestingSlug,
             status: 'GENERATING'
         });

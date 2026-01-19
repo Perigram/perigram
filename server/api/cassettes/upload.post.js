@@ -1,14 +1,10 @@
-import { service } from '~/server/features/cassettes';
+import * as cassetteService from '~/server/features/cassettes/service';
+import { requireAuth } from '~/server/utils/permissions';
 import { readMultipartFormData } from 'h3';
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context?.auth?.userId;
-  if (!userId) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    });
-  }
+  requireAuth(event);
+  const auth = event.context.auth;
 
   const fields = await readMultipartFormData(event);
   
@@ -46,5 +42,15 @@ export default defineEventHandler(async (event) => {
     }
   }
   
-  return await service.upload(fileBuffer, fileName, name, userId, layerMapping, parameters);
+  return await cassetteService.upload(
+    fileBuffer, 
+    fileName, 
+    name, 
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth.permissions,
+    layerMapping, 
+    parameters
+  );
 });

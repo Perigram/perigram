@@ -1,9 +1,18 @@
-import { service } from '~/server/features/cassettes';
+import * as cassetteService from '~/server/features/cassettes/service';
+import { requireAuth } from '~/server/utils/permissions';
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.auth.userId;
-  const id = getRouterParam(event, 'id');
+  requireAuth(event);
+  const auth = event.context.auth;
+  const id = event.context.params.id;
   const body = await readBody(event);
   
-  return await service.updateParameters(id, body.parameters, userId);
+  return await cassetteService.updateParameters(
+    id, 
+    body.parameters, 
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth.permissions
+  );
 });

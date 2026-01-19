@@ -1,20 +1,29 @@
 /**
- * POST /api/batch/:id/choose-run
+ * POST /api/queue/:id/choose-run
  * Mark a completed run as chosen
  */
 
-import { service as batchService } from '~/server/features/batches';
+import * as queuesService from '~/server/features/queues/service';
+import { requireAuth } from '~/server/utils/permissions';
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.auth.userId;
-  const batchId = getRouterParam(event, 'id');
+  requireAuth(event);
+  const auth = event.context.auth;
+  const queueId = event.context.params.id;
   const body = await readBody(event);
   
   if (!body.runId) {
     throw createError({ statusCode: 400, message: 'runId is required' });
   }
   
-  const batch = await batchService.chooseRun(batchId, body.runId, userId);
+  const queue = await queuesService.chooseRun(
+    queueId, 
+    body.runId, 
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth.permissions
+  );
   
-  return { success: true, batch };
+  return { success: true, queue };
 });

@@ -1,42 +1,41 @@
-import { connectDB } from "~/server/db/mongo"; 
+import { defineEventHandler } from "h3";
+import * as projectsService from "~/server/features/projects/service";
+import * as queuesService from "~/server/features/queues/service";
+import { requireAuth } from "~/server/utils/permissions";
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context?.auth?.userId || "anonymous";
+  requireAuth(event);
+  const auth = event.context.auth;
 
-  const db = await connectDB();
-  const userProjects = await db
-    .collection("projects")
-    .find({ ownerId: userId })
-    .sort({ createdAt: -1 })
-    .project({ slug: 1, name: 1, createdAt: 1 })
-    .toArray();
+  const projects = await projectsService.list(
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth.permissions
+  );
 
-  const queueList = await db
-    .collection("nesting_jobs")
-    .find({ ownerId: userId })
-    .sort({ createdAt: -1 })
-    .project({ projectSlug: 1 })
-    .toArray();
-
-  const uiProjects = mapProject(userProjects, queueList);
+  // For compatibility with dashboard (if it needs 'results' count)
+  // We can fetch all queues for the user/org to count them map them
+  // Or just return projects and update frontend.
+  // Let's try to be backward compatible for now.
+  
+  const queues = await queuesService.listForUser(auth.userId); // This gets by ownerId. 
+  // We might need a listByOrg in queuesService? 
+  // For now listForUser (ownerId) is what we have.
+  // If org-based, we might need to update queuesService to support org filtering too.
+  
+  const uiProjects = projects.map(p => {
+      const count = queues.filter(q => q.projectSlug === p.slug).length;
+      return {
+          slug: p.slug,
+          name: p.name,
+          createdAt: p.createdAt,
+          results: count
+      };
+  });
 
   return {
-    queueList: queueList,
     projects: uiProjects,
+    queueList: queues // minimal info
   };
 });
-
-const mapProject = (projects, queueList) => {
-  return projects.map((project) => {
-    const resultsLength = queueList.filter((queueItem) => {
-      return queueItem.projectSlug === project.slug;
-    }).length;
-
-    return {
-      slug: project.slug,
-      name: project.name,
-      createdAt: project.createdAt,
-      results: resultsLength,
-    };
-  });
-};

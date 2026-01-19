@@ -1,15 +1,23 @@
 /**
- * POST /api/batch/:id/mark-cut
- * Mark batch as CUT (requires chosen run)
+ * POST /api/queue/:id/mark-cut
+ * Mark queue as CUT (requires chosen run)
  */
 
-import { service as batchService } from '~/server/features/batches';
+import * as queuesService from '~/server/features/queues/service';
+import { requireAuth } from '~/server/utils/permissions';
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.auth.userId;
-  const batchId = getRouterParam(event, 'id');
+  requireAuth(event);
+  const auth = event.context.auth;
+  const queueId = event.context.params.id;
   
-  const batch = await batchService.markCut(batchId, userId);
+  const queue = await queuesService.markCut(
+    queueId, 
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth.permissions
+  );
   
-  return { success: true, batch };
+  return { success: true, queue };
 });

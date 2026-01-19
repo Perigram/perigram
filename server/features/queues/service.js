@@ -4,10 +4,16 @@
 
 import * as repository from './repository.js';
 import { ObjectId } from 'mongodb';
+import { createError } from 'h3';
+import { hasPermission } from '~/server/utils/auth-helpers';
 
-export async function getById(id, userId) {
+export async function getById(id, userId, userOrg, userRole, userPermissions) {
   if (!ObjectId.isValid(id)) {
     throw createError({ statusCode: 400, message: 'Invalid ID format' });
+  }
+  
+  if (!hasPermission({ permissions: userPermissions }, 'queues', 'read')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
   const queue = await repository.findById(id);
@@ -15,23 +21,36 @@ export async function getById(id, userId) {
     throw createError({ statusCode: 404, message: 'Queue not found' });
   }
   
-  // Direct string comparison (userId is OAuth string)
-  if (queue.ownerId !== userId) {
-    throw createError({ statusCode: 403, message: 'Access denied' });
+  // Access control
+  if (userRole !== 'SuperAdmin') {
+      // Check ownership
+      if (queue.ownerId !== userId) {
+          // TODO: Add org-based check if ownerId is different but in same org
+          // For now, strict owner check or SuperAdmin
+          throw createError({ statusCode: 403, message: 'Access denied' });
+      }
   }
   
   return queue;
 }
 
-export async function listByProject(projectSlug, userId, options = {}) {
+export async function listByProject(projectSlug, userId, userOrg, userRole, userPermissions, options = {}) {
+  if (!hasPermission({ permissions: userPermissions }, 'queues', 'read')) {
+    return [];
+  }
   return await repository.findByProject(projectSlug, options);
 }
 
 export async function listForUser(userId, options = {}) {
+  // Internal or simple list
   return await repository.findByOwner(userId, options);
 }
 
-export async function create(data, userId) {
+export async function create(data, userId, userOrg, userRole, userPermissions) {
+  if (!hasPermission({ permissions: userPermissions }, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
   if (!data.projectSlug) {
     throw createError({ statusCode: 400, message: 'Project slug is required' });
   }
@@ -68,8 +87,12 @@ export async function create(data, userId) {
   });
 }
 
-export async function update(id, updates, userId) {
-  await getById(id, userId);
+export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
+  await getById(id, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasPermission({ permissions: userPermissions }, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
   
   const allowedUpdates = ['name', 'entries', 'additionalFiles', 'previousRemainder', 'nestingParams', 'requestedArtifacts', 'pdfTemplateId', 'chosenRunId', 'status'];
   const filteredUpdates = {};
@@ -88,8 +111,12 @@ export async function update(id, updates, userId) {
   return await repository.findById(id);
 }
 
-export async function updateStatus(id, status, userId) {
-  const queue = await getById(id, userId);
+export async function updateStatus(id, status, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(id, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasPermission({ permissions: userPermissions }, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
   
   const validStatuses = ['DRAFT', 'CUT'];
   if (!validStatuses.includes(status)) {
@@ -104,8 +131,12 @@ export async function updateStatus(id, status, userId) {
   return await repository.findById(id);
 }
 
-export async function remove(id, userId) {
-  const queue = await getById(id, userId);
+export async function remove(id, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(id, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasPermission({ permissions: userPermissions }, 'queues', 'write')) { // delete usually requires write or admin
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
   
   const hasNestingRun = (queue.runs || []).some(run => run.status === 'NESTING');
   if (hasNestingRun) {
@@ -116,8 +147,8 @@ export async function remove(id, userId) {
   return { success: true };
 }
 
-export async function getArtifacts(id, userId, options = {}) {
-  const queue = await getById(id, userId);
+export async function getArtifacts(id, userId, userOrg, userRole, userPermissions, options = {}) {
+  const queue = await getById(id, userId, userOrg, userRole, userPermissions);
   const query = { queueId: new ObjectId(id) };
   const runId = options.runId || queue.chosenRunId || null;
   if (runId) {
@@ -136,7 +167,13 @@ export async function getArtifacts(id, userId, options = {}) {
   return artifacts;
 }
 
-export async function resetToDraft(id, userId) {
+export async function resetToDraft(id, userId, userOrg, userRole, userPermissions) {
+  // Ensure check
+  await getById(id, userId, userOrg, userRole, userPermissions);
+  if (!hasPermission({ permissions: userPermissions }, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
   const now = new Date();
   const updates = {
     status: 'DRAFT',
@@ -148,8 +185,12 @@ export async function resetToDraft(id, userId) {
   return await repository.findById(id);
 }
 
-export async function markCut(id, userId) {
-  const queue = await getById(id, userId);
+export async function markCut(id, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(id, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasPermission({ permissions: userPermissions }, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
   
   const { connectDB } = await import('../../db/mongo.js');
   const db = await connectDB();
@@ -166,11 +207,11 @@ export async function markCut(id, userId) {
     if (queue.status !== 'CUT') {
       await repository.updateById(id, { status: 'CUT' });
     }
-    return await getById(id, userId);
+    return await getById(id, userId, userOrg, userRole, userPermissions);
   }
 
   // Update status
-  const updatedQueue = await repository.updateById(id, { status: 'CUT' }) ? await getById(id, userId) : queue;
+  const updatedQueue = await repository.updateById(id, { status: 'CUT' }) ? await getById(id, userId, userOrg, userRole, userPermissions) : queue;
 
   // Record in project cutLogs
   const chosenRun = (queue.runs || []).find(r => r._id?.toString() === queue.chosenRunId?.toString());
@@ -180,7 +221,7 @@ export async function markCut(id, userId) {
     queueName: queue.name,
     date: new Date(),
     userId: userId,
-    userName: userId.split(':')[0],
+    userName: userId.split(':')[0], // Simple username fallback
     sheetsUsed: chosenRun?.layoutCount || 0,
     utilization: 0.85,
     wasteArea: 1.2,
@@ -195,8 +236,12 @@ export async function markCut(id, userId) {
   return updatedQueue;
 }
 
-export async function addRun(id, run, userId) {
-  await getById(id, userId);
+export async function addRun(id, run, userId, userOrg, userRole, userPermissions) {
+  await getById(id, userId, userOrg, userRole, userPermissions);
+  if (!hasPermission({ permissions: userPermissions }, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
   const now = new Date();
   const normalizedRun = {
     _id: run._id || new ObjectId(),
@@ -209,8 +254,11 @@ export async function addRun(id, run, userId) {
   return await repository.findById(id);
 }
 
-export async function setRunStatus(id, runId, status, userId) {
-  await getById(id, userId);
+export async function setRunStatus(id, runId, status, userId, userOrg, userRole, userPermissions) {
+  await getById(id, userId, userOrg, userRole, userPermissions);
+  // This is usually internal/system action, but if exposed:
+  // if (!hasPermission...) 
+  
   const validStatuses = ['NESTING', 'ERROR', 'COMPLETE', 'CHOSEN'];
   if (!validStatuses.includes(status)) {
     throw createError({ statusCode: 400, message: 'Invalid run status' });
@@ -219,14 +267,19 @@ export async function setRunStatus(id, runId, status, userId) {
   return await repository.findById(id);
 }
 
-export async function setRunsStatusByStatus(id, fromStatus, toStatus, userId) {
-  await getById(id, userId);
+export async function setRunsStatusByStatus(id, fromStatus, toStatus, userId, userOrg, userRole, userPermissions) {
+  await getById(id, userId, userOrg, userRole, userPermissions);
   await repository.setRunsStatusByStatus(id, fromStatus, toStatus);
   return await repository.findById(id);
 }
 
-export async function chooseRun(id, runId, userId) {
-  const queue = await getById(id, userId);
+export async function chooseRun(id, runId, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(id, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasPermission({ permissions: userPermissions }, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
   const run = (queue.runs || []).find(item => item._id?.toString() === runId.toString());
   if (!run) {
     throw createError({ statusCode: 404, message: 'Run not found' });
@@ -242,13 +295,18 @@ export async function chooseRun(id, runId, userId) {
   await repository.updateById(id, { status: 'CUT' });
   
   // Also record in cutLogs (triggering markCut logic)
-  await markCut(id, userId);
+  await markCut(id, userId, userOrg, userRole, userPermissions);
   
   return await repository.findById(id);
 }
 
-export async function removeRun(id, runId, userId) {
-  const queue = await getById(id, userId);
+export async function removeRun(id, runId, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(id, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasPermission({ permissions: userPermissions }, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
   const run = (queue.runs || []).find(item => item._id?.toString() === runId.toString());
   if (!run) {
     throw createError({ statusCode: 404, message: 'Run not found' });

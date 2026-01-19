@@ -1,84 +1,17 @@
-import { connectDB } from "~~/server/db/mongo";
+import { defineEventHandler } from "h3";
+import * as projectsService from "~/server/features/projects/service";
+import { requireAuth } from "~/server/utils/permissions";
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context?.auth?.userId;
+  requireAuth(event);
+  const auth = event.context.auth;
+  const slug = event.context.params.slug;
 
-  if (!userId) {
-    throw createError({ statusCode: 401, message: "Unauthorized" });
-  }
-
-  const slug = getRouterParam(event, "slug");
-
-  const db = await connectDB();
-  const project = await db.collection("projects").findOne(
-    { slug: slug, ownerId: userId },
-    {
-      projection: {
-        name: 1,
-        slug: 1,
-        sheets: 1,
-        cutLogs: 1,
-        metadata: 1,
-        projectMaterials: 1
-      },
-    }
+  return await projectsService.getBySlug(
+    slug,
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth.permissions
   );
-
-  if (!project) {
-    throw createError({ statusCode: 404, message: "Project not found" });
-  }
-
-  const projectFiles = await db.collection("user_dxf_files")
-    .find({
-      projectSlug: slug,
-      ownerId: userId,
-    })
-    .sort({ uploadAt: 1 })
-    .toArray();
-
-  const tables = await db.collection('tables').find({ projectId: slug, ownerId: userId }).toArray();
-
-  return {
-    name: project.name,
-    slug: project.slug,
-    sheets: project.sheets || [],
-    projectMaterials: project.projectMaterials || [],
-    cutLogs: project.cutLogs || [],
-    metadata: project.metadata || {},
-    files: projectFiles.map((file) => mapFileToUi(file)),
-    tables: tables,
-  };
 });
-
-const mapFileToUi = (file) => {
-  const svgUrl =
-    file.processingStatus === "completed"
-      ? `/api/files/project/svg/${file.svgFileSlug}`
-      : null;
-
-  let status;
-  if (file.processingStatus === "completed") {
-    status = "done";
-  } else if (file.processingStatus === "processing" || file.processingStatus === "pending") {
-    status = "in-progress";
-  } else {
-    status = file.processingStatus;
-  }
-
-  const parts = file.polygonParts || [];
-
-  const uiParts = parts.map((part) => {
-    return {
-      width: Math.round(part.width * 10) / 10,
-      height: Math.round(part.height * 10) / 10,
-    };
-  });
-
-  return {
-    slug: file.slug,
-    name: file.name,
-    svgUrl: svgUrl,
-    processingStatus: status,
-    parts: uiParts,
-  };
-};

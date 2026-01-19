@@ -1,15 +1,16 @@
-import { service } from '~/server/features/cassettes';
+import * as cassetteService from '~/server/features/cassettes/service';
+import { requireAuth } from '~/server/utils/permissions';
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context?.auth?.userId;
-  if (!userId) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    });
-  }
+  requireAuth(event);
+  const auth = event.context.auth;
+  const id = event.context.params.id;
   
-  const id = getRouterParam(event, 'id');
-  
-  return await service.getById(id, userId);
+  return await cassetteService.getById(
+    id, 
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth.permissions
+  );
 });

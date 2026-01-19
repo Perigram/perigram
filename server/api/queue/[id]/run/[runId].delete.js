@@ -1,12 +1,21 @@
-import { service } from '~/server/features/batches';
+import * as queuesService from '~/server/features/queues/service';
+import { requireAuth } from '~/server/utils/permissions';
 
 export default defineEventHandler(async (event) => {
   try {
-    const userId = event.context.auth.userId;
-    const batchId = getRouterParam(event, 'id');
-    const runId = getRouterParam(event, 'runId');
+    requireAuth(event);
+    const auth = event.context.auth;
+    const queueId = event.context.params.id;
+    const runId = event.context.params.runId;
     
-    return await service.removeRun(batchId, runId, userId);
+    return await queuesService.removeRun(
+      queueId, 
+      runId, 
+      auth.userId,
+      auth.organizationId,
+      auth.role,
+      auth.permissions
+    );
   } catch (error) {
     console.error('Delete run error:', error);
     throw error;

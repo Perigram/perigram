@@ -1,18 +1,20 @@
-import { service } from '~/server/features/cassettes';
+import * as cassetteService from '~/server/features/cassettes/service';
+import { requireAuth } from '~/server/utils/permissions';
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context?.auth?.userId;
-  
-  if (!userId) {
-    // Return empty array if not authenticated
-    return [];
-  }
-  
+  requireAuth(event);
+  const auth = event.context.auth;
   const query = getQuery(event);
   
-  return await service.listForUser(userId, {
-    status: query.status,
-    limit: query.limit ? parseInt(query.limit) : 100,
-    skip: query.skip ? parseInt(query.skip) : 0
-  });
+  return await cassetteService.listForUser(
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth.permissions,
+    {
+      status: query.status,
+      limit: query.limit ? parseInt(query.limit) : 100,
+      skip: query.skip ? parseInt(query.skip) : 0
+    }
+  );
 });

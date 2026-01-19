@@ -10,8 +10,14 @@ import { generateRandomString } from '../../utils/strings.js';
 import standardSlugify from 'standard-slugify';
 import { extractNestingPolygons } from '../../utils/dxf-extractor.js';
 import { service as systemSettingsService } from '../system-settings/index.js';
+import { createError } from 'h3';
+import { hasPermission } from '~/server/utils/auth-helpers';
 
-export async function upload(fileBuffer, fileName, cassetteName, userId, layerMapping = null, parameters = null) {
+export async function upload(fileBuffer, fileName, cassetteName, userId, userOrg, userRole, userPermissions, layerMapping = null, parameters = null) {
+  if (!hasPermission({ permissions: userPermissions }, 'cassettes', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
   if (!fileBuffer || fileBuffer.length === 0) {
     throw createError({ statusCode: 400, message: 'No file data provided' });
   }
@@ -62,7 +68,8 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
   const cassetteData = {
     name,
     slug,
-    userId: userId,  // Old schema uses userId as string (not ObjectId)
+    userId: userId,  // Store as string
+    ownerId: userId, // Add ownerId for consistency if we want to migrate later
     dxfId: uploadStream.id,
     svgId: null,  // SVG preview generation can happen later if needed
     layerMapping: layerMapping || {},  // Format: { [dxfLayerName]: layerStandardCode }
@@ -128,9 +135,17 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, layerMa
   return cassette;
 }
 
-export async function getById(id, userId) {
+export async function getById(id, userId, userOrg, userRole, userPermissions) {
   if (!ObjectId.isValid(id)) {
     throw createError({ statusCode: 400, message: 'Invalid ID format' });
+  }
+  
+  // Note: nesting uses this function internally sometimes without permissions object if called from other service?
+  // We need to handle internal calls carefully. But typically internal calls should bypass service or mock permissions.
+  // For now, we assume this is called from API/Context.
+  
+  if (userPermissions && !hasPermission({ permissions: userPermissions }, 'cassettes', 'read')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
   let cassette = await repository.findById(id);
@@ -145,29 +160,57 @@ export async function getById(id, userId) {
   if (!cassette) {
     throw createError({ statusCode: 404, message: 'Cassette not found' });
   }
-  if (cassette.userId !== userId) {  // Direct string comparison
-    throw createError({ statusCode: 403, message: 'Access denied' });
+  
+  // Access control
+  if (userId && userRole !== 'SuperAdmin') {
+      // Check ownership
+      if (cassette.userId !== userId && cassette.ownerId !== userId) {
+          throw createError({ statusCode: 403, message: 'Access denied' });
+      }
   }
   
   return cassette;
 }
 
-export async function getBySlug(slug, userId) {
+export async function getBySlug(slug, userId, userOrg, userRole, userPermissions) {
+  if (!hasPermission({ permissions: userPermissions }, 'cassettes', 'read')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
   const cassette = await repository.findBySlug(slug);
   if (!cassette) {
     throw createError({ statusCode: 404, message: 'Cassette not found' });
   }
-  if (cassette.userId !== userId) {  // Direct string comparison
-    throw createError({ statusCode: 403, message: 'Access denied' });
+  
+  if (userRole !== 'SuperAdmin') {
+      if (cassette.userId !== userId && cassette.ownerId !== userId) {
+        throw createError({ statusCode: 403, message: 'Access denied' });
+      }
   }
   return cassette;
 }
 
-export async function listForUser(userId, options = {}) {
+export async function listForUser(userId, userOrg, userRole, userPermissions, options = {}) {
+  if (!hasPermission({ permissions: userPermissions }, 'cassettes', 'read')) {
+    return [];
+  }
+  
+  if (userRole === 'SuperAdmin') {
+      // Return all if SuperAdmin? Or just list all?
+      // Repository findByOwner filters by owner. 
+      // We might need a general list function in repository.
+      // For now, let's just return user's cassettes.
+      return await repository.findByOwner(userId, options);
+  }
+  
   return await repository.findByOwner(userId, options);
 }
 
-export async function create(data, userId) {
+export async function create(data, userId, userOrg, userRole, userPermissions) {
+  if (!hasPermission({ permissions: userPermissions }, 'cassettes', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
   if (!data.name) {
     throw createError({ statusCode: 400, message: 'Name is required' });
   }
@@ -184,6 +227,7 @@ export async function create(data, userId) {
     name: data.name,
     slug: slug,
     userId: userId,
+    ownerId: userId,
     type: data.data ? 'PARAMETRIC' : 'STANDARD',
     data: data.data || null,
     dxfId: data.dxfId || null,
@@ -198,9 +242,13 @@ export async function create(data, userId) {
   return await repository.create(cassetteData);
 }
 
-export async function update(id, data, userId) {
-  const cassette = await getById(id, userId);
+export async function update(id, data, userId, userOrg, userRole, userPermissions) {
+  await getById(id, userId, userOrg, userRole, userPermissions);
   
+  if (!hasPermission({ permissions: userPermissions }, 'cassettes', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
   const updates = {
     updatedAt: new Date()
   };
@@ -217,17 +265,21 @@ export async function update(id, data, userId) {
   return await repository.findById(id);
 }
 
-export async function updateLayerMapping(id, layerMapping, userId) {
-  return await update(id, { layerMapping }, userId);
+export async function updateLayerMapping(id, layerMapping, userId, userOrg, userRole, userPermissions) {
+  return await update(id, { layerMapping }, userId, userOrg, userRole, userPermissions);
 }
 
-export async function updateParameters(id, parameters, userId) {
-  return await update(id, { parameters }, userId);
+export async function updateParameters(id, parameters, userId, userOrg, userRole, userPermissions) {
+  return await update(id, { parameters }, userId, userOrg, userRole, userPermissions);
 }
 
-export async function updateStatus(id, status, userId) {
-  await getById(id, userId);
+export async function updateStatus(id, status, userId, userOrg, userRole, userPermissions) {
+  await getById(id, userId, userOrg, userRole, userPermissions);
   
+  if (!hasPermission({ permissions: userPermissions }, 'cassettes', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
   const validStatuses = ['DRAFT', 'ACTIVE', 'ARCHIVED'];
   if (!validStatuses.includes(status)) {
     throw createError({ statusCode: 400, message: 'Invalid status' });
@@ -237,14 +289,19 @@ export async function updateStatus(id, status, userId) {
   return await repository.findById(id);
 }
 
-export async function remove(id, userId) {
-  await getById(id, userId);
+export async function remove(id, userId, userOrg, userRole, userPermissions) {
+  await getById(id, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasPermission({ permissions: userPermissions }, 'cassettes', 'write')) { // delete
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
   await repository.deleteById(id);
   return { success: true };
 }
 
-export async function downloadDxf(id, userId) {
-  const cassette = await getById(id, userId);
+export async function downloadDxf(id, userId, userOrg, userRole, userPermissions) {
+  const cassette = await getById(id, userId, userOrg, userRole, userPermissions);
   if (!cassette.dxfId) {
     throw createError({ statusCode: 404, message: 'DXF not found for this cassette' });
   }

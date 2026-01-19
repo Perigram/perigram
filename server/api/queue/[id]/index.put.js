@@ -1,9 +1,18 @@
-import { service } from '~/server/features/batches';
+import * as queuesService from '~/server/features/queues/service';
+import { requireAuth } from '~/server/utils/permissions';
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.auth.userId;
-  const id = getRouterParam(event, 'id');
+  requireAuth(event);
+  const auth = event.context.auth;
+  const id = event.context.params.id;
   const body = await readBody(event);
   
-  return await service.update(id, body, userId);
+  return await queuesService.update(
+    id, 
+    body, 
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth.permissions
+  );
 });

@@ -1,15 +1,23 @@
 /**
- * POST /api/batch/:id/reset-status
- * Reset batch status to DRAFT (for debugging stuck batches)
+ * POST /api/queue/:id/reset-status
+ * Reset queue status to DRAFT (for debugging stuck queues)
  */
 
-import { service as batchService } from '~/server/features/batches';
+import * as queuesService from '~/server/features/queues/service';
+import { requireAuth } from '~/server/utils/permissions';
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.auth.userId;
-  const batchId = getRouterParam(event, 'id');
+  requireAuth(event);
+  const auth = event.context.auth;
+  const queueId = event.context.params.id;
   
-  const batch = await batchService.resetToDraft(batchId, userId);
+  const queue = await queuesService.resetToDraft(
+    queueId, 
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth.permissions
+  );
   
-  return { success: true, status: batch.status, batch };
+  return { success: true, status: queue.status, queue };
 });
