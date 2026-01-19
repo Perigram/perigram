@@ -1,18 +1,15 @@
-import { removeSessionFromUser } from "~/server/utils/auth";
+import { defineEventHandler, parseCookies, deleteCookie } from 'h3';
+import * as usersService from '~/server/features/users/service';
 
 export default defineEventHandler(async (event) => {
   const cookie = parseCookies(event);
   const sessionId = cookie.sessionId;
-  await removeSessionFromUser(sessionId);
-
-  setCookie(event, "sessionId", "", {
-    expires: new Date(0),
-  });
-
-  setHeader(
-    event,
-    "Clear-Site-Data",
-    '"cache", "storage"'
-  );
-  return {};
+  
+  if (sessionId) {
+    await usersService.logout(sessionId);
+  }
+  
+  deleteCookie(event, 'sessionId');
+  
+  return { success: true };
 });
