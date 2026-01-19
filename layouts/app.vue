@@ -39,7 +39,7 @@
             </template>
 
             <template #end>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-4">
                     <Button
                         :icon="themeIcon"
                         @click="toggleTheme"
@@ -47,6 +47,23 @@
                         rounded
                         :aria-label="$t('common.toggleTheme')"
                     />
+                    
+                    <div class="relative" v-if="authStore.userIsSet">
+                        <Button 
+                            type="button" 
+                            @click="toggleUserMenu" 
+                            class="p-0 rounded-full overflow-hidden border-2 border-transparent hover:border-[var(--p-primary-color)] transition-colors"
+                            text
+                        >
+                            <Avatar 
+                                :label="authStore.userData.name ? authStore.userData.name[0].toUpperCase() : 'U'" 
+                                shape="circle" 
+                                size="large" 
+                                class="bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)]"
+                            />
+                        </Button>
+                        <Menu ref="userMenu" :model="userMenuItems" :popup="true" />
+                    </div>
                 </div>
             </template>
         </Menubar>
@@ -75,14 +92,78 @@
     import Divider from 'primevue/divider'
     import Button from 'primevue/button'
     import Select from 'primevue/select'
+    import Menu from 'primevue/menu'
+    import Avatar from 'primevue/avatar'
     import ChatSupport from '~/components/ChatSupport.vue'
     import { useSupportDialog } from '~/composables/useModalState'
     import { API_ROUTES } from '~/composables/apiRoutes'
+    import { useAuthStore } from '~/stores/auth'
 
     const router = useRouter()
     const route = useRoute()
     const { t } = useI18n()
     const supportDialog = useSupportDialog()
+    const authStore = useAuthStore()
+
+    // --- User Menu ---
+    const userMenu = ref();
+    const toggleUserMenu = (event) => {
+        userMenu.value.toggle(event);
+    };
+
+    const userMenuItems = computed(() => {
+        const items = [
+            {
+                label: authStore.userData.name || 'User',
+                items: [
+                    {
+                        label: t('nav.profile'),
+                        icon: 'pi pi-user',
+                        command: () => router.push('/profile')
+                    }
+                ]
+            }
+        ];
+
+        if (authStore.isAdmin) {
+            items.push({
+                label: 'Admin',
+                items: [
+                    {
+                        label: 'Users',
+                        icon: 'pi pi-users',
+                        command: () => router.push('/admin/users')
+                    },
+                    {
+                        label: 'Organizations',
+                        icon: 'pi pi-building',
+                        command: () => router.push('/admin/organizations')
+                    }
+                ]
+            });
+        }
+
+        items.push({
+            separator: true
+        });
+
+        items.push({
+            label: t('nav.logout'),
+            icon: 'pi pi-sign-out',
+            command: async () => {
+                await authStore.logout();
+                router.push('/auth/login');
+            }
+        });
+
+        return items;
+    });
+
+    onMounted(async () => {
+        if (!authStore.userIsSet) {
+            await authStore.setUser();
+        }
+    });
 
     // --- Theme Switcher ---
     const themeCookie = useCookie('theme-mode')
