@@ -213,3 +213,34 @@
      - Restored placeholder artifacts creation in nesting endpoint to provide UI feedback.
      - Improved nesting processor to update artifact status and handle failures.
      - Added null guards to nesting processor to prevent 'length' errors.
+
+* WAITING Agent 3: Material Tracking Implementation
+*** Agent Notes
+    [2026-01-19] Implemented full material tracking system
+    Files changed: 
+    - server/features/warehouses/ (repository, service, API)
+    - server/features/catalogs/ (repository, service, API)
+    - server/features/requisitions/ (repository, service, API)
+    - server/features/material-batches/ (repository, service with transactions, API)
+    - server/features/sheets/ (repository, service, API)
+    - server/features/remnants/ (repository, service, API)
+    - server/db/indexes.js (added indexes for all collections)
+    Docs created: NEOLIT.md for all 6 features
+    Commits:
+    - feat: add warehouses with inventory tracking
+    - neo: document warehouses feature
+    - feat: add catalogs and requisitions for material ordering
+    - neo: document catalogs and requisitions
+    - feat: add material batches, sheets, and remnants tracking
+    - neo: document material tracking features
+    Notes:
+    - Implemented Service-Repository pattern throughout
+    - MongoDB transactions used in material-batches allocateSheets()
+    - Full status workflow for requisitions (draft→sent→approved→fulfilled)
+    - Full status workflow for batches (requested→assembled→sent→arrived→in_stock→used_up)
+    - Automatic inventory counts in warehouses (batches, sheets, remnants)
+    - Price snapshotting in requisitions (from catalogs)
+    - Pile-based sheet allocation with atomic operations
+    - Remnant reusability determination (area ≥ 0.1 m²)
+    - Auto-generated unique numbers (REQ-, BATCH-, SH-, REM-)
+    - Complete access control (manufacturers, contractors, permissions)
