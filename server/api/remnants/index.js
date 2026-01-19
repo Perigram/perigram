@@ -1,5 +1,5 @@
 import { defineEventHandler, readBody } from 'h3';
-import { requireAuth } from '~/server/utils/auth-helpers';
+import { requireAuth } from '~/server/utils/permissions';
 import * as remnantService from '~/server/features/remnants/service';
 
 export default defineEventHandler(async (event) => {

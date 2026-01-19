@@ -1,5 +1,5 @@
 import { defineEventHandler } from 'h3';
-import { requireAuth } from '~/server/utils/auth-helpers';
+import { requireAuth } from '~/server/utils/permissions';
 import * as sheetService from '~/server/features/sheets/service';
 
 export default defineEventHandler(async (event) => {

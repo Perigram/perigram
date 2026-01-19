@@ -1,5 +1,5 @@
 import { defineEventHandler } from 'h3';
-import { requireAuth } from '~/server/utils/auth-helpers';
+import { requireAuth } from '~/server/utils/permissions';
 import * as requisitionService from '~/server/features/requisitions/service';
 
 export default defineEventHandler(async (event) => {
