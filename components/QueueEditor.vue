@@ -1,22 +1,22 @@
 <template>
     <div class="flex flex-col gap-6">
-        <!-- Batch Header with Status -->
+        <!-- Queue Header with Status -->
         <div class="flex flex-col sm:flex-row sm:items-center gap-4 bg-[var(--p-content-background)] p-4 rounded-xl border border-[var(--p-content-border-color)]">
             <div class="flex items-center gap-3">
-                <Tag :value="$t(`batch.batchStatus.${batch.status}`)" :severity="getStatusSeverity(batch.status)" />
-                <span class="text-sm font-medium text-[var(--p-text-muted-color)]">{{ entries.length }} {{ $t('batches.entries') }}</span>
+                <Tag :value="$t(`queue.status.${queue.status}`)" :severity="getStatusSeverity(queue.status)" />
+                <span class="text-sm font-medium text-[var(--p-text-muted-color)]">{{ entries.length }} {{ $t('queues.entries') }}</span>
             </div>
             <div class="flex flex-wrap gap-2 sm:ml-auto">
                 <Button 
-                    v-if="batch.status === 'DRAFT' && batch.chosenRunId"
-                    :label="$t('batch.markCut')"
+                    v-if="queue.status === 'DRAFT' && queue.chosenRunId"
+                    :label="$t('queue.markCut')"
                     icon="pi pi-scissors"
                     severity="success"
                     @click="markCutHandler"
                 />
                 <Button 
-                    v-if="batch.status !== 'DRAFT'"
-                    :label="$t('batch.resetToDraft')"
+                    v-if="queue.status !== 'DRAFT'"
+                    :label="$t('queue.resetToDraft')"
                     icon="pi pi-refresh"
                     severity="warning"
                     @click="resetToDraft"
@@ -27,16 +27,16 @@
         <!-- Accordion Panels -->
         <Accordion :multiple="true" :activeIndex="[0, 1, 2]" class="flex flex-col gap-4">
             <!-- Runs Panel -->
-            <AccordionTab v-if="batch.runs && batch.runs.length > 0" :header="`${$t('batch.runs')} (${batch.runs.length})`">
+            <AccordionTab v-if="queue.runs && queue.runs.length > 0" :header="`${$t('queue.runs')} (${queue.runs.length})`">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     <div 
-                        v-for="run in batch.runs" 
+                        v-for="run in queue.runs" 
                         :key="run._id"
                         class="p-4 border-2 rounded-2xl transition-all cursor-pointer flex flex-col gap-3 relative h-44 group overflow-hidden"
                         :class="[
                             run._id.toString() === selectedRunId 
                                 ? 'border-[var(--p-primary-color)] shadow-md bg-[var(--p-primary-50)]/10' 
-                                : (run._id.toString() === batch.chosenRunId?.toString() 
+                                : (run._id.toString() === queue.chosenRunId?.toString() 
                                     ? 'border-[var(--p-primary-300)] bg-[var(--p-primary-50)]/30' 
                                     : 'border-[var(--p-content-border-color)] bg-[var(--p-content-background)] hover:border-[var(--p-primary-200)]')
                         ]"
@@ -57,7 +57,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="text-xl font-black">#{{ run.runNumber }}</span>
                                 <Tag 
-                                    :value="$t(`batch.runStatus.${run.status}`)" 
+                                    :value="$t(`queue.runStatus.${run.status}`)" 
                                     :severity="getRunStatusSeverity(run.status)"
                                 />
                             </div>
@@ -97,9 +97,9 @@
                                 {{ formatDate(run.createdAt) }}
                             </span>
                             
-                            <div v-if="run.status === 'COMPLETE' && run._id.toString() !== batch.chosenRunId?.toString()">
+                            <div v-if="run.status === 'COMPLETE' && run._id.toString() !== queue.chosenRunId?.toString()">
                                 <Button 
-                                    :label="$t('batch.chooseRun')"
+                                    :label="$t('queue.chooseRun')"
                                     size="small"
                                     text
                                     class="p-0 font-black uppercase tracking-wider text-[10px]"
@@ -113,7 +113,7 @@
 
             <!-- Sheets & Nesting Settings -->
             <AccordionTab :header="$t('projectData.sheets')">
-                <div class="flex flex-col gap-8 py-2" v-if="batch.status === 'DRAFT'">
+                <div class="flex flex-col gap-8 py-2" v-if="queue.status === 'DRAFT'">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                         <!-- Left: Material & Sheets Selection -->
                         <div class="lg:col-span-10 flex flex-col gap-6">
@@ -200,7 +200,7 @@
                         <!-- Right: Run Action -->
                         <div class="lg:col-span-2 flex flex-col gap-4">
                             <Button 
-                                :label="$t('batches.runNesting')"
+                                :label="$t('queues.runNesting')"
                                 icon="pi pi-play"
                                 severity="success"
                                 @click="runNesting"
@@ -258,12 +258,12 @@
                 </div>
                 <div v-else class="py-8 text-center opacity-60">
                     <i class="pi pi-lock text-4xl mb-3"></i>
-                    <p class="font-bold uppercase tracking-widest text-xs">Batch is CUT. Settings are locked.</p>
+                    <p class="font-bold uppercase tracking-widest text-xs">Queue is CUT. Settings are locked.</p>
                 </div>
             </AccordionTab>
 
             <!-- Cassettes DataView Panel -->
-            <AccordionTab :header="$t('batches.cassettes')">
+            <AccordionTab :header="$t('queues.cassettes')">
                 <div class="flex flex-col gap-6">
                     <!-- View Switcher -->
                     <div class="flex justify-between items-center">
@@ -284,7 +284,7 @@
                                 icon="pi pi-trash" severity="danger" text rounded size="small"
                                 class="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                 @click="confirmDelete(entry)"
-                                :disabled="batch.status !== 'DRAFT'"
+                                :disabled="queue.status !== 'DRAFT'"
                             />
 
                             <!-- Left: Thumbnail (Bigger and Square) -->
@@ -301,11 +301,11 @@
                                 <div class="flex flex-col gap-4">
                                     <!-- Quantity Row -->
                                     <div class="flex items-center justify-between gap-4 p-2 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-[var(--p-content-border-color)]">
-                                        <span class="text-[10px] font-black uppercase tracking-widest opacity-60">{{ $t('batch.quantity') }}</span>
+                                        <span class="text-[10px] font-black uppercase tracking-widest opacity-60">{{ $t('queue.quantity') }}</span>
                                         <InputNumber 
-                                            v-model="entry.quantity" :min="1" :disabled="batch.status !== 'DRAFT'"
+                                            v-model="entry.quantity" :min="1" :disabled="queue.status !== 'DRAFT'"
                                             size="small" class="w-32" showButtons buttonLayout="horizontal"
-                                            @update:model-value="saveBatch"
+                                            @update:model-value="saveQueue"
                                         />
                                     </div>
                                     
@@ -314,9 +314,9 @@
                                         <div v-for="param in getEntryParameters(entry)" :key="param" class="flex items-center justify-between gap-4 py-1 border-b border-dashed border-[var(--p-content-border-color)] last:border-0">
                                             <span class="text-[10px] font-black uppercase opacity-60">{{ param }}</span>
                                             <InputNumber 
-                                                v-model="entry.dimensions[param]" :disabled="batch.status !== 'DRAFT'"
+                                                v-model="entry.dimensions[param]" :disabled="queue.status !== 'DRAFT'"
                                                 size="small" class="w-28" :min="0"
-                                                @update:model-value="saveBatch"
+                                                @update:model-value="saveQueue"
                                             />
                                         </div>
                                     </div>
@@ -330,7 +330,7 @@
                         v-if="viewMode === 'table'"
                         v-model:editingRows="editingRows"
                         :value="entries"
-                        :editMode="batch.status === 'DRAFT' ? 'cell' : null"
+                        :editMode="queue.status === 'DRAFT' ? 'cell' : null"
                         dataKey="_id"
                         @cell-edit-complete="onRowEditSave"
                         :paginator="entries.length > 10"
@@ -338,7 +338,7 @@
                         responsiveLayout="scroll"
                         class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden"
                     >
-                        <Column field="cassetteTemplateId" :header="$t('batches.cassette')" style="min-width: 200px">
+                        <Column field="cassetteTemplateId" :header="$t('queues.cassette')" style="min-width: 200px">
                             <template #body="slotProps">
                                 <span class="font-medium">{{ getCassetteName(slotProps.data.cassetteTemplateId) }}</span>
                             </template>
@@ -348,14 +348,14 @@
                                     :options="cassettes"
                                     optionLabel="name"
                                     optionValue="_id"
-                                    :placeholder="$t('batches.selectCassette')"
+                                    :placeholder="$t('queues.selectCassette')"
                                     @change="onCassetteChange(data)"
                                     class="w-full"
                                 />
                             </template>
                         </Column>
 
-                        <Column field="quantity" :header="$t('batches.quantity')" style="width: 120px">
+                        <Column field="quantity" :header="$t('queues.quantity')" style="width: 120px">
                             <template #editor="{ data }">
                                 <InputNumber v-model="data.quantity" :min="1" :max="1000" showButtons class="w-full" />
                             </template>
@@ -381,7 +381,7 @@
                                 <Button 
                                     icon="pi pi-trash" severity="danger" text rounded
                                     @click="confirmDelete(slotProps.data)"
-                                    :disabled="batch.status !== 'DRAFT'"
+                                    :disabled="queue.status !== 'DRAFT'"
                                 />
                             </template>
                         </Column>
@@ -389,7 +389,7 @@
                         <template #empty>
                             <div class="text-center py-12">
                                 <i class="pi pi-inbox text-5xl mb-4 opacity-20"></i>
-                                <p class="text-[var(--p-text-secondary-color)]">{{ $t('batches.noEntries') }}</p>
+                                <p class="text-[var(--p-text-secondary-color)]">{{ $t('queues.noEntries') }}</p>
                             </div>
                         </template>
                     </DataTable>
@@ -397,39 +397,39 @@
                     <!-- Add Cassette Buttons -->
                     <div class="flex flex-wrap gap-3">
                         <Button 
-                            :label="$t('batches.addFromTemplate')" icon="pi pi-plus" severity="secondary" outlined
-                            @click="showAddDialog = true" :disabled="batch.status !== 'DRAFT'"
+                            :label="$t('queues.addFromTemplate')" icon="pi pi-plus" severity="secondary" outlined
+                            @click="showAddDialog = true" :disabled="queue.status !== 'DRAFT'"
                         />
                         <Button 
-                            :label="$t('batches.uploadCassette')" icon="pi pi-upload" severity="secondary" outlined
-                            @click="showUploadDialog = true" :disabled="batch.status !== 'DRAFT'"
+                            :label="$t('queues.uploadCassette')" icon="pi pi-upload" severity="secondary" outlined
+                            @click="showUploadDialog = true" :disabled="queue.status !== 'DRAFT'"
                         />
                     </div>
                 </div>
             </AccordionTab>
 
             <!-- Artifacts Panel -->
-            <AccordionTab v-if="selectedRunId" :header="$t('batches.artifacts')">
-                <ArtifactsTable ref="artifactsTableRef" :batch-id="batch._id" :batch="batch" :run-id="selectedRunId" />
+            <AccordionTab v-if="selectedRunId" :header="$t('queues.artifacts')">
+                <ArtifactsTable ref="artifactsTableRef" :batch-id="queue._id" :batch="queue" :run-id="selectedRunId" />
             </AccordionTab>
         </Accordion>
 
         <!-- Add Entry Dialog -->
         <Dialog 
-            v-model:visible="showAddDialog" :header="$t('batches.addEntry')" modal
+            v-model:visible="showAddDialog" :header="$t('queues.addEntry')" modal
             :style="{ width: '95vw', maxWidth: '500px' }"
         >
             <div class="flex flex-col gap-6 py-4">
                 <div class="flex flex-col gap-2">
-                    <label class="font-medium text-[var(--p-text-color)]">{{ $t('batches.cassette') }}</label>
+                    <label class="font-medium text-[var(--p-text-color)]">{{ $t('queues.cassette') }}</label>
                     <Select 
                         v-model="newEntry.cassetteTemplateId" :options="cassettes"
-                        optionLabel="name" optionValue="_id" :placeholder="$t('batches.selectCassette')"
+                        optionLabel="name" optionValue="_id" :placeholder="$t('queues.selectCassette')"
                         class="w-full" @change="onNewCassetteChange"
                     />
                 </div>
                 <div class="flex flex-col gap-2">
-                    <label class="font-medium text-[var(--p-text-color)]">{{ $t('batches.quantity') }}</label>
+                    <label class="font-medium text-[var(--p-text-color)]">{{ $t('queues.quantity') }}</label>
                     <InputNumber v-model="newEntry.quantity" :min="1" showButtons class="w-full" />
                 </div>
             </div>
@@ -441,7 +441,7 @@
 
         <!-- Upload Cassette Dialog -->
         <Dialog 
-            v-model:visible="showUploadDialog" :header="$t('batches.uploadNewCassette')" modal
+            v-model:visible="showUploadDialog" :header="$t('queues.uploadNewCassette')" modal
             :style="{ width: '95vw', maxWidth: '600px' }"
         >
             <CassetteEditorDialog v-if="showUploadDialog" @saved="onCassetteUploaded" />
@@ -459,7 +459,7 @@ import { useToast } from 'primevue/usetoast';
 import { useCassettesStore } from '~/stores/cassettes';
 import { useToolProfilesStore } from '~/stores/toolProfiles';
 import { useArtifactsStore } from '~/stores/artifacts';
-import { useBatchesStore } from '~/stores/batches';
+import { useQueuesStore } from '~/stores/queues';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
@@ -478,7 +478,7 @@ import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
 
 const props = defineProps({
-    batch: { type: Object, required: true },
+    queue: { type: Object, required: true },
     projectSlug: { type: String, required: true }
 });
 
@@ -487,7 +487,7 @@ const { t } = useI18n();
 const confirm = useConfirm();
 const toast = useToast();
 
-const batchesStore = useBatchesStore();
+const queuesStore = useQueuesStore();
 const cassettesStore = useCassettesStore();
 const artifactsStore = useArtifactsStore();
 const toolProfilesStore = useToolProfilesStore();
@@ -512,19 +512,19 @@ const availableArtifacts = ref([
 ]);
 
 const nestingOptions = ref({
-    width: props.batch.nestingParams?.width || 2440,
-    height: props.batch.nestingParams?.height || 1220,
-    toolId: props.batch.nestingParams?.toolId || null,
-    sheetPolygon: props.batch.nestingParams?.sheetPolygon || null,
-    requestedArtifacts: props.batch.requestedArtifacts || ['LAYOUT_DXF'],
-    pdfTemplateId: props.batch.pdfTemplateId || null,
-    inventorySheets: props.batch.nestingParams?.inventorySheets || []
+    width: props.queue.nestingParams?.width || 2440,
+    height: props.queue.nestingParams?.height || 1220,
+    toolId: props.queue.nestingParams?.toolId || null,
+    sheetPolygon: props.queue.nestingParams?.sheetPolygon || null,
+    requestedArtifacts: props.queue.requestedArtifacts || ['LAYOUT_DXF'],
+    pdfTemplateId: props.queue.pdfTemplateId || null,
+    inventorySheets: props.queue.nestingParams?.inventorySheets || []
 });
 
 watch(nestingOptions, async (newVal) => {
-    if (props.batch.status !== 'DRAFT') return;
+    if (props.queue.status !== 'DRAFT') return;
     try {
-        await $fetch(`/api/batch/${props.batch._id}`, {
+        await $fetch(`/api/queue/${props.queue._id}`, {
             method: 'PUT',
             body: {
                 nestingParams: {
@@ -583,20 +583,20 @@ onMounted(async () => {
     cassettes.value = cassetteResult || [];
     projectData.value = projectRes;
     await toolProfilesStore.fetchTools();
-    loadBatchData();
+    loadQueueData();
 });
 
-onUnmounted(() => batchesStore.stopPolling(props.batch._id));
-watch(() => props.batch, () => loadBatchData(), { deep: true });
+onUnmounted(() => queuesStore.stopPolling(props.queue._id));
+watch(() => props.queue, () => loadQueueData(), { deep: true });
 watch(selectedRunId, () => loadArtifacts());
 
-const loadBatchData = () => {
-    entries.value = [...(props.batch.entries || [])];
+const loadQueueData = () => {
+    entries.value = [...(props.queue.entries || [])];
     loadArtifacts();
 };
 
 const loadArtifacts = async () => {
-    try { await artifactsStore.fetchArtifacts(props.batch._id, selectedRunId.value); }
+    try { await artifactsStore.fetchArtifacts(props.queue._id, selectedRunId.value); }
     catch (e) { console.error(e); }
 };
 
@@ -610,7 +610,7 @@ const allParameters = computed(() => {
     return Array.from(params).sort();
 });
 
-const getCassetteName = (id) => cassettes.value.find(c => c._id === id)?.name || t('batch.unknownCassette');
+const getCassetteName = (id) => cassettes.value.find(c => c._id === id)?.name || t('queue.unknownCassette');
 const getEntryParameters = (entry) => cassettes.value.find(c => c._id === entry.cassetteTemplateId)?.parameters || [];
 const getRunArtifacts = (runId) => artifacts.value?.filter(a => a.runId?.toString() === runId.toString()) || [];
 
@@ -643,27 +643,27 @@ const newEntry = ref({ cassetteTemplateId: null, quantity: 1, dimensions: {} });
 
 const addEntry = async () => {
     entries.value.push({ ...newEntry.value, _id: `temp_${Date.now()}` });
-    await saveBatch();
+    await saveQueue();
     newEntry.value = { cassetteTemplateId: null, quantity: 1, dimensions: {} };
     showAddDialog.value = false;
 };
 
-const onRowEditSave = async () => await saveBatch();
+const onRowEditSave = async () => await saveQueue();
 
 const confirmDelete = (entry) => {
     confirm.require({
-        message: t('batches.confirmDeleteEntry'),
+        message: t('queues.confirmDeleteEntry'),
         header: t('common.confirmation'),
         icon: 'pi pi-exclamation-triangle',
         accept: async () => {
             const idx = entries.value.findIndex(e => e._id === entry._id);
-            if (idx > -1) { entries.value.splice(idx, 1); await saveBatch(); }
+            if (idx > -1) { entries.value.splice(idx, 1); await saveQueue(); }
         }
     });
 };
 
-const saveBatch = async () => {
-    try { await $fetch(`/api/batch/${props.batch._id}`, { method: 'PUT', body: { entries: entries.value } }); emit('updated'); }
+const saveQueue = async () => {
+    try { await $fetch(`/api/queue/${props.queue._id}`, { method: 'PUT', body: { entries: entries.value } }); emit('updated'); }
     catch (e) { console.error(e); }
 };
 
@@ -675,37 +675,37 @@ const runNesting = async () => {
             ...nestingOptions.value,
             materialId: activeMaterialId.value
         };
-        await batchesStore.startNesting(props.batch._id, payload);
-        toast.add({ severity: 'info', summary: t('batches.nestingStarted'), life: 3000 });
+        await queuesStore.startNesting(props.queue._id, payload);
+        toast.add({ severity: 'info', summary: t('queues.nestingStarted'), life: 3000 });
     } catch (e) {
-        toast.add({ severity: 'error', summary: t('batches.nestingFailed'), detail: e.message, life: 3000 });
+        toast.add({ severity: 'error', summary: t('queues.nestingFailed'), detail: e.message, life: 3000 });
     } finally { nestingInProgress.value = false; }
 };
 
 const resetToDraft = async () => {
     confirm.require({
-        message: t('batches.confirmResetMessage'),
-        header: t('batches.confirmResetTitle'),
+        message: t('queues.confirmResetMessage'),
+        header: t('queues.confirmResetTitle'),
         icon: 'pi pi-exclamation-triangle',
         accept: async () => {
-            try { await batchesStore.resetStatus(props.batch._id); emit('updated'); }
+            try { await queuesStore.resetStatus(props.queue._id); emit('updated'); }
             catch (e) { console.error(e); }
         }
     });
 };
 
 const chooseRunHandler = async (id) => {
-    try { await batchesStore.chooseRun(props.batch._id, id); emit('updated'); }
+    try { await queuesStore.chooseRun(props.queue._id, id); emit('updated'); }
     catch (e) { console.error(e); }
 };
 
 const markCutHandler = async () => {
     confirm.require({
-        message: t('batch.confirmMarkCut'),
+        message: t('queue.confirmMarkCut'),
         header: t('common.confirmation'),
         icon: 'pi pi-exclamation-triangle',
         accept: async () => {
-            try { await batchesStore.markCut(props.batch._id); emit('updated'); }
+            try { await queuesStore.markCut(props.queue._id); emit('updated'); }
             catch (e) { console.error(e); }
         }
     });
@@ -713,11 +713,11 @@ const markCutHandler = async () => {
 
 const deleteRunHandler = async (id) => {
     confirm.require({
-        message: t('batch.confirmDeleteRun'),
+        message: t('queue.confirmDeleteRun'),
         header: t('common.confirmation'),
         icon: 'pi pi-trash',
         accept: async () => {
-            try { await batchesStore.deleteRun(props.batch._id, id); if (selectedRunId.value === id.toString()) selectedRunId.value = null; emit('updated'); }
+            try { await queuesStore.deleteRun(props.queue._id, id); if (selectedRunId.value === id.toString()) selectedRunId.value = null; emit('updated'); }
             catch (e) { console.error(e); }
         }
     });

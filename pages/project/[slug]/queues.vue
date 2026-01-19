@@ -1,23 +1,23 @@
 <template>
     <div class="flex flex-col gap-6 py-4">
-        <!-- Batch selector and actions -->
+        <!-- Queue selector and actions -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
             <div class="flex flex-1 items-center gap-3 min-w-0">
                 <Select
-                    v-if="currentBatchId"
-                    v-model="currentBatchId"
-                    :options="batches"
+                    v-if="currentQueueId"
+                    v-model="currentQueueId"
+                    :options="queues"
                     option-label="name"
                     option-value="_id"
-                    :placeholder="$t('batches.selectCassette')"
+                    :placeholder="$t('queues.selectCassette')"
                     class="w-full sm:w-80"
                 >
                     <template #value="slotProps">
-                        <div v-if="currentBatch" class="flex items-center gap-3">
-                            <span class="font-bold truncate">{{ currentBatch.name }}</span>
+                        <div v-if="currentQueue" class="flex items-center gap-3">
+                            <span class="font-bold truncate">{{ currentQueue.name }}</span>
                             <Tag
-                                :value="$t(`batch.batchStatus.${currentBatch.status}`)"
-                                :severity="getStatusSeverity(currentBatch.status)"
+                                :value="$t(`queue.status.${currentQueue.status}`)"
+                                :severity="getStatusSeverity(currentQueue.status)"
                                 class="text-[10px] uppercase"
                             />
                         </div>
@@ -26,7 +26,7 @@
                         <div class="flex items-center justify-between w-full gap-4">
                             <span class="font-medium truncate">{{ slotProps.option.name }}</span>
                             <Tag
-                                :value="$t(`batch.batchStatus.${slotProps.option.status}`)"
+                                :value="$t(`queue.status.${slotProps.option.status}`)"
                                 :severity="getStatusSeverity(slotProps.option.status)"
                                 class="text-[9px] uppercase"
                             />
@@ -36,33 +36,33 @@
             </div>
             
             <Button
-                :label="$t('batch.create')"
+                :label="$t('queue.create')"
                 icon="pi pi-plus"
-                @click="createNewBatch"
+                @click="createNewQueue"
                 class="flex-shrink-0"
             />
         </div>
 
-        <!-- Current batch editor -->
-        <div v-if="currentBatch" class="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <BatchEditor
-                :batch="currentBatch"
+        <!-- Current queue editor -->
+        <div v-if="currentQueue" class="animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <QueueEditor
+                :queue="currentQueue"
                 :project-slug="slug"
-                @updated="refreshBatches"
+                @updated="refreshQueues"
             />
         </div>
 
         <!-- Empty state -->
         <div
-            v-else-if="batches.length === 0"
+            v-else-if="queues.length === 0"
             class="text-center py-20 px-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)] mx-1"
         >
             <i class="pi pi-inbox text-6xl text-[var(--p-text-muted-color)] mb-4 opacity-30 block"></i>
-            <p class="text-lg text-[var(--p-text-secondary-color)] mb-6">{{ $t('batch.empty') }}</p>
+            <p class="text-lg text-[var(--p-text-secondary-color)] mb-6">{{ $t('queue.empty') }}</p>
             <Button
-                :label="$t('batch.createFirst')"
+                :label="$t('queue.createFirst')"
                 icon="pi pi-plus"
-                @click="createNewBatch"
+                @click="createNewQueue"
                 size="large"
             />
         </div>
@@ -72,9 +72,9 @@
 <script setup>
     import { ref, computed, watch, onMounted } from 'vue'
     import { useRoute } from 'vue-router'
-    import { useBatchesStore } from '~/stores/batches'
+    import { useQueuesStore } from '~/stores/queues'
     import { storeToRefs } from 'pinia'
-    import BatchEditor from '~/components/BatchEditor.vue'
+    import QueueEditor from '~/components/QueueEditor.vue'
     import Button from 'primevue/button'
     import Select from 'primevue/select'
     import Tag from 'primevue/tag'
@@ -88,10 +88,10 @@
     const route = useRoute()
     const slug = route.params.slug
 
-    const batchesStore = useBatchesStore()
-    const { batches } = storeToRefs(batchesStore)
-    const currentBatchId = ref(null)
-    const currentBatch = computed(() => batches.value.find((b) => b._id === currentBatchId.value))
+    const queuesStore = useQueuesStore()
+    const { queues } = storeToRefs(queuesStore)
+    const currentQueueId = ref(null)
+    const currentQueue = computed(() => queues.value.find((q) => q._id === currentQueueId.value))
 
     const getStatusSeverity = (status) => {
         const map = {
@@ -105,29 +105,29 @@
         return map[status] || 'info';
     };
 
-    watch(currentBatchId, async (newId) => {
+    watch(currentQueueId, async (newId) => {
         if (newId) {
-            await batchesStore.getBatch(newId)
+            await queuesStore.getQueue(newId)
         }
     })
 
     onMounted(async () => {
-        await refreshBatches()
-        if (batches.value.length > 0) {
-            currentBatchId.value = batches.value[batches.value.length - 1]._id
+        await refreshQueues()
+        if (queues.value.length > 0) {
+            currentQueueId.value = queues.value[queues.value.length - 1]._id
         }
     })
 
-    const refreshBatches = async () => {
-        await batchesStore.fetchBatches(slug)
+    const refreshQueues = async () => {
+        await queuesStore.fetchQueues(slug)
     }
 
-    const createNewBatch = async () => {
-        const newBatch = await batchesStore.createBatch(slug, {
-            name: `${t('batch.title')} ${batches.value.length + 1}`,
+    const createNewQueue = async () => {
+        const newQueue = await queuesStore.createQueue(slug, {
+            name: `${t('queue.title')} ${queues.value.length + 1}`,
         })
-        currentBatchId.value = newBatch._id
-        await refreshBatches()
+        currentQueueId.value = newQueue._id
+        await refreshQueues()
     }
 </script>
 

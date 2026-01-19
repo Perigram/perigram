@@ -21,11 +21,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: "Project not found" });
   }
 
-  // Get batches for this project
-  const batches = await db.collection("batches")
+  // Get queues for this project
+  const queues = await db.collection("queues")
     .find({ projectSlug })
-    .sort({ batchNumber: 1 })
+    .sort({ queueNumber: 1 })
     .toArray();
 
-  return batches;
+  return queues;
 });

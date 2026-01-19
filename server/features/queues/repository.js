@@ -6,7 +6,7 @@ import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 
 import { toObjectId } from '../../utils/objectid.js';
-const COLLECTION = 'batches';
+const COLLECTION = 'queues';
 
 export async function findById(id) {
   const db = await connectDB();
@@ -22,7 +22,7 @@ export async function findByProject(projectSlug, options = {}) {
   
   return await db.collection(COLLECTION)
     .find(query)
-    .sort({ batchNumber: -1 })
+    .sort({ queueNumber: -1 })
     .skip(skip)
     .limit(limit)
     .toArray();
@@ -41,12 +41,12 @@ export async function findByOwner(ownerId, options = {}) {
     .toArray();
 }
 
-export async function getNextBatchNumber(projectSlug) {
+export async function getNextQueueNumber(projectSlug) {
   const db = await connectDB();
-  const lastBatch = await db.collection(COLLECTION)
-    .findOne({ projectSlug }, { sort: { batchNumber: -1 } });
+  const lastQueue = await db.collection(COLLECTION)
+    .findOne({ projectSlug }, { sort: { queueNumber: -1 } });
   
-  return lastBatch ? lastBatch.batchNumber + 1 : 1;
+  return lastQueue ? lastQueue.queueNumber + 1 : 1;
 }
 
 export async function create(data) {

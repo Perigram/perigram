@@ -1,5 +1,5 @@
 /**
- * Batches Service
+ * Queues Service
  */
 
 import * as repository from './repository.js';
@@ -10,17 +10,17 @@ export async function getById(id, userId) {
     throw createError({ statusCode: 400, message: 'Invalid ID format' });
   }
   
-  const batch = await repository.findById(id);
-  if (!batch) {
-    throw createError({ statusCode: 404, message: 'Batch not found' });
+  const queue = await repository.findById(id);
+  if (!queue) {
+    throw createError({ statusCode: 404, message: 'Queue not found' });
   }
   
   // Direct string comparison (userId is OAuth string)
-  if (batch.ownerId !== userId) {
+  if (queue.ownerId !== userId) {
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
   
-  return batch;
+  return queue;
 }
 
 export async function listByProject(projectSlug, userId, options = {}) {
@@ -52,11 +52,11 @@ export async function create(data, userId) {
     }
   }
   
-  const batchNumber = await repository.getNextBatchNumber(data.projectSlug);
+  const queueNumber = await repository.getNextQueueNumber(data.projectSlug);
   
   return await repository.create({
     projectSlug: data.projectSlug,
-    batchNumber,
+    queueNumber,
     name: data.name,
     ownerId: userId,  // Store as string (OAuth format), not ObjectId
     entries: data.entries.map(e => ({
@@ -89,14 +89,14 @@ export async function update(id, updates, userId) {
 }
 
 export async function updateStatus(id, status, userId) {
-  const batch = await getById(id, userId);
+  const queue = await getById(id, userId);
   
   const validStatuses = ['DRAFT', 'CUT'];
   if (!validStatuses.includes(status)) {
     throw createError({ statusCode: 400, message: 'Invalid status' });
   }
 
-  if (status === 'CUT' && !batch.chosenRunId) {
+  if (status === 'CUT' && !queue.chosenRunId) {
     throw createError({ statusCode: 400, message: 'Choose a completed run before marking as cut' });
   }
   
@@ -105,11 +105,11 @@ export async function updateStatus(id, status, userId) {
 }
 
 export async function remove(id, userId) {
-  const batch = await getById(id, userId);
+  const queue = await getById(id, userId);
   
-  const hasNestingRun = (batch.runs || []).some(run => run.status === 'NESTING');
+  const hasNestingRun = (queue.runs || []).some(run => run.status === 'NESTING');
   if (hasNestingRun) {
-    throw createError({ statusCode: 400, message: 'Cannot delete batch in progress' });
+    throw createError({ statusCode: 400, message: 'Cannot delete queue in progress' });
   }
   
   await repository.deleteById(id);
@@ -117,9 +117,9 @@ export async function remove(id, userId) {
 }
 
 export async function getArtifacts(id, userId, options = {}) {
-  const batch = await getById(id, userId);
-  const query = { batchId: new ObjectId(id) };
-  const runId = options.runId || batch.chosenRunId || null;
+  const queue = await getById(id, userId);
+  const query = { queueId: new ObjectId(id) };
+  const runId = options.runId || queue.chosenRunId || null;
   if (runId) {
     query.runId = new ObjectId(runId);
   }
@@ -149,35 +149,35 @@ export async function resetToDraft(id, userId) {
 }
 
 export async function markCut(id, userId) {
-  const batch = await getById(id, userId);
+  const queue = await getById(id, userId);
   
   const { connectDB } = await import('../../db/mongo.js');
   const db = await connectDB();
 
   // Check if already logged
   const existingLog = await db.collection('projects').findOne({
-    slug: batch.projectSlug,
+    slug: queue.projectSlug,
     ownerId: userId,
-    "cutLogs.batchId": batch._id
+    "cutLogs.queueId": queue._id
   });
 
   if (existingLog) {
-    // Already in logs, just ensure batch status is CUT
-    if (batch.status !== 'CUT') {
+    // Already in logs, just ensure queue status is CUT
+    if (queue.status !== 'CUT') {
       await repository.updateById(id, { status: 'CUT' });
     }
     return await getById(id, userId);
   }
 
   // Update status
-  const updatedBatch = await repository.updateById(id, { status: 'CUT' }) ? await getById(id, userId) : batch;
+  const updatedQueue = await repository.updateById(id, { status: 'CUT' }) ? await getById(id, userId) : queue;
 
   // Record in project cutLogs
-  const chosenRun = (batch.runs || []).find(r => r._id?.toString() === batch.chosenRunId?.toString());
+  const chosenRun = (queue.runs || []).find(r => r._id?.toString() === queue.chosenRunId?.toString());
   
   const logEntry = {
-    batchId: batch._id,
-    batchName: batch.name,
+    queueId: queue._id,
+    queueName: queue.name,
     date: new Date(),
     userId: userId,
     userName: userId.split(':')[0],
@@ -188,11 +188,11 @@ export async function markCut(id, userId) {
   };
 
   await db.collection('projects').updateOne(
-    { slug: batch.projectSlug, ownerId: userId },
+    { slug: queue.projectSlug, ownerId: userId },
     { $push: { cutLogs: logEntry } }
   );
 
-  return updatedBatch;
+  return updatedQueue;
 }
 
 export async function addRun(id, run, userId) {
@@ -226,8 +226,8 @@ export async function setRunsStatusByStatus(id, fromStatus, toStatus, userId) {
 }
 
 export async function chooseRun(id, runId, userId) {
-  const batch = await getById(id, userId);
-  const run = (batch.runs || []).find(item => item._id?.toString() === runId.toString());
+  const queue = await getById(id, userId);
+  const run = (queue.runs || []).find(item => item._id?.toString() === runId.toString());
   if (!run) {
     throw createError({ statusCode: 404, message: 'Run not found' });
   }
@@ -238,7 +238,7 @@ export async function chooseRun(id, runId, userId) {
   // Set chosen run in repository
   await repository.setChosenRun(id, runId);
   
-  // Automatically mark batch as CUT when a run is chosen
+  // Automatically mark queue as CUT when a run is chosen
   await repository.updateById(id, { status: 'CUT' });
   
   // Also record in cutLogs (triggering markCut logic)
@@ -248,8 +248,8 @@ export async function chooseRun(id, runId, userId) {
 }
 
 export async function removeRun(id, runId, userId) {
-  const batch = await getById(id, userId);
-  const run = (batch.runs || []).find(item => item._id?.toString() === runId.toString());
+  const queue = await getById(id, userId);
+  const run = (queue.runs || []).find(item => item._id?.toString() === runId.toString());
   if (!run) {
     throw createError({ statusCode: 404, message: 'Run not found' });
   }
@@ -261,7 +261,7 @@ export async function removeRun(id, runId, userId) {
   await repository.pullRun(id, runId);
   
   // If this was the chosen run, unset it
-  if (batch.chosenRunId?.toString() === runId.toString()) {
+  if (queue.chosenRunId?.toString() === runId.toString()) {
     await repository.updateById(id, { chosenRunId: null });
   }
   
@@ -269,7 +269,7 @@ export async function removeRun(id, runId, userId) {
   const { connectDB } = await import('../../db/mongo.js');
   const db = await connectDB();
   await db.collection('artifacts').deleteMany({
-    batchId: new ObjectId(id),
+    queueId: new ObjectId(id),
     runId: new ObjectId(runId)
   });
   

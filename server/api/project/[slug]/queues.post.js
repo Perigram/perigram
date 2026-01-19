@@ -21,20 +21,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: "Project not found" });
   }
 
-  // Get next batch number
-  const lastBatch = await db.collection("batches")
+  // Get next queue number
+  const lastQueue = await db.collection("queues")
     .find({ projectSlug })
-    .sort({ batchNumber: -1 })
+    .sort({ queueNumber: -1 })
     .limit(1)
     .toArray();
 
-  const batchNumber = lastBatch.length > 0 ? lastBatch[0].batchNumber + 1 : 1;
+  const queueNumber = lastQueue.length > 0 ? lastQueue[0].queueNumber + 1 : 1;
 
-  // Create batch
-  const batch = {
+  // Create queue
+  const queue = {
     projectSlug,
-    batchNumber,
-    name: body.name || `Batch ${batchNumber}`,
+    queueNumber,
+    name: body.name || `Queue ${queueNumber}`,
     ownerId: userId,
     entries: body.entries || [],
     additionalFiles: [],
@@ -44,16 +44,16 @@ export default defineEventHandler(async (event) => {
     updatedAt: new Date()
   };
 
-  const result = await db.collection("batches").insertOne(batch);
+  const result = await db.collection("queues").insertOne(queue);
   
-  // Update project's batchIds
+  // Update project's queueIds
   await db.collection("projects").updateOne(
     { slug: projectSlug },
     { 
-      $push: { batchIds: result.insertedId },
+      $push: { queueIds: result.insertedId },
       $set: { updatedAt: new Date() }
     }
   );
 
-  return { ...batch, _id: result.insertedId };
+  return { ...queue, _id: result.insertedId };
 });

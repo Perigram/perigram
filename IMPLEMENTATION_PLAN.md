@@ -1947,6 +1947,12 @@ git commit -m "neo: document material tracking features"
 
 # TASK 4.1: Auth UI (Agent 4, 2 hours, depends on Task 1.3)
 
+This and following UI tasks need to follow next requirements:
+- Stick to PrimeVue default styles, try to minimize custom CSS
+- Try to reach typographic excellence (spacing, alignment, font sizes, monospace aesthetic) and pixel-perfect layouts
+- Try to create reusable components where possible
+- Use async/await and proper error handling
+
 ## Objective
 Login/register pages, user management UI.
 

@@ -1,13 +1,13 @@
 <template>
   <div>
-    <h1>{{ $t('batch.pageTitle') }}</h1>
-    <div v-if="loading">{{ $t('batch.loading') }}</div>
-    <div v-else-if="batch">
-      <h2>{{ batch.name }}</h2>
-      <pre>{{ batch }}</pre>
+    <h1>{{ $t('queue.pageTitle') }}</h1>
+    <div v-if="loading">{{ $t('queue.loading') }}</div>
+    <div v-else-if="queue">
+      <h2>{{ queue.name }}</h2>
+      <pre>{{ queue }}</pre>
     </div>
     <div v-else>
-      <p>{{ $t('batch.notFound') }}</p>
+      <p>{{ $t('queue.notFound') }}</p>
     </div>
   </div>
 </template>
@@ -20,7 +20,7 @@ import { useRoute } from 'vue-router';
 
 import { useI18n } from 'vue-i18n';
 
-import { useBatchesStore } from '~/stores/batches';
+import { useQueuesStore } from '~/stores/queues';
 
 
 
@@ -38,15 +38,15 @@ const route = useRoute();
 
 const { t } = useI18n();
 
-const { batchId } = route.params;
+const { queueId } = route.params;
 
-const batchesStore = useBatchesStore();
+const queuesStore = useQueuesStore();
 
 
 
 const loading = ref(true);
 
-const batch = ref(null);
+const queue = ref(null);
 
 
 
@@ -56,11 +56,11 @@ onMounted(async () => {
 
   try {
 
-    batch.value = await batchesStore.getBatch(batchId);
+    queue.value = await queuesStore.getQueue(queueId);
 
   } catch (error) {
 
-    console.error('Failed to load batch:', error);
+    console.error('Failed to load queue:', error);
 
   } finally {
 
