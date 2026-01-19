@@ -228,6 +228,7 @@
         const mainSections = [
             { id: 'projects', name: t('nav.projects'), to: '/projects' },
             { id: 'assets', name: t('nav.assets'), to: '/assets' },
+            { id: 'materials', name: t('nav.materials', 'Materials'), to: '/materials' },
             { id: 'profile', name: t('nav.profile'), to: '/profile' },
         ]
 
