@@ -245,7 +245,11 @@
       "plateTooSmall": "Размер листа должен быть не менее {width} x {height} мм. Текущий размер листа {currentWidth} x {currentHeight} мм, что слишком мало",
       "noChanges": "Измените настройки или файлы для повторной генерации"
     },
-    "selectCassette": "Выбрать кассету"
+    "selectCassette": "Выбрать кассету",
+    "manualSheet": "Ручной ввод листа",
+    "addManualSheet": "Добавить в пул",
+    "selectFromInventory": "Выбрать из инвентаря",
+    "noSheetsInInventory": "В инвентаре нет листов. Добавьте их во вкладке Данные Проекта."
   },
   "projectData": {
     "sheets": "Инвентарь листов",

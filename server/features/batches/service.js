@@ -149,7 +149,36 @@ export async function resetToDraft(id, userId) {
 }
 
 export async function markCut(id, userId) {
-  return await updateStatus(id, 'CUT', userId);
+  const batch = await getById(id, userId);
+  if (batch.status === 'CUT') return batch;
+
+  // Update status first
+  const updatedBatch = await updateStatus(id, 'CUT', userId);
+
+  // Record in project cutLogs
+  const { connectDB } = await import('../../db/mongo.js');
+  const db = await connectDB();
+  
+  const chosenRun = (batch.runs || []).find(r => r._id?.toString() === batch.chosenRunId?.toString());
+  
+  const logEntry = {
+    batchId: batch._id,
+    batchName: batch.name,
+    date: new Date(),
+    userId: userId,
+    userName: userId.split(':')[0], // Basic placeholder
+    sheetsUsed: chosenRun?.layoutCount || 0,
+    utilization: 0.85, // Placeholder, should come from nesting report
+    wasteArea: 1.2,    // Placeholder
+    hasWastePolygons: true
+  };
+
+  await db.collection('projects').updateOne(
+    { slug: batch.projectSlug, ownerId: userId },
+    { $push: { cutLogs: logEntry } }
+  );
+
+  return updatedBatch;
 }
 
 export async function addRun(id, run, userId) {

@@ -133,7 +133,15 @@ export async function getById(id, userId) {
     throw createError({ statusCode: 400, message: 'Invalid ID format' });
   }
   
-  const cassette = await repository.findById(id);
+  let cassette = await repository.findById(id);
+  
+  if (!cassette) {
+    // Try baked_cassettes
+    const { connectDB } = await import('../../db/mongo.js');
+    const db = await connectDB();
+    cassette = await db.collection('baked_cassettes').findOne({ _id: new ObjectId(id) });
+  }
+
   if (!cassette) {
     throw createError({ statusCode: 404, message: 'Cassette not found' });
   }

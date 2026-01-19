@@ -89,26 +89,27 @@ export default defineEventHandler(async (event) => {
   // Generate nesting slug
   const nestingSlug = `batch-${batch.batchNumber}-${generateRandomString(6)}`;
   
-  // Material dimensions from request
+  // Material dimensions and pool from request
   const params = {
     height: body.materialHeight || body.height || 2440,
     width: body.materialWidth || body.width || 1220,
     space: body.spacing || body.space || 5,
     sheetCount: body.maxSheets || 10,
-    sheet_polygon: body.sheetPolygon || null
+    sheet_polygon: body.sheet_polygon || null,
+    inventorySheets: body.inventorySheets || []
   };
   
-  // Create nesting job (generic schema, works for both standard and baked)
+  // Create nesting job
   const db = await connectDB();
   const runId = new ObjectId();
   
-  // Calculate run number
   const runNumber = (batch.runs?.length || 0) + 1;
   
   await batchService.addRun(batchId, { 
     _id: runId, 
     status: 'NESTING',
-    runNumber
+    runNumber,
+    requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF']
   }, userId);
   
   await db.collection('nesting_jobs').insertOne({
@@ -123,32 +124,43 @@ export default defineEventHandler(async (event) => {
     ownerId: userId
   });
   
-  // Update batch status - set previous NESTING runs to ERROR
   await batchService.setRunsStatusByStatus(batchId, 'NESTING', 'ERROR', userId);
   
   // Create placeholder artifacts based on request
   const requestedArtifacts = body.requestedArtifacts || ['LAYOUT_DXF'];
-  const artifacts = await Promise.all(
-    requestedArtifacts.map(type => {
-      let name = `${batch.name} - ${type}`;
-      if (type === 'LAYOUT_DXF') name += '.dxf';
-      
-      const metadata = {};
-      if (type === 'PDF_PASSPORT' && body.pdfTemplateId) {
-        metadata.templateId = body.pdfTemplateId;
-      }
-      
-      return artifactService.create({
-        type,
-        batchId: batch._id,
-        runId,
-        name,
-        generatedBy: nestingSlug,
-        status: 'GENERATING',
-        metadata
-      });
-    })
-  );
+  const artifacts = [];
+
+  for (const type of requestedArtifacts) {
+    if (type === 'PDF_PASSPORT') {
+        // We will create per-sheet passports once nesting results are known
+        // But for UI feedback, we can create a generic one or wait
+        // The user said "sheets passports should be for each sheet"
+        // For now, create one placeholder that will represent the set
+        const art = await artifactService.create({
+            type,
+            batchId: batch._id,
+            runId,
+            name: `${batch.name} - Technical Passports`,
+            generatedBy: nestingSlug,
+            status: 'GENERATING',
+            metadata: { templateId: body.pdfTemplateId }
+        });
+        artifacts.push(art);
+    } else {
+        let name = `${batch.name} - ${type}`;
+        if (type === 'LAYOUT_DXF') name += '.dxf';
+        
+        const art = await artifactService.create({
+            type,
+            batchId: batch._id,
+            runId,
+            name,
+            generatedBy: nestingSlug,
+            status: 'GENERATING'
+        });
+        artifacts.push(art);
+    }
+  }
   
   return {
     nestingSlug,

@@ -25,160 +25,137 @@
         </div>
 
         <!-- Accordion Panels -->
-        <Accordion :multiple="true" :activeIndex="[0, 1]" class="flex flex-col gap-4">
+        <Accordion :multiple="true" :activeIndex="[0, 1, 2]" class="flex flex-col gap-4">
             <!-- Runs Panel -->
             <AccordionTab v-if="batch.runs && batch.runs.length > 0" :header="`${$t('batch.runs')} (${batch.runs.length})`">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     <div 
                         v-for="run in batch.runs" 
                         :key="run._id"
-                        class="p-4 border-2 rounded-xl transition-all cursor-pointer flex flex-col gap-2 relative h-48 overflow-hidden group"
+                        class="p-4 border-2 rounded-xl transition-all cursor-pointer flex flex-col gap-3 relative h-40 group overflow-hidden"
                         :class="[
                             run._id.toString() === selectedRunId 
-                                ? 'border-[var(--p-primary-color)] shadow-md' 
+                                ? 'border-[var(--p-primary-color)] shadow-md bg-[var(--p-primary-50)]/10' 
                                 : (run._id.toString() === batch.chosenRunId?.toString() 
                                     ? 'border-[var(--p-primary-300)] bg-[var(--p-primary-50)]/30' 
                                     : 'border-[var(--p-content-border-color)] bg-[var(--p-content-background)] hover:border-[var(--p-primary-200)]')
                         ]"
                         @click="selectedRunId = run._id.toString()"
                     >
-                        <!-- Delete button on hover -->
+                        <!-- Delete button -->
                         <Button 
                             icon="pi pi-trash" 
                             severity="danger" 
                             text 
                             rounded 
                             size="small"
-                            class="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            class="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity z-20"
                             @click.stop="deleteRunHandler(run._id)"
                         />
 
-                        <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-start justify-between">
                             <div class="flex items-center gap-2">
-                                <span class="text-lg font-black text-[var(--p-text-color)]">#{{ run.runNumber }}</span>
+                                <span class="text-xl font-black">#{{ run.runNumber }}</span>
                                 <Tag 
                                     :value="$t(`batch.runStatus.${run.status}`)" 
                                     :severity="getRunStatusSeverity(run.status)"
-                                    class="text-[9px] uppercase font-bold"
                                 />
-                            </div>
-                            <div v-if="run._id.toString() === batch.chosenRunId?.toString()" class="flex items-center gap-1 text-[var(--p-primary-color)]">
-                                <i class="pi pi-check-circle text-xl"></i>
-                                <span v-if="batch.status === 'CUT'" class="text-[9px] font-black uppercase tracking-tighter">{{ $t('results.sheetStatus.cut') }}</span>
                             </div>
                         </div>
 
-                        <div v-if="run.error" class="p-2 bg-red-500/5 border border-red-500/10 rounded-lg text-[10px] text-red-500 font-medium leading-relaxed overflow-y-auto custom-scrollbar flex-1">
-                            <i class="pi pi-exclamation-circle mr-1"></i>
+                        <div v-if="run.error" class="text-[10px] text-red-500 font-medium line-clamp-2">
                             {{ run.error }}
                         </div>
 
                         <div v-else class="flex flex-col gap-2 flex-1">
-                            <div v-if="run.status === 'COMPLETE' || run.status === 'CHOSEN'" class="flex items-center gap-2 text-[var(--p-text-muted-color)]">
-                                <i class="pi pi-clone text-xs"></i>
-                                <span class="text-xs font-bold">{{ run.layoutCount || 0 }} {{ $t('results.sheets') }}</span>
+                            <div v-if="run.status === 'COMPLETE' || run.status === 'CHOSEN'" class="flex items-center gap-2 text-xs font-bold text-[var(--p-text-muted-color)]">
+                                <i class="pi pi-clone"></i>
+                                <span>{{ run.layoutCount || 0 }} {{ $t('results.sheets') }}</span>
                             </div>
                             
                             <!-- Artifacts for this run -->
-                            <div v-if="(run.status === 'COMPLETE' || run.status === 'CHOSEN') && getRunArtifacts(run._id).length > 0" class="flex flex-wrap gap-1">
+                            <div v-if="(run.status === 'COMPLETE' || run.status === 'CHOSEN')" class="flex flex-wrap gap-1">
                                 <Tag 
                                     v-for="artifact in getRunArtifacts(run._id)" 
                                     :key="artifact._id"
                                     :value="mapArtifactType(artifact.type)"
                                     :severity="artifact.status === 'READY' ? 'success' : 'secondary'"
-                                    class="text-[7px] px-1 py-0 font-black"
+                                    class="cursor-pointer"
+                                    @click.stop="onArtifactClick(artifact)"
                                 />
                             </div>
                         </div>
 
                         <div class="flex items-center justify-between mt-auto pt-2 border-t border-[var(--p-content-border-color)]">
-                            <div class="flex items-center gap-1">
-                                <span class="text-[9px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-tight">
-                                    {{ formatDate(run.createdAt) }}
-                                </span>
-                            </div>
+                            <span class="text-[10px] font-bold text-[var(--p-text-muted-color)] uppercase">
+                                {{ formatDate(run.createdAt) }}
+                            </span>
                             
-                            <div class="flex items-center gap-2">
+                            <div v-if="run.status === 'COMPLETE' && run._id.toString() !== batch.chosenRunId?.toString()">
                                 <Button 
-                                    v-if="run.status === 'COMPLETE' || run.status === 'CHOSEN'"
-                                    :icon="previewRunId === run._id.toString() ? 'pi pi-eye-slash' : 'pi pi-eye'" 
-                                    text 
-                                    rounded 
+                                    :label="$t('batch.chooseRun')"
                                     size="small"
-                                    class="h-7 w-7"
-                                    v-tooltip.top="$t('common.actions.preview')"
-                                    @click.stop="togglePreview(run._id)"
+                                    text
+                                    class="p-0 font-black uppercase tracking-wider text-[10px]"
+                                    @click.stop="chooseRunHandler(run._id)"
                                 />
-                                <div v-if="run.status === 'COMPLETE' && run._id.toString() !== batch.chosenRunId?.toString()">
-                                    <Button 
-                                        :label="$t('batch.chooseRun')"
-                                        size="small"
-                                        text
-                                        class="p-0 text-[10px] font-black uppercase tracking-wider"
-                                        @click.stop="chooseRunHandler(run._id)"
-                                    />
-                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </AccordionTab>
 
-            <!-- Sheets Panel -->
+            <!-- Sheets & Nesting Settings -->
             <AccordionTab :header="$t('projectData.sheets')">
-                <div class="flex flex-col gap-6 py-2">
-                    <div class="flex flex-wrap items-end gap-6">
-                        <!-- Sheet Size Selection -->
-                        <div class="flex items-center gap-4 p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl">
-                            <div class="flex flex-col gap-2">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">Sheet Width (mm)</label>
-                                <InputNumber v-model="nestingOptions.width" :min="1" size="small" class="w-24" />
-                            </div>
-                            <div class="flex flex-col gap-2">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">Sheet Height (mm)</label>
-                                <InputNumber v-model="nestingOptions.height" :min="1" size="small" class="w-24" />
+                <div class="flex flex-col gap-8 py-2">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        <!-- Inventory Dropdown -->
+                        <div class="lg:col-span-4 flex flex-col gap-2">
+                            <label class="text-xs font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('nesting.selectFromInventory') }}</label>
+                            <Select 
+                                v-model="selectedSheetId" 
+                                :options="projectSheets" 
+                                optionLabel="label"
+                                optionValue="_id"
+                                :placeholder="$t('nesting.selectFromInventory')"
+                                class="w-full"
+                                @change="onInventorySheetChange"
+                            >
+                                <template #option="slotProps">
+                                    <div class="flex flex-col gap-1">
+                                        <span class="font-bold text-sm">{{ slotProps.option.material.name }}</span>
+                                        <span class="text-[10px] text-[var(--p-text-muted-color)] font-bold uppercase">{{ slotProps.option.width }}x{{ slotProps.option.height }} ({{ slotProps.option.available }} {{ $t('common.units') }})</span>
+                                    </div>
+                                </template>
+                            </Select>
+                            <small v-if="projectSheets.length === 0" class="text-[var(--p-text-muted-color)] italic">{{ $t('nesting.noSheetsInInventory') }}</small>
+                        </div>
+
+                        <!-- Manual Add -->
+                        <div class="lg:col-span-4 flex flex-col gap-2">
+                            <label class="text-xs font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('nesting.manualSheet') }}</label>
+                            <div class="flex gap-2">
+                                <InputNumber v-model="manualSheetInput.width" :min="1" placeholder="W" class="w-full" size="small" />
+                                <InputNumber v-model="manualSheetInput.height" :min="1" placeholder="H" class="w-full" size="small" />
+                                <Button icon="pi pi-plus" severity="secondary" @click="addManualSheet" v-tooltip.top="$t('nesting.addManualSheet')" />
                             </div>
                         </div>
 
-                        <!-- OR Custom Polygon -->
-                        <div class="flex items-center gap-3">
-                            <span class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">OR</span>
-                            <div class="flex items-center gap-2 p-3 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl min-w-[240px]">
-                                <FileUpload 
-                                    mode="basic" 
-                                    accept=".dxf" 
-                                    :auto="true" 
-                                    customUpload 
-                                    @uploader="handleSheetSelect"
-                                    :chooseLabel="selectedSheetFile ? selectedSheetFile.name : $t('nesting.customSheet')"
-                                    class="p-button-sm p-button-text"
-                                    :disabled="batch.status !== 'DRAFT'"
-                                />
-                                <Button 
-                                    v-if="selectedSheetFile" 
-                                    icon="pi pi-times" 
-                                    severity="danger" 
-                                    text 
-                                    size="small"
-                                    @click="clearSheetFile" 
-                                    :disabled="batch.status !== 'DRAFT'"
-                                />
-                            </div>
+                        <!-- Tool Selection -->
+                        <div class="lg:col-span-2 flex flex-col gap-2">
+                            <label class="text-xs font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('nesting.tool') }}</label>
+                            <Select 
+                                v-model="nestingOptions.toolId" 
+                                :options="tools"
+                                optionLabel="name"
+                                optionValue="_id"
+                                :placeholder="$t('nesting.selectTool')"
+                                class="w-full"
+                            />
                         </div>
 
-                        <!-- Tool and Action -->
-                        <div class="flex items-center gap-4 ml-auto">
-                            <div class="flex flex-col gap-2">
-                                <label class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('nesting.tool') }}</label>
-                                <Select 
-                                    v-model="nestingOptions.toolId" 
-                                    :options="tools"
-                                    optionLabel="name"
-                                    optionValue="_id"
-                                    :placeholder="$t('nesting.selectTool')"
-                                    class="w-48"
-                                />
-                            </div>
+                        <!-- Run Button -->
+                        <div class="lg:col-span-2 flex items-end h-full">
                             <Button 
                                 :label="$t('batches.runNesting')"
                                 icon="pi pi-play"
@@ -186,42 +163,63 @@
                                 @click="runNesting"
                                 :disabled="batch.status !== 'DRAFT' || entries.length === 0"
                                 :loading="nestingInProgress"
-                                class="h-[42px] px-6 font-black uppercase tracking-widest text-xs"
+                                class="w-full h-[42px] font-black uppercase text-xs"
                             />
                         </div>
                     </div>
 
-                    <!-- Artifact Selection -->
+                    <!-- Selected Sheets Pool -->
+                    <div v-if="nestingOptions.inventorySheets.length > 0 || nestingOptions.sheetPolygon" class="flex flex-col gap-3">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">Sheets Pool</span>
+                        <div class="flex flex-wrap gap-2">
+                            <Chip 
+                                v-for="(s, idx) in nestingOptions.inventorySheets" 
+                                :key="idx"
+                                :label="`${s.width}x${s.height} (${s.code})`" 
+                                removable 
+                                @remove="removeSheetFromPool(idx)"
+                            />
+                            <Chip 
+                                v-if="nestingOptions.sheetPolygon" 
+                                label="Custom Polygon (DXF)" 
+                                removable 
+                                @remove="clearSheetFile" 
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Artifact Cards -->
                     <div class="flex flex-col gap-4 border-t border-[var(--p-content-border-color)] pt-6">
                         <span class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('nesting.artifactsToGenerate') }}</span>
-                        <div class="flex flex-wrap gap-8 items-start">
-                            <div class="flex items-center gap-2">
-                                <Checkbox v-model="nestingOptions.requestedArtifacts" inputId="art_dxf" value="LAYOUT_DXF" disabled />
-                                <label for="art_dxf" class="text-xs font-bold uppercase tracking-tight">DXF</label>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <Checkbox v-model="nestingOptions.requestedArtifacts" inputId="art_svg" value="LAYOUT_SVG" />
-                                <label for="art_svg" class="text-xs font-bold uppercase tracking-tight">SVG Preview</label>
-                            </div>
-                            <div class="flex flex-col gap-3">
-                                <div class="flex items-center gap-2">
-                                    <Checkbox v-model="nestingOptions.requestedArtifacts" inputId="art_pdf" value="PDF_PASSPORT" />
-                                    <label for="art_pdf" class="text-xs font-bold uppercase tracking-tight">PDF Passport</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            <div 
+                                v-for="art in availableArtifacts" 
+                                :key="art.id"
+                                class="p-4 border-2 rounded-xl transition-all cursor-pointer flex flex-col gap-2 relative"
+                                :class="[
+                                    nestingOptions.requestedArtifacts.includes(art.id) 
+                                        ? 'border-[var(--p-primary-color)] bg-[var(--p-primary-50)]/30' 
+                                        : 'border-[var(--p-content-border-color)] hover:border-[var(--p-primary-200)]',
+                                    art.disabled ? 'opacity-60 cursor-default' : ''
+                                ]"
+                                @click="toggleArtifact(art.id)"
+                            >
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-black uppercase">{{ art.name }}</span>
+                                    <i v-if="nestingOptions.requestedArtifacts.includes(art.id)" class="pi pi-check-circle text-[var(--p-primary-color)]"></i>
                                 </div>
-                                <div v-if="nestingOptions.requestedArtifacts.includes('PDF_PASSPORT')" class="animate-in slide-in-from-top-2 duration-300">
+                                <p class="text-[10px] font-medium text-[var(--p-text-muted-color)] leading-tight m-0">{{ art.description }}</p>
+                                
+                                <div v-if="art.id === 'PDF_PASSPORT' && nestingOptions.requestedArtifacts.includes('PDF_PASSPORT')" class="mt-2" @click.stop>
                                     <Select 
                                         v-model="nestingOptions.pdfTemplateId"
                                         :options="pdfTemplates"
                                         optionLabel="name"
                                         optionValue="_id"
-                                        :placeholder="$t('nesting.pdfTemplate')"
-                                        class="w-full md:w-64"
+                                        size="small"
+                                        class="w-full text-[10px]"
                                     />
                                 </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <Checkbox v-model="nestingOptions.requestedArtifacts" inputId="art_report" value="NESTING_REPORT" />
-                                <label for="art_report" class="text-xs font-bold uppercase tracking-tight">Nesting Report</label>
                             </div>
                         </div>
                     </div>
@@ -235,18 +233,16 @@
                     <div class="flex justify-between items-center">
                         <div class="flex gap-2">
                             <Button 
-                                :icon="viewMode === 'grid' ? 'pi pi-th-large' : 'pi pi-th-large'"
+                                icon="pi pi-th-large"
                                 :severity="viewMode === 'grid' ? 'primary' : 'secondary'"
                                 @click="viewMode = 'grid'"
-                                v-tooltip.top="$t('batch.gridView')"
                                 text
                                 :outlined="viewMode !== 'grid'"
                             />
                             <Button 
-                                :icon="viewMode === 'table' ? 'pi pi-table' : 'pi pi-table'"
+                                icon="pi pi-table"
                                 :severity="viewMode === 'table' ? 'primary' : 'secondary'"
                                 @click="viewMode = 'table'"
-                                v-tooltip.top="$t('batch.tableView')"
                                 text
                                 :outlined="viewMode !== 'table'"
                             />
@@ -254,61 +250,62 @@
                     </div>
 
                     <!-- Grid View -->
-                    <div v-if="viewMode === 'grid'" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div v-if="viewMode === 'grid'" class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
                         <div 
                             v-for="entry in entries" 
                             :key="entry._id"
-                            class="border border-[var(--p-content-border-color)] rounded-xl p-4 bg-[var(--p-content-background)] hover:border-[var(--p-primary-color)] transition-all flex gap-4 shadow-sm group relative"
+                            class="border border-[var(--p-content-border-color)] rounded-2xl p-4 bg-[var(--p-content-background)] hover:border-[var(--p-primary-color)] transition-all flex gap-6 shadow-sm group relative overflow-hidden"
                         >
-                            <!-- Delete button on hover -->
+                            <!-- Delete button -->
                             <Button 
                                 icon="pi pi-trash"
                                 severity="danger"
                                 text
                                 rounded
                                 size="small"
-                                class="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                class="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                 @click="confirmDelete(entry)"
                                 :disabled="batch.status !== 'DRAFT'"
                             />
 
-                            <!-- Left: Thumbnail (Squared) -->
-                            <div class="w-32 h-32 flex-shrink-0 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
+                            <!-- Left: Thumbnail (Squared and Bigger) -->
+                            <div class="w-40 h-40 flex-shrink-0 bg-white dark:bg-zinc-900 rounded-xl overflow-hidden border border-[var(--p-content-border-color)]">
                                 <CassetteThumbnail :cassette-id="entry.cassetteTemplateId" />
                             </div>
 
                             <!-- Right: Info and Parameters -->
-                            <div class="flex-1 flex flex-col min-w-0">
-                                <div class="flex flex-col mb-3">
-                                    <h3 class="font-black text-[var(--p-text-color)] truncate text-xs uppercase tracking-tight" :title="getCassetteName(entry.cassetteTemplateId)">
-                                        {{ getCassetteName(entry.cassetteTemplateId) }}
-                                    </h3>
-                                    <span class="text-[9px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-widest">{{ entry.entryId }}</span>
-                                </div>
+                            <div class="flex-1 flex flex-col min-w-0 py-1 gap-4">
+                                <h3 class="font-black text-[var(--p-text-color)] truncate text-sm uppercase tracking-wider m-0">
+                                    {{ getCassetteName(entry.cassetteTemplateId) }}
+                                </h3>
 
-                                <div class="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3">
-                                    <div class="flex flex-col gap-1">
-                                        <span class="text-[9px] font-black uppercase tracking-wider text-[var(--p-text-muted-color)]">{{ $t('batches.quantity') }}</span>
+                                <div class="flex flex-col gap-3">
+                                    <div class="flex items-center justify-between gap-4">
+                                        <span class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('batch.quantity') }}</span>
                                         <InputNumber 
                                             v-model="entry.quantity" 
                                             :min="1" 
                                             :disabled="batch.status !== 'DRAFT'"
                                             size="small"
-                                            class="w-full"
+                                            class="w-28"
+                                            showButtons
+                                            buttonLayout="horizontal"
                                             @update:model-value="saveBatch"
                                         />
                                     </div>
                                     
-                                    <div v-for="param in getEntryParameters(entry)" :key="param" class="flex flex-col gap-1">
-                                        <span class="text-[9px] font-black uppercase tracking-tighter text-[var(--p-text-muted-color)]">{{ param }}</span>
-                                        <InputNumber 
-                                            v-model="entry.dimensions[param]"
-                                            :disabled="batch.status !== 'DRAFT'"
-                                            size="small"
-                                            class="w-full"
-                                            :min="0"
-                                            @update:model-value="saveBatch"
-                                        />
+                                    <div class="flex flex-col gap-2">
+                                        <div v-for="param in getEntryParameters(entry)" :key="param" class="flex items-center justify-between gap-4">
+                                            <span class="text-[10px] font-black uppercase tracking-tighter text-[var(--p-text-muted-color)]">{{ param }}</span>
+                                            <InputNumber 
+                                                v-model="entry.dimensions[param]"
+                                                :disabled="batch.status !== 'DRAFT'"
+                                                size="small"
+                                                class="w-28"
+                                                :min="0"
+                                                @update:model-value="saveBatch"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -434,7 +431,7 @@
             </AccordionTab>
 
             <!-- Artifacts Panel -->
-            <AccordionTab v-if="selectedRunId && previewRunId === selectedRunId" :header="$t('batches.artifacts')">
+            <AccordionTab v-if="selectedRunId" :header="$t('batches.artifacts')">
                 <ArtifactsTable :batch-id="batch._id" :batch="batch" :run-id="selectedRunId" />
             </AccordionTab>
         </Accordion>
@@ -511,7 +508,7 @@ import InputNumber from 'primevue/inputnumber';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Checkbox from 'primevue/checkbox';
 import Dialog from 'primevue/dialog';
-import DataView from 'primevue/dataview';
+import Chip from 'primevue/chip';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Accordion from 'primevue/accordion';
 import AccordionTab from 'primevue/accordiontab';
@@ -554,11 +551,16 @@ const viewMode = ref('grid');
 const selectedRunId = ref(null);
 const previewRunId = ref(null);
 
-const filteredArtifactsBySelectedRun = computed(() => {
-    if (!selectedRunId.value) return [];
-    if (!artifacts.value) return [];
-    return artifacts.value.filter(a => a.runId?.toString() === selectedRunId.value);
-});
+const projectData = ref(null);
+const selectedSheetId = ref(null);
+const manualSheetInput = ref({ width: 2440, height: 1220 });
+
+const availableArtifacts = ref([
+    { id: 'LAYOUT_DXF', name: 'DXF Layout', description: 'Production-ready DXF with all layers and styling.', disabled: true },
+    { id: 'LAYOUT_SVG', name: 'SVG Preview', description: 'Web-friendly SVG for quick previewing.' },
+    { id: 'PDF_PASSPORT', name: 'PDF Passports', description: 'Per-sheet technical passports.' },
+    { id: 'NESTING_REPORT', name: 'Nesting Report', description: 'Detailed PDF report with utilization stats.' }
+]);
 
 const nestingOptions = ref({
     width: props.batch.nestingParams?.width || 2440,
@@ -566,7 +568,8 @@ const nestingOptions = ref({
     toolId: props.batch.nestingParams?.toolId || null,
     sheetPolygon: props.batch.nestingParams?.sheetPolygon || null,
     requestedArtifacts: props.batch.requestedArtifacts || ['LAYOUT_DXF'],
-    pdfTemplateId: props.batch.pdfTemplateId || null
+    pdfTemplateId: props.batch.pdfTemplateId || null,
+    inventorySheets: props.batch.nestingParams?.inventorySheets || []
 });
 
 // Watch nesting options for auto-save
@@ -580,7 +583,8 @@ watch(nestingOptions, async (newVal) => {
                     width: newVal.width,
                     height: newVal.height,
                     toolId: newVal.toolId,
-                    sheetPolygon: newVal.sheetPolygon
+                    sheetPolygon: newVal.sheetPolygon,
+                    inventorySheets: newVal.inventorySheets
                 },
                 requestedArtifacts: newVal.requestedArtifacts,
                 pdfTemplateId: newVal.pdfTemplateId
@@ -592,81 +596,77 @@ watch(nestingOptions, async (newVal) => {
 }, { deep: true });
 
 const selectedSheetFile = ref(null);
-const sheetSource = ref(props.batch.nestingParams?.sheetPolygon ? 'custom' : 'standard');
 
 const pdfTemplates = ref([
-    { _id: 'default', name: 'Default Passport Template' },
-    { _id: 'technical', name: 'Technical Drawing Template' }
+    { _id: 'default', name: 'Standard Passport' },
+    { _id: 'detailed', name: 'Detailed Technical' }
 ]);
 
-const togglePreview = (runId) => {
-    const id = runId.toString();
-    if (previewRunId.value === id) {
-        previewRunId.value = null;
-    } else {
-        previewRunId.value = id;
-        selectedRunId.value = id;
-    }
-};
-
-const handleSheetSelect = async (event) => {
-    if (event.files && event.files.length > 0) {
-        selectedSheetFile.value = event.files[0];
-        try {
-            const { extractPolygons } = await import('~/utils/dxfParser');
-            const polygons = await extractPolygons(selectedSheetFile.value);
-            if (polygons.length > 0) {
-                // Use the largest polygon as the sheet boundary
-                const largest = polygons.sort((a, b) => calculatePolygonArea(b) - calculatePolygonArea(a))[0];
-                nestingOptions.value.sheetPolygon = largest;
-                toast.add({ severity: 'success', summary: t('common.success'), detail: t('batches.sheetUploaded'), life: 3000 });
-            } else {
-                toast.add({ severity: 'error', summary: t('common.error'), detail: t('batches.noPolygonsInSheet'), life: 3000 });
-                selectedSheetFile.value = null;
-            }
-        } catch (error) {
-            console.error('Failed to parse sheet DXF:', error);
-            toast.add({ severity: 'error', summary: t('common.error'), detail: t('batches.sheetParseError'), life: 3000 });
-            selectedSheetFile.value = null;
-        }
-    }
-};
-
-const calculatePolygonArea = (vertices) => {
-    let area = 0;
-    for (let i = 0; i < vertices.length; i++) {
-        const j = (i + 1) % vertices.length;
-        area += vertices[i][0] * vertices[j][1];
-        area -= vertices[j][0] * vertices[i][1];
-    }
-    return Math.abs(area) / 2;
-};
-
-const clearSheetFile = () => {
-    selectedSheetFile.value = null;
-    nestingOptions.value.sheetPolygon = null;
-};
-
-// New entry form
-const newEntry = ref({
-    cassetteTemplateId: null,
-    entryId: '',
-    quantity: 1,
-    dimensions: {},
-    options: {}
+const projectSheets = computed(() => {
+    return (projectData.value?.sheets || []).map(s => ({
+        ...s,
+        label: `${s.material.name} (${s.width}x${s.height})`
+    }));
 });
-const newEntryParameters = ref([]);
+
+const onInventorySheetChange = (e) => {
+    const sheetId = e.value;
+    const sheet = projectSheets.value.find(s => s._id === sheetId);
+    if (sheet) {
+        nestingOptions.value.inventorySheets.push({
+            code: sheet.material.code,
+            width: sheet.width,
+            height: sheet.height,
+            available: sheet.available
+        });
+        selectedSheetId.value = null; // Reset dropdown
+    }
+};
+
+const addManualSheet = () => {
+    nestingOptions.value.inventorySheets.push({
+        code: 'MANUAL',
+        width: manualSheetInput.value.width,
+        height: manualSheetInput.value.height,
+        available: 1
+    });
+};
+
+const removeSheetFromPool = (index) => {
+    nestingOptions.value.inventorySheets.splice(index, 1);
+};
+
+const toggleArtifact = (id) => {
+    if (id === 'LAYOUT_DXF') return;
+    const index = nestingOptions.value.requestedArtifacts.indexOf(id);
+    if (index > -1) {
+        nestingOptions.value.requestedArtifacts.splice(index, 1);
+    } else {
+        nestingOptions.value.requestedArtifacts.push(id);
+    }
+};
+
+const onArtifactClick = (artifact) => {
+    selectedRunId.value = artifact.runId.toString();
+};
+
+const goToProjectData = () => {
+    navigateTo(`/project/${props.projectSlug}/data`);
+};
 
 onMounted(async () => {
-    console.log('[BatchEditor] Mounted, loading cassettes and tools...');
-    const cassetteResult = await cassettesStore.fetchCassettes();
+    console.log('[BatchEditor] Mounted, loading data...');
+    const [cassetteResult, projectRes] = await Promise.all([
+        cassettesStore.fetchCassettes(),
+        $fetch(`/api/project/${props.projectSlug}`)
+    ]);
+    
     cassettes.value = cassetteResult || [];
+    projectData.value = projectRes;
     
     // Load tools
     await toolProfilesStore.fetchTools();
     
-    console.log('[BatchEditor] Cassettes loaded:', cassettes.value.length);
-    console.log('[BatchEditor] Tools loaded:', tools.value.length);
     loadBatchData();
 });
 
@@ -699,21 +699,16 @@ const loadArtifacts = async () => {
 // Get all unique parameters from all entries based on their cassettes
 const allParameters = computed(() => {
     const params = new Set();
-    console.log('[BatchEditor] Computing parameters for entries:', entries.value.length);
     entries.value.forEach(entry => {
         const cassette = cassettes.value.find(c => c._id === entry.cassetteTemplateId);
-        console.log('[BatchEditor] Entry cassette:', entry.cassetteTemplateId, 'found:', cassette?.name, 'params:', cassette?.parameters);
         if (cassette?.parameters) {
             cassette.parameters.forEach(param => params.add(param));
         }
-        // Also include any existing dimensions that might not be in cassette parameters
         if (entry.dimensions) {
             Object.keys(entry.dimensions).forEach(key => params.add(key));
         }
     });
-    const result = Array.from(params).sort();
-    console.log('[BatchEditor] All parameters:', result);
-    return result;
+    return Array.from(params).sort();
 });
 
 // Get all unique options from all entries based on their cassettes
@@ -724,7 +719,6 @@ const allOptions = computed(() => {
         if (cassette?.options) {
             Object.keys(cassette.options).forEach(option => options.add(option));
         }
-        // Also include any existing options on the entry itself
         if (entry.options) {
             Object.keys(entry.options).forEach(key => options.add(key));
         }
@@ -745,14 +739,6 @@ const getEntryParameters = (entry) => {
 const getRunArtifacts = (runId) => {
     if (!artifacts.value) return [];
     return artifacts.value.filter(a => a.runId?.toString() === runId.toString());
-};
-
-const getRunSheetCount = (runId) => {
-    // This info is stored in nesting_jobs for the run
-    // Since we don't fetch all jobs here, we might need to store layoutCount in the run object itself
-    // Or fetch it. For now, we'll assume it's in run.layoutCount (added by processor)
-    const run = props.batch.runs.find(r => r._id.toString() === runId.toString());
-    return run?.layoutCount || 0;
 };
 
 const mapArtifactType = (type) => {
@@ -828,30 +814,11 @@ const onNewCassetteChange = () => {
 };
 
 const addEntry = async () => {
-    const cassette = cassettes.value.find(c => c._id === newEntry.value.cassetteTemplateId);
-    
-    // Initialize dimensions from cassette parameters with default values of 0
-    const dimensions = {};
-    if (cassette?.parameters) {
-        cassette.parameters.forEach(param => {
-            dimensions[param] = 0;
-        });
-    }
-    
-    // Initialize options from cassette defaults
-    const options = {};
-    if (cassette?.options) {
-        Object.keys(cassette.options).forEach(option => {
-            options[option] = cassette.options[option];
-        });
-    }
-    
     const entry = {
         ...newEntry.value,
         _id: `temp_${Date.now()}`,
-        entryId: `Entry-${entries.value.length + 1}`,
-        dimensions,
-        options
+        dimensions: { ...newEntry.value.dimensions },
+        options: { ...newEntry.value.options }
     };
     
     entries.value.push(entry);
@@ -871,10 +838,6 @@ const addEntry = async () => {
 
 const onRowEditSave = async () => {
     await saveBatch();
-};
-
-const onRowEditCancel = () => {
-    // Reset to original data if needed
 };
 
 const confirmDelete = (entry) => {
@@ -905,13 +868,11 @@ const saveBatch = async () => {
         emit('updated');
     } catch (error) {
         console.error('Failed to save batch:', error);
-        alert(t('batches.saveFailed'));
     }
 };
 
 const runNesting = async () => {
     if (entries.value.length === 0) {
-        alert(t('batches.noEntriesToNest'));
         return;
     }
 
@@ -921,31 +882,18 @@ const runNesting = async () => {
             width: nestingOptions.value.width,
             height: nestingOptions.value.height,
             toolId: nestingOptions.value.toolId,
-            sheet_polygon: sheetSource.value === 'custom' ? nestingOptions.value.sheetPolygon : null,
+            sheet_polygon: nestingOptions.value.sheetPolygon,
+            inventorySheets: nestingOptions.value.inventorySheets,
             requestedArtifacts: nestingOptions.value.requestedArtifacts,
             pdfTemplateId: nestingOptions.value.pdfTemplateId
         };
         await batchesStore.startNesting(props.batch._id, payload);
-        toast.add({ severity: 'info', summary: t('batches.nestingStarted'), detail: t('batches.nestingInitiated'), life: 3000 });
+        toast.add({ severity: 'info', summary: t('batches.nestingStarted'), life: 3000 });
     } catch (error) {
         console.error('Failed to run nesting:', error);
-        const errorMessage = error.data?.message || error.message || t('common.error');
-        alert(`${t('batches.nestingFailed')}: ${errorMessage}`);
+        toast.add({ severity: 'error', summary: t('batches.nestingFailed'), detail: error.message, life: 3000 });
     } finally {
         nestingInProgress.value = false;
-    }
-};
-
-const markComplete = async () => {
-    try {
-        await $fetch(`/api/batch/${props.batch._id}`, {
-            method: 'PUT',
-            body: { status: 'COMPLETE' }
-        });
-        emit('updated');
-    } catch (error) {
-        console.error('Failed to mark as complete:', error);
-        alert(t('batches.markCompleteFailed'));
     }
 };
 
@@ -961,7 +909,6 @@ const resetToDraft = async () => {
                 emit('updated');
             } catch (error) {
                 console.error('Failed to reset batch:', error);
-                toast.add({ severity: 'error', summary: t('common.error'), detail: t('batch.resetFailed'), life: 3000 });
             }
         }
     });
@@ -974,7 +921,6 @@ const chooseRunHandler = async (runId) => {
         emit('updated');
     } catch (error) {
         console.error('Failed to choose run:', error);
-        toast.add({ severity: 'error', summary: t('common.error'), detail: t('batch.chooseRunFailed'), life: 3000 });
     }
 };
 
@@ -990,7 +936,6 @@ const markCutHandler = async () => {
                 emit('updated');
             } catch (error) {
                 console.error('Failed to mark as cut:', error);
-                toast.add({ severity: 'error', summary: t('common.error'), detail: t('batch.markCutFailed'), life: 3000 });
             }
         }
     });
@@ -1007,11 +952,10 @@ const deleteRunHandler = async (runId) => {
                 if (selectedRunId.value === runId.toString()) {
                     selectedRunId.value = null;
                 }
-                toast.add({ severity: 'success', summary: t('common.success'), detail: t('batch.runDeleted'), life: 3000 });
+                toast.add({ severity: 'success', summary: t('common.success'), life: 3000 });
                 emit('updated');
             } catch (error) {
                 console.error('Failed to delete run:', error);
-                toast.add({ severity: 'error', summary: t('common.error'), detail: t('batch.deleteRunFailed'), life: 3000 });
             }
         }
     });
@@ -1027,61 +971,40 @@ const getRunStatusSeverity = (status) => {
     return map[status] || 'info';
 };
 
-const downloadArtifact = async (artifact) => {
-    try {
-        console.log('[BatchEditor] Downloading artifact:', artifact);
-        
-        // Fetch the file as a blob
-        const response = await fetch(`/api/artifacts/${artifact._id}`, {
-            method: 'GET',
-            credentials: 'include'
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || `HTTP error! status: ${response.status}`);
+const handleSheetSelect = async (event) => {
+    if (event.files && event.files.length > 0) {
+        selectedSheetFile.value = event.files[0];
+        try {
+            const { extractPolygons } = await import('~/utils/dxfParser');
+            const polygons = await extractPolygons(selectedSheetFile.value);
+            if (polygons.length > 0) {
+                const largest = polygons.sort((a, b) => calculatePolygonArea(b) - calculatePolygonArea(a))[0];
+                nestingOptions.value.sheetPolygon = largest;
+                toast.add({ severity: 'success', summary: t('common.success'), detail: t('batches.sheetUploaded'), life: 3000 });
+            } else {
+                toast.add({ severity: 'error', summary: t('common.error'), detail: t('batches.noPolygonsInSheet'), life: 3000 });
+                selectedSheetFile.value = null;
+            }
+        } catch (error) {
+            console.error('Failed to parse sheet DXF:', error);
+            selectedSheetFile.value = null;
         }
-        
-        // Get the blob
-        const blob = await response.blob();
-        
-        // Create object URL and download
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = artifact.name || `artifact_${artifact._id}`;
-        document.body.appendChild(a);
-        a.click();
-        
-        // Cleanup
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 100);
-        
-    } catch (error) {
-        console.error('[BatchEditor] Failed to download artifact:', error);
-        alert(`${t('artifacts.downloadFailed')}: ${error.message}`);
     }
 };
 
-const deleteArtifact = async (artifact) => {
-    confirm.require({
-        message: t('batches.confirmDeleteArtifact'),
-        header: t('common.confirmation'),
-        icon: 'pi pi-exclamation-triangle',
-        accept: async () => {
-            try {
-                await $fetch(`/api/artifacts/${artifact._id}`, {
-                    method: 'DELETE'
-                });
-                await loadArtifacts();
-            } catch (error) {
-                console.error('Failed to delete artifact:', error);
-                alert(t('batches.deleteFailed'));
-            }
-        }
-    });
+const calculatePolygonArea = (vertices) => {
+    let area = 0;
+    for (let i = 0; i < vertices.length; i++) {
+        const j = (i + 1) % vertices.length;
+        area += vertices[i][0] * vertices[j][1];
+        area -= vertices[j][0] * vertices[i][1];
+    }
+    return Math.abs(area) / 2;
+};
+
+const clearSheetFile = () => {
+    selectedSheetFile.value = null;
+    nestingOptions.value.sheetPolygon = null;
 };
 
 const onCassetteUploaded = async () => {
@@ -1092,4 +1015,10 @@ const onCassetteUploaded = async () => {
 </script>
 
 <style scoped lang="scss">
+:deep(.p-accordion-tab) {
+    margin-bottom: 1rem;
+}
+:deep(.p-inputnumber-input) {
+    width: 100% !important;
+}
 </style>

@@ -245,7 +245,11 @@
       "plateTooSmall": "The plate size needs to be at least {width} x {height} mm. The current plate size is {currentWidth} x {currentHeight} mm, which is too small",
       "noChanges": "Change settings or files to generate again"
     },
-    "selectCassette": "Select cassette"
+    "selectCassette": "Select cassette",
+    "manualSheet": "Manual Sheet",
+    "addManualSheet": "Add to Pool",
+    "selectFromInventory": "Select from Inventory",
+    "noSheetsInInventory": "No sheets in inventory. Add them in Project Data tab."
   },
   "projectData": {
     "sheets": "Sheets Inventory",
