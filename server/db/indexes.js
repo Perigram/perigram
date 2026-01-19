@@ -58,17 +58,31 @@ const INDEXES = {
     { keys: { createdAt: -1 }, options: { name: 'createdAt_idx' } }
   ],
 
+  // Organizations Collection
+  organizations: [
+    { keys: { type: 1 }, options: { name: 'type_idx' } },
+    { keys: { createdAt: -1 }, options: { name: 'createdAt_idx' } }
+  ],
+
+  // Users Collection
+  users: [
+    { keys: { email: 1 }, options: { unique: true, name: 'email_unique' } },
+    { keys: { organizationId: 1 }, options: { name: 'organizationId_idx' } },
+    { keys: { 'sessions.sessionId': 1 }, options: { name: 'sessions_sessionId_idx' } }
+  ],
+
+  // Sessions Collection (New scalable session storage)
+  sessions: [
+    { keys: { sessionId: 1 }, options: { unique: true, name: 'sessionId_unique' } },
+    { keys: { userId: 1 }, options: { name: 'userId_idx' } },
+    { keys: { expiresAt: 1 }, options: { expireAfterSeconds: 0, name: 'expiresAt_ttl' } } // TTL index for auto-cleanup
+  ],
+
   // Projects Collection (existing, extended)
   projects: [
     { keys: { slug: 1 }, options: { unique: true, name: 'slug_unique' } },
     { keys: { ownerId: 1 }, options: { name: 'ownerId_idx' } },
     { keys: { status: 1 }, options: { name: 'status_idx' } }
-  ],
-
-  // Users Collection (existing)
-  users: [
-    { keys: { id: 1 }, options: { unique: true, name: 'id_unique' } },
-    { keys: { email: 1 }, options: { unique: true, name: 'email_unique' } }
   ]
 };
 
