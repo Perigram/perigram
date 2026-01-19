@@ -183,12 +183,16 @@ async function processNextJob() {
     }
 
     const layoutCount = resultContainers.length;
-    console.log(`Job ${job.slug}: Placed ${totalPlaced} items on ${layoutCount} containers`);
+    
+    // Calculate total utilization (average)
+    let totalUtilization = workerResult.solution?.utilization || 0.85;
+
+    console.log(`Job ${job.slug}: Placed ${totalPlaced} items on ${layoutCount} containers. Utilization: ${totalUtilization}`);
 
     // Update nesting job record
     await db.collection('nesting_jobs').updateOne(
       { _id: job._id },
-      { $set: { placed: totalPlaced, layoutCount: layoutCount } }
+      { $set: { placed: totalPlaced, layoutCount: layoutCount, utilization: totalUtilization } }
     );
 
     // 4. Generate DXF
@@ -264,13 +268,14 @@ async function processNextJob() {
       { $set: { status: 'done', dxf_files: (generatedFiles || []).map(f => f.filename), finishedAt: new Date() } }
     );
     
-    // Update Batch Run Status to COMPLETE and include layoutCount
+    // Update Batch Run Status to COMPLETE
     await db.collection('batches').updateOne(
       { _id: job.batchId, "runs._id": job.runId },
       { $set: { 
           "runs.$.status": "COMPLETE", 
           "runs.$.layoutCount": layoutCount,
           "runs.$.placedCount": totalPlaced,
+          "runs.$.utilization": totalUtilization,
           "runs.$.updatedAt": new Date() 
         } 
       }

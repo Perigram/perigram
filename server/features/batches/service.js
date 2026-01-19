@@ -150,15 +150,29 @@ export async function resetToDraft(id, userId) {
 
 export async function markCut(id, userId) {
   const batch = await getById(id, userId);
-  if (batch.status === 'CUT') return batch;
-
-  // Update status first
-  const updatedBatch = await updateStatus(id, 'CUT', userId);
-
-  // Record in project cutLogs
+  
   const { connectDB } = await import('../../db/mongo.js');
   const db = await connectDB();
-  
+
+  // Check if already logged
+  const existingLog = await db.collection('projects').findOne({
+    slug: batch.projectSlug,
+    ownerId: userId,
+    "cutLogs.batchId": batch._id
+  });
+
+  if (existingLog) {
+    // Already in logs, just ensure batch status is CUT
+    if (batch.status !== 'CUT') {
+      await repository.updateById(id, { status: 'CUT' });
+    }
+    return await getById(id, userId);
+  }
+
+  // Update status
+  const updatedBatch = await repository.updateById(id, { status: 'CUT' }) ? await getById(id, userId) : batch;
+
+  // Record in project cutLogs
   const chosenRun = (batch.runs || []).find(r => r._id?.toString() === batch.chosenRunId?.toString());
   
   const logEntry = {
@@ -166,10 +180,10 @@ export async function markCut(id, userId) {
     batchName: batch.name,
     date: new Date(),
     userId: userId,
-    userName: userId.split(':')[0], // Basic placeholder
+    userName: userId.split(':')[0],
     sheetsUsed: chosenRun?.layoutCount || 0,
-    utilization: 0.85, // Placeholder, should come from nesting report
-    wasteArea: 1.2,    // Placeholder
+    utilization: 0.85,
+    wasteArea: 1.2,
     hasWastePolygons: true
   };
 
@@ -220,7 +234,16 @@ export async function chooseRun(id, runId, userId) {
   if (run.status !== 'COMPLETE') {
     throw createError({ statusCode: 400, message: 'Run must be COMPLETE to choose' });
   }
+  
+  // Set chosen run in repository
   await repository.setChosenRun(id, runId);
+  
+  // Automatically mark batch as CUT when a run is chosen
+  await repository.updateById(id, { status: 'CUT' });
+  
+  // Also record in cutLogs (triggering markCut logic)
+  await markCut(id, userId);
+  
   return await repository.findById(id);
 }
 

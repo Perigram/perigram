@@ -18,7 +18,8 @@ export default defineEventHandler(async (event) => {
         slug: 1,
         sheets: 1,
         cutLogs: 1,
-        metadata: 1
+        metadata: 1,
+        projectMaterials: 1
       },
     }
   );
@@ -41,6 +42,7 @@ export default defineEventHandler(async (event) => {
     name: project.name,
     slug: project.slug,
     sheets: project.sheets || [],
+    projectMaterials: project.projectMaterials || [],
     cutLogs: project.cutLogs || [],
     metadata: project.metadata || {},
     files: projectFiles.map((file) => mapFileToUi(file)),

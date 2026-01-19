@@ -132,10 +132,6 @@ export default defineEventHandler(async (event) => {
 
   for (const type of requestedArtifacts) {
     if (type === 'PDF_PASSPORT') {
-        // We will create per-sheet passports once nesting results are known
-        // But for UI feedback, we can create a generic one or wait
-        // The user said "sheets passports should be for each sheet"
-        // For now, create one placeholder that will represent the set
         const art = await artifactService.create({
             type,
             batchId: batch._id,
@@ -146,15 +142,12 @@ export default defineEventHandler(async (event) => {
             metadata: { templateId: body.pdfTemplateId }
         });
         artifacts.push(art);
-    } else {
-        let name = `${batch.name} - ${type}`;
-        if (type === 'LAYOUT_DXF') name += '.dxf';
-        
+    } else if (type === 'LAYOUT_DXF') {
         const art = await artifactService.create({
             type,
             batchId: batch._id,
             runId,
-            name,
+            name: `${batch.name} - LAYOUT_DXF.dxf`,
             generatedBy: nestingSlug,
             status: 'GENERATING'
         });

@@ -51,6 +51,10 @@ export default defineEventHandler(async (event) => {
     updateData.cutLogs = body.cutLogs;
   }
 
+  if (body.projectMaterials !== undefined) {
+    updateData.projectMaterials = body.projectMaterials;
+  }
+
   // Update project
   const result = await db.collection("projects").findOneAndUpdate(
     { slug, ownerId: userId },

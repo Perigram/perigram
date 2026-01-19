@@ -8,9 +8,9 @@
             </div>
             <div class="flex gap-2">
                 <Button 
-                    :label="$t('projectData.addSheets')" 
+                    :label="$t('projectData.addMaterial')" 
                     icon="pi pi-plus" 
-                    @click="showAddSheetsDialog = true"
+                    @click="showAddMaterialDialog = true"
                     class="h-[42px]"
                 />
             </div>
@@ -22,7 +22,7 @@
                 <Tab value="0">
                     <div class="flex items-center gap-2">
                         <i class="pi pi-box"></i>
-                        <span class="font-bold uppercase tracking-wider text-xs">{{ $t('projectData.sheets') }}</span>
+                        <span class="font-bold uppercase tracking-wider text-xs">{{ $t('metadata.materials') }}</span>
                     </div>
                 </Tab>
                 <Tab value="1">
@@ -33,42 +33,71 @@
                 </Tab>
             </TabList>
             <TabPanels>
-                <!-- Sheets Inventory Panel -->
+                <!-- Project Materials Panel -->
                 <TabPanel value="0">
-                    <div class="flex flex-col gap-4 py-4">
-                        <DataTable :value="sheets" class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden" responsiveLayout="scroll">
-                            <Column field="material.name" :header="$t('projectData.material')">
-                                <template #body="slotProps">
-                                    <div class="flex flex-col">
-                                        <span class="font-bold text-sm">{{ slotProps.data.material.name }}</span>
-                                        <span class="text-[10px] text-[var(--p-text-muted-color)] uppercase font-bold">{{ slotProps.data.material.color }}</span>
+                    <div class="flex flex-col gap-6 py-4">
+                        <div v-if="projectMaterials.length === 0" class="py-12 flex flex-col items-center justify-center text-center opacity-60">
+                            <i class="pi pi-database text-5xl mb-4"></i>
+                            <p class="font-bold uppercase tracking-widest text-xs">No materials in this project yet.</p>
+                            <Button :label="$t('projectData.addMaterial')" icon="pi pi-plus" text size="small" @click="showAddMaterialDialog = true" />
+                        </div>
+
+                        <div v-else class="grid grid-cols-1 gap-6">
+                            <div v-for="(pm, pIdx) in projectMaterials" :key="pIdx" 
+                                class="bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-2xl overflow-hidden shadow-sm"
+                            >
+                                <!-- Material Header -->
+                                <div class="flex items-center justify-between p-4 bg-[var(--p-content-background)] border-b border-[var(--p-content-border-color)]">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-[var(--p-primary-color)] text-white font-black text-xl">
+                                            {{ pm.material.name.charAt(0) }}
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <h3 class="font-black text-sm uppercase m-0">{{ pm.material.name }}</h3>
+                                            <span class="text-[10px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-tighter">{{ pm.material.code }} • {{ pm.material.color }} • {{ pm.material.thickness }}mm</span>
+                                        </div>
                                     </div>
-                                </template>
-                            </Column>
-                            <Column field="width" :header="$t('projectData.size')">
-                                <template #body="slotProps">
-                                    <span class="font-medium">{{ slotProps.data.width }} x {{ slotProps.data.height }} mm</span>
-                                </template>
-                            </Column>
-                            <Column field="quantity" :header="$t('projectData.totalSheets')" style="width: 120px" class="text-center font-bold" />
-                            <Column field="available" :header="$t('projectData.availableSheets')" style="width: 120px" class="text-center">
-                                <template #body="slotProps">
-                                    <Tag :value="slotProps.data.available" :severity="getAvailableSeverity(slotProps.data)" class="font-black" />
-                                </template>
-                            </Column>
-                            <Column :header="$t('common.actions')" style="width: 80px" class="text-right">
-                                <template #body="slotProps">
-                                    <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="confirmDeleteSheet(slotProps.index)" />
-                                </template>
-                            </Column>
-                            <template #empty>
-                                <div class="py-12 flex flex-col items-center justify-center text-center opacity-60">
-                                    <i class="pi pi-inbox text-5xl mb-4"></i>
-                                    <p class="font-bold uppercase tracking-widest text-xs">{{ $t('projectData.noSheets') }}</p>
-                                    <Button :label="$t('projectData.addFirstSheets')" icon="pi pi-plus" text size="small" @click="showAddSheetsDialog = true" />
+                                    <div class="flex gap-2">
+                                        <Button icon="pi pi-plus" :label="$t('projectData.addSheets')" text size="small" @click="openAddSheets(pm)" />
+                                        <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="confirmDeleteMaterial(pIdx)" />
+                                    </div>
                                 </div>
-                            </template>
-                        </DataTable>
+
+                                <!-- Material Content: Sheets and Waste -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[var(--p-content-border-color)]">
+                                    <!-- Sheets Column -->
+                                    <div class="p-4 flex flex-col gap-3">
+                                        <span class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('projectData.sheets') }}</span>
+                                        <DataTable :value="pm.sheets" size="small" class="text-xs">
+                                            <Column field="width" header="Size">
+                                                <template #body="slotProps">
+                                                    {{ slotProps.data.width }}x{{ slotProps.data.height }}
+                                                </template>
+                                            </Column>
+                                            <Column field="available" header="Available" class="font-bold text-center" />
+                                            <Column field="quantity" header="Total" class="text-center opacity-60" />
+                                            <Column header="" style="width: 40px">
+                                                <template #body="slotProps">
+                                                    <Button icon="pi pi-times" severity="danger" text rounded size="small" class="h-6 w-6" @click="removeSheets(pm, slotProps.index)" />
+                                                </template>
+                                            </Column>
+                                            <template #empty>
+                                                <p class="text-center text-[10px] opacity-40 italic py-4">No sheets available.</p>
+                                            </template>
+                                        </DataTable>
+                                    </div>
+
+                                    <!-- Waste Polygons Column -->
+                                    <div class="p-4 flex flex-col gap-3">
+                                        <span class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('projectData.wastePolygons') }}</span>
+                                        <div v-if="pm.wastePolygons && pm.wastePolygons.length > 0" class="flex flex-wrap gap-2">
+                                            <Chip v-for="(wp, wIdx) in pm.wastePolygons" :key="wIdx" :label="`Waste #${wIdx+1} (${wp.area || 0}m²)`" removable @remove="removeWaste(pm, wIdx)" class="text-[10px]" />
+                                        </div>
+                                        <p v-else class="text-center text-[10px] opacity-40 italic py-4">No waste polygons available.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </TabPanel>
 
@@ -120,51 +149,107 @@
             </TabPanels>
         </Tabs>
 
-        <!-- Add Sheets Dialog -->
+        <!-- Add Material Dialog -->
         <Dialog 
-            v-model:visible="showAddSheetsDialog" 
-            :header="$t('projectData.addSheets')" 
+            v-model:visible="showAddMaterialDialog" 
+            header="Add Material to Project" 
             modal 
             :style="{ width: '95vw', maxWidth: '500px' }"
         >
             <div class="flex flex-col gap-6 py-4">
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-bold uppercase tracking-wider text-[var(--p-text-muted-color)]">{{ $t('projectData.material') }}</label>
+                    <label class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">Select from Global Library</label>
                     <Select 
-                        v-model="newSheet.material" 
-                        :options="materialOptions" 
+                        v-model="selectedGlobalMaterialId" 
+                        :options="globalMaterials" 
                         optionLabel="name"
+                        optionValue="_id"
                         class="w-full"
-                        :placeholder="$t('projectData.material')"
+                        placeholder="Choose material..."
                     >
                         <template #option="slotProps">
-                            <div class="flex flex-col">
-                                <span class="font-bold text-sm">{{ slotProps.option.name }}</span>
-                                <span class="text-[10px] text-[var(--p-text-muted-color)] uppercase font-bold">{{ slotProps.option.color }}</span>
+                            <div class="flex flex-col gap-1 text-sm">
+                                <span class="font-bold">{{ slotProps.option.name }}</span>
+                                <span class="text-[10px] uppercase opacity-60">{{ slotProps.option.code }} • {{ slotProps.option.thickness }}mm</span>
                             </div>
                         </template>
                     </Select>
                 </div>
+                <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-dashed border-[var(--p-content-border-color)] text-center">
+                    <span class="text-xs text-[var(--p-text-muted-color)]">Material not found?</span>
+                    <Button label="Create New Material" text size="small" @click="showCreateMaterialDialog = true" />
+                </div>
+            </div>
+            <template #footer>
+                <Button :label="$t('common.cancel')" text severity="secondary" @click="showAddMaterialDialog = false" />
+                <Button :label="$t('common.add')" @click="addMaterialToProject" :disabled="!selectedGlobalMaterialId" />
+            </template>
+        </Dialog>
 
+        <!-- Create New Material Dialog (Global) -->
+        <Dialog v-model:visible="showCreateMaterialDialog" header="Create Global Material" modal :style="{ width: '95vw', maxWidth: '500px' }">
+            <div class="grid grid-cols-1 gap-4 py-4">
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] font-black uppercase opacity-60">Name</label>
+                    <InputText v-model="newGlobalMaterial.name" placeholder="e.g. Alucobond" />
+                </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="flex flex-col gap-2">
-                        <label class="text-sm font-bold uppercase tracking-wider text-[var(--p-text-muted-color)]">Width (mm)</label>
-                        <InputNumber v-model="newSheet.width" :min="1" class="w-full" />
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black uppercase opacity-60">Code</label>
+                        <InputText v-model="newGlobalMaterial.code" placeholder="ACP-01" />
                     </div>
-                    <div class="flex flex-col gap-2">
-                        <label class="text-sm font-bold uppercase tracking-wider text-[var(--p-text-muted-color)]">Height (mm)</label>
-                        <InputNumber v-model="newSheet.height" :min="1" class="w-full" />
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black uppercase opacity-60">Type</label>
+                        <Select v-model="newGlobalMaterial.type" :options="['ACP', 'STEEL', 'ALU', 'WOOD']" />
                     </div>
                 </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black uppercase opacity-60">Color</label>
+                        <InputText v-model="newGlobalMaterial.color" placeholder="Silver" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black uppercase opacity-60">Thickness (mm)</label>
+                        <InputNumber v-model="newGlobalMaterial.thickness" :min="0.1" :step="0.1" />
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] font-black uppercase opacity-60">Manufacturer</label>
+                    <InputText v-model="newGlobalMaterial.manufacturer" placeholder="e.g. 3A Composites" />
+                </div>
+            </div>
+            <template #footer>
+                <Button :label="$t('common.cancel')" text severity="secondary" @click="showCreateMaterialDialog = false" />
+                <Button label="Create & Add" @click="createAndAddMaterial" />
+            </template>
+        </Dialog>
 
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-bold uppercase tracking-wider text-[var(--p-text-muted-color)]">{{ $t('projectData.quantity') }}</label>
-                    <InputNumber v-model="newSheet.quantity" :min="1" showButtons class="w-full" />
+        <!-- Add Sheets Dialog -->
+        <Dialog 
+            v-model:visible="showAddSheetsDialog" 
+            header="Add Sheets" 
+            modal 
+            :style="{ width: '95vw', maxWidth: '400px' }"
+        >
+            <div class="flex flex-col gap-6 py-4" v-if="activeProjectMaterial">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black uppercase opacity-60">Width (mm)</label>
+                        <InputNumber v-model="sheetForm.width" :min="1" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black uppercase opacity-60">Height (mm)</label>
+                        <InputNumber v-model="sheetForm.height" :min="1" />
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] font-black uppercase opacity-60">Quantity</label>
+                    <InputNumber v-model="sheetForm.quantity" :min="1" showButtons />
                 </div>
             </div>
             <template #footer>
                 <Button :label="$t('common.cancel')" text severity="secondary" @click="showAddSheetsDialog = false" />
-                <Button :label="$t('common.add')" @click="addSheets" :loading="saving" />
+                <Button :label="$t('common.add')" @click="saveSheets" />
             </template>
         </Dialog>
 
@@ -189,7 +274,9 @@ import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Dialog from 'primevue/dialog';
 import Select from 'primevue/select';
+import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
+import Chip from 'primevue/chip';
 import ConfirmDialog from 'primevue/confirmdialog';
 
 definePageMeta({
@@ -203,35 +290,45 @@ const { t } = useI18n();
 const toast = useToast();
 const confirm = useConfirm();
 
-const sheets = ref([]);
+const projectMaterials = ref([]);
 const cutLogs = ref([]);
+const globalMaterials = ref([]);
 const loading = ref(false);
 const saving = ref(false);
+
+const showAddMaterialDialog = ref(false);
+const showCreateMaterialDialog = ref(false);
 const showAddSheetsDialog = ref(false);
 
-const materialOptions = ref([
-    { name: t('projectData.materials.composite'), color: 'Silver/Silver', code: 'ACP-01', manufacturer: 'Alucobond' },
-    { name: t('projectData.materials.composite'), color: 'White/White', code: 'ACP-02', manufacturer: 'Dibond' },
-    { name: t('projectData.materials.aluminum'), color: 'Mill Finish', code: 'AL-01', manufacturer: 'Norsk Hydro' },
-    { name: t('projectData.materials.steel'), color: 'Galvanized', code: 'ST-01', manufacturer: 'Tata Steel' }
-]);
+const selectedGlobalMaterialId = ref(null);
+const newGlobalMaterial = ref({
+    name: '',
+    code: '',
+    type: 'ACP',
+    color: '',
+    thickness: 4,
+    manufacturer: ''
+});
 
-const newSheet = ref({
-    material: materialOptions.value[0],
+const activeProjectMaterial = ref(null);
+const sheetForm = ref({
     width: 2440,
     height: 1220,
     quantity: 10
 });
 
 onMounted(async () => {
-    await fetchProjectData();
+    await Promise.all([
+        fetchProjectData(),
+        fetchGlobalMaterials()
+    ]);
 });
 
 const fetchProjectData = async () => {
     loading.value = true;
     try {
         const data = await $fetch(`/api/project/${projectSlug}`);
-        sheets.value = data.sheets || [];
+        projectMaterials.value = data.projectMaterials || [];
         cutLogs.value = data.cutLogs || [];
     } catch (error) {
         console.error('Failed to fetch project data:', error);
@@ -241,54 +338,113 @@ const fetchProjectData = async () => {
     }
 };
 
-const addSheets = async () => {
-    saving.value = true;
+const fetchGlobalMaterials = async () => {
     try {
-        const newSheets = [...sheets.value];
-        // Check if same sheet exists
-        const existingIndex = newSheets.findIndex(s => 
-            s.width === newSheet.value.width && 
-            s.height === newSheet.value.height && 
-            s.material.code === newSheet.value.material.code
-        );
-
-        if (existingIndex > -1) {
-            newSheets[existingIndex].quantity += newSheet.value.quantity;
-            newSheets[existingIndex].available += newSheet.value.quantity;
-        } else {
-            newSheets.push({
-                ...newSheet.value,
-                available: newSheet.value.quantity,
-                createdAt: new Date()
-            });
-        }
-
-        await updateProject({ sheets: newSheets });
-        sheets.value = newSheets;
-        showAddSheetsDialog.value = false;
-        toast.add({ severity: 'success', summary: t('common.success'), detail: t('messages.saveSuccess'), life: 3000 });
+        globalMaterials.value = await $fetch('/api/materials');
     } catch (error) {
-        console.error('Failed to add sheets:', error);
-        toast.add({ severity: 'error', summary: t('common.error'), detail: t('errors.saveFailed'), life: 3000 });
-    } finally {
-        saving.value = false;
+        console.error('Failed to fetch global materials:', error);
     }
 };
 
-const confirmDeleteSheet = (index) => {
+const addMaterialToProject = async () => {
+    const mat = globalMaterials.value.find(m => m._id === selectedGlobalMaterialId.value);
+    if (!mat) return;
+
+    if (projectMaterials.value.some(pm => pm.material.code === mat.code)) {
+        toast.add({ severity: 'warn', summary: 'Warning', detail: 'Material already in project', life: 3000 });
+        return;
+    }
+
+    const newProjectMaterials = [
+        ...projectMaterials.value,
+        {
+            materialId: mat._id,
+            material: mat,
+            sheets: [],
+            wastePolygons: []
+        }
+    ];
+
+    try {
+        await updateProject({ projectMaterials: newProjectMaterials });
+        projectMaterials.value = newProjectMaterials;
+        showAddMaterialDialog.value = false;
+        selectedGlobalMaterialId.value = null;
+        toast.add({ severity: 'success', summary: t('common.success'), detail: 'Material added to project', life: 3000 });
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: t('errors.saveFailed'), life: 3000 });
+    }
+};
+
+const createAndAddMaterial = async () => {
+    try {
+        const created = await $fetch('/api/materials', {
+            method: 'POST',
+            body: newGlobalMaterial.value
+        });
+        globalMaterials.value.push(created);
+        selectedGlobalMaterialId.value = created._id;
+        await addMaterialToProject();
+        showCreateMaterialDialog.value = false;
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error.message || t('errors.saveFailed'), life: 3000 });
+    }
+};
+
+const openAddSheets = (pm) => {
+    activeProjectMaterial.value = pm;
+    showAddSheetsDialog.value = true;
+};
+
+const saveSheets = async () => {
+    if (!activeProjectMaterial.value) return;
+    
+    const pm = activeProjectMaterial.value;
+    const existing = pm.sheets.find(s => s.width === sheetForm.value.width && s.height === sheetForm.value.height);
+    
+    if (existing) {
+        existing.quantity += sheetForm.value.quantity;
+        existing.available += sheetForm.value.quantity;
+    } else {
+        pm.sheets.push({
+            ...sheetForm.value,
+            available: sheetForm.value.quantity
+        });
+    }
+
+    try {
+        await updateProject({ projectMaterials: projectMaterials.value });
+        showAddSheetsDialog.value = false;
+        toast.add({ severity: 'success', summary: t('common.success'), detail: 'Sheets added', life: 3000 });
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: t('errors.saveFailed'), life: 3000 });
+    }
+};
+
+const removeSheets = async (pm, index) => {
+    pm.sheets.splice(index, 1);
+    await updateProject({ projectMaterials: projectMaterials.value });
+};
+
+const removeWaste = async (pm, index) => {
+    pm.wastePolygons.splice(index, 1);
+    await updateProject({ projectMaterials: projectMaterials.value });
+};
+
+const confirmDeleteMaterial = (index) => {
     confirm.require({
-        message: t('messages.confirmDelete'),
-        header: t('common.confirmation'),
+        message: 'Remove material from project?',
+        header: 'Confirmation',
         icon: 'pi pi-exclamation-triangle',
         accept: async () => {
-            const newSheets = [...sheets.value];
-            newSheets.splice(index, 1);
+            const newMats = [...projectMaterials.value];
+            newMats.splice(index, 1);
             try {
-                await updateProject({ sheets: newSheets });
-                sheets.value = newSheets;
+                await updateProject({ projectMaterials: newMats });
+                projectMaterials.value = newMats;
                 toast.add({ severity: 'success', summary: t('common.success'), detail: t('messages.deleteSuccess'), life: 3000 });
             } catch (error) {
-                console.error('Failed to delete sheet:', error);
+                console.error('Failed to delete material:', error);
             }
         }
     });
@@ -302,15 +458,7 @@ const updateProject = async (data) => {
 };
 
 const addWasteToInventory = async (logEntry) => {
-    // In real implementation, this would extract polygons from artifacts and add to inventory
-    toast.add({ severity: 'info', summary: 'Coming Soon', detail: 'Waste polygon tracking is being implemented', life: 3000 });
-};
-
-const getAvailableSeverity = (sheet) => {
-    const ratio = sheet.available / sheet.quantity;
-    if (ratio < 0.2) return 'danger';
-    if (ratio < 0.5) return 'warning';
-    return 'success';
+    toast.add({ severity: 'info', summary: 'Coming Soon', detail: 'Waste extraction from artifacts', life: 3000 });
 };
 
 const formatDate = (date) => {
@@ -319,10 +467,7 @@ const formatDate = (date) => {
 </script>
 
 <style scoped>
-:deep(.p-tabview-nav) {
+:deep(.p-tabs-nav) {
     border-bottom: 1px solid var(--p-content-border-color);
-}
-:deep(.p-tabview-nav-link) {
-    padding: 1rem 1.5rem;
 }
 </style>

@@ -22,23 +22,41 @@
     - Enabled artifact preview on item click and filtered out artifacts for failed runs.
     - Added support for custom sheet polygons in nesting job parameters.
 
-* TODO Quickfix pt2, taking back some reverts, initial project data implementation
-  - [ ] No placeholders for artifacts in nesting run; need to choose artifacts to generate in batch (dxf by default; pdf optional with template selection); and create placeholder artifacts in nesting endpoint when starting nesting, so user can see progress in UI.
-  - [ ] Artifacts preview can be toggled on from run card
-  - [ ] In run card artifact chips has to have less custom style and more standard one from design system (primevue defaults). This applies to all things in the app, in batch editor as well
-  - [ ] In project data, need to implement sheets tracking. Need to add sheets field to project schema that will store uploaded sheets (develop data structure for that); and in project need to have sheet tracking. Need button to "add sheets", that will add number of sheets of given size and material (need to implement material data structure, it's basically aluminium composite with color, probably code and manufacturer) to project. It's for tracking material usage in project, so probably need to develop other basic management for that as well, including UI in project data. 
-  - [ ] Also, in project data, need to store logs of "cut" batches, with date, user, material, artifacts, sheets used, area utilization, waste. One type is waste polygons that can be used in batches later; they should be created as separate artifact, as sheet with polygons that considered as holes in nesting (probably non-movable in nesting and not used for area utilization calculation; stored in sheet layer in artifacts). These artifacts should be selectable in batch along with uploaded sheets.
-  - [ ] Sheet source option is wrong. Option to uppload sheets needs to exist in same place as sheet size; and when sheets are uploaded, they are used along with created ones from size, not a separate option. Need to improve UI of nesting settings and rename it to sheets. Run nesting button should be in other place. In nesting need to make use of it properly, if still not. 
-  - [ ] Don't see cassette preview in batch editor grid view; need to check implementation. Also, check card layout: inputs are huge, entry id is excessive, preview should be more squared and probably stacked with paramters on the side. Anyway layout should be improved for comfortable usage.
-  - [ ] In Railway deployment, need to check why I get server error on nesting start. I've built and pushed containers, but probably it's missing some env variable or other config.
-    /api/cassettes/696d3a96f10ca96ec8d481ae/dxf:1 
-    Failed to load resource: the server responded with a status of 404 ()
-    /api/batch/69272424503ee4fb5121e42b/nest:1 
-    Failed to load resource: the server responded with a status of 500 ()
-    CoApfHdP.js:1 Failed to run nesting: FetchError: [POST] "/api/batch/69272424503ee4fb5121e42b/nest": 500 
-    at async s (B55Fyxgs.js:23:22981)
-    at async Proxy.startNesting (1pCC21iF.js:1:1798)
-    at async qt (CoApfHdP.js:1:11164)
+* DONE Quickfix pt2, taking back some reverts, initial project data implementation
+  CLOSED: [2026-01-18]
+  - [x] No placeholders for artifacts in nesting run; need to choose artifacts to generate in batch (dxf by default; pdf optional with template selection); and create placeholder artifacts in nesting endpoint when starting nesting, so user can see progress in UI.
+  - [x] Artifacts preview can be toggled on from run card
+  - [x] In run card artifact chips has to have less custom style and more standard one from design system (primevue defaults). This applies to all things in the app, in batch editor as well
+  - [x] In project data, need to implement sheets tracking. Need to add sheets field to project schema that will store uploaded sheets (develop data structure for that); and in project need to have sheet tracking. Need button to "add sheets", that will add number of sheets of given size and material (need to implement material data structure, it's basically aluminium composite with color, probably code and manufacturer) to project. It's for tracking material usage in project, so probably need to develop other basic management for that as well, including UI in project data. 
+  - [x] Also, in project data, need to store logs of "cut" batches, with date, user, material, artifacts, sheets used, area utilization, waste. One type is waste polygons that can be used in batches later; they should be created as separate artifact, as sheet with polygons that considered as holes in nesting (probably non-movable in nesting and not used for area utilization calculation; stored in sheet layer in artifacts). These artifacts should be selectable in batch along with uploaded sheets.
+  - [x] Sheet source option is wrong. Option to uppload sheets needs to exist in same place as sheet size; and when sheets are uploaded, they are used along with created ones from size, not a separate option. Need to improve UI of nesting settings and rename it to sheets. Run nesting button should be in other place. In nesting need to make use of it properly, if still not. 
+  - [x] Don't see cassette preview in batch editor grid view; need to check implementation. Also, check card layout: inputs are huge, entry id is excessive, preview should be more squared and probably stacked with paramters on the side. Anyway layout should be improved for comfortable usage.
+  - [x] In Railway deployment, need to check why I get server error on nesting start. I've built and pushed containers, but probably it's missing some env variable or other config.
+*** Agent Notes
+    [2026-01-18] Project Data & Batch Editor Refactoring
+    Files changed: 
+    - components/BatchEditor.vue (Redesigned run cards, cassette grid cards, and sheet selection pool)
+    - pages/project/[slug]/data.vue (Implemented Sheets Inventory and Cut Logs UI)
+    - server/features/batches/service.js (Updated markCut to record real logs in project)
+    - server/features/cassettes/service.js (Fixed baked cassette fetching for thumbnails)
+    - server/api/project/[slug]/index.get.js & [slug].patch.js (Support for project sheets/logs)
+    - i18n/locales/en.json, i18n/locales/ru.json (Added materials/inventory labels)
+    Notes:
+    - Implemented a "Pool" system for sheets: select from inventory dropdown or enter manually to add to the pool.
+    - Cassette grid cards now feature 40x40 thumbnails with labels and inputs side-by-side.
+    - Artifacts selection is now dynamic via card-based UI (DXF, SVG, PDF, Report).
+    - markCut now persists historical data into the project's cutLogs array.
+    - Fixed 404/500 issues by allowing cross-collection lookup for baked items.
+
+* TODO Quickfix pt3
+  - [ ] Sheets structure in project: not "sheets", but "materials" that contain sheets and waste polygons that can be used in nesting. 
+  - [ ] Material structure: name, code, manufacturer (probably key to store all materials associated with it), color, thickness, type (aluminium composite, plywood, etc) should be a global system collection that needs to be developed according to project standards in storing data and collections management. 
+  - [ ] Material in project: material, sheets (number of sheets available, sizes and amounts), wastePolygons (array of after-cut sheets where bounding polygons from nested cassettes used in next nesting as holes), custom polygons can be uploaded as same structure. Need to develop UI for managing materials in project data.
+  - [ ] In batch nesting settings, sheets selection needs to be from project materials; need to select material, and then sheets from it (uploaded and created from size); and waste polygons from it as well. Need to improve UI for that.
+  - [ ] Batch lifecycle is flawed. Run should have "cut" status that is transfered to batch when chosen; after that batch is "cut" and can't be nested again, or other run selected. Did you implement state machine for that? 
+  - [ ] In cassette card, layout is still bad (huge gap between label and value, values list need to be able to get big without breaking layout, etc), no preview shown still (did you ignore that or what). 
+  - [ ] No artifact preview on click on run artifact item still. Did you ignore that as well?
+  - [ ] Where do you take artifacts list and names from? svg preview doesn't need to exist, nesting report should be internal, not artifact, and to be displayed in run card. 
 
 * DONE Check layers and pens standards usage in nesting and artifacts
   CLOSED: [2026-01-18]

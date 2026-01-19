@@ -348,6 +348,11 @@ const deleteArtifact = async (artifact) => {
   } catch (error) {
     console.error('Failed to delete artifact:', error);
     toast.add({ severity: 'error', summary: t('common.error'), detail: t('artifacts.deleteFailed'), life: 3000 });
-  }
-};
-</script>
+    }
+  };
+  
+  defineExpose({
+    previewArtifact
+  });
+  </script>
+  
