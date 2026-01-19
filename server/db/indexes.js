@@ -83,6 +83,47 @@ const INDEXES = {
     { keys: { slug: 1 }, options: { unique: true, name: 'slug_unique' } },
     { keys: { ownerId: 1 }, options: { name: 'ownerId_idx' } },
     { keys: { status: 1 }, options: { name: 'status_idx' } }
+  ],
+
+  // Warehouses Collection
+  warehouses: [
+    { keys: { organizationId: 1 }, options: { name: 'organizationId_idx' } }
+  ],
+
+  // Catalogs Collection
+  catalogs: [
+    { keys: { manufacturerId: 1 }, options: { name: 'manufacturerId_idx' } },
+    { keys: { 'sheetTypes._id': 1 }, options: { name: 'sheetTypes_id_idx' } }
+  ],
+
+  // Requisitions Collection
+  requisitions: [
+    { keys: { requisitionNumber: 1 }, options: { unique: true, name: 'reqNumber_unique' } },
+    { keys: { contractorId: 1, status: 1 }, options: { name: 'contractor_status_idx' } },
+    { keys: { manufacturerId: 1, status: 1 }, options: { name: 'mfg_status_idx' } }
+  ],
+
+  // Material Batches Collection
+  material_batches: [
+    { keys: { batchNumber: 1 }, options: { unique: true, name: 'batchNumber_unique' } },
+    { keys: { warehouseId: 1, status: 1 }, options: { name: 'warehouse_status_idx' } },
+    { keys: { requisitionId: 1 }, options: { name: 'requisitionId_idx' } },
+    { keys: { 'piles._id': 1 }, options: { name: 'piles_id_idx' } }
+  ],
+
+  // Sheets Collection
+  sheets: [
+    { keys: { sheetNumber: 1 }, options: { unique: true, name: 'sheetNumber_unique' } },
+    { keys: { batchId: 1, pileId: 1 }, options: { name: 'batch_pile_idx' } },
+    { keys: { warehouseId: 1, status: 1 }, options: { name: 'warehouse_status_idx' } },
+    { keys: { queueId: 1 }, options: { name: 'queueId_idx' } }
+  ],
+
+  // Remnants Collection
+  remnants: [
+    { keys: { remnantNumber: 1 }, options: { unique: true, name: 'remnantNumber_unique' } },
+    { keys: { sheetId: 1 }, options: { name: 'sheetId_idx' } },
+    { keys: { warehouseId: 1, status: 1, isReusable: 1 }, options: { name: 'warehouse_status_reusable_idx' } }
   ]
 };
 
