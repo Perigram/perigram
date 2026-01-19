@@ -43,6 +43,14 @@ export default defineEventHandler(async (event) => {
     updateData.status = body.status;
   }
 
+  if (body.sheets !== undefined) {
+    updateData.sheets = body.sheets;
+  }
+
+  if (body.cutLogs !== undefined) {
+    updateData.cutLogs = body.cutLogs;
+  }
+
   // Update project
   const result = await db.collection("projects").findOneAndUpdate(
     { slug, ownerId: userId },

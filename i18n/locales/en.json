@@ -239,11 +239,39 @@
     "selectTable": "Select Table",
     "useTable": "Use Table Data",
     "useFiles": "Use File Counts",
+    "artifactsToGenerate": "Artifacts to Generate",
+    "pdfTemplate": "PDF Template",
     "errors": {
       "plateTooSmall": "The plate size needs to be at least {width} x {height} mm. The current plate size is {currentWidth} x {currentHeight} mm, which is too small",
       "noChanges": "Change settings or files to generate again"
     },
     "selectCassette": "Select cassette"
+  },
+  "projectData": {
+    "sheets": "Sheets Inventory",
+    "addSheets": "Add Sheets",
+    "material": "Material",
+    "size": "Size",
+    "quantity": "Quantity",
+    "totalSheets": "Total Sheets",
+    "availableSheets": "Available Sheets",
+    "noSheets": "No sheets in inventory yet.",
+    "addFirstSheets": "Add your first sheets",
+    "wastePolygons": "Waste Polygons",
+    "logs": "Cut Logs",
+    "logDate": "Date",
+    "logUser": "User",
+    "logBatch": "Batch",
+    "logSheets": "Sheets Used",
+    "logUtilization": "Utilization",
+    "logWaste": "Waste",
+    "wasteArea": "Waste Area",
+    "addWasteToInventory": "Add as Waste Polygon",
+    "materials": {
+      "composite": "Aluminum Composite",
+      "steel": "Steel",
+      "aluminum": "Aluminum"
+    }
   },
   "results": {
     "title": "Results",

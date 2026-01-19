@@ -71,7 +71,7 @@ export async function create(data, userId) {
 export async function update(id, updates, userId) {
   await getById(id, userId);
   
-  const allowedUpdates = ['name', 'entries', 'additionalFiles', 'previousRemainder'];
+  const allowedUpdates = ['name', 'entries', 'additionalFiles', 'previousRemainder', 'nestingParams', 'requestedArtifacts', 'pdfTemplateId', 'chosenRunId', 'status'];
   const filteredUpdates = {};
   
   for (const key of allowedUpdates) {

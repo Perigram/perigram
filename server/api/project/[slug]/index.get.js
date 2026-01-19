@@ -16,6 +16,9 @@ export default defineEventHandler(async (event) => {
       projection: {
         name: 1,
         slug: 1,
+        sheets: 1,
+        cutLogs: 1,
+        metadata: 1
       },
     }
   );
@@ -37,6 +40,9 @@ export default defineEventHandler(async (event) => {
   return {
     name: project.name,
     slug: project.slug,
+    sheets: project.sheets || [],
+    cutLogs: project.cutLogs || [],
+    metadata: project.metadata || {},
     files: projectFiles.map((file) => mapFileToUi(file)),
     tables: tables,
   };

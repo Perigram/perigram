@@ -126,12 +126,17 @@ export default defineEventHandler(async (event) => {
   // Update batch status - set previous NESTING runs to ERROR
   await batchService.setRunsStatusByStatus(batchId, 'NESTING', 'ERROR', userId);
   
-  // Create placeholder artifacts
-  const artifactTypes = ['LAYOUT_DXF', 'LAYOUT_SVG', 'PDF_PASSPORT', 'NESTING_REPORT'];
+  // Create placeholder artifacts based on request
+  const requestedArtifacts = body.requestedArtifacts || ['LAYOUT_DXF'];
   const artifacts = await Promise.all(
-    artifactTypes.map(type => {
+    requestedArtifacts.map(type => {
       let name = `${batch.name} - ${type}`;
       if (type === 'LAYOUT_DXF') name += '.dxf';
+      
+      const metadata = {};
+      if (type === 'PDF_PASSPORT' && body.pdfTemplateId) {
+        metadata.templateId = body.pdfTemplateId;
+      }
       
       return artifactService.create({
         type,
@@ -139,7 +144,8 @@ export default defineEventHandler(async (event) => {
         runId,
         name,
         generatedBy: nestingSlug,
-        status: 'GENERATING'
+        status: 'GENERATING',
+        metadata
       });
     })
   );

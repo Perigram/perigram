@@ -239,11 +239,39 @@
     "selectTable": "Выбрать таблицу",
     "useTable": "Использовать данные таблицы",
     "useFiles": "Использовать счётчики файлов",
+    "artifactsToGenerate": "Артефакты для генерации",
+    "pdfTemplate": "Шаблон PDF",
     "errors": {
       "plateTooSmall": "Размер листа должен быть не менее {width} x {height} мм. Текущий размер листа {currentWidth} x {currentHeight} мм, что слишком мало",
       "noChanges": "Измените настройки или файлы для повторной генерации"
     },
     "selectCassette": "Выбрать кассету"
+  },
+  "projectData": {
+    "sheets": "Инвентарь листов",
+    "addSheets": "Добавить листы",
+    "material": "Материал",
+    "size": "Размер",
+    "quantity": "Количество",
+    "totalSheets": "Всего листов",
+    "availableSheets": "Доступно листов",
+    "noSheets": "В инвентаре пока нет листов.",
+    "addFirstSheets": "Добавьте свои первые листы",
+    "wastePolygons": "Деловые отходы",
+    "logs": "Журнал резки",
+    "logDate": "Дата",
+    "logUser": "Пользователь",
+    "logBatch": "Партия",
+    "logSheets": "Использовано листов",
+    "logUtilization": "Использование",
+    "logWaste": "Отходы",
+    "wasteArea": "Площадь отходов",
+    "addWasteToInventory": "Добавить как деловой отход",
+    "materials": {
+      "composite": "Алюминиевый композит",
+      "steel": "Сталь",
+      "aluminum": "Алюминий"
+    }
   },
   "results": {
     "title": "Результаты",

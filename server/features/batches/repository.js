@@ -67,11 +67,20 @@ export async function create(data) {
 
 export async function updateById(id, updates) {
   const db = await connectDB();
+  const allowedUpdates = ['name', 'entries', 'additionalFiles', 'previousRemainder', 'requestedArtifacts', 'pdfTemplateId', 'chosenRunId', 'status'];
+  const filteredUpdates = {};
+  
+  for (const key of allowedUpdates) {
+    if (updates[key] !== undefined) {
+      filteredUpdates[key] = updates[key];
+    }
+  }
+
   const result = await db.collection(COLLECTION).updateOne(
     { _id: toObjectId(id) },
     { 
       $set: { 
-        ...updates, 
+        ...filteredUpdates, 
         updatedAt: new Date() 
       } 
     }

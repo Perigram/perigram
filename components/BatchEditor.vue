@@ -92,77 +92,66 @@
                         </div>
 
                         <div class="flex items-center justify-between mt-auto pt-2 border-t border-[var(--p-content-border-color)]">
-                            <span class="text-[9px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-tight">
-                                {{ formatDate(run.createdAt) }}
-                            </span>
+                            <div class="flex items-center gap-1">
+                                <span class="text-[9px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-tight">
+                                    {{ formatDate(run.createdAt) }}
+                                </span>
+                            </div>
                             
-                            <div v-if="run.status === 'COMPLETE' && run._id.toString() !== batch.chosenRunId?.toString()">
+                            <div class="flex items-center gap-2">
                                 <Button 
-                                    :label="$t('batch.chooseRun')"
+                                    v-if="run.status === 'COMPLETE' || run.status === 'CHOSEN'"
+                                    :icon="previewRunId === run._id.toString() ? 'pi pi-eye-slash' : 'pi pi-eye'" 
+                                    text 
+                                    rounded 
                                     size="small"
-                                    text
-                                    class="p-0 text-[10px] font-black uppercase tracking-wider"
-                                    @click.stop="chooseRunHandler(run._id)"
+                                    class="h-7 w-7"
+                                    v-tooltip.top="$t('common.actions.preview')"
+                                    @click.stop="togglePreview(run._id)"
                                 />
+                                <div v-if="run.status === 'COMPLETE' && run._id.toString() !== batch.chosenRunId?.toString()">
+                                    <Button 
+                                        :label="$t('batch.chooseRun')"
+                                        size="small"
+                                        text
+                                        class="p-0 text-[10px] font-black uppercase tracking-wider"
+                                        @click.stop="chooseRunHandler(run._id)"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </AccordionTab>
 
-            <!-- Nesting Options Panel -->
-            <AccordionTab :header="$t('nesting.settings')">
-                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 items-end py-2">
-                    <div class="flex flex-col gap-2">
-                        <label for="toolSelect" class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.tool') }}</label>
-                        <Select 
-                            id="toolSelect" 
-                            v-model="nestingOptions.toolId" 
-                            :options="tools"
-                            optionLabel="name"
-                            optionValue="_id"
-                            :placeholder="$t('nesting.selectTool')"
-                            class="w-full"
-                        />
-                    </div>
-
-                    <div class="flex flex-col gap-2">
-                        <label class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.sheetSource') }}</label>
-                        <Select 
-                            v-model="sheetSource"
-                            :options="[
-                                { label: $t('nesting.standard'), value: 'standard' },
-                                { label: $t('nesting.custom'), value: 'custom' }
-                            ]"
-                            optionLabel="label"
-                            optionValue="value"
-                            class="w-full"
-                        />
-                    </div>
-
-                    <template v-if="sheetSource === 'standard'">
-                        <div class="flex flex-col gap-2 animate-in fade-in zoom-in duration-300">
-                            <label for="plateWidth" class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.plateWidth') }} (mm)</label>
-                            <InputNumber id="plateWidth" v-model="nestingOptions.width" :min="0" class="w-full" />
+            <!-- Sheets Panel -->
+            <AccordionTab :header="$t('projectData.sheets')">
+                <div class="flex flex-col gap-6 py-2">
+                    <div class="flex flex-wrap items-end gap-6">
+                        <!-- Sheet Size Selection -->
+                        <div class="flex items-center gap-4 p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl">
+                            <div class="flex flex-col gap-2">
+                                <label class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">Sheet Width (mm)</label>
+                                <InputNumber v-model="nestingOptions.width" :min="1" size="small" class="w-24" />
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <label class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">Sheet Height (mm)</label>
+                                <InputNumber v-model="nestingOptions.height" :min="1" size="small" class="w-24" />
+                            </div>
                         </div>
-                        <div class="flex flex-col gap-2 animate-in fade-in zoom-in duration-300">
-                            <label for="plateHeight" class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.plateHeight') }} (mm)</label>
-                            <InputNumber id="plateHeight" v-model="nestingOptions.height" :min="0" class="w-full" />
-                        </div>
-                    </template>
 
-                    <template v-else>
-                        <div class="flex flex-col gap-2 lg:col-span-2 animate-in fade-in zoom-in duration-300">
-                            <label class="text-sm font-medium text-[var(--p-text-color)]">{{ $t('nesting.customSheet') }}</label>
-                            <div class="flex gap-2">
+                        <!-- OR Custom Polygon -->
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">OR</span>
+                            <div class="flex items-center gap-2 p-3 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl min-w-[240px]">
                                 <FileUpload 
                                     mode="basic" 
                                     accept=".dxf" 
                                     :auto="true" 
                                     customUpload 
                                     @uploader="handleSheetSelect"
-                                    :chooseLabel="selectedSheetFile ? selectedSheetFile.name : $t('common.upload')"
-                                    class="flex-1"
+                                    :chooseLabel="selectedSheetFile ? selectedSheetFile.name : $t('nesting.customSheet')"
+                                    class="p-button-sm p-button-text"
                                     :disabled="batch.status !== 'DRAFT'"
                                 />
                                 <Button 
@@ -170,23 +159,71 @@
                                     icon="pi pi-times" 
                                     severity="danger" 
                                     text 
+                                    size="small"
                                     @click="clearSheetFile" 
                                     :disabled="batch.status !== 'DRAFT'"
                                 />
                             </div>
                         </div>
-                    </template>
 
-                    <div>
-                        <Button 
-                            :label="$t('batches.runNesting')"
-                            icon="pi pi-play"
-                            severity="success"
-                            @click="runNesting"
-                            :disabled="batch.status !== 'DRAFT' || entries.length === 0"
-                            :loading="nestingInProgress"
-                            class="w-full h-[42px]"
-                        />
+                        <!-- Tool and Action -->
+                        <div class="flex items-center gap-4 ml-auto">
+                            <div class="flex flex-col gap-2">
+                                <label class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('nesting.tool') }}</label>
+                                <Select 
+                                    v-model="nestingOptions.toolId" 
+                                    :options="tools"
+                                    optionLabel="name"
+                                    optionValue="_id"
+                                    :placeholder="$t('nesting.selectTool')"
+                                    class="w-48"
+                                />
+                            </div>
+                            <Button 
+                                :label="$t('batches.runNesting')"
+                                icon="pi pi-play"
+                                severity="success"
+                                @click="runNesting"
+                                :disabled="batch.status !== 'DRAFT' || entries.length === 0"
+                                :loading="nestingInProgress"
+                                class="h-[42px] px-6 font-black uppercase tracking-widest text-xs"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Artifact Selection -->
+                    <div class="flex flex-col gap-4 border-t border-[var(--p-content-border-color)] pt-6">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('nesting.artifactsToGenerate') }}</span>
+                        <div class="flex flex-wrap gap-8 items-start">
+                            <div class="flex items-center gap-2">
+                                <Checkbox v-model="nestingOptions.requestedArtifacts" inputId="art_dxf" value="LAYOUT_DXF" disabled />
+                                <label for="art_dxf" class="text-xs font-bold uppercase tracking-tight">DXF</label>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <Checkbox v-model="nestingOptions.requestedArtifacts" inputId="art_svg" value="LAYOUT_SVG" />
+                                <label for="art_svg" class="text-xs font-bold uppercase tracking-tight">SVG Preview</label>
+                            </div>
+                            <div class="flex flex-col gap-3">
+                                <div class="flex items-center gap-2">
+                                    <Checkbox v-model="nestingOptions.requestedArtifacts" inputId="art_pdf" value="PDF_PASSPORT" />
+                                    <label for="art_pdf" class="text-xs font-bold uppercase tracking-tight">PDF Passport</label>
+                                </div>
+                                <div v-if="nestingOptions.requestedArtifacts.includes('PDF_PASSPORT')" class="animate-in slide-in-from-top-2 duration-300">
+                                    <Select 
+                                        v-model="nestingOptions.pdfTemplateId"
+                                        :options="pdfTemplates"
+                                        optionLabel="name"
+                                        optionValue="_id"
+                                        :placeholder="$t('nesting.pdfTemplate')"
+                                        class="w-full md:w-64"
+                                    />
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <Checkbox v-model="nestingOptions.requestedArtifacts" inputId="art_report" value="NESTING_REPORT" />
+                                <label for="art_report" class="text-xs font-bold uppercase tracking-tight">Nesting Report</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </AccordionTab>
@@ -217,52 +254,51 @@
                     </div>
 
                     <!-- Grid View -->
-                    <div v-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div v-if="viewMode === 'grid'" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
                         <div 
                             v-for="entry in entries" 
                             :key="entry._id"
-                            class="border border-[var(--p-content-border-color)] rounded-xl p-4 bg-[var(--p-content-background)] hover:border-[var(--p-primary-color)] transition-all flex flex-col gap-4 shadow-sm group"
+                            class="border border-[var(--p-content-border-color)] rounded-xl p-4 bg-[var(--p-content-background)] hover:border-[var(--p-primary-color)] transition-all flex gap-4 shadow-sm group relative"
                         >
-                            <div class="flex flex-col gap-3">
-                                <div class="flex justify-between items-start gap-2 min-w-0">
-                                    <div class="flex-1 min-w-0">
-                                        <h3 class="font-black text-[var(--p-text-color)] truncate text-xs uppercase tracking-tight" :title="getCassetteName(entry.cassetteTemplateId)">{{ getCassetteName(entry.cassetteTemplateId) }}</h3>
-                                        <span class="text-[9px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-widest">{{ entry.entryId }}</span>
-                                    </div>
-                                    <Button 
-                                        icon="pi pi-trash"
-                                        severity="danger"
-                                        text
-                                        rounded
-                                        size="small"
-                                        class="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        @click="confirmDelete(entry)"
-                                        :disabled="batch.status !== 'DRAFT'"
-                                    />
-                                </div>
+                            <!-- Delete button on hover -->
+                            <Button 
+                                icon="pi pi-trash"
+                                severity="danger"
+                                text
+                                rounded
+                                size="small"
+                                class="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                @click="confirmDelete(entry)"
+                                :disabled="batch.status !== 'DRAFT'"
+                            />
 
-                                <!-- Thumbnail -->
-                                <div class="h-32 w-full">
-                                    <CassetteThumbnail :cassette-id="entry.cassetteTemplateId" />
-                                </div>
+                            <!-- Left: Thumbnail (Squared) -->
+                            <div class="w-32 h-32 flex-shrink-0 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
+                                <CassetteThumbnail :cassette-id="entry.cassetteTemplateId" />
                             </div>
 
-                            <div class="flex flex-col gap-4 pt-4 border-t border-[var(--p-content-border-color)]">
-                                <div class="flex items-center justify-between gap-4">
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-[var(--p-text-muted-color)]">{{ $t('batches.quantity') }}</span>
-                                    <InputNumber 
-                                        v-model="entry.quantity" 
-                                        :min="1" 
-                                        :disabled="batch.status !== 'DRAFT'"
-                                        showButtons 
-                                        buttonLayout="horizontal"
-                                        size="small"
-                                        class="w-24"
-                                        @update:model-value="saveBatch"
-                                    />
+                            <!-- Right: Info and Parameters -->
+                            <div class="flex-1 flex flex-col min-w-0">
+                                <div class="flex flex-col mb-3">
+                                    <h3 class="font-black text-[var(--p-text-color)] truncate text-xs uppercase tracking-tight" :title="getCassetteName(entry.cassetteTemplateId)">
+                                        {{ getCassetteName(entry.cassetteTemplateId) }}
+                                    </h3>
+                                    <span class="text-[9px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-widest">{{ entry.entryId }}</span>
                                 </div>
-                                
-                                <div class="grid grid-cols-2 gap-x-3 gap-y-3">
+
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3">
+                                    <div class="flex flex-col gap-1">
+                                        <span class="text-[9px] font-black uppercase tracking-wider text-[var(--p-text-muted-color)]">{{ $t('batches.quantity') }}</span>
+                                        <InputNumber 
+                                            v-model="entry.quantity" 
+                                            :min="1" 
+                                            :disabled="batch.status !== 'DRAFT'"
+                                            size="small"
+                                            class="w-full"
+                                            @update:model-value="saveBatch"
+                                        />
+                                    </div>
+                                    
                                     <div v-for="param in getEntryParameters(entry)" :key="param" class="flex flex-col gap-1">
                                         <span class="text-[9px] font-black uppercase tracking-tighter text-[var(--p-text-muted-color)]">{{ param }}</span>
                                         <InputNumber 
@@ -398,7 +434,7 @@
             </AccordionTab>
 
             <!-- Artifacts Panel -->
-            <AccordionTab v-if="selectedRunId && filteredArtifactsBySelectedRun.length > 0" :header="$t('batches.artifacts')">
+            <AccordionTab v-if="selectedRunId && previewRunId === selectedRunId" :header="$t('batches.artifacts')">
                 <ArtifactsTable :batch-id="batch._id" :batch="batch" :run-id="selectedRunId" />
             </AccordionTab>
         </Accordion>
@@ -473,6 +509,7 @@ import Select from 'primevue/select';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import ToggleSwitch from 'primevue/toggleswitch';
+import Checkbox from 'primevue/checkbox';
 import Dialog from 'primevue/dialog';
 import DataView from 'primevue/dataview';
 import ConfirmDialog from 'primevue/confirmdialog';
@@ -515,6 +552,7 @@ const cassettes = ref([]);
 const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
 const selectedRunId = ref(null);
+const previewRunId = ref(null);
 
 const filteredArtifactsBySelectedRun = computed(() => {
     if (!selectedRunId.value) return [];
@@ -523,13 +561,53 @@ const filteredArtifactsBySelectedRun = computed(() => {
 });
 
 const nestingOptions = ref({
-    width: 2440,
-    height: 1220,
-    toolId: null,
-    sheetPolygon: null
+    width: props.batch.nestingParams?.width || 2440,
+    height: props.batch.nestingParams?.height || 1220,
+    toolId: props.batch.nestingParams?.toolId || null,
+    sheetPolygon: props.batch.nestingParams?.sheetPolygon || null,
+    requestedArtifacts: props.batch.requestedArtifacts || ['LAYOUT_DXF'],
+    pdfTemplateId: props.batch.pdfTemplateId || null
 });
+
+// Watch nesting options for auto-save
+watch(nestingOptions, async (newVal) => {
+    if (props.batch.status !== 'DRAFT') return;
+    try {
+        await $fetch(`/api/batch/${props.batch._id}`, {
+            method: 'PUT',
+            body: {
+                nestingParams: {
+                    width: newVal.width,
+                    height: newVal.height,
+                    toolId: newVal.toolId,
+                    sheetPolygon: newVal.sheetPolygon
+                },
+                requestedArtifacts: newVal.requestedArtifacts,
+                pdfTemplateId: newVal.pdfTemplateId
+            }
+        });
+    } catch (error) {
+        console.error('Failed to auto-save nesting options:', error);
+    }
+}, { deep: true });
+
 const selectedSheetFile = ref(null);
-const sheetSource = ref('standard'); // 'standard' or 'custom'
+const sheetSource = ref(props.batch.nestingParams?.sheetPolygon ? 'custom' : 'standard');
+
+const pdfTemplates = ref([
+    { _id: 'default', name: 'Default Passport Template' },
+    { _id: 'technical', name: 'Technical Drawing Template' }
+]);
+
+const togglePreview = (runId) => {
+    const id = runId.toString();
+    if (previewRunId.value === id) {
+        previewRunId.value = null;
+    } else {
+        previewRunId.value = id;
+        selectedRunId.value = id;
+    }
+};
 
 const handleSheetSelect = async (event) => {
     if (event.files && event.files.length > 0) {
@@ -843,7 +921,9 @@ const runNesting = async () => {
             width: nestingOptions.value.width,
             height: nestingOptions.value.height,
             toolId: nestingOptions.value.toolId,
-            sheet_polygon: sheetSource.value === 'custom' ? nestingOptions.value.sheetPolygon : null
+            sheet_polygon: sheetSource.value === 'custom' ? nestingOptions.value.sheetPolygon : null,
+            requestedArtifacts: nestingOptions.value.requestedArtifacts,
+            pdfTemplateId: nestingOptions.value.pdfTemplateId
         };
         await batchesStore.startNesting(props.batch._id, payload);
         toast.add({ severity: 'info', summary: t('batches.nestingStarted'), detail: t('batches.nestingInitiated'), life: 3000 });
