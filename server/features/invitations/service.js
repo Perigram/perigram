@@ -3,7 +3,7 @@ import * as usersRepository from '../users/repository.js';
 import * as organizationsRepository from '../organizations/repository.js';
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
-import { crypto } from 'node:crypto';
+import crypto from 'node:crypto';
 import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
 
 export async function generateInvitation(organizationId, role, creatorUser) {
