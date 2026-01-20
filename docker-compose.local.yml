@@ -43,8 +43,7 @@ services:
 
 networks:
   cutkit-network:
-    driver: overlay
-    attachable: true
+    external: true
 
 volumes:
   mongo-data:

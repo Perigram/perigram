@@ -7,8 +7,8 @@ definePageMeta({
 const route = useRoute();
 const slug = route.params.slug;
 
-// Redirect to batches on load
-await navigateTo(`/project/${slug}/batches`, { replace: true });
+// Redirect to queues on load
+await navigateTo(`/project/${slug}/queues`, { replace: true });
 </script>
 
 <template>

@@ -110,17 +110,17 @@
                                     <span class="text-xs font-medium">{{ formatDate(slotProps.data.date) }}</span>
                                 </template>
                             </Column>
-                            <Column field="userName" :header="$t('projectData.logUser')">
+                            <column field="userName" :header="$t('projectData.logUser')">
                                 <template #body="slotProps">
                                     <span class="text-xs font-bold uppercase tracking-tight">{{ slotProps.data.userName || $t('admin.unknownUser') }}</span>
                                 </template>
-                            </Column>
-                            <Column field="batchName" :header="$t('projectData.logBatch')">
+                            </column>
+                            <column field="queueName" :header="$t('projectData.logQueue')">
                                 <template #body="slotProps">
-                                    <span class="font-medium">{{ slotProps.data.batchName }}</span>
+                                    <span class="font-medium">{{ slotProps.data.queueName }}</span>
                                 </template>
-                            </Column>
-                            <Column field="sheetsUsed" :header="$t('projectData.logSheets')" style="width: 100px" class="text-center" />
+                            </column>
+                            <column field="sheetsUsed" :header="$t('projectData.logSheets')" style="width: 100px" class="text-center" />
                             <Column field="utilization" :header="$t('projectData.logUtilization')" style="width: 120px" class="text-center">
                                 <template #body="slotProps">
                                     <span class="font-black text-[var(--p-primary-color)]">{{ (slotProps.data.utilization * 100).toFixed(1) }}%</span>

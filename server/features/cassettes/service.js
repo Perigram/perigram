@@ -302,6 +302,9 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
 
 export async function downloadDxf(id, userId, userOrg, userRole, userPermissions) {
   const cassette = await getById(id, userId, userOrg, userRole, userPermissions);
+  if (cassette.type === 'PARAMETRIC') {
+    throw createError({ statusCode: 400, message: 'Parametric cassettes do not have a source DXF file. Use export instead.' });
+  }
   if (!cassette.dxfId) {
     throw createError({ statusCode: 404, message: 'DXF not found for this cassette' });
   }

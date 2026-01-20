@@ -16,7 +16,7 @@
                         <div v-if="currentQueue" class="flex items-center gap-3">
                             <span class="font-bold truncate">{{ currentQueue.name }}</span>
                             <Tag
-                                :value="$t(`queue.status.${currentQueue.status}`)"
+                                :value="$t(`queue.queueStatus.${currentQueue.status}`)"
                                 :severity="getStatusSeverity(currentQueue.status)"
                                 class="text-[10px] uppercase"
                             />
@@ -26,7 +26,7 @@
                         <div class="flex items-center justify-between w-full gap-4">
                             <span class="font-medium truncate">{{ slotProps.option.name }}</span>
                             <Tag
-                                :value="$t(`queue.status.${slotProps.option.status}`)"
+                                :value="$t(`queue.queueStatus.${slotProps.option.status}`)"
                                 :severity="getStatusSeverity(slotProps.option.status)"
                                 class="text-[9px] uppercase"
                             />

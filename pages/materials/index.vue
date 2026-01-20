@@ -1,29 +1,31 @@
 <template>
-  <div class="space-y-4">
-    <h1 class="text-3xl font-bold">{{ $t('materials.title') }}</h1>
+  <div class="flex flex-col gap-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-[var(--p-text-color)]">{{ $t('features.materials') }}</h1>
+    </div>
 
     <TabView>
-      <TabPanel header="Warehouses" v-if="isContractor">
+      <TabPanel v-if="authStore.isContractor || authStore.isSuperAdmin" :header="$t('features.warehouses')">
         <WarehousesTab />
       </TabPanel>
       
-      <TabPanel header="Catalogs" v-if="isManufacturer">
+      <TabPanel v-if="authStore.isManufacturer || authStore.isSuperAdmin" :header="$t('features.catalogs')">
         <CatalogsTab />
       </TabPanel>
       
-      <TabPanel header="Requisitions">
+      <TabPanel v-if="authStore.isContractor || authStore.isManufacturer || authStore.isSuperAdmin" :header="$t('features.requisitions')">
         <RequisitionsTab />
       </TabPanel>
       
-      <TabPanel header="Material Batches">
+      <TabPanel v-if="authStore.isContractor || authStore.isManufacturer || authStore.isSuperAdmin" :header="$t('features.batches')">
         <BatchesTab />
       </TabPanel>
       
-      <TabPanel header="Sheets" v-if="isContractor">
+      <TabPanel v-if="authStore.isContractor || authStore.isSuperAdmin" :header="$t('features.sheets')">
         <SheetsTab />
       </TabPanel>
       
-      <TabPanel header="Remnants" v-if="isContractor">
+      <TabPanel v-if="authStore.isContractor || authStore.isSuperAdmin" :header="$t('features.remnants')">
         <RemnantsTab />
       </TabPanel>
     </TabView>
@@ -31,8 +33,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
+import TabView from 'primevue/tabview';
+import TabPanel from 'primevue/tabpanel';
 import WarehousesTab from '~/components/materials/WarehousesTab.vue';
 import CatalogsTab from '~/components/materials/CatalogsTab.vue';
 import RequisitionsTab from '~/components/materials/RequisitionsTab.vue';
@@ -46,7 +49,4 @@ definePageMeta({
 });
 
 const authStore = useAuthStore();
-
-const isManufacturer = computed(() => authStore.organizationData?.type === 'Manufacturer');
-const isContractor = computed(() => authStore.organizationData?.type === 'Contractor');
 </script>

@@ -1,11 +1,13 @@
 import * as repository from './repository.js';
+import * as usersRepository from '../users/repository.js';
 import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
 import { getOrgFilter, checkEntityAccess } from '~/server/utils/permissions';
+import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
 
 export async function create(data, user) {
   // Check permission
-  if (!hasPermission(user, 'organizations', 'admin')) {
+  if (!hasPermission(user, 'organizations', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -25,7 +27,7 @@ export async function create(data, user) {
     };
   }
   
-  return await repository.create({
+  const org = await repository.create({
     name: data.name,
     type: data.type,
     email: data.email,
@@ -34,6 +36,20 @@ export async function create(data, user) {
     settings,
     createdBy: user.userId
   });
+
+  // If the user doesn't have an organization, make them the admin of this one
+  if (!user.organizationId) {
+    const role = `${data.type}Admin`;
+    const permissions = PERMISSION_TEMPLATES[role] || PERMISSION_TEMPLATES.IndividualUser;
+    
+    await usersRepository.updateById(user.userId, {
+      organizationId: org._id,
+      role: role,
+      permissions: permissions
+    });
+  }
+  
+  return org;
 }
 
 export async function list(user, filter = {}) {

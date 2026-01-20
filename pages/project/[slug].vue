@@ -40,7 +40,7 @@
     const activeTabIndex = ref(0)
 
     const tabs = computed(() => [
-        { label: t('project.batches'), to: `/project/${slug}/batches`, key: 'batches' },
+        { label: t('project.queues'), to: `/project/${slug}/queues`, key: 'queues' },
         { label: t('project.data'), to: `/project/${slug}/data`, key: 'data' },
     ])
 
@@ -54,7 +54,7 @@
         updateActiveTab()
 
         if (route.path === `/project/${slug}` || route.path === `/project/${slug}/`) {
-            router.replace(`/project/${slug}/batches`)
+            router.replace(`/project/${slug}/queues`)
         }
     })
 
@@ -66,7 +66,7 @@
     )
 
     const updateActiveTab = () => {
-        if (route.path.includes('/batches')) {
+        if (route.path.includes('/queues')) {
             activeTabIndex.value = 0
         } else if (route.path.includes('/data')) {
             activeTabIndex.value = 1

@@ -1,23 +1,23 @@
 <template>
     <div class="flex flex-col gap-6">
         <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Users Management</h1>
-            <Button label="Add User" icon="pi pi-plus" @click="openCreateUser" />
+            <h1 class="text-2xl font-bold text-[var(--p-text-color)]">{{ $t('features.users') }}</h1>
+            <Button :label="$t('common.create')" icon="pi pi-user-plus" @click="openCreateUser" />
         </div>
 
-        <DataTable :value="users" :loading="loading" class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
-            <Column field="name" header="Name" sortable></Column>
-            <Column field="email" header="Email" sortable></Column>
-            <Column field="role" header="Role" sortable>
+        <DataTable :value="users" :loading="loading" stripedRows class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
+            <Column field="name" :header="$t('profile.name')" sortable></Column>
+            <Column field="email" :header="$t('profile.email')" sortable></Column>
+            <Column field="role" :header="$t('queue.status')" sortable>
                 <template #body="slotProps">
-                    <Tag :value="slotProps.data.role" :severity="getRoleSeverity(slotProps.data.role)" />
+                    <Tag :value="$t(`roles.${slotProps.data.role}`)" :severity="getRoleSeverity(slotProps.data.role)" />
                 </template>
             </Column>
-            <Column header="Actions" style="width: 150px">
+            <Column :header="$t('common.actions')" class="text-right">
                 <template #body="slotProps">
-                    <div class="flex gap-2">
-                        <Button icon="pi pi-pencil" text rounded size="small" @click="editUser(slotProps.data)" />
-                        <Button icon="pi pi-lock" text rounded size="small" severity="warning" @click="editPermissions(slotProps.data)" />
+                    <div class="flex justify-end gap-2">
+                        <Button icon="pi pi-pencil" text @click="editUser(slotProps.data)" v-tooltip.top="'Edit'" />
+                        <Button icon="pi pi-shield" text severity="warn" @click="editPermissions(slotProps.data)" v-tooltip.top="'Permissions'" />
                     </div>
                 </template>
             </Column>

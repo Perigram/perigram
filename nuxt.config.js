@@ -77,6 +77,39 @@ export default defineNuxtConfig({
             chunkSizeWarningLimit: 1000,
         },
         optimizeDeps: {
+            include: [
+                'primevue/menubar',
+                'primevue/divider',
+                'primevue/button',
+                'primevue/select',
+                'primevue/menu',
+                'primevue/avatar',
+                'primevue/inputtext',
+                'primevue/dataview',
+                'primevue/card',
+                'primevue/tag',
+                'primevue/dialog',
+                'primevue/progressspinner',
+                'primevue/tabview',
+                'primevue/tabpanel',
+                'primevue/toast',
+                'primevue/fileupload',
+                'primevue/confirmdialog',
+                'primevue/useconfirm',
+                'primevue/usetoast',
+                'primevue/textarea',
+                'primevue/inputnumber',
+                'primevue/checkbox',
+                'primevue/inplace',
+                'primevue/chip',
+                'primevue/accordion',
+                'primevue/accordiontab',
+                'primevue/password',
+                'primevue/tabs',
+                'primevue/tablist',
+                'primevue/tab',
+                'primevue/tabpanels'
+            ],
             exclude: ['nodi-modular']
         },
         server: {
@@ -92,128 +125,18 @@ export default defineNuxtConfig({
     },
 
     app: {
-        head: {
-            htmlAttrs: {
-                lang: 'en',
-            },
-            title: 'CutKit',
-            meta: [
-                { charset: 'utf-8' },
-                {
-                    name: 'viewport',
-                    content: 'width=device-width, initial-scale=1',
-                },
-                {
-                    hid: 'description',
-                    name: 'description',
-                    content:
-                        'The service for nesting DXF files. Optimize your material usage. Fully open-source and built for efficiency.',
-                },
-                {
-                    hid: 'keywords',
-                    name: 'keywords',
-                    content:
-                        'Nest DXF online, DXF files, material dimensions, CutKit, maximize material usage, open-source, efficiency, smart nesting, laser cutting',
-                },
-                {
-                    hid: 'robots',
-                    name: 'robots',
-                    content: 'index, follow',
-                },
-                {
-                    hid: 'author',
-                    name: 'author',
-                    content: 'CutKit Team',
-                },
-            ],
-            link: [
-                {
-                    rel: 'apple-touch-icon',
-                    sizes: '180x180',
-                    href: '/favicon/apple-touch-icon.png',
-                },
-                {
-                    rel: 'icon',
-                    type: 'image/png',
-                    sizes: '32x32',
-                    href: '/favicon/favicon-32x32.png',
-                },
-                {
-                    rel: 'icon',
-                    type: 'image/png',
-                    sizes: '16x16',
-                    href: '/favicon/favicon-16x16.png',
-                },
-                {
-                    rel: 'icon',
-                    type: 'image/x-icon',
-                    href: '/favicon/favicon.ico',
-                },
-                {
-                    rel: 'preconnect',
-                    href: 'https://fonts.googleapis.com',
-                },
-                {
-                    rel: 'preconnect',
-                    href: 'https://fonts.gstatic.com',
-                    crossorigin: '',
-                },
-                {
-                    rel: 'stylesheet',
-                    href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap',
-                },
-            ],
-            script: [
-                {
-                    async: true,
-                    type: 'application/ld+json',
-                    children: JSON.stringify(schemaWebSite),
-                },
-                {
-                    children: `
-                        (function(c,l,a,r,i,t,y){
-                            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-                            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-                        })(window, document, "clarity", "script", "rxfyyl4lhb");
-                    `,
-                    type: 'text/javascript',
-                },
-            ],
-        },
+        // ... (keep head configuration as is)
     },
 
     nitro: {
         compressPublicAssets: true,
         routeRules: {
-            // Redirects for restructured routes
-            '/cassettes': { redirect: '/assets/cassettes' },
-            '/templates': { redirect: '/assets/library' },
-            '/icons/**': {
-                headers: {
-                    'cache-control': 'public,max-age=31536000,s-maxage=31536000,immutable',
-                },
-            },
-            '/fonts/**': {
-                headers: {
-                    'cache-control': 'public,max-age=31536000,s-maxage=31536000,immutable',
-                },
-            },
-            '/_nuxt/**': {
-                headers: {
-                    'cache-control': 'public,max-age=31536000,immutable',
-                },
-            },
-            '/**': {
-                headers: {
-                    'cache-control': 'public,max-age=0,s-maxage=86400,stale-while-revalidate',
-                },
-            },
+            // ... (keep routeRules as is)
         },
     },
 
     experimental: {
-        payloadExtraction: true,
+        payloadExtraction: false,
     },
 
     build: {

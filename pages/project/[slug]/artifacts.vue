@@ -4,16 +4,16 @@
       <ProgressSpinner />
     </div>
 
-    <div v-else-if="!batches || batches.length === 0" class="text-center py-20 px-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)] mx-1">
+    <div v-else-if="!queues || queues.length === 0" class="text-center py-20 px-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)] mx-1">
       <i class="pi pi-file-excel text-6xl text-[var(--p-text-muted-color)] mb-4 opacity-30 block"></i>
-      <p class="text-xl font-bold text-[var(--p-text-color)] m-0 uppercase tracking-wider">{{ $t('artifacts.noBatches') }}</p>
-      <p class="text-[var(--p-text-secondary-color)] mt-2 font-medium">{{ $t('artifacts.createBatchFirst') }}</p>
+      <p class="text-xl font-bold text-[var(--p-text-color)] m-0 uppercase tracking-wider">{{ $t('artifacts.noQueues') }}</p>
+      <p class="text-[var(--p-text-secondary-color)] mt-2 font-medium">{{ $t('artifacts.createQueueFirst') }}</p>
     </div>
 
     <Accordion v-else :multiple="true" :activeIndex="[0]" class="flex flex-col gap-4">
-      <AccordionTab v-for="batch in batches" :key="batch._id" :header="batch.name || `${$t('batch.title')} ${batch.batchNumber}`">
+      <AccordionTab v-for="queue in queues" :key="queue._id" :header="queue.name || `${$t('queue.title')} ${queue.queueNumber}`">
         <div class="pt-4">
-          <ArtifactsTable :batch-id="batch._id" />
+          <ArtifactsTable :batch-id="queue._id" />
         </div>
       </AccordionTab>
     </Accordion>
@@ -36,21 +36,21 @@ definePageMeta({
 const route = useRoute();
 const slug = route.params.slug;
 
-const batches = ref([]);
+const queues = ref([]);
 const loading = ref(true);
 
-const loadBatches = async () => {
+const loadQueues = async () => {
   loading.value = true;
   try {
-    batches.value = await $fetch(`/api/project/${slug}/batches`);
-    // Sort batches by batchNumber descending to show the latest first
-    batches.value.sort((a, b) => b.batchNumber - a.batchNumber);
+    queues.value = await $fetch(`/api/project/${slug}/queues`);
+    // Sort queues by queueNumber descending to show the latest first
+    queues.value.sort((a, b) => b.queueNumber - a.queueNumber);
   } catch (error) {
-    console.error('Failed to load batches:', error);
+    console.error('Failed to load queues:', error);
   } finally {
     loading.value = false;
   }
 };
 
-onMounted(loadBatches);
+onMounted(loadQueues);
 </script>

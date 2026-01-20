@@ -16,21 +16,19 @@ import {
 export default defineNitroPlugin(async (nitroApp) => {
   console.log('Nesting Processor Plugin Started');
 
-  // Start polling loop
-  processLoop();
-});
-
-async function processLoop() {
-  while (true) {
-    try {
-      await processNextJob();
-    } catch (err) {
-      console.error('Error in nesting processor loop:', err);
+  // Start polling loop in background
+  (async () => {
+    while (true) {
+      try {
+        await processNextJob();
+      } catch (err) {
+        console.error('Error in nesting processor loop:', err);
+      }
+      // Wait 5 seconds before next poll
+      await new Promise(resolve => setTimeout(resolve, 5000));
     }
-    // Wait 2 seconds before next poll
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  }
-}
+  })();
+});
 
 async function processNextJob() {
   const db = await connectDB();

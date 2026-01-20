@@ -1,15 +1,15 @@
 <template>
-  <div class="space-y-4">
-    <div class="flex justify-between">
-      <h2 class="text-xl font-semibold">Material Batches</h2>
-      <Button v-if="isManufacturer" label="New Batch" icon="pi pi-plus" @click="showDialog = true" />
+  <div class="flex flex-col gap-4">
+    <div class="flex justify-between items-center">
+      <h2 class="text-xl font-bold text-[var(--p-text-color)]">{{ $t('features.batches') }}</h2>
+      <Button v-if="authStore.isManufacturer || authStore.isSuperAdmin" :label="$t('common.create')" icon="pi pi-plus" @click="showDialog = true" />
     </div>
 
-    <DataTable :value="batches" :loading="loading" stripedRows>
-      <Column field="batchNumber" header="Batch #" sortable />
-      <Column header="Status">
+    <DataTable :value="batches" :loading="loading" stripedRows class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
+      <Column field="batchNumber" header="#" sortable />
+      <Column :header="$t('queue.status')">
         <template #body="{ data }">
-          <Tag :value="data.status" :severity="getStatusSeverity(data.status)" />
+          <Tag :value="data.status.toUpperCase()" :severity="getStatusSeverity(data.status)" />
         </template>
       </Column>
       <Column header="Piles">
@@ -22,48 +22,52 @@
           {{ new Date(data.createdAt).toLocaleDateString() }}
         </template>
       </Column>
-      <Column header="Actions">
+      <Column header="Actions" class="text-right">
         <template #body="{ data }">
-          <Button label="Update Status" size="small" @click="updateStatus(data)" />
+          <Button icon="pi pi-pencil" text @click="updateStatus(data)" v-tooltip.top="'Update Status'" />
         </template>
       </Column>
     </DataTable>
 
-    <Dialog v-model:visible="showDialog" header="New Material Batch" :style="{ width: '600px' }" modal>
-      <div class="flex flex-col gap-4">
-        <div>
-          <label class="block mb-2">Warehouse *</label>
+    <Dialog v-model:visible="showDialog" :header="$t('features.batches')" :style="{ width: '600px' }" modal>
+      <div class="flex flex-col gap-4 pt-4">
+        <div class="flex flex-col gap-2">
+          <label class="font-bold text-sm">{{ $t('features.warehouses') }} *</label>
           <Select v-model="form.warehouseId" :options="warehouses" optionLabel="name" optionValue="_id" class="w-full" />
         </div>
-        <div>
-          <label class="block mb-2">Supplier *</label>
+        <div class="flex flex-col gap-2">
+          <label class="font-bold text-sm">Supplier *</label>
           <Select v-model="form.supplierId" :options="suppliers" optionLabel="name" optionValue="_id" class="w-full" />
         </div>
-        <div class="flex justify-end gap-2">
-          <Button label="Cancel" severity="secondary" @click="showDialog = false" />
-          <Button label="Create" @click="create" />
-        </div>
       </div>
+      <template #footer>
+          <Button :label="$t('common.cancel')" text severity="secondary" @click="showDialog = false" />
+          <Button :label="$t('common.create')" @click="create" />
+      </template>
     </Dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Button from 'primevue/button';
+import Select from 'primevue/select';
+import Tag from 'primevue/tag';
+import Dialog from 'primevue/dialog';
 
 const toast = useToast();
 const authStore = useAuthStore();
-
-const isManufacturer = computed(() => authStore.organizationData?.type === 'Manufacturer');
 
 const batches = ref([]);
 const warehouses = ref([]);
 const suppliers = ref([]);
 const loading = ref(false);
 const showDialog = ref(false);
-const form = ref({ warehouseId: null, supplierId: authStore.user?.organizationId, piles: [] });
+const form = ref({ warehouseId: null, supplierId: authStore.userData?.organizationId, piles: [] });
 
 function getStatusSeverity(status) {
   const map = { requested: 'secondary', assembled: 'info', sent: 'info', arrived: 'success', in_stock: 'success', partially_used: 'warn', used_up: 'danger' };
@@ -76,7 +80,9 @@ async function load() {
     batches.value = await $fetch('/api/material-batches');
     warehouses.value = await $fetch('/api/warehouses');
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    if (error.status !== 401) {
+        toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    }
   } finally {
     loading.value = false;
   }

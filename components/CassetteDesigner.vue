@@ -77,7 +77,7 @@
 
         <!-- Main Content: SVG Canvas -->
         <div class="flex-1 relative overflow-hidden bg-[var(--p-content-background)]">
-            <div v-if="!modular" class="absolute inset-0 flex items-center justify-center bg-[var(--p-content-background)]/80 z-20 backdrop-blur-md">
+            <div v-if="!isReady" class="absolute inset-0 flex items-center justify-center bg-[var(--p-content-background)]/80 z-20 backdrop-blur-md">
                 <div class="flex flex-col items-center gap-4">
                     <ProgressSpinner style="width: 40px; height: 40px" strokeWidth="4" />
                     <span class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--p-text-muted-color)]">{{ $t('cassette.initializingEngine') }}</span>
@@ -264,7 +264,7 @@
     const cassettesStore = useCassettesStore()
 
     // State
-    const modular = ref(null)
+    const isReady = ref(false)
     const templateGraph = ref(null)
     const cassetteName = ref(props.initialData?.name || t('cassette.newCassette'))
     const cassetteData = reactive({
@@ -309,9 +309,9 @@
 
     onMounted(async () => {
         try {
-            await init()
-            modular.value = Modular.new()
-            templateGraph.value = await $fetch('/Cassette.json')
+            // This ensures the global engine is initialized
+            await (await import('~/utils/cassetteRenderer')).renderCassetteToSVG(cassetteData)
+            isReady.value = true
             await rebuildAndEvaluate()
         } catch (error) {
             console.error('Initialization failed:', error)
@@ -319,40 +319,21 @@
     })
 
     const rebuildAndEvaluate = async () => {
-        if (!modular.value || !templateGraph.value) return
-
-        const { graph } = buildNodiGraph(cassetteData, templateGraph.value)
-        modular.value.loadGraph(JSON.stringify(graph))
+        if (!process.client) return
 
         try {
-            const result = await modular.value.evaluate()
-            const { geometryIdentifiers } = result
+            const result = await (await import('~/utils/cassetteRenderer')).renderCassetteToSVG(cassetteData)
+            if (!result) return
 
-            const allCurves = []
-            geometryIdentifiers.forEach((id) => {
-                const interop = modular.value.findGeometryInteropById(id)
-                if (interop?.variant === 'Curve' && interop.data.vertices?.length > 0) {
-                    allCurves.push({ vertices: interop.data.vertices, id })
-                }
-            })
-
-            if (allCurves.length === 0) return
-
-            // Largest polygon is the union
-            const sorted = [...allCurves].sort((a, b) => b.vertices.length - a.vertices.length)
-            const largest = sorted[0]
-
-            currentPolygonPath.value = verticesToSVGPath(largest.vertices)
-            currentPolygonEdges.value = extractEdges(largest.vertices)
-
-            // Other 5-vertex curves are individual face/flange rectangles
-            extrusionShapes.value = allCurves
-                .filter((c) => c !== largest && c.vertices.length === 5)
-                .map((c) => ({
-                    path: verticesToSVGPath(c.vertices),
-                }))
+            currentPolygonPath.value = result.path
+            currentPolygonEdges.value = extractEdges(result.vertices)
+            
+            // Map extrusion shapes from the rich result
+            extrusionShapes.value = result.allCurves
+                .filter(c => c.isExtrusion)
+                .map(c => ({ path: c.path }))
         } catch (e) {
-            console.error('Evaluation failed:', e)
+            console.error('Designer Rebuild failed:', e)
         }
     }
 

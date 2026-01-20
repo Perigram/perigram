@@ -19,13 +19,13 @@ export const useArtifactsStore = defineStore('artifacts', () => {
 
         try {
             const url = runId 
-                ? `/api/batch/${batchId}/artifacts?runId=${runId}`
-                : `/api/batch/${batchId}/artifacts`;
+                ? `/api/queue/${batchId}/artifacts?runId=${runId}`
+                : `/api/queue/${batchId}/artifacts`;
             const data = await $fetch(url);
             artifacts.value = data || [];
         } catch (err) {
             error.value = err.message;
-            console.error(`Failed to fetch artifacts for batch ${batchId}:`, err);
+            console.error(`Failed to fetch artifacts for queue ${batchId}:`, err);
             artifacts.value = [];
         } finally {
             loading.value = false;

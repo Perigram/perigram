@@ -26,6 +26,9 @@
       <div v-for="cassette in cassettes" :key="cassette._id" 
         class="flex flex-col gap-4 p-5 border border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)] hover:border-[var(--p-primary-color)] hover:shadow-lg transition-all duration-300"
       >
+        <div class="w-full aspect-square bg-zinc-50 dark:bg-zinc-900 rounded-lg overflow-hidden border border-[var(--p-content-border-color)] mb-2">
+          <CassetteThumbnail :cassette="cassette" />
+        </div>
         <div class="flex justify-between items-start gap-3">
           <div class="flex-1 min-w-0">
             <Inplace @open="onRenameStart(cassette)">
@@ -107,6 +110,7 @@ import InputText from 'primevue/inputtext';
 import { useToast } from 'primevue/usetoast';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteDesigner from './CassetteDesigner.vue';
+import CassetteThumbnail from './CassetteThumbnail.vue';
 
 const { t } = useI18n();
 const cassettesStore = useCassettesStore();

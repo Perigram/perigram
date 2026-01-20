@@ -112,6 +112,42 @@
                 </div>
             </TabPanel>
 
+            <TabPanel :header="$t('auth.organization')">
+                <div class="py-4">
+                    <Card v-if="authStore.organizationData" class="border border-[var(--p-content-border-color)]">
+                        <template #title>
+                            <span class="text-lg font-bold">{{ authStore.organizationData.name }}</span>
+                        </template>
+                        <template #content>
+                            <div class="flex flex-col gap-4 py-2">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="flex flex-col gap-1 p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-lg">
+                                        <span class="text-[10px] font-black uppercase tracking-widest opacity-60">{{ $t('queue.status') }}</span>
+                                        <Tag :value="authStore.organizationData.type" severity="info" class="w-fit" />
+                                    </div>
+                                    <div class="flex flex-col gap-1 p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-lg">
+                                        <span class="text-[10px] font-black uppercase tracking-widest opacity-60">Role</span>
+                                        <Tag :value="authStore.userData.role" severity="success" class="w-fit" />
+                                    </div>
+                                </div>
+                                <div class="flex justify-end mt-4">
+                                    <Button :label="$t('features.users')" icon="pi pi-users" @click="router.push('/organization/users')" v-if="authStore.isOrgAdmin" />
+                                </div>
+                            </div>
+                        </template>
+                    </Card>
+
+                    <div v-else class="flex flex-col items-center justify-center py-20 text-center gap-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)]">
+                        <div class="flex flex-col items-center gap-2">
+                            <i class="pi pi-building text-5xl text-[var(--p-text-muted-color)] opacity-40"></i>
+                            <h2 class="text-xl font-bold m-0">{{ $t('auth.createOrg') }}</h2>
+                            <p class="text-[var(--p-text-muted-color)] max-w-sm m-0">To unlock all features like materials tracking and team collaboration, you need to create or join an organization.</p>
+                        </div>
+                        <Button :label="$t('auth.createOrg')" icon="pi pi-plus" size="large" @click="showCreateOrgDialog = true" />
+                    </div>
+                </div>
+            </TabPanel>
+
             <TabPanel :header="$t('nav.projects')">
                 <div class="py-4">
                     <Card class="border border-[var(--p-content-border-color)]">
@@ -130,6 +166,27 @@
         </TabView>
 
         <BuyCreditsDialog v-if="showBuyCredits" @close="showBuyCredits = false" />
+
+        <Dialog v-model:visible="showCreateOrgDialog" :header="$t('auth.createOrg')" :style="{ width: '90vw', maxWidth: '450px' }" modal>
+            <form @submit.prevent="createOrganization" class="flex flex-col gap-4 pt-4">
+                <div class="flex flex-col gap-2">
+                    <label class="font-bold text-sm">{{ $t('common.name') }} *</label>
+                    <InputText v-model="orgForm.name" required class="w-full" autofocus />
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="font-bold text-sm">{{ $t('queue.status') }} *</label>
+                    <Select v-model="orgForm.type" :options="orgTypeOptions" optionLabel="label" optionValue="value" class="w-full" />
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="font-bold text-sm">{{ $t('profile.email') }} *</label>
+                    <InputText v-model="orgForm.email" type="email" required class="w-full" />
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <Button type="button" :label="$t('common.cancel')" text severity="secondary" @click="showCreateOrgDialog = false" />
+                    <Button type="submit" :label="$t('common.create')" :loading="submittingOrg" />
+                </div>
+            </form>
+        </Dialog>
     </div>
 </template>
 
@@ -145,6 +202,10 @@ import TabPanel from 'primevue/tabpanel';
 import Card from 'primevue/card';
 import Avatar from 'primevue/avatar';
 import Select from 'primevue/select';
+import Tag from 'primevue/tag';
+import Dialog from 'primevue/dialog';
+import InputText from 'primevue/inputtext';
+import { useToast } from 'primevue/usetoast';
 import BuyCreditsDialog from '~/components/BuyCreditsDialog.vue';
 
 definePageMeta({
@@ -153,6 +214,7 @@ definePageMeta({
 });
 
 const router = useRouter();
+const toast = useToast();
 const { locale, locales, setLocale } = useI18n();
 
 const authStore = useAuthStore();
@@ -160,6 +222,38 @@ const { user: userRef } = storeToRefs(authStore);
 const user = computed(() => userRef.value || {});
 
 const showBuyCredits = ref(false);
+const showCreateOrgDialog = ref(false);
+const submittingOrg = ref(false);
+
+const orgForm = ref({
+    name: '',
+    type: 'Contractor',
+    email: user.value.email || '',
+});
+
+const orgTypeOptions = [
+    { label: 'Contractor', value: 'Contractor' },
+    { label: 'Manufacturer', value: 'Manufacturer' },
+    { label: 'Customer', value: 'Customer' },
+];
+
+const createOrganization = async () => {
+    submittingOrg.value = true;
+    try {
+        await $fetch('/api/organizations', {
+            method: 'POST',
+            body: orgForm.value
+        });
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Organization created successfully', life: 3000 });
+        showCreateOrgDialog.value = false;
+        // Refresh auth state to get new organization and role
+        await authStore.setUser();
+    } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: error.message || 'Failed to create organization', life: 3000 });
+    } finally {
+        submittingOrg.value = false;
+    }
+};
 
 const currentLocale = ref(locale.value);
 const availableLocales = computed(() => {

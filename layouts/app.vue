@@ -6,7 +6,7 @@
         >
             <template #start>
                 <NuxtLink
-                    to="/projects"
+                    to="/"
                     class="flex items-center gap-2 no-underline text-[var(--p-primary-color)] text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity"
                 >
                     <span>CutKit</span>
@@ -98,12 +98,32 @@
     import { useSupportDialog } from '~/composables/useModalState'
     import { API_ROUTES } from '~/composables/apiRoutes'
     import { useAuthStore } from '~/stores/auth'
+    import { useNavigationStore } from '~/stores/navigation'
 
     const router = useRouter()
     const route = useRoute()
     const { t } = useI18n()
     const supportDialog = useSupportDialog()
     const authStore = useAuthStore()
+    const navStore = useNavigationStore()
+
+    const { data: projectsData } = await useAsyncData('projects', () => (authStore.isContractor || authStore.isCustomer || authStore.isSuperAdmin) ? $fetch(API_ROUTES.PROJECTS) : null, { lazy: true })
+    const projects = computed(() => projectsData.value?.projects || [])
+
+    // Fetch current project if on project page
+    const currentProjectSlug = computed(() => {
+        const parts = route.path.split('/').filter((p) => p)
+        if (parts[0] === 'project' && parts[1]) {
+            return parts[1]
+        }
+        return null
+    })
+
+    const { data: currentProject } = await useAsyncData(
+        'currentProject',
+        () => (currentProjectSlug.value ? $fetch(`/api/project/${currentProjectSlug.value}`) : null),
+        { watch: [currentProjectSlug], lazy: true },
+    )
 
     // --- User Menu ---
     const userMenu = ref();
@@ -125,19 +145,32 @@
             }
         ];
 
-        if (authStore.isAdmin) {
+        if (authStore.isSuperAdmin) {
             items.push({
-                label: 'Admin',
+                label: t('roles.SuperAdmin'),
                 items: [
                     {
-                        label: 'Users',
+                        label: t('features.users'),
                         icon: 'pi pi-users',
                         command: () => router.push('/admin/users')
                     },
                     {
-                        label: 'Organizations',
+                        label: t('features.organizations'),
                         icon: 'pi pi-building',
                         command: () => router.push('/admin/organizations')
+                    }
+                ]
+            });
+        }
+        
+        if (authStore.isOrgAdmin) {
+            items.push({
+                label: t('auth.organization'),
+                items: [
+                    {
+                        label: t('features.users'),
+                        icon: 'pi pi-users',
+                        command: () => router.push('/organization/users')
                     }
                 ]
             });
@@ -145,9 +178,7 @@
 
         items.push({
             separator: true
-        });
-
-        items.push({
+        }, {
             label: t('nav.logout'),
             icon: 'pi pi-sign-out',
             command: async () => {
@@ -200,89 +231,8 @@
     })
 
     // --- Breadcrumb Navigation ---
-    const { data: projectsData } = await useAsyncData('projects', () => $fetch(API_ROUTES.PROJECTS))
-    const projects = computed(() => projectsData.value?.projects || [])
-
-    // Fetch current project if on project page
-    const currentProjectSlug = computed(() => {
-        const parts = route.path.split('/').filter((p) => p)
-        if (parts[0] === 'project' && parts[1]) {
-            return parts[1]
-        }
-        return null
-    })
-
-    const { data: currentProject } = await useAsyncData(
-        'currentProject',
-        () => (currentProjectSlug.value ? $fetch(`/api/project/${currentProjectSlug.value}`) : null),
-        { watch: [currentProjectSlug] },
-    )
-
     const breadcrumbs = computed(() => {
-        const parts = route.path.split('/').filter((p) => p)
-        const nav = []
-
-        if (parts.length === 0) return nav
-
-        // --- Level 1: Main Section ---
-        const mainSections = [
-            { id: 'projects', name: t('nav.projects'), to: '/projects' },
-            { id: 'assets', name: t('nav.assets'), to: '/assets' },
-            { id: 'materials', name: t('nav.materials', 'Materials'), to: '/materials' },
-            { id: 'profile', name: t('nav.profile'), to: '/profile' },
-        ]
-
-        let currentSectionId = parts[0]
-        if (currentSectionId === 'project') {
-            currentSectionId = 'projects'
-        }
-
-        const currentSection = mainSections.find((s) => s.id === currentSectionId)
-
-        if (currentSection) {
-            nav.push({
-                ...currentSection,
-                siblings: mainSections.map((s) => ({ ...s, id: s.to })),
-            })
-        }
-
-        // --- Level 2: Project Details ---
-        if (parts[0] === 'project' && parts[1]) {
-            const projectName = currentProject.value?.name || parts[1]
-            const projectSlug = parts[1]
-
-            nav.push({
-                id: projectSlug,
-                name: projectName,
-                to: `/project/${projectSlug}/batches`,
-                siblings:
-                    projects.value && Array.isArray(projects.value)
-                        ? projects.value.map((p) => ({ name: p.name, id: `/project/${p.slug}/batches` }))
-                        : [],
-            })
-        }
-
-        // --- Level 2: Asset Tabs ---
-        if (currentSectionId === 'assets') {
-            const assetTabs = [
-                { id: 'cassettes', name: t('nav.cassettes'), to: '/assets/cassettes' },
-                { id: 'pens', name: t('nav.pens'), to: '/assets/pens' },
-                { id: 'tools', name: t('nav.tools'), to: '/assets/tools' },
-                { id: 'templates', name: t('nav.templates'), to: '/assets/templates' },
-            ]
-
-            const currentAssetTabId = parts[1] || 'cassettes'
-            const currentAssetTab = assetTabs.find((t) => t.id === currentAssetTabId)
-
-            if (currentAssetTab) {
-                nav.push({
-                    ...currentAssetTab,
-                    siblings: assetTabs.map((t) => ({ ...t, id: t.to })),
-                })
-            }
-        }
-
-        return nav
+        return navStore.getBreadcrumbs(route.path, projects.value, currentProject.value)
     })
 </script>
 

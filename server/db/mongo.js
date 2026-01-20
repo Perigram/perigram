@@ -190,7 +190,11 @@ export async function connectDB() {
         throw new Error('MongoDB URI is not configured. Set NUXT_MONGODB_URI or MONGODB_URI environment variable in Railway.');
       }
       
-      client = new MongoClient(uri);
+      client = new MongoClient(uri, {
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 10000,
+      });
       await client.connect();
       logger.info("Connected to MongoDB");
     } catch (error) {

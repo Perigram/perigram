@@ -1,41 +1,43 @@
 <template>
-  <div class="space-y-4">
-    <div class="flex justify-between">
-      <h2 class="text-xl font-semibold">Requisitions</h2>
-      <Button v-if="isContractor" label="New Requisition" icon="pi pi-plus" @click="showDialog = true" />
-    </div>
+    <div class="flex flex-col gap-4">
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-bold text-[var(--p-text-color)]">{{ $t('features.requisitions') }}</h2>
+            <Button v-if="authStore.isContractor" :label="$t('common.create')" icon="pi pi-plus" @click="showDialog = true" />
+        </div>
 
-    <DataTable :value="requisitions" :loading="loading" stripedRows>
-      <Column field="requisitionNumber" header="Number" sortable />
-      <Column header="Status">
-        <template #body="{ data }">
-          <Tag :value="data.status" :severity="getStatusSeverity(data.status)" />
-        </template>
-      </Column>
-      <Column field="totalAmount" header="Total">
-        <template #body="{ data }">
-          ${{ data.totalAmount.toFixed(2) }}
-        </template>
-      </Column>
-      <Column header="Items">
-        <template #body="{ data }">
-          {{ data.items.length }} items
-        </template>
-      </Column>
-      <Column field="createdAt" header="Created">
-        <template #body="{ data }">
-          {{ new Date(data.createdAt).toLocaleDateString() }}
-        </template>
-      </Column>
-      <Column header="Actions">
-        <template #body="{ data }">
-          <Button v-if="data.status === 'draft' && isContractor" label="Send" size="small" @click="send(data._id)" />
-          <Button v-if="data.status === 'sent' && isManufacturer" label="Approve" size="small" severity="success" @click="approve(data._id)" />
-          <Button v-if="data.status === 'approved' && isManufacturer" label="Fulfill" size="small" severity="info" @click="fulfill(data._id)" />
-          <Button v-if="data.status !== 'fulfilled'" icon="pi pi-times" text severity="danger" size="small" @click="cancel(data._id)" />
-        </template>
-      </Column>
-    </DataTable>
+        <DataTable :value="requisitions" :loading="loading" stripedRows class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
+            <Column field="requisitionNumber" header="#" sortable />
+            <Column header="Status">
+                <template #body="{ data }">
+                    <Tag :value="data.status.toUpperCase()" :severity="getStatusSeverity(data.status)" />
+                </template>
+            </Column>
+            <Column field="totalAmount" header="Total">
+                <template #body="{ data }">
+                    {{ data.totalAmount.toFixed(2) }}
+                </template>
+            </Column>
+            <Column header="Items">
+                <template #body="{ data }">
+                    {{ data.items.length }}
+                </template>
+            </Column>
+            <Column field="createdAt" header="Created">
+                <template #body="{ data }">
+                    {{ new Date(data.createdAt).toLocaleDateString() }}
+                </template>
+            </Column>
+            <Column header="Actions" class="text-right">
+                <template #body="{ data }">
+                    <div class="flex justify-end gap-2">
+                        <Button v-if="data.status === 'draft' && authStore.isContractor" icon="pi pi-send" text @click="send(data._id)" v-tooltip.top="'Send'" />
+                        <Button v-if="data.status === 'sent' && authStore.isManufacturer" icon="pi pi-check" text severity="success" @click="approve(data._id)" v-tooltip.top="'Approve'" />
+                        <Button v-if="data.status === 'approved' && authStore.isManufacturer" icon="pi pi-box" text severity="info" @click="fulfill(data._id)" v-tooltip.top="'Fulfill'" />
+                        <Button v-if="data.status !== 'fulfilled' && data.status !== 'canceled'" icon="pi pi-times" text severity="danger" @click="cancel(data._id)" v-tooltip.top="'Cancel'" />
+                    </div>
+                </template>
+            </Column>
+        </DataTable>
 
     <Dialog v-model:visible="showDialog" header="New Requisition" :style="{ width: '700px' }" modal>
       <div class="flex flex-col gap-4">
@@ -78,9 +80,6 @@ import { useAuthStore } from '~/stores/auth';
 const toast = useToast();
 const authStore = useAuthStore();
 
-const isContractor = computed(() => authStore.organizationData?.type === 'Contractor');
-const isManufacturer = computed(() => authStore.organizationData?.type === 'Manufacturer');
-
 const requisitions = ref([]);
 const manufacturers = ref([]);
 const catalogs = ref([]);
@@ -89,7 +88,7 @@ const showDialog = ref(false);
 const form = ref({ manufacturerId: null, notes: '', items: [] });
 
 function getStatusSeverity(status) {
-  const map = { draft: 'secondary', sent: 'info', approved: 'success', fulfilled: 'success', canceled: 'danger' };
+  const map = { draft: 'secondary', sent: 'info', approved: 'warn', fulfilled: 'success', canceled: 'danger' };
   return map[status] || 'secondary';
 }
 
@@ -97,13 +96,15 @@ async function load() {
   loading.value = true;
   try {
     requisitions.value = await $fetch('/api/requisitions');
-    if (isContractor.value) {
+    if (authStore.isContractor) {
       const orgs = await $fetch('/api/organizations');
       manufacturers.value = orgs.filter(o => o.type === 'Manufacturer');
       catalogs.value = await $fetch('/api/catalogs');
     }
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    if (error.status !== 401) {
+      toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    }
   } finally {
     loading.value = false;
   }

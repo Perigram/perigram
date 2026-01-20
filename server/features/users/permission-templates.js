@@ -48,14 +48,14 @@ export const PERMISSION_TEMPLATES = {
   },
   
   IndividualUser: {
-    projects: "none",
-    queues: "none",
-    cassettes: "none",
+    projects: "admin",
+    queues: "admin",
+    cassettes: "admin",
     warehouses: "none",
     catalogs: "none",
     requisitions: "none",
     materials: "none",
     users: "none",
-    organizations: "none"
+    organizations: "write"
   }
 };

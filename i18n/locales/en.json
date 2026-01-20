@@ -89,7 +89,7 @@
     "results": "results"
   },
   "project": {
-    "batches": "Batches",
+    "queues": "Queues",
     "data": "Project Data",
     "title": "Project",
     "create": "Create Project",
@@ -113,10 +113,10 @@
     "allFilesSecure": "All files will be saved securely and available only for you",
     "filesWillBeSaved": "Files will be saved securely",
     "quickActions": "Quick Actions",
-    "createBatch": "Create Batch",
+    "createQueue": "Create Queue",
     "uploadFiles": "Upload Files",
     "viewArtifacts": "View Artifacts",
-    "completedBatches": "Completed Batches",
+    "completedQueues": "Completed Queues",
     "totalCassettes": "Total Cassettes",
     "totalArea": "Total Area"
   },
@@ -265,7 +265,7 @@
     "logs": "Cut Logs",
     "logDate": "Date",
     "logUser": "User",
-    "logBatch": "Batch",
+    "logQueue": "Queue",
     "logSheets": "Sheets Used",
     "logUtilization": "Utilization",
     "logWaste": "Waste",
@@ -433,11 +433,35 @@
     "loginSignup": "Login / Sign Up",
     "welcome": "Welcome to Cutkit",
     "subtitle": "Please sign in to continue",
-    "signInWithGitHub": "Sign in with GitHub",
-    "signInWithGoogle": "Sign in with Google",
     "redirecting": "Redirecting to your projects...",
     "authenticating": "Authenticating...",
-    "authenticatingWait": "Please wait a moment while we process your authentication."
+    "authenticatingWait": "Please wait a moment while we process your authentication.",
+    "noAccount": "Don't have an account?",
+    "signup": "Sign up",
+    "hasAccount": "Already have an account?",
+    "createAccount": "Create your account",
+    "organization": "Organization",
+    "createOrg": "Create Organization"
+  },
+  "roles": {
+    "SuperAdmin": "System Administrator",
+    "ManufacturerAdmin": "Manufacturer Admin",
+    "ContractorAdmin": "Contractor Admin",
+    "CustomerAdmin": "Customer Admin",
+    "IndividualUser": "User"
+  },
+  "features": {
+    "projects": "Projects",
+    "assets": "Assets",
+    "materials": "Warehouse",
+    "warehouses": "Warehouses",
+    "catalogs": "Catalogs",
+    "requisitions": "Requisitions",
+    "batches": "Material Batches",
+    "sheets": "Sheets",
+    "remnants": "Remnants",
+    "users": "Team Members",
+    "organizations": "Organizations"
   },
   "statistics": {
     "title": "Statistics",
@@ -484,7 +508,7 @@
     "name": "Queue Name",
     "namePlaceholder": "Enter queue name",
     "status": "Status",
-    "status": {
+    "queueStatus": {
       "DRAFT": "Draft",
       "READY": "Ready",
       "NESTING": "Nesting...",
@@ -562,8 +586,8 @@
     "sheetParseError": "Failed to parse sheet DXF file"
   },
   "artifacts": {
-    "noBatches": "This project has no queues yet.",
-    "createBatchFirst": "Create a queue to generate artifacts.",
+    "noQueues": "This project has no queues yet.",
+    "createQueueFirst": "Create a queue to generate artifacts.",
     "loading": "Loading artifacts...",
     "noArtifacts": "This queue has no artifacts.",
     "name": "Name",

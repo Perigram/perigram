@@ -3,7 +3,7 @@
         <!-- Queue Header with Status -->
         <div class="flex flex-col sm:flex-row sm:items-center gap-4 bg-[var(--p-content-background)] p-4 rounded-xl border border-[var(--p-content-border-color)]">
             <div class="flex items-center gap-3">
-                <Tag :value="$t(`queue.status.${queue.status}`)" :severity="getStatusSeverity(queue.status)" />
+                <Tag :value="$t(`queue.queueStatus.${queue.status}`)" :severity="getStatusSeverity(queue.status)" />
                 <span class="text-sm font-medium text-[var(--p-text-muted-color)]">{{ entries.length }} {{ $t('queues.entries') }}</span>
             </div>
             <div class="flex flex-wrap gap-2 sm:ml-auto">
@@ -274,51 +274,58 @@
                     </div>
 
                     <!-- Grid View -->
-                    <div v-if="viewMode === 'grid'" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
+                    <div v-if="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                         <div 
                             v-for="entry in entries" 
                             :key="entry._id"
-                            class="bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-2xl p-5 flex gap-6 shadow-sm hover:border-[var(--p-primary-color)] transition-all group relative overflow-hidden"
+                            class="bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl p-3 flex gap-3 shadow-sm hover:border-[var(--p-primary-color)] transition-all group relative h-40 min-w-0"
                         >
+                            <!-- Absolute Delete Button on Hover -->
                             <Button 
                                 icon="pi pi-trash" severity="danger" text rounded size="small"
-                                class="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                class="absolute top-1 right-1 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-20"
                                 @click="confirmDelete(entry)"
                                 :disabled="queue.status !== 'DRAFT'"
                             />
 
-                            <!-- Left: Thumbnail (Bigger and Square) -->
-                            <div class="w-44 h-44 flex-shrink-0 bg-white dark:bg-zinc-900 rounded-xl overflow-hidden border border-[var(--p-content-border-color)] shadow-inner">
-                                <CassetteThumbnail :cassette-id="entry.cassetteTemplateId" />
+                            <!-- Left: Thumbnail -->
+                            <div class="w-28 h-32 flex-shrink-0 bg-white dark:bg-zinc-900 rounded-lg overflow-hidden border border-[var(--p-content-border-color)] shadow-inner my-auto">
+                                <CassetteThumbnail 
+                                    :cassette-id="entry.cassetteTemplateId.toString()" 
+                                    :cassette="cassettes.find(c => c._id.toString() === entry.cassetteTemplateId.toString())"
+                                    :dimensions="entry.dimensions"
+                                />
                             </div>
 
                             <!-- Right: Info -->
-                            <div class="flex-1 flex flex-col min-w-0">
-                                <h3 class="font-black text-sm uppercase tracking-widest m-0 mb-4 truncate text-[var(--p-text-color)]">
-                                    {{ getCassetteName(entry.cassetteTemplateId) }}
-                                </h3>
-
-                                <div class="flex flex-col gap-4">
-                                    <!-- Quantity Row -->
-                                    <div class="flex items-center justify-between gap-4 p-2 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-[var(--p-content-border-color)]">
-                                        <span class="text-[10px] font-black uppercase tracking-widest opacity-60">{{ $t('queue.quantity') }}</span>
+                            <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+                                <!-- Header Row: Name + Quantity + Units (1 Row) -->
+                                <div class="flex items-center justify-between gap-2 mb-3 flex-shrink-0 pr-6">
+                                    <h3 class="font-black text-[10px] uppercase tracking-wider m-0 truncate text-[var(--p-text-color)] flex-1 min-w-0" :title="getCassetteName(entry.cassetteTemplateId)">
+                                        {{ getCassetteName(entry.cassetteTemplateId) }}
+                                    </h3>
+                                    <div class="flex items-center gap-1 flex-shrink-0">
                                         <InputNumber 
                                             v-model="entry.quantity" :min="1" :disabled="queue.status !== 'DRAFT'"
-                                            size="small" class="w-32" showButtons buttonLayout="horizontal"
+                                            size="small" class="w-28 compact-input-buttons"
+                                            showButtons buttonLayout="horizontal"
+                                            :useGrouping="false"
                                             @update:model-value="saveQueue"
                                         />
+                                        <span class="text-[9px] font-black text-[var(--p-text-muted-color)] uppercase">{{ $t('common.units') }}</span>
                                     </div>
-                                    
-                                    <!-- Parameters List -->
-                                    <div class="flex flex-col gap-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
-                                        <div v-for="param in getEntryParameters(entry)" :key="param" class="flex items-center justify-between gap-4 py-1 border-b border-dashed border-[var(--p-content-border-color)] last:border-0">
-                                            <span class="text-[10px] font-black uppercase opacity-60">{{ param }}</span>
-                                            <InputNumber 
-                                                v-model="entry.dimensions[param]" :disabled="queue.status !== 'DRAFT'"
-                                                size="small" class="w-28" :min="0"
-                                                @update:model-value="saveQueue"
-                                            />
-                                        </div>
+                                </div>
+
+                                <!-- Parameters List (2-column Grid, tight internal gaps) -->
+                                <div class="grid grid-cols-2 gap-x-4 gap-y-1 overflow-y-auto pr-1 custom-scrollbar flex-1 content-start">
+                                    <div v-for="param in getEntryParameters(entry)" :key="param" class="flex items-center gap-1 py-0.5">
+                                        <span class="text-[10px] font-black uppercase opacity-70 w-4 flex-shrink-0">{{ param }}</span>
+                                        <InputNumber 
+                                            v-model="entry.dimensions[param]" :disabled="queue.status !== 'DRAFT'"
+                                            size="small" class="flex-1 compact-input" :min="0"
+                                            :useGrouping="false"
+                                            @update:model-value="saveQueue"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -411,6 +418,37 @@
             <!-- Artifacts Panel -->
             <AccordionTab v-if="selectedRunId" :header="$t('queues.artifacts')">
                 <ArtifactsTable ref="artifactsTableRef" :batch-id="queue._id" :batch="queue" :run-id="selectedRunId" />
+            </AccordionTab>
+
+            <!-- Cassette Instances Tracking (Phase 3) -->
+            <AccordionTab v-if="queue.chosenRunId" :header="$t('project.cassettes') + ' Instances'">
+                <div class="flex flex-col gap-4 py-2">
+                    <div class="flex items-center justify-between px-2">
+                        <span class="text-xs font-black uppercase tracking-widest opacity-60">Production Tracking</span>
+                        <Tag value="Beta" severity="info" class="text-[10px]" />
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div v-for="i in (queue.runs.find(r => r._id === queue.chosenRunId)?.layoutCount || 0) * 5" :key="i" 
+                             class="p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl flex items-center justify-between group hover:border-[var(--p-primary-color)] transition-colors">
+                            <div class="flex flex-col gap-1">
+                                <span class="text-[10px] font-black uppercase opacity-50">Instance #{{ i }}</span>
+                                <span class="font-bold text-sm">Cassette Type A</span>
+                            </div>
+                            <Select 
+                                :modelValue="'nested'"
+                                :options="['nested', 'manufactured', 'on-site', 'installed']"
+                                class="w-32 text-xs"
+                                size="small"
+                                pt:root:class="border-none bg-transparent"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div class="text-center py-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl opacity-60">
+                        <p class="text-xs font-medium italic">Detailed instance tracking data will be populated from nesting results in the next update.</p>
+                    </div>
+                </div>
             </AccordionTab>
         </Accordion>
 
@@ -731,9 +769,45 @@ const onCassetteUploaded = async () => {
 </script>
 
 <style scoped lang="scss">
+
 :deep(.p-accordion-tab) { margin-bottom: 1rem; }
+
 :deep(.p-inputnumber-input) { width: 100% !important; }
+
+.compact-input :deep(.p-inputnumber-input) {
+
+    padding: 0.25rem 0.4rem;
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+}
+
+.compact-input-buttons :deep(.p-inputnumber-input) {
+
+    padding: 0.25rem 0.4rem;
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    text-align: center;
+
+}
+
+.compact-input-buttons :deep(.p-inputnumber-button) {
+
+    width: 1.5rem;
+
+}
+
+
+
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+
 .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--p-content-border-color); border-radius: 10px; }
+
 </style>

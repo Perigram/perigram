@@ -15,6 +15,10 @@ fi
 # Ensure network exists
 docker network create --driver overlay --attachable cutkit-network 2>/dev/null || true
 
+# Clean up any existing containers from previous runs
+echo "Stopping existing containers..."
+docker-compose -f docker-compose.dev.yml down --remove-orphans
+
 # Start a new tmux session with named window
 tmux new-session -d -s "$SESSION_NAME" -n "dev" -c "$ROOT_DIR"
 

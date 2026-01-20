@@ -124,6 +124,13 @@ const INDEXES = {
     { keys: { remnantNumber: 1 }, options: { unique: true, name: 'remnantNumber_unique' } },
     { keys: { sheetId: 1 }, options: { name: 'sheetId_idx' } },
     { keys: { warehouseId: 1, status: 1, isReusable: 1 }, options: { name: 'warehouse_status_reusable_idx' } }
+  ],
+
+  // Transactions Collection
+  transactions: [
+    { keys: { status: 1, createdAt: -1 }, options: { name: 'status_createdAt_idx' } },
+    { keys: { userId: 1 }, options: { name: 'userId_idx' } },
+    { keys: { checkoutId: 1 }, options: { unique: true, name: 'checkoutId_unique' } }
   ]
 };
 

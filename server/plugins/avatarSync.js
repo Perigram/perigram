@@ -3,20 +3,28 @@ import logger from "../utils/logger";
 
 export default defineNitroPlugin(async (_) => {
   logger.info("Avatar sync plugin start");
-  const db = await connectDB();
-  const avatarBucket = await getAvatarBucket();
+  
+  // Run in background
+  (async () => {
+    try {
+      const db = await connectDB();
+      const avatarBucket = await getAvatarBucket();
 
-  while (true) {
-    const userToSync = await db
-      .collection("users")
-      .findOne({ avatarSource: "origin" });
+      while (true) {
+        const userToSync = await db
+          .collection("users")
+          .findOne({ avatarSource: "origin" });
 
-    if (userToSync) {
-      await syncAvatars(db, avatarBucket, userToSync);
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+        if (userToSync) {
+          await syncAvatars(db, avatarBucket, userToSync);
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
+      }
+    } catch (err) {
+      logger.error("Error in avatar sync loop:", err);
     }
-  }
+  })();
 });
 
 /**

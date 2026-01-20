@@ -1,41 +1,43 @@
 <template>
-  <div class="space-y-4">
-    <div class="flex justify-between">
-      <h2 class="text-xl font-semibold">Catalogs</h2>
-      <Button label="New Catalog" icon="pi pi-plus" @click="showDialog = true" />
+  <div class="flex flex-col gap-4">
+    <div class="flex justify-between items-center">
+      <h2 class="text-xl font-bold text-[var(--p-text-color)]">{{ $t('features.catalogs') }}</h2>
+      <Button v-if="authStore.isManufacturer || authStore.isSuperAdmin" :label="$t('common.create')" icon="pi pi-plus" @click="showDialog = true" />
     </div>
 
-    <DataTable :value="catalogs" :loading="loading" stripedRows>
-      <Column field="name" header="Name" sortable />
-      <Column field="description" header="Description" />
-      <Column header="Sheet Types">
+    <DataTable :value="catalogs" :loading="loading" stripedRows class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
+      <Column field="name" :header="$t('common.name')" sortable />
+      <Column field="description" :header="$t('common.description')" />
+      <Column :header="$t('features.sheets')">
         <template #body="{ data }">
-          {{ data.sheetTypes?.length || 0 }} types
+          {{ data.sheetTypes?.length || 0 }}
         </template>
       </Column>
-      <Column header="Actions">
+      <Column header="Actions" class="text-right">
         <template #body="{ data }">
-          <Button icon="pi pi-pencil" text size="small" @click="edit(data)" />
-          <Button icon="pi pi-trash" text severity="danger" size="small" @click="remove(data)" />
+          <div class="flex justify-end gap-2">
+            <Button v-if="authStore.isManufacturer || authStore.isSuperAdmin" icon="pi pi-pencil" text @click="edit(data)" v-tooltip.top="'Edit'" />
+            <Button v-if="authStore.isManufacturer || authStore.isSuperAdmin" icon="pi pi-trash" text severity="danger" @click="remove(data)" v-tooltip.top="'Delete'" />
+          </div>
         </template>
       </Column>
     </DataTable>
 
-    <Dialog v-model:visible="showDialog" header="Catalog" :style="{ width: '500px' }" modal>
-      <div class="flex flex-col gap-4">
-        <div>
-          <label class="block mb-2">Name *</label>
+    <Dialog v-model:visible="showDialog" :header="$t('features.catalogs')" :style="{ width: '500px' }" modal>
+      <div class="flex flex-col gap-4 pt-4">
+        <div class="flex flex-col gap-2">
+          <label class="font-bold text-sm">{{ $t('common.name') }} *</label>
           <InputText v-model="form.name" class="w-full" />
         </div>
-        <div>
-          <label class="block mb-2">Description</label>
+        <div class="flex flex-col gap-2">
+          <label class="font-bold text-sm">{{ $t('common.description') }}</label>
           <Textarea v-model="form.description" class="w-full" rows="3" />
         </div>
-        <div class="flex justify-end gap-2">
-          <Button label="Cancel" severity="secondary" @click="showDialog = false" />
-          <Button label="Save" @click="save" />
-        </div>
       </div>
+      <template #footer>
+          <Button :label="$t('common.cancel')" text severity="secondary" @click="showDialog = false" />
+          <Button :label="$t('common.save')" @click="save" />
+      </template>
     </Dialog>
   </div>
 </template>
@@ -44,6 +46,13 @@
 import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import Button from 'primevue/button';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Tag from 'primevue/tag';
+import Dialog from 'primevue/dialog';
 
 const toast = useToast();
 const authStore = useAuthStore();
@@ -51,7 +60,7 @@ const authStore = useAuthStore();
 const catalogs = ref([]);
 const loading = ref(false);
 const showDialog = ref(false);
-const form = ref({ name: '', description: '', manufacturerId: authStore.user?.organizationId });
+const form = ref({ name: '', description: '', manufacturerId: authStore.userData?.organizationId });
 const editingId = ref(null);
 
 async function load() {
@@ -59,7 +68,9 @@ async function load() {
   try {
     catalogs.value = await $fetch('/api/catalogs');
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    if (error.status !== 401) {
+        toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    }
   } finally {
     loading.value = false;
   }
@@ -81,7 +92,7 @@ async function save() {
       toast.add({ severity: 'success', summary: 'Success', detail: 'Catalog created', life: 3000 });
     }
     showDialog.value = false;
-    form.value = { name: '', description: '', manufacturerId: authStore.user?.organizationId };
+    form.value = { name: '', description: '', manufacturerId: authStore.userData?.organizationId };
     editingId.value = null;
     await load();
   } catch (error) {

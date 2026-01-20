@@ -60,7 +60,7 @@ services:
 
 networks:
   cutkit-network:
-    driver: bridge
+    external: true
 
 volumes:
   mongo-data:

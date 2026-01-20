@@ -63,7 +63,7 @@
     "pens": "Перья",
     "tools": "Фрезы",
     "templates": "Шаблоны",
-    "library": "Библиотека",
+    "library": "БИБЛИОТЕКА",
     "results": "Результаты",
     "profile": "Профиль",
     "account": "Аккаунт",
@@ -89,7 +89,7 @@
     "results": "результатов"
   },
   "project": {
-    "batches": "Партии",
+    "queues": "Очереди",
     "data": "Данные проекта",
     "title": "Проект",
     "create": "Создать проект",
@@ -113,10 +113,10 @@
     "allFilesSecure": "Все файлы будут сохранены безопасно и доступны только вам",
     "filesWillBeSaved": "Файлы будут сохранены безопасно",
     "quickActions": "Быстрые действия",
-    "createBatch": "Создать партию",
+    "createQueue": "Создать очередь",
     "uploadFiles": "Загрузить файлы",
     "viewArtifacts": "Просмотр артефактов",
-    "completedBatches": "Завершённые партии",
+    "completedQueues": "Завершённые очереди",
     "totalCassettes": "Всего кассет",
     "totalArea": "Общая площадь"
   },
@@ -265,7 +265,7 @@
     "logs": "Журнал резки",
     "logDate": "Дата",
     "logUser": "Пользователь",
-    "logBatch": "Партия",
+    "logQueue": "Очередь",
     "logSheets": "Использовано листов",
     "logUtilization": "Использование",
     "logWaste": "Отходы",
@@ -432,11 +432,35 @@
     "loginSignup": "Войти / Регистрация",
     "welcome": "Добро пожаловать в Cutkit",
     "subtitle": "Пожалуйста, войдите, чтобы продолжить",
-    "signInWithGitHub": "Войти через GitHub",
-    "signInWithGoogle": "Войти через Google",
     "redirecting": "Перенаправление к вашим проектам...",
     "authenticating": "Аутентификация...",
-    "authenticatingWait": "Пожалуйста, подождите, пока мы обрабатываем вашу аутентификацию."
+    "authenticatingWait": "Пожалуйста, подождите, пока мы обрабатываем вашу аутентификацию.",
+    "noAccount": "Нет учетной записи?",
+    "signup": "Зарегистрироваться",
+    "hasAccount": "Уже есть учетная запись?",
+    "createAccount": "Создать учетную запись",
+    "organization": "Организация",
+    "createOrg": "Создать организацию"
+  },
+  "roles": {
+    "SuperAdmin": "Администратор системы",
+    "ManufacturerAdmin": "Админ производителя",
+    "ContractorAdmin": "Админ подрядчика",
+    "CustomerAdmin": "Админ заказчика",
+    "IndividualUser": "Пользователь"
+  },
+  "features": {
+    "projects": "Проекты",
+    "assets": "Библиотека",
+    "materials": "Склад",
+    "warehouses": "Склады",
+    "catalogs": "Каталоги",
+    "requisitions": "Заявки",
+    "batches": "Партии материалов",
+    "sheets": "Листы",
+    "remnants": "Остатки",
+    "users": "Участники команды",
+    "organizations": "Организации"
   },
   "statistics": {
     "title": "Статистика",
@@ -483,7 +507,7 @@
     "name": "Название очереди",
     "namePlaceholder": "Введите название очереди",
     "status": "Статус",
-    "status": {
+    "queueStatus": {
       "DRAFT": "Черновик",
       "READY": "Готов",
       "NESTING": "Раскрой...",
@@ -561,8 +585,8 @@
     "sheetParseError": "Ошибка при чтении DXF файла листа"
   },
   "artifacts": {
-    "noBatches": "В этом проекте пока нет очередей.",
-    "createBatchFirst": "Создайте очередь, чтобы создать артефакты.",
+    "noQueues": "В этом проекте пока нет очередей.",
+    "createQueueFirst": "Создайте очередь, чтобы создать артефакты.",
     "loading": "Загрузка артефактов...",
     "noArtifacts": "В этой очереди нет артефактов.",
     "name": "Имя",

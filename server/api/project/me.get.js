@@ -1,7 +1,7 @@
 import { defineEventHandler } from "h3";
-import * as projectsService from "~/server/features/projects/service";
-import * as queuesService from "~/server/features/queues/service";
-import { requireAuth } from "~/server/utils/permissions";
+import * as projectsService from "../../features/projects/service";
+import { connectDB } from "../../db/mongo";
+import { requireAuth } from "../../utils/permissions";
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);
@@ -19,23 +19,24 @@ export default defineEventHandler(async (event) => {
   // Or just return projects and update frontend.
   // Let's try to be backward compatible for now.
   
-  const queues = await queuesService.listForUser(auth.userId); // This gets by ownerId. 
-  // We might need a listByOrg in queuesService? 
-  // For now listForUser (ownerId) is what we have.
-  // If org-based, we might need to update queuesService to support org filtering too.
+  const db = await connectDB();
+  const queueCounts = await db.collection('queues').aggregate([
+    { $match: { ownerId: auth.userId } },
+    { $group: { _id: "$projectSlug", count: { $sum: 1 } } }
+  ]).toArray();
+
+  const countMap = Object.fromEntries(queueCounts.map(c => [c._id, c.count]));
   
   const uiProjects = projects.map(p => {
-      const count = queues.filter(q => q.projectSlug === p.slug).length;
       return {
           slug: p.slug,
           name: p.name,
           createdAt: p.createdAt,
-          results: count
+          results: countMap[p.slug] || 0
       };
   });
 
   return {
-    projects: uiProjects,
-    queueList: queues // minimal info
+    projects: uiProjects
   };
 });

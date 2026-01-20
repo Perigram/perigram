@@ -244,3 +244,28 @@
     - Remnant reusability determination (area ≥ 0.1 m²)
     - Auto-generated unique numbers (REQ-, BATCH-, SH-, REM-)
     - Complete access control (manufacturers, contractors, permissions)
+
+* DONE Material Tracking UI Integration
+  CLOSED: [2026-01-19]
+*** Agent Notes
+    [2026-01-19] Integrated material tracking UI into frontend
+    Files created:
+    - pages/materials/index.vue (role-based tab navigation)
+    - components/materials/WarehousesTab.vue (CRUD warehouses)
+    - components/materials/CatalogsTab.vue (manufacturers)
+    - components/materials/RequisitionsTab.vue (create/manage orders with workflow)
+    - components/materials/BatchesTab.vue (track incoming materials)
+    - components/materials/SheetsTab.vue (sheet inventory)
+    - components/materials/RemnantsTab.vue (reusable waste)
+    Files modified:
+    - layouts/app.vue (added Materials to main navigation)
+    Commit:
+    - feat: add material tracking UI with role-based access
+    Notes:
+    - Role-based visibility (manufacturers see catalogs, contractors see warehouses/sheets/remnants)
+    - Full CRUD operations with forms and dialogs
+    - Status workflows for requisitions (draft→sent→approved→fulfilled)
+    - Status tags with color coding
+    - Real-time updates after actions
+    - Error handling with toast notifications
+    - Navigation integrated into main app menu

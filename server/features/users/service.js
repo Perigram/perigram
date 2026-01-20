@@ -6,7 +6,7 @@ import { PERMISSION_TEMPLATES } from './permission-templates.js';
 
 export async function register(data, creatorUserId, creatorRole) {
   // Validate
-  if (!data.email || !data.password || !data.name || !data.organizationId) {
+  if (!data.email || !data.password || !data.name) {
     throw createError({ statusCode: 400, message: 'Missing required fields' });
   }
   
