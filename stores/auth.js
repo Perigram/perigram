@@ -4,12 +4,21 @@ import { API_ROUTES } from '~/composables/apiRoutes';
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref({});
+    const organization = ref(null);
     const isUserSet = ref(false);
 
     const userIsSet = computed(() => isUserSet.value);
     const userData = computed(() => user.value);
-    const isAdmin = computed(() => user.value?.role === 'SuperAdmin');
+    const organizationData = computed(() => organization.value);
+
+    // Roles
+    const isSuperAdmin = computed(() => user.value?.role === 'SuperAdmin');
     const isOrgAdmin = computed(() => ['ManufacturerAdmin', 'ContractorAdmin', 'CustomerAdmin'].includes(user.value?.role));
+    
+    // Org Types
+    const isManufacturer = computed(() => organization.value?.type === 'Manufacturer' || user.value?.role?.includes('Manufacturer'));
+    const isContractor = computed(() => organization.value?.type === 'Contractor' || user.value?.role?.includes('Contractor'));
+    const isCustomer = computed(() => organization.value?.type === 'Customer' || user.value?.role?.includes('Customer'));
 
     async function setUser() {
         try {
@@ -17,13 +26,28 @@ export const useAuthStore = defineStore('auth', () => {
             if (data && (Boolean(data.userId) || Boolean(data.id))) {
                 user.value = { ...data, id: data.userId || data.id }; // Normalize ID
                 isUserSet.value = true;
+
+                // Fetch organization if linked
+                if (user.value.organizationId) {
+                    try {
+                        organization.value = await $fetch(`/api/organizations/${user.value.organizationId}`);
+                    } catch (err) {
+                        console.error('Failed to fetch organization:', err);
+                    }
+                } else {
+                    organization.value = null;
+                }
             } else {
                 user.value = {};
+                organization.value = null;
                 isUserSet.value = false;
             }
         } catch (error) {
-            console.error('Failed to set user:', error);
+            if (error.status !== 401) {
+                console.error('Failed to set user:', error);
+            }
             user.value = {};
+            organization.value = null;
             isUserSet.value = false;
         }
     }
@@ -37,6 +61,10 @@ export const useAuthStore = defineStore('auth', () => {
             
             user.value = { ...response.user, id: response.user.id || response.user._id };
             isUserSet.value = true;
+            
+            // Re-run setUser to get organization and permissions fresh
+            await setUser();
+            
             return response;
         } catch (err) {
             console.error('Login failed:', err);
@@ -63,6 +91,7 @@ export const useAuthStore = defineStore('auth', () => {
                 method: 'POST'
             });
             user.value = {};
+            organization.value = null;
             isUserSet.value = false;
         } catch (err) {
             console.error('Logout failed:', err);
@@ -78,11 +107,16 @@ export const useAuthStore = defineStore('auth', () => {
 
     return {
         user,
+        organization,
         isUserSet,
         userIsSet,
         userData,
-        isAdmin,
+        organizationData,
+        isSuperAdmin,
         isOrgAdmin,
+        isManufacturer,
+        isContractor,
+        isCustomer,
         setUser,
         login,
         register,
