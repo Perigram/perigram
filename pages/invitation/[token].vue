@@ -31,13 +31,26 @@
                     </div>
 
                     <div class="flex flex-col gap-3">
-                        <Button 
-                            label="Join Organization" 
-                            icon="pi pi-user-plus" 
-                            class="w-full py-4 font-black uppercase text-lg" 
-                            :loading="joining"
-                            @click="joinHandler" 
-                        />
+                        <template v-if="authStore.userIsSet">
+                            <Button 
+                                label="Join Organization" 
+                                icon="pi pi-user-plus" 
+                                class="w-full py-4 font-black uppercase text-lg" 
+                                :loading="joining"
+                                @click="joinHandler" 
+                            />
+                        </template>
+                        <template v-else>
+                            <Button 
+                                label="Login to Join" 
+                                icon="pi pi-sign-in" 
+                                class="w-full py-4 font-black uppercase text-lg" 
+                                @click="navigateTo('/')" 
+                            />
+                            <p class="text-center text-xs text-[var(--p-text-muted-color)] px-4">
+                                You need to be logged in to accept this invitation.
+                            </p>
+                        </template>
                         <Button 
                             label="Decline" 
                             severity="secondary" 
@@ -57,18 +70,12 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
+import { useAuthStore } from '~/stores/auth';
 import Card from 'primevue/card';
-import Button from 'primevue/button';
-import Message from 'primevue/message';
-import ProgressSpinner from 'primevue/progressspinner';
-
-definePageMeta({
-    layout: false,
-    middleware: 'auth'
-});
-
+...
 const route = useRoute();
 const toast = useToast();
+const authStore = useAuthStore();
 const token = route.params.token;
 
 const invitation = ref(null);

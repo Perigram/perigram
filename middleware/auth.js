@@ -21,7 +21,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // If the user is NOT logged in...
     if (!isLoggedIn) {
         // We need to allow access to auth-related pages.
-        if (to.path.startsWith('/auth/')) {
+        if (to.path.startsWith('/auth/') || to.path.startsWith('/invitation/')) {
             return;
         }
         // For any other page, redirect to the index page which is the login page.
