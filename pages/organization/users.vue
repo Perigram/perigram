@@ -220,9 +220,34 @@ async function loadUsers() {
     );
     await loadInvitations();
   } catch (error) {
-...
+    if (error.status !== 401) {
+        toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    }
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function loadInvitations() {
+    try {
+        invitations.value = await $fetch(`/api/organizations/${authStore.userData.organizationId}/invitations`);
+    } catch (e) { console.error(e); }
+}
+
 async function generateInvite() {
-...
+    generatingInvite.value = true;
+    try {
+        const res = await $fetch(`/api/organizations/${authStore.userData.organizationId}/invitations`, {
+            method: 'POST',
+            body: inviteForm.value
+        });
+        generatedUrl.value = getInvitationUrl(res.token);
+        await loadInvitations();
+    } catch (e) {
+        toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 });
+    } finally {
+        generatingInvite.value = false;
+    }
 }
 
 async function confirmMembership(userId, action) {
@@ -239,9 +264,8 @@ async function confirmMembership(userId, action) {
 }
 
 function copyToClipboard(text) {
-
     navigator.clipboard.writeText(text);
-    toast.add({ severity: 'success', summary: 'Copied', detail: 'Invitation code copied to clipboard', life: 2000 });
+    toast.add({ severity: 'success', summary: 'Copied', detail: 'Invitation link copied to clipboard', life: 2000 });
 }
 
 async function createUser() {
