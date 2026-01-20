@@ -12,7 +12,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { ENTITY_UI } from '~/utils/entity-ui-registry';
+import { ENTITY_UI } from '~/utils/status-engine';
 
 const props = defineProps({
     type: {

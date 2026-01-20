@@ -29,13 +29,24 @@ export async function register(data, creatorUserId, creatorRole) {
   const role = data.role || 'IndividualUser';
   const permissions = PERMISSION_TEMPLATES[role] || PERMISSION_TEMPLATES['IndividualUser'];
   
+  const memberships = [];
+  if (data.organizationId) {
+    memberships.push({
+      organizationId: new ObjectId(data.organizationId),
+      role,
+      permissions
+    });
+  }
+
   return await usersRepository.create({
     email: data.email.toLowerCase(),
     passwordHash,
     name: data.name,
-    organizationId: data.organizationId,
+    organizationId: data.organizationId ? new ObjectId(data.organizationId) : null,
     role,
     permissions,
+    memberships,
+    currentOrganizationId: data.organizationId ? new ObjectId(data.organizationId) : null,
     restrictedTo: data.restrictedTo || null,
     isActive: true
   });
@@ -76,11 +87,35 @@ export async function login(email, password) {
       name: user.name,
       organizationId: user.organizationId,
       role: user.role,
-      permissions: user.permissions
+      permissions: user.permissions,
+      memberships: user.memberships
     },
     sessionId: session.sessionId,
     accessToken
   };
+}
+
+export async function switchOrganization(userId, organizationId) {
+  const user = await usersRepository.findById(userId);
+  if (!user) {
+    throw createError({ statusCode: 404, message: 'User not found' });
+  }
+
+  const membership = user.memberships.find(m => m.organizationId.toString() === organizationId.toString());
+  if (!membership) {
+    throw createError({ statusCode: 403, message: 'User is not a member of this organization' });
+  }
+
+  // Update top-level fields for backward compatibility and active session state
+  const updates = {
+    organizationId: membership.organizationId,
+    role: membership.role,
+    permissions: membership.permissions,
+    currentOrganizationId: membership.organizationId
+  };
+
+  await usersRepository.updateById(userId, updates);
+  return await usersRepository.findById(userId);
 }
 
 export async function logout(sessionId) {

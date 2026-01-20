@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
     const userIsSet = computed(() => isUserSet.value);
     const userData = computed(() => user.value);
     const organizationData = computed(() => organization.value);
+    const memberships = computed(() => user.value?.memberships || []);
 
     // Roles
     const isSuperAdmin = computed(() => user.value?.role === 'SuperAdmin');
@@ -95,6 +96,19 @@ export const useAuthStore = defineStore('auth', () => {
             isUserSet.value = false;
         } catch (err) {
             console.error('Logout failed:', err);
+        }
+    }
+
+    async function switchOrganization(organizationId) {
+        try {
+            await $fetch('/api/auth/switch-org', {
+                method: 'POST',
+                body: { organizationId }
+            });
+            await setUser();
+        } catch (err) {
+            console.error('Failed to switch organization:', err);
+            throw err;
         }
     }
 

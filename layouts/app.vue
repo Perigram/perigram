@@ -110,6 +110,18 @@
     const navStore = useNavigationStore()
     const globalStore = useGlobalStore()
 
+    // Organizations for switcher
+    const userOrgs = ref([])
+    const fetchUserOrgs = async () => {
+        if (authStore.userIsSet) {
+            try {
+                userOrgs.value = await $fetch('/api/auth/organizations')
+            } catch (err) {
+                console.error('Failed to fetch user organizations:', err)
+            }
+        }
+    }
+
     // Sync project context when route changes
     watch(() => route.params.slug, async (newSlug) => {
         await navStore.fetchProjectContext(newSlug)
@@ -129,7 +141,10 @@
 
     // --- User Menu ---
     const userMenu = ref();
-    const toggleUserMenu = (event) => {
+    const toggleUserMenu = async (event) => {
+        if (userOrgs.value.length === 0) {
+            await fetchUserOrgs()
+        }
         userMenu.value.toggle(event);
     };
 
@@ -146,6 +161,23 @@
                 ]
             }
         ];
+
+        // Organization Switcher Section
+        if (userOrgs.value.length > 1) {
+            items.push({
+                label: t('auth.organization'),
+                items: userOrgs.value.map(org => ({
+                    label: org.name,
+                    icon: org._id.toString() === authStore.userData.organizationId?.toString() ? 'pi pi-check' : 'pi pi-building',
+                    command: async () => {
+                        if (org._id.toString() !== authStore.userData.organizationId?.toString()) {
+                            await authStore.switchOrganization(org._id);
+                            router.push('/'); // Redirect to home to refresh context
+                        }
+                    }
+                }))
+            });
+        }
 
         if (authStore.isSuperAdmin) {
             items.push({
@@ -236,8 +268,11 @@
         if (!authStore.userIsSet) {
             await authStore.setUser();
         }
-        if (authStore.userIsSet && globalStore.projectsList.length === 0) {
-            await globalStore.getProjects()
+        if (authStore.userIsSet) {
+            if (globalStore.projectsList.length === 0) {
+                await globalStore.getProjects()
+            }
+            await fetchUserOrgs()
         }
     })
 </script>
