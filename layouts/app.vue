@@ -7,11 +7,26 @@
             <template #start>
                 <NuxtLink
                     to="/"
-                    class="flex items-center gap-2 no-underline text-[var(--p-primary-color)] text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity"
+                    class="flex items-center gap-2 no-underline text-[var(--p-primary-color)] text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity mr-4"
                 >
                     <span>CutKit</span>
                 </NuxtLink>
-                <Divider layout="vertical" class="mx-2" />
+                
+                <div class="hidden md:flex items-center gap-1 mr-4">
+                    <NuxtLink
+                        v-for="hub in navStore.hubs"
+                        :key="hub.id"
+                        :to="hub.to"
+                        class="p-button p-component p-button-text p-button-plain text-sm font-medium flex items-center gap-2 px-3 py-2 rounded-md transition-colors"
+                        :class="[route.path.startsWith(hub.to) ? 'bg-[var(--p-primary-50)] text-[var(--p-primary-color)]' : 'text-[var(--p-surface-600)] hover:bg-[var(--p-surface-100)]']"
+                    >
+                        <i :class="hub.icon" />
+                        <span>{{ hub.name }}</span>
+                    </NuxtLink>
+                </div>
+
+                <Divider layout="vertical" class="mx-2 hidden md:block" />
+                
                 <div
                     v-for="(crumb, index) in breadcrumbs"
                     :key="index"
@@ -222,17 +237,21 @@
         updateThemeClass(newTheme)
     })
 
-    onMounted(() => {
+    onMounted(async () => {
+        // Theme initialization
         if (!themeCookie.value) {
             const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
             themeCookie.value = prefersDark ? 'dark' : 'light'
         }
         updateThemeClass(themeCookie.value)
-    })
 
-    // --- Breadcrumb Navigation ---
-    const breadcrumbs = computed(() => {
-        return navStore.getBreadcrumbs(route.path, projects.value, currentProject.value)
+        // Auth and data initialization
+        if (!authStore.userIsSet) {
+            await authStore.setUser();
+        }
+        if (authStore.userIsSet && globalStore.projectsList.length === 0) {
+            await globalStore.getProjects()
+        }
     })
 </script>
 

@@ -5,27 +5,27 @@
     </div>
 
     <TabView>
-      <TabPanel v-if="authStore.isContractor || authStore.isSuperAdmin" :header="$t('features.warehouses')">
+      <TabPanel v-if="authStore.hasPermission('warehouses', 'read')" :header="$t('features.warehouses')">
         <WarehousesTab />
       </TabPanel>
       
-      <TabPanel v-if="authStore.isManufacturer || authStore.isSuperAdmin" :header="$t('features.catalogs')">
+      <TabPanel v-if="authStore.hasPermission('catalogs', 'read')" :header="$t('features.catalogs')">
         <CatalogsTab />
       </TabPanel>
       
-      <TabPanel v-if="authStore.isContractor || authStore.isManufacturer || authStore.isSuperAdmin" :header="$t('features.requisitions')">
+      <TabPanel v-if="authStore.hasPermission('requisitions', 'read')" :header="$t('features.requisitions')">
         <RequisitionsTab />
       </TabPanel>
       
-      <TabPanel v-if="authStore.isContractor || authStore.isManufacturer || authStore.isSuperAdmin" :header="$t('features.batches')">
+      <TabPanel v-if="authStore.hasPermission('materials', 'read')" :header="$t('features.batches')">
         <BatchesTab />
       </TabPanel>
       
-      <TabPanel v-if="authStore.isContractor || authStore.isSuperAdmin" :header="$t('features.sheets')">
+      <TabPanel v-if="authStore.hasPermission('materials', 'read')" :header="$t('features.sheets')">
         <SheetsTab />
       </TabPanel>
       
-      <TabPanel v-if="authStore.isContractor || authStore.isSuperAdmin" :header="$t('features.remnants')">
+      <TabPanel v-if="authStore.hasPermission('materials', 'read')" :header="$t('features.remnants')">
         <RemnantsTab />
       </TabPanel>
     </TabView>

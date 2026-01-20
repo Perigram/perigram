@@ -25,31 +25,31 @@ export const useNavigationStore = defineStore('navigation', () => {
     }
 
     // --- HUB DEFINITIONS (Level 1) ---
-    // Entirely dynamic based on role/org state
-    const hubs = computed(() => {
-        const sections = [];
-        
-        if (authStore.isContractor || authStore.isCustomer || authStore.isSuperAdmin) {
-            sections.push({ id: 'projects', name: t('features.projects'), to: '/projects', icon: 'pi pi-folder' });
-        }
-        
-        if (authStore.isContractor || authStore.isManufacturer || authStore.isSuperAdmin) {
-            sections.push({ id: 'materials', name: t('features.materials'), to: '/materials', icon: 'pi pi-box' });
-        }
+    // Entirely dynamic based on role/org state and permissions
+    const hubConfigs = [
+        { id: 'projects', entity: 'projects', level: 'read', nameKey: 'features.projects', to: '/projects', icon: 'pi pi-folder' },
+        { id: 'materials', entity: 'materials', level: 'read', nameKey: 'features.materials', to: '/materials', icon: 'pi pi-box' },
+        { id: 'assets', entity: 'cassettes', level: 'read', nameKey: 'features.assets', to: '/assets/cassettes', icon: 'pi pi-objects-column' },
+        { id: 'admin', entity: 'organizations', level: 'admin', nameKey: 'nav.admin', to: '/admin/organizations', icon: 'pi pi-cog' },
+    ];
 
-        if (authStore.isContractor || authStore.isSuperAdmin) {
-            sections.push({ id: 'assets', name: t('features.assets'), to: '/assets/cassettes', icon: 'pi pi-objects-column' });
-        }
-        
-        return sections;
+    const hubs = computed(() => {
+        return hubConfigs
+            .filter(config => authStore.hasPermission(config.entity, config.level))
+            .map(config => ({
+                id: config.id,
+                name: t(config.nameKey),
+                to: config.to,
+                icon: config.icon
+            }));
     });
 
     const assetSiblings = computed(() => [
-        { id: '/assets/cassettes', name: t('nav.cassettes'), to: '/assets/cassettes' },
-        { id: '/assets/pens', name: t('nav.pens'), to: '/assets/pens' },
-        { id: '/assets/tools', name: t('nav.tools'), to: '/assets/tools' },
-        { id: '/assets/templates', name: t('nav.templates'), to: '/assets/templates' },
-    ]);
+        { id: '/assets/cassettes', name: t('nav.cassettes'), to: '/assets/cassettes', entity: 'cassettes' },
+        { id: '/assets/pens', name: t('nav.pens'), to: '/assets/pens', entity: 'cassettes' }, // Pens usually tied to cassette design
+        { id: '/assets/tools', name: t('nav.tools'), to: '/assets/tools', entity: 'cassettes' },
+        { id: '/assets/templates', name: t('nav.templates'), to: '/assets/templates', entity: 'cassettes' },
+    ].filter(a => authStore.hasPermission(a.entity, 'read')));
 
     // Master breadcrumb generator
     const resolveBreadcrumbs = (path) => {
@@ -61,10 +61,13 @@ export const useNavigationStore = defineStore('navigation', () => {
         // --- Level 1: Hub Logic ---
         let currentSectionId = parts[0];
         if (currentSectionId === 'project') currentSectionId = 'projects';
-        if (currentSectionId === 'admin') currentSectionId = parts[1];
-        if (currentSectionId === 'organization') currentSectionId = 'org-users';
-
-        const currentHub = hubs.value.find((s) => s.id === currentSectionId || s.to.startsWith('/' + parts[0]));
+        
+        // Handle nested paths for hubs
+        const currentHub = hubs.value.find((s) => 
+            s.id === currentSectionId || 
+            path.startsWith(s.to) || 
+            (currentSectionId === 'admin' && s.id === 'admin')
+        );
 
         if (currentHub) {
             nav.push({
@@ -101,6 +104,23 @@ export const useNavigationStore = defineStore('navigation', () => {
                     siblings: assetSiblings.value.map((t) => ({ ...t, id: t.to })),
                 });
             }
+        }
+
+        // --- Level 2: Admin Context ---
+        if (parts[0] === 'admin' && parts[1]) {
+             const adminTabs = [
+                { id: 'organizations', name: t('features.organizations'), to: '/admin/organizations' },
+                { id: 'users', name: t('features.users'), to: '/admin/users' },
+                { id: 'settings', name: t('nav.settings'), to: '/admin/settings' },
+             ];
+             const currentTab = adminTabs.find(t => t.id === parts[1]);
+             if (currentTab) {
+                 nav.push({
+                     name: currentTab.name,
+                     to: currentTab.to,
+                     siblings: adminTabs.map(t => ({ name: t.name, id: t.to }))
+                 });
+             }
         }
 
         return nav;

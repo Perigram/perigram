@@ -6,6 +6,7 @@ import * as repository from './repository.js';
 import { ObjectId } from 'mongodb';
 import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
+import * as cassetteInstanceService from '../cassette-instances/service.js';
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {
   if (!ObjectId.isValid(id)) {
@@ -212,6 +213,9 @@ export async function markCut(id, userId, userOrg, userRole, userPermissions) {
 
   // Update status
   const updatedQueue = await repository.updateById(id, { status: 'CUT' }) ? await getById(id, userId, userOrg, userRole, userPermissions) : queue;
+
+  // Create cassette instances
+  await cassetteInstanceService.createFromQueue(queue, { userId });
 
   // Record in project cutLogs
   const chosenRun = (queue.runs || []).find(r => r._id?.toString() === queue.chosenRunId?.toString());

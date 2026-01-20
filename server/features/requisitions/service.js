@@ -1,5 +1,6 @@
 import * as repository from './repository.js';
 import * as catalogRepository from '../catalogs/repository.js';
+import * as materialBatchService from '../material-batches/service.js';
 import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
 import { checkEntityAccess } from '~/server/utils/permissions';
@@ -229,7 +230,37 @@ export async function approve(id, user) {
   return await repository.findById(id);
 }
 
-export async function fulfill(id, user) {
+export async function reject(id, user) {
+  const requisition = await repository.findById(id);
+  if (!requisition) {
+    throw createError({ statusCode: 404, message: 'Requisition not found' });
+  }
+  
+  // Only manufacturer can reject
+  if (!checkEntityAccess(user, requisition, requisition.manufacturerId)) {
+    throw createError({ statusCode: 403, message: 'Cannot reject requisition' });
+  }
+  
+  if (!hasPermission(user, 'materials', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  
+  // Can only reject from sent
+  if (requisition.status !== 'sent') {
+    throw createError({ statusCode: 409, message: 'Can only reject sent requisitions' });
+  }
+  
+  await repository.addStatusHistory(id, {
+    status: 'rejected',
+    timestamp: new Date(),
+    userId: user.userId,
+    note: 'Requisition rejected by manufacturer'
+  });
+  
+  return await repository.findById(id);
+}
+
+export async function fulfill(id, data, user) {
   const requisition = await repository.findById(id);
   if (!requisition) {
     throw createError({ statusCode: 404, message: 'Requisition not found' });
@@ -244,9 +275,18 @@ export async function fulfill(id, user) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  // Can only fulfill from approved
-  if (requisition.status !== 'approved') {
-    throw createError({ statusCode: 409, message: 'Can only fulfill approved requisitions' });
+  // Can only fulfill from approved or in_fulfillment
+  if (!['approved', 'in_fulfillment'].includes(requisition.status)) {
+    throw createError({ statusCode: 409, message: 'Can only fulfill approved or in-fulfillment requisitions' });
+  }
+
+  // Create material batch if warehouseId provided
+  if (data?.warehouseId) {
+      await materialBatchService.createFromRequisition(id, {
+          warehouseId: data.warehouseId,
+          supplierId: user.organizationId,
+          notes: data.notes
+      }, user);
   }
   
   await repository.addStatusHistory(id, {
@@ -254,6 +294,36 @@ export async function fulfill(id, user) {
     timestamp: new Date(),
     userId: user.userId,
     note: 'Requisition fulfilled'
+  });
+  
+  return await repository.findById(id);
+}
+
+export async function startFulfillment(id, user) {
+  const requisition = await repository.findById(id);
+  if (!requisition) {
+    throw createError({ statusCode: 404, message: 'Requisition not found' });
+  }
+  
+  // Only manufacturer can start fulfillment
+  if (!checkEntityAccess(user, requisition, requisition.manufacturerId)) {
+    throw createError({ statusCode: 403, message: 'Cannot update requisition status' });
+  }
+  
+  if (!hasPermission(user, 'materials', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  
+  // Can only start fulfillment from approved
+  if (requisition.status !== 'approved') {
+    throw createError({ statusCode: 409, message: 'Can only start fulfillment for approved requisitions' });
+  }
+  
+  await repository.addStatusHistory(id, {
+    status: 'in_fulfillment',
+    timestamp: new Date(),
+    userId: user.userId,
+    note: 'Fulfillment started'
   });
   
   return await repository.findById(id);

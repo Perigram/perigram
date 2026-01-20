@@ -9,7 +9,7 @@
             <Column field="requisitionNumber" header="#" sortable />
             <Column header="Status">
                 <template #body="{ data }">
-                    <Tag :value="data.status.toUpperCase()" :severity="getStatusSeverity(data.status)" />
+                    <Tag :value="getStatusLabel(data.status)" :severity="getStatusSeverity(data.status)" />
                 </template>
             </Column>
             <Column field="totalAmount" header="Total">
@@ -30,10 +30,15 @@
             <Column header="Actions" class="text-right">
                 <template #body="{ data }">
                     <div class="flex justify-end gap-2">
-                        <Button v-if="data.status === 'draft' && authStore.isContractor" icon="pi pi-send" text @click="send(data._id)" v-tooltip.top="'Send'" />
+                        <Button v-if="data.status === 'draft' && authStore.isContractor" icon="pi pi-send" text @click="send(data._id)" v-tooltip.top="'Submit'" />
+                        
                         <Button v-if="data.status === 'sent' && authStore.isManufacturer" icon="pi pi-check" text severity="success" @click="approve(data._id)" v-tooltip.top="'Approve'" />
-                        <Button v-if="data.status === 'approved' && authStore.isManufacturer" icon="pi pi-box" text severity="info" @click="fulfill(data._id)" v-tooltip.top="'Fulfill'" />
-                        <Button v-if="data.status !== 'fulfilled' && data.status !== 'canceled'" icon="pi pi-times" text severity="danger" @click="cancel(data._id)" v-tooltip.top="'Cancel'" />
+                        <Button v-if="data.status === 'sent' && authStore.isManufacturer" icon="pi pi-times" text severity="danger" @click="reject(data._id)" v-tooltip.top="'Reject'" />
+                        
+                        <Button v-if="data.status === 'approved' && authStore.isManufacturer" icon="pi pi-play" text severity="info" @click="startFulfillment(data._id)" v-tooltip.top="'Start Fulfillment'" />
+                        <Button v-if="data.status === 'in_fulfillment' && authStore.isManufacturer" icon="pi pi-box" text severity="success" @click="fulfill(data._id)" v-tooltip.top="'Complete Fulfillment'" />
+                        
+                        <Button v-if="!['fulfilled', 'canceled', 'rejected'].includes(data.status)" icon="pi pi-ban" text severity="danger" @click="cancel(data._id)" v-tooltip.top="'Cancel'" />
                     </div>
                 </template>
             </Column>
@@ -69,6 +74,33 @@
         </div>
       </div>
     </Dialog>
+
+    <Dialog v-model:visible="showFulfillDialog" header="Complete Fulfillment" :style="{ width: '500px' }" modal>
+      <div class="flex flex-col gap-4 py-4">
+        <p class="text-sm text-[var(--p-text-secondary-color)]">
+          Completing fulfillment will automatically create a material batch in the selected warehouse.
+        </p>
+        <div class="flex flex-col gap-2">
+          <label class="font-bold text-sm">Target Warehouse *</label>
+          <Select 
+            v-model="fulfillForm.warehouseId" 
+            :options="warehouses" 
+            optionLabel="name" 
+            optionValue="_id" 
+            placeholder="Select warehouse"
+            class="w-full"
+          />
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="font-bold text-sm">Notes</label>
+          <Textarea v-model="fulfillForm.notes" class="w-full" rows="3" />
+        </div>
+      </div>
+      <template #footer>
+        <Button label="Cancel" text severity="secondary" @click="showFulfillDialog = false" />
+        <Button label="Confirm & Create Batch" @click="confirmFulfill" :disabled="!fulfillForm.warehouseId" />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -76,6 +108,15 @@
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
+import Textarea from 'primevue/textarea';
+import Divider from 'primevue/divider';
+import InputNumber from 'primevue/inputnumber';
+import Select from 'primevue/select';
+import Tag from 'primevue/tag';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
 
 const toast = useToast();
 const authStore = useAuthStore();
@@ -83,15 +124,16 @@ const authStore = useAuthStore();
 const requisitions = ref([]);
 const manufacturers = ref([]);
 const catalogs = ref([]);
+const warehouses = ref([]);
 const loading = ref(false);
 const showDialog = ref(false);
+const showFulfillDialog = ref(false);
 const form = ref({ manufacturerId: null, notes: '', items: [] });
+const fulfillForm = ref({ warehouseId: null, notes: '' });
+const fulfillingId = ref(null);
 
-function getStatusSeverity(status) {
-  const map = { draft: 'secondary', sent: 'info', approved: 'warn', fulfilled: 'success', canceled: 'danger' };
-  return map[status] || 'secondary';
-}
-
+function getStatusLabel(status) {
+...
 async function load() {
   loading.value = true;
   try {
@@ -101,55 +143,35 @@ async function load() {
       manufacturers.value = orgs.filter(o => o.type === 'Manufacturer');
       catalogs.value = await $fetch('/api/catalogs');
     }
-  } catch (error) {
-    if (error.status !== 401) {
-      toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    if (authStore.isManufacturer || authStore.isSuperAdmin) {
+        warehouses.value = await $fetch('/api/warehouses');
     }
-  } finally {
-    loading.value = false;
-  }
-}
-
-function addItem() {
-  form.value.items.push({ catalogId: null, sheetTypeId: null, sizeIndex: 0, quantity: 1 });
-}
-
-async function create() {
+  } catch (error) {
+...
+async function startFulfillment(id) {
   try {
-    await $fetch('/api/requisitions', { method: 'POST', body: form.value });
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Requisition created', life: 3000 });
-    showDialog.value = false;
-    form.value = { manufacturerId: null, notes: '', items: [] };
+    await $fetch(`/api/requisitions/${id}/start-fulfillment`, { method: 'POST' });
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Fulfillment started', life: 3000 });
     await load();
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
   }
 }
 
-async function send(id) {
-  try {
-    await $fetch(`/api/requisitions/${id}/send`, { method: 'POST' });
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Requisition sent', life: 3000 });
-    await load();
-  } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
-  }
+function fulfill(id) {
+  fulfillingId.value = id;
+  fulfillForm.value = { warehouseId: null, notes: '' };
+  showFulfillDialog.value = true;
 }
 
-async function approve(id) {
+async function confirmFulfill() {
   try {
-    await $fetch(`/api/requisitions/${id}/approve`, { method: 'POST' });
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Requisition approved', life: 3000 });
-    await load();
-  } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
-  }
-}
-
-async function fulfill(id) {
-  try {
-    await $fetch(`/api/requisitions/${id}/fulfill`, { method: 'POST' });
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Requisition fulfilled', life: 3000 });
+    await $fetch(`/api/requisitions/${fulfillingId.value}/fulfill`, { 
+        method: 'POST',
+        body: fulfillForm.value
+    });
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Requisition fulfilled and batch created', life: 3000 });
+    showFulfillDialog.value = false;
     await load();
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });

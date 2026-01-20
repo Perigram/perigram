@@ -421,32 +421,48 @@
             </AccordionTab>
 
             <!-- Cassette Instances Tracking (Phase 3) -->
-            <AccordionTab v-if="queue.chosenRunId" :header="$t('project.cassettes') + ' Instances'">
+            <AccordionTab v-if="queue.status === 'CUT'" :header="$t('project.cassettes') + ' Instances'">
                 <div class="flex flex-col gap-4 py-2">
                     <div class="flex items-center justify-between px-2">
                         <span class="text-xs font-black uppercase tracking-widest opacity-60">Production Tracking</span>
-                        <Tag value="Beta" severity="info" class="text-[10px]" />
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        <div v-for="i in (queue.runs.find(r => r._id === queue.chosenRunId)?.layoutCount || 0) * 5" :key="i" 
-                             class="p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl flex items-center justify-between group hover:border-[var(--p-primary-color)] transition-colors">
-                            <div class="flex flex-col gap-1">
-                                <span class="text-[10px] font-black uppercase opacity-50">Instance #{{ i }}</span>
-                                <span class="font-bold text-sm">Cassette Type A</span>
-                            </div>
-                            <Select 
-                                :modelValue="'nested'"
-                                :options="['nested', 'manufactured', 'on-site', 'installed']"
-                                class="w-32 text-xs"
-                                size="small"
-                                pt:root:class="border-none bg-transparent"
-                            />
+                        <div class="flex gap-2">
+                            <Tag :value="`Total: ${instances.length}`" severity="secondary" class="text-[10px]" />
                         </div>
                     </div>
                     
-                    <div class="text-center py-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl opacity-60">
-                        <p class="text-xs font-medium italic">Detailed instance tracking data will be populated from nesting results in the next update.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div v-for="instance in instances" :key="instance._id" 
+                             class="p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl flex items-center justify-between group hover:border-[var(--p-primary-color)] transition-colors">
+                            <div class="flex flex-col gap-1">
+                                <span class="text-[10px] font-black uppercase opacity-50">{{ instance.instanceNumber }}</span>
+                                <span class="font-bold text-sm">{{ getCassetteName(instance.cassetteTemplateId) }}</span>
+                                <div class="flex gap-1">
+                                    <span v-for="(val, key) in instance.dimensions" :key="key" class="text-[9px] font-bold px-1 bg-[var(--p-surface-100)] rounded">
+                                        {{ key }}: {{ val }}
+                                    </span>
+                                </div>
+                            </div>
+                            <Select 
+                                v-model="instance.status"
+                                :options="instanceStatuses"
+                                optionLabel="label"
+                                optionValue="value"
+                                class="w-36 text-xs"
+                                size="small"
+                                @change="(e) => updateInstanceStatus(instance, e.value)"
+                            >
+                                <template #value="slotProps">
+                                    <Tag :value="slotProps.value.toUpperCase()" :severity="getInstanceStatusSeverity(slotProps.value)" class="text-[9px]" />
+                                </template>
+                                <template #option="slotProps">
+                                    <Tag :value="slotProps.option.label.toUpperCase()" :severity="getInstanceStatusSeverity(slotProps.option.value)" class="text-[9px]" />
+                                </template>
+                            </Select>
+                        </div>
+                    </div>
+                    
+                    <div v-if="instances.length === 0" class="text-center py-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl opacity-60">
+                        <p class="text-xs font-medium italic">No instances found for this queue.</p>
                     </div>
                 </div>
             </AccordionTab>
@@ -540,97 +556,51 @@ const cassettes = ref([]);
 const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
 const selectedRunId = ref(null);
+const instances = ref([]);
+
+const instanceStatuses = [
+    { label: 'Nested', value: 'nested' },
+    { label: 'Manufactured', value: 'manufactured' },
+    { label: 'On-Site', value: 'on-site' },
+    { label: 'Installed', value: 'installed' }
+];
+
+const getInstanceStatusSeverity = (status) => {
+    const map = {
+        'nested': 'secondary',
+        'manufactured': 'info',
+        'on-site': 'warning',
+        'installed': 'success'
+    };
+    return map[status] || 'secondary';
+};
+
+const updateInstanceStatus = async (instance, status) => {
+    try {
+        await $fetch(`/api/cassette-instances/${instance._id}/status`, {
+            method: 'POST',
+            body: { status, note: `Status updated to ${status}` }
+        });
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Instance status updated', life: 2000 });
+    } catch (e) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update status', life: 3000 });
+    }
+};
 
 const projectData = ref(null);
-const activeMaterialId = ref(null);
-
-const availableArtifacts = ref([
-    { id: 'LAYOUT_DXF', name: 'DXF Layout', icon: 'pi pi-file', description: 'Full production DXF with all layers.' },
-    { id: 'PDF_PASSPORT', name: 'Technical Passports', icon: 'pi pi-id-card', description: 'Per-sheet PDF passports for production.' }
-]);
-
-const nestingOptions = ref({
-    width: props.queue.nestingParams?.width || 2440,
-    height: props.queue.nestingParams?.height || 1220,
-    toolId: props.queue.nestingParams?.toolId || null,
-    sheetPolygon: props.queue.nestingParams?.sheetPolygon || null,
-    requestedArtifacts: props.queue.requestedArtifacts || ['LAYOUT_DXF'],
-    pdfTemplateId: props.queue.pdfTemplateId || null,
-    inventorySheets: props.queue.nestingParams?.inventorySheets || []
-});
-
-watch(nestingOptions, async (newVal) => {
-    if (props.queue.status !== 'DRAFT') return;
-    try {
-        await $fetch(`/api/queue/${props.queue._id}`, {
-            method: 'PUT',
-            body: {
-                nestingParams: {
-                    width: newVal.width,
-                    height: newVal.height,
-                    toolId: newVal.toolId,
-                    sheetPolygon: newVal.sheetPolygon,
-                    inventorySheets: newVal.inventorySheets
-                },
-                requestedArtifacts: newVal.requestedArtifacts,
-                pdfTemplateId: newVal.pdfTemplateId
-            }
-        });
-    } catch (e) { console.error(e); }
-}, { deep: true });
-
-const pdfTemplates = ref([{ _id: 'default', name: 'Standard Passport' }, { _id: 'detailed', name: 'Detailed Technical' }]);
-
-const projectMaterials = computed(() => projectData.value?.projectMaterials || []);
-const activeProjectMaterial = computed(() => projectMaterials.value.find(pm => pm.materialId === activeMaterialId.value));
-
-const isSheetSelected = (sheet) => nestingOptions.value.inventorySheets.some(s => s.width === sheet.width && s.height === sheet.height);
-
-const toggleSheetSelection = (sheet) => {
-    const idx = nestingOptions.value.inventorySheets.findIndex(s => s.width === sheet.width && s.height === sheet.height);
-    if (idx > -1) nestingOptions.value.inventorySheets.splice(idx, 1);
-    else nestingOptions.value.inventorySheets.push({ code: activeProjectMaterial.value.material.code, width: sheet.width, height: sheet.height, available: sheet.available });
-};
-
-const toggleArtifact = (id) => {
-    if (id === 'LAYOUT_DXF') return;
-    const idx = nestingOptions.value.requestedArtifacts.indexOf(id);
-    if (idx > -1) nestingOptions.value.requestedArtifacts.splice(idx, 1);
-    else nestingOptions.value.requestedArtifacts.push(id);
-};
-
-const artifactsTableRef = ref(null);
-
-const onArtifactClick = (artifact) => {
-    selectedRunId.value = artifact.runId.toString();
-    // Use nextTick to ensure the table is rendered then trigger preview
-    nextTick(() => {
-        if (artifactsTableRef.value) {
-            artifactsTableRef.value.previewArtifact(artifact);
-        }
-    });
-};
-
-const goToProjectData = () => navigateTo(`/project/${props.projectSlug}/data`);
-
-onMounted(async () => {
-    const [cassetteResult, projectRes] = await Promise.all([
-        cassettesStore.fetchCassettes(),
-        $fetch(`/api/project/${props.projectSlug}`)
-    ]);
-    cassettes.value = cassetteResult || [];
-    projectData.value = projectRes;
-    await toolProfilesStore.fetchTools();
-    loadQueueData();
-});
-
-onUnmounted(() => queuesStore.stopPolling(props.queue._id));
-watch(() => props.queue, () => loadQueueData(), { deep: true });
-watch(selectedRunId, () => loadArtifacts());
-
+...
 const loadQueueData = () => {
     entries.value = [...(props.queue.entries || [])];
     loadArtifacts();
+    if (props.queue.status === 'CUT') {
+        loadInstances();
+    }
+};
+
+const loadInstances = async () => {
+    try {
+        instances.value = await $fetch(`/api/queue/${props.queue._id}/instances`);
+    } catch (e) { console.error(e); }
 };
 
 const loadArtifacts = async () => {

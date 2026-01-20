@@ -71,7 +71,9 @@
     "home": "Home",
     "dashboard": "Dashboard",
     "logout": "Logout",
-    "login": "Login / Sign Up"
+    "login": "Login / Sign Up",
+    "admin": "Administration",
+    "settings": "Settings"
   },
   "dashboard": {
     "welcome": "Welcome to CutKit",
