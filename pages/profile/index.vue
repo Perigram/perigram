@@ -236,7 +236,7 @@ const showCreateOrgDialog = ref(false);
 const submittingOrg = ref(false);
 
 const getOrgName = (orgId) => {
-    const org = authStore.userOrganizations.find(o => o._id === orgId);
+    const org = authStore.userOrganizations.find(o => o._id.toString() === orgId.toString());
     return org ? org.name : 'Unknown Organization';
 };
 

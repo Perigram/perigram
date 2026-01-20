@@ -37,17 +37,37 @@ export async function create(data, user) {
     createdBy: user.userId
   });
 
-  // If the user doesn't have an organization, make them the admin of this one
-  if (!user.organizationId) {
-    const role = `${data.type}Admin`;
-    const permissions = PERMISSION_TEMPLATES[role] || PERMISSION_TEMPLATES.IndividualUser;
-    
-    await usersRepository.updateById(user.userId, {
+  // Always add to user memberships as Active Admin
+  const role = `${data.type}Admin`;
+  const permissions = PERMISSION_TEMPLATES[role] || PERMISSION_TEMPLATES.IndividualUser;
+  
+  const db = await (await import('~/server/db/mongo')).connectDB();
+  const membership = {
+    organizationId: org._id,
+    role,
+    permissions,
+    status: 'active'
+  };
+
+  const userUpdates = {
+    $push: { memberships: membership }
+  };
+
+  // If this is their first org (or they have none active), make it current
+  const freshUser = await usersRepository.findById(user.userId);
+  if (!freshUser.organizationId || !freshUser.currentOrganizationId) {
+    userUpdates.$set = {
       organizationId: org._id,
-      role: role,
-      permissions: permissions
-    });
+      role,
+      permissions,
+      currentOrganizationId: org._id
+    };
   }
+
+  await db.collection('users').updateOne(
+    { _id: freshUser._id },
+    userUpdates
+  );
   
   return org;
 }

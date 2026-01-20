@@ -13,6 +13,6 @@ export default defineEventHandler(async (event) => {
     return [];
   }
   
-  const orgIds = user.memberships.map(m => m.organizationId);
+  const orgIds = user.memberships.map(m => new ObjectId(m.organizationId));
   return await organizationsRepository.find({ _id: { $in: orgIds } });
 });
