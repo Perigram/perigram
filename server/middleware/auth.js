@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
             organizationId: user.organizationId?.toString(),
             role: user.role,
             permissions: user.permissions,
+            memberships: user.memberships || [],
             restrictedTo: user.restrictedTo
           };
         }
@@ -43,6 +44,7 @@ export default defineEventHandler(async (event) => {
           organizationId: user.organizationId?.toString(),
           role: user.role,
           permissions: user.permissions,
+          memberships: user.memberships || [],
           restrictedTo: user.restrictedTo
         };
       }
