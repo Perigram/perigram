@@ -11,19 +11,6 @@
                 >
                     <span>CutKit</span>
                 </NuxtLink>
-                
-                <div class="hidden md:flex items-center gap-1 mr-4">
-                    <NuxtLink
-                        v-for="hub in navStore.hubs"
-                        :key="hub.id"
-                        :to="hub.to"
-                        class="p-button p-component p-button-text p-button-plain text-sm font-medium flex items-center gap-2 px-3 py-2 rounded-md transition-colors"
-                        :class="[route.path.startsWith(hub.to) ? 'bg-[var(--p-primary-50)] text-[var(--p-primary-color)]' : 'text-[var(--p-surface-600)] hover:bg-[var(--p-surface-100)]']"
-                    >
-                        <i :class="hub.icon" />
-                        <span>{{ hub.name }}</span>
-                    </NuxtLink>
-                </div>
 
                 <Divider layout="vertical" class="mx-2 hidden md:block" />
                 

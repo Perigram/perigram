@@ -9,7 +9,7 @@
             <Column field="requisitionNumber" header="#" sortable />
             <Column header="Status">
                 <template #body="{ data }">
-                    <Tag :value="getStatusLabel(data.status)" :severity="getStatusSeverity(data.status)" />
+                    <StatusBadge :status="data.status" />
                 </template>
             </Column>
             <Column field="totalAmount" header="Total">
@@ -30,6 +30,8 @@
             <Column header="Actions" class="text-right">
                 <template #body="{ data }">
                     <div class="flex justify-end gap-2">
+                        <Button icon="pi pi-eye" text @click="viewDetails(data)" v-tooltip.top="'View Details'" />
+                        
                         <Button v-if="data.status === 'draft' && authStore.isContractor" icon="pi pi-send" text @click="send(data._id)" v-tooltip.top="'Submit'" />
                         
                         <Button v-if="data.status === 'sent' && authStore.isManufacturer" icon="pi pi-check" text severity="success" @click="approve(data._id)" v-tooltip.top="'Approve'" />
@@ -44,6 +46,7 @@
             </Column>
         </DataTable>
 
+    <!-- Create Dialog -->
     <Dialog v-model:visible="showDialog" header="New Requisition" :style="{ width: '700px' }" modal>
       <div class="flex flex-col gap-4">
         <div>
@@ -75,6 +78,7 @@
       </div>
     </Dialog>
 
+    <!-- Fulfillment Dialog -->
     <Dialog v-model:visible="showFulfillDialog" header="Complete Fulfillment" :style="{ width: '500px' }" modal>
       <div class="flex flex-col gap-4 py-4">
         <p class="text-sm text-[var(--p-text-secondary-color)]">
@@ -101,6 +105,41 @@
         <Button label="Confirm & Create Batch" @click="confirmFulfill" :disabled="!fulfillForm.warehouseId" />
       </template>
     </Dialog>
+
+    <!-- Details Dialog (Traceability) -->
+    <Dialog v-model:visible="showDetailsDialog" :header="`Requisition: ${selectedReq?.requisitionNumber}`" :style="{ width: '90vw', maxWidth: '1000px' }" modal>
+        <div v-if="selectedReq" class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+            <div class="md:col-span-2 flex flex-col gap-6">
+                <!-- Ancestry -->
+                <div class="flex flex-col gap-2">
+                    <span class="text-[10px] font-black uppercase opacity-60">Reference Chain</span>
+                    <TraceChain :ancestry="reqAncestry" />
+                </div>
+
+                <!-- Items Table -->
+                <div class="flex flex-col gap-2">
+                    <span class="text-[10px] font-black uppercase opacity-60">Order Composition</span>
+                    <DataTable :value="selectedReq.items" class="p-datatable-sm border rounded-lg overflow-hidden">
+                        <Column field="material" header="Material" />
+                        <Column field="thickness" header="Thick" />
+                        <Column field="color" header="Color" />
+                        <Column field="quantity" header="Qty" />
+                        <Column field="totalPrice" header="Price">
+                            <template #body="{ data }">{{ data.totalPrice.toFixed(2) }}</template>
+                        </Column>
+                    </DataTable>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-6">
+                <!-- Status & History -->
+                <div class="flex flex-col gap-2 p-4 bg-[var(--p-surface-50)] border rounded-xl">
+                    <span class="text-[10px] font-black uppercase opacity-60 mb-2">Status Lifecycle</span>
+                    <HistoryTimeline :history="selectedReq.statusHistory" />
+                </div>
+            </div>
+        </div>
+    </Dialog>
   </div>
 </template>
 
@@ -108,11 +147,14 @@
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
+import { useEntityStore } from '~/stores/entities';
+import StatusBadge from '~/components/shared/status/StatusBadge.vue';
+import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import Textarea from 'primevue/textarea';
 import Divider from 'primevue/divider';
 import InputNumber from 'primevue/inputnumber';
 import Select from 'primevue/select';
-import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
@@ -120,6 +162,7 @@ import Column from 'primevue/column';
 
 const toast = useToast();
 const authStore = useAuthStore();
+const entityStore = useEntityStore();
 
 const requisitions = ref([]);
 const manufacturers = ref([]);
@@ -128,12 +171,17 @@ const warehouses = ref([]);
 const loading = ref(false);
 const showDialog = ref(false);
 const showFulfillDialog = ref(false);
+const showDetailsDialog = ref(false);
 const form = ref({ manufacturerId: null, notes: '', items: [] });
 const fulfillForm = ref({ warehouseId: null, notes: '' });
 const fulfillingId = ref(null);
+const selectedReq = ref(null);
 
-function getStatusLabel(status) {
-...
+const reqAncestry = computed(() => {
+    if (!selectedReq.value) return [];
+    return entityStore.getAncestry('requisition', selectedReq.value);
+});
+
 async function load() {
   loading.value = true;
   try {
@@ -147,7 +195,67 @@ async function load() {
         warehouses.value = await $fetch('/api/warehouses');
     }
   } catch (error) {
-...
+    if (error.status !== 401) {
+      toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    }
+  } finally {
+    loading.value = false;
+  }
+}
+
+function viewDetails(req) {
+    selectedReq.value = req;
+    showDetailsDialog.value = true;
+}
+
+function addItem() {
+  form.value.items.push({ catalogId: null, sheetTypeId: null, sizeIndex: 0, quantity: 1 });
+}
+
+async function create() {
+  try {
+    await $fetch('/api/requisitions', { method: 'POST', body: form.value });
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Requisition created', life: 3000 });
+    showDialog.value = false;
+    form.value = { manufacturerId: null, notes: '', items: [] };
+    await load();
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+  }
+}
+
+async function send(id) {
+  try {
+    await $fetch(`/api/requisitions/${id}/send`, { method: 'POST' });
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Requisition sent', life: 3000 });
+    await load();
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+  }
+}
+
+async function approve(id) {
+  try {
+    await $fetch(`/api/requisitions/${id}/approve`, { method: 'POST' });
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Requisition approved', life: 3000 });
+    await load();
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+  }
+}
+
+async function reject(id) {
+  if (confirm('Reject this requisition?')) {
+    try {
+      await $fetch(`/api/requisitions/${id}/reject`, { method: 'POST' });
+      toast.add({ severity: 'success', summary: 'Success', detail: 'Requisition rejected', life: 3000 });
+      await load();
+    } catch (error) {
+      toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    }
+  }
+}
+
 async function startFulfillment(id) {
   try {
     await $fetch(`/api/requisitions/${id}/start-fulfillment`, { method: 'POST' });

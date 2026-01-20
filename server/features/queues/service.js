@@ -84,7 +84,13 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
       cassetteTemplateId: new ObjectId(e.cassetteTemplateId)
     })),
     additionalFiles: data.additionalFiles || [],
-    previousRemainder: data.previousRemainder || null
+    previousRemainder: data.previousRemainder || null,
+    statusHistory: [{
+      status: 'DRAFT',
+      timestamp: new Date(),
+      userId: userId,
+      note: 'Queue created'
+    }]
   });
 }
 
@@ -182,6 +188,12 @@ export async function resetToDraft(id, userId, userOrg, userRole, userPermission
   };
 
   await repository.updateById(id, updates);
+  await repository.addStatusHistory(id, {
+    status: 'DRAFT',
+    timestamp: now,
+    userId: userId,
+    note: 'Queue reset to draft'
+  });
   await repository.setRunsStatusByStatus(id, 'NESTING', 'ERROR');
   return await repository.findById(id);
 }
@@ -213,6 +225,13 @@ export async function markCut(id, userId, userOrg, userRole, userPermissions) {
 
   // Update status
   const updatedQueue = await repository.updateById(id, { status: 'CUT' }) ? await getById(id, userId, userOrg, userRole, userPermissions) : queue;
+  
+  await repository.addStatusHistory(id, {
+    status: 'CUT',
+    timestamp: new Date(),
+    userId: userId,
+    note: 'Queue marked as cut'
+  });
 
   // Create cassette instances
   await cassetteInstanceService.createFromQueue(queue, { userId });

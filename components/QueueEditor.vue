@@ -1,26 +1,44 @@
 <template>
     <div class="flex flex-col gap-6">
-        <!-- Queue Header with Status -->
-        <div class="flex flex-col sm:flex-row sm:items-center gap-4 bg-[var(--p-content-background)] p-4 rounded-xl border border-[var(--p-content-border-color)]">
-            <div class="flex items-center gap-3">
-                <Tag :value="$t(`queue.queueStatus.${queue.status}`)" :severity="getStatusSeverity(queue.status)" />
-                <span class="text-sm font-medium text-[var(--p-text-muted-color)]">{{ entries.length }} {{ $t('queues.entries') }}</span>
+        <!-- Queue Header with Status and Traceability -->
+        <div class="flex flex-col gap-4 bg-[var(--p-content-background)] p-6 rounded-xl border border-[var(--p-content-border-color)]">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-3">
+                        <h2 class="text-xl font-black m-0">{{ queue.name }}</h2>
+                        <StatusBadge :status="queue.status" />
+                        <span class="text-sm font-medium text-[var(--p-text-muted-color)]">{{ entries.length }} {{ $t('queues.entries') }}</span>
+                    </div>
+                    <TraceChain :ancestry="queueAncestry" />
+                </div>
+                <div class="flex flex-wrap gap-2 sm:ml-auto">
+                    <Button 
+                        icon="pi pi-history" 
+                        severity="secondary" 
+                        text 
+                        @click="showHistory = !showHistory" 
+                        v-tooltip.top="'Toggle History'"
+                    />
+                    <Button 
+                        v-if="queue.status === 'DRAFT' && queue.chosenRunId"
+                        :label="$t('queue.markCut')"
+                        icon="pi pi-scissors"
+                        severity="success"
+                        @click="markCutHandler"
+                    />
+                    <Button 
+                        v-if="queue.status !== 'DRAFT'"
+                        :label="$t('queue.resetToDraft')"
+                        icon="pi pi-refresh"
+                        severity="warning"
+                        @click="resetToDraft"
+                    />
+                </div>
             </div>
-            <div class="flex flex-wrap gap-2 sm:ml-auto">
-                <Button 
-                    v-if="queue.status === 'DRAFT' && queue.chosenRunId"
-                    :label="$t('queue.markCut')"
-                    icon="pi pi-scissors"
-                    severity="success"
-                    @click="markCutHandler"
-                />
-                <Button 
-                    v-if="queue.status !== 'DRAFT'"
-                    :label="$t('queue.resetToDraft')"
-                    icon="pi pi-refresh"
-                    severity="warning"
-                    @click="resetToDraft"
-                />
+
+            <div v-if="showHistory" class="mt-4 pt-4 border-t border-[var(--p-content-border-color)] animate-in fade-in slide-in-from-top-2">
+                <span class="text-[10px] font-black uppercase opacity-60 mb-4 block">Queue Lifecycle</span>
+                <HistoryTimeline :history="queue.statusHistory || []" />
             </div>
         </div>
 
@@ -531,6 +549,10 @@ import AccordionTab from 'primevue/accordiontab';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
 
+import StatusBadge from '~/components/shared/status/StatusBadge.vue';
+import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
+
 const props = defineProps({
     queue: { type: Object, required: true },
     projectSlug: { type: String, required: true }
@@ -545,6 +567,7 @@ const queuesStore = useQueuesStore();
 const cassettesStore = useCassettesStore();
 const artifactsStore = useArtifactsStore();
 const toolProfilesStore = useToolProfilesStore();
+const entityStore = useEntityStore();
 
 const entries = ref([]);
 const editingRows = ref([]);
@@ -552,11 +575,16 @@ const { artifacts } = storeToRefs(artifactsStore);
 const nestingInProgress = ref(false);
 const showAddDialog = ref(false);
 const showUploadDialog = ref(false);
+const showHistory = ref(false);
 const cassettes = ref([]);
 const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
 const selectedRunId = ref(null);
 const instances = ref([]);
+
+const queueAncestry = computed(() => {
+    return entityStore.getAncestry('queue', props.queue);
+});
 
 const instanceStatuses = [
     { label: 'Nested', value: 'nested' },
@@ -588,7 +616,92 @@ const updateInstanceStatus = async (instance, status) => {
 };
 
 const projectData = ref(null);
-...
+const activeMaterialId = ref(null);
+
+const availableArtifacts = ref([
+    { id: 'LAYOUT_DXF', name: 'DXF Layout', icon: 'pi pi-file', description: 'Full production DXF with all layers.' },
+    { id: 'PDF_PASSPORT', name: 'Technical Passports', icon: 'pi pi-id-card', description: 'Per-sheet PDF passports for production.' }
+]);
+
+const nestingOptions = ref({
+    width: props.queue.nestingParams?.width || 2440,
+    height: props.queue.nestingParams?.height || 1220,
+    toolId: props.queue.nestingParams?.toolId || null,
+    sheetPolygon: props.queue.nestingParams?.sheetPolygon || null,
+    requestedArtifacts: props.queue.requestedArtifacts || ['LAYOUT_DXF'],
+    pdfTemplateId: props.queue.pdfTemplateId || null,
+    inventorySheets: props.queue.nestingParams?.inventorySheets || []
+});
+
+watch(nestingOptions, async (newVal) => {
+    if (props.queue.status !== 'DRAFT') return;
+    try {
+        await $fetch(`/api/queue/${props.queue._id}`, {
+            method: 'PUT',
+            body: {
+                nestingParams: {
+                    width: newVal.width,
+                    height: newVal.height,
+                    toolId: newVal.toolId,
+                    sheetPolygon: newVal.sheetPolygon,
+                    inventorySheets: newVal.inventorySheets
+                },
+                requestedArtifacts: newVal.requestedArtifacts,
+                pdfTemplateId: newVal.pdfTemplateId
+            }
+        });
+    } catch (e) { console.error(e); }
+}, { deep: true });
+
+const pdfTemplates = ref([{ _id: 'default', name: 'Standard Passport' }, { _id: 'detailed', name: 'Detailed Technical' }]);
+
+const projectMaterials = computed(() => projectData.value?.projectMaterials || []);
+const activeProjectMaterial = computed(() => projectMaterials.value.find(pm => pm.materialId === activeMaterialId.value));
+
+const isSheetSelected = (sheet) => nestingOptions.value.inventorySheets.some(s => s.width === sheet.width && s.height === sheet.height);
+
+const toggleSheetSelection = (sheet) => {
+    const idx = nestingOptions.value.inventorySheets.findIndex(s => s.width === sheet.width && s.height === sheet.height);
+    if (idx > -1) nestingOptions.value.inventorySheets.splice(idx, 1);
+    else nestingOptions.value.inventorySheets.push({ code: activeProjectMaterial.value.material.code, width: sheet.width, height: sheet.height, available: sheet.available });
+};
+
+const toggleArtifact = (id) => {
+    if (id === 'LAYOUT_DXF') return;
+    const idx = nestingOptions.value.requestedArtifacts.indexOf(id);
+    if (idx > -1) nestingOptions.value.requestedArtifacts.splice(idx, 1);
+    else nestingOptions.value.requestedArtifacts.push(id);
+};
+
+const artifactsTableRef = ref(null);
+
+const onArtifactClick = (artifact) => {
+    selectedRunId.value = artifact.runId.toString();
+    // Use nextTick to ensure the table is rendered then trigger preview
+    nextTick(() => {
+        if (artifactsTableRef.value) {
+            artifactsTableRef.value.previewArtifact(artifact);
+        }
+    });
+};
+
+const goToProjectData = () => navigateTo(`/project/${props.projectSlug}/data`);
+
+onMounted(async () => {
+    const [cassetteResult, projectRes] = await Promise.all([
+        cassettesStore.fetchCassettes(),
+        $fetch(`/api/project/${props.projectSlug}`)
+    ]);
+    cassettes.value = cassetteResult || [];
+    projectData.value = projectRes;
+    await toolProfilesStore.fetchTools();
+    loadQueueData();
+});
+
+onUnmounted(() => queuesStore.stopPolling(props.queue._id));
+watch(() => props.queue, () => loadQueueData(), { deep: true });
+watch(selectedRunId, () => loadArtifacts());
+
 const loadQueueData = () => {
     entries.value = [...(props.queue.entries || [])];
     loadArtifacts();

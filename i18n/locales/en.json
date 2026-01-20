@@ -75,6 +75,28 @@
     "admin": "Administration",
     "settings": "Settings"
   },
+  "status": {
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "fulfilling": "In Fulfillment",
+    "fulfilled": "Fulfilled",
+    "canceled": "Canceled",
+    "requested": "Requested",
+    "assembled": "Assembled",
+    "arrived": "Arrived",
+    "inStock": "In Stock",
+    "partiallyUsed": "Partially Used",
+    "usedUp": "Used Up",
+    "cut": "Cut",
+    "nested": "Nested",
+    "manufactured": "Manufactured",
+    "onSite": "On Site",
+    "installed": "Installed",
+    "inCutting": "In Cutting",
+    "milled": "Milled"
+  },
   "dashboard": {
     "welcome": "Welcome to CutKit",
     "subtitle": "Manage your nesting projects and cassettes",
