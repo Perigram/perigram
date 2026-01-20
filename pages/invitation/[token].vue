@@ -72,7 +72,14 @@ import { useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
 import Card from 'primevue/card';
-...
+import Button from 'primevue/button';
+import Message from 'primevue/message';
+import ProgressSpinner from 'primevue/progressspinner';
+
+definePageMeta({
+    layout: false
+});
+
 const route = useRoute();
 const toast = useToast();
 const authStore = useAuthStore();
