@@ -125,13 +125,17 @@
                         <Card 
                             v-for="membership in authStore.userData.memberships" 
                             :key="membership.organizationId"
-                            class="border border-[var(--p-content-border-color)] hover:border-[var(--p-primary-color)] transition-colors cursor-pointer"
-                            @click="authStore.switchOrganization(membership.organizationId)"
+                            class="border border-[var(--p-content-border-color)] hover:border-[var(--p-primary-color)] transition-colors cursor-pointer relative overflow-hidden"
+                            :class="[membership.status === 'pending' ? 'opacity-70 grayscale' : '']"
+                            @click="membership.status !== 'pending' && authStore.switchOrganization(membership.organizationId)"
                         >
                             <template #title>
                                 <div class="flex items-center justify-between">
                                     <span class="text-lg font-black">{{ getOrgName(membership.organizationId) }}</span>
-                                    <Tag v-if="membership.organizationId === authStore.userData.organizationId" value="ACTIVE" severity="success" />
+                                    <div class="flex gap-2">
+                                        <Tag v-if="membership.status === 'pending'" value="PENDING" severity="warn" />
+                                        <Tag v-if="membership.organizationId === authStore.userData.organizationId" value="ACTIVE" severity="success" />
+                                    </div>
                                 </div>
                             </template>
                             <template #content>
@@ -140,25 +144,16 @@
                                         <i class="pi pi-shield text-[var(--p-primary-color)]"></i>
                                         <span class="text-sm font-bold uppercase opacity-60">{{ membership.role }}</span>
                                     </div>
-                                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-[var(--p-content-border-color)]">
+                                    <div v-if="membership.status === 'pending'" class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700 italic">
+                                        Your membership request is awaiting administrator confirmation.
+                                    </div>
+                                    <div v-else class="flex justify-between items-center mt-2 pt-2 border-t border-[var(--p-content-border-color)]">
                                         <Button v-if="membership.role.includes('Admin')" label="Manage Team" icon="pi pi-users" text size="small" @click.stop="router.push('/organization/users')" />
                                         <Button v-else label="View Organization" icon="pi pi-building" text size="small" />
                                     </div>
                                 </div>
                             </template>
                         </Card>
-                    </div>
-
-                    <!-- Join by Link Section -->
-                    <div class="mt-8 p-8 border-2 border-dashed border-[var(--p-content-border-color)] rounded-2xl bg-[var(--p-content-background)]/50 flex flex-col items-center gap-4">
-                        <div class="text-center">
-                            <h3 class="text-lg font-bold m-0">Join an Organization</h3>
-                            <p class="text-sm text-[var(--p-text-muted-color)]">Enter an invitation code to join an existing organization.</p>
-                        </div>
-                        <div class="flex w-full max-w-sm gap-2">
-                            <InputText v-model="inviteCode" placeholder="Invitation Code (e.g. ORG-123-ABC)" class="flex-1 font-mono uppercase" />
-                            <Button label="Join" icon="pi pi-user-plus" :loading="joiningOrg" @click="joinByCode" />
-                        </div>
                     </div>
                 </div>
             </TabPanel>
@@ -239,30 +234,10 @@ const user = computed(() => userRef.value || {});
 const showBuyCredits = ref(false);
 const showCreateOrgDialog = ref(false);
 const submittingOrg = ref(false);
-const joiningOrg = ref(false);
-const inviteCode = ref('');
 
 const getOrgName = (orgId) => {
     const org = authStore.userOrganizations.find(o => o._id === orgId);
     return org ? org.name : 'Unknown Organization';
-};
-
-const joinByCode = async () => {
-    if (!inviteCode.value) return;
-    joiningOrg.value = true;
-    try {
-        await $fetch('/api/auth/join-org', {
-            method: 'POST',
-            body: { code: inviteCode.value.toUpperCase() }
-        });
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Joined organization successfully', life: 3000 });
-        inviteCode.value = '';
-        await authStore.setUser();
-    } catch (error) {
-        toast.add({ severity: 'error', summary: 'Error', detail: error.message || 'Failed to join organization', life: 3000 });
-    } finally {
-        joiningOrg.value = false;
-    }
 };
 
 const orgForm = ref({

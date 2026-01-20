@@ -34,7 +34,8 @@ export async function register(data, creatorUserId, creatorRole) {
     memberships.push({
       organizationId: new ObjectId(data.organizationId),
       role,
-      permissions
+      permissions,
+      status: 'active'
     });
   }
 
@@ -139,25 +140,36 @@ export async function list(userRole, userOrgId) {
     return await usersRepository.find();
   }
   
-  // Others see only users in their org
-  return await usersRepository.find({ organizationId: userOrgId });
+  // Others see users that have a membership in their org
+  return await usersRepository.find({ 
+    "memberships.organizationId": new ObjectId(userOrgId) 
+  });
 }
 
-export async function updatePermissions(userId, permissions, updaterUserId, updaterRole, updaterOrgId) {
+export async function confirmMembership(userId, organizationId, action, updaterUser) {
+  // Only org admins can confirm memberships
+  if (updaterUser.role !== 'SuperAdmin' && updaterUser.organizationId.toString() !== organizationId.toString()) {
+    throw createError({ statusCode: 403, message: 'Forbidden' });
+  }
+
   const user = await usersRepository.findById(userId);
-  if (!user) {
-    throw createError({ statusCode: 404, message: 'User not found' });
+  if (!user) throw createError({ statusCode: 404, message: 'User not found' });
+
+  if (action === 'approve') {
+    // Set membership status to active
+    const db = await (await import('~/server/db/mongo')).connectDB();
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(userId), "memberships.organizationId": new ObjectId(organizationId) },
+      { $set: { "memberships.$.status": 'active' } }
+    );
+  } else {
+    // Remove membership
+    const db = await (await import('~/server/db/mongo')).connectDB();
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(userId) },
+      { $pull: { memberships: { organizationId: new ObjectId(organizationId) } } }
+    );
   }
-  
-  // Only org admins can update permissions in their org, or SuperAdmin
-  if (updaterRole !== 'SuperAdmin' && user.organizationId.toString() !== updaterOrgId.toString()) {
-    throw createError({ statusCode: 403, message: 'Cannot update users from other organizations' });
-  }
-  
-  const success = await usersRepository.updateById(userId, { permissions });
-  if (!success) {
-    throw createError({ statusCode: 500, message: 'Update failed' });
-  }
-  
-  return await usersRepository.findById(userId);
+
+  return { success: true };
 }

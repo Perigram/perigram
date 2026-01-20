@@ -29,9 +29,14 @@
     <div v-if="invitations.length > 0" class="flex flex-col gap-4 mt-8">
         <h2 class="text-xl font-bold">Active Invitations</h2>
         <DataTable :value="invitations" class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
-            <Column field="code" header="Invite Code">
+            <Column header="Invitation Link">
                 <template #body="{ data }">
-                    <span class="font-mono font-bold text-[var(--p-primary-color)]">{{ data.code }}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-mono bg-[var(--p-surface-100)] px-2 py-1 rounded truncate max-w-md">
+                            {{ getInvitationUrl(data.token) }}
+                        </span>
+                        <Button icon="pi pi-copy" text size="small" @click="copyToClipboard(getInvitationUrl(data.token))" />
+                    </div>
                 </template>
             </Column>
             <Column field="role" header="Role" />
@@ -42,7 +47,27 @@
             </Column>
             <Column header="Actions" class="text-right">
                 <template #body="{ data }">
-                    <Button icon="pi pi-copy" text @click="copyToClipboard(data.code)" v-tooltip.top="'Copy Link'" />
+                    <Button icon="pi pi-trash" text severity="danger" @click="revokeInvite(data._id)" v-tooltip.top="'Revoke'" />
+                </template>
+            </Column>
+        </DataTable>
+    </div>
+
+    <!-- Pending Members Section -->
+    <div v-if="pendingUsers.length > 0" class="flex flex-col gap-4 mt-8">
+        <h2 class="text-xl font-bold text-yellow-600 flex items-center gap-2">
+            <i class="pi pi-clock"></i>
+            Join Requests
+        </h2>
+        <DataTable :value="pendingUsers" class="border border-yellow-200 rounded-lg overflow-hidden shadow-sm">
+            <Column field="name" header="Name" sortable />
+            <Column field="email" header="Email" />
+            <Column header="Actions" class="text-right">
+                <template #body="{ data }">
+                    <div class="flex justify-end gap-2">
+                        <Button icon="pi pi-check" label="Approve" severity="success" size="small" @click="confirmMembership(data._id, 'approve')" />
+                        <Button icon="pi pi-times" label="Reject" severity="danger" size="small" text @click="confirmMembership(data._id, 'reject')" />
+                    </div>
                 </template>
             </Column>
         </DataTable>
@@ -51,20 +76,22 @@
     <!-- Invite Member Dialog -->
     <Dialog v-model:visible="showInviteDialog" header="Invite Member" :style="{ width: '450px' }" modal>
         <div class="flex flex-col gap-4 pt-4">
-            <p class="text-sm text-[var(--p-text-muted-color)] m-0">Generate a unique code that a user can use to join your organization from their profile.</p>
+            <p class="text-sm text-[var(--p-text-muted-color)] m-0">Generate a unique link that a user can use to join your organization.</p>
             <div class="flex flex-col gap-2">
                 <label class="font-bold text-sm">Role *</label>
                 <Select v-model="inviteForm.role" :options="roleOptions" optionLabel="label" optionValue="value" class="w-full" />
             </div>
-            <div v-if="generatedCode" class="p-4 bg-[var(--p-surface-50)] border-2 border-dashed border-[var(--p-primary-color)] rounded-xl text-center mt-4 animate-in fade-in zoom-in">
-                <span class="text-[10px] font-black uppercase opacity-60 block mb-1">Your Code</span>
-                <span class="text-2xl font-mono font-black text-[var(--p-primary-color)]">{{ generatedCode }}</span>
-                <Button label="Copy Code" icon="pi pi-copy" text size="small" class="mt-2 block mx-auto" @click="copyToClipboard(generatedCode)" />
+            <div v-if="generatedUrl" class="p-4 bg-[var(--p-surface-50)] border-2 border-dashed border-[var(--p-primary-color)] rounded-xl mt-4 animate-in fade-in zoom-in">
+                <span class="text-[10px] font-black uppercase opacity-60 block mb-2">Invitation Link</span>
+                <div class="flex items-center gap-2 p-2 bg-white border rounded border-[var(--p-primary-color)]/20">
+                    <span class="text-xs font-mono truncate flex-1">{{ generatedUrl }}</span>
+                    <Button icon="pi pi-copy" text size="small" @click="copyToClipboard(generatedUrl)" />
+                </div>
             </div>
         </div>
         <template #footer>
-            <Button label="Close" text severity="secondary" @click="showInviteDialog = false; generatedCode = null" />
-            <Button label="Generate Code" icon="pi pi-refresh" @click="generateInvite" :loading="generatingInvite" v-if="!generatedCode" />
+            <Button label="Close" text severity="secondary" @click="showInviteDialog = false; generatedUrl = null" />
+            <Button label="Generate Link" icon="pi pi-link" @click="generateInvite" :loading="generatingInvite" v-if="!generatedUrl" />
         </template>
     </Dialog>
 
@@ -139,8 +166,28 @@ const showPermissionsDialog = ref(false);
 const showInviteDialog = ref(false);
 const generatingInvite = ref(false);
 const selectedUser = ref(null);
-const generatedCode = ref(null);
+const generatedUrl = ref(null);
 const invitations = ref([]);
+const pendingUsers = ref([]);
+
+const getInvitationUrl = (token) => {
+    if (process.client) {
+        return `${window.location.origin}/invitation/${token}`;
+    }
+    return '';
+};
+
+const revokeInvite = async (id) => {
+    if (confirm('Are you sure you want to revoke this invitation?')) {
+        try {
+            await $fetch(`/api/organizations/${authStore.userData.organizationId}/invitations/${id}`, { method: 'DELETE' });
+            await loadInvitations();
+            toast.add({ severity: 'success', summary: 'Success', detail: 'Invitation revoked', life: 3000 });
+        } catch (e) {
+            toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 });
+        }
+    }
+};
 
 const form = ref({
   name: '',
@@ -164,40 +211,35 @@ const roleOptions = computed(() => {
 async function loadUsers() {
   loading.value = true;
   try {
-    users.value = await $fetch('/api/users');
+    const allUsers = await $fetch('/api/users');
+    users.value = allUsers.filter(u => 
+        u.memberships?.some(m => m.organizationId.toString() === authStore.userData.organizationId.toString() && m.status === 'active')
+    );
+    pendingUsers.value = allUsers.filter(u => 
+        u.memberships?.some(m => m.organizationId.toString() === authStore.userData.organizationId.toString() && m.status === 'pending')
+    );
     await loadInvitations();
   } catch (error) {
-    if (error.status !== 401) {
-        toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
-    }
-  } finally {
-    loading.value = false;
-  }
-}
-
-async function loadInvitations() {
-    try {
-        invitations.value = await $fetch(`/api/organizations/${authStore.userData.organizationId}/invitations`);
-    } catch (e) { console.error(e); }
-}
-
+...
 async function generateInvite() {
-    generatingInvite.value = true;
+...
+}
+
+async function confirmMembership(userId, action) {
     try {
-        const res = await $fetch(`/api/organizations/${authStore.userData.organizationId}/invitations`, {
+        await $fetch(`/api/users/${userId}/membership-confirmation`, {
             method: 'POST',
-            body: inviteForm.value
+            body: { action, organizationId: authStore.userData.organizationId }
         });
-        generatedCode.value = res.code;
-        await loadInvitations();
+        toast.add({ severity: 'success', summary: 'Success', detail: `User ${action}d`, life: 3000 });
+        await loadUsers();
     } catch (e) {
         toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 });
-    } finally {
-        generatingInvite.value = false;
     }
 }
 
 function copyToClipboard(text) {
+
     navigator.clipboard.writeText(text);
     toast.add({ severity: 'success', summary: 'Copied', detail: 'Invitation code copied to clipboard', life: 2000 });
 }

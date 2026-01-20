@@ -26,6 +26,19 @@ export async function markAsUsed(id) {
   );
 }
 
+export async function findByToken(token) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).findOne({ token, isActive: true });
+}
+
+export async function revoke(id) {
+  const db = await connectDB();
+  await db.collection(COLLECTION).updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { isActive: false, revokedAt: new Date() } }
+  );
+}
+
 export async function findByOrg(organizationId) {
   const db = await connectDB();
   return await db.collection(COLLECTION)

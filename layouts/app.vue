@@ -141,36 +141,65 @@
     };
 
     const userMenuItems = computed(() => {
-        const items = [
-            {
-                label: authStore.userData.name || 'User',
+        const items = [];
+
+        // 1. Current Organization & Context
+        if (authStore.organizationData) {
+            items.push({
+                label: authStore.organizationData.name,
                 items: [
                     {
-                        label: t('nav.profile'),
-                        icon: 'pi pi-user',
-                        command: () => router.push('/profile')
+                        label: `${t('queue.status')}: ${authStore.organizationData.type}`,
+                        icon: 'pi pi-info-circle',
+                        disabled: true
+                    },
+                    {
+                        label: `Role: ${authStore.userData.role}`,
+                        icon: 'pi pi-shield',
+                        disabled: true
                     }
                 ]
-            }
-        ];
+            });
+        }
 
-        // Organization Switcher Section
+        // 2. Organization Switcher (if multiple)
         if (authStore.userOrganizations.length > 1) {
             items.push({
                 label: t('auth.organization'),
                 items: authStore.userOrganizations.map(org => ({
                     label: org.name,
-                    icon: org._id.toString() === authStore.userData.organizationId?.toString() ? 'pi pi-check' : 'pi pi-building',
+                    icon: org._id.toString() === authStore.userData.organizationId?.toString() ? 'pi pi-check text-green-500' : 'pi pi-building',
                     command: async () => {
                         if (org._id.toString() !== authStore.userData.organizationId?.toString()) {
                             await authStore.switchOrganization(org._id);
-                            router.push('/'); // Redirect to home to refresh context
+                            router.push('/');
                         }
                     }
                 }))
             });
         }
 
+        // 3. User Actions
+        items.push({
+            label: authStore.userData.name || 'User',
+            items: [
+                {
+                    label: t('nav.profile'),
+                    icon: 'pi pi-user',
+                    command: () => router.push('/profile')
+                },
+                {
+                    label: t('nav.logout'),
+                    icon: 'pi pi-sign-out',
+                    command: async () => {
+                        await authStore.logout();
+                        router.push('/auth/login');
+                    }
+                }
+            ]
+        });
+
+        // 4. Admin sections (if SuperAdmin)
         if (authStore.isSuperAdmin) {
             items.push({
                 label: t('roles.SuperAdmin'),
@@ -188,30 +217,6 @@
                 ]
             });
         }
-        
-        if (authStore.isOrgAdmin) {
-            items.push({
-                label: t('auth.organization'),
-                items: [
-                    {
-                        label: t('features.users'),
-                        icon: 'pi pi-users',
-                        command: () => router.push('/organization/users')
-                    }
-                ]
-            });
-        }
-
-        items.push({
-            separator: true
-        }, {
-            label: t('nav.logout'),
-            icon: 'pi pi-sign-out',
-            command: async () => {
-                await authStore.logout();
-                router.push('/auth/login');
-            }
-        });
 
         return items;
     });
@@ -264,7 +269,7 @@
             if (globalStore.projectsList.length === 0) {
                 await globalStore.getProjects()
             }
-            await fetchUserOrgs()
+            await authStore.fetchUserOrgs()
         }
     })
 </script>

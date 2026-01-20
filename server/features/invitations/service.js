@@ -1,37 +1,48 @@
 import * as repository from './repository.js';
 import * as usersRepository from '../users/repository.js';
+import * as organizationsRepository from '../organizations/repository.js';
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
+import { crypto } from 'node:crypto';
 import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
 
 export async function generateInvitation(organizationId, role, creatorUser) {
+  const org = await organizationsRepository.findById(organizationId);
+  if (!org) throw createError({ statusCode: 404, message: 'Organization not found' });
+
   // Only org admins can generate invitations
   if (creatorUser.role !== 'SuperAdmin' && creatorUser.organizationId.toString() !== organizationId.toString()) {
     throw createError({ statusCode: 403, message: 'Forbidden' });
   }
 
-  const code = `INV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  const token = crypto.randomBytes(32).toString('hex');
+  const code = `INV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`; // Keep short code as fallback
   
   await repository.create({
+    token,
     code,
     organizationId: new ObjectId(organizationId),
+    organizationName: org.name,
     role: role || 'IndividualUser',
     isActive: true,
     createdBy: creatorUser.userId
   });
 
-  return { code };
+  return { token, code };
 }
 
-export async function joinByCode(code, user) {
-  const invitation = await repository.findByCode(code);
-  
-  if (!invitation) {
-    throw createError({ statusCode: 404, message: 'Invalid or expired invitation code' });
-  }
+export async function getByToken(token) {
+  const db = await (await import('~/server/db/mongo')).connectDB();
+  const invitation = await db.collection('invitations').findOne({ token, isActive: true });
+  if (!invitation) throw createError({ statusCode: 404, message: 'Invitation not found or expired' });
+  return invitation;
+}
 
+export async function joinByToken(token, user) {
+  const invitation = await getByToken(token);
+  
   if (new Date() > invitation.expiresAt) {
-    throw createError({ statusCode: 410, message: 'Invitation code expired' });
+    throw createError({ statusCode: 410, message: 'Invitation expired' });
   }
 
   // Check if user is already a member
@@ -39,41 +50,31 @@ export async function joinByCode(code, user) {
   const alreadyMember = freshUser.memberships?.some(m => m.organizationId.toString() === invitation.organizationId.toString());
   
   if (alreadyMember) {
-    throw createError({ statusCode: 409, message: 'You are already a member of this organization' });
+    throw createError({ statusCode: 409, message: 'You already have a relationship with this organization' });
   }
 
   const role = invitation.role;
   const permissions = PERMISSION_TEMPLATES[role] || PERMISSION_TEMPLATES.IndividualUser;
 
-  // Add membership
+  // Add membership as PENDING
   const newMembership = {
     organizationId: invitation.organizationId,
     role,
-    permissions
+    permissions,
+    status: 'pending'
   };
-
-  const updates = {
-    $push: { memberships: newMembership }
-  };
-
-  // If user has no current organization, set this as primary
-  if (!freshUser.currentOrganizationId) {
-    updates.$set = {
-      organizationId: invitation.organizationId,
-      role,
-      permissions,
-      currentOrganizationId: invitation.organizationId
-    };
-  }
 
   const db = await (await import('~/server/db/mongo')).connectDB();
   await db.collection('users').updateOne(
     { _id: new ObjectId(user.userId) },
-    updates
+    { $push: { memberships: newMembership } }
   );
 
-  // Mark invitation as used (if single-use, but here we can keep it simple or make it multi-use)
-  // For now, let's keep it active for 7 days for multiple people if needed, or implement usage count
+  // Invalidate invitation (one-time link)
+  await db.collection('invitations').updateOne(
+    { _id: invitation._id },
+    { $set: { isActive: false, usedAt: new Date(), usedBy: user.userId } }
+  );
   
   return { success: true };
 }
