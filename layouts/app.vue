@@ -122,6 +122,13 @@
         }
     }
 
+    // Sync user organizations when user is set
+    watch(() => authStore.userIsSet, async (isSet) => {
+        if (isSet) {
+            await fetchUserOrgs()
+        }
+    }, { immediate: true })
+
     // Sync project context when route changes
     watch(() => route.params.slug, async (newSlug) => {
         await navStore.fetchProjectContext(newSlug)
@@ -141,10 +148,7 @@
 
     // --- User Menu ---
     const userMenu = ref();
-    const toggleUserMenu = async (event) => {
-        if (userOrgs.value.length === 0) {
-            await fetchUserOrgs()
-        }
+    const toggleUserMenu = (event) => {
         userMenu.value.toggle(event);
     };
 
