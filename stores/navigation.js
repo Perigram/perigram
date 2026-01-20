@@ -1,13 +1,31 @@
 import { defineStore } from 'pinia';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useAuthStore } from './auth';
+import { useGlobalStore } from './global';
 import { useI18n } from 'vue-i18n';
 
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
+    const globalStore = useGlobalStore();
     const { t } = useI18n();
 
+    // Store-managed state for project context
+    const currentProject = ref(null);
+
+    async function fetchProjectContext(slug) {
+        if (!slug) {
+            currentProject.value = null;
+            return;
+        }
+        try {
+            currentProject.value = await $fetch(`/api/project/${slug}`);
+        } catch (e) {
+            console.error('Failed to fetch project context:', e);
+        }
+    }
+
     // --- HUB DEFINITIONS (Level 1) ---
+    // Entirely dynamic based on role/org state
     const hubs = computed(() => {
         const sections = [];
         
@@ -33,14 +51,14 @@ export const useNavigationStore = defineStore('navigation', () => {
         { id: '/assets/templates', name: t('nav.templates'), to: '/assets/templates' },
     ]);
 
-    // Computed property to generate breadcrumbs based on route path
-    const getBreadcrumbs = (path, projectsList = [], currentProjectData = null) => {
+    // Master breadcrumb generator
+    const resolveBreadcrumbs = (path) => {
         const parts = path.split('/').filter((p) => p);
         const nav = [];
 
         if (parts.length === 0) return nav;
 
-        // --- Level 1: Hubs ---
+        // --- Level 1: Hub Logic ---
         let currentSectionId = parts[0];
         if (currentSectionId === 'project') currentSectionId = 'projects';
         if (currentSectionId === 'admin') currentSectionId = parts[1];
@@ -56,22 +74,22 @@ export const useNavigationStore = defineStore('navigation', () => {
             });
         }
 
-        // --- Level 2: Project Details ---
+        // --- Level 2: Project Context ---
         if (parts[0] === 'project' && parts[1]) {
-            const projectName = currentProjectData?.name || parts[1];
+            const projectName = currentProject.value?.name || parts[1];
             const projectSlug = parts[1];
 
             nav.push({
                 id: projectSlug,
                 name: projectName,
                 to: `/project/${projectSlug}/queues`,
-                siblings: Array.isArray(projectsList)
-                        ? projectsList.map((p) => ({ name: p.name, id: `/project/${p.slug}/queues` }))
+                siblings: Array.isArray(globalStore.projectsList)
+                        ? globalStore.projectsList.map((p) => ({ name: p.name, id: `/project/${p.slug}/queues` }))
                         : [],
             });
         }
 
-        // --- Level 2: Asset Tabs ---
+        // --- Level 2: Library Context ---
         if (currentSectionId === 'assets' || parts[0] === 'assets') {
             const currentAssetTabId = parts[1] || 'cassettes';
             const currentAssetTab = assetSiblings.value.find((t) => t.to.endsWith(currentAssetTabId));
@@ -90,7 +108,8 @@ export const useNavigationStore = defineStore('navigation', () => {
 
     return {
         hubs,
-        assetSiblings,
-        getBreadcrumbs
+        currentProject,
+        fetchProjectContext,
+        resolveBreadcrumbs
     };
 });

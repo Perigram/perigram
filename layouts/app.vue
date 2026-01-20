@@ -106,24 +106,24 @@
     const supportDialog = useSupportDialog()
     const authStore = useAuthStore()
     const navStore = useNavigationStore()
+    const globalStore = useGlobalStore()
 
-    const { data: projectsData } = await useAsyncData('projects', () => (authStore.isContractor || authStore.isCustomer || authStore.isSuperAdmin) ? $fetch(API_ROUTES.PROJECTS) : null, { lazy: true })
-    const projects = computed(() => projectsData.value?.projects || [])
+    // Sync project context when route changes
+    watch(() => route.params.slug, async (newSlug) => {
+        await navStore.fetchProjectContext(newSlug)
+    }, { immediate: true })
 
-    // Fetch current project if on project page
-    const currentProjectSlug = computed(() => {
-        const parts = route.path.split('/').filter((p) => p)
-        if (parts[0] === 'project' && parts[1]) {
-            return parts[1]
+    // Fetch projects list once for breadcrumb siblings
+    onMounted(async () => {
+        if (authStore.userIsSet && globalStore.projectsList.length === 0) {
+            await globalStore.getProjects()
         }
-        return null
     })
 
-    const { data: currentProject } = await useAsyncData(
-        'currentProject',
-        () => (currentProjectSlug.value ? $fetch(`/api/project/${currentProjectSlug.value}`) : null),
-        { watch: [currentProjectSlug], lazy: true },
-    )
+    // --- Breadcrumb Navigation ---
+    const breadcrumbs = computed(() => {
+        return navStore.resolveBreadcrumbs(route.path)
+    })
 
     // --- User Menu ---
     const userMenu = ref();
