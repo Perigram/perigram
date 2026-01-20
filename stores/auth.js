@@ -5,11 +5,13 @@ import { API_ROUTES } from '~/composables/apiRoutes';
 export const useAuthStore = defineStore('auth', () => {
     const user = ref({});
     const organization = ref(null);
+    const userOrgs = ref([]);
     const isUserSet = ref(false);
 
     const userIsSet = computed(() => isUserSet.value);
     const userData = computed(() => user.value);
     const organizationData = computed(() => organization.value);
+    const userOrganizations = computed(() => userOrgs.value);
     const memberships = computed(() => user.value?.memberships || []);
 
     // Roles
@@ -38,6 +40,8 @@ export const useAuthStore = defineStore('auth', () => {
                 } else {
                     organization.value = null;
                 }
+
+                await fetchUserOrgs();
             } else {
                 user.value = {};
                 organization.value = null;
@@ -93,9 +97,18 @@ export const useAuthStore = defineStore('auth', () => {
             });
             user.value = {};
             organization.value = null;
+            userOrgs.value = [];
             isUserSet.value = false;
         } catch (err) {
             console.error('Logout failed:', err);
+        }
+    }
+
+    async function fetchUserOrgs() {
+        try {
+            userOrgs.value = await $fetch('/api/auth/organizations');
+        } catch (err) {
+            console.error('Failed to fetch user organizations:', err);
         }
     }
 
@@ -122,19 +135,24 @@ export const useAuthStore = defineStore('auth', () => {
     return {
         user,
         organization,
+        userOrgs,
         isUserSet,
         userIsSet,
         userData,
         organizationData,
+        userOrganizations,
+        memberships,
         isSuperAdmin,
         isOrgAdmin,
         isManufacturer,
         isContractor,
         isCustomer,
         setUser,
+        fetchUserOrgs,
         login,
         register,
         logout,
-        hasPermission
+        hasPermission,
+        switchOrganization
     };
 });

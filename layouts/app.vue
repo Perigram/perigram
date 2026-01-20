@@ -110,22 +110,10 @@
     const navStore = useNavigationStore()
     const globalStore = useGlobalStore()
 
-    // Organizations for switcher
-    const userOrgs = ref([])
-    const fetchUserOrgs = async () => {
-        if (authStore.userIsSet) {
-            try {
-                userOrgs.value = await $fetch('/api/auth/organizations')
-            } catch (err) {
-                console.error('Failed to fetch user organizations:', err)
-            }
-        }
-    }
-
     // Sync user organizations when user is set
     watch(() => authStore.userIsSet, async (isSet) => {
         if (isSet) {
-            await fetchUserOrgs()
+            await authStore.fetchUserOrgs()
         }
     }, { immediate: true })
 
@@ -167,10 +155,10 @@
         ];
 
         // Organization Switcher Section
-        if (userOrgs.value.length > 1) {
+        if (authStore.userOrganizations.length > 1) {
             items.push({
                 label: t('auth.organization'),
-                items: userOrgs.value.map(org => ({
+                items: authStore.userOrganizations.map(org => ({
                     label: org.name,
                     icon: org._id.toString() === authStore.userData.organizationId?.toString() ? 'pi pi-check' : 'pi pi-building',
                     command: async () => {

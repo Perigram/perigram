@@ -2,7 +2,10 @@
   <div class="flex flex-col gap-6">
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-bold text-[var(--p-text-color)]">{{ $t('features.users') }}</h1>
-      <Button :label="$t('common.create')" icon="pi pi-user-plus" @click="showCreateDialog = true" />
+      <div class="flex gap-2">
+        <Button label="Invite Member" icon="pi pi-link" severity="secondary" @click="showInviteDialog = true" />
+        <Button :label="$t('common.create')" icon="pi pi-user-plus" @click="showCreateDialog = true" />
+      </div>
     </div>
 
     <DataTable :value="users" :loading="loading" stripedRows class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
@@ -22,6 +25,48 @@
         </template>
       </Column>
     </DataTable>
+
+    <div v-if="invitations.length > 0" class="flex flex-col gap-4 mt-8">
+        <h2 class="text-xl font-bold">Active Invitations</h2>
+        <DataTable :value="invitations" class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
+            <Column field="code" header="Invite Code">
+                <template #body="{ data }">
+                    <span class="font-mono font-bold text-[var(--p-primary-color)]">{{ data.code }}</span>
+                </template>
+            </Column>
+            <Column field="role" header="Role" />
+            <Column field="expiresAt" header="Expires">
+                <template #body="{ data }">
+                    {{ new Date(data.expiresAt).toLocaleDateString() }}
+                </template>
+            </Column>
+            <Column header="Actions" class="text-right">
+                <template #body="{ data }">
+                    <Button icon="pi pi-copy" text @click="copyToClipboard(data.code)" v-tooltip.top="'Copy Link'" />
+                </template>
+            </Column>
+        </DataTable>
+    </div>
+
+    <!-- Invite Member Dialog -->
+    <Dialog v-model:visible="showInviteDialog" header="Invite Member" :style="{ width: '450px' }" modal>
+        <div class="flex flex-col gap-4 pt-4">
+            <p class="text-sm text-[var(--p-text-muted-color)] m-0">Generate a unique code that a user can use to join your organization from their profile.</p>
+            <div class="flex flex-col gap-2">
+                <label class="font-bold text-sm">Role *</label>
+                <Select v-model="inviteForm.role" :options="roleOptions" optionLabel="label" optionValue="value" class="w-full" />
+            </div>
+            <div v-if="generatedCode" class="p-4 bg-[var(--p-surface-50)] border-2 border-dashed border-[var(--p-primary-color)] rounded-xl text-center mt-4 animate-in fade-in zoom-in">
+                <span class="text-[10px] font-black uppercase opacity-60 block mb-1">Your Code</span>
+                <span class="text-2xl font-mono font-black text-[var(--p-primary-color)]">{{ generatedCode }}</span>
+                <Button label="Copy Code" icon="pi pi-copy" text size="small" class="mt-2 block mx-auto" @click="copyToClipboard(generatedCode)" />
+            </div>
+        </div>
+        <template #footer>
+            <Button label="Close" text severity="secondary" @click="showInviteDialog = false; generatedCode = null" />
+            <Button label="Generate Code" icon="pi pi-refresh" @click="generateInvite" :loading="generatingInvite" v-if="!generatedCode" />
+        </template>
+    </Dialog>
 
     <!-- Create User Dialog -->
     <Dialog v-model:visible="showCreateDialog" :header="$t('auth.createAccount')" :style="{ width: '500px' }" modal>
@@ -91,13 +136,21 @@ const loading = ref(false);
 const submitting = ref(false);
 const showCreateDialog = ref(false);
 const showPermissionsDialog = ref(false);
+const showInviteDialog = ref(false);
+const generatingInvite = ref(false);
 const selectedUser = ref(null);
+const generatedCode = ref(null);
+const invitations = ref([]);
 
 const form = ref({
   name: '',
   email: '',
   password: '',
   role: 'IndividualUser'
+});
+
+const inviteForm = ref({
+    role: 'IndividualUser'
 });
 
 const roleOptions = computed(() => {
@@ -112,6 +165,7 @@ async function loadUsers() {
   loading.value = true;
   try {
     users.value = await $fetch('/api/users');
+    await loadInvitations();
   } catch (error) {
     if (error.status !== 401) {
         toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
@@ -119,6 +173,33 @@ async function loadUsers() {
   } finally {
     loading.value = false;
   }
+}
+
+async function loadInvitations() {
+    try {
+        invitations.value = await $fetch(`/api/organizations/${authStore.userData.organizationId}/invitations`);
+    } catch (e) { console.error(e); }
+}
+
+async function generateInvite() {
+    generatingInvite.value = true;
+    try {
+        const res = await $fetch(`/api/organizations/${authStore.userData.organizationId}/invitations`, {
+            method: 'POST',
+            body: inviteForm.value
+        });
+        generatedCode.value = res.code;
+        await loadInvitations();
+    } catch (e) {
+        toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 });
+    } finally {
+        generatingInvite.value = false;
+    }
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text);
+    toast.add({ severity: 'success', summary: 'Copied', detail: 'Invitation code copied to clipboard', life: 2000 });
 }
 
 async function createUser() {
