@@ -13,7 +13,7 @@ export async function create(data, user) {
     throw createError({ statusCode: 403, message: 'Only contractors can create requisitions' });
   }
   
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasPermission(user, 'requisitions', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -144,7 +144,7 @@ export async function update(id, updates, user) {
     throw createError({ statusCode: 403, message: 'Cannot update requisition' });
   }
   
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasPermission(user, 'requisitions', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -181,7 +181,7 @@ export async function send(id, user) {
     throw createError({ statusCode: 403, message: 'Cannot send requisition' });
   }
   
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasPermission(user, 'requisitions', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -211,7 +211,7 @@ export async function approve(id, user) {
     throw createError({ statusCode: 403, message: 'Cannot approve requisition' });
   }
   
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasPermission(user, 'requisitions', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -241,7 +241,7 @@ export async function reject(id, user) {
     throw createError({ statusCode: 403, message: 'Cannot reject requisition' });
   }
   
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasPermission(user, 'requisitions', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -271,7 +271,7 @@ export async function fulfill(id, data, user) {
     throw createError({ statusCode: 403, message: 'Cannot fulfill requisition' });
   }
   
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasPermission(user, 'requisitions', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -310,7 +310,7 @@ export async function startFulfillment(id, user) {
     throw createError({ statusCode: 403, message: 'Cannot update requisition status' });
   }
   
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasPermission(user, 'requisitions', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -345,7 +345,7 @@ export async function cancel(id, user) {
     throw createError({ statusCode: 403, message: 'Cannot cancel requisition' });
   }
   
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasPermission(user, 'requisitions', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -375,7 +375,7 @@ export async function remove(id, user) {
     throw createError({ statusCode: 403, message: 'Cannot delete requisition' });
   }
   
-  if (!hasPermission(user, 'materials', 'admin')) {
+  if (!hasPermission(user, 'requisitions', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   

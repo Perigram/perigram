@@ -6,7 +6,7 @@ import { ObjectId } from 'mongodb';
 
 export async function create(data, user) {
   // Only org admins can create warehouses
-  if (!hasPermission(user, 'materials', 'admin')) {
+  if (!hasPermission(user, 'warehouses', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -68,7 +68,7 @@ export async function update(id, updates, user) {
   }
   
   // Check permission level
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasPermission(user, 'warehouses', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -92,7 +92,7 @@ export async function updateInventoryCounts(id, counts) {
 }
 
 export async function remove(id, user) {
-  if (!hasPermission(user, 'materials', 'admin')) {
+  if (!hasPermission(user, 'warehouses', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   

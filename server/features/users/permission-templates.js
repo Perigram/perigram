@@ -18,7 +18,7 @@ export const PERMISSION_TEMPLATES = {
     warehouses: "admin",
     catalogs: "admin",
     requisitions: "admin",
-    materials: "read",
+    materials: "admin",
     users: "admin",
     organizations: "write"
   },
@@ -30,7 +30,7 @@ export const PERMISSION_TEMPLATES = {
     warehouses: "admin",
     catalogs: "read",
     requisitions: "admin",
-    materials: "read",
+    materials: "admin",
     users: "admin",
     organizations: "write"
   },

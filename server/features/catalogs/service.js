@@ -6,7 +6,7 @@ import { ObjectId } from 'mongodb';
 
 export async function create(data, user) {
   // Only manufacturer admins can create catalogs
-  if (!hasPermission(user, 'materials', 'admin')) {
+  if (!hasPermission(user, 'catalogs', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -73,7 +73,7 @@ export async function update(id, updates, user) {
     throw createError({ statusCode: 403, message: 'Cannot update catalog from other manufacturer' });
   }
   
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasPermission(user, 'catalogs', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -100,7 +100,7 @@ export async function addSheetType(catalogId, sheetTypeData, user) {
     throw createError({ statusCode: 403, message: 'Cannot modify catalog from other manufacturer' });
   }
   
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasPermission(user, 'catalogs', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -127,7 +127,7 @@ export async function updateSheetType(catalogId, sheetTypeId, updates, user) {
     throw createError({ statusCode: 403, message: 'Cannot modify catalog from other manufacturer' });
   }
   
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasPermission(user, 'catalogs', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -152,7 +152,7 @@ export async function removeSheetType(catalogId, sheetTypeId, user) {
     throw createError({ statusCode: 403, message: 'Cannot modify catalog from other manufacturer' });
   }
   
-  if (!hasPermission(user, 'materials', 'admin')) {
+  if (!hasPermission(user, 'catalogs', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -165,7 +165,7 @@ export async function removeSheetType(catalogId, sheetTypeId, user) {
 }
 
 export async function remove(id, user) {
-  if (!hasPermission(user, 'materials', 'admin')) {
+  if (!hasPermission(user, 'catalogs', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   

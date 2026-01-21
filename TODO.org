@@ -279,3 +279,13 @@
     - Fixed 403 Forbidden errors for Batches, Requisitions, and Catalogs.
     - Root cause: server/middleware/auth.js was not populating user.organizationData which is required by service permission checks.
     - Added organization fetching to auth middleware to ensure organizationData (id, name, type) is available in request context.
+*** Agent Notes
+    [2026-01-21] Fixed permission mismatch in material services
+    Files changed: 
+    - server/features/catalogs/service.js (check 'catalogs' instead of 'materials')
+    - server/features/warehouses/service.js (check 'warehouses' instead of 'materials')
+    - server/features/requisitions/service.js (check 'requisitions' instead of 'materials')
+    - server/features/users/permission-templates.js (grant 'materials' admin/write to Mfg/Contractor)
+    Notes: 
+    - The services were incorrectly checking the 'materials' permission key (which was 'read' only) instead of their specific entity keys (which are 'admin').
+    - Updated Permission Templates to ensure future users have correct 'materials' access for batches/sheets.
