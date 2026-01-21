@@ -269,3 +269,13 @@
     - Real-time updates after actions
     - Error handling with toast notifications
     - Navigation integrated into main app menu
+
+* DONE Fix 403 Errors in Material Tracking
+  CLOSED: [2026-01-21]
+*** Agent Notes
+    [2026-01-21] Fixed permission errors in material tracking APIs
+    Files changed: server/middleware/auth.js
+    Notes: 
+    - Fixed 403 Forbidden errors for Batches, Requisitions, and Catalogs.
+    - Root cause: server/middleware/auth.js was not populating user.organizationData which is required by service permission checks.
+    - Added organization fetching to auth middleware to ensure organizationData (id, name, type) is available in request context.
