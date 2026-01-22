@@ -6,6 +6,7 @@ import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
 import { checkEntityAccess } from '~/server/utils/permissions';
 import { ObjectId } from 'mongodb';
+import { toObjectId } from '~/server/utils/objectid';
 
 export async function create(data, user) {
   // Only contractors can create requisitions
@@ -52,8 +53,8 @@ export async function create(data, user) {
     totalAmount += itemTotal;
     
     snapshotItems.push({
-      catalogId: new ObjectId(item.catalogId),
-      colorId: new ObjectId(item.colorId),
+      catalogId: toObjectId(item.catalogId),
+      colorId: toObjectId(item.colorId),
       quantity: item.quantity,
       material: catalog.material,
       color: color.color,
@@ -74,10 +75,10 @@ export async function create(data, user) {
   // Create requisition
   return await repository.create({
     requisitionNumber,
-    contractorId: user.organizationId,
-    manufacturerId: new ObjectId(data.manufacturerId),
-    projectId: data.projectId ? new ObjectId(data.projectId) : null,
-    queueId: data.queueId ? new ObjectId(data.queueId) : null,
+    contractorId: toObjectId(user.organizationId),
+    manufacturerId: toObjectId(data.manufacturerId),
+    projectId: data.projectId ? toObjectId(data.projectId) : null,
+    queueId: data.queueId ? toObjectId(data.queueId) : null,
     items: snapshotItems,
     totalAmount,
     status: 'draft',
@@ -100,9 +101,11 @@ export async function list(user, filter = {}) {
   
   // Filter by organization type
   if (org.type === 'Contractor') {
-    filter.contractorId = new ObjectId(user.organizationId);
+    const contractorId = user.organizationId?.toString();
+    filter.contractorId = { $in: [contractorId, toObjectId(contractorId)] };
   } else if (org.type === 'Manufacturer') {
-    filter.manufacturerId = new ObjectId(user.organizationId);
+    const manufacturerId = user.organizationId?.toString();
+    filter.manufacturerId = { $in: [manufacturerId, toObjectId(manufacturerId)] };
   } else {
     throw createError({ statusCode: 403, message: 'Invalid organization type for requisitions' });
   }
@@ -122,9 +125,10 @@ export async function getById(id, user) {
     throw createError({ statusCode: 403, message: 'User must belong to an organization' });
   }
   
+  const userOrgId = user.organizationId?.toString();
   const hasAccess = 
-    (org.type === 'Contractor' && requisition.contractorId.equals(user.organizationId)) ||
-    (org.type === 'Manufacturer' && requisition.manufacturerId.equals(user.organizationId));
+    (org.type === 'Contractor' && requisition.contractorId?.toString() === userOrgId) ||
+    (org.type === 'Manufacturer' && requisition.manufacturerId?.toString() === userOrgId);
   
   if (!hasAccess) {
     throw createError({ statusCode: 403, message: 'Cannot view requisition' });
@@ -140,7 +144,7 @@ export async function update(id, updates, user) {
   }
   
   // Only contractor that created can update
-  if (!checkEntityAccess(user, requisition, requisition.contractorId)) {
+  if (requisition.contractorId?.toString() !== user.organizationId?.toString()) {
     throw createError({ statusCode: 403, message: 'Cannot update requisition' });
   }
   
@@ -179,7 +183,7 @@ export async function send(id, user) {
   }
   
   // Only contractor can send
-  if (!checkEntityAccess(user, requisition, requisition.contractorId)) {
+  if (requisition.contractorId?.toString() !== user.organizationId?.toString()) {
     throw createError({ statusCode: 403, message: 'Cannot send requisition' });
   }
   
@@ -209,7 +213,7 @@ export async function approve(id, user) {
   }
   
   // Only manufacturer can approve
-  if (!checkEntityAccess(user, requisition, requisition.manufacturerId)) {
+  if (requisition.manufacturerId?.toString() !== user.organizationId?.toString()) {
     throw createError({ statusCode: 403, message: 'Cannot approve requisition' });
   }
   
@@ -239,7 +243,7 @@ export async function reject(id, user) {
   }
   
   // Only manufacturer can reject
-  if (!checkEntityAccess(user, requisition, requisition.manufacturerId)) {
+  if (requisition.manufacturerId?.toString() !== user.organizationId?.toString()) {
     throw createError({ statusCode: 403, message: 'Cannot reject requisition' });
   }
   
@@ -269,7 +273,7 @@ export async function fulfill(id, data, user) {
   }
   
   // Only manufacturer can fulfill
-  if (!checkEntityAccess(user, requisition, requisition.manufacturerId)) {
+  if (requisition.manufacturerId?.toString() !== user.organizationId?.toString()) {
     throw createError({ statusCode: 403, message: 'Cannot fulfill requisition' });
   }
   
@@ -308,7 +312,7 @@ export async function startFulfillment(id, user) {
   }
   
   // Only manufacturer can start fulfillment
-  if (!checkEntityAccess(user, requisition, requisition.manufacturerId)) {
+  if (requisition.manufacturerId?.toString() !== user.organizationId?.toString()) {
     throw createError({ statusCode: 403, message: 'Cannot update requisition status' });
   }
   
@@ -339,9 +343,10 @@ export async function cancel(id, user) {
   
   // Contractor or manufacturer can cancel
   const org = user.organizationData;
+  const userOrgId = user.organizationId?.toString();
   const hasAccess = 
-    (org.type === 'Contractor' && requisition.contractorId.equals(user.organizationId)) ||
-    (org.type === 'Manufacturer' && requisition.manufacturerId.equals(user.organizationId));
+    (org.type === 'Contractor' && requisition.contractorId?.toString() === userOrgId) ||
+    (org.type === 'Manufacturer' && requisition.manufacturerId?.toString() === userOrgId);
   
   if (!hasAccess) {
     throw createError({ statusCode: 403, message: 'Cannot cancel requisition' });
@@ -373,7 +378,7 @@ export async function remove(id, user) {
   }
   
   // Only contractor can delete, only in draft
-  if (!checkEntityAccess(user, requisition, requisition.contractorId)) {
+  if (requisition.contractorId?.toString() !== user.organizationId?.toString()) {
     throw createError({ statusCode: 403, message: 'Cannot delete requisition' });
   }
   

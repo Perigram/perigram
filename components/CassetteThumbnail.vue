@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-full flex items-center justify-center overflow-hidden bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-[var(--p-content-border-color)]">
+  <div ref="container" class="w-full h-full flex items-center justify-center overflow-hidden bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-[var(--p-content-border-color)]">
     <div v-if="loading" class="flex items-center justify-center">
       <i class="pi pi-spin pi-spinner text-[var(--p-text-muted-color)] opacity-50"></i>
     </div>
@@ -70,7 +70,12 @@ const loading = ref(false);
 // Cache keys to prevent redundant renders
 let lastRenderKey = '';
 
+const container = ref(null);
+const isVisible = ref(false);
+
 const updateThumbnail = async () => {
+  if (!isVisible.value) return;
+  
   let cassette = props.cassette;
   const cid = props.cassetteId?.toString();
   
@@ -78,6 +83,7 @@ const updateThumbnail = async () => {
   const currentKey = `${cid}_${JSON.stringify(props.dimensions)}`;
   if (currentKey === lastRenderKey && renderingData.value) return;
   lastRenderKey = currentKey;
+  
   if (!cassette && cid) {
     loading.value = true;
     try {
@@ -96,8 +102,12 @@ const updateThumbnail = async () => {
   if (cassette.type === 'PARAMETRIC' || cassette.data) {
     loading.value = true;
     try {
-      // SMALL SAFETY DELAY to let WASM memory breathe between multiple grid renders
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Use requestIdleCallback or a longer timeout to yield to UI thread
+      if (window.requestIdleCallback) {
+          await new Promise(resolve => window.requestIdleCallback(resolve, { timeout: 200 }));
+      } else {
+          await new Promise(resolve => setTimeout(resolve, 100));
+      }
 
       const renderData = {
         params: {
@@ -130,6 +140,30 @@ const updateThumbnail = async () => {
   }
 };
 
-onMounted(updateThumbnail);
-watch(() => [props.cassetteId, props.cassette, props.dimensions], updateThumbnail, { deep: true });
+onMounted(() => {
+    if (!container.value) return;
+    
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+            isVisible.value = true;
+            updateThumbnail();
+            observer.disconnect();
+        }
+    }, { threshold: 0.1 });
+    
+    observer.observe(container.value);
+});
+
+watch(() => [props.cassetteId, props.cassette, props.dimensions], () => {
+    if (isVisible.value) updateThumbnail();
+}, { deep: true });
 </script>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+</style>

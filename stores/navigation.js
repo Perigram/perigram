@@ -64,14 +64,13 @@ export const useNavigationStore = defineStore('navigation', () => {
         let currentSectionId = parts[0];
         if (currentSectionId === 'project') currentSectionId = 'projects';
         
-        // Handle nested paths for hubs
         const currentHub = hubs.value.find((s) => 
             s.id === currentSectionId || 
-            path.startsWith(s.to) || 
+            path === s.to ||
             (currentSectionId === 'admin' && s.id === 'admin')
         );
 
-        if (currentHub) {
+        if (currentHub && !(parts.length > 1 && (parts[0] === 'project' || parts[0] === 'assets' || parts[0] === 'admin'))) {
             nav.push({
                 name: currentHub.name,
                 to: currentHub.to,

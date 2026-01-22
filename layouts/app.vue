@@ -1,74 +1,76 @@
 <template>
     <div class="flex flex-col min-h-screen bg-[var(--p-surface-ground)]">
-        <Menubar
-            :model="[]"
-            class="rounded-none border-0 sticky top-0 z-50 px-4 py-2"
-        >
-            <template #start>
-                <NuxtLink
-                    to="/"
-                    class="flex items-center gap-2 no-underline text-[var(--p-primary-color)] text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity mr-4"
-                >
-                    <span>CutKit</span>
-                </NuxtLink>
-
-                <Divider layout="vertical" class="mx-2 hidden md:block" />
-                
-                <div
-                    v-for="(crumb, index) in breadcrumbs"
-                    :key="index"
-                    class="flex items-center gap-0"
-                >
-                    <span v-if="index > 0" class="mx-1 opacity-50">/</span>
+        <header class="sticky top-0 z-50 bg-[var(--p-content-background)] border-b border-[var(--p-content-border-color)]">
+            <nav class="max-w-[1600px] mx-auto px-4 h-14 flex items-center justify-between">
+                <!-- Left: Logo & Breadcrumbs -->
+                <div class="flex items-center h-full min-w-0">
                     <NuxtLink
-                        :to="crumb.to"
-                        class="p-button p-component p-button-text p-button-secondary text-sm font-medium"
+                        to="/"
+                        class="flex items-center gap-2 no-underline text-[var(--p-primary-color)] text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity mr-4 shrink-0"
                     >
-                        {{ crumb.name }}
+                        <span>CutKit</span>
                     </NuxtLink>
-                    <Select
-                        v-if="crumb.siblings && crumb.siblings.length > 1"
-                        :model-value="crumb.to"
-                        :options="crumb.siblings"
-                        option-label="name"
-                        option-value="id"
-                        @change="(e) => router.push(e.value)"
-                        pt:root:class="p-button p-component p-button-text p-button-secondary px-0 mr-2 border-none"
-                        pt:label:class="hidden"
-                        pt:dropdown:class="p-0 m-0"
-                    />
-                </div>
-            </template>
 
-            <template #end>
-                <div class="flex items-center gap-4">
+                    <Divider layout="vertical" class="mx-2 hidden md:block shrink-0" />
+                    
+                    <div class="hidden md:flex items-center gap-0 overflow-hidden">
+                        <div
+                            v-for="(crumb, index) in breadcrumbs"
+                            :key="index"
+                            class="flex items-center gap-0 shrink-0"
+                        >
+                            <span v-if="index > 0" class="mx-1 opacity-50 shrink-0">/</span>
+                            <NuxtLink
+                                :to="crumb.to"
+                                class="p-button p-component p-button-text p-button-secondary text-sm font-medium whitespace-nowrap"
+                            >
+                                {{ crumb.name }}
+                            </NuxtLink>
+                            <Select
+                                v-if="crumb.siblings && crumb.siblings.length > 1"
+                                :model-value="crumb.to"
+                                :options="crumb.siblings"
+                                option-label="name"
+                                option-value="id"
+                                @change="(e) => router.push(e.value)"
+                                pt:root:class="p-button p-component p-button-text p-button-secondary px-0 mr-2 border-none"
+                                pt:label:class="hidden"
+                                pt:dropdown:class="p-0 m-0"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Theme & User -->
+                <div class="flex items-center gap-2 shrink-0">
                     <Button
                         :icon="themeIcon"
                         @click="toggleTheme"
                         text
                         rounded
+                        size="small"
                         :aria-label="$t('common.toggleTheme')"
                     />
                     
-                    <div class="relative" v-if="authStore.userIsSet">
+                    <div class="relative flex items-center" v-if="authStore.userIsSet">
                         <Button 
                             type="button" 
                             @click="toggleUserMenu" 
-                            class="p-0 rounded-full overflow-hidden border-2 border-transparent hover:border-[var(--p-primary-color)] transition-colors"
+                            class="p-0.5 rounded-full overflow-hidden border-2 border-transparent hover:border-[var(--p-primary-color)] transition-colors"
                             text
                         >
                             <Avatar 
                                 :label="authStore.userData.name ? authStore.userData.name[0].toUpperCase() : 'U'" 
                                 shape="circle" 
-                                size="large" 
+                                size="normal" 
                                 class="bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)]"
                             />
                         </Button>
                         <Menu ref="userMenu" :model="userMenuItems" :popup="true" />
                     </div>
                 </div>
-            </template>
-        </Menubar>
+            </nav>
+        </header>
 
         <main class="flex-1 max-w-[1600px] w-full mx-auto p-4 md:p-6 lg:p-8">
             <slot />
@@ -90,7 +92,6 @@
     import { ref, computed, watch, onMounted } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
     import { useI18n } from 'vue-i18n'
-    import Menubar from 'primevue/menubar'
     import Divider from 'primevue/divider'
     import Button from 'primevue/button'
     import Select from 'primevue/select'
@@ -101,6 +102,7 @@
     import { API_ROUTES } from '~/composables/apiRoutes'
     import { useAuthStore } from '~/stores/auth'
     import { useNavigationStore } from '~/stores/navigation'
+    import { useGlobalStore } from '~/stores/global'
 
     const router = useRouter()
     const route = useRoute()
