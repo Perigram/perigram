@@ -28,9 +28,12 @@ export async function create(data, user) {
   let totalAmount = 0;
   
   for (const item of data.items) {
-    if (!item.catalogId || !item.colorId || !item.quantity || !item.sheetThickness || !item.width || !item.length) {
-      throw createError({ statusCode: 400, message: 'Invalid item: missing required fields' });
-    }
+    if (!item.catalogId) throw createError({ statusCode: 400, message: 'item.catalogId required' });
+    if (!item.colorId) throw createError({ statusCode: 400, message: 'item.colorId required' });
+    if (!item.quantity) throw createError({ statusCode: 400, message: 'item.quantity required' });
+    if (!item.sheetThickness) throw createError({ statusCode: 400, message: 'item.sheetThickness required' });
+    if (!item.width) throw createError({ statusCode: 400, message: 'item.width required' });
+    if (!item.length) throw createError({ statusCode: 400, message: 'item.length required' });
     
     const catalog = await catalogRepository.findById(item.catalogId);
     if (!catalog) throw createError({ statusCode: 404, message: `Catalog ${item.catalogId} not found` });
@@ -151,6 +154,8 @@ export async function update(id, updates, user) {
   }
   
   // Don't allow changing critical fields
+  delete updates._id;
+  delete updates.createdAt;
   delete updates.requisitionNumber;
   delete updates.contractorId;
   delete updates.manufacturerId;

@@ -133,11 +133,10 @@ export async function update(id, updates, user) {
   }
   
   // Don't allow changing critical fields
+  delete updates._id;
+  delete updates.createdAt;
   delete updates.remnantNumber;
-  delete updates.sheetId;
   delete updates.warehouseId;
-  delete updates.geometryDxf;
-  delete updates.status;
   
   const success = await repository.updateById(id, updates);
   if (!success) {

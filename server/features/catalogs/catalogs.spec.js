@@ -21,7 +21,11 @@ vi.mock('~/server/utils/auth-helpers', () => ({
   hasPermission: vi.fn(() => true)
 }));
 
-describe('Catalog & Sheet Type Management', () => {
+vi.mock('~/server/utils/permissions', () => ({
+  checkEntityAccess: vi.fn((user, entity, ownerId) => user.organizationId.toString() === ownerId.toString())
+}));
+
+describe('Catalog Management', () => {
   let con;
   let mongoServer;
   let db;
@@ -49,27 +53,21 @@ describe('Catalog & Sheet Type Management', () => {
     role: 'ManufacturerAdmin'
   };
 
-  it('should create a catalog and add sheet types', async () => {
+  it('should create a catalog with material constraints', async () => {
     const catalog = await catalogService.create({
-      name: 'Standard Aluminum',
-      manufacturerId: mockUser.organizationId.toString()
+      name: 'Standard Aluminum Composite',
+      manufacturerId: mockUser.organizationId.toString(),
+      foilThicknessOptions: [0.3, 0.5],
+      sheetThicknessOptions: [3, 4],
+      widthOptions: [1220, 1500]
     }, mockUser);
 
-    expect(catalog.name).toBe('Standard Aluminum');
-
-    const sheetTypeData = {
-      material: 'Aluminum',
-      color: 'RAL 9006',
-      thickness: 4,
-      sizes: [{ width: 1500, height: 4000, pricePerSqm: 50 }]
-    };
-
-    const updated = await catalogService.addSheetType(catalog._id.toString(), sheetTypeData, mockUser);
-    expect(updated.sheetTypes).toHaveLength(1);
-    expect(updated.sheetTypes[0].material).toBe('Aluminum');
+    expect(catalog.name).toBe('Standard Aluminum Composite');
+    expect(catalog.foilThicknessOptions).toContain(0.3);
+    expect(catalog.sheetThicknessOptions).toContain(4);
   });
 
-  it('should enforce manufacturer ownership when modifying catalog', async () => {
+  it('should enforce manufacturer ownership when removing catalog', async () => {
     const otherManufacturerId = new ObjectId();
     const catalogId = new ObjectId();
     await db.collection('catalogs').insertOne({
@@ -78,7 +76,7 @@ describe('Catalog & Sheet Type Management', () => {
       manufacturerId: otherManufacturerId
     });
 
-    await expect(catalogService.addSheetType(catalogId.toString(), {}, mockUser))
-      .rejects.toThrow(/Cannot modify catalog from other manufacturer/);
+    await expect(catalogService.remove(catalogId.toString(), mockUser))
+      .rejects.toThrow(/Cannot delete catalog from other manufacturer/);
   });
 });

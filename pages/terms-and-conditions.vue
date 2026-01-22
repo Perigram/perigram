@@ -88,7 +88,7 @@
             <i class="pi pi-shield text-[var(--p-primary-color)]"></i>
             {{ $t('terms.disclaimerTitle') }}
           </h2>
-          <p class="m-0 text-[var(--p-text-secondary-color)] leading-relaxed italic border-l-4 border-[var(--p-primary-color)] pl-4 py-1 bg-[var(--p-surface-50)]">
+          <p class="m-0 text-[var(--p-text-secondary-color)] leading-relaxed italic border-l-4 border-[var(--p-primary-color)] pl-4 py-1 bg-[var(--p-content-background)]">
             {{ $t('terms.disclaimerText') }}
           </p>
         </section>

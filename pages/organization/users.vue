@@ -81,9 +81,9 @@
                 <label class="font-bold text-sm">Role *</label>
                 <Select v-model="inviteForm.role" :options="roleOptions" optionLabel="label" optionValue="value" class="w-full" />
             </div>
-            <div v-if="generatedUrl" class="p-4 bg-[var(--p-surface-50)] border-2 border-dashed border-[var(--p-primary-color)] rounded-xl mt-4 animate-in fade-in zoom-in">
+            <div v-if="generatedUrl" class="p-4 bg-[var(--p-content-background)] border-2 border-dashed border-primary rounded-xl mt-4 animate-in fade-in zoom-in shadow-inner">
                 <span class="text-[10px] font-black uppercase opacity-60 block mb-2">Invitation Link</span>
-                <div class="flex items-center gap-2 p-2 bg-white border rounded border-[var(--p-primary-color)]/20">
+                <div class="flex items-center gap-2 p-2 bg-[var(--p-surface-100)] border rounded border-[var(--p-content-border-color)]">
                     <span class="text-xs font-mono truncate flex-1">{{ generatedUrl }}</span>
                     <Button icon="pi pi-copy" text size="small" @click="copyToClipboard(generatedUrl)" />
                 </div>

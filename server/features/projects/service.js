@@ -97,6 +97,10 @@ export async function update(slug, updates, userId, userOrg, userRole, userPermi
   if (!hasPermission({ permissions: userPermissions }, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
+
+  delete updates._id;
+  delete updates.createdAt;
+  delete updates.slug;
   
   await repository.updateBySlug(slug, updates);
   return await repository.findBySlug(slug);

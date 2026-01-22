@@ -23,7 +23,7 @@
             </div>
 
             <!-- Messages -->
-            <div ref="messagesContainer" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-[var(--p-surface-50)] custom-scrollbar">
+            <div ref="messagesContainer" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-[var(--p-content-background)] custom-scrollbar">
                 <template
                     v-for="message in messagesList"
                     :key="message._id"
@@ -57,7 +57,7 @@
 
             <!-- Input Area -->
             <div class="p-4 border-t border-[var(--p-content-border-color)] bg-[var(--p-content-background)]">
-                <div class="flex items-end gap-2 bg-[var(--p-surface-50)] p-2 rounded-xl border border-[var(--p-content-border-color)] focus-within:border-[var(--p-primary-color)] transition-colors">
+                <div class="flex items-end gap-2 bg-[var(--p-content-background)] p-2 rounded-xl border border-[var(--p-content-border-color)] focus-within:border-[var(--p-primary-color)] transition-colors">
                     <Textarea
                         :placeholder="$t('support.typeMessage')"
                         class="flex-1 !bg-transparent !border-none !shadow-none !ring-0 text-sm py-1 custom-scrollbar"

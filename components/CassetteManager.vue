@@ -134,8 +134,11 @@ onMounted(async () => {
 const getStatusSeverity = (status) => {
   const severityMap = {
     'done': 'success',
+    'completed': 'success',
     'pending': 'warning',
-    'error': 'danger'
+    'processing': 'info',
+    'error': 'danger',
+    'failed': 'danger'
   };
   return severityMap[status] || 'info';
 };

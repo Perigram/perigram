@@ -74,7 +74,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   
   const queueNumber = await repository.getNextQueueNumber(data.projectSlug);
   
-  return await repository.create({
+  const queue = await repository.create({
     projectSlug: data.projectSlug,
     queueNumber,
     name: data.name,
@@ -92,6 +92,16 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
       note: 'Queue created'
     }]
   });
+
+  // Update project queue count
+  const { connectDB } = await import('../../db/mongo.js');
+  const db = await connectDB();
+  await db.collection('projects').updateOne(
+    { slug: data.projectSlug },
+    { $inc: { queueCount: 1 } }
+  );
+
+  return queue;
 }
 
 export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
@@ -203,6 +213,10 @@ export async function markCut(id, userId, userOrg, userRole, userPermissions) {
   
   if (!hasPermission({ permissions: userPermissions }, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  if (!queue.chosenRunId) {
+    throw createError({ statusCode: 400, message: 'Choose a completed run before marking as cut' });
   }
   
   const { connectDB } = await import('../../db/mongo.js');

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { API_ROUTES } from '~/composables/apiRoutes';
+import { resolveUiPermission } from '~/shared/ui-permissions';
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref({});
@@ -132,6 +133,16 @@ export const useAuthStore = defineStore('auth', () => {
         return levels.indexOf(userLevel) >= levels.indexOf(level);
     }
 
+    /**
+     * Checks if the current user has permission for a specific UI action.
+     * Uses the centralized UI Permission Matrix.
+     */
+    function can(feature, action) {
+        // Fallback to role from user object if organization not fully loaded
+        const role = user.value?.role || 'IndividualUser';
+        return resolveUiPermission(role, feature, action);
+    }
+
     return {
         user,
         organization,
@@ -153,6 +164,7 @@ export const useAuthStore = defineStore('auth', () => {
         register,
         logout,
         hasPermission,
+        can,
         switchOrganization
     };
 });

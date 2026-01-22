@@ -31,6 +31,11 @@ export async function create(data) {
 }
 
 export async function update(id, updates) {
+  // Don't allow organizationId change
+  delete updates._id;
+  delete updates.createdAt;
+  delete updates.organizationId;
+  
   const success = await repository.updateById(id, updates);
   if (!success) {
     throw createError({ statusCode: 404, message: 'Material not found or no changes made' });

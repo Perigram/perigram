@@ -22,7 +22,7 @@
                     <span class="font-bold">x{{ item.quantity }}</span>
                 </div>
                 <div v-if="requisition.items?.length > 3" class="text-[10px] opacity-40 text-center">
-                    +{{ requisition.items.length - 3 }} more items
+                    +{{ requisition.items.length - 3 }} {{ $t('common.moreItems') }}
                 </div>
             </div>
         </template>
@@ -30,9 +30,9 @@
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-2 opacity-60">
                     <i class="pi pi-building text-xs"></i>
-                    <span class="text-[10px] font-bold">Mfr: {{ requisition.manufacturerId?.toString().slice(-6) }}</span>
+                    <span class="text-[10px] font-bold">{{ $t('requisition.mfr') }}: {{ requisition.manufacturerId?.toString().slice(-6) }}</span>
                 </div>
-                <Button label="Details" icon="pi pi-arrow-right" iconPos="right" size="small" text @click="$emit('view', requisition)" />
+                <Button :label="$t('common.details')" icon="pi pi-arrow-right" iconPos="right" size="small" text @click="$emit('view', requisition)" />
             </div>
         </template>
     </Card>

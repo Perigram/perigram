@@ -83,7 +83,7 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, userOrg
       allowRotation: true,
       negativeOffset: 0
     },
-    processingStatus: polygonParts.length > 0 ? 'completed' : 'pending',
+    processingStatus: polygonParts.length > 0 ? 'done' : 'pending',
     createdAt: new Date(),
     updatedAt: new Date()
   };
@@ -234,7 +234,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     svgId: data.svgId || null,
     layerMapping: data.layerMapping || {},
     parameters: data.data ? Object.keys(data.data.params || {}) : (data.parameters || []),
-    processingStatus: data.data ? 'completed' : 'pending',
+    processingStatus: data.data ? 'done' : 'pending',
     createdAt: new Date(),
     updatedAt: new Date()
   };

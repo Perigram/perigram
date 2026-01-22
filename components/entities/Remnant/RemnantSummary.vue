@@ -1,17 +1,17 @@
 <template>
-    <div class="inline-flex items-center gap-3 p-2 rounded-lg border border-[var(--p-surface-200)] bg-[var(--p-surface-50)]">
-        <i class="pi pi-undo text-[var(--p-primary-color)]"></i>
-        <div class="flex flex-col">
-            <span class="text-[10px] font-black uppercase leading-none opacity-60">Remnant</span>
-            <span class="text-xs font-mono font-bold">{{ data.remnantNumber || data._id.toString().slice(-6) }}</span>
+    <div class="inline-flex items-center gap-2 p-1 pr-3 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-full shadow-sm">
+        <div class="w-6 h-6 rounded-full bg-[var(--p-surface-100)] flex items-center justify-center">
+            <i class="pi pi-undo text-[10px] text-[var(--p-text-muted-color)]"></i>
         </div>
-        <Tag v-if="data.isReusable" value="REUSABLE" severity="success" class="text-[8px] font-black" />
+        <span class="text-xs font-bold">{{ remnant.remnantId || remnant._id?.toString().slice(-6) }}</span>
+        <Tag :value="remnant.status" severity="info" class="text-[8px] font-bold" />
     </div>
 </template>
 
 <script setup>
+import Tag from 'primevue/tag';
 defineProps({
-    data: {
+    remnant: {
         type: Object,
         required: true
     }

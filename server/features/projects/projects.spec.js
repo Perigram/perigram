@@ -1,0 +1,102 @@
+import { describe, it, expect, beforeEach, afterAll, beforeAll, vi } from 'vitest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoClient, ObjectId } from 'mongodb';
+
+const { mockedConnectDB } = vi.hoisted(() => ({
+  mockedConnectDB: vi.fn()
+}));
+vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
+
+import * as projectService from './service';
+
+vi.mock('h3', () => ({
+  createError: vi.fn((err) => {
+    const error = new Error(err.message);
+    error.statusCode = err.statusCode;
+    return error;
+  })
+}));
+
+describe('Projects & Multi-tenant Ownership', () => {
+  let con;
+  let mongoServer;
+  let db;
+
+  beforeAll(async () => {
+    mongoServer = await MongoMemoryServer.create();
+    con = await MongoClient.connect(mongoServer.getUri());
+    db = con.db();
+    mockedConnectDB.mockReturnValue(db);
+  });
+
+  afterAll(async () => {
+    if (con) await con.close();
+    if (mongoServer) await mongoServer.stop();
+  });
+
+  beforeEach(async () => {
+    await db.collection('projects').deleteMany({});
+  });
+
+  const contractor1 = {
+    userId: 'user1',
+    organizationId: new ObjectId(),
+    role: 'ContractorAdmin',
+    permissions: { projects: 'admin' }
+  };
+
+  const contractor2 = {
+    userId: 'user2',
+    organizationId: new ObjectId(),
+    role: 'ContractorAdmin',
+    permissions: { projects: 'admin' }
+  };
+
+  it('should create a project with slug and ownership', async () => {
+    const data = { name: 'High-Rise Tower' };
+    const result = await projectService.create(
+      data, 
+      contractor1.userId, 
+      contractor1.organizationId, 
+      contractor1.permissions
+    );
+
+    expect(result.name).toBe('High-Rise Tower');
+    expect(result.slug).toMatch(/high-rise-tower-/);
+    expect(result.contractorId.toString()).toBe(contractor1.organizationId.toString());
+    expect(result.ownerId).toBe(contractor1.userId);
+  });
+
+  it('should isolate project lists between organizations', async () => {
+    await projectService.create({ name: 'Org 1 Proj' }, contractor1.userId, contractor1.organizationId, contractor1.permissions);
+    await projectService.create({ name: 'Org 2 Proj' }, contractor2.userId, contractor2.organizationId, contractor2.permissions);
+
+    const list1 = await projectService.list(contractor1.userId, contractor1.organizationId, contractor1.role, contractor1.permissions);
+    expect(list1).toHaveLength(1);
+    expect(list1[0].name).toBe('Org 1 Proj');
+
+    const list2 = await projectService.list(contractor2.userId, contractor2.organizationId, contractor2.role, contractor2.permissions);
+    expect(list2).toHaveLength(1);
+    expect(list2[0].name).toBe('Org 2 Proj');
+  });
+
+  it('should deny access to other organization projects', async () => {
+    const project = await projectService.create({ name: 'Secret Proj' }, contractor1.userId, contractor1.organizationId, contractor1.permissions);
+
+    await expect(projectService.getBySlug(
+      project.slug, 
+      contractor2.userId, 
+      contractor2.organizationId, 
+      contractor2.role, 
+      contractor2.permissions
+    )).rejects.toThrow(/Not your project/);
+  });
+
+  it('should allow SuperAdmin to see everything', async () => {
+    await projectService.create({ name: 'Org 1 Proj' }, contractor1.userId, contractor1.organizationId, contractor1.permissions);
+    
+    const superAdmin = { role: 'SuperAdmin', permissions: { projects: 'admin' } };
+    const list = await projectService.list('sa', null, 'SuperAdmin', superAdmin.permissions);
+    expect(list).toHaveLength(1);
+  });
+});

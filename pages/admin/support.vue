@@ -6,7 +6,7 @@
             @select-chat="handleChatSelection"
         />
         
-        <div class="flex-1 min-w-0 bg-[var(--p-surface-50)]">
+        <div class="flex-1 min-w-0 bg-[var(--p-content-background)]">
             <AdminSupportChat 
                 v-if="selectedUserId"
                 :key="selectedUserId"

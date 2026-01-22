@@ -2,11 +2,11 @@
     <div class="mt-8 p-6 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl shadow-sm">
         <h3 class="text-base font-bold uppercase tracking-widest text-[var(--p-text-muted-color)] mb-6">{{ $t('statistics.title') }}</h3>
         <div v-if="statistics && statistics.sheetsUsed !== undefined" class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
-            <div class="flex flex-col gap-1 p-4 rounded-lg bg-[var(--p-surface-50)] border border-[var(--p-content-border-color)]">
+            <div class="flex flex-col gap-1 p-4 rounded-lg bg-[var(--p-content-background)] border border-[var(--p-content-border-color)]">
                 <p class="text-xs font-black uppercase tracking-tighter text-[var(--p-text-muted-color)] m-0">{{ $t('results.sheets') }}</p>
                 <p class="text-3xl font-black text-[var(--p-primary-color)] m-0">{{ statistics.sheetsUsed || 0 }}</p>
             </div>
-            <div class="flex flex-col gap-1 p-4 rounded-lg bg-[var(--p-surface-50)] border border-[var(--p-content-border-color)]">
+            <div class="flex flex-col gap-1 p-4 rounded-lg bg-[var(--p-content-background)] border border-[var(--p-content-border-color)]">
                 <p class="text-xs font-black uppercase tracking-tighter text-[var(--p-text-muted-color)] m-0">{{ $t('statistics.totalArea') }}</p>
                 <p class="text-3xl font-black text-[var(--p-text-color)] m-0">{{ (statistics.totalAreaUsed || 0).toFixed(2) }}<small class="text-sm ml-1 opacity-50">m²</small></p>
             </div>

@@ -1,19 +1,17 @@
 <template>
-    <div class="inline-flex items-center gap-3 p-2 rounded-lg border border-[var(--p-surface-200)] bg-[var(--p-surface-50)]">
-        <i class="pi pi-list text-[var(--p-primary-color)]"></i>
-        <div class="flex flex-col">
-            <span class="text-[10px] font-black uppercase leading-none opacity-60">Queue</span>
-            <span class="text-xs font-mono font-bold">{{ data.name || data.queueNumber }}</span>
+    <div class="inline-flex items-center gap-2 p-1 pr-3 bg-[var(--p-content-background)] border rounded-full">
+        <div class="w-6 h-6 rounded-full bg-cyan-600 flex items-center justify-center">
+            <i class="pi pi-list text-[10px] text-white"></i>
         </div>
-        <StatusBadge :status="data.status" />
+        <span class="text-xs font-bold">{{ queue.name }}</span>
+        <StatusBadge :status="queue.status" />
     </div>
 </template>
 
 <script setup>
 import StatusBadge from '~/components/shared/status/StatusBadge.vue';
-
 defineProps({
-    data: {
+    queue: {
         type: Object,
         required: true
     }

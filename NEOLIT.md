@@ -11,6 +11,45 @@ Cutkit-Demo is a professional DXF nesting application for CNC manufacturing. It 
 ## Core Architecture
 The system follows a modular architecture with a clean separation between the API/Frontend (Nuxt) and the processing units (Workers).
 
+```mermaid
+graph TD
+    %% Roles and Organizations
+    SA[Super Admin] -- Manages --> ORG[Organization]
+    ORG -- Type: Manufacturer --> MNF[Manufacturer]
+    ORG -- Type: Contractor --> CTR[Contractor]
+    ORG -- Type: Customer --> CST[Customer]
+
+    MNF -- Owns --> CAT[Catalog]
+    MNF -- Owns --> M_WH[Manufacturer Warehouse]
+    CTR -- Owns --> PRJ[Project]
+    CTR -- Owns --> C_WH[Contractor Warehouse]
+    CST -- Views --> PRJ
+
+    %% Material Lifecycle Flow
+    CAT -- Defines Sheets --> REQ[Requisition Order]
+    CTR -- Creates --> REQ
+    REQ -- Approved by --> MNF
+    MNF -- Sends --> BTC[Batch]
+    BTC -- Contains --> PIL[Pile]
+    PIL -- Received in --> C_WH
+    
+    %% Production Flow
+    PRJ -- Has --> QUE[Queue]
+    QUE -- Uses --> PIL
+    PIL -- Creates --> SHT[Sheet]
+    SHT -- Cut into --> CAS[Cassette Instance]
+    SHT -- Leaves --> REM[Remnant]
+    REM -- Stored in --> C_WH
+    
+    %% Status & Tracking
+    CAS -- Lifecycle --> ST[Nested -> Manufactured -> On-Site -> Installed]
+    
+    %% Relationships
+    SHT -- Link --> SD[Sheet Design / Nesting Layout]
+    SD -- References --> CD[Cassette Design]
+    CD -- Based on --> TPL[Cassette Template]
+```
+
 ### Data Model (v2 Target)
 - `layer_standards`: System layer catalogue.
 - `pen_templates`: Display styles for layers.

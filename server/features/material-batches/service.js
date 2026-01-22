@@ -1,11 +1,40 @@
 import * as repository from './repository.js';
 import * as warehouseService from '../warehouses/service.js';
 import * as requisitionRepository from '../requisitions/repository.js';
+import * as colorRepository from '../colors/repository.js';
 import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
 import { checkEntityAccess } from '~/server/utils/permissions';
 import { connectDB } from '~/server/db/mongo';
 import { ObjectId } from 'mongodb';
+
+async function enrichPilesWithColors(piles) {
+  try {
+    const colorNames = [...new Set(piles.map(p => p.color).filter(Boolean))];
+    if (colorNames.length === 0) return piles;
+
+    const colors = await colorRepository.find({ 
+      $or: [
+        { name: { $in: colorNames } },
+        { code: { $in: colorNames } }
+      ]
+    });
+
+    const colorMap = new Map();
+    colors.forEach(c => {
+      if (c.name) colorMap.set(c.name, c.colorFallback);
+      if (c.code) colorMap.set(c.code, c.colorFallback);
+    });
+
+    return piles.map(pile => ({
+      ...pile,
+      colorFallback: pile.colorFallback || colorMap.get(pile.color) || '#cccccc'
+    }));
+  } catch (e) {
+    console.error('Failed to enrich piles with colors:', e);
+    return piles.map(p => ({ ...p, colorFallback: p.colorFallback || '#cccccc' }));
+  }
+}
 
 export async function create(data, user) {
   // Only manufacturers can create material batches
@@ -30,7 +59,7 @@ export async function create(data, user) {
   const batchNumber = await repository.getNextBatchNumber();
   
   // Process piles
-  const piles = data.piles.map(pile => ({
+  let rawPiles = data.piles.map(pile => ({
     _id: new ObjectId(),
     partyId: pile.partyId || '',
     totalCount: pile.totalCount || 0,
@@ -42,8 +71,11 @@ export async function create(data, user) {
     width: pile.width,
     height: pile.height,
     pricePerSqm: pile.pricePerSqm || 0,
-    totalPrice: pile.totalPrice || 0
+    totalPrice: pile.totalPrice || 0,
+    colorFallback: pile.colorFallback // Preserve if sent
   }));
+
+  const piles = await enrichPilesWithColors(rawPiles);
   
   const batch = await repository.create({
     batchNumber,
@@ -86,7 +118,7 @@ export async function createFromRequisition(requisitionId, data, user) {
   }
   
   // Convert requisition items to piles
-  const piles = requisition.items.map(item => ({
+  let rawPiles = requisition.items.map(item => ({
     partyId: data.partyId || '',
     totalCount: item.quantity,
     material: item.material,
@@ -98,13 +130,17 @@ export async function createFromRequisition(requisitionId, data, user) {
     pricePerSqm: item.pricePerSqm,
     totalPrice: item.totalPrice
   }));
+
+  // Create function will call enrich, but we are calling create() internally with piles.
+  // Wait, create() expects data.piles to have certain structure.
+  // We can pass them to create(), and create() will enrich them.
   
   return await create({
     supplierId: data.supplierId,
     warehouseId: data.warehouseId,
     requisitionId,
     receiptId: data.receiptId || '',
-    piles,
+    piles: rawPiles,
     notes: data.notes || `Fulfilling requisition ${requisition.requisitionNumber}`
   }, user);
 }
@@ -125,7 +161,13 @@ export async function list(user, filter = {}) {
     filter.warehouseId = { $in: warehouseIds };
   }
   
-  return await repository.find(filter);
+  const batches = await repository.find(filter);
+  
+  // Enrich all batches
+  return await Promise.all(batches.map(async batch => {
+    batch.piles = await enrichPilesWithColors(batch.piles);
+    return batch;
+  }));
 }
 
 export async function getById(id, user) {
@@ -149,6 +191,7 @@ export async function getById(id, user) {
     throw createError({ statusCode: 403, message: 'Cannot view material batch' });
   }
   
+  batch.piles = await enrichPilesWithColors(batch.piles);
   return batch;
 }
 
@@ -168,6 +211,8 @@ export async function update(id, updates, user) {
   }
   
   // Don't allow changing critical fields
+  delete updates._id;
+  delete updates.createdAt;
   delete updates.batchNumber;
   delete updates.supplierId;
   delete updates.warehouseId;

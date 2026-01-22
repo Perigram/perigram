@@ -40,38 +40,38 @@
     </div>
 
     <!-- Create Dialog (True to nature) -->
-    <Dialog v-model:visible="showCreateDialog" header="New Requisition" :style="{ width: '800px' }" modal>
+    <Dialog v-model:visible="showCreateDialog" :header="$t('requisition.newRequisition')" :style="{ width: '800px' }" modal>
       <div class="flex flex-col gap-6 pt-4">
         <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-2">
-                <label class="font-bold text-sm">Manufacturer *</label>
-                <Select v-model="form.manufacturerId" :options="manufacturers" optionLabel="name" optionValue="_id" class="w-full" placeholder="Select supplier..." />
+                <label class="font-bold text-sm">{{ $t('requisition.manufacturer') }} *</label>
+                <Select v-model="form.manufacturerId" :options="manufacturers" optionLabel="name" optionValue="_id" class="w-full" :placeholder="$t('requisition.selectManufacturer')" />
             </div>
              <div class="flex flex-col gap-2">
-                <label class="font-bold text-sm">Project (Optional)</label>
-                <Select v-model="form.projectId" :options="projects" optionLabel="name" optionValue="_id" class="w-full" placeholder="Link to project..." />
+                <label class="font-bold text-sm">{{ $t('requisition.project') }} ({{ $t('common.optional') }})</label>
+                <Select v-model="form.projectId" :options="projects" optionLabel="name" optionValue="_id" class="w-full" :placeholder="$t('requisition.linkToProject')" />
             </div>
         </div>
 
         <div class="flex flex-col gap-3">
           <div class="flex justify-between items-center">
-            <label class="font-bold text-sm">Order Items</label>
-            <Button label="Add Item" icon="pi pi-plus" size="small" text @click="addItem" :disabled="!form.manufacturerId" />
+            <label class="font-bold text-sm">{{ $t('requisition.orderItems') }}</label>
+            <Button :label="$t('requisition.addItem')" icon="pi pi-plus" size="small" text @click="addItem" :disabled="!form.manufacturerId" />
           </div>
           
           <div v-if="!form.manufacturerId" class="p-8 border border-dashed rounded-xl flex items-center justify-center text-xs opacity-40 italic">
-              Select a manufacturer first to browse their catalog...
+              {{ $t('requisition.selectManufacturerFirst') }}
           </div>
 
-          <div v-for="(item, idx) in form.items" :key="idx" class="p-4 bg-[var(--p-content-background)] rounded-xl border flex flex-col gap-4">
+          <div v-for="(item, idx) in form.items" :key="idx" class="p-4 bg-surface-0 dark:bg-surface-900 rounded-xl border flex flex-col gap-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-40">Select Catalog</label>
-                    <Select v-model="item.catalogId" :options="availableCatalogs" optionLabel="name" optionValue="_id" placeholder="Catalog" @change="onCatalogChange(idx)" />
+                    <label class="text-[10px] font-black uppercase opacity-40">{{ $t('requisition.selectCatalog') }}</label>
+                    <Select v-model="item.catalogId" :options="availableCatalogs" optionLabel="name" optionValue="_id" :placeholder="$t('requisition.catalog')" @change="onCatalogChange(idx)" />
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-40">Color / Finish</label>
-                    <Select v-model="item.colorId" :options="getAvailableColors(item.catalogId)" optionLabel="color" optionValue="_id" placeholder="Select Color">
+                    <label class="text-[10px] font-black uppercase opacity-40">{{ $t('requisition.colorFinish') }}</label>
+                    <Select v-model="item.colorId" :options="getAvailableColors(item.catalogId)" optionLabel="color" optionValue="_id" :placeholder="$t('requisition.selectColor')">
                         <template #option="slotProps">
                             <div class="flex items-center gap-2">
                                 <div class="w-4 h-4 rounded-full border shadow-sm" :style="{ backgroundColor: slotProps.option.colorFallback }"></div>
@@ -84,23 +84,23 @@
 
             <div v-if="item.catalogId" class="grid grid-cols-5 gap-3 items-end">
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-40">Foil (mm)</label>
+                    <label class="text-[10px] font-black uppercase opacity-40">{{ $t('catalog.foilThickness') }} (mm)</label>
                     <Select v-model="item.foilThickness" :options="getCatalogOptions(item.catalogId, 'foilThicknessOptions')" optionLabel="label" optionValue="value" />
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-40">Sheet (mm)</label>
+                    <label class="text-[10px] font-black uppercase opacity-40">{{ $t('catalog.sheetThickness') }} (mm)</label>
                     <Select v-model="item.sheetThickness" :options="getCatalogOptions(item.catalogId, 'sheetThicknessOptions')" optionLabel="label" optionValue="value" />
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-40">Width (mm)</label>
+                    <label class="text-[10px] font-black uppercase opacity-40">{{ $t('catalog.width') }} (mm)</label>
                     <Select v-model="item.width" :options="getCatalogOptions(item.catalogId, 'widthOptions')" optionLabel="label" optionValue="value" />
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-40">Length (mm)</label>
+                    <label class="text-[10px] font-black uppercase opacity-40">{{ $t('catalog.length') }} (mm)</label>
                     <InputNumber v-model="item.length" :min="100" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-40">Qty</label>
+                    <label class="text-[10px] font-black uppercase opacity-40">{{ $t('common.quantity') }}</label>
                     <div class="flex items-center gap-2">
                         <InputNumber v-model="item.quantity" :min="1" class="w-full" />
                         <Button icon="pi pi-trash" severity="danger" text @click="form.items.splice(idx, 1)" />
@@ -111,41 +111,41 @@
         </div>
 
         <div class="flex flex-col gap-2">
-          <label class="font-bold text-sm">Special Instructions / Notes</label>
-          <Textarea v-model="form.notes" class="w-full" rows="3" placeholder="Add any specific requirements or delivery notes..." />
+          <label class="font-bold text-sm">{{ $t('requisition.specialInstructions') }}</label>
+          <Textarea v-model="form.notes" class="w-full" rows="3" :placeholder="$t('requisition.notesPlaceholder')" />
         </div>
       </div>
       <template #footer>
-        <Button label="Cancel" text severity="secondary" @click="showCreateDialog = false" />
-        <Button label="Create Requisition" icon="pi pi-check" @click="createReq" :loading="submitting" :disabled="!form.items.length" />
+        <Button :label="$t('common.cancel')" text severity="secondary" @click="showCreateDialog = false" />
+        <Button :label="$t('requisition.createRequisition')" icon="pi pi-check" @click="createReq" :loading="submitting" :disabled="!form.items.length" />
       </template>
     </Dialog>
 
     <!-- Fulfillment Dialog -->
-    <Dialog v-model:visible="showFulfillDialog" header="Confirm Shipment & Fulfillment" :style="{ width: '500px' }" modal>
+    <Dialog v-model:visible="showFulfillDialog" :header="$t('requisition.confirmShipment')" :style="{ width: '500px' }" modal>
       <div class="flex flex-col gap-6 pt-4">
         <p class="text-sm text-[var(--p-text-secondary-color)]">
-          Completing fulfillment will automatically generate a material batch for the contractor.
+          {{ $t('requisition.fulfillmentWarning') }}
         </p>
         <div class="flex flex-col gap-2">
-          <label class="font-bold text-sm">Target Warehouse (at Contractor's site) *</label>
+          <label class="font-bold text-sm">{{ $t('requisition.targetWarehouse') }} *</label>
           <Select 
             v-model="fulfillForm.warehouseId" 
             :options="contractorWarehouses" 
             optionLabel="name" 
             optionValue="_id" 
-            placeholder="Select destination warehouse..."
+            :placeholder="$t('requisition.selectDestinationWarehouse')"
             class="w-full"
           />
         </div>
         <div class="flex flex-col gap-2">
-          <label class="font-bold text-sm">Delivery Notes</label>
-          <Textarea v-model="fulfillForm.notes" class="w-full" rows="3" placeholder="Transport details, tracking number..." />
+          <label class="font-bold text-sm">{{ $t('requisition.deliveryNotes') }}</label>
+          <Textarea v-model="fulfillForm.notes" class="w-full" rows="3" :placeholder="$t('requisition.deliveryNotesPlaceholder')" />
         </div>
       </div>
       <template #footer>
-        <Button label="Cancel" text severity="secondary" @click="showFulfillDialog = false" />
-        <Button label="Confirm & Ship" icon="pi pi-truck" @click="confirmFulfill" :loading="submitting" :disabled="!fulfillForm.warehouseId" />
+        <Button :label="$t('common.cancel')" text severity="secondary" @click="showFulfillDialog = false" />
+        <Button :label="$t('requisition.confirmAndShip')" icon="pi pi-truck" @click="confirmFulfill" :loading="submitting" :disabled="!fulfillForm.warehouseId" />
       </template>
     </Dialog>
   </div>

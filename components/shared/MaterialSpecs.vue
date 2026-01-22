@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col gap-3 p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl">
+    <div class="flex flex-col gap-3 p-4 bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl">
         <h4 class="text-[10px] font-black uppercase opacity-40 m-0 flex items-center gap-2">
             <i class="pi pi-cog"></i>
             {{ $t('catalog.materialSpecs') }}
@@ -25,7 +25,7 @@
             </div>
 
             <!-- Dimensions -->
-            <div class="flex flex-col col-span-2 pt-2 border-t border-dashed border-[var(--p-content-border-color)]">
+            <div class="flex flex-col col-span-2 pt-2 border-t border-dashed border-surface-200 dark:border-surface-700">
                 <span class="text-[10px] opacity-60">{{ $t('catalog.dimensions') }}</span>
                 <div class="flex items-center gap-2">
                     <span class="text-sm font-black">{{ specs.width }}</span>

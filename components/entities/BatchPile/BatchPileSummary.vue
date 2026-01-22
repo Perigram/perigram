@@ -1,5 +1,5 @@
 <template>
-    <div class="inline-flex items-center gap-3 p-2 rounded-lg border border-[var(--p-surface-200)] bg-[var(--p-surface-50)]">
+    <div class="inline-flex items-center gap-3 p-2 rounded-lg border border-[var(--p-surface-200)] bg-[var(--p-content-background)]">
         <i class="pi pi-clone text-[var(--p-primary-color)]"></i>
         <div class="flex flex-col">
             <span class="text-[10px] font-black uppercase leading-none opacity-60">Pile</span>

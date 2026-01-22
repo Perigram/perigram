@@ -170,6 +170,51 @@ export async function confirmMembership(userId, organizationId, action, updaterU
       { $pull: { memberships: { organizationId: new ObjectId(organizationId) } } }
     );
   }
+  return { success: true };
+}
+
+export async function updatePermissions(userId, newPermissions, updaterId, updaterRole, organizationId) {
+  // 1. Fetch user
+  const user = await usersRepository.findById(userId);
+  if (!user) throw createError({ statusCode: 404, message: 'User not found' });
+
+  // 2. Authorization check
+  // Only SuperAdmin or Admin of the same organization can update permissions
+  const isSuperAdmin = updaterRole === 'SuperAdmin';
+  const isInSameOrg = user.memberships?.some(m => m.organizationId.toString() === organizationId.toString());
+  const isAdminOfOrg = updaterRole.endsWith('Admin') && isInSameOrg;
+
+  if (!isSuperAdmin && !isAdminOfOrg) {
+    throw createError({ statusCode: 403, message: 'Forbidden: Insufficient privileges to update permissions' });
+  }
+
+  // 3. Prepare updates
+  const updates = {};
+  
+  // If we are updating within the current organization context
+  if (organizationId && isInSameOrg) {
+    // Update both top-level (for active session) and membership (for persistence)
+    updates.permissions = newPermissions;
+
+    // Use native driver for deep array update
+    const db = await (await import('~/server/db/mongo')).connectDB();
+    await db.collection('users').updateOne(
+      { 
+        _id: new ObjectId(userId), 
+        "memberships.organizationId": new ObjectId(organizationId) 
+      },
+      { 
+        $set: { 
+          "memberships.$.permissions": newPermissions,
+          "permissions": newPermissions // Sync active session perms
+        } 
+      }
+    );
+  } else if (isSuperAdmin) {
+    // SuperAdmin can update top-level directly
+    updates.permissions = newPermissions;
+    await usersRepository.updateById(userId, updates);
+  }
 
   return { success: true };
 }

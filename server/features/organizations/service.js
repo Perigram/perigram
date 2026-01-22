@@ -75,6 +75,20 @@ export async function create(data, user) {
 export async function list(user, filter = {}) {
   // Apply organization filter
   const orgFilter = getOrgFilter(user);
+  
+  // Logic upgrade: If a user is searching specifically for Manufacturers (discovery),
+  // bypass the organization isolation filter.
+  if (user.role !== 'SuperAdmin') {
+    // Discovery: Contractors finding Manufacturers
+    if (filter.type === 'Manufacturer') {
+      return await repository.find({ type: 'Manufacturer' });
+    }
+    // Discovery: Manufacturers finding Contractors (for shipping)
+    if (filter.type === 'Contractor' && user.organizationData?.type === 'Manufacturer') {
+      return await repository.find({ type: 'Contractor' });
+    }
+  }
+
   const finalFilter = { ...filter, ...orgFilter };
   
   return await repository.find(finalFilter);
@@ -110,7 +124,9 @@ export async function update(id, updates, user) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  // Don't allow type change
+  // Don't allow critical field changes
+  delete updates._id;
+  delete updates.createdAt;
   delete updates.type;
   
   const success = await repository.updateById(id, updates);

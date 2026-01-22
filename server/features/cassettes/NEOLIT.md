@@ -16,6 +16,15 @@ Cassettes are stored in the `cassettes` collection. Key fields:
 - `dxfId`: GridFS ID of the original DXF (for standard cassettes).
 - `layerMapping`: Map of DXF layer names to system standard codes.
 - `polygonParts`: Extracted geometry for the nesting algorithm.
+- `processingStatus`: Indicates state of geometry extraction/processing.
+    - `pending`: Waiting for processing.
+    - `processing`: Currently being processed.
+    - `done`: Processing completed successfully (ready for nesting).
+    - `error`: Processing failed.
+- `status`: Lifecycle status.
+    - `DRAFT`: Initial state.
+    - `ACTIVE`: Available for use.
+    - `ARCHIVED`: Soft deleted.
 
 ## Key Workflows
 ### Upload & Extraction (Standard)
@@ -23,6 +32,7 @@ When a DXF is uploaded, the service:
 1. Saves the DXF to GridFS (`cassettes` bucket).
 2. Extracts polygons from the layer mapped to the `nesting` standard.
 3. Syncs the metadata and file to the legacy `user_dxf_files` collection for worker compatibility.
+4. Sets `processingStatus` to `done` if polygons are extracted, otherwise `pending`.
 
 ### Parametric Design
 Parametric cassettes are created and managed via the `CassetteDesigner`. They store their geometry logic in the `data` field and are evaluated on the fly by the worker or frontend.

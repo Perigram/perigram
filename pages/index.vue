@@ -24,7 +24,7 @@ onMounted(async () => {
     if (authStore.isSuperAdmin) {
       router.push('/admin/organizations');
     } else if (authStore.isManufacturer) {
-      router.push('/materials');
+      router.push('/warehouses');
     } else {
       router.push('/projects');
     }

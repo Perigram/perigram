@@ -99,6 +99,8 @@ export async function update(id, updates, user) {
   }
   
   // Don't allow changing critical fields
+  delete updates._id;
+  delete updates.createdAt;
   delete updates.sheetNumber;
   delete updates.batchId;
   delete updates.pileId;

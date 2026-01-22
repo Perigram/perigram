@@ -35,8 +35,18 @@ export async function list(user, filter = {}) {
   const orgFilter = getOrgFilter(user);
   const finalFilter = { ...filter };
   
-  if (orgFilter.organizationId) {
-    finalFilter.organizationId = orgFilter.organizationId;
+  // Logic upgrade: Allow Manufacturers to view warehouses of other organizations (Contractors)
+  // if they are specifically querying for them (e.g., for shipping batches)
+  const isManufacturer = user.organizationData?.type === 'Manufacturer';
+  const queryingSpecificOrg = filter.organizationId;
+  
+  if (isManufacturer && queryingSpecificOrg) {
+     // Trust the passed organizationId filter (Manufacturer viewing Contractor's warehouse)
+     // TODO: Could verify that the target org is indeed a Contractor
+     finalFilter.organizationId = new ObjectId(filter.organizationId);
+  } else if (orgFilter.organizationId) {
+     // Default: Restrict to own organization
+     finalFilter.organizationId = orgFilter.organizationId;
   }
   
   return await repository.find(finalFilter);
@@ -73,10 +83,9 @@ export async function update(id, updates, user) {
   }
   
   // Don't allow organizationId change
+  delete updates._id;
+  delete updates.createdAt;
   delete updates.organizationId;
-  delete updates.totalBatches;
-  delete updates.totalSheets;
-  delete updates.totalRemnants;
   
   const success = await repository.updateById(id, updates);
   if (!success) {

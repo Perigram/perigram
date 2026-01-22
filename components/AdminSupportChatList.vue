@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col h-full bg-[var(--p-surface-50)]">
+    <div class="flex flex-col h-full bg-[var(--p-content-background)]">
         <div class="p-4 border-b border-[var(--p-content-border-color)] bg-[var(--p-content-background)]">
             <h2 class="text-lg font-bold text-[var(--p-text-color)] m-0">{{ $t('admin.supportChatList') }}</h2>
         </div>

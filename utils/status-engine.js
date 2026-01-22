@@ -8,13 +8,13 @@ export const ENTITY_UI = {
     sheetDesign: { icon: 'pi pi-map', route: (id) => `/design/sheet/${id}` },
     cassetteDesign: { icon: 'pi pi-pencil', route: (id) => `/design/cassette/${id}` },
     cassetteInstance: { icon: 'pi pi-box', route: (id) => `/production/instance/${id}` },
-    warehouse: { icon: 'pi pi-building', route: (id) => `/materials?tab=warehouses` },
-    catalog: { icon: 'pi pi-book', route: (id) => `/materials?tab=catalogs` },
-    requisition: { icon: 'pi pi-shopping-cart', route: (id) => `/materials?tab=requisitions` },
-    batch: { icon: 'pi pi-truck', route: (id) => `/materials?tab=batches` },
-    batchPile: { icon: 'pi pi-clone', route: (id) => `/materials/pile/${id}` },
-    sheet: { icon: 'pi pi-file', route: (id) => `/materials?tab=sheets` },
-    remnant: { icon: 'pi pi-undo', route: (id) => `/materials?tab=remnants` },
+    warehouse: { icon: 'pi pi-building', route: (id) => `/warehouses` },
+    catalog: { icon: 'pi pi-book', route: (id) => `/catalog` },
+    requisition: { icon: 'pi pi-shopping-cart', route: (id) => `/requisitions` },
+    batch: { icon: 'pi pi-truck', route: (id) => `/warehouses` },
+    batchPile: { icon: 'pi pi-clone', route: (id) => `/warehouses` },
+    sheet: { icon: 'pi pi-file', route: (id) => `/warehouses` },
+    remnant: { icon: 'pi pi-undo', route: (id) => `/warehouses` },
     cassetteTemplate: { icon: 'pi pi-palette', route: (id) => `/assets/templates` }
 };
 
@@ -24,7 +24,7 @@ export const ENTITY_UI = {
 export const STATUS_MAPPINGS = {
     // Requisition
     draft: { label: 'status.draft', severity: 'secondary', icon: 'pi pi-pencil' },
-    sent: { label: 'status.submitted', severity: 'info', icon: 'pi pi-send' },
+    sent: { label: 'status.sent', severity: 'info', icon: 'pi pi-send' },
     approved: { label: 'status.approved', severity: 'success', icon: 'pi pi-check-circle' },
     rejected: { label: 'status.rejected', severity: 'danger', icon: 'pi pi-times-circle' },
     in_fulfillment: { label: 'status.fulfilling', severity: 'warn', icon: 'pi pi-cog' },

@@ -81,8 +81,10 @@ export async function update(id, updates, user) {
   }
   
   // Don't allow manufacturerId change
+  delete updates._id;
   delete updates.manufacturerId;
   delete updates.sheetTypes;
+  delete updates.createdAt;
   
   const success = await repository.updateById(id, updates);
   if (!success) {

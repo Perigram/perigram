@@ -34,7 +34,15 @@ export async function update(id, updates, user) {
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
 
-  return await repository.updateById(id, updates);
+  delete updates._id;
+  delete updates.createdAt;
+
+  const success = await repository.updateById(id, updates);
+  if (!success) {
+    throw createError({ statusCode: 500, message: 'Update failed' });
+  }
+
+  return await repository.findById(id);
 }
 
 export async function remove(id, user) {

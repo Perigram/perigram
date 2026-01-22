@@ -21,7 +21,7 @@
                 </div>
 
                 <div v-else-if="invitation" class="flex flex-col gap-6 py-4">
-                    <div class="p-6 bg-[var(--p-surface-50)] border rounded-2xl text-center">
+                    <div class="p-6 bg-[var(--p-content-background)] border rounded-2xl text-center">
                         <p class="text-sm text-[var(--p-text-muted-color)] uppercase font-black tracking-widest mb-2">You are invited to join</p>
                         <h2 class="text-2xl font-black m-0 text-[var(--p-text-color)]">{{ invitation.organizationName }}</h2>
                         <div class="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-[var(--p-primary-color)]/10 text-[var(--p-primary-color)] rounded-full">
