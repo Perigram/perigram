@@ -66,11 +66,11 @@ export const useNavigationStore = defineStore('navigation', () => {
         
         const currentHub = hubs.value.find((s) => 
             s.id === currentSectionId || 
-            path === s.to ||
+            path.startsWith(s.to) ||
             (currentSectionId === 'admin' && s.id === 'admin')
         );
 
-        if (currentHub && !(parts.length > 1 && (parts[0] === 'project' || parts[0] === 'assets' || parts[0] === 'admin'))) {
+        if (currentHub) {
             nav.push({
                 name: currentHub.name,
                 to: currentHub.to,

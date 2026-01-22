@@ -1,28 +1,28 @@
 <template>
     <div class="flex flex-col min-h-screen bg-[var(--p-surface-ground)]">
-        <header class="sticky top-0 z-50 bg-[var(--p-content-background)] border-b border-[var(--p-content-border-color)]">
-            <nav class="max-w-[1600px] mx-auto px-4 h-14 flex items-center justify-between">
+        <header class="sticky top-0 z-50 bg-[var(--p-content-background)] !border-none shadow-sm">
+            <nav class="max-w-[1600px] mx-auto px-4 h-14 flex items-center justify-between gap-2">
                 <!-- Left: Logo & Breadcrumbs -->
-                <div class="flex items-center h-full min-w-0">
+                <div class="flex items-center h-full min-w-0 flex-1">
                     <NuxtLink
                         to="/"
-                        class="flex items-center gap-2 no-underline text-[var(--p-primary-color)] text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity mr-4 shrink-0"
+                        class="flex items-center gap-2 no-underline text-[var(--p-primary-color)] text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity mr-2 shrink-0"
                     >
                         <span>CutKit</span>
                     </NuxtLink>
 
-                    <Divider layout="vertical" class="mx-2 hidden md:block shrink-0" />
+                    <Divider layout="vertical" class="mx-1 hidden sm:block shrink-0" />
                     
-                    <div class="hidden md:flex items-center gap-0 overflow-hidden">
+                    <div class="flex items-center gap-0 overflow-hidden min-w-0">
                         <div
                             v-for="(crumb, index) in breadcrumbs"
                             :key="index"
                             class="flex items-center gap-0 shrink-0"
                         >
-                            <span v-if="index > 0" class="mx-1 opacity-50 shrink-0">/</span>
+                            <span v-if="index > 0" class="mx-0.5 opacity-50 shrink-0">/</span>
                             <NuxtLink
                                 :to="crumb.to"
-                                class="p-button p-component p-button-text p-button-secondary text-sm font-medium whitespace-nowrap"
+                                class="p-button p-component p-button-text p-button-secondary text-[10px] md:text-sm font-medium whitespace-nowrap max-w-[80px] sm:max-w-[120px] md:max-w-none truncate px-1 md:px-2"
                             >
                                 {{ crumb.name }}
                             </NuxtLink>
@@ -33,7 +33,7 @@
                                 option-label="name"
                                 option-value="id"
                                 @change="(e) => router.push(e.value)"
-                                pt:root:class="p-button p-component p-button-text p-button-secondary px-0 mr-2 border-none"
+                                pt:root:class="p-button p-component p-button-text p-button-secondary px-0 mr-1 border-none"
                                 pt:label:class="hidden"
                                 pt:dropdown:class="p-0 m-0"
                             />
@@ -278,4 +278,3 @@
 
 <style scoped lang="scss">
 </style>
-
