@@ -30,7 +30,10 @@ export async function create(data, user) {
     name: data.name,
     manufacturerId: new ObjectId(data.manufacturerId),
     description: data.description || '',
-    sheetTypes: []
+    material: data.material || 'Aluminium Composite',
+    foilThicknessOptions: data.foilThicknessOptions || [0.2, 0.3, 0.5],
+    sheetThicknessOptions: data.sheetThicknessOptions || [2, 2.5, 3, 4],
+    widthOptions: data.widthOptions || [1220, 1500]
   });
 }
 
@@ -39,7 +42,7 @@ export async function list(user, filter = {}) {
   // Manufacturers see only their own
   const org = user.organizationData;
   if (org && org.type === 'Manufacturer') {
-    filter.manufacturerId = user.organizationId;
+    filter.manufacturerId = new ObjectId(user.organizationId);
   }
   
   return await repository.find(filter);
@@ -87,81 +90,6 @@ export async function update(id, updates, user) {
   }
   
   return await repository.findById(id);
-}
-
-export async function addSheetType(catalogId, sheetTypeData, user) {
-  const catalog = await repository.findById(catalogId);
-  if (!catalog) {
-    throw createError({ statusCode: 404, message: 'Catalog not found' });
-  }
-  
-  // Only manufacturer that owns catalog can add sheet types
-  if (!checkEntityAccess(user, catalog, catalog.manufacturerId)) {
-    throw createError({ statusCode: 403, message: 'Cannot modify catalog from other manufacturer' });
-  }
-  
-  if (!hasPermission(user, 'catalogs', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-  
-  // Validate sheet type
-  if (!sheetTypeData.material || !sheetTypeData.color || !sheetTypeData.thickness) {
-    throw createError({ statusCode: 400, message: 'Material, color, and thickness required' });
-  }
-  
-  const sheetType = await repository.addSheetType(catalogId, sheetTypeData);
-  if (!sheetType) {
-    throw createError({ statusCode: 500, message: 'Failed to add sheet type' });
-  }
-  
-  return sheetType;
-}
-
-export async function updateSheetType(catalogId, sheetTypeId, updates, user) {
-  const catalog = await repository.findById(catalogId);
-  if (!catalog) {
-    throw createError({ statusCode: 404, message: 'Catalog not found' });
-  }
-  
-  if (!checkEntityAccess(user, catalog, catalog.manufacturerId)) {
-    throw createError({ statusCode: 403, message: 'Cannot modify catalog from other manufacturer' });
-  }
-  
-  if (!hasPermission(user, 'catalogs', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-  
-  // Don't allow _id change
-  delete updates._id;
-  
-  const success = await repository.updateSheetType(catalogId, sheetTypeId, updates);
-  if (!success) {
-    throw createError({ statusCode: 404, message: 'Sheet type not found' });
-  }
-  
-  return await repository.findById(catalogId);
-}
-
-export async function removeSheetType(catalogId, sheetTypeId, user) {
-  const catalog = await repository.findById(catalogId);
-  if (!catalog) {
-    throw createError({ statusCode: 404, message: 'Catalog not found' });
-  }
-  
-  if (!checkEntityAccess(user, catalog, catalog.manufacturerId)) {
-    throw createError({ statusCode: 403, message: 'Cannot modify catalog from other manufacturer' });
-  }
-  
-  if (!hasPermission(user, 'catalogs', 'admin')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-  
-  const success = await repository.removeSheetType(catalogId, sheetTypeId);
-  if (!success) {
-    throw createError({ statusCode: 404, message: 'Sheet type not found' });
-  }
-  
-  return { success: true };
 }
 
 export async function remove(id, user) {

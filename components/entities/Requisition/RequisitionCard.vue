@@ -15,7 +15,10 @@
         <template #content>
             <div class="flex flex-col gap-2 opacity-80">
                 <div v-for="(item, idx) in displayedItems" :key="idx" class="flex justify-between text-xs">
-                    <span class="truncate max-w-[150px]">{{ item.material }} ({{ item.color }})</span>
+                    <div class="flex flex-col">
+                        <span class="truncate max-w-[150px] font-bold">{{ item.material }} ({{ item.color }})</span>
+                        <span class="text-[9px] opacity-60">{{ item.sheetThickness }}mm / {{ item.width }}x{{ item.length }}mm</span>
+                    </div>
                     <span class="font-bold">x{{ item.quantity }}</span>
                 </div>
                 <div v-if="requisition.items?.length > 3" class="text-[10px] opacity-40 text-center">

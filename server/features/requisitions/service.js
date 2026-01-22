@@ -1,5 +1,6 @@
 import * as repository from './repository.js';
 import * as catalogRepository from '../catalogs/repository.js';
+import * as colorRepository from '../colors/repository.js';
 import * as materialBatchService from '../material-batches/service.js';
 import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
@@ -21,49 +22,44 @@ export async function create(data, user) {
   if (!data.manufacturerId || !data.items || data.items.length === 0) {
     throw createError({ statusCode: 400, message: 'ManufacturerId and items required' });
   }
-  
-  // Snapshot prices from catalog
+
+  // Snapshot prices and specs from catalog + color
   const snapshotItems = [];
   let totalAmount = 0;
   
   for (const item of data.items) {
-    if (!item.catalogId || !item.sheetTypeId || item.sizeIndex === undefined || !item.quantity) {
+    if (!item.catalogId || !item.colorId || !item.quantity || !item.sheetThickness || !item.width || !item.length) {
       throw createError({ statusCode: 400, message: 'Invalid item: missing required fields' });
     }
     
-    // Get catalog and sheet type
     const catalog = await catalogRepository.findById(item.catalogId);
-    if (!catalog) {
-      throw createError({ statusCode: 404, message: `Catalog ${item.catalogId} not found` });
-    }
+    if (!catalog) throw createError({ statusCode: 404, message: `Catalog ${item.catalogId} not found` });
     
-    const sheetType = catalog.sheetTypes.find(st => st._id.toString() === item.sheetTypeId);
-    if (!sheetType) {
-      throw createError({ statusCode: 404, message: `Sheet type ${item.sheetTypeId} not found in catalog` });
-    }
+    const color = await colorRepository.findById(item.colorId);
+    if (!color) throw createError({ statusCode: 404, message: `Color ${item.colorId} not found` });
     
-    if (item.sizeIndex >= sheetType.sizes.length) {
-      throw createError({ statusCode: 400, message: `Invalid size index ${item.sizeIndex}` });
+    // Validate constraints
+    if (!catalog.sheetThicknessOptions?.includes(item.sheetThickness)) {
+        throw createError({ statusCode: 400, message: `Invalid thickness ${item.sheetThickness}` });
     }
-    
-    const size = sheetType.sizes[item.sizeIndex];
-    const sheetArea = (size.width * size.height) / 1000000; // Convert mm² to m²
-    const pricePerSqm = size.pricePerSqm || 0;
+
+    const pricePerSqm = color.pricePerSqm || 35; // Default price
+    const sheetArea = (item.width * item.length) / 1000000; 
     const itemTotal = sheetArea * pricePerSqm * item.quantity;
     totalAmount += itemTotal;
     
-    // Snapshot item with price
     snapshotItems.push({
       catalogId: new ObjectId(item.catalogId),
-      sheetTypeId: new ObjectId(item.sheetTypeId),
-      sizeIndex: item.sizeIndex,
+      colorId: new ObjectId(item.colorId),
       quantity: item.quantity,
-      material: sheetType.material,
-      color: sheetType.color,
-      thickness: sheetType.thickness,
-      foilThickness: sheetType.foilThickness || 0,
-      width: size.width,
-      height: size.height,
+      material: catalog.material,
+      color: color.color,
+      colorCode: color.colorCode,
+      colorFallback: color.colorFallback,
+      sheetThickness: item.sheetThickness,
+      foilThickness: item.foilThickness || 0.3,
+      width: item.width,
+      length: item.length,
       pricePerSqm: pricePerSqm,
       totalPrice: itemTotal
     });

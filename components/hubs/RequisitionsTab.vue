@@ -70,29 +70,41 @@
                     <Select v-model="item.catalogId" :options="availableCatalogs" optionLabel="name" optionValue="_id" placeholder="Catalog" @change="onCatalogChange(idx)" />
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-40">Material Specification</label>
-                    <Select v-model="item.sheetTypeId" :options="getAvailableSheetTypes(item.catalogId)" optionLabel="color" optionValue="_id" placeholder="Specification" @change="onSheetTypeChange(idx)">
+                    <label class="text-[10px] font-black uppercase opacity-40">Color / Finish</label>
+                    <Select v-model="item.colorId" :options="getAvailableColors(item.catalogId)" optionLabel="color" optionValue="_id" placeholder="Select Color">
                         <template #option="slotProps">
                             <div class="flex items-center gap-2">
                                 <div class="w-4 h-4 rounded-full border shadow-sm" :style="{ backgroundColor: slotProps.option.colorFallback }"></div>
-                                <span>{{ slotProps.option.color }} ({{ slotProps.option.thickness }}mm)</span>
+                                <span>{{ slotProps.option.color }}</span>
                             </div>
                         </template>
                     </Select>
                 </div>
             </div>
 
-            <div v-if="item.sheetTypeId" class="grid grid-cols-3 gap-4 items-end">
+            <div v-if="item.catalogId" class="grid grid-cols-5 gap-3 items-end">
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-40">Size (W x H)</label>
-                    <Select v-model="item.sizeIndex" :options="getSizeOptions(item.catalogId, item.sheetTypeId)" optionLabel="label" optionValue="value" />
+                    <label class="text-[10px] font-black uppercase opacity-40">Foil (mm)</label>
+                    <Select v-model="item.foilThickness" :options="getCatalogOptions(item.catalogId, 'foilThicknessOptions')" optionLabel="label" optionValue="value" />
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-40">Quantity</label>
-                    <InputNumber v-model="item.quantity" :min="1" class="w-full" />
+                    <label class="text-[10px] font-black uppercase opacity-40">Sheet (mm)</label>
+                    <Select v-model="item.sheetThickness" :options="getCatalogOptions(item.catalogId, 'sheetThicknessOptions')" optionLabel="label" optionValue="value" />
                 </div>
-                <div class="flex justify-end p-2">
-                    <Button icon="pi pi-trash" severity="danger" text @click="form.items.splice(idx, 1)" />
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] font-black uppercase opacity-40">Width (mm)</label>
+                    <Select v-model="item.width" :options="getCatalogOptions(item.catalogId, 'widthOptions')" optionLabel="label" optionValue="value" />
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] font-black uppercase opacity-40">Length (mm)</label>
+                    <InputNumber v-model="item.length" :min="100" class="w-full" />
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] font-black uppercase opacity-40">Qty</label>
+                    <div class="flex items-center gap-2">
+                        <InputNumber v-model="item.quantity" :min="1" class="w-full" />
+                        <Button icon="pi pi-trash" severity="danger" text @click="form.items.splice(idx, 1)" />
+                    </div>
                 </div>
             </div>
           </div>
@@ -159,6 +171,7 @@ const entityStore = useEntityStore();
 const requisitions = ref([]);
 const manufacturers = ref([]);
 const catalogs = ref([]);
+const colors = ref([]);
 const projects = ref([]);
 const contractorWarehouses = ref([]);
 const loading = ref(false);
@@ -184,11 +197,9 @@ async function load() {
       const orgs = await $fetch('/api/organizations?type=Manufacturer');
       manufacturers.value = orgs;
       catalogs.value = await $fetch('/api/catalogs');
-      projects.value = await $fetch('/api/project');
-    }
-    if (authStore.isManufacturer) {
-        // If manufacturer fulfills, they need to select contractor's warehouse
-        // This is where my previous visibility fix comes in
+      colors.value = await $fetch('/api/colors');
+      const projResp = await $fetch('/api/project');
+      projects.value = projResp;
     }
   } catch (error) {
     if (error.status !== 401) {
@@ -202,40 +213,43 @@ async function load() {
 async function viewDetails(req) {
     selectedReq.value = req;
     if (authStore.isManufacturer && req.status === 'in_fulfillment') {
-        // Fetch destination org warehouses
         contractorWarehouses.value = await $fetch(`/api/warehouses?organizationId=${req.contractorId}`);
     }
 }
 
 function addItem() {
-  form.value.items.push({ catalogId: null, sheetTypeId: null, sizeIndex: 0, quantity: 1 });
+  form.value.items.push({ 
+    catalogId: null, 
+    colorId: null, 
+    foilThickness: 0.3, 
+    sheetThickness: 4, 
+    width: 1220, 
+    length: 3000, 
+    quantity: 1 
+  });
 }
 
 function onCatalogChange(idx) {
-    form.value.items[idx].sheetTypeId = null;
-    form.value.items[idx].sizeIndex = 0;
+    const catalog = catalogs.value.find(c => c._id === form.value.items[idx].catalogId);
+    if (catalog) {
+        form.value.items[idx].foilThickness = catalog.foilThicknessOptions?.[0] || 0.3;
+        form.value.items[idx].sheetThickness = catalog.sheetThicknessOptions?.[0] || 4;
+        form.value.items[idx].width = catalog.widthOptions?.[0] || 1220;
+    }
+    form.value.items[idx].colorId = null;
 }
 
-function onSheetTypeChange(idx) {
-    form.value.items[idx].sizeIndex = 0;
+function getAvailableColors(catalogId) {
+    return colors.value.filter(c => c.catalogId === catalogId);
 }
 
-function getAvailableSheetTypes(catalogId) {
+function getCatalogOptions(catalogId, field) {
     const catalog = catalogs.value.find(c => c._id === catalogId);
-    return catalog?.sheetTypes || [];
-}
-
-function getSizeOptions(catalogId, sheetTypeId) {
-    const catalog = catalogs.value.find(c => c._id === catalogId);
-    const sheetType = catalog?.sheetTypes.find(st => st._id === sheetTypeId);
-    return (sheetType?.sizes || []).map((s, idx) => ({
-        label: `${s.width}x${s.height}mm - $${s.pricePerSqm}/m²`,
-        value: idx
-    }));
+    return (catalog?.[field] || []).map(val => ({ label: `${val} mm`, value: val }));
 }
 
 async function createReq() {
-  if (form.value.items.some(i => !i.catalogId || !i.sheetTypeId || !i.quantity)) {
+  if (form.value.items.some(i => !i.catalogId || !i.colorId || !i.quantity)) {
       toast.add({ severity: 'warn', summary: 'Incomplete', detail: 'Please fill in all item details' });
       return;
   }

@@ -31,6 +31,7 @@
         </div>
         <CatalogDetail 
             :catalog="selectedCatalog" 
+            :colors="selectedCatalogColors"
             @edit="editCatalog"
             @add-sheet-type="openAddSheetType"
             @edit-sheet-type="openEditSheetType"
@@ -49,9 +50,19 @@
           <label class="font-bold text-sm">{{ $t('catalog.materialType') }} *</label>
           <InputText v-model="catalogForm.material" class="w-full" placeholder="e.g., Aluminium Composite" />
         </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+                <label class="font-bold text-sm">Foil Options (mm)</label>
+                <Chips v-model="catalogForm.foilThicknessOptions" separator="," placeholder="0.2, 0.3" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label class="font-bold text-sm">Sheet Options (mm)</label>
+                <Chips v-model="catalogForm.sheetThicknessOptions" separator="," placeholder="2, 3, 4" />
+            </div>
+        </div>
         <div class="flex flex-col gap-2">
-          <label class="font-bold text-sm">{{ $t('catalog.thickness') }} (mm) *</label>
-          <InputNumber v-model="catalogForm.thickness" :minFractionDigits="1" suffix=" mm" class="w-full" />
+            <label class="font-bold text-sm">Width Options (mm)</label>
+            <Chips v-model="catalogForm.widthOptions" separator="," placeholder="1220, 1500" />
         </div>
         <div class="flex flex-col gap-2">
           <label class="font-bold text-sm">{{ $t('catalog.description') }}</label>
@@ -175,12 +186,27 @@ async function load() {
   }
 }
 
-function viewCatalog(catalog) {
+const selectedCatalogColors = ref([]);
+
+async function viewCatalog(catalog) {
     selectedCatalog.value = catalog;
+    try {
+        selectedCatalogColors.value = await $fetch(`/api/colors?catalogId=${catalog._id}`);
+    } catch (e) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load colors' });
+    }
 }
 
 function openCreateDialog() {
-  catalogForm.value = { name: '', description: '', manufacturerId: authStore.userData?.organizationId, material: 'Aluminium Composite', thickness: 4.0 };
+  catalogForm.value = { 
+    name: '', 
+    description: '', 
+    manufacturerId: authStore.userData?.organizationId, 
+    material: 'Aluminium Composite', 
+    foilThicknessOptions: [0.2, 0.3],
+    sheetThicknessOptions: [2, 3, 4],
+    widthOptions: [1220, 1500]
+  };
   editingId.value = null;
   showCatalogDialog.value = true;
 }
@@ -236,25 +262,23 @@ async function saveSheetType() {
     try {
         const body = { 
             ...sheetTypeForm.value,
-            // Carry over technical specs from catalog parent if needed by backend for validation
-            material: selectedCatalog.value.material,
-            thickness: selectedCatalog.value.thickness
+            catalogId: selectedCatalog.value._id
         };
         if (!body.colorFallback.startsWith('#')) body.colorFallback = '#' + body.colorFallback;
 
         if (editingSheetTypeId.value) {
-            await $fetch(`/api/catalogs/${selectedCatalog.value._id}/colors/${editingSheetTypeId.value}`, {
+            await $fetch(`/api/colors/${editingSheetTypeId.value}`, {
                 method: 'PUT',
                 body
             });
         } else {
-            await $fetch(`/api/catalogs/${selectedCatalog.value._id}/colors`, {
+            await $fetch(`/api/colors`, {
                 method: 'POST',
                 body
             });
         }
         showSheetTypeDialog.value = false;
-        await load();
+        await viewCatalog(selectedCatalog.value);
         toast.add({ severity: 'success', summary: 'Success', detail: 'Color specification saved' });
     } catch (e) {
         toast.add({ severity: 'error', summary: 'Error', detail: e.message });
@@ -266,8 +290,8 @@ async function saveSheetType() {
 async function removeSheetType({ sheetTypeId }) {
     if (confirm('Remove this sheet specification?')) {
         try {
-            await $fetch(`/api/catalogs/${selectedCatalog.value._id}/colors/${sheetTypeId}`, { method: 'DELETE' });
-            await load();
+            await $fetch(`/api/colors/${sheetTypeId}`, { method: 'DELETE' });
+            await viewCatalog(selectedCatalog.value);
             toast.add({ severity: 'success', summary: 'Success', detail: 'Removed' });
         } catch (e) {
             toast.add({ severity: 'error', summary: 'Error', detail: e.message });

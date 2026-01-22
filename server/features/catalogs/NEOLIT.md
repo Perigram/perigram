@@ -13,21 +13,26 @@ Collection: `catalogs`
 Key fields:
 - `name`: Catalog name
 - `manufacturerId`: Owner manufacturer (ObjectId)
+- `material`: Material type (e.g., "Aluminium Composite")
+- `foilThicknessOptions`: Array of available foil thicknesses (mm) [0.2, 0.3, 0.5]
+- `sheetThicknessOptions`: Array of available sheet thicknesses (mm) [2, 2.5, 3, 4, 5]
+- `widthOptions`: Array of available widths (mm) [1220, 1500]
 - `description`: Catalog description
-- `sheetTypes`: Array of sheet type offerings (Exposed as `colors` in API)
-  - `_id`: Sheet type ID (ObjectId)
-  - `material`: Material type (e.g., "Aluminium Composite")
-  - `color`: Color name
-  - `colorCode`: Color code (e.g. RAL 7016)
-  - `colorThumbnail`: URL to color image/texture
-  - `colorFallback`: Hex color for fallback
-  - `thickness`: Sheet thickness (mm)
-  - `foilThickness`: Foil coating thickness (microns)
-  - `sizes`: Array of available sizes
-    - `width`, `height`: Dimensions (mm)
-    - `pricePerSqm`: Price per square meter
-  - `notes`: Additional information
 - `createdAt`, `updatedAt`: Audit fields
+
+Collection: `colors` (Separated for cross-catalog browsing)
+- `name`: Color name
+- `code`: Color code (RAL, etc.)
+- `thumbnail`: Swatch image URL
+- `fallback`: Hex color
+- `catalogId`: Reference to parent catalog
+
+## Access Control
+- Manufacturers: Manage their catalogs and associated colors
+- Contractors: Browse all colors and material specifications
+
+## Related Components
+- [requisitions](../requisitions/NEOLIT.md) - Uses catalog constraints and selected colors to form orders.
 
 ## Access Control
 - Manufacturers: Full CRUD on their own catalogs
