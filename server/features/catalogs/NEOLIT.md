@@ -14,10 +14,13 @@ Key fields:
 - `name`: Catalog name
 - `manufacturerId`: Owner manufacturer (ObjectId)
 - `description`: Catalog description
-- `sheetTypes`: Array of sheet type offerings
+- `sheetTypes`: Array of sheet type offerings (Exposed as `colors` in API)
   - `_id`: Sheet type ID (ObjectId)
   - `material`: Material type (e.g., "Aluminium Composite")
   - `color`: Color name
+  - `colorCode`: Color code (e.g. RAL 7016)
+  - `colorThumbnail`: URL to color image/texture
+  - `colorFallback`: Hex color for fallback
   - `thickness`: Sheet thickness (mm)
   - `foilThickness`: Foil coating thickness (microns)
   - `sizes`: Array of available sizes
