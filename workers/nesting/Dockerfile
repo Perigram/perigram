@@ -1,3 +1,4 @@
+# Stage 1: Build the Rust binary
 FROM rust:1.83 as builder
 
 RUN apt-get update && apt-get install -y \
@@ -6,44 +7,31 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY . .
+# Copy the specific worker folder
+COPY workers/nesting/ .
 
 WORKDIR /app/jagua-rs
 RUN cargo build --release
 
-# Verify the binary was created
-RUN ls -la target/release/
-RUN file target/release/lbf || echo "Binary not found, checking for library"
-
 # Stage 2: Create the final runtime image
 FROM python:3.11-slim
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    libssl3 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create a non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Create home and cache directory for ezdxf
-RUN mkdir -p /home/appuser/.cache/ezdxf && chown -R appuser:appuser /home/appuser
-
+# ... (rest of stage 2)
 WORKDIR /app
 
-# Upgrade pip to latest version
+# Upgrade pip
 RUN pip install --upgrade pip
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
+# Copy requirements from the root-relative path
+COPY workers/nesting/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the built lbf binary from the builder stage
+# Copy the built lbf binary
 COPY --from=builder /app/jagua-rs/target/release/lbf /usr/local/bin/lbf
 RUN chmod +x /usr/local/bin/lbf
 
 # Copy the Python application code
-COPY . .
+COPY workers/nesting/ .
 
 # Change ownership of the app directory to the non-root user
 RUN chown -R appuser:appuser /app
