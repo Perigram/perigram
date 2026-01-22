@@ -27,7 +27,7 @@ export async function create(data, user) {
   let totalAmount = 0;
   
   for (const item of data.items) {
-    if (!item.catalogId || !item.sheetTypeId || !item.sizeIndex || !item.quantity) {
+    if (!item.catalogId || !item.sheetTypeId || item.sizeIndex === undefined || !item.quantity) {
       throw createError({ statusCode: 400, message: 'Invalid item: missing required fields' });
     }
     
@@ -48,7 +48,8 @@ export async function create(data, user) {
     
     const size = sheetType.sizes[item.sizeIndex];
     const sheetArea = (size.width * size.height) / 1000000; // Convert mm² to m²
-    const itemTotal = sheetArea * size.pricePerSqm * item.quantity;
+    const pricePerSqm = size.pricePerSqm || 0;
+    const itemTotal = sheetArea * pricePerSqm * item.quantity;
     totalAmount += itemTotal;
     
     // Snapshot item with price
@@ -63,7 +64,7 @@ export async function create(data, user) {
       foilThickness: sheetType.foilThickness || 0,
       width: size.width,
       height: size.height,
-      pricePerSqm: size.pricePerSqm,
+      pricePerSqm: pricePerSqm,
       totalPrice: itemTotal
     });
   }
@@ -100,9 +101,9 @@ export async function list(user, filter = {}) {
   
   // Filter by organization type
   if (org.type === 'Contractor') {
-    filter.contractorId = user.organizationId;
+    filter.contractorId = new ObjectId(user.organizationId);
   } else if (org.type === 'Manufacturer') {
-    filter.manufacturerId = user.organizationId;
+    filter.manufacturerId = new ObjectId(user.organizationId);
   } else {
     throw createError({ statusCode: 403, message: 'Invalid organization type for requisitions' });
   }
