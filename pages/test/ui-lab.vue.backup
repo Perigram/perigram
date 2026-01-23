@@ -1,0 +1,556 @@
+<template>
+  <div class="min-h-screen">
+    <!-- Header -->
+    <header class="surface-section border-bottom-1 surface-border flex align-items-center px-4 py-2 justify-content-between">
+      <div class="flex align-items-center gap-3">
+        <h1 class="text-2xl font-bold m-0">CutKit UI Lab</h1>
+        <Tag severity="warning" value="Debug Mode" />
+        <Tag severity="secondary" value="65+ Components" />
+      </div>
+      <div class="flex align-items-center gap-2">
+        <ThemeSwitcher />
+        <LanguageSwitcher />
+      </div>
+    </header>
+
+    <div class="flex" v-if="!error" style="height: calc(100vh - 4rem)">
+      <!-- Sidebar Navigation -->
+      <div class="w-15rem border-right-1 surface-border surface-section overflow-y-auto">
+        <div class="p-3 border-bottom-1 surface-border">
+          <p class="text-sm font-semibold m-0 text-color-secondary">COMPONENTS</p>
+        </div>
+        <div class="flex flex-column">
+          <Button 
+            v-for="tab in tabs" 
+            :key="tab.id"
+            @click="activeTab = tab.id"
+            :label="tab.label"
+            text
+            :severity="activeTab === tab.id ? 'primary' : 'secondary'"
+            class="justify-content-start border-noround"
+          />
+        </div>
+      </div>
+
+      <!-- Main Content Area -->
+      <div class="flex-1 overflow-y-auto p-4">
+        
+        <!-- ATOMS & COMMON -->
+        <div v-if="activeTab === 'atoms'" class="flex flex-column gap-3">
+          <Panel header="Theme & Language Controls">
+            <div class="flex gap-2">
+              <ThemeSwitcher />
+              <LanguageSwitcher />
+            </div>
+          </Panel>
+
+          <Panel header="Status Badges">
+            <div class="flex flex-wrap gap-2">
+              <StatusBadge status="PENDING" />
+              <StatusBadge status="PROCESSING" />
+              <StatusBadge status="COMPLETED" />
+              <StatusBadge status="ERROR" />
+              <StatusBadge status="DRAFT" />
+              <StatusBadge status="READY" />
+              <StatusBadge status="CUT" />
+            </div>
+          </Panel>
+
+          <Panel header="Sheet Status Tags">
+            <div class="flex flex-wrap gap-2">
+              <SheetStatusTag status="pre" />
+              <SheetStatusTag status="draft" />
+              <SheetStatusTag status="ready" />
+              <SheetStatusTag status="declined" />
+              <SheetStatusTag status="cut" />
+            </div>
+          </Panel>
+
+          <Panel header="Loaders & Progress">
+            <AuthProgress />
+          </Panel>
+
+          <Panel header="Trace Links">
+            <div class="flex flex-wrap gap-2">
+              <TraceLink type="project" id="proj-123" label="Project A" />
+              <TraceLink type="queue" id="queue-456" label="Queue #1" />
+              <TraceLink type="sheet" id="sheet-789" label="Sheet-001" />
+            </div>
+          </Panel>
+        </div>
+
+        <!-- DATA DISPLAY -->
+        <div v-if="activeTab === 'display'" class="flex flex-column gap-3">
+          <Panel header="Project Statistics">
+            <ErrorBoundary title="ProjectStatistics">
+              <ProjectStatistics :statistics="mockStats" />
+            </ErrorBoundary>
+          </Panel>
+
+          <Panel header="Recent Projects">
+            <ErrorBoundary title="RecentProjects">
+              <RecentProjects :projects="mockProjects" />
+            </ErrorBoundary>
+            <Divider />
+            <p class="text-sm font-semibold">Loading State:</p>
+            <ErrorBoundary title="RecentProjects (Loading)">
+              <RecentProjects :loading="true" />
+            </ErrorBoundary>
+          </Panel>
+
+          <Panel header="History Timeline">
+            <ErrorBoundary title="HistoryTimeline">
+              <HistoryTimeline :history="mockHistory" />
+            </ErrorBoundary>
+          </Panel>
+
+          <Panel header="Material Specs">
+            <ErrorBoundary title="MaterialSpecs">
+              <MaterialSpecs :material="mockMaterial" />
+            </ErrorBoundary>
+          </Panel>
+        </div>
+
+        <!-- ENTITIES -->
+        <div v-if="activeTab === 'entities'" class="flex flex-column gap-3">
+          <Panel header="Project Cards">
+            <div class="grid">
+              <div class="col-12 md:col-6">
+                <ErrorBoundary title="ProjectCard">
+                  <ProjectCard :project="mockProject" />
+                </ErrorBoundary>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel header="Queue Cards">
+            <div class="grid">
+              <div class="col-12 md:col-4">
+                <ErrorBoundary title="QueueCard">
+                  <QueueCard :queue="mockQueue" />
+                </ErrorBoundary>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel header="Sheet Cards">
+            <div class="grid">
+              <div class="col-12 md:col-4">
+                <ErrorBoundary title="SheetCard">
+                  <SheetCard :sheet="mockSheet" />
+                </ErrorBoundary>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel header="Batch Cards">
+            <div class="grid">
+              <div class="col-12 md:col-4">
+                <ErrorBoundary title="BatchCard">
+                  <BatchCard :batch="mockBatch" />
+                </ErrorBoundary>
+              </div>
+              <div class="col-12 md:col-4">
+                <ErrorBoundary title="BatchCard (Error State)">
+                  <BatchCard :batch="{ ...mockBatch, status: 'ERROR', batchNumber: 'B-999-ERR' }" />
+                </ErrorBoundary>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel header="Warehouse Cards">
+            <div class="grid">
+              <div class="col-12 md:col-4">
+                <ErrorBoundary title="WarehouseCard">
+                  <WarehouseCard :warehouse="mockWarehouse" />
+                </ErrorBoundary>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel header="Requisition Cards">
+            <div class="grid">
+              <div class="col-12 md:col-4">
+                <ErrorBoundary title="RequisitionCard">
+                  <RequisitionCard :requisition="mockRequisition" />
+                </ErrorBoundary>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel header="Remnant Cards">
+            <div class="grid">
+              <div class="col-12 md:col-4">
+                <ErrorBoundary title="RemnantCard">
+                  <RemnantCard :remnant="mockRemnant" />
+                </ErrorBoundary>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel header="Catalog Cards">
+            <div class="grid">
+              <div class="col-12 md:col-4">
+                <ErrorBoundary title="CatalogCard">
+                  <CatalogCard :catalog="mockCatalog" />
+                </ErrorBoundary>
+              </div>
+            </div>
+          </Panel>
+        </div>
+
+        <!-- FORMS -->
+        <div v-if="activeTab === 'forms'" class="flex flex-column gap-3">
+          <Panel header="User Form">
+            <div class="max-w-30rem">
+              <ErrorBoundary title="UserForm">
+                <UserForm @save="console.log" @cancel="console.log" />
+              </ErrorBoundary>
+            </div>
+          </Panel>
+
+          <Panel header="Queue Editor">
+            <ErrorBoundary title="QueueEditor">
+              <QueueEditor />
+            </ErrorBoundary>
+          </Panel>
+        </div>
+
+        <!-- DATA MODEL & LOGIC -->
+        <div v-if="activeTab === 'datamodel'" class="flex flex-column gap-3">
+          <Panel header="Data Model Overview" subheader="Procedurally extracted from server/features/*/repository.js">
+            <ProgressSpinner v-if="dataModelsLoading" />
+            <Message v-else-if="dataModelsError" severity="error" :closable="false">
+              <p class="font-semibold">Error loading data models</p>
+              <p class="text-sm">{{ dataModelsError }}</p>
+            </Message>
+            <div v-else>
+              <Message severity="info" :closable="false">
+                <p class="text-sm">
+                  <strong>Auto-extracted from code:</strong> Fields shown are detected from repository.js and test files. 
+                  Some collections use <code>...data</code> spreads, so actual schemas may be more complete.
+                  Check <code>server/features/[name]/service.js</code> for full schema validation.
+                </p>
+              </Message>
+              <div class="grid mt-3">
+                <Message v-if="dataModels.length === 0" severity="warn" class="col-12">
+                  No data models found. Check server/features/*/repository.js files.
+                </Message>
+                <div v-for="model in dataModels" :key="model.collection" class="col-12 lg:col-6">
+                  <DataModelCard :model="model" />
+                </div>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel header="Entity Relationships">
+            <pre class="text-sm">{{ relationshipDiagram }}</pre>
+          </Panel>
+
+          <Panel header="Business Logic Flow">
+            <div class="flex flex-column gap-3">
+              <div v-for="flow in businessFlows" :key="flow.name" class="border-left-3 border-primary pl-3">
+                <h4 class="font-semibold text-sm m-0">{{ flow.name }}</h4>
+                <p class="text-sm text-color-secondary my-2">{{ flow.description }}</p>
+                <div class="flex align-items-center gap-2 text-sm">
+                  <Tag severity="info" :value="flow.service" />
+                  <i class="pi pi-arrow-right"></i>
+                  <Tag severity="success" :value="flow.repository" />
+                </div>
+              </div>
+            </div>
+          </Panel>
+        </div>
+
+        <!-- HUBS & MANAGERS -->
+        <div v-if="activeTab === 'hubs'" class="flex flex-column gap-3">
+          <Panel header="Sheets Hub">
+            <ErrorBoundary title="SheetsTab">
+              <SheetsTab />
+            </ErrorBoundary>
+          </Panel>
+
+          <Panel header="Batches Hub">
+            <ErrorBoundary title="BatchesTab">
+              <BatchesTab />
+            </ErrorBoundary>
+          </Panel>
+
+          <Panel header="Remnants Hub">
+            <ErrorBoundary title="RemnantsTab">
+              <RemnantsTab />
+            </ErrorBoundary>
+          </Panel>
+
+          <Panel header="Requisitions Hub">
+            <ErrorBoundary title="RequisitionsTab">
+              <RequisitionsTab />
+            </ErrorBoundary>
+          </Panel>
+
+          <Panel header="Catalogs Hub">
+            <ErrorBoundary title="CatalogsTab">
+              <CatalogsTab />
+            </ErrorBoundary>
+          </Panel>
+
+          <Panel header="Warehouse Hub">
+            <ErrorBoundary title="WarehouseHub">
+              <WarehouseHub />
+            </ErrorBoundary>
+          </Panel>
+        </div>
+
+        <!-- DATA DISPLAY -->
+        <section v-if="activeTab === 'display'" class="space-y-12">
+            <div class="border border-[var(--p-content-border-color)] rounded-xl overflow-hidden">
+              <ErrorBoundary title="RemnantsTab">
+                <RemnantsTab />
+              </ErrorBoundary>
+            </div>
+          </LabSection>
+
+          <LabSection title="Requisitions Hub" description="Material ordering workflow">
+            <div class="border border-[var(--p-content-border-color)] rounded-xl overflow-hidden">
+              <ErrorBoundary title="RequisitionsTab">
+                <RequisitionsTab />
+              </ErrorBoundary>
+            </div>
+          </LabSection>
+
+          <LabSection title="Catalogs Hub" description="Material catalog management">
+            <div class="border border-[var(--p-content-border-color)] rounded-xl overflow-hidden">
+              <ErrorBoundary title="CatalogsTab">
+                <CatalogsTab />
+              </ErrorBoundary>
+            </div>
+          </LabSection>
+
+          <LabSection title="Warehouse Hub" description="Complete warehouse interface">
+            <div class="border border-[var(--p-content-border-color)] rounded-xl overflow-hidden">
+              <ErrorBoundary title="WarehouseHub">
+                <WarehouseHub />
+              </ErrorBoundary>
+            </div>
+          </LabSection>
+        </section>
+
+      </div>
+    </div>
+
+    <div v-else class="p-8 text-red-500 bg-[var(--p-surface-card)] border border-red-500/20 rounded-xl m-4">
+      <h1 class="text-xl font-bold mb-2">UI Lab Error</h1>
+      <pre class="whitespace-pre-wrap font-mono text-sm">{{ error }}</pre>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onErrorCaptured, onMounted, h } from 'vue';
+import Panel from 'primevue/panel';
+import Button from 'primevue/button';
+import Tag from 'primevue/tag';
+import Message from 'primevue/message';
+import ProgressSpinner from 'primevue/progressspinner';
+import Divider from 'primevue/divider';
+
+// Component Imports
+import BatchCard from '~/components/entities/Batch/BatchCard.vue';
+import ProjectCard from '~/components/entities/Project/ProjectCard.vue';
+import QueueCard from '~/components/entities/Queue/QueueCard.vue';
+import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
+import WarehouseCard from '~/components/entities/Warehouse/WarehouseCard.vue';
+import RequisitionCard from '~/components/entities/Requisition/RequisitionCard.vue';
+import RemnantCard from '~/components/entities/Remnant/RemnantCard.vue';
+import CatalogCard from '~/components/entities/Catalog/CatalogCard.vue';
+import StatusBadge from '~/components/shared/status/StatusBadge.vue';
+import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
+import TraceLink from '~/components/shared/links/TraceLink.vue';
+import MaterialSpecs from '~/components/shared/MaterialSpecs.vue';
+import SheetStatusTag from '~/components/SheetStatusTag.vue';
+import AuthProgress from '~/components/AuthProgress.vue';
+import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
+import ThemeSwitcher from '~/components/ThemeSwitcher.vue';
+import ProjectStatistics from '~/components/ProjectStatistics.vue';
+import RecentProjects from '~/components/RecentProjects.vue';
+import UserForm from '~/components/UserForm.vue';
+import QueueEditor from '~/components/QueueEditor.vue';
+import ErrorBoundary from '~/components/shared/ErrorBoundary.vue';
+
+// Hub Components
+import SheetsTab from '~/components/hubs/SheetsTab.vue';
+import BatchesTab from '~/components/hubs/BatchesTab.vue';
+import RemnantsTab from '~/components/hubs/RemnantsTab.vue';
+import RequisitionsTab from '~/components/hubs/RequisitionsTab.vue';
+import CatalogsTab from '~/components/hubs/CatalogsTab.vue';
+import WarehouseHub from '~/components/hubs/WarehouseHub.vue';
+
+// Enterprise Pattern: Import mock data factories
+import {
+  createMockProject,
+  createMockQueue,
+  createMockSheet,
+  createMockBatch,
+  createMockWarehouse,
+  createMockRequisition,
+  createMockRemnant,
+  createMockCatalog,
+  createMockStatistics,
+  createMockHistory,
+  createMockMaterial,
+  createMockProjectsList
+} from '~/test-data/factories.js';
+
+// Disable layout
+definePageMeta({
+  layout: false,
+  middleware: [] 
+});
+
+const error = ref(null);
+const activeTab = ref('atoms');
+
+onErrorCaptured((err) => {
+  console.error('[UI-LAB] Error Captured:', err);
+  error.value = err.toString();
+  return false; 
+});
+
+const tabs = [
+  { id: 'atoms', label: 'Atoms & Common' },
+  { id: 'display', label: 'Data Display' },
+  { id: 'entities', label: 'Entities' },
+  { id: 'forms', label: 'Forms & Inputs' },
+  { id: 'datamodel', label: 'Data Model & Logic' },
+  { id: 'hubs', label: 'Hubs & Managers' },
+];
+
+// ===== ENTERPRISE PATTERN: Use Factory Functions for Mock Data =====
+// All mock data generated from factories in test-data/factories.js
+// This ensures consistency and reusability across the application
+
+const mockStats = createMockStatistics();
+const mockProjects = createMockProjectsList(3);
+const mockProject = createMockProject();
+const mockQueue = createMockQueue();
+const mockSheet = createMockSheet();
+const mockBatch = createMockBatch();
+const mockWarehouse = createMockWarehouse();
+const mockRequisition = createMockRequisition();
+const mockRemnant = createMockRemnant();
+const mockCatalog = createMockCatalog();
+const mockHistory = createMockHistory();
+const mockMaterial = createMockMaterial();
+
+// ===== PROCEDURAL DATA MODELS =====
+
+const dataModels = ref([]);
+const relationshipDiagram = ref('Loading...');
+const dataModelsLoading = ref(true);
+const dataModelsError = ref(null);
+
+// Load data models from API on mount
+onMounted(async () => {
+  try {
+    const response = await fetch('/api/debug/data-models');
+    const data = await response.json();
+    
+    if (data.success) {
+      dataModels.value = data.models;
+      relationshipDiagram.value = data.diagram;
+    } else {
+      dataModelsError.value = data.error;
+      // Fallback to basic structure
+      relationshipDiagram.value = 'Failed to load data models from server';
+    }
+  } catch (err) {
+    console.error('[UI-LAB] Failed to load data models:', err);
+    dataModelsError.value = err.message;
+    // Fallback: Show that we tried to load dynamically
+    relationshipDiagram.value = `Error: ${err.message}\n\nData models are extracted procedurally from server/features/*/repository.js files.`;
+  } finally {
+    dataModelsLoading.value = false;
+  }
+});
+
+const businessFlows = [
+  {
+    name: 'Create Queue',
+    description: 'User creates production queue → validates ownership → generates queue number → updates project count',
+    service: 'queues/service.js',
+    repository: 'queues/repository.js'
+  },
+  {
+    name: 'Process Batch',
+    description: 'Batch received → validate warehouse → create sheets → update warehouse counts',
+    service: 'material-batches/service.js',
+    repository: 'material-batches/repository.js'
+  },
+  {
+    name: 'Cut Sheet',
+    description: 'Sheet marked as cut → generate remnants → update inventories → create traceability records',
+    service: 'sheets/service.js',
+    repository: 'sheets/repository.js'
+  },
+  {
+    name: 'Create Requisition',
+    description: 'Contractor requests materials → validates permissions → calculates costs → notifies manufacturer',
+    service: 'requisitions/service.js',
+    repository: 'requisitions/repository.js'
+  }
+];
+
+// Helper Component for Lab Sections
+const LabSection = {
+  props: ['title', 'description'],
+  setup(props, { slots }) {
+    return () => h('div', { class: 'border-b border-[var(--p-content-border-color)] pb-8 last:border-0' }, [
+      h('div', { class: 'mb-6' }, [
+        h('h3', { class: 'text-lg font-bold text-[var(--p-text-color)]' }, props.title),
+        h('p', { class: 'text-sm text-[var(--p-text-muted-color)]' }, props.description)
+      ]),
+      slots.default ? slots.default() : null
+    ]);
+  }
+};
+
+// Data Model Card Component
+const DataModelCard = {
+  props: ['model'],
+  setup(props) {
+    return () => h('div', { 
+      class: 'p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl shadow-sm flex flex-col'
+    }, [
+      h('div', { class: 'mb-4' }, [
+        h('div', { class: 'flex items-center justify-between mb-2' }, [
+          h('h4', { class: 'text-lg font-bold font-mono' }, props.model.collection),
+          h('span', { class: 'text-[9px] px-2 py-0.5 bg-primary/10 text-primary rounded font-bold' }, `${props.model.fieldCount} FIELDS`)
+        ]),
+        h('p', { class: 'text-xs text-[var(--p-text-muted-color)]' }, props.model.description)
+      ]),
+      h('div', { class: 'space-y-2 mb-4 flex-1 max-h-96 overflow-y-auto' }, 
+        props.model.fields.length > 0 
+          ? props.model.fields.map(field =>
+              h('div', { class: 'flex flex-col gap-1 text-xs border-l-2 border-[var(--p-content-border-color)] pl-2 py-1' }, [
+                h('div', { class: 'flex items-baseline gap-2' }, [
+                  h('span', { class: 'font-mono font-bold text-primary' }, field.name),
+                  h('span', { class: 'text-[10px] px-1 bg-[var(--p-surface-100)] rounded font-mono' }, field.type),
+                ]),
+                h('span', { class: 'text-[10px] text-[var(--p-text-muted-color)]' }, field.description),
+                field.example ? h('span', { class: 'text-[9px] font-mono text-green-600' }, `Ex: ${field.example}`) : null
+              ].filter(Boolean))
+            )
+          : [h('p', { class: 'text-xs text-[var(--p-text-muted-color)] italic' }, 'No fields detected - check repository.js')]
+      ),
+      props.model.relationships.length > 0 ? h('div', { class: 'pt-2 border-t border-dashed' }, [
+        h('span', { class: 'text-[9px] font-bold uppercase opacity-40' }, 'Related: '),
+        h('span', { class: 'text-xs' }, props.model.relationships.join(', '))
+      ]) : null
+    ].filter(Boolean));
+  }
+};
+</script>
+
+<style scoped>
+/* Layout-less mode styles */
+</style>
