@@ -16,7 +16,8 @@ RUN cargo build --release
 # Stage 2: Create the final runtime image
 FROM python:3.11-slim
 
-# ... (rest of stage 2)
+# Create a non-root user
+RUN groupadd -r appuser && useradd -m -r -g appuser appuser
 WORKDIR /app
 
 # Upgrade pip
