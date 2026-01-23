@@ -117,7 +117,7 @@
 
           <Panel header="Material Specs">
             <ErrorBoundary title="MaterialSpecs">
-              <MaterialSpecs :material="mockRequisition.material" :sheetThickness="mockRequisition.sheetThickness" />
+              <MaterialSpecs :specs="mockRequisitions[0].items[0]" />
             </ErrorBoundary>
           </Panel>
         </div>
@@ -175,34 +175,8 @@
 
         <!-- FORMS TAB -->
         <div v-if="activeTab === 'forms'" class="space-y-4">
-          <Panel header="Project Form">
-            <ErrorBoundary title="ProjectForm">
-              <ProjectForm :project="mockProjects[0]" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Queue Form">
-            <ErrorBoundary title="QueueForm">
-              <QueueForm :queue="mockQueues[0]" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Sheet Form">
-            <ErrorBoundary title="SheetForm">
-              <SheetForm :sheet="mockSheets[0]" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Batch Form">
-            <ErrorBoundary title="BatchForm">
-              <BatchForm :batch="mockBatches[0]" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Requisition Form">
-            <ErrorBoundary title="RequisitionForm">
-              <RequisitionForm :requisition="mockRequisitions[0]" />
-            </ErrorBoundary>
+          <Panel header="Forms">
+            <Message severity="info">Form components are not yet implemented</Message>
           </Panel>
         </div>
 
@@ -289,21 +263,16 @@ import ProgressSpinner from 'primevue/progressspinner';
 // Component Imports
 import ProjectStatistics from '~/components/ProjectStatistics.vue';
 import RecentProjects from '~/components/RecentProjects.vue';
-import HistoryTimeline from '~/components/HistoryTimeline.vue';
-import MaterialSpecs from '~/components/MaterialSpecs.vue';
-import ProjectCard from '~/components/entities/ProjectCard.vue';
-import QueueCard from '~/components/entities/QueueCard.vue';
-import SheetCard from '~/components/entities/SheetCard.vue';
-import BatchCard from '~/components/entities/BatchCard.vue';
-import WarehouseCard from '~/components/entities/WarehouseCard.vue';
-import RequisitionCard from '~/components/entities/RequisitionCard.vue';
-import RemnantCard from '~/components/entities/RemnantCard.vue';
-import CatalogCard from '~/components/entities/CatalogCard.vue';
-import ProjectForm from '~/components/forms/ProjectForm.vue';
-import QueueForm from '~/components/forms/QueueForm.vue';
-import SheetForm from '~/components/forms/SheetForm.vue';
-import BatchForm from '~/components/forms/BatchForm.vue';
-import RequisitionForm from '~/components/forms/RequisitionForm.vue';
+import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
+import MaterialSpecs from '~/components/shared/MaterialSpecs.vue';
+import ProjectCard from '~/components/entities/Project/ProjectCard.vue';
+import QueueCard from '~/components/entities/Queue/QueueCard.vue';
+import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
+import BatchCard from '~/components/entities/Batch/BatchCard.vue';
+import WarehouseCard from '~/components/entities/Warehouse/WarehouseCard.vue';
+import RequisitionCard from '~/components/entities/Requisition/RequisitionCard.vue';
+import RemnantCard from '~/components/entities/Remnant/RemnantCard.vue';
+import CatalogCard from '~/components/entities/Catalog/CatalogCard.vue';
 import SheetsTab from '~/components/hubs/SheetsTab.vue';
 import BatchesTab from '~/components/hubs/BatchesTab.vue';
 import RemnantsTab from '~/components/hubs/RemnantsTab.vue';
@@ -346,7 +315,7 @@ const modelsError = ref(null);
 
 // Mock data using factories
 const mockStats = createMockStatistics();
-const mockHistory = [createMockHistory(), createMockHistory({ status: 'in-progress' })];
+const mockHistory = createMockHistory(['DRAFT', 'READY', 'PROCESSING', 'COMPLETED']);
 const mockProjects = [createMockProject(), createMockProject({ name: 'Harbor Plaza' })];
 const mockQueues = [createMockQueue(), createMockQueue({ name: 'Batch #2' })];
 const mockSheets = [createMockSheet(), createMockSheet({ thickness: 6 })];
@@ -394,7 +363,16 @@ onMounted(async () => {
   try {
     const response = await fetch('/api/debug/data-models');
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    dataModels.value = await response.json();
+    const data = await response.json();
+    // Convert array to object keyed by collection name
+    if (data.success && data.models) {
+      dataModels.value = data.models.reduce((acc, model) => {
+        acc[model.collection] = model;
+        return acc;
+      }, {});
+    } else {
+      dataModels.value = data;
+    }
   } catch (e) {
     modelsError.value = e.message;
   }
