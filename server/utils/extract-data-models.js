@@ -124,11 +124,14 @@ function extractFields(repoContent, serviceContent, specContent) {
  * Extract field definitions from object string
  */
 function extractFieldsFromObject(objString, fields, includeValues = false) {
+  // Remove single line comments before processing
+  const cleanObjString = objString.replace(/\/\/.*$/gm, '');
+  
   // Match field: value patterns
   const fieldPattern = /(\w+)\s*:\s*([^,\n]+)/g;
   let match;
   
-  while ((match = fieldPattern.exec(objString)) !== null) {
+  while ((match = fieldPattern.exec(cleanObjString)) !== null) {
     const fieldName = match[1];
     const fieldValue = match[2].trim();
     

@@ -42,7 +42,11 @@ export async function findByQueue(queueId) {
 }
 
 export async function updateById(id, updates) {
+
   const db = await connectDB();
-  const { _id, createdAt, updatedAt, status, statusHistory, userId, timestamp, success, dimensions, count, ...clean } = updates;
+
+  const { _id, createdAt, updatedAt, status, statusHistory, userId, timestamp, success, dimensions, count, ownerId, ...clean } = updates;
+
   return await db.collection(COLLECTION).updateOne({ _id: toObjectId(id) }, { $set: clean });
+
 }

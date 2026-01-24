@@ -1,6 +1,5 @@
 /**
- * Cassette Designs Repository
- * Design data separated from instances
+ * Cassette Designs Repository - Functional Data Only
  */
 
 import { connectDB } from '../../db/mongo.js';
@@ -17,10 +16,7 @@ export async function create(data) {
     queueId: data.queueId ? new ObjectId(data.queueId) : null,
     parameters: data.parameters || {}, // Values for parametric designs
     geometry: data.geometry || {}, // Flattened geometry
-    metadata: data.metadata || {},
-    ownerId: data.ownerId,
-    createdAt: new Date(),
-    updatedAt: new Date()
+    metadata: data.metadata || {}
   };
   const result = await db.collection(COLLECTION).insertOne(doc);
   return { _id: result.insertedId, ...doc };
@@ -31,22 +27,17 @@ export async function findById(id) {
   return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
 }
 
-export async function findByOwner(ownerId, options = {}) {
+export async function find(filter = {}) {
   const db = await connectDB();
-  const { limit = 100, skip = 0 } = options;
-  return await db.collection(COLLECTION)
-    .find({ ownerId })
-    .sort({ updatedAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .toArray();
+  return await db.collection(COLLECTION).find(filter).toArray();
 }
 
-export async function update(id, data) {
+export async function update(id, updates) {
   const db = await connectDB();
+  const { _id, createdAt, updatedAt, ownerId, ...clean } = updates;
   const result = await db.collection(COLLECTION).findOneAndUpdate(
     { _id: new ObjectId(id) },
-    { $set: { ...data, updatedAt: new Date() } },
+    { $set: clean },
     { returnDocument: 'after' }
   );
   return result.value;
