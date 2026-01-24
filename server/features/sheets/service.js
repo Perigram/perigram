@@ -244,30 +244,3 @@ export async function remove(id, user) {
   
   return { success: true };
 }
-  if (!hasPermission(user, 'materials', 'admin')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-  
-  const sheet = await repository.findById(id);
-  if (!sheet) {
-    throw createError({ statusCode: 404, message: 'Sheet not found' });
-  }
-  
-  // Verify access
-  await warehouseService.getById(sheet.warehouseId.toString(), user);
-  
-  // Can't delete if used in cutting or milled
-  if (sheet.status !== 'in_stock') {
-    throw createError({ statusCode: 409, message: 'Cannot delete sheet that is not in stock' });
-  }
-  
-  const success = await repository.deleteById(id);
-  if (!success) {
-    throw createError({ statusCode: 404, message: 'Sheet not found' });
-  }
-  
-  // Update warehouse count
-  await warehouseService.updateInventoryCounts(sheet.warehouseId.toString(), { totalSheets: -1 });
-  
-  return { success: true };
-}
