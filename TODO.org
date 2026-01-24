@@ -301,15 +301,19 @@
     - server/features/layer-standards/service.js & repository.js
     - server/features/artifacts/service.js & repository.js
     - server/api/material-piles/ (Moved and updated from material-batches)
+    - server/api/status/history.get.js (New endpoint for audit logs)
     - server/db/indexes.js (Updated for lineage-based indexing)
     - tailwind.config.js (Added surface/primary palettes from PrimeVue CSS vars)
-    - composables/useBlocks.js & useStatusController.js
+    - composables/useBlocks.js & useStatusController.js & useStatusHistory.js
     - assets/css/variants.css
+    - components/shared/LineageBreadcrumbs.vue (New ancestry nav)
     - components/entities/shared/EntityStatus.vue
+    - components/entities/shared/StatusTimeline.vue (New audit UI)
     - components/entities/Project/ProjectView.vue
     - components/entities/Queue/QueueView.vue
     - components/entities/MaterialPile/PileView.vue
     - components/entities/Sheet/SheetView.vue
+    - pages/test/ui-lab.vue (Completely updated for v24 variants)
     - scripts/migrate-v24.js
     Notes:
     - Fixed "material-batches" missing file error by updating all references to "material-piles".
@@ -317,3 +321,4 @@
     - Implemented v24 Block Architecture (Identity, Status, Origin, Lineage, Specs).
     - Enforced Cumulative Lineage Inheritance for infinite reverse-lookup scalability.
     - Centralized state logic into declarative State Machines with transition hooks and automated event logging.
+    - Established multi-variant component architecture (Inline, Compact, Card, Full) demonstrated in UI Lab.

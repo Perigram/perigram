@@ -45,14 +45,14 @@ Goal: Replace all existing entity views with standardized, multi-variant compone
 
 - [🟢] **4.1. Core Production Components**: Project, Queue, NestingRun, Design, Instance.
 - [🟢] **4.2. Material Components**: Pile, Sheet, Remnant.
-- [🟡] **4.3. Navigation & Context**: Lineage Breadcrumbs and Global Identity Headers.
-- [⚪] **4.4. Unified Status Timeline**: Rich history component reading from `status_events`.
+- [🟢] **4.3. Navigation & Context**: Lineage Breadcrumbs and Global Identity Headers.
+- [🟢] **4.4. Unified Status Timeline**: Rich history component reading from `status_events`.
 
 ---
 
 ## Phase 5: Verification & UI-Lab
 Goal: Ensure the system is "industrial grade."
 
-- [⚪] **5.1. UI-Lab Update**: Living documentation for all block-based components.
+- [🟢] **5.1. UI-Lab Update**: Living documentation for all block-based components.
 - [⚪] **5.2. Integration Tests**: Verify state transitions and lineage-based permission guards.
 - [⚪] **5.3. Performance Audit**: Ensure single-index lineage queries meet latency targets.

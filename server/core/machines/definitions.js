@@ -55,5 +55,25 @@ export const stateMachines = {
       { from: 'AVAILABLE', to: 'SCRAP', roles: ['OPERATOR', 'ADMIN'] },
       { from: 'IN-CUTTING', to: 'SCRAP', roles: ['OPERATOR', 'ADMIN'] }
     ]
+  },
+
+  nesting_run: {
+    initial: 'PROPOSED',
+    states: {
+      PROPOSED: { label: 'Proposed', canUpdateMeta: true },
+      ACCEPTED: { label: 'Accepted', isTerminal: true, canUpdateMeta: false },
+      REJECTED: { label: 'Rejected', isTerminal: true, canUpdateMeta: false }
+    },
+    transitions: [
+      { 
+        from: 'PROPOSED', 
+        to: 'ACCEPTED', 
+        roles: ['ADMIN', 'EDITOR'],
+        hooks: [
+          { handler: 'createPhysicalUnits', params: {} }
+        ]
+      },
+      { from: 'PROPOSED', to: 'REJECTED', roles: ['ADMIN', 'EDITOR'] }
+    ]
   }
 };

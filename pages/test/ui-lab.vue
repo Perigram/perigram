@@ -1,396 +1,166 @@
 <template>
-  <div class="flex h-screen">
+  <div class="flex h-screen bg-surface-50">
     <!-- Sidebar -->
-    <aside class="w-64 border-r">
-      <div class="p-4">
-        <h2 class="text-xl font-bold mb-4">UI Lab</h2>
-        <nav class="space-y-2">
+    <aside class="w-64 border-r bg-surface-0">
+      <div class="p-6 flex flex-col h-full">
+        <h2 class="text-xl font-black mb-8 tracking-tighter">V24 UI LAB</h2>
+        <nav class="space-y-1">
           <Button 
             v-for="tab in tabs" 
             :key="tab.id"
             :label="tab.label"
             :severity="activeTab === tab.id ? 'primary' : 'secondary'"
-            text
-            class="w-full justify-start"
+            :variant="activeTab === tab.id ? 'default' : 'text'"
+            class="w-full justify-start font-bold"
             @click="activeTab = tab.id"
           />
         </nav>
+        
+        <div class="mt-auto pt-6 border-t">
+          <div class="flex gap-2">
+            <ThemeSwitcher />
+            <LanguageSwitcher />
+          </div>
+        </div>
       </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-auto p-6">
-      <Message v-if="error" severity="error" class="mb-4">
-        <pre>{{ error }}</pre>
-      </Message>
-
-      <div v-else class="space-y-6">
-        <!-- ATOMS TAB -->
-        <div v-if="activeTab === 'atoms'" class="space-y-4">
-          <Panel header="Theme & Language Controls">
-            <div class="flex gap-4">
-              <ErrorBoundary title="ThemeSwitcher">
-                <ThemeSwitcher />
-              </ErrorBoundary>
-              <ErrorBoundary title="LanguageSwitcher">
-                <LanguageSwitcher />
-              </ErrorBoundary>
+    <main class="flex-1 overflow-auto p-10">
+      <div class="max-w-5xl mx-auto space-y-10">
+        
+        <!-- ENGINES TAB -->
+        <div v-if="activeTab === 'engines'" class="space-y-8">
+          <section>
+            <h3 class="text-xs font-black uppercase text-surface-400 mb-4 tracking-widest">Lineage & Navigation</h3>
+            <div class="p-6 border rounded-2xl bg-surface-0 shadow-sm">
+              <LineageBreadcrumbs :lineage="mockQueue.lineage" />
             </div>
-          </Panel>
+          </section>
 
-          <Panel header="Buttons">
-            <div class="flex gap-2">
-              <ErrorBoundary title="Button Primary">
-                <Button label="Primary" />
-              </ErrorBoundary>
-              <ErrorBoundary title="Button Secondary">
-                <Button label="Secondary" severity="secondary" />
-              </ErrorBoundary>
-              <ErrorBoundary title="Button Success">
-                <Button label="Success" severity="success" />
-              </ErrorBoundary>
-              <ErrorBoundary title="Button Warning">
-                <Button label="Warning" severity="warn" />
-              </ErrorBoundary>
-              <ErrorBoundary title="Button Danger">
-                <Button label="Danger" severity="danger" />
-              </ErrorBoundary>
+          <section>
+            <h3 class="text-xs font-black uppercase text-surface-400 mb-4 tracking-widest">Status Engine & Timeline</h3>
+            <div class="p-6 border rounded-2xl bg-surface-0 shadow-sm">
+              <StatusTimeline entityType="Project" targetId="mock-id" />
             </div>
-          </Panel>
-
-          <Panel header="Icons">
-            <div class="flex gap-2">
-              <ErrorBoundary title="Icons">
-                <i class="pi pi-check"></i>
-                <i class="pi pi-times"></i>
-                <i class="pi pi-search"></i>
-                <i class="pi pi-filter"></i>
-              </ErrorBoundary>
-            </div>
-          </Panel>
-
-          <Panel header="Badges">
-            <div class="flex gap-2">
-              <ErrorBoundary title="Tag Success">
-                <Tag value="Success" severity="success" />
-              </ErrorBoundary>
-              <ErrorBoundary title="Tag Info">
-                <Tag value="Info" severity="info" />
-              </ErrorBoundary>
-              <ErrorBoundary title="Tag Warning">
-                <Tag value="Warning" severity="warn" />
-              </ErrorBoundary>
-              <ErrorBoundary title="Tag Danger">
-                <Tag value="Danger" severity="danger" />
-              </ErrorBoundary>
-            </div>
-          </Panel>
-
-          <Panel header="Status Indicators">
-            <div class="space-y-2">
-              <ErrorBoundary title="ProgressSpinner">
-                <ProgressSpinner style="width: 50px; height: 50px" />
-              </ErrorBoundary>
-            </div>
-          </Panel>
+          </section>
         </div>
 
-        <!-- DISPLAY TAB -->
-        <div v-if="activeTab === 'display'" class="space-y-4">
-          <Panel header="Project Statistics">
-            <ErrorBoundary title="ProjectStatistics">
-              <ProjectStatistics :statistics="mockStats" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Recent Projects">
-            <ErrorBoundary title="RecentProjects">
-              <RecentProjects :projects="mockProjects" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="History Timeline">
-            <ErrorBoundary title="HistoryTimeline">
-              <HistoryTimeline :history="mockHistory" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Status Timeline (Real Entity)">
-            <ErrorBoundary title="StatusTimeline">
-              <div class="flex flex-col gap-4">
-                <p class="text-xs opacity-60">Testing with mock queue ID</p>
-                <StatusTimeline collection="queues" entityId="mock-id" />
+        <!-- COMPONENTS TAB (V24 VARIANTS) -->
+        <div v-if="activeTab === 'variants'" class="space-y-12">
+          
+          <!-- PROJECT VARIANTS -->
+          <section class="space-y-4">
+            <h3 class="text-xs font-black uppercase text-surface-400 tracking-widest">Project Variants</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-4">
+                <span class="text-[10px] font-bold text-surface-300 uppercase">Card (Default)</span>
+                <ProjectView :project="mockProject" variant="card" />
               </div>
-            </ErrorBoundary>
-          </Panel>
+              <div class="space-y-4">
+                <span class="text-[10px] font-bold text-surface-300 uppercase">Compact</span>
+                <ProjectView :project="mockProject" variant="compact" />
+                <span class="text-[10px] font-bold text-surface-300 uppercase mt-4 block">Inline</span>
+                <div class="p-4 border rounded-lg bg-surface-0 flex items-center gap-4">
+                  <ProjectView :project="mockProject" variant="inline" />
+                </div>
+              </div>
+            </div>
+          </section>
 
-          <Panel header="Material Specs">
-            <ErrorBoundary title="MaterialSpecs">
-              <MaterialSpecs :specs="mockRequisitions[0].items[0]" />
-            </ErrorBoundary>
-          </Panel>
+          <!-- QUEUE VARIANTS -->
+          <section class="space-y-4">
+            <h3 class="text-xs font-black uppercase text-surface-400 tracking-widest">Queue Variants</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <QueueView :queue="mockQueue" variant="card" />
+              <div class="space-y-4">
+                <QueueView :queue="mockQueue" variant="compact" />
+                <QueueView :queue="{ ...mockQueue, identity: { ...mockQueue.identity, queueNumber: 2, name: 'Backup Run' } }" variant="compact" />
+              </div>
+              <div class="p-4 border rounded-lg bg-surface-0 flex flex-col gap-2">
+                <QueueView :queue="mockQueue" variant="inline" />
+                <QueueView :queue="{ ...mockQueue, status: { state: 'NESTING' } }" variant="inline" />
+              </div>
+            </div>
+          </section>
+
+          <!-- PHYSICAL VARIANTS -->
+          <section class="space-y-4">
+            <h3 class="text-xs font-black uppercase text-surface-400 tracking-widest">Physical & Material</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <PileView :pile="mockPile" variant="card" />
+              <div class="space-y-4">
+                <SheetView :sheet="mockSheet" variant="compact" />
+                <SheetView :sheet="mockSheet" variant="card" />
+              </div>
+            </div>
+          </section>
+
         </div>
 
-        <!-- ENTITIES TAB -->
-        <div v-if="activeTab === 'entities'" class="space-y-4">
-          <Panel header="Project Card">
-            <ErrorBoundary title="ProjectCard">
-              <ProjectCard :project="mockProjects[0]" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Queue Card">
-            <ErrorBoundary title="QueueCard">
-              <QueueCard :queue="mockQueues[0]" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Sheet Card">
-            <ErrorBoundary title="SheetCard">
-              <SheetCard :sheet="mockSheets[0]" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Batch Card">
-            <ErrorBoundary title="BatchCard">
-              <BatchCard :batch="mockBatches[0]" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Warehouse Card">
-            <ErrorBoundary title="WarehouseCard">
-              <WarehouseCard :warehouse="mockWarehouses[0]" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Requisition Card">
-            <ErrorBoundary title="RequisitionCard">
-              <RequisitionCard :requisition="mockRequisitions[0]" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Remnant Card">
-            <ErrorBoundary title="RemnantCard">
-              <RemnantCard :remnant="mockRemnants[0]" />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Catalog Card">
-            <ErrorBoundary title="CatalogCard">
-              <CatalogCard :catalog="mockCatalogs[0]" />
-            </ErrorBoundary>
-          </Panel>
-        </div>
-
-        <!-- FORMS TAB -->
-        <div v-if="activeTab === 'forms'" class="space-y-4">
-          <Panel header="Forms">
-            <Message severity="info">Form components are not yet implemented</Message>
-          </Panel>
-        </div>
-
-        <!-- DATA MODEL TAB -->
-        <div v-if="activeTab === 'models'" class="space-y-4">
-          <Panel header="Data Model Overview">
-            <p class="mb-4">Procedurally extracted from server/features/*/repository.js</p>
-            
-            <Message v-if="modelsError" severity="error">
-              {{ modelsError }}
-            </Message>
-            
-            <ProgressSpinner v-else-if="!dataModels" />
-            
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <ErrorBoundary v-for="(model, name) in dataModels" :key="name" :title="`Model: ${name}`">
-                <DataModelCard :name="name" :model="model" />
-              </ErrorBoundary>
+        <!-- ATOMS TAB -->
+        <div v-if="activeTab === 'atoms'" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <Panel header="Status Badges">
+            <div class="flex flex-wrap gap-2">
+              <Tag value="DRAFT" severity="secondary" />
+              <Tag value="PENDING" severity="warn" />
+              <Tag value="ACTIVE" severity="primary" />
+              <Tag value="READY" severity="success" />
+              <Tag value="FAILED" severity="danger" />
             </div>
           </Panel>
-
-          <Panel header="Entity Relationships">
-            <p>Visual data flow and connections</p>
-            <Message v-if="!dataModels" severity="info">
-              Failed to load data models from server
-            </Message>
-            <div v-else class="p-4 border rounded">
-              <pre class="text-xs">{{ JSON.stringify(Object.keys(dataModels), null, 2) }}</pre>
+          <Panel header="Action Buttons">
+            <div class="flex flex-wrap gap-2">
+              <Button label="Primary" size="small" />
+              <Button label="Secondary" severity="secondary" size="small" />
+              <Button label="Outlined" outlined size="small" />
+              <Button label="Text" text size="small" />
             </div>
           </Panel>
         </div>
 
-        <!-- HUBS TAB -->
-        <div v-if="activeTab === 'hubs'" class="space-y-4">
-          <Panel header="Sheets Hub">
-            <ErrorBoundary title="SheetsTab">
-              <SheetsTab />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Batches Hub">
-            <ErrorBoundary title="BatchesTab">
-              <BatchesTab />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Remnants Hub">
-            <ErrorBoundary title="RemnantsTab">
-              <RemnantsTab />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Requisitions Hub">
-            <ErrorBoundary title="RequisitionsTab">
-              <RequisitionsTab />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Catalogs Hub">
-            <ErrorBoundary title="CatalogsTab">
-              <CatalogsTab />
-            </ErrorBoundary>
-          </Panel>
-
-          <Panel header="Warehouse Hub">
-            <ErrorBoundary title="WarehouseHub">
-              <WarehouseHub />
-            </ErrorBoundary>
-          </Panel>
-        </div>
       </div>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onErrorCaptured, onMounted, h } from 'vue';
+import { ref } from 'vue';
 import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
-import Message from 'primevue/message';
-import ProgressSpinner from 'primevue/progressspinner';
+import ProgressBar from 'primevue/progressbar';
 
-// Component Imports
-import ProjectStatistics from '~/components/ProjectStatistics.vue';
-import RecentProjects from '~/components/RecentProjects.vue';
-import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
-import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
-import MaterialSpecs from '~/components/shared/MaterialSpecs.vue';
-import ProjectCard from '~/components/entities/Project/ProjectCard.vue';
-import QueueCard from '~/components/entities/Queue/QueueCard.vue';
-import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
-import BatchCard from '~/components/entities/Batch/BatchCard.vue';
-import WarehouseCard from '~/components/entities/Warehouse/WarehouseCard.vue';
-import RequisitionCard from '~/components/entities/Requisition/RequisitionCard.vue';
-import RemnantCard from '~/components/entities/Remnant/RemnantCard.vue';
-import CatalogCard from '~/components/entities/Catalog/CatalogCard.vue';
-import SheetsTab from '~/components/hubs/SheetsTab.vue';
-import BatchesTab from '~/components/hubs/BatchesTab.vue';
-import RemnantsTab from '~/components/hubs/RemnantsTab.vue';
-import RequisitionsTab from '~/components/hubs/RequisitionsTab.vue';
-import CatalogsTab from '~/components/hubs/CatalogsTab.vue';
-import WarehouseHub from '~/components/hubs/WarehouseHub.vue';
+// v24 Components
+import ProjectView from '~/components/entities/Project/ProjectView.vue';
+import QueueView from '~/components/entities/Queue/QueueView.vue';
+import PileView from '~/components/entities/MaterialPile/PileView.vue';
+import SheetView from '~/components/entities/Sheet/SheetView.vue';
+import LineageBreadcrumbs from '~/components/shared/LineageBreadcrumbs.vue';
+import StatusTimeline from '~/components/entities/shared/StatusTimeline.vue';
 import ThemeSwitcher from '~/components/ThemeSwitcher.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
-import ErrorBoundary from '~/components/shared/ErrorBoundary.vue';
 
 // Factory imports
 import {
   createMockProject,
   createMockQueue,
   createMockSheet,
-  createMockBatch,
-  createMockWarehouse,
-  createMockRequisition,
-  createMockRemnant,
-  createMockCatalog,
-  createMockStatistics,
-  createMockHistory
+  createMockPile,
+  createMockCatalog
 } from '~/test-data/factories.js';
 
-// Tabs configuration
 const tabs = [
-  { id: 'atoms', label: 'Atoms' },
-  { id: 'display', label: 'Display' },
-  { id: 'entities', label: 'Entities' },
-  { id: 'forms', label: 'Forms' },
-  { id: 'models', label: 'Data Model' },
-  { id: 'hubs', label: 'Hubs' }
+  { id: 'variants', label: 'Entity Variants' },
+  { id: 'engines', label: 'Core Engines' },
+  { id: 'atoms', label: 'UI Atoms' }
 ];
 
-// State
-const activeTab = ref('atoms');
-const error = ref(null);
-const dataModels = ref(null);
-const modelsError = ref(null);
+const activeTab = ref('variants');
 
-// Mock data using factories
-const mockStats = createMockStatistics();
-const mockHistory = createMockHistory(['DRAFT', 'READY', 'PROCESSING', 'COMPLETED']);
-const mockProjects = [createMockProject(), createMockProject({ name: 'Harbor Plaza' })];
-const mockQueues = [createMockQueue(), createMockQueue({ name: 'Batch #2' })];
-const mockSheets = [createMockSheet(), createMockSheet({ thickness: 6 })];
-const mockBatches = [createMockBatch(), createMockBatch({ status: 'in-progress' })];
-const mockWarehouses = [createMockWarehouse()];
-const mockRequisitions = [createMockRequisition()];
-const mockRemnants = [createMockRemnant()];
-const mockCatalogs = [createMockCatalog()];
-
-// Data Model Card Component
-const DataModelCard = {
-  props: ['name', 'model'],
-  setup(props) {
-    return () => h(Panel, { header: props.name, toggleable: true, collapsed: true }, {
-      default: () => [
-        h('p', { class: 'text-sm mb-4' }, props.model.description || 'No description'),
-        h('div', { class: 'space-y-2' }, [
-          h('h4', { class: 'font-semibold text-sm' }, `${props.model.fields?.length || 0} Fields`),
-          props.model.fields && props.model.fields.length > 0
-            ? h('ul', { class: 'text-sm space-y-1' }, 
-                props.model.fields.map(field => 
-                  h('li', { class: 'flex justify-between' }, [
-                    h('span', { class: 'font-mono' }, field.name),
-                    h('span', { class: 'text-sm' }, field.type)
-                  ])
-                )
-              )
-            : h('p', { class: 'text-sm' }, 'No fields detected'),
-          props.model.related && props.model.related.length > 0
-            ? h('div', { class: 'mt-4' }, [
-                h('h4', { class: 'font-semibold text-sm mb-2' }, 'Related'),
-                h('div', { class: 'flex gap-2 flex-wrap' },
-                  props.model.related.map(rel => h(Tag, { value: rel, severity: 'info' }))
-                )
-              ])
-            : null
-        ])
-      ]
-    });
-  }
-};
-
-// Load data models
-onMounted(async () => {
-  try {
-    const response = await fetch('/api/debug/data-models');
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    // Convert array to object keyed by collection name
-    if (data.success && data.models) {
-      dataModels.value = data.models.reduce((acc, model) => {
-        acc[model.collection] = model;
-        return acc;
-      }, {});
-    } else {
-      dataModels.value = data;
-    }
-  } catch (e) {
-    modelsError.value = e.message;
-  }
-});
-
-// Error handler
-onErrorCaptured((err) => {
-  error.value = err.message || String(err);
-  return false;
-});
+// Mock Data
+const mockProject = createMockProject();
+const mockQueue = createMockQueue();
+const mockSheet = createMockSheet();
+const mockPile = createMockPile();
 </script>
