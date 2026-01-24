@@ -145,7 +145,7 @@ const loadInventory = async () => {
     try {
         const whId = props.warehouse._id;
         const [b, s, r] = await Promise.all([
-            $fetch(`/api/material-batches?warehouseId=${whId}`),
+            $fetch(`/api/material-piles?warehouseId=${whId}`),
             $fetch(`/api/sheets?warehouseId=${whId}`),
             $fetch(`/api/remnants?warehouseId=${whId}`)
         ]);

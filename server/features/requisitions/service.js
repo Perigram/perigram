@@ -1,7 +1,7 @@
 import * as repository from './repository.js';
 import * as catalogRepository from '../catalogs/repository.js';
 import * as colorRepository from '../colors/repository.js';
-import * as materialBatchService from '../material-batches/service.js';
+import * as materialPileService from '../material-piles/service.js';
 import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
 import { checkEntityAccess } from '~/server/utils/permissions';
@@ -263,13 +263,12 @@ export async function fulfill(id, data, user) {
     throw createError({ statusCode: 409, message: 'Can only fulfill approved or in-fulfillment requisitions' });
   }
 
-  // Create material batch if warehouseId provided
+  // Create material pile if warehouseId provided
   if (data?.warehouseId) {
-      await materialBatchService.createFromRequisition(id, {
+      await materialPileService.createFromRequisition(id, {
           warehouseId: data.warehouseId,
-          supplierId: user.organizationId,
           notes: data.notes
-      }, user);
+      }, user.userId, user.role, { memberships: user.memberships });
   }
   
   return await addStatus('requisitions', id, 'fulfilled', user.userId, 'Requisition fulfilled');

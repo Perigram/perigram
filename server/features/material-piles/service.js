@@ -107,6 +107,40 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
 }
 
 /**
+ * Create material piles from an approved requisition
+ */
+export async function createFromRequisition(requisitionId, data, userId, userRole, userPermissions) {
+  const { connectDB } = await import('../../db/mongo.js');
+  const db = await connectDB();
+  
+  const requisition = await db.collection('requisitions').findOne({ _id: new ObjectId(requisitionId) });
+  if (!requisition) {
+    throw createError({ statusCode: 404, message: 'Requisition not found' });
+  }
+
+  const piles = [];
+  for (const item of requisition.items) {
+    const pile = await create({
+      warehouseId: data.warehouseId,
+      catalogId: item.catalogId,
+      colorId: item.colorId,
+      requisitionId: requisition._id,
+      quantity: item.quantity,
+      specs: {
+        sheetThickness: item.sheetThickness,
+        foilThickness: item.foilThickness,
+        width: item.width,
+        length: item.length
+      },
+      name: `Pile from ${requisition.requisitionNumber}`
+    }, userId, requisition.manufacturerId.toString(), userRole, userPermissions);
+    piles.push(pile);
+  }
+  
+  return piles;
+}
+
+/**
  * Allocate sheets from a pile
  * Called by nesting/production logic
  */

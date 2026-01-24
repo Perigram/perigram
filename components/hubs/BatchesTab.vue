@@ -80,7 +80,7 @@ const form = ref({ warehouseId: null, receiptId: '', piles: [] });
 async function load() {
   loading.value = true;
   try {
-    batches.value = await $fetch('/api/material-batches');
+    batches.value = await $fetch('/api/material-piles');
     if (authStore.isManufacturer) {
         // Manufacturers need to see where they can ship
         // In real app, they would select from Contractor warehouses
@@ -100,7 +100,7 @@ function viewDetails(batch) {
 
 async function updateStatus({ id, status }) {
     try {
-        await $fetch(`/api/material-batches/${id}/status`, {
+        await $fetch(`/api/material-piles/${id}/status`, {
             method: 'PATCH',
             body: { status, note: `Status updated via UI to ${status}` }
         });
@@ -114,7 +114,7 @@ async function updateStatus({ id, status }) {
 async function save() {
     submitting.value = true;
     try {
-        await $fetch('/api/material-batches', {
+        await $fetch('/api/material-piles', {
             method: 'POST',
             body: { ...form.value, supplierId: authStore.userData.organizationId }
         });

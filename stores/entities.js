@@ -72,7 +72,7 @@ export const useEntityStore = defineStore('entities', () => {
                 project: `/api/project/${id}`,
                 queue: `/api/queue/${id}`,
                 requisition: `/api/requisitions/${id}`,
-                batch: `/api/material-batches/${id}`,
+                batch: `/api/material-piles/${id}`,
                 cassetteInstance: `/api/cassette-instances/${id}`,
                 // ... others as endpoints are implemented
             };

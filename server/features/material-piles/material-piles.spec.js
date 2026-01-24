@@ -47,7 +47,7 @@ describe('Material Batch & Sheet Allocation', () => {
   });
 
   beforeEach(async () => {
-    await db.collection('material_batches').deleteMany({});
+    await db.collection('material_piles').deleteMany({});
     await db.collection('warehouses').deleteMany({});
   });
 
@@ -94,7 +94,7 @@ describe('Material Batch & Sheet Allocation', () => {
   it('should allocate sheets and update pile usedCount', async () => {
     const batchId = new ObjectId();
     const pileId = new ObjectId();
-    await db.collection('material_batches').insertOne({
+    await db.collection('material_piles').insertOne({
       _id: batchId,
       status: 'requested',
       piles: [{
@@ -110,14 +110,14 @@ describe('Material Batch & Sheet Allocation', () => {
     expect(allocation.success).toBe(true);
     expect(allocation.sheets).toHaveLength(3);
     
-    const updatedBatch = await db.collection('material_batches').findOne({ _id: batchId });
+    const updatedBatch = await db.collection('material_piles').findOne({ _id: batchId });
     expect(updatedBatch.piles[0].usedCount).toBe(3);
   });
 
   it('should fail allocation if insufficient sheets in pile', async () => {
     const batchId = new ObjectId();
     const pileId = new ObjectId();
-    await db.collection('material_batches').insertOne({
+    await db.collection('material_piles').insertOne({
       _id: batchId,
       status: 'requested',
       piles: [{
