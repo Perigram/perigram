@@ -5,11 +5,18 @@ const COLLECTION = 'requisitions';
 
 export async function create(data) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).insertOne({
-    ...data,
-    createdAt: new Date()
-  });
-  return await findById(result.insertedId);
+  const doc = {
+    requisitionNumber: data.requisitionNumber,
+    contractorId: data.contractorId ? new ObjectId(data.contractorId) : null,
+    manufacturerId: data.manufacturerId ? new ObjectId(data.manufacturerId) : null,
+    projectId: data.projectId ? new ObjectId(data.projectId) : null,
+    queueId: data.queueId ? new ObjectId(data.queueId) : null,
+    items: data.items || [],
+    totalAmount: data.totalAmount || 0,
+    notes: data.notes || ''
+  };
+  const result = await db.collection(COLLECTION).insertOne(doc);
+  return { ...doc, _id: result.insertedId };
 }
 
 export async function findById(id) {
@@ -17,53 +24,24 @@ export async function findById(id) {
   return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
 }
 
-export async function findByRequisitionNumber(requisitionNumber) {
+export async function find(filter = {}) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ requisitionNumber });
-}
-
-export async function find(filter = {}, options = {}) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION)
-    .find(filter)
-    .sort(options.sort || { createdAt: -1 })
-    .limit(options.limit || 100)
-    .toArray();
+  return await db.collection(COLLECTION).find(filter).toArray();
 }
 
 export async function updateById(id, updates) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).updateOne(
-    { _id: new ObjectId(id) },
-    { $set: { ...updates, updatedAt: new Date() } }
-  );
-  return result.modifiedCount > 0;
+  const { _id, createdAt, updatedAt, status, statusHistory, userId, ...clean } = updates;
+  return await db.collection(COLLECTION).updateOne({ _id: new ObjectId(id) }, { $set: clean });
 }
 
 export async function deleteById(id) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
-  return result.deletedCount > 0;
+  return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }
 
 export async function getNextRequisitionNumber() {
   const db = await connectDB();
-  const lastReq = await db.collection(COLLECTION)
-    .find({})
-    .sort({ createdAt: -1 })
-    .limit(1)
-    .toArray();
-  
-  if (lastReq.length === 0) {
-    return 'REQ-000001';
-  }
-  
-  const lastNumber = lastReq[0].requisitionNumber;
-  const match = lastNumber.match(/REQ-(\d+)/);
-  if (match) {
-    const nextNum = parseInt(match[1]) + 1;
-    return `REQ-${nextNum.toString().padStart(6, '0')}`;
-  }
-  
-  return `REQ-${Date.now()}`;
+  const count = await db.collection(COLLECTION).countDocuments();
+  return `REQ-${(count + 1).toString().padStart(6, '0')}`;
 }

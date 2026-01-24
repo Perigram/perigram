@@ -5,18 +5,25 @@ const COLLECTION = 'sheets';
 
 export async function create(data) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).insertOne({
-    ...data,
-    createdAt: new Date()
-  });
-  return await findById(result.insertedId);
-}
-
-export async function createMany(sheets, session = null) {
-  const db = await connectDB();
-  const options = session ? { session } : {};
-  const result = await db.collection(COLLECTION).insertMany(sheets, options);
-  return result.insertedCount;
+  const doc = {
+    sheetNumber: data.sheetNumber,
+    batchId: data.batchId ? new ObjectId(data.batchId) : null,
+    pileId: data.pileId ? new ObjectId(data.pileId) : null,
+    warehouseId: data.warehouseId ? new ObjectId(data.warehouseId) : null,
+    organizationId: data.organizationId ? new ObjectId(data.organizationId) : null,
+    material: data.material,
+    color: data.color,
+    thickness: data.thickness,
+    foilThickness: data.foilThickness,
+    width: data.width,
+    height: data.height,
+    queueId: data.queueId ? new ObjectId(data.queueId) : null,
+    cassetteInstanceIds: data.cassetteInstanceIds || [],
+    remnantIds: data.remnantIds || [],
+    note: data.note || ''
+  };
+  const result = await db.collection(COLLECTION).insertOne(doc);
+  return { ...doc, _id: result.insertedId };
 }
 
 export async function findById(id) {
@@ -24,53 +31,18 @@ export async function findById(id) {
   return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
 }
 
-export async function findBySheetNumber(sheetNumber) {
+export async function find(filter = {}) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ sheetNumber });
-}
-
-export async function find(filter = {}, options = {}) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION)
-    .find(filter)
-    .sort(options.sort || { createdAt: -1 })
-    .limit(options.limit || 100)
-    .toArray();
+  return await db.collection(COLLECTION).find(filter).toArray();
 }
 
 export async function updateById(id, updates) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).updateOne(
-    { _id: new ObjectId(id) },
-    { $set: { ...updates, updatedAt: new Date() } }
-  );
-  return result.modifiedCount > 0;
+  const { _id, createdAt, updatedAt, status, history, userId, ...clean } = updates;
+  return await db.collection(COLLECTION).updateOne({ _id: new ObjectId(id) }, { $set: clean });
 }
 
 export async function deleteById(id) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
-  return result.deletedCount > 0;
-}
-
-export async function getNextSheetNumber() {
-  const db = await connectDB();
-  const lastSheet = await db.collection(COLLECTION)
-    .find({})
-    .sort({ createdAt: -1 })
-    .limit(1)
-    .toArray();
-  
-  if (lastSheet.length === 0) {
-    return 'SH-000001';
-  }
-  
-  const lastNumber = lastSheet[0].sheetNumber;
-  const match = lastNumber.match(/SH-(\d+)/);
-  if (match) {
-    const nextNum = parseInt(match[1]) + 1;
-    return `SH-${nextNum.toString().padStart(6, '0')}`;
-  }
-  
-  return `SH-${Date.now()}`;
+  return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }

@@ -5,12 +5,17 @@ const COLLECTION = 'catalogs';
 
 export async function create(data) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).insertOne({
-    ...data,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  });
-  return await findById(result.insertedId);
+  const doc = {
+    name: data.name,
+    manufacturerId: data.manufacturerId ? new ObjectId(data.manufacturerId) : null,
+    description: data.description || '',
+    material: data.material,
+    foilThicknessOptions: data.foilThicknessOptions || [],
+    sheetThicknessOptions: data.sheetThicknessOptions || [],
+    widthOptions: data.widthOptions || []
+  };
+  const result = await db.collection(COLLECTION).insertOne(doc);
+  return { ...doc, _id: result.insertedId };
 }
 
 export async function findById(id) {
@@ -18,26 +23,18 @@ export async function findById(id) {
   return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
 }
 
-export async function find(filter = {}, options = {}) {
+export async function find(filter = {}) {
   const db = await connectDB();
-  return await db.collection(COLLECTION)
-    .find(filter)
-    .sort(options.sort || { createdAt: -1 })
-    .limit(options.limit || 100)
-    .toArray();
+  return await db.collection(COLLECTION).find(filter).toArray();
 }
 
 export async function updateById(id, updates) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).updateOne(
-    { _id: new ObjectId(id) },
-    { $set: { ...updates, updatedAt: new Date() } }
-  );
-  return result.modifiedCount > 0;
+  const { _id, createdAt, updatedAt, userId, organizationId, organizationData, role, ...clean } = updates;
+  return await db.collection(COLLECTION).updateOne({ _id: new ObjectId(id) }, { $set: clean });
 }
 
 export async function deleteById(id) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
-  return result.deletedCount > 0;
+  return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }

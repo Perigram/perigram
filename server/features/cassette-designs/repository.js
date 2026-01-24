@@ -11,7 +11,14 @@ const COLLECTION = 'cassette_designs';
 export async function create(data) {
   const db = await connectDB();
   const doc = {
-    ...data,
+    name: data.name,
+    cassetteTemplateId: data.cassetteTemplateId ? new ObjectId(data.cassetteTemplateId) : null,
+    projectId: data.projectId ? new ObjectId(data.projectId) : null,
+    queueId: data.queueId ? new ObjectId(data.queueId) : null,
+    parameters: data.parameters || {}, // Values for parametric designs
+    geometry: data.geometry || {}, // Flattened geometry
+    metadata: data.metadata || {},
+    ownerId: data.ownerId,
     createdAt: new Date(),
     updatedAt: new Date()
   };

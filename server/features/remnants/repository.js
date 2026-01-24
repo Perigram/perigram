@@ -5,18 +5,25 @@ const COLLECTION = 'remnants';
 
 export async function create(data) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).insertOne({
-    ...data,
-    createdAt: new Date()
-  });
-  return await findById(result.insertedId);
-}
-
-export async function createMany(remnants, session = null) {
-  const db = await connectDB();
-  const options = session ? { session } : {};
-  const result = await db.collection(COLLECTION).insertMany(remnants, options);
-  return result.insertedCount;
+  const doc = {
+    remnantNumber: data.remnantNumber,
+    sheetId: data.sheetId ? new ObjectId(data.sheetId) : null,
+    warehouseId: data.warehouseId ? new ObjectId(data.warehouseId) : null,
+    organizationId: data.organizationId ? new ObjectId(data.organizationId) : null,
+    material: data.material,
+    color: data.color,
+    thickness: data.thickness,
+    foilThickness: data.foilThickness,
+    geometryDxf: data.geometryDxf,
+    area: data.area,
+    width: data.width,
+    height: data.height,
+    qrCode: data.qrCode,
+    isReusable: data.isReusable,
+    usedInQueueId: data.usedInQueueId ? new ObjectId(data.usedInQueueId) : null
+  };
+  const result = await db.collection(COLLECTION).insertOne(doc);
+  return { ...doc, _id: result.insertedId };
 }
 
 export async function findById(id) {
@@ -24,66 +31,18 @@ export async function findById(id) {
   return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
 }
 
-export async function findByRemnantNumber(remnantNumber) {
+export async function find(filter = {}) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ remnantNumber });
-}
-
-export async function find(filter = {}, options = {}) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION)
-    .find(filter)
-    .sort(options.sort || { createdAt: -1 })
-    .limit(options.limit || 100)
-    .toArray();
-}
-
-export async function findReusable(filter = {}, options = {}) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION)
-    .find({ 
-      ...filter, 
-      status: 'in_stock',
-      isReusable: true 
-    })
-    .sort(options.sort || { area: -1 })
-    .limit(options.limit || 100)
-    .toArray();
+  return await db.collection(COLLECTION).find(filter).toArray();
 }
 
 export async function updateById(id, updates) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).updateOne(
-    { _id: new ObjectId(id) },
-    { $set: updates }
-  );
-  return result.modifiedCount > 0;
+  const { _id, createdAt, updatedAt, status, createdBy, userId, ...clean } = updates;
+  return await db.collection(COLLECTION).updateOne({ _id: new ObjectId(id) }, { $set: clean });
 }
 
 export async function deleteById(id) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
-  return result.deletedCount > 0;
-}
-
-export async function getNextRemnantNumber() {
-  const db = await connectDB();
-  const lastRemnant = await db.collection(COLLECTION)
-    .find({})
-    .sort({ createdAt: -1 })
-    .limit(1)
-    .toArray();
-  
-  if (lastRemnant.length === 0) {
-    return 'REM-000001';
-  }
-  
-  const lastNumber = lastRemnant[0].remnantNumber;
-  const match = lastNumber.match(/REM-(\d+)/);
-  if (match) {
-    const nextNum = parseInt(match[1]) + 1;
-    return `REM-${nextNum.toString().padStart(6, '0')}`;
-  }
-  
-  return `REM-${Date.now()}`;
+  return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }

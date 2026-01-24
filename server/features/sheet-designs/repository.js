@@ -9,7 +9,16 @@ const COLLECTION = 'sheet_designs';
 
 export async function create(data) {
   const db = await connectDB();
-  const doc = { ...data, createdAt: new Date(), updatedAt: new Date() };
+  const doc = {
+    name: data.name,
+    queueId: data.queueId ? new ObjectId(data.queueId) : null,
+    projectId: data.projectId ? new ObjectId(data.projectId) : null,
+    geometry: data.geometry || {}, // SVG/JSON geometry data
+    metadata: data.metadata || {},
+    ownerId: data.ownerId,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
   const result = await db.collection(COLLECTION).insertOne(doc);
   return { _id: result.insertedId, ...doc };
 }
