@@ -9,7 +9,8 @@ import { createError } from 'h3';
 import * as repository from './repository.js';
 
 /**
- * Add a new status entry and update the entity's current status
+ * Add a new status entry in the central collection.
+ * In the Lean Model, we NO LONGER update the source entity collection.
  */
 export async function addStatus(collection, entityId, status, userId, note = '', metadata = {}) {
   const entityType = collection.replace(/s$/, ''); // simple plural to singular
@@ -21,11 +22,9 @@ export async function addStatus(collection, entityId, status, userId, note = '',
     });
   }
   
-  const db = await connectDB();
-  
-  // 1. Create entry in the central statuses collection
+  // Create entry in the central statuses collection
   const statusEntry = await repository.create({
-    entityId,
+    entityId: new ObjectId(entityId),
     entityType,
     status,
     userId,
@@ -33,21 +32,6 @@ export async function addStatus(collection, entityId, status, userId, note = '',
     metadata,
     timestamp: new Date()
   });
-  
-  // 2. Update the entity itself with the current status (for performance)
-  const result = await db.collection(collection).updateOne(
-    { _id: new ObjectId(entityId) },
-    { 
-      $set: { 
-        status,
-        updatedAt: new Date()
-      }
-    }
-  );
-  
-  if (result.matchedCount === 0) {
-    throw createError({ statusCode: 404, message: `Entity not found: ${collection}/${entityId}` });
-  }
   
   return statusEntry;
 }
@@ -62,28 +46,62 @@ export async function initializeStatus(collection, entityId, userId, note = 'Cre
 }
 
 /**
+ * Get the latest status record for an entity
+ */
+export async function findLatest(collection, entityId) {
+  const entityType = collection.replace(/s$/, '');
+  return await repository.findLatestByEntity(entityId, entityType);
+}
+
+/**
+ * Attach latest status to a single entity
+ */
+export async function attachStatus(entity, collection) {
+  if (!entity) return null;
+  const latest = await findLatest(collection, entity._id);
+  return {
+    ...entity,
+    status: latest ? latest.status : 'unknown'
+  };
+}
+
+/**
+ * Attach latest statuses to an array of entities efficiently
+ */
+export async function attachStatuses(entities, collection) {
+  if (!entities || entities.length === 0) return [];
+  
+  const entityType = collection.replace(/s$/, '');
+  const entityIds = entities.map(e => new ObjectId(e._id));
+  const db = await connectDB();
+  
+  const latestStatuses = await db.collection('statuses').aggregate([
+    { $match: { entityId: { $in: entityIds }, entityType } },
+    { $sort: { timestamp: -1 } },
+    { $group: { _id: '$entityId', latest: { $first: '$$ROOT' } } }
+  ]).toArray();
+  
+  const statusMap = latestStatuses.reduce((acc, curr) => {
+    acc[curr._id.toString()] = curr.latest.status;
+    return acc;
+  }, {});
+  
+  return entities.map(e => ({
+    ...e,
+    status: statusMap[e._id.toString()] || 'unknown'
+  }));
+}
+
+/**
  * Get status history for an entity from the central collection
  */
 export async function getStatusHistory(collection, entityId) {
   const entityType = collection.replace(/s$/, '');
   const history = await repository.findByEntity(entityId, entityType);
-  
-  // Also get current status from entity to be sure
-  const db = await connectDB();
-  const entity = await db.collection(collection).findOne(
-    { _id: new ObjectId(entityId) },
-    { projection: { status: 1 } }
-  );
-  
-  if (!entity) {
-    throw createError({
-      statusCode: 404,
-      message: `Entity not found: ${collection}/${entityId}`
-    });
-  }
+  const latest = history.length > 0 ? history[0] : null;
   
   return {
-    currentStatus: entity.status,
+    currentStatus: latest ? latest.status : 'unknown',
     history: history
   };
 }

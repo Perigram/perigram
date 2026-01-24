@@ -83,12 +83,6 @@ function extractFields(repoContent, serviceContent, specContent) {
     while ((match = repoCreatePattern.exec(serviceContent)) !== null) {
       extractFieldsFromObject(match[1], fields, true);
     }
-    
-    // Find return statements with objects
-    const returnPattern = /return\s+\{[\s\S]{1,500}?\}/g;
-    while ((match = returnPattern.exec(serviceContent)) !== null) {
-      extractFieldsFromObject(match[0], fields, true);
-    }
   }
   
   // 4. Extract from findOne/find query projections
@@ -97,7 +91,7 @@ function extractFields(repoContent, serviceContent, specContent) {
     extractFieldsFromObject(match[0], fields);
   }
   
-  // 5. Extract from test/spec files (most complete!)
+  // 5. Extract from test/spec files
   if (specContent) {
     // Find all object literals in insertOne calls in tests
     const testInsertPattern = /insertOne\s*\(\s*\{[\s\S]{1,2000}?\}\s*\)/g;
@@ -136,7 +130,7 @@ function extractFieldsFromObject(objString, fields, includeValues = false) {
     const fieldValue = match[2].trim();
     
     // Skip common keywords, spreads and generic API return fields
-    if (['session', 'options', 'sort', 'limit', 'skip', 'success', 'id'].includes(fieldName)) continue;
+    if (['session', 'options', 'sort', 'limit', 'skip', 'success', 'id', 'count'].includes(fieldName)) continue;
     if (fieldName.startsWith('...')) continue;
     
     if (!fields.has(fieldName)) {
