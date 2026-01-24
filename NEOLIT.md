@@ -50,26 +50,29 @@ graph TD
     CD -- Based on --> TPL[Cassette Template]
 ```
 
-### Data Model (v2 Target)
-- `layer_standards`: System layer catalogue.
-- `pen_templates`: Display styles for layers.
-- `tool_profiles`: CNC tool library.
-- `cassette_templates`: Parametric templates with layer mappings.
-- `batches`: Production runs with specific quantities and parameters.
-- `artifacts`: Unified outputs (layouts, G-code, PDFs).
-- `projects`: Extended with metadata and statistics.
-- `users`: User accounts and template libraries.
+### Data Model (v24 Absolute Definitive)
+The system uses a standardized block-based architecture for all entities:
+- **`identity`**: Unified slug, name, and serial/reference fields.
+- **`origin`**: Immutable snapshot of the creation state.
+- **`status`**: Current state snapshot with metadata and history links.
+- **`lineage`**: Flat, cumulative ancestry trace for O(1) reverse lookups.
+- **`specs`**: Standardized physical DNA (thickness, dimensions, area).
+
+## v24 Core Patterns
+1. **Cumulative Lineage**: Every child inherits its parent's lineage object and adds the parent's ID.
+   - `child.lineage = { ...parent.lineage, projectId: id }`
+2. **Declarative State Machines**: Entity lifecycles are governed by machines defined in `server/core/machines/`.
+3. **Traceability Bridge**: Physical units (`sheets`, `instances`) link to both digital ancestry (`queueId`, `runId`) and physical ancestry (`pileId`, `warehouseId`).
 
 ### Containers
-- **Web App (Nuxt):** Handles UI, user management, and business logic orchestration.
-- **Nesting Worker:** Python service that polls the database for nesting jobs and executes the nesting algorithm.
-- **File Processing Worker:** Legacy service for DXF to SVG conversion.
-- **MongoDB:** Primary data store and file storage (GridFS).
+- **Web App (Nuxt):** Handles UI, user management, and business logic orchestration via standardized blocks.
+- **Nesting Worker:** Python service that processes `nesting_runs` and generates `sheet_designs`.
+- **MongoDB:** Primary data store utilizing lineage-based indexing for multi-tenant isolation.
 
 ## Key Workflows
-1. **Cassette Management:** Users upload DXF files, map layers to system standards, and define parametric variables.
-2. **Batch Production:** Users create batches by selecting cassettes, specifying quantities, and providing parameter values.
-3. **Nesting Execution:** The system generates a nesting job, which is picked up by the Nesting Worker to produce artifacts (SVG, DXF, G-code).
+1. **Traceable Production:** From `Project` -> `Queue` -> `Nesting Run` -> `Sheet Design` -> `Physical Sheet` -> `Cassette Instance`.
+2. **Material Lifecycle:** From `Catalog` -> `Requisition` -> `Material Pile` -> `Individual Sheet`.
+3. **State Management:** All status changes are validated by the State Machine Engine and logged to `status_events`.
 
 ## Components List
 See details in sub-directories:

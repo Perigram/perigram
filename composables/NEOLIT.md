@@ -1,5 +1,16 @@
 # COMPONENT: Composables & Stores
 
+## v24 Standardized Composables
+Helpers for working with the universal block architecture.
+
+- **[useBlocks.js](./useBlocks.js):** Standardized rendering for all entities.
+  - `useIdentity(entity)`: Get name, slug, and serial.
+  - `useStatus(entity)`: Get state, formatted time, and semantic color.
+  - `useLineage(entity)`: Ancestry lookup.
+  - `useSpecs(entity)`: Physical dimensions and area formatting.
+- **[useStatusController.js](./useStatusController.js):** Frontend bridge for the centralized State Machine engine.
+  - `transition(type, id, state, meta)`: Triggers a validated state change.
+
 ## State Management (Pinia)
 The project uses **Pinia** for global state management. Stores are located in the `stores/` directory and are auto-imported.
 

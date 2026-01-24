@@ -1,21 +1,25 @@
-# COMPONENT: Artifacts Feature
+# COMPONENT: Artifacts (Universal Outputs)
 
-This module manages generated output files (layouts, G-code, PDFs) stored in GridFS and referenced from MongoDB.
+Unified file storage and metadata registry for all generated system outputs (G-Code, SVG Layouts, PDF Reports).
 
-## Core Files
-- `repository.js`: Direct database and GridFS operations for artifacts.
-- `service.js`: Validation, status transitions, and artifact lifecycle helpers.
-
-## Data Structure
-Artifacts are stored in the `artifacts` collection.
-- `batchId`: Parent batch reference.
-- `runId`: Optional nesting run reference (for run-specific outputs).
-- `type`: `LAYOUT_SVG` | `LAYOUT_DXF` | `GCODE` | `PDF_PASSPORT` | `NESTING_REPORT`.
-- `status`: `GENERATING` | `READY` | `FAILED`.
-- `generatedBy`: Nesting slug (used by worker to update file IDs).
-- `fileId`, `mimeType`, `fileSize`, `metadata`.
+## v24 Architecture
+- **Polymorphic Linkage**: Artifacts point to any ancestor via the `lineage` object.
+- **Lineage Inheritance**: Automatically inherits ancestry from the parent that triggered the generation.
+- **Status**: Governed by `ArtifactMachine` (GENERATING -> READY -> FAILED).
 
 ## Key Workflows
-1. **Creation**: Nesting endpoints create placeholder artifacts with `GENERATING` status.
-2. **Worker update**: Nesting worker uploads files to GridFS and updates artifacts by `generatedBy`.
-3. **Retrieval**: Batch artifacts can be filtered by `runId` (chosen run by default).
+1. **Generation**: Created by background workers (Nesting, G-Code) with an initial state of `GENERATING`.
+2. **Persistence**: Linked to GridFS via `fileId`.
+3. **Traceability**: Indexed by any ID in the lineage (e.g., "Find all G-Code for this project").
+
+## Data Structure
+```typescript
+{
+  identity: { name },
+  type: Enum(GCODE, LAYOUT_SVG, PDF_REPORT),
+  fileId: ObjectId,
+  lineage: { organizationId, projectId, queueId, runId, sheetId, instanceId },
+  status: StatusBlock,
+  metadata: Object
+}
+```

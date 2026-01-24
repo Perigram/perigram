@@ -1,33 +1,27 @@
-# COMPONENT: Queues Feature
+# COMPONENT: Queues (Production Jobs)
 
-Manages nesting jobs (renamed from "batches" in 2026-01 rework).
+Defines a specific nesting job, bridging the digital production intent with physical material requirements.
 
-Note: "Batch" now refers to material deliveries, not nesting jobs.
-
-## Core Files
-- `repository.js`: Database operations on `queues` collection
-- `service.js`: Business logic, nesting parameter management
-- `stores/queues.js`: Frontend state management
-- API endpoints in `server/api/queue/` and `server/api/project/[slug]/queues/`
-
-## Data Structure
-Collection: `queues`
-
-Key fields:
-- `queueNumber`: Incremental ID per project
-- `entries`: Array of cassette requests (templateId, count, dimensions)
-- `runs`: History of nesting runs
-- `status`: DRAFT, NESTING, COMPLETE, CUT
-- `nestingParams`: Settings for the nesting engine
+## v24 Architecture
+- **Job Definition**: Combines `items` (designs to cut) with a `materialPool` (available piles/sheets).
+- **Inheritance**: Inherits lineage from the parent `Project`.
+- **Status**: Governed by `QueueMachine` (PENDING -> NESTING -> READY -> CLOSED).
 
 ## Key Workflows
-1. **Creation**: User creates queue in project
-2. **Configuration**: User adds cassette entries and sets nesting params
-3. **Nesting**: User starts nesting run -> queued in background
-4. **Selection**: User chooses best run -> status becomes CUT
-5. **Manufacturing**: Queue is marked CUT, material is consumed
+1. **Job Initialization**: Selecting baked or parametric designs and specifying quantities.
+2. **Material Allocation**: Defining which piles or remnants are available for the nesting worker.
+3. **Transition to Nesting**: Handing off the job to the Nesting Worker (triggered by state change).
 
-## Related Components
-- [projects](../projects/NEOLIT.md) - Parent entity
-- [cassettes](../cassettes/NEOLIT.md) - Templates used in entries
-- [artifacts](../artifacts/NEOLIT.md) - Output files (DXF/PDF)
+## Data Structure
+```typescript
+{
+  identity: { name, queueNumber },
+  origin: StatusBlock,
+  status: StatusBlock,
+  lineage: { organizationId, projectId },
+  job: {
+    items: Array<{ designId, quantity, parameters }>,
+    materialPool: Array<{ type, id, specs }>
+  }
+}
+```

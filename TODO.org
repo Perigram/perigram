@@ -1,3 +1,7 @@
+* TODO Errors
+  - [ ] Login failed: FetchError: [POST] "/api/auth/login": 401 
+
+
 * DONE Quckfix list 
   CLOSED: [2026-01-18]
   - [x] Need error transfer from worker to batch/run along with status update (now only status is updated, no error message)
@@ -280,12 +284,39 @@
     - Root cause: server/middleware/auth.js was not populating user.organizationData which is required by service permission checks.
     - Added organization fetching to auth middleware to ensure organizationData (id, name, type) is available in request context.
 *** Agent Notes
-    [2026-01-21] Fixed permission mismatch in material services
+    [2026-01-24] v24 Absolute Definitive Architecture Rework
     Files changed: 
-    - server/features/catalogs/service.js (check 'catalogs' instead of 'materials')
-    - server/features/warehouses/service.js (check 'warehouses' instead of 'materials')
-    - server/features/requisitions/service.js (check 'requisitions' instead of 'materials')
-    - server/features/users/permission-templates.js (grant 'materials' admin/write to Mfg/Contractor)
-    Notes: 
-    - The services were incorrectly checking the 'materials' permission key (which was 'read' only) instead of their specific entity keys (which are 'admin').
-    - Updated Permission Templates to ensure future users have correct 'materials' access for batches/sheets.
+    - server/utils/blocks.js (Standardized Block Utility)
+    - server/core/machines/definitions.js (Declarative State Machines)
+    - server/core/machines/service.js (Unified Status Engine)
+    - server/core/machines/hooks.js (Transition Hooks)
+    - server/utils/permissions.js (Lineage-Aware Permissions)
+    - server/features/projects/service.js & repository.js
+    - server/features/queues/service.js & repository.js
+    - server/features/material-piles/service.js & repository.js
+    - server/features/sheets/service.js & repository.js
+    - server/features/cassette-instances/service.js & repository.js
+    - server/features/catalogs/service.js & repository.js
+    - server/features/colors/service.js & repository.js
+    - server/features/layer-standards/service.js & repository.js
+    - server/features/artifacts/service.js & repository.js
+    - composables/useBlocks.js & useStatusController.js
+    - assets/css/variants.css
+    - components/entities/shared/EntityStatus.vue
+    - components/entities/Project/ProjectView.vue
+    - components/entities/Queue/QueueView.vue
+    - components/entities/MaterialPile/PileView.vue
+    - components/entities/Sheet/SheetView.vue
+    - scripts/migrate-v24.js
+    Docs updated: 
+    - NEOLIT.md (SYSTEM level)
+    - server/core/machines/NEOLIT.md (COMPONENT)
+    - server/utils/NEOLIT.md (CODE)
+    - server/features/*/NEOLIT.md (COMPONENT)
+    - composables/NEOLIT.md (COMPONENT)
+    Notes:
+    - Implemented v24 Block Architecture (Identity, Status, Origin, Lineage, Specs).
+    - Enforced Cumulative Lineage Inheritance for infinite reverse-lookup scalability.
+    - Centralized state logic into declarative State Machines with transition hooks and automated event logging.
+    - Refactored core production and material services to strictly follow lineage-based multi-tenant isolation.
+    - Established standardized frontend variant system (Inline, Compact, Card, Full) for all core entities.
