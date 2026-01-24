@@ -78,6 +78,12 @@ function extractFields(repoContent, serviceContent, specContent) {
       extractFieldsFromObject(match[0], fields, true);
     }
     
+    // Find repository creation calls: repository.create({ ... })
+    const repoCreatePattern = /repository\.(?:create|insertMany|updateById)\s*\(\s*(?:[^,]+,\s*)?\{([\s\S]{1,1000}?)\}/g;
+    while ((match = repoCreatePattern.exec(serviceContent)) !== null) {
+      extractFieldsFromObject(match[1], fields, true);
+    }
+    
     // Find return statements with objects
     const returnPattern = /return\s+\{[\s\S]{1,500}?\}/g;
     while ((match = returnPattern.exec(serviceContent)) !== null) {

@@ -32,7 +32,16 @@ export async function findByQueue(queueId, options = {}) {
 export async function create(data) {
   const db = await connectDB();
   const doc = {
-    ...data,
+    type: data.type,
+    name: data.name,
+    queueId: data.queueId,
+    projectId: data.projectId,
+    runId: data.runId,
+    fileId: data.fileId, // Link to geometry/binary data in GridFS
+    mimeType: data.mimeType,
+    fileSize: data.fileSize,
+    metadata: data.metadata || {},
+    generatedBy: data.generatedBy,
     status: 'GENERATING',
     createdAt: new Date()
   };
