@@ -322,3 +322,4 @@
     - Enforced Cumulative Lineage Inheritance for infinite reverse-lookup scalability.
     - Centralized state logic into declarative State Machines with transition hooks and automated event logging.
     - Established multi-variant component architecture (Inline, Compact, Card, Full) demonstrated in UI Lab.
+    - Fixed CSS postprocessing error by properly initializing Tailwind directives in assets/css/main.css.
