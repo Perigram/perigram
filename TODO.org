@@ -284,7 +284,7 @@
     - Root cause: server/middleware/auth.js was not populating user.organizationData which is required by service permission checks.
     - Added organization fetching to auth middleware to ensure organizationData (id, name, type) is available in request context.
 *** Agent Notes
-    [2026-01-24] v24 Absolute Definitive Architecture Rework
+    [2026-01-24] v24 Absolute Definitive Architecture Rework & Fixes
     Files changed: 
     - server/utils/blocks.js (Standardized Block Utility)
     - server/core/machines/definitions.js (Declarative State Machines)
@@ -293,13 +293,16 @@
     - server/utils/permissions.js (Lineage-Aware Permissions)
     - server/features/projects/service.js & repository.js
     - server/features/queues/service.js & repository.js
-    - server/features/material-piles/service.js & repository.js
+    - server/features/material-piles/service.js & repository.js (Renamed from material-batches)
     - server/features/sheets/service.js & repository.js
     - server/features/cassette-instances/service.js & repository.js
     - server/features/catalogs/service.js & repository.js
     - server/features/colors/service.js & repository.js
     - server/features/layer-standards/service.js & repository.js
     - server/features/artifacts/service.js & repository.js
+    - server/api/material-piles/ (Moved and updated from material-batches)
+    - server/db/indexes.js (Updated for lineage-based indexing)
+    - tailwind.config.js (Added surface/primary palettes from PrimeVue CSS vars)
     - composables/useBlocks.js & useStatusController.js
     - assets/css/variants.css
     - components/entities/shared/EntityStatus.vue
@@ -308,15 +311,9 @@
     - components/entities/MaterialPile/PileView.vue
     - components/entities/Sheet/SheetView.vue
     - scripts/migrate-v24.js
-    Docs updated: 
-    - NEOLIT.md (SYSTEM level)
-    - server/core/machines/NEOLIT.md (COMPONENT)
-    - server/utils/NEOLIT.md (CODE)
-    - server/features/*/NEOLIT.md (COMPONENT)
-    - composables/NEOLIT.md (COMPONENT)
     Notes:
+    - Fixed "material-batches" missing file error by updating all references to "material-piles".
+    - Fixed "bg-surface-0" Tailwind error by defining the surface palette in tailwind.config.js.
     - Implemented v24 Block Architecture (Identity, Status, Origin, Lineage, Specs).
     - Enforced Cumulative Lineage Inheritance for infinite reverse-lookup scalability.
     - Centralized state logic into declarative State Machines with transition hooks and automated event logging.
-    - Refactored core production and material services to strictly follow lineage-based multi-tenant isolation.
-    - Established standardized frontend variant system (Inline, Compact, Card, Full) for all core entities.

@@ -57,5 +57,5 @@ Key fields:
 
 ## Related Components
 - [catalogs](../catalogs/NEOLIT.md) - Source of sheet types and pricing
-- [material-batches](../material-batches/NEOLIT.md) - Created when requisition fulfilled
+- [material-piles](../material-piles/NEOLIT.md) - Created when requisition fulfilled
 - [organizations](../organizations/NEOLIT.md) - Contractor and manufacturer organizations
