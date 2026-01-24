@@ -3,6 +3,7 @@ import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
 import { generateEntityName, generateRandomString } from '~/server/utils/strings';
 import standardSlugify from 'standard-slugify';
+import { initializeStatus } from '~/server/features/statuses/service';
 
 export async function create(data, userId, userOrg, userPermissions) {
   // Check permission
@@ -20,7 +21,6 @@ export async function create(data, userId, userOrg, userPermissions) {
     name: projectName,
     ownerId: userId, // Creator
     contractorId: userOrg, // Organization ownership
-    status: "ACTIVE",
     batchIds: [],
     queueIds: [],
     metadata: {
@@ -39,7 +39,12 @@ export async function create(data, userId, userOrg, userPermissions) {
     ...data
   };
   
-  return await repository.create(projectData);
+  const project = await repository.create(projectData);
+  
+  // Initialize status with Status Service
+  await initializeStatus('projects', project._id.toString(), userId, 'Project created');
+  
+  return project;
 }
 
 export async function list(userId, userOrg, userRole, userPermissions) {

@@ -45,9 +45,10 @@ export async function findByOwner(ownerId, options = {}) {
 
 export async function create(data) {
   const db = await connectDB();
+  const { success, ...cleanData } = data;
   const doc = {
     status: 'DRAFT',
-    ...data,
+    ...cleanData,
     createdAt: new Date(),
     updatedAt: new Date()
   };

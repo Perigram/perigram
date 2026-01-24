@@ -6,6 +6,7 @@ import { hasPermission } from '~/server/utils/auth-helpers';
 import { checkEntityAccess } from '~/server/utils/permissions';
 import { connectDB } from '~/server/db/mongo';
 import { ObjectId } from 'mongodb';
+import { addStatus, initializeStatus } from '~/server/features/statuses/service';
 
 export async function allocateFromBatch(batchId, pileId, count, user) {
   if (!hasPermission(user, 'materials', 'write')) {
@@ -30,14 +31,6 @@ export async function allocateFromBatch(batchId, pileId, count, user) {
         sheetsToCreate.push({
           sheetNumber,
           ...result.sheets[i],
-          status: 'in_stock',
-          history: [{
-            action: 'allocated',
-            timestamp: new Date(),
-            userId: user.userId,
-            operatorType: 'warehouse',
-            note: `Allocated from batch ${batchId}`
-          }],
           queueId: null,
           cassetteInstanceIds: [],
           remnantIds: [],
@@ -46,8 +39,30 @@ export async function allocateFromBatch(batchId, pileId, count, user) {
         });
       }
       
-      await db.collection('sheets').insertMany(sheetsToCreate, { session });
-      createdSheets = sheetsToCreate;
+      const insertResult = await db.collection('sheets').insertMany(sheetsToCreate, { session });
+      
+      // Initialize status for each sheet
+      for (const id of Object.values(insertResult.insertedIds)) {
+        // Since initializeStatus doesn't support session, we might have issues if it fails.
+        // But for simplicity of this rework, I'll use it as-is or manually insert if needed.
+        // Manual insert for status during transaction:
+        await db.collection('statuses').insertOne({
+          entityId: id,
+          entityType: 'sheet_instance',
+          status: 'in_stock',
+          userId: user.userId,
+          note: `Allocated from batch ${batchId}`,
+          timestamp: new Date()
+        }, { session });
+
+        await db.collection('sheets').updateOne(
+          { _id: id },
+          { $set: { status: 'in_stock' } },
+          { session }
+        );
+      }
+
+      createdSheets = sheetsToCreate.map((s, idx) => ({ ...s, _id: insertResult.insertedIds[idx], status: 'in_stock' }));
       
       // Update warehouse sheet count
       const warehouseId = result.sheets[0].warehouseId.toString();
@@ -129,22 +144,7 @@ export async function updateStatus(id, newStatus, note, user, operatorType = 'ma
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  // Validate status
-  const validStatuses = ['in_stock', 'in_cutting', 'milled'];
-  if (!validStatuses.includes(newStatus)) {
-    throw createError({ statusCode: 400, message: 'Invalid status' });
-  }
-  
-  await repository.updateById(id, { status: newStatus });
-  await repository.addHistory(id, {
-    action: `status_changed_to_${newStatus}`,
-    timestamp: new Date(),
-    userId: user.userId,
-    operatorType,
-    note: note || ''
-  });
-  
-  return await repository.findById(id);
+  return await addStatus('sheets', id, newStatus, user.userId, note || '', { operatorType });
 }
 
 export async function markForCutting(sheetIds, queueId, user) {
@@ -153,30 +153,38 @@ export async function markForCutting(sheetIds, queueId, user) {
   }
   
   const db = await connectDB();
-  const updatedCount = await db.collection('sheets').updateMany(
+  const now = new Date();
+  
+  const sheetObjectIds = sheetIds.map(id => new ObjectId(id));
+
+  const result = await db.collection('sheets').updateMany(
     { 
-      _id: { $in: sheetIds.map(id => new ObjectId(id)) },
+      _id: { $in: sheetObjectIds },
       status: 'in_stock'
     },
     { 
       $set: { 
         status: 'in_cutting',
         queueId: new ObjectId(queueId),
-        updatedAt: new Date()
-      },
-      $push: {
-        history: {
-          action: 'marked_for_cutting',
-          timestamp: new Date(),
-          userId: user.userId,
-          operatorType: 'queue',
-          note: `Assigned to queue ${queueId}`
-        }
+        updatedAt: now
       }
     }
   );
+
+  // Log status for each sheet
+  if (result.modifiedCount > 0) {
+    const statusEntries = sheetObjectIds.map(id => ({
+      entityId: id,
+      entityType: 'sheet_instance',
+      status: 'in_cutting',
+      userId: user.userId,
+      note: `Assigned to queue ${queueId}`,
+      timestamp: now
+    }));
+    await db.collection('statuses').insertMany(statusEntries);
+  }
   
-  return updatedCount.modifiedCount;
+  return result.modifiedCount;
 }
 
 export async function finishMilling(sheetId, cassetteInstanceIds, remnantIds, user) {
@@ -191,17 +199,12 @@ export async function finishMilling(sheetId, cassetteInstanceIds, remnantIds, us
   
   // Update sheet to milled
   await repository.updateById(sheetId, {
-    status: 'milled',
     cassetteInstanceIds: cassetteInstanceIds.map(id => new ObjectId(id)),
     remnantIds: remnantIds.map(id => new ObjectId(id))
   });
   
-  await repository.addHistory(sheetId, {
-    action: 'milled',
-    timestamp: new Date(),
-    userId: user.userId,
-    operatorType: 'cnc',
-    note: `Created ${cassetteInstanceIds.length} cassettes and ${remnantIds.length} remnants`
+  await addStatus('sheets', sheetId, 'milled', user.userId, `Created ${cassetteInstanceIds.length} cassettes and ${remnantIds.length} remnants`, {
+    operatorType: 'cnc'
   });
   
   // Update warehouse count (sheet consumed)
@@ -214,6 +217,33 @@ export async function finishMilling(sheetId, cassetteInstanceIds, remnantIds, us
 }
 
 export async function remove(id, user) {
+  if (!hasPermission(user, 'materials', 'admin')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  
+  const sheet = await repository.findById(id);
+  if (!sheet) {
+    throw createError({ statusCode: 404, message: 'Sheet not found' });
+  }
+  
+  // Verify access
+  await warehouseService.getById(sheet.warehouseId.toString(), user);
+  
+  // Can't delete if used in cutting or milled
+  if (sheet.status !== 'in_stock') {
+    throw createError({ statusCode: 409, message: 'Cannot delete sheet that is not in stock' });
+  }
+  
+  const success = await repository.deleteById(id);
+  if (!success) {
+    throw createError({ statusCode: 404, message: 'Sheet not found' });
+  }
+  
+  // Update warehouse count
+  await warehouseService.updateInventoryCounts(sheet.warehouseId.toString(), { totalSheets: -1 });
+  
+  return { success: true };
+}
   if (!hasPermission(user, 'materials', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }

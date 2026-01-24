@@ -5,6 +5,7 @@ import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import crypto from 'node:crypto';
 import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
+import { addStatus, initializeStatus } from '~/server/features/statuses/service';
 
 export async function generateInvitation(organizationId, role, creatorUser) {
   const org = await organizationsRepository.findById(organizationId);
@@ -18,7 +19,7 @@ export async function generateInvitation(organizationId, role, creatorUser) {
   const token = crypto.randomBytes(32).toString('hex');
   const code = `INV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`; // Keep short code as fallback
   
-  await repository.create({
+  const id = await repository.create({
     token,
     code,
     organizationId: new ObjectId(organizationId),
@@ -27,6 +28,8 @@ export async function generateInvitation(organizationId, role, creatorUser) {
     isActive: true,
     createdBy: creatorUser.userId
   });
+
+  await initializeStatus('invitations', id.toString(), creatorUser.userId, 'Invitation generated');
 
   return { token, code };
 }
@@ -42,6 +45,8 @@ export async function joinByToken(token, user) {
   const invitation = await getByToken(token);
   
   if (new Date() > invitation.expiresAt) {
+    // Log status as expired if we find it expired during access
+    await addStatus('invitations', invitation._id.toString(), 'system', 'expired', 'Detected expiration during access');
     throw createError({ statusCode: 410, message: 'Invitation expired' });
   }
 
@@ -73,8 +78,10 @@ export async function joinByToken(token, user) {
   // Invalidate invitation (one-time link)
   await db.collection('invitations').updateOne(
     { _id: invitation._id },
-    { $set: { isActive: false, usedAt: new Date(), usedBy: user.userId } }
+    { $set: { isActive: false, usedAt: new Date(), usedBy: user.userId, status: 'accepted' } }
   );
+
+  await addStatus('invitations', invitation._id.toString(), 'accepted', user.userId, 'Invitation accepted');
   
   return { success: true };
 }

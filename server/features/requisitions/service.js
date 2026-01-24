@@ -7,6 +7,7 @@ import { hasPermission } from '~/server/utils/auth-helpers';
 import { checkEntityAccess } from '~/server/utils/permissions';
 import { ObjectId } from 'mongodb';
 import { toObjectId } from '~/server/utils/objectid';
+import { addStatus, initializeStatus } from '~/server/features/statuses/service';
 
 export async function create(data, user) {
   // Only contractors can create requisitions
@@ -73,7 +74,7 @@ export async function create(data, user) {
   const requisitionNumber = await repository.getNextRequisitionNumber();
   
   // Create requisition
-  return await repository.create({
+  const requisition = await repository.create({
     requisitionNumber,
     contractorId: toObjectId(user.organizationId),
     manufacturerId: toObjectId(data.manufacturerId),
@@ -81,16 +82,13 @@ export async function create(data, user) {
     queueId: data.queueId ? toObjectId(data.queueId) : null,
     items: snapshotItems,
     totalAmount,
-    status: 'draft',
-    statusHistory: [{
-      status: 'draft',
-      timestamp: new Date(),
-      userId: user.userId,
-      note: 'Requisition created'
-    }],
     notes: data.notes || '',
     createdBy: user.userId
   });
+
+  await initializeStatus('requisitions', requisition._id.toString(), user.userId, 'Requisition created');
+
+  return requisition;
 }
 
 export async function list(user, filter = {}) {
@@ -196,14 +194,7 @@ export async function send(id, user) {
     throw createError({ statusCode: 409, message: 'Can only send draft requisitions' });
   }
   
-  await repository.addStatusHistory(id, {
-    status: 'sent',
-    timestamp: new Date(),
-    userId: user.userId,
-    note: 'Requisition sent to manufacturer'
-  });
-  
-  return await repository.findById(id);
+  return await addStatus('requisitions', id, 'sent', user.userId, 'Requisition sent to manufacturer');
 }
 
 export async function approve(id, user) {
@@ -226,14 +217,7 @@ export async function approve(id, user) {
     throw createError({ statusCode: 409, message: 'Can only approve sent requisitions' });
   }
   
-  await repository.addStatusHistory(id, {
-    status: 'approved',
-    timestamp: new Date(),
-    userId: user.userId,
-    note: 'Requisition approved by manufacturer'
-  });
-  
-  return await repository.findById(id);
+  return await addStatus('requisitions', id, 'approved', user.userId, 'Requisition approved by manufacturer');
 }
 
 export async function reject(id, user) {
@@ -256,14 +240,7 @@ export async function reject(id, user) {
     throw createError({ statusCode: 409, message: 'Can only reject sent requisitions' });
   }
   
-  await repository.addStatusHistory(id, {
-    status: 'rejected',
-    timestamp: new Date(),
-    userId: user.userId,
-    note: 'Requisition rejected by manufacturer'
-  });
-  
-  return await repository.findById(id);
+  return await addStatus('requisitions', id, 'rejected', user.userId, 'Requisition rejected by manufacturer');
 }
 
 export async function fulfill(id, data, user) {
@@ -295,14 +272,7 @@ export async function fulfill(id, data, user) {
       }, user);
   }
   
-  await repository.addStatusHistory(id, {
-    status: 'fulfilled',
-    timestamp: new Date(),
-    userId: user.userId,
-    note: 'Requisition fulfilled'
-  });
-  
-  return await repository.findById(id);
+  return await addStatus('requisitions', id, 'fulfilled', user.userId, 'Requisition fulfilled');
 }
 
 export async function startFulfillment(id, user) {
@@ -325,14 +295,7 @@ export async function startFulfillment(id, user) {
     throw createError({ statusCode: 409, message: 'Can only start fulfillment for approved requisitions' });
   }
   
-  await repository.addStatusHistory(id, {
-    status: 'in_fulfillment',
-    timestamp: new Date(),
-    userId: user.userId,
-    note: 'Fulfillment started'
-  });
-  
-  return await repository.findById(id);
+  return await addStatus('requisitions', id, 'in_fulfillment', user.userId, 'Fulfillment started');
 }
 
 export async function cancel(id, user) {
@@ -361,14 +324,7 @@ export async function cancel(id, user) {
     throw createError({ statusCode: 409, message: 'Cannot cancel fulfilled requisitions' });
   }
   
-  await repository.addStatusHistory(id, {
-    status: 'canceled',
-    timestamp: new Date(),
-    userId: user.userId,
-    note: 'Requisition canceled'
-  });
-  
-  return await repository.findById(id);
+  return await addStatus('requisitions', id, 'canceled', user.userId, 'Requisition canceled');
 }
 
 export async function remove(id, user) {

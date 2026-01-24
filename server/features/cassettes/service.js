@@ -1,7 +1,3 @@
-/**
- * Cassettes Service
- */
-
 import * as repository from './repository.js';
 import { ObjectId } from 'mongodb';
 import { connectDB } from '../../db/mongo.js';
@@ -12,6 +8,7 @@ import { extractNestingPolygons } from '../../utils/dxf-extractor.js';
 import { service as systemSettingsService } from '../system-settings/index.js';
 import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
+import { initializeStatus, addStatus } from '~/server/features/statuses/service';
 
 export async function upload(fileBuffer, fileName, cassetteName, userId, userOrg, userRole, userPermissions, layerMapping = null, parameters = null) {
   if (!hasPermission({ permissions: userPermissions }, 'cassettes', 'write')) {
@@ -90,6 +87,8 @@ export async function upload(fileBuffer, fileName, cassetteName, userId, userOrg
   
   const cassette = await repository.create(cassetteData);
   
+  await initializeStatus('cassettes', cassette._id.toString(), userId, 'Cassette uploaded');
+
   // Sync to old schema for worker compatibility (ghcr.io/1suo)
   // Worker expects cassette in user_dxf_files collection with DXF in userDxf bucket
   await db.collection('user_dxf_files').updateOne(
@@ -239,7 +238,9 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     updatedAt: new Date()
   };
   
-  return await repository.create(cassetteData);
+  const cassette = await repository.create(cassetteData);
+  await initializeStatus('cassettes', cassette._id.toString(), userId, 'Cassette created');
+  return cassette;
 }
 
 export async function update(id, data, userId, userOrg, userRole, userPermissions) {
@@ -280,13 +281,7 @@ export async function updateStatus(id, status, userId, userOrg, userRole, userPe
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  const validStatuses = ['DRAFT', 'ACTIVE', 'ARCHIVED'];
-  if (!validStatuses.includes(status)) {
-    throw createError({ statusCode: 400, message: 'Invalid status' });
-  }
-  
-  await repository.updateById(id, { status });
-  return await repository.findById(id);
+  return await addStatus('cassettes', id, status.toLowerCase(), userId, 'Status updated manually');
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {

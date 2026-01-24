@@ -3,6 +3,7 @@ import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
 import { getOrgFilter, checkEntityAccess } from '~/server/utils/permissions';
 import { ObjectId } from 'mongodb';
+import { initializeStatus, addStatus } from '~/server/features/statuses/service';
 
 export async function create(data, user) {
   // Only org admins can create warehouses
@@ -21,13 +22,17 @@ export async function create(data, user) {
     throw createError({ statusCode: 403, message: 'Cannot create warehouse for other organization' });
   }
   
-  return await repository.create({
+  const warehouse = await repository.create({
     name: data.name,
     organizationId: orgId,
     address: data.address || '',
     contactPerson: data.contactPerson || '',
     createdBy: user.userId
   });
+
+  await initializeStatus('warehouses', warehouse._id.toString(), user.userId, 'Warehouse created');
+  
+  return warehouse;
 }
 
 export async function list(user, filter = {}) {

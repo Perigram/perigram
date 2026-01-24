@@ -1,0 +1,1663 @@
+{
+  "success": true,
+  "models": [
+    {
+      "collection": "artifacts",
+      "feature": "artifacts",
+      "description": "Artifacts - manages artifacts",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        }
+      ],
+      "relationships": [
+        "batch"
+      ],
+      "fieldCount": 2
+    },
+    {
+      "collection": "cassette_designs",
+      "feature": "cassette-designs",
+      "description": "Cassette Designs - manages cassette designs",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [
+        "owner"
+      ],
+      "fieldCount": 2
+    },
+    {
+      "collection": "cassette_instances",
+      "feature": "cassette-instances",
+      "description": "Cassette Instances - manages cassette instances",
+      "fields": [
+        {
+          "name": "cassetteDesignId",
+          "type": "ObjectId",
+          "description": "cassette design id field",
+          "example": "entry.cassetteDesignId"
+        },
+        {
+          "name": "cassetteTemplateId",
+          "type": "ObjectId",
+          "description": "cassette template id field",
+          "example": "entry.cassetteTemplateId"
+        },
+        {
+          "name": "count",
+          "type": "String",
+          "description": "count field",
+          "example": "0 }"
+        },
+        {
+          "name": "instanceNumber",
+          "type": "String",
+          "description": "instance number field",
+          "example": "`${queue.queueNumber}-${instances.length + 1}`"
+        },
+        {
+          "name": "NEW",
+          "type": "String",
+          "description": "n e w field",
+          "example": "link to design"
+        },
+        {
+          "name": "note",
+          "type": "String",
+          "description": "note field",
+          "example": "''"
+        },
+        {
+          "name": "projectSlug",
+          "type": "String",
+          "description": "project slug field",
+          "example": "queue.projectSlug"
+        },
+        {
+          "name": "queueId",
+          "type": "ObjectId",
+          "description": "queue id field",
+          "example": "queue._id"
+        },
+        {
+          "name": "success",
+          "type": "Boolean",
+          "description": "success field",
+          "example": "true"
+        }
+      ],
+      "relationships": [
+        "queue"
+      ],
+      "fieldCount": 9
+    },
+    {
+      "collection": "cassettes",
+      "feature": "cassettes",
+      "description": "Cassettes - manages cassettes",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "allowRotation",
+          "type": "Boolean",
+          "description": "allow rotation field",
+          "example": "true"
+        },
+        {
+          "name": "data",
+          "type": "String",
+          "description": "data field",
+          "example": "data.data || null"
+        },
+        {
+          "name": "dxfId",
+          "type": "ObjectId",
+          "description": "dxf id field",
+          "example": "uploadStream.id"
+        },
+        {
+          "name": "Format",
+          "type": "Object",
+          "description": "format field",
+          "example": "{ [dxfLayerName]: layerStandardCode }"
+        },
+        {
+          "name": "hasIkleHoles",
+          "type": "Boolean",
+          "description": "has ikle holes field",
+          "example": "false"
+        },
+        {
+          "name": "hasRivetHoles",
+          "type": "Boolean",
+          "description": "has rivet holes field",
+          "example": "false"
+        },
+        {
+          "name": "layerMapping",
+          "type": "String",
+          "description": "layer mapping field",
+          "example": "layerMapping || {}"
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "description": "Display name",
+          "example": "data.name"
+        },
+        {
+          "name": "negativeOffset",
+          "type": "Number",
+          "description": "negative offset field",
+          "example": "0"
+        },
+        {
+          "name": "nestingLayerCode",
+          "type": "String",
+          "description": "nesting layer code field",
+          "example": "nestingLayerCode"
+        },
+        {
+          "name": "ownerId",
+          "type": "ObjectId",
+          "description": "Owner user ID (OAuth string)",
+          "example": "userId"
+        },
+        {
+          "name": "parameters",
+          "type": "Array",
+          "description": "parameters field",
+          "example": "defaultParameters"
+        },
+        {
+          "name": "polygonParts",
+          "type": "Array",
+          "description": "polygon parts field",
+          "example": "polygonParts"
+        },
+        {
+          "name": "polygonPartsCount",
+          "type": "Number",
+          "description": "polygon parts count field",
+          "example": "polygonParts.length"
+        },
+        {
+          "name": "processingStatus",
+          "type": "String",
+          "description": "processing status field",
+          "example": "polygonParts.length > 0 ? 'done' : 'pending'"
+        },
+        {
+          "name": "slug",
+          "type": "String",
+          "description": "URL-friendly identifier",
+          "example": "slug"
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        },
+        {
+          "name": "svgId",
+          "type": "ObjectId",
+          "description": "svg id field",
+          "example": "null"
+        },
+        {
+          "name": "type",
+          "type": "String (enum)",
+          "description": "type field",
+          "example": "data.data ? 'PARAMETRIC' : 'STANDARD'"
+        },
+        {
+          "name": "userId",
+          "type": "ObjectId",
+          "description": "User ID (OAuth string)",
+          "example": "userId"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": "Date()"
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [
+        "owner",
+        "user"
+      ],
+      "fieldCount": 23
+    },
+    {
+      "collection": "catalogs",
+      "feature": "catalogs",
+      "description": "Catalogs - manages catalogs",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "manufacturerId",
+          "type": "ObjectId",
+          "description": "manufacturer id field",
+          "example": "otherManufacturerId"
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "description": "Display name",
+          "example": "'Other Brand'"
+        },
+        {
+          "name": "organizationData",
+          "type": "Object",
+          "description": "organization data field",
+          "example": "{ type: 'Manufacturer' }"
+        },
+        {
+          "name": "organizationId",
+          "type": "ObjectId",
+          "description": "Organization reference",
+          "example": "ObjectId()"
+        },
+        {
+          "name": "role",
+          "type": "String",
+          "description": "User role",
+          "example": "'ManufacturerAdmin'"
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "description": "User ID (OAuth string)",
+          "example": "'user1'"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": null
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 10
+    },
+    {
+      "collection": "colors",
+      "feature": "colors",
+      "description": "Colors - manages colors",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "catalogId",
+          "type": "ObjectId",
+          "description": "catalog id field",
+          "example": null
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": null
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [
+        "catalog"
+      ],
+      "fieldCount": 4
+    },
+    {
+      "collection": "invitations",
+      "feature": "invitations",
+      "description": "Invitations - manages invitations",
+      "fields": [
+        {
+          "name": "isActive",
+          "type": "Boolean",
+          "description": "is active field",
+          "example": null
+        },
+        {
+          "name": "organizationId",
+          "type": "ObjectId",
+          "description": "Organization reference",
+          "example": "invitation.organizationId"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "description": "Current status",
+          "example": "'pending'"
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": null
+        },
+        {
+          "name": "expiresAt",
+          "type": "Date",
+          "description": "expires at field",
+          "example": null
+        },
+        {
+          "name": "revokedAt",
+          "type": "Date",
+          "description": "revoked at field",
+          "example": null
+        },
+        {
+          "name": "usedAt",
+          "type": "Date",
+          "description": "used at field",
+          "example": null
+        }
+      ],
+      "relationships": [
+        "organization"
+      ],
+      "fieldCount": 8
+    },
+    {
+      "collection": "layer_standards",
+      "feature": "layer-standards",
+      "description": "Layer Standards - manages layer standards",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "isActive",
+          "type": "Boolean",
+          "description": "is active field",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 2
+    },
+    {
+      "collection": "material_batches",
+      "feature": "material-batches",
+      "description": "Material Batches - manages material batches",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "catalogs",
+          "type": "String",
+          "description": "catalogs field",
+          "example": "'admin' }"
+        },
+        {
+          "name": "material",
+          "type": "String",
+          "description": "material field",
+          "example": "'Aluminum'"
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "description": "Display name",
+          "example": "'Main Wh'"
+        },
+        {
+          "name": "organizationData",
+          "type": "Object",
+          "description": "organization data field",
+          "example": "{ type: 'Manufacturer' }"
+        },
+        {
+          "name": "organizationId",
+          "type": "ObjectId",
+          "description": "Organization reference",
+          "example": "mockManufacturer.organizationId"
+        },
+        {
+          "name": "permissions",
+          "type": "Object",
+          "description": "Access permissions",
+          "example": "{ materials: 'admin'"
+        },
+        {
+          "name": "piles",
+          "type": "Array",
+          "description": "piles field",
+          "example": "[{"
+        },
+        {
+          "name": "role",
+          "type": "String",
+          "description": "User role",
+          "example": "'ManufacturerAdmin'"
+        },
+        {
+          "name": "status",
+          "type": "Array",
+          "description": "Current status",
+          "example": null
+        },
+        {
+          "name": "success",
+          "type": "Boolean",
+          "description": "success field",
+          "example": "true"
+        },
+        {
+          "name": "totalBatches",
+          "type": "Number",
+          "description": "total batches field",
+          "example": "0"
+        },
+        {
+          "name": "totalCount",
+          "type": "Number",
+          "description": "total count field",
+          "example": "10"
+        },
+        {
+          "name": "usedCount",
+          "type": "Number",
+          "description": "used count field",
+          "example": "0"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "description": "User ID (OAuth string)",
+          "example": "'user1'"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": null
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 17
+    },
+    {
+      "collection": "material_options",
+      "feature": "material-options",
+      "description": "Material Options - manages material options",
+      "fields": [
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": null
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 2
+    },
+    {
+      "collection": "materials",
+      "feature": "materials",
+      "description": "Materials - manages materials",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 3
+    },
+    {
+      "collection": "organizations",
+      "feature": "organizations",
+      "description": "Organizations - manages organizations",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "balance",
+          "type": "Number",
+          "description": "balance field",
+          "example": "0"
+        },
+        {
+          "name": "canCut",
+          "type": "String",
+          "description": "can cut field",
+          "example": "data.canCut ?? true"
+        },
+        {
+          "name": "canInstall",
+          "type": "String",
+          "description": "can install field",
+          "example": "data.canInstall ?? false"
+        },
+        {
+          "name": "organizationId",
+          "type": "ObjectId",
+          "description": "Organization reference",
+          "example": "org._id"
+        },
+        {
+          "name": "push",
+          "type": "Object",
+          "description": "push field",
+          "example": "{ memberships: membership }"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "description": "Current status",
+          "example": "'active'"
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": null
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 10
+    },
+    {
+      "collection": "pen_templates",
+      "feature": "pen-templates",
+      "description": "Pen Templates - manages pen templates",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "ownerId",
+          "type": "ObjectId",
+          "description": "Owner user ID (OAuth string)",
+          "example": null
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        }
+      ],
+      "relationships": [
+        "owner",
+        "user"
+      ],
+      "fieldCount": 3
+    },
+    {
+      "collection": "projects",
+      "feature": "projects",
+      "description": "Projects - manages projects",
+      "fields": [
+        {
+          "name": "batchIds",
+          "type": "Array",
+          "description": "batch ids field",
+          "example": "[]"
+        },
+        {
+          "name": "completedBatches",
+          "type": "Number",
+          "description": "completed batches field",
+          "example": "0"
+        },
+        {
+          "name": "contractorId",
+          "type": "ObjectId",
+          "description": "contractor id field",
+          "example": "userOrg"
+        },
+        {
+          "name": "custom",
+          "type": "Object",
+          "description": "custom field",
+          "example": "{}"
+        },
+        {
+          "name": "laborCostPerHour",
+          "type": "Number",
+          "description": "labor cost per hour field",
+          "example": "0"
+        },
+        {
+          "name": "materialCostPerSqM",
+          "type": "Number",
+          "description": "material cost per sq m field",
+          "example": "0"
+        },
+        {
+          "name": "metadata",
+          "type": "Object",
+          "description": "Additional metadata",
+          "example": "{"
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "description": "Display name",
+          "example": "projectName"
+        },
+        {
+          "name": "ownerId",
+          "type": "ObjectId",
+          "description": "Owner user ID (OAuth string)",
+          "example": "userId"
+        },
+        {
+          "name": "queueIds",
+          "type": "Array",
+          "description": "queue ids field",
+          "example": "[]"
+        },
+        {
+          "name": "slug",
+          "type": "String",
+          "description": "URL-friendly identifier",
+          "example": "projectSlug"
+        },
+        {
+          "name": "statistics",
+          "type": "Object",
+          "description": "statistics field",
+          "example": "{"
+        },
+        {
+          "name": "tep",
+          "type": "Object",
+          "description": "tep field",
+          "example": "{"
+        },
+        {
+          "name": "totalArea",
+          "type": "Number",
+          "description": "total area field",
+          "example": "0"
+        },
+        {
+          "name": "totalCassettes",
+          "type": "Number",
+          "description": "total cassettes field",
+          "example": "0"
+        },
+        {
+          "name": "totalEstimate",
+          "type": "Number",
+          "description": "total estimate field",
+          "example": "0"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": null
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 18
+    },
+    {
+      "collection": "queues",
+      "feature": "queues",
+      "description": "Queues - manages queues",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": "run._id || ObjectId()"
+        },
+        {
+          "name": "chosenRunId",
+          "type": "ObjectId",
+          "description": "chosen run id field",
+          "example": null
+        },
+        {
+          "name": "date",
+          "type": "Date",
+          "description": "date field",
+          "example": "Date()"
+        },
+        {
+          "name": "entries",
+          "type": "Array",
+          "description": "entries field",
+          "example": "[] // Fix: ensure entries exists"
+        },
+        {
+          "name": "hasWastePolygons",
+          "type": "Boolean",
+          "description": "has waste polygons field",
+          "example": "true"
+        },
+        {
+          "name": "organizationId",
+          "type": "ObjectId",
+          "description": "Organization reference",
+          "example": "mockUser.organizationId"
+        },
+        {
+          "name": "ownerId",
+          "type": "ObjectId",
+          "description": "Owner user ID (OAuth string)",
+          "example": null
+        },
+        {
+          "name": "permissions",
+          "type": "Object",
+          "description": "Access permissions",
+          "example": "{ queues: 'admin' }"
+        },
+        {
+          "name": "queueCount",
+          "type": "Number",
+          "description": "queue count field",
+          "example": "0"
+        },
+        {
+          "name": "queueId",
+          "type": "ObjectId",
+          "description": "queue id field",
+          "example": "ObjectId() };"
+        },
+        {
+          "name": "queueName",
+          "type": "String",
+          "description": "queue name field",
+          "example": "queue.name"
+        },
+        {
+          "name": "role",
+          "type": "String",
+          "description": "User role",
+          "example": "'ContractorAdmin'"
+        },
+        {
+          "name": "runs",
+          "type": "ObjectId",
+          "description": "runs field",
+          "example": "[{ _id: ObjectId()"
+        },
+        {
+          "name": "sheetsUsed",
+          "type": "String",
+          "description": "sheets used field",
+          "example": "chosenRun?.layoutCount || 0"
+        },
+        {
+          "name": "slug",
+          "type": "String",
+          "description": "URL-friendly identifier",
+          "example": "projectSlug"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "description": "Current status",
+          "example": "'DRAFT'"
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        },
+        {
+          "name": "userId",
+          "type": "ObjectId",
+          "description": "User ID (OAuth string)",
+          "example": "userId"
+        },
+        {
+          "name": "userName",
+          "type": "String",
+          "description": "user name field",
+          "example": "userId.split(':')[0]"
+        },
+        {
+          "name": "utilization",
+          "type": "String",
+          "description": "utilization field",
+          "example": "0.85"
+        },
+        {
+          "name": "wasteArea",
+          "type": "String",
+          "description": "waste area field",
+          "example": "1.2"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": "run.createdAt || now"
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [
+        "chosenObject",
+        "chosenRun",
+        "owner",
+        "pdfTemplate",
+        "user"
+      ],
+      "fieldCount": 23
+    },
+    {
+      "collection": "remnants",
+      "feature": "remnants",
+      "description": "Remnants - manages remnants",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "area",
+          "type": "String",
+          "description": "area field",
+          "example": "data.area || 0"
+        },
+        {
+          "name": "color",
+          "type": "String",
+          "description": "color field",
+          "example": "data.color"
+        },
+        {
+          "name": "createdBy",
+          "type": "String",
+          "description": "created by field",
+          "example": "user.userId"
+        },
+        {
+          "name": "foilThickness",
+          "type": "String",
+          "description": "foil thickness field",
+          "example": "data.foilThickness || 0"
+        },
+        {
+          "name": "geometryDxf",
+          "type": "String",
+          "description": "geometry dxf field",
+          "example": "data.geometryDxf"
+        },
+        {
+          "name": "height",
+          "type": "String",
+          "description": "height field",
+          "example": "data.height || 0"
+        },
+        {
+          "name": "isReusable",
+          "type": "Boolean",
+          "description": "is reusable field",
+          "example": null
+        },
+        {
+          "name": "material",
+          "type": "String",
+          "description": "material field",
+          "example": "data.material"
+        },
+        {
+          "name": "organizationId",
+          "type": "ObjectId",
+          "description": "Organization reference",
+          "example": "mockUser.organizationId })"
+        },
+        {
+          "name": "qrCode",
+          "type": "String",
+          "description": "qr code field",
+          "example": "data.qrCode || ''"
+        },
+        {
+          "name": "role",
+          "type": "String",
+          "description": "User role",
+          "example": "'ContractorAdmin'"
+        },
+        {
+          "name": "sheetId",
+          "type": "ObjectId",
+          "description": "sheet id field",
+          "example": "ObjectId()"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "description": "Current status",
+          "example": "'in_stock'"
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        },
+        {
+          "name": "thickness",
+          "type": "String",
+          "description": "thickness field",
+          "example": "data.thickness"
+        },
+        {
+          "name": "totalRemnants",
+          "type": "Number",
+          "description": "total remnants field",
+          "example": "1"
+        },
+        {
+          "name": "usedInQueueId",
+          "type": "ObjectId",
+          "description": "used in queue id field",
+          "example": "null"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "description": "User ID (OAuth string)",
+          "example": "'user1'"
+        },
+        {
+          "name": "warehouseId",
+          "type": "ObjectId",
+          "description": "warehouse id field",
+          "example": "ObjectId()"
+        },
+        {
+          "name": "width",
+          "type": "String",
+          "description": "width field",
+          "example": "data.width || 0"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 22
+    },
+    {
+      "collection": "requisitions",
+      "feature": "requisitions",
+      "description": "Requisitions - manages requisitions",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "catalogId",
+          "type": "ObjectId",
+          "description": "catalog id field",
+          "example": "toObjectId(item.catalogId)"
+        },
+        {
+          "name": "color",
+          "type": "String",
+          "description": "color field",
+          "example": "color.color"
+        },
+        {
+          "name": "colorCode",
+          "type": "String",
+          "description": "color code field",
+          "example": "color.colorCode"
+        },
+        {
+          "name": "colorFallback",
+          "type": "String",
+          "description": "color fallback field",
+          "example": "color.colorFallback"
+        },
+        {
+          "name": "colorId",
+          "type": "ObjectId",
+          "description": "color id field",
+          "example": "toObjectId(item.colorId)"
+        },
+        {
+          "name": "contractorId",
+          "type": "ObjectId",
+          "description": "contractor id field",
+          "example": "mockContractor.organizationId"
+        },
+        {
+          "name": "foilThickness",
+          "type": "String",
+          "description": "foil thickness field",
+          "example": "item.foilThickness || 0.3"
+        },
+        {
+          "name": "length",
+          "type": "String",
+          "description": "length field",
+          "example": "item.length"
+        },
+        {
+          "name": "material",
+          "type": "String",
+          "description": "material field",
+          "example": "catalog.material"
+        },
+        {
+          "name": "materials",
+          "type": "String",
+          "description": "materials field",
+          "example": "'admin' }"
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "description": "Display name",
+          "example": "'Test Catalog'"
+        },
+        {
+          "name": "organizationData",
+          "type": "Object",
+          "description": "organization data field",
+          "example": "{ type: 'Contractor' }"
+        },
+        {
+          "name": "organizationId",
+          "type": "ObjectId",
+          "description": "Organization reference",
+          "example": "ObjectId()"
+        },
+        {
+          "name": "permissions",
+          "type": "Object",
+          "description": "Access permissions",
+          "example": "{ requisitions: 'admin'"
+        },
+        {
+          "name": "pricePerSqm",
+          "type": "Number",
+          "description": "price per sqm field",
+          "example": "pricePerSqm"
+        },
+        {
+          "name": "quantity",
+          "type": "String",
+          "description": "quantity field",
+          "example": "item.quantity"
+        },
+        {
+          "name": "role",
+          "type": "String",
+          "description": "User role",
+          "example": "'ContractorAdmin'"
+        },
+        {
+          "name": "sheetThickness",
+          "type": "String",
+          "description": "sheet thickness field",
+          "example": "item.sheetThickness"
+        },
+        {
+          "name": "sheetThicknessOptions",
+          "type": "Array",
+          "description": "sheet thickness options field",
+          "example": "[3"
+        },
+        {
+          "name": "status",
+          "type": "Array",
+          "description": "Current status",
+          "example": null
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        },
+        {
+          "name": "totalPrice",
+          "type": "Number",
+          "description": "total price field",
+          "example": "itemTotal"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "description": "User ID (OAuth string)",
+          "example": "'user1'"
+        },
+        {
+          "name": "width",
+          "type": "String",
+          "description": "width field",
+          "example": "item.width"
+        },
+        {
+          "name": "widthOptions",
+          "type": "Array",
+          "description": "width options field",
+          "example": "[1000"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": null
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 28
+    },
+    {
+      "collection": "sessions",
+      "feature": "sessions",
+      "description": "Sessions - manages sessions",
+      "fields": [
+        {
+          "name": "expiresAt",
+          "type": "Date",
+          "description": "expires at field",
+          "example": null
+        }
+      ],
+      "relationships": [
+        "session"
+      ],
+      "fieldCount": 1
+    },
+    {
+      "collection": "sheet_designs",
+      "feature": "sheet-designs",
+      "description": "Sheet Designs - manages sheet designs",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 1
+    },
+    {
+      "collection": "sheets",
+      "feature": "sheets",
+      "description": "Sheets - manages sheets",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "action",
+          "type": "String",
+          "description": "action field",
+          "example": "'allocated'"
+        },
+        {
+          "name": "cassetteInstanceIds",
+          "type": "Array",
+          "description": "cassette instance ids field",
+          "example": "[]"
+        },
+        {
+          "name": "createdBy",
+          "type": "String",
+          "description": "created by field",
+          "example": "user.userId"
+        },
+        {
+          "name": "history",
+          "type": "Array",
+          "description": "history field",
+          "example": "[{"
+        },
+        {
+          "name": "note",
+          "type": "String",
+          "description": "note field",
+          "example": "`Allocated from batch ${batchId}`"
+        },
+        {
+          "name": "operatorType",
+          "type": "String",
+          "description": "operator type field",
+          "example": "'warehouse'"
+        },
+        {
+          "name": "organizationId",
+          "type": "ObjectId",
+          "description": "Organization reference",
+          "example": "ObjectId()"
+        },
+        {
+          "name": "queueId",
+          "type": "ObjectId",
+          "description": "queue id field",
+          "example": "null"
+        },
+        {
+          "name": "remnantIds",
+          "type": "Array",
+          "description": "remnant ids field",
+          "example": "[]"
+        },
+        {
+          "name": "role",
+          "type": "String",
+          "description": "User role",
+          "example": "'ContractorAdmin'"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "description": "Current status",
+          "example": "'in_stock'"
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        },
+        {
+          "name": "timestamp",
+          "type": "Date",
+          "description": "timestamp field",
+          "example": "Date()"
+        },
+        {
+          "name": "totalRemnants",
+          "type": "Number",
+          "description": "total remnants field",
+          "example": "0 })"
+        },
+        {
+          "name": "totalSheets",
+          "type": "Number",
+          "description": "total sheets field",
+          "example": "1"
+        },
+        {
+          "name": "userId",
+          "type": "ObjectId",
+          "description": "User ID (OAuth string)",
+          "example": "user.userId"
+        },
+        {
+          "name": "warehouseId",
+          "type": "ObjectId",
+          "description": "warehouse id field",
+          "example": "warehouseId"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": null
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 20
+    },
+    {
+      "collection": "tool_profiles",
+      "feature": "tool-profiles",
+      "description": "Tool Profiles - manages tool profiles",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "ownerId",
+          "type": "ObjectId",
+          "description": "Owner user ID (OAuth string)",
+          "example": null
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        }
+      ],
+      "relationships": [
+        "owner",
+        "user"
+      ],
+      "fieldCount": 3
+    },
+    {
+      "collection": "users",
+      "feature": "users",
+      "description": "Users - manages users",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": "ObjectId()"
+        },
+        {
+          "name": "currentOrganizationId",
+          "type": "ObjectId",
+          "description": "current organization id field",
+          "example": "membership.organizationId"
+        },
+        {
+          "name": "email",
+          "type": "String",
+          "description": "Email address",
+          "example": "user.email"
+        },
+        {
+          "name": "id",
+          "type": "String",
+          "description": "id field",
+          "example": "user._id"
+        },
+        {
+          "name": "memberships",
+          "type": "Array",
+          "description": "memberships field",
+          "example": "user.memberships"
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "description": "Display name",
+          "example": "user.name"
+        },
+        {
+          "name": "organizationId",
+          "type": "ObjectId",
+          "description": "Organization reference",
+          "example": "ObjectId()"
+        },
+        {
+          "name": "permissions",
+          "type": "Array",
+          "description": "Access permissions",
+          "example": "membership.permissions"
+        },
+        {
+          "name": "role",
+          "type": "String (enum)",
+          "description": "User role",
+          "example": "membership.role"
+        },
+        {
+          "name": "set",
+          "type": "Object",
+          "description": "set field",
+          "example": "{"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "description": "Current status",
+          "example": "'active'"
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true };"
+        },
+        {
+          "name": "user",
+          "type": "Object",
+          "description": "user field",
+          "example": "{"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": null
+        },
+        {
+          "name": "lastLoginAt",
+          "type": "Date",
+          "description": "last login at field",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 15
+    },
+    {
+      "collection": "warehouses",
+      "feature": "warehouses",
+      "description": "Warehouses - manages warehouses",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "ObjectId",
+          "description": "Unique document identifier",
+          "example": null
+        },
+        {
+          "name": "organizationId",
+          "type": "ObjectId",
+          "description": "Organization reference",
+          "example": "ObjectId()"
+        },
+        {
+          "name": "permissions",
+          "type": "Object",
+          "description": "Access permissions",
+          "example": "{ warehouses: 'admin' }"
+        },
+        {
+          "name": "role",
+          "type": "String",
+          "description": "User role",
+          "example": "'ContractorAdmin'"
+        },
+        {
+          "name": "success",
+          "type": "String",
+          "description": "success field",
+          "example": "true }"
+        },
+        {
+          "name": "totalBatches",
+          "type": "Number",
+          "description": "total batches field",
+          "example": null
+        },
+        {
+          "name": "totalRemnants",
+          "type": "Number",
+          "description": "total remnants field",
+          "example": null
+        },
+        {
+          "name": "totalSheets",
+          "type": "Number",
+          "description": "total sheets field",
+          "example": null
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "description": "User ID (OAuth string)",
+          "example": "'user1'"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Creation timestamp",
+          "example": null
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Last update timestamp",
+          "example": null
+        }
+      ],
+      "relationships": [],
+      "fieldCount": 11
+    }
+  ],
+  "diagram": "=== Entity Relationship Diagram ===\n\nORGANIZATIONS\n  Collection: organizations\n  Fields: 10\n\nPROJECTS\n  Collection: projects\n  Fields: 18\n\nREQUISITIONS\n  Collection: requisitions\n  Fields: 28\n\nWAREHOUSES\n  Collection: warehouses\n  Fields: 11\n",
+  "count": 23
+}

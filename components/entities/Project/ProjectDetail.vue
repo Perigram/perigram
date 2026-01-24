@@ -81,6 +81,10 @@
                         <Avatar icon="pi pi-plus" shape="circle" />
                     </AvatarGroup>
                 </Panel>
+
+                <Panel header="Status History">
+                    <StatusTimeline collection="projects" :entityId="project._id?.toString()" />
+                </Panel>
             </div>
         </div>
     </div>
@@ -95,6 +99,7 @@ import Panel from 'primevue/panel';
 import Avatar from 'primevue/avatar';
 import AvatarGroup from 'primevue/avatargroup';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
+import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
 
 defineProps({
     project: {

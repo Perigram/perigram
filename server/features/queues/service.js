@@ -1,12 +1,9 @@
-/**
- * Queues Service
- */
-
 import * as repository from './repository.js';
 import { ObjectId } from 'mongodb';
 import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
 import * as cassetteInstanceService from '../cassette-instances/service.js';
+import { initializeStatus, addStatus } from '~/server/features/statuses/service';
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {
   if (!ObjectId.isValid(id)) {
@@ -84,14 +81,11 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
       cassetteTemplateId: new ObjectId(e.cassetteTemplateId)
     })),
     additionalFiles: data.additionalFiles || [],
-    previousRemainder: data.previousRemainder || null,
-    statusHistory: [{
-      status: 'DRAFT',
-      timestamp: new Date(),
-      userId: userId,
-      note: 'Queue created'
-    }]
+    previousRemainder: data.previousRemainder || null
   });
+
+  // Initialize status with Status Service
+  await initializeStatus('queues', queue._id.toString(), userId, 'Queue created');
 
   // Update project queue count
   const { connectDB } = await import('../../db/mongo.js');
@@ -198,12 +192,7 @@ export async function resetToDraft(id, userId, userOrg, userRole, userPermission
   };
 
   await repository.updateById(id, updates);
-  await repository.addStatusHistory(id, {
-    status: 'DRAFT',
-    timestamp: now,
-    userId: userId,
-    note: 'Queue reset to draft'
-  });
+  await addStatus('queues', id, 'draft', userId, 'Queue reset to draft');
   await repository.setRunsStatusByStatus(id, 'NESTING', 'ERROR');
   return await repository.findById(id);
 }
@@ -232,20 +221,14 @@ export async function markCut(id, userId, userOrg, userRole, userPermissions) {
   if (existingLog) {
     // Already in logs, just ensure queue status is CUT
     if (queue.status !== 'CUT') {
-      await repository.updateById(id, { status: 'CUT' });
+      await addStatus('queues', id, 'CUT', userId, 'Ensuring status is CUT');
     }
     return await getById(id, userId, userOrg, userRole, userPermissions);
   }
 
   // Update status
-  const updatedQueue = await repository.updateById(id, { status: 'CUT' }) ? await getById(id, userId, userOrg, userRole, userPermissions) : queue;
-  
-  await repository.addStatusHistory(id, {
-    status: 'CUT',
-    timestamp: new Date(),
-    userId: userId,
-    note: 'Queue marked as cut'
-  });
+  await addStatus('queues', id, 'CUT', userId, 'Queue marked as cut');
+  const updatedQueue = await getById(id, userId, userOrg, userRole, userPermissions);
 
   // Create cassette instances
   await cassetteInstanceService.createFromQueue(queue, { userId });

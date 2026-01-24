@@ -13,11 +13,11 @@ export async function findById(id) {
   return await db.collection(COLLECTION).findOne({ _id: toObjectId(id) });
 }
 
-export async function findByBatch(batchId, options = {}) {
+export async function findByQueue(queueId, options = {}) {
   const db = await connectDB();
   const { type, status, limit = 100, skip = 0 } = options;
   
-  const query = { batchId: toObjectId(batchId) };
+  const query = { queueId: toObjectId(queueId) };
   if (type) query.type = type;
   if (status) query.status = status;
   
@@ -31,8 +31,9 @@ export async function findByBatch(batchId, options = {}) {
 
 export async function create(data) {
   const db = await connectDB();
+  const { success, ...cleanData } = data; // Remove success field if present
   const doc = {
-    ...data,
+    ...cleanData,
     status: 'GENERATING',
     createdAt: new Date()
   };

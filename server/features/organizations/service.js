@@ -4,6 +4,7 @@ import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
 import { getOrgFilter, checkEntityAccess } from '~/server/utils/permissions';
 import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
+import { initializeStatus, addStatus } from '~/server/features/statuses/service';
 
 export async function create(data, user) {
   // Check permission
@@ -36,6 +37,8 @@ export async function create(data, user) {
     settings,
     createdBy: user.userId
   });
+
+  await initializeStatus('organizations', org._id.toString(), user.userId, 'Organization created');
 
   // Always add to user memberships as Active Admin
   const role = `${data.type}Admin`;

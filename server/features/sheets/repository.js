@@ -42,19 +42,7 @@ export async function updateById(id, updates) {
   const db = await connectDB();
   const result = await db.collection(COLLECTION).updateOne(
     { _id: new ObjectId(id) },
-    { $set: updates }
-  );
-  return result.modifiedCount > 0;
-}
-
-export async function addHistory(id, historyEntry) {
-  const db = await connectDB();
-  const result = await db.collection(COLLECTION).updateOne(
-    { _id: new ObjectId(id) },
-    { 
-      $push: { history: historyEntry },
-      $set: { updatedAt: new Date() }
-    }
+    { $set: { ...updates, updatedAt: new Date() } }
   );
   return result.modifiedCount > 0;
 }

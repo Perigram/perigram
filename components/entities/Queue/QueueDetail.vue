@@ -54,6 +54,12 @@
 
             <!-- Right: Metadata & Materials -->
             <div class="flex flex-col gap-6">
+                <!-- Status History -->
+                <div class="p-4 bg-[var(--p-content-background)] rounded-xl border flex flex-col gap-4">
+                    <h4 class="text-xs font-black uppercase opacity-40 m-0">Status History</h4>
+                    <StatusTimeline collection="queues" :entityId="queue._id?.toString()" />
+                </div>
+
                  <div class="p-4 bg-[var(--p-content-background)] rounded-xl border flex flex-col gap-4">
                     <h4 class="text-xs font-black uppercase opacity-40 m-0">Nesting Statistics</h4>
                     <div class="flex flex-col gap-2 text-sm">
@@ -88,6 +94,7 @@
 import { computed } from 'vue';
 import { useEntityStore } from '~/stores/entities';
 import StatusBadge from '~/components/shared/status/StatusBadge.vue';
+import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
 import DataTable from 'primevue/datatable';

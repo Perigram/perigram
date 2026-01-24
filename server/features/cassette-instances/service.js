@@ -3,6 +3,7 @@
  */
 import * as repository from './repository.js';
 import { createError } from 'h3';
+import { addStatus, initializeStatus } from '~/server/features/statuses/service';
 
 export async function createFromQueue(queue, user) {
     const instances = [];
@@ -13,34 +14,33 @@ export async function createFromQueue(queue, user) {
                 queueId: queue._id,
                 projectSlug: queue.projectSlug,
                 cassetteTemplateId: entry.cassetteTemplateId,
-                dimensions: entry.dimensions,
-                status: 'nested', // initial status after cut
-                statusHistory: [{
-                    status: 'nested',
-                    timestamp: new Date(),
-                    userId: user.userId,
-                    note: 'Instance created from cut queue'
-                }],
-                instanceNumber: `${queue.queueNumber}-${instances.length + 1}`
+                cassetteDesignId: entry.cassetteDesignId, // NEW: link to design
+                instanceNumber: `${queue.queueNumber}-${instances.length + 1}`,
+                note: ''
             });
         }
     }
     
     if (instances.length > 0) {
-        return await repository.insertMany(instances);
+        const result = await repository.insertMany(instances);
+        
+        // Initialize status for each instance
+        if (result.insertedIds) {
+            for (const id of Object.values(result.insertedIds)) {
+                await initializeStatus('cassette_instances', id.toString(), user.userId, 'Instance created from cut queue');
+            }
+        }
+        
+        return result;
     }
     return { success: true, count: 0 };
 }
 
 export async function listByQueue(queueId, user) {
-    // Basic access check could be added here
     return await repository.findByQueue(queueId);
 }
 
 export async function updateStatus(id, status, note, user) {
-    const validStatuses = ['nested', 'manufactured', 'on-site', 'installed'];
-    if (!validStatuses.includes(status)) {
-        throw createError({ statusCode: 400, message: 'Invalid status' });
-    }
-    return await repository.updateStatus(id, status, note, user.userId);
+    // Use centralized Status Service
+    return await addStatus('cassette_instances', id, status, user.userId, note);
 }

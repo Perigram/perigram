@@ -18,20 +18,20 @@ export async function getById(id) {
   return artifact;
 }
 
-export async function listByBatch(batchId, options = {}) {
-  if (!ObjectId.isValid(batchId)) {
-    throw createError({ statusCode: 400, message: 'Invalid batch ID format' });
+export async function listByQueue(queueId, options = {}) {
+  if (!ObjectId.isValid(queueId)) {
+    throw createError({ statusCode: 400, message: 'Invalid queue ID format' });
   }
   
-  return await repository.findByBatch(batchId, options);
+  return await repository.findByQueue(queueId, options);
 }
 
 export async function create(data) {
   if (!data.type) {
     throw createError({ statusCode: 400, message: 'Type is required' });
   }
-  if (!data.batchId) {
-    throw createError({ statusCode: 400, message: 'Batch ID is required' });
+  if (!data.queueId) {
+    throw createError({ statusCode: 400, message: 'Queue ID is required' });
   }
   if (!data.name) {
     throw createError({ statusCode: 400, message: 'Name is required' });
@@ -44,7 +44,8 @@ export async function create(data) {
   
   return await repository.create({
     type: data.type,
-    batchId: new ObjectId(data.batchId),
+    queueId: new ObjectId(data.queueId),
+    projectId: data.projectId ? new ObjectId(data.projectId) : null,
     runId: data.runId ? new ObjectId(data.runId) : null,
     name: data.name,
     fileId: data.fileId || null,

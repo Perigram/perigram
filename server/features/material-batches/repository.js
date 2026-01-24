@@ -32,27 +32,26 @@ export async function find(filter = {}, options = {}) {
 }
 
 export async function updateById(id, updates) {
+
   const db = await connectDB();
+
   const result = await db.collection(COLLECTION).updateOne(
+
     { _id: new ObjectId(id) },
-    { $set: updates }
+
+    { $set: { ...updates, updatedAt: new Date() } }
+
   );
+
   return result.modifiedCount > 0;
+
 }
 
-export async function addStatusHistory(id, statusEntry) {
-  const db = await connectDB();
-  const result = await db.collection(COLLECTION).updateOne(
-    { _id: new ObjectId(id) },
-    { 
-      $push: { statusHistory: statusEntry },
-      $set: { status: statusEntry.status, updatedAt: new Date() }
-    }
-  );
-  return result.modifiedCount > 0;
-}
+
 
 export async function incrementPileUsedCount(batchId, pileId, count, session = null) {
+
+
   const db = await connectDB();
   const options = session ? { session } : {};
   

@@ -1,0 +1,404 @@
+Note:
+1. Need Status entity. Statuses list should be in a separate document (collection) that can be referenced from all entities that have status. There are different status types (for physical items, digital items, processes, etc.) so the status document should have a type field as well. Status should have timestamp, userId (who made the change), notes, possibly other utility fields (eg location, need to develop pattern).
+2. Need cassette_design entity to separate design data from physical cassette instances. Design is reusable draft, physical cassette instances are not. Should contain geometry, queue/project references, status (eg draft, approved, archived).
+3. Need sheet_design entity. Should contain geometry, queue/project references, status (eg draft, approved, archived).
+4. 
+
+
+================================================================================
+
+artifacts
+Artifacts - manages artifacts
+
+2 Fields
+_id - ObjectId - 
+success - String - note: what is this?
+
+note: doesn't it have link to geometry? or project/queue/entity that uses the artifact?
+
+================================================================================
+
+cassette_instances
+Cassette Instances - manages cassette instances
+
+14 Fields
+cassetteTemplateId - ObjectId - 
+count - String - note: wrong, cassette instance represents one physical cassette. 'count' should be removed
+dimensions - Array - note: should be removed
+instanceNumber - String - note: what is this?
+note - String - 
+projectSlug - String - 
+queueId - ObjectId - 
+status - String - note: should be "Status" enum instead; centralize status management for all entities that have status; this one can be just last in the statusHistory.
+statusHistory - Array - 
+success - Boolean - note: what is this?
+timestamp - Date - note: should be at statusHistory instead
+userId - ObjectId - note: status should hold who made the change, including initial creation, so this can be removed
+createdAt - Date - note: should be at statusHistory instead
+updatedAt - Date - note: should be at statusHistory instead
+
+note: it's an exact physical cassette twin for tracking purposes. Should add reference to cassette_design entity to link to design data.
+
+================================================================================
+
+cassettes
+Cassettes - manages cassettes
+
+23 Fields
+_id - ObjectId - 
+allowRotation - Boolean - 
+data - String - 
+dxfId - ObjectId - 
+Format - Object - 
+hasIkleHoles - Boolean - 
+hasRivetHoles - Boolean - 
+layerMapping - String - note: is string enough? should be an object/array?
+name - String - 
+negativeOffset - Number - 
+nestingLayerCode - String - 
+ownerId - ObjectId - 
+parameters - Array - 
+polygonParts - Array - 
+polygonPartsCount - Number - 
+processingStatus - String - 
+slug - String - 
+success - String - 
+svgId - ObjectId - 
+type - String (enum) - 
+userId - ObjectId - 
+createdAt - Date - 
+updatedAt - Date - 
+
+================================================================================
+
+catalogs
+Catalogs - manages catalogs
+
+10 Fields
+_id - ObjectId - 
+manufacturerId - ObjectId - 
+name - String - 
+organizationData - Object - note: what is this? why needed?
+organizationId - ObjectId - note: isn't it redundant if manufacturer is an organization?
+role - String - note: what's that for?
+success - String - note: what is this?
+userId - String - note: redundant if organizationId is present?
+createdAt - Date - note: should be in a history log instead
+updatedAt - Date - note: should be in a history log instead
+
+note: catalog should have reference to colors and material options (it seem to have, you just didn't list them here)
+
+================================================================================
+
+colors
+Colors - manages colors
+
+4 Fields
+_id - ObjectId - 
+catalogId - ObjectId - 
+createdAt - Date - note: should be in a history log instead
+updatedAt - Date - Date - note: should be in a history log instead
+
+note: color should have fields for color code, name, code, thumbnail, (it seem to have, you just didn't list them here)
+
+================================================================================
+
+invitations
+Invitations - manages invitations
+
+8 Fields
+isActive - Boolean - 
+organizationId - ObjectId - 
+status - String - 
+success - String - 
+createdAt - Date - 
+expiresAt - Date - 
+revokedAt - Date - 
+usedAt - Date - 
+
+================================================================================
+
+layer_standards
+Layer Standards - manages layer standards
+
+2 Fields
+_id - ObjectId - 
+isActive - Boolean - 
+
+================================================================================
+
+material_batches
+Material Batches - manages material batches
+
+17 Fields
+_id - ObjectId - 
+catalogs - String - 
+material - String - 
+name - String - 
+organizationData - Object - 
+organizationId - ObjectId - 
+permissions - Object - 
+piles - Array - 
+role - String - 
+status - Array - 
+success - Boolean - 
+totalBatches - Number - 
+totalCount - Number - 
+usedCount - Number - 
+userId - String - 
+createdAt - Date - 
+updatedAt - Date - 
+
+================================================================================
+
+material_options
+Material Options - manages material options
+
+2 Fields
+createdAt - Date - 
+updatedAt - Date - 
+
+================================================================================
+
+materials
+Materials - manages materials
+
+3 Fields
+_id - ObjectId - 
+success - String - 
+updatedAt - Date - 
+
+================================================================================
+
+organizations
+Organizations - manages organizations
+
+10 Fields
+_id - ObjectId - 
+balance - Number - 
+canCut - String - 
+canInstall - String - 
+organizationId - ObjectId - 
+push - Object - 
+status - String - 
+success - String - 
+createdAt - Date - 
+updatedAt - Date - 
+
+================================================================================
+
+pen_templates
+Pen Templates - manages pen templates
+
+3 Fields
+_id - ObjectId - 
+ownerId - ObjectId - 
+success - String - 
+
+================================================================================
+
+projects
+Projects - manages projects
+
+19 Fields
+batchIds - Array - 
+completedBatches - Number - 
+contractorId - ObjectId - 
+custom - Object - 
+laborCostPerHour - Number - 
+materialCostPerSqM - Number - 
+metadata - Object - 
+name - String - 
+ownerId - ObjectId - 
+queueIds - Array - 
+slug - String - 
+statistics - Object - 
+status - String - 
+tep - Object - 
+totalArea - Number - 
+totalCassettes - Number - 
+totalEstimate - Number - 
+createdAt - Date - 
+updatedAt - Date - 
+
+================================================================================
+
+queues
+Queues - manages queues
+
+23 Fields
+_id - ObjectId - 
+chosenRunId - ObjectId - 
+date - Date - 
+entries - Array - 
+hasWastePolygons - Boolean - 
+organizationId - ObjectId - 
+ownerId - ObjectId - 
+permissions - Object - 
+queueCount - Number - 
+queueId - ObjectId - 
+queueName - String - 
+role - String - 
+runs - ObjectId - 
+sheetsUsed - String - 
+slug - String - 
+status - String - 
+success - String - 
+userId - ObjectId - 
+userName - String - 
+utilization - String - 
+wasteArea - String - 
+createdAt - Date - 
+updatedAt - Date - 
+
+================================================================================
+
+remnants
+Remnants - manages remnants
+
+22 Fields
+_id - ObjectId - 
+area - String - 
+color - String - 
+createdBy - String - 
+foilThickness - String - 
+geometryDxf - String - 
+height - String - 
+isReusable - Boolean - 
+material - String - 
+organizationId - ObjectId - 
+qrCode - String - 
+role - String - 
+sheetId - ObjectId - 
+status - String - 
+success - String - 
+thickness - String - 
+totalRemnants - Number - 
+usedInQueueId - ObjectId - 
+userId - String - 
+warehouseId - ObjectId - 
+width - String - 
+createdAt - Date - 
+
+================================================================================
+
+requisitions
+Requisitions - manages requisitions
+
+28 Fields
+_id - ObjectId - 
+catalogId - ObjectId - 
+color - String - 
+colorCode - String - 
+colorFallback - String - 
+colorId - ObjectId - 
+contractorId - ObjectId - 
+foilThickness - String - 
+length - String - 
+material - String - 
+materials - String - 
+name - String - 
+organizationData - Object - 
+organizationId - ObjectId - 
+permissions - Object - 
+pricePerSqm - Number - 
+quantity - String - 
+role - String - 
+sheetThickness - String - 
+sheetThicknessOptions - Array - 
+status - Array - 
+success - String - 
+totalPrice - Number - 
+userId - String - 
+width - String - 
+widthOptions - Array - 
+createdAt - Date - 
+updatedAt - Date - 
+
+================================================================================
+
+sessions
+Sessions - manages sessions
+
+1 Fields
+expiresAt - Date - 
+
+================================================================================
+
+sheets
+Sheets - manages sheets
+
+20 Fields
+_id - ObjectId - 
+action - String - 
+cassetteInstanceIds - Array - 
+createdBy - String - 
+history - Array - 
+note - String - 
+operatorType - String - 
+organizationId - ObjectId - 
+queueId - ObjectId - 
+remnantIds - Array - 
+role - String - 
+status - String - 
+success - String - 
+timestamp - Date - 
+totalRemnants - Number - 
+totalSheets - Number - 
+userId - ObjectId - 
+warehouseId - ObjectId - 
+createdAt - Date - 
+updatedAt - Date - 
+
+================================================================================
+
+tool_profiles
+Tool Profiles - manages tool profiles
+
+3 Fields
+_id - ObjectId - 
+ownerId - ObjectId - 
+success - String - 
+
+================================================================================
+
+users
+Users - manages users
+
+15 Fields
+_id - ObjectId - 
+currentOrganizationId - ObjectId - 
+email - String - 
+id - String - 
+memberships - Array - 
+name - String - 
+organizationId - ObjectId - 
+permissions - Array - 
+role - String (enum) - 
+set - Object - 
+status - String - 
+success - String - 
+user - Object - 
+createdAt - Date - 
+lastLoginAt - Date - 
+
+================================================================================
+
+warehouses
+Warehouses - manages warehouses
+
+11 Fields
+_id - ObjectId - 
+organizationId - ObjectId - 
+permissions - Object - 
+role - String - 
+success - String - 
+totalBatches - Number - 
+totalRemnants - Number - 
+totalSheets - Number - 
+userId - String - 
+createdAt - Date - 
+updatedAt - Date - 
+
+================================================================================
+

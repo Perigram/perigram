@@ -7,6 +7,7 @@ import { hasPermission } from '~/server/utils/auth-helpers';
 import { checkEntityAccess } from '~/server/utils/permissions';
 import { connectDB } from '~/server/db/mongo';
 import { ObjectId } from 'mongodb';
+import { addStatus, initializeStatus } from '~/server/features/statuses/service';
 
 async function enrichPilesWithColors(piles) {
   try {
@@ -84,16 +85,11 @@ export async function create(data, user) {
     warehouseId: new ObjectId(data.warehouseId),
     requisitionId: data.requisitionId ? new ObjectId(data.requisitionId) : null,
     piles,
-    status: 'requested',
-    statusHistory: [{
-      status: 'requested',
-      timestamp: new Date(),
-      userId: user.userId,
-      note: 'Material batch created'
-    }],
     notes: data.notes || '',
     createdBy: user.userId
   });
+
+  await initializeStatus('material_batches', batch._id.toString(), user.userId, 'Material batch created');
   
   // Update warehouse batch count
   await warehouseService.updateInventoryCounts(data.warehouseId, { totalBatches: 1 });
@@ -234,12 +230,6 @@ export async function updateStatus(id, newStatus, note, user, additionalData = {
     throw createError({ statusCode: 404, message: 'Material batch not found' });
   }
   
-  // Validate status transition
-  const validStatuses = ['requested', 'assembled', 'sent', 'arrived', 'in_stock', 'partially_used', 'used_up'];
-  if (!validStatuses.includes(newStatus)) {
-    throw createError({ statusCode: 400, message: 'Invalid status' });
-  }
-  
   // Check permissions based on status
   const org = user.organizationData;
   if (newStatus === 'assembled' || newStatus === 'sent') {
@@ -256,16 +246,10 @@ export async function updateStatus(id, newStatus, note, user, additionalData = {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  await repository.addStatusHistory(id, {
-    status: newStatus,
-    timestamp: new Date(),
-    userId: user.userId,
-    note: note || '',
+  return await addStatus('material_batches', id, newStatus, user.userId, note || '', {
     transportInfo: additionalData.transportInfo || '',
     deliveryDate: additionalData.deliveryDate || null
   });
-  
-  return await repository.findById(id);
 }
 
 export async function allocateSheets(batchId, pileId, count, userId) {
@@ -323,21 +307,24 @@ export async function allocateSheets(batchId, pileId, count, userId) {
         const allUsedUp = batchAfter.piles.every(p => p.usedCount >= p.totalCount);
         const newBatchStatus = allUsedUp ? 'used_up' : 'partially_used';
         
+        // We use addStatus but need to pass the session if we want it to be part of transaction.
+        // But addStatus doesn't support session currently.
+        // For now I'll do manual update in transaction to be safe.
         await db.collection('material_batches').updateOne(
           { _id: new ObjectId(batchId) },
-          { 
-            $set: { status: newBatchStatus, updatedAt: new Date() },
-            $push: {
-              statusHistory: {
-                status: newBatchStatus,
-                timestamp: new Date(),
-                userId,
-                note: `Sheets allocated: ${count}`
-              }
-            }
-          },
+          { $set: { status: newBatchStatus, updatedAt: new Date() } },
           { session }
         );
+        
+        // And record status entry
+        await db.collection('statuses').insertOne({
+          entityId: new ObjectId(batchId),
+          entityType: 'material_batch',
+          status: newBatchStatus,
+          userId,
+          note: `Sheets allocated: ${count}`,
+          timestamp: new Date()
+        }, { session });
       }
     });
     

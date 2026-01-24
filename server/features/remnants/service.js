@@ -3,6 +3,7 @@ import * as warehouseService from '../warehouses/service.js';
 import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
 import { ObjectId } from 'mongodb';
+import { addStatus, initializeStatus } from '~/server/features/statuses/service';
 
 export async function create(data, user) {
   if (!hasPermission(user, 'materials', 'write')) {
@@ -38,13 +39,11 @@ export async function create(data, user) {
     height: data.height || 0,
     qrCode: data.qrCode || '',
     isReusable,
-    status: 'in_stock',
     usedInQueueId: null,
     createdBy: user.userId
   });
-  
-  // Update warehouse remnant count (handled by sheets.finishMilling)
-  // await warehouseService.updateInventoryCounts(data.warehouseId, { totalRemnants: 1 });
+
+  await initializeStatus('remnants', remnant._id.toString(), user.userId, 'Remnant created');
   
   return remnant;
 }
@@ -56,6 +55,7 @@ export async function createMany(remnantsData, user) {
   
   const minReusableArea = 0.1;
   const remnants = [];
+  const now = new Date();
   
   for (const data of remnantsData) {
     const remnantNumber = `REM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -78,12 +78,25 @@ export async function createMany(remnantsData, user) {
       status: 'in_stock',
       usedInQueueId: null,
       createdBy: user.userId,
-      createdAt: new Date()
+      createdAt: now
     });
   }
   
   if (remnants.length > 0) {
-    await repository.createMany(remnants);
+    const { connectDB } = await import('~/server/db/mongo');
+    const db = await connectDB();
+    const result = await db.collection('remnants').insertMany(remnants);
+    
+    // Log status for each remnant
+    const statusEntries = Object.values(result.insertedIds).map(id => ({
+      entityId: id,
+      entityType: 'remnant',
+      status: 'in_stock',
+      userId: user.userId,
+      note: 'Remnant created',
+      timestamp: now
+    }));
+    await db.collection('statuses').insertMany(statusEntries);
   }
   
   return remnants;
@@ -164,9 +177,10 @@ export async function markAsUsed(id, queueId, user) {
   }
   
   await repository.updateById(id, {
-    status: 'used',
     usedInQueueId: new ObjectId(queueId)
   });
+  
+  await addStatus('remnants', id, 'used', user.userId, `Used in queue ${queueId}`);
   
   // Update warehouse count
   await warehouseService.updateInventoryCounts(remnant.warehouseId.toString(), { totalRemnants: -1 });
