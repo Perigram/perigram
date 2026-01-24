@@ -25,6 +25,11 @@
                     +{{ requisition.items.length - 3 }} {{ $t('common.moreItems') }}
                 </div>
             </div>
+
+            <div class="mt-4 pt-4 border-t">
+                <h4 class="text-[10px] font-black uppercase opacity-40 mb-2">History</h4>
+                <StatusTimeline collection="requisitions" :entityId="requisition._id?.toString()" />
+            </div>
         </template>
         <template #footer>
             <div class="flex justify-between items-center">
@@ -43,6 +48,7 @@ import { computed } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import StatusBadge from '~/components/shared/status/StatusBadge.vue';
+import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
 
 const props = defineProps({
     requisition: {

@@ -115,6 +115,15 @@
             </ErrorBoundary>
           </Panel>
 
+          <Panel header="Status Timeline (Real Entity)">
+            <ErrorBoundary title="StatusTimeline">
+              <div class="flex flex-col gap-4">
+                <p class="text-xs opacity-60">Testing with mock queue ID</p>
+                <StatusTimeline collection="queues" entityId="mock-id" />
+              </div>
+            </ErrorBoundary>
+          </Panel>
+
           <Panel header="Material Specs">
             <ErrorBoundary title="MaterialSpecs">
               <MaterialSpecs :specs="mockRequisitions[0].items[0]" />
@@ -264,6 +273,7 @@ import ProgressSpinner from 'primevue/progressspinner';
 import ProjectStatistics from '~/components/ProjectStatistics.vue';
 import RecentProjects from '~/components/RecentProjects.vue';
 import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
+import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
 import MaterialSpecs from '~/components/shared/MaterialSpecs.vue';
 import ProjectCard from '~/components/entities/Project/ProjectCard.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';

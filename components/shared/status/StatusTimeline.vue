@@ -80,7 +80,15 @@ function getStatusIcon(status) {
     processing: 'pi pi-spin pi-spinner',
     completed: 'pi pi-check',
     error: 'pi pi-times-circle',
-    cancelled: 'pi pi-ban'
+    cancelled: 'pi pi-ban',
+    sent: 'pi pi-send',
+    approved: 'pi pi-thumbs-up',
+    rejected: 'pi pi-thumbs-down',
+    in_fulfillment: 'pi pi-truck',
+    fulfilled: 'pi pi-box',
+    active: 'pi pi-play',
+    inactive: 'pi pi-pause',
+    CUT: 'pi pi-scissors'
   };
   return icons[status] || 'pi pi-circle';
 }
