@@ -1,0 +1,52 @@
+/**
+ * Component Variant Registry - v24 Standardized
+ * Definitions for Inline, Compact, Card, and Full views
+ */
+
+/* --- Universal Block Containers --- */
+.block-container {
+  @apply flex flex-col gap-4;
+}
+
+/* --- Inline Variant (Tables, Small Tags) --- */
+.variant-inline {
+  @apply flex items-center gap-2 text-sm;
+}
+
+/* --- Compact Variant (List Rows, Sidebars) --- */
+.variant-compact {
+  @apply flex items-center justify-between p-3 border rounded-lg bg-surface-0 hover:bg-surface-50 transition-colors;
+}
+
+/* --- Card Variant (Dashboards, Grids) --- */
+.variant-card {
+  @apply flex flex-col p-5 border rounded-xl bg-surface-0 shadow-sm hover:shadow-md transition-all h-full;
+}
+
+/* --- Full Variant (Detail Pages, Modals) --- */
+.variant-full {
+  @apply flex flex-col gap-6 p-8 bg-surface-0 rounded-2xl shadow-lg;
+}
+
+/* --- Block Headers --- */
+.block-header {
+  @apply flex items-center justify-between mb-2;
+}
+
+.block-title {
+  @apply text-lg font-bold text-surface-900;
+}
+
+/* --- Lineage Breadcrumbs --- */
+.lineage-crumbs {
+  @apply flex items-center gap-1 text-xs text-surface-500 overflow-x-auto whitespace-nowrap;
+}
+
+.lineage-crumb::after {
+  content: '/';
+  @apply mx-1 opacity-50;
+}
+
+.lineage-crumb:last-child::after {
+  content: '';
+}

@@ -1,9 +1,38 @@
+import * as repository from './repository.js';
+import { createError } from 'h3';
+import { createIdentity, createStatus, inheritLineage } from '~/server/utils/blocks';
+import { statusService } from '~/server/core/machines/service';
+import { ObjectId } from 'mongodb';
+
 /**
- * Artifacts Service
+ * Artifacts Service - v24 Standardized
  */
 
-import * as repository from './repository.js';
-import { ObjectId } from 'mongodb';
+export async function createFromParent(parent, data, userId, userRole) {
+  const { type, fileId, metadata, name } = data;
+
+  if (!type || !fileId) {
+    throw createError({ statusCode: 400, message: 'type and fileId are required' });
+  }
+
+  // 1. Lineage Inheritance
+  const parentType = data.parentType || 'unknown'; // e.g. 'queue', 'run', 'sheet'
+  const lineage = inheritLineage(parent, parentType);
+
+  const origin = createStatus('READY', userId || 'SYSTEM', { note: 'Artifact generated' });
+
+  const artifactData = {
+    identity: createIdentity(name || `Artifact ${type}`),
+    type,
+    fileId: new ObjectId(fileId),
+    lineage,
+    origin,
+    status: origin,
+    metadata: metadata || {}
+  };
+
+  return await repository.create(artifactData);
+}
 
 export async function getById(id) {
   if (!ObjectId.isValid(id)) {
@@ -18,71 +47,30 @@ export async function getById(id) {
   return artifact;
 }
 
-export async function listByQueue(queueId, options = {}) {
-  if (!ObjectId.isValid(queueId)) {
-    throw createError({ statusCode: 400, message: 'Invalid queue ID format' });
-  }
-  
-  return await repository.findByQueue(queueId, options);
+export async function list(filter = {}) {
+  return await repository.find(filter);
 }
 
-export async function create(data) {
-  if (!data.type) {
-    throw createError({ statusCode: 400, message: 'Type is required' });
-  }
-  if (!data.queueId) {
-    throw createError({ statusCode: 400, message: 'Queue ID is required' });
-  }
-  if (!data.name) {
-    throw createError({ statusCode: 400, message: 'Name is required' });
-  }
-  
-  const validTypes = ['LAYOUT_SVG', 'LAYOUT_DXF', 'GCODE', 'PDF_PASSPORT', 'NESTING_REPORT'];
-  if (!validTypes.includes(data.type)) {
-    throw createError({ statusCode: 400, message: 'Invalid artifact type' });
-  }
-  
-  return await repository.create({
-    type: data.type,
-    queueId: new ObjectId(data.queueId),
-    projectId: data.projectId ? new ObjectId(data.projectId) : null,
-    runId: data.runId ? new ObjectId(data.runId) : null,
-    name: data.name,
-    fileId: data.fileId || null,
-    mimeType: data.mimeType || null,
-    fileSize: data.fileSize || 0,
-    metadata: data.metadata || {},
-    generatedBy: data.generatedBy || null
-  });
-}
-
-export async function updateStatus(id, status, fileData = {}) {
+export async function update(id, updates, userId, userRole) {
   const artifact = await getById(id);
   
-  const validStatuses = ['GENERATING', 'READY', 'FAILED'];
-  if (!validStatuses.includes(status)) {
-    throw createError({ statusCode: 400, message: 'Invalid status' });
+  if (updates.status) {
+    await statusService.transition('artifact', artifact._id, updates.status, userId, userRole, updates.statusMeta || {});
+    delete updates.status;
   }
+
+  const { identity, origin, status, lineage, ...clean } = updates;
   
-  const updates = { status };
-  if (fileData.fileId) updates.fileId = new ObjectId(fileData.fileId);
-  if (fileData.fileSize) updates.fileSize = fileData.fileSize;
-  if (fileData.mimeType) updates.mimeType = fileData.mimeType;
-  
-  await repository.updateById(id, updates);
+  if (updates.name) artifact.identity.name = updates.name;
+
+  await repository.updateById(id, { identity: artifact.identity, ...clean });
   return await repository.findById(id);
 }
 
 export async function remove(id) {
   const artifact = await getById(id);
   
-  // If there's a file associated, delete it from GridFS first
-  if (artifact.fileId) {
-    await repository.deleteFile(artifact.fileId);
-  }
+  // GridFS deletion should be handled here or in repo
   
-  // Then delete the artifact metadata document
-  await repository.deleteById(id);
-  
-  return { id };
+  return await repository.deleteById(id);
 }

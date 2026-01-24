@@ -1,99 +1,46 @@
 /**
- * Layer Standards Repository
- * 
- * Database operations for layer_standards collection.
+ * Layer Standards Repository - v24 Standardized
  */
 
 import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
+import { toObjectId } from '../../utils/objectid.js';
 
 const COLLECTION = 'layer_standards';
 
-/**
- * Find all active layer standards
- */
-export async function findAllActive() {
+export async function find(filter = {}) {
   const db = await connectDB();
-  return await db.collection(COLLECTION)
-    .find({ isActive: true })
-    .sort({ code: 1 })
-    .toArray();
+  return await db.collection(COLLECTION).find(filter).toArray();
 }
 
-/**
- * Find by code
- */
 export async function findByCode(code) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ code, isActive: true });
+  return await db.collection(COLLECTION).findOne({ 'config.code': code });
 }
 
-/**
- * Find by category
- */
-export async function findByCategory(category) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION)
-    .find({ category, isActive: true })
-    .sort({ code: 1 })
-    .toArray();
-}
-
-/**
- * Find by ID
- */
 export async function findById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).findOne({ _id: toObjectId(id) });
 }
 
-/**
- * Create layer standard (system only)
- */
 export async function create(data) {
   const db = await connectDB();
-  const doc = {
-    ...data,
-    isActive: true,
-    createdAt: new Date()
-  };
-  
-  const result = await db.collection(COLLECTION).insertOne(doc);
-  return { ...doc, _id: result.insertedId };
+  const result = await db.collection(COLLECTION).insertOne(data);
+  return { ...data, _id: result.insertedId };
 }
 
-/**
- * Bulk create layer standards (for seeding)
- */
-export async function bulkCreate(dataArray) {
+export async function bulkCreate(docs) {
   const db = await connectDB();
-  const docs = dataArray.map(data => ({
-    ...data,
-    isActive: true,
-    createdAt: new Date()
-  }));
-  
-  const result = await db.collection(COLLECTION).insertMany(docs);
-  return result.insertedIds;
+  return await db.collection(COLLECTION).insertMany(docs);
 }
 
-/**
- * Soft delete (set isActive = false)
- */
-export async function softDelete(id) {
+export async function updateById(id, updates) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).updateOne(
-    { _id: toObjectId(id) },
-    { $set: { isActive: false } }
-  );
-  
-  return result.modifiedCount > 0;
+  const { _id, identity, lineage, ...clean } = updates;
+  return await db.collection(COLLECTION).updateOne({ _id: toObjectId(id) }, { $set: clean });
 }
 
-/**
- * Count total layer standards
- */
-export async function count(query = {}) {
+export async function deleteById(id) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).countDocuments({ ...query, isActive: true });
+  return await db.collection(COLLECTION).deleteOne({ _id: toObjectId(id) });
 }

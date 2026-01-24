@@ -1,4 +1,5 @@
 @import 'primeicons/primeicons.css';
+@import './variants.css';
 
 /* Global Scrollbar Styles */
 ::-webkit-scrollbar {

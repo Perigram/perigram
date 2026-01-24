@@ -1,46 +1,104 @@
-/**
- * Cassette Instances Service
- */
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { addStatus, initializeStatus } from '~/server/features/statuses/service';
+import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
+import { createStatus, inheritLineage } from '~/server/utils/blocks';
+import { statusService } from '~/server/core/machines/service';
+import { ObjectId } from 'mongodb';
 
-export async function createFromQueue(queue, user) {
-    const instances = [];
+/**
+ * Cassette Instances Service - v24 Standardized
+ */
+
+export async function createFromSheet(sheet, designs, userId, userRole, userPermissions) {
+  // 1. Permission Check
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, sheet.lineage, 'projects', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  // 2. Lineage Inheritance
+  const baseLineage = inheritLineage(sheet, 'sheet');
+
+  const instancesToCreate = [];
+  
+  for (const designEntry of designs) {
+    // designEntry: { designId, instanceNumber, reference }
+    const origin = createStatus('NESTED', userId, { note: 'Instantiated from cut sheet' });
     
-    for (const entry of queue.entries) {
-        for (let i = 0; i < entry.quantity; i++) {
-            instances.push({
-                queueId: queue._id,
-                projectSlug: queue.projectSlug,
-                cassetteTemplateId: entry.cassetteTemplateId,
-                cassetteDesignId: entry.cassetteDesignId, // NEW: link to design
-                instanceNumber: `${queue.queueNumber}-${instances.length + 1}`,
-                note: ''
-            });
-        }
-    }
-    
-    if (instances.length > 0) {
-        const result = await repository.insertMany(instances);
-        
-        // Initialize status for each instance
-        if (result.insertedIds) {
-            for (const id of Object.values(result.insertedIds)) {
-                await initializeStatus('cassette_instances', id.toString(), user.userId, 'Instance created from cut queue');
-            }
-        }
-        
-        return result;
-    }
-    return { success: true, count: 0 };
+    // Merge lineages: digital from design + physical from sheet
+    // Actually, v24 says flat lineage. 
+    // We should probably include all relevant IDs.
+    const instanceLineage = {
+      ...baseLineage,
+      designId: new ObjectId(designEntry.designId)
+    };
+
+    instancesToCreate.push({
+      identity: { 
+        serial: designEntry.instanceNumber, 
+        reference: designEntry.reference || '' 
+      },
+      origin,
+      status: origin,
+      lineage: instanceLineage
+    });
+  }
+
+  const created = [];
+  for (const instanceData of instancesToCreate) {
+    const instance = await repository.create(instanceData);
+    created.push(instance);
+  }
+
+  return created;
 }
 
-export async function listByQueue(queueId, user) {
-    return await repository.findByQueue(queueId);
+export async function list(userId, userOrg, userRole, userPermissions, options = {}) {
+  const filter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
+  return await repository.find(filter);
 }
 
-export async function updateStatus(id, status, note, user) {
-    // Use centralized Status Service
-    return await addStatus('cassette_instances', id, status, user.userId, note);
+export async function getById(id, userId, userOrg, userRole, userPermissions) {
+  const instance = await repository.findById(id);
+  if (!instance) {
+    throw createError({ statusCode: 404, message: 'Cassette instance not found' });
+  }
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, instance.lineage, 'projects', 'read')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  
+  return instance;
+}
+
+export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
+  const instance = await getById(id, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, instance.lineage, 'projects', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  // Status updates must go through statusService
+  if (updates.status) {
+    await statusService.transition('cassette_instance', instance._id, updates.status, userId, userRole, updates.statusMeta || {});
+    delete updates.status;
+  }
+
+  const { identity, origin, status, lineage, ...clean } = updates;
+  
+  // Identity updates
+  if (updates.serial) instance.identity.serial = updates.serial;
+  if (updates.reference) instance.identity.reference = updates.reference;
+
+  await repository.updateById(id, { identity: instance.identity, ...clean });
+  return await repository.findById(id);
+}
+
+export async function remove(id, userId, userOrg, userRole, userPermissions) {
+  const instance = await getById(id, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, instance.lineage, 'projects', 'admin')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  
+  return await repository.deleteById(id);
 }

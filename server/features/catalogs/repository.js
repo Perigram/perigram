@@ -5,17 +5,8 @@ const COLLECTION = 'catalogs';
 
 export async function create(data) {
   const db = await connectDB();
-  const doc = {
-    name: data.name,
-    manufacturerId: data.manufacturerId ? new ObjectId(data.manufacturerId) : null,
-    description: data.description || '',
-    material: data.material,
-    foilThicknessOptions: data.foilThicknessOptions || [],
-    sheetThicknessOptions: data.sheetThicknessOptions || [],
-    widthOptions: data.widthOptions || []
-  };
-  const result = await db.collection(COLLECTION).insertOne(doc);
-  return { ...doc, _id: result.insertedId };
+  const result = await db.collection(COLLECTION).insertOne(data);
+  return { ...data, _id: result.insertedId };
 }
 
 export async function findById(id) {
@@ -30,7 +21,7 @@ export async function find(filter = {}) {
 
 export async function updateById(id, updates) {
   const db = await connectDB();
-  const { _id, createdAt, updatedAt, userId, organizationId, organizationData, role, ...clean } = updates;
+  const { _id, identity, origin, status, lineage, ...clean } = updates;
   return await db.collection(COLLECTION).updateOne({ _id: new ObjectId(id) }, { $set: clean });
 }
 

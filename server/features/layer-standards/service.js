@@ -1,131 +1,50 @@
-/**
- * Layer Standards Service
- * 
- * Business logic for layer standards.
- * Layer standards are system-managed, read-only for users.
- */
-
 import * as repository from './repository.js';
+import { createError } from 'h3';
+import { createIdentity } from '~/server/utils/blocks';
 import { ObjectId } from 'mongodb';
 
 /**
- * Get all active layer standards
+ * Layer Standards Service - v24 Standardized
  */
-export async function getAll() {
-  return await repository.findAllActive();
+
+export async function create(data, userId, userOrg, userRole, userPermissions) {
+  const { code, category, name, i18n, parameters, defaultPenId } = data;
+
+  const lineage = userOrg ? { organizationId: new ObjectId(userOrg) } : {};
+
+  const standardData = {
+    identity: createIdentity(name || code),
+    lineage,
+    config: {
+      code,
+      category,
+      defaultPenId: defaultPenId ? new ObjectId(defaultPenId) : null,
+      i18n: i18n || { en: { nameTemplate: name }, ru: { nameTemplate: name } },
+      parameters: parameters || []
+    }
+  };
+
+  return await repository.create(standardData);
 }
 
-/**
- * Get all active layer standards with their default pens
- */
-export async function getAllWithPens() {
-  const standards = await repository.findAllActive();
-  const db = await connectDB();
-  
-  // Fetch all pens to avoid multiple queries
-  const pens = await db.collection('pen_templates').find().toArray();
-  const penMap = pens.reduce((acc, pen) => {
-    acc[pen._id.toString()] = pen;
-    return acc;
-  }, {});
-  
-  return standards.map(std => ({
-    ...std,
-    defaultPen: std.defaultPenId ? penMap[std.defaultPenId.toString()] : null
-  }));
+export async function list(filter = {}) {
+  return await repository.find(filter);
 }
 
-/**
- * Get layer standards by category
- */
-export async function getByCategory(category) {
-  const validCategories = ['CONTOUR', 'CUT', 'BEND', 'MARKING'];
-  
-  if (!validCategories.includes(category)) {
-    throw createError({ 
-      statusCode: 400, 
-      message: `Invalid category. Must be one of: ${validCategories.join(', ')}` 
-    });
-  }
-  
-  return await repository.findByCategory(category);
-}
-
-/**
- * Get layer standard by ID
- */
-export async function getById(id) {
-  if (!ObjectId.isValid(id)) {
-    throw createError({ statusCode: 400, message: 'Invalid ID format' });
-  }
-  
-  const standard = await repository.findById(id);
-  
-  if (!standard) {
-    throw createError({ statusCode: 404, message: 'Layer standard not found' });
-  }
-  
-  if (!standard.isActive) {
-    throw createError({ statusCode: 404, message: 'Layer standard not found' });
-  }
-  
-  return standard;
-}
-
-/**
- * Get layer standard by code
- */
 export async function getByCode(code) {
   const standard = await repository.findByCode(code);
-  
   if (!standard) {
     throw createError({ statusCode: 404, message: `Layer standard '${code}' not found` });
   }
-  
   return standard;
 }
 
-/**
- * Seed layer standards from data
- * (Admin only - used for initial setup)
- */
-export async function seed(standardsData) {
-  // Validate data structure
-  for (const std of standardsData) {
-    if (!std.code || !std.category || !std.i18n) {
-      throw createError({ 
-        statusCode: 400, 
-        message: 'Invalid layer standard data: code, category, and i18n are required' 
-      });
-    }
-    
-    // Validate i18n has nameTemplate fields
-    if (!std.i18n.en?.nameTemplate || !std.i18n.ru?.nameTemplate) {
-      throw createError({ 
-        statusCode: 400, 
-        message: 'Invalid layer standard data: i18n.en.nameTemplate and i18n.ru.nameTemplate are required' 
-      });
-    }
-    
-    // Validate parameters array if present
-    if (std.parameters && !Array.isArray(std.parameters)) {
-      throw createError({ 
-        statusCode: 400, 
-        message: 'Invalid layer standard data: parameters must be an array' 
-      });
-    }
+export async function getById(id) {
+  const standard = await repository.findById(id);
+  if (!standard) {
+    throw createError({ statusCode: 404, message: 'Layer standard not found' });
   }
-  
-  // Check if any standards already exist
-  const existingCount = await repository.count();
-  if (existingCount > 0) {
-    throw createError({ 
-      statusCode: 409, 
-      message: 'Layer standards already exist. Drop existing standards before reseeding.' 
-    });
-  }
-  
-  return await repository.bulkCreate(standardsData);
+  return standard;
 }
 
 /**
@@ -133,19 +52,22 @@ export async function seed(standardsData) {
  * Example: template="Cut_{diameter}" + params={diameter:3.15} = "Cut_3,15"
  */
 export function generateLayerName(standard, parameters = {}, locale = 'en') {
-  if (!standard || !standard.i18n || !standard.i18n[locale]) {
-    throw createError({ statusCode: 400, message: 'Invalid layer standard or locale' });
+  const config = standard.config || standard; // support legacy
+  const i18n = config.i18n || {};
+  
+  if (!i18n[locale]) {
+    throw createError({ statusCode: 400, message: 'Invalid locale' });
   }
   
-  let layerName = standard.i18n[locale].nameTemplate;
+  let layerName = i18n[locale].nameTemplate;
   
   // Substitute parameters
-  if (standard.parameters && standard.parameters.length > 0) {
-    for (const param of standard.parameters) {
+  if (config.parameters && config.parameters.length > 0) {
+    for (const param of config.parameters) {
       if (parameters[param] === undefined) {
         throw createError({ 
           statusCode: 400, 
-          message: `Missing required parameter: ${param} for layer ${standard.code}` 
+          message: `Missing required parameter: ${param} for layer ${config.code}` 
         });
       }
       
@@ -159,12 +81,5 @@ export function generateLayerName(standard, parameters = {}, locale = 'en') {
   }
   
   // Prepend code
-  return `${standard.code}_${layerName}`;
-}
-
-/**
- * Get count of layer standards
- */
-export async function getCount() {
-  return await repository.count();
+  return `${config.code}_${layerName}`;
 }

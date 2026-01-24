@@ -1,190 +1,144 @@
-# Proposed Lean Data Model (Functional Only)
+# Engineering Data Model (v24 Absolute Final)
 
-This model moves all temporal, ownership, and audit data to the central `statuses` collection. Main entities contain only the data required for business logic.
+## 0. Core Logic Engines
 
-## 0. Central Registry: `statuses`
-All "Who, When, and Status" data lives here.
-- `_id`: ObjectId
-- `entityId`: ObjectId (Ref to any entity below)
-- `entityType`: String (e.g., 'project', 'queue') // Required for polymorphic lookup/filtering
-- `status`: String (The new state - this is the ONLY place status is stored)
-- `userId`: String (OAuth ID of who performed the action)
-- `timestamp`: Date
-- `note`: String (Optional reason/comment)
-- `metadata`: Object (Utility fields: e.g., { location: "Machine-1", temperature: 22 })
+### 0.1. Lineage Inheritance (The Trace)
+Lineage is a flat map of ancestor IDs.
+- **Inheritance Rule**: Every child document inherits its parent's `lineage` object and appends the parent's ID.
+- **Rule**: `child.lineage = { ...parent.lineage, [parentType]Id: parent._id }`.
+- **Purpose**: Single-index reverse lookups for any level of ancestry.
+
+### 0.2. Declarative State Machines
+Status is a validated transition in a machine.
+- **`state_machines`**: Collection defining valid `states` and `transitions` for each `entityType`.
+- **`StatusBlock`**: The snapshot structure used for both `origin` and `status`:
+  `{ state: String, userId: String, timestamp: Date, metadata: Object, eventId: ObjectId }`
+- **Updates**: Self-loop transitions allow updating `metadata` (notes/attachments) without a state code change.
+- **Archive**: Every change is logged to the `status_events` collection.
 
 ---
 
-## 1. `projects`
-- `_id`: ObjectId
-- `slug`: String (Unique index)
-- `name`: String
-- `contractorId`: ObjectId (Ref to organization)
-- `batchIds`: Array<ObjectId>
-- `queueIds`: Array<ObjectId>
-- `metadata`: Object (Custom extensible data)
-// Status is handled via the centralized 'statuses' collection.
-// Statistics (totalArea, etc.) are computed on-the-fly or via aggregation.
+## I. Universal Standard Blocks
+Documents are constructed using these standardized primitives:
 
-## 2. `queues`
-- `_id`: ObjectId
-- `projectSlug`: String
-- `queueNumber`: Number 
-- `name`: String
-- `entries`: Array<{ templateId: ObjectId, quantity: Number, parameters: Object }> 
-- `additionalFiles`: Array<ObjectId>
-- `previousRemainder`: ObjectId (Ref to remnant)
-- `runs`: Array<Object> (Nesting results/metadata)
-- `chosenRunId`: ObjectId
-- `artifacts`: Array<ObjectId> (Link to generated files)
-// Status is handled via the centralized 'statuses' collection.
-// organizationId is inherited from the parent project.
+- **`identity`**: `{ slug: String, name: String, serial: String, reference: String }`
+- **`status`**: [StatusBlock] (The current snapshot)
+- **`origin`**: [StatusBlock] (The creation snapshot)
+- **`lineage`**: `{ [entity]Id: ObjectId }` (Cumulative trace)
+- **`specs`**: `{ sheetThickness: Number, foilThickness: Number, width: Number, length: Number, area: Number }`
 
-## 3. `cassette_designs` (New)
-Reusable geometry/draft data.
-- `_id`: ObjectId
-- `cassetteTemplateId`: ObjectId (Ref to 'cassettes' collection) 
-- `projectId`: ObjectId
-- `queueId`: ObjectId
-- `parameters`: Object (Applied values for parametric logic) 
-- `geometry`: Object (Flattened paths/vectors)
-- `metadata`: Object
+---
 
-## 4. `cassette_instances`
-Physical item tracking (The actual item produced).
-- `_id`: ObjectId
-- `cassetteDesignId`: ObjectId (Ref to cassette_designs)
-- `instanceNumber`: String (e.g., "Q1-1")
-- `projectSlug`: String
-- `queueId`: ObjectId
-- `note`: String
-// Status is handled via the centralized 'statuses' collection.
+## II. Production Entities
 
-## 5. `cassettes` (Templates)
-Master definitions/DXF uploads.
-- `_id`: ObjectId
-- `name`: String
-- `slug`: String
-- `dxfId`: ObjectId (GridFS link to source) // In template: defines the geometry
-- `svgId`: ObjectId (GridFS link to preview) // In template: for UI display
-- `layerMapping`: Object // In template: defines how to parse the DXF
-- `nestingLayerCode`: String
+### 1. `projects`
+- `_id`, `identity`, `origin`, `status`, `lineage`: { organizationId }
+- `summary`: {
+    stateDistribution: Object, // { [stateCode]: count }
+    totalArea: Number,
+    totalWeight: Number
+  }
+
+### 2. `queues` (The Nesting Job)
+- `_id`, `identity`, `origin`, `status`, `lineage`: { organizationId, projectId }
+- `job`: {
+    items: Array<{ 
+      type: String, // PARAMETRIC | STATIC
+      id: ObjectId, // templateId or designId
+      quantity: Number,
+      parameters: Object 
+    }>,
+    materialPool: Array<{
+      type: String, // PILE | SHEET | REMNANT | VIRTUAL
+      id: ObjectId, 
+      specs: [Standard Specs Block]
+    }>
+  }
+
+### 3. `nesting_runs` (The Solution)
+- `_id`, `origin`, `status`, `lineage`: { organizationId, projectId, queueId }
+- `results`: { 
+    efficiency: Number, 
+    sheetCount: Number, 
+    remnantArea: Number,
+    layoutData: Object,
+    artifactIds: Array<ObjectId>
+  }
+
+### 4. `sheet_designs` (Digital Layout)
+- `_id`, `origin`, `status`, `lineage`: { organizationId, projectId, queueId, runId }
+- `geometry`: { svgId, dxfId, data }
+- `specs`: [Standard Specs Block]
+
+### 5. `cassette_designs` (Baked Geometry)
+- `_id`, `identity`, `origin`, `lineage`: { organizationId, projectId, queueId, templateId? }
+- `geometry`: { data: Object, dxfId: ObjectId } 
+- `parameters`: Object 
+
+### 6. `cassette_instances` (Physical Tracking)
+- `_id`, `identity`: { serial, reference }, `status`, `lineage`: { organizationId, projectId, queueId, runId, designId, sheetId, pileId }
+
+---
+
+## III. Material Entities
+
+### 7. `material_piles` (Inventory Source)
+- `_id`, `identity`, `origin`, `status`, `lineage`: { organizationId, warehouseId, catalogId, colorId }
+- `specs`: [Standard Specs Block]
+- `stock`: { total: Number, used: Number }
+
+### 8. `sheets` (Work Units)
+- `_id`, `identity`: { serial }, `origin`, `status`, `lineage`: { organizationId, warehouseId, pileId, queueId, runId, sheetDesignId }
+- `specs`: [Standard Specs Block] // Optional overrides
+
+### 9. `remnants` (Scrap)
+- `_id`, `identity`: { serial }, `origin`, `status`, `lineage`: { organizationId, warehouseId, parentSheetId, pileId, colorId, runId }
+- `geometry`: { dxfId, data }
+- `specs`: { area: Number }
+
+---
+
+## IV. Master Data & System Logic
+
+### 10. `cassettes` (The Templates)
+- `_id`, `identity`, `origin`, `status`, `lineage`: { organizationId }
+- `definition`: { 
+    type: String, // PARAMETRIC | STANDARD
+    data: Object, // The JSON Graph or Logic
+    parameters: Array<String>
+  }
+
+### 11. `layer_standards` (CNC Logic)
+- `_id`, `code`, `category`, `identity`, `lineage`: { organizationId? }
+- `i18n`: { 
+    en: { nameTemplate: String }, 
+    ru: { nameTemplate: String } 
+  }
 - `parameters`: Array<String>
-- `polygonParts`: Array<Object> // In template: extracted polygons for nesting
-- `options`: Object (holes, rotation, offsets)
-- `type`: Enum (STANDARD, PARAMETRIC)
+- `defaultPenId`: ObjectId
 
-## 6. `sheet_designs` (New)
-Nesting layout definition.
-- `_id`: ObjectId
-- `queueId`: ObjectId
-- `projectId`: ObjectId
-- `geometry`: Object (Nesting layout vectors)
-- `metadata`: Object
+### 12. `catalogs` (Brands)
+- `_id`, `manufacturerId`, `identity`, `material`, `pricing`: { pricePerSqm: Number }, `options`: { sheetThicknesses, foilThicknesses, widths, lengths }
 
-## 7. `sheets` (Instances)
-Physical sheet tracking.
-- `_id`: ObjectId
-- `sheetNumber`: String
-- `batchId`: ObjectId
-- `pileId`: ObjectId
-- `warehouseId`: ObjectId
-- `organizationId`: ObjectId
-- `material`: String
-- `color`: String
-- `thickness`: Number
-- `width`: Number
-- `height`: Number
-- `queueId`: ObjectId
-- `cassetteInstanceIds`: Array<ObjectId>
-- `remnantIds`: Array<ObjectId>
-- `note`: String
-// Status is handled via the centralized 'statuses' collection.
+### 13. `colors` (Finish SKUs)
+- `_id`, `identity`: { name, code }, `visuals`: { hexCode }, `lineage`: { catalogId }
 
-## 8. `remnants`
-Reusable sheet fragments.
-- `_id`: ObjectId
-- `remnantNumber`: String
-- `sheetId`: ObjectId
-- `warehouseId`: ObjectId
-- `organizationId`: ObjectId
-- `material`: String
-- `color`: String
-- `thickness`: Number
-- `geometryDxf`: String
-- `area`: Number
-- `width`: Number
-- `height`: Number
-- `isReusable`: Boolean
-- `usedInQueueId`: ObjectId
-// Status is handled via the centralized 'statuses' collection.
+---
 
-## 9. `requisitions`
-- `_id`: ObjectId
-- `requisitionNumber`: String
-- `contractorId`: ObjectId
-- `manufacturerId`: ObjectId
-- `projectId`: ObjectId
-- `queueId`: ObjectId
-- `items`: Array<Object> (Snapshot of material specs)
-- `totalAmount`: Number
-- `notes`: String
-// Status is handled via the centralized 'statuses' collection.
+## V. Identity & Access
 
-## 10. `material_batches`
-- `_id`: ObjectId
-- `batchNumber`: String
-- `receiptId`: String
-- `supplierId`: ObjectId
-- `warehouseId`: ObjectId
-- `requisitionId`: ObjectId
-- `organizationId`: ObjectId
-- `piles`: Array<Object> (partyId, count, dimensions, color)
-- `notes`: String
+### 14. `memberships` (Org Participation)
+- `_id`, `lineage`: { organizationId, userId }, `role`, `permissions`, `status`
 
-## 11. `organizations`
-- `_id`: ObjectId
-- `name`: String
-- `type`: Enum (Manufacturer, Contractor, etc.)
-- `email`: String
-- `phone`: String
-- `address`: String
-- `settings`: Object (canCut, canInstall, balance)
+### 15. `users`
+- `_id`: String (OAuth ID), `identity`: { name, email, avatarUrl }, `status`: [StatusBlock]
 
-## 12. `warehouses`
-- `_id`: ObjectId
-- `name`: String
-- `organizationId`: ObjectId
-- `address`: String
-- `contactPerson`: String
+### 16. `organizations` & `warehouses`
+- `organizations`: { _id, identity, type, billing, settings }
+- `warehouses`: { _id, identity, type, lineage: { organizationId }, address }
 
-## 13. `catalogs`
-- `_id`: ObjectId
-- `name`: String
-- `manufacturerId`: ObjectId
-- `description`: String
-- `material`: String
-- `foilThicknessOptions`: Array<Number>
-- `sheetThicknessOptions`: Array<Number>
-- `widthOptions`: Array<Number>
+### 17. `status_events` (Historical Log)
+- `_id`: ObjectId, `targetId`: ObjectId, `targetType`: String, `fromState`: String, `toState`: String, `status`: [Standard Status Block]
 
-## 14. `colors`
-- `_id`: ObjectId
-- `catalogId`: ObjectId
-- `name`: String
-- `code`: String
-- `colorCode`: String
-- `pricePerSqm`: Number
-
-## 15. `artifacts`
-- `_id`: ObjectId
-- `type`: Enum (LAYOUT_SVG, GCODE, etc.)
-- `name`: String
-- `queueId`: ObjectId
-- `projectId`: ObjectId
-- `runId`: ObjectId
-- `fileId`: ObjectId (GridFS link)
-- `mimeType`: String
-- `fileSize`: Number
-- `metadata`: Object
-- `generatedBy`: String (Service name)
+### 18. `artifacts` (Storage)
+- `_id`, `type`, `fileId`, `lineage`: [Standard Lineage Block], `status`: [Standard Status Block], `metadata`: Object
