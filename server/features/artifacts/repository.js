@@ -31,9 +31,8 @@ export async function findByQueue(queueId, options = {}) {
 
 export async function create(data) {
   const db = await connectDB();
-  const { success, ...cleanData } = data; // Remove success field if present
   const doc = {
-    ...cleanData,
+    ...data,
     status: 'GENERATING',
     createdAt: new Date()
   };

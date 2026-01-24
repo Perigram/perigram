@@ -84,5 +84,5 @@ export async function remove(id) {
   // Then delete the artifact metadata document
   await repository.deleteById(id);
   
-  return { success: true };
+  return { id };
 }

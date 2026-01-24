@@ -126,8 +126,8 @@ function extractFieldsFromObject(objString, fields, includeValues = false) {
     const fieldName = match[1];
     const fieldValue = match[2].trim();
     
-    // Skip common keywords and spreads
-    if (['session', 'options', 'sort', 'limit', 'skip'].includes(fieldName)) continue;
+    // Skip common keywords, spreads and generic API return fields
+    if (['session', 'options', 'sort', 'limit', 'skip', 'success', 'id'].includes(fieldName)) continue;
     if (fieldName.startsWith('...')) continue;
     
     if (!fields.has(fieldName)) {
