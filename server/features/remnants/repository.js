@@ -46,3 +46,14 @@ export async function deleteById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }
+
+export async function getNextRemnantNumber() {
+  const db = await connectDB();
+  const count = await db.collection(COLLECTION).countDocuments();
+  return `REM-${(count + 1).toString().padStart(6, '0')}`;
+}
+
+export async function findReusable(filter = {}) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).find({ ...filter, isReusable: true }).toArray();
+}

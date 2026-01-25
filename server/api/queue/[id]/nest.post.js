@@ -120,6 +120,7 @@ export default defineEventHandler(async (event) => {
         status: 'NESTING',
         runNumber,
         requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF']
+      },
       auth.userId,
       auth.organizationId,
       auth.role,

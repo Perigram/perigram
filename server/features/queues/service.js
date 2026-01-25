@@ -210,7 +210,7 @@ export async function markCut(queueId, userId, userOrg, userRole, userPermission
   return toDTO(updated);
 }
 
-export async function resetStatus(queueId, userId, userOrg, userRole, userPermissions) {
+export async function resetToDraft(queueId, userId, userOrg, userRole, userPermissions) {
   const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {

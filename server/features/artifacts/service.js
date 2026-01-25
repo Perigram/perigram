@@ -34,6 +34,25 @@ export async function createFromParent(parent, data, userId, userRole) {
   return await repository.create(artifactData);
 }
 
+export async function create(data) {
+    // For manual creation or from nest service where lineage is already passed or needs to be constructed
+    const { type, name, status, metadata, queueId, runId } = data;
+    
+    const artifactData = {
+        identity: createIdentity(name || `Artifact ${type}`),
+        type,
+        lineage: {
+            queueId: queueId ? new ObjectId(queueId) : null,
+            runId: runId ? new ObjectId(runId) : null
+        },
+        origin: createStatus(status || 'GENERATING', 'SYSTEM'),
+        status: createStatus(status || 'GENERATING', 'SYSTEM'),
+        metadata: metadata || {}
+    };
+
+    return await repository.create(artifactData);
+}
+
 export async function getById(id) {
   if (!ObjectId.isValid(id)) {
     throw createError({ statusCode: 400, message: 'Invalid ID format' });

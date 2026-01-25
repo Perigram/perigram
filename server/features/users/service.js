@@ -55,46 +55,62 @@ export async function register(data, creatorUserId, creatorRole) {
 }
 
 export async function login(email, password) {
-  const user = await usersRepository.findByEmail(email.toLowerCase());
-  if (!user) {
-    throw createError({ statusCode: 401, message: 'Invalid credentials' });
+  console.log('[DEBUG] UsersService.login START', email);
+  try {
+    const user = await usersRepository.findByEmail(email.toLowerCase());
+    console.log('[DEBUG] findByEmail result:', user ? 'FOUND' : 'NOT FOUND');
+    if (!user) {
+      throw createError({ statusCode: 401, message: 'Invalid credentials' });
+    }
+    
+    console.log('[DEBUG] user.isActive:', user.isActive);
+    if (!user.isActive) {
+      throw createError({ statusCode: 403, message: 'Account deactivated' });
+    }
+    
+    console.log('[DEBUG] verifying password...');
+    const valid = await verifyPassword(user.passwordHash, password);
+    console.log('[DEBUG] password valid:', valid);
+    if (!valid) {
+      throw createError({ statusCode: 401, message: 'Invalid credentials' });
+    }
+    
+    console.log('[DEBUG] generating session...');
+    const session = generateSession();
+    console.log('[DEBUG] session generated:', session.sessionId?.substring(0, 5));
+    
+    console.log('[DEBUG] creating session in DB...');
+    await sessionsRepository.create({
+      ...session,
+      userId: user._id
+    });
+    console.log('[DEBUG] session created');
+    
+    console.log('[DEBUG] updating last login...');
+    await usersRepository.updateLastLogin(user._id);
+    console.log('[DEBUG] last login updated');
+    
+    console.log('[DEBUG] generating access token...');
+    const accessToken = generateAccessToken(user._id);
+    console.log('[DEBUG] access token generated');
+    
+    return {
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        organizationId: user.organizationId,
+        role: user.role,
+        permissions: user.permissions,
+        memberships: user.memberships
+      },
+      sessionId: session.sessionId,
+      accessToken
+    };
+  } catch (e) {
+    console.error('[DEBUG] UsersService.login ERROR:', e);
+    throw e;
   }
-  
-  if (!user.isActive) {
-    throw createError({ statusCode: 403, message: 'Account deactivated' });
-  }
-  
-  const valid = await verifyPassword(user.passwordHash, password);
-  if (!valid) {
-    throw createError({ statusCode: 401, message: 'Invalid credentials' });
-  }
-  
-  // Generate session (separate collection)
-  const session = generateSession();
-  await sessionsRepository.create({
-    ...session,
-    userId: user._id
-  });
-  
-  // Update last login
-  await usersRepository.updateLastLogin(user._id);
-  
-  // Generate JWT (only contains userId)
-  const accessToken = generateAccessToken(user._id);
-  
-  return {
-    user: {
-      id: user._id,
-      email: user.email,
-      name: user.name,
-      organizationId: user.organizationId,
-      role: user.role,
-      permissions: user.permissions,
-      memberships: user.memberships
-    },
-    sessionId: session.sessionId,
-    accessToken
-  };
 }
 
 export async function switchOrganization(userId, organizationId) {
@@ -215,6 +231,39 @@ export async function updatePermissions(userId, newPermissions, updaterId, updat
     // SuperAdmin can update top-level directly
     updates.permissions = newPermissions;
     await usersRepository.updateById(userId, updates);
+  }
+
+  return { success: true };
+}
+
+export async function remove(userId, deleterId, deleterRole, organizationId) {
+  // 1. Fetch user to be deleted
+  const user = await usersRepository.findById(userId);
+  if (!user) throw createError({ statusCode: 404, message: 'User not found' });
+
+  // 2. Authorization check
+  const isSuperAdmin = deleterRole === 'SuperAdmin';
+  const isInSameOrg = organizationId && user.memberships?.some(m => m.organizationId.toString() === organizationId.toString());
+  const isAdminOfOrg = deleterRole.endsWith('Admin') && isInSameOrg;
+
+  if (!isSuperAdmin && !isAdminOfOrg) {
+    throw createError({ statusCode: 403, message: 'Forbidden: Insufficient privileges to delete user' });
+  }
+
+  // 3. Delete user
+  if (isSuperAdmin) {
+    // SuperAdmin can hard delete the user entirely
+    await usersRepository.deleteById(userId);
+    await sessionsRepository.deleteByUserId(userId);
+  } else {
+    // Org Admin can only remove the user from their organization
+    const db = await (await import('~/server/db/mongo')).connectDB();
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(userId) },
+      { 
+        $pull: { memberships: { organizationId: new ObjectId(organizationId) } }
+      }
+    );
   }
 
   return { success: true };

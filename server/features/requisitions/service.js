@@ -90,7 +90,54 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
   return requisition;
 }
 
+export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
+    const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
+    
+    if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, requisition.lineage, 'requisitions', 'write')) {
+        throw createError({ statusCode: 403, message: 'Permission denied' });
+    }
+
+    // Don't allow changing core identity/lineage
+    const { identity, lineage, origin, status, ...clean } = updates;
+    
+    await repository.updateById(id, clean);
+    return await repository.findById(id);
+}
+
 export async function transition(id, targetState, metadata, userId, userOrg, userRole, userPermissions) {
     const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
     return await statusService.transition('requisition', requisition._id, targetState, userId, userRole, metadata);
+}
+
+export async function send(id, userId, userOrg, userRole, userPermissions) {
+    return await transition(id, 'SENT', { note: 'Requisition sent' }, userId, userOrg, userRole, userPermissions);
+}
+
+export async function approve(id, userId, userOrg, userRole, userPermissions) {
+    return await transition(id, 'APPROVED', { note: 'Requisition approved' }, userId, userOrg, userRole, userPermissions);
+}
+
+export async function reject(id, userId, userOrg, userRole, userPermissions) {
+    return await transition(id, 'REJECTED', { note: 'Requisition rejected' }, userId, userOrg, userRole, userPermissions);
+}
+
+export async function fulfill(id, userId, userOrg, userRole, userPermissions) {
+    return await transition(id, 'FULFILLED', { note: 'Requisition fulfilled' }, userId, userOrg, userRole, userPermissions);
+}
+
+export async function startFulfillment(id, userId, userOrg, userRole, userPermissions) {
+    // Note: v24 might not have separate state for start fulfillment, using APPROVED or similar
+    return await transition(id, 'APPROVED', { note: 'Fulfillment started' }, userId, userOrg, userRole, userPermissions);
+}
+
+export async function cancel(id, userId, userOrg, userRole, userPermissions) {
+    return await transition(id, 'REJECTED', { note: 'Requisition canceled' }, userId, userOrg, userRole, userPermissions);
+}
+
+export async function remove(id, userId, userOrg, userRole, userPermissions) {
+    const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
+    if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, requisition.lineage, 'requisitions', 'admin')) {
+        throw createError({ statusCode: 403, message: 'Permission denied' });
+    }
+    return await repository.deleteById(id);
 }
