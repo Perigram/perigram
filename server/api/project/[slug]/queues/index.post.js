@@ -1,3 +1,4 @@
+import * as projectsService from '~/server/features/projects/service';
 import * as queuesService from '~/server/features/queues/service';
 import { requireAuth } from '~/server/utils/permissions';
 
@@ -7,11 +8,19 @@ export default defineEventHandler(async (event) => {
   const projectSlug = event.context.params.slug;
   const body = await readBody(event);
   
-  return await queuesService.create(
-    { ...body, projectSlug }, 
+  const project = await projectsService.getBySlug(
+    projectSlug,
     auth.userId,
     auth.organizationId,
     auth.role,
-    auth.permissions
+    auth
+  );
+
+  return await queuesService.create(
+    { ...body, projectId: project._id }, 
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth
   );
 });

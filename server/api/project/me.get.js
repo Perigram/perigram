@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     auth.userId,
     auth.organizationId,
     auth.role,
-    auth.permissions
+    auth
   );
 
   // For compatibility with dashboard (if it needs 'results' count)
@@ -21,18 +21,18 @@ export default defineEventHandler(async (event) => {
   
   const db = await connectDB();
   const queueCounts = await db.collection('queues').aggregate([
-    { $match: { ownerId: auth.userId } },
-    { $group: { _id: "$projectSlug", count: { $sum: 1 } } }
+    { $group: { _id: "$lineage.projectId", count: { $sum: 1 } } }
   ]).toArray();
 
-  const countMap = Object.fromEntries(queueCounts.map(c => [c._id, c.count]));
+  const countMap = Object.fromEntries(queueCounts.map(c => [c._id?.toString(), c.count]));
   
   const uiProjects = projects.map(p => {
       return {
-          slug: p.slug,
-          name: p.name,
-          createdAt: p.createdAt,
-          results: countMap[p.slug] || 0
+          slug: p.identity.slug,
+          name: p.identity.name,
+          createdAt: p.origin.timestamp,
+          results: countMap[p._id.toString()] || 0,
+          status: p.status
       };
   });
 

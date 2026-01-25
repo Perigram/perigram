@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
         auth.userId,
         auth.organizationId,
         auth.role,
-        auth.permissions
+        auth
     );
     
     console.log('Queue loaded:', { 
@@ -120,11 +120,10 @@ export default defineEventHandler(async (event) => {
         status: 'NESTING',
         runNumber,
         requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF']
-      }, 
       auth.userId,
       auth.organizationId,
       auth.role,
-      auth.permissions
+      auth
   );
   
   await db.collection('nesting_jobs').insertOne({
@@ -146,7 +145,7 @@ export default defineEventHandler(async (event) => {
       auth.userId,
       auth.organizationId,
       auth.role,
-      auth.permissions
+      auth
   );
   
   // Create placeholder artifacts based on request

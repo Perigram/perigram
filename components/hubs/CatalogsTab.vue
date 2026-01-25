@@ -3,19 +3,20 @@
     <!-- Header -->
     <div class="flex justify-between items-center">
       <div class="flex flex-col gap-1">
-        <h2 class="text-2xl font-black text-surface-900 dark:text-surface-0">{{ $t('features.catalogs') }}</h2>
-        <p class="text-sm text-surface-600 dark:text-surface-400">{{ $t('catalog.subtitle') }}</p>
+        <h2 class="text-2xl font-black">{{ $t('features.catalogs') }}</h2>
+        <p class="text-sm">{{ $t('catalog.subtitle') }}</p>
       </div>
       <Button v-if="authStore.isManufacturer || authStore.isSuperAdmin" :label="$t('common.create')" icon="pi pi-plus" @click="openCreateDialog" />
     </div>
 
-    <!-- Catalog Grid (Card View) -->
+    <!-- Catalog Grid (New Pattern) -->
     <div v-if="!selectedCatalog" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <CatalogCard 
+        <CatalogView 
             v-for="catalog in catalogs" 
             :key="catalog._id" 
             :catalog="catalog" 
-            @view="viewCatalog"
+            variant="card"
+            @click="viewCatalog(catalog)"
         />
         <div v-if="!loading && catalogs.length === 0" class="col-span-full p-12 border-2 border-dashed rounded-2xl flex flex-col items-center gap-4 opacity-40">
             <i class="pi pi-book text-4xl"></i>
@@ -47,7 +48,7 @@
           <InputText v-model="catalogForm.name" class="w-full" :placeholder="$t('project.name')" />
         </div>
         <div class="flex flex-col gap-2">
-          <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('catalog.materialType') }} *</label>
+          <label class="font-bold text-sm uppercase tracking-wider">{{ $t('catalog.materialType') }} *</label>
           <Select 
             v-model="catalogForm.material" 
             :options="materialPresets" 
@@ -61,20 +62,20 @@
         </div>
         <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-2">
-                <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('catalog.foilThicknessOptions') }} (mm)</label>
+                <label class="font-bold text-sm uppercase tracking-wider">{{ $t('catalog.foilThicknessOptions') }} (mm)</label>
                 <Chips v-model="catalogForm.foilThicknessOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
             </div>
             <div class="flex flex-col gap-2">
-                <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('catalog.sheetThicknessOptions') }} (mm)</label>
+                <label class="font-bold text-sm uppercase tracking-wider">{{ $t('catalog.sheetThicknessOptions') }} (mm)</label>
                 <Chips v-model="catalogForm.sheetThicknessOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
             </div>
         </div>
         <div class="flex flex-col gap-2">
-            <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('catalog.widthOptions') }} (mm)</label>
+            <label class="font-bold text-sm uppercase tracking-wider">{{ $t('catalog.widthOptions') }} (mm)</label>
             <Chips v-model="catalogForm.widthOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
         </div>
         <div class="flex flex-col gap-2">
-          <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('common.description') }}</label>
+          <label class="font-bold text-sm uppercase tracking-wider">{{ $t('common.description') }}</label>
           <Textarea v-model="catalogForm.description" class="w-full" rows="3" :placeholder="$t('catalog.placeholders.description')" />
         </div>
       </div>
@@ -87,24 +88,20 @@
     <!-- Add/Edit Sheet Type Dialog (NOW JUST COLORS) -->
     <Dialog v-model:visible="showSheetTypeDialog" :header="editingSheetTypeId ? $t('catalog.editColor') : $t('catalog.addColor')" :style="{ width: '500px' }" modal>
         <div class="flex flex-col gap-6 pt-4">
-            <!-- Color Metadata (True to nature: COMPOSITE COVER) -->
             <div class="flex flex-col gap-4">
                 <div class="flex flex-col gap-2">
-                    <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('catalog.colorName') }} *</label>
+                    <label class="font-bold text-sm uppercase tracking-wider">{{ $t('catalog.colorName') }} *</label>
                     <InputText v-model="sheetTypeForm.color" :placeholder="$t('catalog.placeholders.colorName')" />
                 </div>
                 <div class="flex flex-col gap-2">
-                    <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('catalog.colorCode') }}</label>
+                    <label class="font-bold text-sm uppercase tracking-wider">{{ $t('catalog.colorCode') }}</label>
                     <InputText v-model="sheetTypeForm.colorCode" :placeholder="$t('catalog.placeholders.colorCode')" />
                 </div>
                 
                 <div class="flex flex-col gap-2">
-                    <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('catalog.thumbnail') }}</label>
+                    <label class="font-bold text-sm uppercase tracking-wider">{{ $t('catalog.thumbnail') }}</label>
                     <div class="flex items-center gap-4">
-                        <div 
-                            class="w-16 h-16 rounded-lg border-2 border-surface-200 dark:border-surface-700 overflow-hidden bg-surface-100 dark:bg-surface-800 flex items-center justify-center"
-                            :style="{ backgroundColor: '#' + sheetTypeForm.colorFallback }"
-                        >
+                        <div class="w-16 h-16 rounded-lg border-2 overflow-hidden flex items-center justify-center" :style="{ backgroundColor: '#' + sheetTypeForm.colorFallback }">
                             <img v-if="sheetTypeForm.colorThumbnail" :src="sheetTypeForm.colorThumbnail" class="w-full h-full object-cover" />
                             <i v-else class="pi pi-image opacity-20 text-2xl"></i>
                         </div>
@@ -122,7 +119,7 @@
                 </div>
 
                 <div class="flex flex-col gap-2">
-                    <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('catalog.visualFallback') }}</label>
+                    <label class="font-bold text-sm uppercase tracking-wider">{{ $t('catalog.visualFallback') }}</label>
                     <div class="flex gap-2">
                         <ColorPicker v-model="sheetTypeForm.colorFallback" />
                         <InputText v-model="sheetTypeForm.colorFallback" class="flex-1 font-mono text-xs" />
@@ -142,15 +139,16 @@
 import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
-import CatalogCard from '~/components/entities/Catalog/CatalogCard.vue';
+import CatalogView from '~/components/entities/Catalog/CatalogView.vue';
 import CatalogDetail from '~/components/entities/Catalog/CatalogDetail.vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import InputNumber from 'primevue/inputnumber';
 import Textarea from 'primevue/textarea';
 import Dialog from 'primevue/dialog';
 import ColorPicker from 'primevue/colorpicker';
 import FileUpload from 'primevue/fileupload';
+import Select from 'primevue/select';
+import Chips from 'primevue/chips';
 
 const toast = useToast();
 const authStore = useAuthStore();
@@ -197,7 +195,7 @@ async function load() {
     }
   } catch (error) {
     if (error.status !== 401) {
-        toast.add({ severity: 'error', summary: authStore.t?.('common.error') || 'Error', detail: error.message, life: 3000 });
+        toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
     }
   } finally {
     loading.value = false;
@@ -222,7 +220,7 @@ const selectedCatalogColors = ref([]);
 function onThumbnailUpload(event) {
     const response = JSON.parse(event.xhr.response);
     sheetTypeForm.value.colorThumbnail = response.url;
-    toast.add({ severity: 'success', summary: authStore.t?.('common.success') || 'Success', detail: authStore.t?.('catalog.thumbnailUploaded') || 'Thumbnail uploaded' });
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Thumbnail uploaded' });
 }
 
 async function viewCatalog(catalog) {
@@ -230,7 +228,7 @@ async function viewCatalog(catalog) {
     try {
         selectedCatalogColors.value = await $fetch(`/api/colors?catalogId=${catalog._id}`);
     } catch (e) {
-        toast.add({ severity: 'error', summary: authStore.t?.('common.error') || 'Error', detail: 'Failed to load colors' });
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load colors' });
     }
 }
 
@@ -264,7 +262,6 @@ async function saveCatalog() {
   try {
     const body = {
         ...catalogForm.value,
-        // Convert string chips back to numbers, handling both comma and dot as decimal separators
         foilThicknessOptions: (catalogForm.value.foilThicknessOptions || [])
             .map(v => Number(String(v).replace(',', '.')))
             .filter(v => !isNaN(v)),
@@ -283,9 +280,9 @@ async function saveCatalog() {
     }
     showCatalogDialog.value = false;
     await load();
-    toast.add({ severity: 'success', summary: authStore.t?.('common.success') || 'Success', detail: authStore.t?.('catalog.saved') || 'Catalog saved' });
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Catalog saved' });
   } catch (e) {
-    toast.add({ severity: 'error', summary: authStore.t?.('common.error') || 'Error', detail: e.message });
+    toast.add({ severity: 'error', summary: 'Error', detail: e.message });
   } finally {
     submitting.value = false;
   }
@@ -305,7 +302,6 @@ function openAddSheetType() {
 
 function openEditSheetType({ sheetType }) {
     sheetTypeForm.value = JSON.parse(JSON.stringify(sheetType));
-    // PrimeVue ColorPicker expects hex without # for some versions or specific format
     if (sheetTypeForm.value.colorFallback?.startsWith('#')) {
         sheetTypeForm.value.colorFallback = sheetTypeForm.value.colorFallback.substring(1);
     }
@@ -335,22 +331,22 @@ async function saveSheetType() {
         }
         showSheetTypeDialog.value = false;
         await viewCatalog(selectedCatalog.value);
-        toast.add({ severity: 'success', summary: authStore.t?.('common.success') || 'Success', detail: authStore.t?.('catalog.colorSaved') || 'Color specification saved' });
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Color specification saved' });
     } catch (e) {
-        toast.add({ severity: 'error', summary: authStore.t?.('common.error') || 'Error', detail: e.message });
+        toast.add({ severity: 'error', summary: 'Error', detail: e.message });
     } finally {
         submitting.value = false;
     }
 }
 
 async function removeSheetType({ sheetTypeId }) {
-    if (confirm(authStore.t?.('catalog.confirmRemoveColor') || 'Remove this color?')) {
+    if (confirm('Remove this color?')) {
         try {
             await $fetch(`/api/colors/${sheetTypeId}`, { method: 'DELETE' });
             await viewCatalog(selectedCatalog.value);
-            toast.add({ severity: 'success', summary: authStore.t?.('common.success') || 'Success', detail: authStore.t?.('catalog.colorRemoved') || 'Removed' });
+            toast.add({ severity: 'success', summary: 'Success', detail: 'Removed' });
         } catch (e) {
-            toast.add({ severity: 'error', summary: authStore.t?.('common.error') || 'Error', detail: e.message });
+            toast.add({ severity: 'error', summary: 'Error', detail: e.message });
         }
     }
 }

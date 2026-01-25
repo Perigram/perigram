@@ -42,9 +42,7 @@ export const createSpecs = (data = {}) => ({
   area: data.area || 0
 });
 
-export const createSummary = () => ({
-  stateDistribution: {},
-  totalArea: 0,
-  totalWeight: 0,
-  progress: 0
+export const createSummary = (data = {}) => ({
+  totalArea: data.totalArea || 0,
+  ...data
 });

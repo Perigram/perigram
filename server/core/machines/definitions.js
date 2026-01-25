@@ -34,10 +34,10 @@ export const stateMachines = {
       CLOSED: { label: 'Closed', isTerminal: true, canUpdateMeta: false }
     },
     transitions: [
-      { from: 'PENDING', to: 'NESTING', roles: ['SYSTEM', 'ADMIN', 'EDITOR'] },
-      { from: 'NESTING', to: 'READY', roles: ['SYSTEM'] },
-      { from: 'READY', to: 'CLOSED', roles: ['ADMIN', 'EDITOR'] },
-      { from: 'NESTING', to: 'PENDING', roles: ['SYSTEM', 'ADMIN'] }
+      { from: 'PENDING', to: 'NESTING', roles: ['SYSTEM', 'ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'READY', roles: ['SYSTEM'], hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'READY', to: 'CLOSED', roles: ['ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'PENDING', roles: ['SYSTEM', 'ADMIN'], hooks: [{ handler: 'triggerAggregator' }] }
     ]
   },
   
@@ -75,5 +75,66 @@ export const stateMachines = {
       },
       { from: 'PROPOSED', to: 'REJECTED', roles: ['ADMIN', 'EDITOR'] }
     ]
-  }
-};
+  },
+
+    cassette_instance: {
+
+      initial: 'PRODUCED',
+
+      states: {
+
+        PRODUCED: { label: 'Produced' },
+
+        MILLED: { label: 'Milled' },
+
+        INSTALLED: { label: 'Installed' }
+
+      },
+
+      transitions: [
+
+        { from: 'PRODUCED', to: 'MILLED', roles: ['SYSTEM', 'OPERATOR'], hooks: [{ handler: 'triggerAggregator' }] },
+
+        { from: 'MILLED', to: 'INSTALLED', roles: ['ADMIN', 'OPERATOR'], hooks: [{ handler: 'triggerAggregator' }] }
+
+      ]
+
+    },
+
+  
+
+    requisition: {
+
+      initial: 'DRAFT',
+
+      states: {
+
+        DRAFT: { label: 'Draft' },
+
+        SENT: { label: 'Sent' },
+
+        APPROVED: { label: 'Approved' },
+
+        FULFILLED: { label: 'Fulfilled', isTerminal: true },
+
+        REJECTED: { label: 'Rejected', isTerminal: true }
+
+      },
+
+      transitions: [
+
+        { from: 'DRAFT', to: 'SENT', roles: ['ADMIN', 'EDITOR', 'Contractor'] },
+
+        { from: 'SENT', to: 'APPROVED', roles: ['Manufacturer', 'ADMIN'] },
+
+        { from: 'SENT', to: 'REJECTED', roles: ['Manufacturer', 'ADMIN'] },
+
+        { from: 'APPROVED', to: 'FULFILLED', roles: ['Manufacturer', 'ADMIN'] }
+
+      ]
+
+    }
+
+  };
+
+  

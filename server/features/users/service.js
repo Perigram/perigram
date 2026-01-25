@@ -3,6 +3,7 @@ import * as sessionsRepository from '../sessions/repository.js';
 import { hashPassword, verifyPassword, generateSession, generateAccessToken } from '~/server/utils/auth-helpers';
 import { createError } from 'h3';
 import { PERMISSION_TEMPLATES } from './permission-templates.js';
+import { ObjectId } from 'mongodb';
 
 export async function register(data, creatorUserId, creatorRole) {
   // Validate

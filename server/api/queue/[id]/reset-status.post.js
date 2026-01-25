@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     auth.userId,
     auth.organizationId,
     auth.role,
-    auth.permissions
+    auth
   );
   
   return { success: true, status: queue.status, queue };

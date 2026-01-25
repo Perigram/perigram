@@ -1,31 +1,28 @@
-import { defineEventHandler, createError, readBody } from "h3";
-import { connectDB } from "~/server/db/mongo";
-import { ObjectId } from "mongodb";
+import { defineEventHandler, createError } from "h3";
+import * as projectsService from "~/server/features/projects/service";
+import * as queuesService from "~/server/features/queues/service";
+import { requireAuth } from "~/server/utils/permissions";
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context?.auth?.userId;
-  if (!userId) {
-    throw createError({ statusCode: 401, message: "Unauthorized" });
-  }
+  requireAuth(event);
+  const auth = event.context.auth;
+  const slug = event.context.params.slug;
 
-  const projectSlug = event.context.params.slug;
-  const db = await connectDB();
+  // 1. Get project to get its ID from slug
+  const project = await projectsService.getBySlug(
+    slug,
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth
+  );
 
-  // Verify project ownership
-  const project = await db.collection("projects").findOne({
-    slug: projectSlug,
-    ownerId: userId
-  });
-
-  if (!project) {
-    throw createError({ statusCode: 404, message: "Project not found" });
-  }
-
-  // Get queues for this project
-  const queues = await db.collection("queues")
-    .find({ projectSlug })
-    .sort({ queueNumber: 1 })
-    .toArray();
-
-  return queues;
+  // 2. List queues for this project
+  return await queuesService.listByProject(
+    project._id,
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth
+  );
 });

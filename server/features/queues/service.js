@@ -6,6 +6,15 @@ import { createIdentity, createStatus, inheritLineage } from '~/server/utils/blo
 import { statusService } from '~/server/core/machines/service';
 import * as projectsRepository from '../projects/repository.js';
 
+function toDTO(queue) {
+  if (!queue) return null;
+  return {
+    ...queue,
+    name: queue.identity?.name || queue.name,
+    queueNumber: queue.identity?.queueNumber || queue.queueNumber
+  };
+}
+
 export async function getById(id, userId, userOrg, userRole, userPermissions) {
   if (!ObjectId.isValid(id)) {
     throw createError({ statusCode: 400, message: 'Invalid ID format' });
@@ -20,7 +29,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  return queue;
+  return toDTO(queue);
 }
 
 export async function listByProject(projectId, userId, userOrg, userRole, userPermissions, options = {}) {
@@ -28,7 +37,8 @@ export async function listByProject(projectId, userId, userOrg, userRole, userPe
     ...getLineageFilter({ memberships: userPermissions.memberships, role: userRole }),
     'lineage.projectId': new ObjectId(projectId)
   };
-  return await repository.find(filter, options);
+  const queues = await repository.find(filter, options);
+  return queues.map(toDTO);
 }
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
@@ -78,15 +88,12 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   };
 
   const queue = await repository.create(queueData);
-
-  // Update project summary (async)
-  // await hooks.updateProjectSummary({ targetId: project._id, ... })
-
-  return queue;
+  return toDTO(queue);
 }
 
 export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
-  const queue = await getById(id, userId, userOrg, userRole, userPermissions);
+  const queue = await repository.findById(id); // Fetch raw for permission check
+  if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -106,7 +113,8 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   }
 
   await repository.updateById(id, { identity: queue.identity, ...clean });
-  return await repository.findById(id);
+  const updated = await repository.findById(id);
+  return toDTO(updated);
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
@@ -116,8 +124,130 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  // Check if any active nesting runs exist...
-  
   await repository.deleteById(id);
   return { success: true };
+}
+
+export async function addRun(queueId, runData, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  // Use repository to add run - native update needed as repository might not have push
+  const db = await (await import('~/server/db/mongo')).connectDB();
+  await db.collection('queues').updateOne(
+    { _id: new ObjectId(queueId) },
+    { $push: { runs: runData } }
+  );
+  
+  const updated = await repository.findById(queueId);
+  return toDTO(updated);
+}
+
+export async function setRunsStatusByStatus(queueId, fromStatus, toStatus, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  const db = await (await import('~/server/db/mongo')).connectDB();
+  await db.collection('queues').updateMany(
+    { _id: new ObjectId(queueId), "runs.status": fromStatus },
+    { $set: { "runs.$.status": toStatus } }
+  );
+}
+
+export async function chooseRun(queueId, runId, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  const run = (queue.runs || []).find(r => r._id.toString() === runId.toString());
+  if (!run) throw createError({ statusCode: 404, message: 'Run not found' });
+  
+  const db = await (await import('~/server/db/mongo')).connectDB();
+  
+  // Set all runs to COMPLETE
+  await db.collection('queues').updateOne(
+      { _id: new ObjectId(queueId), "runs.status": "CHOSEN" },
+      { $set: { "runs.$.status": "COMPLETE" } }
+  );
+  
+  // Set chosen run to CHOSEN and update queue field
+  await db.collection('queues').updateOne(
+      { _id: new ObjectId(queueId), "runs._id": new ObjectId(runId) },
+      { 
+          $set: { 
+              "runs.$.status": "CHOSEN",
+              chosenRunId: new ObjectId(runId)
+          } 
+      }
+  );
+
+  const updated = await repository.findById(queueId);
+  return toDTO(updated);
+}
+
+export async function markCut(queueId, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  if (!queue.chosenRunId) {
+      throw createError({ statusCode: 400, message: 'No run chosen' });
+  }
+
+  await statusService.transition('queue', queue._id, 'CUT', userId, userRole, { note: 'Marked as CUT' });
+  
+  const updated = await repository.findById(queueId);
+  return toDTO(updated);
+}
+
+export async function resetStatus(queueId, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  await statusService.transition('queue', queue._id, 'DRAFT', userId, userRole, { note: 'Reset to DRAFT' });
+  
+  const updated = await repository.findById(queueId);
+  return toDTO(updated);
+}
+
+export async function removeRun(queueId, runId, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  
+  const db = await (await import('~/server/db/mongo')).connectDB();
+  await db.collection('queues').updateOne(
+    { _id: new ObjectId(queueId) },
+    { $pull: { runs: { _id: new ObjectId(runId) } } }
+  );
+  
+  const updated = await repository.findById(queueId);
+  return toDTO(updated);
+}
+
+export async function getArtifacts(queueId, userId, userOrg, userRole, userPermissions, runId) {
+    const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
+    
+    // Check permission (already checked in getById but explicitly here)
+    if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'read')) {
+        throw createError({ statusCode: 403, message: 'Permission denied' });
+    }
+
+    const { service: artifactService } = await import('~/server/features/artifacts');
+    return await artifactService.list(queueId, runId);
 }

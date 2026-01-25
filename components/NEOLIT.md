@@ -3,7 +3,7 @@
 This directory contains Vue components used in the Cutkit-Demo application.
 
 ## Style Guide
-- Where not absolutely necessary, avoid using custom css, rely on PrimeVue default styles, design tokens and Tailwind utility classes.
+- Where not absolutely necessary, avoid using custom css, rely on PrimeVue default styles, design tokens and Tailwind utility classes. Where possible, little to zero styling at all. 
 
 ## Core Components
 - `CassetteDesigner.vue`: Tool for designing parametric cassette templates.

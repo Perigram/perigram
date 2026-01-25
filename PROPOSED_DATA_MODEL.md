@@ -34,9 +34,7 @@ Documents are constructed using these standardized primitives:
 ### 1. `projects`
 - `_id`, `identity`, `origin`, `status`, `lineage`: { organizationId }
 - `summary`: {
-    stateDistribution: Object, // { [stateCode]: count }
-    totalArea: Number,
-    totalWeight: Number
+    totalArea: Number, // This has to be computed
   }
 
 ### 2. `queues` (The Nesting Job)
@@ -61,7 +59,7 @@ Documents are constructed using these standardized primitives:
     efficiency: Number, 
     sheetCount: Number, 
     remnantArea: Number,
-    layoutData: Object,
+    layoutData: Object, // what's that? 
     artifactIds: Array<ObjectId>
   }
 

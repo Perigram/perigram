@@ -7,6 +7,15 @@ import { createIdentity, createStatus, createSummary } from '~/server/utils/bloc
 import { statusService } from '~/server/core/machines/service';
 import { ObjectId } from 'mongodb';
 
+function toDTO(project) {
+  if (!project) return null;
+  return {
+    ...project,
+    name: project.identity?.name || project.name,
+    slug: project.identity?.slug || project.slug
+  };
+}
+
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   // Check permission for organization
   if (userRole !== 'SuperAdmin' && !userOrg) {
@@ -34,12 +43,14 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  return await repository.create(projectData);
+  const created = await repository.create(projectData);
+  return toDTO(created);
 }
 
 export async function list(userId, userOrg, userRole, userPermissions) {
   const filter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
-  return await repository.find(filter);
+  const projects = await repository.find(filter);
+  return projects.map(toDTO);
 }
 
 export async function getBySlug(slug, userId, userOrg, userRole, userPermissions) {
@@ -52,11 +63,15 @@ export async function getBySlug(slug, userId, userOrg, userRole, userPermissions
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  return project;
+  return toDTO(project);
 }
 
 export async function update(slug, updates, userId, userOrg, userRole, userPermissions) {
-  const project = await getBySlug(slug, userId, userOrg, userRole, userPermissions);
+  // We need to fetch the raw doc first to check permissions and get identity
+  const project = await repository.findBySlug(slug);
+  if (!project) {
+    throw createError({ statusCode: 404, message: 'Project not found' });
+  }
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, project.lineage, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -76,7 +91,8 @@ export async function update(slug, updates, userId, userOrg, userRole, userPermi
   const { identity, status, lineage, origin, ...clean } = updates;
   await repository.updateBySlug(slug, { identity: project.identity, ...clean });
   
-  return await repository.findBySlug(slug);
+  const updated = await repository.findBySlug(slug);
+  return toDTO(updated);
 }
 
 export async function remove(slug, userId, userOrg, userRole, userPermissions) {

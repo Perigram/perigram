@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
   });
   
   // Also return JWT for API clients
+  // result.user.id is user._id (ObjectId)
   const accessToken = generateAccessToken(result.user.id);
   
   return {

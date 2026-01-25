@@ -7,6 +7,7 @@ export default {
     './nuxt.config.{js,ts}',
     './assets/css/**/*.css',
   ],
+  darkMode: ['selector', '.dark-mode'],
   theme: {
     extend: {
       fontFamily: {

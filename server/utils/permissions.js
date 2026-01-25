@@ -76,6 +76,11 @@ export function getOrgFilter(user) {
 export function checkEntityAccess(user, entity) {
   if (user.role === 'SuperAdmin') return true;
   
+  // If it's an organization itself
+  if (entity._id && !entity.lineage && !entity.organizationId) {
+    return (user.memberships || []).some(m => m.organizationId?.toString() === entity._id.toString());
+  }
+
   const entityOrgId = entity.lineage?.organizationId?.toString() || entity.organizationId?.toString();
   if (!entityOrgId) return false;
   

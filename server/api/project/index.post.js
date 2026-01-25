@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
     body || {},
     auth.userId,
     auth.organizationId,
-    auth.permissions
+    auth.role,
+    auth
   );
 });

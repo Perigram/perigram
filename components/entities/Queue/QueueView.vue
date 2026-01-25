@@ -2,115 +2,85 @@
 /**
  * Queue View Component - v24 Standardized
  */
+import Card from 'primevue/card';
+import Button from 'primevue/button';
 import EntityStatus from '../shared/EntityStatus.vue';
+import LineageView from '../shared/LineageView.vue';
+import { useAuthStore } from '~/stores/auth';
 
 const props = defineProps({
   queue: { type: Object, required: true },
-  variant: { type: String, default: 'card' } // inline, compact, card, full
+  variant: { type: String, default: 'card' }
 });
 
+const emit = defineEmits(['view', 'edit', 'delete']);
+const authStore = useAuthStore();
 const { name } = useIdentity(props.queue);
-const { state } = useStatus(props.queue);
+
+const handleCardClick = () => {
+    emit('view', props.queue);
+};
 </script>
 
 <template>
   <div :class="[`variant-${variant}`]">
-    <!-- Inline View -->
+    <!-- Inline -->
     <template v-if="variant === 'inline'">
-      <span class="font-medium">#{{ queue.identity?.queueNumber }} {{ name }}</span>
-      <EntityStatus :entity="queue" variant="inline" />
-    </template>
-
-    <!-- Compact View -->
-    <template v-else-if="variant === 'compact'">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded bg-surface-100 flex items-center justify-center font-bold text-xs">
-          #{{ queue.identity?.queueNumber }}
-        </div>
-        <div class="flex flex-col">
-          <span class="font-bold text-sm">{{ name }}</span>
-          <span class="text-[10px] text-surface-400 uppercase tracking-tight">{{ state }}</span>
-        </div>
-      </div>
-      <i class="pi pi-chevron-right text-surface-300"></i>
-    </template>
-
-    <!-- Card View -->
-    <template v-else-if="variant === 'card'">
-      <div class="block-header">
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-black px-1.5 py-0.5 rounded bg-surface-900 text-white">
-            #{{ queue.identity?.queueNumber }}
-          </span>
-          <span class="font-bold text-surface-800">{{ name }}</span>
-        </div>
+      <div class="flex items-center gap-2">
+        <span class="opacity-50 font-bold">#{{ queue.identity?.queueNumber }}</span>
+        <span class="font-bold">{{ name }}</span>
         <EntityStatus :entity="queue" variant="inline" />
       </div>
-
-      <div class="my-4 flex flex-col gap-2">
-        <div class="flex justify-between text-xs">
-          <span class="text-surface-500">Items to Cut</span>
-          <span class="font-bold">{{ queue.job?.items?.length || 0 }}</span>
-        </div>
-        <div class="flex justify-between text-xs">
-          <span class="text-surface-500">Material Sources</span>
-          <span class="font-bold">{{ queue.job?.materialPool?.length || 0 }}</span>
-        </div>
-      </div>
-
-      <div class="mt-auto pt-4 border-t flex gap-2">
-        <Button label="Nesting" icon="pi pi-box" size="small" outlined class="flex-1" />
-        <Button icon="pi pi-ellipsis-v" size="small" text plain />
-      </div>
     </template>
 
-    <!-- Full View -->
-    <template v-else-if="variant === 'full'">
-      <div class="flex items-center justify-between mb-8">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-xl bg-surface-900 text-white flex items-center justify-center text-xl font-black">
-            {{ queue.identity?.queueNumber }}
-          </div>
-          <div>
-            <h2 class="text-2xl font-bold text-surface-900">{{ name }}</h2>
-            <div class="lineage-crumbs mt-1">
-              <span class="lineage-crumb">Project</span>
-              <span class="lineage-crumb">{{ queue.lineage?.projectId }}</span>
+    <!-- Compact -->
+    <template v-else-if="variant === 'compact'">
+      <Card @click="handleCardClick" class="cursor-pointer">
+        <template #content>
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+              <span class="opacity-30 font-black">#{{ queue.identity?.queueNumber }}</span>
+              <span class="font-bold">{{ name }}</span>
             </div>
+            <EntityStatus :entity="queue" variant="inline" />
           </div>
-        </div>
-        <EntityStatus :entity="queue" variant="full" />
-      </div>
+        </template>
+      </Card>
+    </template>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Job List -->
-        <div class="flex flex-col gap-4">
-          <h3 class="text-sm font-black uppercase tracking-widest text-surface-400">Cutting Items</h3>
+    <!-- Card -->
+    <template v-else-if="variant === 'card'">
+      <Card @click="handleCardClick" class="cursor-pointer">
+        <template #title>
           <div class="flex flex-col gap-2">
-            <div v-for="(item, idx) in queue.job?.items" :key="idx" class="p-3 border rounded-lg flex justify-between items-center">
-              <div class="flex flex-col">
-                <span class="text-sm font-bold">{{ item.id }}</span>
-                <span class="text-[10px] text-surface-400 uppercase">{{ item.type }}</span>
-              </div>
-              <Badge :value="`x${item.quantity}`" severity="secondary" />
+            <LineageView v-if="queue.lineage" :lineage="queue.lineage" />
+            <div class="flex justify-between items-start gap-4">
+              <span class="font-bold text-lg">#{{ queue.identity?.queueNumber }} {{ name }}</span>
+              <EntityStatus :entity="queue" variant="full" />
             </div>
           </div>
-        </div>
-
-        <!-- Material Pool -->
-        <div class="flex flex-col gap-4">
-          <h3 class="text-sm font-black uppercase tracking-widest text-surface-400">Material Pool</h3>
-          <div class="flex flex-col gap-2">
-            <div v-for="(pool, idx) in queue.job?.materialPool" :key="idx" class="p-3 border border-dashed rounded-lg flex justify-between items-center">
+        </template>
+        <template #content>
+          <div class="flex flex-col gap-4">
+            <div class="grid grid-cols-2 gap-4">
               <div class="flex flex-col">
-                <span class="text-sm font-medium italic">{{ pool.type }}</span>
-                <span v-if="pool.id" class="text-[10px] text-surface-400">{{ pool.id }}</span>
+                <small class="font-bold opacity-40">Job Items</small>
+                <span class="text-xl font-bold">{{ queue.job?.items?.length || 0 }}</span>
               </div>
-              <i class="pi pi-database text-surface-300"></i>
+              <div class="flex flex-col">
+                <small class="font-bold opacity-40">Runs</small>
+                <span class="text-xl font-bold">{{ queue.summary?.runCount || 0 }}</span>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </template>
+        <template #footer>
+            <div class="flex justify-end gap-1" @click.stop>
+                <Button v-if="authStore.can('queues', 'edit')" icon="pi pi-pencil" text rounded @click="$emit('edit', queue)" />
+                <Button v-if="authStore.can('queues', 'delete')" icon="pi pi-trash" text rounded severity="danger" @click="$emit('delete', queue)" />
+            </div>
+        </template>
+      </Card>
     </template>
   </div>
 </template>

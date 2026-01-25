@@ -1,6 +1,7 @@
 import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 import { statusService } from './service.js';
+import { aggregator } from './aggregator.js';
 
 /**
  * Status Hook Registry
@@ -9,8 +10,6 @@ import { statusService } from './service.js';
 export const hooks = {
   /**
    * Propagate status to all children of an entity
-   * @param {Object} params - { targetId, targetType, toState, userId, userRole }
-   * @param {Object} hookConfig - { childType, childState }
    */
   async propagateToChildren({ targetId, targetType, userId, userRole }, { childType, childState }) {
     const db = await connectDB();
@@ -18,8 +17,6 @@ export const hooks = {
     const lineageKey = `lineage.${targetType}Id`;
     
     const children = await db.collection(collection).find({ [lineageKey]: new ObjectId(targetId) }).toArray();
-    
-    console.log(`[Status Hook] Propagating ${childState} to ${children.length} ${childType}s`);
     
     for (const child of children) {
       try {
@@ -33,20 +30,11 @@ export const hooks = {
   },
 
   /**
-   * Update project summary when children change state
+   * Centralized Trigger for Summary Updates
+   * This is called whenever an entity changes state.
    */
-  async updateProjectSummary({ targetId, targetType, lineage }) {
-    if (!lineage?.projectId) return;
-    
-    const db = await connectDB();
-    const projectId = new ObjectId(lineage.projectId);
-    
-    // Aggregate state distribution across all children of this project (for this type)
-    // Actually, summary should probably be global across all child types or per type.
-    // For now, let's just do a simple count update if needed.
-    
-    console.log(`[Status Hook] Updating project summary for ${projectId}`);
-    
-    // Implementation of rich summary aggregation...
+  async triggerAggregator({ targetType, lineage }) {
+    // We pass the task to the aggregator which knows what to do based on entityType
+    await aggregator.syncParentSummary(targetType, lineage);
   }
 };

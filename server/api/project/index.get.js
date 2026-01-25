@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     user.userId,
     user.organizationId,
     user.role,
-    user.permissions
+    user
   );
 
   // Map to simple structure needed for dropdowns

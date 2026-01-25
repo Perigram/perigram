@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
       auth.userId,
       auth.organizationId,
       auth.role,
-      auth.permissions
+      auth
     );
   } catch (error) {
     console.error('Delete run error:', error);

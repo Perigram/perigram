@@ -3,31 +3,37 @@
         <select 
             v-model="currentLocale" 
             @change="changeLocale"
-            class="appearance-none bg-[var(--p-content-background)] text-[var(--p-text-color)] border border-[var(--p-content-border-color)] rounded-lg px-3 py-2 pr-8 text-sm font-medium cursor-pointer hover:border-[var(--p-primary-color)] transition-all outline-none focus:ring-2 focus:ring-[var(--p-primary-color)] focus:ring-opacity-20"
+            class="appearance-none bg-surface-0 dark:bg-surface-800 text-surface-900 dark:text-surface-0 border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 pr-8 text-sm font-bold cursor-pointer hover:border-primary transition-all outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-20 shadow-sm"
         >
             <option v-for="loc in locales" :key="loc.code" :value="loc.code">
                 {{ loc.name }}
             </option>
         </select>
-        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[var(--p-text-muted-color)]">
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-surface-400">
             <i class="pi pi-chevron-down text-[10px]"></i>
         </div>
     </div>
 </template>
 
 <script setup>
-const { locale, locales, setLocale } = useI18n()
-const currentLocale = ref(locale.value)
+import { ref, watch, onMounted } from 'vue';
 
-const changeLocale = () => {
-    setLocale(currentLocale.value)
-}
+// Using useI18n composable from @nuxtjs/i18n
+const { locale, locales, setLocale } = useI18n();
+const currentLocale = ref(locale.value);
 
-// Watch for external locale changes
-watch(locale, (newLocale) => {
-    currentLocale.value = newLocale
-})
+const changeLocale = async () => {
+    console.log('Changing locale to:', currentLocale.value);
+    await setLocale(currentLocale.value);
+};
+
+// Sync with global locale changes
+watch(locale, (newVal) => {
+    console.log('Locale changed globally to:', newVal);
+    currentLocale.value = newVal;
+});
+
+onMounted(() => {
+    currentLocale.value = locale.value;
+});
 </script>
-
-<style scoped>
-</style>

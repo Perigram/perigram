@@ -2,17 +2,19 @@
   <div class="flex flex-col gap-6">
     <div class="flex justify-between items-center">
       <div class="flex flex-col gap-1">
-        <h2 class="text-2xl font-black text-[var(--p-text-color)]">{{ $t('features.batches') }}</h2>
-        <p class="text-sm text-[var(--p-text-secondary-color)]">Material shipments received from manufacturers.</p>
+        <h2 class="text-2xl font-black">{{ $t('features.batches') }}</h2>
+        <p class="text-sm">Material shipments received from manufacturers.</p>
       </div>
       <Button v-if="authStore.isManufacturer" :label="$t('common.create')" icon="pi pi-plus" @click="showDialog = true" />
     </div>
 
+    <!-- Batch Grid (New Pattern) -->
     <div v-if="!selectedBatch" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <BatchCard 
+        <BatchView 
             v-for="batch in batches" 
             :key="batch._id" 
             :batch="batch" 
+            variant="card"
             @view="viewDetails"
         />
         <div v-if="!loading && batches.length === 0" class="col-span-full p-12 border-2 border-dashed rounded-2xl flex flex-col items-center gap-4 opacity-40">
@@ -21,6 +23,7 @@
         </div>
     </div>
 
+    <!-- Batch Detail View -->
     <div v-else class="animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div class="mb-4">
             <Button label="Back to List" icon="pi pi-arrow-left" text size="small" @click="selectedBatch = null" />
@@ -31,13 +34,12 @@
         />
     </div>
 
-    <!-- Create Batch Dialog (Manufacturer only) -->
+    <!-- Create Batch Dialog -->
     <Dialog v-model:visible="showDialog" header="Manual Material Batch" :style="{ width: '600px' }" modal>
          <div class="flex flex-col gap-4 pt-4 text-xs opacity-60">
              Note: Most batches should be created via Requisition Fulfillment. This manual entry is for legacy stock or external supply.
          </div>
          <div class="flex flex-col gap-4 pt-4">
-             <!-- Simplified form for manual entry -->
              <div class="flex flex-col gap-2">
                  <label class="font-bold text-sm">Target Warehouse *</label>
                  <Select v-model="form.warehouseId" :options="warehouses" optionLabel="name" optionValue="_id" class="w-full" />
@@ -59,7 +61,7 @@
 import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
-import BatchCard from '~/components/entities/Batch/BatchCard.vue';
+import BatchView from '~/components/entities/Batch/BatchView.vue';
 import BatchDetail from '~/components/entities/Batch/BatchDetail.vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
@@ -81,10 +83,6 @@ async function load() {
   loading.value = true;
   try {
     batches.value = await $fetch('/api/material-piles');
-    if (authStore.isManufacturer) {
-        // Manufacturers need to see where they can ship
-        // In real app, they would select from Contractor warehouses
-    }
   } catch (error) {
     if (error.status !== 401) {
         toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
