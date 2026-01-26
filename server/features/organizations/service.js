@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import * as usersRepository from '../users/repository.js';
 import { createError } from 'h3';
 import { hasPermission } from '~/server/utils/auth-helpers';
-import { getOrgFilter, checkEntityAccess, getLineageFilter } from '~/server/utils/permissions';
+import { getLineageFilter } from '~/server/utils/permissions';
 import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
 import { initializeStatus, addStatus } from '~/server/features/statuses/service';
 import { ObjectId } from 'mongodb';

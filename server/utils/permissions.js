@@ -66,27 +66,6 @@ export function getLineageFilter(user) {
   return { 'lineage.organizationId': { $in: orgIds } };
 }
 
-// Legacy support - to be phased out
-export function getOrgFilter(user) {
-  if (user.role === 'SuperAdmin') return {};
-  return { organizationId: new ObjectId(user.organizationId) };
-}
-
-// Check if user can access specific entity via lineage
-export function checkEntityAccess(user, entity) {
-  if (user.role === 'SuperAdmin') return true;
-  
-  // If it's an organization itself
-  if (entity._id && !entity.lineage && !entity.organizationId) {
-    return (user.memberships || []).some(m => m.organizationId?.toString() === entity._id.toString());
-  }
-
-  const entityOrgId = entity.lineage?.organizationId?.toString() || entity.organizationId?.toString();
-  if (!entityOrgId) return false;
-  
-  return (user.memberships || []).some(m => m.organizationId?.toString() === entityOrgId);
-}
-
 export function requireRole(event, ...allowedRoles) {
   requireAuth(event);
   
