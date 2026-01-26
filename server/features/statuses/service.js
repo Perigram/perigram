@@ -10,27 +10,20 @@ import * as repository from './repository.js';
 
 /**
  * Add a new status entry in the central collection.
- * In the Lean Model, we NO LONGER update the source entity collection.
+ * In V24, we log to status_events.
  */
 export async function addStatus(collection, entityId, status, userId, note = '', metadata = {}) {
   const entityType = collection.replace(/s$/, ''); // simple plural to singular
   
-  if (!isValidStatus(entityType, status)) {
-    throw createError({
-      statusCode: 400,
-      message: `Invalid status "${status}" for ${entityType}. Valid: ${getValidStatuses(entityType).join(', ')}`
-    });
-  }
-  
-  // Create entry in the central statuses collection
   const statusEntry = await repository.create({
-    entityId: new ObjectId(entityId),
-    entityType,
-    status,
-    userId,
-    note,
-    metadata,
-    timestamp: new Date()
+    targetId: new ObjectId(entityId),
+    targetType: entityType,
+    status: {
+        state: status,
+        userId,
+        timestamp: new Date(),
+        metadata: { ...metadata, note }
+    }
   });
   
   return statusEntry;
@@ -54,45 +47,6 @@ export async function findLatest(collection, entityId) {
 }
 
 /**
- * Attach latest status to a single entity
- */
-export async function attachStatus(entity, collection) {
-  if (!entity) return null;
-  const latest = await findLatest(collection, entity._id);
-  return {
-    ...entity,
-    status: latest ? latest.status : 'unknown'
-  };
-}
-
-/**
- * Attach latest statuses to an array of entities efficiently
- */
-export async function attachStatuses(entities, collection) {
-  if (!entities || entities.length === 0) return [];
-  
-  const entityType = collection.replace(/s$/, '');
-  const entityIds = entities.map(e => new ObjectId(e._id));
-  const db = await connectDB();
-  
-  const latestStatuses = await db.collection('statuses').aggregate([
-    { $match: { entityId: { $in: entityIds }, entityType } },
-    { $sort: { timestamp: -1 } },
-    { $group: { _id: '$entityId', latest: { $first: '$$ROOT' } } }
-  ]).toArray();
-  
-  const statusMap = latestStatuses.reduce((acc, curr) => {
-    acc[curr._id.toString()] = curr.latest.status;
-    return acc;
-  }, {});
-  
-  return entities.map(e => ({
-    ...e,
-    status: statusMap[e._id.toString()] || 'unknown'
-  }));
-}
-
-/**
  * Get status history for an entity from the central collection
  */
 export async function getStatusHistory(collection, entityId) {
@@ -101,7 +55,11 @@ export async function getStatusHistory(collection, entityId) {
   const latest = history.length > 0 ? history[0] : null;
   
   return {
-    currentStatus: latest ? latest.status : 'unknown',
+    currentStatus: latest ? (latest.status?.state || latest.status) : 'unknown',
     history: history
   };
 }
+
+// Deprecated V23 helpers below - avoided in V24 refactors
+export async function attachStatus(entity, collection) { return entity; }
+export async function attachStatuses(entities, collection) { return entities; }

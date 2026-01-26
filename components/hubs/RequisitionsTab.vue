@@ -16,6 +16,8 @@
             :key="req._id" 
             :requisition="req" 
             @view="viewDetails"
+            @edit="openEditDialog"
+            @delete="confirmDelete"
         />
         <div v-if="!loading && requisitions.length === 0" class="col-span-full p-12 border-2 border-dashed rounded-2xl flex flex-col items-center gap-4 opacity-40">
             <i class="pi pi-shopping-cart text-4xl"></i>
@@ -267,6 +269,38 @@ function getCatalogOptions(catalogId, field) {
     return (optionsMap[field] || []).map(val => ({ label: `${val} mm`, value: val }));
 }
 
+function openEditDialog(req) {
+    form.value = { 
+        manufacturerId: req.lineage?.manufacturerId, 
+        projectId: req.lineage?.projectId, 
+        notes: req.notes || '', 
+        items: req.items.map(i => ({
+            catalogId: i.catalogId,
+            colorId: i.colorId,
+            foilThickness: i.specs?.foilThickness,
+            sheetThickness: i.specs?.sheetThickness,
+            width: i.specs?.width,
+            length: i.specs?.length,
+            quantity: i.quantity
+        }))
+    };
+    editingId.value = req._id;
+    showCreateDialog.value = true;
+}
+
+const confirmDelete = (req) => {
+    if (confirm('Delete this draft requisition?')) {
+        $fetch(`/api/requisitions/${req._id}`, { method: 'DELETE' })
+            .then(() => {
+                toast.add({ severity: 'success', summary: 'Success', detail: 'Deleted' });
+                load();
+            })
+            .catch(e => toast.add({ severity: 'error', summary: 'Error', detail: e.message }));
+    }
+};
+
+const editingId = ref(null);
+
 async function createReq() {
   if (form.value.items.some(i => !i.catalogId || !i.colorId || !i.quantity)) {
       toast.add({ severity: 'warn', summary: 'Incomplete', detail: 'Please fill in all item details' });
@@ -275,9 +309,14 @@ async function createReq() {
 
   submitting.value = true;
   try {
-    await $fetch('/api/requisitions', { method: 'POST', body: form.value });
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Requisition created' });
+    if (editingId.value) {
+        await $fetch(`/api/requisitions/${editingId.value}`, { method: 'PUT', body: form.value });
+    } else {
+        await $fetch('/api/requisitions', { method: 'POST', body: form.value });
+    }
+    toast.add({ severity: 'success', summary: 'Success', detail: editingId.value ? 'Requisition updated' : 'Requisition created' });
     showCreateDialog.value = false;
+    editingId.value = null;
     form.value = { manufacturerId: null, projectId: null, notes: '', items: [] };
     await load();
   } catch (e) {

@@ -1,29 +1,27 @@
-/**
- * Status Repository
- */
-
-import { connectDB } from '../../db/mongo.js';
+import { connectDB } from '~/server/db/mongo';
 import { ObjectId } from 'mongodb';
 
-const COLLECTION = 'statuses';
+const COLLECTION = 'status_events';
 
 export async function create(data) {
     const db = await connectDB();
     const doc = {
         ...data,
-        entityId: typeof data.entityId === 'string' ? new ObjectId(data.entityId) : data.entityId,
+        targetId: typeof data.targetId === 'string' ? new ObjectId(data.targetId) : data.targetId,
         timestamp: data.timestamp || new Date()
     };
     const result = await db.collection(COLLECTION).insertOne(doc);
-    return { _id: result.insertedId, ...doc };
+    return { ...doc, _id: result.insertedId };
 }
 
 export async function findByEntity(entityId, entityType) {
     const db = await connectDB();
+    // Singularize entityType for status_events query if needed, 
+    // but the service should pass the correct targetType
     return await db.collection(COLLECTION)
         .find({ 
-            entityId: typeof entityId === 'string' ? new ObjectId(entityId) : entityId,
-            entityType 
+            targetId: typeof entityId === 'string' ? new ObjectId(entityId) : entityId,
+            targetType: entityType 
         })
         .sort({ timestamp: -1 })
         .toArray();
@@ -34,8 +32,8 @@ export async function findLatestByEntity(entityId, entityType) {
     return await db.collection(COLLECTION)
         .findOne(
             { 
-                entityId: typeof entityId === 'string' ? new ObjectId(entityId) : entityId,
-                entityType 
+                targetId: typeof entityId === 'string' ? new ObjectId(entityId) : entityId,
+                targetType: entityType 
             },
             { sort: { timestamp: -1 } }
         );
