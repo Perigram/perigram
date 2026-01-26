@@ -18,7 +18,7 @@ export function mapLineageQuery(query = {}, lineageFields = []) {
 
     // logic: If it looks like an ID (ends in Id) and is a valid ObjectId, 
     // AND it's not the primary _id, assume it's part of the lineage.
-    if (key !== '_id' && key.endsWith('Id') && ObjectId.isValid(finalFilter[key])) {
+    if (key !== '_id' && !key.startsWith('lineage.') && key.endsWith('Id') && ObjectId.isValid(finalFilter[key])) {
       
       // Move to lineage path
       finalFilter[`lineage.${key}`] = new ObjectId(finalFilter[key]);
