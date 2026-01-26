@@ -31,11 +31,13 @@ export const stateMachines = {
       DRAFT: { label: 'Draft', canUpdateMeta: true },
       NESTING: { label: 'Nesting', canUpdateMeta: true },
       READY: { label: 'Ready', canUpdateMeta: true },
+      CUT: { label: 'Cut', isTerminal: true, canUpdateMeta: false },
       CLOSED: { label: 'Closed', isTerminal: true, canUpdateMeta: false }
     },
     transitions: [
       { from: 'DRAFT', to: 'NESTING', roles: ['SYSTEM', 'ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'READY', roles: ['SYSTEM'], hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'READY', to: 'CUT', roles: ['ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }, { handler: 'processPhysicalCut' }] },
       { from: 'READY', to: 'CLOSED', roles: ['ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'DRAFT', roles: ['SYSTEM', 'ADMIN'], hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'READY', to: 'DRAFT', roles: ['ADMIN'], hooks: [{ handler: 'triggerAggregator' }] },

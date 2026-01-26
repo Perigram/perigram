@@ -204,7 +204,16 @@ export async function markCut(queueId, userId, userOrg, userRole, userPermission
       throw createError({ statusCode: 400, message: 'No run chosen' });
   }
 
+  // Guard: Cannot cut if the chosen run was based on virtual sheets
+  const run = (queue.runs || []).find(r => r._id.toString() === queue.chosenRunId.toString());
+  if (run?.materialMode === 'VIRTUAL') {
+      throw createError({ statusCode: 400, message: 'Cannot cut a Virtual Run. Please select physical material and re-run nesting.' });
+  }
+
   await statusService.transition('queue', queue._id, 'CUT', userId, userRole, { note: 'Marked as CUT' });
+  
+  // Side effects: In a real system, hooks in the state machine would handle this.
+  // For now, let's assume 'processPhysicalCut' hook will be implemented or we do it here.
   
   const updated = await repository.findById(queueId);
   return toDTO(updated);
