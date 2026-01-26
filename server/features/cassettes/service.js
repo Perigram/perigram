@@ -79,7 +79,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
   const cassette = await repository.findById(id);
   if (!cassette) throw createError({ statusCode: 404, message: 'Template not found' });
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'catalogs', 'read')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -90,7 +90,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   const cassette = await repository.findById(id);
   if (!cassette) throw createError({ statusCode: 404, message: 'Template not found' });
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'catalogs', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -111,7 +111,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const cassette = await getById(id, userId, userOrg, userRole, userPermissions);
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'catalogs', 'admin')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
