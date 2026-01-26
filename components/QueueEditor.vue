@@ -4,11 +4,10 @@
         <div class="flex flex-col gap-4 bg-[var(--p-content-background)] p-6 rounded-xl border border-[var(--p-content-border-color)]">
             <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div class="flex flex-col gap-1">
-                    <div class="flex items-center gap-3">
-                        <h2 class="text-xl font-black m-0">{{ queue.name }}</h2>
-                        <EntityStatus :entity="queue" variant="inline" />
-                        <span class="text-sm font-medium text-[var(--p-text-muted-color)]">{{ entries.length }} {{ $t('queues.entries') }}</span>
-                    </div>
+            <div class="flex items-center gap-4">
+                <h2 class="text-3xl font-black m-0">{{ queueName }}</h2>
+                <EntityStatus :entity="queue" variant="inline" />
+            </div>
                     <TraceChain :ancestry="queueAncestry" />
                 </div>
                 <div class="flex flex-wrap gap-2 sm:ml-auto">
@@ -550,6 +549,8 @@ import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
 import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 
+import { useIdentity, useStatus, useSpecs } from '~/composables/useBlocks';
+
 const props = defineProps({
     queue: { type: Object, required: true },
     projectSlug: { type: String, required: true }
@@ -559,6 +560,9 @@ const emit = defineEmits(['updated']);
 const { t } = useI18n();
 const confirm = useConfirm();
 const toast = useToast();
+
+const { state: queueState } = useStatus(props.queue);
+const { name: queueName } = useIdentity(props.queue);
 
 const queuesStore = useQueuesStore();
 const cassettesStore = useCassettesStore();
