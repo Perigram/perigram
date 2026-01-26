@@ -5,11 +5,14 @@ const COLLECTION = 'users';
 
 export async function create(data) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).insertOne({
+  const doc = {
     ...data,
-    createdAt: new Date()
-  });
-  return await findById(result.insertedId);
+    _id: data._id || new ObjectId(),
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc;
 }
 
 export async function findById(id) {
@@ -19,31 +22,33 @@ export async function findById(id) {
 
 export async function findByEmail(email) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ email });
+  return await db.collection(COLLECTION).findOne({ email: email.toLowerCase() });
 }
 
-export async function find(filter = {}, options = {}) {
+export async function find(filter = {}) {
   const db = await connectDB();
-  return await db.collection(COLLECTION)
-    .find(filter)
-    .sort(options.sort || { createdAt: -1 })
-    .limit(options.limit || 100)
-    .toArray();
+  return await db.collection(COLLECTION).find(filter).toArray();
 }
 
 export async function updateById(id, updates) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).updateOne(
-    { _id: new ObjectId(id) },
-    { $set: updates }
+  const { _id, ...clean } = updates;
+  await db.collection(COLLECTION).updateOne(
+    { _id: new ObjectId(id) }, 
+    { $set: { ...clean, updatedAt: new Date() } }
   );
-  return result.modifiedCount > 0;
+  return await findById(id);
 }
 
-export async function updateLastLogin(userId) {
+export async function updateLastLogin(id) {
+    const db = await connectDB();
+    await db.collection(COLLECTION).updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { lastLoginAt: new Date() } }
+    );
+}
+
+export async function deleteById(id) {
   const db = await connectDB();
-  await db.collection(COLLECTION).updateOne(
-    { _id: new ObjectId(userId) },
-    { $set: { lastLoginAt: new Date() } }
-  );
+  return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }
