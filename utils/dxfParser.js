@@ -47,14 +47,25 @@ export async function extractDxfLayers(file) {
 }
 
 /**
- * Generate detailed SVG data from DXF text
- * @param {string} dxfText - DXF file content
- * @param {Object} layerMapping - Optional layer to pen mapping
- * @param {Object} defaultPen - Default pen
- * @returns {Object} - SVG data
+ * Generate detailed SVG data from DXF file
+ * @param {File|string} source - DXF file object or DXF text
+ * @param {Object} layerMapping - Optional layer to pen mapping { layerName: penTemplate }
+ * @param {Object} defaultPen - Default pen for unmapped layers
+ * @returns {Promise<Object>} - Object with viewbox, and layers with paths
  */
-export function generateSvgDataFromText(dxfText, layerMapping = {}, defaultPen = null) {
+export async function generateSvgData(source, layerMapping = {}, defaultPen = null) {
+  const getDxfText = async () => {
+    if (typeof source === 'string') return source;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(source);
+    });
+  };
+
   try {
+    const dxfText = await getDxfText();
     const parser = new DxfParser();
     const dxf = parser.parseSync(dxfText);
     
@@ -63,9 +74,10 @@ export function generateSvgDataFromText(dxfText, layerMapping = {}, defaultPen =
     }
     
     const defaultPenSettings = defaultPen || {
-      stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' }
+      stroke: { color: 'currentColor', weight: 0.5, pattern: 'SOLID' }
     };
     
+    // Calculate bounding box
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     
     dxf.entities.forEach(entity => {
@@ -89,33 +101,51 @@ export function generateSvgDataFromText(dxfText, layerMapping = {}, defaultPen =
       }
     });
     
-    if (!isFinite(minX)) return null;
+    if (!isFinite(minX) || !isFinite(maxX)) {
+      return null;
+    }
     
     const width = maxX - minX;
     const height = maxY - minY;
     const layers = {};
-    const getStrokeDasharray = (pattern) => pattern === 'DASHED' ? '5,5' : (pattern === 'DOTTED' ? '1,3' : 'none');
+    
+    const getStrokeDasharray = (pattern) => {
+      if (pattern === 'DASHED') return '5,5';
+      if (pattern === 'DOTTED') return '1,3';
+      return 'none';
+    };
     
     dxf.entities.forEach(entity => {
       if (!layers[entity.layer]) {
         const pen = layerMapping[entity.layer] || defaultPenSettings;
         layers[entity.layer] = {
           name: entity.layer,
-          color: pen.stroke?.color || '#000000',
+          color: pen.stroke?.color || 'currentColor',
           weight: pen.stroke?.weight || 0.5,
-          dasharray: getStrokeDasharray(pen.stroke?.pattern),
+          dasharray: getStrokeDasharray(pen.stroke?.pattern || 'SOLID'),
           paths: []
         };
       }
       
       const layer = layers[entity.layer];
-      if (entity.type === 'LINE') {
+      
+      if (entity.type === 'LINE' && entity.startPoint && entity.endPoint) {
         layer.paths.push(`<line x1="${entity.startPoint.x}" y1="${-entity.startPoint.y}" x2="${entity.endPoint.x}" y2="${-entity.endPoint.y}" />`);
-      } else if (entity.type === 'LWPOLYLINE' || entity.type === 'POLYLINE') {
+      } else if ((entity.type === 'LWPOLYLINE' || entity.type === 'POLYLINE') && entity.vertices) {
         const points = entity.vertices.map(v => `${v.x},${-v.y}`).join(' ');
         layer.paths.push(`<polyline points="${points}" fill="none" />`);
-      } else if (entity.type === 'CIRCLE') {
+      } else if (entity.type === 'CIRCLE' && entity.center && entity.radius) {
         layer.paths.push(`<circle cx="${entity.center.x}" cy="${-entity.center.y}" r="${entity.radius}" fill="none" />`);
+      } else if (entity.type === 'ARC' && entity.center && entity.radius) {
+        const startAngle = entity.startAngle * Math.PI / 180;
+        const endAngle = entity.endAngle * Math.PI / 180;
+        const x1 = entity.center.x + entity.radius * Math.cos(startAngle);
+        const y1 = entity.center.y + entity.radius * Math.sin(startAngle);
+        const x2 = entity.center.x + entity.radius * Math.cos(endAngle);
+        const y2 = entity.center.y + entity.radius * Math.sin(endAngle);
+        const largeArc = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
+        const sweep = endAngle > startAngle ? 0 : 1; // DXF angles are CCW
+        layer.paths.push(`<path d="M ${x1} ${-y1} A ${entity.radius} ${entity.radius} 0 ${largeArc} ${sweep} ${x2} ${-y2}" fill="none" />`);
       }
     });
     
@@ -124,123 +154,16 @@ export function generateSvgDataFromText(dxfText, layerMapping = {}, defaultPen =
       layers: Object.values(layers)
     };
   } catch (e) {
-    console.error('generateSvgDataFromText error:', e);
+    console.error('generateSvgData error:', e);
     return null;
   }
 }
 
 /**
- * Generate detailed SVG data from DXF file
- * @param {File} file - DXF file object
- * @param {Object} layerMapping - Optional layer to pen mapping { layerName: penTemplate }
- * @param {Object} defaultPen - Default pen for unmapped layers
- * @returns {Promise<Object>} - Object with viewbox, and layers with paths
+ * Robust wrapper for generateSvgData from text (backward compatibility)
  */
-export async function generateSvgData(file, layerMapping = {}, defaultPen = null) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      try {
-        const dxfText = e.target.result;
-        const parser = new DxfParser();
-        const dxf = parser.parseSync(dxfText);
-        
-        if (!dxf || !dxf.entities) {
-          reject(new Error('Invalid DXF file'));
-          return;
-        }
-        
-        const defaultPenSettings = defaultPen || {
-          stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' }
-        };
-        
-        // Calculate bounding box
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        
-        dxf.entities.forEach(entity => {
-          const checkPoint = (p) => {
-            if (p && p.x !== undefined && p.y !== undefined) {
-              minX = Math.min(minX, p.x);
-              minY = Math.min(minY, p.y);
-              maxX = Math.max(maxX, p.x);
-              maxY = Math.max(maxY, p.y);
-            }
-          };
-          
-          if (entity.vertices) entity.vertices.forEach(checkPoint);
-          if (entity.startPoint) checkPoint(entity.startPoint);
-          if (entity.endPoint) checkPoint(entity.endPoint);
-          if (entity.center && entity.radius) {
-            minX = Math.min(minX, entity.center.x - entity.radius);
-            minY = Math.min(minY, entity.center.y - entity.radius);
-            maxX = Math.max(maxX, entity.center.x + entity.radius);
-            maxY = Math.max(maxY, entity.center.y + entity.radius);
-          }
-        });
-        
-        if (!isFinite(minX) || !isFinite(maxX)) {
-          reject(new Error('Could not determine DXF bounds'));
-          return;
-        }
-        
-        const width = maxX - minX;
-        const height = maxY - minY;
-        
-        const layers = {};
-        
-        const getPenForLayer = (layerName) => layerMapping[layerName] || defaultPenSettings;
-        const getStrokeDasharray = (pattern) => {
-          if (pattern === 'DASHED') return '5,5';
-          if (pattern === 'DOTTED') return '1,3';
-          return 'none';
-        };
-        
-        dxf.entities.forEach(entity => {
-          if (!layers[entity.layer]) {
-            const pen = getPenForLayer(entity.layer);
-            layers[entity.layer] = {
-              name: entity.layer,
-              color: pen.stroke?.color || '#000000',
-              weight: pen.stroke?.weight || 0.5,
-              pattern: pen.stroke?.pattern || 'SOLID',
-              dasharray: getStrokeDasharray(pen.stroke?.pattern || 'SOLID'),
-              paths: []
-            };
-          }
-          
-          const layer = layers[entity.layer];
-          
-          if (entity.type === 'LINE' && entity.startPoint && entity.endPoint) {
-            layer.paths.push(`<line x1="${entity.startPoint.x}" y1="${-entity.startPoint.y}" x2="${entity.endPoint.x}" y2="${-entity.endPoint.y}" />`);
-          } else if ((entity.type === 'LWPOLYLINE' || entity.type === 'POLYLINE') && entity.vertices) {
-            const points = entity.vertices.map(v => `${v.x},${-v.y}`).join(' ');
-            layer.paths.push(`<polyline points="${points}" fill="none" ${entity.shape ? '' : ''} />`);
-          } else if (entity.type === 'CIRCLE' && entity.center && entity.radius) {
-            layer.paths.push(`<circle cx="${entity.center.x}" cy="${-entity.center.y}" r="${entity.radius}" fill="none" />`);
-          } else if (entity.type === 'ARC' && entity.center && entity.radius) {
-            const startAngle = entity.startAngle * Math.PI / 180;
-            const endAngle = entity.endAngle * Math.PI / 180;
-            const x1 = entity.center.x + entity.radius * Math.cos(startAngle);
-            const y1 = entity.center.y + entity.radius * Math.sin(startAngle);
-            const x2 = entity.center.x + entity.radius * Math.cos(endAngle);
-            const y2 = entity.center.y + entity.radius * Math.sin(endAngle);
-            const largeArc = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
-            layer.paths.push(`<path d="M ${x1} ${-y1} A ${entity.radius} ${entity.radius} 0 ${largeArc} 1 ${x2} ${-y2}" fill="none" />`);
-          }
-        });
-        
-        resolve({
-          viewBox: `${minX} ${-maxY} ${width} ${height}`,
-          minX, minY, maxX, maxY, width, height,
-          layers: Object.values(layers)
-        });
-      } catch (error) {
-        reject(error);
-      }
-    };
-    reader.readAsText(file);
-  });
+export async function generateSvgDataFromText(dxfText, layerMapping = {}, defaultPen = null) {
+  return await generateSvgData(dxfText, layerMapping, defaultPen);
 }
 
 /**

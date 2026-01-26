@@ -155,6 +155,40 @@ async function migrate() {
       }
     }
 
+    // 6. Migrate Cassettes
+    console.log('Migrating Cassettes...');
+    const cassettes = await db.collection('cassettes').find({ identity: { $exists: false } }).toArray();
+    for (const c of cassettes) {
+      const origin = { 
+        state: 'ACTIVE', 
+        userId: c.userId || 'SYSTEM', 
+        timestamp: c.createdAt || new Date(),
+        metadata: { note: 'Migrated from v23' }
+      };
+      
+      const targetOrgId = c.organizationId || c.ownerId || c.userId;
+      
+      await db.collection('cassettes').updateOne({ _id: c._id }, {
+        $set: {
+          identity: { 
+            slug: c.slug || `cassette-${c._id}`, 
+            name: c.name || 'Unnamed Template',
+            serial: '',
+            reference: ''
+          },
+          origin,
+          status: { ...origin, state: (c.status && typeof c.status === 'string') ? c.status : 'ACTIVE' },
+          lineage: { organizationId: targetOrgId ? new ObjectId(targetOrgId) : null },
+          definition: {
+            type: c.type || 'PARAMETRIC',
+            data: c.data || null,
+            parameters: c.parameters || []
+          }
+        },
+        $unset: { name: "", slug: "", userId: "", ownerId: "", type: "", data: "", parameters: "", processingStatus: "", createdAt: "", updatedAt: "", layerMapping: "", svgId: "", dxfId: "", organizationId: "" }
+      });
+    }
+
     console.log('Migration completed successfully.');
   } catch (err) {
     console.error('Migration failed:', err);

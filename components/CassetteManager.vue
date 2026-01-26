@@ -34,7 +34,7 @@
             <Inplace @open="onRenameStart(cassette)">
               <template #display>
                 <h3 class="m-0 text-lg font-bold text-[var(--p-text-color)] truncate cursor-pointer hover:text-[var(--p-primary-color)] transition-colors" v-tooltip.top="$t('cassette.clickToRename')">
-                  {{ cassette.name }}
+                  {{ getCassetteName(cassette) }}
                 </h3>
               </template>
               <template #content="{ closeCallback }">
@@ -46,16 +46,12 @@
               </template>
             </Inplace>
           </div>
-          <Tag 
-            :value="cassette.processingStatus" 
-            :severity="getStatusSeverity(cassette.processingStatus)"
-            class="uppercase text-[10px]"
-          />
+          <EntityStatus :entity="cassette" variant="inline" />
         </div>
 
         <div class="flex items-center gap-2 text-xs text-[var(--p-text-muted-color)]">
           <i class="pi pi-calendar"></i>
-          <span>{{ $t('common.created') }}: {{ formatDate(cassette.createdAt) }}</span>
+          <span>{{ $t('common.created') }}: {{ formatDate(cassette.status?.timestamp || cassette.origin?.timestamp) }}</span>
         </div>
 
         <div class="flex justify-end gap-2 pt-2 border-t border-[var(--p-content-border-color)] mt-auto">
@@ -93,7 +89,7 @@
       :modal="true"
       @hide="editingCassette = null"
     >
-      <CassetteDesigner :initial-data="editingCassette" />
+      <CassetteDesigner :initial-data="editingCassette" @saved="showDesignerDialog = false" />
     </Dialog>
   </div>
 </template>
@@ -102,6 +98,7 @@
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCassettesStore } from '~/stores/cassettes';
+import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
@@ -111,41 +108,32 @@ import { useToast } from 'primevue/usetoast';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteDesigner from './CassetteDesigner.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
+import EntityStatus from './entities/shared/EntityStatus.vue';
+import { useIdentity } from '~/composables/useBlocks';
 
 const { t } = useI18n();
 const cassettesStore = useCassettesStore();
+const { cassettes } = storeToRefs(cassettesStore);
 const toast = useToast();
 
-// Create local reactive state
-const cassettes = ref([]);
+// UI State
 const showUploadDialog = ref(false);
-const showEditDialog = ref(false);
 const showDesignerDialog = ref(false);
 const editingCassette = ref(null);
 const editingName = ref('');
 
 onMounted(async () => {
-  console.log('[CassetteManager] Component mounted');
-  const result = await cassettesStore.fetchCassettes();
-  cassettes.value = result || [];
-  console.log('[CassetteManager] Loaded cassettes:', cassettes.value.length);
+  await cassettesStore.fetchCassettes();
 });
-
-const getStatusSeverity = (status) => {
-  const severityMap = {
-    'done': 'success',
-    'completed': 'success',
-    'pending': 'warning',
-    'processing': 'info',
-    'error': 'danger',
-    'failed': 'danger'
-  };
-  return severityMap[status] || 'info';
-};
 
 const formatDate = (date) => {
   if (!date) return '';
   return new Date(date).toLocaleDateString();
+};
+
+const getCassetteName = (cassette) => {
+    const { name } = useIdentity(cassette);
+    return name.value;
 };
 
 const handleDelete = async (cassetteId) => {
@@ -165,7 +153,7 @@ const editCassette = (cassette) => {
 };
 
 const onRenameStart = (cassette) => {
-  editingName.value = cassette.name;
+  editingName.value = getCassetteName(cassette);
 };
 
 const onRename = async (cassette, closeCallback) => {
@@ -175,7 +163,7 @@ const onRename = async (cassette, closeCallback) => {
     return;
   }
   
-  if (newName === cassette.name) {
+  if (newName === getCassetteName(cassette)) {
     closeCallback();
     return;
   }

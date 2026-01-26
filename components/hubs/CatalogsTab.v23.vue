@@ -62,16 +62,16 @@
         <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-2">
                 <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('catalog.foilThicknessOptions') }} (mm)</label>
-                <Chips v-model="catalogForm.foilThicknessOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
+                <InputChips v-model="catalogForm.foilThicknessOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
             </div>
             <div class="flex flex-col gap-2">
                 <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('catalog.sheetThicknessOptions') }} (mm)</label>
-                <Chips v-model="catalogForm.sheetThicknessOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
+                <InputChips v-model="catalogForm.sheetThicknessOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
             </div>
         </div>
         <div class="flex flex-col gap-2">
             <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('catalog.widthOptions') }} (mm)</label>
-            <Chips v-model="catalogForm.widthOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
+            <InputChips v-model="catalogForm.widthOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
         </div>
         <div class="flex flex-col gap-2">
           <label class="font-bold text-sm uppercase tracking-wider text-surface-600 dark:text-surface-400">{{ $t('common.description') }}</label>

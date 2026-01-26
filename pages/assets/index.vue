@@ -1,13 +1,13 @@
 <template>
-    <div class="flex flex-col gap-6">
-        <TabView :activeIndex="activeTabIndex" @tab-change="onTabChange">
-            <TabPanel :header="$t('assets.cassettes')"></TabPanel>
-            <TabPanel :header="$t('assets.pens')"></TabPanel>
-            <TabPanel :header="$t('assets.tools')"></TabPanel>
-            <TabPanel :header="$t('assets.templates')"></TabPanel>
-        </TabView>
-        <div class="px-1">
-            <NuxtPage />
+        <div class="flex flex-col gap-6">
+            <Tabs :value="activeTabIndex">
+                <TabList>
+                    <Tab v-for="(tab, index) in tabs" :key="tab.key" :value="index" @click="onTabChange(index)">
+                        {{ tab.label }}
+                    </Tab>
+                </TabList>
+            </Tabs>
+            <div class="px-1">            <NuxtPage />
         </div>
     </div>
 </template>
@@ -16,8 +16,9 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import TabView from 'primevue/tabview';
-import TabPanel from 'primevue/tabpanel';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
 
 definePageMeta({
     layout: "app",
@@ -62,8 +63,8 @@ const updateActiveTab = () => {
     }
 };
 
-const onTabChange = (event) => {
-    const tab = tabs.value[event.index];
+const onTabChange = (index) => {
+    const tab = tabs.value[index];
     router.push(tab.to);
 };
 </script>

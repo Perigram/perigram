@@ -257,10 +257,11 @@ export async function evaluateTemplate(cassetteId, dimensions) {
 
   const engine = await getEngine();
   
-  // Merge entry dimensions with template data
+  // Merge entry dimensions with template data - v24 uses definition.data
+  const definitionData = template.definition?.data || template.data || {};
   const cassetteData = {
-    params: { ...(template.data?.params || {}), ...dimensions },
-    extrusions: template.data?.extrusions || []
+    params: { ...(definitionData.params || {}), ...dimensions },
+    extrusions: definitionData.extrusions || []
   };
 
   // Build the graph for this specific set of parameters
@@ -339,6 +340,8 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
   });
 
   const template = await repository.findTemplateById(cassetteId);
+  const templateName = template.identity?.name || template.name || 'Unnamed';
+  const templateSlug = template.identity?.slug || template.slug || 'unnamed';
   
   // ONLY use the largest polygon for nesting to avoid duplicate items
   const nestingPolygons = [polygons[0]];
@@ -351,8 +354,8 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
   }));
 
   const bakedData = {
-    name: `${template.name} (${evalDims.A}x${evalDims.B})`,
-    slug: `baked-${template.slug}-${Date.now()}`,
+    name: `${templateName} (${evalDims.A}x${evalDims.B})`,
+    slug: `baked-${templateSlug}-${Date.now()}`,
     userId: userId,
     type: 'BAKED_PARAMETRIC',
     dxfId: fileId,

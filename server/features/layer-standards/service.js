@@ -15,13 +15,11 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const standardData = {
     identity: createIdentity(name || code),
     lineage,
-    config: {
-      code,
-      category,
-      defaultPenId: defaultPenId ? new ObjectId(defaultPenId) : null,
-      i18n: i18n || { en: { nameTemplate: name }, ru: { nameTemplate: name } },
-      parameters: parameters || []
-    }
+    code,
+    category,
+    defaultPenId: defaultPenId ? new ObjectId(defaultPenId) : null,
+    i18n: i18n || { en: { nameTemplate: name }, ru: { nameTemplate: name } },
+    parameters: parameters || []
   };
 
   return await repository.create(standardData);
@@ -29,6 +27,14 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
 export async function list(filter = {}) {
   return await repository.find(filter);
+}
+
+export async function getAll() {
+  return await list({});
+}
+
+export async function getByCategory(category) {
+  return await list({ category });
 }
 
 export async function getByCode(code) {

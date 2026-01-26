@@ -63,16 +63,16 @@
         <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-2">
                 <label class="font-bold text-sm uppercase tracking-wider">{{ $t('catalog.foilThicknessOptions') }} (mm)</label>
-                <Chips v-model="catalogForm.foilThicknessOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
+                <InputChips v-model="catalogForm.foilThicknessOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
             </div>
             <div class="flex flex-col gap-2">
                 <label class="font-bold text-sm uppercase tracking-wider">{{ $t('catalog.sheetThicknessOptions') }} (mm)</label>
-                <Chips v-model="catalogForm.sheetThicknessOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
+                <InputChips v-model="catalogForm.sheetThicknessOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
             </div>
         </div>
         <div class="flex flex-col gap-2">
             <label class="font-bold text-sm uppercase tracking-wider">{{ $t('catalog.widthOptions') }} (mm)</label>
-            <Chips v-model="catalogForm.widthOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
+            <InputChips v-model="catalogForm.widthOptions" :placeholder="$t('catalog.placeholders.commaSeparated')" />
         </div>
         <div class="flex flex-col gap-2">
           <label class="font-bold text-sm uppercase tracking-wider">{{ $t('common.description') }}</label>
@@ -148,7 +148,7 @@ import Dialog from 'primevue/dialog';
 import ColorPicker from 'primevue/colorpicker';
 import FileUpload from 'primevue/fileupload';
 import Select from 'primevue/select';
-import Chips from 'primevue/chips';
+import InputChips from 'primevue/inputchips';
 
 const toast = useToast();
 const authStore = useAuthStore();

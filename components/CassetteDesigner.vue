@@ -262,6 +262,7 @@
 
     const toast = useToast()
     const cassettesStore = useCassettesStore()
+    const emit = defineEmits(['saved'])
 
     // State
     const isReady = ref(false)
@@ -279,7 +280,11 @@
     const newParam = reactive({ name: '', value: 100 })
 
     // Load initial data if provided
-    if (props.initialData?.data) {
+    if (props.initialData?.definition?.data) {
+        Object.assign(cassetteData.params, props.initialData.definition.data.params)
+        cassetteData.extrusions = [...props.initialData.definition.data.extrusions]
+    } else if (props.initialData?.data) {
+        // Fallback for legacy data
         Object.assign(cassetteData.params, props.initialData.data.params)
         cassetteData.extrusions = [...props.initialData.data.extrusions]
     }
@@ -484,7 +489,9 @@
         try {
             const body = {
                 name: cassetteName.value,
-                data: JSON.parse(JSON.stringify(cassetteData))
+                type: 'PARAMETRIC',
+                data: JSON.parse(JSON.stringify(cassetteData)),
+                parameters: Object.keys(cassetteData.params)
             }
 
             if (props.initialData?._id) {
@@ -494,6 +501,7 @@
             }
             
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.messages.saveSuccess'), life: 3000 })
+            emit('saved')
         } catch (e) {
             toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassette.errors.saveFailed'), life: 3000 })
         }

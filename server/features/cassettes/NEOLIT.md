@@ -1,34 +1,33 @@
-# COMPONENT: Cassettes Feature (v24 Standardized)
+# COMPONENT: Cassette Templates (v24 Standardized)
 
-Manages cassette templates (Standard DXF and Parametric) using standardized v24 architecture.
+Manages cassette templates (Standard and Parametric) using standardized v24 architecture. Templates represent the digital logic/source for creating designs.
 
 ## Core Files
 - `repository.js`: Database operations on `cassettes` collection.
-- `service.js`: CRUD logic, DXF extraction, and lineage-based permission handling.
+- `service.js`: Template management and permission handling.
 
 ## Data Structure (v24)
-Cassettes use the standardized block architecture:
+Aligned with `@PROPOSED_DATA_MODEL.md` Section 10:
 
-- **`identity`**: `{ name, slug }`
-- **`status`**: Current lifecycle state (DRAFT, ACTIVE, ARCHIVED).
-- **`origin`**: Creation snapshot.
-- **`lineage`**: `{ organizationId }` (or userId for individual templates).
+- **`identity`**: `{ slug, name, serial, reference }`
+- **`status`**: Current snapshot [StatusBlock].
+- **`origin`**: Creation snapshot [StatusBlock].
+- **`lineage`**: `{ organizationId }`
 - **`definition`**:
-    - `type`: `STANDARD` | `PARAMETRIC`
-    - `data`: Geometry logic (for parametric) or file references.
-    - `parameters`: Configurable dimensions for parametric evaluation.
+    - `type`: `PARAMETRIC` | `STANDARD`
+    - `data`: The JSON Graph or Logic.
+    - `parameters`: Array<String> (Configurable variable names).
 
 ## Key Workflows
 
+### Digital Intent vs. Baked Geometry
+Templates in the `cassettes` collection do NOT store DXF files or physical tracking data. They serve as the source for `cassette_designs`.
+- **Parametric**: The `definition.data` contains the Nodi3D graph logic.
+- **Standard**: The `definition.data` contains the static definition which is baked into a `cassette_design` for production.
+
 ### Permission Model
-Cassette access is strictly controlled via `lineage`. Templates belong to an `organizationId`. If a user is not in an organization, the `organizationId` stores their `userId` for individual ownership.
-
-### State Transitions
-Managed via the `cassette` state machine. Transitions between `DRAFT` and `ACTIVE` ensure templates are ready for production use.
-
-## API Integration
-The service uses `hasLineagePermission` for all operations, ensuring multi-tenant isolation even for individual users.
+Access is governed by `lineage.organizationId`. Multi-tenant isolation is enforced at the service layer using `hasLineagePermission`.
 
 ## Related
-- [parametric-cassettes](../parametric-cassettes/NEOLIT.md) - Evaluation engine.
-- [layer-standards](../layer-standards/NEOLIT.md) - Source for interpretation rules.
+- [cassette-designs](../cassette-designs/NEOLIT.md) - Stores baked geometry and DXF references.
+- [parametric-cassettes](../parametric-cassettes/NEOLIT.md) - Engine for evaluating parametric logic.

@@ -1,9 +1,9 @@
+@import 'primeicons/primeicons.css';
+@import './variants.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import 'primeicons/primeicons.css';
-@import './variants.css';
 
 /* Global Scrollbar Styles */
 ::-webkit-scrollbar {
@@ -54,12 +54,12 @@
     background: var(--p-primary-color);
 }
 
-/* Fix for TabView overflow on small screens */
-.p-tabview-nav-container {
+/* Fix for Tabs overflow on small screens */
+.p-tabs-list {
     overflow-x: auto;
 }
 
-.p-tabview-nav {
+.p-tabs-nav {
     white-space: nowrap;
     flex-wrap: nowrap !important;
 }

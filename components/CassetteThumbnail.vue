@@ -87,9 +87,14 @@ const updateThumbnail = async () => {
   if (!cassette && cid) {
     loading.value = true;
     try {
-      cassette = await $fetch(`/api/cassettes/${cid}`);
+      // First try designs (most common for baked/uploaded)
+      cassette = await $fetch(`/api/cassette-designs/${cid}`).catch(() => null);
+      if (!cassette) {
+          // Then try templates
+          cassette = await $fetch(`/api/cassettes/${cid}`).catch(() => null);
+      }
     } catch (e) {
-      console.warn('Failed to fetch cassette for thumbnail:', e);
+      console.warn('Failed to fetch item for thumbnail:', e);
     }
   }
 
@@ -98,11 +103,25 @@ const updateThumbnail = async () => {
     return;
   }
 
-  // If it's parametric, use the dynamic renderer
-  if (cassette.type === 'PARAMETRIC' || cassette.data) {
+  // 1. Handle Designs (Baked/Static Geometry)
+  if (cassette.geometry?.dxfId) {
     loading.value = true;
     try {
-      // Use requestIdleCallback or a longer timeout to yield to UI thread
+      const dxfText = await $fetch(`/api/files/download/${cassette.geometry.dxfId}?bucket=cassettes`);
+      const data = await generateSvgDataFromText(dxfText, {}, { stroke: { color: 'currentColor', weight: 0.5 } });
+      if (data) renderingData.value = data;
+    } catch (error) {
+      console.warn('Failed to load design DXF for thumbnail:', error);
+    } finally {
+      loading.value = false;
+    }
+    return;
+  }
+
+  // 2. Handle Parametric Templates
+  if (cassette.definition?.type === 'PARAMETRIC' || (cassette.definition?.data && !cassette.definition?.dxfId)) {
+    loading.value = true;
+    try {
       if (window.requestIdleCallback) {
           await new Promise(resolve => window.requestIdleCallback(resolve, { timeout: 200 }));
       } else {
@@ -111,29 +130,34 @@ const updateThumbnail = async () => {
 
       const renderData = {
         params: {
-          ...(cassette.data?.params || {}),
+          ...(cassette.definition?.data?.params || {}),
           ...(props.dimensions || {})
         },
-        extrusions: cassette.data?.extrusions || []
+        extrusions: cassette.definition?.data?.extrusions || []
       };
       
       const result = await renderCassetteToSVG(renderData);
-      if (result) {
-        renderingData.value = result;
-      }
+      if (result) renderingData.value = result;
     } catch (error) {
       console.error('Failed to render parametric cassette:', error);
     } finally {
       loading.value = false;
     }
-  } else {
-    // Standard DXF cassette
+    return;
+  }
+
+  // 3. Handle Standard Templates (Fallback: find associated design)
+  if (cassette.definition?.type === 'STANDARD') {
     loading.value = true;
     try {
-      const dxfText = await $fetch(`/api/cassettes/${cassette._id}/dxf`);
-      renderingData.value = generateSvgDataFromText(dxfText, {}, { stroke: { color: 'currentColor', weight: 0.5 } });
+      const design = await $fetch(`/api/cassette-designs/by-template/${cassette._id}`);
+      if (design?.geometry?.dxfId) {
+        const dxfText = await $fetch(`/api/files/download/${design.geometry.dxfId}?bucket=cassettes`);
+        const data = await generateSvgDataFromText(dxfText, {}, { stroke: { color: 'currentColor', weight: 0.5 } });
+        if (data) renderingData.value = data;
+      }
     } catch (error) {
-      console.warn('Failed to load DXF for thumbnail:', error);
+      console.warn('Failed to load standard template design for thumbnail:', error);
     } finally {
       loading.value = false;
     }

@@ -36,8 +36,7 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
     geometry: {
       data: data.geometryData || null,
       dxfId: data.dxfId ? new ObjectId(data.dxfId) : null
-    },
-    parameters: data.parameters || {}
+    }
   };
 
   return await repository.create(designData);
@@ -55,9 +54,27 @@ export async function getById(id, userId, userRole, userPermissions) {
   return design;
 }
 
-export async function list(userId, userRole, userPermissions, filter = {}) {
-  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
-  const finalFilter = mapLineageQuery({ ...lineageFilter, ...filter });
+export async function getByTemplateId(templateId, userId, userOrg, userRole, userPermissions) {
+  if (!ObjectId.isValid(templateId)) throw createError({ statusCode: 400, message: 'Invalid ID' });
+  
+  const filter = { 'lineage.templateId': new ObjectId(templateId) };
+  if (userRole !== 'SuperAdmin') {
+    const targetOrgId = userOrg || userId;
+    filter['lineage.organizationId'] = new ObjectId(targetOrgId);
+  }
+
+  const designs = await repository.find(filter);
+  return designs[0] || null;
+}
+
+export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
+  const finalFilter = mapLineageQuery(filter);
+  
+  if (userRole !== 'SuperAdmin') {
+    const targetOrgId = userOrg || userId;
+    finalFilter['lineage.organizationId'] = new ObjectId(targetOrgId);
+  }
+
   return await repository.find(finalFilter);
 }
 

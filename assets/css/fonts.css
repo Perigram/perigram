@@ -21,7 +21,7 @@ html {
 .p-component,
 .p-inputtext,
 .p-button,
-.p-dropdown,
+.p-select,
 .p-dialog {
   font-family: 'JetBrains Mono', monospace !important;
 }

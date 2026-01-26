@@ -70,51 +70,61 @@
         </div>
 
         <!-- Inventory Explorer -->
-        <TabView class="mt-4">
-            <TabPanel :header="$t('warehouse.storedBatches')">
-                <div v-if="batches.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                    <BatchCard 
-                        v-for="batch in batches" 
-                        :key="batch._id" 
-                        :batch="batch" 
-                        variant="compact"
-                        @view="trace(batch, 'batch')"
-                    />
-                </div>
-                <div v-else-if="!loading" class="text-center py-12 opacity-40 italic">No batches stored</div>
-            </TabPanel>
-            <TabPanel :header="$t('warehouse.availableSheets')">
-                <div v-if="sheets.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                    <SheetCard 
-                        v-for="sheet in sheets" 
-                        :key="sheet._id" 
-                        :sheet="sheet" 
-                        variant="compact"
-                        @click="trace(sheet, 'sheet')"
-                    />
-                </div>
-                <div v-else-if="!loading" class="text-center py-12 opacity-40 italic">No sheets available</div>
-            </TabPanel>
-            <TabPanel :header="$t('warehouse.remnants')">
-                <div v-if="remnants.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                    <RemnantCard 
-                        v-for="remnant in remnants" 
-                        :key="remnant._id" 
-                        :remnant="remnant" 
-                        variant="compact"
-                        @click="trace(remnant, 'remnant')"
-                    />
-                </div>
-                <div v-else-if="!loading" class="text-center py-12 opacity-40 italic">No remnants available</div>
-            </TabPanel>
-        </TabView>
+        <Tabs value="0" class="mt-4">
+            <TabList>
+                <Tab value="0">{{ $t('warehouse.storedBatches') }}</Tab>
+                <Tab value="1">{{ $t('warehouse.availableSheets') }}</Tab>
+                <Tab value="2">{{ $t('warehouse.remnants') }}</Tab>
+            </TabList>
+            <TabPanels>
+                <TabPanel value="0">
+                    <div v-if="batches.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                        <BatchCard 
+                            v-for="batch in batches" 
+                            :key="batch._id" 
+                            :batch="batch" 
+                            variant="compact"
+                            @view="trace(batch, 'batch')"
+                        />
+                    </div>
+                    <div v-else-if="!loading" class="text-center py-12 opacity-40 italic">No batches stored</div>
+                </TabPanel>
+                <TabPanel value="1">
+                    <div v-if="sheets.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                        <SheetCard 
+                            v-for="sheet in sheets" 
+                            :key="sheet._id" 
+                            :sheet="sheet" 
+                            variant="compact"
+                            @click="trace(sheet, 'sheet')"
+                        />
+                    </div>
+                    <div v-else-if="!loading" class="text-center py-12 opacity-40 italic">No sheets available</div>
+                </TabPanel>
+                <TabPanel value="2">
+                    <div v-if="remnants.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                        <RemnantCard 
+                            v-for="remnant in remnants" 
+                            :key="remnant._id" 
+                            :remnant="remnant" 
+                            variant="compact"
+                            @click="trace(remnant, 'remnant')"
+                        />
+                    </div>
+                    <div v-else-if="!loading" class="text-center py-12 opacity-40 italic">No remnants available</div>
+                </TabPanel>
+            </TabPanels>
+        </Tabs>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue';
 import Panel from 'primevue/panel';
-import TabView from 'primevue/tabview';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
+import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Button from 'primevue/button';
 import Card from 'primevue/card';

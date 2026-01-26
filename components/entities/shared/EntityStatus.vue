@@ -3,7 +3,7 @@
  * Universal Status Component - v24 Standardized
  */
 import Tag from 'primevue/tag';
-import OverlayPanel from 'primevue/overlaypanel';
+import Popover from 'primevue/popover';
 import UserCard from '../User/UserCard.vue';
 import { ref, computed } from 'vue';
 import { useStatus } from '~/composables/useBlocks';
@@ -49,7 +49,7 @@ const statusUser = computed(() => ({
       </div>
     </template>
 
-    <OverlayPanel ref="op">
+    <Popover ref="op">
         <div class="flex flex-col gap-2">
             <div class="flex flex-col">
                 <small class="font-bold">Last Updated</small>
@@ -64,6 +64,6 @@ const statusUser = computed(() => ({
                 <span class="italic">"{{ metadata.note }}"</span>
             </div>
         </div>
-    </OverlayPanel>
+    </Popover>
   </div>
 </template>

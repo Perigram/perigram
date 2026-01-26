@@ -13,6 +13,11 @@ const props = defineProps({
 });
 
 const { name } = useIdentity(props.template);
+
+const downloadDxf = () => {
+    const url = `/api/cassettes/${props.template._id}/export`;
+    window.open(url, '_blank');
+};
 </script>
 
 <template>
@@ -52,8 +57,9 @@ const { name } = useIdentity(props.template);
         <Tag v-for="param in template.definition?.parameters" :key="param" :value="param" severity="secondary" class="text-[9px] font-black tracking-widest px-2 py-0.5" />
       </div>
 
-      <div class="mt-auto pt-4 border-t border-surface-100 dark:border-surface-800">
-         <Button label="Create Instance" icon="pi pi-plus" size="small" outlined class="w-full font-bold" />
+      <div class="mt-auto pt-4 border-t border-surface-100 dark:border-surface-800 flex gap-2">
+         <Button label="Create Instance" icon="pi pi-plus" size="small" outlined class="flex-1 font-bold" />
+         <Button icon="pi pi-download" size="small" text rounded class="h-8 w-8" @click="downloadDxf" />
       </div>
     </template>
   </div>

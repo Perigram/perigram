@@ -4,7 +4,7 @@
     :header="cassette ? $t('cassette.editTitle') : $t('cassette.uploadTitle')"
     :modal="true"
     :closable="!isUploading"
-    :style="{ width: '95vw', maxWidth: '900px' }"
+    :style="{ width: '90vw', maxWidth: '700px' }"
     @hide="handleClose"
   >
     <div class="flex flex-col gap-6 py-2">
@@ -43,28 +43,38 @@
       </div>
 
       <!-- Layer Mapping Section -->
-      <div v-if="showMappingSection && !isUploading" class="flex flex-col lg:flex-row gap-8">
-        <div class="flex-1 min-h-[300px] bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] p-6 rounded-xl flex items-center justify-center relative overflow-hidden shadow-inner">
-          <div v-if="svgPreview" class="w-full h-full flex items-center justify-center [&>svg]:max-w-full [&>svg]:max-h-full" v-html="svgPreview"></div>
+      <div v-if="showMappingSection && !isUploading" class="flex flex-col gap-6">
+        <div class="flex-1 h-48 bg-zinc-50 dark:bg-zinc-900 border border-[var(--p-content-border-color)] rounded-xl flex items-center justify-center relative overflow-hidden">
+          <svg 
+            v-if="renderingData" 
+            xmlns="http://www.w3.org/2000/svg" 
+            :viewBox="renderingData.viewBox" 
+            class="w-full h-full p-4"
+          >
+            <g v-for="layer in renderingData.layers" :key="layer.name" :stroke="layer.color" :stroke-width="layer.weight * 5" fill="none" stroke-linecap="round" stroke-linejoin="round" :stroke-dasharray="layer.dasharray">
+              <g v-html="layer.paths.join('')"></g>
+            </g>
+          </svg>
           <div v-else class="flex flex-col items-center gap-3 text-[var(--p-text-muted-color)]">
             <i class="pi pi-image text-5xl opacity-20"></i>
             <p class="text-sm font-medium">{{ $t('cassette.noPreview') }}</p>
           </div>
         </div>
 
-        <div class="w-full lg:w-80 flex flex-col gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="flex flex-col gap-4">
-            <h3 class="text-sm font-bold uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('cassette.layerMapping') }}</h3>
-            <div v-if="detectedLayers && detectedLayers.length > 0" class="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-              <div v-for="(layer, index) in detectedLayers" :key="index" class="flex flex-col gap-1.5 p-3 rounded-lg bg-[var(--p-content-background)] border border-[var(--p-content-border-color)]">
-                <label class="text-xs font-bold text-[var(--p-text-color)] truncate" :title="layer">{{ layer }}</label>
+            <h3 class="text-xs font-bold uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('cassette.layerMapping') }}</h3>
+            <div v-if="detectedLayers && detectedLayers.length > 0" class="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+              <div v-for="(layer, index) in detectedLayers" :key="index" class="flex flex-col gap-1 p-2 rounded-lg bg-[var(--p-content-background)] border border-[var(--p-content-border-color)]">
+                <label class="text-[10px] font-bold text-[var(--p-text-color)] truncate" :title="layer">{{ layer }}</label>
                 <Select 
                   v-model="layerMappings[layer]"
                   :options="layerStandards"
                   optionLabel="label"
                   optionValue="value"
                   :placeholder="$t('cassette.selectLayerType')"
-                  class="w-full text-sm"
+                  class="w-full text-xs"
+                  size="small"
                 />
               </div>
             </div>
@@ -73,17 +83,16 @@
             </Message>
           </div>
           
-          <div class="flex flex-col gap-4 pt-4 border-t border-[var(--p-content-border-color)]">
-            <h3 class="text-sm font-bold uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('cassette.parameters') }}</h3>
+          <div class="flex flex-col gap-4">
+            <h3 class="text-xs font-bold uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('cassette.parameters') }}</h3>
             <div class="flex flex-col gap-2">
-              <p class="text-xs text-[var(--p-text-secondary-color)] leading-relaxed">{{ $t('cassette.parametersHelp') }}</p>
-              <Chips 
+              <p class="text-[10px] text-[var(--p-text-secondary-color)] leading-relaxed">{{ $t('cassette.parametersHelp') }}</p>
+              <InputChips 
                 v-model="parameters" 
                 :placeholder="$t('cassette.parametersPlaceholder')"
                 separator=","
                 class="w-full"
               />
-              <small class="text-[10px] text-[var(--p-text-muted-color)] italic font-mono">{{ $t('cassette.parametersHint') }}</small>
             </div>
           </div>
         </div>
@@ -116,12 +125,19 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useCassettesStore } from '~/stores/cassettes';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { storeToRefs } from 'pinia';
-import Chips from 'primevue/chips';
+import InputChips from 'primevue/inputchips';
 import Select from 'primevue/select';
+import Dialog from 'primevue/dialog';
+import ProgressSpinner from 'primevue/progressspinner';
+import Message from 'primevue/message';
+import InputText from 'primevue/inputtext';
+import FileUpload from 'primevue/fileupload';
+import Button from 'primevue/button';
 
 const props = defineProps({
   modelValue: {
@@ -135,6 +151,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue', 'uploaded', 'saved']);
+const { t } = useI18n();
 
 const isOpen = computed({
   get: () => props.modelValue,
@@ -148,7 +165,7 @@ const errorMessage = ref('');
 const cassette = ref(null);
 const detectedLayers = ref([]);
 const layerMappings = ref({});
-const svgPreview = ref(null);
+const renderingData = ref(null);
 const dxfFile = ref(null);
 const parameters = ref(['A', 'B', 'C', 'D', 'E', 'F', 'horizontal_seam_width']);
 
@@ -203,14 +220,8 @@ watch(() => props.cassetteId, async (newId) => {
   if (newId) {
     try {
       cassette.value = await cassettesStore.fetchById(newId);
-      if (cassette.value.layerMapping) {
-        const mappings = {};
-        Object.entries(cassette.value.layerMapping).forEach(([type, layers]) => {
-          layers.forEach(layer => {
-            mappings[layer] = type;
-          });
-        });
-        layerMappings.value = mappings;
+      if (cassette.value.definition?.data?.mapping) {
+        layerMappings.value = { ...cassette.value.definition.data.mapping };
       }
     } catch (error) {
       errorMessage.value = 'Failed to load cassette';
@@ -250,7 +261,7 @@ const handleFileSelect = async (event) => {
       console.error('DXF parsing failed:', error);
       selectedFile.value = null;
       detectedLayers.value = [];
-      svgPreview.value = null;
+      renderingData.value = null;
     } finally {
       isUploading.value = false;
     }
@@ -261,7 +272,7 @@ const updatePreview = async () => {
   if (!dxfFile.value) return;
   
   try {
-    const { generateSvgPreview } = await import('~/utils/dxfParser');
+    const { generateSvgData } = await import('~/utils/dxfParser');
     const currentSystemPens = systemPens.value;
     const defaultPen = currentSystemPens.length > 0 ? currentSystemPens[0] : {
       stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' }
@@ -280,8 +291,8 @@ const updatePreview = async () => {
       }
     }
     
-    const svg = await generateSvgPreview(dxfFile.value, layerToPenMap, defaultPen);
-    svgPreview.value = svg;
+    const data = await generateSvgData(dxfFile.value, layerToPenMap, defaultPen);
+    renderingData.value = data;
   } catch (error) {
     console.error('Failed to update preview:', error);
   }
@@ -344,8 +355,12 @@ const resetForm = () => {
   cassette.value = null;
   layerMappings.value = {};
   detectedLayers.value = [];
-  svgPreview.value = null;
+  renderingData.value = null;
 };
+
+defineExpose({
+  handleFileSelect
+});
 </script>
 
 <style scoped>

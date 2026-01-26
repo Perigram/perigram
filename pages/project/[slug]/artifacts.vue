@@ -10,12 +10,15 @@
       <p class="text-[var(--p-text-secondary-color)] mt-2 font-medium">{{ $t('artifacts.createQueueFirst') }}</p>
     </div>
 
-    <Accordion v-else :multiple="true" :activeIndex="[0]" class="flex flex-col gap-4">
-      <AccordionTab v-for="queue in queues" :key="queue._id" :header="queue.name || `${$t('queue.title')} ${queue.queueNumber}`">
-        <div class="pt-4">
-          <ArtifactsTable :batch-id="queue._id" />
-        </div>
-      </AccordionTab>
+    <Accordion v-else :multiple="true" :value="['0']" class="flex flex-col gap-4">
+      <AccordionPanel v-for="(queue, index) in queues" :key="queue._id" :value="index.toString()">
+        <AccordionHeader>{{ queue.name || `${$t('queue.title')} ${queue.queueNumber}` }}</AccordionHeader>
+        <AccordionContent>
+          <div class="pt-4">
+            <ArtifactsTable :batch-id="queue._id" />
+          </div>
+        </AccordionContent>
+      </AccordionPanel>
     </Accordion>
   </div>
 </template>
@@ -24,7 +27,9 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import Accordion from 'primevue/accordion';
-import AccordionTab from 'primevue/accordiontab';
+import AccordionPanel from 'primevue/accordionpanel';
+import AccordionHeader from 'primevue/accordionheader';
+import AccordionContent from 'primevue/accordioncontent';
 import ProgressSpinner from 'primevue/progressspinner';
 import ArtifactsTable from '~/components/ArtifactsTable.vue';
 

@@ -102,13 +102,21 @@ export default defineNuxtConfig({
                 'primevue/checkbox',
                 'primevue/inplace',
                 'primevue/chip',
+                'primevue/inputchips',
                 'primevue/accordion',
-                'primevue/accordiontab',
+                'primevue/accordionpanel',
+                'primevue/accordionheader',
+                'primevue/accordioncontent',
+                'primevue/popover',
+                'primevue/drawer',
+                'primevue/datepicker',
+                'primevue/toggleswitch',
                 'primevue/password',
                 'primevue/tabs',
                 'primevue/tablist',
                 'primevue/tab',
-                'primevue/tabpanels'
+                'primevue/tabpanels',
+                'primevue/tabpanel'
             ],
             exclude: ['nodi-modular']
         },

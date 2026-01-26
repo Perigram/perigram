@@ -2,6 +2,25 @@
   - [ ] Login failed: FetchError: [POST] "/api/auth/login": 401 
 
 *** Agent Notes
+    [2026-01-27] Deployment & Containerization Fixes for Railway monorepo
+    Files changed: 
+    - Dockerfile
+    - build-images.sh
+    - server/utils/extract-data-models.js
+    - workers/cassette-processing/Dockerfile
+    - workers/cassette-processing/core/process.py
+    - workers/fileprocessing/Dockerfile
+    - workers/nesting/Dockerfile
+    Docs updated: 
+    - workers/NEOLIT.md
+    Notes: 
+    - Updated all worker Dockerfiles to use root-relative paths for monorepo compatibility on Railway.
+    - Standardized build-images.sh to run docker build from the project root.
+    - Fixed runtime crash in Nuxt app by making data model extraction fail-safe if features directory is missing.
+    - Updated cassette-processing worker to correctly resolve the fileprocessing sibling directory path in Docker (/app/fileprocessing).
+    - Added cassette-processing worker to the build and push script.
+
+*** Agent Notes
     [2026-01-26] Final v24 alignment and UI polishing.
     Files changed: 
     - components/QueueEditor.vue
