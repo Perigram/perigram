@@ -25,15 +25,6 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   // Lineage: Templates belong to the organization (Manufacturer or User's own org)
   const lineage = { organizationId: new ObjectId(userOrg) };
 
-  const isAuthorized = userRole.includes('Manufacturer') || 
-                       userRole === 'SuperAdmin' || 
-                       userRole === 'ADMIN' || 
-                       userRole === 'IndividualUser';
-                       
-  if (!isAuthorized) {
-    throw createError({ statusCode: 403, message: 'Your role is not authorized to create cassette templates' });
-  }
-
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
   }

@@ -19,12 +19,6 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
   const role = data.role || 'IndividualUser';
   const permissions = PERMISSION_TEMPLATES[role] || PERMISSION_TEMPLATES['IndividualUser'];
   
-  // Update permissions for IndividualUser if not already set robustly
-  if (role === 'IndividualUser') {
-      permissions.requisitions = 'admin';
-      permissions.catalogs = 'read';
-  }
-
   const memberships = [];
   if (data.organizationId) {
     memberships.push({
