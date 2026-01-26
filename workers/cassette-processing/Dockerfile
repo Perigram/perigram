@@ -4,9 +4,9 @@ WORKDIR /app
 
 RUN pip install --upgrade pip
 
-# Assuming build context is the 'workers' directory
-COPY fileprocessing /app/fileprocessing
-COPY cassette-processing /app/cassette-processing
+# Build context should be the project root
+COPY workers/fileprocessing /app/fileprocessing
+COPY workers/cassette-processing /app/cassette-processing
 
 # Install dependencies
 RUN pip install --no-cache-dir -r cassette-processing/requirements.txt

@@ -5,7 +5,13 @@ import sys
 from pathlib import Path
 
 # Import geometry building from fileprocessing
-sys.path.append(str(Path(__file__).parent.parent.parent / 'fileprocessing'))
+# In Docker: /app/fileprocessing and /app/cassette-processing
+# Locally: workers/fileprocessing and workers/cassette-processing
+if os.path.exists('/app/fileprocessing'):
+    sys.path.append('/app/fileprocessing')
+else:
+    sys.path.append(str(Path(__file__).parent.parent.parent / 'fileprocessing'))
+
 from core.geometry.build_geometry import build_geometry
 from core.geometry.dxf_parser import convert_entity_to_shapely
 

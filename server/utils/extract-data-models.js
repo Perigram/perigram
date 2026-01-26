@@ -10,7 +10,8 @@ import path from 'path';
 function getFeaturesDir() {
   const possiblePaths = [
     path.resolve(process.cwd(), 'server/features'),
-    path.resolve('/home/suo/cutkit-demo/server/features'),
+    path.resolve(process.cwd(), '.output/server/features'),
+    '/src/server/features',
   ];
   
   for (const p of possiblePaths) {
@@ -19,7 +20,7 @@ function getFeaturesDir() {
     }
   }
   
-  throw new Error(`Could not find features directory. Tried: ${possiblePaths.join(', ')}`);
+  return null;
 }
 
 const FEATURES_DIR = getFeaturesDir();
@@ -266,6 +267,10 @@ function readSpecFile(featurePath) {
 export async function extractDataModels() {
   const models = [];
   
+  if (!FEATURES_DIR) {
+    return models;
+  }
+  
   const features = fs.readdirSync(FEATURES_DIR);
   
   for (const feature of features) {
@@ -345,6 +350,6 @@ export function generateRelationshipDiagram(models) {
 // For direct execution
 if (import.meta.url === `file://${process.argv[1]}`) {
   extractDataModels().then(models => {
-    console.log(JSON.stringify(models, null, 2));
+    // console.log(JSON.stringify(models, null, 2));
   });
 }
