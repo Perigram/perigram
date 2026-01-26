@@ -5,7 +5,8 @@
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import EntityStatus from '../shared/EntityStatus.vue';
-import { useIdentity } from '~/composables/useBlocks';
+import { useAuthStore } from '~/stores/auth';
+import { useIdentity, useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
   requisition: { type: Object, required: true },
@@ -13,7 +14,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['view', 'edit', 'delete']);
+const authStore = useAuthStore();
 const { name } = useIdentity(props.requisition);
+const { state } = useStatus(props.requisition);
 
 const handleCardClick = () => {
     emit('view', props.requisition);
@@ -57,7 +60,7 @@ const handleCardClick = () => {
         </template>
         <template #content>
             <div class="flex flex-col gap-2">
-                <div class="flex justify-between">
+                <div class="flex justify-between text-xs opacity-60">
                     <span>Items</span>
                     <span class="font-bold">{{ requisition.items?.length || 0 }}</span>
                 </div>
@@ -65,9 +68,21 @@ const handleCardClick = () => {
         </template>
         <template #footer>
             <div class="flex justify-end gap-2" @click.stop>
-                <Button icon="pi pi-pencil" text rounded @click="$emit('edit', requisition)" />
-                <Button icon="pi pi-trash" text rounded severity="danger" @click="$emit('delete', requisition)" />
-                <Button label="Manage" icon="pi pi-cog" @click="$emit('view', requisition)" />
+                <Button 
+                    v-if="state === 'DRAFT' && authStore.can('requisitions', 'edit')"
+                    icon="pi pi-pencil" text rounded 
+                    @click="$emit('edit', requisition)" 
+                />
+                <Button 
+                    v-if="state === 'DRAFT' && authStore.can('requisitions', 'delete')"
+                    icon="pi pi-trash" text rounded severity="danger" 
+                    @click="$emit('delete', requisition)" 
+                />
+                <Button 
+                    v-if="authStore.can('requisitions', 'read')"
+                    label="Manage" icon="pi pi-cog" size="small"
+                    @click="$emit('view', requisition)" 
+                />
             </div>
         </template>
       </Card>

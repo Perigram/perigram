@@ -13,12 +13,12 @@
                 <div class="flex flex-wrap gap-2 sm:ml-auto">
                     <Button icon="pi pi-history" severity="secondary" text @click="showHistory = !showHistory" v-tooltip.top="'Toggle History'" />
                     <Button 
-                        v-if="queueState === 'READY' && queue.chosenRunId"
+                        v-if="queueState === 'READY' && queue.chosenRunId && authStore.can('queues', 'edit')"
                         :label="$t('queue.markCut')" icon="pi pi-scissors" severity="success"
                         @click="markCutHandler"
                     />
                     <Button 
-                        v-if="queueState !== 'DRAFT'"
+                        v-if="queueState !== 'DRAFT' && authStore.can('queues', 'edit')"
                         :label="$t('queue.resetToDraft')" icon="pi pi-refresh" severity="warning"
                         @click="resetToDraft"
                     />

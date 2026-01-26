@@ -11,40 +11,47 @@ import Button from 'primevue/button';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
-  lineage: { type: Object, required: true },
+  entity: { type: Object, default: null },
+  lineage: { type: Object, default: null },
   expandable: { type: Boolean, default: false }
 });
 
 const isExpanded = ref(!props.expandable);
 
+const activeLineage = computed(() => {
+    return props.lineage || props.entity?.lineage || {};
+});
+
 const lineageItems = computed(() => {
     const items = [];
-    if (props.lineage.organizationId) {
+    const lin = activeLineage.value;
+
+    if (lin.organizationId) {
         items.push({ 
             type: 'organization', 
             component: OrganizationCard, 
-            data: { _id: props.lineage.organizationId, identity: { name: 'Org' } } 
+            data: { _id: lin.organizationId, identity: { name: 'Org' } } 
         });
     }
-    if (props.lineage.warehouseId) {
+    if (lin.warehouseId) {
         items.push({ 
             type: 'warehouse', 
             component: WarehouseCard, 
-            data: { _id: props.lineage.warehouseId, identity: { name: 'Warehouse' } } 
+            data: { _id: lin.warehouseId, identity: { name: 'Warehouse' } } 
         });
     }
-    if (props.lineage.projectId) {
+    if (lin.projectId) {
         items.push({ 
             type: 'project', 
             component: ProjectCard, 
-            data: { _id: props.lineage.projectId, identity: { name: 'Project' } } 
+            data: { _id: lin.projectId, identity: { name: 'Project' } } 
         });
     }
-    if (props.lineage.queueId) {
+    if (lin.queueId) {
         items.push({ 
             type: 'queue', 
             component: QueueCard, 
-            data: { _id: props.lineage.queueId, identity: { name: 'Queue' } } 
+            data: { _id: lin.queueId, identity: { name: 'Queue' } } 
         });
     }
     return items;
@@ -57,7 +64,7 @@ const visibleItems = computed(() => {
 </script>
 
 <template>
-  <div class="flex items-center gap-2 overflow-x-auto py-2">
+  <div class="flex items-center gap-2 overflow-x-auto py-2" v-if="lineageItems.length > 0">
     <template v-for="(item, index) in visibleItems" :key="index">
       <template v-if="item.type !== 'separator'">
           <component 
@@ -74,7 +81,7 @@ const visibleItems = computed(() => {
           <Button label="..." size="small" text @click="isExpanded = true" />
       </template>
 
-      <i v-if="index < visibleItems.length - 1" class="pi pi-angle-right"></i>
+      <i v-if="index < visibleItems.length - 1" class="pi pi-angle-right opacity-30 text-xs"></i>
     </template>
   </div>
 </template>

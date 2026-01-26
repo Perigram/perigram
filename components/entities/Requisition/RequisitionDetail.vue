@@ -4,21 +4,23 @@
 
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div class="flex items-center gap-4">
-                <h2 class="text-2xl font-black m-0">#{{ requisitionNumber }}</h2>
+                <h2 class="text-2xl font-black m-0">#{{ serial }}</h2>
                 <EntityStatus :entity="requisition" />
             </div>
             <div class="flex gap-2">
-                <template v-if="authStore.isContractor && requisitionState === 'DRAFT'">
+                <template v-if="requisitionState === 'DRAFT' && authStore.can('requisitions', 'send')">
                     <Button :label="$t('common.submit')" icon="pi pi-send" size="small" @click="$emit('send', requisition._id)" />
                 </template>
-                <template v-if="authStore.isManufacturer && requisitionState === 'SENT'">
+                <template v-if="requisitionState === 'SENT' && authStore.can('requisitions', 'approve')">
                     <Button :label="$t('common.approve')" icon="pi pi-check" severity="success" size="small" @click="$emit('approve', requisition._id)" />
+                </template>
+                <template v-if="requisitionState === 'SENT' && authStore.can('requisitions', 'reject')">
                     <Button :label="$t('common.reject')" icon="pi pi-times" severity="danger" text size="small" @click="$emit('reject', requisition._id)" />
                 </template>
-                <template v-if="authStore.isManufacturer && requisitionState === 'APPROVED'">
+                <template v-if="requisitionState === 'APPROVED' && authStore.can('requisitions', 'fulfill')">
                     <Button :label="$t('requisition.startFulfillment')" icon="pi pi-play" severity="info" size="small" @click="$emit('start-fulfillment', requisition._id)" />
                 </template>
-                <template v-if="authStore.isManufacturer && requisitionState === 'IN_FULFILLMENT'">
+                <template v-if="requisitionState === 'IN_FULFILLMENT' && authStore.can('requisitions', 'fulfill')">
                     <Button :label="$t('requisition.completeAndShip')" icon="pi pi-box" severity="success" size="small" @click="$emit('fulfill', requisition._id)" />
                 </template>
             </div>
@@ -99,7 +101,7 @@ const props = defineProps({
 defineEmits(['send', 'approve', 'reject', 'start-fulfillment', 'fulfill']);
 
 const authStore = useAuthStore();
-const { serial: requisitionNumber } = useIdentity(props.requisition);
+const { serial } = useIdentity(props.requisition);
 const { state: requisitionState } = useStatus(props.requisition);
 
 </script>

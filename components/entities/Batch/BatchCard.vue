@@ -5,6 +5,7 @@
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import EntityStatus from '../shared/EntityStatus.vue';
+import { useAuthStore } from '~/stores/auth';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
@@ -13,6 +14,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['view', 'edit', 'delete']);
+const authStore = useAuthStore();
 const { name } = useIdentity(props.batch);
 
 const handleCardClick = () => {
@@ -57,7 +59,7 @@ const handleCardClick = () => {
         </template>
         <template #content>
             <div class="flex flex-col gap-2">
-                <div class="flex justify-between">
+                <div class="flex justify-between text-xs opacity-60">
                     <span>Receipt ID</span>
                     <span class="font-mono">{{ batch.identity?.reference }}</span>
                 </div>
@@ -65,8 +67,16 @@ const handleCardClick = () => {
         </template>
         <template #footer>
             <div class="flex justify-end gap-2" @click.stop>
-                <Button icon="pi pi-pencil" text rounded @click="$emit('edit', batch)" />
-                <Button label="View Details" icon="pi pi-search" @click="$emit('view', batch)" />
+                <Button 
+                    v-if="authStore.can('materials', 'edit')"
+                    icon="pi pi-pencil" text rounded 
+                    @click="$emit('edit', batch)" 
+                />
+                <Button 
+                    v-if="authStore.can('materials', 'read')"
+                    label="View Details" icon="pi pi-search" size="small"
+                    @click="$emit('view', batch)" 
+                />
             </div>
         </template>
       </Card>

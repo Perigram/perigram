@@ -13,25 +13,32 @@ export const UI_PERMISSIONS = {
             create: true,
             edit: true,
             delete: true,
-            view_own: true,
-            view_all: false
+            view: true
         },
         warehouses: {
             create: true,
-            view_own: true,
-            view_contractors: true
+            edit: true,
+            delete: true,
+            view: true
         },
         requisitions: {
             create: false,
+            edit: false,
+            delete: false,
+            view: true,
             approve: true,
-            fulfill: true,
-            view_incoming: true
+            reject: true,
+            fulfill: true
         },
         projects: {
             create: false,
             edit: false,
             delete: false,
-            view_all: true
+            view: true
+        },
+        queues: {
+            view: true,
+            edit: false
         }
     },
     'ContractorAdmin': {
@@ -39,24 +46,39 @@ export const UI_PERMISSIONS = {
             create: false,
             edit: false,
             delete: false,
-            view_all: true
+            view: true
         },
         warehouses: {
             create: true,
-            view_own: true,
-            view_others: false
+            edit: true,
+            delete: true,
+            view: true
         },
         requisitions: {
             create: true,
-            view_own: true,
-            approve: false
+            edit: true,
+            delete: true,
+            view: true,
+            send: true
         },
         projects: {
             create: true,
             edit: true,
             delete: true,
-            view_own: true
+            view: true
+        },
+        queues: {
+            create: true,
+            edit: true,
+            delete: true,
+            view: true
         }
+    },
+    'IndividualUser': {
+        catalogs: { view: true },
+        requisitions: { create: true, edit: true, delete: true, view: true, send: true },
+        projects: { create: true, edit: true, delete: true, view: true },
+        queues: { create: true, edit: true, delete: true, view: true }
     },
     'SuperAdmin': {
         '*': true
@@ -76,6 +98,9 @@ export function resolveUiPermission(role, feature, action) {
 
     const rolePerms = UI_PERMISSIONS[role];
     if (!rolePerms) return false;
+
+    // Support wildcard for SuperAdmin or future broad roles
+    if (rolePerms['*']) return true;
 
     const featurePerms = rolePerms[feature];
     if (!featurePerms) return false;
