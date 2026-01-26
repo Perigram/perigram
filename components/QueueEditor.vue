@@ -246,7 +246,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         <div v-for="instance in instances" :key="instance._id" class="p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl flex items-center justify-between group">
                             <div class="flex flex-col gap-1">
-                                <span class="text-[10px] font-black uppercase opacity-50">{{ instance.identity?.serial }}</span>
+                                <span class="text-[10px] font-black uppercase opacity-50">{{ instance.instanceNumber || instance.identity?.serial }}</span>
                                 <span class="font-bold text-sm">{{ getCassetteName(instance.lineage?.templateId) }}</span>
                             </div>
                             <Select v-model="instance.status.state" :options="instanceStatuses" optionLabel="label" optionValue="value" class="w-36" size="small" @change="(e) => updateInstanceStatus(instance, e.value)">
@@ -408,11 +408,13 @@ const onCustomSheetUpload = (event) => {
 };
 
 const loadQueueData = async () => {
-    const data = await queuesStore.fetchById(props.queue._id);
-    if (data) {
-        entries.value = data.job?.items || [];
-        if (queueState.value === 'CUT') loadInstances();
-    }
+    try {
+        const data = await queuesStore.getQueue(props.queue._id);
+        if (data) {
+            entries.value = data.job?.items || [];
+            if (queueState.value === 'CUT') loadInstances();
+        }
+    } catch (e) { console.error('Failed to load queue data:', e); }
 };
 
 onMounted(async () => {
