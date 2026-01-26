@@ -13,7 +13,8 @@ import { statusService } from '~/server/core/machines/service';
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   // Only contractors can create requisitions
-  if (userRole !== 'Contractor' && userRole !== 'ADMIN') {
+  const isContractor = userRole.includes('Contractor') || userRole === 'ADMIN' || userRole === 'IndividualUser';
+  if (!isContractor) {
     throw createError({ statusCode: 403, message: 'Only authorized roles can create requisitions' });
   }
   

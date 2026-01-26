@@ -25,6 +25,11 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   // Lineage: Templates belong to the organization (Manufacturer)
   const lineage = { organizationId: new ObjectId(userOrg) };
 
+  const isManufacturer = userRole.includes('Manufacturer') || userRole === 'SuperAdmin' || userRole === 'ADMIN';
+  if (!isManufacturer) {
+    throw createError({ statusCode: 403, message: 'Only manufacturers can create cassette templates' });
+  }
+
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'catalogs', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }

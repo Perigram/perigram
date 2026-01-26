@@ -186,8 +186,12 @@ const fulfillingId = ref(null);
 
 const availableCatalogs = computed(() => {
     if (!form.value.manufacturerId) return [];
-    // Manufacturers in v24 have organizationId in their lineage
-    return catalogs.value.filter(c => c.lineage?.organizationId === form.value.manufacturerId || c.manufacturerId === form.value.manufacturerId);
+    // Allow any catalog that matches manufacturerId (legacy or lineage)
+    return catalogs.value.filter(c => 
+        c.lineage?.organizationId === form.value.manufacturerId || 
+        c.manufacturerId === form.value.manufacturerId ||
+        c._id === form.value.manufacturerId // some edge cases where ID is used directly
+    );
 });
 
 async function load() {

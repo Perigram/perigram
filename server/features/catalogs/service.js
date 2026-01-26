@@ -52,7 +52,12 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
-  const finalFilter = mapLineageQuery({ ...lineageFilter, ...filter });
+  
+  // Contractors/Customers should see all active catalogs from all manufacturers
+  const isManufacturer = userRole.includes('Manufacturer');
+  const finalFilter = isManufacturer 
+    ? mapLineageQuery({ ...lineageFilter, ...filter })
+    : mapLineageQuery(filter);
   
   return await repository.find(finalFilter);
 }
