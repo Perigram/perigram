@@ -3,6 +3,7 @@ import { createError } from 'h3';
 import { hasLineagePermission } from '~/server/utils/permissions';
 import { createIdentity, createStatus } from '~/server/utils/blocks';
 import { statusService } from '~/server/core/machines/service';
+import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
 
 /**
@@ -49,15 +50,15 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   return await repository.create(catalogData);
 }
 
-export async function list(userId, userOrg, userRole, userPermissions, options = {}) {
+export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   // Logic: Contractors see all, Manufacturers see their own (implemented via filter in repo if needed)
   // For now, let's keep it simple and filter by membership if not SuperAdmin
-  const filter = {};
+  const finalFilter = mapLineageQuery(filter);
+  
   if (userRole !== 'SuperAdmin') {
-    // If we want contractors to see all, we shouldn't filter by lineage.
-    // But for write actions, lineage is checked.
+    // ...
   }
-  return await repository.find(filter);
+  return await repository.find(finalFilter);
 }
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {

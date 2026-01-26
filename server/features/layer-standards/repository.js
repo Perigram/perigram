@@ -1,16 +1,35 @@
-/**
- * Layer Standards Repository - v24 Standardized
- */
-
-import { connectDB } from '../../db/mongo.js';
+import { connectDB } from '~/server/db/mongo';
 import { ObjectId } from 'mongodb';
-import { toObjectId } from '../../utils/objectid.js';
 
 const COLLECTION = 'layer_standards';
 
-export async function find(filter = {}) {
+export async function create(data) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).find(filter).toArray();
+  const doc = {
+    ...data,
+    _id: data._id || new ObjectId(),
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc;
+}
+
+export async function bulkCreate(docs) {
+  const db = await connectDB();
+  const prepared = docs.map(d => ({
+    ...d,
+    _id: d._id || new ObjectId(),
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }));
+  await db.collection(COLLECTION).insertMany(prepared);
+  return prepared;
+}
+
+export async function findById(id) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
 }
 
 export async function findByCode(code) {
@@ -18,29 +37,22 @@ export async function findByCode(code) {
   return await db.collection(COLLECTION).findOne({ 'config.code': code });
 }
 
-export async function findById(id) {
+export async function find(filter = {}) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ _id: toObjectId(id) });
-}
-
-export async function create(data) {
-  const db = await connectDB();
-  const result = await db.collection(COLLECTION).insertOne(data);
-  return { ...data, _id: result.insertedId };
-}
-
-export async function bulkCreate(docs) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION).insertMany(docs);
+  return await db.collection(COLLECTION).find(filter).toArray();
 }
 
 export async function updateById(id, updates) {
   const db = await connectDB();
-  const { _id, identity, lineage, ...clean } = updates;
-  return await db.collection(COLLECTION).updateOne({ _id: toObjectId(id) }, { $set: clean });
+  const { _id, ...clean } = updates;
+  await db.collection(COLLECTION).updateOne(
+    { _id: new ObjectId(id) }, 
+    { $set: { ...clean, updatedAt: new Date() } }
+  );
+  return await findById(id);
 }
 
 export async function deleteById(id) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).deleteOne({ _id: toObjectId(id) });
+  return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }

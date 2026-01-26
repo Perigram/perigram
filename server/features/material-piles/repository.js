@@ -5,8 +5,14 @@ const COLLECTION = 'material_piles';
 
 export async function create(data) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).insertOne(data);
-  return { ...data, _id: result.insertedId };
+  const doc = {
+    ...data,
+    _id: data._id || new ObjectId(),
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc;
 }
 
 export async function findById(id) {
@@ -21,16 +27,15 @@ export async function find(filter = {}) {
 
 export async function updateById(id, updates) {
   const db = await connectDB();
-  const { _id, identity, origin, status, lineage, ...clean } = updates;
-  return await db.collection(COLLECTION).updateOne({ _id: new ObjectId(id) }, { $set: clean });
+  const { _id, ...clean } = updates;
+  await db.collection(COLLECTION).updateOne(
+    { _id: new ObjectId(id) }, 
+    { $set: { ...clean, updatedAt: new Date() } }
+  );
+  return await findById(id);
 }
 
 export async function deleteById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
-}
-
-export async function getCount() {
-  const db = await connectDB();
-  return await db.collection(COLLECTION).countDocuments();
 }
