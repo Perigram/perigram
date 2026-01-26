@@ -10,7 +10,7 @@
             <div class="flex flex-col">
                 <span class="text-[10px] opacity-60">{{ $t('catalog.sheetThickness') }}</span>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-sm font-black">{{ specs.sheetThickness || specs.thickness }}</span>
+                    <span class="text-sm font-black">{{ resolvedSpecs.sheetThickness || resolvedSpecs.thickness }}</span>
                     <span class="text-[10px] font-bold opacity-40">mm</span>
                 </div>
             </div>
@@ -19,7 +19,7 @@
             <div class="flex flex-col">
                 <span class="text-[10px] opacity-60">{{ $t('catalog.foilThickness') }}</span>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-sm font-black">{{ specs.foilThickness || 0 }}</span>
+                    <span class="text-sm font-black">{{ resolvedSpecs.foilThickness || 0 }}</span>
                     <span class="text-[10px] font-bold opacity-40">mm</span>
                 </div>
             </div>
@@ -39,15 +39,16 @@
             </div>
 
             <!-- Material Core -->
-            <div v-if="specs.material" class="flex flex-col col-span-2">
+            <div v-if="resolvedSpecs.material" class="flex flex-col col-span-2">
                 <span class="text-[10px] opacity-60">{{ $t('catalog.baseMaterial') }}</span>
-                <span class="text-xs font-bold truncate">{{ specs.material }}</span>
+                <span class="text-xs font-bold truncate">{{ resolvedSpecs.material }}</span>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useSpecs } from '~/composables/useBlocks';
 
 const props = defineProps({
@@ -57,8 +58,11 @@ const props = defineProps({
     }
 });
 
-// useSpecs expects an object with .specs, but if we pass it directly it might work or we wrap it
-// Actually useSpecs does computed(() => entity?.specs || {})
-// So we wrap it
-const { formattedDimensions, formattedArea } = useSpecs({ specs: props.specs });
+// Robust resolution: handle both a direct specs block or an entity containing a specs block
+const resolvedSpecs = computed(() => {
+    if (props.specs.specs) return props.specs.specs;
+    return props.specs;
+});
+
+const { formattedDimensions, formattedArea } = useSpecs({ specs: resolvedSpecs.value });
 </script>

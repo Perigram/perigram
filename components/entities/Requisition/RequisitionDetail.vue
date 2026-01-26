@@ -8,9 +8,12 @@
                 <EntityStatus :entity="requisition" />
             </div>
             <div class="flex gap-2">
+                <!-- Contractor Actions -->
                 <template v-if="requisitionState === 'DRAFT' && authStore.can('requisitions', 'send')">
                     <Button :label="$t('common.submit')" icon="pi pi-send" size="small" @click="$emit('send', requisition._id)" />
                 </template>
+
+                <!-- Manufacturer Actions -->
                 <template v-if="requisitionState === 'SENT' && authStore.can('requisitions', 'approve')">
                     <Button :label="$t('common.approve')" icon="pi pi-check" severity="success" size="small" @click="$emit('approve', requisition._id)" />
                 </template>
@@ -20,7 +23,7 @@
                 <template v-if="requisitionState === 'APPROVED' && authStore.can('requisitions', 'fulfill')">
                     <Button :label="$t('requisition.startFulfillment')" icon="pi pi-play" severity="info" size="small" @click="$emit('start-fulfillment', requisition._id)" />
                 </template>
-                <template v-if="requisitionState === 'IN_FULFILLMENT' && authStore.can('requisitions', 'fulfill')">
+                <template v-if="requisitionState === 'APPROVED' && authStore.can('requisitions', 'fulfill')">
                     <Button :label="$t('requisition.completeAndShip')" icon="pi pi-box" severity="success" size="small" @click="$emit('fulfill', requisition._id)" />
                 </template>
             </div>
@@ -47,7 +50,8 @@
                                 </div>
                             </template>
                             <template #content>
-                                <MaterialSpecs :specs="item" />
+                                <!-- Pass item.specs to MaterialSpecs -->
+                                <MaterialSpecs :specs="item.specs || item" />
                                 <div class="mt-4 flex justify-between items-center pt-2 border-t border-dashed border-surface-200 dark:border-surface-700">
                                     <div class="flex flex-col">
                                         <span class="text-[10px] opacity-40 font-black uppercase">{{ $t('common.quantity') }}</span>
@@ -71,7 +75,7 @@
             <!-- Sidebar -->
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('requisition.lifecycleTimeline')" toggleable>
-                    <StatusTimeline :entity="requisition" />
+                    <StatusTimeline collection="requisitions" :entityId="requisition._id" />
                 </Panel>
             </div>
         </div>
