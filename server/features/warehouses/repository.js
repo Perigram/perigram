@@ -6,16 +6,13 @@ const COLLECTION = 'warehouses';
 export async function create(data) {
   const db = await connectDB();
   const doc = {
-    name: data.name,
-    organizationId: data.organizationId ? new ObjectId(data.organizationId) : null,
-    address: data.address || '',
-    contactPerson: data.contactPerson || '',
-    totalBatches: 0,
-    totalSheets: 0,
-    totalRemnants: 0
+    ...data,
+    _id: data._id || new ObjectId(),
+    createdAt: new Date(),
+    updatedAt: new Date()
   };
-  const result = await db.collection(COLLECTION).insertOne(doc);
-  return await findById(result.insertedId);
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc;
 }
 
 export async function findById(id) {
@@ -30,8 +27,12 @@ export async function find(filter = {}) {
 
 export async function updateById(id, updates) {
   const db = await connectDB();
-  const { _id, createdAt, updatedAt, userId, permissions, role, success, ...clean } = updates;
-  return await db.collection(COLLECTION).updateOne({ _id: new ObjectId(id) }, { $set: clean });
+  const { _id, ...clean } = updates;
+  await db.collection(COLLECTION).updateOne(
+    { _id: new ObjectId(id) }, 
+    { $set: { ...clean, updatedAt: new Date() } }
+  );
+  return await findById(id);
 }
 
 export async function incrementCounts(id, updates) {
