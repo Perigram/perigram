@@ -5,13 +5,15 @@
  */
 
 import * as queuesService from '~/server/features/queues/service';
-import { service as cassetteService } from '~/server/features/cassettes';
+import * as cassetteService from '~/server/features/cassettes/service';
+import * as cassetteDesignService from '~/server/features/cassette-designs/service';
 import { service as artifactService } from '~/server/features/artifacts';
 import { bakeTemplateInstance } from '~/server/features/parametric-cassettes/service';
 import { connectDB } from '~~/server/db/mongo';
 import { ObjectId } from 'mongodb';
 import { generateRandomString } from '~~/server/utils/strings';
 import { requireAuth } from '~/server/utils/permissions';
+import { createStatus } from '~/server/utils/blocks';
 
 export default defineEventHandler(async (event) => {
   try {
@@ -35,61 +37,60 @@ export default defineEventHandler(async (event) => {
     console.log('Queue loaded:', { 
       id: queue._id, 
       status: queue.status, 
-      entriesCount: queue.entries?.length 
+      itemsCount: queue.job?.items?.length 
     });
     
     if (queue.status === 'NESTING') {
-      // Check if there's actually a nesting job in progress
       const db = await connectDB();
       const existingJob = await db.collection('nesting_jobs').findOne({
-        queueId: queue._id, // Updated to queueId
+        queueId: queue._id,
         status: { $in: ['pending', 'processing'] }
       });
       
       if (existingJob) {
         throw createError({ statusCode: 400, message: 'Queue is already nesting' });
-      } else {
-        // No active job found, allow re-nesting (previous attempt failed)
-        console.log('No active nesting job found, allowing re-nest');
       }
     }
     
-    // Check queue has entries
-    if (!queue.entries || queue.entries.length === 0) {
+    if (!queue.job?.items || queue.job.items.length === 0) {
       throw createError({ statusCode: 400, message: 'Queue has no entries' });
     }
     
-    // Validate all cassettes exist and bake parametric ones
-    const cassetteIds = queue.entries.map(e => e.cassetteTemplateId.toString());
-    console.log('Validating cassettes:', cassetteIds);
-    
-    const cassettes = await Promise.all(
-      cassetteIds.map(id => cassetteService.getById(id, auth.userId, auth.organizationId, auth.role, auth))
-    );
-    
-    console.log('Cassettes validated:', cassettes.length);
-    
     // Bake parametric cassettes and prepare files list for worker
-    // Each baked entry becomes a unique "cassette" document for the worker
     const jobFiles = await Promise.all(
-      queue.entries.map(async (entry) => {
-        const template = cassettes.find(c => c._id.toString() === entry.cassetteTemplateId.toString());
-        
-        if (template.type === 'PARAMETRIC') {
-          console.log(`Baking parametric template: ${template.name} for queue entry`);
-          const bakedCassette = await bakeTemplateInstance(template._id, entry.dimensions || {}, userId);
-          console.log(`Baked cassette created with ID: ${bakedCassette._id}`);
-          return {
-            cassetteId: bakedCassette._id.toString(),
-            count: entry.quantity,
-            dimensions: entry.dimensions || {}
-          };
-        } else {
-          return {
-            cassetteId: template._id.toString(),
-            count: entry.quantity,
-            dimensions: entry.dimensions || {}
-          };
+      queue.job.items.map(async (entry) => {
+        try {
+          if (entry.type === 'PARAMETRIC') {
+            const template = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth);
+            console.log(`Baking parametric template: ${template.identity?.name || template.name}`);
+            const bakedCassette = await bakeTemplateInstance(template._id, entry.parameters || {}, userId);
+            return {
+              cassetteId: bakedCassette._id.toString(),
+              count: entry.quantity,
+              dimensions: entry.parameters || {}
+            };
+          } else {
+            // Try to find as a Design first
+            let item = await cassetteDesignService.getById(entry.id, auth.userId, auth.role, auth).catch(() => null);
+            
+            // If not found, try as a Template (Standard)
+            if (!item) {
+              item = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth).catch(() => null);
+            }
+
+            if (!item) {
+              throw createError({ statusCode: 400, message: `Cassette item ${entry.id} not found in any collection` });
+            }
+
+            return {
+              cassetteId: item._id.toString(),
+              count: entry.quantity,
+              dimensions: entry.parameters || {}
+            };
+          }
+        } catch (e) {
+          console.error(`Error processing queue item ${entry.id}:`, e);
+          throw createError({ statusCode: 400, message: `Failed to process item ${entry.id}: ${e.message}` });
         }
       })
     );
@@ -99,12 +100,12 @@ export default defineEventHandler(async (event) => {
   
   // Material dimensions and pool from request
   const params = {
-    height: body.materialHeight || body.height || 2440,
-    width: body.materialWidth || body.width || 1220,
+    height: body.virtualLength || body.height || 2440,
+    width: body.virtualWidth || body.width || 1220,
     space: body.spacing || body.space || 5,
-    sheetCount: body.maxSheets || 10,
+    sheetCount: 1000, // Effectively "as many as needed"
     sheet_polygon: body.sheet_polygon || null,
-    inventorySheets: body.inventorySheets || []
+    inventoryItems: body.inventoryItems || []
   };
   
   // Create nesting job
@@ -113,32 +114,7 @@ export default defineEventHandler(async (event) => {
   
   const runNumber = (queue.runs?.length || 0) + 1;
   
-  await queuesService.addRun(
-      queueId, 
-      { 
-        _id: runId, 
-        status: 'NESTING',
-        runNumber,
-        requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF']
-      },
-      auth.userId,
-      auth.organizationId,
-      auth.role,
-      auth
-  );
-  
-  await db.collection('nesting_jobs').insertOne({
-    slug: nestingSlug,
-    projectSlug: queue.projectSlug,
-    queueId: queue._id, // Updated field
-    runId,
-    files: jobFiles, 
-    params,
-    status: 'pending',
-    createdAt: new Date(),
-    ownerId: userId
-  });
-  
+  // 1. Clear previous nesting runs (mark them as ERROR if they were stuck)
   await queuesService.setRunsStatusByStatus(
       queueId, 
       'NESTING', 
@@ -148,6 +124,39 @@ export default defineEventHandler(async (event) => {
       auth.role,
       auth
   );
+
+  // 2. Add new run
+  const runOrigin = createStatus('NESTING', auth.userId, { note: `Nesting started in ${body.materialMode || 'VIRTUAL'} mode` });
+
+  await queuesService.addRun(
+      queueId, 
+      { 
+        _id: runId, 
+        status: runOrigin,
+        runNumber,
+        materialMode: body.materialMode || 'VIRTUAL',
+        origin: runOrigin,
+        requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF'],
+        createdAt: new Date()
+      },
+      auth.userId,
+      auth.organizationId,
+      auth.role,
+      auth
+  );
+  
+  console.log('Adding nesting job to DB...');
+  await db.collection('nesting_jobs').insertOne({
+    slug: nestingSlug,
+    projectSlug: queue.identity?.slug || '', // Use identity.slug if exists
+    queueId: queue._id,
+    runId,
+    files: jobFiles, 
+    params,
+    status: 'pending',
+    createdAt: new Date(),
+    ownerId: userId
+  });
   
   // Create placeholder artifacts based on request
   const requestedArtifacts = body.requestedArtifacts || ['LAYOUT_DXF'];

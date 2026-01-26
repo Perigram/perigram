@@ -24,14 +24,14 @@
             <div class="flex items-center gap-2 mt-1.5">
                <span class="text-[9px] font-black text-surface-400 dark:text-surface-500 uppercase tracking-widest">{{ artifact.type.replace('LAYOUT_', '') }}</span>
                <div class="w-1 h-1 rounded-full bg-surface-300 dark:bg-surface-700"></div>
-               <Tag :value="artifact.status" :severity="getStatusSeverity(artifact.status)" class="text-[8px] font-black tracking-tighter px-1.5 py-0" />
+               <Tag :value="artifact.status?.state || artifact.status" :severity="getStatusSeverity(artifact.status)" class="text-[8px] font-black tracking-tighter px-1.5 py-0" />
             </div>
           </div>
         </div>
 
         <div class="flex items-center gap-1 ml-4 opacity-40 group-hover:opacity-100 transition-opacity">
           <Button 
-            v-if="artifact.status === 'READY'"
+            v-if="artifact.status?.state === 'READY' || artifact.status === 'READY'"
             icon="pi pi-download" 
             text
             rounded
@@ -52,13 +52,54 @@
       </div>
     </div>
 
-    <!-- Preview Dialog and other parts stay same -->
-    <!-- (Omitting preview dialog implementation for brevity as layout focus was on the table) -->
+    <!-- Preview Dialog -->
+    <Dialog v-model:visible="showPreview" :header="previewArtifactData?.name || 'Artifact Preview'" modal class="w-[90vw] h-[90vh] max-w-7xl">
+        <div class="flex flex-col h-full overflow-hidden">
+            <div v-if="previewLoading" class="flex-1 flex flex-col items-center justify-center gap-4">
+                <i class="pi pi-spin pi-spinner text-4xl opacity-20"></i>
+                <span class="text-xs font-black uppercase opacity-40">Loading preview data...</span>
+            </div>
+            <div v-else-if="previewError" class="flex-1 flex flex-col items-center justify-center gap-4 text-red-500">
+                <i class="pi pi-exclamation-circle text-4xl"></i>
+                <span class="text-sm font-bold">{{ previewError }}</span>
+            </div>
+            <div v-else class="flex-1 overflow-hidden relative border rounded-xl bg-white dark:bg-black/20">
+                <!-- DXF/SVG Canvas -->
+                <div v-if="svgData" class="w-full h-full flex items-center justify-center p-8">
+                    <svg 
+                        :viewBox="svgData.viewBox" 
+                        class="max-w-full max-h-full"
+                        style="transform: scaleY(1);"
+                    >
+                        <g v-for="layer in svgData.layers" :key="layer.name" 
+                           :stroke="layer.color" :stroke-width="layer.weight" :stroke-dasharray="layer.dasharray">
+                            <g v-for="(path, idx) in layer.paths" :key="idx" v-html="path"></g>
+                        </g>
+                    </svg>
+                </div>
+                <!-- PDF Fallback -->
+                <div v-else-if="isPdf" class="w-full h-full flex flex-col items-center justify-center gap-6">
+                    <i class="pi pi-file-pdf text-6xl text-red-500 opacity-20"></i>
+                    <div class="flex flex-col items-center gap-2">
+                        <span class="font-bold">PDF Preview not available in-browser</span>
+                        <p class="text-xs opacity-60">Please download the file to view the technical passport.</p>
+                    </div>
+                    <Button :label="$t('common.download')" icon="pi pi-download" @click="downloadArtifact(previewArtifactData)" />
+                </div>
+                <!-- Unknown -->
+                <div v-else class="flex-1 flex items-center justify-center opacity-40 italic">
+                    Preview not supported for this artifact type.
+                </div>
+            </div>
+        </div>
+    </Dialog>
+
+    <ConfirmDialog />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, reactive } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useArtifactsStore } from '~/stores/artifacts';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
@@ -67,8 +108,11 @@ import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
+import Dialog from 'primevue/dialog';
+import ConfirmDialog from 'primevue/confirmdialog';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
+import { generateSvgData } from '~/utils/dxfParser';
 
 const props = defineProps({
   batchId: { type: String, required: false },
@@ -79,8 +123,17 @@ const props = defineProps({
 
 const { t } = useI18n();
 const artifactsStore = useArtifactsStore();
+const confirm = useConfirm();
+const toast = useToast();
 const { artifacts: storeArtifacts, loading } = storeToRefs(artifactsStore);
 const artifacts = computed(() => props.artifacts || storeArtifacts.value);
+
+const showPreview = ref(false);
+const previewArtifactData = ref(null);
+const previewLoading = ref(false);
+const previewError = ref(null);
+const svgData = ref(null);
+const isPdf = computed(() => previewArtifactData.value?.mimeType?.includes('pdf') || previewArtifactData.value?.type === 'PDF_PASSPORT');
 
 onMounted(() => {
   if (props.batchId && !props.artifacts) {
@@ -92,13 +145,14 @@ const filteredArtifacts = computed(() => {
   if (!artifacts.value) return [];
   let filtered = artifacts.value;
   if (props.runId) {
-    filtered = filtered.filter(a => a.runId?.toString() === props.runId);
+    filtered = filtered.filter(a => a.lineage?.runId?.toString() === props.runId);
   }
   return filtered;
 });
 
 const getStatusSeverity = (status) => {
-  switch (status) {
+  const state = status?.state || status;
+  switch (state) {
     case 'READY': return 'success';
     case 'GENERATING': return 'warning';
     case 'FAILED': return 'danger';
@@ -117,11 +171,52 @@ const downloadArtifact = (artifact) => {
   window.open(`/api/artifacts/${artifact._id}`, '_blank');
 };
 
+const previewArtifact = async (artifact) => {
+    previewArtifactData.value = artifact;
+    showPreview.value = true;
+    previewLoading.value = true;
+    previewError.value = null;
+    svgData.value = null;
+
+    if (artifact.type === 'LAYOUT_DXF' || artifact.type === 'DXF') {
+        try {
+            const response = await fetch(`/api/artifacts/${artifact._id}`);
+            if (!response.ok) throw new Error('Failed to fetch artifact content');
+            const dxfText = await response.text();
+            svgData.value = await generateSvgData(dxfText);
+        } catch (e) {
+            console.error('Preview error:', e);
+            previewError.value = 'Failed to load DXF preview: ' + e.message;
+        } finally {
+            previewLoading.value = false;
+        }
+    } else {
+        previewLoading.value = false;
+    }
+};
+
 const onArtifactClick = (artifact) => {
-  // Preview logic implementation...
+    previewArtifact(artifact);
 };
 
 const confirmDelete = (artifact) => {
-  // Delete logic implementation...
+  confirm.require({
+      message: 'Delete this artifact? This cannot be undone.',
+      header: 'Confirmation',
+      icon: 'pi pi-exclamation-triangle',
+      accept: async () => {
+          try {
+              await $fetch(`/api/artifacts/${artifact._id}`, { method: 'DELETE' });
+              toast.add({ severity: 'success', summary: 'Success', detail: 'Artifact deleted' });
+              if (props.batchId) artifactsStore.fetchArtifacts(props.batchId);
+          } catch (e) {
+              toast.add({ severity: 'error', summary: 'Error', detail: e.message });
+          }
+      }
+  });
 };
+
+defineExpose({
+    previewArtifact
+});
 </script>

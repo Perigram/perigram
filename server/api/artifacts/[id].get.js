@@ -18,10 +18,11 @@ export default defineEventHandler(async (event) => {
   });
 
   // Check if the artifact is ready and has a file
-  if (artifact.status !== 'READY') {
+  const artifactState = artifact.status?.state || artifact.status;
+  if (artifactState !== 'READY') {
     throw createError({
       statusCode: 400,
-      message: `Artifact is not ready yet. Current status: ${artifact.status}`,
+      message: `Artifact is not ready yet. Current status: ${artifactState}`,
     });
   }
   

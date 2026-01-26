@@ -74,7 +74,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     lineage,
     job: {
       items: (job?.items || []).map(item => ({
-        type: item.type || 'PARAMETRIC',
+        type: item.type || 'STATIC',
         id: new ObjectId(item.id),
         quantity: item.quantity || 1,
         parameters: item.parameters || {}
@@ -154,9 +154,25 @@ export async function setRunsStatusByStatus(queueId, fromStatus, toStatus, userI
   }
 
   const db = await (await import('~/server/db/mongo')).connectDB();
-  await db.collection('queues').updateMany(
-    { _id: new ObjectId(queueId), "runs.status": fromStatus },
-    { $set: { "runs.$.status": toStatus } }
+  
+  // Use $or to match either string status or status.state in block
+  const filter = {
+      _id: new ObjectId(queueId),
+      $or: [
+          { "runs.status": fromStatus },
+          { "runs.status.state": fromStatus }
+      ]
+  };
+
+  // Note: $[elem] positional operator might be needed to update ALL matching elements in array
+  // but for now let's keep it simple if only one is expected or use updateMany carefully.
+  // Actually "runs.$.status" only updates the FIRST matching element.
+  // We want to update ALL elements that are in 'NESTING' state.
+  
+  await db.collection('queues').updateOne(
+    { _id: new ObjectId(queueId) },
+    { $set: { "runs.$[elem].status": toStatus } },
+    { arrayFilters: [{ $or: [{ "elem.status": fromStatus }, { "elem.status.state": fromStatus }] }] }
   );
 }
 
@@ -172,18 +188,22 @@ export async function chooseRun(queueId, runId, userId, userOrg, userRole, userP
   
   const db = await (await import('~/server/db/mongo')).connectDB();
   
-  // Set all runs to COMPLETE
+  const completeStatus = createStatus('COMPLETE', userId, { note: 'De-selected as chosen run' });
+  const chosenStatus = createStatus('CHOSEN', userId, { note: 'Manually chosen for production' });
+
+  // 1. Reset any previously CHOSEN runs to COMPLETE
   await db.collection('queues').updateOne(
-      { _id: new ObjectId(queueId), "runs.status": "CHOSEN" },
-      { $set: { "runs.$.status": "COMPLETE" } }
+      { _id: new ObjectId(queueId) },
+      { $set: { "runs.$[elem].status": completeStatus } },
+      { arrayFilters: [{ $or: [{ "elem.status": "CHOSEN" }, { "elem.status.state": "CHOSEN" }] }] }
   );
   
-  // Set chosen run to CHOSEN and update queue field
+  // 2. Set target run to CHOSEN and update queue field
   await db.collection('queues').updateOne(
       { _id: new ObjectId(queueId), "runs._id": new ObjectId(runId) },
       { 
           $set: { 
-              "runs.$.status": "CHOSEN",
+              "runs.$.status": chosenStatus,
               chosenRunId: new ObjectId(runId)
           } 
       }

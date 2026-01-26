@@ -12,6 +12,7 @@ import {
 import {
   GridFSBucket
 } from 'mongodb';
+import { createStatus } from '../utils/blocks';
 
 export default defineNitroPlugin(async (nitroApp) => {
   console.log('Nesting Processor Plugin Started');
@@ -260,35 +261,37 @@ async function processNextJob() {
     try { await fs.unlink(transformsPath); } catch (e) {}
     try { await fs.rm(outputDir, { recursive: true, force: true }); } catch (e) {}
 
-    // Finalize Job and Batch
+    // Finalize Job and Queue
     await db.collection('nesting_jobs').updateOne(
       { _id: job._id },
       { $set: { status: 'done', dxf_files: (generatedFiles || []).map(f => f.filename), finishedAt: new Date() } }
     );
     
-    // Update Batch Run Status to COMPLETE
-    await db.collection('batches').updateOne(
-      { _id: job.batchId, "runs._id": job.runId },
+    // Update Queue Run Status to COMPLETE
+    const statusUpdate = createStatus('COMPLETE', 'SYSTEM', { note: 'Nesting completed successfully' });
+
+    await db.collection('queues').updateOne(
+      { _id: job.queueId, "runs._id": job.runId },
       { $set: { 
-          "runs.$.status": "COMPLETE", 
+          "runs.$.status": statusUpdate, 
           "runs.$.layoutCount": layoutCount,
           "runs.$.placedCount": totalPlaced,
-          "runs.$.utilization": totalUtilization,
-          "runs.$.updatedAt": new Date() 
+          "runs.$.utilization": totalUtilization
         } 
       }
     );
 
     // Update artifacts status
     if (fileIds.length > 0) {
+        const artifactStatus = createStatus('READY', 'SYSTEM', { note: 'File generated' });
         // Update LAYOUT_DXF with fileId
         await db.collection('artifacts').updateOne(
-            { runId: job.runId, type: 'LAYOUT_DXF' },
+            { "lineage.runId": job.runId, type: 'LAYOUT_DXF' },
             {
                 $set: {
                     fileId: fileIds[0],
                     mimeType: 'application/dxf',
-                    status: 'READY',
+                    status: artifactStatus,
                     updatedAt: new Date()
                 }
             }
@@ -296,9 +299,10 @@ async function processNextJob() {
     }
     
     // Mark other placeholders as FAILED for now if not implemented
+    const failStatus = createStatus('FAILED', 'SYSTEM', { note: 'Artifact not generated' });
     await db.collection('artifacts').updateMany(
-        { runId: job.runId, status: 'GENERATING' },
-        { $set: { status: 'FAILED', updatedAt: new Date() } }
+        { "lineage.runId": job.runId, status: { $ne: 'READY' }, "status.state": { $ne: 'READY' } },
+        { $set: { status: failStatus, updatedAt: new Date() } }
     );
 
     console.log(`Job ${job.slug} completed successfully. Placed ${totalPlaced} items on ${layoutCount} sheets.`);
@@ -308,16 +312,19 @@ async function processNextJob() {
       { _id: job._id },
       { $set: { status: 'error', error: error.message, finishedAt: new Date() } }
     );
-    if (job.batchId && job.runId) {
-        await db.collection('batches').updateOne(
-          { _id: job.batchId, "runs._id": job.runId },
-          { $set: { "runs.$.status": "ERROR", "runs.$.error": error.message, "runs.$.updatedAt": new Date() } }
+    if (job.queueId && job.runId) {
+        const errorStatus = createStatus('ERROR', 'SYSTEM', { note: error.message });
+
+        await db.collection('queues').updateOne(
+          { _id: job.queueId, "runs._id": job.runId },
+          { $set: { "runs.$.status": errorStatus, "runs.$.error": error.message } }
         );
         
         // Mark all artifacts for this run as FAILED
+        const artifactErrorStatus = createStatus('FAILED', 'SYSTEM', { note: error.message });
         await db.collection('artifacts').updateMany(
-            { runId: job.runId },
-            { $set: { status: 'FAILED', error: error.message, updatedAt: new Date() } }
+            { "lineage.runId": job.runId },
+            { $set: { status: artifactErrorStatus, error: error.message } }
         );
     }
   }
