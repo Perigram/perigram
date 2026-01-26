@@ -25,7 +25,8 @@ export const createStatus = (state, userId, metadata = {}, eventId = null) => ({
  * child.lineage = { ...parent.lineage, [parentType]Id: parent._id }
  */
 export const inheritLineage = (parent, parentType) => {
-  const parentId = typeof parent._id === 'string' ? new ObjectId(parent._id) : parent._id;
+  if (!parent) return {};
+  const parentId = parent._id instanceof ObjectId ? parent._id : new ObjectId(parent._id);
   const parentLineage = parent.lineage || {};
   
   return {

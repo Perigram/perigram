@@ -1,8 +1,4 @@
-/**
- * Sheet Designs Repository
- */
-
-import { connectDB } from '../../db/mongo.js';
+import { connectDB } from '~/server/db/mongo';
 import { ObjectId } from 'mongodb';
 
 const COLLECTION = 'sheet_designs';
@@ -10,20 +6,36 @@ const COLLECTION = 'sheet_designs';
 export async function create(data) {
   const db = await connectDB();
   const doc = {
-    name: data.name,
-    queueId: data.queueId ? new ObjectId(data.queueId) : null,
-    projectId: data.projectId ? new ObjectId(data.projectId) : null,
-    geometry: data.geometry || {}, // SVG/JSON geometry data
-    metadata: data.metadata || {},
-    ownerId: data.ownerId,
+    ...data,
+    _id: data._id || new ObjectId(),
     createdAt: new Date(),
     updatedAt: new Date()
   };
-  const result = await db.collection(COLLECTION).insertOne(doc);
-  return { _id: result.insertedId, ...doc };
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc;
 }
 
 export async function findById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
+}
+
+export async function find(filter = {}) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).find(filter).toArray();
+}
+
+export async function updateById(id, updates) {
+  const db = await connectDB();
+  const { _id, ...clean } = updates;
+  await db.collection(COLLECTION).updateOne(
+    { _id: new ObjectId(id) }, 
+    { $set: { ...clean, updatedAt: new Date() } }
+  );
+  return await findById(id);
+}
+
+export async function deleteById(id) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }
