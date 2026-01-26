@@ -1,8 +1,4 @@
-/**
- * Cassette Designs Repository - Functional Data Only
- */
-
-import { connectDB } from '../../db/mongo.js';
+import { connectDB } from '~/server/db/mongo';
 import { ObjectId } from 'mongodb';
 
 const COLLECTION = 'cassette_designs';
@@ -10,16 +6,13 @@ const COLLECTION = 'cassette_designs';
 export async function create(data) {
   const db = await connectDB();
   const doc = {
-    name: data.name,
-    cassetteTemplateId: data.cassetteTemplateId ? new ObjectId(data.cassetteTemplateId) : null,
-    projectId: data.projectId ? new ObjectId(data.projectId) : null,
-    queueId: data.queueId ? new ObjectId(data.queueId) : null,
-    parameters: data.parameters || {}, // Values for parametric designs
-    geometry: data.geometry || {}, // Flattened geometry
-    metadata: data.metadata || {}
+    ...data,
+    _id: data._id || new ObjectId(),
+    createdAt: new Date(),
+    updatedAt: new Date()
   };
-  const result = await db.collection(COLLECTION).insertOne(doc);
-  return { _id: result.insertedId, ...doc };
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc;
 }
 
 export async function findById(id) {
@@ -32,19 +25,17 @@ export async function find(filter = {}) {
   return await db.collection(COLLECTION).find(filter).toArray();
 }
 
-export async function update(id, updates) {
+export async function updateById(id, updates) {
   const db = await connectDB();
-  const { _id, createdAt, updatedAt, ownerId, ...clean } = updates;
-  const result = await db.collection(COLLECTION).findOneAndUpdate(
-    { _id: new ObjectId(id) },
-    { $set: clean },
-    { returnDocument: 'after' }
+  const { _id, ...clean } = updates;
+  await db.collection(COLLECTION).updateOne(
+    { _id: new ObjectId(id) }, 
+    { $set: { ...clean, updatedAt: new Date() } }
   );
-  return result.value;
+  return await findById(id);
 }
 
 export async function deleteById(id) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
-  return result.deletedCount;
+  return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }

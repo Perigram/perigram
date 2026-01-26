@@ -1,23 +1,35 @@
-import { connectDB } from '../../db/mongo.js';
+import { connectDB } from '~/server/db/mongo';
 import { ObjectId } from 'mongodb';
-import { toObjectId } from '../../utils/objectid.js';
 
 const COLLECTION = 'cassette_instances';
 
 export async function create(data) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).insertOne(data);
-  return { ...data, _id: result.insertedId };
+  const doc = {
+    ...data,
+    _id: data._id || new ObjectId(),
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc;
 }
 
 export async function insertMany(docs) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).insertMany(docs);
+  const prepared = docs.map(d => ({
+      ...d,
+      _id: d._id || new ObjectId(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+  }));
+  await db.collection(COLLECTION).insertMany(prepared);
+  return prepared;
 }
 
 export async function findById(id) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ _id: toObjectId(id) });
+  return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
 }
 
 export async function find(filter = {}) {
@@ -27,11 +39,15 @@ export async function find(filter = {}) {
 
 export async function updateById(id, updates) {
   const db = await connectDB();
-  const { _id, identity, origin, status, lineage, ...clean } = updates;
-  return await db.collection(COLLECTION).updateOne({ _id: toObjectId(id) }, { $set: clean });
+  const { _id, ...clean } = updates;
+  await db.collection(COLLECTION).updateOne(
+    { _id: new ObjectId(id) }, 
+    { $set: { ...clean, updatedAt: new Date() } }
+  );
+  return await findById(id);
 }
 
 export async function deleteById(id) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).deleteOne({ _id: toObjectId(id) });
+  return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }
