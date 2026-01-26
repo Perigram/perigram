@@ -41,5 +41,12 @@ export async function updateStatus(id, newState, userId, userRole, metadata = {}
 }
 
 export async function list(filter = {}) {
-  return await repository.find(filter);
+  const finalFilter = { ...filter };
+  
+  if (finalFilter.queueId) {
+    finalFilter['lineage.queueId'] = new ObjectId(finalFilter.queueId);
+    delete finalFilter.queueId;
+  }
+  
+  return await repository.find(finalFilter);
 }
