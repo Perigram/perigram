@@ -19,14 +19,14 @@
                         v-tooltip.top="'Toggle History'"
                     />
                     <Button 
-                        v-if="queue.status === 'DRAFT' && queue.chosenRunId"
+                        v-if="queueState === 'DRAFT' && queue.chosenRunId"
                         :label="$t('queue.markCut')"
                         icon="pi pi-scissors"
                         severity="success"
                         @click="markCutHandler"
                     />
                     <Button 
-                        v-if="queue.status !== 'DRAFT'"
+                        v-if="queueState !== 'DRAFT'"
                         :label="$t('queue.resetToDraft')"
                         icon="pi pi-refresh"
                         severity="warning"
@@ -82,7 +82,7 @@
                         </div>
 
                         <div v-else class="flex flex-col gap-2 flex-1">
-                            <div v-if="run.status === 'COMPLETE' || run.status === 'CHOSEN'" class="flex items-center gap-3">
+                            <div v-if="run.status?.state === 'COMPLETE' || run.status?.state === 'CHOSEN'" class="flex items-center gap-3">
                                 <div class="flex items-center gap-1.5 text-xs font-bold text-[var(--p-text-muted-color)]">
                                     <i class="pi pi-clone"></i>
                                     <span>{{ run.layoutCount || 0 }} {{ $t('results.sheets') }}</span>
@@ -94,12 +94,12 @@
                             </div>
                             
                             <!-- Artifacts for this run -->
-                            <div v-if="(run.status === 'COMPLETE' || run.status === 'CHOSEN')" class="flex flex-wrap gap-1.5">
+                            <div v-if="(run.status?.state === 'COMPLETE' || run.status?.state === 'CHOSEN')" class="flex flex-wrap gap-1.5">
                                 <Tag 
                                     v-for="artifact in getRunArtifacts(run._id)" 
                                     :key="artifact._id"
                                     :value="mapArtifactType(artifact.type)"
-                                    :severity="artifact.status === 'READY' ? 'success' : 'secondary'"
+                                    :severity="artifact.status?.state === 'READY' ? 'success' : 'secondary'"
                                     class="cursor-pointer font-bold px-2"
                                     @click.stop="onArtifactClick(artifact)"
                                 />
@@ -111,7 +111,7 @@
                                 {{ formatDate(run.createdAt) }}
                             </span>
                             
-                            <div v-if="run.status === 'COMPLETE' && run._id.toString() !== queue.chosenRunId?.toString()">
+                            <div v-if="run.status?.state === 'COMPLETE' && run._id.toString() !== queue.chosenRunId?.toString()">
                                 <Button 
                                     :label="$t('queue.chooseRun')"
                                     size="small"
@@ -127,7 +127,7 @@
 
             <!-- Sheets & Nesting Settings -->
             <AccordionTab :header="$t('projectData.sheets')">
-                <div class="flex flex-col gap-8 py-2" v-if="queue.status === 'DRAFT'">
+                <div class="flex flex-col gap-8 py-2" v-if="queueState === 'DRAFT'">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                         <!-- Left: Material & Sheets Selection -->
                         <div class="lg:col-span-10 flex flex-col gap-6">
@@ -272,7 +272,7 @@
                 </div>
                 <div v-else class="py-8 text-center opacity-60">
                     <i class="pi pi-lock text-4xl mb-3"></i>
-                    <p class="font-bold uppercase tracking-widest text-xs">Queue is CUT. Settings are locked.</p>
+                    <p class="font-bold uppercase tracking-widest text-xs">Queue is {{ queueState }}. Settings are locked.</p>
                 </div>
             </AccordionTab>
 
@@ -296,10 +296,10 @@
                         >
                             <!-- Absolute Delete Button on Hover -->
                             <Button 
-                                icon="pi pi-trash" severity="danger" text rounded size="small"
-                                class="absolute top-1 right-1 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                                icon="pi pi-trash" severity="danger" text rounded size="small" 
+                                class="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-lg border z-10" 
                                 @click="confirmDelete(entry)"
-                                :disabled="queue.status !== 'DRAFT'"
+                                :disabled="queueState !== 'DRAFT'"
                             />
 
                             <!-- Left: Thumbnail -->
@@ -320,7 +320,7 @@
                                     </h3>
                                     <div class="flex items-center gap-1 flex-shrink-0">
                                         <InputNumber 
-                                            v-model="entry.quantity" :min="1" :disabled="queue.status !== 'DRAFT'"
+                                            v-model="entry.quantity" :min="1" :disabled="queueState !== 'DRAFT'"
                                             size="small" class="w-28 compact-input-buttons"
                                             showButtons buttonLayout="horizontal"
                                             :useGrouping="false"
@@ -335,7 +335,7 @@
                                     <div v-for="param in getEntryParameters(entry)" :key="param" class="flex items-center gap-1 py-0.5">
                                         <span class="text-[10px] font-black uppercase opacity-70 w-4 flex-shrink-0">{{ param }}</span>
                                         <InputNumber 
-                                            v-model="entry.dimensions[param]" :disabled="queue.status !== 'DRAFT'"
+                                            v-model="entry.dimensions[param]" :disabled="queueState !== 'DRAFT'"
                                             size="small" class="flex-1 compact-input" :min="0"
                                             :useGrouping="false"
                                             @update:model-value="saveQueue"
@@ -351,7 +351,7 @@
                         v-if="viewMode === 'table'"
                         v-model:editingRows="editingRows"
                         :value="entries"
-                        :editMode="queue.status === 'DRAFT' ? 'cell' : null"
+                        :editMode="queueState === 'DRAFT' ? 'cell' : null"
                         dataKey="_id"
                         @cell-edit-complete="onRowEditSave"
                         :paginator="entries.length > 10"
@@ -402,7 +402,7 @@
                                 <Button 
                                     icon="pi pi-trash" severity="danger" text rounded
                                     @click="confirmDelete(slotProps.data)"
-                                    :disabled="queue.status !== 'DRAFT'"
+                                    :disabled="queueState !== 'DRAFT'"
                                 />
                             </template>
                         </Column>
@@ -419,11 +419,11 @@
                     <div class="flex flex-wrap gap-3">
                         <Button 
                             :label="$t('queues.addFromTemplate')" icon="pi pi-plus" severity="secondary" outlined
-                            @click="showAddDialog = true" :disabled="queue.status !== 'DRAFT'"
+                            @click="showAddDialog = true" :disabled="queueState !== 'DRAFT'"
                         />
                         <Button 
                             :label="$t('queues.uploadCassette')" icon="pi pi-upload" severity="secondary" outlined
-                            @click="showUploadDialog = true" :disabled="queue.status !== 'DRAFT'"
+                            @click="showUploadDialog = true" :disabled="queueState !== 'DRAFT'"
                         />
                     </div>
                 </div>
@@ -435,7 +435,7 @@
             </AccordionTab>
 
             <!-- Cassette Instances Tracking (Phase 3) -->
-            <AccordionTab v-if="queue.status === 'CUT'" :header="$t('project.cassettes') + ' Instances'">
+            <AccordionTab v-if="queueState === 'CUT'" :header="$t('project.cassettes') + ' Instances'">
                 <div class="flex flex-col gap-4 py-2">
                     <div class="flex items-center justify-between px-2">
                         <span class="text-xs font-black uppercase tracking-widest opacity-60">Production Tracking</span>
@@ -635,7 +635,7 @@ const nestingOptions = ref({
 });
 
 watch(nestingOptions, async (newVal) => {
-    if (props.queue.status !== 'DRAFT') return;
+    if (queueState.value !== 'DRAFT') return;
     try {
         await $fetch(`/api/queue/${props.queue._id}`, {
             method: 'PUT',
@@ -706,10 +706,9 @@ watch(selectedRunId, () => loadArtifacts());
 const loadQueueData = () => {
     entries.value = [...(props.queue.entries || [])];
     loadArtifacts();
-    if (props.queue.status === 'CUT') {
-        loadInstances();
-    }
-};
+            if (queueState.value === 'CUT') {
+                loadInstances();
+            }};
 
 const loadInstances = async () => {
     try {
