@@ -5,8 +5,9 @@
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import EntityStatus from '../shared/EntityStatus.vue';
-import LineageView from '../shared/LineageView.vue';
+import LineageBreadcrumbs from '../shared/LineageBreadcrumbs.vue';
 import { useAuthStore } from '~/stores/auth';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   project: { type: Object, required: true },
@@ -52,7 +53,7 @@ const handleCardClick = () => {
       <Card @click="handleCardClick" class="cursor-pointer">
         <template #title>
           <div class="flex flex-col gap-2">
-            <LineageView v-if="project.lineage" :lineage="project.lineage" />
+            <LineageBreadcrumbs v-if="project.lineage" :lineage="project.lineage" />
             <div class="flex justify-between items-start">
               <span class="font-bold">{{ name }}</span>
               <EntityStatus :entity="project" variant="full" />

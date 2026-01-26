@@ -62,7 +62,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   }
 
   const queueNumber = await repository.getNextQueueNumber(projectId);
-  const origin = createStatus('PENDING', userId, { note: 'Initial queue creation' });
+  const origin = createStatus('DRAFT', userId, { note: 'Initial queue creation' });
 
   const queueData = {
     identity: {
@@ -249,5 +249,13 @@ export async function getArtifacts(queueId, userId, userOrg, userRole, userPermi
     }
 
     const { service: artifactService } = await import('~/server/features/artifacts');
-    return await artifactService.list(queueId, runId);
+    
+    const filter = { 
+        'lineage.queueId': new ObjectId(queueId) 
+    };
+    if (runId) {
+        filter['lineage.runId'] = new ObjectId(runId);
+    }
+
+    return await artifactService.list(filter);
 }

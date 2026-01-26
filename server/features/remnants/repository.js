@@ -6,24 +6,13 @@ const COLLECTION = 'remnants';
 export async function create(data) {
   const db = await connectDB();
   const doc = {
-    remnantNumber: data.remnantNumber,
-    sheetId: data.sheetId ? new ObjectId(data.sheetId) : null,
-    warehouseId: data.warehouseId ? new ObjectId(data.warehouseId) : null,
-    organizationId: data.organizationId ? new ObjectId(data.organizationId) : null,
-    material: data.material,
-    color: data.color,
-    thickness: data.thickness,
-    foilThickness: data.foilThickness,
-    geometryDxf: data.geometryDxf,
-    area: data.area,
-    width: data.width,
-    height: data.height,
-    qrCode: data.qrCode,
-    isReusable: data.isReusable,
-    usedInQueueId: data.usedInQueueId ? new ObjectId(data.usedInQueueId) : null
+    ...data,
+    _id: data._id || new ObjectId(),
+    createdAt: new Date(),
+    updatedAt: new Date()
   };
-  const result = await db.collection(COLLECTION).insertOne(doc);
-  return { ...doc, _id: result.insertedId };
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc;
 }
 
 export async function findById(id) {
@@ -33,13 +22,17 @@ export async function findById(id) {
 
 export async function find(filter = {}) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).find(filter).toArray();
+  return await db.collection(COLLECTION).find(filter).sort({ createdAt: -1 }).toArray();
 }
 
 export async function updateById(id, updates) {
   const db = await connectDB();
-  const { _id, createdAt, updatedAt, status, createdBy, userId, ...clean } = updates;
-  return await db.collection(COLLECTION).updateOne({ _id: new ObjectId(id) }, { $set: clean });
+  const { _id, ...clean } = updates;
+  await db.collection(COLLECTION).updateOne(
+    { _id: new ObjectId(id) }, 
+    { $set: { ...clean, updatedAt: new Date() } }
+  );
+  return await findById(id);
 }
 
 export async function deleteById(id) {
@@ -54,6 +47,8 @@ export async function getNextRemnantNumber() {
 }
 
 export async function findReusable(filter = {}) {
+  // Assuming 'specs.area' is the criteria, but let's keep it generic
+  // The service should pass the correct filter
   const db = await connectDB();
-  return await db.collection(COLLECTION).find({ ...filter, isReusable: true }).toArray();
+  return await db.collection(COLLECTION).find(filter).toArray();
 }

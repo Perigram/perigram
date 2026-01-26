@@ -4,6 +4,7 @@
  */
 import Card from 'primevue/card';
 import Badge from 'primevue/badge';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   design: { type: Object, required: true },

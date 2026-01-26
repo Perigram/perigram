@@ -3,9 +3,9 @@ import { requireAuth } from '~/server/utils/permissions';
 import * as requisitionService from '~/server/features/requisitions/service';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const auth = await requireAuth(event);
   const id = event.context.params.id;
-  const body = await readBody(event);
-  
-  return await requisitionService.fulfill(id, body, user);
+  // body is not used by fulfill in service, but we'll read it anyway if it was there
+  // Actually, fulfill(id, userId, userOrg, userRole, userPermissions)
+  return await requisitionService.fulfill(id, auth.userId, auth.organizationId, auth.role, auth);
 });

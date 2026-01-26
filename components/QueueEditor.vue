@@ -6,7 +6,7 @@
                 <div class="flex flex-col gap-1">
                     <div class="flex items-center gap-3">
                         <h2 class="text-xl font-black m-0">{{ queue.name }}</h2>
-                        <StatusBadge :status="queue.status" />
+                        <EntityStatus :entity="queue" variant="inline" />
                         <span class="text-sm font-medium text-[var(--p-text-muted-color)]">{{ entries.length }} {{ $t('queues.entries') }}</span>
                     </div>
                     <TraceChain :ancestry="queueAncestry" />
@@ -74,10 +74,7 @@
                         <div class="flex items-start justify-between">
                             <div class="flex items-center gap-2">
                                 <span class="text-xl font-black">#{{ run.runNumber }}</span>
-                                <Tag 
-                                    :value="$t(`queue.runStatus.${run.status}`)" 
-                                    :severity="getRunStatusSeverity(run.status)"
-                                />
+                                <EntityStatus :entity="run.status" variant="inline" />
                             </div>
                         </div>
 
@@ -549,7 +546,7 @@ import AccordionTab from 'primevue/accordiontab';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
 
-import StatusBadge from '~/components/shared/status/StatusBadge.vue';
+import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
 import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 

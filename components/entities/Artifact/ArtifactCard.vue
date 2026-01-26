@@ -5,6 +5,8 @@
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import { useAuthStore } from '~/stores/auth';
+import { ref, computed } from 'vue';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   artifact: { type: Object, required: true },

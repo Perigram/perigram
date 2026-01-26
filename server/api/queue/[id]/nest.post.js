@@ -64,7 +64,7 @@ export default defineEventHandler(async (event) => {
     console.log('Validating cassettes:', cassetteIds);
     
     const cassettes = await Promise.all(
-      cassetteIds.map(id => cassetteService.getById(id, userId))
+      cassetteIds.map(id => cassetteService.getById(id, auth.userId, auth.organizationId, auth.role, auth))
     );
     
     console.log('Cassettes validated:', cassettes.length);

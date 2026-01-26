@@ -38,7 +38,7 @@ async function migrate() {
             queueCount: p.queueIds?.length || 0
           }
         },
-        $unset: { slug: "", name: "", status: "", contractorId: "", ownerId: "", statistics: "", batchIds: "", queueIds: "", tep: "" }
+        $unset: { contractorId: "", ownerId: "", statistics: "", batchIds: "", queueIds: "", tep: "" }
       });
     }
 
@@ -72,12 +72,62 @@ async function migrate() {
             materialPool: q.previousRemainder ? [{ type: 'REMNANT', id: q.previousRemainder }] : []
           }
         },
-        $unset: { projectSlug: "", name: "", queueNumber: "", status: "", entries: "", additionalFiles: "", previousRemainder: "", runs: "", chosenRunId: "" }
+        $unset: { projectSlug: "", entries: "", additionalFiles: "", previousRemainder: "", runs: "", chosenRunId: "" }
       });
     }
 
-    // 3. Migrate Material Batches to Piles (Flattening)
+    // 3. Migrate Catalogs
+    console.log('Migrating Catalogs...');
+    const catalogs = await db.collection('catalogs').find({ identity: { $exists: false } }).toArray();
+    for (const c of catalogs) {
+      const origin = { state: 'ACTIVE', userId: 'SYSTEM', timestamp: c.createdAt || new Date() };
+      await db.collection('catalogs').updateOne({ _id: c._id }, {
+        $set: {
+          identity: { name: c.name || 'Unnamed Catalog' },
+          origin,
+          status: origin,
+          lineage: { organizationId: c.manufacturerId ? new ObjectId(c.manufacturerId) : null },
+          // Keep material and options if they exist
+          material: c.material || 'ALUMINUM',
+          pricing: c.pricing || { pricePerSqm: 25, currency: 'USD' },
+          options: c.options || {
+            sheetThicknesses: c.sheetThicknessOptions || [4],
+            foilThicknesses: c.foilThicknessOptions || [0.3],
+            widths: c.widthOptions || [1220],
+            lengths: c.lengthOptions || [3000]
+          }
+        },
+        $unset: { manufacturerId: "", sheetTypes: "", sheetThicknessOptions: "", foilThicknessOptions: "", widthOptions: "", lengthOptions: "" }
+      });
+    }
+
+    // 4. Migrate Colors
+    console.log('Migrating Colors...');
+    const colors = await db.collection('colors').find({ identity: { $exists: false } }).toArray();
+    for (const col of colors) {
+      const catalog = await db.collection('catalogs').findOne({ _id: new ObjectId(col.catalogId) });
+      await db.collection('colors').updateOne({ _id: col._id }, {
+        $set: {
+          identity: { 
+            name: col.color || col.name || 'Unnamed Color',
+            code: col.colorCode || col.code || ''
+          },
+          visuals: {
+            hexCode: col.colorFallback || '#cccccc',
+            textureUrl: col.colorThumbnail || null
+          },
+          lineage: {
+            organizationId: catalog?.lineage?.organizationId,
+            catalogId: catalog?._id
+          }
+        },
+        $unset: { color: "", colorCode: "", colorFallback: "", colorThumbnail: "", catalogId: "", name: "", code: "" }
+      });
+    }
+
+    // 5. Migrate Material Batches to Piles (Flattening)
     console.log('Migrating Material Batches to Piles...');
+    await db.collection('material_piles').deleteMany({}); // Clear to avoid duplicates during dev
     const batches = await db.collection('material_batches').find().toArray();
     for (const b of batches) {
       for (const p of (b.piles || [])) {
@@ -87,16 +137,16 @@ async function migrate() {
           origin,
           status: origin,
           lineage: { 
-            organizationId: b.organizationId,
-            warehouseId: b.warehouseId,
-            catalogId: null, // manual link needed or heuristic
-            colorId: null    // heuristic needed based on color string
+            organizationId: b.organizationId ? new ObjectId(b.organizationId) : null,
+            warehouseId: b.warehouseId ? new ObjectId(b.warehouseId) : null,
+            catalogId: null, 
+            colorId: null
           },
           specs: { 
             sheetThickness: p.thickness, 
             foilThickness: p.foilThickness, 
             width: p.width, 
-            height: p.height,
+            length: p.height, // height in v23 was length
             area: (p.width * p.height) / 1000000 
           },
           stock: { total: p.totalCount, used: p.usedCount }

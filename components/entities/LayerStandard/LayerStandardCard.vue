@@ -3,7 +3,8 @@
  * Layer Standard View Component - v24 Standardized
  */
 import Badge from 'primevue/badge';
-import PenTemplateView from '../PenTemplate/PenTemplateView.vue';
+import PenTemplateCard from '../PenTemplate/PenTemplateCard.vue';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   standard: { type: Object, required: true },

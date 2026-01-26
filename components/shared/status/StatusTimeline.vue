@@ -27,7 +27,7 @@
         
         <div class="flex-1 pb-2">
           <div class="flex items-center gap-2 mb-1">
-            <StatusBadge :status="entry.status" />
+            <EntityStatus :entity="entry" variant="inline" />
             <span class="text-xs opacity-60">{{ formatDate(entry.timestamp) }}</span>
           </div>
           <div v-if="entry.note" class="text-sm opacity-80">{{ entry.note }}</div>
@@ -41,7 +41,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import ProgressSpinner from 'primevue/progressspinner';
-import StatusBadge from './StatusBadge.vue';
+import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
 
 const props = defineProps({
   collection: {

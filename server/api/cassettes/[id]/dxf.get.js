@@ -1,27 +1,16 @@
-import * as cassetteService from '~/server/features/cassettes/service';
+import { defineEventHandler } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
+import * as cassetteService from '~/server/features/cassettes/service';
 
 export default defineEventHandler(async (event) => {
-  try {
-    requireAuth(event);
-    const auth = event.context.auth;
-    const id = event.context.params.id;
-
-    const stream = await cassetteService.downloadDxf(
-        id, 
-        auth.userId,
-        auth.organizationId,
-        auth.role,
-        auth.permissions
-    );
-
-    setResponseHeaders(event, {
-      'Content-Type': 'application/dxf'
-    });
-
-    return sendStream(event, stream);
-  } catch (error) {
-    console.error('DXF download error:', error);
-    throw error;
-  }
+  const auth = await requireAuth(event);
+  const id = event.context.params.id;
+  
+  return await cassetteService.downloadDxf(
+    id,
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth
+  );
 });

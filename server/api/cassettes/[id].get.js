@@ -1,16 +1,16 @@
-import * as cassetteService from '~/server/features/cassettes/service';
+import { defineEventHandler } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
+import * as cassetteService from '~/server/features/cassettes/service';
 
 export default defineEventHandler(async (event) => {
-  requireAuth(event);
-  const auth = event.context.auth;
+  const auth = await requireAuth(event);
   const id = event.context.params.id;
   
   return await cassetteService.getById(
-    id, 
+    id,
     auth.userId,
     auth.organizationId,
     auth.role,
-    auth.permissions
+    auth
   );
 });

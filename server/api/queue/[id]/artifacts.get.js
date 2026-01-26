@@ -7,12 +7,14 @@ export default defineEventHandler(async (event) => {
   const id = event.context.params.id;
   
   const query = getQuery(event);
+  const runId = query.runId;
+  
   return await queuesService.getArtifacts(
     id, 
     auth.userId,
     auth.organizationId,
     auth.role,
-    auth.permissions,
-    { runId: query.runId }
+    auth,
+    runId
   );
 });

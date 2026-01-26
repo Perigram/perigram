@@ -5,7 +5,7 @@
         <div class="flex justify-between items-center">
             <div class="flex items-center gap-4">
                 <h2 class="text-3xl font-black m-0">{{ queue.name }}</h2>
-                <StatusBadge :status="queue.status" />
+                <EntityStatus :entity="queue" variant="inline" />
             </div>
             <div class="flex gap-2">
                 <Button label="Nesting Config" icon="pi pi-sliders-h" severity="secondary" size="small" />
@@ -93,7 +93,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useEntityStore } from '~/stores/entities';
-import StatusBadge from '~/components/shared/status/StatusBadge.vue';
+import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
 import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';

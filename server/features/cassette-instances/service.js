@@ -57,6 +57,14 @@ export async function list(userId, userOrg, userRole, userPermissions, options =
   return await repository.find(filter);
 }
 
+export async function listByQueue(queueId, userId, userOrg, userRole, userPermissions) {
+  const filter = {
+    ...getLineageFilter({ memberships: userPermissions.memberships, role: userRole }),
+    'lineage.queueId': new ObjectId(queueId)
+  };
+  return await repository.find(filter);
+}
+
 export async function getById(id, userId, userOrg, userRole, userPermissions) {
   const instance = await repository.findById(id);
   if (!instance) {

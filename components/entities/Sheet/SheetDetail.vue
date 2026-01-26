@@ -7,7 +7,7 @@
                 <div class="flex items-center gap-4">
                     <i class="pi pi-file text-primary"></i>
                     <h2 class="text-xl font-bold m-0">{{ sheet.sheetId || 'Physical Sheet' }}</h2>
-                    <StatusBadge :status="sheet.status" />
+                    <EntityStatus :entity="sheet" />
                 </div>
             </template>
             <template #icons>
@@ -71,7 +71,7 @@ import { useEntityStore } from '~/stores/entities';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
-import StatusBadge from '~/components/shared/status/StatusBadge.vue';
+import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
 import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import MaterialSpecs from '~/components/shared/MaterialSpecs.vue';

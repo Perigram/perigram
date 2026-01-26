@@ -26,6 +26,12 @@ export const UI_PERMISSIONS = {
             approve: true,
             fulfill: true,
             view_incoming: true
+        },
+        projects: {
+            create: false,
+            edit: false,
+            delete: false,
+            view_all: true
         }
     },
     'ContractorAdmin': {
@@ -44,6 +50,12 @@ export const UI_PERMISSIONS = {
             create: true,
             view_own: true,
             approve: false
+        },
+        projects: {
+            create: true,
+            edit: true,
+            delete: true,
+            view_own: true
         }
     },
     'SuperAdmin': {

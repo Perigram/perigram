@@ -5,6 +5,7 @@
  */
 import Card from 'primevue/card';
 import EntityStatus from '../shared/EntityStatus.vue';
+import { useIdentity, useSpecs } from '~/composables/useBlocks';
 
 const props = defineProps({
   remnant: { type: Object, required: true },

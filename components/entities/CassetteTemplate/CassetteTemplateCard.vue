@@ -2,7 +2,10 @@
 /**
  * Cassette Template View Component - v24 Standardized
  */
+import Tag from 'primevue/tag';
+import Button from 'primevue/button';
 import EntityStatus from '../shared/EntityStatus.vue';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   template: { type: Object, required: true },

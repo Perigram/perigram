@@ -5,7 +5,7 @@
         <div class="flex justify-between items-center">
             <div class="flex items-center gap-4">
                 <h2 class="text-3xl font-black m-0">Component Lifecycle</h2>
-                <StatusBadge :status="instance.status" />
+                <EntityStatus :entity="instance" variant="inline" />
             </div>
             <div class="flex gap-2">
                 <Button label="Update Status" icon="pi pi-sync" @click="showStatusDialog = true" />
@@ -73,7 +73,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useEntityStore } from '~/stores/entities';
-import StatusBadge from '~/components/shared/status/StatusBadge.vue';
+import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
 import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';

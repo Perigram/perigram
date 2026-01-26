@@ -26,18 +26,18 @@ export const stateMachines = {
   },
   
   queue: {
-    initial: 'PENDING',
+    initial: 'DRAFT',
     states: {
-      PENDING: { label: 'Pending', canUpdateMeta: true },
+      DRAFT: { label: 'Draft', canUpdateMeta: true },
       NESTING: { label: 'Nesting', canUpdateMeta: true },
       READY: { label: 'Ready', canUpdateMeta: true },
       CLOSED: { label: 'Closed', isTerminal: true, canUpdateMeta: false }
     },
     transitions: [
-      { from: 'PENDING', to: 'NESTING', roles: ['SYSTEM', 'ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'DRAFT', to: 'NESTING', roles: ['SYSTEM', 'ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'READY', roles: ['SYSTEM'], hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'READY', to: 'CLOSED', roles: ['ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] },
-      { from: 'NESTING', to: 'PENDING', roles: ['SYSTEM', 'ADMIN'], hooks: [{ handler: 'triggerAggregator' }] }
+      { from: 'NESTING', to: 'DRAFT', roles: ['SYSTEM', 'ADMIN'], hooks: [{ handler: 'triggerAggregator' }] }
     ]
   },
   

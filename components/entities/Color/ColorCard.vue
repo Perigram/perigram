@@ -3,6 +3,7 @@
  * Color View Component - v24 Standardized
  */
 import Card from 'primevue/card';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   color: { type: Object, required: true },

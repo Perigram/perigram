@@ -1,218 +1,153 @@
 import * as repository from './repository.js';
 import * as warehouseService from '../warehouses/service.js';
+import * as sheetsRepository from '../sheets/repository.js'; 
 import { createError } from 'h3';
-import { hasPermission } from '~/server/utils/auth-helpers';
+import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
+import { createIdentity, createStatus, inheritLineage } from '~/server/utils/blocks';
+import { statusService } from '~/server/core/machines/service';
 import { ObjectId } from 'mongodb';
-import { addStatus, initializeStatus } from '~/server/features/statuses/service';
 
-export async function create(data, user) {
-  if (!hasPermission(user, 'materials', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-  
-  // Validate required fields
-  if (!data.sheetId || !data.warehouseId || !data.geometryDxf) {
-    throw createError({ statusCode: 400, message: 'SheetId, warehouseId, and geometryDxf required' });
-  }
-  
-  // Verify access to warehouse
-  await warehouseService.getById(data.warehouseId, user);
-  
-  // Generate remnant number
-  const remnantNumber = await repository.getNextRemnantNumber();
-  
-  // Calculate if reusable (e.g., area > 0.1 m²)
-  const minReusableArea = 0.1; // 0.1 m² = 100,000 mm²
-  const isReusable = (data.area || 0) >= minReusableArea;
-  
-  const remnant = await repository.create({
-    remnantNumber,
-    sheetId: new ObjectId(data.sheetId),
-    warehouseId: new ObjectId(data.warehouseId),
-    material: data.material,
-    color: data.color,
-    thickness: data.thickness,
-    foilThickness: data.foilThickness || 0,
-    geometryDxf: data.geometryDxf,
-    area: data.area || 0,
-    width: data.width || 0,
-    height: data.height || 0,
-    qrCode: data.qrCode || '',
-    isReusable,
-    usedInQueueId: null,
-    createdBy: user.userId
-  });
+/**
+ * Remnants Service - v24 Standardized
+ */
 
-  await initializeStatus('remnants', remnant._id.toString(), user.userId, 'Remnant created');
-  
-  return remnant;
+function toDTO(remnant) {
+  if (!remnant) return null;
+  return {
+    ...remnant,
+    name: remnant.identity?.name || remnant.name,
+    serial: remnant.identity?.serial || remnant.serial
+  };
 }
 
-export async function createMany(remnantsData, user) {
-  if (!hasPermission(user, 'materials', 'write')) {
+export async function create(data, userId, userOrg, userRole, userPermissions) {
+  // data: { sheetId? (optional parent), warehouseId (required if no sheet), geometryDxf, area, width, height, ... }
+
+  let lineage;
+  let parentSheet = null;
+
+  if (data.sheetId) {
+    parentSheet = await sheetsRepository.findById(data.sheetId);
+    if (!parentSheet) throw createError({ statusCode: 404, message: 'Parent sheet not found' });
+    
+    // Inherit from sheet
+    lineage = inheritLineage(parentSheet, 'sheet'); // { ...sheet.lineage, sheetId: ... }
+  } else if (data.warehouseId) {
+    const warehouse = await warehouseService.getById(data.warehouseId, userId, userOrg, userRole, userPermissions);
+    // Inherit from warehouse
+    lineage = inheritLineage(warehouse, 'warehouse');
+  } else {
+    throw createError({ statusCode: 400, message: 'Either sheetId or warehouseId is required' });
+  }
+
+  // Permission Check
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'materials', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
+
+  const remnantNumber = await repository.getNextRemnantNumber();
+  const origin = createStatus('AVAILABLE', userId, { note: 'Remnant created' });
   
-  const minReusableArea = 0.1;
-  const remnants = [];
-  const now = new Date();
-  
-  for (const data of remnantsData) {
-    const remnantNumber = `REM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const isReusable = (data.area || 0) >= minReusableArea;
-    
-    remnants.push({
-      remnantNumber,
-      sheetId: new ObjectId(data.sheetId),
-      warehouseId: new ObjectId(data.warehouseId),
-      material: data.material,
-      color: data.color,
-      thickness: data.thickness,
-      foilThickness: data.foilThickness || 0,
-      geometryDxf: data.geometryDxf,
+  // Calculate if reusable
+  const minReusableArea = 0.1; // Could be from settings
+  const isReusable = (data.area || 0) >= minReusableArea;
+
+  const remnantData = {
+    identity: createIdentity(`Remnant ${remnantNumber}`, remnantNumber),
+    origin,
+    status: origin,
+    lineage,
+    geometry: {
+      dxfId: data.geometryDxf ? new ObjectId(data.geometryDxf) : null,
+      data: data.geometryData || null
+    },
+    specs: {
       area: data.area || 0,
       width: data.width || 0,
       height: data.height || 0,
-      qrCode: data.qrCode || '',
-      isReusable,
-      status: 'in_stock',
-      usedInQueueId: null,
-      createdBy: user.userId,
-      createdAt: now
-    });
+      thickness: data.thickness || parentSheet?.specs?.thickness || 0,
+      material: data.material || parentSheet?.specs?.material || null,
+      color: data.color || parentSheet?.specs?.color || null
+    },
+    isReusable
+  };
+
+  const remnant = await repository.create(remnantData);
+  
+  // Update inventory if needed (handled via status hooks or separate service call usually)
+  // For now, keeping it simple as per V24
+  
+  return toDTO(remnant);
+}
+
+export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
+  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
+  const finalFilter = { ...lineageFilter, ...filter };
+  
+  // Map legacy/direct ID filters to lineage
+  if (finalFilter.warehouseId) {
+    finalFilter['lineage.warehouseId'] = new ObjectId(finalFilter.warehouseId);
+    delete finalFilter.warehouseId;
   }
-  
-  if (remnants.length > 0) {
-    const { connectDB } = await import('~/server/db/mongo');
-    const db = await connectDB();
-    const result = await db.collection('remnants').insertMany(remnants);
-    
-    // Log status for each remnant
-    const statusEntries = Object.values(result.insertedIds).map(id => ({
-      entityId: id,
-      entityType: 'remnant',
-      status: 'in_stock',
-      userId: user.userId,
-      note: 'Remnant created',
-      timestamp: now
-    }));
-    await db.collection('statuses').insertMany(statusEntries);
+  if (finalFilter.sheetId) {
+    finalFilter['lineage.sheetId'] = new ObjectId(finalFilter.sheetId);
+    delete finalFilter.sheetId;
   }
-  
-  return remnants;
+  if (finalFilter.pileId) {
+    finalFilter['lineage.pileId'] = new ObjectId(finalFilter.pileId);
+    delete finalFilter.pileId;
+  }
+
+  // Handle reusable flag if passed
+  if (finalFilter.isReusable !== undefined) {
+      // boolean check
+  }
+
+  const remnants = await repository.find(finalFilter);
+  return remnants.map(toDTO);
 }
 
-export async function list(user, filter = {}) {
-  // Filter by accessible warehouses
-  const warehouses = await warehouseService.list(user);
-  const warehouseIds = warehouses.map(w => w._id);
-  filter.warehouseId = { $in: warehouseIds };
+export async function getById(id, userId, userOrg, userRole, userPermissions) {
+  if (!ObjectId.isValid(id)) throw createError({ statusCode: 400, message: 'Invalid ID' });
   
-  return await repository.find(filter);
-}
-
-export async function searchReusable(user, filter = {}) {
-  // Get reusable remnants for nesting
-  const warehouses = await warehouseService.list(user);
-  const warehouseIds = warehouses.map(w => w._id);
-  filter.warehouseId = { $in: warehouseIds };
-  
-  return await repository.findReusable(filter);
-}
-
-export async function getById(id, user) {
   const remnant = await repository.findById(id);
-  if (!remnant) {
-    throw createError({ statusCode: 404, message: 'Remnant not found' });
-  }
+  if (!remnant) throw createError({ statusCode: 404, message: 'Remnant not found' });
   
-  // Verify access to warehouse
-  await warehouseService.getById(remnant.warehouseId.toString(), user);
-  
-  return remnant;
-}
-
-export async function update(id, updates, user) {
-  const remnant = await repository.findById(id);
-  if (!remnant) {
-    throw createError({ statusCode: 404, message: 'Remnant not found' });
-  }
-  
-  // Verify access to warehouse
-  await warehouseService.getById(remnant.warehouseId.toString(), user);
-  
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, remnant.lineage, 'materials', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  // Don't allow changing critical fields
-  delete updates._id;
-  delete updates.createdAt;
-  delete updates.remnantNumber;
-  delete updates.warehouseId;
-  
-  const success = await repository.updateById(id, updates);
-  if (!success) {
-    throw createError({ statusCode: 500, message: 'Update failed' });
-  }
-  
-  return await repository.findById(id);
+  return toDTO(remnant);
 }
 
-export async function markAsUsed(id, queueId, user) {
-  const remnant = await repository.findById(id);
-  if (!remnant) {
-    throw createError({ statusCode: 404, message: 'Remnant not found' });
+export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
+  const remnant = await repository.findById(id); // Raw for permission
+  if (!remnant) throw createError({ statusCode: 404, message: 'Remnant not found' });
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, remnant.lineage, 'materials', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
   }
+
+  if (updates.status) {
+    await statusService.transition('remnant', remnant._id, updates.status, userId, userRole, updates.statusMeta || {});
+    delete updates.status;
+  }
+
+  const { identity, origin, status, lineage, specs, geometry, ...clean } = updates;
+
+  if (updates.name) remnant.identity.name = updates.name;
+
+  await repository.updateById(id, { identity: remnant.identity, ...clean });
+  const updated = await repository.findById(id);
+  return toDTO(updated);
+}
+
+export async function remove(id, userId, userOrg, userRole, userPermissions) {
+  const remnant = await getById(id, userId, userOrg, userRole, userPermissions);
   
-  // Verify access to warehouse
-  await warehouseService.getById(remnant.warehouseId.toString(), user);
-  
-  if (!hasPermission(user, 'materials', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, remnant.lineage, 'materials', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  if (remnant.status !== 'in_stock') {
-    throw createError({ statusCode: 409, message: 'Remnant already used' });
-  }
-  
-  await repository.updateById(id, {
-    usedInQueueId: new ObjectId(queueId)
-  });
-  
-  await addStatus('remnants', id, 'used', user.userId, `Used in queue ${queueId}`);
-  
-  // Update warehouse count
-  await warehouseService.updateInventoryCounts(remnant.warehouseId.toString(), { totalRemnants: -1 });
-  
-  return await repository.findById(id);
-}
-
-export async function remove(id, user) {
-  if (!hasPermission(user, 'materials', 'admin')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-  
-  const remnant = await repository.findById(id);
-  if (!remnant) {
-    throw createError({ statusCode: 404, message: 'Remnant not found' });
-  }
-  
-  // Verify access
-  await warehouseService.getById(remnant.warehouseId.toString(), user);
-  
-  // Can't delete if used
-  if (remnant.status === 'used') {
-    throw createError({ statusCode: 409, message: 'Cannot delete used remnant' });
-  }
-  
-  const success = await repository.deleteById(id);
-  if (!success) {
-    throw createError({ statusCode: 404, message: 'Remnant not found' });
-  }
-  
-  // Update warehouse count
-  await warehouseService.updateInventoryCounts(remnant.warehouseId.toString(), { totalRemnants: -1 });
-  
-  return { success: true };
+  return await repository.deleteById(id);
 }

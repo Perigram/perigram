@@ -4,6 +4,7 @@
  */
 import Card from 'primevue/card';
 import EntityStatus from '../shared/EntityStatus.vue';
+import { useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
   run: { type: Object, required: true },

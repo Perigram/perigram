@@ -3,8 +3,8 @@ import { requireAuth } from '~/server/utils/permissions';
 import * as requisitionService from '~/server/features/requisitions/service';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const auth = await requireAuth(event);
   const id = event.context.params.id;
   
-  return await requisitionService.startFulfillment(id, user);
+  return await requisitionService.startFulfillment(id, auth.userId, auth.organizationId, auth.role, auth);
 });

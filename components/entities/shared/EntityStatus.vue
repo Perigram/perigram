@@ -4,8 +4,9 @@
  */
 import Tag from 'primevue/tag';
 import OverlayPanel from 'primevue/overlaypanel';
-import UserView from '../User/UserView.vue';
-import { ref } from 'vue';
+import UserCard from '../User/UserCard.vue';
+import { ref, computed } from 'vue';
+import { useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -39,7 +40,7 @@ const statusUser = computed(() => ({
     <template v-else>
       <div class="flex flex-col items-end gap-2 text-right">
         <Tag :value="state" :severity="statusColor" />
-        <UserView v-if="entity.status?.userId" :user="statusUser" variant="inline" />
+        <UserCard v-if="entity.status?.userId" :user="statusUser" variant="inline" />
         <div v-if="timestamp" class="flex flex-col text-[10px] opacity-50">
             <span>{{ timestamp.toLocaleDateString() }}</span>
             <span>{{ timestamp.toLocaleTimeString() }}</span>
@@ -56,7 +57,7 @@ const statusUser = computed(() => ({
             </div>
             <div class="flex flex-col">
                 <small class="font-bold">Performed By</small>
-                <UserView :user="statusUser" variant="compact" />
+                <UserCard :user="statusUser" variant="compact" />
             </div>
             <div v-if="metadata?.note" class="flex flex-col">
                 <small class="font-bold">Note</small>

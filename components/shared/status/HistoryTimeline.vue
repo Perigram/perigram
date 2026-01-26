@@ -9,7 +9,7 @@
             <template #content="slotProps">
                 <div class="flex flex-col gap-1 mb-6">
                     <div class="flex items-center gap-2">
-                        <StatusBadge :status="slotProps.item.status" />
+                        <EntityStatus :entity="slotProps.item" variant="inline" />
                         <span class="text-xs font-bold">{{ slotProps.item.userId || 'System' }}</span>
                     </div>
                     <p v-if="slotProps.item.note" class="text-sm text-[var(--p-text-secondary-color)] italic m-0">
@@ -24,7 +24,7 @@
 <script setup>
 import { computed } from 'vue';
 import Timeline from 'primevue/timeline';
-import StatusBadge from './StatusBadge.vue';
+import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
 
 const props = defineProps({
     history: {

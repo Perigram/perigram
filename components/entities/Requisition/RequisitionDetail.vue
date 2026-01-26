@@ -7,7 +7,7 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div class="flex items-center gap-4">
                     <h2 class="text-2xl font-black m-0">#{{ requisition.requisitionNumber }}</h2>
-                    <StatusBadge :status="requisition.status" />
+                    <EntityStatus :entity="requisition" />
                 </div>
                 <div class="flex gap-2">
                     <template v-if="authStore.isContractor && requisition.status === 'draft'">
@@ -92,7 +92,7 @@ import Card from 'primevue/card';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
-import StatusBadge from '~/components/shared/status/StatusBadge.vue';
+import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
 import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';

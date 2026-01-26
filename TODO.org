@@ -309,10 +309,10 @@
     - components/shared/LineageBreadcrumbs.vue (New ancestry nav)
     - components/entities/shared/EntityStatus.vue
     - components/entities/shared/StatusTimeline.vue (New audit UI)
-    - components/entities/Project/ProjectView.vue
-    - components/entities/Queue/QueueView.vue
-    - components/entities/MaterialPile/PileView.vue
-    - components/entities/Sheet/SheetView.vue
+    - components/entities/Project/ProjectCard.vue
+    - components/entities/Queue/QueueCard.vue
+    - components/entities/MaterialPile/PileCard.vue
+    - components/entities/Sheet/SheetCard.vue
     - pages/test/ui-lab.vue (Completely updated for v24 variants)
     - scripts/migrate-v24.js
     Notes:

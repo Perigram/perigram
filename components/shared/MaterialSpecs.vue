@@ -28,11 +28,14 @@
             <div class="flex flex-col col-span-2 pt-2 border-t border-dashed border-surface-200 dark:border-surface-700">
                 <span class="text-[10px] opacity-60">{{ $t('catalog.dimensions') }}</span>
                 <div class="flex items-center gap-2">
-                    <span class="text-sm font-black">{{ specs.width }}</span>
-                    <span class="text-[10px] font-bold opacity-40">×</span>
-                    <span class="text-sm font-black">{{ specs.length || specs.height }}</span>
-                    <span class="text-[10px] font-bold opacity-40">mm</span>
+                    <span class="text-sm font-black">{{ formattedDimensions }}</span>
                 </div>
+            </div>
+
+            <!-- Area -->
+            <div class="flex flex-col col-span-2 pt-2">
+                <span class="text-[10px] opacity-60">{{ $t('common.area') }}</span>
+                <span class="text-sm font-black">{{ formattedArea }}</span>
             </div>
 
             <!-- Material Core -->
@@ -45,10 +48,17 @@
 </template>
 
 <script setup>
-defineProps({
+import { useSpecs } from '~/composables/useBlocks';
+
+const props = defineProps({
     specs: {
         type: Object,
         required: true
     }
 });
+
+// useSpecs expects an object with .specs, but if we pass it directly it might work or we wrap it
+// Actually useSpecs does computed(() => entity?.specs || {})
+// So we wrap it
+const { formattedDimensions, formattedArea } = useSpecs({ specs: props.specs });
 </script>

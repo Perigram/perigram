@@ -5,8 +5,9 @@
 import Avatar from 'primevue/avatar';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
-import Tag from 'primevue/tag';
+import EntityStatus from '../shared/EntityStatus.vue';
 import { useAuthStore } from '~/stores/auth';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -54,7 +55,7 @@ const handleCardClick = () => {
                     <span class="text-sm opacity-50">{{ user.identity?.email }}</span>
                 </div>
                 <div class="flex gap-2 mt-2">
-                    <Tag :value="user.status?.state || 'ACTIVE'" severity="success" />
+                    <EntityStatus :entity="user" />
                 </div>
             </div>
         </template>

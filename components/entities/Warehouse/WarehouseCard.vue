@@ -3,6 +3,7 @@
  * Warehouse View Component - v24 Standardized
  */
 import Card from 'primevue/card';
+import { useIdentity } from '~/composables/useBlocks';
 import Badge from 'primevue/badge';
 
 const props = defineProps({

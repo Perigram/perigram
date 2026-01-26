@@ -1,12 +1,13 @@
-import { defineEventHandler } from 'h3';
-import { requireAuth } from '~/server/utils/permissions';
-import * as sheetService from '~/server/features/sheets/service';
+import { defineEventHandler, getQuery } from 'h3';
+import { requireAuth } from '../../utils/permissions';
+import * as sheetService from '../../features/sheets/service';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const auth = await requireAuth(event);
   
   if (event.req.method === 'GET') {
-    return await sheetService.list(user);
+    const query = getQuery(event);
+    return await sheetService.list(auth.userId, auth.organizationId, auth.role, auth, query);
   }
   
   return { error: 'Method not allowed' };

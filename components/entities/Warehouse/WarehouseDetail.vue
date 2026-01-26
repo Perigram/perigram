@@ -72,43 +72,40 @@
         <!-- Inventory Explorer -->
         <TabView class="mt-4">
             <TabPanel :header="$t('warehouse.storedBatches')">
-                <DataTable :value="batches" :loading="loading" stripedRows size="small">
-                    <Column field="batchNumber" :header="$t('project.title') + ' #'" />
-                    <Column :header="$t('project.status')">
-                        <template #body="{ data }"><StatusBadge :status="data.status" /></template>
-                    </Column>
-                    <Column field="receiptId" :header="$t('project.overview')" />
-                    <Column :header="$t('common.actions.title')" class="text-right">
-                        <template #body="{ data }">
-                            <Button icon="pi pi-eye" text @click="trace(data, 'batch')" />
-                        </template>
-                    </Column>
-                </DataTable>
+                <div v-if="batches.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                    <BatchCard 
+                        v-for="batch in batches" 
+                        :key="batch._id" 
+                        :batch="batch" 
+                        variant="compact"
+                        @view="trace(batch, 'batch')"
+                    />
+                </div>
+                <div v-else-if="!loading" class="text-center py-12 opacity-40 italic">No batches stored</div>
             </TabPanel>
             <TabPanel :header="$t('warehouse.availableSheets')">
-                <DataTable :value="sheets" :loading="loading" stripedRows size="small">
-                    <Column field="sheetId" header="ID" />
-                    <Column field="color" :header="$t('assets.color')" />
-                    <Column :header="$t('projectData.size')">
-                        <template #body="{ data }">{{ data.width }}x{{ data.height }}mm</template>
-                    </Column>
-                    <Column :header="$t('common.actions.title')" class="text-right">
-                        <template #body="{ data }">
-                            <Button icon="pi pi-eye" text @click="trace(data, 'sheet')" />
-                        </template>
-                    </Column>
-                </DataTable>
+                <div v-if="sheets.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                    <SheetCard 
+                        v-for="sheet in sheets" 
+                        :key="sheet._id" 
+                        :sheet="sheet" 
+                        variant="compact"
+                        @click="trace(sheet, 'sheet')"
+                    />
+                </div>
+                <div v-else-if="!loading" class="text-center py-12 opacity-40 italic">No sheets available</div>
             </TabPanel>
             <TabPanel :header="$t('warehouse.remnants')">
-                <DataTable :value="remnants" :loading="loading" stripedRows size="small">
-                    <Column field="remnantId" header="ID" />
-                    <Column field="status" :header="$t('project.status')" />
-                    <Column :header="$t('common.actions.title')" class="text-right">
-                        <template #body="{ data }">
-                            <Button icon="pi pi-eye" text @click="trace(data, 'remnant')" />
-                        </template>
-                    </Column>
-                </DataTable>
+                <div v-if="remnants.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                    <RemnantCard 
+                        v-for="remnant in remnants" 
+                        :key="remnant._id" 
+                        :remnant="remnant" 
+                        variant="compact"
+                        @click="trace(remnant, 'remnant')"
+                    />
+                </div>
+                <div v-else-if="!loading" class="text-center py-12 opacity-40 italic">No remnants available</div>
             </TabPanel>
         </TabView>
     </div>
@@ -119,11 +116,12 @@ import { ref, onMounted, watch } from 'vue';
 import Panel from 'primevue/panel';
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
-import StatusBadge from '~/components/shared/status/StatusBadge.vue';
+import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
+import BatchCard from '~/components/entities/Batch/BatchCard.vue';
+import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
+import RemnantCard from '~/components/entities/Remnant/RemnantCard.vue';
 
 const props = defineProps({
     warehouse: {

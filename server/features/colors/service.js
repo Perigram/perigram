@@ -46,7 +46,15 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   // Publicly available
-  return await repository.find(filter);
+  const finalFilter = { ...filter };
+  
+  // Map legacy/direct ID filters to lineage
+  if (finalFilter.catalogId) {
+    finalFilter['lineage.catalogId'] = new ObjectId(finalFilter.catalogId);
+    delete finalFilter.catalogId;
+  }
+
+  return await repository.find(finalFilter);
 }
 
 export async function getById(id) {

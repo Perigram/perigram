@@ -15,21 +15,13 @@
                     <template #value="slotProps">
                         <div v-if="currentQueue" class="flex items-center gap-3">
                             <span class="font-bold truncate">{{ currentQueue.name }}</span>
-                            <Tag
-                                :value="$t(`queue.queueStatus.${currentQueue.status}`)"
-                                :severity="getStatusSeverity(currentQueue.status)"
-                                class="text-[10px] uppercase"
-                            />
+                            <EntityStatus :entity="currentQueue" variant="inline" />
                         </div>
                     </template>
                     <template #option="slotProps">
                         <div class="flex items-center justify-between w-full gap-4">
                             <span class="font-medium truncate">{{ slotProps.option.name }}</span>
-                            <Tag
-                                :value="$t(`queue.queueStatus.${slotProps.option.status}`)"
-                                :severity="getStatusSeverity(slotProps.option.status)"
-                                class="text-[9px] uppercase"
-                            />
+                            <EntityStatus :entity="slotProps.option" variant="inline" />
                         </div>
                     </template>
                 </Select>
@@ -75,6 +67,7 @@
     import { useQueuesStore } from '~/stores/queues'
     import { storeToRefs } from 'pinia'
     import QueueEditor from '~/components/QueueEditor.vue'
+    import EntityStatus from '~/components/entities/shared/EntityStatus.vue'
     import Button from 'primevue/button'
     import Select from 'primevue/select'
     import Tag from 'primevue/tag'
@@ -92,18 +85,6 @@
     const { queues } = storeToRefs(queuesStore)
     const currentQueueId = ref(null)
     const currentQueue = computed(() => queues.value.find((q) => q._id === currentQueueId.value))
-
-    const getStatusSeverity = (status) => {
-        const map = {
-            'DRAFT': 'info',
-            'READY': 'info',
-            'NESTING': 'warning',
-            'NESTED': 'success',
-            'COMPLETE': 'success',
-            'FAILED': 'danger'
-        };
-        return map[status] || 'info';
-    };
 
     watch(currentQueueId, async (newId) => {
         if (newId) {

@@ -5,33 +5,36 @@ import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissio
 import { createStatus, inheritLineage } from '~/server/utils/blocks';
 import { statusService } from '~/server/core/machines/service';
 import { ObjectId } from 'mongodb';
+import { toObjectId, isValidObjectId } from '~/server/utils/objectid';
 
 /**
  * Sheets Service - v24 Standardized
  */
 
+function toDTO(sheet) {
+  if (!sheet) return null;
+  return {
+    ...sheet,
+    name: sheet.identity?.name || sheet.name,
+    serial: sheet.identity?.serial || sheet.serial
+  };
+}
+
 export async function createFromPile(pileId, count, userId, userRole, userPermissions) {
   const pile = await materialPilesRepository.findById(pileId);
-  if (!pile) {
-    throw createError({ statusCode: 404, message: 'Material pile not found' });
-  }
+  if (!pile) throw createError({ statusCode: 404, message: 'Material pile not found' });
 
-  // 1. Permission Check
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, pile.lineage, 'materials', 'write')) {
+  if (!hasLineagePermission(userPermissions, pile.lineage, 'materials', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  // 2. Stock Check
-  const available = pile.stock.total - pile.stock.used;
+  const available = (pile.stock?.total || 0) - (pile.stock?.used || 0);
   if (available < count) {
     throw createError({ statusCode: 400, message: `Insufficient stock in pile. Available: ${available}` });
   }
 
-  // 3. Lineage Inheritance
   const baseLineage = inheritLineage(pile, 'pile');
-
   const sheetsToCreate = [];
-  const now = new Date();
 
   for (let i = 0; i < count; i++) {
     const serial = `SH-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
@@ -42,50 +45,54 @@ export async function createFromPile(pileId, count, userId, userRole, userPermis
       origin,
       status: origin,
       lineage: baseLineage,
-      specs: {} // Optional overrides
+      specs: { ...pile.specs }
     });
   }
 
   const created = [];
   for (const sheetData of sheetsToCreate) {
     const sheet = await repository.create(sheetData);
-    created.push(sheet);
+    created.push(toDTO(sheet));
   }
 
-  // 4. Update Pile Stock
   await materialPilesRepository.updateById(pileId, { 
-    'stock.used': pile.stock.used + count 
+    'stock.used': (pile.stock?.used || 0) + count 
   });
 
   return created;
 }
 
-export async function list(userId, userOrg, userRole, userPermissions, options = {}) {
-  const filter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
-  return await repository.find(filter);
+export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
+  const lineageFilter = getLineageFilter(userPermissions);
+  const finalFilter = { ...lineageFilter };
+  
+  if (filter.warehouseId && isValidObjectId(filter.warehouseId)) finalFilter['lineage.warehouseId'] = toObjectId(filter.warehouseId);
+  if (filter.pileId && isValidObjectId(filter.pileId)) finalFilter['lineage.pileId'] = toObjectId(filter.pileId);
+  if (filter.organizationId && isValidObjectId(filter.organizationId)) finalFilter['lineage.organizationId'] = toObjectId(filter.organizationId);
+
+  const sheets = await repository.find(finalFilter);
+  return sheets.map(toDTO);
 }
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {
   const sheet = await repository.findById(id);
-  if (!sheet) {
-    throw createError({ statusCode: 404, message: 'Sheet not found' });
-  }
+  if (!sheet) throw createError({ statusCode: 404, message: 'Sheet not found' });
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, sheet.lineage, 'materials', 'read')) {
+  if (!hasLineagePermission(userPermissions, sheet.lineage, 'materials', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  return sheet;
+  return toDTO(sheet);
 }
 
 export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
-  const sheet = await getById(id, userId, userOrg, userRole, userPermissions);
+  const sheet = await repository.findById(id);
+  if (!sheet) throw createError({ statusCode: 404, message: 'Sheet not found' });
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, sheet.lineage, 'materials', 'write')) {
+  if (!hasLineagePermission(userPermissions, sheet.lineage, 'materials', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  // Status updates must go through statusService
   if (updates.status) {
     await statusService.transition('sheet', sheet._id, updates.status, userId, userRole, updates.statusMeta || {});
     delete updates.status;
@@ -93,23 +100,23 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
   const { identity, origin, status, lineage, specs, ...clean } = updates;
   
-  // Identity updates
   if (updates.serial) sheet.identity.serial = updates.serial;
   if (updates.name) sheet.identity.name = updates.name;
 
   await repository.updateById(id, { identity: sheet.identity, ...clean });
-  return await repository.findById(id);
+  const updated = await repository.findById(id);
+  return toDTO(updated);
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
-  const sheet = await getById(id, userId, userOrg, userRole, userPermissions);
+  const sheet = await repository.findById(id);
+  if (!sheet) throw createError({ statusCode: 404, message: 'Sheet not found' });
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, sheet.lineage, 'materials', 'admin')) {
+  if (!hasLineagePermission(userPermissions, sheet.lineage, 'materials', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  // Logic: Can't delete if already MILLED
-  if (sheet.status.state === 'MILLED') {
+  if (sheet.status?.state === 'MILLED') {
     throw createError({ statusCode: 400, message: 'Cannot delete milled sheet' });
   }
   

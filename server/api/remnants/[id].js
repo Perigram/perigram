@@ -3,20 +3,20 @@ import { requireAuth } from '~/server/utils/permissions';
 import * as remnantService from '~/server/features/remnants/service';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const auth = await requireAuth(event);
   const id = event.context.params.id;
   
   if (event.req.method === 'GET') {
-    return await remnantService.getById(id, user);
+    return await remnantService.getById(id, auth.userId, auth.organizationId, auth.role, auth);
   }
   
   if (event.req.method === 'PUT' || event.req.method === 'PATCH') {
     const body = await readBody(event);
-    return await remnantService.update(id, body, user);
+    return await remnantService.update(id, body, auth.userId, auth.organizationId, auth.role, auth);
   }
   
   if (event.req.method === 'DELETE') {
-    return await remnantService.remove(id, user);
+    return await remnantService.remove(id, auth.userId, auth.organizationId, auth.role, auth);
   }
   
   return { error: 'Method not allowed' };

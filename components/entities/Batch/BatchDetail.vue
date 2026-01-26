@@ -7,7 +7,7 @@
                 <div class="flex items-center gap-4">
                     <i class="pi pi-truck text-primary"></i>
                     <h2 class="text-xl font-bold m-0">{{ batch.batchNumber }}</h2>
-                    <StatusBadge :status="batch.status" />
+                    <EntityStatus :entity="batch" />
                 </div>
             </template>
             <template #icons>
@@ -97,7 +97,7 @@ import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import ProgressBar from 'primevue/progressbar';
-import StatusBadge from '~/components/shared/status/StatusBadge.vue';
+import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
 import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';

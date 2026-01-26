@@ -1,5 +1,7 @@
 import { computed } from 'vue';
 
+import { STATUS_MAPPINGS } from '~/utils/status-engine';
+
 /**
  * Universal Block Composables - v24 Standardized
  */
@@ -14,11 +16,24 @@ export const useIdentity = (entity) => {
 };
 
 export const useStatus = (entity) => {
-  const state = computed(() => entity?.status?.state || 'UNKNOWN');
-  const timestamp = computed(() => entity?.status?.timestamp ? new Date(entity.status.timestamp) : null);
-  const metadata = computed(() => entity?.status?.metadata || {});
+  // If entity has 'state', it might be a status block already (e.g. from history array)
+  // Otherwise try entity.status
+  const statusBlock = computed(() => {
+      if (!entity) return {};
+      if (typeof entity === 'string') return { state: entity };
+      if (entity.state) return entity;
+      return entity.status || {};
+  });
+
+  const state = computed(() => statusBlock.value.state || 'UNKNOWN');
+  const timestamp = computed(() => statusBlock.value.timestamp ? new Date(statusBlock.value.timestamp) : null);
+  const metadata = computed(() => statusBlock.value.metadata || {});
   
   const statusColor = computed(() => {
+    // Try exact match in mappings
+    const mapping = STATUS_MAPPINGS[state.value] || STATUS_MAPPINGS[state.value.toLowerCase()];
+    if (mapping) return mapping.severity;
+
     const colors = {
       DRAFT: 'secondary',
       PENDING: 'warn',

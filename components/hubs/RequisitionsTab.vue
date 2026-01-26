@@ -71,11 +71,11 @@
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] font-black uppercase opacity-40">{{ $t('requisition.colorFinish') }}</label>
-                    <Select v-model="item.colorId" :options="getAvailableColors(item.catalogId)" optionLabel="color" optionValue="_id" :placeholder="$t('requisition.selectColor')">
+                    <Select v-model="item.colorId" :options="getAvailableColors(item.catalogId)" :optionLabel="opt => opt.identity?.name || opt.color" optionValue="_id" :placeholder="$t('requisition.selectColor')">
                         <template #option="slotProps">
                             <div class="flex items-center gap-2">
-                                <div class="w-4 h-4 rounded-full border shadow-sm" :style="{ backgroundColor: slotProps.option.colorFallback }"></div>
-                                <span>{{ slotProps.option.color }}</span>
+                                <div class="w-4 h-4 rounded-full border shadow-sm" :style="{ backgroundColor: slotProps.option.visuals?.hexCode || slotProps.option.colorFallback || '#ccc' }"></div>
+                                <span>{{ slotProps.option.identity?.name || slotProps.option.color }}</span>
                             </div>
                         </template>
                     </Select>
@@ -186,7 +186,8 @@ const fulfillingId = ref(null);
 
 const availableCatalogs = computed(() => {
     if (!form.value.manufacturerId) return [];
-    return catalogs.value.filter(c => c.manufacturerId === form.value.manufacturerId);
+    // Manufacturers in v24 have organizationId in their lineage
+    return catalogs.value.filter(c => c.lineage?.organizationId === form.value.manufacturerId || c.manufacturerId === form.value.manufacturerId);
 });
 
 async function load() {
@@ -212,8 +213,12 @@ async function load() {
 
 async function viewDetails(req) {
     selectedReq.value = req;
-    if (authStore.isManufacturer && req.status === 'in_fulfillment') {
-        contractorWarehouses.value = await $fetch(`/api/warehouses?organizationId=${req.contractorId}`);
+    if (authStore.isManufacturer && (req.status?.state === 'APPROVED' || req.status === 'in_fulfillment')) {
+        // Find contractorId from lineage
+        const contractorId = req.lineage?.organizationId;
+        if (contractorId) {
+            contractorWarehouses.value = await $fetch(`/api/warehouses?organizationId=${contractorId}`);
+        }
     }
 }
 
@@ -232,20 +237,30 @@ function addItem() {
 function onCatalogChange(idx) {
     const catalog = catalogs.value.find(c => c._id === form.value.items[idx].catalogId);
     if (catalog) {
-        form.value.items[idx].foilThickness = catalog.foilThicknessOptions?.[0] || 0.3;
-        form.value.items[idx].sheetThickness = catalog.sheetThicknessOptions?.[0] || 4;
-        form.value.items[idx].width = catalog.widthOptions?.[0] || 1220;
+        const options = catalog.options || {};
+        form.value.items[idx].foilThickness = options.foilThicknesses?.[0] || 0.3;
+        form.value.items[idx].sheetThickness = options.sheetThicknesses?.[0] || 4;
+        form.value.items[idx].width = options.widths?.[0] || 1220;
     }
     form.value.items[idx].colorId = null;
 }
 
 function getAvailableColors(catalogId) {
-    return colors.value.filter(c => c.catalogId === catalogId);
+    return colors.value.filter(c => (c.lineage?.catalogId === catalogId || c.catalogId === catalogId));
 }
 
 function getCatalogOptions(catalogId, field) {
     const catalog = catalogs.value.find(c => c._id === catalogId);
-    return (catalog?.[field] || []).map(val => ({ label: `${val} mm`, value: val }));
+    if (!catalog) return [];
+    
+    // Map v24 options to dropdown labels
+    const optionsMap = {
+        foilThicknessOptions: catalog.options?.foilThicknesses || [],
+        sheetThicknessOptions: catalog.options?.sheetThicknesses || [],
+        widthOptions: catalog.options?.widths || []
+    };
+    
+    return (optionsMap[field] || []).map(val => ({ label: `${val} mm`, value: val }));
 }
 
 async function createReq() {

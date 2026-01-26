@@ -35,52 +35,13 @@
         </div>
 
         <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card 
+            <ProjectCard 
                 v-for="project in recentProjects" 
                 :key="project.slug"
-                class="overflow-hidden border border-[var(--p-content-border-color)] hover:border-[var(--p-primary-color)] transition-all duration-300 shadow-sm hover:shadow-lg group"
-            >
-                <template #header>
-                    <div class="h-20 bg-gradient-to-br from-[var(--p-primary-color)] to-[var(--p-primary-700)] flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
-                        <i class="pi pi-folder text-3xl text-[var(--p-primary-contrast-color)]"></i>
-                    </div>
-                </template>
-                <template #title>
-                    <NuxtLink 
-                        :to="`/project/${project.slug}`"
-                        class="text-base font-bold text-[var(--p-text-color)] hover:text-[var(--p-primary-color)] no-underline transition-colors line-clamp-1 block pt-2"
-                    >
-                        {{ project.name }}
-                    </NuxtLink>
-                </template>
-                <template #subtitle>
-                    <div class="flex flex-col gap-2 mt-2">
-                        <span class="flex items-center gap-2 text-xs text-[var(--p-text-muted-color)]">
-                            <i class="pi pi-calendar text-[10px]"></i>
-                            {{ formatDate(project.createdAt) }}
-                        </span>
-                        <Tag 
-                            v-if="project.results" 
-                            severity="info" 
-                            size="small"
-                            class="w-fit text-[10px]"
-                        >
-                            {{ project.results }} {{ $t('dashboard.results') }}
-                        </Tag>
-                    </div>
-                </template>
-                <template #footer>
-                    <div class="flex justify-end pt-2 border-t border-[var(--p-content-border-color)]">
-                        <Button 
-                            :label="$t('common.open')"
-                            icon="pi pi-arrow-right"
-                            text
-                            size="small"
-                            @click="openProject(project.slug)"
-                        />
-                    </div>
-                </template>
-            </Card>
+                :project="project"
+                variant="card"
+                @view="openProject(project.identity?.slug || project.slug)"
+            />
         </div>
     </div>
 </template>
@@ -88,11 +49,9 @@
 <script setup>
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import DataView from 'primevue/dataview';
-import Card from 'primevue/card';
+import ProjectCard from '~/components/entities/Project/ProjectCard.vue';
 import Button from 'primevue/button';
 import ProgressSpinner from 'primevue/progressspinner';
-import Tag from 'primevue/tag';
 
 const props = defineProps({
     projects: {
@@ -113,11 +72,6 @@ const recentProjects = computed(() => {
     if (!props.projects) return [];
     return props.projects.slice(0, 6);
 });
-
-const formatDate = (date) => {
-    if (!date) return '';
-    return new Date(date).toLocaleDateString();
-};
 
 const openProject = (slug) => {
     router.push(`/project/${slug}`);

@@ -4,8 +4,7 @@
  * Model: identity, specs, stock
  */
 import Card from 'primevue/card';
-import ProgressBar from 'primevue/progressbar';
-import EntityStatus from '../shared/EntityStatus.vue';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   pile: { type: Object, required: true },

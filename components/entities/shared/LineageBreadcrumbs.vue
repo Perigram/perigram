@@ -2,13 +2,13 @@
 /**
  * Universal Lineage Breadcrumbs - v24 Standardized
  */
-import OrganizationView from '../Organization/OrganizationView.vue';
-import WarehouseView from '../Warehouse/WarehouseView.vue';
-import ProjectView from '../Project/ProjectView.vue';
-import QueueView from '../Queue/QueueView.vue';
-import CassetteDesignView from '../CassetteDesign/CassetteDesignView.vue';
+import OrganizationCard from '../Organization/OrganizationCard.vue';
+import WarehouseCard from '../Warehouse/WarehouseCard.vue';
+import ProjectCard from '../Project/ProjectCard.vue';
+import QueueCard from '../Queue/QueueCard.vue';
+import CassetteDesignCard from '../CassetteDesign/CassetteDesignCard.vue';
 import Button from 'primevue/button';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
   lineage: { type: Object, required: true },
@@ -22,28 +22,28 @@ const lineageItems = computed(() => {
     if (props.lineage.organizationId) {
         items.push({ 
             type: 'organization', 
-            component: OrganizationView, 
+            component: OrganizationCard, 
             data: { _id: props.lineage.organizationId, identity: { name: 'Org' } } 
         });
     }
     if (props.lineage.warehouseId) {
         items.push({ 
             type: 'warehouse', 
-            component: WarehouseView, 
+            component: WarehouseCard, 
             data: { _id: props.lineage.warehouseId, identity: { name: 'Warehouse' } } 
         });
     }
     if (props.lineage.projectId) {
         items.push({ 
             type: 'project', 
-            component: ProjectView, 
+            component: ProjectCard, 
             data: { _id: props.lineage.projectId, identity: { name: 'Project' } } 
         });
     }
     if (props.lineage.queueId) {
         items.push({ 
             type: 'queue', 
-            component: QueueView, 
+            component: QueueCard, 
             data: { _id: props.lineage.queueId, identity: { name: 'Queue' } } 
         });
     }

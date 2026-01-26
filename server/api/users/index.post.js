@@ -3,9 +3,8 @@ import { requireAuth } from '~/server/utils/permissions';
 import * as usersService from '~/server/features/users/service';
 
 export default defineEventHandler(async (event) => {
-  requireAuth(event);
-  const auth = event.context.auth;
-  
+  const auth = await requireAuth(event);
   const body = await readBody(event);
-  return await usersService.register(body, auth.userId, auth.role);
+  
+  return await usersService.register(body, auth.userId, auth.organizationId, auth.role, auth);
 });

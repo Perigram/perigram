@@ -10,7 +10,7 @@
 
     <!-- Batch Grid (New Pattern) -->
     <div v-if="!selectedBatch" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <BatchView 
+        <BatchCard 
             v-for="batch in batches" 
             :key="batch._id" 
             :batch="batch" 
@@ -61,7 +61,7 @@
 import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
-import BatchView from '~/components/entities/Batch/BatchView.vue';
+import BatchCard from '~/components/entities/Batch/BatchCard.vue';
 import BatchDetail from '~/components/entities/Batch/BatchDetail.vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';

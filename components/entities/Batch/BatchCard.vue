@@ -5,6 +5,7 @@
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import EntityStatus from '../shared/EntityStatus.vue';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   batch: { type: Object, required: true },

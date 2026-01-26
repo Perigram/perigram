@@ -1,5 +1,6 @@
-import * as cassetteService from '~/server/features/cassettes/service';
+import { defineEventHandler, getQuery } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
+import * as cassetteService from '~/server/features/cassettes/service';
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);
@@ -10,7 +11,7 @@ export default defineEventHandler(async (event) => {
     auth.userId,
     auth.organizationId,
     auth.role,
-    auth.permissions,
+    auth,
     {
       status: query.status,
       limit: query.limit ? parseInt(query.limit) : 100,

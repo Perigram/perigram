@@ -11,7 +11,7 @@
 
     <!-- Catalog Grid (New Pattern) -->
     <div v-if="!selectedCatalog" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <CatalogView 
+        <CatalogCard 
             v-for="catalog in catalogs" 
             :key="catalog._id" 
             :catalog="catalog" 
@@ -139,7 +139,7 @@
 import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
-import CatalogView from '~/components/entities/Catalog/CatalogView.vue';
+import CatalogCard from '~/components/entities/Catalog/CatalogCard.vue';
 import CatalogDetail from '~/components/entities/Catalog/CatalogDetail.vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
@@ -226,7 +226,9 @@ function onThumbnailUpload(event) {
 async function viewCatalog(catalog) {
     selectedCatalog.value = catalog;
     try {
-        selectedCatalogColors.value = await $fetch(`/api/colors?catalogId=${catalog._id}`);
+        const colorsData = await $fetch(`/api/colors?lineage.catalogId=${catalog._id}`);
+        // Normalize colors for the detail view if needed, or handle in CatalogDetail
+        selectedCatalogColors.value = colorsData;
     } catch (e) {
         toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load colors' });
     }
@@ -249,9 +251,10 @@ function openCreateDialog() {
 function editCatalog(catalog) {
   catalogForm.value = { 
     ...catalog,
-    foilThicknessOptions: (catalog.foilThicknessOptions || []).map(String),
-    sheetThicknessOptions: (catalog.sheetThicknessOptions || []).map(String),
-    widthOptions: (catalog.widthOptions || []).map(String)
+    name: catalog.identity?.name || catalog.name,
+    foilThicknessOptions: (catalog.options?.foilThicknesses || catalog.foilThicknessOptions || []).map(String),
+    sheetThicknessOptions: (catalog.options?.sheetThicknesses || catalog.sheetThicknessOptions || []).map(String),
+    widthOptions: (catalog.options?.widths || catalog.widthOptions || []).map(String)
   };
   editingId.value = catalog._id;
   showCatalogDialog.value = true;
@@ -261,16 +264,20 @@ async function saveCatalog() {
   submitting.value = true;
   try {
     const body = {
-        ...catalogForm.value,
-        foilThicknessOptions: (catalogForm.value.foilThicknessOptions || [])
-            .map(v => Number(String(v).replace(',', '.')))
-            .filter(v => !isNaN(v)),
-        sheetThicknessOptions: (catalogForm.value.sheetThicknessOptions || [])
-            .map(v => Number(String(v).replace(',', '.')))
-            .filter(v => !isNaN(v)),
-        widthOptions: (catalogForm.value.widthOptions || [])
-            .map(v => Number(String(v).replace(',', '.')))
-            .filter(v => !isNaN(v))
+        name: catalogForm.value.name,
+        description: catalogForm.value.description,
+        material: catalogForm.value.material,
+        options: {
+            foilThicknesses: (catalogForm.value.foilThicknessOptions || [])
+                .map(v => Number(String(v).replace(',', '.')))
+                .filter(v => !isNaN(v)),
+            sheetThicknesses: (catalogForm.value.sheetThicknessOptions || [])
+                .map(v => Number(String(v).replace(',', '.')))
+                .filter(v => !isNaN(v)),
+            widths: (catalogForm.value.widthOptions || [])
+                .map(v => Number(String(v).replace(',', '.')))
+                .filter(v => !isNaN(v))
+        }
     };
 
     if (editingId.value) {
@@ -301,7 +308,15 @@ function openAddSheetType() {
 }
 
 function openEditSheetType({ sheetType }) {
-    sheetTypeForm.value = JSON.parse(JSON.stringify(sheetType));
+    // Map from new identity/visuals structure to form
+    sheetTypeForm.value = {
+        _id: sheetType._id,
+        color: sheetType.identity?.name || sheetType.color,
+        colorCode: sheetType.identity?.code || sheetType.colorCode,
+        colorFallback: sheetType.visuals?.hexCode || sheetType.colorFallback || 'cccccc',
+        colorThumbnail: sheetType.visuals?.textureUrl || sheetType.colorThumbnail || ''
+    };
+    
     if (sheetTypeForm.value.colorFallback?.startsWith('#')) {
         sheetTypeForm.value.colorFallback = sheetTypeForm.value.colorFallback.substring(1);
     }
@@ -313,10 +328,14 @@ async function saveSheetType() {
     submitting.value = true;
     try {
         const body = { 
-            ...sheetTypeForm.value,
+            name: sheetTypeForm.value.color,
+            code: sheetTypeForm.value.colorCode,
+            hexCode: sheetTypeForm.value.colorFallback.startsWith('#') 
+                ? sheetTypeForm.value.colorFallback 
+                : '#' + sheetTypeForm.value.colorFallback,
+            textureUrl: sheetTypeForm.value.colorThumbnail,
             catalogId: selectedCatalog.value._id
         };
-        if (!body.colorFallback.startsWith('#')) body.colorFallback = '#' + body.colorFallback;
 
         if (editingSheetTypeId.value) {
             await $fetch(`/api/colors/${editingSheetTypeId.value}`, {
@@ -338,7 +357,6 @@ async function saveSheetType() {
         submitting.value = false;
     }
 }
-
 async function removeSheetType({ sheetTypeId }) {
     if (confirm('Remove this color?')) {
         try {

@@ -5,6 +5,7 @@
  */
 import Card from 'primevue/card';
 import EntityStatus from '../shared/EntityStatus.vue';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   sheet: { type: Object, required: true },

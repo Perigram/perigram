@@ -1,17 +1,13 @@
-import { defineEventHandler, readBody } from 'h3';
-import { requireAuth } from '~/server/utils/permissions';
-import * as remnantService from '~/server/features/remnants/service';
+import { defineEventHandler, getQuery } from 'h3';
+import { requireAuth } from '../../utils/permissions';
+import * as remnantService from '../../features/remnants/service';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const auth = await requireAuth(event);
   
   if (event.req.method === 'GET') {
-    return await remnantService.list(user);
-  }
-  
-  if (event.req.method === 'POST') {
-    const body = await readBody(event);
-    return await remnantService.create(body, user);
+    const query = getQuery(event);
+    return await remnantService.list(auth.userId, auth.organizationId, auth.role, auth, query);
   }
   
   return { error: 'Method not allowed' };

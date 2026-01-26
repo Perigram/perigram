@@ -5,6 +5,7 @@
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import { useAuthStore } from '~/stores/auth';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   catalog: { type: Object, required: true },

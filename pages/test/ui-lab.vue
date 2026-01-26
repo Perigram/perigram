@@ -67,11 +67,11 @@
                     <div class="space-y-8">
                         <div>
                             <small class="font-bold">Full Chain</small>
-                            <LineageView :lineage="fullLineage" />
+                            <LineageBreadcrumbs :lineage="fullLineage" />
                         </div>
                         <div>
                             <small class="font-bold">Collapsed Chain</small>
-                            <LineageView :lineage="fullLineage" :expandable="true" />
+                            <LineageBreadcrumbs :lineage="fullLineage" :expandable="true" />
                         </div>
                     </div>
                 </section>
@@ -85,33 +85,32 @@
 <script setup>
 import { ref, computed } from 'vue';
 import Button from 'primevue/button';
-import { ObjectId } from 'bson';
 
 // Components
-import ProjectView from '~/components/entities/Project/ProjectView.vue';
-import QueueView from '~/components/entities/Queue/QueueView.vue';
-import NestingRunView from '~/components/entities/NestingRun/NestingRunView.vue';
-import SheetDesignView from '~/components/entities/SheetDesign/SheetDesignView.vue';
-import CassetteDesignView from '~/components/entities/CassetteDesign/CassetteDesignView.vue';
-import CassetteInstanceView from '~/components/entities/CassetteInstance/CassetteInstanceView.vue';
+import ProjectCard from '~/components/entities/Project/ProjectCard.vue';
+import QueueCard from '~/components/entities/Queue/QueueCard.vue';
+import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
+import SheetDesignCard from '~/components/entities/SheetDesign/SheetDesignCard.vue';
+import CassetteDesignCard from '~/components/entities/CassetteDesign/CassetteDesignCard.vue';
+import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
 
-import PileView from '~/components/entities/MaterialPile/PileView.vue';
-import SheetView from '~/components/entities/Sheet/SheetView.vue';
-import RemnantView from '~/components/entities/Remnant/RemnantView.vue';
+import PileCard from '~/components/entities/MaterialPile/PileCard.vue';
+import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
+import RemnantCard from '~/components/entities/Remnant/RemnantCard.vue';
 
-import CatalogView from '~/components/entities/Catalog/CatalogView.vue';
-import ColorView from '~/components/entities/Color/ColorView.vue';
-import WarehouseView from '~/components/entities/Warehouse/WarehouseView.vue';
-import ToolProfileView from '~/components/entities/ToolProfile/ToolProfileView.vue';
-import PenTemplateView from '~/components/entities/PenTemplate/PenTemplateView.vue';
-import LayerStandardView from '~/components/entities/LayerStandard/LayerStandardView.vue';
+import CatalogCard from '~/components/entities/Catalog/CatalogCard.vue';
+import ColorCard from '~/components/entities/Color/ColorCard.vue';
+import WarehouseCard from '~/components/entities/Warehouse/WarehouseCard.vue';
+import ToolProfileCard from '~/components/entities/ToolProfile/ToolProfileCard.vue';
+import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
+import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
 
-import UserView from '~/components/entities/User/UserView.vue';
-import OrganizationView from '~/components/entities/Organization/OrganizationView.vue';
-import ArtifactView from '~/components/entities/Artifact/ArtifactView.vue';
+import UserCard from '~/components/entities/User/UserCard.vue';
+import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
+import ArtifactCard from '~/components/entities/Artifact/ArtifactCard.vue';
 
 import StatusTimeline from '~/components/entities/shared/StatusTimeline.vue';
-import LineageView from '~/components/entities/shared/LineageView.vue';
+import LineageBreadcrumbs from '~/components/entities/shared/LineageBreadcrumbs.vue';
 
 import ThemeSwitcher from '~/components/ThemeSwitcher.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
@@ -187,38 +186,38 @@ const mocks = {
 const mockHistory = createMockHistory(['DRAFT', 'ACTIVE', 'CLOSED']);
 
 const fullLineage = {
-    organizationId: new ObjectId(),
-    warehouseId: new ObjectId(),
-    projectId: new ObjectId(),
-    queueId: new ObjectId()
+    organizationId: '696fd2dda0ab0734cd2a5214',
+    warehouseId: '696fd2dda0ab0734cd2a5215',
+    projectId: '696fd2dda0ab0734cd2a5216',
+    queueId: '696fd2dda0ab0734cd2a5217'
 };
 
 const componentsMap = {
   production: [
-    { title: 'Project', component: ProjectView, props: { project: mocks.project } },
-    { title: 'Queue', component: QueueView, props: { queue: mocks.queue } },
-    { title: 'Nesting Run', component: NestingRunView, props: { run: mocks.run } },
-    { title: 'Sheet Design', component: SheetDesignView, props: { design: mocks.sheetDesign } },
-    { title: 'Cassette Design', component: CassetteDesignView, props: { design: mocks.cassetteDesign } },
-    { title: 'Cassette Instance', component: CassetteInstanceView, props: { instance: mocks.instance } },
+    { title: 'Project', component: ProjectCard, props: { project: mocks.project } },
+    { title: 'Queue', component: QueueCard, props: { queue: mocks.queue } },
+    { title: 'Nesting Run', component: NestingRunCard, props: { run: mocks.run } },
+    { title: 'Sheet Design', component: SheetDesignCard, props: { design: mocks.sheetDesign } },
+    { title: 'Cassette Design', component: CassetteDesignCard, props: { design: mocks.cassetteDesign } },
+    { title: 'Cassette Instance', component: CassetteInstanceCard, props: { instance: mocks.instance } },
   ],
   material: [
-    { title: 'Material Pile', component: PileView, props: { pile: mocks.pile } },
-    { title: 'Physical Sheet', component: SheetView, props: { sheet: mocks.sheet } },
-    { title: 'Remnant', component: RemnantView, props: { remnant: mocks.remnant } },
+    { title: 'Material Pile', component: PileCard, props: { pile: mocks.pile } },
+    { title: 'Physical Sheet', component: SheetCard, props: { sheet: mocks.sheet } },
+    { title: 'Remnant', component: RemnantCard, props: { remnant: mocks.remnant } },
   ],
   master: [
-    { title: 'Material Catalog', component: CatalogView, props: { catalog: mocks.catalog } },
-    { title: 'Finish Color', component: ColorView, props: { color: mocks.color } },
-    { title: 'Warehouse', component: WarehouseView, props: { warehouse: mocks.warehouse } },
-    { title: 'Tool Profile', component: ToolProfileView, props: { tool: mocks.tool } },
-    { title: 'Pen Template', component: PenTemplateView, props: { pen: mocks.pen } },
-    { title: 'Layer Standard', component: LayerStandardView, props: { standard: mocks.layer } },
+    { title: 'Material Catalog', component: CatalogCard, props: { catalog: mocks.catalog } },
+    { title: 'Finish Color', component: ColorCard, props: { color: mocks.color } },
+    { title: 'Warehouse', component: WarehouseCard, props: { warehouse: mocks.warehouse } },
+    { title: 'Tool Profile', component: ToolProfileCard, props: { tool: mocks.tool } },
+    { title: 'Pen Template', component: PenTemplateCard, props: { pen: mocks.pen } },
+    { title: 'Layer Standard', component: LayerStandardCard, props: { standard: mocks.layer } },
   ],
   system: [
-    { title: 'User Profile', component: UserView, props: { user: mocks.user } },
-    { title: 'Organization', component: OrganizationView, props: { organization: mocks.org } },
-    { title: 'Artifact / File', component: ArtifactView, props: { artifact: mocks.artifact } },
+    { title: 'User Profile', component: UserCard, props: { user: mocks.user } },
+    { title: 'Organization', component: OrganizationCard, props: { organization: mocks.org } },
+    { title: 'Artifact / File', component: ArtifactCard, props: { artifact: mocks.artifact } },
   ]
 };
 

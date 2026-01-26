@@ -3,6 +3,7 @@
  * Tool Profile View Component - v24 Standardized
  */
 import Card from 'primevue/card';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   tool: { type: Object, required: true },

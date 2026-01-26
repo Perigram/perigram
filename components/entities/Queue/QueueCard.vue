@@ -5,8 +5,9 @@
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import EntityStatus from '../shared/EntityStatus.vue';
-import LineageView from '../shared/LineageView.vue';
+import LineageBreadcrumbs from '../shared/LineageBreadcrumbs.vue';
 import { useAuthStore } from '~/stores/auth';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   queue: { type: Object, required: true },
@@ -53,7 +54,7 @@ const handleCardClick = () => {
       <Card @click="handleCardClick" class="cursor-pointer">
         <template #title>
           <div class="flex flex-col gap-2">
-            <LineageView v-if="queue.lineage" :lineage="queue.lineage" />
+            <LineageBreadcrumbs v-if="queue.lineage" :lineage="queue.lineage" />
             <div class="flex justify-between items-start gap-4">
               <span class="font-bold text-lg">#{{ queue.identity?.queueNumber }} {{ name }}</span>
               <EntityStatus :entity="queue" variant="full" />

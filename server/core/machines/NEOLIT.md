@@ -30,7 +30,7 @@ Synchronizes parent summaries based on child activity using high-performance Mon
 5. Parent's `summary` block is updated in one atomic operation.
 
 ## Component Integration
-Frontend components (e.g., `ProjectView.vue`) strictly read from the `summary` block. They do NOT calculate children data themselves.
+Frontend components (e.g., `ProjectCard.vue`) strictly read from the `summary` block. They do NOT calculate children data themselves.
 
 ## Related
 - [server/utils/blocks.js](../utils/blocks.js) (Standard Block definitions)
