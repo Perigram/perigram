@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const auth = event.context.auth;
   const query = getQuery(event);
   
-  return await cassetteService.listForUser(
+  return await cassetteService.list(
     auth.userId,
     auth.organizationId,
     auth.role,
