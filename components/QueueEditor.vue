@@ -195,27 +195,29 @@
                     </div>
 
                     <div v-if="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                        <div v-for="entry in entries" :key="entry._id" class="bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl p-3 flex gap-3 shadow-sm hover:border-[var(--p-primary-color)] transition-all group relative h-40">
-                            <Button icon="pi pi-trash" severity="danger" text rounded size="small" class="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-lg border z-10" @click="confirmDelete(entry)" :disabled="queueState !== 'DRAFT'" />
-                            <div class="w-24 h-full bg-zinc-50 dark:bg-zinc-900 rounded-lg flex items-center justify-center border shrink-0 overflow-hidden">
-                                <CassetteThumbnail :data="getCassetteData(entry.cassetteTemplateId)" />
-                            </div>
-                            <div class="flex flex-col justify-between py-1 min-w-0 flex-1">
-                                <div class="flex flex-col">
-                                    <span class="font-black text-[10px] truncate uppercase tracking-tight">{{ getCassetteName(entry.cassetteTemplateId) }}</span>
-                                    <div class="flex items-center gap-2 mt-1">
-                                        <span class="text-[8px] font-bold opacity-40 uppercase">Qty</span>
-                                        <InputNumber v-model="entry.quantity" :min="1" :disabled="queueState !== 'DRAFT'" fluid class="p-inputtext-sm" inputClass="py-0.5 px-2 font-black text-[10px] w-12" @update:model-value="saveQueue" />
+                        <template v-for="entry in entries" :key="entry?._id || Math.random()">
+                            <div v-if="entry" class="bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl p-3 flex gap-3 shadow-sm hover:border-[var(--p-primary-color)] transition-all group relative h-40">
+                                <Button icon="pi pi-trash" severity="danger" text rounded size="small" class="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-lg border z-10" @click="confirmDelete(entry)" :disabled="queueState !== 'DRAFT'" />
+                                <div class="w-24 h-full bg-zinc-50 dark:bg-zinc-900 rounded-lg flex items-center justify-center border shrink-0 overflow-hidden">
+                                    <CassetteThumbnail :data="getCassetteData(entry.cassetteTemplateId)" />
+                                </div>
+                                <div class="flex flex-col justify-between py-1 min-w-0 flex-1">
+                                    <div class="flex flex-col">
+                                        <span class="font-black text-[10px] truncate uppercase tracking-tight">{{ getCassetteName(entry.cassetteTemplateId) }}</span>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            <span class="text-[8px] font-bold opacity-40 uppercase">Qty</span>
+                                            <InputNumber v-model="entry.quantity" :min="1" :disabled="queueState !== 'DRAFT'" fluid class="p-inputtext-sm" inputClass="py-0.5 px-2 font-black text-[10px] w-12" @update:model-value="saveQueue" />
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col gap-1 border-t border-dashed pt-2 mt-2 max-h-20 overflow-y-auto">
+                                        <div v-for="param in getEntryParameters(entry)" :key="param" class="flex items-center justify-between gap-2">
+                                            <span class="text-[8px] font-black uppercase opacity-40 truncate">{{ param }}</span>
+                                            <InputNumber v-model="entry.dimensions[param]" :disabled="queueState !== 'DRAFT'" fluid class="p-inputtext-sm" inputClass="py-0 px-1.5 font-bold text-[9px] w-16 text-right" :minFractionDigits="1" @update:model-value="saveQueue" />
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="flex flex-col gap-1 border-t border-dashed pt-2 mt-2 max-h-20 overflow-y-auto">
-                                    <div v-for="param in getEntryParameters(entry)" :key="param" class="flex items-center justify-between gap-2">
-                                        <span class="text-[8px] font-black uppercase opacity-40 truncate">{{ param }}</span>
-                                        <InputNumber v-model="entry.dimensions[param]" :disabled="queueState !== 'DRAFT'" fluid class="p-inputtext-sm" inputClass="py-0 px-1.5 font-bold text-[9px] w-16 text-right" :minFractionDigits="1" @update:model-value="saveQueue" />
-                                    </div>
-                                </div>
                             </div>
-                        </div>
+                        </template>
                     </div>
 
                     <DataTable v-else :value="entries" dataKey="_id" :editMode="queueState === 'DRAFT' ? 'cell' : null" @cell-edit-complete="onRowEditSave" class="p-datatable-sm rounded-xl border">

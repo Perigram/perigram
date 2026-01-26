@@ -22,8 +22,9 @@ function toDTO(cassette) {
 }
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
-  // Lineage: Templates belong to the organization (Manufacturer or User's own org)
-  const lineage = { organizationId: new ObjectId(userOrg) };
+  // Lineage: Templates belong to the organization or the user themselves
+  const targetOrgId = userOrg || userId;
+  const lineage = { organizationId: new ObjectId(targetOrgId) };
 
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
