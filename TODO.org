@@ -2,6 +2,41 @@
   - [ ] Login failed: FetchError: [POST] "/api/auth/login": 401 
 
 *** Agent Notes
+    [2026-01-26] Final v24 alignment and UI polishing.
+    Files changed: 
+    - components/QueueEditor.vue
+    - components/CassetteEditorDialog.vue
+    - components/CassetteThumbnail.vue
+    - utils/dxfParser.js
+    - server/features/layer-standards/
+    - server/features/cassette-designs/service.js
+    Notes: 
+    - Seeding: Added `scripts/seed-layer-standards.js` and fixed layer standards service/repo.
+    - Designs: Strictly removed parameters from `cassette_designs` (Section 5 compliance).
+    - Queue UI: 
+        - Parameters are now HIDDEN for all STATIC designs.
+        - "Upload Cassette" now opens file explorer instantly and opens dialog at mapping stage.
+        - Newly uploaded cassettes are automatically added to the queue items.
+        - Padded the delete button in card layout.
+    - Preview: Consolidated SVG logic in `dxfParser.js` to draw arcs/circles properly. Robust thumbnail handling for both Templates and Designs.
+
+*** Agent Notes
+    [2026-01-26] Re-aligned Cassettes and Designs with v24 Proposed Data Model.
+    Files changed: 
+    - server/features/cassettes/service.js & repository.js
+    - server/features/cassette-designs/service.js & repository.js
+    - components/CassetteThumbnail.vue
+    - server/api/cassette-designs/by-template/[id].get.js
+    Docs updated: server/features/cassettes/NEOLIT.md
+    Notes: 
+    - Removed `createdAt` and `updatedAt` from repositories; strictly using `StatusBlock` (origin/status) for time-tracking.
+    - Removed DXF handling from `cassettes` collection. `cassettes` now strictly stores template definitions (Section 10 of model).
+    - DXF and baked geometry correctly assigned to `cassette_designs` (Section 5 of model).
+    - Updated `CassetteThumbnail.vue` to fetch standard geometry from `cassette_designs` and render parametric templates directly.
+    - Added `getByTemplateId` to `cassette_designs` service and API to bridge templates and designs for UI preview.
+    - Removed incorrect `/api/cassettes/[id]/dxf` endpoint.
+
+*** Agent Notes
     [2026-01-26] Documentation synchronization for v24 architecture.
     Files changed: N/A (Documentation only)
     Docs updated: 
@@ -62,6 +97,22 @@
     - Fixed 404/500 issues by allowing cross-collection lookup for baked items.
 
 * TODO Quickfix pt3
+*** Agent Notes
+    [2026-01-26] Nesting Run architecture alignment and UI fixes.
+    Files changed: 
+    - server/api/queue/[id]/nest.post.js (Standardized run creation)
+    - server/features/queues/service.js (Updated status matching in setRunsStatusByStatus and chooseRun)
+    - server/plugins/nesting-processor.js (Standardized status updates to blocks)
+    - components/entities/NestingRun/NestingRunCard.vue (Standardized variants and integrated ArtifactCard)
+    - components/entities/Artifact/ArtifactCard.vue (Standardized variants: inline, compact, card)
+    - components/ArtifactsTable.vue (Implemented DXF preview logic and Dialog)
+    - components/QueueEditor.vue (Fixed artifact fetching and enabled preview handler)
+    Notes: 
+    - Fully aligned Nesting Runs with v24 Block Architecture.
+    - Implemented "inline artifact cards" in run cards as requested.
+    - Added high-fidelity DXF preview using client-side SVG generation.
+    - Integrated ArtifactsTable as a headless preview provider in QueueEditor.
+    - Enforced robust status and date handling across all nesting UI components.
   - [ ] Sheets structure in project: not "sheets", but "materials" that contain sheets and waste polygons that can be used in nesting. 
   - [ ] Material structure: name, code, manufacturer (probably key to store all materials associated with it), color, thickness, type (aluminium composite, plywood, etc) should be a global system collection that needs to be developed according to project standards in storing data and collections management. 
   - [ ] Material in project: material, sheets (number of sheets available, sizes and amounts), wastePolygons (array of after-cut sheets where bounding polygons from nested cassettes used in next nesting as holes), custom polygons can be uploaded as same structure. Need to develop UI for managing materials in project data.
