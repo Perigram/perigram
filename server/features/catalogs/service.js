@@ -51,13 +51,9 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  // Logic: Contractors see all, Manufacturers see their own (implemented via filter in repo if needed)
-  // For now, let's keep it simple and filter by membership if not SuperAdmin
-  const finalFilter = mapLineageQuery(filter);
+  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
+  const finalFilter = mapLineageQuery({ ...lineageFilter, ...filter });
   
-  if (userRole !== 'SuperAdmin') {
-    // ...
-  }
   return await repository.find(finalFilter);
 }
 

@@ -16,15 +16,20 @@ export function mapLineageQuery(query = {}, lineageFields = []) {
     // Skip pagination/sorting params
     if (excludeKeys.includes(key)) return;
 
-    // logic: If it looks like an ID (ends in Id) and is a valid ObjectId, 
-    // AND it's not the primary _id, assume it's part of the lineage.
-    if (key !== '_id' && !key.startsWith('lineage.') && key.endsWith('Id') && ObjectId.isValid(finalFilter[key])) {
+    // Check if it's an ID field
+    if (key.endsWith('Id') && ObjectId.isValid(finalFilter[key])) {
+      const value = new ObjectId(finalFilter[key]);
       
-      // Move to lineage path
-      finalFilter[`lineage.${key}`] = new ObjectId(finalFilter[key]);
-      
-      // Remove original key to avoid conflicts or strict schema rejections
-      delete finalFilter[key];
+      if (key === '_id') {
+        finalFilter[key] = value;
+      } else if (key.startsWith('lineage.')) {
+        // Already in lineage format, just ensure it's an ObjectId
+        finalFilter[key] = value;
+      } else {
+        // Move legacy/flat ID to lineage path
+        finalFilter[`lineage.${key}`] = value;
+        delete finalFilter[key];
+      }
     }
   });
 

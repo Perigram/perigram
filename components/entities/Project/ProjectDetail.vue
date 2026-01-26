@@ -1,16 +1,14 @@
 <template>
     <div class="flex flex-col gap-6">
+        <LineageBreadcrumbs :entity="project" />
+
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div class="flex flex-col gap-1">
-                <div class="flex items-center gap-2">
-                    <h2 class="text-2xl font-black m-0">{{ project.name }}</h2>
-                    <Tag v-if="project.isArchived" value="Archived" severity="secondary" />
+                <div class="flex items-center gap-4">
+                    <h2 class="text-3xl font-black m-0">{{ projectName }}</h2>
+                    <EntityStatus :entity="project" />
                 </div>
                 <div class="flex items-center gap-4 opacity-70">
-                    <div class="flex items-center gap-1">
-                        <i class="pi pi-user text-xs"></i>
-                        <span class="text-xs">Client: {{ project.customer }}</span>
-                    </div>
                     <div class="flex items-center gap-1">
                         <i class="pi pi-calendar text-xs"></i>
                         <span class="text-xs">Created: {{ new Date(project.createdAt).toLocaleDateString() }}</span>
@@ -31,18 +29,17 @@
                     Production Queues
                 </h3>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card v-for="queueId in project.queues" :key="queueId">
-                        <template #content>
-                            <div class="flex justify-between items-center">
-                                <TraceLink type="queue" :id="queueId" :slug="project.slug" />
-                                <i class="pi pi-chevron-right opacity-20"></i>
-                            </div>
-                        </template>
-                    </Card>
+                <div v-if="queues.length" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <QueueCard 
+                        v-for="queue in queues" 
+                        :key="queue._id" 
+                        :queue="queue"
+                        variant="compact"
+                        @view="viewQueue"
+                    />
                 </div>
                 
-                <div v-if="!project.queues?.length" class="p-12 border-2 border-dashed rounded-2xl flex flex-col items-center gap-4 opacity-40">
+                <div v-else-if="!loading" class="p-12 border-2 border-dashed rounded-2xl flex flex-col items-center gap-4 opacity-40">
                     <i class="pi pi-inbox text-4xl"></i>
                     <span class="font-bold">No production queues found</span>
                     <Button label="Create First Queue" icon="pi pi-plus" size="small" text @click="$emit('add-queue', project)" />
@@ -51,39 +48,25 @@
 
             <!-- Sidebar: Health & Team -->
             <div class="flex flex-col gap-6">
-                <Panel header="Project Health">
+                <Panel header="Project Summary">
                     <div class="flex flex-col gap-4">
                         <div class="flex flex-col gap-2">
                             <div class="flex justify-between items-end">
-                                <span class="text-2xl font-black">74%</span>
-                                <span class="text-[10px] font-bold uppercase opacity-60">Overall Completion</span>
+                                <span class="text-2xl font-black">{{ project.summary?.totalArea || 0 }} m²</span>
+                                <span class="text-[10px] font-bold uppercase opacity-60">Total Area</span>
                             </div>
-                            <ProgressBar :value="74" :showValue="false" style="height: 6px" />
                         </div>
                         <div class="grid grid-cols-2 gap-4 pt-4 border-t border-[var(--p-content-border-color)]">
                             <div class="flex flex-col">
-                                <span class="text-lg font-black">12/16</span>
-                                <span class="text-[8px] font-bold uppercase opacity-60">Queues Cut</span>
-                            </div>
-                            <div class="flex flex-col">
-                                <span class="text-lg font-black">842</span>
-                                <span class="text-[8px] font-bold uppercase opacity-60">Cassettes</span>
+                                <span class="text-lg font-black">{{ queues.length }}</span>
+                                <span class="text-[8px] font-bold uppercase opacity-60">Queues</span>
                             </div>
                         </div>
                     </div>
                 </Panel>
 
-                <Panel header="Team Members">
-                    <AvatarGroup>
-                        <Avatar label="JD" shape="circle" />
-                        <Avatar label="AS" shape="circle" />
-                        <Avatar label="MK" shape="circle" />
-                        <Avatar icon="pi pi-plus" shape="circle" />
-                    </AvatarGroup>
-                </Panel>
-
-                <Panel header="Status History">
-                    <StatusTimeline collection="projects" :entityId="project._id?.toString()" />
+                <Panel header="Status Timeline">
+                    <StatusTimeline :entity="project" />
                 </Panel>
             </div>
         </div>
@@ -91,17 +74,18 @@
 </template>
 
 <script setup>
+import { ref, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
-import Tag from 'primevue/tag';
-import ProgressBar from 'primevue/progressbar';
 import Card from 'primevue/card';
 import Panel from 'primevue/panel';
-import Avatar from 'primevue/avatar';
-import AvatarGroup from 'primevue/avatargroup';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
 import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
+import LineageBreadcrumbs from '~/components/entities/shared/LineageBreadcrumbs.vue';
+import QueueCard from '~/components/entities/Queue/QueueCard.vue';
+import { useIdentity } from '~/composables/useBlocks';
 
-defineProps({
+const props = defineProps({
     project: {
         type: Object,
         required: true
@@ -109,4 +93,30 @@ defineProps({
 });
 
 defineEmits(['add-queue']);
+
+const router = useRouter();
+const { name: projectName, slug: projectSlug } = useIdentity(props.project);
+
+const queues = ref([]);
+const loading = ref(false);
+
+const loadQueues = async () => {
+    if (!props.project?._id) return;
+    loading.value = true;
+    try {
+        // V24 standard: fetch by lineage.projectId
+        queues.value = await $fetch(`/api/queues?lineage.projectId=${props.project._id}`);
+    } catch (e) {
+        console.error('Failed to load project queues:', e);
+    } finally {
+        loading.value = false;
+    }
+};
+
+const viewQueue = (queue) => {
+    router.push(`/project/${projectSlug.value}/queue/${queue._id}`);
+};
+
+watch(() => props.project?._id, () => loadQueues());
+onMounted(() => loadQueues());
 </script>

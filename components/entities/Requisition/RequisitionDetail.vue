@@ -1,29 +1,26 @@
 <template>
     <div class="flex flex-col gap-6">
-        <!-- Header & Breadcrumbs -->
-        <div class="flex flex-col gap-4">
-            <TraceChain :ancestry="ancestry" />
-            
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div class="flex items-center gap-4">
-                    <h2 class="text-2xl font-black m-0">#{{ requisition.requisitionNumber }}</h2>
-                    <EntityStatus :entity="requisition" />
-                </div>
-                <div class="flex gap-2">
-                    <template v-if="authStore.isContractor && requisition.status === 'draft'">
-                        <Button :label="$t('common.submit')" icon="pi pi-send" size="small" @click="$emit('send', requisition._id)" />
-                    </template>
-                    <template v-if="authStore.isManufacturer && requisition.status === 'sent'">
-                        <Button :label="$t('common.approve')" icon="pi pi-check" severity="success" size="small" @click="$emit('approve', requisition._id)" />
-                        <Button :label="$t('common.reject')" icon="pi pi-times" severity="danger" text size="small" @click="$emit('reject', requisition._id)" />
-                    </template>
-                    <template v-if="authStore.isManufacturer && requisition.status === 'approved'">
-                        <Button :label="$t('requisition.startFulfillment')" icon="pi pi-play" severity="info" size="small" @click="$emit('start-fulfillment', requisition._id)" />
-                    </template>
-                    <template v-if="authStore.isManufacturer && requisition.status === 'in_fulfillment'">
-                        <Button :label="$t('requisition.completeAndShip')" icon="pi pi-box" severity="success" size="small" @click="$emit('fulfill', requisition._id)" />
-                    </template>
-                </div>
+        <LineageBreadcrumbs :entity="requisition" />
+
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="flex items-center gap-4">
+                <h2 class="text-2xl font-black m-0">#{{ requisitionNumber }}</h2>
+                <EntityStatus :entity="requisition" />
+            </div>
+            <div class="flex gap-2">
+                <template v-if="authStore.isContractor && requisitionState === 'DRAFT'">
+                    <Button :label="$t('common.submit')" icon="pi pi-send" size="small" @click="$emit('send', requisition._id)" />
+                </template>
+                <template v-if="authStore.isManufacturer && requisitionState === 'SENT'">
+                    <Button :label="$t('common.approve')" icon="pi pi-check" severity="success" size="small" @click="$emit('approve', requisition._id)" />
+                    <Button :label="$t('common.reject')" icon="pi pi-times" severity="danger" text size="small" @click="$emit('reject', requisition._id)" />
+                </template>
+                <template v-if="authStore.isManufacturer && requisitionState === 'APPROVED'">
+                    <Button :label="$t('requisition.startFulfillment')" icon="pi pi-play" severity="info" size="small" @click="$emit('start-fulfillment', requisition._id)" />
+                </template>
+                <template v-if="authStore.isManufacturer && requisitionState === 'IN_FULFILLMENT'">
+                    <Button :label="$t('requisition.completeAndShip')" icon="pi pi-box" severity="success" size="small" @click="$emit('fulfill', requisition._id)" />
+                </template>
             </div>
         </div>
 
@@ -41,8 +38,8 @@
                             <template #title>
                                 <div class="flex justify-between items-center">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-4 h-4 rounded-full border border-surface-200 dark:border-surface-700 shadow-sm" :style="{ backgroundColor: item.colorFallback }"></div>
-                                        <span class="text-sm font-bold">{{ item.color }}</span>
+                                        <div class="w-4 h-4 rounded-full border border-surface-200 dark:border-surface-700 shadow-sm" :style="{ backgroundColor: item.colorHex || item.colorFallback || '#ccc' }"></div>
+                                        <span class="text-sm font-bold">{{ item.colorName || item.color }}</span>
                                     </div>
                                     <span class="text-[10px] font-mono opacity-60">{{ item.colorCode }}</span>
                                 </div>
@@ -72,13 +69,8 @@
             <!-- Sidebar -->
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('requisition.lifecycleTimeline')" toggleable>
-                    <HistoryTimeline :history="requisition.statusHistory" />
+                    <StatusTimeline :entity="requisition" />
                 </Panel>
-
-                <div v-if="relatedBatches.length > 0" class="flex flex-col gap-3">
-                    <span class="text-[10px] font-black uppercase opacity-40">{{ $t('requisition.linkedShipments') }}</span>
-                    <TraceLink v-for="batchId in relatedBatches" :key="batchId" type="batch" :id="batchId" />
-                </div>
             </div>
         </div>
     </div>
@@ -87,16 +79,15 @@
 <script setup>
 import { computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-import { useEntityStore } from '~/stores/entities';
 import Card from 'primevue/card';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
-import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
+import LineageBreadcrumbs from '~/components/entities/shared/LineageBreadcrumbs.vue';
 import MaterialSpecs from '~/components/shared/MaterialSpecs.vue';
+import { useIdentity, useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
     requisition: {
@@ -108,7 +99,7 @@ const props = defineProps({
 defineEmits(['send', 'approve', 'reject', 'start-fulfillment', 'fulfill']);
 
 const authStore = useAuthStore();
-const entityStore = useEntityStore();
-const ancestry = computed(() => entityStore.getAncestry('requisition', props.requisition));
-const relatedBatches = computed(() => props.requisition.linkedBatches || []);
+const { serial: requisitionNumber } = useIdentity(props.requisition);
+const { state: requisitionState } = useStatus(props.requisition);
+
 </script>

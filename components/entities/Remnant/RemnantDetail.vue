@@ -1,26 +1,26 @@
 <template>
     <div class="flex flex-col gap-6">
-        <TraceChain :ancestry="ancestry" />
+        <LineageBreadcrumbs :entity="remnant" />
 
         <Panel>
             <template #header>
                 <div class="flex items-center gap-4">
-                    <i class="pi pi-undo text-primary"></i>
-                    <h2 class="text-xl font-bold m-0">{{ remnant.remnantId || 'Recovered Area' }}</h2>
-                    <Tag :value="remnant.status" severity="info" class="text-xs font-bold" />
+                    <i class="pi pi-undo text-primary rotate-180"></i>
+                    <h2 class="text-xl font-bold m-0">{{ serial }}</h2>
+                    <EntityStatus :entity="remnant" />
                 </div>
             </template>
             <template #icons>
                 <div class="flex gap-2">
                     <Button icon="pi pi-qrcode" severity="secondary" text size="small" v-tooltip.top="'Print QR Tag'" />
-                    <Button label="Mark Used" icon="pi pi-check-circle" severity="success" size="small" v-if="remnant.status === 'in stock'" />
+                    <Button label="Mark Used" icon="pi pi-check-circle" severity="success" size="small" v-if="state === 'AVAILABLE'" />
                 </div>
             </template>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="flex flex-col gap-1">
-                    <span class="text-[10px] opacity-40 font-black uppercase">Source Physical Sheet</span>
-                    <TraceLink type="sheet" :id="remnant.sheetId" />
+                    <span class="text-[10px] opacity-40 font-black uppercase">Area</span>
+                    <span class="font-bold text-sm text-primary">{{ formattedArea }}</span>
                 </div>
                 <div class="flex flex-col gap-1">
                     <span class="text-[10px] opacity-40 font-black uppercase">Reusability</span>
@@ -30,8 +30,8 @@
                     </div>
                 </div>
                 <div class="flex flex-col gap-1">
-                    <span class="text-[10px] opacity-40 font-black uppercase">Current Location</span>
-                    <span class="font-bold text-sm">Main Store / Sector R1</span>
+                    <span class="text-[10px] opacity-40 font-black uppercase">Material / Color</span>
+                    <span class="font-bold text-sm">{{ remnant.specs?.material }} / {{ remnant.specs?.color }}</span>
                 </div>
             </div>
         </Panel>
@@ -41,24 +41,19 @@
                  <Fieldset legend="Recovered Surface (Geometry)">
                     <div class="aspect-[16/9] bg-[var(--p-surface-900)] rounded-xl flex items-center justify-center border border-[var(--p-content-border-color)] relative overflow-hidden">
                         <div class="absolute inset-0 opacity-5" style="background-image: radial-gradient(circle, #fff 1px, transparent 1px); background-size: 20px 20px;"></div>
-                        <div class="w-1/2 h-2/3 border-4 border-primary/20 shadow-[0_0_40px_rgba(var(--p-primary-rgb),0.1)] flex items-center justify-center rotate-3 skew-x-3">
-                             <i class="pi pi-undo text-4xl text-primary opacity-10"></i>
+                        <div 
+                            class="border-4 border-primary/20 shadow-[0_0_40px_rgba(var(--p-primary-rgb),0.1)] flex items-center justify-center rotate-3 skew-x-3"
+                            :style="geometryStyle"
+                        >
+                             <i class="pi pi-undo text-4xl text-primary opacity-10 rotate-180"></i>
                         </div>
                     </div>
                  </Fieldset>
             </div>
 
             <div class="flex flex-col gap-6">
-                <Panel header="Traceability Data">
-                    <div class="flex flex-col gap-4 text-xs">
-                        <p class="m-0 opacity-70">This remnant was derived from a nesting job during queue processing.</p>
-                        <div class="bg-[var(--p-surface-100)] p-3 rounded-lg border border-[var(--p-content-border-color)] flex flex-col gap-2">
-                            <span class="font-black opacity-40 uppercase text-[8px]">QR Identification</span>
-                            <div class="flex justify-center py-2">
-                                <i class="pi pi-qrcode text-5xl opacity-20"></i>
-                            </div>
-                        </div>
-                    </div>
+                <Panel header="Status Timeline">
+                    <StatusTimeline :entity="remnant" />
                 </Panel>
             </div>
         </div>
@@ -67,13 +62,13 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useEntityStore } from '~/stores/entities';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
-import Tag from 'primevue/tag';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
+import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
+import LineageBreadcrumbs from '~/components/entities/shared/LineageBreadcrumbs.vue';
+import { useIdentity, useStatus, useSpecs } from '~/composables/useBlocks';
 
 const props = defineProps({
     remnant: {
@@ -82,6 +77,26 @@ const props = defineProps({
     }
 });
 
-const entityStore = useEntityStore();
-const ancestry = computed(() => entityStore.getAncestry('remnant', props.remnant));
+const { serial } = useIdentity(props.remnant);
+const { state } = useStatus(props.remnant);
+const { formattedArea, width, length } = useSpecs(props.remnant);
+
+const geometryStyle = computed(() => {
+    const max = 300;
+    const w_val = width.value || 500;
+    const l_val = length.value || 500;
+    const ratio = w_val / l_val;
+    let w, h;
+    if (ratio > 1) {
+        w = max;
+        h = max / ratio;
+    } else {
+        h = max;
+        w = max * ratio;
+    }
+    return {
+        width: `${w}px`,
+        height: `${h}px`
+    };
+});
 </script>

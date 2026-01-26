@@ -5,7 +5,7 @@
             <template #header>
                 <div class="flex items-center gap-4">
                     <i class="pi pi-building text-primary"></i>
-                    <h2 class="text-xl font-bold m-0">{{ warehouse.name }}</h2>
+                    <h2 class="text-xl font-bold m-0">{{ warehouseName }}</h2>
                 </div>
             </template>
             <template #icons>
@@ -35,7 +35,7 @@
                             <i class="pi pi-truck text-xl"></i>
                         </div>
                         <div class="flex flex-col">
-                            <span class="text-2xl font-black">{{ warehouse.totalBatches || 0 }}</span>
+                            <span class="text-2xl font-black">{{ warehouseStats.totalBatches || 0 }}</span>
                             <span class="text-[10px] font-black opacity-40 uppercase tracking-wider">{{ $t('warehouse.activeShipments') }}</span>
                         </div>
                     </div>
@@ -48,7 +48,7 @@
                             <i class="pi pi-file text-xl"></i>
                         </div>
                         <div class="flex flex-col">
-                            <span class="text-2xl font-black">{{ warehouse.totalSheets || 0 }}</span>
+                            <span class="text-2xl font-black">{{ warehouseStats.totalSheets || 0 }}</span>
                             <span class="text-[10px] font-black opacity-40 uppercase tracking-wider">{{ $t('warehouse.rawSheets') }}</span>
                         </div>
                     </div>
@@ -61,7 +61,7 @@
                             <i class="pi pi-undo text-xl"></i>
                         </div>
                         <div class="flex flex-col">
-                            <span class="text-2xl font-black">{{ warehouse.totalRemnants || 0 }}</span>
+                            <span class="text-2xl font-black">{{ warehouseStats.totalRemnants || 0 }}</span>
                             <span class="text-[10px] font-black opacity-40 uppercase tracking-wider">{{ $t('warehouse.recoveredArea') }}</span>
                         </div>
                     </div>
@@ -112,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import Panel from 'primevue/panel';
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
@@ -122,6 +122,7 @@ import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
 import BatchCard from '~/components/entities/Batch/BatchCard.vue';
 import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
 import RemnantCard from '~/components/entities/Remnant/RemnantCard.vue';
+import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
     warehouse: {
@@ -131,6 +132,9 @@ const props = defineProps({
 });
 
 defineEmits(['edit', 'trace']);
+
+const { name: warehouseName } = useIdentity(props.warehouse);
+const warehouseStats = computed(() => props.warehouse.stats || props.warehouse);
 
 const batches = ref([]);
 const sheets = ref([]);
@@ -143,9 +147,9 @@ const loadInventory = async () => {
     try {
         const whId = props.warehouse._id;
         const [b, s, r] = await Promise.all([
-            $fetch(`/api/material-piles?warehouseId=${whId}`),
-            $fetch(`/api/sheets?warehouseId=${whId}`),
-            $fetch(`/api/remnants?warehouseId=${whId}`)
+            $fetch(`/api/material-piles?lineage.warehouseId=${whId}`),
+            $fetch(`/api/sheets?lineage.warehouseId=${whId}`),
+            $fetch(`/api/remnants?lineage.warehouseId=${whId}`)
         ]);
         batches.value = b;
         sheets.value = s;

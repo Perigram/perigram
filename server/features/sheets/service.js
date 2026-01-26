@@ -7,6 +7,8 @@ import { statusService } from '~/server/core/machines/service';
 import { ObjectId } from 'mongodb';
 import { toObjectId, isValidObjectId } from '~/server/utils/objectid';
 
+import { mapLineageQuery } from '~/server/utils/query';
+
 /**
  * Sheets Service - v24 Standardized
  */
@@ -64,11 +66,7 @@ export async function createFromPile(pileId, count, userId, userRole, userPermis
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter(userPermissions);
-  const finalFilter = { ...lineageFilter };
-  
-  if (filter.warehouseId && isValidObjectId(filter.warehouseId)) finalFilter['lineage.warehouseId'] = toObjectId(filter.warehouseId);
-  if (filter.pileId && isValidObjectId(filter.pileId)) finalFilter['lineage.pileId'] = toObjectId(filter.pileId);
-  if (filter.organizationId && isValidObjectId(filter.organizationId)) finalFilter['lineage.organizationId'] = toObjectId(filter.organizationId);
+  const finalFilter = mapLineageQuery({ ...lineageFilter, ...filter });
 
   const sheets = await repository.find(finalFilter);
   return sheets.map(toDTO);
