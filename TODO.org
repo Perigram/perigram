@@ -1,6 +1,15 @@
 * TODO Errors
   - [ ] Login failed: FetchError: [POST] "/api/auth/login": 401 
 
+*** Agent Notes
+    [2026-01-26] Documentation synchronization for v24 architecture.
+    Files changed: N/A (Documentation only)
+    Docs updated: 
+    - server/features/statuses/NEOLIT.md
+    - server/features/cassettes/NEOLIT.md
+    - server/features/requisitions/NEOLIT.md
+    - server/features/NEOLIT.md
+    Notes: Updated outdated NEOLIT.md files to reflect v24 Absolute Definitive Model, including block architecture (identity, status, lineage) and centralized state machines.
 
 * DONE Quckfix list 
   CLOSED: [2026-01-18]

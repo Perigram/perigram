@@ -1,45 +1,34 @@
-# COMPONENT: Cassettes Feature
+# COMPONENT: Cassettes Feature (v24 Standardized)
 
-This module manages the lifecycle of cassette templates, which are the primary building blocks for nesting.
+Manages cassette templates (Standard DXF and Parametric) using standardized v24 architecture.
 
 ## Core Files
-- `repository.js`: Database operations on `cassettes` and `user_dxf_files` collections.
-- `service.js`: Logic for uploading DXF, extracting polygons, managing layer mappings, and renaming.
+- `repository.js`: Database operations on `cassettes` collection.
+- `service.js`: CRUD logic, DXF extraction, and lineage-based permission handling.
 
-## Data Structure
-Cassettes are stored in the `cassettes` collection. Key fields:
-- `name`: Human-readable name (editable).
-- `slug`: Unique identifier used for file references.
-- `userId`: String ID of the owner.
-- `type`: `STANDARD` (DXF-based) or `PARAMETRIC`.
-- `data`: (For parametric) The high-level tree/parameters for nodi-modular.
-- `dxfId`: GridFS ID of the original DXF (for standard cassettes).
-- `layerMapping`: Map of DXF layer names to system standard codes.
-- `polygonParts`: Extracted geometry for the nesting algorithm.
-- `processingStatus`: Indicates state of geometry extraction/processing.
-    - `pending`: Waiting for processing.
-    - `processing`: Currently being processed.
-    - `done`: Processing completed successfully (ready for nesting).
-    - `error`: Processing failed.
-- `status`: Lifecycle status.
-    - `DRAFT`: Initial state.
-    - `ACTIVE`: Available for use.
-    - `ARCHIVED`: Soft deleted.
+## Data Structure (v24)
+Cassettes use the standardized block architecture:
+
+- **`identity`**: `{ name, slug }`
+- **`status`**: Current lifecycle state (DRAFT, ACTIVE, ARCHIVED).
+- **`origin`**: Creation snapshot.
+- **`lineage`**: `{ organizationId }` (or userId for individual templates).
+- **`definition`**:
+    - `type`: `STANDARD` | `PARAMETRIC`
+    - `data`: Geometry logic (for parametric) or file references.
+    - `parameters`: Configurable dimensions for parametric evaluation.
 
 ## Key Workflows
-### Upload & Extraction (Standard)
-When a DXF is uploaded, the service:
-1. Saves the DXF to GridFS (`cassettes` bucket).
-2. Extracts polygons from the layer mapped to the `nesting` standard.
-3. Syncs the metadata and file to the legacy `user_dxf_files` collection for worker compatibility.
-4. Sets `processingStatus` to `done` if polygons are extracted, otherwise `pending`.
 
-### Parametric Design
-Parametric cassettes are created and managed via the `CassetteDesigner`. They store their geometry logic in the `data` field and are evaluated on the fly by the worker or frontend.
+### Permission Model
+Cassette access is strictly controlled via `lineage`. Templates belong to an `organizationId`. If a user is not in an organization, the `organizationId` stores their `userId` for individual ownership.
 
-### Management
-Users can rename cassettes in the Designer or Cassette Manager. Updates are handled via the `service.update()` which ensures metadata consistency.
+### State Transitions
+Managed via the `cassette` state machine. Transitions between `DRAFT` and `ACTIVE` ensure templates are ready for production use.
 
-## Dependencies
-- `system-settings`: Used to get the standard nesting layer code.
-- `dxf-extractor`: Utility for parsing DXF geometry.
+## API Integration
+The service uses `hasLineagePermission` for all operations, ensuring multi-tenant isolation even for individual users.
+
+## Related
+- [parametric-cassettes](../parametric-cassettes/NEOLIT.md) - Evaluation engine.
+- [layer-standards](../layer-standards/NEOLIT.md) - Source for interpretation rules.

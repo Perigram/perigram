@@ -1,61 +1,30 @@
-# COMPONENT: Requisitions
+# COMPONENT: Requisitions (v24 Standardized)
 
-Material requisition system for contractors to order sheets from manufacturers.
+Material procurement system connecting contractors and manufacturers using v24 standard blocks.
 
 ## Core Files
-- `repository.js`: Database operations on `requisitions` collection
-- `service.js`: Business logic, status transitions, price snapshotting
-- API endpoints in `server/api/requisitions/`
+- `repository.js`: `requisitions` collection operations.
+- `service.js`: Workflow logic, price snapshotting, and state transitions.
 
-## Data Structure
-Collection: `requisitions`
+## Data Structure (v24)
+- **`identity`**: `{ name, serial }` (e.g., REQ-000451).
+- **`status`**: Managed by `requisition` state machine.
+- **`lineage`**: `{ organizationId, manufacturerId, projectId? }`.
+- **`items`**: Array of ordered sheets with `specs` and `priceSnapshot`.
 
-Key fields:
-- `requisitionNumber`: Unique identifier (e.g., "REQ-000001")
-- `contractorId`: Requesting contractor (ObjectId)
-- `manufacturerId`: Target manufacturer (ObjectId)
-- `projectId`, `queueId`: Optional project/queue associations (ObjectId)
-- `items`: Array of ordered items (with price snapshots)
-  - `catalogId`, `sheetTypeId`: References to catalog
-  - `sizeIndex`: Which size from sheet type
-  - `quantity`: Number of sheets
-  - `material`, `color`, `thickness`, etc.: Snapshotted details
-  - `pricePerSqm`, `totalPrice`: Snapshotted pricing
-- `totalAmount`: Total order value
-- `status`: "draft" | "sent" | "approved" | "fulfilled" | "canceled"
-- `statusHistory`: Array of status transitions with timestamps
-- `notes`: Additional information
-- `createdAt`, `createdBy`: Audit fields
-
-## Access Control
-- Contractors: Create requisitions, send to manufacturers
-- Manufacturers: Approve/fulfill requisitions sent to them
-- Both parties: View requisitions they're involved in
-
-## Status Flow
-1. **draft** → **sent**: Contractor sends requisition to manufacturer
-2. **sent** → **approved**: Manufacturer approves the order
-3. **approved** → **fulfilled**: Manufacturer marks as fulfilled (creates material batch)
-4. Any status → **canceled**: Either party cancels (except fulfilled)
+## Workflow & States
+Governed by `server/core/machines/definitions.js`:
+- **DRAFT**: Initial creation.
+- **SENT**: Visible to manufacturer.
+- **APPROVED**: Manufacturer committed to fulfilling.
+- **REJECTED**: Cancelled or declined.
+- **FULFILLED**: Material Piles created and added to inventory.
 
 ## Key Operations
-- `create()`: Create requisition with price snapshotting from catalog
-- `list()`: List requisitions (filtered by organization)
-- `send()`: Contractor sends draft requisition
-- `approve()`: Manufacturer approves sent requisition
-- `fulfill()`: Manufacturer marks as fulfilled
-- `cancel()`: Cancel requisition (except fulfilled)
-- `remove()`: Delete draft requisition (contractor only)
+- **`create`**: Snapshots prices from `catalogs` and `colors` to prevent historical price drift.
+- **`transition`**: Moves requisition through lifecycle via `statusService`.
+- **`list`**: Uses a dual-lineage filter (either `organizationId` matches as buyer, or `manufacturerId` matches as seller).
 
-## Business Rules
-- Prices are snapshotted at creation time from catalog
-- Only contractors can create requisitions
-- Only manufacturers can approve/fulfill
-- Status transitions follow strict workflow
-- Fulfilled requisitions cannot be canceled or deleted
-- Auto-generates unique requisition numbers (REQ-XXXXXX)
-
-## Related Components
-- [catalogs](../catalogs/NEOLIT.md) - Source of sheet types and pricing
-- [material-piles](../material-piles/NEOLIT.md) - Created when requisition fulfilled
-- [organizations](../organizations/NEOLIT.md) - Contractor and manufacturer organizations
+## Related
+- [catalogs](../catalogs/NEOLIT.md) - Pricing source.
+- [material-piles](../material-piles/NEOLIT.md) - Target for fulfillment.
