@@ -5,6 +5,7 @@ import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { createIdentity, createStatus, inheritLineage } from '~/server/utils/blocks';
 import { statusService } from '~/server/core/machines/service';
+import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
 
 /**
@@ -82,21 +83,10 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
-  const finalFilter = { ...lineageFilter, ...filter };
+  const rawFilter = { ...lineageFilter, ...filter };
   
-  // Map legacy/direct ID filters to lineage
-  if (finalFilter.warehouseId) {
-    finalFilter['lineage.warehouseId'] = new ObjectId(finalFilter.warehouseId);
-    delete finalFilter.warehouseId;
-  }
-  if (finalFilter.sheetId) {
-    finalFilter['lineage.sheetId'] = new ObjectId(finalFilter.sheetId);
-    delete finalFilter.sheetId;
-  }
-  if (finalFilter.pileId) {
-    finalFilter['lineage.pileId'] = new ObjectId(finalFilter.pileId);
-    delete finalFilter.pileId;
-  }
+  // Use centralized mapper for ID -> Lineage
+  const finalFilter = mapLineageQuery(rawFilter);
 
   // Handle reusable flag if passed
   if (finalFilter.isReusable !== undefined) {

@@ -2,6 +2,7 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import { createStatus, inheritLineage } from '~/server/utils/blocks';
 import { statusService } from '~/server/core/machines/service';
+import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
 
 /**
@@ -41,12 +42,7 @@ export async function updateStatus(id, newState, userId, userRole, metadata = {}
 }
 
 export async function list(filter = {}) {
-  const finalFilter = { ...filter };
-  
-  if (finalFilter.queueId) {
-    finalFilter['lineage.queueId'] = new ObjectId(finalFilter.queueId);
-    delete finalFilter.queueId;
-  }
+  const finalFilter = mapLineageQuery(filter);
   
   return await repository.find(finalFilter);
 }

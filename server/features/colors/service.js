@@ -3,6 +3,7 @@ import * as catalogRepository from '../catalogs/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission } from '~/server/utils/permissions';
 import { createIdentity, inheritLineage } from '~/server/utils/blocks';
+import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
 
 /**
@@ -46,13 +47,8 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   // Publicly available
-  const finalFilter = { ...filter };
-  
-  // Map legacy/direct ID filters to lineage
-  if (finalFilter.catalogId) {
-    finalFilter['lineage.catalogId'] = new ObjectId(finalFilter.catalogId);
-    delete finalFilter.catalogId;
-  }
+  // Use centralized query mapper for child aggregation
+  const finalFilter = mapLineageQuery(filter);
 
   return await repository.find(finalFilter);
 }
