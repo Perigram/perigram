@@ -33,6 +33,7 @@ RUN pip3 install -r /tmp/requirements.txt --break-system-packages
 
 COPY --from=build /src/.output /src/.output
 COPY --from=build /src/server/scripts /src/server/scripts
+COPY --from=build /src/server/features /src/server/features
 # We need node_modules for runtime? Nuxt .output should have them bundled or in server/node_modules?
 # Usually Nuxt output is standalone if configured, but let's keep existing pattern + strict requirement
 # If using server/scripts/generate_nest_dxf.py, we need that file in the final image!
