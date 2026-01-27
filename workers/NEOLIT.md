@@ -37,7 +37,13 @@ docker exec cutkit_mongo mongosh cutkit --eval "db.nesting_jobs.find().sort({cre
 ```
 
 ## Deployment
-Workers are deployed via Docker Stack:
-```bash
-docker stack deploy -c docker-stack-external.yml cutkit
-```
+Workers are deployed via Docker Stack or as separate services in Railway.
+
+### Build Context Requirement (IMPORTANT)
+All workers MUST be built from the **project root** context. This is required because some workers (like `cassette-processing`) depend on sibling directories (like `fileprocessing`) for code sharing.
+
+### Railway Configuration
+When deploying on Railway:
+1.  **Build Context:** Set to `/` (repository root).
+2.  **Dockerfile Path:** Point to the specific worker Dockerfile (e.g., `workers/nesting/Dockerfile`).
+3.  **Submodules:** Ensure your GitHub configuration allows Railway to clone submodules (required for `jagua-rs` in the nesting worker).

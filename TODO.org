@@ -21,6 +21,28 @@
     - Added cassette-processing worker to the build and push script.
 
 *** Agent Notes
+    [2026-01-27] Final Deployment & Infrastructure Fixes
+    Files changed: 
+    - Dockerfile
+    - build-images.sh
+    - server/utils/extract-data-models.js
+    - workers/cassette-processing/Dockerfile
+    - workers/cassette-processing/core/process.py
+    - workers/fileprocessing/Dockerfile
+    - workers/nesting/Dockerfile
+    - workers/cassette-processing/utils/mongo.py
+    - workers/nesting/utils/mongo.py
+    Docs updated: 
+    - workers/NEOLIT.md
+    Notes: 
+    - Re-applied all critical infrastructure fixes for Railway monorepo support.
+    - Standardized ALL worker Dockerfiles to use root-relative paths.
+    - Fixed main app runtime crash by making data model extraction fail-safe.
+    - Removed hardcoded database fallbacks; workers now require MONGO_DB_NAME env var or DB name in URI.
+    - Updated build-images.sh to maintain root context consistency.
+    - Documented Railway build requirements in workers/NEOLIT.md.
+
+*** Agent Notes
     [2026-01-26] Final v24 alignment and UI polishing.
     Files changed: 
     - components/QueueEditor.vue
