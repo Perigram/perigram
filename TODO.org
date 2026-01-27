@@ -11,14 +11,17 @@
     - workers/cassette-processing/core/process.py
     - workers/fileprocessing/Dockerfile
     - workers/nesting/Dockerfile
+    - workers/cassette-processing/utils/mongo.py
+    - workers/nesting/utils/mongo.py
     Docs updated: 
     - workers/NEOLIT.md
     Notes: 
     - Updated all worker Dockerfiles to use root-relative paths for monorepo compatibility on Railway.
+    - Fixed ConfigurationError in workers when MONGO_URI doesn't specify a database name (fallback to 'cutkit_dev').
+    - Updated workers/NEOLIT.md with critical Railway build context and submodule requirements.
     - Standardized build-images.sh to run docker build from the project root.
     - Fixed runtime crash in Nuxt app by making data model extraction fail-safe if features directory is missing.
     - Updated cassette-processing worker to correctly resolve the fileprocessing sibling directory path in Docker (/app/fileprocessing).
-    - Added cassette-processing worker to the build and push script.
 
 *** Agent Notes
     [2026-01-26] Final v24 alignment and UI polishing.
