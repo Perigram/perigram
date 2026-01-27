@@ -22,7 +22,21 @@ async function getEngine() {
 
   try {
     // Load WASM from node_modules
-    const wasmPath = path.resolve(process.cwd(), 'node_modules/nodi-modular/index_bg.wasm');
+    const wasmCandidates = [
+      path.resolve(process.cwd(), 'node_modules/nodi-modular/index_bg.wasm'),
+      path.resolve(process.cwd(), '.output/server/node_modules/nodi-modular/index_bg.wasm')
+    ];
+    let wasmPath = null;
+    for (const candidate of wasmCandidates) {
+      try {
+        await fs.access(candidate);
+        wasmPath = candidate;
+        break;
+      } catch {}
+    }
+    if (!wasmPath) {
+      throw new Error(`nodi-modular WASM not found. Tried: ${wasmCandidates.join(', ')}`);
+    }
     const wasmBuffer = await fs.readFile(wasmPath);
     await init(wasmBuffer);
     
