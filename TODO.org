@@ -26,6 +26,15 @@
     - Nesting runs now store lineage.queueId via inheritLineage.
 
 *** Agent Notes
+    [2026-01-27] Pass MONGO_DB_NAME to DXF generator
+    Files changed:
+    - server/plugins/nesting-processor.js
+    Docs updated:
+    - server/features/nesting/NEOLIT.md
+    Notes:
+    - DXF subprocess now receives MONGO_DB_NAME to avoid missing default DB errors.
+
+*** Agent Notes
     [2026-01-27] Guard runs updates when missing
     Files changed:
     - server/features/queues/service.js

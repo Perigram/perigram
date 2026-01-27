@@ -28,3 +28,6 @@ Handles the orchestration of nesting jobs, including job creation, worker commun
 ## Dependencies
 - **Nesting Worker**: Separate service running `lbf`.
 - **Python Environment**: The Node container includes Python 3 and `ezdxf` to run the generation script.
+
+## Runtime Notes
+- DXF generation requires `MONGO_DB_NAME` when the Mongo URI has no default database.
