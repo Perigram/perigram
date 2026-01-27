@@ -36,7 +36,13 @@ def create_mongo_client():
 
 
 _client : MongoClient = create_mongo_client()
-db = _client.get_default_database()
+
+# Try to get default database from URI, fallback to 'cutkit_dev' if not specified
+try:
+    db = _client.get_default_database()
+except Exception:
+    db = _client['cutkit_dev']
+
 logger.info(f"Using database: {db.name}")
 
 user_dxf_bucket = GridFSBucket(db, bucket_name="userDxf")
