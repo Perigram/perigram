@@ -2,6 +2,16 @@
   - [ ] Login failed: FetchError: [POST] "/api/auth/login": 401 
 
 *** Agent Notes
+    [2026-01-27] Fix queue nesting 400 in production
+    Files changed:
+    - server/api/queue/[id]/nest.post.js
+    Docs updated:
+    - server/features/queues/NEOLIT.md
+    Notes:
+    - Normalized legacy queue items (entries/cassetteTemplateId) to support production data.
+    - Robust cassette resolution and parametric baking based on template definition type.
+
+*** Agent Notes
     [2026-01-27] Deployment & Containerization Fixes for Railway monorepo
     Files changed: 
     - Dockerfile
