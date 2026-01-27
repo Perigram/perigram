@@ -11,8 +11,6 @@ Defines a specific nesting job, bridging the digital production intent with phys
 1. **Job Initialization**: Selecting baked or parametric designs and specifying quantities.
 2. **Material Allocation**: Defining which piles or remnants are available for the nesting worker.
 3. **Transition to Nesting**: Handing off the job to the Nesting Worker (triggered by state change).
-4. **Legacy Queue Support**: Nesting accepts legacy `entries` with `cassetteTemplateId` and `dimensions` and maps them to `job.items`.
-
 ## Data Structure
 ```typescript
 {
@@ -21,7 +19,7 @@ Defines a specific nesting job, bridging the digital production intent with phys
   status: StatusBlock,
   lineage: { organizationId, projectId },
   job: {
-    items: Array<{ id, type, quantity, parameters }>,
+    items: Array<{ designId, quantity, parameters }>,
     materialPool: Array<{ type, id, specs }>
   }
 }

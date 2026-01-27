@@ -52,62 +52,44 @@ export default defineEventHandler(async (event) => {
       }
     }
     
-    const rawItems = queue.job?.items || queue.entries || [];
-    if (!rawItems || rawItems.length === 0) {
+    if (!queue.job?.items || queue.job.items.length === 0) {
       throw createError({ statusCode: 400, message: 'Queue has no entries' });
     }
     
     // Bake parametric cassettes and prepare files list for worker
     const jobFiles = await Promise.all(
-      rawItems.map(async (entry) => {
+      queue.job.items.map(async (entry) => {
         try {
-          const entryId = entry.id || entry.cassetteTemplateId;
-          const quantity = entry.quantity || entry.count || 1;
-          const dimensions = entry.parameters || entry.dimensions || {};
-          if (!entryId) {
-            throw createError({ statusCode: 400, message: 'Queue item missing cassette id' });
-          }
-
-          let template = null;
-          let design = null;
-
           if (entry.type === 'PARAMETRIC') {
-            template = await cassetteService.getById(entryId, auth.userId, auth.organizationId, auth.role, auth);
-          } else {
-            design = await cassetteDesignService.getById(entryId, auth.userId, auth.role, auth).catch(() => null);
-            if (!design) {
-              template = await cassetteService.getById(entryId, auth.userId, auth.organizationId, auth.role, auth).catch(() => null);
-            }
-          }
-
-          if (!template && !design) {
-            template = await cassetteService.getById(entryId, auth.userId, auth.organizationId, auth.role, auth).catch(() => null);
-          }
-
-          if (!template && !design) {
-            throw createError({ statusCode: 400, message: `Cassette item ${entryId} not found in any collection` });
-          }
-
-          if (template?.definition?.type === 'PARAMETRIC') {
+            const template = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth);
             console.log(`Baking parametric template: ${template.identity?.name || template.name}`);
-            const bakedCassette = await bakeTemplateInstance(template._id, dimensions, userId);
+            const bakedCassette = await bakeTemplateInstance(template._id, entry.parameters || {}, userId);
             return {
               cassetteId: bakedCassette._id.toString(),
-              count: quantity,
-              dimensions
+              count: entry.quantity,
+              dimensions: entry.parameters || {}
             };
           }
+          // Try to find as a Design first
+          let item = await cassetteDesignService.getById(entry.id, auth.userId, auth.role, auth).catch(() => null);
+          
+          // If not found, try as a Template (Standard)
+          if (!item) {
+            item = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth).catch(() => null);
+          }
 
-          const resolved = design || template;
+          if (!item) {
+            throw createError({ statusCode: 400, message: `Cassette item ${entry.id} not found in any collection` });
+          }
+
           return {
-            cassetteId: resolved._id.toString(),
-            count: quantity,
-            dimensions
+            cassetteId: item._id.toString(),
+            count: entry.quantity,
+            dimensions: entry.parameters || {}
           };
         } catch (e) {
-          const entryId = entry.id || entry.cassetteTemplateId;
-          console.error(`Error processing queue item ${entryId}:`, e);
-          throw createError({ statusCode: 400, message: `Failed to process item ${entryId || 'unknown'}: ${e.message}` });
+          console.error(`Error processing queue item ${entry.id}:`, e);
+          throw createError({ statusCode: 400, message: `Failed to process item ${entry.id}: ${e.message}` });
         }
       })
     );
