@@ -34,6 +34,7 @@ RUN pip3 install -r /tmp/requirements.txt --break-system-packages
 COPY --from=build /src/.output /src/.output
 COPY --from=build /src/server/scripts /src/server/scripts
 COPY --from=build /src/server/features /src/server/features
+COPY --from=build /src/public /src/public
 # Include nodi-modular WASM for parametric engine at runtime
 COPY --from=build /src/node_modules/nodi-modular /src/node_modules/nodi-modular
 # We need node_modules for runtime? Nuxt .output should have them bundled or in server/node_modules?

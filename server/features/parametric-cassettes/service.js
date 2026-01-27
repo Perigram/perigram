@@ -43,7 +43,21 @@ async function getEngine() {
     modularInstance = Modular.new();
     
     // Load the default graph structure
-    const graphPath = path.resolve(process.cwd(), 'public/Cassette.json');
+    const graphCandidates = [
+      path.resolve(process.cwd(), 'public/Cassette.json'),
+      path.resolve(process.cwd(), '.output/public/Cassette.json')
+    ];
+    let graphPath = null;
+    for (const candidate of graphCandidates) {
+      try {
+        await fs.access(candidate);
+        graphPath = candidate;
+        break;
+      } catch {}
+    }
+    if (!graphPath) {
+      throw new Error(`Cassette.json not found. Tried: ${graphCandidates.join(', ')}`);
+    }
     const graphContent = await fs.readFile(graphPath, 'utf-8');
     baseTemplateGraph = JSON.parse(graphContent);
     
