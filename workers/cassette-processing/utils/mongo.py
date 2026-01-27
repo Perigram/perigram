@@ -6,18 +6,15 @@ MONGODB_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI') or 'm
 
 _client = MongoClient(MONGODB_URI)
 
-# Try to get database: 
-# 1. From MONGO_DB_NAME env var
-# 2. From default database in URI
-# 3. Fallback to 'cutkit_dev'
+# Determine database name
 db_name = os.environ.get("MONGO_DB_NAME")
-if db_name:
-    db = _client[db_name]
-else:
+if not db_name:
     try:
         db = _client.get_default_database()
     except Exception:
-        db = _client['cutkit_dev']
+        raise Exception("MongoDB database name not provided. Set MONGO_DB_NAME or include it in MONGO_URI.")
+else:
+    db = _client[db_name]
 
 # Mask password for logging
 from urllib.parse import urlparse

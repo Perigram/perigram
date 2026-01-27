@@ -1,8 +1,9 @@
+import os
+import sys
+from pathlib import Path
 from utils.logger import setup_logger
 from utils.mongo import db, cassettes_bucket
 from dxf_utils import read_dxf
-import sys
-from pathlib import Path
 
 # Import geometry building from fileprocessing
 # In Docker: /app/fileprocessing and /app/cassette-processing
