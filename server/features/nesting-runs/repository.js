@@ -25,6 +25,11 @@ export async function find(filter = {}) {
   return await db.collection(COLLECTION).find(filter).toArray();
 }
 
+export async function count(filter = {}) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).countDocuments(filter);
+}
+
 export async function updateById(id, updates) {
   const db = await connectDB();
   const { _id, ...clean } = updates;

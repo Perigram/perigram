@@ -217,7 +217,7 @@ async function processNextJob() {
         '--output-dir', outputDir,
         '--slug', job.slug
       ], {
-        env: { ...process.env, MONGODB_URI: process.env.MONGODB_URI || 'mongodb://mongo:27017/cutkit_dev' }
+        env: { ...process.env, MONGODB_URI: process.env.MONGODB_URI || process.env.MONGO_URI }
       });
 
       let stdout = '';
@@ -267,16 +267,16 @@ async function processNextJob() {
       { $set: { status: 'done', dxf_files: (generatedFiles || []).map(f => f.filename), finishedAt: new Date() } }
     );
     
-    // Update Queue Run Status to COMPLETE
+    // Update Nesting Run Status to COMPLETE
     const statusUpdate = createStatus('COMPLETE', 'SYSTEM', { note: 'Nesting completed successfully' });
 
-    await db.collection('queues').updateOne(
-      { _id: job.queueId, "runs._id": job.runId },
+    await db.collection('nesting_runs').updateOne(
+      { _id: job.runId },
       { $set: { 
-          "runs.$.status": statusUpdate, 
-          "runs.$.layoutCount": layoutCount,
-          "runs.$.placedCount": totalPlaced,
-          "runs.$.utilization": totalUtilization
+          status: statusUpdate, 
+          layoutCount: layoutCount,
+          placedCount: totalPlaced,
+          utilization: totalUtilization
         } 
       }
     );
@@ -315,10 +315,10 @@ async function processNextJob() {
     if (job.queueId && job.runId) {
         const errorStatus = createStatus('ERROR', 'SYSTEM', { note: error.message });
 
-        await db.collection('queues').updateOne(
-          { _id: job.queueId, "runs._id": job.runId },
-          { $set: { "runs.$.status": errorStatus, "runs.$.error": error.message } }
-        );
+      await db.collection('nesting_runs').updateOne(
+          { _id: job.runId },
+          { $set: { status: errorStatus, error: error.message } }
+      );
         
         // Mark all artifacts for this run as FAILED
         const artifactErrorStatus = createStatus('FAILED', 'SYSTEM', { note: error.message });

@@ -9,6 +9,7 @@ import * as cassetteService from '~/server/features/cassettes/service';
 import * as cassetteDesignService from '~/server/features/cassette-designs/service';
 import { service as artifactService } from '~/server/features/artifacts';
 import { bakeTemplateInstance } from '~/server/features/parametric-cassettes/service';
+import * as nestingRunsService from '~/server/features/nesting-runs/service';
 import { connectDB } from '~~/server/db/mongo';
 import { ObjectId } from 'mongodb';
 import { generateRandomString } from '~~/server/utils/strings';
@@ -110,39 +111,21 @@ export default defineEventHandler(async (event) => {
   // Create nesting job
   const db = await connectDB();
   const runId = new ObjectId();
-  
-  const runNumber = (queue.runs?.length || 0) + 1;
-  
-  // 1. Clear previous nesting runs (mark them as ERROR if they were stuck)
-  await queuesService.setRunsStatusByStatus(
-      queueId, 
-      'NESTING', 
-      'ERROR', 
-      auth.userId,
-      auth.organizationId,
-      auth.role,
-      auth
-  );
+  const runNumber = await nestingRunsService.getNextRunNumber(queue._id);
 
-  // 2. Add new run
   const runOrigin = createStatus('NESTING', auth.userId, { note: `Nesting started in ${body.materialMode || 'VIRTUAL'} mode` });
-
-  await queuesService.addRun(
-      queueId, 
-      { 
-        _id: runId, 
-        status: runOrigin,
-        runNumber,
-        materialMode: body.materialMode || 'VIRTUAL',
-        origin: runOrigin,
-        requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF'],
-        createdAt: new Date()
-      },
-      auth.userId,
-      auth.organizationId,
-      auth.role,
-      auth
-  );
+  await db.collection('nesting_runs').insertOne({
+    _id: runId,
+    runNumber,
+    materialMode: body.materialMode || 'VIRTUAL',
+    params,
+    origin: runOrigin,
+    status: runOrigin,
+    lineage: queue.lineage,
+    requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF'],
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
   
   console.log('Adding nesting job to DB...');
   await db.collection('nesting_jobs').insertOne({

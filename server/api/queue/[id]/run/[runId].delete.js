@@ -1,4 +1,4 @@
-import * as queuesService from '~/server/features/queues/service';
+import * as nestingRunsService from '~/server/features/nesting-runs/service';
 import { requireAuth } from '~/server/utils/permissions';
 
 export default defineEventHandler(async (event) => {
@@ -8,9 +8,9 @@ export default defineEventHandler(async (event) => {
     const queueId = event.context.params.id;
     const runId = event.context.params.runId;
     
-    return await queuesService.removeRun(
-      queueId, 
-      runId, 
+    return await nestingRunsService.remove(
+      queueId,
+      runId,
       auth.userId,
       auth.organizationId,
       auth.role,

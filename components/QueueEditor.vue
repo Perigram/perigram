@@ -13,7 +13,7 @@
                 <div class="flex flex-wrap gap-2 sm:ml-auto">
                     <Button icon="pi pi-history" severity="secondary" text @click="showHistory = !showHistory" v-tooltip.top="'Toggle History'" />
                     <Button 
-                        v-if="queueState === 'READY' && queue.chosenRunId && authStore.can('queues', 'edit')"
+                        v-if="queueState === 'READY' && hasChosenRun && authStore.can('queues', 'edit')"
                         :label="$t('queue.markCut')" icon="pi pi-scissors" severity="success"
                         @click="markCutHandler"
                     />
@@ -34,16 +34,16 @@
         <!-- Accordion Panels -->
         <Accordion :multiple="true" :value="['0', '1', '2']" class="flex flex-col gap-4">
             <!-- Runs Panel -->
-            <AccordionPanel v-if="queue.runs && queue.runs.length > 0" value="0">
-                <AccordionHeader>{{ $t('queue.runs') }} ({{ queue.runs.length }})</AccordionHeader>
+            <AccordionPanel v-if="queueRuns.length > 0" value="0">
+                <AccordionHeader>{{ $t('queue.runs') }} ({{ queueRuns.length }})</AccordionHeader>
                 <AccordionContent>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         <NestingRunCard 
-                            v-for="run in queue.runs" 
+                            v-for="run in queueRuns" 
                             :key="run._id"
                             :run="run"
                             :active="run._id.toString() === selectedRunId"
-                            :is-chosen="run._id.toString() === queue.chosenRunId?.toString()"
+                            :is-chosen="run.status?.state === 'CHOSEN'"
                             :artifacts="getRunArtifacts(run._id)"
                             @select="selectedRunId = $event.toString()"
                             @choose="chooseRunHandler"
@@ -363,6 +363,7 @@ const entityStore = useEntityStore();
 const entries = ref([]);
 const editingRows = ref([]);
 const { artifacts } = storeToRefs(artifactsStore);
+const { runs } = storeToRefs(queuesStore);
 const nestingInProgress = ref(false);
 const showAddDialog = ref(false);
 const showUploadDialog = ref(false);
@@ -433,11 +434,14 @@ const nestingOptions = ref({    materialMode: props.queue.nestingParams?.materia
     requestedArtifacts: props.queue.requestedArtifacts || ['LAYOUT_DXF']
 });
 
+const queueRuns = computed(() => runs.value[props.queue._id] || []);
+const hasChosenRun = computed(() => queueRuns.value.some(r => r.status?.state === 'CHOSEN'));
+
 const warehouseShortage = computed(() => {
     if (nestingOptions.value.materialMode !== 'WAREHOUSE') return null;
-    if (!props.queue.runs || props.queue.runs.length === 0) return null;
+    if (queueRuns.value.length === 0) return null;
     
-    const latestRun = props.queue.runs[props.queue.runs.length - 1];
+    const latestRun = queueRuns.value[queueRuns.value.length - 1];
     if (latestRun.status?.state !== 'COMPLETE' && latestRun.status?.state !== 'CHOSEN') return null;
     
     // Calculate total available sheets in selected inventory
@@ -543,6 +547,7 @@ onMounted(async () => {
     warehouses.value = whRes || [];
     if (nestingOptions.value.warehouseId) loadWarehouseInventory();
     await toolProfilesStore.fetchTools();
+    await queuesStore.fetchRuns(props.queue._id);
     loadQueueData();
 });
 
@@ -658,7 +663,7 @@ const deleteRunHandler = async (id) => {
 };
 
 const handleConvertToPhysical = async (runId) => {
-    const run = props.queue.runs.find(r => r._id.toString() === runId.toString());
+    const run = queueRuns.value.find(r => r._id.toString() === runId.toString());
     if (!run) return;
 
     // Logic to switch nesting options and re-load inventory
@@ -679,7 +684,7 @@ const handleConvertToPhysical = async (runId) => {
 };
 
 const handleCreateRequisition = async (runId) => {
-    const run = props.queue.runs.find(r => r._id.toString() === runId.toString());
+    const run = queueRuns.value.find(r => r._id.toString() === runId.toString());
     if (!run) return;
 
     confirm.require({

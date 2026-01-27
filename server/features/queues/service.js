@@ -128,87 +128,6 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
   return { success: true };
 }
 
-export async function addRun(queueId, runData, userId, userOrg, userRole, userPermissions) {
-  const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
-  
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  // Use repository to add run - native update needed as repository might not have push
-  const db = await (await import('~/server/db/mongo')).connectDB();
-  await db.collection('queues').updateOne(
-    { _id: new ObjectId(queueId) },
-    { $push: { runs: runData } }
-  );
-  
-  const updated = await repository.findById(queueId);
-  return toDTO(updated);
-}
-
-export async function setRunsStatusByStatus(queueId, fromStatus, toStatus, userId, userOrg, userRole, userPermissions) {
-  const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
-  
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  const db = await (await import('~/server/db/mongo')).connectDB();
-  
-  // Use $or to match either string status or status.state in block
-  const filter = {
-    _id: new ObjectId(queueId),
-    runs: { $exists: true }
-  };
-
-  const updateResult = await db.collection('queues').updateOne(
-    filter,
-    { $set: { "runs.$[elem].status": toStatus } },
-    { arrayFilters: [{ $or: [{ "elem.status": fromStatus }, { "elem.status.state": fromStatus }] }] }
-  );
-
-  if (!updateResult.matchedCount) {
-    return;
-  }
-}
-
-export async function chooseRun(queueId, runId, userId, userOrg, userRole, userPermissions) {
-  const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
-  
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  const run = (queue.runs || []).find(r => r._id.toString() === runId.toString());
-  if (!run) throw createError({ statusCode: 404, message: 'Run not found' });
-  
-  const db = await (await import('~/server/db/mongo')).connectDB();
-  
-  const completeStatus = createStatus('COMPLETE', userId, { note: 'De-selected as chosen run' });
-  const chosenStatus = createStatus('CHOSEN', userId, { note: 'Manually chosen for production' });
-
-  // 1. Reset any previously CHOSEN runs to COMPLETE
-  await db.collection('queues').updateOne(
-      { _id: new ObjectId(queueId) },
-      { $set: { "runs.$[elem].status": completeStatus } },
-      { arrayFilters: [{ $or: [{ "elem.status": "CHOSEN" }, { "elem.status.state": "CHOSEN" }] }] }
-  );
-  
-  // 2. Set target run to CHOSEN and update queue field
-  await db.collection('queues').updateOne(
-      { _id: new ObjectId(queueId), "runs._id": new ObjectId(runId) },
-      { 
-          $set: { 
-              "runs.$.status": chosenStatus,
-              chosenRunId: new ObjectId(runId)
-          } 
-      }
-  );
-
-  const updated = await repository.findById(queueId);
-  return toDTO(updated);
-}
-
 export async function markCut(queueId, userId, userOrg, userRole, userPermissions) {
   const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
   
@@ -216,14 +135,16 @@ export async function markCut(queueId, userId, userOrg, userRole, userPermission
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  if (!queue.chosenRunId) {
-      throw createError({ statusCode: 400, message: 'No run chosen' });
+  const db = await (await import('~/server/db/mongo')).connectDB();
+  const chosenRun = await db.collection('nesting_runs').findOne({
+    'lineage.queueId': new ObjectId(queueId),
+    'status.state': 'CHOSEN'
+  });
+  if (!chosenRun) {
+    throw createError({ statusCode: 400, message: 'No run chosen' });
   }
-
-  // Guard: Cannot cut if the chosen run was based on virtual sheets
-  const run = (queue.runs || []).find(r => r._id.toString() === queue.chosenRunId.toString());
-  if (run?.materialMode === 'VIRTUAL') {
-      throw createError({ statusCode: 400, message: 'Cannot cut a Virtual Run. Please select physical material and re-run nesting.' });
+  if (chosenRun.materialMode === 'VIRTUAL') {
+    throw createError({ statusCode: 400, message: 'Cannot cut a Virtual Run. Please select physical material and re-run nesting.' });
   }
 
   await statusService.transition('queue', queue._id, 'CUT', userId, userRole, { note: 'Marked as CUT' });
@@ -243,23 +164,6 @@ export async function resetToDraft(queueId, userId, userOrg, userRole, userPermi
   }
 
   await statusService.transition('queue', queue._id, 'DRAFT', userId, userRole, { note: 'Reset to DRAFT' });
-  
-  const updated = await repository.findById(queueId);
-  return toDTO(updated);
-}
-
-export async function removeRun(queueId, runId, userId, userOrg, userRole, userPermissions) {
-  const queue = await getById(queueId, userId, userOrg, userRole, userPermissions);
-  
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-  
-  const db = await (await import('~/server/db/mongo')).connectDB();
-  await db.collection('queues').updateOne(
-    { _id: new ObjectId(queueId) },
-    { $pull: { runs: { _id: new ObjectId(runId) } } }
-  );
   
   const updated = await repository.findById(queueId);
   return toDTO(updated);

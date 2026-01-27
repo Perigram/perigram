@@ -7,8 +7,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy the worker source from root context
-COPY workers/nesting/ .
+# Copy the worker source (supports root or nesting context)
+COPY ./ ./
 
 WORKDIR /app/jagua-rs
 RUN cargo build --release
@@ -23,8 +23,8 @@ WORKDIR /app
 # Upgrade pip
 RUN pip install --upgrade pip
 
-# Copy requirements from the root-relative path
-COPY workers/nesting/requirements.txt .
+# Copy requirements from local context
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the built lbf binary
@@ -32,7 +32,7 @@ COPY --from=builder /app/jagua-rs/target/release/lbf /usr/local/bin/lbf
 RUN chmod +x /usr/local/bin/lbf
 
 # Copy the Python application code
-COPY workers/nesting/ .
+COPY ./ .
 
 # Change ownership of the app directory to the non-root user
 RUN chown -R appuser:appuser /app

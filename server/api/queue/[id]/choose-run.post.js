@@ -3,7 +3,7 @@
  * Mark a completed run as chosen
  */
 
-import * as queuesService from '~/server/features/queues/service';
+import * as nestingRunsService from '~/server/features/nesting-runs/service';
 import { requireAuth } from '~/server/utils/permissions';
 
 export default defineEventHandler(async (event) => {
@@ -16,14 +16,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'runId is required' });
   }
   
-  const queue = await queuesService.chooseRun(
-    queueId, 
-    body.runId, 
+  const run = await nestingRunsService.chooseRun(
+    queueId,
+    body.runId,
     auth.userId,
     auth.organizationId,
     auth.role,
     auth
   );
-  
-  return { success: true, queue };
+
+  return { success: true, run };
 });

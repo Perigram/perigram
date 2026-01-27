@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger("dxf_gen")
 
 def create_mongo_client():
-    mongo_uri = os.environ.get("MONGODB_URI")
+    mongo_uri = os.environ.get("MONGODB_URI") or os.environ.get("MONGO_URI")
     if not mongo_uri:
         raise Exception("MONGODB_URI environment variable not set")
     return MongoClient(mongo_uri)

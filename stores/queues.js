@@ -4,6 +4,7 @@ import { ref } from 'vue';
 export const useQueuesStore = defineStore('queues', () => {
     const queues = ref([]);
     const currentQueue = ref(null);
+    const runs = ref({});
     const loading = ref(false);
     const error = ref(null);
     const pollingIntervals = ref({});
@@ -33,8 +34,8 @@ export const useQueuesStore = defineStore('queues', () => {
                     currentQueue.value = data;
                 }
 
-                // Stop polling if no runs are in NESTING status
-                const hasNestingRuns = (data.runs || []).some(run => run.status === 'NESTING');
+                const queueRuns = await fetchRuns(queueId);
+                const hasNestingRuns = queueRuns.some(run => run.status?.state === 'NESTING');
                 if (!hasNestingRuns) {
                     stopPolling(queueId);
                 }
@@ -47,7 +48,8 @@ export const useQueuesStore = defineStore('queues', () => {
 
     function checkTransientStatuses() {
         queues.value.forEach(queue => {
-            const hasNestingRuns = (queue.runs || []).some(run => run.status === 'NESTING');
+            const queueRuns = runs.value[queue._id] || [];
+            const hasNestingRuns = queueRuns.some(run => run.status?.state === 'NESTING');
             if (hasNestingRuns) {
                 pollQueueStatus(queue._id);
             }
@@ -75,11 +77,8 @@ export const useQueuesStore = defineStore('queues', () => {
         try {
             const data = await $fetch(`/api/queue/${queueId}`);
             currentQueue.value = data;
-            
-            const hasNestingRuns = (data.runs || []).some(run => run.status === 'NESTING');
-            if (hasNestingRuns) {
-                pollQueueStatus(queueId);
-            }
+            await fetchRuns(queueId);
+            pollQueueStatus(queueId);
             
             return data;
         } catch (err) {
@@ -132,6 +131,7 @@ export const useQueuesStore = defineStore('queues', () => {
                 method: 'POST',
                 body: nestingParams
             });
+            await fetchRuns(queueId);
             pollQueueStatus(queueId);
             return result;
         } catch (err) {
@@ -187,15 +187,7 @@ export const useQueuesStore = defineStore('queues', () => {
                 method: 'POST',
                 body: { runId }
             });
-            
-            const index = queues.value.findIndex(q => q._id === queueId);
-            if (index !== -1) {
-                queues.value[index] = result.queue;
-            }
-            if (currentQueue.value?._id === queueId) {
-                currentQueue.value = result.queue;
-            }
-            
+            await fetchRuns(queueId);
             return result;
         } catch (err) {
             error.value = err.message;
@@ -205,22 +197,25 @@ export const useQueuesStore = defineStore('queues', () => {
 
     async function deleteRun(queueId, runId) {
         try {
-            const updatedQueue = await $fetch(`/api/queue/${queueId}/run/${runId}`, {
+            await $fetch(`/api/queue/${queueId}/run/${runId}`, {
                 method: 'DELETE'
             });
-            
-            const index = queues.value.findIndex(q => q._id === queueId);
-            if (index !== -1) {
-                queues.value[index] = updatedQueue;
-            }
-            if (currentQueue.value?._id === queueId) {
-                currentQueue.value = updatedQueue;
-            }
-            
-            return updatedQueue;
+            await fetchRuns(queueId);
+            return runs.value[queueId] || [];
         } catch (err) {
             error.value = err.message;
             throw err;
+        }
+    }
+
+    async function fetchRuns(queueId) {
+        try {
+            const data = await $fetch(`/api/nesting-runs`, { query: { queueId } });
+            runs.value[queueId] = data;
+            return data;
+        } catch (err) {
+            error.value = err.message;
+            return [];
         }
     }
 
@@ -248,6 +243,7 @@ export const useQueuesStore = defineStore('queues', () => {
     return {
         queues,
         currentQueue,
+        runs,
         loading,
         error,
         fetchQueues,
@@ -261,6 +257,7 @@ export const useQueuesStore = defineStore('queues', () => {
         chooseRun,
         markCut,
         deleteRun,
-        stopPolling
+        stopPolling,
+        fetchRuns
     };
 });
