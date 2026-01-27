@@ -2,6 +2,15 @@
   - [ ] Login failed: FetchError: [POST] "/api/auth/login": 401 
 
 *** Agent Notes
+    [2026-01-27] Guard runs updates when missing
+    Files changed:
+    - server/features/queues/service.js
+    Docs updated:
+    - server/features/queues/NEOLIT.md
+    Notes:
+    - Skip array updates when queue.runs does not exist to avoid Mongo update errors.
+
+*** Agent Notes
     [2026-01-27] Fix missing Cassette.json in production
     Files changed:
     - Dockerfile

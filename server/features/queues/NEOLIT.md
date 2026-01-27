@@ -11,6 +11,9 @@ Defines a specific nesting job, bridging the digital production intent with phys
 1. **Job Initialization**: Selecting baked or parametric designs and specifying quantities.
 2. **Material Allocation**: Defining which piles or remnants are available for the nesting worker.
 3. **Transition to Nesting**: Handing off the job to the Nesting Worker (triggered by state change).
+
+## Notes
+- `runs` array is optional; status updates skip if it does not exist.
 ## Data Structure
 ```typescript
 {
