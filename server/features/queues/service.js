@@ -157,23 +157,19 @@ export async function setRunsStatusByStatus(queueId, fromStatus, toStatus, userI
   
   // Use $or to match either string status or status.state in block
   const filter = {
-      _id: new ObjectId(queueId),
-      $or: [
-          { "runs.status": fromStatus },
-          { "runs.status.state": fromStatus }
-      ]
+    _id: new ObjectId(queueId),
+    runs: { $exists: true }
   };
 
-  // Note: $[elem] positional operator might be needed to update ALL matching elements in array
-  // but for now let's keep it simple if only one is expected or use updateMany carefully.
-  // Actually "runs.$.status" only updates the FIRST matching element.
-  // We want to update ALL elements that are in 'NESTING' state.
-  
-  await db.collection('queues').updateOne(
-    { _id: new ObjectId(queueId) },
+  const updateResult = await db.collection('queues').updateOne(
+    filter,
     { $set: { "runs.$[elem].status": toStatus } },
     { arrayFilters: [{ $or: [{ "elem.status": fromStatus }, { "elem.status.state": fromStatus }] }] }
   );
+
+  if (!updateResult.matchedCount) {
+    return;
+  }
 }
 
 export async function chooseRun(queueId, runId, userId, userOrg, userRole, userPermissions) {
