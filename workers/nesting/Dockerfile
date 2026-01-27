@@ -1,24 +1,14 @@
 # Stage 1: Build the Rust binary
-FROM rustlang/rust:nightly as builder
+FROM rust:1.83 as builder
 
-# Install git and other dependencies, then clean up apt cache aggressively
-RUN apt-get update && apt-get install -y git && \
-    apt-get clean && \
-    apt-get autoremove -y && \
+RUN apt-get update && apt-get install -y \
+    python3 python3-pip python3-dev build-essential libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy the worker source
+# Copy the worker source from root context
 COPY workers/nesting/ .
-
-# CRITICAL FIX: If Railway fails to clone the submodule, we MUST do it here.
-# Since we are using rust:nightly, this will now build correctly (Edition 2024).
-RUN if [ ! -f jagua-rs/Cargo.toml ]; then \
-    echo "Infrastructure failure: Submodule jagua-rs missing. Cloning manually..." && \
-    rm -rf jagua-rs && \
-    git clone https://github.com/JeroenGar/jagua-rs.git jagua-rs; \
-    fi
 
 WORKDIR /app/jagua-rs
 RUN cargo build --release
