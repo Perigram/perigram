@@ -4,9 +4,9 @@ WORKDIR /app
 
 RUN pip install --upgrade pip
 
-COPY workers/fileprocessing/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY workers/fileprocessing/ .
+COPY . .
 
 CMD ["python", "main.py"]
