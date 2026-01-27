@@ -14,7 +14,7 @@ import { connectDB } from '~~/server/db/mongo';
 import { ObjectId } from 'mongodb';
 import { generateRandomString } from '~~/server/utils/strings';
 import { requireAuth } from '~/server/utils/permissions';
-import { createStatus } from '~/server/utils/blocks';
+import { createStatus, inheritLineage } from '~/server/utils/blocks';
 
 export default defineEventHandler(async (event) => {
   try {
@@ -121,7 +121,7 @@ export default defineEventHandler(async (event) => {
     params,
     origin: runOrigin,
     status: runOrigin,
-    lineage: queue.lineage,
+    lineage: inheritLineage(queue, 'queue'),
     requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF'],
     createdAt: new Date(),
     updatedAt: new Date()

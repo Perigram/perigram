@@ -20,7 +20,17 @@ def create_mongo_client():
     mongo_uri = os.environ.get("MONGODB_URI") or os.environ.get("MONGO_URI")
     if not mongo_uri:
         raise Exception("MONGODB_URI environment variable not set")
-    return MongoClient(mongo_uri)
+    client = MongoClient(mongo_uri)
+    db_name = os.environ.get("MONGO_DB_NAME")
+    if not db_name:
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(mongo_uri)
+            path_db = parsed.path.lstrip("/")
+            db_name = path_db or client.get_default_database().name
+        except Exception:
+            raise Exception("MongoDB database name not provided. Set MONGO_DB_NAME or include it in MONGO_URI.")
+    return client, db_name
 
 def read_dxf_from_gridfs(bucket, file_id, cache):
     file_id_str = str(file_id)
@@ -62,8 +72,8 @@ def hex_to_aci(hex_color):
     if hex_color == '808080': return 8 # Gray
     return 7 # Default White/Black
 
-def process_transforms(transforms_data, output_dir, slug, mongo_client):
-    db = mongo_client.get_default_database()
+def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name):
+    db = mongo_client[db_name]
     cassettes_collection = db["cassettes"]
     baked_cassettes_collection = db["baked_cassettes"]
     cassettes_bucket = GridFSBucket(db, bucket_name="cassettes")
@@ -212,8 +222,8 @@ if __name__ == "__main__":
         with open(args.transforms, 'r') as f:
             transforms_data = json.load(f)
             
-        client = create_mongo_client()
-        files = process_transforms(transforms_data, args.output_dir, args.slug, client)
+        client, db_name = create_mongo_client()
+        files = process_transforms(transforms_data, args.output_dir, args.slug, client, db_name)
         print(json.dumps(files))
         
     except Exception as e:

@@ -22,6 +22,8 @@
     Notes:
     - Runs are now stored in nesting_runs and fetched via lineage.queueId; queue.runs is deprecated.
     - DXF generator accepts MONGO_URI fallback.
+    - DXF generator now respects MONGO_DB_NAME for Railway.
+    - Nesting runs now store lineage.queueId via inheritLineage.
 
 *** Agent Notes
     [2026-01-27] Guard runs updates when missing
