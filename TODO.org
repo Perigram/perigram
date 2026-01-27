@@ -17,12 +17,12 @@
     - workers/NEOLIT.md
     Notes: 
     - Updated all worker Dockerfiles to use root-relative paths for monorepo compatibility on Railway.
-    - Removed hardcoded database fallbacks in workers; they now require MONGO_DB_NAME or database name in MONGO_URI.
-    - Fixed NameError in cassette-processing (missing 'os' import) introduced in previous turns.
+    - Added manual git clone fallback for jagua-rs submodule in nesting worker Dockerfile to fix missing Cargo.toml on Railway.
+    - Removed hardcoded database fallbacks in workers; they now throw a clear error if MONGO_DB_NAME or URI database name is missing.
     - Updated workers/NEOLIT.md with critical Railway build context and submodule requirements.
+    - Fixed NameError in cassette-processing (missing 'os' import) introduced in previous turns.
     - Standardized build-images.sh to run docker build from the project root.
     - Fixed runtime crash in Nuxt app by making data model extraction fail-safe if features directory is missing.
-    - Updated cassette-processing worker to correctly resolve the fileprocessing sibling directory path in Docker (/app/fileprocessing).
 
 *** Agent Notes
     [2026-01-26] Final v24 alignment and UI polishing.
