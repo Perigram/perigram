@@ -19,13 +19,8 @@ cd workers/nesting
 docker build -t ghcr.io/1suo/nesting-worker:latest .
 cd ../..
 
-# 4. Cassette Processing Worker
-echo "📦 Building Cassette Processing Worker..."
-docker build -t ghcr.io/1suo/cassette-processing-worker:latest -f workers/cassette-processing/Dockerfile .
-
 echo "✅ All images built successfully!"
 echo "To push them to your registry, run:"
 echo "  docker push ghcr.io/1suo/cutkit-app:latest"
 echo "  docker push ghcr.io/1suo/file-processing-worker:latest"
 echo "  docker push ghcr.io/1suo/nesting-worker:latest"
-echo "  docker push ghcr.io/1suo/cassette-processing-worker:latest"

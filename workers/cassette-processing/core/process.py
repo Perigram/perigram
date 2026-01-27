@@ -1,12 +1,11 @@
-import sys
-from pathlib import Path
 from utils.logger import setup_logger
 from utils.mongo import db, cassettes_bucket
 from dxf_utils import read_dxf
+import sys
+from pathlib import Path
 
 # Import geometry building from fileprocessing
 sys.path.append(str(Path(__file__).parent.parent.parent / 'fileprocessing'))
-
 from core.geometry.build_geometry import build_geometry
 from core.geometry.dxf_parser import convert_entity_to_shapely
 
