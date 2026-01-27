@@ -1,8 +1,11 @@
 # Stage 1: Build the Rust binary
 FROM rustlang/rust:nightly as builder
 
-# Install git to handle missing submodules
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# Install git and other dependencies, then clean up apt cache aggressively
+RUN apt-get update && apt-get install -y git && \
+    apt-get clean && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
