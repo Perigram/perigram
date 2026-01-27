@@ -40,6 +40,7 @@ Triggered by `GET /api/cassettes/:id/export?A=...&B=...`:
 
 ## Algorithmic Consistency
 The module uses the same `nodi-modular` WASM engine and `cassetteGraphBuilder` utility as the frontend designer. This ensures 100% parity between the visual designer and the generated nesting/export DXF files.
+Runtime requires `nodi-modular/index_bg.wasm` to be present in the production image (copied from node_modules or bundled in the Nuxt output).
 
 ## Shared Utilities
 - `server/utils/cassetteGraphBuilder.js`: Shared by both frontend components and backend services to construct the geometry evaluation graph.
