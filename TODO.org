@@ -17,7 +17,8 @@
     - workers/NEOLIT.md
     Notes: 
     - Updated all worker Dockerfiles to use root-relative paths for monorepo compatibility on Railway.
-    - Fixed ConfigurationError in workers by adding support for MONGO_DB_NAME env var and safer fallback logic.
+    - Removed hardcoded database fallbacks in workers; they now require MONGO_DB_NAME or database name in MONGO_URI.
+    - Fixed NameError in cassette-processing (missing 'os' import) introduced in previous turns.
     - Updated workers/NEOLIT.md with critical Railway build context and submodule requirements.
     - Standardized build-images.sh to run docker build from the project root.
     - Fixed runtime crash in Nuxt app by making data model extraction fail-safe if features directory is missing.
