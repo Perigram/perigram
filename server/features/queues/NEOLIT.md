@@ -13,7 +13,7 @@ Defines a specific nesting job, bridging the digital production intent with phys
 3. **Transition to Nesting**: Handing off the job to the Nesting Worker (triggered by state change).
 
 ## Notes
-- `runs` array is optional; status updates skip if it does not exist.
+- Nesting runs are stored in `nesting_runs` collection (linked by `lineage.queueId`), not embedded in the queue.
 ## Data Structure
 ```typescript
 {

@@ -2,6 +2,28 @@
   - [ ] Login failed: FetchError: [POST] "/api/auth/login": 401 
 
 *** Agent Notes
+    [2026-01-27] Align nesting runs with v24 model
+    Files changed:
+    - server/api/nesting-runs/index.get.js
+    - server/api/queue/[id]/nest.post.js
+    - server/api/queue/[id]/choose-run.post.js
+    - server/api/queue/[id]/run/[runId].delete.js
+    - server/features/nesting-runs/service.js
+    - server/features/nesting-runs/repository.js
+    - server/features/queues/service.js
+    - server/plugins/nesting-processor.js
+    - stores/queues.js
+    - components/QueueEditor.vue
+    - server/scripts/generate_nest_dxf.py
+    Docs updated:
+    - server/features/queues/NEOLIT.md
+    - server/features/nesting-runs/NEOLIT.md
+    - workers/NEOLIT.md
+    Notes:
+    - Runs are now stored in nesting_runs and fetched via lineage.queueId; queue.runs is deprecated.
+    - DXF generator accepts MONGO_URI fallback.
+
+*** Agent Notes
     [2026-01-27] Guard runs updates when missing
     Files changed:
     - server/features/queues/service.js

@@ -47,3 +47,4 @@ When deploying on Railway:
 1.  **Build Context:** Set to `/` (repository root).
 2.  **Dockerfile Path:** Point to the specific worker Dockerfile (e.g., `workers/nesting/Dockerfile`).
 3.  **Submodules:** Ensure your GitHub configuration allows Railway to clone submodules (required for `jagua-rs` in the nesting worker).
+4.  **DO NOT** set build context to `workers/nesting` (the Dockerfile uses root-relative paths).
