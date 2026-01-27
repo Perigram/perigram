@@ -217,7 +217,11 @@ async function processNextJob() {
         '--output-dir', outputDir,
         '--slug', job.slug
       ], {
-        env: { ...process.env, MONGODB_URI: process.env.MONGODB_URI || process.env.MONGO_URI }
+        env: {
+          ...process.env,
+          MONGODB_URI: process.env.MONGODB_URI || process.env.MONGO_URI,
+          MONGO_DB_NAME: process.env.MONGO_DB_NAME
+        }
       });
 
       let stdout = '';
