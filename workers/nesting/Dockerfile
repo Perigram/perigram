@@ -2,13 +2,20 @@
 FROM rust:1.83 as builder
 
 RUN apt-get update && apt-get install -y \
-    python3 python3-pip python3-dev build-essential libssl-dev && \
+    python3 python3-pip python3-dev build-essential libssl-dev git && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Copy the specific worker folder from root context
 COPY workers/nesting/ .
+
+# Fallback: if jagua-rs is empty (submodule not cloned by build server), clone it manually
+RUN if [ ! -f jagua-rs/Cargo.toml ]; then \
+    echo "Submodule jagua-rs missing, cloning manually..." && \
+    rm -rf jagua-rs && \
+    git clone https://github.com/JeroenGar/jagua-rs.git jagua-rs; \
+    fi
 
 WORKDIR /app/jagua-rs
 RUN cargo build --release
