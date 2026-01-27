@@ -37,11 +37,18 @@ def create_mongo_client():
 
 _client : MongoClient = create_mongo_client()
 
-# Try to get default database from URI, fallback to 'cutkit_dev' if not specified
-try:
-    db = _client.get_default_database()
-except Exception:
-    db = _client['cutkit_dev']
+# Try to get database: 
+# 1. From MONGO_DB_NAME env var
+# 2. From default database in URI
+# 3. Fallback to 'cutkit_dev'
+db_name = os.environ.get("MONGO_DB_NAME")
+if db_name:
+    db = _client[db_name]
+else:
+    try:
+        db = _client.get_default_database()
+    except Exception:
+        db = _client['cutkit_dev']
 
 logger.info(f"Using database: {db.name}")
 
