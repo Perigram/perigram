@@ -2,6 +2,16 @@
   - [ ] Login failed: FetchError: [POST] "/api/auth/login": 401 
 
 *** Agent Notes
+    [2026-01-27] Fix missing Cassette.json in production
+    Files changed:
+    - Dockerfile
+    - server/features/parametric-cassettes/service.js
+    Docs updated:
+    - server/features/parametric-cassettes/NEOLIT.md
+    Notes:
+    - Copied public assets into runtime image and added fallback path for Cassette.json.
+
+*** Agent Notes
     [2026-01-27] Fix nodi-modular WASM missing in production
     Files changed:
     - Dockerfile
