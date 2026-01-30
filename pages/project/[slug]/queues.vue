@@ -1,37 +1,13 @@
 <template>
     <div class="flex flex-col gap-6 py-4">
-        <!-- Queue selector and actions -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
-            <div class="flex flex-1 items-center gap-3 min-w-0">
-                <Select
-                    v-if="currentQueueId"
-                    v-model="currentQueueId"
-                    :options="queues"
-                    option-label="name"
-                    option-value="_id"
-                    :placeholder="$t('queues.selectCassette')"
-                    class="w-full sm:w-80"
-                >
-                    <template #value="slotProps">
-                        <div v-if="currentQueue" class="flex items-center gap-3">
-                            <span class="font-bold truncate">{{ currentQueue.name }}</span>
-                            <EntityStatus :entity="currentQueue" variant="inline" />
-                        </div>
-                    </template>
-                    <template #option="slotProps">
-                        <div class="flex items-center justify-between w-full gap-4">
-                            <span class="font-medium truncate">{{ slotProps.option.name }}</span>
-                            <EntityStatus :entity="slotProps.option" variant="inline" />
-                        </div>
-                    </template>
-                </Select>
-            </div>
-            
+        <!-- New Queue Action (Mobile/Top) -->
+        <div class="flex justify-end px-1" v-if="queues.length > 0">
             <Button
                 :label="$t('queue.create')"
                 icon="pi pi-plus"
+                size="small"
+                text
                 @click="createNewQueue"
-                class="flex-shrink-0"
             />
         </div>
 
@@ -39,8 +15,10 @@
         <div v-if="currentQueue" class="animate-in fade-in slide-in-from-bottom-2 duration-500">
             <QueueEditor
                 :queue="currentQueue"
+                :queues="queues"
                 :project-slug="slug"
                 @updated="refreshQueues"
+                @select-queue="currentQueueId = $event"
             />
         </div>
 

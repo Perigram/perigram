@@ -63,19 +63,50 @@
                 <i class="pi pi-exclamation-circle text-4xl"></i>
                 <span class="text-sm font-bold">{{ previewError }}</span>
             </div>
-            <div v-else class="flex-1 overflow-hidden relative border rounded-xl bg-white dark:bg-black/20">
+            <div v-else class="flex-1 overflow-hidden relative border rounded-xl bg-white dark:bg-black/20 flex">
+                <!-- Layer Toggle Sidebar -->
+                <div v-if="svgData" class="w-48 border-r bg-surface-50/50 dark:bg-surface-900/50 flex flex-col p-4 overflow-y-auto">
+                    <span class="text-[9px] font-black uppercase opacity-40 mb-4 tracking-widest">{{ $t('common.layers') }}</span>
+                    <div class="flex flex-col gap-2">
+                        <div v-for="layer in svgData.layers" :key="layer.name" class="flex items-center gap-2 group">
+                            <Checkbox v-model="visibleLayers" :value="layer.name" :inputId="`layer-${layer.name}`" size="small" />
+                            <label :for="`layer-${layer.name}`" class="text-[10px] font-bold cursor-pointer truncate flex-1" :title="layer.name">
+                                {{ layer.name }}
+                            </label>
+                            <div class="w-2 h-2 rounded-full" :style="{ backgroundColor: layer.color }"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- DXF/SVG Canvas -->
-                <div v-if="svgData" class="w-full h-full flex items-center justify-center p-8">
-                    <svg 
-                        :viewBox="svgData.viewBox" 
-                        class="max-w-full max-h-full"
-                        style="transform: scaleY(1);"
+                <div v-if="svgData" class="flex-1 relative overflow-hidden cursor-move bg-zinc-50 dark:bg-zinc-950" 
+                    @mousedown="startPan" 
+                    @wheel="handleZoom"
+                >
+                    <div class="absolute inset-0 flex items-center justify-center p-8 transition-transform duration-75 ease-out"
+                        :style="{ 
+                            transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+                            transformOrigin: 'center'
+                        }"
                     >
-                        <g v-for="layer in svgData.layers" :key="layer.name" 
-                           :stroke="layer.color" :stroke-width="layer.weight" :stroke-dasharray="layer.dasharray">
-                            <g v-for="(path, idx) in layer.paths" :key="idx" v-html="path"></g>
-                        </g>
-                    </svg>
+                        <svg 
+                            :viewBox="svgData.viewBox" 
+                            class="w-full h-full max-w-full max-h-full"
+                            style="transform: scaleY(1);"
+                        >
+                            <g v-for="layer in filteredLayers" :key="layer.name" 
+                               :stroke="layer.color" :stroke-width="layer.weight" :stroke-dasharray="layer.dasharray">
+                                <g v-for="(path, idx) in layer.paths" :key="idx" v-html="path"></g>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <!-- Floating Controls -->
+                    <div class="absolute bottom-4 right-4 flex gap-2">
+                        <Button icon="pi pi-search-minus" rounded severity="secondary" @click="transform.scale = Math.max(0.1, transform.scale - 0.2)" />
+                        <Button icon="pi pi-refresh" rounded severity="secondary" @click="resetTransform" />
+                        <Button icon="pi pi-search-plus" rounded severity="secondary" @click="transform.scale = Math.min(10, transform.scale + 0.2)" />
+                    </div>
                 </div>
                 <!-- PDF Fallback -->
                 <div v-else-if="isPdf" class="w-full h-full flex flex-col items-center justify-center gap-6">
@@ -107,6 +138,7 @@ import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
+import Checkbox from 'primevue/checkbox';
 import ProgressSpinner from 'primevue/progressspinner';
 import Dialog from 'primevue/dialog';
 import ConfirmDialog from 'primevue/confirmdialog';
@@ -123,6 +155,8 @@ const props = defineProps({
 
 const { t } = useI18n();
 const artifactsStore = useArtifactsStore();
+const standardsStore = useLayerStandardsStore();
+const pensStore = usePenTemplatesStore();
 const confirm = useConfirm();
 const toast = useToast();
 const { artifacts: storeArtifacts, loading } = storeToRefs(artifactsStore);
@@ -133,42 +167,58 @@ const previewArtifactData = ref(null);
 const previewLoading = ref(false);
 const previewError = ref(null);
 const svgData = ref(null);
+const visibleLayers = ref([]);
+const transform = ref({ x: 0, y: 0, scale: 1 });
 const isPdf = computed(() => previewArtifactData.value?.mimeType?.includes('pdf') || previewArtifactData.value?.type === 'PDF_PASSPORT');
 
-onMounted(() => {
+const filteredLayers = computed(() => {
+    if (!svgData.value) return [];
+    return svgData.value.layers.filter(l => visibleLayers.value.includes(l.name));
+});
+
+onMounted(async () => {
   if (props.batchId && !props.artifacts) {
     artifactsStore.fetchArtifacts(props.batchId);
   }
+  await Promise.all([
+    standardsStore.fetchStandards(),
+    pensStore.fetchPens()
+  ]);
 });
 
-const filteredArtifacts = computed(() => {
-  if (!artifacts.value) return [];
-  let filtered = artifacts.value;
-  if (props.runId) {
-    filtered = filtered.filter(a => a.lineage?.runId?.toString() === props.runId);
-  }
-  return filtered;
-});
-
-const getStatusSeverity = (status) => {
-  const state = status?.state || status;
-  switch (state) {
-    case 'READY': return 'success';
-    case 'GENERATING': return 'warning';
-    case 'FAILED': return 'danger';
-    default: return 'secondary';
-  }
+const resetTransform = () => {
+    transform.value = { x: 0, y: 0, scale: 1 };
 };
 
-const getArtifactIcon = (mime) => {
-  if (mime?.includes('pdf')) return 'pi pi-file-pdf';
-  if (mime?.includes('dxf')) return 'pi pi-box';
-  if (mime?.includes('svg') || mime?.includes('image')) return 'pi pi-image';
-  return 'pi pi-file';
+const handleZoom = (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    transform.value.scale = Math.max(0.1, Math.min(10, transform.value.scale + delta));
 };
 
-const downloadArtifact = (artifact) => {
-  window.open(`/api/artifacts/${artifact._id}`, '_blank');
+let isPanning = false;
+let lastMousePos = { x: 0, y: 0 };
+
+const startPan = (e) => {
+    isPanning = true;
+    lastMousePos = { x: e.clientX, y: e.clientY };
+    window.addEventListener('mousemove', handlePan);
+    window.addEventListener('mouseup', stopPan);
+};
+
+const handlePan = (e) => {
+    if (!isPanning) return;
+    const dx = e.clientX - lastMousePos.x;
+    const dy = e.clientY - lastMousePos.y;
+    transform.value.x += dx;
+    transform.value.y += dy;
+    lastMousePos = { x: e.clientX, y: e.clientY };
+};
+
+const stopPan = () => {
+    isPanning = false;
+    window.removeEventListener('mousemove', handlePan);
+    window.removeEventListener('mouseup', stopPan);
 };
 
 const previewArtifact = async (artifact) => {
@@ -177,13 +227,23 @@ const previewArtifact = async (artifact) => {
     previewLoading.value = true;
     previewError.value = null;
     svgData.value = null;
+    resetTransform();
 
     if (artifact.type === 'LAYOUT_DXF' || artifact.type === 'DXF') {
         try {
             const response = await fetch(`/api/artifacts/${artifact._id}`);
             if (!response.ok) throw new Error('Failed to fetch artifact content');
             const dxfText = await response.text();
-            svgData.value = await generateSvgData(dxfText);
+            
+            // Build layer mapping from standards
+            const mapping = {};
+            standardsStore.standards.forEach(std => {
+                const pen = pensStore.pens.find(p => p._id === std.defaultPenId);
+                if (pen) mapping[std.code] = pen;
+            });
+
+            svgData.value = await generateSvgData(dxfText, mapping);
+            visibleLayers.value = svgData.value.layers.map(l => l.name);
         } catch (e) {
             console.error('Preview error:', e);
             previewError.value = 'Failed to load DXF preview: ' + e.message;
@@ -194,6 +254,7 @@ const previewArtifact = async (artifact) => {
         previewLoading.value = false;
     }
 };
+
 
 const onArtifactClick = (artifact) => {
     previewArtifact(artifact);

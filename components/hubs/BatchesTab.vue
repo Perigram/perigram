@@ -2,31 +2,31 @@
   <div class="flex flex-col gap-6">
     <div class="flex justify-between items-center">
       <div class="flex flex-col gap-1">
-        <h2 class="text-2xl font-black">{{ $t('features.batches') }}</h2>
-        <p class="text-sm">Material shipments received from manufacturers.</p>
+        <h2 class="text-2xl font-black text-surface-900 dark:text-surface-0">{{ $t('piles.title') }}</h2>
+        <p class="text-sm text-surface-500 dark:text-surface-400">{{ $t('piles.subtitle') }}</p>
       </div>
       <Button v-if="authStore.isManufacturer" :label="$t('common.create')" icon="pi pi-plus" @click="showDialog = true" />
     </div>
 
-    <!-- Batch Grid (New Pattern) -->
-    <div v-if="!selectedBatch" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <BatchCard 
+    <!-- Pile Grid -->
+    <div v-if="!selectedBatch" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
+        <PileCard 
             v-for="batch in batches" 
             :key="batch._id" 
-            :batch="batch" 
+            :pile="batch" 
             variant="card"
             @view="viewDetails"
         />
-        <div v-if="!loading && batches.length === 0" class="col-span-full p-12 border-2 border-dashed rounded-2xl flex flex-col items-center gap-4 opacity-40">
-            <i class="pi pi-truck text-4xl"></i>
-            <span class="font-bold">No material batches found</span>
+        <div v-if="!loading && batches.length === 0" class="col-span-full p-12 border-2 border-dashed border-surface-200 dark:border-surface-800 rounded-2xl flex flex-col items-center gap-4 opacity-40">
+            <i class="pi pi-database text-4xl"></i>
+            <span class="font-bold">{{ $t('piles.noPiles') }}</span>
         </div>
     </div>
 
-    <!-- Batch Detail View -->
+    <!-- Detail View -->
     <div v-else class="animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div class="mb-4">
-            <Button label="Back to List" icon="pi pi-arrow-left" text size="small" @click="selectedBatch = null" />
+            <Button :label="$t('common.backToList')" icon="pi pi-arrow-left" text size="small" @click="selectedBatch = null" />
         </div>
         <BatchDetail 
             :batch="selectedBatch" 
@@ -34,26 +34,27 @@
         />
     </div>
 
-    <!-- Create Batch Dialog -->
-    <Dialog v-model:visible="showDialog" header="Manual Material Batch" :style="{ width: '600px' }" modal>
-         <div class="flex flex-col gap-4 pt-4 text-xs opacity-60">
-             Note: Most batches should be created via Requisition Fulfillment. This manual entry is for legacy stock or external supply.
+    <!-- Create Pile Dialog -->
+    <Dialog v-model:visible="showDialog" :header="$t('piles.manualPile')" :style="{ width: '600px' }" modal>
+         <div class="flex flex-col gap-4 pt-4 text-xs opacity-60 italic">
+             Note: Most piles should be created via Requisition Fulfillment. This manual entry is for legacy stock or external supply.
          </div>
          <div class="flex flex-col gap-4 pt-4">
              <div class="flex flex-col gap-2">
-                 <label class="font-bold text-sm">Target Warehouse *</label>
+                 <label class="font-bold text-sm">{{ $t('requisition.targetWarehouse') }} *</label>
                  <Select v-model="form.warehouseId" :options="warehouses" optionLabel="name" optionValue="_id" class="w-full" />
              </div>
              <div class="flex flex-col gap-2">
-                 <label class="font-bold text-sm">Receipt ID</label>
+                 <label class="font-bold text-sm">{{ $t('piles.receiptId') }}</label>
                  <InputText v-model="form.receiptId" class="w-full" />
              </div>
          </div>
          <template #footer>
-             <Button label="Cancel" text severity="secondary" @click="showDialog = false" />
-             <Button label="Create Batch" @click="save" :loading="submitting" />
+             <Button :label="$t('common.cancel')" text severity="secondary" @click="showDialog = false" />
+             <Button :label="$t('common.create')" @click="save" :loading="submitting" />
          </template>
     </Dialog>
+
   </div>
 </template>
 
@@ -61,7 +62,7 @@
 import { ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
-import BatchCard from '~/components/entities/Batch/BatchCard.vue';
+import PileCard from '~/components/entities/MaterialPile/PileCard.vue';
 import BatchDetail from '~/components/entities/Batch/BatchDetail.vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';

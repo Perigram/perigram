@@ -101,6 +101,16 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   return await repository.findById(id);
 }
 
+export async function updateStatus(id, state, note, user) {
+  const instance = await getById(id, user.userId, user.organizationId, user.role, user);
+  
+  if (!hasLineagePermission({ memberships: user.memberships, role: user.role }, instance.lineage, 'projects', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  return await statusService.transition('cassette-instance', instance._id, state, user.userId, user.role, { note });
+}
+
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const instance = await getById(id, userId, userOrg, userRole, userPermissions);
   

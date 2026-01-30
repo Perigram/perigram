@@ -54,37 +54,35 @@
                 {{ $t('catalog.visualLibrary') }}
             </h3>
             
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
                 <div 
                     v-for="color in colors" 
                     :key="color._id" 
-                    class="bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl overflow-hidden flex flex-col group relative hover:border-primary transition-colors"
+                    class="bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg overflow-hidden flex flex-col group relative hover:border-primary transition-colors"
                 >
                     <!-- Visual Cover -->
                     <div 
-                        class="aspect-square flex items-center justify-center overflow-hidden border-b border-surface-200 dark:border-surface-700"
+                        class="aspect-video flex items-center justify-center overflow-hidden border-b border-surface-200 dark:border-surface-700"
                         :style="{ backgroundColor: getHexCode(color) }"
                     >
                         <img v-if="getTextureUrl(color)" :src="getTextureUrl(color)" class="w-full h-full object-cover" />
                         <div v-else class="flex flex-col items-center gap-1 opacity-20">
-                            <i class="pi pi-palette text-2xl"></i>
-                            <span class="text-[8px] font-black uppercase">{{ getColorName(color) }}</span>
+                            <span class="text-[7px] font-black uppercase tracking-tighter">{{ getColorName(color) }}</span>
                         </div>
                     </div>
                     
                     <!-- Color Meta -->
-                    <div class="p-3 flex flex-col gap-1">
-                        <span class="font-bold text-sm truncate" :title="getColorName(color)">{{ getColorName(color) }}</span>
+                    <div class="p-2 flex flex-col gap-0.5">
+                        <span class="font-bold text-[10px] truncate leading-tight" :title="getColorName(color)">{{ getColorName(color) }}</span>
                         <div class="flex justify-between items-center">
-                            <span class="text-[10px] font-mono opacity-60 uppercase tracking-tighter">{{ getColorCode(color) || $t('catalog.noCode') }}</span>
-                            <span class="text-[10px] font-black text-primary" v-if="color.pricing?.pricePerSqm">${{ color.pricing.pricePerSqm }}/m²</span>
+                            <span class="text-[8px] font-mono opacity-50 uppercase tracking-tighter">{{ getColorCode(color) || '---' }}</span>
                         </div>
                     </div>
 
                     <!-- Actions overlay -->
-                    <div v-if="authStore.can('catalogs', 'edit')" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded p-0.5 shadow-md">
-                        <Button icon="pi pi-pencil" size="small" text severity="secondary" @click="$emit('edit-sheet-type', { catalog, sheetType: color })" />
-                        <Button icon="pi pi-trash" size="small" text severity="danger" @click="$emit('remove-sheet-type', { catalog, sheetTypeId: color._id })" />
+                    <div v-if="authStore.can('catalogs', 'edit')" class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded p-0.5 shadow-md">
+                        <Button icon="pi pi-pencil" size="small" text severity="secondary" class="h-6 w-6" @click="$emit('edit-sheet-type', { catalog, sheetType: color })" />
+                        <Button icon="pi pi-trash" size="small" text severity="danger" class="h-6 w-6" @click="$emit('remove-sheet-type', { catalog, sheetTypeId: color._id })" />
                     </div>
                 </div>
             </div>

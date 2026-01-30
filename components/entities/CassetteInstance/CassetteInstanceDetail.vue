@@ -8,8 +8,8 @@
                 <EntityStatus :entity="instance" variant="inline" />
             </div>
             <div class="flex gap-2">
-                <Button label="Update Status" icon="pi pi-sync" @click="showStatusDialog = true" />
-                <Button label="Print Label" icon="pi pi-print" severity="secondary" />
+                <Button :label="$t('cassetteInstance.updateStatus')" icon="pi pi-sync" @click="showStatusDialog = true" />
+                <Button :label="$t('cassetteInstance.printLabel')" icon="pi pi-print" severity="secondary" />
             </div>
         </div>
 
@@ -57,14 +57,14 @@
             </div>
         </div>
 
-        <Dialog v-model:visible="showStatusDialog" header="Update Physical Status" :style="{ width: '400px' }" modal>
+        <Dialog v-model:visible="showStatusDialog" :header="$t('cassetteInstance.updatePhysicalStatus')" :style="{ width: '400px' }" modal>
              <div class="flex flex-col gap-4 pt-4">
-                 <Select v-model="newStatus" :options="statusOptions" class="w-full" placeholder="Select new status..." />
-                 <Textarea v-model="statusNote" placeholder="Add a note (e.g., Arrived at sector 4)..." class="w-full" rows="3" />
+                 <Select v-model="newStatus" :options="statusOptions" class="w-full" :placeholder="$t('cassetteInstance.selectNewStatus')" />
+                 <Textarea v-model="statusNote" :placeholder="$t('cassetteInstance.addNotePlaceholder')" class="w-full" rows="3" />
              </div>
              <template #footer>
-                 <Button label="Cancel" text severity="secondary" @click="showStatusDialog = false" />
-                 <Button label="Update Status" @click="saveStatus" />
+                 <Button :label="$t('common.cancel')" text severity="secondary" @click="showStatusDialog = false" />
+                 <Button :label="$t('cassetteInstance.updateStatus')" @click="saveStatus" />
              </template>
         </Dialog>
     </div>

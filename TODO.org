@@ -1,3 +1,18 @@
+*** Agent Notes
+    [2026-01-29] Fixed missing exports and aligned with v24 Material Pile model
+    Files changed:
+    - server/features/cassettes/service.js
+    - server/features/sheets/service.js
+    - server/features/material-piles/service.js
+    - server/features/remnants/service.js
+    - server/api/material-piles/[id]/allocate.js
+    Notes:
+    - Implemented missing `updateLayerMapping` and `updateParameters` in cassettes service.
+    - Implemented `allocateFromPile` bridge in sheets service (renamed from allocateFromBatch).
+    - Added `updateStatus` to material-piles service.
+    - Added `searchReusable` to remnants service, filtering for both `isReusable: true` (size) and `status: AVAILABLE`.
+    - Created missing NEOLIT documentation for invitations and sessions.
+
 * TODO Errors
   - [ ] Login failed: FetchError: [POST] "/api/auth/login": 401 
 

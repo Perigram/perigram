@@ -200,6 +200,45 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   return toDTO(updated);
 }
 
+export async function updateLayerMapping(id, mapping, userId, userOrg, userRole, userPermissions) {
+  const cassette = await repository.findById(id);
+  if (!cassette) throw createError({ statusCode: 404, message: 'Template not found' });
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  const definition = {
+    ...cassette.definition,
+    data: {
+      ...(cassette.definition?.data || {}),
+      mapping: mapping
+    }
+  };
+
+  await repository.updateById(id, { definition });
+  const updated = await repository.findById(id);
+  return toDTO(updated);
+}
+
+export async function updateParameters(id, parameters, userId, userOrg, userRole, userPermissions) {
+  const cassette = await repository.findById(id);
+  if (!cassette) throw createError({ statusCode: 404, message: 'Template not found' });
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  const definition = {
+    ...cassette.definition,
+    parameters: parameters
+  };
+
+  await repository.updateById(id, { definition });
+  const updated = await repository.findById(id);
+  return toDTO(updated);
+}
+
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const cassette = await getById(id, userId, userOrg, userRole, userPermissions);
   

@@ -25,6 +25,10 @@ Templates in the `cassettes` collection do NOT store DXF files or physical track
 - **Parametric**: The `definition.data` contains the Nodi3D graph logic.
 - **Standard**: The `definition.data` contains the static definition which is baked into a `cassette_design` for production.
 
+### Update Operations
+- **`updateLayerMapping`**: Updates the mapping between DXF layers and production tools/standards.
+- **`updateParameters`**: Updates the list of configurable parameters for the template.
+
 ### Permission Model
 Access is governed by `lineage.organizationId`. Multi-tenant isolation is enforced at the service layer using `hasLineagePermission`.
 

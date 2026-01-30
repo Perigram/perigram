@@ -5,6 +5,7 @@
     "success": "Success",
     "cancel": "Cancel",
     "save": "Save",
+    "update": "Update",
     "reset": "Reset",
     "delete": "Delete",
     "edit": "Edit",
@@ -37,7 +38,13 @@
     "created": "Created",
     "open": "Open",
     "doNotUse": "Do not use",
-    "toggleTheme": "Toggle Theme"
+    "toggleTheme": "Toggle Theme",
+    "backToList": "Back to List",
+    "layers": "Layers",
+    "reusable": "Reusable",
+    "waste": "Waste",
+    "printTag": "Print Tag",
+    "markUsed": "Mark Used"
   },
   "footer": {
     "termsAndConditions": "Terms and Conditions",
@@ -280,7 +287,23 @@
     "manualSheet": "Manual Sheet",
     "addManualSheet": "Add to Pool",
     "selectFromInventory": "Select from Inventory",
-    "noSheetsInInventory": "No sheets in inventory. Add them in Project Data tab."
+    "selectInventory": "Select Piles, Sheets, or Remnants...",
+    "calculateLayout": "Calculate Nesting Layout",
+    "findInWarehouse": "Find in Warehouse",
+    "noSheetsInInventory": "No sheets in inventory. Add them in Project Data tab.",
+    "materialSourcing": "Material Sourcing Mode",
+    "productionTool": "Select Production Tool",
+    "virtualMode": "Virtual Mode",
+    "warehouseMode": "Warehouse Mode",
+    "width": "Width (mm)",
+    "length": "Length (mm)",
+    "selectWarehouse": "Select Warehouse",
+    "customUpload": "Custom Sheet Upload",
+    "inventorySources": "Allowed Inventory Sources",
+    "algorithmNote": "Algorithm will use as needed",
+    "shortageTitle": "Warehouse Stock Shortage",
+    "shortageNote": "Algorithm calculated {needed} sheets needed, but only {available} are available. Missing {missing} units.",
+    "lockedNote": "Queue is {status}. Settings are locked."
   },
   "projectData": {
     "sheets": "Sheets Inventory",
@@ -302,6 +325,15 @@
     "logWaste": "Waste",
     "wasteArea": "Waste Area",
     "addWasteToInventory": "Add as Waste Polygon",
+    "addMaterialToProject": "Add Material to Project",
+    "chooseMaterial": "Choose material...",
+    "createNewMaterial": "Create New Material",
+    "createGlobalMaterial": "Create Global Material",
+    "createAndAdd": "Create & Add",
+    "placeholders": {
+      "code": "e.g., ACP-01",
+      "color": "e.g., Silver"
+    },
     "materials": {
       "composite": "Aluminum Composite",
       "steel": "Steel",
@@ -472,7 +504,13 @@
     "hasAccount": "Already have an account?",
     "createAccount": "Create your account",
     "organization": "Organization",
-    "createOrg": "Create Organization"
+    "createOrg": "Create Organization",
+    "selectRole": "Select role",
+    "inviteMember": "Invite Member",
+    "invitationLink": "Invitation Link",
+    "expires": "Expires",
+    "generateLink": "Generate Link",
+    "permissions": "Permissions"
   },
   "roles": {
     "SuperAdmin": "System Administrator",
@@ -488,11 +526,36 @@
     "warehouses": "Warehouses",
     "catalogs": "Catalogs",
     "requisitions": "Requisitions",
-    "batches": "Material Batches",
+    "batches": "Material Piles",
     "sheets": "Sheets",
     "remnants": "Remnants",
     "users": "Team Members",
-    "organizations": "Organizations"
+    "organizations": "Organizations",
+    "billingStatus": "Billing Status"
+  },
+  "piles": {
+    "title": "Material Piles",
+    "subtitle": "Material shipments received from manufacturers.",
+    "manualPile": "Manual Material Pile",
+    "noPiles": "No material piles found",
+    "receiptId": "Receipt ID"
+  },
+  "remnants": {
+    "title": "Remnants",
+    "subtitle": "Available material offcuts for reuse.",
+    "noRemnants": "No remnants found"
+  },
+  "sheets": {
+    "title": "Physical Sheets",
+    "subtitle": "Individual physical material sheets in inventory.",
+    "noSheets": "No physical sheets found"
+  },
+  "cassetteInstance": {
+    "updateStatus": "Update Status",
+    "printLabel": "Print Label",
+    "updatePhysicalStatus": "Update Physical Status",
+    "selectNewStatus": "Select new status...",
+    "addNotePlaceholder": "Add a note (e.g., Arrived at sector 4)..."
   },
   "statistics": {
     "title": "Statistics",
@@ -568,6 +631,9 @@
     "loading": "Loading queue...",
     "notFound": "Queue not found.",
     "runs": "Runs",
+    "jobItems": "Job Items",
+    "nestingConfig": "Nesting Config",
+    "jobComposition": "Job Composition",
     "runStatus": {
       "NESTING": "Nesting",
       "ERROR": "Error",
@@ -714,6 +780,7 @@
     "noCode": "NO CODE",
     "widths": "Widths",
     "visualFallback": "Visual Fallback",
+    "colorsAvailable": "Colors available",
     "confirmRemoveColor": "Are you sure you want to remove this color from the catalog?",
     "placeholders": {
       "material": "Select material...",
@@ -742,7 +809,15 @@
     "recoveredArea": "Recovered Area",
     "manager": "Manager",
     "notAssigned": "Not Assigned",
-    "inventorySnapshot": "Inventory Snapshot"
+    "inventorySnapshot": "Inventory Snapshot",
+    "placeholders": {
+      "name": "e.g., Main Production Stock",
+      "address": "Full location address...",
+      "contact": "Person responsible for this warehouse"
+    },
+    "messages": {
+      "saved": "Warehouse saved"
+    }
   },
   "requisition": {
     "title": "Requisitions",

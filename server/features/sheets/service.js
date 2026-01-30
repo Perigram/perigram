@@ -64,6 +64,10 @@ export async function createFromPile(pileId, count, userId, userRole, userPermis
   return created;
 }
 
+export async function allocateFromPile(pileId, count, user) {
+  return await createFromPile(pileId, count, user.userId, user.role, user);
+}
+
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter(userPermissions);
   const finalFilter = mapLineageQuery({ ...lineageFilter, ...filter });

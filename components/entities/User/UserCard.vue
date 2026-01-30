@@ -24,7 +24,7 @@ const handleCardClick = () => {
 </script>
 
 <template>
-  <div :class="[`variant-${variant}`]">
+  <div v-if="user" :class="[`variant-${variant}`]">
     <!-- Inline -->
     <template v-if="variant === 'inline'">
       <div class="flex items-center gap-2">

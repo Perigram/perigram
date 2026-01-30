@@ -20,50 +20,44 @@ const { serial } = useIdentity(props.sheet);
     <!-- Inline -->
     <template v-if="variant === 'inline'">
       <div class="flex items-center gap-2">
-        <i class="pi pi-file opacity-50"></i>
-        <span class="font-mono font-bold">{{ serial }}</span>
+        <i class="pi pi-file text-xs opacity-50"></i>
+        <span class="font-mono font-bold text-xs">{{ serial }}</span>
         <EntityStatus :entity="sheet" variant="inline" />
       </div>
     </template>
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <Card>
-        <template #content>
-          <div class="flex items-center justify-between gap-4">
-            <div class="flex flex-col">
-              <span class="font-bold font-mono">{{ serial }}</span>
-              <small class="opacity-50 uppercase font-black">
-                PILE: {{ String(sheet.lineage?.pileId ?? "").slice(-8) }}
-              </small>
-            </div>
-            <EntityStatus :entity="sheet" variant="inline" />
-          </div>
-        </template>
-      </Card>
+      <div class="flex items-center justify-between gap-4 p-2 bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-lg">
+        <div class="flex flex-col">
+          <span class="font-bold font-mono text-xs">{{ serial }}</span>
+          <small class="text-[10px] opacity-50 uppercase font-bold tracking-tight">
+            PILE: {{ String(sheet.lineage?.pileId ?? "").slice(-8) }}
+          </small>
+        </div>
+        <EntityStatus :entity="sheet" variant="inline" />
+      </div>
     </template>
 
     <!-- Card -->
     <template v-else-if="variant === 'card'">
-      <Card class="h-full">
-        <template #title>
-          <div class="flex justify-between items-center gap-4">
-            <span class="font-black font-mono tracking-widest text-lg">{{ serial }}</span>
-            <EntityStatus :entity="sheet" variant="inline" />
+      <div class="p-3 bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-xl flex flex-col gap-3 h-full hover:border-primary transition-colors">
+        <div class="flex justify-between items-center gap-2">
+          <span class="font-bold font-mono text-sm text-primary truncate">{{ serial }}</span>
+          <EntityStatus :entity="sheet" variant="inline" />
+        </div>
+        
+        <div class="flex flex-col gap-1.5 pt-2 border-t border-surface-50 dark:border-surface-800 border-dashed text-xs">
+          <div class="flex justify-between items-center">
+            <span class="opacity-50 uppercase font-bold text-[10px]">Size</span>
+            <span class="font-medium">{{ sheet.specs?.width }}x{{ sheet.specs?.length }}</span>
           </div>
-        </template>
-        <template #content>
-          <div class="flex flex-col gap-4 pt-4 mt-2 border-t border-surface border-dashed">
-            <div class="flex justify-between items-center text-xs opacity-50 uppercase font-bold">
-              <span>Dimensions</span>
-              <span>{{ sheet.specs?.width }} x {{ sheet.specs?.length }} mm</span>
-            </div>
-            <div class="p-2 border border-surface border-dashed rounded text-[10px] opacity-50">
-               RUN ID: {{ sheet.lineage?.runId }}
-            </div>
+          <div v-if="sheet.lineage?.runId" class="flex flex-col gap-0.5">
+             <span class="opacity-50 uppercase font-bold text-[10px]">Run</span>
+             <span class="font-mono text-[10px] opacity-60 truncate">{{ sheet.lineage.runId }}</span>
           </div>
-        </template>
-      </Card>
+        </div>
+      </div>
     </template>
   </div>
 </template>

@@ -1,37 +1,42 @@
 <template>
     <div class="flex flex-col gap-6">
-        <!-- Queue Header with Status and Traceability -->
-        <div class="flex flex-col gap-4 bg-[var(--p-content-background)] p-6 rounded-xl border border-[var(--p-content-border-color)]">
-            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div class="flex flex-col gap-1">
-                    <div class="flex items-center gap-4">
-                        <h2 class="text-3xl font-black m-0">{{ queueName }}</h2>
-                        <EntityStatus :entity="queue" variant="inline" />
-                    </div>
-                    <TraceChain :ancestry="queueAncestry" />
+        <!-- Queue Header: Compact & Standard -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-xl shadow-sm">
+            <div class="flex flex-col gap-1 flex-1 min-w-0">
+                <div class="flex items-center gap-3">
+                    <Select
+                        v-if="queues?.length > 0"
+                        :modelValue="queue._id"
+                        :options="queues"
+                        option-label="name"
+                        option-value="_id"
+                        class="w-full sm:w-64 border-none bg-transparent p-0 shadow-none h-auto"
+                        @update:modelValue="$emit('select-queue', $event)"
+                    >
+                        <template #value="slotProps">
+                            <h2 class="text-xl font-bold m-0 truncate">{{ queueName }}</h2>
+                        </template>
+                    </Select>
+                    <h2 v-else class="text-xl font-bold m-0">{{ queueName }}</h2>
+                    <EntityStatus :entity="queue" variant="inline" />
                 </div>
-                <div class="flex flex-wrap gap-2 sm:ml-auto">
-                    <Button icon="pi pi-history" severity="secondary" text @click="showHistory = !showHistory" v-tooltip.top="'Toggle History'" />
-                    <Button 
-                        v-if="queueState === 'READY' && hasChosenRun && authStore.can('queues', 'edit')"
-                        :label="$t('queue.markCut')" icon="pi pi-scissors" severity="success"
-                        @click="markCutHandler"
-                    />
-                    <Button 
-                        v-if="queueState !== 'DRAFT' && authStore.can('queues', 'edit')"
-                        :label="$t('queue.resetToDraft')" icon="pi pi-refresh" severity="warning"
-                        @click="resetToDraft"
-                    />
-                </div>
+                <TraceChain :ancestry="queueAncestry" class="py-0" />
             </div>
-
-            <div v-if="showHistory" class="mt-4 pt-4 border-t border-[var(--p-content-border-color)] animate-in fade-in slide-in-from-top-2">
-                <span class="text-[10px] font-black uppercase opacity-60 mb-4 block">Queue Lifecycle</span>
-                <HistoryTimeline :history="queue.statusHistory || []" />
+            
+            <div class="flex gap-2">
+                <Button 
+                    v-if="queueState === 'READY' && hasChosenRun && authStore.can('queues', 'edit')"
+                    :label="$t('queue.markCut')" icon="pi pi-scissors" severity="success" size="small"
+                    @click="markCutHandler"
+                />
+                <Button 
+                    v-if="queueState !== 'DRAFT' && authStore.can('queues', 'edit')"
+                    :label="$t('queue.resetToDraft')" icon="pi pi-refresh" severity="warning" size="small" text
+                    @click="resetToDraft"
+                />
             </div>
         </div>
 
-        <!-- Accordion Panels -->
         <Accordion :multiple="true" :value="['0', '1', '2']" class="flex flex-col gap-4">
             <!-- Runs Panel -->
             <AccordionPanel v-if="queueRuns.length > 0" value="0">
@@ -60,116 +65,112 @@
             <AccordionPanel value="1">
                 <AccordionHeader>{{ $t('projectData.sheets') }}</AccordionHeader>
                 <AccordionContent>
-                    <div class="flex flex-col gap-8 py-2" v-if="queueState === 'DRAFT'">
-                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                            <div class="lg:col-span-12 flex flex-col gap-6">
-                                <!-- Source Mode Selection -->
-                                <div class="flex flex-col gap-4 p-6 bg-[var(--p-content-background)] border-2 border-[var(--p-content-border-color)] rounded-2xl">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div class="flex flex-col gap-2">
-                                            <label class="text-xs font-black uppercase tracking-widest">Material Sourcing Mode</label>
-                                            <SelectButton v-model="nestingOptions.materialMode" :options="['VIRTUAL', 'WAREHOUSE']" class="w-full" />
-                                        </div>
-                                        <div class="flex flex-col gap-2">
-                                            <label class="text-xs font-black uppercase tracking-widest">Select Production Tool</label>
-                                            <Select v-model="nestingOptions.toolId" :options="tools" optionLabel="name" optionValue="_id" placeholder="Select tool..." class="w-full" />
-                                        </div>
+                    <div class="flex flex-col gap-6 py-2" v-if="queueState === 'DRAFT'">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-surface-0 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-xl">
+                            <div class="flex flex-col gap-4">
+                                <div class="flex flex-col gap-2">
+                                    <label class="text-xs font-bold uppercase opacity-50">{{ $t('nesting.materialSourcing') }}</label>
+                                    <SelectButton v-model="nestingOptions.materialMode" :options="['VIRTUAL', 'WAREHOUSE']" class="w-full" size="small" />
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <label class="text-xs font-bold uppercase opacity-50">{{ $t('nesting.productionTool') }}</label>
+                                    <Select v-model="nestingOptions.toolId" :options="tools" optionLabel="name" optionValue="_id" :placeholder="$t('nesting.selectTool')" class="w-full" />
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-4">
+                                <!-- Virtual Mode -->
+                                <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="grid grid-cols-2 gap-4">
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-xs font-bold uppercase opacity-50">{{ $t('nesting.width') }}</label>
+                                        <InputNumber v-model="nestingOptions.virtualWidth" :min="100" fluid />
                                     </div>
-
-                                    <!-- Virtual Mode UI -->
-                                    <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-dashed">
-                                        <div class="flex flex-col gap-2">
-                                            <label class="text-[10px] font-black uppercase opacity-60">Width (mm)</label>
-                                            <InputNumber v-model="nestingOptions.virtualWidth" :min="100" fluid />
-                                        </div>
-                                        <div class="flex flex-col gap-2">
-                                            <label class="text-[10px] font-black uppercase opacity-60">Length (mm)</label>
-                                            <InputNumber v-model="nestingOptions.virtualLength" :min="100" fluid />
-                                        </div>
-                                    </div>
-
-                                    <!-- Warehouse Mode UI -->
-                                    <div v-else class="flex flex-col gap-6 pt-4 border-t border-dashed">
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div class="flex flex-col gap-2">
-                                                <label class="text-[10px] font-black uppercase opacity-60">Select Warehouse</label>
-                                                <Select v-model="nestingOptions.warehouseId" :options="warehouses" optionLabel="name" optionValue="_id" class="w-full" @change="loadWarehouseInventory" />
-                                            </div>
-                                            <div class="flex flex-col gap-2">
-                                                <label class="text-[10px] font-black uppercase opacity-60">Custom Sheet Upload</label>
-                                                <FileUpload mode="basic" name="file" url="/api/files/upload" accept=".dxf" :auto="true" @upload="onCustomSheetUpload" :chooseLabel="'Upload DXF'" class="p-button-outlined p-button-sm" />
-                                            </div>
-                                        </div>
-
-                                        <div v-if="nestingOptions.warehouseId" class="flex flex-col gap-2">
-                                            <label class="text-[10px] font-black uppercase opacity-60">Allowed Inventory Sources (Algorithm will use as needed)</label>
-                                            <MultiSelect 
-                                                v-model="nestingOptions.inventoryItems" 
-                                                :options="availableInventory" 
-                                                optionLabel="label" 
-                                                optionValue="uniqueId"
-                                                display="chip"
-                                                placeholder="Select Piles, Sheets, or Remnants..."
-                                                class="w-full"
-                                                filter
-                                            >
-                                                <template #option="slotProps">
-                                                    <div class="flex items-center gap-2">
-                                                        <Tag :value="slotProps.option.type" :severity="getInventoryTagSeverity(slotProps.option.type)" class="text-[8px]" />
-                                                        <span class="text-xs font-bold">{{ slotProps.option.label }}</span>
-                                                        <small class="opacity-50 font-mono">{{ slotProps.option.specs }}</small>
-                                                    </div>
-                                                </template>
-                                            </MultiSelect>
-                                        </div>
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-xs font-bold uppercase opacity-50">{{ $t('nesting.length') }}</label>
+                                        <InputNumber v-model="nestingOptions.virtualLength" :min="100" fluid />
                                     </div>
                                 </div>
 
-                                <!-- Run Action -->
-                                <div class="flex flex-col gap-4">
-                                    <Message v-if="warehouseShortage" severity="error" class="shadow-sm">
-                                        <div class="flex flex-col gap-1">
-                                            <span class="font-black uppercase text-xs">Warehouse Stock Shortage</span>
-                                            <span class="text-[10px]">Algorithm calculated <b>{{ warehouseShortage.needed }}</b> sheets needed, but only <b>{{ warehouseShortage.available }}</b> are available in selected sources. Missing <b>{{ warehouseShortage.missing }}</b> units.</span>
+                                <!-- Warehouse Mode -->
+                                <div v-else class="flex flex-col gap-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="flex flex-col gap-2">
+                                            <label class="text-xs font-bold uppercase opacity-50">{{ $t('nesting.selectWarehouse') }}</label>
+                                            <Select v-model="nestingOptions.warehouseId" :options="warehouses" optionLabel="name" optionValue="_id" class="w-full" @change="loadWarehouseInventory" />
                                         </div>
-                                    </Message>
-                                    <Button 
-                                        :label="'Calculate Nesting Layout'" icon="pi pi-play" severity="success"
-                                        @click="runNesting" :loading="nestingInProgress"
-                                        :disabled="!isNestingReady"
-                                        class="w-full py-4 font-black uppercase text-sm rounded-xl shadow-lg"
-                                    />
+                                        <div class="flex flex-col gap-2">
+                                            <label class="text-xs font-bold uppercase opacity-50">{{ $t('nesting.customUpload') }}</label>
+                                            <FileUpload mode="basic" name="file" url="/api/files/upload" accept=".dxf" :auto="true" @upload="onCustomSheetUpload" :chooseLabel="$t('common.upload')" class="p-button-outlined p-button-sm" />
+                                        </div>
+                                    </div>
+
+                                    <div v-if="nestingOptions.warehouseId" class="flex flex-col gap-2">
+                                        <label class="text-xs font-bold uppercase opacity-50">{{ $t('nesting.inventorySources') }} <small class="lowercase font-normal opacity-60">({{ $t('nesting.algorithmNote') }})</small></label>
+                                        <MultiSelect 
+                                            v-model="nestingOptions.inventoryItems" 
+                                            :options="availableInventory" 
+                                            optionLabel="label" 
+                                            optionValue="uniqueId"
+                                            display="chip"
+                                            :placeholder="$t('nesting.selectInventory')"
+                                            class="w-full"
+                                            filter
+                                        >
+                                            <template #option="slotProps">
+                                                <div class="flex items-center gap-2">
+                                                    <Tag :value="slotProps.option.type" :severity="getInventoryTagSeverity(slotProps.option.type)" class="text-[8px]" />
+                                                    <span class="text-xs font-bold">{{ slotProps.option.label }}</span>
+                                                    <small class="opacity-50 font-mono text-[10px]">{{ slotProps.option.specs }}</small>
+                                                </div>
+                                            </template>
+                                        </MultiSelect>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Run Action -->
+                        <div class="flex flex-col gap-4">
+                            <Message v-if="warehouseShortage" severity="error">
+                                <div class="flex flex-col gap-1">
+                                    <span class="font-bold text-sm">{{ $t('nesting.shortageTitle') }}</span>
+                                    <span class="text-xs">{{ $t('nesting.shortageNote', { needed: warehouseShortage.needed, available: warehouseShortage.available, missing: warehouseShortage.missing }) }}</span>
+                                </div>
+                            </Message>
+                            <Button 
+                                :label="$t('nesting.calculateLayout')" icon="pi pi-play" severity="success"
+                                @click="runNesting" :loading="nestingInProgress"
+                                :disabled="!isNestingReady"
+                                class="w-full py-3 font-bold uppercase tracking-wider"
+                            />
+                        </div>
                     </div>
-                    <div v-else class="py-8 text-center opacity-60">
-                        <i class="pi pi-lock text-4xl mb-3"></i>
-                        <p class="font-bold uppercase tracking-widest text-xs">Queue is {{ queueState }}. Settings are locked.</p>
+                    <div v-else class="py-12 text-center opacity-40">
+                        <i class="pi pi-lock text-3xl mb-3"></i>
+                        <p class="font-bold uppercase tracking-widest text-xs">{{ $t('nesting.lockedNote', { status: queueState }) }}</p>
                     </div>
                 </AccordionContent>
             </AccordionPanel>
 
-            <!-- Cassettes DataView Panel -->
+            <!-- Cassettes Panel -->
             <AccordionPanel value="2">
                 <AccordionHeader>{{ $t('queues.cassettes') }}</AccordionHeader>
                 <AccordionContent>
                     <div class="flex flex-col gap-6">
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center px-1">
                             <div class="flex gap-2">
-                                <Button icon="pi pi-th-large" :severity="viewMode === 'grid' ? 'primary' : 'secondary'" @click="viewMode = 'grid'" text />
-                                <Button icon="pi pi-table" :severity="viewMode === 'table' ? 'primary' : 'secondary'" @click="viewMode = 'table'" text />
+                                <Button icon="pi pi-th-large" :severity="viewMode === 'grid' ? 'primary' : 'secondary'" @click="viewMode = 'grid'" text size="small" />
+                                <Button icon="pi pi-table" :severity="viewMode === 'table' ? 'primary' : 'secondary'" @click="viewMode = 'table'" text size="small" />
                             </div>
                         </div>
 
                         <div v-if="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                             <template v-for="entry in entries" :key="entry?._id || Math.random()">
-                                <div v-if="entry" class="bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl p-3 flex gap-3 shadow-sm hover:border-[var(--p-primary-color)] transition-all group relative h-40 min-w-0">
-                                    <Button icon="pi pi-trash" severity="danger" text rounded size="small" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-lg border z-10" @click="confirmDelete(entry)" :disabled="queueState !== 'DRAFT'" />
-                                    <Button icon="pi pi-download" text rounded size="small" class="absolute top-10 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white shadow-lg border z-10" @click="downloadEntryDxf(entry)" />
+                                <div v-if="entry" class="bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-xl p-3 flex gap-4 shadow-sm hover:border-primary transition-all group relative h-40 min-w-0">
+                                    <Button icon="pi pi-trash" severity="danger" text rounded size="small" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-surface-900 shadow-lg border z-10" @click="confirmDelete(entry)" :disabled="queueState !== 'DRAFT'" />
                                     
                                     <!-- Left: Thumbnail -->
-                                    <div class="w-28 h-32 flex-shrink-0 bg-zinc-50 dark:bg-zinc-900 rounded-lg overflow-hidden border border-[var(--p-content-border-color)] shadow-inner my-auto">
+                                    <div class="w-28 h-full flex-shrink-0 bg-surface-50 dark:bg-surface-800 rounded-lg overflow-hidden border border-surface-200 dark:border-surface-800 shadow-inner">
                                         <CassetteThumbnail 
                                             :cassette-id="entry.cassetteTemplateId" 
                                             :cassette="getCassetteData(entry.cassetteTemplateId)"
@@ -179,39 +180,36 @@
 
                                     <!-- Right: Info -->
                                     <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-                                        <!-- Header Row: Name + Quantity + Units (1 Row) -->
                                         <div class="flex items-center justify-between gap-2 mb-3 flex-shrink-0 pr-6">
-                                            <h3 class="font-black text-[10px] uppercase tracking-wider m-0 truncate text-[var(--p-text-color)] flex-1 min-w-0" :title="getCassetteName(entry.cassetteTemplateId)">
+                                            <h3 class="font-bold text-xs uppercase tracking-tight m-0 truncate" :title="getCassetteName(entry.cassetteTemplateId)">
                                                 {{ getCassetteName(entry.cassetteTemplateId) }}
                                             </h3>
                                             <div class="flex items-center gap-1 flex-shrink-0">
                                                 <InputNumber 
                                                     v-model="entry.quantity" :min="1" :disabled="queueState !== 'DRAFT'"
-                                                    size="small" class="w-24 compact-input-buttons"
-                                                    showButtons buttonLayout="horizontal"
+                                                    size="small" class="w-20 compact-input-buttons"
                                                     :useGrouping="false"
                                                     @update:model-value="saveQueue"
                                                 />
-                                                <span class="text-[9px] font-black text-[var(--p-text-muted-color)] uppercase">units</span>
+                                                <span class="text-[10px] font-bold opacity-40 uppercase">{{ $t('common.units') }}</span>
                                             </div>
                                         </div>
 
-                                        <!-- Parameters List (2-column Grid) -->
-                                        <div v-if="entry.type === 'PARAMETRIC'" class="grid grid-cols-2 gap-x-4 gap-y-1 overflow-y-auto pr-1 custom-scrollbar flex-1 content-start">
-                                            <div v-for="param in getEntryParameters(entry)" :key="param" class="flex items-center gap-1 py-0.5">
-                                                <span class="text-[10px] font-black uppercase opacity-70 w-4 flex-shrink-0">{{ param }}</span>
+                                        <!-- Parameters -->
+                                        <div v-if="entry.type === 'PARAMETRIC'" class="grid grid-cols-2 gap-x-3 gap-y-1.5 overflow-y-auto pr-1 custom-scrollbar flex-1 content-start">
+                                            <div v-for="param in getEntryParameters(entry)" :key="param" class="flex flex-col gap-0.5">
+                                                <span class="text-[10px] font-bold uppercase opacity-40">{{ param }}</span>
                                                 <InputNumber 
                                                     v-model="entry.dimensions[param]" :disabled="queueState !== 'DRAFT'"
                                                     size="small" class="flex-1 compact-input" :min="0"
                                                     :useGrouping="false"
-                                                    :minFractionDigits="1"
+                                                    :minFractionDigits="0"
                                                     @update:model-value="saveQueue"
                                                 />
                                             </div>
                                         </div>
-                                        <div v-else class="flex-1 flex items-center justify-center opacity-30">
-                                            <i class="pi pi-lock text-xs mr-2"></i>
-                                            <span class="text-[9px] font-black uppercase">Static Geometry</span>
+                                        <div v-else class="flex-1 flex items-center justify-center opacity-20">
+                                            <span class="text-[10px] font-bold uppercase tracking-widest">Static</span>
                                         </div>
                                     </div>
                                 </div>
@@ -220,22 +218,22 @@
 
                         <DataTable v-else :value="entries" dataKey="_id" :editMode="queueState === 'DRAFT' ? 'cell' : null" @cell-edit-complete="onRowEditSave" class="p-datatable-sm rounded-xl border">
                             <Column field="cassetteTemplateId" :header="$t('queues.cassette')">
-                                <template #body="{ data }"><span class="font-bold">{{ getCassetteName(data.cassetteTemplateId) }}</span></template>
+                                <template #body="{ data }"><span class="font-bold text-sm">{{ getCassetteName(data.cassetteTemplateId) }}</span></template>
                             </Column>
                             <Column field="quantity" :header="$t('queues.quantity')">
-                                <template #editor="{ data }"><InputNumber v-model="data.quantity" :min="1" fluid /></template>
+                                <template #editor="{ data }"><InputNumber v-model="data.quantity" :min="1" fluid size="small" /></template>
                             </Column>
                             <Column v-for="param in allParameters" :key="param" :header="param" :field="`dimensions.${param}`">
                                 <template #body="{ data }">
-                                    <span v-if="data.type === 'PARAMETRIC'">{{ data.dimensions?.[param] || '-' }}</span>
+                                    <span v-if="data.type === 'PARAMETRIC'" class="text-xs">{{ data.dimensions?.[param] || '-' }}</span>
                                     <span v-else class="opacity-20">-</span>
                                 </template>
                                 <template #editor="{ data }">
-                                    <InputNumber v-if="data.type === 'PARAMETRIC'" v-model="data.dimensions[param]" fluid />
+                                    <InputNumber v-if="data.type === 'PARAMETRIC'" v-model="data.dimensions[param]" fluid size="small" />
                                 </template>
                             </Column>
                             <Column v-if="queueState === 'DRAFT'" style="width: 3rem">
-                                <template #body="{ data }"><Button icon="pi pi-trash" severity="danger" text @click="confirmDelete(data)" /></template>
+                                <template #body="{ data }"><Button icon="pi pi-trash" severity="danger" text @click="confirmDelete(data)" size="small" /></template>
                             </Column>
                         </DataTable>
 
@@ -256,18 +254,18 @@
                 </AccordionContent>
             </AccordionPanel>
 
-            <!-- Physical Instances Tracking -->
+            <!-- Tracking -->
             <AccordionPanel v-if="queueState === 'CUT'" value="3">
                 <AccordionHeader>{{ $t('project.cassettes') + ' Instances' }}</AccordionHeader>
                 <AccordionContent>
                     <div class="flex flex-col gap-4 py-2">
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            <div v-for="instance in instances" :key="instance._id" class="p-4 bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-xl flex items-center justify-between group">
-                                <div class="flex flex-col gap-1">
-                                    <span class="text-[10px] font-black uppercase opacity-50">{{ instance.instanceNumber || instance.identity?.serial }}</span>
-                                    <span class="font-bold text-sm">{{ getCassetteName(instance.lineage?.templateId) }}</span>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                            <div v-for="instance in instances" :key="instance._id" class="p-3 bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-xl flex items-center justify-between group">
+                                <div class="flex flex-col gap-0.5">
+                                    <span class="text-[10px] font-mono opacity-50">{{ instance.instanceNumber || instance.identity?.serial }}</span>
+                                    <span class="font-bold text-xs">{{ getCassetteName(instance.lineage?.templateId) }}</span>
                                 </div>
-                                <Select v-model="instance.status.state" :options="instanceStatuses" optionLabel="label" optionValue="value" class="w-36" size="small" @change="(e) => updateInstanceStatus(instance, e.value)">
+                                <Select v-model="instance.status.state" :options="instanceStatuses" optionLabel="label" optionValue="value" class="w-32" size="small" @change="(e) => updateInstanceStatus(instance, e.value)">
                                     <template #value="slotProps"><Tag :value="slotProps.value" :severity="getInstanceStatusSeverity(slotProps.value)" class="text-[9px]" /></template>
                                 </Select>
                             </div>
@@ -335,17 +333,16 @@ import CassetteThumbnail from './CassetteThumbnail.vue';
 import ArtifactsTable from './ArtifactsTable.vue';
 import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
 import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
-import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
-import LineageBreadcrumbs from '~/components/entities/shared/LineageBreadcrumbs.vue';
 import { useIdentity, useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
     queue: { type: Object, required: true },
+    queues: { type: Array, default: () => [] },
     projectSlug: { type: String, required: true }
 });
 
-const emit = defineEmits(['updated']);
+const emit = defineEmits(['updated', 'select-queue']);
 const { t } = useI18n();
 const confirm = useConfirm();
 const toast = useToast();
@@ -361,14 +358,12 @@ const toolProfilesStore = useToolProfilesStore();
 const entityStore = useEntityStore();
 
 const entries = ref([]);
-const editingRows = ref([]);
 const { artifacts } = storeToRefs(artifactsStore);
 const { runs } = storeToRefs(queuesStore);
 const nestingInProgress = ref(false);
 const showAddDialog = ref(false);
 const showUploadDialog = ref(false);
 const uploadDialogRef = ref(null);
-const showHistory = ref(false);
 const cassettes = ref([]);
 const cassetteDesigns = ref([]);
 const warehouses = ref([]);
@@ -474,7 +469,6 @@ const isNestingReady = computed(() => {
     if (entries.value.length === 0) return false;
     
     if (nestingOptions.value.materialMode === 'WAREHOUSE') {
-        // Warehouse mode still requires at least one inventory source selection
         if (nestingOptions.value.inventoryItems.length === 0) return false;
     }
     
@@ -556,7 +550,6 @@ const getRunArtifacts = (runId) => {
     if (!idStr) return [];
     return artifacts.value?.filter(a => a.lineage?.runId?.toString() === idStr) || [];
 };
-const mapArtifactType = (t) => ({ 'LAYOUT_DXF': 'DXF', 'PDF_PASSPORT': 'PDF' }[t] || 'FILE');
 const formatDate = (d) => new Date(d).toLocaleString();
 
 const onNewCassetteChange = () => {
@@ -665,36 +658,26 @@ const deleteRunHandler = async (id) => {
 const handleConvertToPhysical = async (runId) => {
     const run = queueRuns.value.find(r => r._id.toString() === runId.toString());
     if (!run) return;
-
-    // Logic to switch nesting options and re-load inventory
     nestingOptions.value.materialMode = 'WAREHOUSE';
     nestingOptions.value.virtualWidth = run.params?.width || 3000;
     nestingOptions.value.virtualLength = run.params?.height || 1500;
-    
     toast.add({ 
         severity: 'info', 
         summary: 'Switching to Warehouse', 
         detail: 'Please select warehouse and inventory sources to match this run dimensions.',
         life: 5000 
     });
-    
-    // Expand the sheets panel
-    // Note: Assuming we might want to automatically find matches in future, 
-    // for now we guide the user to the selection UI with pre-filled dimensions
 };
 
 const handleCreateRequisition = async (runId) => {
     const run = queueRuns.value.find(r => r._id.toString() === runId.toString());
     if (!run) return;
-
     confirm.require({
         message: `Create a requisition for ${run.layoutCount} sheets (${run.params?.width}x${run.params?.height}) based on this nesting?`,
         header: 'Material Requisition',
         icon: 'pi pi-shopping-cart',
         accept: async () => {
             try {
-                // Navigate to requisitions with pre-filled data or open a dialog
-                // For now, let's navigate to the materials page
                 navigateTo('/materials');
                 toast.add({ severity: 'success', summary: 'Redirecting', detail: 'Please create a new requisition with these specs.' });
             } catch (e) {
@@ -721,24 +704,6 @@ const confirmDelete = (entry) => {
     });
 };
 
-const downloadEntryDxf = (entry) => {
-    const data = getCassetteData(entry.cassetteTemplateId);
-    if (!data) return;
-
-    let url = `/api/cassettes/${entry.cassetteTemplateId}/export`;
-    
-    // For parametric, append current dimensions as query params
-    if (entry.type === 'PARAMETRIC' && entry.dimensions) {
-        const params = new URLSearchParams();
-        Object.entries(entry.dimensions).forEach(([key, val]) => {
-            params.append(key, val);
-        });
-        url += `?${params.toString()}`;
-    }
-    
-    window.open(url, '_blank');
-};
-
 const onRowEditSave = async () => await saveQueue();
 
 const loadInstances = async () => {
@@ -755,11 +720,7 @@ const onCassetteUploaded = async (newItem) => {
     ]);
     cassettes.value = cRes || [];
     cassetteDesigns.value = dRes || [];
-    
-    // Automatically add to queue
-    if (newItem) {
-        await addEntry(newItem);
-    }
+    if (newItem) await addEntry(newItem);
 };
 
 const onInstantUploadSelect = (event) => {
@@ -780,14 +741,14 @@ const onInstantUploadSelect = (event) => {
 
 .compact-input :deep(.p-inputnumber-input) {
     padding: 0.25rem 0.4rem;
-    font-size: 10px;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 600;
 }
 
 .compact-input-buttons :deep(.p-inputnumber-input) {
     padding: 0.25rem 0.4rem;
-    font-size: 10px;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 600;
     text-align: center;
 }
 

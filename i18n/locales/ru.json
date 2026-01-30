@@ -5,6 +5,7 @@
     "success": "Успешно",
     "cancel": "Отмена",
     "save": "Сохранить",
+    "update": "Обновить",
     "reset": "Сбросить",
     "delete": "Удалить",
     "edit": "Редактировать",
@@ -37,7 +38,13 @@
     "created": "Создано",
     "open": "Открыть",
     "doNotUse": "Не использовать",
-    "toggleTheme": "Сменить тему"
+    "toggleTheme": "Сменить тему",
+    "backToList": "Назад к списку",
+    "layers": "Слои",
+    "reusable": "Годен",
+    "waste": "Отход",
+    "printTag": "Печать бирки",
+    "markUsed": "Отметить использованным"
   },
   "footer": {
     "termsAndConditions": "Условия и положения",
@@ -254,7 +261,23 @@
     "manualSheet": "Ручной ввод листа",
     "addManualSheet": "Добавить в пул",
     "selectFromInventory": "Выбрать из инвентаря",
-    "noSheetsInInventory": "В инвентаре нет листов. Добавьте их во вкладке Данные Проекта."
+    "selectInventory": "Выберите партии, листы или остатки...",
+    "calculateLayout": "Рассчитать раскладку",
+    "findInWarehouse": "Найти на складе",
+    "noSheetsInInventory": "В инвентаре нет листов. Добавьте их во вкладке Данные Проекта.",
+    "materialSourcing": "Режим подбора материала",
+    "productionTool": "Выберите инструмент",
+    "virtualMode": "Виртуальный режим",
+    "warehouseMode": "Складской режим",
+    "width": "Ширина (мм)",
+    "length": "Длина (мм)",
+    "selectWarehouse": "Выберите склад",
+    "customUpload": "Загрузка своего листа",
+    "inventorySources": "Разрешенные источники",
+    "algorithmNote": "Алгоритм будет использовать по мере необходимости",
+    "shortageTitle": "Дефицит на складе",
+    "shortageNote": "Алгоритму требуется {needed} листов, но доступно только {available}. Не хватает {missing} ед.",
+    "lockedNote": "Очередь в статусе {status}. Настройки заблокированы."
   },
   "projectData": {
     "sheets": "Инвентарь листов",
@@ -276,6 +299,15 @@
     "logWaste": "Отходы",
     "wasteArea": "Площадь отходов",
     "addWasteToInventory": "Добавить как деловой отход",
+    "addMaterialToProject": "Добавить материал в проект",
+    "chooseMaterial": "Выберите материал...",
+    "createNewMaterial": "Создать новый материал",
+    "createGlobalMaterial": "Создать глобальный материал",
+    "createAndAdd": "Создать и добавить",
+    "placeholders": {
+      "code": "напр., ACP-01",
+      "color": "напр., Серебро"
+    },
     "materials": {
       "composite": "Алюминиевый композит",
       "steel": "Сталь",
@@ -445,7 +477,13 @@
     "hasAccount": "Уже есть учетная запись?",
     "createAccount": "Создать учетную запись",
     "organization": "Организация",
-    "createOrg": "Создать организацию"
+    "createOrg": "Создать организацию",
+    "selectRole": "Выберите роль",
+    "inviteMember": "Пригласить участника",
+    "invitationLink": "Ссылка на приглашение",
+    "expires": "Истекает",
+    "generateLink": "Создать ссылку",
+    "permissions": "Разрешения"
   },
   "roles": {
     "SuperAdmin": "Администратор системы",
@@ -461,11 +499,36 @@
     "warehouses": "Склады",
     "catalogs": "Каталоги",
     "requisitions": "Заявки",
-    "batches": "Партии материалов",
+    "batches": "Складские партии",
     "sheets": "Листы",
     "remnants": "Остатки",
     "users": "Участники команды",
-    "organizations": "Организации"
+    "organizations": "Организации",
+    "billingStatus": "Статус оплаты"
+  },
+  "piles": {
+    "title": "Складские партии",
+    "subtitle": "Поставки материалов, полученные от производителей.",
+    "manualPile": "Партия материала вручную",
+    "noPiles": "Партии материалов не найдены",
+    "receiptId": "ID квитанции"
+  },
+  "remnants": {
+    "title": "Остатки",
+    "subtitle": "Доступные обрезки материала для повторного использования.",
+    "noRemnants": "Остатки не найдены"
+  },
+  "sheets": {
+    "title": "Листы",
+    "subtitle": "Отдельные физические листы материала в инвентаре.",
+    "noSheets": "Листы не найдены"
+  },
+  "cassetteInstance": {
+    "updateStatus": "Обновить статус",
+    "printLabel": "Печать этикетки",
+    "updatePhysicalStatus": "Обновить физический статус",
+    "selectNewStatus": "Выберите новый статус...",
+    "addNotePlaceholder": "Добавьте примечание (напр., Доставлено в сектор 4)..."
   },
   "statistics": {
     "title": "Статистика",
@@ -541,6 +604,9 @@
     "loading": "Загрузка очереди...",
     "notFound": "Очередь не найдена.",
     "runs": "Попытки раскроя",
+    "jobItems": "Позиции заказа",
+    "nestingConfig": "Конфиг. раскроя",
+    "jobComposition": "Состав работы",
     "runStatus": {
       "NESTING": "Раскрой",
       "ERROR": "Ошибка",
@@ -687,6 +753,7 @@
     "noCode": "НЕТ КОДА",
     "widths": "Ширина",
     "visualFallback": "Визуальный код",
+    "colorsAvailable": "Доступно цветов",
     "confirmRemoveColor": "Вы уверены, что хотите удалить этот цвет из каталога?",
     "placeholders": {
       "material": "Выберите материал...",
@@ -715,7 +782,15 @@
     "recoveredArea": "Восстановленная площадь",
     "manager": "Заведующий",
     "notAssigned": "Не назначен",
-    "inventorySnapshot": "Отчет по остаткам"
+    "inventorySnapshot": "Отчет по остаткам",
+    "placeholders": {
+      "name": "напр., Главный склад",
+      "address": "Полный адрес объекта...",
+      "contact": "Ответственное лицо"
+    },
+    "messages": {
+      "saved": "Склад сохранен"
+    }
   },
   "requisition": {
     "title": "Заявки на материалы",

@@ -17,12 +17,12 @@
             <Select 
                 v-model="form.role" 
                 :options="roles" 
-                placeholder="Select role" 
+                :placeholder="$t('auth.selectRole')" 
             />
         </div>
         <div class="flex justify-end gap-2 mt-4">
-            <Button label="Cancel" severity="secondary" text @click="$emit('cancel')" />
-            <Button :label="editMode ? 'Update' : 'Create'" @click="handleSubmit" />
+            <Button :label="$t('common.cancel')" severity="secondary" text @click="$emit('cancel')" />
+            <Button :label="editMode ? $t('common.update') : $t('common.create')" @click="handleSubmit" />
         </div>
     </div>
 </template>

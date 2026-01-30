@@ -2,13 +2,13 @@
   <div class="flex flex-col gap-6">
     <div class="flex justify-between items-center">
       <div class="flex flex-col gap-1">
-        <h2 class="text-2xl font-black text-[var(--p-text-color)]">{{ $t('features.sheets') }}</h2>
-        <p class="text-sm text-[var(--p-text-secondary-color)]">Individual physical material sheets in inventory.</p>
+        <h2 class="text-2xl font-black text-surface-900 dark:text-surface-0">{{ $t('sheets.title') }}</h2>
+        <p class="text-sm text-surface-500 dark:text-surface-400">{{ $t('sheets.subtitle') }}</p>
       </div>
     </div>
 
     <!-- Sheet Grid -->
-    <div v-if="!selectedSheet" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div v-if="!selectedSheet" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
         <SheetCard 
             v-for="sheet in sheets" 
             :key="sheet._id" 
@@ -16,16 +16,16 @@
             variant="card"
             @click="viewDetails(sheet)"
         />
-        <div v-if="!loading && sheets.length === 0" class="col-span-full p-12 border-2 border-dashed rounded-2xl flex flex-col items-center gap-4 opacity-40">
+        <div v-if="!loading && sheets.length === 0" class="col-span-full p-12 border-2 border-dashed border-surface-200 dark:border-surface-800 rounded-2xl flex flex-col items-center gap-4 opacity-40">
             <i class="pi pi-file text-4xl"></i>
-            <span class="font-bold">No physical sheets found</span>
+            <span class="font-bold">{{ $t('sheets.noSheets') }}</span>
         </div>
     </div>
 
     <!-- Detail View -->
     <div v-else class="animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div class="mb-4">
-            <Button label="Back to List" icon="pi pi-arrow-left" text size="small" @click="selectedSheet = null" />
+            <Button :label="$t('common.backToList')" icon="pi pi-arrow-left" text size="small" @click="selectedSheet = null" />
         </div>
         <SheetDetail :sheet="selectedSheet" />
     </div>

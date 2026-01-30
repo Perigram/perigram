@@ -1,9 +1,9 @@
 <template>
   <div class="flex flex-col gap-6">
     <!-- Warehouse Switcher/Selection -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[var(--p-content-background)] p-4 rounded-2xl border border-[var(--p-content-border-color)] shadow-sm">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface-50 dark:bg-surface-900 p-4 rounded-2xl border border-surface-200 dark:border-surface-800 shadow-sm">
         <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-[var(--p-surface-100)] flex items-center justify-center text-primary border border-[var(--p-content-border-color)]">
+            <div class="w-12 h-12 rounded-xl bg-surface-100 dark:bg-surface-800 flex items-center justify-center text-primary border border-surface-200 dark:border-surface-800">
                 <i class="pi pi-building text-2xl"></i>
             </div>
             <div class="flex flex-col">
@@ -34,14 +34,14 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="!loading && warehouses.length === 0" class="p-12 border-2 border-dashed rounded-2xl flex flex-col items-center gap-4 opacity-40">
+    <div v-else-if="!loading && warehouses.length === 0" class="p-12 border-2 border-dashed rounded-2xl border-surface-200 dark:border-surface-800 flex flex-col items-center gap-4 opacity-40">
         <i class="pi pi-building text-4xl"></i>
         <span class="font-bold">{{ $t('warehouse.noWarehouses') }}</span>
         <Button v-if="authStore.can('warehouses', 'create')" :label="$t('warehouse.createFirst')" icon="pi pi-plus" size="small" text @click="showDialog = true" />
     </div>
 
     <!-- Selection Prompt -->
-    <div v-else-if="!loading && !selectedWarehouseId && warehouses.length > 0" class="p-12 border rounded-2xl flex flex-col items-center gap-4 bg-[var(--p-content-background)] opacity-60">
+    <div v-else-if="!loading && !selectedWarehouseId && warehouses.length > 0" class="p-12 border rounded-2xl border-surface-200 dark:border-surface-800 flex flex-col items-center gap-4 bg-surface-50 dark:bg-surface-900 opacity-60">
         <i class="pi pi-arrow-up text-2xl"></i>
         <span class="font-bold text-lg">{{ $t('warehouse.promptSelection') }}</span>
     </div>
@@ -51,15 +51,15 @@
       <div class="flex flex-col gap-4 pt-4">
         <div class="flex flex-col gap-2">
           <label class="font-bold text-sm">{{ $t('common.name') }} *</label>
-          <InputText v-model="form.name" class="w-full" placeholder="e.g., Main Production Stock" />
+          <InputText v-model="form.name" class="w-full" :placeholder="$t('warehouse.placeholders.name')" />
         </div>
         <div class="flex flex-col gap-2">
           <label class="font-bold text-sm">{{ $t('profile.address') }}</label>
-          <Textarea v-model="form.address" class="w-full" rows="3" placeholder="Full location address..." />
+          <Textarea v-model="form.address" class="w-full" rows="3" :placeholder="$t('warehouse.placeholders.address')" />
         </div>
         <div class="flex flex-col gap-2">
           <label class="font-bold text-sm">{{ $t('common.contact', 'Contact Person') }}</label>
-          <InputText v-model="form.contactPerson" class="w-full" placeholder="Person responsible for this warehouse" />
+          <InputText v-model="form.contactPerson" class="w-full" :placeholder="$t('warehouse.placeholders.contact')" />
         </div>
       </div>
       <template #footer>
@@ -67,11 +67,13 @@
           <Button :label="$t('common.save')" @click="save" :loading="submitting" />
       </template>
     </Dialog>
+
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
 import WarehouseDetail from '~/components/entities/Warehouse/WarehouseDetail.vue';
@@ -81,6 +83,7 @@ import Textarea from 'primevue/textarea';
 import Dialog from 'primevue/dialog';
 import Select from 'primevue/select';
 
+const { t } = useI18n();
 const toast = useToast();
 const authStore = useAuthStore();
 
@@ -134,7 +137,7 @@ async function save() {
     if (!selectedWarehouseId.value && res?._id) {
         selectedWarehouseId.value = res._id;
     }
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Warehouse saved' });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('warehouse.messages.saved') });
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
   } finally {

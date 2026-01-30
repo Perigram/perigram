@@ -3,14 +3,14 @@
     <!-- Header -->
     <div class="flex justify-between items-center">
       <div class="flex flex-col gap-1">
-        <h2 class="text-2xl font-black text-[var(--p-text-color)]">{{ $t('features.requisitions') }}</h2>
-        <p class="text-sm text-[var(--p-text-secondary-color)]">Track material orders and fulfillment status.</p>
+        <h2 class="text-2xl font-black text-surface-900 dark:text-surface-0">{{ $t('features.requisitions') }}</h2>
+        <p class="text-sm text-surface-500 dark:text-surface-400">Track material orders and fulfillment status.</p>
       </div>
       <Button v-if="authStore.isContractor" :label="$t('common.create')" icon="pi pi-plus" @click="showCreateDialog = true" />
     </div>
 
     <!-- Requisition Grid (Card View) -->
-    <div v-if="!selectedReq" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div v-if="!selectedReq" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
         <RequisitionCard 
             v-for="req in requisitions" 
             :key="req._id" 
@@ -19,26 +19,19 @@
             @edit="openEditDialog"
             @delete="confirmDelete"
         />
-        <div v-if="!loading && requisitions.length === 0" class="col-span-full p-12 border-2 border-dashed rounded-2xl flex flex-col items-center gap-4 opacity-40">
+        <div v-if="!loading && requisitions.length === 0" class="col-span-full p-12 border-2 border-dashed border-surface-200 dark:border-surface-800 rounded-2xl flex flex-col items-center gap-4 opacity-40">
             <i class="pi pi-shopping-cart text-4xl"></i>
-            <span class="font-bold">No requisitions found</span>
-            <Button v-if="authStore.isContractor" label="New Requisition" icon="pi pi-plus" size="small" text @click="showCreateDialog = true" />
+            <span class="font-bold">{{ $t('requisition.noRequisitions') }}</span>
+            <Button v-if="authStore.isContractor" :label="$t('requisition.newRequisition')" icon="pi pi-plus" size="small" text @click="showCreateDialog = true" />
         </div>
     </div>
 
-    <!-- Requisition Detail View -->
+    <!-- Detail View -->
     <div v-else class="animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div class="mb-4">
-            <Button label="Back to List" icon="pi pi-arrow-left" text size="small" @click="selectedReq = null" />
+            <Button :label="$t('common.backToList')" icon="pi pi-arrow-left" text size="small" @click="selectedReq = null" />
         </div>
-        <RequisitionDetail 
-            :requisition="selectedReq" 
-            @send="sendReq"
-            @approve="approveReq"
-            @reject="rejectReq"
-            @start-fulfillment="startFulfillment"
-            @fulfill="openFulfillDialog"
-        />
+        <RequisitionDetail :requisition="selectedReq" />
     </div>
 
     <!-- Create Dialog (True to nature) -->

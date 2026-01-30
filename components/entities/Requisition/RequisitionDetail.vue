@@ -5,27 +5,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div class="flex items-center gap-4">
                 <h2 class="text-2xl font-black m-0">#{{ serial }}</h2>
-                <EntityStatus :entity="requisition" />
-            </div>
-            <div class="flex gap-2">
-                <!-- Contractor Actions -->
-                <template v-if="requisitionState === 'DRAFT' && authStore.can('requisitions', 'send')">
-                    <Button :label="$t('common.submit')" icon="pi pi-send" size="small" @click="$emit('send', requisition._id)" />
-                </template>
-
-                <!-- Manufacturer Actions -->
-                <template v-if="requisitionState === 'SENT' && authStore.can('requisitions', 'approve')">
-                    <Button :label="$t('common.approve')" icon="pi pi-check" severity="success" size="small" @click="$emit('approve', requisition._id)" />
-                </template>
-                <template v-if="requisitionState === 'SENT' && authStore.can('requisitions', 'reject')">
-                    <Button :label="$t('common.reject')" icon="pi pi-times" severity="danger" text size="small" @click="$emit('reject', requisition._id)" />
-                </template>
-                <template v-if="requisitionState === 'APPROVED' && authStore.can('requisitions', 'fulfill')">
-                    <Button :label="$t('requisition.startFulfillment')" icon="pi pi-play" severity="info" size="small" @click="$emit('start-fulfillment', requisition._id)" />
-                </template>
-                <template v-if="requisitionState === 'APPROVED' && authStore.can('requisitions', 'fulfill')">
-                    <Button :label="$t('requisition.completeAndShip')" icon="pi pi-box" severity="success" size="small" @click="$emit('fulfill', requisition._id)" />
-                </template>
+                <EntityStatus :entity="requisition" :actions="statusActions" />
             </div>
         </div>
 
@@ -108,4 +88,28 @@ const authStore = useAuthStore();
 const { serial } = useIdentity(props.requisition);
 const { state: requisitionState } = useStatus(props.requisition);
 
+const statusActions = computed(() => {
+    const actions = [];
+    const id = props.requisition._id;
+
+    if (requisitionState.value === 'DRAFT' && authStore.can('requisitions', 'send')) {
+        actions.push({ label: 'Submit Requisition', icon: 'pi pi-send', command: () => emit('send', id) });
+    }
+
+    if (requisitionState.value === 'SENT') {
+        if (authStore.can('requisitions', 'approve')) {
+            actions.push({ label: 'Approve', icon: 'pi pi-check', severity: 'success', command: () => emit('approve', id) });
+        }
+        if (authStore.can('requisitions', 'reject')) {
+            actions.push({ label: 'Reject', icon: 'pi pi-times', severity: 'danger', command: () => emit('reject', id) });
+        }
+    }
+
+    if (requisitionState.value === 'APPROVED' && authStore.can('requisitions', 'fulfill')) {
+        actions.push({ label: 'Start Fulfillment', icon: 'pi pi-play', severity: 'info', command: () => emit('start-fulfillment', id) });
+        actions.push({ label: 'Complete & Ship', icon: 'pi pi-box', severity: 'success', command: () => emit('fulfill', id) });
+    }
+
+    return actions;
+});
 </script>

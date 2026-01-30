@@ -7,13 +7,12 @@
                 <div class="flex items-center gap-4">
                     <i class="pi pi-file text-primary"></i>
                     <h2 class="text-xl font-bold m-0">{{ sheetSerial }}</h2>
-                    <EntityStatus :entity="sheet" />
+                    <EntityStatus :entity="sheet" :actions="statusActions" />
                 </div>
             </template>
             <template #icons>
                 <div class="flex gap-2">
                     <Button icon="pi pi-qrcode" severity="secondary" text size="small" v-tooltip.top="'Print QR'" />
-                    <Button label="Mark Milled" icon="pi pi-check" severity="success" size="small" v-if="sheetState === 'IN-CUTTING'" />
                 </div>
             </template>
 
@@ -21,9 +20,9 @@
                 <!-- Visual Swatch -->
                 <div class="flex flex-col gap-2">
                     <span class="text-[10px] font-black uppercase opacity-40">Material / Color</span>
-                    <div class="flex items-center gap-3 p-3 border border-[var(--p-content-border-color)] rounded-xl">
+                    <div class="flex items-center gap-3 p-3 border border-surface-200 dark:border-surface-800 rounded-xl">
                         <div 
-                            class="w-10 h-10 rounded shadow-inner border border-[var(--p-content-border-color)]"
+                            class="w-10 h-10 rounded shadow-inner border border-surface-200 dark:border-surface-800"
                             :style="{ backgroundColor: colorHex }"
                         ></div>
                         <div class="flex flex-col">
@@ -83,9 +82,24 @@ const props = defineProps({
     }
 });
 
+const emit = defineEmits(['update-status']);
+
 const { serial: sheetSerial } = useIdentity(props.sheet);
 const { state: sheetState } = useStatus(props.sheet);
 const { width: sheetWidth, length: sheetLength } = useSpecs(props.sheet);
+
+const statusActions = computed(() => {
+    const actions = [];
+    if (sheetState.value === 'IN-CUTTING' || sheetState.value === 'in cutting') {
+        actions.push({ 
+            label: 'Mark Milled', 
+            icon: 'pi pi-check', 
+            severity: 'success', 
+            command: () => emit('update-status', { id: props.sheet._id, status: 'milled' }) 
+        });
+    }
+    return actions;
+});
 
 // Since sheets inherit from pile, color/material are in specs or lineage-linked
 // In v24, we usually flatten important display specs into the specs block

@@ -43,8 +43,18 @@ export async function getByToken(token) {
 
 export async function joinByToken(token, user) {
   const invitation = await getByToken(token);
-  
-  if (new Date() > invitation.expiresAt) {
+  return await processJoin(invitation, user);
+}
+
+export async function joinByCode(code, user) {
+  const db = await (await import('~/server/db/mongo')).connectDB();
+  const invitation = await db.collection('invitations').findOne({ code: code.toUpperCase(), isActive: true });
+  if (!invitation) throw createError({ statusCode: 404, message: 'Invitation not found or expired' });
+  return await processJoin(invitation, user);
+}
+
+async function processJoin(invitation, user) {
+  if (invitation.expiresAt && new Date() > invitation.expiresAt) {
     // Log status as expired if we find it expired during access
     await addStatus('invitations', invitation._id.toString(), 'system', 'expired', 'Detected expiration during access');
     throw createError({ statusCode: 410, message: 'Invitation expired' });

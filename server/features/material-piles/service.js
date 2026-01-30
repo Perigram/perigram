@@ -106,6 +106,16 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   return toDTO(updated);
 }
 
+export async function updateStatus(id, state, note, user, additionalData = {}) {
+  const pile = await getById(id, user.userId, user.organizationId, user.role, user);
+  
+  if (!hasLineagePermission(user, pile.lineage, 'materials', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  return await statusService.transition('material_pile', pile._id, state, user.userId, user.role, { note, ...additionalData });
+}
+
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const pile = await repository.findById(id);
   if (!pile) throw createError({ statusCode: 404, message: 'Material pile not found' });

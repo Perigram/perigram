@@ -142,13 +142,13 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
     <div v-if="canManage && isComplete" class="flex flex-wrap gap-2 mt-auto pt-2 border-t border-dashed border-[var(--p-content-border-color)]">
         <Button 
             v-if="isVirtual"
-            :label="'Find in Warehouse'" icon="pi pi-search-plus" 
+            :label="$t('nesting.findInWarehouse')" icon="pi pi-search-plus" 
             size="small" severity="info" text class="p-0 text-[9px] font-black uppercase"
             @click.stop="$emit('convert-to-physical', run._id)"
         />
         <Button 
             v-if="isVirtual"
-            :label="'Create Requisition'" icon="pi pi-shopping-cart" 
+            :label="$t('requisition.createRequisition')" icon="pi pi-shopping-cart" 
             size="small" severity="help" text class="p-0 text-[9px] font-black uppercase"
             @click.stop="$emit('create-requisition', run._id)"
         />

@@ -132,6 +132,16 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   return toDTO(updated);
 }
 
+export async function searchReusable(userId, organizationId, userRole, userPermissions) {
+  const filter = {
+    ...getLineageFilter({ memberships: userPermissions.memberships, role: userRole }),
+    isReusable: true,
+    'status.state': 'AVAILABLE'
+  };
+  const remnants = await repository.find(filter);
+  return remnants.map(toDTO);
+}
+
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const remnant = await getById(id, userId, userOrg, userRole, userPermissions);
   

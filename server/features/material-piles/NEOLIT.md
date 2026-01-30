@@ -9,6 +9,7 @@ The "Source of Truth" for physical material inventory. Replaces the legacy multi
 
 ## Key Logic
 - `allocate()`: Atomically increments `used` stock and triggers state change to `DEPLETED` when finished.
+- `updateStatus()`: Standardized state transitions with audit trail/notes.
 - `create()`: Standardized block initialization with physical specs validation.
 
 ## Data Structure

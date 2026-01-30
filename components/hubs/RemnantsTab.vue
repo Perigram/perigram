@@ -2,13 +2,13 @@
   <div class="flex flex-col gap-6">
     <div class="flex justify-between items-center">
       <div class="flex flex-col gap-1">
-        <h2 class="text-2xl font-black text-[var(--p-text-color)]">{{ $t('features.remnants') }}</h2>
-        <p class="text-sm text-[var(--p-text-secondary-color)]">Available material offcuts for reuse.</p>
+        <h2 class="text-2xl font-black text-surface-900 dark:text-surface-0">{{ $t('remnants.title') }}</h2>
+        <p class="text-sm text-surface-500 dark:text-surface-400">{{ $t('remnants.subtitle') }}</p>
       </div>
     </div>
 
     <!-- Remnant Grid -->
-    <div v-if="!selectedRemnant" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div v-if="!selectedRemnant" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
         <RemnantCard 
             v-for="remnant in remnants" 
             :key="remnant._id" 
@@ -16,16 +16,16 @@
             variant="card"
             @click="viewDetails(remnant)"
         />
-        <div v-if="!loading && remnants.length === 0" class="col-span-full p-12 border-2 border-dashed rounded-2xl flex flex-col items-center gap-4 opacity-40">
-            <i class="pi pi-undo text-4xl rotate-180"></i>
-            <span class="font-bold">No remnants found</span>
+        <div v-if="!loading && remnants.length === 0" class="col-span-full p-12 border-2 border-dashed border-surface-200 dark:border-surface-800 rounded-2xl flex flex-col items-center gap-4 opacity-40">
+            <i class="pi pi-box text-4xl"></i>
+            <span class="font-bold">{{ $t('remnants.noRemnants') }}</span>
         </div>
     </div>
 
     <!-- Detail View -->
     <div v-else class="animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div class="mb-4">
-            <Button label="Back to List" icon="pi pi-arrow-left" text size="small" @click="selectedRemnant = null" />
+            <Button :label="$t('common.backToList')" icon="pi pi-arrow-left" text size="small" @click="selectedRemnant = null" />
         </div>
         <RemnantDetail :remnant="selectedRemnant" />
     </div>

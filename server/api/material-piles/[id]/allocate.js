@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   
   if (event.req.method === 'POST') {
     const body = await readBody(event);
-    return await sheetService.allocateFromBatch(id, body.pileId, body.count, user);
+    return await sheetService.allocateFromPile(id, body.count, user);
   }
   
   return { error: 'Method not allowed' };

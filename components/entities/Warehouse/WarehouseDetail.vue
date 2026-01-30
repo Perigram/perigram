@@ -27,46 +27,34 @@
         </Panel>
 
         <!-- Operational Stock -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-                <template #content>
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-[var(--p-surface-100)] border border-[var(--p-content-border-color)] flex items-center justify-center text-primary">
-                            <i class="pi pi-truck text-xl"></i>
-                        </div>
-                        <div class="flex flex-col">
-                            <span class="text-2xl font-black">{{ warehouseStats.totalBatches || 0 }}</span>
-                            <span class="text-[10px] font-black opacity-40 uppercase tracking-wider">{{ $t('warehouse.activeShipments') }}</span>
-                        </div>
-                    </div>
-                </template>
-            </Card>
-            <Card>
-                <template #content>
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-[var(--p-surface-100)] border border-[var(--p-content-border-color)] flex items-center justify-center text-primary">
-                            <i class="pi pi-file text-xl"></i>
-                        </div>
-                        <div class="flex flex-col">
-                            <span class="text-2xl font-black">{{ warehouseStats.totalSheets || 0 }}</span>
-                            <span class="text-[10px] font-black opacity-40 uppercase tracking-wider">{{ $t('warehouse.rawSheets') }}</span>
-                        </div>
-                    </div>
-                </template>
-            </Card>
-            <Card>
-                <template #content>
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-[var(--p-surface-100)] border border-[var(--p-content-border-color)] flex items-center justify-center text-primary">
-                            <i class="pi pi-undo text-xl"></i>
-                        </div>
-                        <div class="flex flex-col">
-                            <span class="text-2xl font-black">{{ warehouseStats.totalRemnants || 0 }}</span>
-                            <span class="text-[10px] font-black opacity-40 uppercase tracking-wider">{{ $t('warehouse.recoveredArea') }}</span>
-                        </div>
-                    </div>
-                </template>
-            </Card>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-4 bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-2xl shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700 flex items-center justify-center text-primary">
+                    <i class="pi pi-truck text-xl"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-2xl font-black">{{ warehouseStats.totalBatches || 0 }}</span>
+                    <span class="text-[10px] font-black opacity-40 uppercase tracking-wider">{{ $t('warehouse.activeShipments') }}</span>
+                </div>
+            </div>
+            <div class="p-4 bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-2xl shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700 flex items-center justify-center text-primary">
+                    <i class="pi pi-file text-xl"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-2xl font-black">{{ warehouseStats.totalSheets || 0 }}</span>
+                    <span class="text-[10px] font-black opacity-40 uppercase tracking-wider">{{ $t('warehouse.rawSheets') }}</span>
+                </div>
+            </div>
+            <div class="p-4 bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-2xl shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700 flex items-center justify-center text-primary">
+                    <i class="pi pi-undo text-xl"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-2xl font-black">{{ warehouseStats.totalRemnants || 0 }}</span>
+                    <span class="text-[10px] font-black opacity-40 uppercase tracking-wider">{{ $t('warehouse.recoveredArea') }}</span>
+                </div>
+            </div>
         </div>
 
         <!-- Inventory Explorer -->
@@ -78,11 +66,11 @@
             </TabList>
             <TabPanels>
                 <TabPanel value="0">
-                    <div v-if="batches.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                        <BatchCard 
+                    <div v-if="batches.length" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 pt-4">
+                        <PileCard 
                             v-for="batch in batches" 
                             :key="batch._id" 
-                            :batch="batch" 
+                            :pile="batch" 
                             variant="compact"
                             @view="trace(batch, 'batch')"
                         />
@@ -90,7 +78,7 @@
                     <div v-else-if="!loading" class="text-center py-12 opacity-40 italic">No batches stored</div>
                 </TabPanel>
                 <TabPanel value="1">
-                    <div v-if="sheets.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                    <div v-if="sheets.length" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 pt-4">
                         <SheetCard 
                             v-for="sheet in sheets" 
                             :key="sheet._id" 
@@ -102,7 +90,7 @@
                     <div v-else-if="!loading" class="text-center py-12 opacity-40 italic">No sheets available</div>
                 </TabPanel>
                 <TabPanel value="2">
-                    <div v-if="remnants.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                    <div v-if="remnants.length" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 pt-4">
                         <RemnantCard 
                             v-for="remnant in remnants" 
                             :key="remnant._id" 
@@ -129,7 +117,7 @@ import TabPanel from 'primevue/tabpanel';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
-import BatchCard from '~/components/entities/Batch/BatchCard.vue';
+import PileCard from '~/components/entities/MaterialPile/PileCard.vue';
 import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
 import RemnantCard from '~/components/entities/Remnant/RemnantCard.vue';
 import { useIdentity } from '~/composables/useBlocks';
