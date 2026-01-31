@@ -63,3 +63,30 @@
     white-space: nowrap;
     flex-wrap: nowrap !important;
 }
+
+/* Micro Design System Utilities */
+@layer utilities {
+    .card-interactive {
+        @apply border border-[var(--p-content-border-color)] bg-[var(--p-content-background)] transition-all cursor-pointer hover:border-[var(--p-primary-200)];
+    }
+
+    .card-active {
+        @apply border-[var(--p-primary-color)] bg-[var(--p-primary-50)]/10;
+    }
+
+    .card-selected {
+        @apply ring-2 ring-[var(--p-primary-color)] ring-offset-2;
+    }
+
+    .text-muted {
+        @apply text-[var(--p-text-muted-color)];
+    }
+
+    .border-muted {
+        @apply border-[var(--p-content-border-color)];
+    }
+
+    .label-muted {
+        @apply text-nano font-bold text-muted uppercase tracking-tight;
+    }
+}
