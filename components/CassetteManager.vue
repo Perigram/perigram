@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col gap-6">
-    <div class="flex items-center justify-between gap-4 px-1">
-      <h2 class="text-xl font-bold text-[var(--p-text-color)]">{{ $t('nav.cassettes') }}</h2>
+    <div class="flex items-center justify-between gap-4">
+      <h2>{{ $t('nav.cassettes') }}</h2>
       <div class="flex gap-2">
         <Button 
           :label="$t('cassette.upload')" 
@@ -17,58 +17,44 @@
       </div>
     </div>
 
-    <div v-if="!cassettes || cassettes.length === 0" class="text-center py-20 px-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)]">
-      <i class="pi pi-inbox text-6xl text-[var(--p-text-muted-color)] mb-4 opacity-50 block"></i>
-      <p class="text-lg text-[var(--p-text-secondary-color)]">{{ !cassettes ? $t('cassette.loading') : $t('cassette.noCassettes') }}</p>
+    <div v-if="!cassettes || cassettes.length === 0" class="text-center py-20 border border-dashed rounded italic opacity-50">
+      <i class="pi pi-inbox text-6xl block mb-4"></i>
+      <p>{{ !cassettes ? $t('cassette.loading') : $t('cassette.noCassettes') }}</p>
     </div>
 
-    <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
-      <div v-for="cassette in cassettes" :key="cassette._id" 
-        class="flex flex-col gap-2 p-3 border border-surface-200 dark:border-surface-800 rounded-xl bg-surface-0 dark:bg-surface-900 hover:border-primary hover:shadow-lg transition-all duration-300 group"
+    <div class="grid-hub">
+      <Card v-for="cassette in cassettes" :key="cassette._id" 
+        class="card-interactive"
       >
-        <div class="w-full aspect-square bg-surface-50 dark:bg-surface-800 rounded-lg overflow-hidden border border-surface-200 dark:border-surface-800 mb-1 relative">
-          <CassetteThumbnail :cassette="cassette" />
-          
-          <!-- Actions overlay -->
-          <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 bg-surface-0/80 dark:bg-surface-900/80 backdrop-blur-sm border border-surface-200 dark:border-surface-800 rounded p-0.5 shadow-md">
-            <Button 
-                icon="pi pi-pencil" 
-                size="small" 
-                text 
-                severity="secondary" 
-                class="h-6 w-6" 
-                @click="editCassette(cassette)" 
-            />
-            <Button 
-                icon="pi pi-trash" 
-                size="small" 
-                text 
-                severity="danger" 
-                class="h-6 w-6" 
-                @click="handleDelete(cassette._id)" 
-            />
-          </div>
-        </div>
-        
-        <div class="flex flex-col min-w-0">
+        <template #header>
+            <div class="aspect-square relative overflow-hidden">
+                <CassetteThumbnail :cassette="cassette" />
+                <!-- Actions overlay -->
+                <div class="absolute top-2 right-2 flex gap-1">
+                    <Button icon="pi pi-pencil" text @click="editCassette(cassette)" />
+                    <Button icon="pi pi-trash" text severity="danger" @click="handleDelete(cassette._id)" />
+                </div>
+            </div>
+        </template>
+        <template #title>
           <Inplace @open="onRenameStart(cassette)">
             <template #display>
-              <h3 class="m-0 text-[10px] font-black uppercase tracking-wider text-surface-900 dark:text-surface-0 truncate cursor-pointer hover:text-primary transition-colors" v-tooltip.top="$t('cassette.clickToRename')">
+              <span class="truncate block">
                 {{ getCassetteName(cassette) }}
-              </h3>
+              </span>
             </template>
             <template #content="{ closeCallback }">
-              <div class="flex items-center gap-1 w-full">
-                <InputText v-model="editingName" size="small" class="flex-1 text-[10px] h-6 px-1" autofocus @keyup.enter="onRename(cassette, closeCallback)" @keyup.esc="closeCallback" />
-              </div>
+              <InputText v-model="editingName" size="small" autofocus @keyup.enter="onRename(cassette, closeCallback)" @keyup.esc="closeCallback" />
             </template>
           </Inplace>
-          <div class="flex items-center justify-between gap-2 mt-1">
-            <EntityStatus :entity="cassette" variant="compact" class="scale-75 origin-left" />
-            <span class="text-[8px] font-medium text-surface-400 truncate">{{ formatDate(cassette.status?.timestamp || cassette.origin?.timestamp) }}</span>
-          </div>
-        </div>
-      </div>
+        </template>
+        <template #subtitle>
+            <div class="flex items-center justify-between gap-2">
+                <EntityStatus :entity="cassette" variant="inline" />
+                <small>{{ formatDate(cassette.status?.timestamp || cassette.origin?.timestamp) }}</small>
+            </div>
+        </template>
+      </Card>
     </div>
 
     <CassetteEditorDialog 

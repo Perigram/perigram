@@ -1,47 +1,43 @@
 <template>
-    <div class="flex flex-col gap-3 p-4 bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl">
-        <h4 class="text-[10px] font-black uppercase opacity-40 m-0 flex items-center gap-2">
+    <div class="flex flex-col gap-4">
+        <div class="flex items-center gap-2">
             <i class="pi pi-cog"></i>
-            {{ $t('catalog.materialSpecs') }}
-        </h4>
+            <h4 class="m-0 text-base">{{ $t('catalog.materialSpecs') }}</h4>
+        </div>
         
-        <div class="grid grid-cols-2 gap-y-3 gap-x-6">
+        <div class="grid grid-cols-2 gap-4">
             <!-- Sheet Thickness -->
             <div class="flex flex-col">
-                <span class="text-[10px] opacity-60">{{ $t('catalog.sheetThickness') }}</span>
-                <div class="flex items-baseline gap-1">
-                    <span class="text-sm font-black">{{ resolvedSpecs.sheetThickness || resolvedSpecs.thickness }}</span>
-                    <span class="text-[10px] font-bold opacity-40">mm</span>
-                </div>
+                <small>{{ $t('catalog.sheetThickness') }}</small>
+                <span>{{ resolvedSpecs.sheetThickness || resolvedSpecs.thickness }} mm</span>
             </div>
 
             <!-- Foil Thickness -->
             <div class="flex flex-col">
-                <span class="text-[10px] opacity-60">{{ $t('catalog.foilThickness') }}</span>
-                <div class="flex items-baseline gap-1">
-                    <span class="text-sm font-black">{{ resolvedSpecs.foilThickness || 0 }}</span>
-                    <span class="text-[10px] font-bold opacity-40">mm</span>
-                </div>
+                <small>{{ $t('catalog.foilThickness') }}</small>
+                <span>{{ resolvedSpecs.foilThickness || 0 }} mm</span>
+            </div>
+
+            <div class="col-span-2">
+                <Divider />
             </div>
 
             <!-- Dimensions -->
-            <div class="flex flex-col col-span-2 pt-2 border-t border-dashed border-surface-200 dark:border-surface-700">
-                <span class="text-[10px] opacity-60">{{ $t('catalog.dimensions') }}</span>
-                <div class="flex items-center gap-2">
-                    <span class="text-sm font-black">{{ formattedDimensions }}</span>
-                </div>
+            <div class="flex flex-col">
+                <small>{{ $t('catalog.dimensions') }}</small>
+                <span>{{ formattedDimensions }}</span>
             </div>
 
             <!-- Area -->
-            <div class="flex flex-col col-span-2 pt-2">
-                <span class="text-[10px] opacity-60">{{ $t('common.area') }}</span>
-                <span class="text-sm font-black">{{ formattedArea }}</span>
+            <div class="flex flex-col">
+                <small>{{ $t('common.area') }}</small>
+                <span>{{ formattedArea }}</span>
             </div>
 
             <!-- Material Core -->
             <div v-if="resolvedSpecs.material" class="flex flex-col col-span-2">
-                <span class="text-[10px] opacity-60">{{ $t('catalog.baseMaterial') }}</span>
-                <span class="text-xs font-bold truncate">{{ resolvedSpecs.material }}</span>
+                <small>{{ $t('catalog.baseMaterial') }}</small>
+                <span class="truncate">{{ resolvedSpecs.material }}</span>
             </div>
         </div>
     </div>
@@ -49,6 +45,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import Divider from 'primevue/divider';
 import { useSpecs } from '~/composables/useBlocks';
 
 const props = defineProps({

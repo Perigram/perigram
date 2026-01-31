@@ -1,36 +1,38 @@
 <template>
-    <div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-8">
         <LineageBreadcrumbs :entity="sheet" />
 
         <Panel>
             <template #header>
                 <div class="flex items-center gap-4">
-                    <i class="pi pi-file text-primary"></i>
-                    <h2 class="text-xl font-bold m-0">{{ sheetSerial }}</h2>
+                    <i class="pi pi-file"></i>
+                    <h1 class="m-0">{{ sheetSerial }}</h1>
                     <EntityStatus :entity="sheet" :actions="statusActions" />
                 </div>
             </template>
             <template #icons>
                 <div class="flex gap-2">
-                    <Button icon="pi pi-qrcode" severity="secondary" text size="small" v-tooltip.top="'Print QR'" />
+                    <Button icon="pi pi-qrcode" text />
                 </div>
             </template>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <!-- Visual Swatch -->
-                <div class="flex flex-col gap-2">
-                    <span class="text-[10px] font-black uppercase opacity-40">Material / Color</span>
-                    <div class="flex items-center gap-3 p-3 border border-surface-200 dark:border-surface-800 rounded-xl">
-                        <div 
-                            class="w-10 h-10 rounded shadow-inner border border-surface-200 dark:border-surface-800"
-                            :style="{ backgroundColor: colorHex }"
-                        ></div>
-                        <div class="flex flex-col">
-                            <span class="text-sm font-bold">{{ colorName }}</span>
-                            <span class="text-[10px] opacity-60">{{ materialName }}</span>
+                <Card>
+                    <template #title><small>Material / Color</small></template>
+                    <template #content>
+                        <div class="flex items-center gap-4">
+                            <div 
+                                class="w-12 h-12 border rounded"
+                                :style="{ backgroundColor: colorHex }"
+                            ></div>
+                            <div class="flex flex-col">
+                                <span class="text-xl">{{ colorName }}</span>
+                                <small>{{ materialName }}</small>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </template>
+                </Card>
 
                 <!-- Physical Specs -->
                 <div class="lg:col-span-3">
@@ -39,24 +41,23 @@
             </div>
         </Panel>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div class="grid-details">
             <div class="lg:col-span-3">
                  <Fieldset legend="Physical Representation">
-                    <div class="aspect-[16/9] bg-[var(--p-surface-900)] rounded-xl flex items-center justify-center border border-[var(--p-content-border-color)] relative overflow-hidden">
-                        <div class="absolute inset-0 opacity-5" style="background-image: radial-gradient(circle, #fff 1px, transparent 1px); background-size: 20px 20px;"></div>
+                    <div class="aspect-[16/9] border rounded flex items-center justify-center relative overflow-hidden">
                         <div 
-                            class="border-2 border-primary/40 bg-primary/5 rounded shadow-lg flex items-center justify-center flex-col gap-2"
+                            class="border border-dashed rounded flex items-center justify-center flex-col gap-4"
                             :style="geometryStyle"
                         >
-                            <span class="text-primary text-[10px] font-bold opacity-30 uppercase">Sheet Surface</span>
-                            <span class="text-primary font-black">{{ sheetWidth }}x{{ sheetLength }}</span>
+                            <small>Surface</small>
+                            <span class="text-2xl">{{ sheetWidth }}x{{ sheetLength }}</span>
                         </div>
                     </div>
                  </Fieldset>
             </div>
 
-            <div class="flex flex-col gap-6">
-                <Panel header="Status Timeline" toggleable>
+            <div class="flex flex-col gap-8">
+                <Panel header="History">
                     <StatusTimeline :entity="sheet" />
                 </Panel>
             </div>
@@ -76,10 +77,7 @@ import MaterialSpecs from '~/components/shared/MaterialSpecs.vue';
 import { useIdentity, useStatus, useSpecs } from '~/composables/useBlocks';
 
 const props = defineProps({
-    sheet: {
-        type: Object,
-        required: true
-    }
+    sheet: { type: Object, required: true }
 });
 
 const emit = defineEmits(['update-status']);
@@ -101,28 +99,21 @@ const statusActions = computed(() => {
     return actions;
 });
 
-// Since sheets inherit from pile, color/material are in specs or lineage-linked
-// In v24, we usually flatten important display specs into the specs block
 const colorName = computed(() => props.sheet.specs?.color || 'Unknown');
 const materialName = computed(() => props.sheet.specs?.material || 'Unknown');
 const colorHex = computed(() => props.sheet.specs?.colorHex || '#ccc');
 
 const geometryStyle = computed(() => {
-    const max = 300;
+    const max = 400;
     const width = sheetWidth.value || 2000;
     const length = sheetLength.value || 1000;
     const ratio = width / length;
     let w, h;
     if (ratio > 1) {
-        w = max;
-        h = max / ratio;
+        w = max; h = max / ratio;
     } else {
-        h = max;
-        w = max * ratio;
+        h = max; w = max * ratio;
     }
-    return {
-        width: `${w}px`,
-        height: `${h}px`
-    };
+    return { width: `${w}px`, height: `${h}px` };
 });
 </script>

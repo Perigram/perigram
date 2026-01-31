@@ -1,7 +1,7 @@
 <template>
-    <div class="p-4 md:p-6 lg:p-8 flex flex-col gap-6">
+    <div class="flex flex-col gap-6">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h1 class="text-2xl font-bold">{{ $t('nav.projects') }}</h1>
+            <h1>{{ $t('nav.projects') }}</h1>
             <div class="flex gap-2">
                 <Button
                     :label="$t('project.create')"
@@ -11,7 +11,7 @@
             </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3 p-3">
+        <div class="flex flex-wrap items-center gap-3">
             <IconField class="flex-1 min-w-[200px]">
                 <InputIcon class="pi pi-search" />
                 <InputText
@@ -52,15 +52,14 @@
 
         <div
             v-else-if="!projects || projects.length === 0"
-            class="text-center py-20 px-6 border-2 border-dashed rounded-xl"
+            class="text-center py-20 border border-dashed rounded italic opacity-50"
         >
-            <i class="pi pi-inbox text-6xl mb-4 opacity-50"></i>
-            <p class="text-xl font-medium mb-6">{{ $t('projects.noProjects') }}</p>
+            <i class="pi pi-inbox text-6xl mb-4"></i>
+            <p>{{ $t('projects.noProjects') }}</p>
             <Button
                 :label="$t('projects.createFirst')"
                 icon="pi pi-plus"
                 @click="showCreateDialog = true"
-                size="large"
             />
         </div>
 

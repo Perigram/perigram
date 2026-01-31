@@ -1,3 +1,57 @@
+*** TODO Project-wide UI Refactoring [0/4]
+    :PROPERTIES:
+    :ID:       ui-refactor-v24
+    :END:
+    [2026-01-31] Mandate: Remove all manual styling, use unstyled PrimeVue components with proper slots, and implement a minimal micro design system.
+
+    - [ ] Micro Design System Setup (assets/css/main.css)
+    - [ ] Entity Components (Refactor all to support Inline, Compact, Card variants with Zero Styling) [0/16]
+      - [ ] ProjectCard
+      - [ ] QueueCard
+      - [ ] NestingRunCard
+      - [ ] ArtifactCard
+      - [ ] CassetteDesignCard
+      - [ ] CassetteInstanceCard
+      - [ ] CassetteTemplateCard
+      - [ ] CatalogCard
+      - [ ] ColorCard
+      - [ ] LayerStandardCard
+      - [ ] PileCard
+      - [ ] RequisitionCard
+      - [ ] SheetCard
+      - [ ] RemnantCard
+      - [ ] UserCard
+      - [ ] OrganizationCard
+    - [ ] Shared components [0/5]
+      - [ ] EntityStatus
+      - [ ] LineageBreadcrumbs
+      - [ ] StatusTimeline
+      - [ ] TraceLink / TraceChain
+      - [ ] MaterialSpecs
+    - [ ] Hubs and Pages (Remove all manual layout styles, use PrimeVue Panels/Tabs/Cards) [0/6]
+      - [ ] WarehouseHub (and tabs)
+      - [ ] CatalogsTab
+      - [ ] RequisitionsTab
+      - [ ] ProjectStatistics
+      - [ ] QueueEditor
+      - [ ] CassetteDesigner
+
+*** Agent Notes
+    [2026-01-31] Project-wide UI Styling Refactoring (True Zero Styling)
+    Files changed:
+    - components/entities/**/*.vue (All card/detail components)
+    - components/hubs/*.vue (All tab hubs)
+    - components/*.vue (QueueEditor, CassetteDesigner, etc.)
+    - pages/**/*.vue (Main pages and layouts)
+    - assets/css/main.css (Stripped to minimal essentials)
+    - NEOLIT.md, components/NEOLIT.md (Updated docs)
+    Notes:
+    - Implemented "True Zero Styling" mandate: removed all manual text sizes, colors, backgrounds, and shadows.
+    - Delegated all visual presentation to PrimeVue theme and standard semantic tags.
+    - Simplified component layouts to use minimal flex/grid containers.
+    - Standardized component variants (Inline, Compact, Card) using default PrimeVue elements.
+    - Removed micro design system utility classes (text-nano, text-tiny, label-muted, etc.).
+
 *** Agent Notes
     [2026-01-29] Fixed missing exports and aligned with v24 Material Pile model
     Files changed:

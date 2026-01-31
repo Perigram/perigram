@@ -1,30 +1,30 @@
 <template>
-    <div class="flex items-center justify-center min-h-screen bg-[var(--p-surface-ground)]">
-        <div class="w-full max-w-md p-8 bg-[var(--p-content-background)] rounded-2xl border border-[var(--p-content-border-color)] shadow-xl">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="w-full max-w-md p-8 border rounded">
             <div class="flex flex-col items-center gap-2 mb-8">
-                <i class="pi pi-box text-4xl text-[var(--p-primary-color)]"></i>
-                <h1 class="text-2xl font-black text-[var(--p-text-color)]">CutKit</h1>
-                <p class="text-[var(--p-text-muted-color)]">{{ $t('auth.createAccount') }}</p>
+                <i class="pi pi-box text-4xl"></i>
+                <h1>CutKit</h1>
+                <p>{{ $t('auth.createAccount') }}</p>
             </div>
 
             <form @submit.prevent="handleRegister" class="flex flex-col gap-4">
-                <div class="flex flex-col gap-2">
-                    <label for="name" class="font-bold text-sm">{{ $t('profile.name') }}</label>
+                <div class="flex flex-col gap-1">
+                    <label for="name">{{ $t('profile.name') }}</label>
                     <InputText id="name" v-model="form.name" class="w-full" required />
                 </div>
 
-                <div class="flex flex-col gap-2">
-                    <label for="email" class="font-bold text-sm">{{ $t('profile.email') }}</label>
+                <div class="flex flex-col gap-1">
+                    <label for="email">{{ $t('profile.email') }}</label>
                     <InputText id="email" v-model="form.email" type="email" class="w-full" required />
                 </div>
 
-                <div class="flex flex-col gap-2">
-                    <label for="password" class="font-bold text-sm">{{ $t('profile.password') }}</label>
+                <div class="flex flex-col gap-1">
+                    <label for="password">{{ $t('profile.password') }}</label>
                     <Password id="password" v-model="form.password" toggleMask class="w-full" inputClass="w-full" required />
                 </div>
 
-                <div class="flex flex-col gap-2">
-                    <label for="org" class="font-bold text-sm">{{ $t('auth.organization') }}</label>
+                <div class="flex flex-col gap-1">
+                    <label for="org">{{ $t('auth.organization') }}</label>
                     <Select 
                         id="org"
                         v-model="form.organizationId" 
@@ -35,29 +35,29 @@
                         class="w-full"
                         :loading="loadingOrgs"
                     />
-                    <small class="text-[var(--p-text-muted-color)]">
-                        Or <a href="#" @click.prevent="showCreateOrg = true" class="text-[var(--p-primary-color)] font-bold">create new organization</a>
+                    <small>
+                        Or <a href="#" @click.prevent="showCreateOrg = true">create new organization</a>
                     </small>
                 </div>
 
                 <Button type="submit" :label="$t('auth.signup')" :loading="loading" class="w-full mt-2" />
             </form>
 
-            <div class="mt-6 text-center text-sm">
-                <span class="text-[var(--p-text-muted-color)]">{{ $t('auth.hasAccount') }} </span>
-                <NuxtLink to="/auth/login" class="font-bold text-[var(--p-primary-color)] hover:underline">{{ $t('auth.login') }}</NuxtLink>
+            <div class="mt-6 text-center">
+                <span>{{ $t('auth.hasAccount') }} </span>
+                <NuxtLink to="/auth/login">{{ $t('auth.login') }}</NuxtLink>
             </div>
         </div>
 
         <!-- Create Organization Dialog -->
-        <Dialog v-model:visible="showCreateOrg" :header="$t('auth.createOrg')" modal class="w-full max-w-md">
+        <Dialog v-model:visible="showCreateOrg" :header="$t('auth.createOrg')" modal>
             <div class="flex flex-col gap-4 py-4">
-                <div class="flex flex-col gap-2">
-                    <label class="font-bold text-sm">Organization Name</label>
+                <div class="flex flex-col gap-1">
+                    <label>Organization Name</label>
                     <InputText v-model="newOrg.name" class="w-full" />
                 </div>
-                <div class="flex flex-col gap-2">
-                    <label class="font-bold text-sm">Type</label>
+                <div class="flex flex-col gap-1">
+                    <label>Type</label>
                     <Select 
                         v-model="newOrg.type" 
                         :options="['Manufacturer', 'Contractor', 'Customer']" 

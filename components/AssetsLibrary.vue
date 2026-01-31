@@ -24,66 +24,14 @@
             </div>
             
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-1">
-              <Card v-for="pen in pens" :key="pen._id" 
-                class="h-full border border-[var(--p-content-border-color)] hover:border-[var(--p-primary-color)] transition-all duration-300 shadow-sm hover:shadow-md"
-              >
-                <template #title>
-                  <div class="flex items-center justify-between gap-3 min-w-0 pt-2 px-1">
-                    <span class="truncate font-bold text-lg text-[var(--p-text-color)]">{{ pen.name }}</span>
-                    <Tag v-if="!pen.ownerId" :value="$t('assets.system')" severity="info" class="text-[10px] uppercase flex-shrink-0" />
-                  </div>
-                </template>
-                <template #content>
-                  <div class="py-4 px-1 flex flex-col gap-4">
-                    <div 
-                      class="w-full h-8 rounded border border-[var(--p-content-border-color)] flex items-center justify-center"
-                      :style="{
-                        background: pen.stroke.color
-                      }"
-                    >
-                      <div 
-                        class="w-full mx-2"
-                        :style="{
-                          borderTop: `${pen.stroke.weight}px ${pen.stroke.pattern === 'DASHED' ? 'dashed' : pen.stroke.pattern === 'DOTTED' ? 'dotted' : 'solid'} white`,
-                          mixBlendMode: 'difference'
-                        }"
-                      ></div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-y-2 text-xs">
-                      <span class="font-medium text-[var(--p-text-muted-color)]">{{ $t('assets.color') }}:</span>
-                      <span class="font-mono text-right text-[var(--p-text-color)]">{{ pen.stroke.color }}</span>
-                      
-                      <span class="font-medium text-[var(--p-text-muted-color)]">{{ $t('assets.weight') }}:</span>
-                      <span class="text-right text-[var(--p-text-color)]">{{ pen.stroke.weight }}mm</span>
-                      
-                      <span class="font-medium text-[var(--p-text-muted-color)]">{{ $t('assets.pattern') }}:</span>
-                      <span class="text-right text-[var(--p-text-color)]">{{ $t(`assets.patterns.${pen.stroke.pattern}`) }}</span>
-                    </div>
-                  </div>
-                </template>
-                <template #footer>
-                  <div class="flex justify-end gap-2 pt-4 border-t border-[var(--p-content-border-color)] mt-auto px-1" v-if="pen.ownerId">
-                    <Button 
-                      icon="pi pi-pencil" 
-                      severity="secondary"
-                      text
-                      rounded
-                      size="small"
-                      @click="editPen(pen)"
-                      v-tooltip.top="$t('common.edit')"
-                    />
-                    <Button 
-                      icon="pi pi-trash" 
-                      severity="danger"
-                      text
-                      rounded
-                      size="small"
-                      @click="deletePenConfirm(pen)"
-                      v-tooltip.top="$t('common.delete')"
-                    />
-                  </div>
-                </template>
-              </Card>
+              <PenTemplateCard 
+                v-for="pen in pens" 
+                :key="pen._id" 
+                :pen="pen" 
+                variant="card"
+                @edit="editPen"
+                @delete="deletePenConfirm"
+              />
             </div>
           </div>
         </TabPanel>
@@ -106,52 +54,14 @@
             </div>
             
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-1">
-              <Card v-for="tool in tools" :key="tool._id" 
-                class="h-full border border-[var(--p-content-border-color)] hover:border-[var(--p-primary-color)] transition-all duration-300 shadow-sm hover:shadow-md"
-              >
-                <template #title>
-                  <div class="flex items-center justify-between gap-3 min-w-0 pt-2 px-1">
-                    <span class="truncate font-bold text-lg text-[var(--p-text-color)]">{{ tool.name }}</span>
-                    <Tag v-if="!tool.ownerId" :value="$t('assets.system')" severity="info" class="text-[10px] uppercase flex-shrink-0" />
-                  </div>
-                </template>
-                <template #content>
-                  <div class="py-4 px-1 flex flex-col gap-4">
-                    <div class="w-16 h-16 mx-auto flex items-center justify-center bg-[var(--p-primary-50)] text-[var(--p-primary-color)] rounded-full">
-                      <i class="pi pi-cog text-3xl"></i>
-                    </div>
-                    <div class="grid grid-cols-2 gap-y-2 text-xs">
-                      <span class="font-medium text-[var(--p-text-muted-color)]">{{ $t('assets.diameter') }}:</span>
-                      <span class="text-right font-bold text-[var(--p-text-color)]">Ø{{ tool.diameter }}mm</span>
-                      
-                      <span class="font-medium text-[var(--p-text-muted-color)]">{{ $t('assets.angle') }}:</span>
-                      <span class="text-right font-bold text-[var(--p-text-color)]">{{ tool.angle }}°</span>
-                    </div>
-                  </div>
-                </template>
-                <template #footer>
-                  <div class="flex justify-end gap-2 pt-4 border-t border-[var(--p-content-border-color)] mt-auto px-1" v-if="tool.ownerId">
-                    <Button 
-                      icon="pi pi-pencil" 
-                      severity="secondary" 
-                      text
-                      rounded
-                      size="small"
-                      @click="editTool(tool)"
-                      v-tooltip.top="$t('common.edit')"
-                    />
-                    <Button 
-                      icon="pi pi-trash" 
-                      severity="danger" 
-                      text
-                      rounded
-                      size="small"
-                      @click="deleteToolConfirm(tool)"
-                      v-tooltip.top="$t('common.delete')"
-                    />
-                  </div>
-                </template>
-              </Card>
+              <ToolProfileCard 
+                v-for="tool in tools" 
+                :key="tool._id" 
+                :tool="tool" 
+                variant="card"
+                @edit="editTool"
+                @delete="deleteToolConfirm"
+              />
             </div>
           </div>
         </TabPanel>
@@ -263,6 +173,8 @@ import ConfirmDialog from 'primevue/confirmdialog';
 import ProgressSpinner from 'primevue/progressspinner';
 import Message from 'primevue/message';
 import { useToast } from 'primevue/usetoast';
+import PenTemplateCard from './entities/PenTemplate/PenTemplateCard.vue';
+import ToolProfileCard from './entities/ToolProfile/ToolProfileCard.vue';
 
 const { t } = useI18n();
 const penTemplatesStore = usePenTemplatesStore();

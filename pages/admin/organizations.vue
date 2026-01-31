@@ -1,36 +1,44 @@
 <template>
     <div class="flex flex-col gap-6">
         <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-[var(--p-text-color)]">{{ $t('features.organizations') }}</h1>
+            <h1>{{ $t('features.organizations') }}</h1>
             <Button :label="$t('common.create')" icon="pi pi-plus" @click="openCreateOrg" />
         </div>
 
-        <DataTable :value="organizations" :loading="loading" stripedRows class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
-            <Column field="name" :header="$t('common.name')" sortable></Column>
-            <Column field="type" :header="$t('queue.status')" sortable>
+        <DataTable :value="organizations" :loading="loading" stripedRows class="border rounded">
+            <Column field="name" :header="$t('common.name')" sortable>
                 <template #body="slotProps">
-                    <Tag :value="slotProps.data.type" severity="info" />
+                    <span>{{ slotProps.data.name }}</span>
                 </template>
             </Column>
-            <Column field="email" :header="$t('profile.email')"></Column>
+            <Column field="type" :header="$t('queue.status')" sortable>
+                <template #body="slotProps">
+                    <Tag :value="slotProps.data.type" />
+                </template>
+            </Column>
+            <Column field="email" :header="$t('profile.email')">
+                <template #body="slotProps">
+                    <span>{{ slotProps.data.email }}</span>
+                </template>
+            </Column>
             <Column :header="$t('common.actions')" class="text-right">
                 <template #body="slotProps">
                     <div class="flex justify-end gap-2">
-                        <Button icon="pi pi-pencil" text @click="editOrg(slotProps.data)" v-tooltip.top="'Edit'" />
+                        <Button icon="pi pi-pencil" text @click="editOrg(slotProps.data)" />
                     </div>
                 </template>
             </Column>
         </DataTable>
 
         <!-- Organization Dialog -->
-        <Dialog v-model:visible="orgDialog" :header="editMode ? $t('common.edit') : $t('common.create')" modal :style="{ width: '500px' }">
+        <Dialog v-model:visible="orgDialog" :header="editMode ? $t('common.edit') : $t('common.create')" modal>
             <div class="flex flex-col gap-4 py-4">
-                <div class="flex flex-col gap-2">
-                    <label class="font-bold text-sm">{{ $t('common.name') }} *</label>
+                <div class="flex flex-col gap-1">
+                    <label>{{ $t('common.name') }} *</label>
                     <InputText v-model="form.name" class="w-full" />
                 </div>
-                <div class="flex flex-col gap-2">
-                    <label class="font-bold text-sm">{{ $t('queue.status') }} *</label>
+                <div class="flex flex-col gap-1">
+                    <label>{{ $t('queue.status') }} *</label>
                     <Select 
                         v-model="form.type" 
                         :options="['Manufacturer', 'Contractor', 'Customer', 'ServiceProvider']" 
@@ -38,16 +46,16 @@
                         class="w-full"
                     />
                 </div>
-                <div class="flex flex-col gap-2">
-                    <label class="font-bold text-sm">{{ $t('profile.email') }}</label>
+                <div class="flex flex-col gap-1">
+                    <label>{{ $t('profile.email') }}</label>
                     <InputText v-model="form.email" type="email" class="w-full" />
                 </div>
-                <div class="flex flex-col gap-2">
-                    <label class="font-bold text-sm">{{ $t('profile.phone', 'Phone') }}</label>
+                <div class="flex flex-col gap-1">
+                    <label>{{ $t('profile.phone', 'Phone') }}</label>
                     <InputText v-model="form.phone" class="w-full" />
                 </div>
-                <div class="flex flex-col gap-2">
-                    <label class="font-bold text-sm">{{ $t('profile.address', 'Address') }}</label>
+                <div class="flex flex-col gap-1">
+                    <label>{{ $t('profile.address', 'Address') }}</label>
                     <InputText v-model="form.address" class="w-full" />
                 </div>
             </div>

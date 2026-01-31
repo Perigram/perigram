@@ -1,94 +1,94 @@
 <template>
-    <div class="flex flex-col h-full bg-[var(--p-content-background)]">
+    <div class="flex flex-col h-full">
         <!-- Header -->
-        <div class="flex items-center justify-between p-4 border-b border-[var(--p-content-border-color)]">
-            <div class="flex flex-col">
-                <h2 class="m-0 text-base font-bold text-[var(--p-text-color)]">{{ $t('admin.supportChat') }}</h2>
-                <span class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('admin.userId') }}: {{ userId.slice(-8) }}</span>
-            </div>
-            <Button
-                icon="pi pi-arrow-left"
-                @click="$emit('back')"
-                text
-                rounded
-                class="md:hidden"
-            />
-        </div>
-
-        <!-- Messages Area -->
-        <div ref="messagesContainer" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-[var(--p-content-background)] custom-scrollbar">
-            <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
-                <ProgressSpinner style="width: 40px; height: 40px" strokeWidth="4" />
-                <p class="text-xs font-bold uppercase tracking-widest">{{ $t('admin.loadingMessages') }}</p>
-            </div>
-            <div v-else-if="messages.length === 0" class="flex flex-col items-center justify-center py-20 opacity-40">
-                <p class="text-sm font-medium">{{ $t('admin.noMessages') }}</p>
-            </div>
-            <template v-else>
-                <template v-for="message in messagesList" :key="message._id">
-                    <!-- Date Separator -->
-                    <div v-if="message.day" class="flex items-center gap-4 my-2">
-                        <div class="flex-1 h-px bg-[var(--p-content-border-color)]"></div>
-                        <span class="text-[10px] font-bold uppercase tracking-widest text-[var(--p-text-muted-color)] bg-[var(--p-content-background)] px-2 py-0.5 rounded-full border border-[var(--p-content-border-color)]">
-                            {{ message.day }}
-                        </span>
-                        <div class="flex-1 h-px bg-[var(--p-content-border-color)]"></div>
+        <Panel>
+            <template #header>
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex flex-col">
+                        <h2 class="m-0 text-base">{{ $t('admin.supportChat') }}</h2>
+                        <small>{{ $t('admin.userId') }}: {{ userId.slice(-8) }}</small>
                     </div>
-
-                    <!-- Message Bubble -->
-                    <div 
-                        class="max-w-[80%] flex flex-col gap-1"
-                        :class="message.sender === 'support' ? 'ml-auto items-end' : 'mr-auto items-start'"
-                    >
-                        <div 
-                            class="px-4 py-2 rounded-2xl text-sm shadow-sm"
-                            :class="message.sender === 'support' 
-                                ? 'bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)] rounded-tr-none' 
-                                : 'bg-[var(--p-content-background)] text-[var(--p-text-color)] border border-[var(--p-content-border-color)] rounded-tl-none'"
-                        >
-                            <p class="m-0 leading-relaxed break-words">{{ message.message }}</p>
-                        </div>
-                        <span class="text-[10px] text-[var(--p-text-muted-color)] px-1">{{ formatTime(message.timestamp) }}</span>
-                    </div>
-                </template>
+                    <Button
+                        icon="pi pi-arrow-left"
+                        @click="$emit('back')"
+                        text
+                        class="md:hidden"
+                    />
+                </div>
             </template>
-        </div>
 
-        <!-- Footer / Input Area -->
-        <div class="p-4 border-t border-[var(--p-content-border-color)]">
-            <div class="flex items-end gap-2 bg-[var(--p-content-background)] p-2 rounded-xl border border-[var(--p-content-border-color)] focus-within:border-[var(--p-primary-color)] transition-colors">
-                <Textarea 
-                    :placeholder="$t('admin.typeMessage')" 
-                    class="flex-1 !bg-transparent !border-none !shadow-none !ring-0 text-sm py-1 custom-scrollbar" 
-                    v-model="newMessage"
-                    @keydown="handleKeyDown" 
-                    :disabled="!isConnected"
-                    rows="1"
-                    autoResize
-                />
-                <Button 
-                    icon="pi pi-send"
-                    :disabled="!newMessage.trim() || !isConnected" 
-                    @click="sendMessage"
-                    rounded
-                    size="small"
-                    class="flex-shrink-0"
-                />
+            <!-- Messages Area -->
+            <div ref="messagesContainer" class="h-[calc(100vh-300px)] overflow-y-auto p-4 flex flex-col gap-4">
+                <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-4">
+                    <ProgressSpinner />
+                    <p>{{ $t('admin.loadingMessages') }}</p>
+                </div>
+                <div v-else-if="messages.length === 0" class="flex flex-col items-center justify-center py-20">
+                    <p>{{ $t('admin.noMessages') }}</p>
+                </div>
+                <template v-else>
+                    <template v-for="message in messagesList" :key="message._id">
+                        <!-- Date Separator -->
+                        <div v-if="message.day">
+                            <Divider>
+                                <small>{{ message.day }}</small>
+                            </Divider>
+                        </div>
+                        <!-- Message Bubble -->
+                        <div 
+                            class="max-w-[80%] flex flex-col gap-1"
+                            :class="message.sender === 'support' ? 'ml-auto items-end' : 'mr-auto items-start'"
+                        >
+                            <Card 
+                                :class="message.sender === 'support' ? 'card-active' : ''"
+                            >
+                                <template #content>
+                                    <p class="m-0 break-words">{{ message.message }}</p>
+                                </template>
+                            </Card>
+                            <small>{{ formatTime(message.timestamp) }}</small>
+                        </div>
+                    </template>
+                </template>
             </div>
-            
-            <div v-if="error" class="mt-3 flex items-center justify-between bg-red-50 p-2 rounded-lg border border-red-100">
-                <span class="text-xs text-red-600 font-medium">{{ error }}</span>
-                <Button :label="$t('admin.retry')" text size="small" severity="danger" class="py-1" @click="connectToChat" />
-            </div>
-        </div>
+
+            <template #footer>
+                <Divider />
+                <div class="flex items-end gap-2 p-2">
+                    <Textarea 
+                        :placeholder="$t('admin.typeMessage')" 
+                        class="flex-1 !bg-transparent !border-none !shadow-none !ring-0 py-1" 
+                        v-model="newMessage"
+                        @keydown="handleKeyDown" 
+                        :disabled="!isConnected"
+                        rows="1"
+                        autoResize
+                    />
+                    <Button 
+                        icon="pi pi-send"
+                        :disabled="!newMessage.trim() || !isConnected" 
+                        @click="sendMessage"
+                    />
+                </div>
+                
+                <div v-if="error" class="mt-3 flex flex-col gap-4">
+                    <Message severity="error">{{ error }}</Message>
+                    <Button :label="$t('admin.retry')" text severity="danger" @click="connectToChat" />
+                </div>
+            </template>
+        </Panel>
     </div>
 </template>
 
 <script setup>
 import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
+import Panel from 'primevue/panel';
+import Card from 'primevue/card';
 import Button from 'primevue/button';
+import Divider from 'primevue/divider';
 import Textarea from 'primevue/textarea';
+import Message from 'primevue/message';
 import ProgressSpinner from 'primevue/progressspinner';
 
 const { t } = useI18n();
@@ -231,19 +231,3 @@ onUnmounted(() => {
     }
 })
 </script>
-
-<style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--p-content-border-color);
-    border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--p-primary-color);
-}
-</style>

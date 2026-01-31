@@ -1,18 +1,18 @@
 <template>
-    <div class="history-timeline">
-        <Timeline :value="sortedHistory" class="customized-timeline">
+    <div>
+        <Timeline :value="sortedHistory">
             <template #opposite="slotProps">
-                <small class="text-[var(--p-text-muted-color)] font-mono">
+                <small>
                     {{ formatDate(slotProps.item.timestamp) }}
                 </small>
             </template>
             <template #content="slotProps">
-                <div class="flex flex-col gap-1 mb-6">
+                <div class="flex flex-col gap-1">
                     <div class="flex items-center gap-2">
                         <EntityStatus :entity="slotProps.item" variant="inline" />
-                        <span class="text-xs font-bold">{{ slotProps.item.userId || 'System' }}</span>
+                        <span>{{ slotProps.item.userId || 'System' }}</span>
                     </div>
-                    <p v-if="slotProps.item.note" class="text-sm text-[var(--p-text-secondary-color)] italic m-0">
+                    <p v-if="slotProps.item.note" class="m-0 italic">
                         {{ slotProps.item.note }}
                     </p>
                 </div>
@@ -46,11 +46,3 @@ const formatDate = (date) => {
     });
 };
 </script>
-
-<style scoped>
-.customized-timeline :deep(.p-timeline-event-opposite) {
-    flex: 0;
-    padding: 0 1rem 0 0;
-    min-width: 100px;
-}
-</style>

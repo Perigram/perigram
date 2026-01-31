@@ -1,3 +1,26 @@
+<template>
+  <div class="flex items-center gap-2 overflow-x-auto" v-if="lineageItems.length > 0">
+    <template v-for="(item, index) in visibleItems" :key="index">
+      <template v-if="item.type !== 'separator'">
+          <component 
+            :is="item.component" 
+            :project="item.type === 'project' ? item.data : null"
+            :queue="item.type === 'queue' ? item.data : null"
+            :organization="item.type === 'organization' ? item.data : null"
+            :warehouse="item.type === 'warehouse' ? item.data : null"
+            variant="inline" 
+          />
+      </template>
+
+      <template v-else>
+          <Button label="..." text @click="isExpanded = true" />
+      </template>
+
+      <span v-if="index < visibleItems.length - 1">/</span>
+    </template>
+  </div>
+</template>
+
 <script setup>
 /**
  * Universal Lineage Breadcrumbs - v24 Standardized
@@ -6,7 +29,6 @@ import OrganizationCard from '../Organization/OrganizationCard.vue';
 import WarehouseCard from '../Warehouse/WarehouseCard.vue';
 import ProjectCard from '../Project/ProjectCard.vue';
 import QueueCard from '../Queue/QueueCard.vue';
-import CassetteDesignCard from '../CassetteDesign/CassetteDesignCard.vue';
 import Button from 'primevue/button';
 import { ref, computed } from 'vue';
 
@@ -62,26 +84,3 @@ const visibleItems = computed(() => {
     return [lineageItems.value[0], { type: 'separator' }, lineageItems.value[lineageItems.value.length - 1]];
 });
 </script>
-
-<template>
-  <div class="flex items-center gap-2 overflow-x-auto py-2" v-if="lineageItems.length > 0">
-    <template v-for="(item, index) in visibleItems" :key="index">
-      <template v-if="item.type !== 'separator'">
-          <component 
-            :is="item.component" 
-            :project="item.type === 'project' ? item.data : null"
-            :queue="item.type === 'queue' ? item.data : null"
-            :organization="item.type === 'organization' ? item.data : null"
-            :warehouse="item.type === 'warehouse' ? item.data : null"
-            variant="inline" 
-          />
-      </template>
-
-      <template v-else>
-          <Button label="..." size="small" text @click="isExpanded = true" />
-      </template>
-
-      <i v-if="index < visibleItems.length - 1" class="pi pi-angle-right opacity-30 text-xs"></i>
-    </template>
-  </div>
-</template>

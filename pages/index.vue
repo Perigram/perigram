@@ -1,6 +1,6 @@
 <template>
-  <div class="flex items-center justify-center min-h-screen bg-[var(--p-surface-ground)]">
-    <ProgressSpinner style="width: 50px; height: 50px" strokeWidth="4" />
+  <div class="flex items-center justify-center min-h-screen">
+    <ProgressSpinner />
   </div>
 </template>
 
@@ -33,3 +33,9 @@ onMounted(async () => {
   }
 });
 </script>
+
+<style >
+html {
+  font-size: 14px;
+}
+</style>

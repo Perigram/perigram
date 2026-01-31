@@ -1,17 +1,16 @@
 <template>
-  <div ref="container" class="w-full h-full flex items-center justify-center overflow-hidden bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-[var(--p-content-border-color)]">
-    <div v-if="loading" class="flex items-center justify-center">
-      <i class="pi pi-spin pi-spinner text-[var(--p-text-muted-color)] opacity-50"></i>
+  <div ref="container">
+    <div v-if="loading">
+      <i class="pi pi-spin pi-spinner"></i>
     </div>
-    <div v-else-if="renderingData" class="w-full h-full p-2 flex items-center justify-center">
+    <div v-else-if="renderingData">
       <svg 
         xmlns="http://www.w3.org/2000/svg" 
         :viewBox="renderingData.viewBox" 
-        class="w-full h-full max-w-full max-h-full transition-transform duration-500"
       >
         <!-- Standard DXF SVG -->
         <template v-if="renderingData.layers">
-          <g v-for="layer in renderingData.layers" :key="layer.name" :stroke="layer.color" :stroke-width="layer.weight * 5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <g v-for="layer in renderingData.layers" :key="layer.name" :stroke="layer.color" :stroke-width="layer.weight * 5" fill="none">
             <g v-html="layer.paths.join('')"></g>
           </g>
         </template>
@@ -21,25 +20,22 @@
           <!-- Extrusion Highlights -->
           <template v-for="(curve, idx) in renderingData.allCurves" :key="`c-${idx}`">
               <template v-if="curve.isExtrusion">
-                  <path :d="curve.path" fill="currentColor" class="text-[var(--p-primary-color)] opacity-5" />
-                  <path :d="curve.path" fill="none" stroke="currentColor" stroke-width="0.5" class="text-[var(--p-content-border-color)]" stroke-dasharray="4,4" />
+                  <path :d="curve.path" fill="currentColor" />
               </template>
               <template v-else-if="curve.isBoundary">
                   <path 
                     :d="curve.path" 
                     fill="none" 
                     stroke="currentColor" 
-                    stroke-width="3" 
-                    class="text-[var(--p-primary-color)]" 
-                    stroke-linejoin="round" 
+                    stroke-width="2" 
                   />
               </template>
           </template>
         </template>
       </svg>
     </div>
-    <div v-else class="text-xs text-[var(--p-text-muted-color)] opacity-20 italic">
-      <i class="pi pi-image text-2xl"></i>
+    <div v-else>
+      <i class="pi pi-image"></i>
     </div>
   </div>
 </template>
@@ -182,12 +178,3 @@ watch(() => [props.cassetteId, props.cassette, props.dimensions], () => {
     if (isVisible.value) updateThumbnail();
 }, { deep: true });
 </script>
-
-<style scoped>
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
-</style>

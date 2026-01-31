@@ -1,22 +1,19 @@
 <template>
     <div class="relative inline-block">
-        <select 
+        <Select 
             v-model="currentLocale" 
+            :options="locales"
+            optionLabel="name"
+            optionValue="code"
             @change="changeLocale"
-            class="appearance-none bg-surface-0 dark:bg-surface-800 text-surface-900 dark:text-surface-0 border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 pr-8 text-sm font-bold cursor-pointer hover:border-primary transition-all outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-20 shadow-sm"
-        >
-            <option v-for="loc in locales" :key="loc.code" :value="loc.code">
-                {{ loc.name }}
-            </option>
-        </select>
-        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-surface-400">
-            <i class="pi pi-chevron-down text-[10px]"></i>
-        </div>
+            size="small"
+        />
     </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted } from 'vue';
+import Select from 'primevue/select';
 
 // Using useI18n composable from @nuxtjs/i18n
 const { locale, locales, setLocale } = useI18n();

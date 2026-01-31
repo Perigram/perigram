@@ -3,7 +3,7 @@
             <Tabs :value="activeTabIndex">
                 <TabList>
                     <Tab v-for="(tab, index) in tabs" :key="tab.key" :value="index" @click="onTabChange(index)">
-                        {{ tab.label }}
+                        <span>{{ tab.label }}</span>
                     </Tab>
                 </TabList>
             </Tabs>

@@ -1,16 +1,15 @@
 <template>
-    <div class="flex flex-col gap-8 p-1">
+    <div class="flex flex-col gap-8">
         <!-- Project Data Header -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex flex-col gap-1">
-                <h2 class="text-xl font-black text-surface-900 dark:text-surface-0 m-0 uppercase tracking-widest">{{ $t('project.data') }}</h2>
+                <h1 class="m-0">{{ $t('project.data') }}</h1>
             </div>
             <div class="flex gap-2">
                 <Button 
                     :label="$t('projectData.addMaterial')" 
                     icon="pi pi-plus" 
                     @click="showAddMaterialDialog = true"
-                    class="h-[42px]"
                 />
             </div>
         </div>
@@ -21,13 +20,13 @@
                 <Tab value="0">
                     <div class="flex items-center gap-2">
                         <i class="pi pi-box"></i>
-                        <span class="font-bold uppercase tracking-wider text-xs">{{ $t('metadata.materials') }}</span>
+                        <span>{{ $t('metadata.materials') }}</span>
                     </div>
                 </Tab>
                 <Tab value="1">
                     <div class="flex items-center gap-2">
                         <i class="pi pi-history"></i>
-                        <span class="font-bold uppercase tracking-wider text-xs">{{ $t('projectData.logs') }}</span>
+                        <span>{{ $t('projectData.logs') }}</span>
                     </div>
                 </Tab>
             </TabList>
@@ -35,25 +34,25 @@
                 <!-- Project Materials Panel -->
                 <TabPanel value="0">
                     <div class="flex flex-col gap-6 py-4">
-                        <div v-if="projectMaterials.length === 0" class="py-12 flex flex-col items-center justify-center text-center opacity-60">
+                        <div v-if="projectMaterials.length === 0" class="py-12 flex flex-col items-center justify-center text-center italic opacity-50">
                             <i class="pi pi-database text-5xl mb-4"></i>
-                            <p class="font-bold uppercase tracking-widest text-xs">No materials in this project yet.</p>
+                            <p>No materials in this project yet.</p>
                             <Button :label="$t('projectData.addMaterial')" icon="pi pi-plus" text size="small" @click="showAddMaterialDialog = true" />
                         </div>
 
                         <div v-else class="grid grid-cols-1 gap-6">
                             <div v-for="(pm, pIdx) in projectMaterials" :key="pIdx" 
-                                class="bg-[var(--p-content-background)] border border-[var(--p-content-border-color)] rounded-2xl overflow-hidden shadow-sm"
+                                class="border rounded overflow-hidden card-interactive"
                             >
                                 <!-- Material Header -->
-                                <div class="flex items-center justify-between p-4 bg-[var(--p-content-background)] border-b border-[var(--p-content-border-color)]">
+                                <div class="flex items-center justify-between p-4 border-b">
                                     <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-[var(--p-primary-color)] text-white font-black text-xl">
+                                        <div class="w-10 h-10 border rounded flex items-center justify-center">
                                             {{ pm.material.name.charAt(0) }}
                                         </div>
                                         <div class="flex flex-col">
-                                            <h3 class="font-black text-sm uppercase m-0">{{ pm.material.name }}</h3>
-                                            <span class="text-[10px] font-bold text-[var(--p-text-muted-color)] uppercase tracking-tighter">{{ pm.material.code }} • {{ pm.material.color }} • {{ pm.material.thickness }}mm</span>
+                                            <h3 class="m-0">{{ pm.material.name }}</h3>
+                                            <small>{{ pm.material.code }} • {{ pm.material.color }} • {{ pm.material.thickness }}mm</small>
                                         </div>
                                     </div>
                                     <div class="flex gap-2">
@@ -63,36 +62,36 @@
                                 </div>
 
                                 <!-- Material Content: Sheets and Waste -->
-                                <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[var(--p-content-border-color)]">
+                                <div class="grid grid-cols-1 md:grid-cols-2">
                                     <!-- Sheets Column -->
                                     <div class="p-4 flex flex-col gap-3">
-                                        <span class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('projectData.sheets') }}</span>
-                                        <DataTable :value="pm.sheets" size="small" class="text-xs">
+                                        <small>{{ $t('projectData.sheets') }}</small>
+                                        <DataTable :value="pm.sheets" size="small">
                                             <Column field="width" :header="$t('projectData.size')">
                                                 <template #body="slotProps">
                                                     {{ slotProps.data.width }}x{{ slotProps.data.height }}
                                                 </template>
                                             </Column>
-                                            <Column field="available" :header="$t('metadata.available')" class="font-bold text-center" />
-                                            <Column field="quantity" :header="$t('projectData.quantity')" class="text-center opacity-60" />
+                                            <Column field="available" :header="$t('metadata.available')" />
+                                            <Column field="quantity" :header="$t('projectData.quantity')" />
                                             <Column header="" style="width: 40px">
                                                 <template #body="slotProps">
-                                                    <Button icon="pi pi-times" severity="danger" text rounded size="small" class="h-6 w-6" @click="removeSheets(pm, slotProps.index)" />
+                                                    <Button icon="pi pi-times" severity="danger" text rounded size="small" @click="removeSheets(pm, slotProps.index)" />
                                                 </template>
                                             </Column>
                                             <template #empty>
-                                                <p class="text-center text-[10px] opacity-40 italic py-4">{{ $t('projectData.noSheets') }}</p>
+                                                <p class="text-center italic py-4">{{ $t('projectData.noSheets') }}</p>
                                             </template>
                                         </DataTable>
                                     </div>
 
                                     <!-- Waste Polygons Column -->
-                                    <div class="p-4 flex flex-col gap-3">
-                                        <span class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('projectData.wastePolygons') }}</span>
+                                    <div class="p-4 border-l flex flex-col gap-3">
+                                        <small>{{ $t('projectData.wastePolygons') }}</small>
                                         <div v-if="pm.wastePolygons && pm.wastePolygons.length > 0" class="flex flex-wrap gap-2">
-                                            <Chip v-for="(wp, wIdx) in pm.wastePolygons" :key="wIdx" :label="`${$t('projectData.wasteArea')} #${wIdx+1} (${wp.area || 0}m²)`" removable @remove="removeWaste(pm, wIdx)" class="text-[10px]" />
+                                            <Chip v-for="(wp, wIdx) in pm.wastePolygons" :key="wIdx" :label="`${$t('projectData.wasteArea')} #${wIdx+1} (${wp.area || 0}m²)`" removable @remove="removeWaste(pm, wIdx)" />
                                         </div>
-                                        <p v-else class="text-center text-[10px] opacity-40 italic py-4">No waste polygons available.</p>
+                                        <p v-else class="text-center italic py-4">No waste polygons available.</p>
                                     </div>
                                 </div>
                             </div>
@@ -103,32 +102,32 @@
                 <!-- Cut Logs Panel -->
                 <TabPanel value="1">
                     <div class="flex flex-col gap-4 py-4">
-                        <DataTable :value="cutLogs" class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden" responsiveLayout="scroll">
+                        <DataTable :value="cutLogs" class="border rounded" responsiveLayout="scroll">
                             <Column field="date" :header="$t('projectData.logDate')">
                                 <template #body="slotProps">
-                                    <span class="text-xs font-medium">{{ formatDate(slotProps.data.date) }}</span>
+                                    <span class="italic">{{ formatDate(slotProps.data.date) }}</span>
                                 </template>
                             </Column>
                             <column field="userName" :header="$t('projectData.logUser')">
                                 <template #body="slotProps">
-                                    <span class="text-xs font-bold uppercase tracking-tight">{{ slotProps.data.userName || $t('admin.unknownUser') }}</span>
+                                    <span>{{ slotProps.data.userName || $t('admin.unknownUser') }}</span>
                                 </template>
                             </column>
                             <column field="queueName" :header="$t('projectData.logQueue')">
                                 <template #body="slotProps">
-                                    <span class="font-medium">{{ slotProps.data.queueName }}</span>
+                                    <span>{{ slotProps.data.queueName }}</span>
                                 </template>
                             </column>
-                            <column field="sheetsUsed" :header="$t('projectData.logSheets')" style="width: 100px" class="text-center" />
-                            <Column field="utilization" :header="$t('projectData.logUtilization')" style="width: 120px" class="text-center">
+                            <column field="sheetsUsed" :header="$t('projectData.logSheets')" class="text-center" />
+                            <Column field="utilization" :header="$t('projectData.logUtilization')" class="text-center">
                                 <template #body="slotProps">
-                                    <span class="font-black text-[var(--p-primary-color)]">{{ (slotProps.data.utilization * 100).toFixed(1) }}%</span>
+                                    <span>{{ (slotProps.data.utilization * 100).toFixed(1) }}%</span>
                                 </template>
                             </Column>
-                            <Column field="wasteArea" :header="$t('projectData.logWaste')" style="width: 120px">
+                            <Column field="wasteArea" :header="$t('projectData.logWaste')">
                                 <template #body="slotProps">
                                     <div class="flex items-center justify-between gap-2">
-                                        <span class="text-xs">{{ (slotProps.data.wasteArea || 0).toFixed(2) }} m²</span>
+                                        <span>{{ (slotProps.data.wasteArea || 0).toFixed(2) }} m²</span>
                                         <Button 
                                             v-if="slotProps.data.hasWastePolygons"
                                             icon="pi pi-plus-circle" 
@@ -136,7 +135,6 @@
                                             text 
                                             rounded 
                                             size="small" 
-                                            v-tooltip.top="$t('projectData.addWasteToInventory')" 
                                             @click="addWasteToInventory(slotProps.data)"
                                         />
                                     </div>
@@ -153,11 +151,10 @@
             v-model:visible="showAddMaterialDialog" 
             :header="$t('projectData.addMaterialToProject')" 
             modal 
-            :style="{ width: '95vw', maxWidth: '500px' }"
         >
-            <div class="flex flex-col gap-6 py-4">
-                <div class="flex flex-col gap-2">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-[var(--p-text-muted-color)]">Select from Global Library</label>
+            <div class="flex flex-col gap-4 py-4">
+                <div class="flex flex-col gap-1">
+                    <label>Select from Global Library</label>
                     <Select 
                         v-model="selectedGlobalMaterialId" 
                         :options="globalMaterials" 
@@ -167,15 +164,15 @@
                         :placeholder="$t('projectData.chooseMaterial')"
                     >
                         <template #option="slotProps">
-                            <div class="flex flex-col gap-1 text-sm">
-                                <span class="font-bold">{{ slotProps.option.name }}</span>
-                                <span class="text-[10px] uppercase opacity-60">{{ slotProps.option.code }} • {{ slotProps.option.thickness }}mm</span>
+                            <div class="flex flex-col">
+                                <span>{{ slotProps.option.name }}</span>
+                                <small>{{ slotProps.option.code }} • {{ slotProps.option.thickness }}mm</small>
                             </div>
                         </template>
                     </Select>
                 </div>
-                <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-dashed border-[var(--p-content-border-color)] text-center">
-                    <span class="text-xs text-[var(--p-text-muted-color)]">Material not found?</span>
+                <div class="p-4 border border-dashed rounded text-center">
+                    <small>Material not found?</small>
                     <Button :label="$t('projectData.createNewMaterial')" text size="small" @click="showCreateMaterialDialog = true" />
                 </div>
             </div>
@@ -186,35 +183,35 @@
         </Dialog>
 
         <!-- Create New Material Dialog (Global) -->
-        <Dialog v-model:visible="showCreateMaterialDialog" :header="$t('projectData.createGlobalMaterial')" modal :style="{ width: '95vw', maxWidth: '500px' }">
+        <Dialog v-model:visible="showCreateMaterialDialog" :header="$t('projectData.createGlobalMaterial')" modal>
             <div class="grid grid-cols-1 gap-4 py-4">
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-60">{{ $t('common.name') }}</label>
+                    <label>{{ $t('common.name') }}</label>
                     <InputText v-model="newGlobalMaterial.name" placeholder="e.g. Alucobond" />
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black uppercase opacity-60">{{ $t('projectData.placeholders.code') }}</label>
-                        <InputText v-model="newGlobalMaterial.code" :placeholder="$t('projectData.placeholders.code')" />
+                        <label>{{ $t('projectData.placeholders.code') }}</label>
+                        <InputText v-model="newGlobalMaterial.code" />
                     </div>
                     <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black uppercase opacity-60">{{ $t('projectData.type') }}</label>
+                        <label>{{ $t('projectData.type') }}</label>
                         <Select v-model="newGlobalMaterial.type" :options="['ACP', 'STEEL', 'ALU', 'WOOD']" />
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black uppercase opacity-60">{{ $t('projectData.placeholders.color') }}</label>
-                        <InputText v-model="newGlobalMaterial.color" :placeholder="$t('projectData.placeholders.color')" />
+                        <label>{{ $t('projectData.placeholders.color') }}</label>
+                        <InputText v-model="newGlobalMaterial.color" />
                     </div>
                     <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black uppercase opacity-60">{{ $t('metadata.thickness') }} (mm)</label>
+                        <label>{{ $t('metadata.thickness') }} (mm)</label>
                         <InputNumber v-model="newGlobalMaterial.thickness" :min="0.1" :step="0.1" />
                     </div>
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-60">{{ $t('requisition.manufacturer') }}</label>
-                    <InputText v-model="newGlobalMaterial.manufacturer" placeholder="e.g. 3A Composites" />
+                    <label>{{ $t('requisition.manufacturer') }}</label>
+                    <InputText v-model="newGlobalMaterial.manufacturer" />
                 </div>
             </div>
             <template #footer>
@@ -228,21 +225,20 @@
             v-model:visible="showAddSheetsDialog" 
             :header="$t('projectData.addSheets')" 
             modal 
-            :style="{ width: '95vw', maxWidth: '400px' }"
         >
-            <div class="flex flex-col gap-6 py-4" v-if="activeProjectMaterial">
+            <div class="flex flex-col gap-4 py-4" v-if="activeProjectMaterial">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black uppercase opacity-60">Width (mm)</label>
+                        <label>Width (mm)</label>
                         <InputNumber v-model="sheetForm.width" :min="1" />
                     </div>
                     <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-black uppercase opacity-60">Height (mm)</label>
+                        <label>Height (mm)</label>
                         <InputNumber v-model="sheetForm.height" :min="1" />
                     </div>
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-[10px] font-black uppercase opacity-60">Quantity</label>
+                    <label>Quantity</label>
                     <InputNumber v-model="sheetForm.quantity" :min="1" showButtons />
                 </div>
             </div>
@@ -464,9 +460,3 @@ const formatDate = (date) => {
     return new Date(date).toLocaleString();
 };
 </script>
-
-<style scoped>
-:deep(.p-tabs-nav) {
-    border-bottom: 1px solid var(--p-content-border-color);
-}
-</style>

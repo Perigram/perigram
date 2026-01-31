@@ -3,6 +3,7 @@
  * Catalog View Component - v24 Standardized
  */
 import Card from 'primevue/card';
+import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import { useAuthStore } from '~/stores/auth';
 import { useIdentity } from '~/composables/useBlocks';
@@ -24,41 +25,49 @@ const handleCardClick = () => {
 <template>
   <div :class="[`variant-${variant}`]">
     <template v-if="variant === 'inline'">
-      <div class="flex items-center gap-2 text-xs">
-        <i class="pi pi-book opacity-50"></i>
-        <span class="font-medium">{{ name }}</span>
+      <div class="inline-flex items-center gap-2">
+        <i class="pi pi-book"></i>
+        <span>{{ name }}</span>
       </div>
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <div @click="handleCardClick" class="flex items-center justify-between gap-4 p-2 border rounded-lg cursor-pointer hover:border-primary transition-colors">
-        <div class="flex items-center gap-2">
-          <i class="pi pi-book text-xs opacity-50"></i>
-          <span class="font-bold text-sm">{{ name }}</span>
-        </div>
-        <small class="text-[10px] opacity-50 uppercase font-bold">{{ catalog.material }}</small>
-      </div>
+      <Card @click="handleCardClick">
+        <template #title>
+            <div class="flex items-center gap-2">
+                <i class="pi pi-book"></i>
+                <span class="truncate">{{ name }}</span>
+            </div>
+        </template>
+        <template #subtitle>
+            <Tag :value="catalog.material" severity="secondary" />
+        </template>
+      </Card>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <div @click="handleCardClick" class="p-4 bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-xl cursor-pointer hover:border-primary transition-all group flex flex-col gap-3 h-full">
-        <div class="flex justify-between items-start">
-          <span class="font-bold text-sm">{{ name }}</span>
-          <span class="text-[10px] uppercase font-bold opacity-50">{{ catalog.material }}</span>
-        </div>
-        
-        <div class="flex flex-col gap-2 flex-1 text-xs">
-            <div class="flex justify-between items-center">
-                <span class="opacity-60">{{ $t('catalog.colorsAvailable') }}</span>
-                <span class="font-bold">{{ catalog.summary?.colorCount || 0 }}</span>
+      <Card @click="handleCardClick">
+        <template #title>
+            <div class="flex justify-between items-center gap-4">
+                <span class="truncate">{{ name }}</span>
+                <Tag :value="catalog.material" severity="secondary" />
             </div>
-        </div>
-
-        <div class="flex justify-end gap-1 pt-2 border-t border-surface-100 dark:border-surface-800 opacity-0 group-hover:opacity-100 transition-opacity" @click.stop>
-            <Button v-if="authStore.can('catalogs', 'edit')" icon="pi pi-pencil" text rounded size="small" @click="$emit('edit', catalog)" />
-            <Button v-if="authStore.can('catalogs', 'delete')" icon="pi pi-trash" text rounded severity="danger" size="small" @click="$emit('delete', catalog)" />
-        </div>
-      </div>
+        </template>
+        <template #content>
+            <Divider />
+            <div class="flex justify-between items-center">
+                <small>{{ $t('catalog.colorsAvailable') }}</small>
+                <span>{{ catalog.summary?.colorCount || 0 }}</span>
+            </div>
+        </template>
+        <template #footer>
+            <Divider />
+            <div class="flex justify-end gap-2" @click.stop>
+                <Button v-if="authStore.can('catalogs', 'edit')" icon="pi pi-pencil" text @click="$emit('edit', catalog)" />
+                <Button v-if="authStore.can('catalogs', 'delete')" icon="pi pi-trash" text severity="danger" @click="$emit('delete', catalog)" />
+            </div>
+        </template>
+      </Card>
     </template>
   </div>
 </template>

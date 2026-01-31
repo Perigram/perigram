@@ -3,30 +3,19 @@
 This directory contains Vue components used in the Cutkit-Demo application.
 
 ## Style Guide
-- Where not absolutely necessary, avoid using custom css, rely on PrimeVue default styles, design tokens and Tailwind utility classes. Where possible, little to zero styling at all. 
+- **PrimeVue:** All components MUST use PrimeVue for UI elements (buttons, inputs, tables, dialogs).
+- **Zero Styling Policy:** Components MUST avoid manual styling (colors, text sizes, backgrounds, etc.). Rely on PrimeVue theme presets. No custom CSS except for layout purposes.
+- **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).
+- **Standard Components:** Create reusable components for common UI patterns (cards, modals, forms, tables) and use them consistently across the app, add variants where needed.
+- **Use Variants:** Components should support different visual variants (e.g., `inline`, `compact`, `card`) to ensure flexibility in different contexts.
+- **Child Components:** Entities (see data model) which components need to display child entities (for example, NestingRunCard needs to display it's artifacts gathered by parent id) must use their components (ArtifactCard).
+- **Smart Components:** Sub-components should use permissions to conditionally render actions (edit, delete, view) based on user roles.
+- **Use State Machines**: to manage component states and transitions use StatusEntity component, not in-component logic and buttons. Ensure StatusEntity supports dynamic buttons based on the entity's state machine.
+- **True To API and Data Model**: Components must strictly adhere to the API responses and component's entity data model. Avoid hardcoding values or making assumptions about data structure, check API and data model first.
+- **Use Blocks**: Follow the standardized data model blocks (`identity`, `origin`, `status`, `lineage`, `specs`) and their components when designing component props and state.
+- **Variants:** Standardized components should support `inline`, `compact`, and `card` variants where appropriate to ensure scalability across different layouts.
 
-## Core Components
-- `CassetteDesigner.vue`: Tool for designing parametric cassette templates.
-- `ArtifactsTable.vue`: Displays and manages production artifacts.
-- `BatchManagement.vue`: Interface for creating and tracking production batches.
-- `BatchEditor.vue`: Complex editor for batch entries, nesting options, and artifact selection.
-- `pages/project/[slug]/data.vue`: Management of project-wide sheets inventory and material usage logs.
-
-## Features
-### Artifact Selection
-Users can now choose which artifacts to generate during nesting (DXF, SVG, PDF Passport, Nesting Report). DXF is mandatory.
-
-### Project Data Management
-- **Sheets Inventory:** Track available material sheets (size, material type, quantity).
-- **Cut Logs:** Historical record of "CUT" batches with utilization and waste statistics.
-- **Material Tracking:** Basic management of aluminum composite, steel, and aluminum materials.
-
-### Architecture (Target)
-- **Model Layer:** A high-level tree structure representing the cassette (faces, flanges, parameters).
-- **Geometry Layer:** Conversion of the model into a Nodi3D graph for evaluation and SVG path generation.
-- **View Layer:** Vue component handling user interaction, SVG canvas, and property editing.
-
-### Data Flow
+## Data Flow
 1. User interacts with SVG canvas (click edge).
 2. `CassetteModel` updates the tree structure.
 3. `CassetteModel` regenerates the Nodi3D graph.

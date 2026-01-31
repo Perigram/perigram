@@ -2,7 +2,6 @@
     <Tag 
         :value="$t(`results.sheetStatus.${status}`)" 
         :severity="severity"
-        class="uppercase text-[10px] font-black"
     />
 </template>
 

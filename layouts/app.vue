@@ -1,12 +1,12 @@
 <template>
-    <div class="flex flex-col min-h-screen bg-[var(--p-surface-ground)]">
-        <header class="sticky top-0 z-50 bg-[var(--p-content-background)] !border-none shadow-sm">
+    <div class="flex flex-col min-h-screen bg-surface-50 dark:bg-surface-950">
+        <header class="sticky top-0 z-50 bg-surface-0/80 dark:bg-surface-900/80 backdrop-blur-md border-b border-muted shadow-sm">
             <nav class="max-w-[1600px] mx-auto px-4 h-14 flex items-center justify-between gap-2">
                 <!-- Left: Logo & Breadcrumbs -->
                 <div class="flex items-center h-full min-w-0 flex-1">
                     <NuxtLink
                         to="/"
-                        class="flex items-center gap-2 no-underline text-[var(--p-primary-color)] text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity mr-2 shrink-0"
+                        class="flex items-center gap-2 no-underline text-primary text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity mr-2 shrink-0"
                     >
                         <span>CutKit</span>
                     </NuxtLink>
@@ -19,10 +19,10 @@
                             :key="index"
                             class="flex items-center gap-0 shrink-0"
                         >
-                            <span v-if="index > 0" class="mx-0.5 opacity-50 shrink-0">/</span>
+                            <span v-if="index > 0" class="mx-0.5 text-muted opacity-50 shrink-0">/</span>
                             <NuxtLink
                                 :to="crumb.to"
-                                class="p-button p-component p-button-text p-button-secondary text-[10px] md:text-sm font-medium whitespace-nowrap max-w-[80px] sm:max-w-[120px] md:max-w-none truncate px-1 md:px-2"
+                                class="p-button p-component p-button-text p-button-secondary text-xs md:text-sm whitespace-nowrap max-w-[80px] sm:max-w-[120px] md:max-w-none truncate px-1 md:px-2"
                             >
                                 {{ crumb.name }}
                             </NuxtLink>
@@ -56,14 +56,14 @@
                         <Button 
                             type="button" 
                             @click="toggleUserMenu" 
-                            class="p-0.5 rounded-full overflow-hidden border-2 border-transparent hover:border-[var(--p-primary-color)] transition-colors"
+                            class="p-0.5 rounded-full overflow-hidden border-2 border-transparent hover:border-primary transition-colors"
                             text
                         >
                             <Avatar 
                                 :label="authStore.userData.name ? authStore.userData.name[0].toUpperCase() : 'U'" 
                                 shape="circle" 
                                 size="normal" 
-                                class="bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)]"
+                                class="bg-primary text-primary-contrast"
                             />
                         </Button>
                         <Menu ref="userMenu" :model="userMenuItems" :popup="true" />
@@ -277,4 +277,7 @@
 </script>
 
 <style scoped lang="scss">
+html {
+    font-size: 14px;
+}
 </style>

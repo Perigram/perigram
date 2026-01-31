@@ -1,7 +1,7 @@
 <template>
-    <Tag severity="info" class="px-3 py-2 text-sm font-bold shadow-sm">
+    <Tag severity="info">
         <div class="flex items-center gap-2">
-            <i class="pi pi-wallet text-xs opacity-70"></i>
+            <i class="pi pi-wallet"></i>
             <span>{{ $t('profile.balance') }}: {{ credits }}</span>
         </div>
     </Tag>

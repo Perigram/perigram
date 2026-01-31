@@ -1,27 +1,37 @@
 <template>
-    <div class="p-4 bg-[var(--p-content-background)] border rounded-xl flex items-center gap-4 group hover:border-primary transition-colors">
-        <div 
-            class="w-12 h-12 rounded-lg border-2 border-[var(--p-content-border-color)] shadow flex-shrink-0"
-            :style="{ backgroundColor: pile.colorFallback || '#ccc' }"
-        >
-            <img v-if="pile.colorThumbnail" :src="pile.colorThumbnail" class="w-full h-full object-cover rounded-lg" />
-        </div>
-        <div class="flex flex-col flex-1 overflow-hidden">
-            <span class="text-sm font-bold truncate">{{ pile.material }} - {{ pile.color }}</span>
-            <div class="flex items-center gap-2">
-                <span class="text-[10px] font-mono opacity-60">ID: {{ pile.partyId }}</span>
-                <Tag :value="`${pile.thickness}mm`" severity="secondary" class="text-[8px]" />
+    <Card class="card-interactive">
+        <template #header>
+            <div 
+                class="h-2 w-full"
+                :style="{ backgroundColor: pile.colorFallback || '#ccc' }"
+            ></div>
+        </template>
+        <template #title>
+            <div class="flex justify-between items-center gap-4">
+                <span class="truncate">{{ pile.material }} - {{ pile.color }}</span>
+                <div class="flex flex-col items-end">
+                    <span class="text-xl">{{ pile.totalCount - pile.usedCount }} / {{ pile.totalCount }}</span>
+                </div>
             </div>
-        </div>
-        <div class="flex flex-col items-end">
-             <span class="text-xs font-black">{{ pile.totalCount - pile.usedCount }} / {{ pile.totalCount }}</span>
-             <span class="text-[8px] font-bold opacity-40 uppercase">Remaining</span>
-        </div>
-    </div>
+        </template>
+        <template #subtitle>
+            <div class="flex justify-between items-center">
+                <small>ID: {{ pile.partyId }}</small>
+                <small>Remaining</small>
+            </div>
+        </template>
+        <template #content>
+            <div class="flex items-center gap-2 mt-2">
+                <Tag :value="`${pile.thickness}mm`" severity="secondary" />
+            </div>
+        </template>
+    </Card>
 </template>
 
 <script setup>
+import Card from 'primevue/card';
 import Tag from 'primevue/tag';
+
 defineProps({
     pile: {
         type: Object,

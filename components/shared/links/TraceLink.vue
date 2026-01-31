@@ -1,10 +1,10 @@
 <template>
     <NuxtLink 
         :to="route" 
-        class="inline-flex items-center gap-2 px-2 py-1 rounded bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 hover:border-primary transition-colors no-underline group shadow-sm"
+        class="inline-flex items-center gap-2 border rounded p-1 card-interactive no-underline"
     >
-        <i :class="[config.icon, 'text-xs text-surface-400 group-hover:text-primary']"></i>
-        <span class="text-xs font-mono font-bold text-surface-900 dark:text-surface-0">
+        <i :class="config.icon"></i>
+        <span>
             {{ label || id }}
         </span>
     </NuxtLink>

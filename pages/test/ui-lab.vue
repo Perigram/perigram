@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8 min-h-screen bg-[var(--p-background-color)] text-[var(--p-text-color)]">
+  <div class="p-8 min-h-screen">
     <div class="max-w-4xl mx-auto space-y-12">
       
       <div class="flex justify-between items-center border-b pb-4">
@@ -24,25 +24,25 @@
       <div class="space-y-16">
         <template v-if="activeTab !== 'shared'">
             <div v-for="comp in activeComponents" :key="comp.title" class="space-y-8">
-            <h2>{{ comp.title }}</h2>
+            <h2 class="text-base">{{ comp.title }}</h2>
             
             <div class="space-y-12">
                 <div class="space-y-2">
-                    <small class="font-bold">Card</small>
+                    <small>Card</small>
                     <div class="max-w-md">
                         <component :is="comp.component" v-bind="comp.props" variant="card" />
                     </div>
                 </div>
 
                 <div class="space-y-2">
-                    <small class="font-bold">Compact</small>
+                    <small>Compact</small>
                     <div class="max-w-sm">
                         <component :is="comp.component" v-bind="comp.props" variant="compact" />
                     </div>
                 </div>
 
                 <div class="space-y-2">
-                    <small class="font-bold">Inline</small>
+                    <small>Inline</small>
                     <div class="flex items-center gap-4">
                         <component :is="comp.component" v-bind="comp.props" variant="inline" />
                     </div>
@@ -54,23 +54,25 @@
         <template v-else>
             <div class="space-y-12">
                 <section class="space-y-4">
-                    <h3>Status Timeline</h3>
-                    <StatusTimeline 
-                        entityType="project" 
-                        :targetId="mocks.project._id.toString()" 
-                        :mockEvents="mockHistory"
-                    />
+                    <h3 class="text-base">Status Timeline</h3>
+                    <div class="border rounded p-8">
+                        <StatusTimeline 
+                            entityType="project" 
+                            :targetId="mocks.project._id.toString()" 
+                            :mockEvents="mockHistory"
+                        />
+                    </div>
                 </section>
 
                 <section class="space-y-4">
-                    <h3>Traceability (Lineage)</h3>
+                    <h3 class="text-base">Traceability (Lineage)</h3>
                     <div class="space-y-8">
-                        <div>
-                            <small class="font-bold">Full Chain</small>
+                        <div class="border rounded p-4">
+                            <small class="block mb-2">Full Chain</small>
                             <LineageBreadcrumbs :lineage="fullLineage" />
                         </div>
-                        <div>
-                            <small class="font-bold">Collapsed Chain</small>
+                        <div class="border rounded p-4">
+                            <small class="block mb-2">Collapsed Chain</small>
                             <LineageBreadcrumbs :lineage="fullLineage" :expandable="true" />
                         </div>
                     </div>

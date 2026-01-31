@@ -3,10 +3,11 @@
  * Unified Status Timeline Component - v24 Standardized
  */
 import Timeline from 'primevue/timeline';
+import Divider from 'primevue/divider';
 import ProgressSpinner from 'primevue/progressspinner';
 import Tag from 'primevue/tag';
-import Card from 'primevue/card';
 import { onMounted, watch } from 'vue';
+import { useStatusHistory } from '~/composables/useStatusHistory';
 
 const props = defineProps({
   entityType: { type: String, required: true },
@@ -48,35 +49,39 @@ const getStatusSeverity = (state) => {
 
 <template>
   <div>
-    <div v-if="isLoading" class="flex justify-center p-8">
-      <ProgressSpinner style="width: 40px; height: 40px" />
+    <div v-if="isLoading" class="flex justify-center p-10">
+      <ProgressSpinner />
     </div>
     
-    <Timeline v-else :value="events">
+    <Timeline v-else :value="events" class="customized-timeline">
       <template #opposite="slotProps">
-        <div class="pt-1">
-            <small>{{ formatTime(slotProps.item.timestamp) }}</small>
-        </div>
+        <small>{{ formatTime(slotProps.item.timestamp) }}</small>
       </template>
       <template #content="slotProps">
-        <Card class="mb-4">
-          <template #title>
+        <div class="flex flex-col gap-2 mb-8">
             <div class="flex items-center justify-between">
               <Tag :value="slotProps.item.toState" :severity="getStatusSeverity(slotProps.item.toState)" />
               <small>{{ slotProps.item.status?.userId }}</small>
             </div>
-          </template>
-          <template #content>
             <p v-if="slotProps.item.status?.metadata?.note" class="m-0 italic">
               "{{ slotProps.item.status.metadata.note }}"
             </p>
-          </template>
-        </Card>
+            <Divider />
+        </div>
       </template>
     </Timeline>
     
-    <div v-if="!isLoading && events.length === 0" class="text-center p-8 italic">
+    <div v-if="!isLoading && events.length === 0" class="text-center p-10 italic">
       No history recorded yet.
     </div>
   </div>
 </template>
+
+<style scoped>
+.customized-timeline :deep(.p-timeline-event-opposite) {
+    flex: 0;
+    min-width: 140px;
+    text-align: right;
+    padding-right: 1.5rem;
+}
+</style>

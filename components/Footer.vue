@@ -1,30 +1,31 @@
 <template>
-    <footer class="bg-[var(--p-surface-950)] text-[var(--p-surface-0)] py-8 px-4 mt-auto border-t border-[var(--p-surface-0)]/5"> 
-        <div class="max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <ul class="flex flex-wrap items-center gap-x-10 gap-y-4 list-none m-0 p-0">
-                <li>
-                    <NuxtLink 
-                        to="/terms-and-conditions"
-                        class="text-sm font-semibold text-[var(--p-surface-0)]/60 hover:text-[var(--p-surface-0)] no-underline transition-colors"
-                    >
-                        {{ $t('footer.termsAndConditions') }}
-                    </NuxtLink>
-                </li>
-                <li>
-                    <NuxtLink 
-                        to="/blog" 
-                        class="text-sm font-semibold text-[var(--p-surface-0)]/60 hover:text-[var(--p-surface-0)] no-underline transition-colors"
-                    >
-                        {{ $t('footer.blog') }}
-                    </NuxtLink>
-                </li>
-            </ul>
-            <p class="text-sm font-semibold text-[var(--p-surface-0)]/40 m-0">
-                {{ new Date().getFullYear() }} © {{ $t('footer.companyName') }}. {{ $t('footer.allRightsReserved') }}
-            </p>
+    <footer class="mt-auto">
+        <Divider />
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 py-8">
+            <div class="flex items-center gap-8">
+                <NuxtLink 
+                    to="/terms-and-conditions" 
+                    class="no-underline"
+                >
+                    <small>{{ $t('common.terms') }}</small>
+                </NuxtLink>
+                <a 
+                    href="mailto:support@cutkit.io" 
+                    class="no-underline"
+                >
+                    <small>{{ $t('support.email') }}</small>
+                </a>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <small>
+                    &copy; {{ new Date().getFullYear() }} CutKit. All rights reserved.
+                </small>
+            </div>
         </div>
     </footer>
 </template>
 
-<style scoped>
-</style>
+<script setup>
+import Divider from 'primevue/divider';
+</script>

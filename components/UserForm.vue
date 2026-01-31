@@ -1,19 +1,19 @@
 <template>
     <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-2">
-            <label class="font-bold text-sm">Name</label>
+            <label>Name</label>
             <InputText v-model="form.name" />
         </div>
         <div class="flex flex-col gap-2">
-            <label class="font-bold text-sm">Email</label>
+            <label>Email</label>
             <InputText v-model="form.email" type="email" />
         </div>
         <div class="flex flex-col gap-2" v-if="!editMode">
-            <label class="font-bold text-sm">Password</label>
+            <label>Password</label>
             <Password v-model="form.password" :feedback="false" toggleMask />
         </div>
         <div class="flex flex-col gap-2">
-            <label class="font-bold text-sm">Role</label>
+            <label>Role</label>
             <Select 
                 v-model="form.role" 
                 :options="roles" 

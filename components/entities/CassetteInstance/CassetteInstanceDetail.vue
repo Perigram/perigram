@@ -1,64 +1,70 @@
 <template>
-    <div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-8">
         <TraceChain :ancestry="ancestry" />
 
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div class="flex items-center gap-4">
-                <h2 class="text-3xl font-black m-0">Component Lifecycle</h2>
+                <h1 class="m-0">Component Lifecycle</h1>
                 <EntityStatus :entity="instance" variant="inline" />
             </div>
             <div class="flex gap-2">
                 <Button :label="$t('cassetteInstance.updateStatus')" icon="pi pi-sync" @click="showStatusDialog = true" />
-                <Button :label="$t('cassetteInstance.printLabel')" icon="pi pi-print" severity="secondary" />
+                <Button :label="$t('cassetteInstance.printLabel')" icon="pi pi-print" text />
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div class="grid-details">
             <div class="lg:col-span-3 flex flex-col gap-8">
                  <!-- Tracking Timeline -->
                 <div class="flex flex-col gap-4">
-                    <h3 class="text-sm font-black uppercase opacity-40 flex items-center gap-2">
+                    <div class="flex items-center gap-2">
                         <i class="pi pi-history"></i>
-                        Physical Location & Status Tracking
-                    </h3>
-                    <div class="p-8 bg-[var(--p-content-background)] rounded-2xl border">
-                        <HistoryTimeline :history="instance.statusHistory || []" />
+                        <h2 class="m-0 text-base">Tracking</h2>
                     </div>
+                    <Card>
+                        <template #content>
+                            <HistoryTimeline :history="instance.statusHistory || []" />
+                        </template>
+                    </Card>
                 </div>
 
                 <!-- References -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="p-4 border rounded-xl flex flex-col gap-2">
-                         <span class="text-[10px] font-black uppercase opacity-40">Parent Design</span>
-                         <TraceLink type="cassetteDesign" :id="instance.cassetteDesignId" />
-                    </div>
-                    <div class="p-4 border rounded-xl flex flex-col gap-2">
-                         <span class="text-[10px] font-black uppercase opacity-40">Material Source</span>
-                         <TraceLink type="sheet" :id="instance.sheetId" />
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                        <template #title><small>Parent Design</small></template>
+                        <template #content>
+                            <TraceLink type="cassetteDesign" :id="instance.cassetteDesignId" />
+                        </template>
+                    </Card>
+                    <Card>
+                        <template #title><small>Material Source</small></template>
+                        <template #content>
+                            <TraceLink type="sheet" :id="instance.sheetId" />
+                        </template>
+                    </Card>
                 </div>
             </div>
 
-            <!-- Meta -->
-            <div class="flex flex-col gap-6">
-                 <div class="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex flex-col gap-4">
-                    <h4 class="text-xs font-black uppercase opacity-60 m-0">Instance Metadata</h4>
-                    <div class="flex flex-col gap-2 text-sm">
-                        <div class="flex justify-between">
-                            <span class="opacity-60">Created</span>
-                            <span class="font-bold">{{ new Date(instance.createdAt).toLocaleDateString() }}</span>
+            <!-- Sidebar -->
+            <div class="flex flex-col gap-8">
+                 <Panel header="Metadata">
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-center">
+                            <small>Created</small>
+                            <span>{{ new Date(instance.createdAt).toLocaleDateString() }}</span>
                         </div>
-                         <div class="flex justify-between">
-                            <span class="opacity-60">Project</span>
-                            <span class="font-bold">{{ instance.projectSlug }}</span>
+                        <Divider />
+                         <div class="flex justify-between items-center">
+                            <small>Project</small>
+                            <span>{{ instance.projectSlug }}</span>
                         </div>
                     </div>
-                 </div>
+                 </Panel>
             </div>
         </div>
 
-        <Dialog v-model:visible="showStatusDialog" :header="$t('cassetteInstance.updatePhysicalStatus')" :style="{ width: '400px' }" modal>
-             <div class="flex flex-col gap-4 pt-4">
+        <Dialog v-model:visible="showStatusDialog" :header="$t('cassetteInstance.updatePhysicalStatus')" modal>
+             <div class="flex flex-col gap-4 py-4">
                  <Select v-model="newStatus" :options="statusOptions" class="w-full" :placeholder="$t('cassetteInstance.selectNewStatus')" />
                  <Textarea v-model="statusNote" :placeholder="$t('cassetteInstance.addNotePlaceholder')" class="w-full" rows="3" />
              </div>
@@ -78,15 +84,15 @@ import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
 import Button from 'primevue/button';
+import Card from 'primevue/card';
+import Panel from 'primevue/panel';
+import Divider from 'primevue/divider';
 import Dialog from 'primevue/dialog';
 import Select from 'primevue/select';
 import Textarea from 'primevue/textarea';
 
 const props = defineProps({
-    instance: {
-        type: Object,
-        required: true
-    }
+    instance: { type: Object, required: true }
 });
 
 const entityStore = useEntityStore();
@@ -98,7 +104,6 @@ const statusNote = ref('');
 const statusOptions = ['nested', 'manufactured', 'on-site', 'installed'];
 
 const saveStatus = () => {
-    // Emit or call API
     showStatusDialog.value = false;
 };
 </script>

@@ -1,13 +1,21 @@
 <template>
     <div class="flex flex-col gap-6">
         <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-[var(--p-text-color)]">{{ $t('features.users') }}</h1>
+            <h1>{{ $t('features.users') }}</h1>
             <Button :label="$t('common.create')" icon="pi pi-user-plus" @click="openCreateUser" />
         </div>
 
-        <DataTable :value="users" :loading="loading" stripedRows class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
-            <Column field="name" :header="$t('profile.name')" sortable></Column>
-            <Column field="email" :header="$t('profile.email')" sortable></Column>
+        <DataTable :value="users" :loading="loading" stripedRows>
+            <Column field="name" :header="$t('profile.name')" sortable>
+                <template #body="slotProps">
+                    <span>{{ slotProps.data.name }}</span>
+                </template>
+            </Column>
+            <Column field="email" :header="$t('profile.email')" sortable>
+                <template #body="slotProps">
+                    <span>{{ slotProps.data.email }}</span>
+                </template>
+            </Column>
             <Column field="role" :header="$t('queue.status')" sortable>
                 <template #body="slotProps">
                     <Tag :value="$t(`roles.${slotProps.data.role}`)" :severity="getRoleSeverity(slotProps.data.role)" />
@@ -16,8 +24,8 @@
             <Column :header="$t('common.actions')" class="text-right">
                 <template #body="slotProps">
                     <div class="flex justify-end gap-2">
-                        <Button icon="pi pi-pencil" text @click="editUser(slotProps.data)" v-tooltip.top="'Edit'" />
-                        <Button icon="pi pi-shield" text severity="warn" @click="editPermissions(slotProps.data)" v-tooltip.top="'Permissions'" />
+                        <Button icon="pi pi-pencil" text @click="editUser(slotProps.data)" />
+                        <Button icon="pi pi-shield" text severity="warn" @click="editPermissions(slotProps.data)" />
                     </div>
                 </template>
             </Column>

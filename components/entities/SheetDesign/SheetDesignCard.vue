@@ -18,44 +18,44 @@ const { serial } = useIdentity(props.design);
   <div :class="[`variant-${variant}`]">
     <!-- Inline -->
     <template v-if="variant === 'inline'">
-      <div class="flex items-center gap-2 whitespace-nowrap">
-        <i class="pi pi-map opacity-50 text-[10px]"></i>
-        <span class="font-mono text-xs font-bold">{{ serial || 'LAYOUT' }}</span>
+      <div class="inline-flex items-center gap-2">
+        <i class="pi pi-map"></i>
+        <span>{{ serial || 'LAYOUT' }}</span>
         <EntityStatus :entity="design" variant="inline" />
       </div>
     </template>
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <Card>
+      <Card class="card-interactive">
         <template #content>
-          <div class="flex items-center justify-between gap-4">
-            <span class="font-bold truncate leading-none text-base">{{ serial || 'Sheet Design' }}</span>
-            <EntityStatus :entity="design" variant="inline" />
-          </div>
+            <div class="flex items-center justify-between gap-4">
+                <span>{{ serial || 'Sheet Design' }}</span>
+                <EntityStatus :entity="design" variant="inline" />
+            </div>
         </template>
       </Card>
     </template>
 
     <!-- Card -->
     <template v-else-if="variant === 'card'">
-      <Card class="h-full">
-        <template #title>
-          <div class="flex justify-between items-center gap-4">
-            <span class="font-bold text-lg leading-tight">Sheet Layout</span>
-            <EntityStatus :entity="design" variant="inline" />
-          </div>
-        </template>
+      <Card class="card-interactive">
         <template #content>
-          <div class="flex flex-col gap-4 pt-4 border-t border-surface border-dashed">
-            <div class="aspect-[2/1] border border-surface border-dashed rounded-xl flex items-center justify-center opacity-20 my-2 font-black italic">
-               {{ serial }}
+            <div class="flex flex-col gap-6 h-full">
+                <div class="flex justify-between items-center gap-4">
+                    <span class="text-xl">Sheet Layout</span>
+                    <EntityStatus :entity="design" variant="inline" />
+                </div>
+                <div class="flex flex-col gap-6 pt-6 border-t border-dashed flex-1">
+                    <div class="aspect-[2/1] border border-dashed rounded flex items-center justify-center opacity-20 italic">
+                        {{ serial }}
+                    </div>
+                    <div class="flex justify-between items-center mt-auto">
+                        <small>Dimensions</small>
+                        <span>{{ design.specs?.width }} x {{ design.specs?.length }} mm</span>
+                    </div>
+                </div>
             </div>
-            <div class="flex justify-between items-center text-sm font-bold opacity-60">
-              <span class="uppercase text-[10px]">Dimensions</span>
-              <span>{{ design.specs?.width }} x {{ design.specs?.length }} mm</span>
-            </div>
-          </div>
         </template>
       </Card>
     </template>

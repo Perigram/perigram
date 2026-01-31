@@ -1,29 +1,35 @@
 <template>
-  <div class="flex flex-col items-center justify-center min-h-screen bg-[var(--p-surface-950)] text-[var(--p-surface-0)] p-4">
-    <div class="flex flex-col items-center gap-8 animate-in fade-in zoom-in duration-700">
-      <h1 class="text-[12rem] font-black leading-none m-0 tracking-tighter opacity-20 select-none">404</h1>
-      
-      <div class="flex flex-col items-center gap-2 -mt-20">
-        <p class="text-2xl font-bold uppercase tracking-[0.3em] m-0 text-[var(--p-surface-0)]/90">
-          {{ $t('errors.pageNotFound') }}
+  <div class="flex flex-col items-center justify-center min-h-screen bg-surface-950 text-surface-0 p-8 text-center">
+    <div class="flex flex-col gap-4 mb-12">
+        <div class="text-9xl leading-none opacity-10 select-none">
+            {{ error?.statusCode || 500 }}
+        </div>
+        <p class="text-2xl m-0 opacity-90">
+            {{ error?.message || 'Unexpected system error' }}
         </p>
-        <div class="w-12 h-1 bg-[var(--p-primary-color)] rounded-full"></div>
-      </div>
-
-      <div class="mt-4">
+    </div>
+    
+    <div class="flex gap-4">
         <Button 
-          as="router-link"
-          to="/"
-          :label="$t('errors.goHome')"
-          icon="pi pi-home"
-          size="large"
-          class="px-8 font-bold uppercase tracking-wider"
+            label="Go Back" 
+            icon="pi pi-arrow-left" 
+            severity="secondary" 
+            text
+            @click="handleError" 
         />
-      </div>
+        <Button 
+            label="Dashboard" 
+            icon="pi pi-home" 
+            @click="navigateTo('/')" 
+        />
     </div>
   </div>
 </template>
 
 <script setup>
-import Button from 'primevue/button'
+const props = defineProps({
+  error: Object
+});
+
+const handleError = () => clearError({ redirect: '/' });
 </script>

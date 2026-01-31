@@ -2,70 +2,71 @@
     <div class="flex flex-col gap-8">
         <!-- Dashboard Header -->
         <div class="flex flex-col gap-2">
-            <h3 class="text-xl font-black m-0">Feature Access Control</h3>
-            <p class="text-sm text-[var(--p-text-secondary-color)]">Configure granular access levels for each system module.</p>
+            <h3 class="m-0">Feature Access Control</h3>
+            <p>Configure granular access levels for each system module.</p>
         </div>
 
         <!-- Permission Groups -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div 
+            <Card 
                 v-for="feature in entities" 
                 :key="feature.key"
-                class="p-4 rounded-2xl border border-[var(--p-content-border-color)] transition-all duration-300 bg-[var(--p-content-background)]"
                 :class="[
-                    localPermissions[feature.key] === 'none' ? 'opacity-60' : 'shadow-sm border-primary/20'
+                    localPermissions[feature.key] === 'none' ? 'opacity-50' : ''
                 ]"
             >
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-3">
-                        <div 
-                            class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors border border-[var(--p-content-border-color)]"
-                            :class="[
-                                localPermissions[feature.key] === 'none' ? 'bg-[var(--p-surface-100)] text-[var(--p-text-muted-color)]' : 'bg-primary text-white border-primary'
-                            ]"
-                        >
-                            <i :class="getIcon(feature.key)"></i>
+                <template #content>
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div 
+                                    class="w-10 h-10 border rounded flex items-center justify-center"
+                                >
+                                    <i :class="getIcon(feature.key)"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span>{{ feature.label }}</span>
+                                    <small>{{ getLevelLabel(localPermissions[feature.key]) }}</small>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex flex-col">
-                            <span class="font-bold text-sm">{{ feature.label }}</span>
-                            <span class="text-[10px] font-black uppercase opacity-40">{{ getLevelLabel(localPermissions[feature.key]) }}</span>
+
+                        <!-- Level Selector -->
+                        <div class="grid grid-cols-4 gap-1 p-1 border rounded">
+                            <button 
+                                v-for="level in ['none', 'read', 'write', 'admin']" 
+                                :key="level"
+                                @click="localPermissions[feature.key] = level"
+                                class="p-1 rounded"
+                                :class="[
+                                    localPermissions[feature.key] === level 
+                                        ? 'bg-primary text-primary-contrast' 
+                                        : ''
+                                ]"
+                            >
+                                {{ level }}
+                            </button>
                         </div>
+
+                        <!-- Description -->
+                        <p class="italic opacity-60">
+                            {{ getDescription(feature.key, localPermissions[feature.key]) }}
+                        </p>
                     </div>
-                </div>
-
-                <!-- Level Selector -->
-                <div class="grid grid-cols-4 gap-1 p-1 bg-[var(--p-surface-100)] border border-[var(--p-content-border-color)] rounded-lg">
-                    <button 
-                        v-for="level in ['none', 'read', 'write', 'admin']" 
-                        :key="level"
-                        @click="localPermissions[feature.key] = level"
-                        class="py-1.5 text-[10px] font-bold uppercase rounded transition-all"
-                        :class="[
-                            localPermissions[feature.key] === level 
-                                ? 'bg-[var(--p-content-background)] text-primary shadow-sm border border-[var(--p-content-border-color)]' 
-                                : 'text-[var(--p-text-muted-color)] hover:bg-[var(--p-surface-200)] border border-transparent'
-                        ]"
-                    >
-                        {{ level }}
-                    </button>
-                </div>
-
-                <!-- Description -->
-                <p class="text-[10px] mt-3 text-[var(--p-text-secondary-color)] italic leading-tight">
-                    {{ getDescription(feature.key, localPermissions[feature.key]) }}
-                </p>
-            </div>
+                </template>
+            </Card>
         </div>
 
-        <div class="pt-6 border-t border-[var(--p-content-border-color)] flex justify-end gap-3">
+        <div class="pt-6 border-t flex justify-end gap-3">
             <Button label="Discard Changes" text severity="secondary" @click="reset" />
-            <Button label="Apply Permissions" icon="pi pi-shield" @click="$emit('save', localPermissions)" raised />
+            <Button label="Apply Permissions" icon="pi pi-shield" @click="$emit('save', localPermissions)" />
         </div>
     </div>
 </template>
 
 <script setup>
 import { ref, watch } from 'vue';
+import Card from 'primevue/card';
 import Button from 'primevue/button';
 
 const props = defineProps({

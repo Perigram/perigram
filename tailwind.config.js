@@ -10,15 +10,6 @@ export default {
   darkMode: ['selector', '.dark-mode'],
   theme: {
     extend: {
-      fontSize: {
-        'tiny': '0.625rem', // 10px
-        'xs-plus': '0.75rem', // 12px (standard xs is 0.75rem/12px but we might want to name it)
-        'nano': '0.5rem', // 8px
-      },
-      fontFamily: {
-        sans: ['JetBrains Mono', 'monospace'],
-        mono: ['JetBrains Mono', 'monospace'],
-      },
       colors: {
         primary: 'var(--p-primary-color)',
         'primary-contrast': 'var(--p-primary-contrast-color)',

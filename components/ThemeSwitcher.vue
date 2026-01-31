@@ -1,18 +1,18 @@
 <template>
   <div class="flex items-center gap-2">
-    <button
+    <Button
       @click="toggleTheme"
-      class="p-2 rounded-lg border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 hover:bg-surface-100 dark:hover:bg-surface-700 transition-all duration-300 shadow-sm"
+      :icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
+      text
+      rounded
       :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-    >
-      <i v-if="isDark" class="pi pi-sun text-yellow-500 animate-pulse"></i>
-      <i v-else class="pi pi-moon text-blue-600"></i>
-    </button>
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import Button from 'primevue/button';
 
 const isDark = ref(false);
 

@@ -1,15 +1,15 @@
 <template>
   <div>
     <slot v-if="!error" />
-    <div v-else class="p-4 bg-red-50 border border-red-200 rounded-lg">
+    <div v-else class="p-4 border rounded">
       <div class="flex items-start gap-3">
-        <i class="pi pi-exclamation-triangle text-red-500 text-lg"></i>
+        <i class="pi pi-exclamation-triangle"></i>
         <div class="flex-1">
-          <h4 class="font-bold text-sm text-red-700 mb-1">{{ title || 'Component Error' }}</h4>
-          <p class="text-xs text-red-600 font-mono">{{ error }}</p>
+          <h4>{{ title || 'Component Error' }}</h4>
+          <p class="italic">{{ error }}</p>
           <button 
             @click="reset" 
-            class="mt-2 text-xs text-red-700 hover:text-red-900 underline"
+            class="mt-2"
           >
             Try Again
           </button>

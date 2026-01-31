@@ -1,18 +1,18 @@
 <template>
-    <div class="min-h-screen flex items-center justify-center bg-[var(--p-surface-ground)] p-4">
-        <Card class="w-full max-w-md border border-[var(--p-content-border-color)]">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <Card class="w-full max-w-md border">
             <template #title>
                 <div class="flex flex-col items-center gap-4 text-center">
-                    <div class="w-16 h-16 rounded-full bg-[var(--p-primary-50)] flex items-center justify-center">
-                        <i class="pi pi-building text-3xl text-[var(--p-primary-color)]"></i>
+                    <div class="w-16 h-16 border rounded-full flex items-center justify-center">
+                        <i class="pi pi-building text-3xl"></i>
                     </div>
-                    <h1 class="text-2xl font-black m-0">Organization Invitation</h1>
+                    <h1 class="m-0">Organization Invitation</h1>
                 </div>
             </template>
             <template #content>
                 <div v-if="loading" class="flex flex-col items-center py-12 gap-4">
                     <ProgressSpinner />
-                    <p class="text-[var(--p-text-muted-color)] font-medium">Fetching invitation details...</p>
+                    <p>Fetching invitation details...</p>
                 </div>
                 
                 <div v-else-if="error" class="text-center py-8 flex flex-col gap-4">
@@ -21,12 +21,12 @@
                 </div>
 
                 <div v-else-if="invitation" class="flex flex-col gap-6 py-4">
-                    <div class="p-6 bg-[var(--p-content-background)] border rounded-2xl text-center">
-                        <p class="text-sm text-[var(--p-text-muted-color)] uppercase font-black tracking-widest mb-2">You are invited to join</p>
-                        <h2 class="text-2xl font-black m-0 text-[var(--p-text-color)]">{{ invitation.organizationName }}</h2>
-                        <div class="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-[var(--p-primary-color)]/10 text-[var(--p-primary-color)] rounded-full">
-                            <i class="pi pi-shield text-xs"></i>
-                            <span class="text-xs font-bold uppercase">{{ invitation.role }}</span>
+                    <div class="p-6 border rounded text-center">
+                        <small>You are invited to join</small>
+                        <h2 class="m-0">{{ invitation.organizationName }}</h2>
+                        <div class="mt-4 inline-flex items-center gap-2">
+                            <i class="pi pi-shield"></i>
+                            <Tag :value="invitation.role" />
                         </div>
                     </div>
 
@@ -35,7 +35,7 @@
                             <Button 
                                 label="Join Organization" 
                                 icon="pi pi-user-plus" 
-                                class="w-full py-4 font-black uppercase text-lg" 
+                                class="w-full" 
                                 :loading="joining"
                                 @click="joinHandler" 
                             />
@@ -44,18 +44,18 @@
                             <Button 
                                 label="Login to Join" 
                                 icon="pi pi-sign-in" 
-                                class="w-full py-4 font-black uppercase text-lg" 
+                                class="w-full" 
                                 @click="navigateTo('/')" 
                             />
-                            <p class="text-center text-xs text-[var(--p-text-muted-color)] px-4">
-                                You need to be logged in to accept this invitation.
+                            <p class="text-center">
+                                <small>You need to be logged in to accept this invitation.</small>
                             </p>
                         </template>
                         <Button 
                             label="Decline" 
                             severity="secondary" 
                             text 
-                            class="w-full font-bold uppercase text-sm" 
+                            class="w-full" 
                             :disabled="joining"
                             @click="navigateTo('/')"
                         />

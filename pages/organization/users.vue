@@ -8,7 +8,7 @@
       </div>
     </div>
 
-    <DataTable :value="users" :loading="loading" stripedRows class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
+    <DataTable :value="users" :loading="loading" stripedRows>
       <Column field="name" :header="$t('profile.name')" sortable />
       <Column field="email" :header="$t('profile.email')" sortable />
       <Column field="role" :header="$t('queue.status')">
@@ -27,12 +27,12 @@
     </DataTable>
 
     <div v-if="invitations.length > 0" class="flex flex-col gap-4 mt-8">
-        <h2 class="text-xl font-bold">Active Invitations</h2>
-        <DataTable :value="invitations" class="border border-[var(--p-content-border-color)] rounded-lg overflow-hidden">
+        <h2>Active Invitations</h2>
+        <DataTable :value="invitations">
             <Column :header="$t('auth.invitationLink')">
                 <template #body="{ data }">
                     <div class="flex items-center gap-2">
-                        <span class="text-xs font-mono bg-[var(--p-surface-100)] px-2 py-1 rounded truncate max-w-md">
+                        <span class="text-xs font-mono opacity-60 truncate max-w-md">
                             {{ getInvitationUrl(data.token) }}
                         </span>
                         <Button icon="pi pi-copy" text size="small" @click="copyToClipboard(getInvitationUrl(data.token))" />
@@ -55,11 +55,11 @@
 
     <!-- Pending Members Section -->
     <div v-if="pendingUsers.length > 0" class="flex flex-col gap-4 mt-8">
-        <h2 class="text-xl font-bold text-yellow-600 flex items-center gap-2">
+        <h2 class="flex items-center gap-2">
             <i class="pi pi-clock"></i>
             Join Requests
         </h2>
-        <DataTable :value="pendingUsers" class="border border-yellow-200 rounded-lg overflow-hidden shadow-sm">
+        <DataTable :value="pendingUsers">
             <Column field="name" :header="$t('profile.name')" sortable />
             <Column field="email" :header="$t('profile.email')" />
             <Column :header="$t('common.actions.title')" class="text-right">
@@ -76,17 +76,23 @@
     <!-- Invite Member Dialog -->
     <Dialog v-model:visible="showInviteDialog" :header="$t('auth.inviteMember')" :style="{ width: '450px' }" modal>
         <div class="flex flex-col gap-4 pt-4">
-            <p class="text-sm text-[var(--p-text-muted-color)] m-0">Generate a unique link that a user can use to join your organization.</p>
+            <p>{{ $t('auth.inviteMemberNote') || 'Generate a unique link that a user can use to join your organization.' }}</p>
             <div class="flex flex-col gap-2">
-                <label class="font-bold text-sm">Role *</label>
+                <label>Role *</label>
                 <Select v-model="inviteForm.role" :options="roleOptions" optionLabel="label" optionValue="value" class="w-full" />
             </div>
-            <div v-if="generatedUrl" class="p-4 bg-[var(--p-content-background)] border-2 border-dashed border-primary rounded-xl mt-4 animate-in fade-in zoom-in shadow-inner">
-                <span class="text-[10px] font-black uppercase opacity-60 block mb-2">{{ $t('auth.invitationLink') }}</span>
-                <div class="flex items-center gap-2 p-2 bg-[var(--p-surface-100)] border rounded border-[var(--p-content-border-color)]">
-                    <span class="text-xs font-mono truncate flex-1">{{ generatedUrl }}</span>
-                    <Button icon="pi pi-copy" text size="small" @click="copyToClipboard(generatedUrl)" />
-                </div>
+            <div v-if="generatedUrl" class="mt-4">
+                <Card>
+                    <template #content>
+                        <div class="flex flex-col gap-2">
+                            <small>{{ $t('auth.invitationLink') }}</small>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-mono truncate flex-1">{{ generatedUrl }}</span>
+                                <Button icon="pi pi-copy" text size="small" @click="copyToClipboard(generatedUrl)" />
+                            </div>
+                        </div>
+                    </template>
+                </Card>
             </div>
         </div>
         <template #footer>
@@ -99,19 +105,19 @@
     <Dialog v-model:visible="showCreateDialog" :header="$t('auth.createAccount')" :style="{ width: '500px' }" modal>
       <form @submit.prevent="createUser" class="flex flex-col gap-4 pt-4">
         <div class="flex flex-col gap-2">
-          <label class="font-bold text-sm">{{ $t('profile.name') }} *</label>
+          <label>{{ $t('profile.name') }} *</label>
           <InputText v-model="form.name" required class="w-full" />
         </div>
         <div class="flex flex-col gap-2">
-          <label class="font-bold text-sm">{{ $t('profile.email') }} *</label>
+          <label>{{ $t('profile.email') }} *</label>
           <InputText v-model="form.email" type="email" required class="w-full" />
         </div>
         <div class="flex flex-col gap-2">
-          <label class="font-bold text-sm">{{ $t('profile.password') }} *</label>
-          <Password v-model="form.password" required toggleMask class="w-full" inputClass="w-full" />
+          <label>{{ $t('profile.password') }} *</label>
+          <Password v-model="form.password" required toggleMask class="w-full" :inputStyle="{ width: '100%' }" />
         </div>
         <div class="flex flex-col gap-2">
-          <label class="font-bold text-sm">Role *</label>
+          <label>Role *</label>
           <Select v-model="form.role" :options="roleOptions" optionLabel="label" optionValue="value" required class="w-full" />
         </div>
         <div class="flex justify-end gap-2 mt-4">
@@ -146,6 +152,7 @@ import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
+import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
 import PermissionEditor from '~/components/PermissionEditor.vue';
 
