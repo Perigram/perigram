@@ -30,7 +30,7 @@ export async function findById(id) {
 
 export async function findByCode(code) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ code });
+  return await db.collection(COLLECTION).findOne({ 'data.code': code });
 }
 
 export async function find(filter = {}) {

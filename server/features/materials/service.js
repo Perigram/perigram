@@ -4,9 +4,21 @@
 
 import * as repository from './repository.js';
 import { createError } from 'h3';
+import { createIdentity, createStatus, createData } from '~/server/utils/blocks';
+
+function toDTO(material) {
+  if (!material) return null;
+  return {
+    ...material,
+    ...material.data,
+    name: material.identity?.name,
+    code: material.identity?.code
+  };
+}
 
 export async function list(options = {}) {
-  return await repository.find({}, options);
+  const materials = await repository.find({}, options);
+  return materials.map(toDTO);
 }
 
 export async function getById(id) {
@@ -14,7 +26,7 @@ export async function getById(id) {
   if (!material) {
     throw createError({ statusCode: 404, message: 'Material not found' });
   }
-  return material;
+  return toDTO(material);
 }
 
 export async function create(data) {
@@ -27,20 +39,43 @@ export async function create(data) {
     throw createError({ statusCode: 409, message: 'Material code already exists' });
   }
   
-  return await repository.create(data);
+  const origin = createStatus('ACTIVE', 'SYSTEM', { note: 'Material defined' });
+
+  const materialData = {
+    identity: createIdentity(data.name, '', data.code),
+    origin,
+    status: origin,
+    data: createData({
+      code: data.code,
+      description: data.description || ''
+    })
+  };
+
+  const created = await repository.create(materialData);
+  return toDTO(created);
 }
 
 export async function update(id, updates) {
-  // Don't allow organizationId change
-  delete updates._id;
-  delete updates.createdAt;
-  delete updates.organizationId;
+  const material = await repository.findById(id);
+  if (!material) throw createError({ statusCode: 404, message: 'Material not found' });
+
+  const { identity, origin, status, data: updatesData, ...clean } = updates;
   
-  const success = await repository.updateById(id, updates);
-  if (!success) {
-    throw createError({ statusCode: 404, message: 'Material not found or no changes made' });
+  if (updates.name) material.identity.name = updates.name;
+  if (updates.code) {
+    material.identity.serial = updates.code;
+    material.data.code = updates.code;
   }
-  return await repository.findById(id);
+
+  const materialData = {
+    ...material.data,
+    ...updatesData,
+    ...clean
+  };
+
+  await repository.updateById(id, { identity: material.identity, data: materialData });
+  const updated = await repository.findById(id);
+  return toDTO(updated);
 }
 
 export async function remove(id) {

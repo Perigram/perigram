@@ -27,31 +27,26 @@ export async function findById(id) {
 
 export async function findByCode(code) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ code });
+  return await db.collection(COLLECTION).findOne({ 'data.code': code });
 }
 
 export async function create(data) {
   const db = await connectDB();
   const doc = {
     ...data,
-    createdAt: new Date(),
-    updatedAt: new Date()
+    _id: data._id || new ObjectId()
   };
   
-  const result = await db.collection(COLLECTION).insertOne(doc);
-  return { ...doc, _id: result.insertedId };
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc;
 }
 
 export async function updateById(id, updates) {
   const db = await connectDB();
+  const { _id, ...clean } = updates;
   const result = await db.collection(COLLECTION).updateOne(
     { _id: toObjectId(id) },
-    { 
-      $set: { 
-        ...updates, 
-        updatedAt: new Date() 
-      } 
-    }
+    { $set: clean }
   );
   return result.modifiedCount > 0;
 }

@@ -5,8 +5,12 @@ const COLLECTION = 'requisitions';
 
 export async function create(data) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).insertOne(data);
-  return { ...data, _id: result.insertedId };
+  const doc = {
+    ...data,
+    _id: data._id || new ObjectId()
+  };
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc;
 }
 
 export async function findById(id) {
@@ -19,15 +23,14 @@ export async function find(filter = {}) {
   return await db.collection(COLLECTION).find(filter).toArray();
 }
 
-export async function getNextRequisitionNumber() {
-    const db = await connectDB();
-    const count = await db.collection(COLLECTION).countDocuments();
-    return (count + 1).toString().padStart(5, '0');
-}
-
 export async function updateById(id, updates) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).updateOne({ _id: new ObjectId(id) }, { $set: updates });
+  const { _id, ...clean } = updates;
+  await db.collection(COLLECTION).updateOne(
+    { _id: new ObjectId(id) }, 
+    { $set: clean }
+  );
+  return await findById(id);
 }
 
 export async function deleteById(id) {

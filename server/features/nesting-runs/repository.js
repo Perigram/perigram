@@ -1,5 +1,4 @@
 import { connectDB } from '~/server/db/mongo';
-import { ObjectId } from 'mongodb';
 
 const COLLECTION = 'nesting_runs';
 
@@ -7,17 +6,15 @@ export async function create(data) {
   const db = await connectDB();
   const doc = {
     ...data,
-    _id: data._id || new ObjectId(),
-    createdAt: new Date(),
-    updatedAt: new Date()
+    _id: data.identity.uid
   };
   await db.collection(COLLECTION).insertOne(doc);
   return doc;
 }
 
-export async function findById(id) {
+export async function findById(uid) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
+  return await db.collection(COLLECTION).findOne({ _id: uid });
 }
 
 export async function find(filter = {}) {
@@ -30,17 +27,17 @@ export async function count(filter = {}) {
   return await db.collection(COLLECTION).countDocuments(filter);
 }
 
-export async function updateById(id, updates) {
+export async function updateById(uid, updates) {
   const db = await connectDB();
-  const { _id, ...clean } = updates;
+  const { _id, identity, ...clean } = updates;
   await db.collection(COLLECTION).updateOne(
-    { _id: new ObjectId(id) }, 
-    { $set: { ...clean, updatedAt: new Date() } }
+    { _id: uid }, 
+    { $set: clean }
   );
-  return await findById(id);
+  return await findById(uid);
 }
 
-export async function deleteById(id) {
+export async function deleteById(uid) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
+  return await db.collection(COLLECTION).deleteOne({ _id: uid });
 }

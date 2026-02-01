@@ -1,32 +1,48 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { createIdentity } from '~/server/utils/blocks';
+import { createIdentity, createData, createStatus } from '~/server/utils/blocks';
 import { ObjectId } from 'mongodb';
 
 /**
  * Layer Standards Service - v24 Standardized
  */
 
+function toDTO(standard) {
+  if (!standard) return null;
+  return {
+    ...standard,
+    ...standard.data,
+    name: standard.identity?.name
+  };
+}
+
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { code, category, name, i18n, parameters, defaultPenId } = data;
 
   const lineage = userOrg ? { organizationId: new ObjectId(userOrg) } : {};
+  const origin = createStatus('ACTIVE', userId || 'SYSTEM', { note: 'Layer standard created' });
 
   const standardData = {
     identity: createIdentity(name || code),
+    origin,
+    status: origin,
     lineage,
-    code,
-    category,
-    defaultPenId: defaultPenId ? new ObjectId(defaultPenId) : null,
-    i18n: i18n || { en: { nameTemplate: name }, ru: { nameTemplate: name } },
-    parameters: parameters || []
+    data: createData({
+      code,
+      category,
+      defaultPenId: defaultPenId ? new ObjectId(defaultPenId) : null,
+      i18n: i18n || { en: { nameTemplate: name }, ru: { nameTemplate: name } },
+      parameters: parameters || []
+    })
   };
 
-  return await repository.create(standardData);
+  const created = await repository.create(standardData);
+  return toDTO(created);
 }
 
 export async function list(filter = {}) {
-  return await repository.find(filter);
+  const standards = await repository.find(filter);
+  return standards.map(toDTO);
 }
 
 export async function getAll() {
@@ -34,7 +50,7 @@ export async function getAll() {
 }
 
 export async function getByCategory(category) {
-  return await list({ category });
+  return await list({ 'data.category': category });
 }
 
 export async function getByCode(code) {
@@ -42,7 +58,7 @@ export async function getByCode(code) {
   if (!standard) {
     throw createError({ statusCode: 404, message: `Layer standard '${code}' not found` });
   }
-  return standard;
+  return toDTO(standard);
 }
 
 export async function getById(id) {
@@ -50,7 +66,7 @@ export async function getById(id) {
   if (!standard) {
     throw createError({ statusCode: 404, message: 'Layer standard not found' });
   }
-  return standard;
+  return toDTO(standard);
 }
 
 /**
@@ -58,7 +74,7 @@ export async function getById(id) {
  * Example: template="Cut_{diameter}" + params={diameter:3.15} = "Cut_3,15"
  */
 export function generateLayerName(standard, parameters = {}, locale = 'en') {
-  const config = standard.config || standard; // support legacy
+  const config = standard.data || standard; // support both DTO and raw
   const i18n = config.i18n || {};
   
   if (!i18n[locale]) {

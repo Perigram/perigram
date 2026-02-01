@@ -1,7 +1,7 @@
 import * as repository from './repository.js';
 import * as nestingRunsRepository from '../nesting-runs/repository.js';
 import { createError } from 'h3';
-import { createStatus, inheritLineage } from '~/server/utils/blocks';
+import { createStatus, inheritLineage, createData, createIdentity, createAttachment } from '~/server/utils/blocks';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
@@ -10,6 +10,15 @@ import { ObjectId } from 'mongodb';
  * Sheet Designs Service - v24 Standardized
  */
 
+function toDTO(design) {
+  if (!design) return null;
+  return {
+    ...design,
+    ...design.data,
+    name: design.identity?.name
+  };
+}
+
 export async function createFromRun(run, data, userId) {
   // 1. Lineage Inheritance
   const lineage = inheritLineage(run, 'run');
@@ -17,30 +26,37 @@ export async function createFromRun(run, data, userId) {
   const origin = createStatus('READY', userId || 'SYSTEM', { note: 'Sheet design generated from nesting run' });
 
   const designData = {
+    identity: createIdentity(data.name || `Sheet Design for Run ${run._id}`),
     origin,
     status: origin,
     lineage,
-    geometry: {
-      svgId: data.svgId ? new ObjectId(data.svgId) : null,
-      dxfId: data.dxfId ? new ObjectId(data.dxfId) : null,
-      data: data.geometryData || null
-    },
-    specs: data.specs || {}
+    data: createData({
+      geometry: {
+        data: data.geometryData || null
+      },
+      attachments: {
+        svg: data.svgId ? createAttachment('SVG', data.svgId, 'Design SVG') : null,
+        dxf: data.dxfId ? createAttachment('DXF', data.dxfId, 'Design DXF') : null
+      },
+      specs: data.specs || {}
+    })
   };
 
-  return await repository.create(designData);
+  const created = await repository.create(designData);
+  return toDTO(created);
 }
 
 export async function getById(id) {
   if (!ObjectId.isValid(id)) throw createError({ statusCode: 400, message: 'Invalid ID' });
   const design = await repository.findById(id);
   if (!design) throw createError({ statusCode: 404, message: 'Sheet design not found' });
-  return design;
+  return toDTO(design);
 }
 
 export async function list(filter = {}) {
   const finalFilter = mapLineageQuery(filter);
-  return await repository.find(finalFilter);
+  const designs = await repository.find(finalFilter);
+  return designs.map(toDTO);
 }
 
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {

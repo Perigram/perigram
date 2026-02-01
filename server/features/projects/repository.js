@@ -1,5 +1,4 @@
 import { connectDB } from '~/server/db/mongo';
-import { ObjectId } from 'mongodb';
 
 const COLLECTION = 'projects';
 
@@ -7,22 +6,19 @@ export async function create(data) {
   const db = await connectDB();
   const doc = {
     ...data,
-    _id: data._id || new ObjectId(),
-    createdAt: new Date(),
-    updatedAt: new Date()
+    _id: data.identity.uid // Standard: uid is the _id
   };
   await db.collection(COLLECTION).insertOne(doc);
   return doc;
 }
 
-export async function findById(id) {
+export async function findById(uid) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
+  return await db.collection(COLLECTION).findOne({ _id: uid });
 }
 
 export async function findBySlug(slug) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ 'identity.slug': slug });
+  return await findById(slug);
 }
 
 export async function find(filter = {}) {
@@ -30,17 +26,17 @@ export async function find(filter = {}) {
   return await db.collection(COLLECTION).find(filter).toArray();
 }
 
-export async function updateBySlug(slug, updates) {
+export async function updateById(uid, updates) {
   const db = await connectDB();
-  const { _id, ...clean } = updates;
+  const { _id, identity, ...clean } = updates;
   await db.collection(COLLECTION).updateOne(
-    { 'identity.slug': slug }, 
-    { $set: { ...clean, updatedAt: new Date() } }
+    { _id: uid }, 
+    { $set: clean }
   );
-  return await findBySlug(slug);
+  return await findById(uid);
 }
 
-export async function deleteBySlug(slug) {
+export async function deleteById(uid) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).deleteOne({ 'identity.slug': slug });
+  return await db.collection(COLLECTION).deleteOne({ _id: uid });
 }

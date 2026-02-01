@@ -16,8 +16,8 @@ export async function findById(id) {
 export async function findSystem() {
   const db = await connectDB();
   return await db.collection(COLLECTION)
-    .find({ ownerId: null })
-    .sort({ name: 1 })
+    .find({ 'lineage.userId': null })
+    .sort({ 'identity.name': 1 })
     .toArray();
 }
 
@@ -30,14 +30,17 @@ export async function findByOwner(ownerId) {
   
   // Handle OAuth userId strings (e.g., "google:12345") - use as-is, not as ObjectId
   return await db.collection(COLLECTION)
-    .find({ ownerId: ownerId })
-    .sort({ name: 1 })
+    .find({ 'lineage.userId': ownerId })
+    .sort({ 'identity.name': 1 })
     .toArray();
 }
 
 export async function create(data) {
   const db = await connectDB();
-  const doc = { ...data, createdAt: new Date() };
+  const doc = {
+    ...data,
+    _id: data._id || new ObjectId()
+  };
   const result = await db.collection(COLLECTION).insertOne(doc);
   return { ...doc, _id: result.insertedId };
 }

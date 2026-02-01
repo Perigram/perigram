@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import * as designRepository from '../cassette-designs/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createIdentity, createStatus, inheritLineage } from '~/server/utils/blocks';
+import { createIdentity, createStatus, inheritLineage, createData } from '~/server/utils/blocks';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import standardSlugify from 'standard-slugify';
@@ -18,8 +18,9 @@ function toDTO(cassette) {
   if (!cassette) return null;
   return {
     ...cassette,
-    name: cassette.identity?.name || cassette.name,
-    slug: cassette.identity?.slug || cassette.slug
+    ...cassette.data,
+    name: cassette.identity?.name,
+    slug: cassette.identity?.slug
   };
 }
 
@@ -40,11 +41,11 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     origin,
     status: origin,
     lineage,
-    definition: {
+    data: createData({
         type: data.type || 'PARAMETRIC', // PARAMETRIC | STANDARD
-        data: data.data || null,
+        definition: data.definition || data.data || null,
         parameters: data.parameters || []
-    }
+    })
   };
 
   const cassette = await repository.create(cassetteData);
@@ -81,11 +82,11 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
     origin,
     status: origin,
     lineage,
-    definition: {
+    data: createData({
       type: 'STANDARD',
-      data: { mapping: mapping || {} },
+      definition: { mapping: mapping || {} },
       parameters: parameters || []
-    }
+    })
   };
 
   const template = await repository.create(templateData);
@@ -100,11 +101,13 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
       ...lineage,
       templateId: template._id
     },
-    geometry: {
-      data: null,
-      dxfId: uploadStream.id
-    },
-    parameters: {}
+    data: createData({
+      geometry: {
+        data: null,
+        dxfId: uploadStream.id
+      },
+      parameters: {}
+    })
   };
 
   await designRepository.create(designData);
@@ -150,7 +153,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
 export async function exportDxf(id, dimensions, userId, userOrg, userRole, userPermissions) {
   const template = await getById(id, userId, userOrg, userRole, userPermissions);
   
-  if (template.definition?.type === 'PARAMETRIC') {
+  if (template.type === 'PARAMETRIC') {
     const { evaluateTemplate, generateSimpleDxf } = await import('../parametric-cassettes/service.js');
     const { polygons } = await evaluateTemplate(id, dimensions || {});
     return generateSimpleDxf(polygons);
@@ -159,12 +162,12 @@ export async function exportDxf(id, dimensions, userId, userOrg, userRole, userP
     const db = await connectDB();
     const design = await db.collection('cassette_designs').findOne({ 'lineage.templateId': new ObjectId(id) });
     
-    if (!design?.geometry?.dxfId) {
+    if (!design?.data?.geometry?.dxfId) {
       throw createError({ statusCode: 404, message: 'DXF not found for this template' });
     }
     
     const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
-    return bucket.openDownloadStream(new ObjectId(design.geometry.dxfId));
+    return bucket.openDownloadStream(new ObjectId(design.data.geometry.dxfId));
   }
 }
 
@@ -181,21 +184,17 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
     delete updates.status;
   }
 
-  const { identity, origin, status, lineage, definition, ...clean } = updates;
+  const { identity, origin, status, lineage, data: updatesData, ...clean } = updates;
   
   if (updates.name) cassette.identity.name = updates.name;
   
-  // Update definition if provided
-  if (updates.data || updates.parameters || updates.type) {
-    cassette.definition = {
-      ...cassette.definition,
-      type: updates.type || cassette.definition.type,
-      data: updates.data || cassette.definition.data,
-      parameters: updates.parameters || cassette.definition.parameters
-    };
-  }
+  const cassetteData = {
+    ...cassette.data,
+    ...updatesData,
+    ...clean
+  };
 
-  await repository.updateById(id, { identity: cassette.identity, definition: cassette.definition, ...clean });
+  await repository.updateById(id, { identity: cassette.identity, data: cassetteData });
   const updated = await repository.findById(id);
   return toDTO(updated);
 }
@@ -208,15 +207,15 @@ export async function updateLayerMapping(id, mapping, userId, userOrg, userRole,
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  const definition = {
-    ...cassette.definition,
-    data: {
-      ...(cassette.definition?.data || {}),
+  const data = {
+    ...cassette.data,
+    definition: {
+      ...(cassette.data?.definition || {}),
       mapping: mapping
     }
   };
 
-  await repository.updateById(id, { definition });
+  await repository.updateById(id, { data });
   const updated = await repository.findById(id);
   return toDTO(updated);
 }
@@ -229,12 +228,12 @@ export async function updateParameters(id, parameters, userId, userOrg, userRole
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  const definition = {
-    ...cassette.definition,
+  const data = {
+    ...cassette.data,
     parameters: parameters
   };
 
-  await repository.updateById(id, { definition });
+  await repository.updateById(id, { data });
   const updated = await repository.findById(id);
   return toDTO(updated);
 }

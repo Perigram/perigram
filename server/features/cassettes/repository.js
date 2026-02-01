@@ -20,8 +20,11 @@ export async function findById(id) {
 
 export async function find(filter = {}, options = {}) {
   const db = await connectDB();
-  let cursor = db.collection(COLLECTION).find(filter).sort({ 'status.timestamp': -1 });
+  let cursor = db.collection(COLLECTION).find(filter);
   
+  if (options.sort) cursor = cursor.sort(options.sort);
+  else cursor = cursor.sort({ 'status.timestamp': -1 });
+
   if (options.skip) cursor = cursor.skip(options.skip);
   if (options.limit) cursor = cursor.limit(options.limit);
   

@@ -3,7 +3,18 @@ import * as sessionsRepository from '../sessions/repository.js';
 import { hashPassword, verifyPassword, generateSession, generateAccessToken } from '~/server/utils/auth-helpers';
 import { createError } from 'h3';
 import { PERMISSION_TEMPLATES } from './permission-templates.js';
+import { registerService } from '~/server/utils/blocks';
+import { User } from './model.js';
+import { statusService } from '~/server/core/machines/service';
 import { ObjectId } from 'mongodb';
+
+/**
+ * Users Service - v24 Absolute Final
+ */
+
+registerService('user', {
+  getById: (uid) => getById(uid)
+});
 
 export async function register(data, creatorUserId, userOrg, creatorRole, creatorPermissions) {
   if (!data.email || !data.password || !data.name) {
@@ -11,9 +22,7 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
   }
   
   const existing = await usersRepository.findByEmail(data.email.toLowerCase());
-  if (existing) {
-    throw createError({ statusCode: 409, message: 'Email already registered' });
-  }
+  if (existing) throw createError({ statusCode: 409, message: 'Email already registered' });
   
   const passwordHash = await hashPassword(data.password);
   const role = data.role || 'IndividualUser';
@@ -22,33 +31,32 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
   const memberships = [];
   if (data.organizationId) {
     memberships.push({
-      organizationId: new ObjectId(data.organizationId),
+      organizationId: data.organizationId,
       role,
       permissions,
       status: 'active'
     });
   }
 
-  return await usersRepository.create({
-    email: data.email.toLowerCase(),
-    passwordHash,
-    name: data.name,
-    organizationId: data.organizationId ? new ObjectId(data.organizationId) : null,
-    role,
-    permissions,
-    memberships,
-    currentOrganizationId: data.organizationId ? new ObjectId(data.organizationId) : null,
-    restrictedTo: data.restrictedTo || null,
-    isActive: true
+  const user = new User({
+    identity: { uid: `user-${ObjectId().toString().substring(0, 8)}`, name: data.name },
+    params: { email: data.email.toLowerCase(), passwordHash, role, permissions, memberships }
   });
+
+  user.applyStatus('ACTIVE', creatorUserId || 'SYSTEM', { note: 'User registered' });
+
+  const createdRaw = await usersRepository.create(user);
+  return new User(createdRaw);
 }
 
 export async function login(email, password) {
-  const user = await usersRepository.findByEmail(email.toLowerCase());
-  if (!user) throw createError({ statusCode: 401, message: 'Invalid credentials' });
-  if (!user.isActive) throw createError({ statusCode: 403, message: 'Account deactivated' });
+  const userRaw = await usersRepository.findByEmail(email.toLowerCase());
+  if (!userRaw) throw createError({ statusCode: 401, message: 'Invalid credentials' });
+  const user = new User(userRaw);
   
-  const valid = await verifyPassword(user.passwordHash, password);
+  if (!user.data.isActive) throw createError({ statusCode: 403, message: 'Account deactivated' });
+  
+  const valid = await verifyPassword(user.data.passwordHash, password);
   if (!valid) throw createError({ statusCode: 401, message: 'Invalid credentials' });
   
   const session = generateSession();
@@ -57,130 +65,39 @@ export async function login(email, password) {
   const accessToken = generateAccessToken(user._id);
   
   return {
-    user: {
-      id: user._id.toString(),
-      email: user.email,
-      name: user.name,
-      organizationId: user.organizationId?.toString(),
-      role: user.role,
-      permissions: user.permissions,
-      memberships: user.memberships || []
-    },
+    user,
     sessionId: session.sessionId,
     accessToken
   };
 }
 
 export async function list(userId, userOrg, userRole, userPermissions) {
-  if (userRole === 'SuperAdmin') return await usersRepository.find();
-  return await usersRepository.find({ 
-    "memberships.organizationId": new ObjectId(userOrg) 
-  });
+  const filter = userRole === 'SuperAdmin' ? {} : { "data.memberships.organizationId": userOrg };
+  const raws = await usersRepository.find(filter);
+  return raws.map(raw => new User(raw));
 }
 
-export async function switchOrganization(userId, organizationId) {
-  const user = await usersRepository.findById(userId);
-  if (!user) throw createError({ statusCode: 404, message: 'User not found' });
-
-  const membership = user.memberships.find(m => m.organizationId.toString() === organizationId.toString());
-  if (!membership) throw createError({ statusCode: 403, message: 'User is not a member of this organization' });
-
-  const updates = {
-    organizationId: membership.organizationId,
-    role: membership.role,
-    permissions: membership.permissions,
-    currentOrganizationId: membership.organizationId
-  };
-
-  await usersRepository.updateById(userId, updates);
-  return await usersRepository.findById(userId);
+export async function getById(uid) {
+  const raw = await usersRepository.findById(uid);
+  if (!raw) return null;
+  return new User(raw);
 }
 
-export async function confirmMembership(userId, organizationId, action, updaterUser) {
-  if (updaterUser.role !== 'SuperAdmin' && updaterUser.organizationId?.toString() !== organizationId.toString()) {
-    throw createError({ statusCode: 403, message: 'Forbidden' });
-  }
+export async function update(uid, updates, userId, userRole) {
+  const raw = await usersRepository.findById(uid);
+  if (!raw) throw createError({ statusCode: 404, message: 'User not found' });
+  const user = new User(raw);
 
-  const user = await usersRepository.findById(userId);
-  if (!user) throw createError({ statusCode: 404, message: 'User not found' });
+  if (updates.name) user.identity.name = updates.name;
+  user.data = { ...user.data, ...(updates.data || {}) };
 
-  const db = await (await import('~/server/db/mongo')).connectDB();
-  if (action === 'approve') {
-    await db.collection('users').updateOne(
-      { _id: new ObjectId(userId), "memberships.organizationId": new ObjectId(organizationId) },
-      { $set: { "memberships.$.status": 'active' } }
-    );
-  } else {
-    await db.collection('users').updateOne(
-      { _id: new ObjectId(userId) },
-      { $pull: { memberships: { organizationId: new ObjectId(organizationId) } } }
-    );
-  }
+  await usersRepository.updateById(uid, user);
+  return await getById(uid);
+}
+
+export async function remove(uid, deleterId, deleterRole) {
+  if (deleterRole !== 'SuperAdmin') throw createError({ statusCode: 403, message: 'Forbidden' });
+  await usersRepository.deleteById(uid);
+  await sessionsRepository.deleteByUserId(uid);
   return { success: true };
-}
-
-export async function updatePermissions(userId, newPermissions, deleterId, userOrg, deleterRole, userPermissions) {
-  const user = await usersRepository.findById(userId);
-  if (!user) throw createError({ statusCode: 404, message: 'User not found' });
-
-  const isSuperAdmin = deleterRole === 'SuperAdmin';
-  const isInSameOrg = user.memberships?.some(m => m.organizationId.toString() === userOrg?.toString());
-  const isAdminOfOrg = deleterRole.endsWith('Admin') && isInSameOrg;
-
-  if (!isSuperAdmin && !isAdminOfOrg) {
-    throw createError({ statusCode: 403, message: 'Forbidden' });
-  }
-
-  if (userOrg && isInSameOrg) {
-    const db = await (await import('~/server/db/mongo')).connectDB();
-    await db.collection('users').updateOne(
-      { _id: new ObjectId(userId), "memberships.organizationId": new ObjectId(userOrg) },
-      { $set: { "memberships.$.permissions": newPermissions, "permissions": newPermissions } }
-    );
-  } else if (isSuperAdmin) {
-    await usersRepository.updateById(userId, { permissions: newPermissions });
-  }
-
-  return { success: true };
-}
-
-export async function remove(userId, deleterId, userOrg, deleterRole, userPermissions) {
-  const user = await usersRepository.findById(userId);
-  if (!user) throw createError({ statusCode: 404, message: 'User not found' });
-
-  const isSuperAdmin = deleterRole === 'SuperAdmin';
-  const isInSameOrg = userOrg && user.memberships?.some(m => m.organizationId.toString() === userOrg.toString());
-  const isAdminOfOrg = deleterRole.endsWith('Admin') && isInSameOrg;
-
-  if (!isSuperAdmin && !isAdminOfOrg) {
-    throw createError({ statusCode: 403, message: 'Forbidden' });
-  }
-
-  if (isSuperAdmin) {
-    await usersRepository.deleteById(userId);
-    await sessionsRepository.deleteByUserId(userId);
-  } else {
-    const db = await (await import('~/server/db/mongo')).connectDB();
-    await db.collection('users').updateOne(
-      { _id: new ObjectId(userId) },
-      { $pull: { memberships: { organizationId: new ObjectId(userOrg) } } }
-    );
-  }
-
-  return { success: true };
-}
-
-export async function logout(sessionId) {
-  await sessionsRepository.deleteBySessionId(sessionId);
-  return { success: true };
-}
-
-export async function getUserBySessionId(sessionId) {
-  const session = await sessionsRepository.findBySessionId(sessionId);
-  if (!session) return null;
-  return await usersRepository.findById(session.userId);
-}
-
-export async function getById(id) {
-  return await usersRepository.findById(id);
 }

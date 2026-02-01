@@ -1,313 +1,130 @@
 /**
- * Procedurally extract data models from repository files
- * Used by UI Lab to visualize backend structure
+ * Procedurally extract data models - v24 Absolute Final Version
+ * Architecture-aware: Knows about BaseEntity and Standard Blocks.
+ * STRICT MODE: Only captures fields explicitly assigned to 'data'.
  */
 
 import fs from 'fs';
 import path from 'path';
 
-// Resolve paths correctly in Nuxt server context
+// Resolve paths correctly
 function getFeaturesDir() {
   const possiblePaths = [
     path.resolve(process.cwd(), 'server/features'),
     path.resolve(process.cwd(), '.output/server/features'),
-    '/src/server/features',
   ];
-  
   for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
-      return p;
-    }
+    if (fs.existsSync(p)) return p;
   }
-  
   return null;
 }
 
 const FEATURES_DIR = getFeaturesDir();
 
-/**
- * Extract collection name from repository file
- */
-function extractCollectionName(content) {
-  const match = content.match(/const COLLECTION = ['"]([^'"]+)['"]/);
-  return match ? match[1] : null;
-}
+// Standard BaseEntity Blocks (Always present, never duplicated)
+const STANDARD_BLOCKS = [
+  { name: 'identity', type: 'Object', description: 'Standard Identity Block (uid, name)' },
+  { name: 'origin', type: 'Object', description: 'Standard Origin Block (creation state)' },
+  { name: 'status', type: 'Object', description: 'Standard Status Block (current state)' },
+  { name: 'lineage', type: 'Object', description: 'Standard Lineage Block (ancestor IDs)' },
+  { name: 'attachments', type: 'Object', description: 'Standard Attachments Block (files)' }
+];
 
 /**
- * Read service file for a feature to extract schema from create operations
+ * Extract fields specific to the 'data' block from service/repository files
  */
-function readServiceFile(featurePath) {
-  const serviceFile = path.join(featurePath, 'service.js');
-  if (fs.existsSync(serviceFile)) {
-    return fs.readFileSync(serviceFile, 'utf-8');
-  }
-  return null;
-}
-
-/**
- * Extract all fields from various sources in repository, service, and test files
- */
-function extractFields(repoContent, serviceContent, specContent) {
-  const fields = new Map(); // Use Map to store field -> type/description
+function extractDataFields(featurePath) {
+  const dataFields = new Map();
   
-  // 1. Extract from insertOne/insertMany calls in repository
-  const insertPattern = /insertOne\s*\(\s*\{([^}]+)\}/gs;
+  // Read Source Files
+  const files = ['service.js', 'repository.js', 'model.js'];
+  let content = '';
+  for (const f of files) {
+    const p = path.join(featurePath, f);
+    if (fs.existsSync(p)) content += fs.readFileSync(p, 'utf-8') + '\n';
+  }
+
+  // Strategy 1: Explicit 'data' or 'params' object construction
+  // Matches: data: { key1, key2: val } or params: { key1 } 
+  const objectRegex = /(?:data|params)\s*:\s*createData\(\s*\{([^}]+)\}\s*\)|(?:data|params)\s*:\s*\{([^}]+)\}/g;
   let match;
-  
-  while ((match = insertPattern.exec(repoContent)) !== null) {
-    const insertContent = match[1];
-    extractFieldsFromObject(insertContent, fields);
+  while ((match = objectRegex.exec(content)) !== null) {
+      const inner = match[1] || match[2];
+      const props = inner.split(',').map(p => p.split(':')[0].trim());
+      for (const p of props) {
+          if (!p || p.startsWith('...')) continue;
+          if (['identity', 'lineage', 'status', 'origin', 'attachments', 'metadata', 'fileId', 'name', 'definition'].includes(p)) continue;
+          dataFields.set(`data.${p}`, { type: inferType(p), description: `${camelToWords(p)} field` });
+      }
   }
-  
-  // 2. Extract from $set patterns in updates
-  const updatePattern = /\$set:\s*\{([^}]+)\}/g;
-  while ((match = updatePattern.exec(repoContent)) !== null) {
-    extractFieldsFromObject(match[1], fields);
+
+  // Strategy 2: Class Constructor Assignment (this.data = { ... })
+  const classAssignRegex = /this\.data\s*=\s*\{([^}]+)\}/g;
+  while ((match = classAssignRegex.exec(content)) !== null) {
+      const inner = match[1];
+      const props = inner.split(',').map(p => p.split(':')[0].trim());
+      for (const p of props) {
+          if (!p || p.startsWith('...')) continue;
+          dataFields.set(`data.${p}`, { type: inferType(p), description: `${camelToWords(p)} field` });
+      }
   }
-  
-  // 3. Extract from service layer - look for object creations
-  if (serviceContent) {
-    // Find objects being pushed to arrays or created
-    const servicePushPattern = /\.push\s*\(\s*\{[\s\S]{1,2000}?\}\s*\)/g;
-    while ((match = servicePushPattern.exec(serviceContent)) !== null) {
-      extractFieldsFromObject(match[0], fields, true);
-    }
-    
-    // Find direct object returns/assignments
-    const serviceObjectPattern = /(?:const|let|var)\s+\w+\s*=\s*\{[\s\S]{1,1000}?\};/g;
-    while ((match = serviceObjectPattern.exec(serviceContent)) !== null) {
-      extractFieldsFromObject(match[0], fields, true);
-    }
-    
-    // Find repository creation calls: repository.create({ ... })
-    const repoCreatePattern = /repository\.(?:create|insertMany|updateById)\s*\(\s*(?:[^,]+,\s*)?\{([\s\S]{1,1000}?)\}/g;
-    while ((match = repoCreatePattern.exec(serviceContent)) !== null) {
-      extractFieldsFromObject(match[1], fields, true);
-    }
+
+  // Strategy 3: Dot notation assignment (data.field = val)
+  // Matches: data.someField = ... or this.data.someField = ...
+  const dotAssignRegex = /(?:this\.|^|\s)data\.([\w]+)\s*=/g;
+  while ((match = dotAssignRegex.exec(content)) !== null) {
+      const p = match[1];
+      if (['metadata'].includes(p)) continue;
+      dataFields.set(`data.${p}`, { type: inferType(p), description: `${camelToWords(p)} field` });
   }
-  
-  // 4. Extract from findOne/find query projections
-  const findPattern = /find(?:One)?\([^)]*\)/g;
-  while ((match = findPattern.exec(repoContent)) !== null) {
-    extractFieldsFromObject(match[0], fields);
-  }
-  
-  // 5. Extract from test/spec files
-  if (specContent) {
-    // Find all object literals in insertOne calls in tests
-    const testInsertPattern = /insertOne\s*\(\s*\{[\s\S]{1,2000}?\}\s*\)/g;
-    while ((match = testInsertPattern.exec(specContent)) !== null) {
-      extractFieldsFromObject(match[0], fields, true);
-    }
-    
-    // Find mock data objects
-    const mockPattern = /const\s+mock\w+\s*=\s*\{[\s\S]{1,1000}?\};/g;
-    while ((match = mockPattern.exec(specContent)) !== null) {
-      extractFieldsFromObject(match[0], fields, true);
-    }
-  }
-  
-  return Array.from(fields.entries()).map(([name, info]) => ({
+
+  return Array.from(dataFields.entries()).map(([name, info]) => ({
     name,
     type: info.type,
-    description: info.description,
-    example: info.example
+    description: info.description
   }));
 }
 
-/**
- * Extract field definitions from object string
- */
-function extractFieldsFromObject(objString, fields, includeValues = false) {
-  // Remove single line comments before processing
-  const cleanObjString = objString.replace(/\/\/.*$/gm, '');
-  
-  // Match field: value patterns
-  const fieldPattern = /(\w+)\s*:\s*([^,\n]+)/g;
-  let match;
-  
-  while ((match = fieldPattern.exec(cleanObjString)) !== null) {
-    const fieldName = match[1];
-    const fieldValue = match[2].trim();
-    
-    // Skip common keywords, spreads and generic API return fields
-    if (['session', 'options', 'sort', 'limit', 'skip', 'success', 'id', 'count'].includes(fieldName)) continue;
-    if (fieldName.startsWith('...')) continue;
-    
-    if (!fields.has(fieldName)) {
-      const type = inferFieldType(fieldName, fieldValue);
-      fields.set(fieldName, {
-        type,
-        description: getFieldDescription(fieldName, type),
-        example: includeValues ? cleanExample(fieldValue) : null
-      });
-    }
-  }
-}
-
-/**
- * Infer field type from name and value
- */
-function inferFieldType(fieldName, fieldValue) {
-  // From value patterns
-  if (fieldValue.includes('ObjectId') || fieldValue.includes('new ObjectId')) return 'ObjectId';
-  if (fieldValue.includes('new Date')) return 'Date';
-  if (fieldValue.match(/^\d+$/)) return 'Number';
-  if (fieldValue.match(/^['"`]/)) return 'String';
-  if (fieldValue === 'true' || fieldValue === 'false') return 'Boolean';
-  if (fieldValue.startsWith('[')) return 'Array';
-  if (fieldValue.startsWith('{')) return 'Object';
-  
-  // From field name patterns
-  if (fieldName === '_id' || fieldName.endsWith('Id')) return 'ObjectId';
-  if (fieldName.includes('Date') || fieldName === 'createdAt' || fieldName === 'updatedAt') return 'Date';
-  if (fieldName.includes('Count') || fieldName.includes('Number') || fieldName.includes('total') || fieldName.includes('amount') || fieldName.includes('price')) return 'Number';
-  if (fieldName.startsWith('is') || fieldName.startsWith('has') || fieldName.includes('Enabled')) return 'Boolean';
-  if (fieldName.endsWith('s') && !fieldName.endsWith('ss') && !fieldName.endsWith('Status')) return 'Array';
-  if (fieldName === 'status' || fieldName === 'type' || fieldName === 'role') return 'String (enum)';
-  
+function inferType(key) {
+  if (key.endsWith('Id') || key === 'currency' || key === 'material' || key === 'code') return 'String';
+  if (key.includes('Date') || key === 'timestamp') return 'Date';
+  if (key.includes('count') || key === 'quantity' || key === 'total' || key === 'price' || key === 'width' || key === 'length') return 'Number';
+  if (key.endsWith('s') && !key.endsWith('ss')) return 'Array';
   return 'String';
 }
 
-/**
- * Clean example value for display
- */
-function cleanExample(value) {
-  value = value.replace(/new ObjectId\([^)]*\)/g, 'ObjectId()');
-  value = value.replace(/new Date\([^)]*\)/g, 'Date()');
-  if (value.length > 50) value = value.substring(0, 47) + '...';
-  return value;
+function camelToWords(str) {
+  return str.replace(/([A-Z])/g, ' $1').toLowerCase();
 }
 
 /**
- * Extract relationships from queries and references
- */
-function extractRelationships(content, collectionName) {
-  const relationships = new Set();
-  
-  // Look for Id fields (foreignId patterns)
-  const idPattern = /(\w+)Id['":\s]/g;
-  let match;
-  
-  while ((match = idPattern.exec(content)) !== null) {
-    const relatedEntity = match[1];
-    if (['inserted', 'updated', 'deleted', 'modified', 'matched'].includes(relatedEntity)) continue;
-    if (relatedEntity.length < 3) continue;
-    relationships.add(relatedEntity);
-  }
-  
-  // Look for collection references in queries
-  const collectionPattern = /collection\(['"]([^'"]+)['"]\)/g;
-  while ((match = collectionPattern.exec(content)) !== null) {
-    const otherCollection = match[1];
-    if (otherCollection === collectionName || otherCollection === 'COLLECTION') continue;
-    relationships.add(otherCollection);
-  }
-  
-  return Array.from(relationships).filter(r => r !== 'Object' && r !== 'toObject');
-}
-
-/**
- * Get description from field name
- */
-function getFieldDescription(fieldName, type) {
-  const descriptions = {
-    '_id': 'Unique document identifier',
-    'createdAt': 'Creation timestamp',
-    'updatedAt': 'Last update timestamp',
-    'ownerId': 'Owner user ID (OAuth string)',
-    'userId': 'User ID (OAuth string)',
-    'organizationId': 'Organization reference',
-    'status': 'Current status',
-    'statusHistory': 'Status change history',
-    'name': 'Display name',
-    'description': 'Description text',
-    'slug': 'URL-friendly identifier',
-    'email': 'Email address',
-    'role': 'User role',
-    'permissions': 'Access permissions',
-    'metadata': 'Additional metadata'
-  };
-  
-  if (descriptions[fieldName]) return descriptions[fieldName];
-  
-  // Generate from field name
-  const words = fieldName.replace(/([A-Z])/g, ' $1').toLowerCase().trim();
-  return `${words} field`;
-}
-
-/**
- * Read test/spec file for a feature
- */
-function readSpecFile(featurePath) {
-  const specFiles = [
-    path.join(featurePath, `${path.basename(featurePath)}.spec.js`),
-    path.join(featurePath, `${path.basename(featurePath).replace(/-/g, '-')}.spec.js`),
-  ];
-  
-  for (const specFile of specFiles) {
-    if (fs.existsSync(specFile)) {
-      return fs.readFileSync(specFile, 'utf-8');
-    }
-  }
-  
-  // Try alternative patterns
-  const files = fs.readdirSync(featurePath);
-  const specFile = files.find(f => f.endsWith('.spec.js') || f.endsWith('.test.js'));
-  if (specFile) {
-    return fs.readFileSync(path.join(featurePath, specFile), 'utf-8');
-  }
-  
-  return null;
-}
-
-/**
- * Scan all repository files and extract models
+ * Scan features and build models
  */
 export async function extractDataModels() {
   const models = [];
-  
-  if (!FEATURES_DIR) {
-    return models;
-  }
+  if (!FEATURES_DIR) return models;
   
   const features = fs.readdirSync(FEATURES_DIR);
-  
   for (const feature of features) {
+    if (feature.startsWith('.')) continue;
     const featurePath = path.join(FEATURES_DIR, feature);
+    if (!fs.statSync(featurePath).isDirectory()) continue;
+
     const repoPath = path.join(featurePath, 'repository.js');
-    
     if (!fs.existsSync(repoPath)) continue;
-    
     const repoContent = fs.readFileSync(repoPath, 'utf-8');
-    const serviceContent = readServiceFile(featurePath);
-    const specContent = readSpecFile(featurePath);
-    const collectionName = extractCollectionName(repoContent);
-    
-    if (!collectionName || collectionName === 'collection_name') continue;
-    
-    const fields = extractFields(repoContent, serviceContent, specContent);
-    const relationships = extractRelationships(repoContent, collectionName);
-    
-    // Generate better description
-    const description = feature
-      .replace(/-/g, ' ')
-      .replace(/\b\w/g, l => l.toUpperCase());
-    
+    const collectionMatch = repoContent.match(/const COLLECTION = [\'\"]([^\'\"]+)[\'\"]/);
+    if (!collectionMatch) continue;
+    const collection = collectionMatch[1];
+
+    const entitySpecificFields = extractDataFields(featurePath);
+    const allFields = [...STANDARD_BLOCKS, ...entitySpecificFields];
+
     models.push({
-      collection: collectionName,
+      collection,
       feature,
-      description: `${description} - manages ${collectionName.replace(/_/g, ' ')}`,
-      fields: fields.sort((a, b) => {
-        // Sort: _id first, then createdAt/updatedAt last, rest alphabetically
-        if (a.name === '_id') return -1;
-        if (b.name === '_id') return 1;
-        if (a.name.includes('At') && !b.name.includes('At')) return 1;
-        if (!a.name.includes('At') && b.name.includes('At')) return -1;
-        return a.name.localeCompare(b.name);
-      }),
-      relationships: relationships.sort(),
-      fieldCount: fields.length
+      description: `${camelToWords(feature).replace(/^\w/, c => c.toUpperCase())} - manages ${collection.replace(/_/g, ' ')}`,
+      fields: allFields
     });
   }
   
@@ -315,41 +132,51 @@ export async function extractDataModels() {
 }
 
 /**
- * Generate relationship diagram
+ * Generate Markdown
  */
-export function generateRelationshipDiagram(models) {
-  const lines = ['=== Entity Relationship Diagram ===\n'];
+export function generateMarkdown(models) {
+  let md = '# Data Model (Generated)\n\n';
+  md += 'This document is procedurally generated from the actual codebase. It reflects the refactored v24 Standardized architecture using blocks.\n\n';
   
-  // Group by main entities
-  const mainEntities = models.filter(m => 
-    ['projects', 'organizations', 'warehouses', 'requisitions'].includes(m.collection)
-  );
-  
-  for (const entity of mainEntities) {
-    lines.push(`${entity.collection.toUpperCase()}`);
-    lines.push(`  Collection: ${entity.collection}`);
-    lines.push(`  Fields: ${entity.fieldCount}`);
+  md += '## Collections\n\n';
+  for (const model of models) {
+    md += `### ${model.collection}\n`;
+    md += `*${model.description}*\n\n`;
+    md += '| Field | Type | Description |\n';
+    md += '|---|---|---|\n';
     
-    if (entity.relationships.length > 0) {
-      lines.push(`  Related to:`);
-      for (const rel of entity.relationships.slice(0, 5)) {
-        const relModel = models.find(m => 
-          m.collection === rel || 
-          m.collection.replace(/_/g, '-') === rel ||
-          m.feature === rel
-        );
-        lines.push(`    → ${rel}${relModel ? ` (${relModel.collection})` : ''}`);
-      }
+    const sortedFields = model.fields.sort((a, b) => {
+        const score = (name) => {
+            if (name === 'identity') return 1;
+            if (name === 'origin') return 2;
+            if (name === 'status') return 3;
+            if (name === 'lineage') return 4;
+            if (name === 'attachments') return 5;
+            if (name.startsWith('data')) return 10;
+            return 20;
+        };
+        const sa = score(a.name);
+        const sb = score(b.name);
+        if (sa !== sb) return sa - sb;
+        return a.name.localeCompare(b.name);
+    });
+
+    for (const field of sortedFields) {
+      md += `| \`${field.name}\` | ${field.type} | ${field.description} |\n`;
     }
-    lines.push('');
+    md += '\n';
   }
-  
-  return lines.join('\n');
+  return md;
 }
 
-// For direct execution
+// Execution
 if (import.meta.url === `file://${process.argv[1]}`) {
   extractDataModels().then(models => {
-    console.log(JSON.stringify(models, null, 2));
+    const md = generateMarkdown(models);
+    fs.writeFileSync(path.resolve(process.cwd(), 'server/DATA_MODEL.md'), md);
+    console.log('✓ Successfully updated server/DATA_MODEL.md');
+  }).catch(err => {
+    console.error('Error:', err);
+    process.exit(1);
   });
 }

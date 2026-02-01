@@ -4,6 +4,16 @@
 
 import * as repository from './repository.js';
 import { ObjectId } from 'mongodb';
+import { createIdentity, createStatus, createData } from '~/server/utils/blocks';
+
+function toDTO(tool) {
+  if (!tool) return null;
+  return {
+    ...tool,
+    ...tool.data,
+    name: tool.identity?.name
+  };
+}
 
 export async function getById(id, userId = null) {
   if (!ObjectId.isValid(id)) {
@@ -17,7 +27,7 @@ export async function getById(id, userId = null) {
   if (tool.ownerId && userId && tool.ownerId.toString() !== userId) {
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
-  return tool;
+  return toDTO(tool);
 }
 
 export async function listAll(userId) {
@@ -25,7 +35,7 @@ export async function listAll(userId) {
     repository.findSystem(),
     repository.findByOwner(userId)
   ]);
-  return [...systemTools, ...userTools];
+  return [...systemTools, ...userTools].map(toDTO);
 }
 
 export async function create(data, userId) {
@@ -39,38 +49,42 @@ export async function create(data, userId) {
     throw createError({ statusCode: 400, message: 'Angle must be between 0 and 180 degrees' });
   }
   
+  const origin = createStatus('ACTIVE', userId || 'SYSTEM', { note: 'Tool profile created' });
+
   return await repository.create({
-    name: data.name,
-    ownerId: userId || null, // Store userId as string (OAuth format)
-    diameter: data.diameter,
-    angle: data.angle
+    identity: createIdentity(data.name),
+    origin,
+    status: origin,
+    lineage: {
+      userId: userId ? userId : null
+    },
+    data: createData({
+      diameter: data.diameter,
+      angle: data.angle
+    })
   });
 }
 
 export async function update(id, updates, userId) {
-  const tool = await getById(id, userId);
+  const tool = await repository.findById(id);
+  if (!tool) throw createError({ statusCode: 404, message: 'Tool not found' });
   if (!tool.ownerId) {
     throw createError({ statusCode: 403, message: 'System tools cannot be modified' });
   }
   
-  if (updates.diameter !== undefined) {
-    if (typeof updates.diameter !== 'number' || updates.diameter <= 0) {
-      throw createError({ statusCode: 400, message: 'Diameter must be a positive number' });
-    }
-  }
+  const { identity, origin, status, data: updatesData, ...clean } = updates;
   
-  if (updates.angle !== undefined) {
-    if (typeof updates.angle !== 'number' || updates.angle < 0 || updates.angle > 180) {
-      throw createError({ statusCode: 400, message: 'Angle must be between 0 and 180 degrees' });
-    }
-  }
-  
-  delete updates.ownerId;
-  delete updates._id;
-  delete updates.createdAt;
-  
-  await repository.updateById(id, updates);
-  return await repository.findById(id);
+  if (updates.name) tool.identity.name = updates.name;
+
+  const toolData = {
+    ...tool.data,
+    ...updatesData,
+    ...clean
+  };
+
+  await repository.updateById(id, { identity: tool.identity, data: toolData });
+  const updated = await repository.findById(id);
+  return toDTO(updated);
 }
 
 export async function remove(id, userId) {

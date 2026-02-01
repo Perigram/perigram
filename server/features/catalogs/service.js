@@ -1,77 +1,61 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { hasLineagePermission } from '~/server/utils/permissions';
-import { createIdentity, createStatus } from '~/server/utils/blocks';
+import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
+import { registerService } from '~/server/utils/blocks';
+import { Catalog } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
 
 /**
- * Catalogs Service - v24 Standardized
+ * Catalogs Service - v24 Absolute Final
  */
+
+registerService('catalog', {
+  getById: (uid) => getById(uid)
+});
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { name, material, pricing, options, manufacturerId } = data;
-
   const targetOrgId = userRole === 'SuperAdmin' ? (manufacturerId || userOrg) : userOrg;
   
-  if (!targetOrgId) {
-    throw createError({ statusCode: 400, message: 'Manufacturer organization required' });
-  }
+  if (!targetOrgId) throw createError({ statusCode: 400, message: 'Manufacturer organization required' });
 
-  const lineage = { organizationId: new ObjectId(targetOrgId) };
+  const catalog = new Catalog({
+    identity: { uid: `cat-${ObjectId().toString().substring(0, 8)}`, name: name || 'New Catalog' },
+    lineage: { organizationId: targetOrgId },
+    params: { material, pricing, options }
+  });
 
-  // Permission Check
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'catalogs', 'admin')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, catalog.lineage, 'catalogs', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  const origin = createStatus('ACTIVE', userId, { note: 'Catalog created' });
+  catalog.applyStatus('ACTIVE', userId, { note: 'Catalog created' });
 
-  const catalogData = {
-    identity: createIdentity(name || 'New Catalog'),
-    origin,
-    status: origin,
-    lineage,
-    manufacturerId: lineage.organizationId,
-    material: material || 'ALUMINUM',
-    pricing: {
-      pricePerSqm: pricing?.pricePerSqm || 0,
-      currency: pricing?.currency || 'USD'
-    },
-    options: {
-      sheetThicknesses: options?.sheetThicknesses || [],
-      foilThicknesses: options?.foilThicknesses || [],
-      widths: options?.widths || [],
-      lengths: options?.lengths || []
-    }
-  };
+  const createdRaw = await repository.create(catalog);
+  return new Catalog(createdRaw);
+}
 
-  return await repository.create(catalogData);
+export async function getById(uid) {
+  const raw = await repository.findById(uid);
+  if (!raw) return null;
+  return new Catalog(raw);
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
-  
-  // Contractors/Customers should see all active catalogs from all manufacturers
   const isManufacturer = userRole.includes('Manufacturer');
-  const finalFilter = isManufacturer 
-    ? mapLineageQuery({ ...lineageFilter, ...filter })
-    : mapLineageQuery(filter);
+  const finalFilter = isManufacturer ? mapLineageQuery({ ...lineageFilter, ...filter }) : mapLineageQuery(filter);
   
-  return await repository.find(finalFilter);
+  const raws = await repository.find(finalFilter);
+  return raws.map(raw => new Catalog(raw));
 }
 
-export async function getById(id, userId, userOrg, userRole, userPermissions) {
-  const catalog = await repository.findById(id);
-  if (!catalog) {
-    throw createError({ statusCode: 404, message: 'Catalog not found' });
-  }
-  return catalog;
-}
-
-export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
-  const catalog = await getById(id, userId, userOrg, userRole, userPermissions);
+export async function update(uid, updates, userId, userOrg, userRole, userPermissions) {
+  const raw = await repository.findById(uid);
+  if (!raw) throw createError({ statusCode: 404, message: 'Catalog not found' });
+  const catalog = new Catalog(raw);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, catalog.lineage, 'catalogs', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -79,23 +63,22 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
   if (updates.status) {
     await statusService.transition('catalog', catalog._id, updates.status, userId, userRole, updates.statusMeta || {});
-    delete updates.status;
+    return await getById(uid);
   }
 
-  const { identity, origin, status, lineage, ...clean } = updates;
-  
   if (updates.name) catalog.identity.name = updates.name;
+  catalog.data = { ...catalog.data, ...(updates.data || {}) };
 
-  await repository.updateById(id, { identity: catalog.identity, ...clean });
-  return await repository.findById(id);
+  await repository.updateById(uid, catalog);
+  const updatedRaw = await repository.findById(uid);
+  return new Catalog(updatedRaw);
 }
 
-export async function remove(id, userId, userOrg, userRole, userPermissions) {
-  const catalog = await getById(id, userId, userOrg, userRole, userPermissions);
-  
+export async function remove(uid, userId, userOrg, userRole, userPermissions) {
+  const catalog = await getById(uid);
+  if (!catalog) throw createError({ statusCode: 404, message: 'Catalog not found' });
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, catalog.lineage, 'catalogs', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
-  
-  return await repository.deleteById(id);
+  return await repository.deleteById(uid);
 }

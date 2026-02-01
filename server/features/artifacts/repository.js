@@ -1,18 +1,20 @@
-import { connectDB } from '../../db/mongo.js';
-import { ObjectId } from 'mongodb';
-import { toObjectId } from '../../utils/objectid.js';
+import { connectDB } from '~/server/db/mongo';
 
 const COLLECTION = 'artifacts';
 
 export async function create(data) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).insertOne(data);
-  return { ...data, _id: result.insertedId };
+  const doc = {
+    ...data,
+    _id: data.identity.uid
+  };
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc;
 }
 
-export async function findById(id) {
+export async function findById(uid) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ _id: toObjectId(id) });
+  return await db.collection(COLLECTION).findOne({ _id: uid });
 }
 
 export async function find(filter = {}) {
@@ -20,13 +22,17 @@ export async function find(filter = {}) {
   return await db.collection(COLLECTION).find(filter).toArray();
 }
 
-export async function updateById(id, updates) {
+export async function updateById(uid, updates) {
   const db = await connectDB();
-  const { _id, lineage, ...clean } = updates;
-  return await db.collection(COLLECTION).updateOne({ _id: toObjectId(id) }, { $set: clean });
+  const { _id, identity, ...clean } = updates;
+  await db.collection(COLLECTION).updateOne(
+    { _id: uid }, 
+    { $set: clean }
+  );
+  return await findById(uid);
 }
 
-export async function deleteById(id) {
+export async function deleteById(uid) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).deleteOne({ _id: toObjectId(id) });
+  return await db.collection(COLLECTION).deleteOne({ _id: uid });
 }

@@ -7,9 +7,7 @@ export async function create(data) {
   const db = await connectDB();
   const doc = {
     ...data,
-    _id: data._id || new ObjectId(),
-    createdAt: new Date(),
-    updatedAt: new Date()
+    _id: data._id || new ObjectId()
   };
   await db.collection(COLLECTION).insertOne(doc);
   return doc;
@@ -22,7 +20,7 @@ export async function findById(id) {
 
 export async function findByEmail(email) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ email: email.toLowerCase() });
+  return await db.collection(COLLECTION).findOne({ 'data.email': email.toLowerCase() });
 }
 
 export async function find(filter = {}) {
@@ -35,7 +33,7 @@ export async function updateById(id, updates) {
   const { _id, ...clean } = updates;
   await db.collection(COLLECTION).updateOne(
     { _id: new ObjectId(id) }, 
-    { $set: { ...clean, updatedAt: new Date() } }
+    { $set: clean }
   );
   return await findById(id);
 }
@@ -44,7 +42,7 @@ export async function updateLastLogin(id) {
     const db = await connectDB();
     await db.collection(COLLECTION).updateOne(
         { _id: new ObjectId(id) },
-        { $set: { lastLoginAt: new Date() } }
+        { $set: { 'data.lastLoginAt': new Date() } }
     );
 }
 

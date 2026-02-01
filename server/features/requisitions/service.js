@@ -4,12 +4,22 @@ import * as colorRepository from '../colors/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { ObjectId } from 'mongodb';
-import { createIdentity, createStatus, inheritLineage } from '~/server/utils/blocks';
+import { createIdentity, createStatus, inheritLineage, createData } from '~/server/utils/blocks';
 import { statusService } from '~/server/core/machines/service';
 
 /**
  * Requisitions Service - v24 Standardized
  */
+
+function toDTO(requisition) {
+  if (!requisition) return null;
+  return {
+    ...requisition,
+    ...requisition.data,
+    name: requisition.identity?.name,
+    serial: requisition.identity?.serial
+  };
+}
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   if (!data.manufacturerId || !data.items || data.items.length === 0) {
@@ -50,8 +60,10 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
       manufacturerId: new ObjectId(data.manufacturerId),
       projectId: data.projectId ? new ObjectId(data.projectId) : null
     },
-    items: snapshotItems,
-    notes: data.notes || ''
+    data: createData({
+      items: snapshotItems,
+      notes: data.notes || ''
+    })
   };
 
   // Verify permissions
@@ -59,7 +71,8 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  return await repository.create(requisitionData);
+  const requisition = await repository.create(requisitionData);
+  return toDTO(requisition);
 }
 
 export async function list(userId, userOrg, userRole, userPermissions) {
@@ -71,7 +84,8 @@ export async function list(userId, userOrg, userRole, userPermissions) {
     { 'lineage.manufacturerId': orgId }
   ];
   
-  return await repository.find(filter);
+  const requisitions = await repository.find(filter);
+  return requisitions.map(toDTO);
 }
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {
@@ -82,21 +96,35 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  return requisition;
+  return toDTO(requisition);
 }
 
 export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
-    const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
+    const requisition = await repository.findById(id);
+    if (!requisition) throw createError({ statusCode: 404, message: 'Requisition not found' });
     
     if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, requisition.lineage, 'requisitions', 'write')) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
     }
 
-    // Don't allow changing core identity/lineage
-    const { identity, lineage, origin, status, ...clean } = updates;
+    if (updates.status) {
+        await statusService.transition('requisition', requisition._id, updates.status, userId, userRole, updates.statusMeta || {});
+        delete updates.status;
+    }
+
+    const { identity, origin, status, lineage, data: updatesData, ...clean } = updates;
     
-    await repository.updateById(id, clean);
-    return await repository.findById(id);
+    if (updates.name) requisition.identity.name = updates.name;
+
+    const requisitionData = {
+        ...requisition.data,
+        ...updatesData,
+        ...clean
+    };
+
+    await repository.updateById(id, { identity: requisition.identity, data: requisitionData });
+    const updated = await repository.findById(id);
+    return toDTO(updated);
 }
 
 export async function transition(id, targetState, metadata, userId, userOrg, userRole, userPermissions) {

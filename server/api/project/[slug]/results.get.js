@@ -1,4 +1,4 @@
-import { getResults } from '~/server/features/results/resultcontroller'
+import { getProjectResults } from '~/server/features/results/service'
 
 export default defineEventHandler(async (event) => {
     const userId = event.context?.auth?.userId

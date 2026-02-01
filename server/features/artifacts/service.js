@@ -1,11 +1,13 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { createIdentity, createStatus, inheritLineage } from '~/server/utils/blocks';
+import { createIdentity, inheritLineage, Lineage } from '~/server/utils/blocks';
+import { Artifact } from './model.js';
 import { statusService } from '~/server/core/machines/service';
+import { generateRandomString } from '~/server/utils/strings';
 import { ObjectId } from 'mongodb';
 
 /**
- * Artifacts Service - v24 Standardized
+ * Artifacts Service - v24 Standardized with Entity Abstractions
  */
 
 export async function createFromParent(parent, data, userId, userRole) {
@@ -15,81 +17,71 @@ export async function createFromParent(parent, data, userId, userRole) {
     throw createError({ statusCode: 400, message: 'type and fileId are required' });
   }
 
-  // 1. Lineage Inheritance
-  const parentType = data.parentType || 'unknown'; // e.g. 'queue', 'run', 'sheet'
-  const lineage = inheritLineage(parent, parentType);
+  // 1. Abstraction handles identity and lineage
+  const uid = `art-${generateRandomString(8)}`;
+  const artifact = new Artifact({
+    identity: { uid },
+    lineage: inheritLineage(parent, data.parentType || 'unknown'),
+    params: { type, fileId, name, metadata } // Specialized constructor handles the 'data' block
+  });
 
-  const origin = createStatus('READY', userId || 'SYSTEM', { note: 'Artifact generated' });
+  artifact.applyStatus('READY', userId || 'SYSTEM', { note: 'Artifact generated' });
 
-  const artifactData = {
-    identity: createIdentity(name || `Artifact ${type}`),
-    type,
-    fileId: new ObjectId(fileId),
-    lineage,
-    origin,
-    status: origin,
-    metadata: metadata || {}
-  };
-
-  return await repository.create(artifactData);
+  const createdRaw = await repository.create(artifact);
+  return new Artifact(createdRaw);
 }
 
 export async function create(data) {
-    // For manual creation or from nest service where lineage is already passed or needs to be constructed
     const { type, name, status, metadata, queueId, runId } = data;
     
-    const artifactData = {
-        identity: createIdentity(name || `Artifact ${type}`),
-        type,
-        lineage: {
-            queueId: queueId ? new ObjectId(queueId) : null,
-            runId: runId ? new ObjectId(runId) : null
-        },
-        origin: createStatus(status || 'GENERATING', 'SYSTEM'),
-        status: createStatus(status || 'GENERATING', 'SYSTEM'),
-        metadata: metadata || {}
-    };
+    const uid = `art-${generateRandomString(8)}`;
+    const artifact = new Artifact({
+        identity: { uid },
+        lineage: new Lineage().add('queue', queueId).add('run', runId),
+        params: { type, fileId: data.fileId, name, metadata }
+    });
 
-    return await repository.create(artifactData);
+    artifact.applyStatus(status || 'GENERATING', 'SYSTEM');
+
+    const createdRaw = await repository.create(artifact);
+    return new Artifact(createdRaw);
 }
 
 export async function getById(id) {
   if (!ObjectId.isValid(id)) {
     throw createError({ statusCode: 400, message: 'Invalid ID format' });
   }
-  
-  const artifact = await repository.findById(id);
-  if (!artifact) {
-    throw createError({ statusCode: 404, message: 'Artifact not found' });
-  }
-  
-  return artifact;
+  const raw = await repository.findById(id);
+  if (!raw) throw createError({ statusCode: 404, message: 'Artifact not found' });
+  return new Artifact(raw);
 }
 
 export async function list(filter = {}) {
-  return await repository.find(filter);
+  const raws = await repository.find(filter);
+  return raws.map(raw => new Artifact(raw));
 }
 
 export async function update(id, updates, userId, userRole) {
-  const artifact = await getById(id);
+  const raw = await repository.findById(id);
+  if (!raw) throw createError({ statusCode: 404, message: 'Artifact not found' });
   
   if (updates.status) {
-    await statusService.transition('artifact', artifact._id, updates.status, userId, userRole, updates.statusMeta || {});
-    delete updates.status;
+    await statusService.transition('artifact', raw._id, updates.status, userId, userRole, updates.statusMeta || {});
+    return await getById(id);
   }
 
-  const { identity, origin, status, lineage, ...clean } = updates;
-  
+  const artifact = new Artifact(raw);
   if (updates.name) artifact.identity.name = updates.name;
+  
+  // Merge specialized updates into the data block
+  artifact.data = { ...artifact.data, ...(updates.data || {}) };
 
-  await repository.updateById(id, { identity: artifact.identity, ...clean });
-  return await repository.findById(id);
+  await repository.updateById(id, { identity: artifact.identity, data: artifact.data });
+  const updatedRaw = await repository.findById(id);
+  return new Artifact(updatedRaw);
 }
 
 export async function remove(id) {
-  const artifact = await getById(id);
-  
-  // GridFS deletion should be handled here or in repo
-  
+  await getById(id);
   return await repository.deleteById(id);
 }

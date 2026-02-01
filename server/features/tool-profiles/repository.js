@@ -16,24 +16,27 @@ export async function findById(id) {
 export async function findSystem() {
   const db = await connectDB();
   return await db.collection(COLLECTION)
-    .find({ ownerId: null })
-    .sort({ diameter: 1 })
+    .find({ 'lineage.userId': null })
+    .sort({ 'data.diameter': 1 })
     .toArray();
 }
 
 export async function findByOwner(ownerId) {
   const db = await connectDB();
   // Handle OAuth userId strings (e.g., "google:12345") - use as-is, not as ObjectId
-  const query = { ownerId: ownerId };
+  const query = { 'lineage.userId': ownerId };
   return await db.collection(COLLECTION)
     .find(query)
-    .sort({ diameter: 1 })
+    .sort({ 'data.diameter': 1 })
     .toArray();
 }
 
 export async function create(data) {
   const db = await connectDB();
-  const doc = { ...data, createdAt: new Date() };
+  const doc = {
+    ...data,
+    _id: data._id || new ObjectId()
+  };
   const result = await db.collection(COLLECTION).insertOne(doc);
   return { ...doc, _id: result.insertedId };
 }

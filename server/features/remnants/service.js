@@ -3,7 +3,7 @@ import * as warehouseService from '../warehouses/service.js';
 import * as sheetsRepository from '../sheets/repository.js'; 
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createIdentity, createStatus, inheritLineage } from '~/server/utils/blocks';
+import { createIdentity, createStatus, inheritLineage, createData, createAttachment } from '~/server/utils/blocks';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
@@ -16,8 +16,9 @@ function toDTO(remnant) {
   if (!remnant) return null;
   return {
     ...remnant,
-    name: remnant.identity?.name || remnant.name,
-    serial: remnant.identity?.serial || remnant.serial
+    ...remnant.data,
+    name: remnant.identity?.name,
+    serial: remnant.identity?.serial
   };
 }
 
@@ -58,26 +59,24 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     origin,
     status: origin,
     lineage,
-    geometry: {
-      dxfId: data.geometryDxf ? new ObjectId(data.geometryDxf) : null,
-      data: data.geometryData || null
-    },
-    specs: {
-      area: data.area || 0,
-      width: data.width || 0,
-      height: data.height || 0,
-      thickness: data.thickness || parentSheet?.specs?.thickness || 0,
-      material: data.material || parentSheet?.specs?.material || null,
-      color: data.color || parentSheet?.specs?.color || null
-    },
-    isReusable
+    data: createData({
+      geometry: {
+        data: data.geometryData || null
+      },
+      attachment: data.geometryDxf ? createAttachment('DXF', data.geometryDxf, `Remnant ${remnantNumber} DXF`) : null,
+      specs: {
+        area: data.area || 0,
+        width: data.width || 0,
+        height: data.height || 0,
+        thickness: data.thickness || parentSheet?.data?.specs?.thickness || parentSheet?.specs?.thickness || 0,
+        material: data.material || parentSheet?.data?.specs?.material || parentSheet?.specs?.material || null,
+        color: data.color || parentSheet?.data?.specs?.color || parentSheet?.specs?.color || null
+      },
+      isReusable
+    })
   };
 
   const remnant = await repository.create(remnantData);
-  
-  // Update inventory if needed (handled via status hooks or separate service call usually)
-  // For now, keeping it simple as per V24
-  
   return toDTO(remnant);
 }
 
@@ -87,11 +86,6 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   
   // Use centralized mapper for ID -> Lineage
   const finalFilter = mapLineageQuery(rawFilter);
-
-  // Handle reusable flag if passed
-  if (finalFilter.isReusable !== undefined) {
-      // boolean check
-  }
 
   const remnants = await repository.find(finalFilter);
   return remnants.map(toDTO);
@@ -123,11 +117,17 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
     delete updates.status;
   }
 
-  const { identity, origin, status, lineage, specs, geometry, ...clean } = updates;
+  const { identity, origin, status, lineage, data: updatesData, ...clean } = updates;
 
   if (updates.name) remnant.identity.name = updates.name;
 
-  await repository.updateById(id, { identity: remnant.identity, ...clean });
+  const remnantData = {
+    ...remnant.data,
+    ...updatesData,
+    ...clean
+  };
+
+  await repository.updateById(id, { identity: remnant.identity, data: remnantData });
   const updated = await repository.findById(id);
   return toDTO(updated);
 }

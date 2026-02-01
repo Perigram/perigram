@@ -2,29 +2,26 @@ import { connectDB } from '~~/server/db/mongo';
 
 export async function updateProjectStatistics(projectSlug, nestingResult) {
     const db = await connectDB();
-    const project = await db.collection('projects').findOne({ slug: projectSlug });
+    const project = await db.collection('projects').findOne({ 'identity.slug': projectSlug });
 
     if (!project) {
-        // Or handle error appropriately
         return;
     }
 
     const newSheetsUsed = nestingResult.sheets.length;
-    // This is a simplified calculation. A real implementation would be more complex.
-    const newAreaUsed = nestingResult.sheets.reduce((acc, sheet) => acc + sheet.utilization, 0) * 100; // Assuming utilization is a percentage
+    const newAreaUsed = nestingResult.sheets.reduce((acc, sheet) => acc + (sheet.area || 0), 0);
 
-    const totalSheetsUsed = (project.statistics?.sheetsUsed || 0) + newSheetsUsed;
-    const totalAreaUsed = (project.statistics?.totalAreaUsed || 0) + newAreaUsed;
-    // Again, a simplified overall utilization rate
-    const averageUtilization = totalAreaUsed / totalSheetsUsed;
-
+    const summary = project.data?.summary || {};
+    const totalSheetsUsed = (summary.sheetsUsed || 0) + newSheetsUsed;
+    const totalAreaUsed = (summary.totalAreaUsed || 0) + newAreaUsed;
+    
     await db.collection('projects').updateOne(
-        { slug: projectSlug },
+        { 'identity.slug': projectSlug },
         {
             $set: {
-                'statistics.sheetsUsed': totalSheetsUsed,
-                'statistics.totalAreaUsed': totalAreaUsed,
-                'statistics.utilizationRate': averageUtilization,
+                'data.summary.sheetsUsed': totalSheetsUsed,
+                'data.summary.totalAreaUsed': totalAreaUsed,
+                'data.summary.updatedAt': new Date()
             }
         }
     );

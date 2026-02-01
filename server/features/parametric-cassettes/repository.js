@@ -8,7 +8,7 @@ import { ObjectId } from 'mongodb';
 import { toObjectId } from '../../utils/objectid.js';
 
 const CASSETTES_COLLECTION = 'cassettes';
-const BAKED_COLLECTION = 'baked_cassettes';
+const BAKED_COLLECTION = 'cassette_designs';
 
 /**
  * Find a cassette template by ID
@@ -29,13 +29,11 @@ export async function createBakedInstance(data) {
   const db = await connectDB();
   const doc = {
     ...data,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours TTL
+    _id: data._id || new ObjectId()
   };
   
-  const result = await db.collection(BAKED_COLLECTION).insertOne(doc);
-  return { ...doc, _id: result.insertedId };
+  await db.collection(BAKED_COLLECTION).insertOne(doc);
+  return doc;
 }
 
 /**
@@ -47,8 +45,7 @@ export async function createBakedInstance(data) {
 export async function findExistingBakedInstance(originalId, dimensions) {
   const db = await connectDB();
   return await db.collection(BAKED_COLLECTION).findOne({
-    'metadata.originalCassetteId': toObjectId(originalId),
-    'metadata.dimensions': dimensions,
-    expiresAt: { $gt: new Date() }
+    'lineage.originalCassetteId': toObjectId(originalId),
+    'data.dimensions': dimensions
   });
 }

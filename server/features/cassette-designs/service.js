@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import * as queuesRepository from '../queues/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createIdentity, createStatus, inheritLineage } from '~/server/utils/blocks';
+import { createIdentity, createStatus, inheritLineage, createData } from '~/server/utils/blocks';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
@@ -10,6 +10,15 @@ import { ObjectId } from 'mongodb';
 /**
  * Cassette Designs Service - v24 Standardized
  */
+
+function toDTO(design) {
+  if (!design) return null;
+  return {
+    ...design,
+    ...design.data,
+    name: design.identity?.name
+  };
+}
 
 export async function createFromQueue(queueId, data, userId, userRole, userPermissions) {
   const queue = await queuesRepository.findById(queueId);
@@ -33,13 +42,17 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
     origin,
     status: origin,
     lineage,
-    geometry: {
-      data: data.geometryData || null,
-      dxfId: data.dxfId ? new ObjectId(data.dxfId) : null
-    }
+    data: createData({
+      geometry: {
+        data: data.geometryData || null,
+        dxfId: data.dxfId ? new ObjectId(data.dxfId) : null
+      },
+      parameters: data.parameters || {}
+    })
   };
 
-  return await repository.create(designData);
+  const created = await repository.create(designData);
+  return toDTO(created);
 }
 
 export async function getById(id, userId, userRole, userPermissions) {
@@ -51,7 +64,7 @@ export async function getById(id, userId, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  return design;
+  return toDTO(design);
 }
 
 export async function getByTemplateId(templateId, userId, userOrg, userRole, userPermissions) {
@@ -64,7 +77,7 @@ export async function getByTemplateId(templateId, userId, userOrg, userRole, use
   }
 
   const designs = await repository.find(filter);
-  return designs[0] || null;
+  return toDTO(designs[0]) || null;
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
@@ -75,11 +88,13 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
     finalFilter['lineage.organizationId'] = new ObjectId(targetOrgId);
   }
 
-  return await repository.find(finalFilter);
+  const designs = await repository.find(finalFilter);
+  return designs.map(toDTO);
 }
 
 export async function update(id, updates, userId, userRole, userPermissions) {
-  const design = await getById(id, userId, userRole, userPermissions);
+  const design = await repository.findById(id);
+  if (!design) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -90,12 +105,19 @@ export async function update(id, updates, userId, userRole, userPermissions) {
     delete updates.status;
   }
 
-  const { identity, origin, status, lineage, ...clean } = updates;
+  const { identity, origin, status, lineage, data: updatesData, ...clean } = updates;
   
   if (updates.name) design.identity.name = updates.name;
 
-  await repository.updateById(id, { identity: design.identity, ...clean });
-  return await repository.findById(id);
+  const designData = {
+    ...design.data,
+    ...updatesData,
+    ...clean
+  };
+
+  await repository.updateById(id, { identity: design.identity, data: designData });
+  const updated = await repository.findById(id);
+  return toDTO(updated);
 }
 
 export async function remove(id, userId, userRole, userPermissions) {

@@ -10,6 +10,7 @@ import { buildNodiGraph } from '../../utils/cassetteGraphBuilder.js';
 import init, { Modular } from 'nodi-modular';
 import fs from 'fs/promises';
 import path from 'path';
+import { createIdentity, createStatus, createData, createAttachment } from '../../utils/blocks.js';
 
 let modularInstance = null;
 let baseTemplateGraph = null;
@@ -381,21 +382,25 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
     handles: [(256 + idx).toString(16).toUpperCase()]
   }));
 
+  const origin = createStatus('READY', userId || 'SYSTEM', { note: 'Parametric template baked' });
+
   const bakedData = {
-    name: `${templateName} (${evalDims.A}x${evalDims.B})`,
-    slug: `baked-${templateSlug}-${Date.now()}`,
-    userId: userId,
-    type: 'BAKED_PARAMETRIC',
-    dxfId: fileId,
-    polygonParts: nestingPolygons.map((p, i) => ({
-      coordinates: p.coordinates,
-      handles: [(256 + i).toString(16).toUpperCase()]
-    })),
-    layerData: layerData, // Added layerData for better procedural placement
-    metadata: {
-      originalCassetteId: new ObjectId(cassetteId),
+    identity: createIdentity(`${templateName} (${evalDims.A}x${evalDims.B})`, `baked-${templateSlug}-${Date.now()}`),
+    origin,
+    status: origin,
+    lineage: {
+      originalCassetteId: new ObjectId(cassetteId)
+    },
+    data: createData({
+      type: 'BAKED_PARAMETRIC',
+      attachment: createAttachment('DXF', fileId, filename, { userId, type: 'BAKED_PARAMETRIC' }),
+      polygonParts: nestingPolygons.map((p, i) => ({
+        coordinates: p.coordinates,
+        handles: [(256 + i).toString(16).toUpperCase()]
+      })),
+      layerData: layerData,
       dimensions: evalDims
-    }
+    })
   };
 
   return await repository.createBakedInstance(bakedData);

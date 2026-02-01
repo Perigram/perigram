@@ -1,60 +1,66 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { generateEntityName, generateRandomString } from '~/server/utils/strings';
+import { generateRandomString } from '~/server/utils/strings';
 import standardSlugify from 'standard-slugify';
-import { createIdentity, createStatus, createSummary } from '~/server/utils/blocks';
+import { createStatus, registerService } from '~/server/utils/blocks';
+import { Project } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { ObjectId } from 'mongodb';
 
-function toDTO(project) {
-  if (!project) return null;
-  return {
-    ...project,
-    name: project.identity?.name || project.name,
-    slug: project.identity?.slug || project.slug
-  };
-}
+/**
+ * Projects Service - v24 Absolute Final
+ */
+
+// Register for procedural drilling
+registerService('project', {
+  getById: (uid) => getById(uid)
+});
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
-  // Check permission for organization
   if (userRole !== 'SuperAdmin' && !userOrg) {
     throw createError({ statusCode: 400, message: 'Organization context required' });
   }
 
-  const projectName = data.name || generateEntityName();
-  const slug = `${standardSlugify(projectName, { keepCase: false })}-${generateRandomString(6)}`;
+  const name = data.name || 'Unnamed Project';
+  const uid = `${standardSlugify(name, { keepCase: false })}-${generateRandomString(6)}`;
 
-  const origin = createStatus('DRAFT', userId, { note: 'Initial project creation' });
-  
-  const projectData = {
-    identity: createIdentity(projectName, slug),
-    origin: origin,
-    status: origin,
+  const project = new Project({
+    identity: { uid },
     lineage: { 
-      organizationId: userRole === 'SuperAdmin' && data.organizationId ? new ObjectId(data.organizationId) : new ObjectId(userOrg) 
+      organizationId: userRole === 'SuperAdmin' && data.organizationId ? data.organizationId : userOrg 
     },
-    summary: createSummary(),
-    metadata: data.metadata || {}
-  };
+    name, // Passed to constructor for data block
+    data: {
+      metadata: data.metadata || {}
+    }
+  });
   
-  // Verify permissions for the target organization
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, projectData.lineage, 'projects', 'write')) {
+  // Verify permissions
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, project.lineage, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  const created = await repository.create(projectData);
-  return toDTO(created);
+  project.applyStatus('DRAFT', userId, { note: 'Project created' });
+
+  const createdRaw = await repository.create(project);
+  return new Project(createdRaw);
 }
 
 export async function list(userId, userOrg, userRole, userPermissions) {
   const filter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
-  const projects = await repository.find(filter);
-  return projects.map(toDTO);
+  const raws = await repository.find(filter);
+  return raws.map(raw => new Project(raw));
 }
 
-export async function getBySlug(slug, userId, userOrg, userRole, userPermissions) {
-  const project = await repository.findBySlug(slug);
+export async function getById(uid) {
+  const raw = await repository.findById(uid);
+  if (!raw) return null;
+  return new Project(raw);
+}
+
+export async function getBySlug(uid, userId, userOrg, userRole, userPermissions) {
+  const project = await getById(uid);
   if (!project) {
     throw createError({ statusCode: 404, message: 'Project not found' });
   }
@@ -63,44 +69,36 @@ export async function getBySlug(slug, userId, userOrg, userRole, userPermissions
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  return toDTO(project);
+  return project;
 }
 
-export async function update(slug, updates, userId, userOrg, userRole, userPermissions) {
-  // We need to fetch the raw doc first to check permissions and get identity
-  const project = await repository.findBySlug(slug);
-  if (!project) {
-    throw createError({ statusCode: 404, message: 'Project not found' });
-  }
+export async function update(uid, updates, userId, userOrg, userRole, userPermissions) {
+  const project = await getBySlug(uid, userId, userOrg, userRole, userPermissions);
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, project.lineage, 'projects', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  // Identity updates
-  if (updates.name) {
-    project.identity.name = updates.name;
-  }
-  
-  // Status updates must go through statusService
   if (updates.status) {
     await statusService.transition('project', project._id, updates.status, userId, userRole, updates.statusMeta || {});
-    delete updates.status;
+    return await getById(uid);
   }
 
-  const { identity, status, lineage, origin, ...clean } = updates;
-  await repository.updateBySlug(slug, { identity: project.identity, ...clean });
+  const { identity, status, lineage, origin, data: updatesData, ...clean } = updates;
   
-  const updated = await repository.findBySlug(slug);
-  return toDTO(updated);
+  project.data = {
+    ...project.data,
+    ...updatesData,
+    ...clean
+  };
+
+  if (updates.name) project.data.name = updates.name;
+
+  await repository.updateById(uid, project);
+  const updatedRaw = await repository.findById(uid);
+  return new Project(updatedRaw);
 }
 
-export async function remove(slug, userId, userOrg, userRole, userPermissions) {
-    const project = await getBySlug(slug, userId, userOrg, userRole, userPermissions);
-    
+export async function remove(uid, userId, userOrg, userRole, userPermissions) {
+    const project = await getBySlug(uid, userId, userOrg, userRole, userPermissions);
     if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, project.lineage, 'projects', 'admin')) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
     }
-    
-    return await repository.deleteBySlug(slug);
+    return await repository.deleteById(uid);
 }

@@ -7,9 +7,7 @@ export async function create(data) {
   const db = await connectDB();
   const doc = {
     ...data,
-    _id: data._id || new ObjectId(),
-    createdAt: new Date(),
-    updatedAt: new Date()
+    _id: data._id || new ObjectId()
   };
   await db.collection(COLLECTION).insertOne(doc);
   return doc;
@@ -22,7 +20,7 @@ export async function findById(id) {
 
 export async function find(filter = {}) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).find(filter).sort({ createdAt: -1 }).toArray();
+  return await db.collection(COLLECTION).find(filter).sort({ 'status.timestamp': -1 }).toArray();
 }
 
 export async function updateById(id, updates) {
@@ -30,7 +28,7 @@ export async function updateById(id, updates) {
   const { _id, ...clean } = updates;
   await db.collection(COLLECTION).updateOne(
     { _id: new ObjectId(id) }, 
-    { $set: { ...clean, updatedAt: new Date() } }
+    { $set: clean }
   );
   return await findById(id);
 }

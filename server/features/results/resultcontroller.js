@@ -1,4 +1,5 @@
 import { connectDB } from "~~/server/db/mongo";
+import { ObjectId } from "mongodb";
 
 /**
  * @param {string} userId 
@@ -7,43 +8,49 @@ import { connectDB } from "~~/server/db/mongo";
  */
 export async function getResults(userId, projectSlug) {
     const db = await connectDB();
-    const queueList = await db
-        .collection("nesting_jobs")
-        .find({ ownerId: userId, ...(projectSlug && { projectSlug }) })
-        .sort({ createdAt: -1 })
+    
+    // 1. Find the project
+    const project = await db.collection('projects').findOne({ 'identity.slug': projectSlug });
+    if (!project) return { items: [] };
+
+    // 2. Find all queues for this project
+    const queues = await db.collection('queues')
+        .find({ 'lineage.projectId': project._id })
+        .sort({ 'origin.timestamp': -1 })
         .toArray();
 
-    const respnoseItems = queueList.map((queueItem) => {
-        let status = queueItem.status
-        if (queueItem.error || queueItem.status == 'error') {
-            status = 'failed'
-        }
-        let isMultiSheet = queueItem.layoutCount > 1
-        let downloadUrl = ''
-        let zipDownloadUrl = ''
-        if (queueItem.status == 'done') {
-            zipDownloadUrl = `/api/files/result/zip/${queueItem.slug}`
-            downloadUrl = isMultiSheet ? zipDownloadUrl : `/api/files/result/dxf/${queueItem.dxf_files[0]}`
-        } else {
-            downloadUrl = null
-            zipDownloadUrl = null
-        }
+    const responseItems = await Promise.all(queues.map(async (queue) => {
+        // 3. Find latest run for this queue
+        const latestRun = await db.collection('nesting_runs')
+            .findOne({ 'lineage.queueId': queue._id }, { sort: { 'origin.timestamp': -1 } });
+
+        if (!latestRun) return null;
+
+        const status = latestRun.status?.state || 'pending';
+        const isInProgress = status === 'PROPOSED' || status === 'QUEUED';
+        
+        // Find artifacts for this run
+        const artifacts = await db.collection('artifacts')
+            .find({ 'lineage.runId': latestRun._id })
+            .toArray();
+
+        const svgs = artifacts.filter(a => a.data?.type === 'SVG').map(a => `/api/files/result/svg/${a._id}`);
+        const dxfs = artifacts.filter(a => a.data?.type === 'DXF').map(a => `/api/files/result/dxf/${a._id}`);
+
         return {
-            slug: queueItem.slug,
-            status: status,
-            isMultiSheet: isMultiSheet,
-            createdAt: queueItem.createdAt,
-            placed: queueItem.placed || 0,
-            requested: queueItem.requested || 0,
-            downloadUrl: downloadUrl,
-            zipDownloadUrl: zipDownloadUrl,
-            isInProgress: queueItem.status === 'processing' || queueItem.status === 'pending',
-            svgs: (queueItem.svg_files || []).map((file) => "/api/files/result/svg/" + file),
-            dxfs: (queueItem.dxf_files || []).map((file) => "/api/files/result/dxf/" + file),
-        }
-    })
+            id: queue._id,
+            name: queue.identity?.name || `Queue #${queue.data?.queueNumber}`,
+            status: status.toLowerCase(),
+            createdAt: queue.origin?.timestamp,
+            placed: latestRun.data?.results?.placed || 0,
+            requested: latestRun.data?.results?.requested || 0,
+            isInProgress,
+            svgs,
+            dxfs
+        };
+    }));
 
     return {
-        items: respnoseItems.filter((item) => item),
+        items: responseItems.filter(Boolean),
     };
 }
