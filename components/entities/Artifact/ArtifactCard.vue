@@ -3,9 +3,9 @@
  * Artifact View Component - v24 Standardized
  */
 import { computed } from 'vue';
-import Card from 'primevue/card';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
+import StandardCard from '~/components/shared/StandardCard.vue';
 import { useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
@@ -29,13 +29,10 @@ const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 
 </script>
 
 <template>
-  <div :class="[`variant-${variant}`]">
+  <div class="cursor-pointer" @click="$emit('click', artifact)">
     <!-- INLINE: Small chip-like item -->
     <template v-if="variant === 'inline'">
-      <div 
-        @click="$emit('click', artifact)" 
-        class="inline-flex items-center gap-2"
-      >
+      <div class="inline-flex items-center gap-2">
         <i :class="['pi', icon]"></i>
         <span>{{ typeLabel }}</span>
         <Tag v-if="state !== 'READY'" :severity="statusColor" />
@@ -44,7 +41,7 @@ const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 
 
     <!-- COMPACT: List item with more info -->
     <template v-else-if="variant === 'compact'">
-      <Card @click="$emit('click', artifact)">
+      <StandardCard>
         <template #title>
             <div class="flex items-center gap-2">
                 <i :class="['pi', icon]"></i>
@@ -54,12 +51,12 @@ const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 
         <template #subtitle>
             <small>{{ typeLabel }}</small>
         </template>
-      </Card>
+      </StandardCard>
     </template>
 
     <!-- CARD: Full featured card -->
     <template v-else-if="variant === 'card'">
-      <Card @click="$emit('click', artifact)">
+      <StandardCard>
         <template #title>
             <span class="truncate">{{ name }}</span>
         </template>
@@ -69,11 +66,11 @@ const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 
         <template #content>
             <Divider />
             <div class="flex flex-col items-center gap-4">
-                <i :class="['pi', icon, 'text-4xl']"></i>
+                <i :class="['pi', icon]"></i>
                 <Tag :value="state" :severity="statusColor" />
             </div>
         </template>
-      </Card>
+      </StandardCard>
     </template>
   </div>
 </template>

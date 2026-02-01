@@ -6,9 +6,9 @@ This directory contains Vue components used in the Cutkit-Demo application.
 - **PrimeVue:** All components MUST use PrimeVue for UI elements (buttons, inputs, tables, dialogs).
 - **Zero Styling Policy:** Components MUST avoid manual styling (colors, text sizes, backgrounds, etc.). Rely on PrimeVue theme presets. No custom CSS except for layout purposes.
 - **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).
-- **Standard Components:** Create reusable components for common UI patterns (cards, modals, forms, tables) and use them consistently across the app, add variants where needed.
+- **Standard Components:** Create reusable components for common UI patterns (cards, modals, forms, tables) and use them consistently across the app, add variants where needed. See [components/shared/NEOLIT.md](./shared/NEOLIT.md) for the list of available standard components (`StandardCard`, `StandardDialog`, `StandardPage`).
 - **Use Variants:** Components should support different visual variants (e.g., `inline`, `compact`, `card`) to ensure flexibility in different contexts.
-- **Child Components:** Entities (see data model) which components need to display child entities (for example, NestingRunCard needs to display it's artifacts gathered by parent id) must use their components (ArtifactCard).
+- **Child Components:** Entities (see ../server/DATA_MODEL.md) which components need to display child entities (for example, NestingRunCard needs to display it's artifacts gathered by parent id) must use their components (ArtifactCard).
 - **Smart Components:** Sub-components should use permissions to conditionally render actions (edit, delete, view) based on user roles.
 - **Use State Machines**: to manage component states and transitions use StatusEntity component, not in-component logic and buttons. Ensure StatusEntity supports dynamic buttons based on the entity's state machine.
 - **True To API and Data Model**: Components must strictly adhere to the API responses and component's entity data model. Avoid hardcoding values or making assumptions about data structure, check API and data model first.

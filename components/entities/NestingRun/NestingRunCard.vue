@@ -3,12 +3,12 @@
  * Nesting Run View Component - v24 Standardized
  */
 import { computed } from 'vue';
-import Card from 'primevue/card';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import EntityStatus from '../shared/EntityStatus.vue';
 import ArtifactCard from '../Artifact/ArtifactCard.vue';
+import StandardCard from '~/components/shared/StandardCard.vue';
 import { useStatus } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
 
@@ -31,36 +31,36 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
 </script>
 
 <template>
-  <div :class="[`variant-${variant}`]">
+  <div class="h-full cursor-pointer" @click="$emit('select', run._id)">
     <!-- Inline -->
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
-        <span class="font-mono">#{{ run.runNumber }}</span>
+        <span>#{{ run.runNumber }}</span>
         <EntityStatus :entity="run" variant="inline" />
       </div>
     </template>
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <Card @click="$emit('select', run._id)">
+      <StandardCard>
         <template #title>
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-2">
-                    <span class="font-mono">#{{ run.runNumber }}</span>
+                    <span>#{{ run.runNumber }}</span>
                     <Tag :value="run.materialMode || 'WAREHOUSE'" :severity="isVirtual ? 'warn' : 'info'" />
                 </div>
                 <EntityStatus :entity="run" variant="inline" />
             </div>
         </template>
-      </Card>
+      </StandardCard>
     </template>
 
     <!-- Card -->
     <template v-else-if="variant === 'card'">
-      <Card @click="$emit('select', run._id)">
+      <StandardCard>
         <template #title>
             <div class="flex justify-between items-center gap-4">
-                <span class="font-mono">#{{ run.runNumber }}</span>
+                <span>#{{ run.runNumber }}</span>
                 <div class="flex gap-2">
                     <Tag :value="run.materialMode || 'WAREHOUSE'" :severity="isVirtual ? 'warn' : 'info'" />
                     <EntityStatus :entity="run" variant="inline" />
@@ -135,7 +135,7 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
                 </div>
             </template>
         </template>
-      </Card>
+      </StandardCard>
     </template>
   </div>
 </template>

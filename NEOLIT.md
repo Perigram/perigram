@@ -51,6 +51,8 @@ graph TD
 ```
 
 ### Data Model (v24 Absolute Definitive)
+See [server/DATA_MODEL.md](./server/DATA_MODEL.md) for the procedurally generated, up-to-date schema reference.
+
 The system uses a standardized block-based architecture for all entities:
 - **`identity`**: Unified slug, name, and serial/reference fields.
 - **`origin`**: Immutable snapshot of the creation state.

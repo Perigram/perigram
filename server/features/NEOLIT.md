@@ -24,5 +24,6 @@ Modules interact via services. Cross-module database access is strictly forbidde
 Permissions are enforced using `server/utils/permissions.js` which validates the `lineage` block against user memberships.
 
 ## Related
+- [server/DATA_MODEL.md](../DATA_MODEL.md) - Generated Data Model.
 - [server/core/machines/](../core/machines/NEOLIT.md) - Lifecycle Engine.
 - [server/utils/](../utils/NEOLIT.md) - Block and Permission utilities.

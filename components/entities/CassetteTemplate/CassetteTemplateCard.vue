@@ -1,5 +1,5 @@
 <template>
-  <div :class="[`variant-${variant}`]">
+  <div>
     <!-- Inline View -->
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
@@ -10,7 +10,7 @@
 
     <!-- Compact View -->
     <template v-else-if="variant === 'compact'">
-      <Card class="card-interactive">
+      <StandardCard>
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
@@ -23,14 +23,14 @@
         <template #subtitle>
             <small>{{ template.definition?.type }}</small>
         </template>
-      </Card>
+      </StandardCard>
     </template>
 
     <!-- Card View -->
     <template v-else-if="variant === 'card'">
-      <Card class="card-interactive">
+      <StandardCard>
         <template #header>
-            <div class="flex justify-between items-center p-2">
+            <div class="flex justify-between items-center">
                 <small>Cassette Template</small>
                 <EntityStatus :entity="template" variant="inline" />
             </div>
@@ -48,13 +48,12 @@
             </div>
         </template>
         <template #footer>
-            <Divider />
             <div class="flex gap-2">
                 <Button label="Create Instance" icon="pi pi-plus" text class="flex-1" />
                 <Button icon="pi pi-download" text @click="downloadDxf" />
             </div>
         </template>
-      </Card>
+      </StandardCard>
     </template>
   </div>
 </template>
@@ -63,11 +62,11 @@
 /**
  * Cassette Template View Component - v24 Standardized
  */
-import Card from 'primevue/card';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import EntityStatus from '../shared/EntityStatus.vue';
+import StandardCard from '~/components/shared/StandardCard.vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({

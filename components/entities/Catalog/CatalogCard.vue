@@ -2,9 +2,10 @@
 /**
  * Catalog View Component - v24 Standardized
  */
-import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
+import Divider from 'primevue/divider';
+import StandardCard from '~/components/shared/StandardCard.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useIdentity } from '~/composables/useBlocks';
 
@@ -23,7 +24,7 @@ const handleCardClick = () => {
 </script>
 
 <template>
-  <div :class="[`variant-${variant}`]">
+  <div class="h-full cursor-pointer" @click="handleCardClick">
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-book"></i>
@@ -32,7 +33,7 @@ const handleCardClick = () => {
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <Card @click="handleCardClick">
+      <StandardCard>
         <template #title>
             <div class="flex items-center gap-2">
                 <i class="pi pi-book"></i>
@@ -42,11 +43,11 @@ const handleCardClick = () => {
         <template #subtitle>
             <Tag :value="catalog.material" severity="secondary" />
         </template>
-      </Card>
+      </StandardCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <Card @click="handleCardClick">
+      <StandardCard>
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <span class="truncate">{{ name }}</span>
@@ -61,13 +62,12 @@ const handleCardClick = () => {
             </div>
         </template>
         <template #footer>
-            <Divider />
             <div class="flex justify-end gap-2" @click.stop>
-                <Button v-if="authStore.can('catalogs', 'edit')" icon="pi pi-pencil" text @click="$emit('edit', catalog)" />
-                <Button v-if="authStore.can('catalogs', 'delete')" icon="pi pi-trash" text severity="danger" @click="$emit('delete', catalog)" />
+                <Button v-if="authStore.can('catalogs', 'edit')" icon="pi pi-pencil" text rounded aria-label="Edit" @click="$emit('edit', catalog)" />
+                <Button v-if="authStore.can('catalogs', 'delete')" icon="pi pi-trash" text rounded severity="danger" aria-label="Delete" @click="$emit('delete', catalog)" />
             </div>
         </template>
-      </Card>
+      </StandardCard>
     </template>
   </div>
 </template>

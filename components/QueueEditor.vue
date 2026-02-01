@@ -280,7 +280,7 @@
 
 
         <!-- Add Entry Dialog -->
-        <Dialog v-model:visible="showAddDialog" :header="$t('queues.addEntry')" modal>
+        <StandardDialog v-model:visible="showAddDialog" :header="$t('queues.addEntry')">
             <div class="flex flex-col gap-4 py-4">
                 <div class="flex flex-col gap-2">
                     <label>{{ $t('queues.cassette') }}</label>
@@ -295,7 +295,7 @@
                 <Button :label="$t('common.cancel')" text severity="secondary" @click="showAddDialog = false" />
                 <Button :label="$t('common.add')" @click="() => addEntry()" :disabled="!newEntry.cassetteTemplateId" />
             </template>
-        </Dialog>
+        </StandardDialog>
 
         <CassetteEditorDialog v-model:modelValue="showUploadDialog" @saved="onCassetteUploaded" ref="uploadDialogRef" />
 
@@ -329,7 +329,7 @@ import MultiSelect from 'primevue/multiselect';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Checkbox from 'primevue/checkbox';
-import Dialog from 'primevue/dialog';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FileUpload from 'primevue/fileupload';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Accordion from 'primevue/accordion';

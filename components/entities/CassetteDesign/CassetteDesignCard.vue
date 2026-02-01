@@ -1,5 +1,5 @@
 <template>
-  <div :class="[`variant-${variant}`]">
+  <div>
     <!-- Inline -->
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
@@ -10,7 +10,7 @@
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <Card class="card-interactive">
+      <StandardCard>
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <span class="truncate">{{ name }}</span>
@@ -20,12 +20,12 @@
         <template #subtitle>
             <small>{{ serial }}</small>
         </template>
-      </Card>
+      </StandardCard>
     </template>
 
     <!-- Card -->
     <template v-else-if="variant === 'card'">
-      <Card class="card-interactive">
+      <StandardCard>
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <span class="truncate">{{ serial }}</span>
@@ -37,11 +37,11 @@
         </template>
         <template #content>
             <Divider />
-            <div class="flex justify-center p-4">
-                <i class="pi pi-pencil text-4xl"></i>
+            <div class="flex justify-center">
+                <i class="pi pi-pencil"></i>
             </div>
         </template>
-      </Card>
+      </StandardCard>
     </template>
   </div>
 </template>
@@ -50,9 +50,9 @@
 /**
  * Cassette Design View Component - v24 Standardized
  */
-import Card from 'primevue/card';
 import Badge from 'primevue/badge';
 import Divider from 'primevue/divider';
+import StandardCard from '~/components/shared/StandardCard.vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({

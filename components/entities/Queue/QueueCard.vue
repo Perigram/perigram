@@ -2,13 +2,13 @@
 /**
  * Queue View Component - v24 Standardized
  */
-import Card from 'primevue/card';
-import Divider from 'primevue/divider';
 import Button from 'primevue/button';
+import Divider from 'primevue/divider';
 import { useAuthStore } from '~/stores/auth';
 import { useIdentity } from '~/composables/useBlocks';
 import EntityStatus from '../shared/EntityStatus.vue';
 import LineageBreadcrumbs from '../shared/LineageBreadcrumbs.vue';
+import StandardCard from '~/components/shared/StandardCard.vue';
 
 const props = defineProps({
   queue: { type: Object, required: true },
@@ -25,7 +25,7 @@ const handleCardClick = () => {
 </script>
 
 <template>
-  <div :class="[`variant-${variant}`]">
+  <div class="h-full cursor-pointer" @click="handleCardClick">
     <!-- Inline -->
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
@@ -37,7 +37,7 @@ const handleCardClick = () => {
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <Card @click="handleCardClick">
+      <StandardCard>
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
@@ -47,16 +47,14 @@ const handleCardClick = () => {
                 <EntityStatus :entity="queue" variant="inline" />
             </div>
         </template>
-      </Card>
+      </StandardCard>
     </template>
 
     <!-- Card -->
     <template v-else-if="variant === 'card'">
-      <Card @click="handleCardClick">
+      <StandardCard>
         <template #header>
-            <div class="p-2">
-                <LineageBreadcrumbs v-if="queue.lineage" :lineage="queue.lineage" />
-            </div>
+            <LineageBreadcrumbs v-if="queue.lineage" :lineage="queue.lineage" />
         </template>
         <template #title>
             <div class="flex justify-between items-center gap-4">
@@ -81,13 +79,12 @@ const handleCardClick = () => {
             </div>
         </template>
         <template #footer>
-            <Divider />
             <div class="flex justify-end gap-2" @click.stop>
-                <Button v-if="authStore.can('queues', 'edit')" icon="pi pi-pencil" text @click="$emit('edit', queue)" />
-                <Button v-if="authStore.can('queues', 'delete')" icon="pi pi-trash" text severity="danger" @click="$emit('delete', queue)" />
+                <Button v-if="authStore.can('queues', 'edit')" icon="pi pi-pencil" text rounded aria-label="Edit" @click="$emit('edit', queue)" />
+                <Button v-if="authStore.can('queues', 'delete')" icon="pi pi-trash" text rounded severity="danger" aria-label="Delete" @click="$emit('delete', queue)" />
             </div>
         </template>
-      </Card>
+      </StandardCard>
     </template>
   </div>
 </template>

@@ -2,13 +2,13 @@
 /**
  * Project View Component - v24 Standardized
  */
-import Card from 'primevue/card';
-import Divider from 'primevue/divider';
 import Button from 'primevue/button';
+import Divider from 'primevue/divider';
 import { useAuthStore } from '~/stores/auth';
 import { useIdentity } from '~/composables/useBlocks';
 import EntityStatus from '../shared/EntityStatus.vue';
 import LineageBreadcrumbs from '../shared/LineageBreadcrumbs.vue';
+import StandardCard from '~/components/shared/StandardCard.vue';
 
 const props = defineProps({
   project: { type: Object, required: true },
@@ -25,7 +25,7 @@ const handleCardClick = () => {
 </script>
 
 <template>
-  <div :class="[`variant-${variant}`]">
+  <div class="h-full cursor-pointer" @click="handleCardClick">
     <!-- Inline -->
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
@@ -36,22 +36,20 @@ const handleCardClick = () => {
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <Card @click="handleCardClick">
-        <template #content>
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex flex-col flex-1">
-                    <span>{{ name }}</span>
-                    <small>{{ slug }}</small>
-                </div>
-                <EntityStatus :entity="project" variant="inline" />
+      <StandardCard>
+        <div class="flex items-center justify-between gap-4">
+            <div class="flex flex-col flex-1">
+                <span>{{ name }}</span>
+                <small>{{ slug }}</small>
             </div>
-        </template>
-      </Card>
+            <EntityStatus :entity="project" variant="inline" />
+        </div>
+      </StandardCard>
     </template>
 
     <!-- Card -->
     <template v-else-if="variant === 'card'">
-      <Card @click="handleCardClick">
+      <StandardCard>
         <template #header>
             <LineageBreadcrumbs v-if="project.lineage" :lineage="project.lineage" />
         </template>
@@ -64,27 +62,26 @@ const handleCardClick = () => {
         <template #subtitle>
             <small>{{ slug }}</small>
         </template>
-        <template #content>
-            <Divider />
-            <div class="grid grid-cols-2">
-                <div class="flex flex-col">
-                    <small>Queues</small>
-                    <span>{{ project.summary?.queueCount || 0 }}</span>
-                </div>
-                <div class="flex flex-col">
-                    <small>Total Area</small>
-                    <span>{{ project.summary?.totalArea || 0 }} m²</span>
-                </div>
+        
+        <Divider />
+        <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col">
+                <small>Queues</small>
+                <span>{{ project.summary?.queueCount || 0 }}</span>
             </div>
-        </template>
+            <div class="flex flex-col">
+                <small>Total Area</small>
+                <span>{{ project.summary?.totalArea || 0 }} m²</span>
+            </div>
+        </div>
+
         <template #footer>
-            <Divider />
             <div class="flex justify-end gap-2" @click.stop>
-                <Button v-if="authStore.can('projects', 'edit')" icon="pi pi-pencil" text @click="$emit('edit', project)" />
-                <Button v-if="authStore.can('projects', 'delete')" icon="pi pi-trash" text severity="danger" @click="$emit('delete', project)" />
+                <Button v-if="authStore.can('projects', 'edit')" icon="pi pi-pencil" text rounded aria-label="Edit" @click="$emit('edit', project)" />
+                <Button v-if="authStore.can('projects', 'delete')" icon="pi pi-trash" text rounded severity="danger" aria-label="Delete" @click="$emit('delete', project)" />
             </div>
         </template>
-      </Card>
+      </StandardCard>
     </template>
   </div>
 </template>
