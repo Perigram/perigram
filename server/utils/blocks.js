@@ -73,6 +73,17 @@ export class BaseEntity {
   }
 }
 
+export const createIdentity = (name, slug, serial = '', reference = '') => ({
+  name,
+  slug,
+  serial,
+  reference
+});
+
+export const createStatus = (state, userId, metadata = {}, eventId = null) => new Status(state, userId, metadata, eventId);
+
+export const createData = (data = {}) => ({ ...data });
+
 export const createAttachment = (type, fileId, name = '', metadata = {}) => ({
   type,
   fileId: fileId instanceof ObjectId ? fileId : new ObjectId(fileId),
