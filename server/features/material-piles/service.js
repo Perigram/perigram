@@ -87,6 +87,33 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   return new MaterialPile(updatedRaw);
 }
 
+export async function updateStatus(id, state, note, user, additionalData = {}) {
+  const pile = await getById(id);
+  if (!pile) throw createError({ statusCode: 404, message: 'Material pile not found' });
+  
+  const userPermissions = { memberships: user.memberships, role: user.role };
+  if (!hasLineagePermission(userPermissions, pile.lineage, 'materials', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  return await statusService.transition('material_pile', pile._id, state, user.userId, user.role, { note, ...additionalData });
+}
+
+export async function remove(id, userId, userOrg, userRole, userPermissions) {
+  const pileRaw = await repository.findById(id);
+  if (!pileRaw) throw createError({ statusCode: 404, message: 'Material pile not found' });
+  
+  if (!hasLineagePermission(userPermissions, pileRaw.lineage, 'materials', 'admin')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  
+  if (pileRaw.data?.stock?.used > 0) {
+    throw createError({ statusCode: 400, message: 'Cannot delete pile with used stock' });
+  }
+  
+  return await repository.deleteById(id);
+}
+
 export async function allocate(uid, count, userId, userRole) {
   const pileRaw = await repository.findById(uid);
   if (!pileRaw) throw new Error('Pile not found');

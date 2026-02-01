@@ -37,3 +37,9 @@ export async function deleteById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }
+
+export async function getNextRequisitionNumber() {
+  const db = await connectDB();
+  const count = await db.collection(COLLECTION).countDocuments();
+  return (count + 1).toString().padStart(4, '0');
+}

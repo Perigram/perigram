@@ -3,6 +3,7 @@ import { verifyAccessToken } from '~/server/utils/auth-helpers';
 import { getUserBySessionId } from '~/server/features/users/service';
 import * as usersRepository from '~/server/features/users/repository';
 import * as organizationsRepository from '~/server/features/organizations/repository';
+import { User } from '~/server/features/users/model';
 
 export default defineEventHandler(async (event) => {
   let user = null;
@@ -17,7 +18,8 @@ export default defineEventHandler(async (event) => {
       // Validate userId before lookup
       if (payload && payload.userId && /^[0-9a-fA-F]{24}$/.test(payload.userId)) {
         // FETCH USER FRESH (permissions may have changed)
-        user = await usersRepository.findById(payload.userId);
+        const raw = await usersRepository.findById(payload.userId);
+        if (raw) user = new User(raw);
       }
     } catch (err) {
       // Token invalid or user not found, ignore and try cookie

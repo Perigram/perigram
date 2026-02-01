@@ -170,8 +170,9 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `data.layoutData` | String | layout data field |
+| `data.remnantArea` | String | remnant area field |
 | `data.results` | Array | results field |
+| `data.sheetCount` | String | sheet count field |
 
 ### organizations
 *Organizations - manages organizations*
@@ -295,6 +296,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.serial` | String | serial field |
+| `data.specs` | Array | specs field |
 
 ### status_events
 *Statuses - manages status events*

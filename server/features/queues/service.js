@@ -6,6 +6,8 @@ import { inheritLineage, registerService } from '~/server/utils/blocks';
 import { Queue } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';
+import { ObjectId } from 'mongodb';
+import { connectDB } from '~/server/db/mongo';
 
 /**
  * Queues Service - v24 Absolute Final
@@ -35,7 +37,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const uid = `q-${generateRandomString(8)}`;
 
   const queue = new Queue({
-    identity: { uid },
+    identity: { uid, name: name || `Queue #${queueNumber}` },
     lineage,
     params: { job, queueNumber }
   });
@@ -91,4 +93,53 @@ export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   }
   
   return await repository.deleteById(uid);
+}
+
+export async function markCut(queueId, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(queueId);
+  if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  const db = await connectDB();
+  const chosenRun = await db.collection('nesting_runs').findOne({
+    'lineage.queueId': queueId,
+    'status.state': 'CHOSEN'
+  });
+  
+  if (!chosenRun) throw createError({ statusCode: 400, message: 'No run chosen' });
+
+  await statusService.transition('queue', queueId, 'CUT', userId, userRole, { note: 'Marked as CUT' });
+  
+  return await getById(queueId);
+}
+
+export async function resetToDraft(queueId, userId, userOrg, userRole, userPermissions) {
+  const queue = await getById(queueId);
+  if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
+  
+  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  await statusService.transition('queue', queueId, 'DRAFT', userId, userRole, { note: 'Reset to DRAFT' });
+  
+  return await getById(queueId);
+}
+
+export async function getArtifacts(queueId, userId, userOrg, userRole, userPermissions, runId) {
+    const queue = await getById(queueId);
+    if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
+    
+    if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'read')) {
+        throw createError({ statusCode: 403, message: 'Permission denied' });
+    }
+
+    const { list: listArtifacts } = await import('../artifacts/service.js');
+    const filter = { 'lineage.queueId': queueId };
+    if (runId) filter['lineage.runId'] = runId;
+
+    return await listArtifacts(filter);
 }

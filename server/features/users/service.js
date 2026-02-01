@@ -7,6 +7,7 @@ import { registerService } from '~/server/utils/blocks';
 import { User } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { ObjectId } from 'mongodb';
+import { connectDB } from '~/server/db/mongo';
 
 /**
  * Users Service - v24 Absolute Final
@@ -49,20 +50,12 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
   return new User(createdRaw);
 }
 
-export async function getUserBySessionId(sessionId) {
-  const session = await sessionsRepository.findBySessionId(sessionId);
-  if (!session) return null;
-  const userRaw = await usersRepository.findById(session.userId);
-  if (!userRaw) return null;
-  return new User(userRaw);
-}
-
 export async function login(email, password) {
   const userRaw = await usersRepository.findByEmail(email.toLowerCase());
   if (!userRaw) throw createError({ statusCode: 401, message: 'Invalid credentials' });
   const user = new User(userRaw);
   
-  if (!user.data.isActive) throw createError({ statusCode: 403, message: 'Account deactivated' });
+  if (!user.isActive) throw createError({ statusCode: 403, message: 'Account deactivated' });
   
   const valid = await verifyPassword(user.data.passwordHash, password);
   if (!valid) throw createError({ statusCode: 401, message: 'Invalid credentials' });
@@ -80,14 +73,82 @@ export async function login(email, password) {
 }
 
 export async function logout(sessionId) {
-  return await sessionsRepository.deleteBySessionId(sessionId);
+  await sessionsRepository.deleteBySessionId(sessionId);
+  return { success: true };
+}
+
+export async function getUserBySessionId(sessionId) {
+  const session = await sessionsRepository.findBySessionId(sessionId);
+  if (!session) return null;
+  const userRaw = await usersRepository.findById(session.userId);
+  if (!userRaw) return null;
+  return new User(userRaw);
 }
 
 export async function switchOrganization(userId, organizationId) {
-  // Logic to validate organization membership would go here
-  // For now, return a new token with updated org context if needed
-  // In v24, this might just be a client-side context switch or a session update
-  return { success: true, organizationId };
+  const user = await getById(userId);
+  if (!user) throw createError({ statusCode: 404, message: 'User not found' });
+
+  const membership = user.memberships.find(m => m.organizationId.toString() === organizationId.toString());
+  if (!membership) throw createError({ statusCode: 403, message: 'User is not a member of this organization' });
+
+  user.lineage.organizationId = new ObjectId(organizationId);
+  user.data.role = membership.role;
+  user.data.permissions = membership.permissions;
+
+  await usersRepository.updateById(userId, user);
+  return await getById(userId);
+}
+
+export async function confirmMembership(userId, organizationId, action, updaterUser) {
+  if (updaterUser.role !== 'SuperAdmin' && updaterUser.organizationId?.toString() !== organizationId.toString()) {
+    throw createError({ statusCode: 403, message: 'Forbidden' });
+  }
+
+  const userRaw = await usersRepository.findById(userId);
+  if (!userRaw) throw createError({ statusCode: 404, message: 'User not found' });
+
+  const db = await connectDB();
+  if (action === 'approve') {
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(userId), "data.memberships.organizationId": organizationId },
+      { $set: { "data.memberships.$.status": 'active' } }
+    );
+  } else {
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(userId) },
+      { $pull: { "data.memberships": { organizationId: organizationId } } }
+    );
+  }
+  return { success: true };
+}
+
+export async function updatePermissions(userId, newPermissions, deleterId, userOrg, deleterRole, userPermissions) {
+  const userRaw = await usersRepository.findById(userId);
+  if (!userRaw) throw createError({ statusCode: 404, message: 'User not found' });
+
+  const isSuperAdmin = deleterRole === 'SuperAdmin';
+  const isInSameOrg = userRaw.data.memberships?.some(m => m.organizationId.toString() === userOrg?.toString());
+  const isAdminOfOrg = deleterRole.endsWith('Admin') && isInSameOrg;
+
+  if (!isSuperAdmin && !isAdminOfOrg) {
+    throw createError({ statusCode: 403, message: 'Forbidden' });
+  }
+
+  const db = await connectDB();
+  if (userOrg && isInSameOrg) {
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(userId), "data.memberships.organizationId": userOrg },
+      { $set: { "data.memberships.$.permissions": newPermissions, "data.permissions": newPermissions } }
+    );
+  } else if (isSuperAdmin) {
+    await db.collection('users').updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: { "data.permissions": newPermissions } }
+    );
+  }
+
+  return { success: true };
 }
 
 export async function list(userId, userOrg, userRole, userPermissions) {
@@ -114,9 +175,28 @@ export async function update(uid, updates, userId, userRole) {
   return await getById(uid);
 }
 
-export async function remove(uid, deleterId, deleterRole) {
-  if (deleterRole !== 'SuperAdmin') throw createError({ statusCode: 403, message: 'Forbidden' });
-  await usersRepository.deleteById(uid);
-  await sessionsRepository.deleteByUserId(uid);
+export async function remove(uid, deleterId, userOrg, deleterRole, userPermissions) {
+  const userRaw = await usersRepository.findById(uid);
+  if (!userRaw) throw createError({ statusCode: 404, message: 'User not found' });
+
+  const isSuperAdmin = deleterRole === 'SuperAdmin';
+  const isInSameOrg = userOrg && userRaw.data.memberships?.some(m => m.organizationId.toString() === userOrg.toString());
+  const isAdminOfOrg = deleterRole.endsWith('Admin') && isInSameOrg;
+
+  if (!isSuperAdmin && !isAdminOfOrg) {
+    throw createError({ statusCode: 403, message: 'Forbidden' });
+  }
+
+  if (isSuperAdmin) {
+    await usersRepository.deleteById(uid);
+    await sessionsRepository.deleteByUserId(uid);
+  } else {
+    const db = await connectDB();
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(uid) },
+      { $pull: { "data.memberships": { organizationId: userOrg } } }
+    );
+  }
+
   return { success: true };
 }

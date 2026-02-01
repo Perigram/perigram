@@ -1,11 +1,12 @@
 import * as repository from './repository.js';
-import * as materialPilesService from '../material-piles/service.js';
+import * as materialPilesRepository from '../material-piles/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { inheritLineage, registerService } from '~/server/utils/blocks';
+import { createStatus, inheritLineage, registerService } from '~/server/utils/blocks';
 import { Sheet } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';
+import { mapLineageQuery } from '~/server/utils/query';
 
 /**
  * Sheets Service - v24 Absolute Final
@@ -16,50 +17,50 @@ registerService('sheet', {
 });
 
 export async function createFromPile(pileId, count, userId, userRole, userPermissions) {
-  const pile = await materialPilesService.getById(pileId);
-  if (!pile) throw createError({ statusCode: 404, message: 'Material pile not found' });
+  const pileRaw = await materialPilesRepository.findById(pileId);
+  if (!pileRaw) throw createError({ statusCode: 404, message: 'Material pile not found' });
 
-  if (!hasLineagePermission(userPermissions, pile.lineage, 'materials', 'write')) {
+  if (!hasLineagePermission(userPermissions, pileRaw.lineage, 'materials', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  const stock = pile.data.stock;
-  const available = (stock.total || 0) - (stock.used || 0);
+  const available = (pileRaw.data?.stock?.total || 0) - (pileRaw.data?.stock?.used || 0);
   if (available < count) {
     throw createError({ statusCode: 400, message: `Insufficient stock in pile. Available: ${available}` });
   }
 
-  const sheetsToCreate = [];
-  for (let i = 0; i < count; i++) {
-    const serial = `SH-${Date.now()}-${generateRandomString(5).toUpperCase()}`;
-    const uid = `sheet-${generateRandomString(8)}`;
-    
-    // Standard: Sheet inherits ONLY lineage from pile. No specs or serial copying.
-    const sheet = new Sheet({
-      identity: { uid },
-      lineage: inheritLineage(pile, 'pile'),
-      params: { serial } // Local identifier for the physical unit
-    });
-
-    sheet.applyStatus('AVAILABLE', userId, { note: 'Created from material pile' });
-    sheetsToCreate.push(sheet);
-  }
-
+  const baseLineage = inheritLineage(pileRaw, 'pile');
   const created = [];
-  for (const sheet of sheetsToCreate) {
-    const raw = await repository.create(sheet);
-    created.push(new Sheet(raw));
+
+  for (let i = 0; i < count; i++) {
+    const serial = `SH-${generateRandomString(8)}`;
+    const sheet = new Sheet({
+      identity: { uid: `sheet-${generateRandomString(8)}`, serial, name: `Sheet ${serial}` },
+      lineage: baseLineage,
+      params: { serial, specs: pileRaw.data.specs }
+    });
+    
+    sheet.applyStatus('AVAILABLE', userId, { note: 'Created from material pile' });
+    const createdRaw = await repository.create(sheet);
+    created.push(new Sheet(createdRaw));
   }
 
-  // Orchestrate pile allocation
-  await materialPilesService.allocate(pileId, count, userId, userRole);
+  await materialPilesRepository.updateById(pileId, { 
+    'data.stock.used': (pileRaw.data?.stock?.used || 0) + count 
+  });
 
   return created;
 }
 
+export async function allocateFromPile(pileId, count, user) {
+  const userPermissions = { memberships: user.memberships, role: user.role };
+  return await createFromPile(pileId, count, user.userId, user.role, userPermissions);
+}
+
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter(userPermissions);
-  const raws = await repository.find({ ...lineageFilter, ...filter });
+  const finalFilter = mapLineageQuery({ ...lineageFilter, ...filter });
+  const raws = await repository.find(finalFilter);
   return raws.map(raw => new Sheet(raw));
 }
 
@@ -70,9 +71,9 @@ export async function getById(uid) {
 }
 
 export async function update(uid, updates, userId, userOrg, userRole, userPermissions) {
-  const sheetRaw = await repository.findById(uid);
-  if (!sheetRaw) throw createError({ statusCode: 404, message: 'Sheet not found' });
-  const sheet = new Sheet(sheetRaw);
+  const raw = await repository.findById(uid);
+  if (!raw) throw createError({ statusCode: 404, message: 'Sheet not found' });
+  const sheet = new Sheet(raw);
   
   if (!hasLineagePermission(userPermissions, sheet.lineage, 'materials', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -97,11 +98,15 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 }
 
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
-  const sheet = await getById(uid);
-  if (!sheet) throw createError({ statusCode: 404, message: 'Sheet not found' });
+  const raw = await repository.findById(uid);
+  if (!raw) throw createError({ statusCode: 404, message: 'Sheet not found' });
   
-  if (!hasLineagePermission(userPermissions, sheet.lineage, 'materials', 'admin')) {
+  if (!hasLineagePermission(userPermissions, raw.lineage, 'materials', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  
+  if (raw.status?.state === 'MILLED') {
+    throw createError({ statusCode: 400, message: 'Cannot delete milled sheet' });
   }
   
   return await repository.deleteById(uid);
