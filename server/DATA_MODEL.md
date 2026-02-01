@@ -57,6 +57,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.parameters` | Array | parameters field |
 | `data.type` | String | type field |
 | `data.userId` | String | user id field |
+| `lineage.templateId` | ObjectId | Lineage link to templateId |
 
 ### catalogs
 *Catalogs - manages catalogs*
@@ -72,6 +73,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.material` | String | material field |
 | `data.options` | Array | options field |
 | `data.pricing` | String | pricing field |
+| `lineage.organizationId` | ObjectId | Lineage link to organizationId |
 
 ### collection_name
 *_template - manages collection name*
@@ -198,6 +200,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.stroke` | String | stroke field |
+| `lineage.userId` | ObjectId | Lineage link to userId |
 
 ### projects
 *Projects - manages projects*
@@ -209,6 +212,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
+| `lineage.organizationId` | ObjectId | Lineage link to organizationId |
 
 ### queues
 *Queues - manages queues*
@@ -254,6 +258,9 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.items` | Array | items field |
 | `data.notes` | Array | notes field |
+| `lineage.manufacturerId` | ObjectId | Lineage link to manufacturerId |
+| `lineage.organizationId` | ObjectId | Lineage link to organizationId |
+| `lineage.projectId` | ObjectId | Lineage link to projectId |
 
 ### sessions
 *Sessions - manages sessions*
@@ -314,6 +321,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.angle` | String | angle field |
 | `data.diameter` | String | diameter field |
+| `lineage.userId` | ObjectId | Lineage link to userId |
 
 ### users
 *Users - manages users*

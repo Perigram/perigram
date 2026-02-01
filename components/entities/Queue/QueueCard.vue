@@ -1,13 +1,13 @@
 <script setup>
 /**
- * Queue View Component - v24 Standardized
+ * QueueCard - v24 Standardized
  */
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import { useAuthStore } from '~/stores/auth';
-import { useIdentity } from '~/composables/useBlocks';
-import EntityStatus from '../shared/EntityStatus.vue';
-import LineageBreadcrumbs from '../shared/LineageBreadcrumbs.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import StatusEntity from '~/components/shared/blocks/StatusEntity.vue';
+import LineageBlock from '~/components/shared/blocks/LineageBlock.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 
 const props = defineProps({
@@ -17,7 +17,6 @@ const props = defineProps({
 
 const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
-const { name } = useIdentity(props.queue);
 
 const handleCardClick = () => {
     emit('view', props.queue);
@@ -30,23 +29,20 @@ const handleCardClick = () => {
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-list"></i>
-        <span>{{ name }}</span>
-        <EntityStatus :entity="queue" variant="inline" />
+        <IdentityBlock :entity="queue" />
       </div>
     </template>
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
       <StandardCard>
-        <template #title>
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-2">
-                    <small>#{{ queue.identity?.queueNumber }}</small>
-                    <span>{{ name }}</span>
-                </div>
-                <EntityStatus :entity="queue" variant="inline" />
+        <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <small v-if="queue.data?.queueNumber">#{{ queue.data.queueNumber }}</small>
+                <IdentityBlock :entity="queue" variant="compact" />
             </div>
-        </template>
+            <StatusEntity :entity="queue" entity-type="queue" variant="inline" />
+        </div>
       </StandardCard>
     </template>
 
@@ -54,30 +50,30 @@ const handleCardClick = () => {
     <template v-else-if="variant === 'card'">
       <StandardCard>
         <template #header>
-            <LineageBreadcrumbs v-if="queue.lineage" :lineage="queue.lineage" />
+            <LineageBlock :entity="queue" />
         </template>
         <template #title>
-            <div class="flex justify-between items-center gap-4">
+            <div class="flex justify-between items-start gap-4">
                 <div class="flex flex-col">
-                    <small>#{{ queue.identity?.queueNumber }}</small>
-                    <span>{{ name }}</span>
+                    <small v-if="queue.data?.queueNumber">#{{ queue.data.queueNumber }}</small>
+                    <IdentityBlock :entity="queue" />
                 </div>
-                <EntityStatus :entity="queue" variant="inline" />
+                <StatusEntity :entity="queue" entity-type="queue" variant="inline" />
             </div>
         </template>
-        <template #content>
-            <Divider />
-            <div class="grid grid-cols-2">
-                <div class="flex flex-col">
-                    <small>Job Items</small>
-                    <span>{{ queue.job?.items?.length || 0 }}</span>
-                </div>
-                <div class="flex flex-col">
-                    <small>Nesting Runs</small>
-                    <span>{{ queue.summary?.runCount || 0 }}</span>
-                </div>
+        
+        <Divider />
+        <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col">
+                <small>Job Items</small>
+                <span>{{ queue.data?.job?.items?.length || 0 }}</span>
             </div>
-        </template>
+            <div class="flex flex-col">
+                <small>Nesting Runs</small>
+                <span>{{ queue.summary?.runCount || 0 }}</span>
+            </div>
+        </div>
+
         <template #footer>
             <div class="flex justify-end gap-2" @click.stop>
                 <Button v-if="authStore.can('queues', 'edit')" icon="pi pi-pencil" text rounded aria-label="Edit" @click="$emit('edit', queue)" />

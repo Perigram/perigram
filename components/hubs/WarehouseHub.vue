@@ -36,33 +36,12 @@
                 <Tab value="2">{{ $t('remnants.title') }}</Tab>
             </TabList>
             <TabPanels>
-                <TabPanel value="0"><BatchesTab :batches="inventory.piles" :loading="loading" /></TabPanel>
+                <TabPanel value="0"><PilesTab :piles="inventory.piles" :loading="loading" /></TabPanel>
                 <TabPanel value="1"><SheetsTab :sheets="inventory.sheets" :loading="loading" /></TabPanel>
                 <TabPanel value="2"><RemnantsTab :remnants="inventory.remnants" :loading="loading" /></TabPanel>
             </TabPanels>
         </Tabs>
     </div>
-
-    <!-- Empty/No Selection States -->
-    <Card v-else-if="!loading && warehouses.length === 0" class="text-center opacity-30">
-        <template #content>
-            <div class="py-20 flex flex-col items-center gap-6">
-                <i class="pi pi-building text-6xl"></i>
-                <span>{{ $t('warehouse.noWarehouses') }}</span>
-                <Button v-if="authStore.can('warehouses', 'create')" :label="$t('warehouse.createFirst')" icon="pi pi-plus" text @click="showDialog = true" />
-            </div>
-        </template>
-    </Card>
-
-    <Card v-else-if="!loading && !selectedWarehouseId && warehouses.length > 0" class="text-center opacity-60">
-        <template #content>
-            <div class="py-20 flex flex-col items-center gap-6">
-                <i class="pi pi-arrow-up text-4xl"></i>
-                <span>{{ $t('warehouse.promptSelection') }}</span>
-            </div>
-        </template>
-    </Card>
-  </div>
 </template>
 
 <script setup>
@@ -72,8 +51,13 @@ import Panel from 'primevue/panel';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
+import TabPanels from 'primevue/tabpanels';
+import TabPanel from 'primevue/tabpanel';
 import WarehouseDetail from '~/components/entities/Warehouse/WarehouseDetail.vue';
-import BatchesTab from './BatchesTab.vue';
+import PilesTab from './PilesTab.vue';
 import SheetsTab from './SheetsTab.vue';
 import RemnantsTab from './RemnantsTab.vue';
 

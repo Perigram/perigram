@@ -1,0 +1,120 @@
+<script setup>
+/**
+ * StatusEntity - v24 Absolute Final
+ * Mandatory component for managing entity states and transitions.
+ * Follows Zero Styling Policy: Relying on PrimeVue and Tailwind layout.
+ */
+import Tag from 'primevue/tag';
+import Button from 'primevue/button';
+import Popover from 'primevue/popover';
+import Divider from 'primevue/divider';
+import { ref, computed } from 'vue';
+import { useStatus } from '~/composables/useBlocks';
+import { useAuthStore } from '~/stores/auth';
+
+const props = defineProps({
+  entity: { type: Object, required: true },
+  entityType: { type: String, required: true }, // e.g. 'project', 'queue'
+  variant: { type: String, default: 'inline' }, // inline, full
+  showActions: { type: Boolean, default: true }
+});
+
+const emit = defineEmits(['transitioned']);
+const authStore = useAuthStore();
+const { state, timestamp, metadata, statusColor } = useStatus(props.entity);
+const op = ref();
+
+const toggle = (event) => {
+    if (props.showActions || timestamp.value) {
+        op.value.toggle(event);
+    }
+};
+
+// Available transitions (to be fetched or derived from a machine registry if available)
+// For now, we simulate basic transition buttons based on common states
+const handleTransition = async (targetState) => {
+    try {
+        const slug = props.entity.identity?.slug || props.entity.slug || props.entity._id;
+        await $fetch(`/api/${props.entityType}/${slug}/status`, {
+            method: 'POST',
+            body: { state: targetState }
+        });
+        emit('transitioned', targetState);
+        op.value.hide();
+    } catch (e) {
+        console.error('Transition failed', e);
+    }
+};
+
+// TODO: In a real implementation, we would fetch available transitions for current state
+const mockTransitions = computed(() => {
+    if (state.value === 'DRAFT') return [{ label: 'Ready', to: 'READY', severity: 'success', icon: 'pi pi-check' }];
+    return [];
+});
+</script>
+
+<template>
+  <div v-if="entity" class="status-entity inline-flex">
+    <!-- Inline Badge -->
+    <template v-if="variant === 'inline'">
+      <Tag 
+        :value="state" 
+        :severity="statusColor" 
+        class="cursor-pointer"
+        @click="toggle"
+      />
+    </template>
+
+    <!-- Full Details -->
+    <template v-else-if="variant === 'full'">
+        <div class="flex flex-col items-end text-right gap-1">
+            <Tag :value="state" :severity="statusColor" @click="toggle" class="cursor-pointer" />
+            <div v-if="timestamp" class="flex flex-col text-xs text-muted-color">
+                <span>{{ timestamp.toLocaleDateString() }}</span>
+                <span>{{ timestamp.toLocaleTimeString() }}</span>
+            </div>
+            <div v-if="metadata?.note" class="text-xs italic text-muted-color max-w-48 truncate">
+                "{{ metadata.note }}"
+            </div>
+        </div>
+    </template>
+
+    <Popover ref="op">
+        <div class="flex flex-col gap-4 min-w-48">
+            <!-- Transition Actions -->
+            <div v-if="showActions && mockTransitions.length > 0" class="flex flex-col gap-2">
+                <small>{{ $t('common.actions.title') }}</small>
+                <div class="flex flex-col gap-1">
+                    <Button 
+                        v-for="t in mockTransitions" 
+                        :key="t.to"
+                        :label="t.label"
+                        :icon="t.icon"
+                        :severity="t.severity"
+                        size="small"
+                        text
+                        class="justify-start"
+                        @click="handleTransition(t.to)"
+                    />
+                </div>
+            </div>
+
+            <Divider v-if="showActions && mockTransitions.length > 0 && (timestamp || metadata?.note)" />
+
+            <!-- Last Snapshot Info -->
+            <div v-if="timestamp || metadata?.note" class="flex flex-col gap-3">
+                <div v-if="timestamp" class="flex flex-col">
+                    <small>Last Updated</small>
+                    <span>{{ timestamp.toLocaleString() }}</span>
+                </div>
+                <div v-if="metadata?.note" class="flex flex-col">
+                    <small>Note</small>
+                    <span class="font-serif italic">"{{ metadata.note }}"</span>
+                </div>
+            </div>
+
+            <slot name="extra"></slot>
+        </div>
+    </Popover>
+  </div>
+</template>

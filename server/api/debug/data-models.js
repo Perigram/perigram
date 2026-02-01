@@ -1,7 +1,7 @@
 /**
  * API endpoint to get data models for UI Lab
  */
-import { extractDataModels, generateRelationshipDiagram } from '~/server/utils/extract-data-models';
+import { extractDataModels, generateRelationshipDiagram } from '~/server/utils/extract-data-models.js';
 
 export default defineEventHandler(async (event) => {
   try {

@@ -1,13 +1,13 @@
 <script setup>
 /**
- * Project View Component - v24 Standardized
+ * ProjectCard - v24 Standardized
  */
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import { useAuthStore } from '~/stores/auth';
-import { useIdentity } from '~/composables/useBlocks';
-import EntityStatus from '../shared/EntityStatus.vue';
-import LineageBreadcrumbs from '../shared/LineageBreadcrumbs.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import StatusEntity from '~/components/shared/blocks/StatusEntity.vue';
+import LineageBlock from '~/components/shared/blocks/LineageBlock.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 
 const props = defineProps({
@@ -17,7 +17,6 @@ const props = defineProps({
 
 const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
-const { name, slug } = useIdentity(props.project);
 
 const handleCardClick = () => {
     emit('view', props.project);
@@ -30,7 +29,7 @@ const handleCardClick = () => {
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-folder"></i>
-        <span>{{ name }}</span>
+        <IdentityBlock :entity="project" />
       </div>
     </template>
 
@@ -38,11 +37,8 @@ const handleCardClick = () => {
     <template v-else-if="variant === 'compact'">
       <StandardCard>
         <div class="flex items-center justify-between gap-4">
-            <div class="flex flex-col flex-1">
-                <span>{{ name }}</span>
-                <small>{{ slug }}</small>
-            </div>
-            <EntityStatus :entity="project" variant="inline" />
+            <IdentityBlock :entity="project" variant="compact" />
+            <StatusEntity :entity="project" entity-type="project" variant="inline" />
         </div>
       </StandardCard>
     </template>
@@ -51,16 +47,13 @@ const handleCardClick = () => {
     <template v-else-if="variant === 'card'">
       <StandardCard>
         <template #header>
-            <LineageBreadcrumbs v-if="project.lineage" :lineage="project.lineage" />
+            <LineageBlock :entity="project" />
         </template>
         <template #title>
-            <div class="flex justify-between items-center">
-                <span>{{ name }}</span>
-                <EntityStatus :entity="project" variant="inline" />
+            <div class="flex justify-between items-start gap-4">
+                <IdentityBlock :entity="project" />
+                <StatusEntity :entity="project" entity-type="project" variant="inline" />
             </div>
-        </template>
-        <template #subtitle>
-            <small>{{ slug }}</small>
         </template>
         
         <Divider />

@@ -1,69 +1,58 @@
 <script setup>
 /**
- * Sheet View Component - v24 Standardized
+ * SheetCard - v24 Standardized
  */
-import Card from 'primevue/card';
-import EntityStatus from '../shared/EntityStatus.vue';
-import { useIdentity } from '~/composables/useBlocks';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import StatusEntity from '~/components/shared/blocks/StatusEntity.vue';
+import LineageBlock from '~/components/shared/blocks/LineageBlock.vue';
+import StandardCard from '~/components/shared/StandardCard.vue';
 
 const props = defineProps({
   sheet: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
-
-const { serial } = useIdentity(props.sheet);
 </script>
 
 <template>
-  <div :class="[`variant-${variant}`]">
+  <div class="h-full">
     <!-- Inline -->
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-file"></i>
-        <span>{{ serial }}</span>
-        <EntityStatus :entity="sheet" variant="inline" />
+        <IdentityBlock :entity="sheet" />
       </div>
     </template>
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <Card>
-        <template #title>
-            <div class="flex items-center justify-between gap-4">
-                <span class="truncate">{{ serial }}</span>
-                <EntityStatus :entity="sheet" variant="inline" />
-            </div>
-        </template>
-        <template #subtitle>
-            <small class="truncate italic">
-                PILE: {{ String(sheet.lineage?.pileId ?? "").slice(-8) }}
-            </small>
-        </template>
-      </Card>
+      <StandardCard>
+        <div class="flex items-center justify-between gap-4">
+            <IdentityBlock :entity="sheet" variant="compact" />
+            <StatusEntity :entity="sheet" entity-type="sheet" variant="inline" />
+        </div>
+      </StandardCard>
     </template>
 
     <!-- Card -->
     <template v-else-if="variant === 'card'">
-      <Card>
+      <StandardCard>
+        <template #header>
+            <LineageBlock :entity="sheet" />
+        </template>
         <template #title>
-            <div class="flex justify-between items-center gap-4">
-                <span class="truncate">{{ serial }}</span>
-                <EntityStatus :entity="sheet" variant="inline" />
+            <div class="flex justify-between items-start gap-4">
+                <IdentityBlock :entity="sheet" />
+                <StatusEntity :entity="sheet" entity-type="sheet" variant="inline" />
             </div>
         </template>
-        <template #content>
-            <div class="flex flex-col gap-3 pt-4 border-t border-dashed">
-                <div class="flex justify-between items-center">
-                    <small>Size</small>
-                    <span>{{ sheet.specs?.width }} x {{ sheet.specs?.length }}</span>
-                </div>
-                <div v-if="sheet.lineage?.runId" class="flex flex-col gap-1 mt-2 pt-2 border-t border-muted">
-                    <small>Run ID</small>
-                    <span class="italic truncate">{{ sheet.lineage.runId }}</span>
-                </div>
+        
+        <div class="flex flex-col gap-2">
+            <div class="flex justify-between items-center">
+                <small>Dimensions</small>
+                <span>{{ sheet.data?.specs?.width }} x {{ sheet.data?.specs?.length }}</span>
             </div>
-        </template>
-      </Card>
+        </div>
+      </StandardCard>
     </template>
   </div>
 </template>

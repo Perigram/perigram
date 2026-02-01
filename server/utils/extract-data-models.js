@@ -113,12 +113,33 @@ export async function extractDataModels() {
     const repoPath = path.join(featurePath, 'repository.js');
     if (!fs.existsSync(repoPath)) continue;
     const repoContent = fs.readFileSync(repoPath, 'utf-8');
-    const collectionMatch = repoContent.match(/const COLLECTION = [\'\"]([^\'\"]+)[\'\"]/);
+    const collectionMatch = repoContent.match(/const COLLECTION = ['"]([^'"]+)['"]/);
     if (!collectionMatch) continue;
     const collection = collectionMatch[1];
 
     const entitySpecificFields = extractDataFields(featurePath);
-    const allFields = [...STANDARD_BLOCKS, ...entitySpecificFields];
+    
+    // Read files again for lineage (simple approach)
+    let fullContent = repoContent;
+    ['service.js', 'model.js'].forEach(f => {
+        const p = path.join(featurePath, f);
+        if (fs.existsSync(p)) fullContent += fs.readFileSync(p, 'utf-8');
+    });
+
+    const lineageFields = [];
+    const lineageRegex = /lineage\s*:\s*\{([^}]+)\}/g;
+    let lmatch;
+    while ((lmatch = lineageRegex.exec(fullContent)) !== null) {
+        const inner = lmatch[1];
+        const props = inner.split(',').map(p => p.split(':')[0].trim());
+        for (const p of props) {
+            if (!p || p.startsWith('...')) continue;
+            if (lineageFields.find(f => f.name === `lineage.${p}`)) continue;
+            lineageFields.push({ name: `lineage.${p}`, type: 'ObjectId', description: `Lineage link to ${p}` });
+        }
+    }
+
+    const allFields = [...STANDARD_BLOCKS, ...lineageFields, ...entitySpecificFields];
 
     models.push({
       collection,
@@ -167,6 +188,30 @@ export function generateMarkdown(models) {
     md += '\n';
   }
   return md;
+}
+
+/**
+ * Generate a Mermaid diagram of relationships based on lineage fields
+ */
+export function generateRelationshipDiagram(models) {
+  let mermaid = 'graph TD\n';
+  for (const model of models) {
+    const featureName = model.feature.replace(/-/g, '_');
+    mermaid += `  ${featureName}[${model.collection}]\n`;
+    
+    // Look for lineage patterns
+    for (const field of model.fields) {
+      if (field.name.startsWith('lineage.') && field.name.endsWith('Id')) {
+        const parentType = field.name.replace('lineage.', '').replace('Id', '');
+        const parentModel = models.find(m => m.collection.startsWith(parentType) || m.feature === parentType);
+        if (parentModel) {
+          const parentFeature = parentModel.feature.replace(/-/g, '_');
+          mermaid += `  ${parentFeature} --> ${featureName}\n`;
+        }
+      }
+    }
+  }
+  return mermaid;
 }
 
 // Execution

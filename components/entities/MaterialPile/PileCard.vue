@@ -1,81 +1,14 @@
-<template>
-  <div :class="[`variant-${variant}`]">
-    <template v-if="variant === 'inline'">
-      <div class="inline-flex items-center gap-2">
-        <i class="pi pi-database"></i>
-        <span>{{ name }}</span>
-        <EntityStatus :entity="pile" variant="inline" />
-      </div>
-    </template>
-
-    <template v-else-if="variant === 'compact'">
-      <Card @click="handleCardClick" class="card-interactive">
-        <template #title>
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-2">
-                    <i class="pi pi-database"></i>
-                    <span class="truncate">{{ name }}</span>
-                </div>
-                <EntityStatus :entity="pile" variant="inline" />
-            </div>
-        </template>
-      </Card>
-    </template>
-
-    <template v-else-if="variant === 'card'">
-      <Card @click="handleCardClick" class="card-interactive">
-        <template #title>
-            <div class="flex justify-between items-center gap-4">
-                <div class="flex items-center gap-2">
-                    <i class="pi pi-database"></i>
-                    <span class="truncate">{{ name }}</span>
-                </div>
-                <EntityStatus :entity="pile" variant="inline" />
-            </div>
-        </template>
-        <template #content>
-            <Divider />
-            <div class="flex flex-col gap-2">
-                <div class="flex justify-between items-center">
-                    <small>Receipt</small>
-                    <span>{{ pile.identity?.reference || '---' }}</span>
-                </div>
-                <div class="flex justify-between items-center" v-if="pile.status?.timestamp">
-                    <small>Updated</small>
-                    <span>{{ new Date(pile.status.timestamp).toLocaleDateString() }}</span>
-                </div>
-            </div>
-        </template>
-        <template #footer>
-            <Divider />
-            <div class="flex justify-end gap-2" @click.stop>
-                <Button 
-                    v-if="authStore.can('materials', 'edit')"
-                    icon="pi pi-pencil" text
-                    @click="$emit('edit', pile)" 
-                />
-                <Button 
-                    v-if="authStore.can('materials', 'read')"
-                    icon="pi pi-search" text
-                    @click="$emit('view', pile)" 
-                />
-            </div>
-        </template>
-      </Card>
-    </template>
-  </div>
-</template>
-
 <script setup>
 /**
- * Material Pile View Component - v24 Standardized
+ * PileCard - v24 Standardized
  */
-import Card from 'primevue/card';
-import Divider from 'primevue/divider';
 import Button from 'primevue/button';
-import EntityStatus from '../shared/EntityStatus.vue';
+import Divider from 'primevue/divider';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import StatusEntity from '~/components/shared/blocks/StatusEntity.vue';
+import LineageBlock from '~/components/shared/blocks/LineageBlock.vue';
+import StandardCard from '~/components/shared/StandardCard.vue';
 import { useAuthStore } from '~/stores/auth';
-import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   pile: { type: Object, required: true },
@@ -84,9 +17,64 @@ const props = defineProps({
 
 const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
-const { name } = useIdentity(props.pile);
 
 const handleCardClick = () => {
     emit('view', props.pile);
 };
 </script>
+
+<template>
+  <div class="h-full cursor-pointer" @click="handleCardClick">
+    <!-- Inline -->
+    <template v-if="variant === 'inline'">
+      <div class="inline-flex items-center gap-2">
+        <i class="pi pi-database"></i>
+        <IdentityBlock :entity="pile" />
+      </div>
+    </template>
+
+    <!-- Compact -->
+    <template v-else-if="variant === 'compact'">
+      <StandardCard>
+        <div class="flex items-center justify-between gap-4">
+            <IdentityBlock :entity="pile" variant="compact" />
+            <StatusEntity :entity="pile" entity-type="material_pile" variant="inline" />
+        </div>
+      </StandardCard>
+    </template>
+
+    <!-- Card -->
+    <template v-else-if="variant === 'card'">
+      <StandardCard>
+        <template #header>
+            <LineageBlock :entity="pile" />
+        </template>
+        <template #title>
+            <div class="flex justify-between items-start gap-4">
+                <IdentityBlock :entity="pile" />
+                <StatusEntity :entity="pile" entity-type="material_pile" variant="inline" />
+            </div>
+        </template>
+        
+        <Divider />
+        <div class="flex flex-col gap-2">
+            <div class="flex justify-between items-center">
+                <small>Quantity</small>
+                <span>{{ pile.data?.stock?.total || 0 }}</span>
+            </div>
+            <div v-if="pile.origin" class="flex justify-between items-center">
+                <small>Stocked</small>
+                <span>{{ new Date(pile.origin.timestamp).toLocaleDateString() }}</span>
+            </div>
+        </div>
+
+        <template #footer>
+            <div class="flex justify-end gap-2" @click.stop>
+                <Button v-if="authStore.can('materials', 'edit')" icon="pi pi-pencil" text rounded @click="$emit('edit', pile)" />
+                <Button v-if="authStore.can('materials', 'read')" icon="pi pi-search" text rounded @click="$emit('view', pile)" />
+            </div>
+        </template>
+      </StandardCard>
+    </template>
+  </div>
+</template>

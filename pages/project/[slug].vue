@@ -1,12 +1,19 @@
 <template>
-    <div class="flex flex-col gap-6">
-        <div v-if="project">
-            <h1 class="m-0">{{ project.name }}</h1>
-            <div class="flex items-center gap-2">
-                <i class="pi pi-folder-open"></i>
-                <small>{{ slug }}</small>
-            </div>
-        </div>
+    <EntityPage 
+        v-if="project" 
+        :entity="project" 
+        entity-type="project"
+        @refresh="loadProject"
+    >
+        <template #actions>
+            <Button 
+                v-if="authStore.can('projects', 'edit')"
+                :label="$t('common.edit')" 
+                icon="pi pi-pencil" 
+                outlined 
+                @click="showEditDialog = true" 
+            />
+        </template>
 
         <Tabs :value="activeTabIndex">
             <TabList>
@@ -16,10 +23,26 @@
             </TabList>
         </Tabs>
         
-        <div>
+        <div class="mt-4">
             <NuxtPage />
         </div>
-    </div>
+
+        <template #info>
+             <div class="flex flex-col gap-2">
+                <small>{{ $t('project.summary') }}</small>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex flex-col">
+                        <small>Queues</small>
+                        <span>{{ project.summary?.queueCount || 0 }}</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <small>Total Area</small>
+                        <span>{{ project.summary?.totalArea || 0 }} m²</span>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </EntityPage>
 </template>
 
 <script setup>
@@ -29,6 +52,9 @@
     import Tabs from 'primevue/tabs'
     import TabList from 'primevue/tablist'
     import Tab from 'primevue/tab'
+    import Button from 'primevue/button'
+    import EntityPage from '~/components/shared/EntityPage.vue'
+    import { useAuthStore } from '~/stores/auth'
 
     definePageMeta({
         layout: 'app',
@@ -38,23 +64,28 @@
     const route = useRoute()
     const router = useRouter()
     const { t } = useI18n()
+    const authStore = useAuthStore()
     const slug = route.params.slug
 
     const project = ref(null)
     const activeTabIndex = ref(0)
+    const showEditDialog = ref(false)
 
     const tabs = computed(() => [
         { label: t('project.queues'), to: `/project/${slug}/queues`, key: 'queues' },
         { label: t('project.data'), to: `/project/${slug}/data`, key: 'data' },
     ])
 
-    onMounted(async () => {
+    const loadProject = async () => {
         try {
             project.value = await $fetch(`/api/project/${slug}`)
         } catch (error) {
             console.error('Failed to load project:', error)
         }
+    }
 
+    onMounted(async () => {
+        await loadProject()
         updateActiveTab()
 
         if (route.path === `/project/${slug}` || route.path === `/project/${slug}/`) {
@@ -77,8 +108,8 @@
         }
     }
 
-    const onTabChange = (event) => {
-        const tab = tabs.value[event.index]
+    const onTabChange = (index) => {
+        const tab = tabs.value[index]
         router.push(tab.to)
     }
 </script>

@@ -49,6 +49,14 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
   return new User(createdRaw);
 }
 
+export async function getUserBySessionId(sessionId) {
+  const session = await sessionsRepository.findBySessionId(sessionId);
+  if (!session) return null;
+  const userRaw = await usersRepository.findById(session.userId);
+  if (!userRaw) return null;
+  return new User(userRaw);
+}
+
 export async function login(email, password) {
   const userRaw = await usersRepository.findByEmail(email.toLowerCase());
   if (!userRaw) throw createError({ statusCode: 401, message: 'Invalid credentials' });
@@ -69,6 +77,17 @@ export async function login(email, password) {
     sessionId: session.sessionId,
     accessToken
   };
+}
+
+export async function logout(sessionId) {
+  return await sessionsRepository.deleteBySessionId(sessionId);
+}
+
+export async function switchOrganization(userId, organizationId) {
+  // Logic to validate organization membership would go here
+  // For now, return a new token with updated org context if needed
+  // In v24, this might just be a client-side context switch or a session update
+  return { success: true, organizationId };
 }
 
 export async function list(userId, userOrg, userRole, userPermissions) {

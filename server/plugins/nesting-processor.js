@@ -12,7 +12,7 @@ import {
 import {
   GridFSBucket
 } from 'mongodb';
-import { createStatus } from '../utils/blocks';
+import { createStatus } from '../utils/blocks.js';
 
 export default defineNitroPlugin(async (nitroApp) => {
   console.log('Nesting Processor Plugin Started');
