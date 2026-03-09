@@ -1,5 +1,5 @@
 import { defineEventHandler } from 'h3';
-import { requireAuth } from '~/server/utils/permissions';
+import { requireAuth } from '../../utils/permissions.js';
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);

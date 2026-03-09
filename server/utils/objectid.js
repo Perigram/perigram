@@ -1,6 +1,26 @@
 import { ObjectId } from 'mongodb';
 
 /**
+ * Safely convert value to ObjectId if possible, otherwise return as-is (string)
+ * Useful for v24 architecture where some IDs are strings and some are ObjectIds
+ */
+export function toFlexibleId(value) {
+  if (!value) return value;
+  
+  if (value instanceof ObjectId) return value;
+  
+  if (typeof value === 'string') {
+    // Use official isValid instead of regex
+    if (ObjectId.isValid(value) && /^[0-9a-fA-F]{24}$/.test(value)) {
+      return new ObjectId(value);
+    }
+    return value;
+  }
+  
+  return value;
+}
+
+/**
  * Safely convert value to ObjectId
  * - If already ObjectId, return as-is
  * - If string, convert to ObjectId
@@ -31,6 +51,6 @@ export function toObjectId(value) {
 export function isValidObjectId(value) {
   if (!value) return false;
   if (value instanceof ObjectId) return true;
-  if (typeof value === 'string') return ObjectId.isValid(value);
+  if (typeof value === 'string') return /^[0-9a-fA-F]{24}$/.test(value);
   return false;
 }

@@ -1,5 +1,5 @@
-import { createError, sendStream } from 'h3';
-import * as filesService from '~/server/features/files/service';
+import { createError, sendStream, getQuery, defineEventHandler } from 'h3';
+import * as filesService from '../../../features/files/service.js';
 
 export default defineEventHandler(async (event) => {
   const id = event.context.params.id;

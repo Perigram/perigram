@@ -2,10 +2,15 @@ import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 import { statusService } from './service.js';
 import { aggregator } from './aggregator.js';
+import { toFlexibleId } from '../../utils/objectid.js';
+import { pluralize } from '../../utils/strings.js';
 
 /**
- * Status Hook Registry
- * Implements side-effects triggered by state transitions
+ * Global Status Hook Registry - v24 Standardized
+ * Contains only system-wide hooks that apply to multiple entity types.
+ * Feature-specific hooks are registered in their respective services.
+ * 
+ * Architectural Excellence: Decoupled side-effects.
  */
 export const hooks = {
   /**
@@ -13,10 +18,12 @@ export const hooks = {
    */
   async propagateToChildren({ targetId, targetType, userId, userRole }, { childType, childState }) {
     const db = await connectDB();
-    const collection = `${childType}s`;
-    const lineageKey = `lineage.${targetType}Id`;
+    const collection = pluralize(childType);
     
-    const children = await db.collection(collection).find({ [lineageKey]: new ObjectId(targetId) }).toArray();
+    const lineageKey = `lineage.${targetType}Id`;
+    const flexId = toFlexibleId(targetId);
+    
+    const children = await db.collection(collection).find({ [lineageKey]: flexId }).toArray();
     
     for (const child of children) {
       try {
@@ -34,7 +41,6 @@ export const hooks = {
    * This is called whenever an entity changes state.
    */
   async triggerAggregator({ targetType, lineage }) {
-    // We pass the task to the aggregator which knows what to do based on entityType
     await aggregator.syncParentSummary(targetType, lineage);
   }
 };

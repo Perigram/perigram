@@ -1,4 +1,4 @@
-import { service } from '~/server/features/tool-profiles';
+import { service } from '../../../features/tool-profiles/index.js';
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.auth.userId;

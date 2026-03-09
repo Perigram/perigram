@@ -4,17 +4,18 @@
  * Trigger nesting for a queue
  */
 
-import * as queuesService from '~/server/features/queues/service';
-import * as cassetteService from '~/server/features/cassettes/service';
-import * as cassetteDesignService from '~/server/features/cassette-designs/service';
-import { service as artifactService } from '~/server/features/artifacts';
-import { bakeTemplateInstance } from '~/server/features/parametric-cassettes/service';
-import * as nestingRunsService from '~/server/features/nesting-runs/service';
-import { connectDB } from '~~/server/db/mongo';
+import * as queuesService from '../../../features/queues/service.js';
+import * as cassetteService from '../../../features/cassettes/service.js';
+import * as cassetteDesignService from '../../../features/cassette-designs/service.js';
+import { service as artifactService } from '../../../features/artifacts/index.js';
+import { bakeTemplateInstance } from '../../../features/parametric-cassettes/service.js';
+import * as nestingRunsService from '../../../features/nesting-runs/service.js';
+import { connectDB } from '../../../db/mongo.js';
 import { ObjectId } from 'mongodb';
-import { generateRandomString } from '~~/server/utils/strings';
-import { requireAuth } from '~/server/utils/permissions';
-import { createStatus, inheritLineage } from '~/server/utils/blocks';
+import { generateRandomString } from '../../../utils/strings.js';
+import { requireAuth } from '../../../utils/permissions.js';
+import { createStatus, inheritLineage } from '../../../utils/blocks.js';
+import { toFlexibleId } from '../../../utils/objectid.js';
 
 export default defineEventHandler(async (event) => {
   try {
@@ -35,8 +36,10 @@ export default defineEventHandler(async (event) => {
         auth
     );
     
+    if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
+    
     console.log('Queue loaded:', { 
-      id: queue._id, 
+      id: queue.id, 
       status: queue.status, 
       itemsCount: queue.job?.items?.length 
     });
@@ -44,7 +47,7 @@ export default defineEventHandler(async (event) => {
     if (queue.status === 'NESTING') {
       const db = await connectDB();
       const existingJob = await db.collection('nesting_jobs').findOne({
-        queueId: queue._id,
+        queueId: toFlexibleId(queue.id),
         status: { $in: ['pending', 'processing'] }
       });
       
@@ -64,7 +67,7 @@ export default defineEventHandler(async (event) => {
           if (entry.type === 'PARAMETRIC') {
             const template = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth);
             console.log(`Baking parametric template: ${template.identity?.name || template.name}`);
-            const bakedCassette = await bakeTemplateInstance(template._id, entry.parameters || {}, userId);
+            const bakedCassette = await bakeTemplateInstance(toFlexibleId(template.id), entry.parameters || {}, userId);
             return {
               cassetteId: bakedCassette._id.toString(),
               count: entry.quantity,
@@ -84,7 +87,7 @@ export default defineEventHandler(async (event) => {
           }
 
           return {
-            cassetteId: item._id.toString(),
+            cassetteId: item.id || item._id.toString(),
             count: entry.quantity,
             dimensions: entry.parameters || {}
           };
@@ -111,11 +114,12 @@ export default defineEventHandler(async (event) => {
   // Create nesting job
   const db = await connectDB();
   const runId = new ObjectId();
-  const runNumber = await nestingRunsService.getNextRunNumber(queue._id);
+  const runNumber = await nestingRunsService.getNextRunNumber(queue.id);
 
   const runOrigin = createStatus('NESTING', auth.userId, { note: `Nesting started in ${body.materialMode || 'VIRTUAL'} mode` });
   await db.collection('nesting_runs').insertOne({
     _id: runId,
+    identity: { uid: runId.toString() },
     runNumber,
     materialMode: body.materialMode || 'VIRTUAL',
     params,
@@ -131,7 +135,7 @@ export default defineEventHandler(async (event) => {
   await db.collection('nesting_jobs').insertOne({
     slug: nestingSlug,
     projectSlug: queue.identity?.slug || '', // Use identity.slug if exists
-    queueId: queue._id,
+    queueId: toFlexibleId(queue.id),
     runId,
     files: jobFiles, 
     params,
@@ -148,7 +152,7 @@ export default defineEventHandler(async (event) => {
     if (type === 'PDF_PASSPORT') {
         const art = await artifactService.create({
             type,
-            queueId: queue._id,
+            queueId: toFlexibleId(queue.id),
             runId,
             name: `${queue.name} - Technical Passports`,
             generatedBy: nestingSlug,
@@ -159,7 +163,7 @@ export default defineEventHandler(async (event) => {
     } else if (type === 'LAYOUT_DXF') {
         const art = await artifactService.create({
             type,
-            queueId: queue._id,
+            queueId: toFlexibleId(queue.id),
             runId,
             name: `${queue.name} - LAYOUT_DXF.dxf`,
             generatedBy: nestingSlug,
@@ -173,7 +177,7 @@ export default defineEventHandler(async (event) => {
     nestingSlug,
     status: 'NESTING',
     runId: runId.toString(),
-    artifacts: artifacts.map(a => a._id)
+    artifacts: artifacts.map(a => a._id || a.id)
   };
 } catch (error) {
   console.error('Nesting endpoint error:', error);

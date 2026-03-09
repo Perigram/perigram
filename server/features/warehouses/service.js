@@ -22,7 +22,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   if (!organization) throw createError({ statusCode: 404, message: 'Organization not found' });
 
   const warehouse = new Warehouse({
-    identity: { uid: `wh-${ObjectId().toString().substring(0, 8)}`, name: name || 'New Warehouse' },
+    identity: { uid: `wh-${new ObjectId().toString().substring(0, 8)}`, name: name || 'New Warehouse' },
     lineage: inheritLineage(organization, 'organization'),
     params: { type, address, contactPerson }
   });

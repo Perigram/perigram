@@ -1,7 +1,7 @@
 import { defineEventHandler } from "h3";
-import * as projectsService from "../../features/projects/service";
-import { connectDB } from "../../db/mongo";
-import { requireAuth } from "../../utils/permissions";
+import * as projectsService from "../../features/projects/service.js";
+import { connectDB } from "../../db/mongo.js";
+import { requireAuth } from "../../utils/permissions.js";
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);
@@ -14,11 +14,6 @@ export default defineEventHandler(async (event) => {
     auth
   );
 
-  // For compatibility with dashboard (if it needs 'results' count)
-  // We can fetch all queues for the user/org to count them map them
-  // Or just return projects and update frontend.
-  // Let's try to be backward compatible for now.
-  
   const db = await connectDB();
   const queueCounts = await db.collection('queues').aggregate([
     { $group: { _id: "$lineage.projectId", count: { $sum: 1 } } }
@@ -28,11 +23,8 @@ export default defineEventHandler(async (event) => {
   
   const uiProjects = projects.map(p => {
       return {
-          slug: p.identity.slug,
-          name: p.identity.name,
-          createdAt: p.origin.timestamp,
-          results: countMap[p._id.toString()] || 0,
-          status: p.status
+          ...p.toJSON(),
+          results: countMap[p.id] || 0
       };
   });
 

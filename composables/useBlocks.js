@@ -7,10 +7,10 @@ import { STATUS_MAPPINGS } from '~/utils/status-engine';
  */
 
 export const useIdentity = (entity) => {
-  const name = computed(() => entity?.identity?.name || 'Unnamed');
-  const slug = computed(() => entity?.identity?.slug || '');
-  const serial = computed(() => entity?.identity?.serial || '');
-  const reference = computed(() => entity?.identity?.reference || '');
+  const name = computed(() => entity?.identity?.name || entity?.name || 'Unnamed');
+  const slug = computed(() => entity?.identity?.slug || entity?.slug || entity?.id || '');
+  const serial = computed(() => entity?.identity?.serial || entity?.serial || '');
+  const reference = computed(() => entity?.identity?.reference || entity?.reference || '');
   
   return { name, slug, serial, reference };
 };

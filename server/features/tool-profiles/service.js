@@ -4,27 +4,28 @@
 
 import * as repository from './repository.js';
 import { ObjectId } from 'mongodb';
-import { createIdentity, createStatus, createData } from '~/server/utils/blocks';
+import { createIdentity, createStatus, createData } from '../../utils/blocks.js';
+import { createError } from 'h3';
 
 function toDTO(tool) {
   if (!tool) return null;
   return {
+    _id: tool._id,
+    id: tool._id?.toString(),
     ...tool,
     ...tool.data,
-    name: tool.identity?.name
+    name: tool.identity?.name || tool.name
   };
 }
 
 export async function getById(id, userId = null) {
-  if (!ObjectId.isValid(id)) {
-    throw createError({ statusCode: 400, message: 'Invalid ID format' });
-  }
-  
   const tool = await repository.findById(id);
   if (!tool) {
     throw createError({ statusCode: 404, message: 'Tool profile not found' });
   }
-  if (tool.ownerId && userId && tool.ownerId.toString() !== userId) {
+  // Check ownership if not system tool
+  const toolOwnerId = tool.lineage?.userId || tool.ownerId;
+  if (toolOwnerId && userId && toolOwnerId.toString() !== userId.toString()) {
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
   return toDTO(tool);
@@ -41,17 +42,16 @@ export async function listAll(userId) {
 export async function create(data, userId) {
   if (!data.name) throw createError({ statusCode: 400, message: 'Name is required' });
   
-  if (typeof data.diameter !== 'number' || data.diameter <= 0) {
+  const diameter = Number(data.diameter);
+  const angle = Number(data.angle);
+
+  if (isNaN(diameter) || diameter <= 0) {
     throw createError({ statusCode: 400, message: 'Diameter must be a positive number' });
-  }
-  
-  if (typeof data.angle !== 'number' || data.angle < 0 || data.angle > 180) {
-    throw createError({ statusCode: 400, message: 'Angle must be between 0 and 180 degrees' });
   }
   
   const origin = createStatus('ACTIVE', userId || 'SYSTEM', { note: 'Tool profile created' });
 
-  return await repository.create({
+  const doc = {
     identity: createIdentity(data.name),
     origin,
     status: origin,
@@ -59,10 +59,15 @@ export async function create(data, userId) {
       userId: userId ? userId : null
     },
     data: createData({
-      diameter: data.diameter,
-      angle: data.angle
+      diameter: diameter,
+      angle: isNaN(angle) ? 0 : angle,
+      kerf: data.kerf || diameter,
+      description: data.description || ''
     })
-  });
+  };
+
+  const created = await repository.create(doc);
+  return toDTO(created);
 }
 
 export async function update(id, updates, userId) {

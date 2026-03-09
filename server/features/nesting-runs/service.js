@@ -1,25 +1,29 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { createStatus, inheritLineage, registerService } from '~/server/utils/blocks';
-import { statusService } from '~/server/core/machines/service';
-import { mapLineageQuery } from '~/server/utils/query';
+import { createStatus, inheritLineage, registerService } from '../../utils/blocks.js';
+import { statusService } from '../../core/machines/service.js';
+import { mapLineageQuery } from '../../utils/query.js';
 import { ObjectId } from 'mongodb';
-import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
+import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 /**
  * Nesting Runs Service - v24 Standardized
  */
 
 registerService('nesting_run', {
-  getById: (uid) => getById(uid)
+  getById: (uid) => getById(uid),
+  hooks: {
+    createPhysicalUnits: (ctx, params) => createPhysicalUnits(ctx, params)
+  }
 });
 
 export async function createFromQueue(queue, results, userId) {
   const lineage = inheritLineage(queue, 'queue');
-  const origin = createStatus('PROPOSED', userId || 'SYSTEM', { note: 'Nesting calculation completed' });
+  const origin = createStatus('COMPLETE', userId || 'SYSTEM', { note: 'Nesting calculation completed' });
 
   const runData = {
-    identity: { uid: `run-${ObjectId().toString().substring(0, 8)}` },
+    identity: { uid: `run-${new ObjectId().toString().substring(0, 8)}` },
     origin,
     status: origin,
     lineage,
@@ -49,7 +53,19 @@ export async function updateStatus(id, newState, userId, userRole, metadata = {}
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
-  const finalFilter = mapLineageQuery({ ...lineageFilter, ...filter });
+  
+  // Explicitly map common IDs in filters to lineage block
+  const processedFilter = { ...filter };
+  if (processedFilter.queueId) {
+    processedFilter['lineage.queueId'] = toFlexibleId(processedFilter.queueId);
+    delete processedFilter.queueId;
+  }
+  if (processedFilter.projectId) {
+    processedFilter['lineage.projectId'] = toFlexibleId(processedFilter.projectId);
+    delete processedFilter.projectId;
+  }
+
+  const finalFilter = { ...lineageFilter, ...processedFilter };
   return await repository.find(finalFilter);
 }
 
@@ -66,14 +82,10 @@ export async function chooseRun(queueId, runId, userId, userOrg, userRole, userP
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  const db = await (await import('~/server/db/mongo')).connectDB();
-  
-  // Reset other chosen runs
-  await db.collection('nesting_runs').updateMany(
-    { 'lineage.queueId': queueId, 'status.state': 'CHOSEN' },
-    { $set: { 'status.state': 'COMPLETE' } }
-  );
+  // Reset other chosen runs for this queue using repository
+  await repository.resetChosenRuns(queueId);
 
+  // Transition this run to CHOSEN
   await statusService.transition('nesting_run', runId, 'CHOSEN', userId, userRole, { note: 'Chosen for production' });
 
   return await repository.findById(runId);
@@ -88,4 +100,12 @@ export async function remove(queueId, runId, userId, userOrg, userRole, userPerm
   }
   
   return await repository.deleteById(runId);
+}
+
+/**
+ * Side effect: When run is CHOSEN, prepare physical inventory
+ */
+export async function createPhysicalUnits({ targetId, userId, userRole, lineage }) {
+  console.log(`[Nesting Run Service] Creating physical units for chosen run ${targetId}`);
+  // Implementation will follow in next turn
 }

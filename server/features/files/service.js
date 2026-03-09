@@ -1,6 +1,7 @@
 import { GridFSBucket, ObjectId } from 'mongodb';
-import { connectDB } from '~/server/db/mongo';
+import { connectDB } from '../../db/mongo.js';
 import { createError } from 'h3';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 export async function uploadFile(fileBuffer, fileName, metadata = {}, bucketName = 'uploads') {
   const db = await connectDB();
@@ -32,7 +33,7 @@ export async function getFileStream(fileId, bucketName = 'uploads') {
   const bucket = new GridFSBucket(db, { bucketName });
   
   try {
-    return bucket.openDownloadStream(new ObjectId(fileId));
+    return bucket.openDownloadStream(toFlexibleId(fileId));
   } catch (err) {
     throw createError({ statusCode: 404, message: 'File not found' });
   }

@@ -268,6 +268,21 @@
     - markCut now persists historical data into the project's cutLogs array.
     - Fixed 404/500 issues by allowing cross-collection lookup for baked items.
 
+*** Agent Notes
+    [2026-02-01] Fixed 401 Server Error in login flow and improved User model migration.
+    Files changed:
+    - server/features/users/model.js
+    - server/features/users/service.js
+    - server/api/auth/login.post.js
+    Docs updated:
+    - server/features/users/NEOLIT.md
+    Notes:
+    - Fixed 401 error caused by inconsistent user data structure during v24 migration.
+    - Improved `User` model constructor to robustly migrate `email`, `passwordHash`, and other fields into the `data` block from the top level if they are missing from `data`.
+    - Added `.trim().toLowerCase()` to email normalization in `usersService.login`.
+    - Removed redundant `accessToken` generation in `login.post.js`, now strictly using the token from `usersService.login`.
+    - Updated `server/features/users/NEOLIT.md` to reflect the v24 BaseEntity structure for Users.
+
 * TODO Quickfix pt3
 *** Agent Notes
     [2026-01-26] Nesting Run architecture alignment and UI fixes.

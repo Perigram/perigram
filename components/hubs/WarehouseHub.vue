@@ -13,7 +13,7 @@
                         v-model="selectedWarehouseId" 
                         :options="warehouses" 
                         optionLabel="name" 
-                        optionValue="_id" 
+                        optionValue="id" 
                         class="border-none bg-transparent p-0 shadow-none text-2xl"
                         pt:label:class="p-0"
                     />
@@ -42,6 +42,7 @@
             </TabPanels>
         </Tabs>
     </div>
+  </div>
 </template>
 
 <script setup>

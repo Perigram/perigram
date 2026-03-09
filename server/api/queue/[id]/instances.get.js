@@ -1,6 +1,6 @@
 import { defineEventHandler } from 'h3';
-import { requireAuth } from '~/server/utils/permissions';
-import * as cassetteInstanceService from '~/server/features/cassette-instances/service';
+import { requireAuth } from '../../../utils/permissions.js';
+import * as cassetteInstanceService from '../../../features/cassette-instances/service.js';
 
 export default defineEventHandler(async (event) => {
   const auth = await requireAuth(event);

@@ -1,6 +1,6 @@
 import { defineEventHandler, readBody } from "h3";
-import * as projectsService from "~/server/features/projects/service";
-import { requireAuth } from "~/server/utils/permissions";
+import * as projectsService from "../../features/projects/service.js";
+import { requireAuth } from "../../utils/permissions.js";
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);
@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const slug = event.context.params.slug;
   const body = await readBody(event);
 
-  return await projectsService.update(
+  const project = await projectsService.update(
     slug,
     body,
     auth.userId,
@@ -16,4 +16,6 @@ export default defineEventHandler(async (event) => {
     auth.role,
     auth
   );
+
+  return project?.toJSON ? project.toJSON() : project;
 });

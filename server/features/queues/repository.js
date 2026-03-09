@@ -1,4 +1,5 @@
-import { connectDB } from '~/server/db/mongo';
+import { connectDB } from '../../db/mongo.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 const COLLECTION = 'queues';
 
@@ -14,7 +15,7 @@ export async function create(data) {
 
 export async function findById(uid) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ _id: uid });
+  return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(uid) });
 }
 
 export async function find(filter = {}) {
@@ -26,7 +27,7 @@ export async function updateById(uid, updates) {
   const db = await connectDB();
   const { _id, identity, ...clean } = updates;
   await db.collection(COLLECTION).updateOne(
-    { _id: uid }, 
+    { _id: toFlexibleId(uid) }, 
     { $set: clean }
   );
   return await findById(uid);
@@ -34,10 +35,10 @@ export async function updateById(uid, updates) {
 
 export async function getNextQueueNumber(projectId) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).countDocuments({ 'lineage.projectId': projectId }) + 1;
+  return await db.collection(COLLECTION).countDocuments({ 'lineage.projectId': toFlexibleId(projectId) }) + 1;
 }
 
 export async function deleteById(uid) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).deleteOne({ _id: uid });
+  return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(uid) });
 }

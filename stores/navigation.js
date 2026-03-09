@@ -13,7 +13,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     const currentProject = ref(null);
 
     async function fetchProjectContext(slug) {
-        if (!slug) {
+        if (!slug || slug === 'undefined') {
             currentProject.value = null;
             return;
         }

@@ -1,37 +1,42 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { generateRandomString } from '~/server/utils/strings';
+import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
+import { generateRandomString } from '../../utils/strings.js';
 import standardSlugify from 'standard-slugify';
-import { createStatus, registerService } from '~/server/utils/blocks';
+import { createStatus, registerService } from '../../utils/blocks.js';
 import { Project } from './model.js';
-import { statusService } from '~/server/core/machines/service';
+import { statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 /**
  * Projects Service - v24 Absolute Final
  */
 
-// Register for procedural drilling
 registerService('project', {
   getById: (uid) => getById(uid)
 });
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
+  console.log('[PROJECT] Create request:', { userId, userOrg, userRole, hasMemberships: !!userPermissions?.memberships });
+
   if (userRole !== 'SuperAdmin' && !userOrg) {
-    throw createError({ statusCode: 400, message: 'Organization context required' });
+    throw createError({ 
+      statusCode: 400, 
+      message: `Organization context required (Role: ${userRole})` 
+    });
   }
 
   const name = data.name || 'Unnamed Project';
   const uid = `${standardSlugify(name, { keepCase: false })}-${generateRandomString(6)}`;
 
   const project = new Project({
-    identity: { uid },
+    identity: { uid, name },
     lineage: { 
-      organizationId: userRole === 'SuperAdmin' && data.organizationId ? data.organizationId : userOrg 
+      organizationId: userRole === 'SuperAdmin' && data.organizationId ? toFlexibleId(data.organizationId) : toFlexibleId(userOrg)
     },
-    name, // Passed to constructor for data block
     data: {
+      name,
       metadata: data.metadata || {}
     }
   });
@@ -54,7 +59,7 @@ export async function list(userId, userOrg, userRole, userPermissions) {
 }
 
 export async function getById(uid) {
-  const raw = await repository.findById(uid);
+  const raw = await repository.findById(toFlexibleId(uid));
   if (!raw) return null;
   return new Project(raw);
 }
@@ -88,10 +93,10 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
     ...clean
   };
 
-  if (updates.name) project.data.name = updates.name;
+  if (updates.name) project.identity.name = updates.name;
 
-  await repository.updateById(uid, project);
-  const updatedRaw = await repository.findById(uid);
+  await repository.updateById(project.id, project);
+  const updatedRaw = await repository.findById(project.id);
   return new Project(updatedRaw);
 }
 

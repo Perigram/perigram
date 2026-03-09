@@ -1,6 +1,6 @@
 import { defineEventHandler } from "h3";
-import * as projectsService from "../../features/projects/service";
-import { requireAuth } from "../../utils/permissions";
+import * as projectsService from "../../features/projects/service.js";
+import { requireAuth } from "../../utils/permissions.js";
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -14,9 +14,5 @@ export default defineEventHandler(async (event) => {
   );
 
   // Map to simple structure needed for dropdowns
-  return projects.map(p => ({
-    _id: p._id,
-    name: p.name,
-    slug: p.slug
-  }));
+  return projects.map(p => p.toJSON ? p.toJSON() : p);
 });

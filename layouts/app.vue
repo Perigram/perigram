@@ -1,7 +1,7 @@
 <template>
     <div class="flex flex-col min-h-screen bg-surface-50 dark:bg-surface-950">
-        <header class="sticky top-0 z-50 bg-surface-0/80 dark:bg-surface-900/80 backdrop-blur-md border-b border-muted shadow-sm">
-            <nav class="max-w-[1600px] mx-auto px-4 h-14 flex items-center justify-between gap-2">
+    <header class="sticky top-2 z-50 m-2 backdrop-blur-md shadow-sm border border-surface-200 dark:border-surface-700 rounded-lg">
+            <nav class="max-w-[1600px] mx-auto px-4 h-14 flex items-center justify-between gap-2 ">
                 <!-- Left: Logo & Breadcrumbs -->
                 <div class="flex items-center h-full min-w-0 flex-1">
                     <NuxtLink
@@ -11,7 +11,7 @@
                         <span>CutKit</span>
                     </NuxtLink>
 
-                    <Divider layout="vertical" class="mx-1 hidden sm:block shrink-0" />
+                    <!-- <Divider layout="vertical" class="mx-1 hidden sm:block shrink-0" /> -->
                     
                     <div class="flex items-center gap-0 overflow-hidden min-w-0">
                         <div
@@ -56,7 +56,7 @@
                         <Button 
                             type="button" 
                             @click="toggleUserMenu" 
-                            class="p-0.5 rounded-full overflow-hidden border-2 border-transparent hover:border-primary transition-colors"
+                            class="p-0.5 rounded-full overflow-hidden border-2 border-transparent transition-colors"
                             text
                         >
                             <Avatar 
@@ -170,10 +170,10 @@
                 label: t('auth.organization'),
                 items: authStore.userOrganizations.map(org => ({
                     label: org.name,
-                    icon: org._id.toString() === authStore.userData.organizationId?.toString() ? 'pi pi-check text-green-500' : 'pi pi-building',
+                    icon: org.id === authStore.userData.organizationId?.toString() ? 'pi pi-check text-green-500' : 'pi pi-building',
                     command: async () => {
-                        if (org._id.toString() !== authStore.userData.organizationId?.toString()) {
-                            await authStore.switchOrganization(org._id);
+                        if (org.id !== authStore.userData.organizationId?.toString()) {
+                            await authStore.switchOrganization(org.id);
                             router.push('/');
                         }
                     }

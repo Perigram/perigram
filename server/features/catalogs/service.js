@@ -22,7 +22,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   if (!targetOrgId) throw createError({ statusCode: 400, message: 'Manufacturer organization required' });
 
   const catalog = new Catalog({
-    identity: { uid: `cat-${ObjectId().toString().substring(0, 8)}`, name: name || 'New Catalog' },
+    identity: { uid: `cat-${new ObjectId().toString().substring(0, 8)}`, name: name || 'New Catalog' },
     lineage: { organizationId: targetOrgId },
     params: { material, pricing, options }
   });

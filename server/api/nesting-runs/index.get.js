@@ -1,6 +1,6 @@
 import { defineEventHandler, getQuery } from 'h3';
-import { requireAuth } from '~/server/utils/permissions';
-import * as nestingRunsService from '~/server/features/nesting-runs/service';
+import { requireAuth } from '../../utils/permissions.js';
+import * as nestingRunsService from '../../features/nesting-runs/service.js';
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);

@@ -1,11 +1,12 @@
 import * as repository from './repository.js';
 import * as queuesRepository from '../queues/repository.js';
 import { createError } from 'h3';
-import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createIdentity, createStatus, inheritLineage, createData } from '~/server/utils/blocks';
-import { statusService } from '~/server/core/machines/service';
-import { mapLineageQuery } from '~/server/utils/query';
+import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
+import { createIdentity, createStatus, inheritLineage, createData } from '../../utils/blocks.js';
+import { statusService } from '../../core/machines/service.js';
+import { mapLineageQuery } from '../../utils/query.js';
 import { ObjectId } from 'mongodb';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 /**
  * Cassette Designs Service - v24 Standardized
@@ -14,6 +15,8 @@ import { ObjectId } from 'mongodb';
 function toDTO(design) {
   if (!design) return null;
   return {
+    _id: design._id,
+    id: design._id?.toString(),
     ...design,
     ...design.data,
     name: design.identity?.name
@@ -32,7 +35,7 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
   // 2. Lineage Inheritance
   const lineage = inheritLineage(queue, 'queue');
   if (data.templateId) {
-      lineage.templateId = new ObjectId(data.templateId);
+      lineage.templateId = toFlexibleId(data.templateId);
   }
 
   const origin = createStatus('DRAFT', userId, { note: 'Cassette design initialized' });
@@ -45,7 +48,7 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
     data: createData({
       geometry: {
         data: data.geometryData || null,
-        dxfId: data.dxfId ? new ObjectId(data.dxfId) : null
+        dxfId: data.dxfId ? toFlexibleId(data.dxfId) : null
       },
       parameters: data.parameters || {}
     })
@@ -56,7 +59,6 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
 }
 
 export async function getById(id, userId, userRole, userPermissions) {
-  if (!ObjectId.isValid(id)) throw createError({ statusCode: 400, message: 'Invalid ID' });
   const design = await repository.findById(id);
   if (!design) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   
@@ -68,12 +70,10 @@ export async function getById(id, userId, userRole, userPermissions) {
 }
 
 export async function getByTemplateId(templateId, userId, userOrg, userRole, userPermissions) {
-  if (!ObjectId.isValid(templateId)) throw createError({ statusCode: 400, message: 'Invalid ID' });
-  
-  const filter = { 'lineage.templateId': new ObjectId(templateId) };
+  const filter = { 'lineage.templateId': toFlexibleId(templateId) };
   if (userRole !== 'SuperAdmin') {
     const targetOrgId = userOrg || userId;
-    filter['lineage.organizationId'] = new ObjectId(targetOrgId);
+    filter['lineage.organizationId'] = toFlexibleId(targetOrgId);
   }
 
   const designs = await repository.find(filter);
@@ -81,19 +81,25 @@ export async function getByTemplateId(templateId, userId, userOrg, userRole, use
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const finalFilter = mapLineageQuery(filter);
+  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
   
-  if (userRole !== 'SuperAdmin') {
-    const targetOrgId = userOrg || userId;
-    finalFilter['lineage.organizationId'] = new ObjectId(targetOrgId);
+  const processedFilter = { ...filter };
+  if (processedFilter.queueId) {
+    processedFilter['lineage.queueId'] = toFlexibleId(processedFilter.queueId);
+    delete processedFilter.queueId;
+  }
+  if (processedFilter.templateId) {
+    processedFilter['lineage.templateId'] = toFlexibleId(processedFilter.templateId);
+    delete processedFilter.templateId;
   }
 
+  const finalFilter = { ...lineageFilter, ...processedFilter };
   const designs = await repository.find(finalFilter);
   return designs.map(toDTO);
 }
 
 export async function update(id, updates, userId, userRole, userPermissions) {
-  const design = await repository.findById(id);
+  const design = await repository.findById(toFlexibleId(id));
   if (!design) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'write')) {
@@ -121,7 +127,8 @@ export async function update(id, updates, userId, userRole, userPermissions) {
 }
 
 export async function remove(id, userId, userRole, userPermissions) {
-  const design = await getById(id, userId, userRole, userPermissions);
+  const design = await repository.findById(toFlexibleId(id));
+  if (!design) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });

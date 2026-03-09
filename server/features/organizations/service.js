@@ -1,11 +1,14 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { hasPermission } from '~/server/utils/auth-helpers';
-import { getLineageFilter } from '~/server/utils/permissions';
-import { registerService } from '~/server/utils/blocks';
+import { hasPermission } from '../../utils/auth-helpers.js';
+import { getLineageFilter } from '../../utils/permissions.js';
+import { registerService } from '../../utils/blocks.js';
 import { Organization } from './model.js';
-import { statusService } from '~/server/core/machines/service';
+import { statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
+import { connectDB } from '../../db/mongo.js';
+import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 /**
  * Organizations Service - v24 Absolute Final
@@ -21,13 +24,38 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   }
   
   const org = new Organization({
-    identity: { uid: `org-${ObjectId().toString().substring(0, 8)}`, name: data.name || 'New Organization' },
+    identity: { uid: `org-${new ObjectId().toString().substring(0, 8)}`, name: data.name || 'New Organization' },
     params: { type: data.type, email: data.email, phone: data.phone, address: data.address, settings: data.settings }
   });
 
   org.applyStatus('ACTIVE', userId, { note: 'Organization created' });
 
   const createdRaw = await repository.create(org);
+  
+  // Restore Membership Creation
+  const db = await connectDB();
+  const orgRole = `${data.type}Admin`;
+  const orgPermissions = PERMISSION_TEMPLATES[orgRole] || PERMISSION_TEMPLATES['IndividualUser'];
+  
+  const membership = {
+    organizationId: createdRaw._id,
+    role: orgRole,
+    permissions: orgPermissions,
+    status: 'active'
+  };
+
+  await db.collection('users').updateOne(
+    { _id: toFlexibleId(userId) },
+    { 
+      $push: { "data.memberships": membership },
+      $set: {
+        "lineage.organizationId": createdRaw._id,
+        "data.role": orgRole,
+        "data.permissions": orgPermissions
+      }
+    }
+  );
+
   return new Organization(createdRaw);
 }
 

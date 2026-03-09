@@ -1,20 +1,24 @@
 import * as repository from './repository.js';
 import * as projectsService from '../projects/service.js';
 import { createError } from 'h3';
-import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { inheritLineage, registerService } from '~/server/utils/blocks';
+import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
+import { inheritLineage, registerService } from '../../utils/blocks.js';
 import { Queue } from './model.js';
-import { statusService } from '~/server/core/machines/service';
-import { generateRandomString } from '~/server/utils/strings';
+import { statusService } from '../../core/machines/service.js';
+import { generateRandomString } from '../../utils/strings.js';
 import { ObjectId } from 'mongodb';
-import { connectDB } from '~/server/db/mongo';
+import { connectDB } from '../../db/mongo.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 /**
  * Queues Service - v24 Absolute Final
  */
 
 registerService('queue', {
-  getById: (uid) => getById(uid)
+  getById: (uid) => getById(uid),
+  hooks: {
+    processPhysicalCut: (ctx, params) => processPhysicalCut(ctx, params)
+  }
 });
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
@@ -45,22 +49,22 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   queue.applyStatus('DRAFT', userId, { note: 'Initial queue creation' });
 
   const createdRaw = await repository.create(queue);
-  return new Queue(createdRaw);
+  return new Queue(createdRaw).toJSON();
 }
 
 export async function getById(uid) {
   const raw = await repository.findById(uid);
   if (!raw) return null;
-  return new Queue(raw);
+  return new Queue(raw).toJSON();
 }
 
 export async function listByProject(projectId, userId, userOrg, userRole, userPermissions) {
   const filter = {
     ...getLineageFilter({ memberships: userPermissions.memberships, role: userRole }),
-    'lineage.projectId': projectId
+    'lineage.projectId': toFlexibleId(projectId)
   };
   const raws = await repository.find(filter);
-  return raws.map(raw => new Queue(raw));
+  return raws.map(raw => new Queue(raw).toJSON());
 }
 
 export async function update(uid, updates, userId, userOrg, userRole, userPermissions) {
@@ -77,15 +81,20 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
     return await getById(uid);
   }
 
+  // Update data block
   queue.data = { ...queue.data, ...(updates.data || {}) };
+  
+  // Handle root level updates that should go to job/params
+  if (updates.job) queue.data.job = updates.job;
+  if (updates.nestingParams) queue.data.nestingParams = updates.nestingParams;
 
   await repository.updateById(uid, queue);
   const updatedRaw = await repository.findById(uid);
-  return new Queue(updatedRaw);
+  return new Queue(updatedRaw).toJSON();
 }
 
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
-  const queue = await getById(uid);
+  const queue = await repository.findById(uid);
   if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'admin')) {
@@ -96,8 +105,9 @@ export async function remove(uid, userId, userOrg, userRole, userPermissions) {
 }
 
 export async function markCut(queueId, userId, userOrg, userRole, userPermissions) {
-  const queue = await getById(queueId);
-  if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
+  const raw = await repository.findById(queueId);
+  if (!raw) throw createError({ statusCode: 404, message: 'Queue not found' });
+  const queue = new Queue(raw);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -117,8 +127,9 @@ export async function markCut(queueId, userId, userOrg, userRole, userPermission
 }
 
 export async function resetToDraft(queueId, userId, userOrg, userRole, userPermissions) {
-  const queue = await getById(queueId);
-  if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
+  const raw = await repository.findById(queueId);
+  if (!raw) throw createError({ statusCode: 404, message: 'Queue not found' });
+  const queue = new Queue(raw);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -142,4 +153,12 @@ export async function getArtifacts(queueId, userId, userOrg, userRole, userPermi
     if (runId) filter['lineage.runId'] = runId;
 
     return await listArtifacts(filter);
+}
+
+/**
+ * Side effect: When queue is CUT, transition physical units
+ */
+export async function processPhysicalCut({ targetId, userId, userRole, lineage }) {
+  console.log(`[Queue Service] Processing physical cut for queue ${targetId}`);
+  // Implementation will follow in next turn
 }

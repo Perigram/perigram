@@ -7,11 +7,13 @@ import { ObjectId } from 'mongodb';
 
 const registry = {};
 export const registerService = (type, service) => { registry[type] = service; };
+export const getService = (type) => registry[type];
 
 export class Identity {
-  constructor(uid, name = '') {
+  constructor(uid, name = '', slug = '') {
     this.uid = uid;
     this.name = name;
+    if (slug) this.slug = slug;
   }
 }
 
@@ -41,7 +43,15 @@ export class BaseEntity {
   constructor(raw = {}) {
     // 1. Identify
     this._id = raw.identity?.uid || raw._id || null;
-    this.identity = new Identity(this._id, raw.identity?.name || raw.name || '');
+    const name = raw.identity?.name || raw.name || '';
+    
+    // Slug logic: Use provided slug, or _id if it looks like a slug (non-ObjectId string)
+    let slug = raw.identity?.slug || raw.slug || '';
+    if (!slug && typeof this._id === 'string' && this._id.length !== 24) {
+      slug = this._id;
+    }
+    
+    this.identity = new Identity(this._id, name, slug);
     
     // 2. Lineage
     this.lineage = new Lineage(raw.lineage || {});
@@ -55,6 +65,24 @@ export class BaseEntity {
     
     // 5. Data
     this.data = raw.data || {};
+  }
+
+  get id() {
+    return this._id?.toString();
+  }
+
+  toJSON() {
+    return {
+      _id: this._id,
+      id: this.id,
+      name: this.identity.name,
+      identity: this.identity,
+      lineage: this.lineage,
+      origin: this.origin,
+      status: this.status,
+      attachments: this.attachments,
+      data: this.data
+    };
   }
 
   applyStatus(state, userId, metadata = {}, eventId = null) {

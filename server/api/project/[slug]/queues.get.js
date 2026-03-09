@@ -1,7 +1,7 @@
 import { defineEventHandler, createError } from "h3";
-import * as projectsService from "~/server/features/projects/service";
-import * as queuesService from "~/server/features/queues/service";
-import { requireAuth } from "~/server/utils/permissions";
+import * as projectsService from "../../../features/projects/service.js";
+import * as queuesService from "../../../features/queues/service.js";
+import { requireAuth } from "../../../utils/permissions.js";
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);

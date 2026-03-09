@@ -1,6 +1,6 @@
 import { defineEventHandler, getQuery } from 'h3';
-import { requireAuth } from '~/server/utils/permissions';
-import * as cassetteService from '~/server/features/cassettes/service';
+import { requireAuth } from '../../utils/permissions.js';
+import * as cassetteService from '../../features/cassettes/service.js';
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);

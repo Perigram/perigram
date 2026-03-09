@@ -22,7 +22,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   if (!catalog) throw createError({ statusCode: 404, message: 'Catalog not found' });
 
   const color = new Color({
-    identity: { uid: `col-${ObjectId().toString().substring(0, 8)}`, name: name || 'New Color' },
+    identity: { uid: `col-${new ObjectId().toString().substring(0, 8)}`, name: name || 'New Color' },
     lineage: inheritLineage(catalog, 'catalog'),
     params: { code, visuals: { hexCode, textureUrl } }
   });

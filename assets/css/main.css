@@ -20,3 +20,15 @@
     white-space: nowrap;
     flex-wrap: nowrap !important;
 }
+
+/* DataView Transparency (PrimeVue 4 Idiomatic Way) */
+:root {
+    --p-dataview-background: transparent;
+    --p-dataview-content-background: transparent;
+    --p-dataview-header-background: transparent;
+    --p-dataview-footer-background: transparent;
+    --p-dataview-border-width: 0;
+    --p-dataview-content-border-width: 0;
+    --p-dataview-header-border-width: 0;
+    --p-dataview-footer-border-width: 0;
+}

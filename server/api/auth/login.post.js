@@ -1,6 +1,5 @@
 import { defineEventHandler, readBody, setCookie, createError } from 'h3';
-import * as usersService from '../../features/users/service';
-import { generateAccessToken } from '../../utils/auth-helpers';
+import * as usersService from '../../features/users/service.js';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -9,19 +8,27 @@ export default defineEventHandler(async (event) => {
   }
 
   const { email, password } = body;
-  const result = await usersService.login(email, password);
   
-  setCookie(event, 'sessionId', result.sessionId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 30 * 24 * 60 * 60
-  });
-  
-  const accessToken = generateAccessToken(result.user.id);
-  
-  return {
-    user: result.user,
-    accessToken
-  };
+  try {
+    const result = await usersService.login(email, password);
+    
+    setCookie(event, 'sessionId', result.sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60
+    });
+    
+    return {
+      user: result.user,
+      accessToken: result.accessToken
+    };
+  } catch (err) {
+    if (err.statusCode) throw err;
+    throw createError({ 
+      statusCode: 500, 
+      message: `Internal Server Error: ${err.message}`, 
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined 
+    });
+  }
 });

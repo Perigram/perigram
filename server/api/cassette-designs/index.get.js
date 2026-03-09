@@ -1,6 +1,6 @@
 import { defineEventHandler, getQuery } from 'h3';
-import { requireAuth } from '~/server/utils/permissions';
-import * as designService from '~/server/features/cassette-designs/service';
+import { requireAuth } from '../../utils/permissions.js';
+import * as designService from '../../features/cassette-designs/service.js';
 
 export default defineEventHandler(async (event) => {
   const auth = await requireAuth(event);

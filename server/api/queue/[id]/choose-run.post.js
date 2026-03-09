@@ -3,8 +3,8 @@
  * Mark a completed run as chosen
  */
 
-import * as nestingRunsService from '~/server/features/nesting-runs/service';
-import { requireAuth } from '~/server/utils/permissions';
+import * as nestingRunsService from '../../../features/nesting-runs/service.js';
+import { requireAuth } from '../../../utils/permissions.js';
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);

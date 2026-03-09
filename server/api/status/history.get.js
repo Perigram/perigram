@@ -1,7 +1,8 @@
 import { defineEventHandler, getQuery, createError } from 'h3';
-import { connectDB } from '~/server/db/mongo';
+import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
-import { requireAuth } from '~/server/utils/permissions';
+import { requireAuth } from '../../utils/permissions.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);
@@ -17,7 +18,7 @@ export default defineEventHandler(async (event) => {
   
   return await db.collection('status_events')
     .find({ 
-      targetId: new ObjectId(targetId),
+      targetId: toFlexibleId(targetId),
       targetType: targetType
     })
     .sort({ timestamp: -1 })

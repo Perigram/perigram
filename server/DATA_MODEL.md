@@ -226,7 +226,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.job` | String | job field |
-| `data.materialPool` | String | material pool field |
+| `data.layoutData` | String | layout data field |
 | `data.queueNumber` | String | queue number field |
 | `data.results` | Array | results field |
 
@@ -322,7 +322,9 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.angle` | String | angle field |
+| `data.description` | String | description field |
 | `data.diameter` | String | diameter field |
+| `data.kerf` | String | kerf field |
 | `lineage.userId` | ObjectId | Lineage link to userId |
 
 ### users
@@ -336,6 +338,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.email` | String | email field |
+| `data.isActive` | String | is active field |
 | `data.memberships` | Array | memberships field |
 | `data.passwordHash` | String | password hash field |
 | `data.permissions` | Array | permissions field |

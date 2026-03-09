@@ -1,5 +1,7 @@
 import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
+import { toFlexibleId } from '../../utils/objectid.js';
+import { pluralize } from '../../utils/strings.js';
 
 /**
  * Centralized Aggregation Engine - v24 Expanded
@@ -42,12 +44,14 @@ export const aggregator = {
     if (!parentId) return;
 
     const db = await connectDB();
-    const collection = `${entityType}s`.replace(/_s$/, 's'); // Simple pluralization fix
-    const parentCollection = `${config.parentType}s`;
+    
+    const targetCollection = pluralize(entityType);
+    const parentCollection = pluralize(config.parentType);
+    const flexParentId = toFlexibleId(parentId);
 
     // 1. Run Aggregation
     const pipeline = [
-      { $match: { [`lineage.${config.parentIdKey}`]: new ObjectId(parentId) } },
+      { $match: { [`lineage.${config.parentIdKey}`]: flexParentId } },
       {
         $group: {
           _id: null,
@@ -59,7 +63,7 @@ export const aggregator = {
       }
     ];
 
-    const [results] = await db.collection(collection).aggregate(pipeline).toArray();
+    const [results] = await db.collection(targetCollection).aggregate(pipeline).toArray();
     
     // 2. Build Update Object
     const updateFields = {};
@@ -78,7 +82,7 @@ export const aggregator = {
     }
 
     if (Object.keys(updateFields).length > 0) {
-      await db.collection(parentCollection).updateOne({ _id: new ObjectId(parentId) }, { $set: updateFields });
+      await db.collection(parentCollection).updateOne({ _id: flexParentId }, { $set: updateFields });
     }
   }
 };

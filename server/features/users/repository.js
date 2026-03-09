@@ -1,5 +1,6 @@
-import { connectDB } from '~/server/db/mongo';
+import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 const COLLECTION = 'users';
 
@@ -15,12 +16,18 @@ export async function create(data) {
 
 export async function findById(id) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
+  return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) });
 }
 
 export async function findByEmail(email) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ 'data.email': email.toLowerCase() });
+  const emailLower = email.toLowerCase();
+  return await db.collection(COLLECTION).findOne({
+    $or: [
+      { 'data.email': emailLower },
+      { 'email': emailLower }
+    ]
+  });
 }
 
 export async function find(filter = {}) {
@@ -32,7 +39,7 @@ export async function updateById(id, updates) {
   const db = await connectDB();
   const { _id, ...clean } = updates;
   await db.collection(COLLECTION).updateOne(
-    { _id: new ObjectId(id) }, 
+    { _id: toFlexibleId(id) }, 
     { $set: clean }
   );
   return await findById(id);
@@ -41,12 +48,12 @@ export async function updateById(id, updates) {
 export async function updateLastLogin(id) {
     const db = await connectDB();
     await db.collection(COLLECTION).updateOne(
-        { _id: new ObjectId(id) },
+        { _id: toFlexibleId(id) },
         { $set: { 'data.lastLoginAt': new Date() } }
     );
 }
 
 export async function deleteById(id) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
+  return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });
 }

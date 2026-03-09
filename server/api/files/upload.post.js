@@ -1,6 +1,6 @@
-import { readMultipartFormData, createError } from 'h3';
-import { requireAuth } from '~/server/utils/permissions';
-import * as filesService from '~/server/features/files/service';
+import { readMultipartFormData, createError, getQuery, defineEventHandler } from 'h3';
+import { requireAuth } from '../../utils/permissions.js';
+import * as filesService from '../../features/files/service.js';
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);

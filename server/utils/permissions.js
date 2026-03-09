@@ -1,6 +1,6 @@
 import { createError } from 'h3';
 import { hasPermission } from './auth-helpers.js';
-import { ObjectId } from 'mongodb';
+import { toFlexibleId } from './objectid.js';
 
 export function requireAuth(event) {
   if (!event.context.auth) {
@@ -61,7 +61,8 @@ export function getLineageFilter(user) {
   
   // Get all org IDs where user has membership
   const orgIds = (user.memberships || [])
-    .map(m => new ObjectId(m.organizationId));
+    .map(m => m.organizationId ? toFlexibleId(m.organizationId) : null)
+    .filter(Boolean);
     
   return { 'lineage.organizationId': { $in: orgIds } };
 }

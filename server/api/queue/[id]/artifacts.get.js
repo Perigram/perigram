@@ -1,5 +1,5 @@
-import * as queuesService from '~/server/features/queues/service';
-import { requireAuth } from '~/server/utils/permissions';
+import * as queuesService from '../../../features/queues/service.js';
+import { requireAuth } from '../../../utils/permissions.js';
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);

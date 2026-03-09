@@ -1,14 +1,15 @@
 import * as repository from './repository.js';
 import * as designRepository from '../cassette-designs/repository.js';
 import { createError } from 'h3';
-import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createIdentity, createStatus, inheritLineage, createData } from '~/server/utils/blocks';
-import { statusService } from '~/server/core/machines/service';
-import { mapLineageQuery } from '~/server/utils/query';
+import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
+import { createIdentity, createStatus, inheritLineage, createData } from '../../utils/blocks.js';
+import { statusService } from '../../core/machines/service.js';
+import { mapLineageQuery } from '../../utils/query.js';
 import standardSlugify from 'standard-slugify';
-import { generateRandomString } from '~/server/utils/strings';
+import { generateRandomString } from '../../utils/strings.js';
 import { ObjectId, GridFSBucket } from 'mongodb';
-import { connectDB } from '~/server/db/mongo';
+import { connectDB } from '../../db/mongo.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 /**
  * Cassette Templates Service - v24 Standardized
@@ -17,6 +18,8 @@ import { connectDB } from '~/server/db/mongo';
 function toDTO(cassette) {
   if (!cassette) return null;
   return {
+    _id: cassette._id,
+    id: cassette._id?.toString(),
     ...cassette,
     ...cassette.data,
     name: cassette.identity?.name,
@@ -27,7 +30,7 @@ function toDTO(cassette) {
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   // Lineage: Templates belong to the organization
   const targetOrgId = userOrg || userId;
-  const lineage = { organizationId: new ObjectId(targetOrgId) };
+  const lineage = { organizationId: toFlexibleId(targetOrgId) };
 
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
@@ -54,7 +57,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
 export async function upload(fileBuffer, fileName, name, userId, userOrg, userRole, userPermissions, mapping, parameters) {
   const targetOrgId = userOrg || userId;
-  const lineage = { organizationId: new ObjectId(targetOrgId) };
+  const lineage = { organizationId: toFlexibleId(targetOrgId) };
 
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -118,18 +121,21 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
 export async function list(userId, userOrg, userRole, userPermissions, query = {}) {
   const { limit, skip, status, ...rest } = query;
   
-  const filter = mapLineageQuery(rest);
+  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
+  const processedFilter = { ...rest };
   
   if (status) {
-    filter['status.state'] = status;
+    processedFilter['status.state'] = status;
   }
   
   if (userRole !== 'SuperAdmin') {
       const targetOrgId = userOrg || userId;
-      filter['lineage.organizationId'] = new ObjectId(targetOrgId);
+      processedFilter['lineage.organizationId'] = toFlexibleId(targetOrgId);
   }
   
-  const cassettes = await repository.find(filter, { 
+  const finalFilter = { ...lineageFilter, ...processedFilter };
+  
+  const cassettes = await repository.find(finalFilter, { 
     limit: limit ? parseInt(limit) : 100, 
     skip: skip ? parseInt(skip) : 0 
   });
@@ -138,9 +144,7 @@ export async function list(userId, userOrg, userRole, userPermissions, query = {
 }
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {
-  if (!ObjectId.isValid(id)) throw createError({ statusCode: 400, message: 'Invalid ID' });
-  
-  const cassette = await repository.findById(id);
+  const cassette = await repository.findById(toFlexibleId(id));
   if (!cassette) throw createError({ statusCode: 404, message: 'Template not found' });
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'read')) {
@@ -160,19 +164,19 @@ export async function exportDxf(id, dimensions, userId, userOrg, userRole, userP
   } else {
     // For standard templates, find the associated design's DXF
     const db = await connectDB();
-    const design = await db.collection('cassette_designs').findOne({ 'lineage.templateId': new ObjectId(id) });
+    const design = await db.collection('cassette_designs').findOne({ 'lineage.templateId': toFlexibleId(id) });
     
     if (!design?.data?.geometry?.dxfId) {
       throw createError({ statusCode: 404, message: 'DXF not found for this template' });
     }
     
     const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
-    return bucket.openDownloadStream(new ObjectId(design.data.geometry.dxfId));
+    return bucket.openDownloadStream(toFlexibleId(design.data.geometry.dxfId));
   }
 }
 
 export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
-  const cassette = await repository.findById(id);
+  const cassette = await repository.findById(toFlexibleId(id));
   if (!cassette) throw createError({ statusCode: 404, message: 'Template not found' });
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'write')) {
@@ -200,7 +204,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 }
 
 export async function updateLayerMapping(id, mapping, userId, userOrg, userRole, userPermissions) {
-  const cassette = await repository.findById(id);
+  const cassette = await repository.findById(toFlexibleId(id));
   if (!cassette) throw createError({ statusCode: 404, message: 'Template not found' });
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'write')) {
@@ -221,7 +225,7 @@ export async function updateLayerMapping(id, mapping, userId, userOrg, userRole,
 }
 
 export async function updateParameters(id, parameters, userId, userOrg, userRole, userPermissions) {
-  const cassette = await repository.findById(id);
+  const cassette = await repository.findById(toFlexibleId(id));
   if (!cassette) throw createError({ statusCode: 404, message: 'Template not found' });
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'write')) {
@@ -239,7 +243,7 @@ export async function updateParameters(id, parameters, userId, userOrg, userRole
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
-  const cassette = await getById(id, userId, userOrg, userRole, userPermissions);
+  const cassette = await getById(toFlexibleId(id), userId, userOrg, userRole, userPermissions);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
