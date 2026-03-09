@@ -11,6 +11,7 @@ import Divider from 'primevue/divider';
 import { ref, computed } from 'vue';
 import { useStatus } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
+import { useStatusController } from '~/composables/useStatusController';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -22,6 +23,7 @@ const props = defineProps({
 const emit = defineEmits(['transitioned']);
 const authStore = useAuthStore();
 const { state, timestamp, metadata, statusColor } = useStatus(props.entity);
+const { transition, isTransitioning } = useStatusController();
 const op = ref();
 
 const toggle = (event) => {
@@ -31,14 +33,10 @@ const toggle = (event) => {
 };
 
 // Available transitions (to be fetched or derived from a machine registry if available)
-// For now, we simulate basic transition buttons based on common states
 const handleTransition = async (targetState) => {
     try {
-        const slug = props.entity.identity?.slug || props.entity.slug || props.entity._id;
-        await $fetch(`/api/${props.entityType}/${slug}/status`, {
-            method: 'POST',
-            body: { state: targetState }
-        });
+        const id = props.entity.identity?.slug || props.entity.slug || props.entity._id || props.entity.id;
+        await transition(props.entityType, id, targetState);
         emit('transitioned', targetState);
         op.value.hide();
     } catch (e) {

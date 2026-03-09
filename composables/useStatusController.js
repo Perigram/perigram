@@ -8,14 +8,37 @@ export const useStatusController = () => {
   const isTransitioning = ref(false);
   const transitionError = ref(null);
 
+  const getStatusEndpoint = (type, id) => {
+    const map = {
+        project: `/api/project/${id}`,
+        queue: `/api/queue/${id}`,
+        requisition: `/api/requisitions/${id}`,
+        batch: `/api/material-piles/${id}`,
+        pile: `/api/material-piles/${id}`,
+        sheet: `/api/sheets/${id}`,
+        remnant: `/api/remnants/${id}`,
+        cassetteInstance: `/api/cassette-instances/${id}`,
+        cassetteDesign: `/api/cassette-designs/${id}`,
+        sheetDesign: `/api/sheet-designs/${id}`,
+        artifact: `/api/artifacts/${id}`,
+        catalog: `/api/catalogs/${id}`,
+        color: `/api/colors/${id}`,
+        warehouse: `/api/warehouses/${id}`,
+        user: `/api/users/${id}`,
+        organization: `/api/organizations/${id}`
+    };
+    return map[type] || `/api/${type}/${id}`;
+  };
+
   const transition = async (entityType, targetId, newState, metadata = {}) => {
     isTransitioning.value = true;
     transitionError.value = null;
     
     try {
-      const response = await $fetch(`/api/${entityType}/${targetId}/status`, {
+      // Use standard PATCH update endpoint which handles status updates
+      const response = await $fetch(getStatusEndpoint(entityType, targetId), {
         method: 'PATCH',
-        body: { status: newState, metadata }
+        body: { status: newState, statusMeta: metadata }
       });
       return response;
     } catch (err) {

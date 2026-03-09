@@ -22,6 +22,31 @@ export const useEntity = (type, identifier = null) => {
   const { lineage, getAncestorId } = useLineage(entity);
   const { specs, formattedDimensions, formattedArea } = useSpecs(entity);
 
+/**
+   * Resolve API endpoint for this entity
+   */
+  const getEndpoint = (id = identifier || entity.value?._id || entity.value?.id) => {
+    const map = {
+        project: `/api/project/${id}`,
+        queue: `/api/queue/${id}`,
+        requisition: `/api/requisitions/${id}`,
+        batch: `/api/material-piles/${id}`,
+        pile: `/api/material-piles/${id}`,
+        sheet: `/api/sheets/${id}`,
+        remnant: `/api/remnants/${id}`,
+        cassetteInstance: `/api/cassette-instances/${id}`,
+        cassetteDesign: `/api/cassette-designs/${id}`,
+        sheetDesign: `/api/sheet-designs/${id}`,
+        artifact: `/api/artifacts/${id}`,
+        catalog: `/api/catalogs/${id}`,
+        color: `/api/colors/${id}`,
+        warehouse: `/api/warehouses/${id}`,
+        user: `/api/users/${id}`,
+        organization: `/api/organizations/${id}`
+    };
+    return map[type] || `/api/${type}/${id}`;
+  };
+
   /**
    * Fetch entity data from API
    */
@@ -30,7 +55,7 @@ export const useEntity = (type, identifier = null) => {
     loading.value = true;
     error.value = null;
     try {
-      const data = await $fetch(`/api/${type}/${id}`);
+      const data = await $fetch(getEndpoint(id));
       entity.value = data;
       return data;
     } catch (err) {
@@ -48,7 +73,7 @@ export const useEntity = (type, identifier = null) => {
   const update = async (updates) => {
     loading.value = true;
     try {
-      const data = await $fetch(`/api/${type}/${identifier || entity.value?.id}`, {
+      const data = await $fetch(getEndpoint(), {
         method: 'PATCH',
         body: updates
       });

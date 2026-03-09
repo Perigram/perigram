@@ -55,6 +55,7 @@
     import Button from 'primevue/button'
     import EntityPage from '~/components/shared/EntityPage.vue'
     import { useAuthStore } from '~/stores/auth'
+    import { useEntity } from '~/composables/useEntity'
 
     definePageMeta({
         layout: 'app',
@@ -67,7 +68,7 @@
     const authStore = useAuthStore()
     const slug = route.params.slug
 
-    const project = ref(null)
+    const { entity: project, loading, error, fetch: loadProject } = useEntity('project', slug)
     const activeTabIndex = ref(0)
     const showEditDialog = ref(false)
 
@@ -75,14 +76,6 @@
         { label: t('project.queues'), to: `/project/${slug}/queues`, key: 'queues' },
         { label: t('project.data'), to: `/project/${slug}/data`, key: 'data' },
     ])
-
-    const loadProject = async () => {
-        try {
-            project.value = await $fetch(`/api/project/${slug}`)
-        } catch (error) {
-            console.error('Failed to load project:', error)
-        }
-    }
 
     onMounted(async () => {
         await loadProject()
