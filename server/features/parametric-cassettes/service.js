@@ -10,7 +10,12 @@ import { buildNodiGraph } from '../../utils/cassetteGraphBuilder.js';
 import init, { Modular } from 'nodi-modular';
 import fs from 'fs/promises';
 import path from 'path';
-import { createIdentity, createStatus, createData, createAttachment } from '../../utils/blocks.js';
+import { 
+  createIdentity, 
+  createStatus, 
+  createData, 
+  createAttachment 
+} from '../../core/blocks/index.js';
 
 let modularInstance = null;
 let baseTemplateGraph = null;

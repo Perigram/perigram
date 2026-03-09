@@ -1,3 +1,4 @@
+import { ObjectId } from 'mongodb';
 import { Identity } from './Identity.js';
 import { Status } from './Status.js';
 import { Lineage } from './Lineage.js';
@@ -28,3 +29,11 @@ export const createData = (data = {}) => ({ ...data });
 export const inheritLineage = (parent, type) => {
   return new Lineage(parent?.lineage || {}).add(type, parent?.identity?.uid || parent?._id);
 };
+
+export const createAttachment = (type, fileId, name = '', metadata = {}) => ({
+  type,
+  fileId: fileId instanceof ObjectId ? fileId : new ObjectId(fileId),
+  name,
+  metadata,
+  timestamp: new Date()
+});

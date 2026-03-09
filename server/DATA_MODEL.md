@@ -14,7 +14,9 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
+| `data.fileId` | String | file id field |
 | `data.metadata` | String | metadata field |
+| `data.mimeType` | String | mime type field |
 | `data.type` | String | type field |
 
 ### cassette_designs
@@ -27,6 +29,8 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
+| `data.dxfId` | String | dxf id field |
+| `data.geometry` | String | geometry field |
 
 ### cassette_instances
 *Cassette-instances - manages cassette instances*
@@ -39,6 +43,10 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.// Any physical properties can go here` | String | //  any physical properties can go here field |
+| `data.// Physical properties and tracking data
+      serial` | String | //  physical properties and tracking data
+      serial field |
+| `data.reference` | String | reference field |
 
 ### cassettes
 *Cassettes - manages cassettes*
@@ -53,6 +61,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.// PARAMETRIC | STANDARD
         definition` | String | //  p a r a m e t r i c |  s t a n d a r d
         definition field |
+| `data.definition` | String | definition field |
 | `data.organizationId` | String | organization id field |
 | `data.parameters` | Array | parameters field |
 | `data.type` | String | type field |
@@ -85,6 +94,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
+| `data.customField` | String | custom field field |
 
 ### colors
 *Colors - manages colors*
@@ -284,6 +294,9 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
+| `data.data` | String | data field |
+| `data.dxfId` | String | dxf id field |
+| `data.geometry` | String | geometry field |
 
 ### sheets
 *Sheets - manages sheets*

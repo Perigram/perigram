@@ -52,5 +52,5 @@ export async function list(filter = {}) {
 }
 
 export async function remove(id) {
-  return await repository.deleteById(id);
+  return await repository.deleteById(toFlexibleId(id));
 }
