@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     });
     
     return {
-      user: result.user,
+      user: result.user.toJSON(),
       accessToken: result.accessToken
     };
   } catch (err) {

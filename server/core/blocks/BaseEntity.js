@@ -26,8 +26,8 @@ export class BaseEntity {
     this.lineage = new Lineage(raw.lineage || {});
     
     // 3. Status
-    this.origin = raw.origin ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId) : null;
-    this.status = raw.status ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId) : null;
+    this.origin = (raw.origin && raw.origin.state) ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId) : null;
+    this.status = (raw.status && raw.status.state) ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId) : null;
     
     // 4. Specs (Optional)
     this.specs = raw.specs ? new Specs(raw.specs) : null;

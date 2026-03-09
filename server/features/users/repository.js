@@ -6,9 +6,10 @@ const COLLECTION = 'users';
 
 export async function create(data) {
   const db = await connectDB();
+  const cleanData = data.toJSON ? data.toJSON() : data;
   const doc = {
-    ...data,
-    _id: data._id || new ObjectId()
+    ...cleanData,
+    _id: cleanData._id || data._id || new ObjectId()
   };
   await db.collection(COLLECTION).insertOne(doc);
   return doc;
