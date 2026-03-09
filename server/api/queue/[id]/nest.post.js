@@ -111,30 +111,26 @@ export default defineEventHandler(async (event) => {
     inventoryItems: body.inventoryItems || []
   };
   
-  // Create nesting job
-  const db = await connectDB();
-  const runId = new ObjectId();
+  // Create nesting run via service
   const runNumber = await nestingRunsService.getNextRunNumber(queue.id);
-
   const runOrigin = createStatus('NESTING', auth.userId, { note: `Nesting started in ${body.materialMode || 'VIRTUAL'} mode` });
-  await db.collection('nesting_runs').insertOne({
-    _id: runId,
-    identity: { uid: runId.toString() },
+  
+  const run = await nestingRunsService.create({
     runNumber,
     materialMode: body.materialMode || 'VIRTUAL',
     params,
     origin: runOrigin,
     status: runOrigin,
     lineage: inheritLineage(queue, 'queue'),
-    requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF'],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  });
+    requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF']
+  }, auth.userId);
+
+  const runId = toFlexibleId(run.id);
   
   console.log('Adding nesting job to DB...');
   await db.collection('nesting_jobs').insertOne({
     slug: nestingSlug,
-    projectSlug: queue.identity?.slug || '', // Use identity.slug if exists
+    projectSlug: queue.identity?.slug || '', 
     queueId: toFlexibleId(queue.id),
     runId,
     files: jobFiles, 

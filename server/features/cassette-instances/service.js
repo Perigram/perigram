@@ -9,6 +9,7 @@ import {
   registerService 
 } from '../../core/blocks/index.js';
 import { statusService } from '../../core/machines/service.js';
+import { aggregator } from '../../core/machines/aggregator.js';
 import { CassetteInstance } from './model.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { ObjectId } from 'mongodb';
@@ -54,6 +55,11 @@ export async function createFromSheet(sheet, designs, userId, userRole, userPerm
     const raw = await repository.create(instanceData);
     created.push(new CassetteInstance(raw).toJSON());
   }
+
+  // Trigger summary update on project
+  aggregator.syncParentSummary('cassette_instance', baseLineage).catch(err => {
+    console.error('[Instance Service] Failed to sync parent summary:', err.message);
+  });
 
   return created;
 }

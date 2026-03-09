@@ -5,6 +5,7 @@ import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.
 import { inheritLineage, registerService } from '../../utils/blocks.js';
 import { Queue } from './model.js';
 import { statusService } from '../../core/machines/service.js';
+import { aggregator } from '../../core/machines/aggregator.js';
 import { generateRandomString } from '../../utils/strings.js';
 import { ObjectId } from 'mongodb';
 import { connectDB } from '../../db/mongo.js';
@@ -49,6 +50,12 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   queue.applyStatus('DRAFT', userId, { note: 'Initial queue creation' });
 
   const createdRaw = await repository.create(queue);
+
+  // Trigger summary update on project
+  aggregator.syncParentSummary('queue', lineage).catch(err => {
+    console.error('[Queues Service] Failed to sync parent summary:', err.message);
+  });
+
   return new Queue(createdRaw).toJSON();
 }
 

@@ -26,8 +26,8 @@ export class BaseEntity {
     this.lineage = new Lineage(raw.lineage || {});
     
     // 3. Status
-    this.origin = (raw.origin && raw.origin.state) ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId) : null;
-    this.status = (raw.status && raw.status.state) ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId) : null;
+    this.origin = (raw.origin && raw.origin.state) ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId, raw.origin.timestamp) : null;
+    this.status = (raw.status && raw.status.state) ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId, raw.status.timestamp) : null;
     
     // 4. Specs (Optional)
     this.specs = raw.specs ? new Specs(raw.specs) : null;
@@ -37,6 +37,9 @@ export class BaseEntity {
     
     // 6. Data (Custom feature fields)
     this.data = raw.data || {};
+
+    // 7. Summary (Aggregated data)
+    this.summary = raw.summary || {};
   }
 
   get id() {
@@ -54,6 +57,7 @@ export class BaseEntity {
       specs: this.specs?.toJSON() || null,
       attachments: this.attachments,
       data: this.data,
+      summary: this.summary,
       // Legacy flat compatibility fields
       name: this.identity.name,
       slug: this.identity.slug

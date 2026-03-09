@@ -253,6 +253,8 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.area` | String | area field |
 | `data.geometryDxf` | String | geometry dxf field |
 | `data.height` | String | height field |
+| `data.isReusable` | String | is reusable field |
+| `data.serial` | String | serial field |
 | `data.sheetId? (optional parent)` | String | sheet id? (optional parent) field |
 | `data.warehouseId (required if no sheet)` | String | warehouse id (required if no sheet) field |
 | `data.width` | Number | width field |
@@ -267,8 +269,11 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
+| `data.currency` | String | currency field |
 | `data.items` | Array | items field |
 | `data.notes` | Array | notes field |
+| `data.requisitionNumber` | String | requisition number field |
+| `data.totalPrice` | String | total price field |
 | `lineage.manufacturerId` | ObjectId | Lineage link to manufacturerId |
 | `lineage.organizationId` | ObjectId | Lineage link to organizationId |
 | `lineage.projectId` | ObjectId | Lineage link to projectId |

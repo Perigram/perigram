@@ -6,12 +6,12 @@ import { ObjectId } from 'mongodb';
  * (Forced reload comment)
  */
 export class Status {
-  constructor(state, userId, metadata = {}, eventId = null) {
+  constructor(state, userId, metadata = {}, eventId = null, timestamp = null) {
     if (!state) throw new Error('Status: state is required');
     
     this.state = state;
     this.userId = userId || 'SYSTEM'; // Fallback for legacy data
-    this.timestamp = new Date();
+    this.timestamp = timestamp ? new Date(timestamp) : new Date();
     this.metadata = metadata || {};
     this.eventId = eventId ? (eventId instanceof ObjectId ? eventId : new ObjectId(eventId)) : null;
   }

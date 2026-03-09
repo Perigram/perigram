@@ -6,6 +6,7 @@ import { BaseEntity } from '~/server/utils/blocks';
 export class Catalog extends BaseEntity {
   constructor(raw = {}) {
     super(raw);
+    this.data = this.data || {};
     if (!raw._id && raw.params) {
       const { material, pricing, options } = raw.params;
       this.data = {
@@ -14,5 +15,17 @@ export class Catalog extends BaseEntity {
         options: options || { sheetThicknesses: [], foilThicknesses: [], widths: [], lengths: [] }
       };
     }
+  }
+
+  get name() { return this.identity?.name || this.data?.material || 'Material Catalog'; }
+
+  toJSON() {
+    return {
+      ...super.toJSON(),
+      name: this.name,
+      material: this.data?.material,
+      pricing: this.data?.pricing,
+      options: this.data?.options
+    };
   }
 }

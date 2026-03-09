@@ -6,6 +6,7 @@ import {
   inheritLineage 
 } from '../../core/blocks/index.js';
 import { statusService } from '../../core/machines/service.js';
+import { aggregator } from '../../core/machines/aggregator.js';
 import { ObjectId } from 'mongodb';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { toFlexibleId } from '../../utils/objectid.js';
@@ -21,6 +22,18 @@ registerService('nesting_run', {
     createPhysicalUnits: (ctx, params) => createPhysicalUnits(ctx, params)
   }
 });
+
+export async function create(runData, userId) {
+  const run = new NestingRun(runData);
+  const raw = await repository.create(run);
+  
+  // Trigger summary update on queue
+  aggregator.syncParentSummary('nesting_run', run.lineage).catch(err => {
+    console.error('[Nesting Run Service] Failed to sync parent summary:', err.message);
+  });
+
+  return new NestingRun(raw).toJSON();
+}
 
 export async function createFromQueue(queue, results, userId) {
   const lineage = inheritLineage(queue, 'queue');
@@ -43,6 +56,12 @@ export async function createFromQueue(queue, results, userId) {
   };
 
   const raw = await repository.create(runData);
+
+  // Trigger summary update on queue
+  aggregator.syncParentSummary('nesting_run', lineage).catch(err => {
+    console.error('[Nesting Run Service] Failed to sync parent summary:', err.message);
+  });
+
   return new NestingRun(raw).toJSON();
 }
 

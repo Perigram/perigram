@@ -31,7 +31,7 @@
                             </template>
                             <template #content>
                                 <Divider />
-                                <MaterialSpecs :specs="item.specs || item" />
+                                <SpecsBlock :entity="item" />
                                 <Divider />
                                 <div class="flex justify-between items-center">
                                     <div class="flex flex-col">
@@ -73,7 +73,7 @@ import Button from 'primevue/button';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
-import MaterialSpecs from '~/components/shared/MaterialSpecs.vue';
+import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import { useIdentity, useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
