@@ -1,65 +1,47 @@
-# COMPONENT: Composables & Stores
+# COMPONENT: Composables & Stores - v24 Standardized
 
-## v24 Standardized Composables
-Helpers for working with the universal block architecture.
+Centralized frontend logic for state management, API interactions, and UI behaviors.
 
-- **[useBlocks.js](./useBlocks.js):** Standardized rendering for all entities.
-  - `useIdentity(entity)`: Get name, slug, and serial.
-  - `useStatus(entity)`: Get state, formatted time, and semantic color.
-  - `useLineage(entity)`: Ancestry lookup.
-  - `useSpecs(entity)`: Physical dimensions and area formatting.
-- **[useStatusController.js](./useStatusController.js):** Frontend bridge for the centralized State Machine engine.
-  - `transition(type, id, state, meta)`: Triggers a validated state change.
+## v24 Core Composables
+These are the primary reactive bridges for working with v24 Block-based entities.
+
+- **[useEntity.js](./useEntity.js):** The main entry point for entity interaction.
+  - `fetch(id)`: Load entity data.
+  - `update(data)`: Patch entity data.
+  - `changeStatus(state, meta)`: Perform state machine transition.
+  - **Computed Blocks**: Automatically unwraps `name`, `slug`, `state`, `lineage`, `specs`, etc.
+- **[useBlocks.js](./useBlocks.js):** Low-level atomic logic for standardizing reactive access to Blocks (Identity, Status, Lineage, Specs).
+- **[useStatusController.js](./useStatusController.js):** Direct bridge to the State Machine Engine API.
+- **[useStatusHistory.js](./useStatusHistory.js):** Fetches and reactive manages the audit log (`status_events`) for an entity.
+- **[useTraceability.js](./useTraceability.js):** Resolves ancestry and descendants via the lineage block.
 
 ## State Management (Pinia)
-The project uses **Pinia** for global state management. Stores are located in the `stores/` directory and are auto-imported.
+Located in `stores/`. Global state that persists across page navigations.
 
 ### Key Stores
-- **[authStore](../stores/auth.js):** Manages user session, login status, and user profile data.
-- **[batchesStore](../stores/batches.js):** Handles batch creation, updates, fetching, and nesting.
-- **[cassettesStore](../stores/cassettes.js):** Manages user cassette templates.
-- **[globalStore](../stores/global.js):** Global application state (projects list, notifications).
-- **[layerStandardsStore](../stores/layerStandards.js):** System-defined DXF layer standards.
+- **`auth.js`**: Session, user profile, and global organization context.
+- **`queues.js`**: (formerly batches) Manages nesting jobs and results.
+- **`cassettes.js`**: User templates and designs.
+- **`global.js`**: Layout state, notifications, and shared lookup lists (e.g., projects).
 
-### Usage
+## Usage Guide
+
+### Interacting with a Project
 ```javascript
-const authStore = useAuthStore();
-const { user } = storeToRefs(authStore);
+const { entity: project, fetch, changeStatus, state } = useEntity('project', slug);
 
-await authStore.setUser();
+onMounted(() => fetch());
+
+const closeProject = () => changeStatus('CLOSED', { note: 'Completed' });
 ```
 
-## Composables
-This directory contains reusable logic that leverages Nuxt's `useState` for component-local or request-scoped state, and other utility functions.
-
-- **[apiRoutes.js](./apiRoutes.js):** API endpoint constants.
-- **[useModalState.js](./useModalState.js):** UI state for dialogs (uses `useState`).
-
-## Key Stores
-- **[authStore](./auth.js):** Manages user session, login status, and user profile data.
-- **[batchesStore](./batches.js):** Handles batch creation, updates, fetching, and triggering nesting jobs.
-- **[cassettesStore](./cassettes.js):** Manages user cassette templates.
-- **[globalStore](./global.js):** Global application state including navigation, notifications, and shared UI states.
-- **[layerStandardsStore](./layerStandards.js):** Provides access to system-defined DXF layer standards.
-
-## UI Architecture
-The project is migrating to **PrimeVue** for its component system.
-
-### Design Tokens (CSS Variables)
-Used for consistent styling across custom and PrimeVue components:
-- `--background-primary`, `--background-secondary`
-- `--label-primary`, `--label-secondary`, `--label-tertiary`
-- `--accent-primary`, `--accent-secondary`
-- `--separator-primary`, `--separator-secondary`
-
-### Layouts
-- **[dashboard.vue](../layouts/app.vue):** Main app layout with Menubar and UserBalance. Used for general authenticated views.
-- **[project.vue](../layouts/app.vue):** Specialized workspace layout with a project sidebar (Files, Batches, Settings). Used for `/project/:slug/*` routes.
-
-## Usage in Components
-Composables are automatically imported by Nuxt. In a component:
+### Accessing Atomic Data
 ```javascript
-const { getters, actions } = batchesStore;
-const batches = getters.batches;
-await actions.fetchBatches(projectSlug);
+const { name, statusColor, formattedArea } = useEntity('queue', id);
+// Returns reactive refs ready for template usage:
+// <span>{{ name }}</span> <Badge :severity="statusColor" />
 ```
+
+## Related
+- [server/core/blocks/](../server/core/blocks/) (Backend source of truth)
+- [server/core/machines/](../server/core/machines/) (State Machine definitions)
