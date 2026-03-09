@@ -1,11 +1,11 @@
 <template>
     <div class="flex flex-col gap-8">
-        <LineageBreadcrumbs :entity="queue" />
+        <TraceChain :entity="queue" />
 
         <div class="flex justify-between items-center">
             <div class="flex items-center gap-6">
                 <h2 class="m-0">{{ queueName }}</h2>
-                <EntityStatus :entity="queue" variant="inline" />
+                <EntityStatus :entity="queue" entity-type="queue" variant="inline" />
             </div>
             <div class="flex gap-3">
                 <Button :label="$t('queue.nestingConfig')" icon="pi pi-sliders-h" severity="secondary" outlined />
@@ -61,7 +61,7 @@
             <!-- Right: Metadata & Materials -->
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('requisition.lifecycleTimeline')">
-                    <StatusTimeline :entity="queue" />
+                    <StatusHistory entity-type="queue" :target-id="queue._id || queue.id" />
                 </Panel>
 
                  <Panel :header="$t('project.overview')">
@@ -78,9 +78,9 @@
 </template>
 
 <script setup>
-import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
-import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
-import LineageBreadcrumbs from '~/components/entities/shared/LineageBreadcrumbs.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import StatusHistory from '~/components/shared/status/StatusHistory.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';

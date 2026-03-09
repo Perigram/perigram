@@ -1,11 +1,12 @@
 <script setup>
 /**
- * Unified Status Timeline Component - v24 Standardized
+ * Unified Status History Component - v24 Standardized
+ * Fetches and displays the audit log (status_events) for an entity.
  */
 import Timeline from 'primevue/timeline';
 import Divider from 'primevue/divider';
 import ProgressSpinner from 'primevue/progressspinner';
-import Tag from 'primevue/tag';
+import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import { onMounted, watch } from 'vue';
 import { useStatusHistory } from '~/composables/useStatusHistory';
 
@@ -32,19 +33,6 @@ watch(() => props.mockEvents, (newVal) => {
 const formatTime = (ts) => {
   return new Date(ts).toLocaleString();
 };
-
-const getStatusSeverity = (state) => {
-    const map = {
-        DRAFT: 'secondary',
-        PENDING: 'warn',
-        ACTIVE: 'primary',
-        READY: 'success',
-        CLOSED: 'info',
-        ACCEPTED: 'success',
-        REJECTED: 'danger'
-    };
-    return map[state] || 'secondary';
-};
 </script>
 
 <template>
@@ -60,10 +48,10 @@ const getStatusSeverity = (state) => {
       <template #content="slotProps">
         <div class="flex flex-col gap-2 mb-8">
             <div class="flex items-center justify-between">
-              <Tag :value="slotProps.item.toState" :severity="getStatusSeverity(slotProps.item.toState)" />
+              <StatusBadge :state="slotProps.item.toState" />
               <small>{{ slotProps.item.status?.userId }}</small>
             </div>
-            <p v-if="slotProps.item.status?.metadata?.note" class="m-0 italic">
+            <p v-if="slotProps.item.status?.metadata?.note" class="m-0 italic text-sm">
               "{{ slotProps.item.status.metadata.note }}"
             </p>
             <Divider />

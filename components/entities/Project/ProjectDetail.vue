@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col gap-8">
-        <LineageBreadcrumbs :entity="project" />
+        <TraceChain :entity="project" />
 
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div class="flex flex-col">
@@ -58,7 +58,7 @@
                 </Panel>
 
                 <Panel header="Lifecycle">
-                    <StatusTimeline :entity="project" />
+                    <StatusHistory :entity="project" />
                 </Panel>
             </div>
         </div>
@@ -71,9 +71,9 @@ import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Divider from 'primevue/divider';
-import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
-import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
-import LineageBreadcrumbs from '~/components/entities/shared/LineageBreadcrumbs.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import StatusHistory from '~/components/shared/status/StatusHistory.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';
 import { useIdentity } from '~/composables/useBlocks';
 

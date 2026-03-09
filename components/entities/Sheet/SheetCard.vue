@@ -3,8 +3,8 @@
  * SheetCard - v24 Standardized
  */
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import StatusEntity from '~/components/shared/blocks/StatusEntity.vue';
-import LineageBlock from '~/components/shared/blocks/LineageBlock.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 
 const props = defineProps({
@@ -28,7 +28,7 @@ const props = defineProps({
       <StandardCard>
         <div class="flex items-center justify-between gap-4">
             <IdentityBlock :entity="sheet" variant="compact" />
-            <StatusEntity :entity="sheet" entity-type="sheet" variant="inline" />
+            <EntityStatus :entity="sheet" entity-type="sheet" variant="inline" />
         </div>
       </StandardCard>
     </template>
@@ -37,12 +37,12 @@ const props = defineProps({
     <template v-else-if="variant === 'card'">
       <StandardCard>
         <template #header>
-            <LineageBlock :entity="sheet" />
+            <TraceChain :entity="sheet" />
         </template>
         <template #title>
             <div class="flex justify-between items-start gap-4">
                 <IdentityBlock :entity="sheet" />
-                <StatusEntity :entity="sheet" entity-type="sheet" variant="inline" />
+                <EntityStatus :entity="sheet" entity-type="sheet" variant="inline" />
             </div>
         </template>
         

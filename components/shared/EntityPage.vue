@@ -4,8 +4,8 @@
  * Standardized layout for entity detail pages.
  */
 import IdentityBlock from './blocks/IdentityBlock.vue';
-import StatusEntity from './blocks/StatusEntity.vue';
-import LineageBlock from './blocks/LineageBlock.vue';
+import EntityStatus from './status/EntityStatus.vue';
+import TraceChain from './links/TraceChain.vue';
 import StandardCard from './StandardCard.vue';
 import Divider from 'primevue/divider';
 
@@ -24,11 +24,11 @@ const emit = defineEmits(['refresh']);
     <!-- Top Nav & Meta -->
     <div class="flex flex-col md:flex-row justify-between items-start gap-4">
         <div class="flex flex-col gap-2">
-            <LineageBlock :entity="entity" />
+            <TraceChain :entity="entity" />
             <IdentityBlock :entity="entity" variant="header" />
         </div>
         <div class="flex items-center gap-4">
-            <StatusEntity 
+            <EntityStatus 
                 :entity="entity" 
                 :entity-type="entityType" 
                 variant="full" 

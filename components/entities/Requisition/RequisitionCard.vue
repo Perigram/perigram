@@ -5,10 +5,10 @@
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import StatusEntity from '~/components/shared/blocks/StatusEntity.vue';
-import LineageBlock from '~/components/shared/blocks/LineageBlock.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
-import { useAuthStore } from '~/stores/auth';
+import { useSpecs } from '~/composables/useBlocks';
 
 const props = defineProps({
   requisition: { type: Object, required: true },
@@ -38,7 +38,7 @@ const handleCardClick = () => {
       <StandardCard>
         <div class="flex items-center justify-between gap-4">
             <IdentityBlock :entity="requisition" variant="compact" />
-            <StatusEntity :entity="requisition" entity-type="requisition" variant="inline" />
+            <EntityStatus :entity="requisition" entity-type="requisition" variant="inline" />
         </div>
       </StandardCard>
     </template>
@@ -47,12 +47,12 @@ const handleCardClick = () => {
     <template v-else-if="variant === 'card'">
       <StandardCard>
         <template #header>
-            <LineageBlock :entity="requisition" />
+            <TraceChain :entity="requisition" />
         </template>
         <template #title>
             <div class="flex justify-between items-start gap-4">
                 <IdentityBlock :entity="requisition" />
-                <StatusEntity :entity="requisition" entity-type="requisition" variant="inline" />
+                <EntityStatus :entity="requisition" entity-type="requisition" variant="inline" />
             </div>
         </template>
         

@@ -5,8 +5,8 @@
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import StatusEntity from '~/components/shared/blocks/StatusEntity.vue';
-import LineageBlock from '~/components/shared/blocks/LineageBlock.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import { useAuthStore } from '~/stores/auth';
 
@@ -38,7 +38,7 @@ const handleCardClick = () => {
       <StandardCard>
         <div class="flex items-center justify-between gap-4">
             <IdentityBlock :entity="pile" variant="compact" />
-            <StatusEntity :entity="pile" entity-type="material_pile" variant="inline" />
+            <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
         </div>
       </StandardCard>
     </template>
@@ -47,12 +47,12 @@ const handleCardClick = () => {
     <template v-else-if="variant === 'card'">
       <StandardCard>
         <template #header>
-            <LineageBlock :entity="pile" />
+            <TraceChain :entity="pile" />
         </template>
         <template #title>
             <div class="flex justify-between items-start gap-4">
                 <IdentityBlock :entity="pile" />
-                <StatusEntity :entity="pile" entity-type="material_pile" variant="inline" />
+                <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
             </div>
         </template>
         

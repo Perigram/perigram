@@ -19,7 +19,7 @@
                             </template>
                         </Select>
                         <h2 v-else class="m-0">{{ queueName }}</h2>
-                        <EntityStatus :entity="queue" variant="inline" />
+                        <EntityStatus :entity="queue" entity-type="queue" variant="inline" />
                     </div>
                     <TraceChain :ancestry="queueAncestry" />
                 </div>
@@ -337,7 +337,7 @@ import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
 import ArtifactsTable from './ArtifactsTable.vue';
 import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
-import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import { useIdentity, useStatus } from '~/composables/useBlocks';
 

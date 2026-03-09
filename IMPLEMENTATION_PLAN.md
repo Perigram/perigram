@@ -40,19 +40,20 @@ This section documents the approved hardening of the v24 Absolute Final architec
 - Every API endpoint MUST return results from `Model.toJSON()`.
 - Ensures consistent property names (e.g., `id` AND `_id`) across the system.
 
-#### 2.2. Unified Entity Composable (`composables/useEntity.js`)
+#### 2.2. Unified Entity Composable (`composables/useEntity.js`) (COMPLETE)
 - Create a standard reactive bridge for fetching and interacting with v24 entities.
 - Handles ID normalization and block unwrapping.
 
-### Phase 3: Traceability UI System
+### Phase 3: Traceability UI System (COMPLETE)
 **Objective:** Replace manual UI with atomic standard blocks.
 
-#### 3.1. Atomic Components (`components/shared/blocks/`)
-- `StatusBadge.vue`, `IdentityBlock.vue`, `LineageBreadcrumbs.vue`.
+#### 3.1. Atomic Components (`components/shared/blocks/` & `components/shared/status/`)
+- `StatusBadge.vue`, `IdentityBlock.vue`, `EntityStatus.vue`, `StatusHistory.vue`.
 - Use Slots pattern for layout consistency.
 
-#### 3.2. Reference Chains
-- Implement `TraceLink` and `TraceChain` from `TRACEABILITY_UI_PLAN.md`.
+#### 3.2. Reference Chains (`components/shared/links/`)
+- Implement `TraceLink` and `TraceChain`.
+
 
 ### Phase 4: Constitutional Guardrails
 **Objective:** Update documentation to prevent regression.

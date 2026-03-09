@@ -45,10 +45,8 @@
     import { useQueuesStore } from '~/stores/queues'
     import { storeToRefs } from 'pinia'
     import QueueEditor from '~/components/QueueEditor.vue'
-    import EntityStatus from '~/components/entities/shared/EntityStatus.vue'
     import Button from 'primevue/button'
     import Select from 'primevue/select'
-    import Tag from 'primevue/tag'
 
     definePageMeta({
         layout: 'app',

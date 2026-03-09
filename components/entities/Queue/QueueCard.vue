@@ -6,8 +6,8 @@ import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import { useAuthStore } from '~/stores/auth';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import StatusEntity from '~/components/shared/blocks/StatusEntity.vue';
-import LineageBlock from '~/components/shared/blocks/LineageBlock.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 
 const props = defineProps({
@@ -41,7 +41,7 @@ const handleCardClick = () => {
                 <small v-if="queue.data?.queueNumber">#{{ queue.data.queueNumber }}</small>
                 <IdentityBlock :entity="queue" variant="compact" />
             </div>
-            <StatusEntity :entity="queue" entity-type="queue" variant="inline" />
+            <EntityStatus :entity="queue" entity-type="queue" variant="inline" />
         </div>
       </StandardCard>
     </template>
@@ -50,7 +50,7 @@ const handleCardClick = () => {
     <template v-else-if="variant === 'card'">
       <StandardCard>
         <template #header>
-            <LineageBlock :entity="queue" />
+            <TraceChain :entity="queue" />
         </template>
         <template #title>
             <div class="flex justify-between items-start gap-4">
@@ -58,7 +58,7 @@ const handleCardClick = () => {
                     <small v-if="queue.data?.queueNumber">#{{ queue.data.queueNumber }}</small>
                     <IdentityBlock :entity="queue" />
                 </div>
-                <StatusEntity :entity="queue" entity-type="queue" variant="inline" />
+                <EntityStatus :entity="queue" entity-type="queue" variant="inline" />
             </div>
         </template>
         

@@ -6,7 +6,7 @@ import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import EntityStatus from '../shared/EntityStatus.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import ArtifactCard from '../Artifact/ArtifactCard.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import { useStatus } from '~/composables/useBlocks';
@@ -36,7 +36,7 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <span>#{{ run.runNumber }}</span>
-        <EntityStatus :entity="run" variant="inline" />
+        <EntityStatus :entity="run" entity-type="nesting_run" variant="inline" />
       </div>
     </template>
 
@@ -49,7 +49,7 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
                     <span>#{{ run.runNumber }}</span>
                     <Tag :value="run.materialMode || 'WAREHOUSE'" :severity="isVirtual ? 'warn' : 'info'" />
                 </div>
-                <EntityStatus :entity="run" variant="inline" />
+                <EntityStatus :entity="run" entity-type="nesting_run" variant="inline" />
             </div>
         </template>
       </StandardCard>
@@ -63,7 +63,7 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
                 <span>#{{ run.runNumber }}</span>
                 <div class="flex gap-2">
                     <Tag :value="run.materialMode || 'WAREHOUSE'" :severity="isVirtual ? 'warn' : 'info'" />
-                    <EntityStatus :entity="run" variant="inline" />
+                    <EntityStatus :entity="run" entity-type="nesting_run" variant="inline" />
                 </div>
             </div>
         </template>

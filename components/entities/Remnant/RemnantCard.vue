@@ -3,8 +3,8 @@
  * RemnantCard - v24 Standardized
  */
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import StatusEntity from '~/components/shared/blocks/StatusEntity.vue';
-import LineageBlock from '~/components/shared/blocks/LineageBlock.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import { useSpecs } from '~/composables/useBlocks';
 
@@ -34,7 +34,7 @@ const { formattedArea } = useSpecs(props.remnant);
                 <IdentityBlock :entity="remnant" variant="compact" />
                 <small>{{ formattedArea }}</small>
             </div>
-            <StatusEntity :entity="remnant" entity-type="remnant" variant="inline" />
+            <EntityStatus :entity="remnant" entity-type="remnant" variant="inline" />
         </div>
       </StandardCard>
     </template>
@@ -43,12 +43,12 @@ const { formattedArea } = useSpecs(props.remnant);
     <template v-else-if="variant === 'card'">
       <StandardCard>
         <template #header>
-            <LineageBlock :entity="remnant" />
+            <TraceChain :entity="remnant" />
         </template>
         <template #title>
             <div class="flex justify-between items-start gap-4">
                 <IdentityBlock :entity="remnant" />
-                <StatusEntity :entity="remnant" entity-type="remnant" variant="inline" />
+                <EntityStatus :entity="remnant" entity-type="remnant" variant="inline" />
             </div>
         </template>
         

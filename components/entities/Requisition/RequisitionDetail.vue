@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col gap-8">
-        <LineageBreadcrumbs :entity="requisition" />
+        <TraceChain :entity="requisition" />
 
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div class="flex items-center gap-4">
@@ -56,7 +56,7 @@
             <!-- Sidebar -->
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('requisition.lifecycleTimeline')">
-                    <StatusTimeline collection="requisitions" :entityId="requisition._id" />
+                    <StatusHistory collection="requisitions" :entityId="requisition._id" />
                 </Panel>
             </div>
         </div>
@@ -70,9 +70,9 @@ import Card from 'primevue/card';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
-import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
-import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
-import LineageBreadcrumbs from '~/components/entities/shared/LineageBreadcrumbs.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import StatusHistory from '~/components/shared/status/StatusHistory.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import MaterialSpecs from '~/components/shared/MaterialSpecs.vue';
 import { useIdentity, useStatus } from '~/composables/useBlocks';
 

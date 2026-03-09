@@ -54,9 +54,9 @@
         <template v-else>
             <div class="space-y-12">
                 <section class="space-y-4">
-                    <h3 class="text-base">Status Timeline</h3>
+                    <h3 class="text-base">Status History</h3>
                     <div class="border rounded p-8">
-                        <StatusTimeline 
+                        <StatusHistory 
                             entityType="project" 
                             :targetId="mocks.project._id.toString()" 
                             :mockEvents="mockHistory"
@@ -65,15 +65,15 @@
                 </section>
 
                 <section class="space-y-4">
-                    <h3 class="text-base">Traceability (Lineage)</h3>
+                    <h3 class="text-base">Traceability (Lineage Chain)</h3>
                     <div class="space-y-8">
                         <div class="border rounded p-4">
                             <small class="block mb-2">Full Chain</small>
-                            <LineageBreadcrumbs :lineage="fullLineage" />
+                            <TraceChain :lineage="fullLineage" />
                         </div>
                         <div class="border rounded p-4">
                             <small class="block mb-2">Collapsed Chain</small>
-                            <LineageBreadcrumbs :lineage="fullLineage" :expandable="true" />
+                            <TraceChain :lineage="fullLineage" :expandable="true" />
                         </div>
                     </div>
                 </section>
@@ -111,8 +111,8 @@ import UserCard from '~/components/entities/User/UserCard.vue';
 import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
 import ArtifactCard from '~/components/entities/Artifact/ArtifactCard.vue';
 
-import StatusTimeline from '~/components/entities/shared/StatusTimeline.vue';
-import LineageBreadcrumbs from '~/components/entities/shared/LineageBreadcrumbs.vue';
+import StatusHistory from '~/components/shared/status/StatusHistory.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 
 import ThemeSwitcher from '~/components/ThemeSwitcher.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';

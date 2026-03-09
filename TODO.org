@@ -1,13 +1,30 @@
-* TODO Core Architectural Hardening (v24 Final) [1/4]
+* TODO Core Architectural Hardening (v24 Final) [4/4]
   :PROPERTIES:
   :ID: arch-hardening-v24
   :END:
   [2026-03-09] Mandate: Move from documented conventions to enforceable constraints and modular core blocks.
 
   - [x] Phase 1: Backend Hardening & "Golden Path"
-  - [ ] Phase 2: API -> UI Contract
-  - [ ] Phase 3: Traceability UI System
-  - [ ] Phase 4: Constitutional Guardrails
+  - [x] Phase 2: API -> UI Contract
+  - [x] Phase 3: Traceability UI System
+  - [x] Phase 4: Constitutional Guardrails
+
+*** Agent Notes
+    [2026-03-09] v24 Frontend Standardization & Traceability Rollout
+    Files changed:
+    - composables/useEntity.js, useBlocks.js, useStatusController.js
+    - components/shared/status/EntityStatus.vue, StatusHistory.vue
+    - components/shared/blocks/StatusBadge.vue
+    - components/shared/links/TraceChain.vue, TraceLink.vue
+    - components/entities/** (Updated cards and details to new standard)
+    - AGENTS.md, NEOLIT.md (Updated constitutional rules)
+    Notes:
+    - Standardized frontend interaction layer via `useEntity` (centralized API mapping).
+    - Unified status visualization and transitions into `EntityStatus` and `StatusBadge`.
+    - Implemented standardized audit log display via `StatusHistory`.
+    - Established `TraceChain` as the canonical lineage visualization component.
+    - Standardized import paths and component tags project-wide.
+    - Updated `AGENTS.md` with mandatory "Frontend Pattern: v24 Absolute Final".
 
 *** Agent Notes
     [2026-03-09] v24 Core Hardening & Golden Path Establishment

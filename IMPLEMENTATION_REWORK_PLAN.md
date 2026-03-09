@@ -40,13 +40,13 @@ Goal: Create universal composables to handle the new data structures.
 
 ---
 
-## Phase 4: Component Rework (The Interface)
+## Phase 4: Component Rework (The Interface) (COMPLETE)
 Goal: Replace all existing entity views with standardized, multi-variant components.
 
 - [🟢] **4.1. Core Production Components**: Project, Queue, NestingRun, Design, Instance.
 - [🟢] **4.2. Material Components**: Pile, Sheet, Remnant.
-- [🟢] **4.3. Navigation & Context**: Lineage Breadcrumbs and Global Identity Headers.
-- [🟢] **4.4. Unified Status Timeline**: Rich history component reading from `status_events`.
+- [🟢] **4.3. Navigation & Context**: Lineage TraceChains and Global Identity Headers.
+- [🟢] **4.4. Unified Status History**: Rich history component reading from `status_events`.
 
 ---
 

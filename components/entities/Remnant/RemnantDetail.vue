@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col gap-8">
-        <LineageBreadcrumbs :entity="remnant" />
+        <TraceChain :entity="remnant" />
 
         <Panel>
             <template #header>
@@ -52,7 +52,7 @@
 
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('requisition.lifecycleTimeline')">
-                    <StatusTimeline :entity="remnant" />
+                    <StatusHistory :entity="remnant" />
                 </Panel>
             </div>
         </div>
@@ -64,9 +64,9 @@ import { computed } from 'vue';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
-import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
-import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
-import LineageBreadcrumbs from '~/components/entities/shared/LineageBreadcrumbs.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import StatusHistory from '~/components/shared/status/StatusHistory.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import { useIdentity, useStatus, useSpecs } from '~/composables/useBlocks';
 
 const props = defineProps({

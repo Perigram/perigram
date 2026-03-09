@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col gap-8">
-        <LineageBreadcrumbs :entity="sheet" />
+        <TraceChain :entity="sheet" />
 
         <Panel>
             <template #header>
@@ -58,7 +58,7 @@
 
             <div class="flex flex-col gap-8">
                 <Panel header="History">
-                    <StatusTimeline :entity="sheet" />
+                    <StatusHistory :entity="sheet" />
                 </Panel>
             </div>
         </div>
@@ -70,9 +70,9 @@ import { computed } from 'vue';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
-import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
-import StatusTimeline from '~/components/shared/status/StatusTimeline.vue';
-import LineageBreadcrumbs from '~/components/entities/shared/LineageBreadcrumbs.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import StatusHistory from '~/components/shared/status/StatusHistory.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import MaterialSpecs from '~/components/shared/MaterialSpecs.vue';
 import { useIdentity, useStatus, useSpecs } from '~/composables/useBlocks';
 

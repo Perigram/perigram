@@ -6,8 +6,8 @@ import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import { useAuthStore } from '~/stores/auth';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import StatusEntity from '~/components/shared/blocks/StatusEntity.vue';
-import LineageBlock from '~/components/shared/blocks/LineageBlock.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 
 const props = defineProps({
@@ -38,7 +38,7 @@ const handleCardClick = () => {
       <StandardCard>
         <div class="flex items-center justify-between gap-4">
             <IdentityBlock :entity="project" variant="compact" />
-            <StatusEntity :entity="project" entity-type="project" variant="inline" />
+            <EntityStatus :entity="project" entity-type="project" variant="inline" />
         </div>
       </StandardCard>
     </template>
@@ -47,12 +47,12 @@ const handleCardClick = () => {
     <template v-else-if="variant === 'card'">
       <StandardCard>
         <template #header>
-            <LineageBlock :entity="project" />
+            <TraceChain :entity="project" />
         </template>
         <template #title>
             <div class="flex justify-between items-start gap-4">
                 <IdentityBlock :entity="project" />
-                <StatusEntity :entity="project" entity-type="project" variant="inline" />
+                <EntityStatus :entity="project" entity-type="project" variant="inline" />
             </div>
         </template>
         

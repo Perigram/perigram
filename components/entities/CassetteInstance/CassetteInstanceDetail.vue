@@ -5,7 +5,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div class="flex items-center gap-4">
                 <h1 class="m-0">Component Lifecycle</h1>
-                <EntityStatus :entity="instance" variant="inline" />
+                <EntityStatus :entity="instance" entity-type="cassette_instance" variant="inline" />
             </div>
             <div class="flex gap-2">
                 <Button :label="$t('cassetteInstance.updateStatus')" icon="pi pi-sync" @click="showStatusDialog = true" />
@@ -23,7 +23,7 @@
                     </div>
                     <Card>
                         <template #content>
-                            <HistoryTimeline :history="instance.statusHistory || []" />
+                            <StatusHistory entity-type="cassette_instance" :target-id="instance._id || instance.id" />
                         </template>
                     </Card>
                 </div>
@@ -79,8 +79,8 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useEntityStore } from '~/stores/entities';
-import EntityStatus from '~/components/entities/shared/EntityStatus.vue';
-import HistoryTimeline from '~/components/shared/status/HistoryTimeline.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
 import Button from 'primevue/button';

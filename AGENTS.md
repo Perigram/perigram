@@ -141,6 +141,22 @@ All features must strictly follow the directory structure and implementation rul
 5.  **Standardized Blocks**: Use the classes from `server/core/blocks/` (`Identity`, `Status`, `Lineage`, `Specs`) via `BaseEntity`.
 6.  **Serialized Outputs**: Services must return results from `Model.toJSON()`.
 
+## Frontend Pattern: v24 Absolute Final
+Location: `composables/`, `components/shared/`
+
+All frontend features must strictly adhere to the standardized interaction layer.
+
+### The Core Rules:
+1.  **Unified Interaction**: Use `useEntity(type, id)` for all entity-specific data fetching, updates, and status transitions. Do NOT use manual `$fetch` calls for standard CRUD or status operations.
+2.  **Standardized Visualization**:
+    - Use `EntityStatus` for all interactive status displays and transitions.
+    - Use `StatusBadge` for atomic, read-only status display.
+    - Use `TraceChain` for all lineage and ancestry visualization.
+    - Use `StatusHistory` for audit logs and lifecycle timelines.
+3.  **Atomic Blocks**: Use `IdentityBlock` for name/slug/serial display to ensure consistent layout across the application.
+4.  **Zero Styling Policy**: Rely on PrimeVue's unstyled components and the global theme. Avoid manual CSS for colors, spacing, and typography; use semantic layout containers instead.
+5.  **Reactive Block Unwrapping**: Leverage the computed properties provided by `useEntity` (e.g., `name`, `statusColor`, `lineage`) instead of manually drilling into the `entity.value` object.
+
 ## Critical Conventions
 - **User IDs:** Authenticated user IDs (`userId`) are strings (OAuth IDs), not MongoDB ObjectIds.
 - **Data Access:** No cross-module DB access (use service calls).

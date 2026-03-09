@@ -10,7 +10,12 @@ This directory contains Vue components used in the Cutkit-Demo application.
 - **Use Variants:** Components should support different visual variants (e.g., `inline`, `compact`, `card`) to ensure flexibility in different contexts.
 - **Child Components:** Entities (see ../server/DATA_MODEL.md) which components need to display child entities (for example, NestingRunCard needs to display it's artifacts gathered by parent id) must use their components (ArtifactCard).
 - **Smart Components:** Sub-components should use permissions to conditionally render actions (edit, delete, view) based on user roles.
-- **Use State Machines**: to manage component states and transitions use StatusEntity component, not in-component logic and buttons. Ensure StatusEntity supports dynamic buttons based on the entity's state machine.
+- **Use Standardized Patterns**: All entity-related logic MUST use the v24 Absolute Final patterns:
+  - **Interactions**: Use `useEntity` for all standard CRUD and status operations.
+  - **Status**: Use `EntityStatus` (interactive) or `StatusBadge` (read-only).
+  - **Traceability**: Use `TraceChain` for all lineage and ancestry visualization.
+  - **History**: Use `StatusHistory` for entity audit logs.
+- **Use State Machines**: To manage component states and transitions use `EntityStatus` component, not in-component logic and buttons. Ensure `EntityStatus` supports dynamic buttons based on the entity's state machine.
 - **True To API and Data Model**: Components must strictly adhere to the API responses and component's entity data model. Avoid hardcoding values or making assumptions about data structure, check API and data model first.
 - **Use Blocks**: Follow the standardized data model blocks (`identity`, `origin`, `status`, `lineage`, `specs`) and their components when designing component props and state.
 - **Variants:** Standardized components should support `inline`, `compact`, and `card` variants where appropriate to ensure scalability across different layouts.
