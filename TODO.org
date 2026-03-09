@@ -37,6 +37,23 @@
       - [ ] CassetteDesigner
 
 *** Agent Notes
+    [2026-03-09] v24 Core Hardening & Golden Path Establishment
+    Files changed:
+    - server/core/blocks/*.js (Identity, Status, Lineage, Specs, BaseEntity)
+    - server/features/_template/* (Canonical Golden Path reference)
+    - server/core/machines/service.js, hooks.js, aggregator.js
+    - server/features/** (Standardized model/service/repo for core entities)
+    - AGENTS.md (Updated constitutional rules)
+    - scripts/check-arch.js (New automated guardrail)
+    Notes:
+    - Modularized core blocks into `server/core/blocks/` with strict validation.
+    - Established `server/features/_template/` as the Golden Path for feature development.
+    - Implemented `scripts/check-arch.js` to automate architectural verification.
+    - Decoupled State Machine Engine from feature-specific logic via a Dynamic Hook Registry.
+    - Hardened `toFlexibleId` usage throughout repositories to support mixed string UIDs and ObjectIds.
+    - Relaxed `Status` block requirements to support legacy data hydration during auth flows.
+
+*** Agent Notes
     [2026-01-31] Project-wide UI Styling Refactoring (True Zero Styling)
     Files changed:
     - components/entities/**/*.vue (All card/detail components)

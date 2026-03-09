@@ -1,37 +1,37 @@
-# COMPONENT: State Machine Engine & Aggregator
+# COMPONENT: State Machine Engine & Aggregator - v24 Standardized
 
 Centralized logic for governing entity lifecycles, enforcing business rules, and maintaining cross-entity data integrity (aggregations).
 
 ## Architecture
-The system consists of three main parts: the transition engine, the automation hooks, and the centralized aggregator.
+The system consists of three main parts: the transition engine, the dynamic hook registry, and the centralized aggregator.
 
 ### 1. State Machine Engine
 - **`definitions.js`**: Declarative source of truth. Defines states, role-based transitions, and automation triggers.
-- **`service.js`**: Validates transitions, updates entity snapshots (`status` block), and logs history to `status_events`.
+- **`service.js`**: Orchestrates transitions, performs role validation, updates entity snapshots (`status` block), and logs history to `status_events`.
+- **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and `pluralize()` for collection resolution.
 
-### 2. Automation Hooks (`hooks.js`)
-Registry of side-effects triggered by transitions:
-- **`propagateToChildren`**: Automatically moves child entities (e.g., Queues) when a parent (Project) changes state.
-- **`triggerAggregator`**: The entry point for lineage-aware data synchronization.
+### 2. Dynamic Hook Registry (`hooks.js` & Feature Registry)
+Acts as a decoupled dispatcher for side-effects. To prevent architectural leaks, manufacturing-specific logic is NOT implemented in the core engine.
+- **Global Hooks (`hooks.js`)**: System-wide primitives (e.g., `propagateToChildren`, `triggerAggregator`).
+- **Feature Hooks**: Feature services register their own hooks via `registerService` (e.g., `processPhysicalCut` in Queue service).
+- **Resolution**: The Engine first checks `hooks.js`, then falls back to the Feature Service for the entity type.
 
 ### 3. Centralized Aggregator (`aggregator.js`)
-Synchronizes parent summaries based on child activity using high-performance MongoDB aggregation pipelines.
-- **Lineage-Aware**: Uses the `lineage` block to instantly target the correct ancestor (e.g., `projectId`).
-- **Data Points**:
-    - `queueCount` / `instanceCount`: Total counts of child entities.
-    - `totalArea`: Summed area from child `specs`.
-    - `statusDistribution`: A map of counts per state (e.g., `{ 'READY': 5, 'DRAFT': 2 }`) for progress visualization.
+Synchronizes parent summaries based on child activity using lineage-aware MongoDB aggregation pipelines.
+- **Trigger**: Called by the `triggerAggregator` hook whenever an entity changes state.
+- **Standardization**: Uses `pluralize()` to resolve target and parent collections.
 
 ## Data Flow
-1. User/System triggers `statusService.transition()`.
-2. Transition is validated and written to DB.
-3. `triggerAggregator` hook is called if defined in `definitions.js`.
-4. `aggregator.js` performs a `$group` aggregation on children matching the lineage.
-5. Parent's `summary` block is updated in one atomic operation.
-
-## Component Integration
-Frontend components (e.g., `ProjectCard.vue`) strictly read from the `summary` block. They do NOT calculate children data themselves.
+1. User/System triggers `statusService.transition(type, id, state, ...)`.
+2. Transition is validated against `definitions.js` and role permissions.
+3. Entity's `status` block is updated and a history event is logged.
+4. **Hook Execution**: 
+    - Engine looks up hook handler in `hooks.js`.
+    - If not found, it queries the Feature Service for the entity.
+    - Hook is executed asynchronously.
+5. Parent's `summary` block is updated via `aggregator.js` (if `triggerAggregator` hook was called).
 
 ## Related
-- [server/utils/blocks.js](../utils/blocks.js) (Standard Block definitions)
-- [composables/useStatusController.js](../../composables/useStatusController.js) (Frontend bridge)
+- [server/core/blocks/](../core/blocks/) (Standard Block classes)
+- [server/utils/objectid.js](../utils/objectid.js) (Flexible ID handling)
+- [server/utils/strings.js](../utils/strings.js) (Pluralization helper)

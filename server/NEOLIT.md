@@ -1,13 +1,13 @@
-# NEOLIT.md (CONTAINER Level)
+# NEOLIT.md (CONTAINER Level) - v24 Absolute Final
 
-This document describes the implemented architecture of the system, derived from the codebase as of Feb 1, 2026.
+This document describes the established architecture of the Cutkit backend, enforcing the **v24 Standardized Block** principles.
 
 ## 1. Core Philosophy: The Standard Blocks
 
-Every entity in the system is built from the same set of fundamental primitives (Blocks). This ensures consistency in serialization, API responses, and database structure.
+Every entity in the system is built from the same set of fundamental primitives (Blocks). These are implemented as strictly validated classes in `server/core/blocks/`.
 
 ### 1.1. BaseEntity Structure
-All domain models extend `BaseEntity` (see `server/utils/blocks.js`).
+All domain models extend `BaseEntity`.
 
 ```javascript
 class BaseEntity {
@@ -16,73 +16,44 @@ class BaseEntity {
   lineage: Lineage;         // Ancestry Block
   origin: Status;           // Creation Snapshot Block
   status: Status;           // Current State Block
+  specs: Specs;             // Physical DNA Block (Optional)
   attachments: Object;      // Files Block
   data: Object;             // Entity-Specific Data Block
 }
 ```
 
-### 1.2. The Blocks
+### 1.2. The Core Blocks (`server/core/blocks/`)
 
-#### **Identity Block**
-*   **Purpose:** Human and System identification.
-*   **Structure:** `{ uid: String, name: String }`
-*   **Convention:** `uid` matches `_id`.
+*   **`Identity`**: Unified identification. Fields: `uid`, `name`, `slug`, `serial`, `reference`.
+*   **`Status`**: State Machine snapshot. Fields: `state`, `userId`, `timestamp`, `metadata`, `eventId`.
+*   **`Lineage`**: Flat, cumulative ancestry trace. Used for O(1) reverse lookups and multi-tenant isolation.
+*   **`Specs`**: Standardized physical DNA. Fields: `width`, `length`, `area`, `sheetThickness`, `foilThickness`.
 
-#### **Lineage Block**
-*   **Purpose:** Flat map of all ancestors for instant lookups and permission checks.
-*   **Structure:** `{ [entityType]Id: ObjectId | String, ... }`
-*   **Example:** `{ organizationId: "...", projectId: "...", queueId: "..." }`
-*   **Rule:** Children inherit and extend parent lineage.
+## 2. The Golden Path (Feature Pattern)
 
-#### **Status Block**
-*   **Purpose:** State Machine snapshot.
-*   **Structure:** `{ state: String, userId: String, timestamp: Date, metadata: Object, eventId: ObjectId }`
-*   **Origin:** The `origin` field is a Status Block capturing the *creation* state (immutable).
-*   **Current:** The `status` field is the current state.
+Every feature in `server/features/[name]/` must follow the canonical structure:
 
-#### **Data Block**
-*   **Purpose:** Container for all entity-specific logic and properties.
-*   **Rule:** Fields that are not Identity, Lineage, Status, or Attachments go here.
+1.  **`model.js`**: Extends `BaseEntity`. Implements feature-specific data mapping and `toJSON()` serialization.
+2.  **`repository.js`**: Pure MongoDB operations. Uses `toFlexibleId()` for all ID lookups to support mixed string/ObjectId types.
+3.  **`service.js`**: Business logic, permissions, and orchestration. Must register itself via `registerService()` to enable side-effects.
+4.  **`index.js`**: Clean entry point for the feature.
 
----
+## 3. Core Engine Units
 
-## 2. Key Domain Entities
+### 3.1. Unified Status Engine (`server/core/machines/`)
+Governs entity lifecycles using declarative state machines.
+*   **Decoupled Side-Effects**: Business logic is NOT in the engine. It uses a **Dynamic Hook Registry** where features register their own side-effects (e.g., `processPhysicalCut`).
+*   **Standardization**: All lookups use `pluralize()` and `toFlexibleId()`.
 
-### 2.1. Material Flow
+### 3.2. Centralized Aggregator
+Maintains parent summaries (counts/sums) automatically using lineage-aware aggregation. Triggered by status transitions.
 
-*   **`catalogs`**: Definitions of available materials (prices, specs) from Manufacturers.
-*   **`requisitions`**: Orders from Contractors to Manufacturers.
-    *   *Lineage:* `{ organizationId (Contractor), manufacturerId, projectId? }`
-    *   *Data:* List of requested items with price snapshots.
-*   **`material_piles`**: Physical inventory in a warehouse.
-    *   *Replaces:* Old "Batch" entity.
-    *   *Lineage:* `{ warehouseId, catalogId, colorId, requisitionId? }`
-    *   *Data:* `{ stock: { total, used }, specs: {...} }`
+## 4. Architectural Guardrails
+*   **`scripts/check-arch.js`**: Automated script that verifies feature modules against the Golden Path. Every backend task must pass this check.
+*   **Service-Repository Separation**: Services never touch `db.collection`.
+*   **Serialization**: APIs must return `toJSON()` results, never raw database documents.
 
-### 2.2. Production Flow
-
-*   **`projects`**: Top-level container for work.
-*   **`queues`**: Nesting Jobs.
-    *   *Lineage:* `{ projectId }`
-    *   *Data:* `{ job: {...}, materialPool: [...] }`
-*   **`nesting_runs`**: Results of a nesting algorithm.
-    *   *Lineage:* `{ queueId, ... }`
-    *   *Data:* `{ results: { efficiency, ... } }`
-*   **`sheets`**: Physical sheets consumed or generated.
-    *   *Lineage:* `{ pileId (source), runId (if used), ... }`
-*   **`cassettes`**: The final manufactured panels.
-    *   *Types:* `cassette_designs` (digital), `cassette_instances` (physical).
-
----
-
-## 3. Service Architecture
-
-*   **Service/Repository Pattern:** Strict separation.
-    *   `repository.js`: Pure MongoDB calls. No business logic.
-    *   `service.js`: Permissions, Validation, State Transitions (`statusService`).
-*   **Registry:** `server/utils/blocks.js` maintains a registry of services to allow `entity.getAncestor('project')` dynamic resolution.
-
-## 4. Status Machine
-*   **`status_events`**: Immutable log of all state transitions.
-*   **Transitions:** Managed by `server/core/machines`.
-
+## Related
+- [server/core/blocks/index.js](./core/blocks/index.js) (Block Definitions)
+- [server/features/_template/README.md](./features/_template/README.md) (Golden Path Reference)
+- [server/core/machines/NEOLIT.md](./core/machines/NEOLIT.md) (Status Engine Docs)
