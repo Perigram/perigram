@@ -1,58 +1,45 @@
-# Module Template
+# COMPONENT: Feature Template (Golden Path)
 
-This is a template for creating new feature modules.
+This directory serves as the canonical implementation of the **v24 Absolute Final** architecture. Every feature in `server/features/` must follow this structure strictly.
 
-## Structure
+## Directory Structure
 
-```
-module-name/
-├── repository.js  # Database operations only
-├── service.js     # Business logic + validation
-└── index.js       # Exported interface
-```
+| File | Responsibility |
+| :--- | :--- |
+| `model.js` | Defines the Entity class (extends `BaseEntity`). Handles data mapping and `toJSON`. |
+| `repository.js` | Pure MongoDB operations. Uses `toFlexibleId`. Returns raw documents. |
+| `service.js` | Business logic, permissions, and orchestration. Registers with the central registry. |
+| `index.js` | Exports the service and relevant types. |
 
-## Usage
+## The Golden Rules
 
-1. Copy this directory: `cp -r _template/ your-module-name/`
-2. Update `COLLECTION` constant in `repository.js`
-3. Customize validation logic in `service.js`
-4. Export module in `index.js`
+1.  **Strict Service-Repository**: Services never touch `db.collection`. Repositories never check permissions.
+2.  **Flexible IDs**: Always use `toFlexibleId()` in Repositories to support both string UIDs and ObjectIds.
+3.  **Standard Blocks**: Every entity must have `identity`, `status`, `origin`, and `lineage` blocks.
+4.  **Serialized Outputs**: Services must return `Model.toJSON()` results, never raw DB documents.
+5.  **Central Registry**: Every service must call `registerService()` during initialization to enable cross-module side-effects.
+6.  **Explicit Side-Effects**: Use the `hooks` object in the service to define side-effects triggered by the Status Engine.
 
-## Pattern Rules
+## Boilerplate Snippets
 
-**Repository Layer:**
-- Only database operations
-- No business logic
-- No validation
-- No error handling (except DB errors)
-
-**Service Layer:**
-- All business logic
-- All validation
-- Ownership checks
-- Error handling with createError()
-- Never accesses DB directly - only through repository
-
-**API Handlers:**
-- Thin wrappers around service calls
-- Extract userId from event.context.auth
-- Handle request/response formatting
-
-## Example API Handler
-
+### Service Registration
 ```javascript
-// server/api/items/index.get.js
-import { service } from '~/server/features/items';
+import { registerService } from '../../core/blocks/index.js';
 
-export default defineEventHandler(async (event) => {
-  const userId = event.context.auth.userId;
-  
-  // Get both system and user items
-  const [systemItems, userItems] = await Promise.all([
-    service.listSystem(),
-    service.listForUser(userId)
-  ]);
-  
-  return [...systemItems, ...userItems];
+registerService('feature_name', {
+  getById: (id) => getById(id),
+  hooks: {
+    onStatusChange: (ctx, params) => handleStatusChange(ctx, params)
+  }
 });
+```
+
+### Flexible Repository Query
+```javascript
+import { toFlexibleId } from '../../utils/objectid.js';
+
+export async function findById(uid) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(uid) });
+}
 ```

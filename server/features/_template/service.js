@@ -1,112 +1,94 @@
-/**
- * Service Layer Template
- * 
- * Contains ALL business logic and validation.
- * Orchestrates repository calls.
- * Never accesses DB directly.
- */
-
 import * as repository from './repository.js';
-import { ObjectId } from 'mongodb';
+import { createError } from 'h3';
+import { 
+  registerService, 
+  createIdentity, 
+  createStatus, 
+  inheritLineage 
+} from '../../core/blocks/index.js';
+import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
+import { statusService } from '../../core/machines/service.js';
+import { EntityName } from './model.js';
 
 /**
- * Get single item by ID
- * Validates ownership if required
+ * [EntityName] Service - v24 Standardized
  */
-export async function getById(id, userId = null) {
-  if (!ObjectId.isValid(id)) {
-    throw createError({ statusCode: 400, message: 'Invalid ID format' });
+
+// Central Registration for Side-Effects
+registerService('feature_name', {
+  getById: (uid) => getById(uid),
+  hooks: {
+    onSomethingHappened: (ctx, params) => handleSideEffect(ctx, params)
   }
+});
+
+/**
+ * Standard Get by ID
+ */
+export async function getById(uid, userId, userRole, userPermissions) {
+  const raw = await repository.findById(uid);
+  if (!raw) throw createError({ statusCode: 404, message: 'Item not found' });
   
-  const item = await repository.findById(id);
+  const entity = new EntityName(raw);
   
-  if (!item) {
-    throw createError({ statusCode: 404, message: 'Item not found' });
-  }
-  
-  // Validate ownership if userId provided
-  if (userId && item.ownerId?.toString() !== userId) {
+  // Optional: Add permission check
+  if (userPermissions && !hasLineagePermission(userPermissions, entity.lineage, 'feature_name', 'read')) {
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
+
+  return entity.toJSON();
+}
+
+/**
+ * Standard List
+ */
+export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
+  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
+  const finalFilter = { ...lineageFilter, ...filter };
   
-  return item;
+  const raws = await repository.find(finalFilter);
+  return raws.map(raw => new EntityName(raw).toJSON());
 }
 
 /**
- * List items for user
+ * Standard Create
  */
-export async function listForUser(userId, options = {}) {
-  const query = { ownerId: new ObjectId(userId) };
-  return await repository.findMany(query, options);
-}
+export async function create(data, userId, userOrg, userRole, userPermissions) {
+  // 1. Lineage Building
+  // const parent = await otherService.getById(data.parentId);
+  // const lineage = inheritLineage(parent, 'parentType');
+  const lineage = { organizationId: userOrg };
 
-/**
- * List system items (ownerId is null)
- */
-export async function listSystem(options = {}) {
-  const query = { ownerId: null };
-  return await repository.findMany(query, options);
-}
-
-/**
- * Create new item
- * Validates input and ownership
- */
-export async function create(data, userId) {
-  // Validate required fields
-  if (!data.name || typeof data.name !== 'string') {
-    throw createError({ statusCode: 400, message: 'Name is required' });
+  // 2. Permission Check
+  if (!hasLineagePermission(userPermissions, lineage, 'feature_name', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
   }
-  
-  // Attach owner
-  const itemData = {
-    ...data,
-    ownerId: userId ? new ObjectId(userId) : null
-  };
-  
-  return await repository.create(itemData);
+
+  // 3. Entity Construction
+  const origin = createStatus('DRAFT', userId, { note: 'Initial creation' });
+  const entity = new EntityName({
+    identity: createIdentity(data.name, data.slug),
+    lineage,
+    origin,
+    status: origin,
+    data: { customField: data.customField }
+  });
+
+  // 4. Persistence
+  const createdRaw = await repository.create(entity);
+  return new EntityName(createdRaw).toJSON();
 }
 
 /**
- * Update existing item
- * Validates ownership
+ * Standard Status Transition
  */
-export async function update(id, updates, userId) {
-  // Verify item exists and user owns it
-  const item = await getById(id, userId);
-  
-  // Validate updates
-  if (updates.name && typeof updates.name !== 'string') {
-    throw createError({ statusCode: 400, message: 'Invalid name format' });
-  }
-  
-  // Don't allow changing owner
-  delete updates.ownerId;
-  delete updates._id;
-  delete updates.createdAt;
-  
-  const success = await repository.updateById(id, updates);
-  
-  if (!success) {
-    throw createError({ statusCode: 500, message: 'Update failed' });
-  }
-  
-  return await repository.findById(id);
+export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
+  return await statusService.transition('feature_name', id, newState, userId, userRole, metadata);
 }
 
 /**
- * Delete item
- * Validates ownership
+ * Side-Effect Implementation
  */
-export async function remove(id, userId) {
-  // Verify item exists and user owns it
-  await getById(id, userId);
-  
-  const success = await repository.deleteById(id);
-  
-  if (!success) {
-    throw createError({ statusCode: 500, message: 'Delete failed' });
-  }
-  
-  return { success: true };
+async function handleSideEffect({ targetId, userId }, params) {
+  console.log(`[Feature Service] Handling side effect for ${targetId}`);
 }

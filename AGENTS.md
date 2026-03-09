@@ -128,24 +128,22 @@ If any NEOLIT.md is missing or incomplete, create or update it first using "Docu
 
 # Technical Constraints
 
-## Backend Pattern: Service-Repository
+## Backend Pattern: v24 Golden Path
 Location: `server/features/[module]/`
 
-### Repository Layer (`repository.js`)
-- ONLY database operations (find, create, update, delete).
-- NO business logic or validation.
-- NO ownership checks.
-- Returns raw MongoDB results.
+All features must strictly follow the directory structure and implementation rules defined in `server/features/_template/README.md`.
 
-### Service Layer (`service.js`)
-- ALL business logic and validation.
-- Ownership checks (verify `userId` owns the resource).
-- Error handling with `createError()`.
-- Orchestrates repository calls.
-- NEVER access database directly.
+### The Core Rules:
+1.  **Architecture Verification**: Every backend task is considered incomplete until `node scripts/check-arch.js` passes with zero errors.
+2.  **Flexible IDs**: Always use `toFlexibleId()` in Repositories to support both string UIDs and ObjectIds.
+3.  **No Raw Database in Services**: Services must never use `db.collection`. All data access must go through the Repository.
+4.  **Decoupled Hooks**: Do not add business logic to `server/core/machines/hooks.js`. Register feature hooks in the Service Layer using `registerService`.
+5.  **Standardized Blocks**: Use the classes from `server/core/blocks/` (`Identity`, `Status`, `Lineage`, `Specs`) via `BaseEntity`.
+6.  **Serialized Outputs**: Services must return results from `Model.toJSON()`.
 
 ## Critical Conventions
 - **User IDs:** Authenticated user IDs (`userId`) are strings (OAuth IDs), not MongoDB ObjectIds.
 - **Data Access:** No cross-module DB access (use service calls).
 - **Documentation Rule:** Every code change MUST update relevant NEOLIT.md docs in the same task session.
+
 

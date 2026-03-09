@@ -2,7 +2,13 @@ import * as repository from './repository.js';
 import * as designRepository from '../cassette-designs/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
-import { createIdentity, createStatus, inheritLineage, createData } from '../../utils/blocks.js';
+import { 
+  createIdentity, 
+  createStatus, 
+  inheritLineage, 
+  createData,
+  registerService 
+} from '../../core/blocks/index.js';
 import { statusService } from '../../core/machines/service.js';
 import { mapLineageQuery } from '../../utils/query.js';
 import standardSlugify from 'standard-slugify';
@@ -10,21 +16,19 @@ import { generateRandomString } from '../../utils/strings.js';
 import { ObjectId, GridFSBucket } from 'mongodb';
 import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { Cassette } from './model.js';
 
 /**
  * Cassette Templates Service - v24 Standardized
  */
 
+registerService('cassette', {
+  getById: (uid) => getById(uid)
+});
+
 function toDTO(cassette) {
   if (!cassette) return null;
-  return {
-    _id: cassette._id,
-    id: cassette._id?.toString(),
-    ...cassette,
-    ...cassette.data,
-    name: cassette.identity?.name,
-    slug: cassette.identity?.slug
-  };
+  return new Cassette(cassette).toJSON();
 }
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
@@ -32,7 +36,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const targetOrgId = userOrg || userId;
   const lineage = { organizationId: toFlexibleId(targetOrgId) };
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'cassettes', 'write')) {
+  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
   }
 
@@ -59,7 +63,7 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
   const targetOrgId = userOrg || userId;
   const lineage = { organizationId: toFlexibleId(targetOrgId) };
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'cassettes', 'write')) {
+  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -144,14 +148,16 @@ export async function list(userId, userOrg, userRole, userPermissions, query = {
 }
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {
-  const cassette = await repository.findById(toFlexibleId(id));
-  if (!cassette) throw createError({ statusCode: 404, message: 'Template not found' });
+  const raw = await repository.findById(toFlexibleId(id));
+  if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'read')) {
+  const cassette = new Cassette(raw);
+  
+  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  return toDTO(cassette);
+  return cassette.toJSON();
 }
 
 export async function exportDxf(id, dimensions, userId, userOrg, userRole, userPermissions) {
@@ -176,8 +182,9 @@ export async function exportDxf(id, dimensions, userId, userOrg, userRole, userP
 }
 
 export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
-  const cassette = await repository.findById(toFlexibleId(id));
-  if (!cassette) throw createError({ statusCode: 404, message: 'Template not found' });
+  const raw = await repository.findById(toFlexibleId(id));
+  if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
+  const cassette = new Cassette(raw);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -199,13 +206,14 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   };
 
   await repository.updateById(id, { identity: cassette.identity, data: cassetteData });
-  const updated = await repository.findById(id);
-  return toDTO(updated);
+  const updatedRaw = await repository.findById(id);
+  return new Cassette(updatedRaw).toJSON();
 }
 
 export async function updateLayerMapping(id, mapping, userId, userOrg, userRole, userPermissions) {
-  const cassette = await repository.findById(toFlexibleId(id));
-  if (!cassette) throw createError({ statusCode: 404, message: 'Template not found' });
+  const raw = await repository.findById(toFlexibleId(id));
+  if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
+  const cassette = new Cassette(raw);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -220,13 +228,14 @@ export async function updateLayerMapping(id, mapping, userId, userOrg, userRole,
   };
 
   await repository.updateById(id, { data });
-  const updated = await repository.findById(id);
-  return toDTO(updated);
+  const updatedRaw = await repository.findById(id);
+  return new Cassette(updatedRaw).toJSON();
 }
 
 export async function updateParameters(id, parameters, userId, userOrg, userRole, userPermissions) {
-  const cassette = await repository.findById(toFlexibleId(id));
-  if (!cassette) throw createError({ statusCode: 404, message: 'Template not found' });
+  const raw = await repository.findById(toFlexibleId(id));
+  if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
+  const cassette = new Cassette(raw);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -238,8 +247,8 @@ export async function updateParameters(id, parameters, userId, userOrg, userRole
   };
 
   await repository.updateById(id, { data });
-  const updated = await repository.findById(id);
-  return toDTO(updated);
+  const updatedRaw = await repository.findById(id);
+  return new Cassette(updatedRaw).toJSON();
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {

@@ -1,9 +1,6 @@
 /**
- * Module Index
- * 
- * Public interface for this module.
- * Other modules should only import from here.
+ * Feature Entry Point
  */
+import * as service from './service.js';
 
-export * as service from './service.js';
-export * as repository from './repository.js';
+export { service };

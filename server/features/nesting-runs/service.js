@@ -1,11 +1,15 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { createStatus, inheritLineage, registerService } from '../../utils/blocks.js';
+import { 
+  registerService, 
+  createStatus, 
+  inheritLineage 
+} from '../../core/blocks/index.js';
 import { statusService } from '../../core/machines/service.js';
-import { mapLineageQuery } from '../../utils/query.js';
 import { ObjectId } from 'mongodb';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { NestingRun } from './model.js';
 
 /**
  * Nesting Runs Service - v24 Standardized
@@ -38,13 +42,14 @@ export async function createFromQueue(queue, results, userId) {
     }
   };
 
-  return await repository.create(runData);
+  const raw = await repository.create(runData);
+  return new NestingRun(raw).toJSON();
 }
 
 export async function getById(uid) {
   const raw = await repository.findById(uid);
   if (!raw) return null;
-  return raw;
+  return new NestingRun(raw).toJSON();
 }
 
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
@@ -66,17 +71,19 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   }
 
   const finalFilter = { ...lineageFilter, ...processedFilter };
-  return await repository.find(finalFilter);
+  const raws = await repository.find(finalFilter);
+  return raws.map(raw => new NestingRun(raw).toJSON());
 }
 
 export async function getNextRunNumber(queueId) {
-  const count = await repository.find({ 'lineage.queueId': queueId });
-  return count.length + 1;
+  const raws = await repository.find({ 'lineage.queueId': toFlexibleId(queueId) });
+  return raws.length + 1;
 }
 
 export async function chooseRun(queueId, runId, userId, userOrg, userRole, userPermissions) {
-  const run = await repository.findById(runId);
-  if (!run) throw createError({ statusCode: 404, message: 'Nesting run not found' });
+  const raw = await repository.findById(runId);
+  if (!raw) throw createError({ statusCode: 404, message: 'Nesting run not found' });
+  const run = new NestingRun(raw);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, run.lineage, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -88,12 +95,13 @@ export async function chooseRun(queueId, runId, userId, userOrg, userRole, userP
   // Transition this run to CHOSEN
   await statusService.transition('nesting_run', runId, 'CHOSEN', userId, userRole, { note: 'Chosen for production' });
 
-  return await repository.findById(runId);
+  return await getById(runId);
 }
 
 export async function remove(queueId, runId, userId, userOrg, userRole, userPermissions) {
-  const run = await repository.findById(runId);
-  if (!run) throw createError({ statusCode: 404, message: 'Nesting run not found' });
+  const raw = await repository.findById(runId);
+  if (!raw) throw createError({ statusCode: 404, message: 'Nesting run not found' });
+  const run = new NestingRun(raw);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, run.lineage, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -107,5 +115,5 @@ export async function remove(queueId, runId, userId, userOrg, userRole, userPerm
  */
 export async function createPhysicalUnits({ targetId, userId, userRole, lineage }) {
   console.log(`[Nesting Run Service] Creating physical units for chosen run ${targetId}`);
-  // Implementation will follow in next turn
+  // Implementation will follow
 }

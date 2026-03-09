@@ -2,25 +2,30 @@ import * as repository from './repository.js';
 import * as queuesRepository from '../queues/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
-import { createIdentity, createStatus, inheritLineage, createData } from '../../utils/blocks.js';
+import { 
+  createIdentity, 
+  createStatus, 
+  inheritLineage, 
+  createData,
+  registerService 
+} from '../../core/blocks/index.js';
 import { statusService } from '../../core/machines/service.js';
 import { mapLineageQuery } from '../../utils/query.js';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { CassetteDesign } from './model.js';
 
 /**
  * Cassette Designs Service - v24 Standardized
  */
 
+registerService('cassette_design', {
+  getById: (uid) => getById(uid)
+});
+
 function toDTO(design) {
   if (!design) return null;
-  return {
-    _id: design._id,
-    id: design._id?.toString(),
-    ...design,
-    ...design.data,
-    name: design.identity?.name
-  };
+  return new CassetteDesign(design).toJSON();
 }
 
 export async function createFromQueue(queueId, data, userId, userRole, userPermissions) {
@@ -59,14 +64,16 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
 }
 
 export async function getById(id, userId, userRole, userPermissions) {
-  const design = await repository.findById(id);
-  if (!design) throw createError({ statusCode: 404, message: 'Cassette design not found' });
+  const raw = await repository.findById(id);
+  if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'read')) {
+  const design = new CassetteDesign(raw);
+  
+  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  return toDTO(design);
+  return design.toJSON();
 }
 
 export async function getByTemplateId(templateId, userId, userOrg, userRole, userPermissions) {
@@ -99,8 +106,9 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
 }
 
 export async function update(id, updates, userId, userRole, userPermissions) {
-  const design = await repository.findById(toFlexibleId(id));
-  if (!design) throw createError({ statusCode: 404, message: 'Cassette design not found' });
+  const raw = await repository.findById(toFlexibleId(id));
+  if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
+  const design = new CassetteDesign(raw);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -122,13 +130,14 @@ export async function update(id, updates, userId, userRole, userPermissions) {
   };
 
   await repository.updateById(id, { identity: design.identity, data: designData });
-  const updated = await repository.findById(id);
-  return toDTO(updated);
+  const updatedRaw = await repository.findById(id);
+  return toDTO(updatedRaw);
 }
 
 export async function remove(id, userId, userRole, userPermissions) {
-  const design = await repository.findById(toFlexibleId(id));
-  if (!design) throw createError({ statusCode: 404, message: 'Cassette design not found' });
+  const raw = await repository.findById(toFlexibleId(id));
+  if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
+  const design = new CassetteDesign(raw);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });

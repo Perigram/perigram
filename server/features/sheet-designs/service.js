@@ -1,22 +1,30 @@
 import * as repository from './repository.js';
 import * as nestingRunsRepository from '../nesting-runs/repository.js';
 import { createError } from 'h3';
-import { createStatus, inheritLineage, createData, createIdentity, createAttachment } from '~/server/utils/blocks';
-import { statusService } from '~/server/core/machines/service';
-import { mapLineageQuery } from '~/server/utils/query';
+import { 
+  createStatus, 
+  inheritLineage, 
+  createData, 
+  createIdentity, 
+  createAttachment,
+  registerService 
+} from '../../core/blocks/index.js';
+import { statusService } from '../../core/machines/service.js';
+import { mapLineageQuery } from '../../utils/query.js';
 import { ObjectId } from 'mongodb';
+import { SheetDesign } from './model.js';
 
 /**
  * Sheet Designs Service - v24 Standardized
  */
 
+registerService('sheet_design', {
+  getById: (uid) => getById(uid)
+});
+
 function toDTO(design) {
   if (!design) return null;
-  return {
-    ...design,
-    ...design.data,
-    name: design.identity?.name
-  };
+  return new SheetDesign(design).toJSON();
 }
 
 export async function createFromRun(run, data, userId) {
@@ -47,10 +55,9 @@ export async function createFromRun(run, data, userId) {
 }
 
 export async function getById(id) {
-  if (!ObjectId.isValid(id)) throw createError({ statusCode: 400, message: 'Invalid ID' });
-  const design = await repository.findById(id);
-  if (!design) throw createError({ statusCode: 404, message: 'Sheet design not found' });
-  return toDTO(design);
+  const raw = await repository.findById(id);
+  if (!raw) throw createError({ statusCode: 404, message: 'Sheet design not found' });
+  return toDTO(raw);
 }
 
 export async function list(filter = {}) {

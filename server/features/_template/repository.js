@@ -1,84 +1,59 @@
-/**
- * Repository Layer Template
- * 
- * Handles ALL database operations for this module.
- * No business logic - just CRUD operations.
- */
-
 import { connectDB } from '../../db/mongo.js';
-import { ObjectId } from 'mongodb';
+import { toFlexibleId } from '../../utils/objectid.js';
 
-const COLLECTION = 'collection_name'; // Replace with actual collection name
-
-/**
- * Find single document by ID
- */
-export async function findById(id) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ _id: toObjectId(id) });
-}
+const COLLECTION = 'collection_name';
 
 /**
- * Find documents by query
- */
-export async function findMany(query = {}, options = {}) {
-  const db = await connectDB();
-  const { limit = 100, skip = 0, sort = { createdAt: -1 } } = options;
-  
-  return await db.collection(COLLECTION)
-    .find(query)
-    .sort(sort)
-    .skip(skip)
-    .limit(limit)
-    .toArray();
-}
-
-/**
- * Create new document
+ * Standard Create
  */
 export async function create(data) {
   const db = await connectDB();
   const doc = {
     ...data,
-    createdAt: new Date(),
-    updatedAt: new Date()
+    _id: data.identity?.uid || data._id // Standard: uid is the _id
   };
-  
-  const result = await db.collection(COLLECTION).insertOne(doc);
-  return { ...doc, _id: result.insertedId };
+  await db.collection(COLLECTION).insertOne(doc);
+  return doc;
 }
 
 /**
- * Update document by ID
+ * Standard Find by ID (supports string UIDs and ObjectIds)
  */
-export async function updateById(id, updates) {
+export async function findById(uid) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).updateOne(
-    { _id: toObjectId(id) },
-    { 
-      $set: { 
-        ...updates, 
-        updatedAt: new Date() 
-      } 
-    }
+  return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(uid) });
+}
+
+/**
+ * Standard Find with Filter
+ */
+export async function find(filter = {}, options = {}) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION)
+    .find(filter)
+    .limit(options.limit || 100)
+    .skip(options.skip || 0)
+    .toArray();
+}
+
+/**
+ * Standard Update
+ */
+export async function updateById(uid, updates) {
+  const db = await connectDB();
+  const { _id, identity, ...clean } = updates;
+  
+  await db.collection(COLLECTION).updateOne(
+    { _id: toFlexibleId(uid) }, 
+    { $set: clean }
   );
-  
-  return result.modifiedCount > 0;
+  return await findById(uid);
 }
 
 /**
- * Delete document by ID
+ * Standard Delete
  */
-export async function deleteById(id) {
+export async function deleteById(uid) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).deleteOne({ _id: toObjectId(id) });
-  return result.deletedCount > 0;
-}
-
-/**
- * Count documents matching query
- */
-export async function count(query = {}) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION).countDocuments(query);
+  return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(uid) });
 }

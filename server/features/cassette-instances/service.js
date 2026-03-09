@@ -1,24 +1,25 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createIdentity, createStatus, inheritLineage, createData } from '~/server/utils/blocks';
-import { statusService } from '~/server/core/machines/service';
+import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
+import { 
+  createIdentity, 
+  createStatus, 
+  inheritLineage, 
+  createData,
+  registerService 
+} from '../../core/blocks/index.js';
+import { statusService } from '../../core/machines/service.js';
+import { CassetteInstance } from './model.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 import { ObjectId } from 'mongodb';
 
 /**
  * Cassette Instances Service - v24 Standardized
  */
 
-function toDTO(instance) {
-  if (!instance) return null;
-  return {
-    ...instance,
-    ...instance.data,
-    serial: instance.identity?.serial,
-    reference: instance.identity?.reference,
-    name: instance.identity?.name
-  };
-}
+registerService('cassette_instance', {
+  getById: (uid) => getById(uid)
+});
 
 export async function createFromSheet(sheet, designs, userId, userRole, userPermissions) {
   // 1. Permission Check
@@ -29,8 +30,7 @@ export async function createFromSheet(sheet, designs, userId, userRole, userPerm
   // 2. Lineage Inheritance
   const baseLineage = inheritLineage(sheet, 'sheet');
 
-  const instancesToCreate = [];
-  
+  const created = [];
   for (const designEntry of designs) {
     // designEntry: { designId, instanceNumber, reference }
     const origin = createStatus('NESTED', userId, { note: 'Instantiated from cut sheet' });
@@ -38,10 +38,10 @@ export async function createFromSheet(sheet, designs, userId, userRole, userPerm
     // Merge lineages: digital from design + physical from sheet
     const instanceLineage = {
       ...baseLineage,
-      designId: new ObjectId(designEntry.designId)
+      designId: toFlexibleId(designEntry.designId)
     };
 
-    instancesToCreate.push({
+    const instanceData = {
       identity: createIdentity(`Cassette ${designEntry.instanceNumber}`, '', designEntry.instanceNumber, designEntry.reference || ''),
       origin,
       status: origin,
@@ -49,13 +49,10 @@ export async function createFromSheet(sheet, designs, userId, userRole, userPerm
       data: createData({
         // Any physical properties can go here
       })
-    });
-  }
+    };
 
-  const created = [];
-  for (const instanceData of instancesToCreate) {
-    const instance = await repository.create(instanceData);
-    created.push(toDTO(instance));
+    const raw = await repository.create(instanceData);
+    created.push(new CassetteInstance(raw).toJSON());
   }
 
   return created;
@@ -63,35 +60,38 @@ export async function createFromSheet(sheet, designs, userId, userRole, userPerm
 
 export async function list(userId, userOrg, userRole, userPermissions, options = {}) {
   const filter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
-  const instances = await repository.find(filter);
-  return instances.map(toDTO);
+  const raws = await repository.find(filter);
+  return raws.map(raw => new CassetteInstance(raw).toJSON());
 }
 
 export async function listByQueue(queueId, userId, userOrg, userRole, userPermissions) {
   const filter = {
     ...getLineageFilter({ memberships: userPermissions.memberships, role: userRole }),
-    'lineage.queueId': new ObjectId(queueId)
+    'lineage.queueId': toFlexibleId(queueId)
   };
-  const instances = await repository.find(filter);
-  return instances.map(toDTO);
+  const raws = await repository.find(filter);
+  return raws.map(raw => new CassetteInstance(raw).toJSON());
 }
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {
-  const instance = await repository.findById(id);
-  if (!instance) {
+  const raw = await repository.findById(id);
+  if (!raw) {
     throw createError({ statusCode: 404, message: 'Cassette instance not found' });
   }
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, instance.lineage, 'projects', 'read')) {
+  const instance = new CassetteInstance(raw);
+  
+  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, instance.lineage, 'projects', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  return toDTO(instance);
+  return instance.toJSON();
 }
 
 export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
-  const instance = await repository.findById(id);
-  if (!instance) throw createError({ statusCode: 404, message: 'Cassette instance not found' });
+  const raw = await repository.findById(id);
+  if (!raw) throw createError({ statusCode: 404, message: 'Cassette instance not found' });
+  const instance = new CassetteInstance(raw);
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, instance.lineage, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -116,18 +116,13 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   };
 
   await repository.updateById(id, { identity: instance.identity, data: instanceData });
-  const updated = await repository.findById(id);
-  return toDTO(updated);
+  const updatedRaw = await repository.findById(id);
+  return new CassetteInstance(updatedRaw).toJSON();
 }
 
 export async function updateStatus(id, state, note, user) {
   const instance = await getById(id, user.userId, user.organizationId, user.role, user);
-  
-  if (!hasLineagePermission({ memberships: user.memberships, role: user.role }, instance.lineage, 'projects', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  return await statusService.transition('cassette-instance', instance._id, state, user.userId, user.role, { note });
+  return await statusService.transition('cassette_instance', instance._id || instance.id, state, user.userId, user.role, { note });
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
