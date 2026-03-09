@@ -33,10 +33,10 @@ This section documents the approved hardening of the v24 Absolute Final architec
 - Script that verifies every feature module against the Golden Path.
 - Mandatory for all agents.
 
-### Phase 2: API -> UI Contract (IN PROGRESS)
+### Phase 2: API -> UI Contract (COMPLETE)
 **Objective:** Frontend blind trust in the Data Model.
 
-#### 2.1. Standardized DTOs
+#### 2.1. Standardized DTOs (COMPLETE)
 - Every API endpoint MUST return results from `Model.toJSON()`.
 - Ensures consistent property names (e.g., `id` AND `_id`) across the system.
 
