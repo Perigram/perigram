@@ -3,7 +3,7 @@
  * Sheet Design View Component - v24 Standardized
  */
 import Card from 'primevue/card';
-import EntityStatus from '../shared/EntityStatus.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
@@ -21,7 +21,7 @@ const { serial } = useIdentity(props.design);
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-map"></i>
         <span>{{ serial || 'LAYOUT' }}</span>
-        <EntityStatus :entity="design" variant="inline" />
+        <EntityStatus :entity="design" entity-type="sheet_design" variant="inline" />
       </div>
     </template>
 
@@ -31,7 +31,7 @@ const { serial } = useIdentity(props.design);
         <template #content>
             <div class="flex items-center justify-between gap-4">
                 <span>{{ serial || 'Sheet Design' }}</span>
-                <EntityStatus :entity="design" variant="inline" />
+                <EntityStatus :entity="design" entity-type="sheet_design" variant="inline" />
             </div>
         </template>
       </Card>
@@ -44,7 +44,7 @@ const { serial } = useIdentity(props.design);
             <div class="flex flex-col gap-6 h-full">
                 <div class="flex justify-between items-center gap-4">
                     <span class="text-xl">Sheet Layout</span>
-                    <EntityStatus :entity="design" variant="inline" />
+                    <EntityStatus :entity="design" entity-type="sheet_design" variant="inline" />
                 </div>
                 <div class="flex flex-col gap-6 pt-6 border-t border-dashed flex-1">
                     <div class="aspect-[2/1] border border-dashed rounded flex items-center justify-center opacity-20 italic">

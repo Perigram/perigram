@@ -6,7 +6,7 @@
             <div class="flex flex-col">
                 <div class="flex items-center gap-4">
                     <h1 class="m-0">{{ projectName }}</h1>
-                    <EntityStatus :entity="project" />
+                    <EntityStatus :entity="project" entity-type="project" />
                 </div>
                 <small>Created: {{ new Date(project.createdAt).toLocaleDateString() }}</small>
             </div>

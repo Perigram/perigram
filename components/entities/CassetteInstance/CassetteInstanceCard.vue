@@ -5,7 +5,7 @@
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-box"></i>
         <span>{{ serial }}</span>
-        <EntityStatus :entity="instance" variant="inline" />
+        <EntityStatus :entity="instance" entity-type="cassette_instance" variant="inline" />
       </div>
     </template>
 
@@ -15,7 +15,7 @@
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <span class="truncate">{{ serial }}</span>
-                <EntityStatus :entity="instance" variant="inline" />
+                <EntityStatus :entity="instance" entity-type="cassette_instance" variant="inline" />
             </div>
         </template>
         <template #subtitle>
@@ -30,7 +30,7 @@
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <span class="truncate">{{ serial }}</span>
-                <EntityStatus :entity="instance" variant="inline" />
+                <EntityStatus :entity="instance" entity-type="cassette_instance" variant="inline" />
             </div>
         </template>
         <template #subtitle>
@@ -64,7 +64,7 @@
  * Cassette Instance View Component - v24 Standardized
  */
 import Divider from 'primevue/divider';
-import EntityStatus from '../shared/EntityStatus.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import { useIdentity } from '~/composables/useBlocks';
 

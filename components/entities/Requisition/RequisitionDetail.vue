@@ -5,7 +5,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div class="flex items-center gap-4">
                 <h1 class="m-0">#{{ serial }}</h1>
-                <EntityStatus :entity="requisition" :actions="statusActions" />
+                <EntityStatus :entity="requisition" entity-type="requisition" :actions="statusActions" />
             </div>
         </div>
 

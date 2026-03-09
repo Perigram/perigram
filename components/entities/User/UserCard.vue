@@ -5,7 +5,7 @@
       <div class="inline-flex items-center gap-2">
         <Avatar :image="user.identity?.avatarUrl" :label="!user.identity?.avatarUrl ? name.charAt(0) : null" shape="circle" size="small" />
         <span>{{ name }}</span>
-        <EntityStatus :entity="user" variant="inline" />
+        <EntityStatus :entity="user" entity-type="user" variant="inline" />
       </div>
     </template>
 
@@ -16,7 +16,7 @@
             <div class="flex items-center gap-4">
                 <Avatar :image="user.identity?.avatarUrl" :label="!user.identity?.avatarUrl ? name.charAt(0) : null" shape="circle" />
                 <span class="truncate">{{ name }}</span>
-                <EntityStatus :entity="user" variant="inline" />
+                <EntityStatus :entity="user" entity-type="user" variant="inline" />
             </div>
         </template>
         <template #subtitle>
@@ -42,7 +42,7 @@
         <template #content>
             <Divider />
             <div class="flex justify-center">
-                <EntityStatus :entity="user" />
+                <EntityStatus :entity="user" entity-type="user" />
             </div>
         </template>
         <template #footer>
@@ -65,7 +65,7 @@ import Card from 'primevue/card';
 import Divider from 'primevue/divider';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
-import EntityStatus from '../shared/EntityStatus.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useIdentity } from '~/composables/useBlocks';
 

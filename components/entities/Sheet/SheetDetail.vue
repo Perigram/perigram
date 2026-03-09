@@ -7,7 +7,7 @@
                 <div class="flex items-center gap-4">
                     <i class="pi pi-file"></i>
                     <h1 class="m-0">{{ sheetSerial }}</h1>
-                    <EntityStatus :entity="sheet" :actions="statusActions" />
+                    <EntityStatus :entity="sheet" entity-type="sheet" :actions="statusActions" />
                 </div>
             </template>
             <template #icons>

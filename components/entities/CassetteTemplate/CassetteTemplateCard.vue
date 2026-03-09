@@ -17,7 +17,7 @@
                     <i class="pi pi-clone"></i>
                     <span class="truncate">{{ name }}</span>
                 </div>
-                <EntityStatus :entity="template" variant="inline" />
+                <EntityStatus :entity="template" entity-type="cassette" variant="inline" />
             </div>
         </template>
         <template #subtitle>
@@ -32,7 +32,7 @@
         <template #header>
             <div class="flex justify-between items-center">
                 <small>Cassette Template</small>
-                <EntityStatus :entity="template" variant="inline" />
+                <EntityStatus :entity="template" entity-type="cassette" variant="inline" />
             </div>
         </template>
         <template #title>
@@ -65,7 +65,7 @@
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import EntityStatus from '../shared/EntityStatus.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import { useIdentity } from '~/composables/useBlocks';
 

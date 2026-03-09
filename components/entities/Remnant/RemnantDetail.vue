@@ -7,7 +7,7 @@
                 <div class="flex items-center gap-4">
                     <i class="pi pi-undo rotate-180"></i>
                     <h1 class="m-0">{{ serial }}</h1>
-                    <EntityStatus :entity="remnant" />
+                    <EntityStatus :entity="remnant" entity-type="remnant" />
                 </div>
             </template>
             <template #icons>
