@@ -91,7 +91,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteDesigner from './CassetteDesigner.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
-import EntityStatus from './entities/shared/EntityStatus.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const { t } = useI18n();
