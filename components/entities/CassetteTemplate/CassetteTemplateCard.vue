@@ -33,7 +33,8 @@
             <small>{{ template.definition?.type }}</small>
         </template>
         <Divider />
-        <div class="flex flex-wrap gap-2">
+        <CassetteThumbnail :cassette="template" />
+        <div class="flex flex-wrap gap-2 mt-2">
             <Tag v-for="param in template.definition?.parameters" :key="param" :value="param" severity="secondary" size="small" />
         </div>
         <template #footer>
@@ -57,6 +58,7 @@ import Button from 'primevue/button';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 
 const props = defineProps({
   template: { type: Object, required: true },
