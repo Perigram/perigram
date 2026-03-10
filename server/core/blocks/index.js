@@ -27,9 +27,7 @@ export const createSpecs = (data) => new Specs(data);
 export const createData = (data = {}) => ({ ...data });
 
 export const inheritLineage = (parent, type) => {
-  const lineage = new Lineage(parent?.lineage || {}).add(type, parent?.identity?.uid || parent?._id);
-  if (parent?.identity?.name) lineage[`${type}Name`] = parent.identity.name;
-  return lineage;
+  return new Lineage(parent?.lineage || {}).add(type, parent?.identity?.uid || parent?._id);
 };
 
 export const createAttachment = (type, fileId, name = '', metadata = {}) => ({

@@ -43,10 +43,10 @@ const items = computed(() => {
     const lin = activeLineage.value;
     if (!lin) return [];
 
-    if (lin.organizationId) list.push({ type: 'organization', id: lin.organizationId, label: lin.organizationName || lin.organizationId });
-    if (lin.warehouseId) list.push({ type: 'warehouse', id: lin.warehouseId, label: lin.warehouseName || lin.warehouseId });
-    if (lin.projectId) list.push({ type: 'project', id: lin.projectId, label: lin.projectName || lin.projectId });
-    if (lin.queueId) list.push({ type: 'queue', id: lin.queueId, label: lin.queueName || lin.queueId, slug: lin.projectId });
+    if (lin.organizationId) list.push({ type: 'organization', id: lin.organizationId });
+    if (lin.warehouseId) list.push({ type: 'warehouse', id: lin.warehouseId });
+    if (lin.projectId) list.push({ type: 'project', id: lin.projectId });
+    if (lin.queueId) list.push({ type: 'queue', id: lin.queueId, slug: lin.projectId });
     
     return list;
 });
