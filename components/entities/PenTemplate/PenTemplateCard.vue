@@ -26,24 +26,11 @@
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <IdentityBlock :entity="pen" />
-                <div class="w-8 h-8 rounded-full border" :style="{ backgroundColor: pen.stroke?.color || '#000' }"></div>
+                <div class="w-8 h-8 rounded-full border shrink-0" :style="{ backgroundColor: pen.stroke?.color || '#000' }"></div>
             </div>
         </template>
         <Divider />
-        <div class="flex flex-col gap-2">
-            <div class="flex justify-between items-center">
-                <small>{{ $t('penTemplate.color') }}</small>
-                <span>{{ pen.stroke?.color }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-                <small>{{ $t('penTemplate.weight') }}</small>
-                <span>{{ pen.stroke?.weight }} px</span>
-            </div>
-            <div class="flex justify-between items-center">
-                <small>{{ $t('penTemplate.pattern') }}</small>
-                <span>{{ pen.stroke?.pattern }}</span>
-            </div>
-        </div>
+        <DataBlock :entity="pen" :fields="PEN_TEMPLATE_FIELDS" />
       </StandardCard>
     </template>
   </div>
@@ -58,6 +45,8 @@ import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { PEN_TEMPLATE_FIELDS } from '~/constants/entityFields';
 
 const props = defineProps({
   pen: { type: Object, required: true },

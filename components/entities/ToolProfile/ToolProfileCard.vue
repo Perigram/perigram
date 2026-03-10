@@ -28,16 +28,7 @@
             </div>
         </template>
         <Divider />
-        <div class="flex flex-col gap-2">
-            <div v-if="tool.diameter" class="flex justify-between items-center">
-                <small>{{ $t('toolProfile.diameter') }}</small>
-                <span>{{ tool.diameter }} mm</span>
-            </div>
-            <div v-if="tool.angle !== undefined" class="flex justify-between items-center">
-                <small>{{ $t('toolProfile.angle') }}</small>
-                <span>{{ tool.angle }}°</span>
-            </div>
-        </div>
+        <DataBlock :entity="tool" :fields="TOOL_PROFILE_FIELDS" />
       </StandardCard>
     </template>
   </div>
@@ -51,6 +42,8 @@ import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { TOOL_PROFILE_FIELDS } from '~/constants/entityFields';
 
 const props = defineProps({
   tool: { type: Object, required: true },

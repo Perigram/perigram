@@ -27,11 +27,8 @@
             </div>
         </template>
         <Divider />
-        <div class="flex flex-col gap-4">
-            <div v-if="warehouse.address" class="flex items-start gap-2">
-                <i class="pi pi-map-marker"></i>
-                <span>{{ warehouse.address }}</span>
-            </div>
+        <div class="flex flex-col gap-3">
+            <DataBlock :entity="warehouse" :fields="WAREHOUSE_FIELDS" />
             <EntityStatus :entity="warehouse" entity-type="warehouse" variant="inline" />
         </div>
       </StandardCard>
@@ -48,6 +45,8 @@ import Tag from 'primevue/tag';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { WAREHOUSE_FIELDS } from '~/constants/entityFields';
 
 const props = defineProps({
   warehouse: { type: Object, required: true },

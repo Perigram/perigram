@@ -465,7 +465,7 @@
   },
   "auth": {
     "login": "Войти",
-    "signup": "Регистрация",
+    "signup": "Зарегистрироваться",
     "loginSignup": "Войти / Регистрация",
     "welcome": "Добро пожаловать в Cutkit",
     "subtitle": "Пожалуйста, войдите, чтобы продолжить",
@@ -473,7 +473,6 @@
     "authenticating": "Аутентификация...",
     "authenticatingWait": "Пожалуйста, подождите, пока мы обрабатываем вашу аутентификацию.",
     "noAccount": "Нет учетной записи?",
-    "signup": "Зарегистрироваться",
     "hasAccount": "Уже есть учетная запись?",
     "createAccount": "Создать учетную запись",
     "organization": "Организация",
@@ -511,7 +510,9 @@
     "subtitle": "Поставки материалов, полученные от производителей.",
     "manualPile": "Партия материала вручную",
     "noPiles": "Партии материалов не найдены",
-    "receiptId": "ID квитанции"
+    "receiptId": "ID квитанции",
+    "stockTotal": "Всего",
+    "stockUsed": "Использовано"
   },
   "remnants": {
     "title": "Остатки",
@@ -743,7 +744,6 @@
     "baseMaterial": "Основной материал",
     "noCatalogsFound": "Каталоги не найдены",
     "createFirstCatalog": "Создать первый каталог",
-    "backToLibrary": "Назад в библиотеку",
     "editMetadata": "Редактировать метаданные каталога",
     "foilOptions": "Варианты фольги",
     "sheetOptions": "Варианты листов",
@@ -752,7 +752,6 @@
     "uploadSwatch": "Загрузить образец",
     "noCode": "НЕТ КОДА",
     "widths": "Ширина",
-    "visualFallback": "Визуальный код",
     "colorsAvailable": "Доступно цветов",
     "confirmRemoveColor": "Вы уверены, что хотите удалить этот цвет из каталога?",
     "placeholders": {
@@ -790,7 +789,10 @@
     },
     "messages": {
       "saved": "Склад сохранен"
-    }
+    },
+    "type": "Тип",
+    "address": "Адрес",
+    "contactPerson": "Контакт"
   },
   "requisition": {
     "title": "Заявки на материалы",
@@ -829,5 +831,15 @@
     "lifecycleTimeline": "Жизненный цикл",
     "linkedShipments": "Связанные поставки",
     "mfr": "Произв."
+  },
+  "toolProfile": {
+    "diameter": "Диаметр",
+    "angle": "Угол",
+    "kerf": "Пропил"
+  },
+  "penTemplate": {
+    "color": "Цвет",
+    "weight": "Толщина",
+    "pattern": "Паттерн"
   }
 }

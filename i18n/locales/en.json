@@ -492,7 +492,7 @@
   "auth": {
     "login": "Login",
     "logout": "Logout",
-    "signup": "Sign Up",
+    "signup": "Sign up",
     "loginSignup": "Login / Sign Up",
     "welcome": "Welcome to Cutkit",
     "subtitle": "Please sign in to continue",
@@ -500,7 +500,6 @@
     "authenticating": "Authenticating...",
     "authenticatingWait": "Please wait a moment while we process your authentication.",
     "noAccount": "Don't have an account?",
-    "signup": "Sign up",
     "hasAccount": "Already have an account?",
     "createAccount": "Create your account",
     "organization": "Organization",
@@ -538,7 +537,9 @@
     "subtitle": "Material shipments received from manufacturers.",
     "manualPile": "Manual Material Pile",
     "noPiles": "No material piles found",
-    "receiptId": "Receipt ID"
+    "receiptId": "Receipt ID",
+    "stockTotal": "Total Stock",
+    "stockUsed": "Used"
   },
   "remnants": {
     "title": "Remnants",
@@ -770,7 +771,6 @@
     "baseMaterial": "Base Material",
     "noCatalogsFound": "No catalogs found",
     "createFirstCatalog": "Create First Catalog",
-    "backToLibrary": "Back to Library",
     "editMetadata": "Edit Catalog Metadata",
     "foilOptions": "Foil Options",
     "sheetOptions": "Sheet Options",
@@ -779,7 +779,6 @@
     "uploadSwatch": "Upload Swatch",
     "noCode": "NO CODE",
     "widths": "Widths",
-    "visualFallback": "Visual Fallback",
     "colorsAvailable": "Colors available",
     "confirmRemoveColor": "Are you sure you want to remove this color from the catalog?",
     "placeholders": {
@@ -817,7 +816,10 @@
     },
     "messages": {
       "saved": "Warehouse saved"
-    }
+    },
+    "type": "Type",
+    "address": "Address",
+    "contactPerson": "Contact"
   },
   "requisition": {
     "title": "Requisitions",
@@ -856,5 +858,15 @@
     "lifecycleTimeline": "Lifecycle Timeline",
     "linkedShipments": "Linked Shipments",
     "mfr": "Mfr"
+  },
+  "toolProfile": {
+    "diameter": "Diameter",
+    "angle": "Angle",
+    "kerf": "Kerf"
+  },
+  "penTemplate": {
+    "color": "Color",
+    "weight": "Weight",
+    "pattern": "Pattern"
   }
 }

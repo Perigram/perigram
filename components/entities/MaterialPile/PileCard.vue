@@ -8,6 +8,8 @@ import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { MATERIAL_PILE_FIELDS } from '~/constants/entityFields';
 import { useAuthStore } from '~/stores/auth';
 
 const props = defineProps({
@@ -54,16 +56,7 @@ const handleCardClick = () => {
         </template>
         
         <Divider />
-        <div class="flex flex-col gap-2">
-            <div class="flex justify-between items-center">
-                <small>Quantity</small>
-                <span>{{ pile.data?.stock?.total || 0 }}</span>
-            </div>
-            <div v-if="pile.origin" class="flex justify-between items-center">
-                <small>Stocked</small>
-                <span>{{ new Date(pile.origin.timestamp).toLocaleDateString() }}</span>
-            </div>
-        </div>
+        <DataBlock :entity="pile" :fields="MATERIAL_PILE_FIELDS" />
 
         <template #footer>
             <div class="flex justify-end gap-2" @click.stop>
