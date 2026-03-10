@@ -20,7 +20,7 @@ All entity-related components MUST use these patterns:
 | Identity display (name, slug, serial) | `<IdentityBlock :entity="..." variant="..." />` |
 | Status display + transitions | `<EntityStatus :entity="..." entity-type="..." />` |
 | Read-only status display | `<StatusBadge :entity="..." />` |
-| Structured key/value data (specs, parameters, tool dims) | `<DataBlock :rows="..." />` ⚠️ *not yet created — see gap below* |
+| Structured key/value data (specs, parameters, tool dims) | `<DataBlock :entity="..." :fields="ENTITY_FIELDS" />` |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StatusHistory :entity="..." entity-type="..." />` |
 | CRUD + status operations | `useEntity(type, id)` |
@@ -38,6 +38,7 @@ Exception: `useStatus` may be used in an entity card **only** for reading `state
 - Access entity-specific fields (e.g. `pen.stroke.color`, `tool.diameter`) directly in the template — only standardized block fields (identity, status, specs) go through block components.
 - Never hardcode values or make assumptions about data structure — check `server/DATA_MODEL.md` first.
 - For standard CRUD and status operations, use `useEntity` — no direct `$fetch` calls.
+- For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock :entity="..." :fields="ENTITY_FIELDS" />` with field constants from `~/constants/entityFields.js`.
 
 ## Sizing
 
@@ -46,20 +47,5 @@ PrimeVue Button, Tag, Badge do not inherit font-size from containers. Always add
 ## Related
 - [components/shared/NEOLIT.md](./shared/NEOLIT.md) — shared block components, layout containers
 - [composables/NEOLIT.md](../composables/NEOLIT.md) — useEntity, useBlocks
+- [constants/entityFields.js](../constants/entityFields.js) — DataBlock field schemas per entity type
 - [server/DATA_MODEL.md](../server/DATA_MODEL.md) — entity data shapes
-
-## Known Gaps
-
-### `DataBlock` (not yet created)
-Many entity cards (ToolProfileCard, PenTemplateCard, WarehouseCard, BatchPileCard, CassetteDesignCard) manually render key/value rows:
-```html
-<div class="flex justify-between items-center">
-    <small>Label</small>
-    <span>value</span>
-</div>
-```
-A `DataBlock` shared component should standardize this pattern. Proposed API:
-```html
-<DataBlock :rows="[{ label: $t('toolProfile.diameter'), value: `${tool.diameter} mm` }]" />
-```
-Until created, continue using the manual flex pattern — do not block card work on this.

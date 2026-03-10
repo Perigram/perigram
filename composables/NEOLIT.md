@@ -10,6 +10,10 @@ These are the primary reactive bridges for working with v24 Block-based entities
   - `update(data)`: Patch entity data.
   - `changeStatus(state, meta)`: Perform state machine transition.
   - **Computed Blocks**: Automatically unwraps `name`, `slug`, `state`, `lineage`, `specs`, etc.
+- **[useEntityList.js](./useEntityList.js):** Reactive list fetching for entity collections.
+  - `const { items, loading, error, refresh } = useEntityList('queue', { 'lineage.projectId': id })`
+  - Supports optional filter params as query string. Call `fetch()` manually on mount or `refresh()` to reload.
+  - Use this instead of direct `$fetch` for listing entity collections.
 - **[useBlocks.js](./useBlocks.js):** Low-level atomic composables for reactive access to entity blocks: `useIdentity`, `useStatus`, `useSpecs`, `useLineage`.
 
   ⚠️ **Restricted use**: These composables are ONLY imported by the shared block components (`IdentityBlock.vue`, `EntityStatus.vue`, `SpecsBlock.vue`). Entity cards and page components must never import from `useBlocks.js` — they use the block components instead.
