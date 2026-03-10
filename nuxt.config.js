@@ -22,6 +22,15 @@ export default defineNuxtConfig({
                     darkModeSelector: '.dark-mode',
                 },
             },
+            pt: {
+                inputtext: { root: { class: 'w-full' } },
+                inputnumber: { root: { class: 'w-full' }, input: { root: { class: 'w-full' } } },
+                select: { root: { class: 'w-full' } },
+                password: { root: { class: 'w-full' } },
+                textarea: { root: { class: 'w-full' } },
+                inputchips: { root: { class: 'w-full' } },
+            },
+            ptOptions: { mergeProps: true },
         },
     },
 
