@@ -5,10 +5,7 @@
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import { useAuthStore } from '~/stores/auth';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 
 const props = defineProps({
   requisition: { type: Object, required: true },
@@ -25,49 +22,20 @@ const handleCardClick = () => {
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <!-- Inline -->
-    <template v-if="variant === 'inline'">
-      <IdentityBlock :entity="requisition" variant="inline" icon="pi pi-shopping-cart" />
-    </template>
-
-    <!-- Compact -->
-    <template v-else-if="variant === 'compact'">
-      <StandardCard>
-        <div class="flex items-center justify-between gap-4">
-            <IdentityBlock :entity="requisition" variant="compact" />
-            <EntityStatus :entity="requisition" entity-type="requisition" variant="inline" />
-        </div>
-      </StandardCard>
-    </template>
-
-    <!-- Card -->
-    <template v-else-if="variant === 'card'">
-      <StandardCard>
-        <template #header>
-            <TraceChain :entity="requisition" />
-        </template>
-        <template #title>
-            <div class="flex justify-between items-start gap-4">
-                <IdentityBlock :entity="requisition"  />
-                <EntityStatus :entity="requisition" entity-type="requisition" variant="inline" />
-            </div>
-        </template>
-        
+    <EntityCard :entity="requisition" entity-type="requisition" :variant="variant">
+      <template v-if="variant === 'card'">
         <Divider />
-        <div class="flex flex-col gap-2">
-            <div class="flex justify-between items-center">
-                <small>Items</small>
-                <span>{{ requisition.data?.items?.length || 0 }}</span>
-            </div>
+        <div class="flex justify-between items-center">
+            <small>Items</small>
+            <span>{{ requisition.data?.items?.length || 0 }}</span>
         </div>
-
-        <template #footer>
-            <div class="flex justify-end gap-2" @click.stop>
-                <Button v-if="authStore.can('requisitions', 'edit')" icon="pi pi-pencil" text rounded size="small" @click="$emit('edit', requisition)" />
-                <Button v-if="authStore.can('requisitions', 'delete')" icon="pi pi-trash" text rounded size="small" severity="danger" @click="$emit('delete', requisition)" />
-            </div>
-        </template>
-      </StandardCard>
-    </template>
+      </template>
+      <template #footer v-if="variant === 'card'">
+        <div class="flex justify-end gap-2" @click.stop>
+            <Button v-if="authStore.can('requisitions', 'edit')" icon="pi pi-pencil" text rounded size="small" @click="emit('edit', requisition)" />
+            <Button v-if="authStore.can('requisitions', 'delete')" icon="pi pi-trash" text rounded size="small" severity="danger" @click="emit('delete', requisition)" />
+        </div>
+      </template>
+    </EntityCard>
   </div>
 </template>

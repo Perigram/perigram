@@ -71,6 +71,7 @@
     >
       <CassetteDesigner :initial-data="editingCassette" @saved="showDesignerDialog = false" />
     </Dialog>
+    <ConfirmDialog />
   </div>
 </template>
 
@@ -82,9 +83,11 @@ import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
+import ConfirmDialog from 'primevue/confirmdialog';
 import Inplace from 'primevue/inplace';
 import InputText from 'primevue/inputtext';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteDesigner from './CassetteDesigner.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
@@ -95,6 +98,7 @@ const { t } = useI18n();
 const cassettesStore = useCassettesStore();
 const { cassettes } = storeToRefs(cassettesStore);
 const toast = useToast();
+const confirm = useConfirm();
 
 // UI State
 const showUploadDialog = ref(false);
@@ -117,14 +121,16 @@ const getCassetteName = (cassette) => {
 };
 
 const handleDelete = async (cassetteId) => {
-  if (confirm(t('messages.confirmDeleteCassette'))) {
-    await cassettesStore.deleteCassette(cassetteId);
-    // Since cassettes is a local ref copy/reference, we might need to refresh
-    // But if fetchCassettes returned the store state array reference, it might be auto-updated.
-    // To be safe and cleaner with Pinia:
-    const result = await cassettesStore.fetchCassettes();
-    cassettes.value = result || [];
-  }
+  confirm.require({
+    message: t('messages.confirmDeleteCassette'),
+    header: t('common.confirm'),
+    icon: 'pi pi-exclamation-triangle',
+    accept: async () => {
+      await cassettesStore.deleteCassette(cassetteId);
+      const result = await cassettesStore.fetchCassettes();
+      cassettes.value = result || [];
+    }
+  });
 };
 
 const editCassette = (cassette) => {

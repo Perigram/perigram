@@ -2,11 +2,8 @@
 /**
  * RemnantCard - v24 Standardized
  */
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 
 const props = defineProps({
   remnant: { type: Object, required: true },
@@ -16,39 +13,11 @@ const props = defineProps({
 
 <template>
   <div class="h-full">
-    <!-- Inline -->
-    <template v-if="variant === 'inline'">
-      <IdentityBlock :entity="remnant" variant="inline" icon="pi pi-undo" />
-    </template>
-
-    <!-- Compact -->
-    <template v-else-if="variant === 'compact'">
-      <StandardCard>
-        <div class="flex items-center justify-between gap-4">
-            <div class="flex flex-col gap-1 min-w-0">
-                <IdentityBlock :entity="remnant" variant="compact" />
-                <SpecsBlock :entity="remnant" variant="compact" />
-            </div>
-            <EntityStatus :entity="remnant" entity-type="remnant" variant="inline" />
-        </div>
-      </StandardCard>
-    </template>
-
-    <!-- Card -->
-    <template v-else-if="variant === 'card'">
-      <StandardCard>
-        <template #header>
-            <TraceChain :entity="remnant" />
-        </template>
-        <template #title>
-            <div class="flex justify-between items-start gap-4">
-                <IdentityBlock :entity="remnant"  />
-                <EntityStatus :entity="remnant" entity-type="remnant" variant="inline" />
-            </div>
-        </template>
-        
-        <SpecsBlock :entity="remnant" />
-      </StandardCard>
-    </template>
+    <EntityCard :entity="remnant" entity-type="remnant" :variant="variant">
+      <template #compact-content>
+        <SpecsBlock :entity="remnant" variant="compact" />
+      </template>
+      <SpecsBlock v-if="variant === 'card'" :entity="remnant" />
+    </EntityCard>
   </div>
 </template>

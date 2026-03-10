@@ -22,8 +22,6 @@
     <!-- Card: full chrome — tracechain / identity+status / body / footer -->
     <template v-else>
         <StandardCard>
-            <template #header>
-            </template>
             <template #title>
                 <TraceChain :entity="entity" />
                 <div class="flex justify-between items-start gap-4">

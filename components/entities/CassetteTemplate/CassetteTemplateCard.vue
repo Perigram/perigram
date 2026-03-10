@@ -38,8 +38,8 @@
         </div>
         <template #footer>
             <div class="flex gap-2">
-                <Button :label="$t('cassetteInstance.create')" icon="pi pi-plus" text size="small" class="flex-1" @click="$emit('create-instance', template)" />
-                <Button icon="pi pi-download" text size="small" @click="downloadDxf" />
+                <Button :label="$t('cassetteInstance.create')" icon="pi pi-plus" text size="small" class="flex-1" @click="emit('create-instance', template)" />
+                <Button icon="pi pi-download" text size="small" @click="emit('download', template)" />
             </div>
         </template>
       </StandardCard>
@@ -63,7 +63,9 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const emit = defineEmits(['create-instance']);
+const emit = defineEmits(['create-instance', 'download']);
+
+const emit = defineEmits(['create-instance', 'download']);
 
 const downloadDxf = () => {
     const url = `/api/cassettes/${props.template._id}/export`;

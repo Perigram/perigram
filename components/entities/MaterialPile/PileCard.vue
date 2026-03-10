@@ -4,11 +4,8 @@
  */
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
-import StandardCard from '~/components/shared/StandardCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 import { useAuthStore } from '~/stores/auth';
 
 const FIELDS = [
@@ -31,44 +28,17 @@ const handleCardClick = () => {
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <!-- Inline -->
-    <template v-if="variant === 'inline'">
-      <IdentityBlock :entity="pile" variant="inline" icon="pi pi-database" />
-    </template>
-
-    <!-- Compact -->
-    <template v-else-if="variant === 'compact'">
-      <StandardCard>
-        <div class="flex items-center justify-between gap-4">
-            <IdentityBlock :entity="pile" variant="compact" />
-            <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
-        </div>
-      </StandardCard>
-    </template>
-
-    <!-- Card -->
-    <template v-else-if="variant === 'card'">
-      <StandardCard>
-        <template #header>
-            <TraceChain :entity="pile" />
-        </template>
-        <template #title>
-            <div class="flex justify-between items-start gap-4">
-                <IdentityBlock :entity="pile"  />
-                <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
-            </div>
-        </template>
-        
+    <EntityCard :entity="pile" entity-type="material_pile" :variant="variant">
+      <template v-if="variant === 'card'">
         <Divider />
         <DataBlock :entity="pile" :fields="FIELDS" />
-
-        <template #footer>
-            <div class="flex justify-end gap-2" @click.stop>
-                <Button v-if="authStore.can('materials', 'edit')" icon="pi pi-pencil" text rounded size="small" @click="$emit('edit', pile)" />
-                <Button v-if="authStore.can('materials', 'read')" icon="pi pi-search" text rounded size="small" @click="$emit('view', pile)" />
-            </div>
-        </template>
-      </StandardCard>
-    </template>
+      </template>
+      <template #footer v-if="variant === 'card'">
+        <div class="flex justify-end gap-2" @click.stop>
+            <Button v-if="authStore.can('materials', 'edit')" icon="pi pi-pencil" text rounded size="small" @click="emit('edit', pile)" />
+            <Button v-if="authStore.can('materials', 'read')" icon="pi pi-search" text rounded size="small" @click="emit('view', pile)" />
+        </div>
+      </template>
+    </EntityCard>
   </div>
 </template>

@@ -1,7 +1,7 @@
 <template>
     <div class="flex flex-col gap-6">
         <div class="flex items-center justify-between gap-4 px-1">
-            <h2 class="text-xl font-bold text-[var(--p-text-color)]">{{ $t('nav.recentProjects') }}</h2>
+            <h2 class="text-xl font-bold">{{ $t('nav.recentProjects') }}</h2>
             <div class="flex items-center gap-2">
                 <Button 
                     :label="$t('dashboard.viewAll')"
@@ -24,9 +24,9 @@
             <ProgressSpinner style="width: 40px; height: 40px" />
         </div>
 
-        <div v-else-if="!projects || projects.length === 0" class="text-center py-16 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)]">
-            <i class="pi pi-inbox text-5xl text-[var(--p-text-muted-color)] mb-4 opacity-30 block"></i>
-            <p class="text-lg text-[var(--p-text-secondary-color)] mb-6">{{ $t('dashboard.noProjects') }}</p>
+        <div v-else-if="!projects || projects.length === 0" class="text-center py-16 border-2 border-dashed rounded-xl">
+            <i class="pi pi-inbox text-5xl mb-4 opacity-30 block"></i>
+            <p class="text-lg mb-6">{{ $t('dashboard.noProjects') }}</p>
             <Button 
                 :label="$t('dashboard.createFirstProject')"
                 icon="pi pi-plus"

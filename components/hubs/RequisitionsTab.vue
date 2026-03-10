@@ -5,7 +5,7 @@
         <h2 class="m-0">{{ $t('features.requisitions') }}</h2>
         <small>{{ $t('requisition.subtitle') || 'Track material orders and fulfillment status.' }}</small>
       </div>
-      <Button v-if="authStore.isContractor" :label="$t('common.create')" icon="pi pi-plus" @click="$emit('create')" />
+      <Button v-if="authStore.can('requisitions', 'create')" :label="$t('common.create')" icon="pi pi-plus" @click="$emit('create')" />
     </div>
 
     <div class="grid-hub">
@@ -23,7 +23,7 @@
     <div v-if="!loading && requisitions.length === 0" class="flex flex-col items-center py-20">
         <i class="pi pi-shopping-cart text-4xl"></i>
         <p>{{ $t('requisition.noRequisitions') }}</p>
-        <Button v-if="authStore.isContractor" :label="$t('requisition.newRequisition')" icon="pi pi-plus" text @click="$emit('create')" />
+        <Button v-if="authStore.can('requisitions', 'create')" :label="$t('requisition.newRequisition')" icon="pi pi-plus" text @click="$emit('create')" />
     </div>
   </div>
 </template>

@@ -15,6 +15,7 @@ export const ENTITY_UI = {
     batchPile: { icon: 'pi pi-clone', route: (id) => `/warehouses` },
     sheet: { icon: 'pi pi-file', route: (id) => `/warehouses` },
     remnant: { icon: 'pi pi-undo', route: (id) => `/warehouses` },
+    material_pile: { icon: 'pi pi-database', route: (id) => `/warehouses` },
     cassetteTemplate: { icon: 'pi pi-palette', route: (id) => `/assets/templates` }
 };
 

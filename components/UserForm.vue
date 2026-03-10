@@ -33,6 +33,7 @@ import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
+import { USER_ROLES } from '~/constants/roles.constants';
 
 const props = defineProps({
     user: {
@@ -52,7 +53,7 @@ const form = ref({
     role: props.user?.role || 'IndividualUser'
 });
 
-const roles = ['SuperAdmin', 'ManufacturerAdmin', 'ContractorAdmin', 'CustomerAdmin', 'IndividualUser'];
+const roles = USER_ROLES;
 
 const handleSubmit = () => {
     emit('save', form.value);
