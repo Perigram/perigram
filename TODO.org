@@ -702,3 +702,12 @@
      - EntityCard composes TraceChain+IdentityBlock+EntityStatus for card/compact/inline variants
      - ProjectCard and QueueCard migrated to EntityCard (remove 4 shared imports each)
      - Existing entities show UID slug as fallback until recreated with name in lineage
+
+* DONE TraceChain entity name resolution
+*** Agent Notes
+     [2025-07-18] TraceChain now shows real entity names via async store fetch
+     Files changed: stores/entities.js, components/shared/links/TraceChain.vue
+     Docs updated: stores/NEOLIT.md, components/shared/NEOLIT.md
+     Notes: uses useEntityStore.fetchEntity() — existing project pattern, shared cache,
+     UID fallback while loading. Added organization to registry; fixed warehouse+org
+     endpoint URLs in endpointMap.

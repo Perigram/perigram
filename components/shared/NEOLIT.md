@@ -22,7 +22,7 @@ This directory contains reusable, standardized UI components and blocks that MUS
 - **EntityCard.vue**: Shared card chrome for entity list cards. Composes `TraceChain` + `IdentityBlock` + `EntityStatus` in a consistent layout. Entity-specific cards use this as their outer container and provide entity-specific body/footer content via slots (`before-identity`, `compact-content`, `inline-extra`, `footer`). Props: `entity`, `entityType`, `variant` (`card` | `compact` | `inline`).
 
 ## `TraceChain` Name Resolution
-`TraceChain` reads name fields stored in the lineage block (`organizationName`, `projectName`, `queueName`, `warehouseName`). These are populated server-side by `inheritLineage()` at entity creation time. For entities created before this convention, the lineage ID (uid/slug) is shown as a readable fallback.
+`TraceChain` resolves entity names async via `useEntityStore.fetchEntity()`. Names are cached in the store — a page with 20 queue cards referencing the same project fetches it once. Falls back to the entity UID (slug) while loading or if fetch fails.
 
 ## Usage
 Import these components from their respective sub-directories in `~/components/shared/`. These components strictly follow the **v24 Absolute Final** architecture.
