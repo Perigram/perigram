@@ -4,12 +4,12 @@
 
         <div class="flex justify-between items-center">
             <div class="flex items-center gap-6">
-                <h2 class="m-0">{{ queueName }}</h2>
+                <IdentityBlock :entity="queue" variant="header" />
                 <EntityStatus :entity="queue" entity-type="queue" variant="inline" />
             </div>
             <div class="flex gap-3">
                 <Button :label="$t('queue.nestingConfig')" icon="pi pi-sliders-h" severity="secondary" outlined />
-                <Button v-if="queueState === 'DRAFT'" :label="$t('queues.runNesting')" icon="pi pi-play" severity="success" @click="$emit('run-nesting', queue._id)" />
+                <Button v-if="queue.status?.state === 'DRAFT'" :label="$t('queues.runNesting')" icon="pi pi-play" severity="success" @click="$emit('run-nesting', queue._id)" />
             </div>
         </div>
 
@@ -80,19 +80,16 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import Panel from 'primevue/panel';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
-import { useIdentity, useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
     queue: { type: Object, required: true }
 });
 
 defineEmits(['run-nesting']);
-
-const { name: queueName } = useIdentity(props.queue);
-const { state: queueState } = useStatus(props.queue);
 </script>

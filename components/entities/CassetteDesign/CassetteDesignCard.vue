@@ -20,15 +20,15 @@
     <!-- Card -->
     <template v-else-if="variant === 'card'">
       <StandardCard>
+        <template #header>
+            <TraceChain :entity="design" />
+        </template>
         <template #title>
-            <div class="flex justify-between items-center gap-4">
-                <IdentityBlock :entity="design" />
-                <small>Baked Design</small>
-            </div>
+            <IdentityBlock :entity="design" />
         </template>
         <Divider />
-        <div class="flex justify-center">
-            <i class="pi pi-pencil"></i>
+        <div class="flex justify-center opacity-30">
+            <i class="pi pi-pencil text-4xl"></i>
         </div>
       </StandardCard>
     </template>
@@ -43,6 +43,7 @@ import Badge from 'primevue/badge';
 import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 
 const props = defineProps({
   design: { type: Object, required: true },
