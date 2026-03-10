@@ -711,3 +711,24 @@
      Notes: uses useEntityStore.fetchEntity() — existing project pattern, shared cache,
      UID fallback while loading. Added organization to registry; fixed warehouse+org
      endpoint URLs in endpointMap.
+
+* DONE Inline variant standardization across all entity cards
+*** Agent Notes
+     [2025-07-19] Standardized all inline card variants to icon+IdentityBlock pattern
+     Files changed: components/entities/CassetteDesign/CassetteDesignCard.vue,
+       components/entities/CassetteInstance/CassetteInstanceCard.vue,
+       components/entities/SheetDesign/SheetDesignCard.vue,
+       components/entities/Catalog/CatalogCard.vue,
+       components/entities/Warehouse/WarehouseCard.vue,
+       components/entities/CassetteTemplate/CassetteTemplateCard.vue,
+       components/entities/User/UserCard.vue,
+       components/entities/NestingRun/NestingRunCard.vue,
+       components/entities/BatchPile/BatchPileCard.vue
+     Docs updated: none (implementation only)
+     Notes:
+     - All inline variants now use: <i :class="icon"> + <IdentityBlock :entity="X" variant="compact">
+     - Removed EntityStatus from all inline variants (status belongs only in compact/card)
+     - Added IdentityBlock import to CassetteInstance and NestingRun (were missing)
+     - Fixed NestingRun #content slot bug: StandardCard has no #content named slot, moved content to default slot
+     - BatchPileCard: added full variant support (was missing inline/compact — only had card layout)
+     - UserCard inline: kept Avatar (entity-specific, acceptable) but removed EntityStatus
