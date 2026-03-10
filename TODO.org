@@ -732,3 +732,19 @@
      - Fixed NestingRun #content slot bug: StandardCard has no #content named slot, moved content to default slot
      - BatchPileCard: added full variant support (was missing inline/compact — only had card layout)
      - UserCard inline: kept Avatar (entity-specific, acceptable) but removed EntityStatus
+
+*** Agent Notes
+     [2025-07-20] Fix NestingRunCard v24 field paths; add size=small to entity card PrimeVue components
+     Files changed: NestingRunCard.vue, CatalogCard.vue, QueueCard.vue, ProjectCard.vue,
+       CassetteTemplateCard.vue, RequisitionCard.vue, UserCard.vue, PileCard.vue,
+       OrganizationCard.vue, ToolProfileCard.vue, BatchPileCard.vue, ArtifactCard.vue
+     Notes:
+     - NestingRunCard used pre-v24 field names that don't exist in v24 model:
+       run.runNumber (→ identity.name via useIdentity), run.materialMode (removed),
+       run.utilization (→ results.efficiency), run.layoutCount (→ results.sheetCount),
+       run.error (removed). Card variant now uses IdentityBlock for title.
+     - Added size="small" to all Button and Tag components inside entity card compact/card
+       variants to maintain visual hierarchy — PrimeVue components don't inherit font-size
+       from containers and must be sized explicitly per context.
+     - Fixed CassetteTemplateCard: Create Instance button was dead (no emit) — added
+       defineEmits + $emit('create-instance', template)
