@@ -29,7 +29,7 @@ const handleCardClick = () => {
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-shopping-cart"></i>
-        <IdentityBlock :entity="requisition" />
+        <IdentityBlock :entity="requisition" variant="inline" />
       </div>
     </template>
 
@@ -51,7 +51,7 @@ const handleCardClick = () => {
         </template>
         <template #title>
             <div class="flex justify-between items-start gap-4">
-                <IdentityBlock :entity="requisition" />
+                <IdentityBlock :entity="requisition"  />
                 <EntityStatus :entity="requisition" entity-type="requisition" variant="inline" />
             </div>
         </template>

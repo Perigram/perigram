@@ -4,7 +4,7 @@
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-box"></i>
-        <IdentityBlock :entity="instance" variant="compact" />
+        <IdentityBlock :entity="instance" variant="inline" />
       </div>
     </template>
 

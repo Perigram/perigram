@@ -29,7 +29,7 @@ const handleCardClick = () => {
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-database"></i>
-        <IdentityBlock :entity="pile" />
+        <IdentityBlock :entity="pile" variant="inline" />
       </div>
     </template>
 
@@ -51,7 +51,7 @@ const handleCardClick = () => {
         </template>
         <template #title>
             <div class="flex justify-between items-start gap-4">
-                <IdentityBlock :entity="pile" />
+                <IdentityBlock :entity="pile"  />
                 <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
             </div>
         </template>

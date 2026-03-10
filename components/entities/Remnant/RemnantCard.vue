@@ -22,7 +22,7 @@ const { formattedArea } = useSpecs(props.remnant);
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-undo rotate-180"></i>
-        <IdentityBlock :entity="remnant" />
+        <IdentityBlock :entity="remnant" variant="inline" />
       </div>
     </template>
 
@@ -47,7 +47,7 @@ const { formattedArea } = useSpecs(props.remnant);
         </template>
         <template #title>
             <div class="flex justify-between items-start gap-4">
-                <IdentityBlock :entity="remnant" />
+                <IdentityBlock :entity="remnant"  />
                 <EntityStatus :entity="remnant" entity-type="remnant" variant="inline" />
             </div>
         </template>

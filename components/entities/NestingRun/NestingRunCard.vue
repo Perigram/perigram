@@ -37,7 +37,7 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-list-check"></i>
-        <IdentityBlock :entity="run" variant="compact" />
+        <IdentityBlock :entity="run" variant="inline" />
       </div>
     </template>
 

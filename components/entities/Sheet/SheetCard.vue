@@ -19,7 +19,7 @@ const props = defineProps({
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-file"></i>
-        <IdentityBlock :entity="sheet" />
+        <IdentityBlock :entity="sheet" variant="inline" />
       </div>
     </template>
 
@@ -41,7 +41,7 @@ const props = defineProps({
         </template>
         <template #title>
             <div class="flex justify-between items-start gap-4">
-                <IdentityBlock :entity="sheet" />
+                <IdentityBlock :entity="sheet"  />
                 <EntityStatus :entity="sheet" entity-type="sheet" variant="inline" />
             </div>
         </template>

@@ -29,7 +29,7 @@ const handleCardClick = () => {
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-book"></i>
-        <IdentityBlock :entity="catalog" variant="compact" />
+        <IdentityBlock :entity="catalog" variant="inline" />
       </div>
     </template>
 

@@ -7,7 +7,7 @@ import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  variant: { type: String, default: 'default' } // default, compact, header
+  variant: { type: String, default: 'default' } // default, compact, inline, header
 });
 
 const { name, slug, serial } = useIdentity(props.entity);
@@ -29,6 +29,9 @@ const { name, slug, serial } = useIdentity(props.entity);
       <span class="truncate" :title="name">{{ name }}</span>
       <small class="truncate">{{ slug }}</small>
     </div>
+
+    <!-- Inline Variant (Inline pills, references) -->
+    <span v-else-if="variant === 'inline'" class="truncate" :title="name">{{ name }}</span>
 
     <!-- Default -->
     <div v-else class="flex flex-col gap-1">
