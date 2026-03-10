@@ -5,9 +5,9 @@
 import { computed } from 'vue';
 import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
-import Tag from 'primevue/tag';
 import StandardCard from '~/components/shared/StandardCard.vue';
-import { useStatus } from '~/composables/useBlocks';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import { useIdentity, useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
   artifact: { type: Object, required: true },
@@ -16,6 +16,7 @@ const props = defineProps({
 
 defineEmits(['click']);
 
+const { name } = useIdentity(props.artifact);
 const { state, statusColor } = useStatus(props.artifact);
 
 const icon = computed(() => {
@@ -25,7 +26,6 @@ const icon = computed(() => {
   return 'pi-file';
 });
 
-const name = computed(() => props.artifact.identity?.name || props.artifact.name);
 const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 'FILE');
 </script>
 
@@ -36,7 +36,7 @@ const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 
       <Chip>
         <i :class="['pi', icon]" />
         <span>{{ typeLabel }}</span>
-        <Tag v-if="state !== 'READY'" :severity="statusColor" size="small" />
+        <EntityStatus v-if="state !== 'READY'" :entity="artifact" entity-type="artifact" variant="inline" />
       </Chip>
     </template>
 
@@ -44,9 +44,12 @@ const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 
     <template v-else-if="variant === 'compact'">
       <StandardCard>
         <template #title>
-            <div class="flex items-center gap-2">
-                <i :class="['pi', icon]"></i>
-                <span class="truncate">{{ name }}</span>
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <i :class="['pi', icon]"></i>
+                    <span class="truncate">{{ name }}</span>
+                </div>
+                <EntityStatus :entity="artifact" entity-type="artifact" variant="inline" />
             </div>
         </template>
         <template #subtitle>
@@ -59,18 +62,18 @@ const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 
     <template v-else-if="variant === 'card'">
       <StandardCard>
         <template #title>
-            <span class="truncate">{{ name }}</span>
+            <div class="flex justify-between items-center gap-4">
+                <span class="truncate">{{ name }}</span>
+                <EntityStatus :entity="artifact" entity-type="artifact" variant="inline" />
+            </div>
         </template>
         <template #subtitle>
             <small>{{ typeLabel }}</small>
         </template>
-        <template #content>
-            <Divider />
-            <div class="flex flex-col items-center gap-4">
-                <i :class="['pi', icon]"></i>
-                <Tag :value="state" :severity="statusColor" size="small" />
-            </div>
-        </template>
+        <Divider />
+        <div class="flex justify-center">
+            <i :class="['pi', 'text-4xl', icon]"></i>
+        </div>
       </StandardCard>
     </template>
   </div>

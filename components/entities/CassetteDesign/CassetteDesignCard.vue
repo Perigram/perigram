@@ -11,7 +11,7 @@
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <IdentityBlock :entity="design" variant="compact" />
-                <Badge :value="Object.keys(design.parameters || {}).length" severity="secondary" />
+                <Badge :value="Object.keys(design.parameters || {}).length" severity="secondary" size="small" />
             </div>
         </template>
       </StandardCard>

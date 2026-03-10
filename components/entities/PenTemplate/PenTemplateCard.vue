@@ -15,7 +15,7 @@
                     <div class="w-6 h-6 rounded-full border" :style="{ backgroundColor: pen.stroke?.color || '#000' }"></div>
                     <IdentityBlock :entity="pen" variant="compact" />
                 </div>
-                <Tag v-if="pen.stroke?.weight" :value="`${pen.stroke.weight}px`" severity="secondary" />
+                <Tag v-if="pen.stroke?.weight" :value="`${pen.stroke.weight}px`" severity="secondary" size="small" />
             </div>
         </template>
       </StandardCard>

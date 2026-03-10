@@ -38,12 +38,10 @@
         <template #subtitle>
             <small>{{ template.definition?.type }}</small>
         </template>
-        <template #content>
-            <Divider />
-            <div class="flex flex-wrap gap-2">
-                <Tag v-for="param in template.definition?.parameters" :key="param" :value="param" severity="secondary" size="small" />
-            </div>
-        </template>
+        <Divider />
+        <div class="flex flex-wrap gap-2">
+            <Tag v-for="param in template.definition?.parameters" :key="param" :value="param" severity="secondary" size="small" />
+        </div>
         <template #footer>
             <div class="flex gap-2">
                 <Button label="Create Instance" icon="pi pi-plus" text size="small" class="flex-1" @click="$emit('create-instance', template)" />

@@ -44,6 +44,7 @@ const handleCardClick = () => {
       </StandardCard>
     </template>
 
+    <!-- Card -->
     <template v-else-if="variant === 'card'">
       <StandardCard>
         <template #title>
@@ -52,13 +53,11 @@ const handleCardClick = () => {
                 <Tag :value="catalog.material" severity="secondary" size="small" />
             </div>
         </template>
-        <template #content>
-            <Divider />
-            <div class="flex justify-between items-center">
-                <small>{{ $t('catalog.colorsAvailable') }}</small>
-                <span>{{ catalog.summary?.colorCount || 0 }}</span>
-            </div>
-        </template>
+        <Divider />
+        <div class="flex justify-between items-center">
+            <small>{{ $t('catalog.colorsAvailable') }}</small>
+            <span>{{ catalog.summary?.colorCount || 0 }}</span>
+        </div>
         <template #footer>
             <div class="flex justify-end gap-2" @click.stop>
                 <Button v-if="authStore.can('catalogs', 'edit')" icon="pi pi-pencil" text rounded size="small" aria-label="Edit" @click="$emit('edit', catalog)" />

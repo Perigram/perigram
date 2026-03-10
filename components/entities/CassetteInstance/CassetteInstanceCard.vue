@@ -30,26 +30,24 @@
             </div>
         </template>
         <template #subtitle>
-            <small>{{ reference || 'Physical Unit' }}</small>
+            <small>{{ reference || $t('cassetteInstance.reference') }}</small>
         </template>
-        <template #content>
-            <Divider />
-            <div class="flex flex-col gap-4">
-                <div class="flex justify-center">
-                    <i class="pi pi-box"></i>
+        <Divider />
+        <div class="flex flex-col gap-4">
+            <div class="flex justify-center">
+                <i class="pi pi-box"></i>
+            </div>
+            <div class="flex flex-col gap-2">
+                <div class="flex justify-between items-center">
+                    <small>{{ $t('cassetteInstance.reference') }}</small>
+                    <span>{{ reference || '—' }}</span>
                 </div>
-                <div class="flex flex-col gap-2">
-                    <div class="flex justify-between items-center">
-                        <small>Reference</small>
-                        <span>{{ reference || 'N/A' }}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <small>Design ID</small>
-                        <small>{{ instance.lineage?.designId }}</small>
-                    </div>
+                <div v-if="instance.lineage?.designId" class="flex justify-between items-center">
+                    <small>{{ $t('cassette.design') }}</small>
+                    <TraceLink type="cassetteDesign" :id="instance.lineage.designId" />
                 </div>
             </div>
-        </template>
+        </div>
       </StandardCard>
     </template>
   </div>
@@ -62,6 +60,7 @@
 import Divider from 'primevue/divider';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import TraceLink from '~/components/shared/links/TraceLink.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import { useIdentity } from '~/composables/useBlocks';
 

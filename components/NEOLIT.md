@@ -15,6 +15,7 @@ This directory contains Vue components used in the Cutkit-Demo application.
   - **Status**: Use `EntityStatus` (interactive) or `StatusBadge` (read-only).
   - **Traceability**: Use `TraceChain` for all lineage and ancestry visualization.
   - **History**: Use `StatusHistory` for entity audit logs.
+  - **Data**: Use 'DataBlock' for displaying structured data like specs, parameters, etc. (TODO: create this component if it doesn't exist).
 - **Use State Machines**: To manage component states and transitions use `EntityStatus` component, not in-component logic and buttons. Ensure `EntityStatus` supports dynamic buttons based on the entity's state machine.
 - **True To API and Data Model**: Components must strictly adhere to the API responses and component's entity data model. Avoid hardcoding values or making assumptions about data structure, check API and data model first.
 - **Use Blocks**: Follow the standardized data model blocks (`identity`, `origin`, `status`, `lineage`, `specs`) and their components when designing component props and state.

@@ -3,7 +3,7 @@
     <template v-if="variant === 'inline'">
       <Chip>
         <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: standard.metadata?.color || '#ccc' }" />
-        <span>{{ standard.identity?.serial || standard.code }}</span>
+        <span>{{ serial || standard.code }}</span>
       </Chip>
     </template>
 
@@ -15,7 +15,7 @@
                     <i class="pi pi-palette" :style="{ color: standard.metadata?.color || '#ccc' }"></i>
                     <IdentityBlock :entity="standard" variant="compact" />
                 </div>
-                <Badge v-if="standard.category" :value="standard.category" severity="secondary" />
+                <Badge v-if="standard.category" :value="standard.category" severity="secondary" size="small" />
             </div>
         </template>
       </StandardCard>
@@ -26,7 +26,7 @@
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <IdentityBlock :entity="standard" />
-                <Badge v-if="standard.category" :value="standard.category" severity="secondary" />
+                <Badge v-if="standard.category" :value="standard.category" severity="secondary" size="small" />
             </div>
         </template>
         <Divider />
@@ -50,9 +50,12 @@ import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
+import { useIdentity } from '~/composables/useBlocks';
 
-defineProps({
+const props = defineProps({
   standard: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
+
+const { name, serial } = useIdentity(props.standard);
 </script>
