@@ -108,7 +108,8 @@ import ToolProfileCard from '~/components/entities/ToolProfile/ToolProfileCard.v
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
 
-import UserCard from '~/components/entities/User/UserCard.vue';
+import CassetteTemplateCard from '~/components/entities/CassetteTemplate/CassetteTemplateCard.vue';
+import BatchPileCard from '~/components/entities/BatchPile/BatchPileCard.vue';
 import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
 import ArtifactCard from '~/components/entities/Artifact/ArtifactCard.vue';
 
@@ -138,7 +139,9 @@ import {
   createMockPenTemplate,
   createMockLayerStandard,
   createMockHistory,
-  createMockRequisition
+  createMockRequisition,
+  createMockCassetteTemplate,
+  createMockBatchPile
 } from '~/test-data/factories.js';
 
 const activeTab = ref('production');
@@ -169,8 +172,10 @@ const mocks = {
     run: createMockNestingRun(),
     sheetDesign: createMockSheetDesign(),
     cassetteDesign: createMockCassetteDesign(),
+    cassetteTemplate: createMockCassetteTemplate(),
     instance: createMockCassetteInstance(),
     pile: createMockPile(),
+    batchPile: createMockBatchPile(),
     sheet: createMockSheet(),
     remnant: createMockRemnant(),
     catalog: createMockCatalog({
@@ -204,11 +209,13 @@ const componentsMap = {
     { title: 'Nesting Run', component: NestingRunCard, props: { run: mocks.run } },
     { title: 'Sheet Design', component: SheetDesignCard, props: { design: mocks.sheetDesign } },
     { title: 'Cassette Design', component: CassetteDesignCard, props: { design: mocks.cassetteDesign } },
+    { title: 'Cassette Template', component: CassetteTemplateCard, props: { template: mocks.cassetteTemplate } },
     { title: 'Cassette Instance', component: CassetteInstanceCard, props: { instance: mocks.instance } },
     { title: 'Requisition', component: RequisitionCard, props: { requisition: mocks.requisition } },
   ],
   material: [
     { title: 'Material Pile', component: PileCard, props: { pile: mocks.pile } },
+    { title: 'Batch Pile', component: BatchPileCard, props: { pile: mocks.batchPile } },
     { title: 'Physical Sheet', component: SheetCard, props: { sheet: mocks.sheet } },
     { title: 'Remnant', component: RemnantCard, props: { remnant: mocks.remnant } },
   ],

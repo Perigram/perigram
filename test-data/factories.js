@@ -400,3 +400,35 @@ export function createMockLayerStandard(overrides = {}) {
   };
 
 }
+
+export function createMockCassetteTemplate(overrides = {}) {
+  return {
+    _id: new ObjectId(),
+    identity: { uid: 'cassette-tpl-abc123', name: 'Standard 600x400', slug: 'standard-600x400' },
+    origin: { userId: 'user-123', timestamp: new Date() },
+    status: createStatusBlock('ACTIVE'),
+    lineage: { organizationId: new ObjectId().toString() },
+    data: {
+      definition: 'PARAMETRIC',
+      type: 'RECTANGULAR',
+      parameters: [{ name: 'width', value: 600 }, { name: 'height', value: 400 }],
+      organizationId: 'org-123',
+      userId: 'user-123'
+    },
+    attachments: [],
+    ...overrides
+  };
+}
+
+export function createMockBatchPile(overrides = {}) {
+  return {
+    _id: new ObjectId(),
+    identity: { uid: 'pile-abc123', name: 'Pile #3', slug: 'pile-abc123' },
+    origin: { userId: 'user-123', timestamp: new Date() },
+    status: createStatusBlock('AVAILABLE'),
+    lineage: { organizationId: new ObjectId().toString(), warehouseId: new ObjectId().toString() },
+    specs: { thickness: 18, material: 'MDF', color: 'White' },
+    stock: { total: 20, used: 7 },
+    ...overrides
+  };
+}
