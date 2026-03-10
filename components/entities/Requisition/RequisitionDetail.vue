@@ -19,7 +19,7 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card v-for="(item, idx) in requisition.items" :key="idx" class="card-interactive">
+                        <StandardCard v-for="(item, idx) in requisition.items" :key="idx" class="card-interactive">
                             <template #title>
                                 <div class="flex justify-between items-center">
                                     <div class="flex items-center gap-2">
@@ -29,22 +29,20 @@
                                     <small>{{ item.colorCode }}</small>
                                 </div>
                             </template>
-                            <template #content>
-                                <Divider />
-                                <SpecsBlock :entity="item" />
-                                <Divider />
-                                <div class="flex justify-between items-center">
-                                    <div class="flex flex-col">
-                                        <small>{{ $t('common.quantity') }}</small>
-                                        <span class="text-xl">{{ item.quantity }}</span>
-                                    </div>
-                                    <div class="flex flex-col text-right">
-                                        <small>{{ $t('common.subtotal') }}</small>
-                                        <span class="text-xl">${{ item.totalPrice?.toFixed(2) }}</span>
-                                    </div>
+                            <Divider />
+                            <SpecsBlock :entity="item" />
+                            <Divider />
+                            <div class="flex justify-between items-center">
+                                <div class="flex flex-col">
+                                    <small>{{ $t('common.quantity') }}</small>
+                                    <span class="text-xl">{{ item.quantity }}</span>
                                 </div>
-                            </template>
-                        </Card>
+                                <div class="flex flex-col text-right">
+                                    <small>{{ $t('common.subtotal') }}</small>
+                                    <span class="text-xl">${{ item.totalPrice?.toFixed(2) }}</span>
+                                </div>
+                            </div>
+                        </StandardCard>
                     </div>
                 </div>
 
@@ -66,10 +64,10 @@
 <script setup>
 import { computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-import Card from 'primevue/card';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
-import Button from 'primevue/button';
+import Divider from 'primevue/divider';
+import StandardCard from '~/components/shared/StandardCard.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';

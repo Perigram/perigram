@@ -16,32 +16,30 @@
         <div class="grid-details">
             <div class="lg:col-span-3 flex flex-col gap-8">
                 <!-- Geometry Viewer -->
-                <Card>
-                    <template #content>
-                        <div class="aspect-[2/1] flex items-center justify-center italic opacity-20">
-                            GEOMETRY PREVIEW
-                        </div>
-                    </template>
-                </Card>
+                <StandardCard>
+                    <div class="aspect-[2/1] flex items-center justify-center italic opacity-20">
+                        GEOMETRY PREVIEW
+                    </div>
+                </StandardCard>
 
                 <!-- Stats -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <Card>
+                    <StandardCard>
                         <template #title>{{ design.specs?.utilization }}%</template>
                         <template #subtitle>{{ $t('sheetDesign.utilization') }}</template>
-                    </Card>
-                    <Card>
+                    </StandardCard>
+                    <StandardCard>
                         <template #title>{{ design.specs?.partsCount }}</template>
                         <template #subtitle>{{ $t('sheetDesign.parts') }}</template>
-                    </Card>
-                    <Card>
+                    </StandardCard>
+                    <StandardCard>
                         <template #title>{{ design.specs?.cuttingLength }} m</template>
                         <template #subtitle>{{ $t('sheetDesign.cuttingLength') }}</template>
-                    </Card>
-                    <Card>
+                    </StandardCard>
+                    <StandardCard>
                         <template #title>{{ design.specs?.estimatedTime }} min</template>
                         <template #subtitle>{{ $t('sheetDesign.estimatedTime') }}</template>
-                    </Card>
+                    </StandardCard>
                 </div>
             </div>
 
@@ -65,8 +63,8 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
+import StandardCard from '~/components/shared/StandardCard.vue';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
 import Panel from 'primevue/panel';
 
 defineProps({

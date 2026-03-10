@@ -19,7 +19,7 @@
 
         <!-- Operational Stock -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
+            <StandardCard>
                 <template #title>
                     <div class="flex items-center gap-4">
                         <i class="pi pi-truck"></i>
@@ -29,8 +29,8 @@
                 <template #subtitle>
                     <small>{{ $t('warehouse.activeShipments') }}</small>
                 </template>
-            </Card>
-            <Card>
+            </StandardCard>
+            <StandardCard>
                 <template #title>
                     <div class="flex items-center gap-4">
                         <i class="pi pi-file"></i>
@@ -40,8 +40,8 @@
                 <template #subtitle>
                     <small>{{ $t('warehouse.rawSheets') }}</small>
                 </template>
-            </Card>
-            <Card>
+            </StandardCard>
+            <StandardCard>
                 <template #title>
                     <div class="flex items-center gap-4">
                         <i class="pi pi-undo"></i>
@@ -51,14 +51,14 @@
                 <template #subtitle>
                     <small>{{ $t('warehouse.recoveredArea') }}</small>
                 </template>
-            </Card>
+            </StandardCard>
         </div>
     </div>
 </template>
 
 <script setup>
-import Card from 'primevue/card';
 import Button from 'primevue/button';
+import StandardCard from '~/components/shared/StandardCard.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';

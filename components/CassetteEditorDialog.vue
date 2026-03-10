@@ -1,17 +1,19 @@
 <template>
-  <Dialog 
+  <StandardDialog
     v-model:visible="isOpen" 
-    :header="cassette ? $t('cassette.editTitle') : $t('cassette.uploadTitle')"
-    :modal="true"
     :closable="!isUploading"
-    :style="{ width: '90vw', maxWidth: '700px' }"
+    size="lg"
     @hide="handleClose"
   >
+    <template #header>
+      {{ cassette ? $t('cassette.editTitle') : $t('cassette.uploadTitle') }}
+    </template>
+
     <div class="flex flex-col gap-6 py-2">
       <!-- Upload Section -->
       <div v-if="!showMappingSection && !isUploading" class="flex flex-col gap-6">
         <div class="flex flex-col gap-2">
-          <label for="cassetteName" class="font-medium text-[var(--p-text-color)]">{{ $t('cassette.name') }}</label>
+          <label for="cassetteName" class="font-medium">{{ $t('cassette.name') }}</label>
           <InputText 
             id="cassetteName"
             v-model="name" 
@@ -22,7 +24,7 @@
         </div>
 
         <div class="flex flex-col gap-2">
-          <label class="font-medium text-[var(--p-text-color)]">{{ $t('cassette.selectFile') }}</label>
+          <label class="font-medium">{{ $t('cassette.selectFile') }}</label>
           <FileUpload 
             mode="basic" 
             accept=".dxf"
@@ -38,13 +40,13 @@
 
       <!-- Loading State -->
       <div v-if="isUploading" class="flex flex-col items-center justify-center py-12 gap-4">
-        <ProgressSpinner style="width: 50px; height: 50px" />
-        <p class="text-[var(--p-text-secondary-color)] font-medium">{{ $t('common.uploading') }}</p>
+        <ProgressSpinner class="w-12 h-12" />
+        <p class="font-medium">{{ $t('common.uploading') }}</p>
       </div>
 
       <!-- Layer Mapping Section -->
       <div v-if="showMappingSection && !isUploading" class="flex flex-col gap-6">
-        <div class="flex-1 h-48 bg-zinc-50 dark:bg-zinc-900 border border-[var(--p-content-border-color)] rounded-xl flex items-center justify-center relative overflow-hidden">
+        <div class="flex-1 h-48 border rounded-xl flex items-center justify-center relative overflow-hidden">
           <svg 
             v-if="renderingData" 
             xmlns="http://www.w3.org/2000/svg" 
@@ -55,25 +57,27 @@
               <g v-html="layer.paths.join('')"></g>
             </g>
           </svg>
-          <div v-else class="flex flex-col items-center gap-3 text-[var(--p-text-muted-color)]">
-            <i class="pi pi-image text-5xl opacity-20"></i>
-            <p class="text-sm font-medium">{{ $t('cassette.noPreview') }}</p>
+          <div v-else class="flex flex-col items-center gap-3 opacity-60">
+            <div class="w-12 h-12 border rounded-full flex items-center justify-center">
+              <i class="pi pi-image"></i>
+            </div>
+            <p class="font-medium">{{ $t('cassette.noPreview') }}</p>
           </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="flex flex-col gap-4">
-            <h3 class="text-xs font-bold uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('cassette.layerMapping') }}</h3>
-            <div v-if="detectedLayers && detectedLayers.length > 0" class="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-              <div v-for="(layer, index) in detectedLayers" :key="index" class="flex flex-col gap-1 p-2 rounded-lg bg-[var(--p-content-background)] border border-[var(--p-content-border-color)]">
-                <label class="text-[10px] font-bold text-[var(--p-text-color)] truncate" :title="layer">{{ layer }}</label>
+            <h3 class="m-0">{{ $t('cassette.layerMapping') }}</h3>
+            <div v-if="detectedLayers && detectedLayers.length > 0" class="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2">
+              <div v-for="(layer, index) in detectedLayers" :key="index" class="flex flex-col gap-1 p-2 border rounded-lg">
+                <label class="font-medium truncate" :title="layer">{{ layer }}</label>
                 <Select 
                   v-model="layerMappings[layer]"
                   :options="layerStandards"
                   optionLabel="label"
                   optionValue="value"
                   :placeholder="$t('cassette.selectLayerType')"
-                  class="w-full text-xs"
+                  class="w-full"
                   size="small"
                 />
               </div>
@@ -84,9 +88,9 @@
           </div>
           
           <div class="flex flex-col gap-4">
-            <h3 class="text-xs font-bold uppercase tracking-widest text-[var(--p-text-muted-color)]">{{ $t('cassette.parameters') }}</h3>
+            <h3 class="m-0">{{ $t('cassette.parameters') }}</h3>
             <div class="flex flex-col gap-2">
-              <p class="text-[10px] text-[var(--p-text-secondary-color)] leading-relaxed">{{ $t('cassette.parametersHelp') }}</p>
+              <p class="m-0 opacity-70">{{ $t('cassette.parametersHelp') }}</p>
               <InputChips 
                 v-model="parameters" 
                 :placeholder="$t('cassette.parametersPlaceholder')"
@@ -120,7 +124,7 @@
         />
       </div>
     </template>
-  </Dialog>
+  </StandardDialog>
 </template>
 
 <script setup>
@@ -132,12 +136,12 @@ import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { storeToRefs } from 'pinia';
 import InputChips from 'primevue/inputchips';
 import Select from 'primevue/select';
-import Dialog from 'primevue/dialog';
 import ProgressSpinner from 'primevue/progressspinner';
 import Message from 'primevue/message';
 import InputText from 'primevue/inputtext';
 import FileUpload from 'primevue/fileupload';
 import Button from 'primevue/button';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 
 const props = defineProps({
   modelValue: {
@@ -362,19 +366,3 @@ defineExpose({
   handleFileSelect
 });
 </script>
-
-<style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--p-content-border-color);
-    border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--p-primary-color);
-}
-</style>

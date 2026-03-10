@@ -1,7 +1,7 @@
 <template>
     <NuxtLink 
         :to="route" 
-        class="inline-flex items-center gap-2 border rounded p-1 card-interactive no-underline"
+        class="inline-flex items-center gap-2 p-1 "
     >
         <i :class="config.icon"></i>
         <span>

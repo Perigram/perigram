@@ -3,18 +3,18 @@
     <!-- Warehouse Switcher -->
     <Panel>
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div class="flex items-center gap-6">
-                <div class="w-16 h-16 border rounded flex items-center justify-center">
-                    <i class="pi pi-building text-3xl"></i>
-                </div>
-                <div class="flex flex-col gap-1">
-                    <small>{{ $t('warehouse.activeWarehouse') }}</small>
+                <div class="flex items-center gap-6">
+                    <div class="w-16 h-16 border rounded flex items-center justify-center">
+                        <i class="pi pi-building"></i>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <small>{{ $t('warehouse.activeWarehouse') }}</small>
                     <Select 
                         v-model="selectedWarehouseId" 
                         :options="warehouses" 
                         optionLabel="name" 
                         optionValue="id" 
-                        class="border-none bg-transparent p-0 shadow-none text-2xl"
+                        class="border-none p-0 shadow-none"
                         pt:label:class="p-0"
                     />
                 </div>

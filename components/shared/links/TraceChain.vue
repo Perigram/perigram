@@ -1,5 +1,5 @@
 <template>
-    <div class="flex items-center flex-wrap gap-2" v-if="items.length > 0">
+    <div class="flex items-center flex-wrap gap-2 text-xs" v-if="items.length > 0">
         <template v-for="(item, index) in visibleItems" :key="index">
             <template v-if="item.type !== 'separator'">
                 <TraceLink 
@@ -43,10 +43,10 @@ const items = computed(() => {
     const lin = activeLineage.value;
     if (!lin) return [];
 
-    if (lin.organizationId) list.push({ type: 'organization', id: lin.organizationId, label: 'Org' });
-    if (lin.warehouseId) list.push({ type: 'warehouse', id: lin.warehouseId, label: 'Warehouse' });
-    if (lin.projectId) list.push({ type: 'project', id: lin.projectId, label: 'Project', slug: lin.projectSlug });
-    if (lin.queueId) list.push({ type: 'queue', id: lin.queueId, label: 'Queue', slug: lin.projectSlug });
+    if (lin.organizationId) list.push({ type: 'organization', id: lin.organizationId, label: lin.organizationName || lin.organizationId });
+    if (lin.warehouseId) list.push({ type: 'warehouse', id: lin.warehouseId, label: lin.warehouseName || lin.warehouseId });
+    if (lin.projectId) list.push({ type: 'project', id: lin.projectId, label: lin.projectName || lin.projectId });
+    if (lin.queueId) list.push({ type: 'queue', id: lin.queueId, label: lin.queueName || lin.queueId, slug: lin.projectId });
     
     return list;
 });

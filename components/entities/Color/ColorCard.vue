@@ -1,42 +1,40 @@
 <template>
-  <div :class="[`variant-${variant}`]">
+  <div>
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
-        <div class="w-4 h-4 rounded-full border" :style="{ backgroundColor: color.data?.visuals?.hexCode || '#ccc' }"></div>
+        <div class="w-4 h-4 rounded-full border" :style="swatchStyle"></div>
         <span>{{ name }}</span>
       </div>
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <Card>
+      <StandardCard class="card-interactive">
         <template #title>
-            <div class="flex items-center gap-4">
-                <div class="w-6 h-6 rounded-full border" :style="{ backgroundColor: color.data?.visuals?.hexCode || '#ccc' }"></div>
-                <span class="truncate">{{ name }}</span>
+            <div class="flex items-center gap-4 min-w-0">
+                <div class="w-6 h-6 rounded-full border shrink-0" :style="swatchStyle"></div>
+                <IdentityBlock :entity="color" variant="compact" />
             </div>
         </template>
         <template #subtitle>
-            <small>{{ color.identity?.serial }}</small>
+            <small>{{ serial || hexCode || '—' }}</small>
         </template>
-      </Card>
+      </StandardCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <Card class="overflow-hidden">
+      <StandardCard class="card-interactive">
         <template #header>
-            <div class="h-32 w-full" :style="{ backgroundColor: color.data?.visuals?.hexCode || '#ccc' }"></div>
+            <div class="h-32 w-full" :style="swatchStyle"></div>
         </template>
         <template #title>
-            <span class="truncate">{{ name }}</span>
+            <IdentityBlock :entity="color" />
         </template>
-        <template #content>
-            <Divider />
-            <div class="flex justify-between items-center">
-                <small>{{ color.identity?.serial }}</small>
-                <small>{{ color.data?.visuals?.hexCode }}</small>
-            </div>
-        </template>
-      </Card>
+        <Divider />
+        <div class="flex justify-between items-center gap-4">
+            <small>{{ serial || '—' }}</small>
+            <small>{{ hexCode || '—' }}</small>
+        </div>
+      </StandardCard>
     </template>
   </div>
 </template>
@@ -45,8 +43,10 @@
 /**
  * Color View Component - v24 Standardized
  */
-import Card from 'primevue/card';
+import { computed } from 'vue';
 import Divider from 'primevue/divider';
+import StandardCard from '~/components/shared/StandardCard.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
@@ -54,5 +54,7 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const { name } = useIdentity(props.color);
+const { name, serial } = useIdentity(props.color);
+const hexCode = computed(() => props.color.data?.visuals?.hexCode || null);
+const swatchStyle = computed(() => (hexCode.value ? { backgroundColor: hexCode.value } : undefined));
 </script>
