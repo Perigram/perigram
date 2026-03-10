@@ -10,7 +10,11 @@ These are the primary reactive bridges for working with v24 Block-based entities
   - `update(data)`: Patch entity data.
   - `changeStatus(state, meta)`: Perform state machine transition.
   - **Computed Blocks**: Automatically unwraps `name`, `slug`, `state`, `lineage`, `specs`, etc.
-- **[useBlocks.js](./useBlocks.js):** Low-level atomic logic for standardizing reactive access to Blocks (Identity, Status, Lineage, Specs).
+- **[useBlocks.js](./useBlocks.js):** Low-level atomic composables for reactive access to entity blocks: `useIdentity`, `useStatus`, `useSpecs`, `useLineage`.
+
+  ⚠️ **Restricted use**: These composables are ONLY imported by the shared block components (`IdentityBlock.vue`, `EntityStatus.vue`, `SpecsBlock.vue`). Entity cards and page components must never import from `useBlocks.js` — they use the block components instead.
+
+  Exception: `useStatus` may be used in an entity card to read `state` for a `v-if` conditional (not for display).
 - **[useStatusController.js](./useStatusController.js):** Direct bridge to the State Machine Engine API.
 - **[useStatusHistory.js](./useStatusHistory.js):** Fetches and reactive manages the audit log (`status_events`) for an entity.
 - **[useTraceability.js](./useTraceability.js):** Resolves ancestry and descendants via the lineage block.
