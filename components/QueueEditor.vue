@@ -173,16 +173,6 @@
                         <div v-if="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                             <template v-for="entry in entries" :key="entry?._id || Math.random()">
                                 <StandardCard v-if="entry" class="card-interactive">
-                                    <template #header>
-                                        <div class="aspect-square relative overflow-hidden">
-                                            <CassetteThumbnail 
-                                                :cassette-id="entry.cassetteTemplateId" 
-                                                :cassette="getCassetteData(entry.cassetteTemplateId)"
-                                                :dimensions="entry.dimensions"
-                                            />
-                                            <Button icon="pi pi-trash" severity="danger" text rounded class="absolute top-2 right-2" @click="confirmDelete(entry)" :disabled="queueState !== 'DRAFT'" />
-                                        </div>
-                                    </template>
                                     <template #title>
                                         <div class="flex justify-between items-center gap-2">
                                             <span class="truncate">{{ getCassetteName(entry.cassetteTemplateId) }}</span>
@@ -193,9 +183,15 @@
                                                     @update:model-value="saveQueue"
                                                 />
                                                 <small>pcs</small>
+                                                <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="confirmDelete(entry)" :disabled="queueState !== 'DRAFT'" />
                                             </div>
                                         </div>
                                     </template>
+                                    <CassetteThumbnail 
+                                        :cassette-id="entry.cassetteTemplateId" 
+                                        :cassette="getCassetteData(entry.cassetteTemplateId)"
+                                        :dimensions="entry.dimensions"
+                                    />
                                     <Divider />
                                     <!-- Parameters -->
                                     <div v-if="entry.type === 'PARAMETRIC'" class="grid grid-cols-2 gap-4">
