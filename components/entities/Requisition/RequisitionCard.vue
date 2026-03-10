@@ -4,11 +4,11 @@
  */
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
+import { useAuthStore } from '~/stores/auth';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
-import { useSpecs } from '~/composables/useBlocks';
 
 const props = defineProps({
   requisition: { type: Object, required: true },
