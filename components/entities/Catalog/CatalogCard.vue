@@ -6,6 +6,7 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useIdentity } from '~/composables/useBlocks';
 
@@ -28,7 +29,7 @@ const handleCardClick = () => {
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-book"></i>
-        <span>{{ name }}</span>
+        <IdentityBlock :entity="catalog" variant="compact" />
       </div>
     </template>
 

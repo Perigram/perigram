@@ -4,8 +4,7 @@
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-box"></i>
-        <span>{{ serial }}</span>
-        <EntityStatus :entity="instance" entity-type="cassette_instance" variant="inline" />
+        <IdentityBlock :entity="instance" variant="compact" />
       </div>
     </template>
 
@@ -65,6 +64,7 @@
  */
 import Divider from 'primevue/divider';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import { useIdentity } from '~/composables/useBlocks';
 

@@ -7,6 +7,7 @@ import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import ArtifactCard from '../Artifact/ArtifactCard.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import { useStatus } from '~/composables/useBlocks';
@@ -35,8 +36,8 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
     <!-- Inline -->
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
-        <span>#{{ run.runNumber }}</span>
-        <EntityStatus :entity="run" entity-type="nesting_run" variant="inline" />
+        <i class="pi pi-list-check"></i>
+        <IdentityBlock :entity="run" variant="compact" />
       </div>
     </template>
 
@@ -67,42 +68,40 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
                 </div>
             </div>
         </template>
-        <template #content>
-            <Divider />
-            <div class="flex flex-col gap-4">
-                <!-- Results -->
-                <div v-if="isComplete" class="flex flex-col gap-2">
-                    <div class="flex items-center gap-4">
-                        <div class="flex items-center gap-1">
-                            <i class="pi pi-clone"></i>
-                            <span>{{ run.layoutCount || 0 }} Sheets</span>
-                        </div>
-                        <div v-if="run.utilization" class="flex items-center gap-1">
-                            <i class="pi pi-chart-bar"></i>
-                            <span>{{ (run.utilization * 100).toFixed(1) }}%</span>
-                        </div>
+        <Divider />
+        <div class="flex flex-col gap-4">
+            <!-- Results -->
+            <div v-if="isComplete" class="flex flex-col gap-2">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-1">
+                        <i class="pi pi-clone"></i>
+                        <span>{{ run.layoutCount || 0 }} Sheets</span>
                     </div>
-                    
-                    <div class="flex flex-wrap gap-1">
-                        <ArtifactCard 
-                            v-for="artifact in [...artifacts].sort((a,b) => (a.type === 'LAYOUT_DXF' ? -1 : 1))" 
-                            :key="artifact._id" 
-                            :artifact="artifact" 
-                            variant="compact"
-                            @click="$emit('artifact-click', artifact)"
-                        />
+                    <div v-if="run.utilization" class="flex items-center gap-1">
+                        <i class="pi pi-chart-bar"></i>
+                        <span>{{ (run.utilization * 100).toFixed(1) }}%</span>
                     </div>
                 </div>
-
-                <!-- State indicators -->
-                <div v-else-if="state === 'NESTING'" class="flex justify-center p-2">
-                    <i class="pi pi-spin pi-spinner"></i>
-                </div>
-                <div v-else-if="state === 'ERROR'" class="italic">
-                    {{ run.error || 'Nesting failed' }}
+                
+                <div class="flex flex-wrap gap-1">
+                    <ArtifactCard 
+                        v-for="artifact in [...artifacts].sort((a,b) => (a.type === 'LAYOUT_DXF' ? -1 : 1))" 
+                        :key="artifact._id" 
+                        :artifact="artifact" 
+                        variant="compact"
+                        @click="$emit('artifact-click', artifact)"
+                    />
                 </div>
             </div>
-        </template>
+
+            <!-- State indicators -->
+            <div v-else-if="state === 'NESTING'" class="flex justify-center p-2">
+                <i class="pi pi-spin pi-spinner"></i>
+            </div>
+            <div v-else-if="state === 'ERROR'" class="italic">
+                {{ run.error || 'Nesting failed' }}
+            </div>
+        </div>
         <template #footer>
             <template v-if="canManage">
                 <Divider />

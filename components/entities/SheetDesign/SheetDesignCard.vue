@@ -24,7 +24,6 @@ const { formattedDimensions } = useSpecs(props.design);
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-map"></i>
         <IdentityBlock :entity="design" variant="compact" />
-        <EntityStatus :entity="design" entity-type="sheet_design" variant="inline" />
       </div>
     </template>
 

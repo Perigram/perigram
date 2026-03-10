@@ -5,7 +5,6 @@
       <div class="inline-flex items-center gap-2">
         <Avatar :image="user.identity?.avatarUrl" :label="!user.identity?.avatarUrl ? name?.charAt(0) : null" shape="circle" size="small" />
         <span>{{ name }}</span>
-        <EntityStatus :entity="user" entity-type="user" variant="inline" />
       </div>
     </template>
 

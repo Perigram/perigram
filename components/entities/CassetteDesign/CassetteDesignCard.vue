@@ -4,7 +4,7 @@
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-pencil"></i>
-        <span>{{ serial }}</span>
+        <IdentityBlock :entity="design" variant="compact" />
       </div>
     </template>
 
@@ -53,6 +53,7 @@
 import Badge from 'primevue/badge';
 import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({

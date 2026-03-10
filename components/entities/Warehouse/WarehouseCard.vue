@@ -3,7 +3,7 @@
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-building"></i>
-        <span>{{ name }}</span>
+        <IdentityBlock :entity="warehouse" variant="compact" />
       </div>
     </template>
 

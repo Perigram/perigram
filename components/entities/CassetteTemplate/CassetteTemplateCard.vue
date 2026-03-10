@@ -4,7 +4,7 @@
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <i class="pi pi-clone"></i>
-        <span>{{ name }}</span>
+        <IdentityBlock :entity="template" variant="compact" />
       </div>
     </template>
 
@@ -67,6 +67,7 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
