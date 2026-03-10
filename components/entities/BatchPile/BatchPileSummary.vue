@@ -2,21 +2,22 @@
     <div class="inline-flex items-center gap-3 p-2 border rounded">
         <i class="pi pi-clone"></i>
         <div class="flex flex-col">
-            <small>Pile</small>
-            <span>{{ data.partyId || data._id?.toString().slice(-6) }}</span>
+            <small>{{ $t('piles.pile') }}</small>
+            <span>{{ data.serial || data.identity?.serial || data._id?.toString().slice(-6) }}</span>
         </div>
         <div class="flex gap-1">
-            <Tag :value="`${data.thickness}mm`" severity="secondary" />
-            <Tag :value="data.color" severity="secondary" />
+            <Tag v-if="thickness" :value="`${thickness}mm`" severity="secondary" />
         </div>
     </div>
 </template>
 
 <script setup>
-defineProps({
-    data: {
-        type: Object,
-        required: true
-    }
+import { computed } from 'vue';
+import Tag from 'primevue/tag';
+
+const props = defineProps({
+    data: { type: Object, required: true }
 });
+
+const thickness = computed(() => props.data.specs?.thickness || props.data.data?.specs?.thickness);
 </script>

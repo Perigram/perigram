@@ -1,24 +1,21 @@
 <template>
     <div class="flex flex-col gap-8">
-        <Panel>
-            <template #header>
-                <div class="flex items-center gap-4">
-                    <i class="pi pi-building text-2xl"></i>
-                    <h2 class="m-0">{{ warehouseName }}</h2>
-                </div>
-            </template>
-            <template #icons>
-                <div class="flex gap-2">
-                    <Button icon="pi pi-pencil" severity="secondary" text @click="$emit('edit', warehouse)" />
-                </div>
-            </template>
-            <div class="flex flex-col gap-2">
-                <div class="flex items-center gap-2 opacity-60">
-                    <i class="pi pi-map-marker"></i>
-                    <span>{{ warehouse.address }}</span>
-                </div>
+        <TraceChain :entity="warehouse" />
+
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div class="flex items-center gap-4">
+                <IdentityBlock :entity="warehouse" variant="header" />
+                <EntityStatus :entity="warehouse" entity-type="warehouse" variant="inline" />
             </div>
-        </Panel>
+            <div class="flex gap-2" v-if="authStore.can('warehouses', 'edit')">
+                <Button icon="pi pi-pencil" severity="secondary" text @click="$emit('edit', warehouse)" />
+            </div>
+        </div>
+
+        <div v-if="warehouse.address" class="flex items-center gap-2 opacity-60">
+            <i class="pi pi-map-marker"></i>
+            <span>{{ warehouse.address }}</span>
+        </div>
 
         <!-- Operational Stock -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -60,16 +57,18 @@
 </template>
 
 <script setup>
-import Panel from 'primevue/panel';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
-import { useIdentity } from '~/composables/useBlocks';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import { useAuthStore } from '~/stores/auth';
 
-const props = defineProps({
+defineProps({
     warehouse: { type: Object, required: true },
     warehouseStats: { type: Object, default: () => ({}) }
 });
 
 defineEmits(['edit']);
-const { name: warehouseName } = useIdentity(props.warehouse);
+const authStore = useAuthStore();
 </script>

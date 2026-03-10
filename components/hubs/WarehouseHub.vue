@@ -49,7 +49,6 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import Panel from 'primevue/panel';
-import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
 import Tabs from 'primevue/tabs';

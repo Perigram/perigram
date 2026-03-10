@@ -23,9 +23,7 @@
                         {{ $t('queues.artifacts') }}
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div v-for="artId in queue.artifacts" :key="artId" class="p-6 border rounded">
-                            <span class="opacity-50 italic">{{ artId }}</span>
-                        </div>
+                        <TraceLink v-for="artId in queue.artifacts" :key="artId" type="artifact" :id="artId" />
                     </div>
                 </div>
 
@@ -61,7 +59,7 @@
             <!-- Right: Metadata & Materials -->
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('requisition.lifecycleTimeline')">
-                    <StatusHistory entity-type="queue" :target-id="queue._id || queue.id" />
+                    <StatusHistory :entity="queue" />
                 </Panel>
 
                  <Panel :header="$t('project.overview')">
@@ -81,6 +79,7 @@
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
+import TraceLink from '~/components/shared/links/TraceLink.vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';

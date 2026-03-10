@@ -1,41 +1,30 @@
 <template>
-    <Card class="card-interactive">
-        <template #header>
-            <div 
-                class="h-2 w-full"
-                :style="{ backgroundColor: pile.colorFallback || '#ccc' }"
-            ></div>
-        </template>
+    <StandardCard class="card-interactive">
         <template #title>
-            <div class="flex justify-between items-center gap-4">
-                <span class="truncate">{{ pile.material }} - {{ pile.color }}</span>
-                <div class="flex flex-col items-end">
-                    <span class="text-xl">{{ pile.totalCount - pile.usedCount }} / {{ pile.totalCount }}</span>
-                </div>
+            <div class="flex justify-between items-start gap-4">
+                <IdentityBlock :entity="pile" variant="compact" />
+                <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
             </div>
         </template>
         <template #subtitle>
-            <div class="flex justify-between items-center">
-                <small>ID: {{ pile.partyId }}</small>
-                <small>Remaining</small>
+            <div class="flex items-center gap-2">
+                <Tag v-if="pile.specs?.thickness" :value="`${pile.specs.thickness}mm`" severity="secondary" />
+                <small v-if="pile.stock">{{ remaining }} / {{ pile.stock.total }} remaining</small>
             </div>
         </template>
-        <template #content>
-            <div class="flex items-center gap-2 mt-2">
-                <Tag :value="`${pile.thickness}mm`" severity="secondary" />
-            </div>
-        </template>
-    </Card>
+    </StandardCard>
 </template>
 
 <script setup>
-import Card from 'primevue/card';
+import { computed } from 'vue';
 import Tag from 'primevue/tag';
+import StandardCard from '~/components/shared/StandardCard.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 
-defineProps({
-    pile: {
-        type: Object,
-        required: true
-    }
+const props = defineProps({
+    pile: { type: Object, required: true }
 });
+
+const remaining = computed(() => (props.pile.stock?.total || 0) - (props.pile.stock?.used || 0));
 </script>
