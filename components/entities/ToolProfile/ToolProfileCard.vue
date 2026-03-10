@@ -13,7 +13,7 @@
                     <i class="pi pi-wrench"></i>
                     <IdentityBlock :entity="tool" variant="compact" />
                 </div>
-                <Tag v-if="tool.diameter" :value="`D${tool.diameter}`" severity="secondary" />
+                <Tag v-if="tool.diameter" :value="`D${tool.diameter}`" severity="secondary" size="small" />
             </div>
         </template>
       </StandardCard>

@@ -36,7 +36,7 @@ const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 
       <Chip>
         <i :class="['pi', icon]" />
         <span>{{ typeLabel }}</span>
-        <Tag v-if="state !== 'READY'" :severity="statusColor" />
+        <Tag v-if="state !== 'READY'" :severity="statusColor" size="small" />
       </Chip>
     </template>
 
@@ -68,7 +68,7 @@ const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 
             <Divider />
             <div class="flex flex-col items-center gap-4">
                 <i :class="['pi', icon]"></i>
-                <Tag :value="state" :severity="statusColor" />
+                <Tag :value="state" :severity="statusColor" size="small" />
             </div>
         </template>
       </StandardCard>

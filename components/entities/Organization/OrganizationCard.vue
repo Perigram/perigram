@@ -33,7 +33,7 @@
         <div class="flex flex-col gap-2">
             <div class="flex justify-between items-center">
                 <small>{{ $t('organization.type') }}</small>
-                <Tag :value="organization.type || '—'" severity="secondary" />
+                <Tag :value="organization.type || '—'" severity="secondary" size="small" />
             </div>
             <div v-if="createdAt" class="flex justify-between items-center">
                 <small>{{ $t('common.created') }}</small>

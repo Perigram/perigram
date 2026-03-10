@@ -37,8 +37,8 @@
         <template #footer>
             <Divider />
             <div class="flex justify-center gap-2" @click.stop>
-                <Button v-if="authStore.can('users', 'edit')" icon="pi pi-pencil" text @click="$emit('edit', user)" />
-                <Button v-if="authStore.can('users', 'delete')" icon="pi pi-trash" text severity="danger" @click="$emit('delete', user)" />
+                <Button v-if="authStore.can('users', 'edit')" icon="pi pi-pencil" text size="small" @click="$emit('edit', user)" />
+                <Button v-if="authStore.can('users', 'delete')" icon="pi pi-trash" text size="small" severity="danger" @click="$emit('delete', user)" />
             </div>
         </template>
       </StandardCard>

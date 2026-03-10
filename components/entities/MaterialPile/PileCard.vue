@@ -67,8 +67,8 @@ const handleCardClick = () => {
 
         <template #footer>
             <div class="flex justify-end gap-2" @click.stop>
-                <Button v-if="authStore.can('materials', 'edit')" icon="pi pi-pencil" text rounded @click="$emit('edit', pile)" />
-                <Button v-if="authStore.can('materials', 'read')" icon="pi pi-search" text rounded @click="$emit('view', pile)" />
+                <Button v-if="authStore.can('materials', 'edit')" icon="pi pi-pencil" text rounded size="small" @click="$emit('edit', pile)" />
+                <Button v-if="authStore.can('materials', 'read')" icon="pi pi-search" text rounded size="small" @click="$emit('view', pile)" />
             </div>
         </template>
       </StandardCard>

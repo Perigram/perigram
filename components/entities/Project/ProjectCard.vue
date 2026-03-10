@@ -41,8 +41,8 @@ const handleCardClick = () => {
         <!-- Card footer -->
         <template #footer v-if="variant === 'card'">
             <div class="flex justify-end gap-2" @click.stop>
-                <Button v-if="authStore.can('projects', 'edit')" icon="pi pi-pencil" text rounded aria-label="Edit" @click="$emit('edit', project)" />
-                <Button v-if="authStore.can('projects', 'delete')" icon="pi pi-trash" text rounded severity="danger" aria-label="Delete" @click="$emit('delete', project)" />
+                <Button v-if="authStore.can('projects', 'edit')" icon="pi pi-pencil" text rounded size="small" aria-label="Edit" @click="$emit('edit', project)" />
+                <Button v-if="authStore.can('projects', 'delete')" icon="pi pi-trash" text rounded size="small" severity="danger" aria-label="Delete" @click="$emit('delete', project)" />
             </div>
         </template>
     </EntityCard>

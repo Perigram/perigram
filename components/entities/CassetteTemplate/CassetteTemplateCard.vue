@@ -41,13 +41,13 @@
         <template #content>
             <Divider />
             <div class="flex flex-wrap gap-2">
-                <Tag v-for="param in template.definition?.parameters" :key="param" :value="param" severity="secondary" />
+                <Tag v-for="param in template.definition?.parameters" :key="param" :value="param" severity="secondary" size="small" />
             </div>
         </template>
         <template #footer>
             <div class="flex gap-2">
-                <Button label="Create Instance" icon="pi pi-plus" text class="flex-1" />
-                <Button icon="pi pi-download" text @click="downloadDxf" />
+                <Button label="Create Instance" icon="pi pi-plus" text size="small" class="flex-1" @click="$emit('create-instance', template)" />
+                <Button icon="pi pi-download" text size="small" @click="downloadDxf" />
             </div>
         </template>
       </StandardCard>
@@ -71,6 +71,8 @@ const props = defineProps({
   template: { type: Object, required: true },
   variant: { type: String, default: 'card' } // inline, compact, card
 });
+
+const emit = defineEmits(['create-instance']);
 
 const { name } = useIdentity(props.template);
 

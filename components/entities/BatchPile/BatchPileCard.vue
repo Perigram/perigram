@@ -19,7 +19,7 @@
         </template>
         <template #subtitle>
           <div class="flex items-center gap-2">
-            <Tag v-if="pile.specs?.thickness" :value="`${pile.specs.thickness}mm`" severity="secondary" />
+            <Tag v-if="pile.specs?.thickness" :value="`${pile.specs.thickness}mm`" severity="secondary" size="small" />
             <small v-if="pile.stock">{{ remaining }} / {{ pile.stock.total }} remaining</small>
           </div>
         </template>
@@ -37,7 +37,7 @@
         </template>
         <template #subtitle>
           <div class="flex items-center gap-2">
-            <Tag v-if="pile.specs?.thickness" :value="`${pile.specs.thickness}mm`" severity="secondary" />
+            <Tag v-if="pile.specs?.thickness" :value="`${pile.specs.thickness}mm`" severity="secondary" size="small" />
             <small v-if="pile.stock">{{ remaining }} / {{ pile.stock.total }} remaining</small>
           </div>
         </template>

@@ -39,7 +39,7 @@ const handleCardClick = () => {
             </div>
         </template>
         <template #subtitle>
-            <Tag :value="catalog.material" severity="secondary" />
+            <Tag :value="catalog.material" severity="secondary" size="small" />
         </template>
       </StandardCard>
     </template>
@@ -49,7 +49,7 @@ const handleCardClick = () => {
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <span class="truncate">{{ name }}</span>
-                <Tag :value="catalog.material" severity="secondary" />
+                <Tag :value="catalog.material" severity="secondary" size="small" />
             </div>
         </template>
         <template #content>
@@ -61,8 +61,8 @@ const handleCardClick = () => {
         </template>
         <template #footer>
             <div class="flex justify-end gap-2" @click.stop>
-                <Button v-if="authStore.can('catalogs', 'edit')" icon="pi pi-pencil" text rounded aria-label="Edit" @click="$emit('edit', catalog)" />
-                <Button v-if="authStore.can('catalogs', 'delete')" icon="pi pi-trash" text rounded severity="danger" aria-label="Delete" @click="$emit('delete', catalog)" />
+                <Button v-if="authStore.can('catalogs', 'edit')" icon="pi pi-pencil" text rounded size="small" aria-label="Edit" @click="$emit('edit', catalog)" />
+                <Button v-if="authStore.can('catalogs', 'delete')" icon="pi pi-trash" text rounded size="small" severity="danger" aria-label="Delete" @click="$emit('delete', catalog)" />
             </div>
         </template>
       </StandardCard>

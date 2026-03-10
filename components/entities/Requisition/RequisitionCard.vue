@@ -63,8 +63,8 @@ const handleCardClick = () => {
 
         <template #footer>
             <div class="flex justify-end gap-2" @click.stop>
-                <Button v-if="authStore.can('requisitions', 'edit')" icon="pi pi-pencil" text rounded @click="$emit('edit', requisition)" />
-                <Button v-if="authStore.can('requisitions', 'delete')" icon="pi pi-trash" text rounded severity="danger" @click="$emit('delete', requisition)" />
+                <Button v-if="authStore.can('requisitions', 'edit')" icon="pi pi-pencil" text rounded size="small" @click="$emit('edit', requisition)" />
+                <Button v-if="authStore.can('requisitions', 'delete')" icon="pi pi-trash" text rounded size="small" severity="danger" @click="$emit('delete', requisition)" />
             </div>
         </template>
       </StandardCard>
