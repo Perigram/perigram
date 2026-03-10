@@ -3,7 +3,7 @@
     <template v-if="variant === 'inline'">
         <div class="inline-flex items-center gap-2">
             <i :class="entityConfig.icon"></i>
-            <IdentityBlock :entity="entity" />
+            <IdentityBlock :entity="entity" variant="inline" />
             <slot name="inline-extra" />
         </div>
     </template>
