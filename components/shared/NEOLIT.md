@@ -50,19 +50,19 @@ Props: `:entity` (required), `variant`.
 **Scope:** Only handles standard specs block fields. Entity-specific fields (tool diameter, pen stroke, pile stock) are accessed directly in the template — no SpecsBlock wrapper needed.
 
 ### `DataBlock.vue`
-Standardized label/value display for entity-specific data fields (anything not covered by SpecsBlock). Uses field schemas defined in `~/constants/entityFields.js` — never construct row arrays inline in template.
+Standardized label/value display for entity-specific data fields (anything not covered by SpecsBlock). Define the field array inline in the component's `<script setup>`.
 
 **Usage:**
 ```vue
-import { TOOL_PROFILE_FIELDS } from '~/constants/entityFields'
-<DataBlock :entity="tool" :fields="TOOL_PROFILE_FIELDS" />
+const FIELDS = [
+    { path: 'diameter', i18n: 'toolProfile.diameter', suffix: ' mm' },
+]
+<DataBlock :entity="tool" :fields="FIELDS" />
 ```
 
-Props: `:entity` (required), `:fields` (required — array from entityFields.js).
+Props: `:entity` (required), `:fields` (required — inline array of field descriptors).
 
 **Field schema:** `{ path, i18n, suffix?, prefix? }` — `path` is dot-notation into entity object, `i18n` is the translation key for the label. Rows with null/undefined values are hidden automatically.
-
-**Field constants:** `~/constants/entityFields.js` — each entity type has its own exported const (`PEN_TEMPLATE_FIELDS`, `TOOL_PROFILE_FIELDS`, `WAREHOUSE_FIELDS`, `MATERIAL_PILE_FIELDS`).
 
 ### `StatusBadge.vue`
 Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.

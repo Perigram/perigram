@@ -28,7 +28,7 @@
             </div>
         </template>
         <Divider />
-        <DataBlock :entity="tool" :fields="TOOL_PROFILE_FIELDS" />
+        <DataBlock :entity="tool" :fields="FIELDS" />
       </StandardCard>
     </template>
   </div>
@@ -43,7 +43,12 @@ import Tag from 'primevue/tag';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import { TOOL_PROFILE_FIELDS } from '~/constants/entityFields';
+
+const FIELDS = [
+    { path: 'diameter', i18n: 'toolProfile.diameter', suffix: ' mm' },
+    { path: 'angle',    i18n: 'toolProfile.angle',    suffix: '°' },
+    { path: 'kerf',     i18n: 'toolProfile.kerf',     suffix: ' mm' }
+];
 
 const props = defineProps({
   tool: { type: Object, required: true },

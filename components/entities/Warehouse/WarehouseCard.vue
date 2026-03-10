@@ -28,7 +28,7 @@
         </template>
         <Divider />
         <div class="flex flex-col gap-3">
-            <DataBlock :entity="warehouse" :fields="WAREHOUSE_FIELDS" />
+            <DataBlock :entity="warehouse" :fields="FIELDS" />
             <EntityStatus :entity="warehouse" entity-type="warehouse" variant="inline" />
         </div>
       </StandardCard>
@@ -46,7 +46,12 @@ import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import { WAREHOUSE_FIELDS } from '~/constants/entityFields';
+
+const FIELDS = [
+    { path: 'type',          i18n: 'warehouse.type' },
+    { path: 'address',       i18n: 'warehouse.address' },
+    { path: 'contactPerson', i18n: 'warehouse.contactPerson' }
+];
 
 const props = defineProps({
   warehouse: { type: Object, required: true },

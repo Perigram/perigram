@@ -30,7 +30,7 @@
             </div>
         </template>
         <Divider />
-        <DataBlock :entity="pen" :fields="PEN_TEMPLATE_FIELDS" />
+        <DataBlock :entity="pen" :fields="FIELDS" />
       </StandardCard>
     </template>
   </div>
@@ -46,7 +46,12 @@ import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import { PEN_TEMPLATE_FIELDS } from '~/constants/entityFields';
+
+const FIELDS = [
+    { path: 'stroke.color',   i18n: 'penTemplate.color' },
+    { path: 'stroke.weight',  i18n: 'penTemplate.weight',  suffix: ' px' },
+    { path: 'stroke.pattern', i18n: 'penTemplate.pattern' }
+];
 
 const props = defineProps({
   pen: { type: Object, required: true },

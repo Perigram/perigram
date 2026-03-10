@@ -31,14 +31,22 @@
      Files changed: README.md, NEOLIT.md, docker configs, GitHub actions
      Docs updated: NEOLIT.md (SYSTEM, CONTAINER, COMPONENT levels)
      Notes: Renamed project from Nest2D to CutKit. Cleaned up obsolete docs and reorganized deployment guides.
+<<<<<<< Updated upstream
 * DONE run through all the components and pages and check locales usage.
   CLOSED: [2026-01-17 Сб 17:38]
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-01-18 Вс 20:07
+=======
+* DONE Check current app state management
+  CLOSED: [2026-01-09 Пт 14:49]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2026-01-16 Пт 21:09
+>>>>>>> Stashed changes
   :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
+<<<<<<< Updated upstream
   For each hardcoded string found, replace them with locale key, and ensure that the keys exist in the locale files.
   Don't modify TODO file for this task results. 
 * DONE run through all the components and pages and check layout and styling.
@@ -74,4 +82,115 @@
     Files changed: stores/batches.js, components/BatchEditor.vue, i18n/locales/en.json, i18n/locales/ru.json
     Docs updated: N/A
     Notes: Added runs display in AccordionTab, choose run functionality, mark as cut button. Store functions for chooseRun and markCut. Locales for all new UI elements.
+=======
+  Doesn't it feel off? Should rewrite to modern standards?
+*** Agent Notes
+     [2026-01-09] Analyzed state management.
+     The current "Readonly Reactive" pattern in composables uses module-level `reactive` state.
+     CRITICAL: This is not SSR-safe in Nuxt 3 as state is shared between requests on the server.
+     Recommended fix:
+     - Short term: Use Nuxt's `useState()` to encapsulate state per request.
+     - Long term: Migrate to Pinia (official Nuxt/Vue recommendation).
+     - Consistency: `batchesStore` is missing `readonly` wrapper on export.
+*** User Notes
+    Migrate to Pinia. Apply best practices. Keep current functionality.
+*** Agent Notes
+    [2026-01-09] Migrated to Pinia.
+    - Created stores in `stores/`.
+    - Updated all components and pages to use Pinia stores.
+    - Removed old composables.
+    - Verified SSR safety (Pinia stores are request-scoped).
+    - Fixed 500 error caused by missing `composables/penTemplates.js` import in `pages/assets/pens.vue`.
+    - Added explicit imports for stores in components to ensure SSR stability.
+>>>>>>> Stashed changes
 
+*** Agent Notes
+     [2026-01-09] Finalized documentation and project renaming.
+     Files changed: README.md, NEOLIT.md, docker configs, GitHub actions
+     Docs updated: NEOLIT.md (SYSTEM, CONTAINER, COMPONENT levels)
+     Notes: Renamed project from Nest2D to CutKit. Cleaned up obsolete docs and reorganized deployment guides.
+* DONE Cassette Renaming
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2026-01-16 Пт 21:10
+  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_CATEGORY: TODO
+  :ARCHIVE_TODO: DONE
+  :END:
+*** Agent Notes
+     [2026-01-09] Implemented improved cassette renaming flow in Cassette Manager.
+     Files changed: components/CassetteManager.vue
+     Docs updated: server/features/cassettes/NEOLIT.md
+     Notes: Added explicit Save/Cancel flow for renaming using PrimeVue Inplace component with temporary state. Renaming is validated and synchronized with the backend via Pinia store.
+* DONE Nesting Worker Fixes
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2026-01-16 Пт 21:10
+  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_CATEGORY: TODO
+  :ARCHIVE_TODO: DONE
+  :END:
+*** Agent Notes
+     [2026-01-09] Fixed nesting worker connection and permission issues.
+     Files changed: workers/nesting/Dockerfile, docker-stack.yml, docker-stack-workers-only.yml
+     Docs updated: NEOLIT.md (SYSTEM level)
+     Notes: 
+     - Set `ENV HOME=/home/appuser` in Dockerfile to fix ezdxf cache access.
+     - Standardized all stack deployment files to use `cutkit-network` (external) for reliable service discovery.
+     - Switched to `MONGODB_URI` environment variable for consistency across all services.
+     - Ensured workers correctly resolve the `mongo` host by aligning Docker networks.
+* DONE Nesting Error Handling & Batch Reset
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2026-01-16 Пт 21:10
+  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_CATEGORY: TODO
+  :ARCHIVE_TODO: DONE
+  :END:
+*** Agent Notes
+     [2026-01-09] Implemented error reporting from worker to batch and reset functionality.
+     Files changed: workers/nesting/main.py, stores/batches.js, components/BatchManagement.vue, components/BatchEditor.vue, docker-compose.local.yml
+     Notes: 
+     - Worker now updates associated batch status to FAILED upon unhandled exception.
+     - Worker now updates associated batch status to COMPLETE upon successful completion.
+     - Added `resetStatus` to batches store calling `reset-status` API.
+     - Added "Reset to DRAFT" buttons in Batch Management list and Batch Editor for FAILED or stuck batches.
+     - Updated UI Tag mapping to support COMPLETE status and NESTING warning severity.
+     - Redeployed workers using docker stack with overlay network for reliable mongo resolution.
+* DONE State Management Rework (Batch Statuses)
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2026-01-16 Пт 21:10
+  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_CATEGORY: TODO
+  :ARCHIVE_TODO: DONE
+  :END:
+*** Agent Notes
+     [2026-01-09] Implemented Optimistic UI and State Polling pattern for batch statuses.
+     Files changed: stores/batches.js, components/BatchManagement.vue, components/BatchEditor.vue
+     Notes: 
+     - Replaced manual re-fetching with transparent polling in Pinia store.
+     - Store now automatically detects transient statuses (NESTING, PROCESSING) and initiates background polling.
+     - Implemented optimistic status updates for `startNesting` and `resetStatus` actions with automatic rollback on failure.
+     - Cleaned up component-level logic to rely on store-driven state updates.
+* DONE Cassette Designer Save Fix
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2026-01-16 Пт 21:10
+  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_CATEGORY: TODO
+  :ARCHIVE_TODO: DONE
+  :END:
+*** Agent Notes
+    [2026-01-09] Fixed "Failed to save template" bug in Cassette Designer.
+    - Added missing `createCassette` export to Pinia store.
+    - Refactored backend to use Service-Repository pattern for parametric cassettes.
+    - Fixed `userId` consistency (OAuth string vs ObjectId) in service layer.
+    - Parametric cassettes now correctly store their data and parameters.
+
+*** Agent Notes
+     [2026-01-09] Implemented Parametric Cassette Baking and Reverted Worker Changes.
+     Files changed: workers/nesting/core/main.py, server/api/batch/[id]/nest.post.js, server/api/cassettes/[id]/export.get.js, server/features/parametric-cassettes/*
+     Docs updated: server/features/parametric-cassettes/NEOLIT.md, server/features/NEOLIT.md
+     Notes: 
+     - Reverted worker changes to keep it generic and independent of baked/standard status.
+     - Implemented `parametric-cassettes` service to "bake" templates into temporary DXF instances.
+     - Baking process creates a temporary cassette document in DB that the generic worker can process normally.
+     - Integrated `nodi-modular` WASM on the server to handle full parametric geometry (A, B, and all extrusions).
+     - Added instant DXF export endpoint for parametric templates using the same evaluation engine.
+     - Followed Service-Repository pattern and added JSDoc documentation.

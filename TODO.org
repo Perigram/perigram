@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 * TODO Core Architectural Hardening (v24 Final) [4/4]
   :PROPERTIES:
   :ID: arch-hardening-v24
@@ -767,3 +768,27 @@
      - Entity types without status block (Catalog, Color, CassetteDesign, LayerStandard,
        Organization, PenTemplate, ToolProfile): correctly have NO EntityStatus — these
        entities have no status block in v24 data model
+=======
+* TODO run through all the components and pages and check locales usage.
+  For each hardcoded string found, replace them with locale key, and ensure that the keys exist in the locale files.
+  Don't modify TODO file for this task results. 
+
+* TODO run through all the components and pages and check layout and styling.
+  For each component/page, ensure that the layout is responsive and works well on different screen sizes.
+  Check for consistent use of margins, paddings, font sizes, and colors according to the design guidelines.
+  Ensure that all elements are using as least hardcoded css as possible (in favor of primevue design tokens), and use project-wide css where applicable.
+  Don't modify TODO file for this task results.
+
+* TODO review nesting batch workflow
+  1. Need new status "cut" for batch that was cut already. There can't be "error" or "complete" status for batch (only for runs, see pt3), only "cut" or "draft".
+  2. On "complete" need to reset to "draft", just like on "error" status now.
+  3. Need to add "runs" for each batch. Run has it's own statuses: "nesting", "error", "complete", "chosen". "Chosen" is human selected, one for each batch, only for runs that are complete. In batch, "cut" status can be toggled only when there is "chosen" run exist.
+  4. Runs created automatically on each nesting attempt. Artifacts are associated with runs. Runs can be displayed in batch as tabs or dropdown. Number of runs can be displayed in batch header. Chosen run's artifacts become batch artifacts.
+
+* TODO review cassette baking and usage in nesting
+  Baked cassette should include all the layers using layer standard. Only the one layer should be used in nesting, that in marked as nesting layer in standard. Artifacts created during nesting should use transform data for placing other layers data back to nested cassettes. Of course, everything should be done procedurally without hardcoding layer names etc.
+
+* TODO 
+
+
+>>>>>>> Stashed changes

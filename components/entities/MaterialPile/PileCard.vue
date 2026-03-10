@@ -9,8 +9,12 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import { MATERIAL_PILE_FIELDS } from '~/constants/entityFields';
 import { useAuthStore } from '~/stores/auth';
+
+const FIELDS = [
+    { path: 'data.stock.total', i18n: 'piles.stockTotal' },
+    { path: 'data.stock.used',  i18n: 'piles.stockUsed' }
+];
 
 const props = defineProps({
   pile: { type: Object, required: true },
@@ -56,7 +60,7 @@ const handleCardClick = () => {
         </template>
         
         <Divider />
-        <DataBlock :entity="pile" :fields="MATERIAL_PILE_FIELDS" />
+        <DataBlock :entity="pile" :fields="FIELDS" />
 
         <template #footer>
             <div class="flex justify-end gap-2" @click.stop>
