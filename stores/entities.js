@@ -9,6 +9,7 @@ import { ref } from 'vue';
 export const useEntityStore = defineStore('entities', () => {
     // Cache structure: { [entityType]: { [id]: data } }
     const registry = ref({
+        organization: {},
         project: {},
         queue: {},
         sheetDesign: {},
@@ -67,10 +68,11 @@ export const useEntityStore = defineStore('entities', () => {
 
         loading.value = true;
         try {
-            // Mapping UI types to actual API endpoints
             const endpointMap = {
+                organization: `/api/organizations/${id}`,
                 project: `/api/project/${id}`,
                 queue: `/api/queue/${id}`,
+                warehouse: `/api/warehouses/${id}`,
                 requisition: `/api/requisitions/${id}`,
                 batch: `/api/material-piles/${id}`,
                 cassetteInstance: `/api/cassette-instances/${id}`,

@@ -5,7 +5,7 @@
                 <TraceLink 
                     :type="item.type" 
                     :id="item.id" 
-                    :label="item.label"
+                    :label="labels[item.id] || item.id"
                     :slug="item.slug"
                 />
             </template>
@@ -21,11 +21,13 @@
 /**
  * TraceChain - v24 Standardized
  * Visualizes the ancestry tree for any entity.
+ * Names are resolved async via useEntityStore (cached, no duplicate fetches).
  */
-import { ref, computed } from 'vue';
+import { ref, computed, watchEffect } from 'vue';
 import TraceLink from './TraceLink.vue';
 import Button from 'primevue/button';
 import { useLineage } from '~/composables/useBlocks';
+import { useEntityStore } from '~/stores/entities';
 
 const props = defineProps({
     entity: { type: Object, default: null },
@@ -33,8 +35,10 @@ const props = defineProps({
     expandable: { type: Boolean, default: false }
 });
 
+const entityStore = useEntityStore();
 const isExpanded = ref(!props.expandable);
 const { lineage: entityLineage } = useLineage(props.entity);
+const labels = ref({});
 
 const activeLineage = computed(() => props.lineage || entityLineage.value);
 
@@ -49,6 +53,17 @@ const items = computed(() => {
     if (lin.queueId) list.push({ type: 'queue', id: lin.queueId, slug: lin.projectId });
     
     return list;
+});
+
+// Resolve entity names for all lineage items, using the entity store cache.
+watchEffect(async () => {
+    for (const item of items.value) {
+        if (labels.value[item.id]) continue;
+        const entity = await entityStore.fetchEntity(item.type, item.id);
+        if (entity?.identity?.name) {
+            labels.value[item.id] = entity.identity.name;
+        }
+    }
 });
 
 const visibleItems = computed(() => {
