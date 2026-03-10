@@ -25,10 +25,10 @@
         <!-- Empty state -->
         <div
             v-else-if="queues.length === 0"
-            class="text-center py-20 px-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)] mx-1"
+            class="text-center py-20 px-6 border-2 border-dashed rounded-xl mx-1"
         >
-            <i class="pi pi-inbox text-6xl text-[var(--p-text-muted-color)] mb-4 opacity-30 block"></i>
-            <p class="text-lg text-[var(--p-text-secondary-color)] mb-6">{{ $t('queue.empty') }}</p>
+            <i class="pi pi-inbox text-6xl mb-4 opacity-30 block"></i>
+            <p class="mb-6">{{ $t('queue.empty') }}</p>
             <Button
                 :label="$t('queue.createFirst')"
                 icon="pi pi-plus"
@@ -46,7 +46,6 @@
     import { storeToRefs } from 'pinia'
     import QueueEditor from '~/components/QueueEditor.vue'
     import Button from 'primevue/button'
-    import Select from 'primevue/select'
 
     definePageMeta({
         layout: 'app',

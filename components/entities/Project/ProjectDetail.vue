@@ -8,7 +8,7 @@
                     <h1 class="m-0">{{ projectName }}</h1>
                     <EntityStatus :entity="project" entity-type="project" />
                 </div>
-                <small>Created: {{ new Date(project.createdAt).toLocaleDateString() }}</small>
+                <small>{{ $t('common.created') }}: {{ project.origin?.timestamp ? new Date(project.origin.timestamp).toLocaleDateString() : '—' }}</small>
             </div>
             <div class="flex gap-2">
                 <Button label="Settings" icon="pi pi-cog" text />
@@ -47,12 +47,12 @@
                     <div class="flex flex-col gap-4">
                         <div class="flex flex-col">
                             <small>Total Area</small>
-                            <span class="text-3xl">{{ project.summary?.totalArea || 0 }} m²</span>
+                            <span>{{ project.summary?.totalArea || 0 }} m²</span>
                         </div>
                         <Divider />
                         <div class="flex flex-col">
                             <small>Queues</small>
-                            <span class="text-xl">{{ queues.length }}</span>
+                            <span>{{ queues.length }}</span>
                         </div>
                     </div>
                 </Panel>

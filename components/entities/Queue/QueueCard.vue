@@ -38,7 +38,7 @@ const handleCardClick = () => {
       <StandardCard>
         <div class="flex items-center justify-between gap-4">
             <div class="flex items-center gap-2">
-                <small v-if="queue.data?.queueNumber">#{{ queue.data.queueNumber }}</small>
+                <small v-if="queue.queueNumber">#{{ queue.queueNumber }}</small>
                 <IdentityBlock :entity="queue" variant="compact" />
             </div>
             <EntityStatus :entity="queue" entity-type="queue" variant="inline" />
@@ -55,7 +55,7 @@ const handleCardClick = () => {
         <template #title>
             <div class="flex justify-between items-start gap-4">
                 <div class="flex flex-col">
-                    <small v-if="queue.data?.queueNumber">#{{ queue.data.queueNumber }}</small>
+                    <small v-if="queue.queueNumber">#{{ queue.queueNumber }}</small>
                     <IdentityBlock :entity="queue" />
                 </div>
                 <EntityStatus :entity="queue" entity-type="queue" variant="inline" />
@@ -66,7 +66,7 @@ const handleCardClick = () => {
         <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col">
                 <small>Job Items</small>
-                <span>{{ queue.data?.job?.items?.length || 0 }}</span>
+                <span>{{ queue.job?.items?.length || 0 }}</span>
             </div>
             <div class="flex flex-col">
                 <small>Nesting Runs</small>

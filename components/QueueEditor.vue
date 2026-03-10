@@ -21,7 +21,7 @@
                         <h2 v-else class="m-0">{{ queueName }}</h2>
                         <EntityStatus :entity="queue" entity-type="queue" variant="inline" />
                     </div>
-                    <TraceChain :ancestry="queueAncestry" />
+                    <TraceChain :entity="queue" />
                 </div>
                 
                 <div class="flex gap-2">
@@ -257,22 +257,15 @@
 
             <!-- Tracking -->
             <AccordionPanel v-if="queueState === 'CUT'" value="3">
-                <AccordionHeader>{{ $t('project.cassettes') + ' Instances' }}</AccordionHeader>
+                <AccordionHeader>{{ $t('project.cassettes') }} Instances</AccordionHeader>
                 <AccordionContent>
                     <div class="grid-hub">
-                        <Card v-for="instance in instances" :key="instance._id" class="card-interactive">
-                            <template #title>
-                                <div class="flex justify-between items-center gap-2">
-                                    <small>{{ instance.instanceNumber || instance.identity?.serial }}</small>
-                                    <Select v-model="instance.status.state" :options="instanceStatuses" optionLabel="label" optionValue="value" size="small" @change="(e) => updateInstanceStatus(instance, e.value)">
-                                        <template #value="slotProps"><Tag :value="slotProps.value" :severity="getInstanceStatusSeverity(slotProps.value)" /></template>
-                                    </Select>
-                                </div>
-                            </template>
-                            <template #subtitle>
-                                <span>{{ getCassetteName(instance.lineage?.templateId) }}</span>
-                            </template>
-                        </Card>
+                        <CassetteInstanceCard 
+                            v-for="instance in instances" 
+                            :key="instance._id" 
+                            :instance="instance"
+                            variant="compact"
+                        />
                     </div>
                 </AccordionContent>
             </AccordionPanel>
@@ -315,7 +308,6 @@ import { useCassettesStore } from '~/stores/cassettes';
 import { useToolProfilesStore } from '~/stores/toolProfiles';
 import { useArtifactsStore } from '~/stores/artifacts';
 import { useQueuesStore } from '~/stores/queues';
-import { useEntityStore } from '~/stores/entities';
 import { storeToRefs } from 'pinia';
 import Card from 'primevue/card';
 import Panel from 'primevue/panel';
@@ -326,6 +318,8 @@ import Tag from 'primevue/tag';
 import Select from 'primevue/select';
 import SelectButton from 'primevue/selectbutton';
 import MultiSelect from 'primevue/multiselect';
+import Message from 'primevue/message';
+import Divider from 'primevue/divider';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Checkbox from 'primevue/checkbox';
@@ -333,10 +327,14 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FileUpload from 'primevue/fileupload';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Accordion from 'primevue/accordion';
+import AccordionPanel from 'primevue/accordionpanel';
+import AccordionHeader from 'primevue/accordionheader';
+import AccordionContent from 'primevue/accordioncontent';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
 import ArtifactsTable from './ArtifactsTable.vue';
 import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
+import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import { useIdentity, useStatus } from '~/composables/useBlocks';
@@ -360,7 +358,6 @@ const queuesStore = useQueuesStore();
 const cassettesStore = useCassettesStore();
 const artifactsStore = useArtifactsStore();
 const toolProfilesStore = useToolProfilesStore();
-const entityStore = useEntityStore();
 
 const entries = ref([]);
 const { artifacts } = storeToRefs(artifactsStore);
@@ -480,17 +477,6 @@ const isNestingReady = computed(() => {
     return true;
 });
 
-const queueAncestry = computed(() => entityStore.getAncestry('queue', props.queue));
-
-const instanceStatuses = [{ label: 'Produced', value: 'PRODUCED' }, { label: 'Milled', value: 'MILLED' }, { label: 'Installed', value: 'INSTALLED' }];
-const getInstanceStatusSeverity = (s) => ({ 'PRODUCED': 'info', 'MILLED': 'warn', 'INSTALLED': 'success' }[s] || 'secondary');
-
-const updateInstanceStatus = async (instance, state) => {
-    try {
-        await $fetch(`/api/cassette-instances/${instance._id}`, { method: 'PUT', body: { status: state } });
-        toast.add({ severity: 'success', summary: 'Updated', life: 2000 });
-    } catch (e) { toast.add({ severity: 'error', summary: 'Failed', life: 3000 }); }
-};
 
 const loadWarehouseInventory = async () => {
     if (!nestingOptions.value.warehouseId) return;
@@ -505,7 +491,7 @@ const loadWarehouseInventory = async () => {
         availableInventory.value = [
             ...piles.map(p => ({ type: 'PILE', uniqueId: `pile_${p._id}`, label: p.identity.name, specs: `${p.specs.width}x${p.specs.length}`, id: p._id })),
             ...sheets.map(s => ({ type: 'SHEET', uniqueId: `sheet_${s._id}`, label: s.identity.serial, specs: `${s.specs.width}x${s.specs.length}`, id: s._id })),
-            ...remnants.map(r => ({ type: 'REMNANT', uniqueId: `remnant_${r._id}`, label: r.identity.serial, specs: `${r.specs.area}m²`, id: r._id }))
+            ...remnants.map(r => ({ type: 'REMNANT', uniqueId: `remnant_${r._id}`, label: r.identity?.serial || r.serial, specs: r.data?.area ? `${r.data.area}m²` : '-', id: r._id }))
         ];
     } catch (e) { console.error(e); }
 };
