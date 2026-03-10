@@ -748,3 +748,22 @@
        from containers and must be sized explicitly per context.
      - Fixed CassetteTemplateCard: Create Instance button was dead (no emit) — added
        defineEmits + $emit('create-instance', template)
+
+*** Agent Notes
+     [2025-07-20] Fix #content slot bugs, remaining size=small, field access violations
+     Files changed: ArtifactCard.vue, CatalogCard.vue, CassetteTemplateCard.vue,
+       CassetteInstanceCard.vue, SheetCard.vue, LayerStandardCard.vue,
+       CassetteDesignCard.vue, PenTemplateCard.vue
+     Docs updated: components/NEOLIT.md
+     Notes:
+     - StandardCard exposes: #header, #title, #subtitle, #footer, default slot (content).
+       NO #content named slot for consumers — content placed in <template #content> is
+       silently dropped. Fixed in 4 cards (Catalog, CassetteTemplate, CassetteInstance, Artifact).
+     - ArtifactCard: replaced manual Tag state indicator with EntityStatus; useIdentity
+       for name instead of direct identity?.name access; EntityStatus in all variants
+     - SheetCard: replaced sheet.data?.specs?.width raw access with useSpecs composable
+     - CassetteInstanceCard: replaced raw lineage.designId display with TraceLink
+     - LayerStandardCard: useIdentity for serial field in inline chip
+     - Entity types without status block (Catalog, Color, CassetteDesign, LayerStandard,
+       Organization, PenTemplate, ToolProfile): correctly have NO EntityStatus — these
+       entities have no status block in v24 data model
