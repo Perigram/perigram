@@ -22,7 +22,7 @@
                     </div>
                     <Card>
                         <template #content>
-                            <StatusHistory :entity="instance" />
+                            <StatusHistory :entity="instance" entity-type="cassette_instance" />
                         </template>
                     </Card>
                 </div>

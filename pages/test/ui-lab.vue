@@ -95,6 +95,7 @@ import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue'
 import SheetDesignCard from '~/components/entities/SheetDesign/SheetDesignCard.vue';
 import CassetteDesignCard from '~/components/entities/CassetteDesign/CassetteDesignCard.vue';
 import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
+import RequisitionCard from '~/components/entities/Requisition/RequisitionCard.vue';
 
 import PileCard from '~/components/entities/MaterialPile/PileCard.vue';
 import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
@@ -136,7 +137,8 @@ import {
   createMockToolProfile,
   createMockPenTemplate,
   createMockLayerStandard,
-  createMockHistory
+  createMockHistory,
+  createMockRequisition
 } from '~/test-data/factories.js';
 
 const activeTab = ref('production');
@@ -150,6 +152,7 @@ const tabs = [
 ];
 
 const mocks = {
+    requisition: createMockRequisition(),
     project: createMockProject({
         summary: {
             queueCount: 5,
@@ -202,6 +205,7 @@ const componentsMap = {
     { title: 'Sheet Design', component: SheetDesignCard, props: { design: mocks.sheetDesign } },
     { title: 'Cassette Design', component: CassetteDesignCard, props: { design: mocks.cassetteDesign } },
     { title: 'Cassette Instance', component: CassetteInstanceCard, props: { instance: mocks.instance } },
+    { title: 'Requisition', component: RequisitionCard, props: { requisition: mocks.requisition } },
   ],
   material: [
     { title: 'Material Pile', component: PileCard, props: { pile: mocks.pile } },

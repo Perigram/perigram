@@ -58,7 +58,7 @@
 
             <div class="flex flex-col gap-8">
                 <Panel header="History">
-                    <StatusHistory :entity="sheet" />
+                    <StatusHistory :entity="sheet" entity-type="sheet" />
                 </Panel>
             </div>
         </div>

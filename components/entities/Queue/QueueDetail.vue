@@ -59,7 +59,7 @@
             <!-- Right: Metadata & Materials -->
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('requisition.lifecycleTimeline')">
-                    <StatusHistory :entity="queue" />
+                    <StatusHistory :entity="queue" entity-type="queue" />
                 </Panel>
 
                  <Panel :header="$t('project.overview')">

@@ -56,7 +56,7 @@
             <!-- Sidebar -->
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('requisition.lifecycleTimeline')">
-                    <StatusHistory collection="requisitions" :entityId="requisition._id" />
+                    <StatusHistory entity-type="requisition" :entity="requisition" />
                 </Panel>
             </div>
         </div>

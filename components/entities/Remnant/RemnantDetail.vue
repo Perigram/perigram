@@ -30,7 +30,8 @@
                 </div>
                 <div class="flex flex-col">
                     <small>{{ $t('results.material') }}</small>
-                    <span>{{ remnant.specs?.material }} / {{ remnant.specs?.color }}</span>
+                    <TraceLink v-if="remnant.lineage?.pileId" type="material_pile" :id="remnant.lineage.pileId" />
+                    <span v-else>—</span>
                 </div>
             </div>
         </Panel>
@@ -51,7 +52,7 @@
 
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('requisition.lifecycleTimeline')">
-                    <StatusHistory :entity="remnant" />
+                    <StatusHistory :entity="remnant" entity-type="remnant" />
                 </Panel>
             </div>
         </div>
@@ -67,6 +68,7 @@ import Button from 'primevue/button';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
+import TraceLink from '~/components/shared/links/TraceLink.vue';
 import { useIdentity, useStatus, useSpecs } from '~/composables/useBlocks';
 import { useEntity } from '~/composables/useEntity';
 

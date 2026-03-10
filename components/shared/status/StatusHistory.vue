@@ -7,16 +7,21 @@ import Timeline from 'primevue/timeline';
 import Divider from 'primevue/divider';
 import ProgressSpinner from 'primevue/progressspinner';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
-import { onMounted, watch } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useStatusHistory } from '~/composables/useStatusHistory';
 
 const props = defineProps({
+  entity: { type: Object, default: null },
   entityType: { type: String, required: true },
-  targetId: { type: String, required: true },
+  targetId: { type: String, default: null },
   mockEvents: { type: Array, default: null }
 });
 
-const { events, isLoading, fetchHistory } = useStatusHistory(props.entityType, props.targetId);
+const resolvedTargetId = computed(
+  () => props.targetId || props.entity?._id?.toString() || props.entity?.id?.toString()
+);
+
+const { events, isLoading, fetchHistory } = useStatusHistory(props.entityType, resolvedTargetId.value);
 
 onMounted(() => {
   if (props.mockEvents) {

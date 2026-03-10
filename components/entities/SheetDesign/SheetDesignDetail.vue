@@ -48,7 +48,7 @@
             <!-- Sidebar -->
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('cassetteInstance.tracking')">
-                    <StatusHistory :entity="design" />
+                    <StatusHistory :entity="design" entity-type="sheet_design" />
                 </Panel>
                 <Panel :header="$t('sheetDesign.instances')">
                     <div class="flex flex-col gap-2">

@@ -58,7 +58,7 @@
                 </Panel>
 
                 <Panel header="Lifecycle">
-                    <StatusHistory :entity="project" />
+                    <StatusHistory :entity="project" entity-type="project" />
                 </Panel>
             </div>
         </div>

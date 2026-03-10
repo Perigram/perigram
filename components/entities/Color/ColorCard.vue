@@ -2,7 +2,7 @@
   <div :class="[`variant-${variant}`]">
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
-        <div class="w-4 h-4 rounded-full border" :style="{ backgroundColor: color.visuals?.hexCode || '#ccc' }"></div>
+        <div class="w-4 h-4 rounded-full border" :style="{ backgroundColor: color.data?.visuals?.hexCode || '#ccc' }"></div>
         <span>{{ name }}</span>
       </div>
     </template>
@@ -11,7 +11,7 @@
       <Card>
         <template #title>
             <div class="flex items-center gap-4">
-                <div class="w-6 h-6 rounded-full border" :style="{ backgroundColor: color.visuals?.hexCode || '#ccc' }"></div>
+                <div class="w-6 h-6 rounded-full border" :style="{ backgroundColor: color.data?.visuals?.hexCode || '#ccc' }"></div>
                 <span class="truncate">{{ name }}</span>
             </div>
         </template>
@@ -24,7 +24,7 @@
     <template v-else-if="variant === 'card'">
       <Card class="overflow-hidden">
         <template #header>
-            <div class="h-32 w-full" :style="{ backgroundColor: color.visuals?.hexCode || '#ccc' }"></div>
+            <div class="h-32 w-full" :style="{ backgroundColor: color.data?.visuals?.hexCode || '#ccc' }"></div>
         </template>
         <template #title>
             <span class="truncate">{{ name }}</span>
@@ -33,7 +33,7 @@
             <Divider />
             <div class="flex justify-between items-center">
                 <small>{{ color.identity?.serial }}</small>
-                <small>{{ color.visuals?.hexCode }}</small>
+                <small>{{ color.data?.visuals?.hexCode }}</small>
             </div>
         </template>
       </Card>

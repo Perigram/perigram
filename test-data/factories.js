@@ -105,7 +105,9 @@ export function createMockRemnant(overrides = {}) {
     identity: { serial: 'REM-2025-X1' },
     status,
     lineage: { parentSheetId: new ObjectId(), pileId: new ObjectId() },
-    specs: { area: 0.45 },
+    serial: 'REM-2025-X1',
+    isReusable: false,
+    data: { serial: 'REM-2025-X1', area: 0.45, width: 900, height: 500, isReusable: false },
     ...overrides
   };
 }
@@ -115,6 +117,7 @@ export function createMockWarehouse(overrides = {}) {
     _id: new ObjectId(),
     identity: { name: 'Main Logistic Hub', serial: 'WH-01', reference: 'SEC-A' },
     address: '123 Industrial Way, Tech City',
+    type: 'MAIN',
     ...overrides
   };
 }
@@ -220,8 +223,6 @@ export function createMockOrganization(overrides = {}) {
 
     type: 'FABRICATOR',
 
-    billing: { status: 'PAID' },
-
     ...overrides
 
   };
@@ -258,7 +259,7 @@ export function createMockColor(overrides = {}) {
 
     identity: { name: 'Traffic White', serial: 'RAL-9016' },
 
-    visuals: { hexCode: '#F6F6F6' },
+    data: { code: 'RAL-9016', visuals: { hexCode: '#F6F6F6', textureUrl: null } },
 
     ...overrides
 
