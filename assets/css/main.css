@@ -13,7 +13,17 @@
     }
 }
 
-/* PrimeVue Tabs fix for mobile */
+/* Input components fill available width by default */
+.p-inputtext,
+.p-select,
+.p-password,
+.p-textarea,
+.p-inputnumber,
+.p-inputchips {
+    width: 100%;
+}
+
+
 .p-tabs-list {
     overflow-x: auto;
     overflow-y: hidden;
