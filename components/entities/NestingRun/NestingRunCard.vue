@@ -35,10 +35,7 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
   <div class="h-full cursor-pointer" @click="$emit('select', run._id)">
     <!-- Inline -->
     <template v-if="variant === 'inline'">
-      <div class="inline-flex items-center gap-2">
-        <i class="pi pi-list-check"></i>
-        <IdentityBlock :entity="run" variant="inline" />
-      </div>
+      <IdentityBlock :entity="run" variant="inline" icon="pi pi-list-check" />
     </template>
 
     <!-- Compact -->

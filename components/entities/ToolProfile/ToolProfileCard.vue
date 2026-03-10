@@ -1,10 +1,8 @@
 <template>
   <div :class="[`variant-${variant}`]">
+    <!-- Inline -->
     <template v-if="variant === 'inline'">
-      <div class="inline-flex items-center gap-2">
-        <i class="pi pi-wrench"></i>
-        <span>{{ name }}</span>
-      </div>
+      <IdentityBlock :entity="tool" variant="inline" icon="pi pi-wrench" />
     </template>
 
     <template v-else-if="variant === 'compact'">

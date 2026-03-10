@@ -3,6 +3,7 @@
  * Artifact View Component - v24 Standardized
  */
 import { computed } from 'vue';
+import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import StandardCard from '~/components/shared/StandardCard.vue';
@@ -32,11 +33,11 @@ const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 
   <div class="cursor-pointer" @click="$emit('click', artifact)">
     <!-- INLINE: Small chip-like item -->
     <template v-if="variant === 'inline'">
-      <div class="inline-flex items-center gap-2">
-        <i :class="['pi', icon]"></i>
+      <Chip>
+        <i :class="['pi', icon]" />
         <span>{{ typeLabel }}</span>
         <Tag v-if="state !== 'READY'" :severity="statusColor" />
-      </div>
+      </Chip>
     </template>
 
     <!-- COMPACT: List item with more info -->

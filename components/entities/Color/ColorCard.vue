@@ -1,10 +1,10 @@
 <template>
   <div>
     <template v-if="variant === 'inline'">
-      <div class="inline-flex items-center gap-2">
-        <div class="w-4 h-4 rounded-full border" :style="swatchStyle"></div>
+      <Chip>
+        <div class="w-3 h-3 rounded-full shrink-0" :style="swatchStyle" />
         <span>{{ name }}</span>
-      </div>
+      </Chip>
     </template>
 
     <template v-else-if="variant === 'compact'">
@@ -44,6 +44,7 @@
  * Color View Component - v24 Standardized
  */
 import { computed } from 'vue';
+import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';

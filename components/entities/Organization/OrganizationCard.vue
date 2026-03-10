@@ -1,10 +1,10 @@
 <template>
   <div :class="[`variant-${variant}`]">
     <template v-if="variant === 'inline'">
-      <div class="inline-flex items-center gap-2">
+      <Chip>
         <Avatar :label="name?.charAt(0)" shape="circle" size="small" />
         <span>{{ name }}</span>
-      </div>
+      </Chip>
     </template>
 
     <template v-else-if="variant === 'compact'">
@@ -53,6 +53,7 @@ import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import Avatar from 'primevue/avatar';
+import Chip from 'primevue/chip';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useIdentity } from '~/composables/useBlocks';

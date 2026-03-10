@@ -1,10 +1,10 @@
 <template>
   <div :class="[`variant-${variant}`]">
     <template v-if="variant === 'inline'">
-      <div class="inline-flex items-center gap-2">
-        <div class="w-3.5 h-3.5 rounded-full border" :style="{ backgroundColor: standard.metadata?.color || '#ccc' }"></div>
+      <Chip>
+        <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: standard.metadata?.color || '#ccc' }" />
         <span>{{ standard.identity?.serial || standard.code }}</span>
-      </div>
+      </Chip>
     </template>
 
     <template v-else-if="variant === 'compact'">
@@ -45,6 +45,7 @@
  * Layer Standard View Component - v24 Standardized
  */
 import Badge from 'primevue/badge';
+import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';

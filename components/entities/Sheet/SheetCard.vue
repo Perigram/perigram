@@ -17,10 +17,7 @@ const props = defineProps({
   <div class="h-full">
     <!-- Inline -->
     <template v-if="variant === 'inline'">
-      <div class="inline-flex items-center gap-2">
-        <i class="pi pi-file"></i>
-        <IdentityBlock :entity="sheet" variant="inline" />
-      </div>
+      <IdentityBlock :entity="sheet" variant="inline" icon="pi pi-file" />
     </template>
 
     <!-- Compact -->

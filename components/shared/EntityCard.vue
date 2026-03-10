@@ -1,11 +1,8 @@
 <template>
-    <!-- Inline: icon + identity only -->
+    <!-- Inline: pill chip -->
     <template v-if="variant === 'inline'">
-        <div class="inline-flex items-center gap-2">
-            <i :class="entityConfig.icon"></i>
-            <IdentityBlock :entity="entity" variant="inline" />
-            <slot name="inline-extra" />
-        </div>
+        <IdentityBlock :entity="entity" variant="inline" :icon="entityConfig.icon" />
+        <slot name="inline-extra" />
     </template>
 
     <!-- Compact: identity + status in a card row -->

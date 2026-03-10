@@ -3,11 +3,13 @@
  * IdentityBlock - v24 Standardized
  * Displays Name and ID/Slug/Serial
  */
+import Chip from 'primevue/chip';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  variant: { type: String, default: 'default' } // default, compact, inline, header
+  variant: { type: String, default: 'default' }, // default, compact, inline, header
+  icon: { type: String, default: null } // used in inline variant for Chip icon
 });
 
 const { name, slug, serial } = useIdentity(props.entity);
@@ -30,8 +32,8 @@ const { name, slug, serial } = useIdentity(props.entity);
       <small class="truncate">{{ slug }}</small>
     </div>
 
-    <!-- Inline Variant (Inline pills, references) -->
-    <span v-else-if="variant === 'inline'" class="truncate" :title="name">{{ name }}</span>
+    <!-- Inline Variant — pill chip with optional icon -->
+    <Chip v-else-if="variant === 'inline'" :label="name" :icon="icon || undefined" :title="slug" />
 
     <!-- Default -->
     <div v-else class="flex flex-col gap-1">

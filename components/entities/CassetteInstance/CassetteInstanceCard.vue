@@ -2,10 +2,7 @@
   <div>
     <!-- Inline -->
     <template v-if="variant === 'inline'">
-      <div class="inline-flex items-center gap-2">
-        <i class="pi pi-box"></i>
-        <IdentityBlock :entity="instance" variant="inline" />
-      </div>
+      <IdentityBlock :entity="instance" variant="inline" icon="pi pi-box" />
     </template>
 
     <!-- Compact -->

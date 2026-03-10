@@ -20,10 +20,7 @@ const { formattedArea } = useSpecs(props.remnant);
   <div class="h-full">
     <!-- Inline -->
     <template v-if="variant === 'inline'">
-      <div class="inline-flex items-center gap-2">
-        <i class="pi pi-undo rotate-180"></i>
-        <IdentityBlock :entity="remnant" variant="inline" />
-      </div>
+      <IdentityBlock :entity="remnant" variant="inline" icon="pi pi-undo" />
     </template>
 
     <!-- Compact -->

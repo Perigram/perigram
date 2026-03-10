@@ -2,10 +2,10 @@
   <div v-if="user" :class="[`variant-${variant}`]">
     <!-- Inline -->
     <template v-if="variant === 'inline'">
-      <div class="inline-flex items-center gap-2">
+      <Chip>
         <Avatar :image="user.identity?.avatarUrl" :label="!user.identity?.avatarUrl ? name?.charAt(0) : null" shape="circle" size="small" />
         <span>{{ name }}</span>
-      </div>
+      </Chip>
     </template>
 
     <!-- Compact -->
@@ -52,6 +52,7 @@
  */
 import Divider from 'primevue/divider';
 import Avatar from 'primevue/avatar';
+import Chip from 'primevue/chip';
 import Button from 'primevue/button';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';

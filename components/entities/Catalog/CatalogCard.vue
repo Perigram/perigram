@@ -27,10 +27,7 @@ const handleCardClick = () => {
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
     <template v-if="variant === 'inline'">
-      <div class="inline-flex items-center gap-2">
-        <i class="pi pi-book"></i>
-        <IdentityBlock :entity="catalog" variant="inline" />
-      </div>
+      <IdentityBlock :entity="catalog" variant="inline" icon="pi pi-book" />
     </template>
 
     <template v-else-if="variant === 'compact'">
