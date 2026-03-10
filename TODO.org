@@ -108,6 +108,33 @@
     - Fixed 9 P3 convention issues (Card→StandardCard, IdentityBlock, hardcoded values)
     - All fixes follow NEOLIT v24 Absolute Final patterns
 
+*** Agent Notes
+    [2026-03-10] Data Model Accuracy Verification Pass
+    Files changed:
+    - components/shared/status/StatusHistory.vue (add optional entity prop; derive targetId from entity)
+    - components/entities/Queue/QueueDetail.vue (add entity-type to StatusHistory)
+    - components/entities/CassetteInstance/CassetteInstanceDetail.vue (add entity-type to StatusHistory)
+    - components/entities/SheetDesign/SheetDesignDetail.vue (add entity-type to StatusHistory)
+    - components/entities/Remnant/RemnantDetail.vue (add entity-type; remove non-existent specs.material/color; add TraceLink to pile)
+    - components/entities/Project/ProjectDetail.vue (add entity-type to StatusHistory)
+    - components/entities/Sheet/SheetDetail.vue (add entity-type to StatusHistory)
+    - components/entities/Requisition/RequisitionDetail.vue (fix bogus collection/entityId props on StatusHistory)
+    - components/entities/Color/ColorCard.vue (fix color.visuals→color.data.visuals; BaseEntity.toJSON does not hoist data block)
+    - components/entities/Organization/OrganizationCard.vue (remove organization.billing.status — not in data model)
+    - test-data/factories.js (fix mock shapes: Color→data.visuals, Remnant→hoisted serial+isReusable+data, Warehouse→add type, Org→remove billing)
+    - pages/test/ui-lab.vue (add RequisitionCard to production tab)
+    Notes:
+    - Root cause: StatusHistory component did not accept :entity prop despite NEOLIT R9 requiring it.
+      Updated to support both old (entityType + targetId) and new (entity + entityType) patterns.
+    - Color data not hoisted: Color.toJSON() inherits BaseEntity.toJSON() which keeps data block nested.
+      Components must access color.data.visuals.hexCode, not color.visuals.hexCode.
+    - Remnant has no material/color fields — those belong to the parent pile. Fixed to TraceLink.
+    - Organization toJSON() only exposes name and type — billing is not part of the model.
+    - pen-templates/tool-profiles use toDTO() with spread ...data so their fields ARE hoisted.
+    - Warehouse uses toJSON() that explicitly hoists address, type, contactPerson — correct.
+
+
+
 
     Files changed:
     - components/entities/**/*.vue (All card/detail components)
