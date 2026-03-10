@@ -83,7 +83,7 @@ const props = defineProps({
     }
 });
 
-defineEmits(['send', 'approve', 'reject', 'start-fulfillment', 'fulfill']);
+const emit = defineEmits(['send', 'approve', 'reject', 'start-fulfillment', 'fulfill']);
 
 const authStore = useAuthStore();
 const { serial } = useIdentity(props.requisition);
