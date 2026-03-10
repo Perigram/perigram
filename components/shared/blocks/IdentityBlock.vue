@@ -19,26 +19,25 @@ const { name, slug, serial } = useIdentity(props.entity);
   <div v-if="entity" class="identity-block">
     <!-- Header Variant (Main Page Titles) -->
     <div v-if="variant === 'header'" class="flex flex-col gap-1">
-      <h1>{{ name }}</h1>
-      <div class="flex items-center gap-2">
-        <code>{{ slug }}</code>
-        <small v-if="serial">| {{ serial }}</small>
-      </div>
+      <span class="text-2xl font-semibold">{{ name }}</span>
+      <span class="text-sm text-muted-color">
+        {{ slug }}<template v-if="serial"> · {{ serial }}</template>
+      </span>
     </div>
 
-    <!-- Compact Variant (Lists, Cards) -->
+    <!-- Compact Variant (Card rows, lists) -->
     <div v-else-if="variant === 'compact'" class="flex flex-col min-w-0">
       <span class="truncate" :title="name">{{ name }}</span>
-      <small class="truncate">{{ slug }}</small>
+      <span class="text-xs text-muted-color truncate">{{ slug }}</span>
     </div>
 
-    <!-- Inline Variant — pill chip with optional icon -->
+    <!-- Inline Variant — Chip pill with optional icon -->
     <Chip v-else-if="variant === 'inline'" :label="name" :icon="icon || undefined" :title="slug" />
 
-    <!-- Default -->
-    <div v-else class="flex flex-col gap-1">
-      <div class="font-bold">{{ name }}</div>
-      <div class="text-xs opacity-60 font-mono">{{ slug }}</div>
+    <!-- Default (Card title area) -->
+    <div v-else class="flex flex-col gap-0.5">
+      <span class="font-semibold">{{ name }}</span>
+      <span class="text-sm text-muted-color">{{ slug }}</span>
     </div>
   </div>
 </template>
