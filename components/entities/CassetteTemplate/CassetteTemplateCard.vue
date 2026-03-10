@@ -64,11 +64,4 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['create-instance', 'download']);
-
-const emit = defineEmits(['create-instance', 'download']);
-
-const downloadDxf = () => {
-    const url = `/api/cassettes/${props.template._id}/export`;
-    window.open(url, '_blank');
-};
 </script>
