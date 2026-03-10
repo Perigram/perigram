@@ -133,6 +133,25 @@
     - pen-templates/tool-profiles use toDTO() with spread ...data so their fields ARE hoisted.
     - Warehouse uses toJSON() that explicitly hoists address, type, contactPerson — correct.
 
+*** Agent Notes
+    [2026-03-10] Live Component Cleanup Pass
+    Files changed:
+    - components/entities/Color/ColorCard.vue
+    - components/QueueEditor.vue
+    - components/hubs/WarehouseHub.vue
+    - components/CassetteEditorDialog.vue
+    - components/entities/Requisition/RequisitionDetail.vue
+    - components/entities/CassetteInstance/CassetteInstanceDetail.vue
+    - components/entities/SheetDesign/SheetDesignDetail.vue
+    - components/entities/Warehouse/WarehouseDetail.vue
+    Docs updated:
+    - TODO.org
+    Notes:
+    - Replaced remaining live raw `Card` usage in the audited components with `StandardCard`.
+    - Moved CassetteEditorDialog to `StandardDialog` and removed manual text-size/color utility styling.
+    - Removed remaining large text utility classes from WarehouseHub and QueueEditor lock state.
+    - Verified touched Vue SFCs parse successfully; repo-level Vitest and Nuxt typecheck are currently blocked by pre-existing failures and local file permission errors.
+
 
 
 
@@ -668,3 +687,18 @@
     - Centralized state logic into declarative State Machines with transition hooks and automated event logging.
     - Established multi-variant component architecture (Inline, Compact, Card, Full) demonstrated in UI Lab.
     - Fixed CSS postprocessing error by properly initializing Tailwind directives in assets/css/main.css.
+
+* DONE Fix TraceChain names and create EntityCard abstraction
+*** Agent Notes
+     [2025-07-18] TraceChain shows real entity names; EntityCard abstraction created
+     Files changed: server/core/blocks/index.js, components/shared/links/TraceChain.vue,
+       components/shared/EntityCard.vue (new), components/entities/Project/ProjectCard.vue,
+       components/entities/Queue/QueueCard.vue
+     Docs updated: components/shared/NEOLIT.md (COMPONENT level)
+     Notes:
+     - inheritLineage() now stores ${type}Name from parent.identity.name in lineage block
+     - TraceChain reads lin.organizationName/projectName/queueName/warehouseName with UID fallback
+     - Fixed queue slug bug: was passing lin.projectSlug (undefined) for queue route; now lin.projectId
+     - EntityCard composes TraceChain+IdentityBlock+EntityStatus for card/compact/inline variants
+     - ProjectCard and QueueCard migrated to EntityCard (remove 4 shared imports each)
+     - Existing entities show UID slug as fallback until recreated with name in lineage
