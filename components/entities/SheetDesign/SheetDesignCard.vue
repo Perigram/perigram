@@ -6,15 +6,12 @@ import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
-import { useIdentity, useSpecs } from '~/composables/useBlocks';
+import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 
 const props = defineProps({
   design: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
-
-const { name, serial } = useIdentity(props.design);
-const { formattedDimensions } = useSpecs(props.design);
 </script>
 
 <template>
@@ -44,15 +41,7 @@ const { formattedDimensions } = useSpecs(props.design);
             </div>
         </template>
         <Divider />
-        <div class="flex flex-col gap-6">
-            <div class="aspect-[2/1] border border-dashed rounded flex items-center justify-center opacity-20 italic">
-                {{ serial }}
-            </div>
-            <div v-if="formattedDimensions" class="flex justify-between items-center">
-                <small>{{ $t('common.dimensions') }}</small>
-                <span>{{ formattedDimensions }}</span>
-            </div>
-        </div>
+        <SpecsBlock :entity="design" />
       </StandardCard>
     </template>
   </div>

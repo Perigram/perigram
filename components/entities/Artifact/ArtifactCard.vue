@@ -7,7 +7,8 @@ import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
-import { useIdentity, useStatus } from '~/composables/useBlocks';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import { useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
   artifact: { type: Object, required: true },
@@ -16,8 +17,7 @@ const props = defineProps({
 
 defineEmits(['click']);
 
-const { name } = useIdentity(props.artifact);
-const { state, statusColor } = useStatus(props.artifact);
+const { state } = useStatus(props.artifact);
 
 const icon = computed(() => {
   const type = props.artifact.type;
@@ -47,7 +47,7 @@ const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
                     <i :class="['pi', icon]"></i>
-                    <span class="truncate">{{ name }}</span>
+                    <IdentityBlock :entity="artifact" variant="compact" />
                 </div>
                 <EntityStatus :entity="artifact" entity-type="artifact" variant="inline" />
             </div>
@@ -63,7 +63,7 @@ const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 
       <StandardCard>
         <template #title>
             <div class="flex justify-between items-center gap-4">
-                <span class="truncate">{{ name }}</span>
+                <IdentityBlock :entity="artifact" />
                 <EntityStatus :entity="artifact" entity-type="artifact" variant="inline" />
             </div>
         </template>

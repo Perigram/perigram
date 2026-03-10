@@ -3,8 +3,8 @@
     <!-- Inline -->
     <template v-if="variant === 'inline'">
       <Chip>
-        <Avatar :image="user.identity?.avatarUrl" :label="!user.identity?.avatarUrl ? name?.charAt(0) : null" shape="circle" size="small" />
-        <span>{{ name }}</span>
+        <Avatar :image="user.identity?.avatarUrl" :label="!user.identity?.avatarUrl ? user.identity?.name?.charAt(0) : null" shape="circle" size="small" />
+        <span>{{ user.identity?.name }}</span>
       </Chip>
     </template>
 
@@ -13,7 +13,7 @@
       <StandardCard @click="handleCardClick" class="cursor-pointer">
         <template #title>
             <div class="flex items-center gap-4">
-                <Avatar :image="user.identity?.avatarUrl" :label="!user.identity?.avatarUrl ? name?.charAt(0) : null" shape="circle" />
+                <Avatar :image="user.identity?.avatarUrl" :label="!user.identity?.avatarUrl ? user.identity?.name?.charAt(0) : null" shape="circle" />
                 <IdentityBlock :entity="user" variant="compact" />
                 <EntityStatus :entity="user" entity-type="user" variant="inline" />
             </div>
@@ -26,7 +26,7 @@
       <StandardCard @click="handleCardClick" class="cursor-pointer">
         <template #title>
             <div class="flex flex-col items-center gap-4 text-center">
-                <Avatar :image="user.identity?.avatarUrl" :label="!user.identity?.avatarUrl ? name?.charAt(0) : null" shape="circle" size="xlarge" />
+                <Avatar :image="user.identity?.avatarUrl" :label="!user.identity?.avatarUrl ? user.identity?.name?.charAt(0) : null" shape="circle" size="xlarge" />
                 <IdentityBlock :entity="user" variant="compact" />
             </div>
         </template>
@@ -58,7 +58,6 @@ import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import { useAuthStore } from '~/stores/auth';
-import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -67,7 +66,6 @@ const props = defineProps({
 
 const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
-const { name } = useIdentity(props.user);
 
 const handleCardClick = () => {
     emit('view', props.user);

@@ -23,7 +23,7 @@
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <IdentityBlock :entity="warehouse" />
-                <Tag v-if="warehouse.type" :value="warehouse.type" severity="secondary" />
+                <Tag v-if="warehouse.type" :value="warehouse.type" severity="secondary" size="small" />
             </div>
         </template>
         <Divider />
@@ -48,12 +48,9 @@ import Tag from 'primevue/tag';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
-import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   warehouse: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
-
-const { name } = useIdentity(props.warehouse);
 </script>

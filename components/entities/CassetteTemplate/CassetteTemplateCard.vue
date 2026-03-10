@@ -1,20 +1,18 @@
 <template>
   <div>
-    <!-- Inline View -->
     <template v-if="variant === 'inline'">
       <IdentityBlock :entity="template" variant="inline" icon="pi pi-clone" />
     </template>
 
-    <!-- Compact View -->
     <template v-else-if="variant === 'compact'">
       <StandardCard>
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-clone"></i>
-                    <span class="truncate">{{ name }}</span>
+                    <IdentityBlock :entity="template" variant="compact" />
                 </div>
-                <EntityStatus :entity="template" entity-type="cassette" variant="inline" />
+                <EntityStatus :entity="template" entity-type="cassette_template" variant="inline" />
             </div>
         </template>
         <template #subtitle>
@@ -23,17 +21,13 @@
       </StandardCard>
     </template>
 
-    <!-- Card View -->
     <template v-else-if="variant === 'card'">
       <StandardCard>
-        <template #header>
-            <div class="flex justify-between items-center">
-                <small>Cassette Template</small>
-                <EntityStatus :entity="template" entity-type="cassette" variant="inline" />
-            </div>
-        </template>
         <template #title>
-            <span class="truncate">{{ name }}</span>
+            <div class="flex justify-between items-center gap-4">
+                <IdentityBlock :entity="template" />
+                <EntityStatus :entity="template" entity-type="cassette_template" variant="inline" />
+            </div>
         </template>
         <template #subtitle>
             <small>{{ template.definition?.type }}</small>
@@ -44,7 +38,7 @@
         </div>
         <template #footer>
             <div class="flex gap-2">
-                <Button label="Create Instance" icon="pi pi-plus" text size="small" class="flex-1" @click="$emit('create-instance', template)" />
+                <Button :label="$t('cassetteInstance.create')" icon="pi pi-plus" text size="small" class="flex-1" @click="$emit('create-instance', template)" />
                 <Button icon="pi pi-download" text size="small" @click="downloadDxf" />
             </div>
         </template>
@@ -63,16 +57,13 @@ import Button from 'primevue/button';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   template: { type: Object, required: true },
-  variant: { type: String, default: 'card' } // inline, compact, card
+  variant: { type: String, default: 'card' }
 });
 
 const emit = defineEmits(['create-instance']);
-
-const { name } = useIdentity(props.template);
 
 const downloadDxf = () => {
     const url = `/api/cassettes/${props.template._id}/export`;

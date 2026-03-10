@@ -5,15 +5,13 @@
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
+import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
-import { useSpecs } from '~/composables/useBlocks';
 
 const props = defineProps({
   sheet: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
-
-const { formattedDimensions } = useSpecs(props.sheet);
 </script>
 
 <template>
@@ -46,12 +44,7 @@ const { formattedDimensions } = useSpecs(props.sheet);
             </div>
         </template>
         
-        <div class="flex flex-col gap-2">
-            <div v-if="formattedDimensions" class="flex justify-between items-center">
-                <small>{{ $t('sheets.dimensions') }}</small>
-                <span>{{ formattedDimensions }}</span>
-            </div>
-        </div>
+        <SpecsBlock :entity="sheet" />
       </StandardCard>
     </template>
   </div>

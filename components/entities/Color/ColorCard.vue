@@ -3,7 +3,7 @@
     <template v-if="variant === 'inline'">
       <Chip>
         <div class="w-3 h-3 rounded-full shrink-0" :style="swatchStyle" />
-        <span>{{ name }}</span>
+        <span>{{ color.identity?.name }}</span>
       </Chip>
     </template>
 
@@ -16,7 +16,7 @@
             </div>
         </template>
         <template #subtitle>
-            <small>{{ serial || hexCode || '—' }}</small>
+            <small>{{ color.identity?.serial || hexCode || '—' }}</small>
         </template>
       </StandardCard>
     </template>
@@ -31,7 +31,7 @@
         </template>
         <Divider />
         <div class="flex justify-between items-center gap-4">
-            <small>{{ serial || '—' }}</small>
+            <small>{{ color.identity?.serial || '—' }}</small>
             <small>{{ hexCode || '—' }}</small>
         </div>
       </StandardCard>
@@ -48,14 +48,12 @@ import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   color: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
 
-const { name, serial } = useIdentity(props.color);
 const hexCode = computed(() => props.color.data?.visuals?.hexCode || null);
 const swatchStyle = computed(() => (hexCode.value ? { backgroundColor: hexCode.value } : undefined));
 </script>

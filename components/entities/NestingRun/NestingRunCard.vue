@@ -9,12 +9,12 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import ArtifactCard from '../Artifact/ArtifactCard.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
-import { useIdentity, useStatus } from '~/composables/useBlocks';
+import { useStatus } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
 
 const props = defineProps({
   run: { type: Object, required: true },
-  variant: { type: String, default: 'card' }, // inline, compact, card
+  variant: { type: String, default: 'card' },
   active: { type: Boolean, default: false },
   isChosen: { type: Boolean, default: false },
   artifacts: { type: Array, default: () => [] }
@@ -23,7 +23,6 @@ const props = defineProps({
 const emit = defineEmits(['select', 'choose', 'delete', 'artifact-click', 'convert-to-physical', 'create-requisition']);
 
 const authStore = useAuthStore();
-const { name } = useIdentity(props.run);
 const { state } = useStatus(props.run);
 
 const canManage = computed(() => authStore.can('queues', 'edit'));
@@ -42,7 +41,7 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
       <StandardCard>
         <template #title>
             <div class="flex justify-between items-center">
-                <span class="font-medium">{{ name }}</span>
+                <IdentityBlock :entity="run" variant="compact" />
                 <EntityStatus :entity="run" entity-type="nesting_run" variant="inline" />
             </div>
         </template>

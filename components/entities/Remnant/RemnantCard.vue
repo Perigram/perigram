@@ -5,15 +5,13 @@
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
+import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
-import { useSpecs } from '~/composables/useBlocks';
 
 const props = defineProps({
   remnant: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
-
-const { formattedArea } = useSpecs(props.remnant);
 </script>
 
 <template>
@@ -29,7 +27,7 @@ const { formattedArea } = useSpecs(props.remnant);
         <div class="flex items-center justify-between gap-4">
             <div class="flex flex-col gap-1 min-w-0">
                 <IdentityBlock :entity="remnant" variant="compact" />
-                <small>{{ formattedArea }}</small>
+                <SpecsBlock :entity="remnant" variant="compact" />
             </div>
             <EntityStatus :entity="remnant" entity-type="remnant" variant="inline" />
         </div>
@@ -49,12 +47,7 @@ const { formattedArea } = useSpecs(props.remnant);
             </div>
         </template>
         
-        <div class="flex flex-col gap-2">
-            <div class="flex justify-between items-center">
-                <small>Area</small>
-                <span>{{ formattedArea }}</span>
-            </div>
-        </div>
+        <SpecsBlock :entity="remnant" />
       </StandardCard>
     </template>
   </div>

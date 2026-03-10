@@ -51,12 +51,9 @@ import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   tool: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
-
-const { name } = useIdentity(props.tool);
 </script>

@@ -3,7 +3,7 @@
     <template v-if="variant === 'inline'">
       <Chip>
         <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: pen.stroke?.color || '#000' }" />
-        <span>{{ name }}</span>
+        <span>{{ pen.identity?.name }}</span>
       </Chip>
     </template>
 
@@ -58,12 +58,9 @@ import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   pen: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
-
-const { name } = useIdentity(props.pen);
 </script>

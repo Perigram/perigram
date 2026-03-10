@@ -2,8 +2,8 @@
   <div :class="[`variant-${variant}`]">
     <template v-if="variant === 'inline'">
       <Chip>
-        <Avatar :label="name?.charAt(0)" shape="circle" size="small" />
-        <span>{{ name }}</span>
+        <Avatar :label="organization.identity?.name?.charAt(0)" shape="circle" size="small" />
+        <span>{{ organization.identity?.name }}</span>
       </Chip>
     </template>
 
@@ -11,7 +11,7 @@
       <StandardCard>
         <template #title>
             <div class="flex items-center gap-4">
-                <Avatar :label="name?.charAt(0)" shape="circle" />
+                <Avatar :label="organization.identity?.name?.charAt(0)" shape="circle" />
                 <IdentityBlock :entity="organization" variant="compact" />
             </div>
         </template>
@@ -22,7 +22,7 @@
       <StandardCard>
         <template #title>
             <div class="flex items-center gap-4">
-                <Avatar :label="name?.charAt(0)" shape="circle" size="large" />
+                <Avatar :label="organization.identity?.name?.charAt(0)" shape="circle" size="large" />
                 <IdentityBlock :entity="organization" />
             </div>
         </template>
@@ -56,14 +56,12 @@ import Avatar from 'primevue/avatar';
 import Chip from 'primevue/chip';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   organization: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
 
-const { name } = useIdentity(props.organization);
 const createdAt = computed(() => {
     const ts = props.organization.lineage?.createdAt || props.organization.origin?.timestamp;
     return ts ? new Date(ts).toLocaleDateString() : null;

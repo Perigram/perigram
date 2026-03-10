@@ -3,7 +3,7 @@
     <template v-if="variant === 'inline'">
       <Chip>
         <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: standard.metadata?.color || '#ccc' }" />
-        <span>{{ serial || standard.code }}</span>
+        <span>{{ standard.identity?.serial || standard.code }}</span>
       </Chip>
     </template>
 
@@ -50,12 +50,9 @@ import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
-import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   standard: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
-
-const { name, serial } = useIdentity(props.standard);
 </script>
