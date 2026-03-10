@@ -1,6 +1,9 @@
 <template>
     <div class="h-full">
         <Card class="h-full">
+            <template #header v-if="$slots.header">
+                <slot name="header"></slot>
+            </template>
             <template #title v-if="title || $slots.title">
                 <slot name="title">{{ title }}</slot>
             </template>
