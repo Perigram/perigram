@@ -13,12 +13,9 @@
       <StandardCard>
         <template #title>
             <div class="flex justify-between items-center gap-4">
-                <span class="truncate">{{ name }}</span>
+                <IdentityBlock :entity="design" variant="compact" />
                 <Badge :value="Object.keys(design.parameters || {}).length" severity="secondary" />
             </div>
-        </template>
-        <template #subtitle>
-            <small>{{ serial }}</small>
         </template>
       </StandardCard>
     </template>
@@ -28,19 +25,14 @@
       <StandardCard>
         <template #title>
             <div class="flex justify-between items-center gap-4">
-                <span class="truncate">{{ serial }}</span>
+                <IdentityBlock :entity="design" />
                 <small>Baked Design</small>
             </div>
         </template>
-        <template #subtitle>
-            <span>{{ name }}</span>
-        </template>
-        <template #content>
-            <Divider />
-            <div class="flex justify-center">
-                <i class="pi pi-pencil"></i>
-            </div>
-        </template>
+        <Divider />
+        <div class="flex justify-center">
+            <i class="pi pi-pencil"></i>
+        </div>
       </StandardCard>
     </template>
   </div>
@@ -54,12 +46,9 @@ import Badge from 'primevue/badge';
 import Divider from 'primevue/divider';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   design: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
-
-const { name, serial } = useIdentity(props.design);
 </script>

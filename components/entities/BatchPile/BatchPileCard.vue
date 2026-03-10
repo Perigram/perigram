@@ -34,7 +34,7 @@
       <StandardCard class="card-interactive">
         <template #title>
           <div class="flex justify-between items-start gap-4">
-            <IdentityBlock :entity="pile" variant="compact" />
+            <IdentityBlock :entity="pile" />
             <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
           </div>
         </template>
