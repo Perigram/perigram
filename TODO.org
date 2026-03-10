@@ -82,7 +82,33 @@
       - [ ] CassetteDesigner
 
 *** Agent Notes
-    [2026-01-31] Project-wide UI Styling Refactoring (True Zero Styling)
+    [2026-03-10] Component Architecture Audit — NEOLIT v24 Compliance Fixes
+    Files changed:
+    - components/entities/Requisition/RequisitionCard.vue (missing useAuthStore import)
+    - components/entities/Requisition/RequisitionDetail.vue (unbound emit → runtime crash)
+    - components/entities/CassetteInstance/CassetteInstanceDetail.vue (empty saveStatus, old TraceChain/StatusHistory props)
+    - components/entities/BatchPile/BatchPileCard.vue (v23 flat schema → v24 blocks)
+    - components/entities/BatchPile/BatchPileSummary.vue (v23 flat schema → v24 blocks)
+    - components/entities/SheetDesign/SheetDesignDetail.vue (old TraceChain, no EntityStatus/StatusHistory)
+    - components/entities/Warehouse/WarehouseDetail.vue (no NEOLIT blocks, no permission guard)
+    - components/hubs/WarehouseHub.vue (dead Card import)
+    - components/entities/Queue/QueueDetail.vue (raw artId display, inconsistent StatusHistory)
+    - components/entities/Catalog/CatalogDetail.vue (raw Card grid, manual name/desc)
+    - components/entities/Organization/OrganizationCard.vue (R4, R7, R11)
+    - components/entities/User/UserCard.vue (R4, R7)
+    - components/entities/LayerStandard/LayerStandardCard.vue (R4, R7, R11 hardcoded defaultPen)
+    - components/entities/PenTemplate/PenTemplateCard.vue (R4, R7)
+    - components/entities/ToolProfile/ToolProfileCard.vue (R4, R7)
+    - components/entities/Warehouse/WarehouseCard.vue (R4, R7, R11 hardcoded badge)
+    - components/entities/SheetDesign/SheetDesignCard.vue (R4, R7)
+    - components/entities/Remnant/RemnantDetail.vue (R5 inline status button)
+    Notes:
+    - Fixed 3 P1 runtime crashes (missing imports, unbound emit, empty status save handler)
+    - Fixed 8 P2 major architecture violations (old data model, TraceChain, StatusHistory props)
+    - Fixed 9 P3 convention issues (Card→StandardCard, IdentityBlock, hardcoded values)
+    - All fixes follow NEOLIT v24 Absolute Final patterns
+
+
     Files changed:
     - components/entities/**/*.vue (All card/detail components)
     - components/hubs/*.vue (All tab hubs)
