@@ -110,6 +110,7 @@ import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandard
 
 import CassetteTemplateCard from '~/components/entities/CassetteTemplate/CassetteTemplateCard.vue';
 import BatchPileCard from '~/components/entities/BatchPile/BatchPileCard.vue';
+import UserCard from '~/components/entities/User/UserCard.vue';
 import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
 import ArtifactCard from '~/components/entities/Artifact/ArtifactCard.vue';
 
