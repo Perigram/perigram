@@ -1,52 +1,41 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <!-- Inline View -->
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
         <div class="w-3.5 h-3.5 rounded-full border" :style="{ backgroundColor: standard.metadata?.color || '#ccc' }"></div>
-        <span>{{ standard.code }}</span>
+        <span>{{ standard.identity?.serial || standard.code }}</span>
       </div>
     </template>
 
-    <!-- Compact View -->
     <template v-else-if="variant === 'compact'">
-      <Card>
+      <StandardCard>
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-palette" :style="{ color: standard.metadata?.color || '#ccc' }"></i>
-                    <span class="truncate">{{ standard.identity?.name }}</span>
+                    <IdentityBlock :entity="standard" variant="compact" />
                 </div>
-                <Badge :value="standard.category" severity="secondary" />
+                <Badge v-if="standard.category" :value="standard.category" severity="secondary" />
             </div>
         </template>
-        <template #subtitle>
-            <small>{{ standard.code }}</small>
-        </template>
-      </Card>
+      </StandardCard>
     </template>
 
-    <!-- Card View -->
     <template v-else-if="variant === 'card'">
-      <Card>
+      <StandardCard>
         <template #title>
             <div class="flex justify-between items-center gap-4">
-                <span class="truncate">{{ standard.identity?.name }}</span>
-                <Badge :value="standard.category" severity="secondary" />
+                <IdentityBlock :entity="standard" />
+                <Badge v-if="standard.category" :value="standard.category" severity="secondary" />
             </div>
         </template>
-        <template #subtitle>
-            <small>{{ standard.code }}</small>
-        </template>
-        <template #content>
-            <Divider />
-            <div class="flex flex-col gap-2">
-                <small>Default Pen</small>
-                <PenTemplateCard v-if="defaultPen" :pen="defaultPen" variant="compact" />
-                <p v-else class="italic">No default pen assigned</p>
-            </div>
-        </template>
-      </Card>
+        <Divider />
+        <div class="flex flex-col gap-2">
+            <small>{{ $t('layerStandard.defaultPen') }}</small>
+            <TraceLink v-if="standard.defaultPenId" type="penTemplate" :id="standard.defaultPenId" />
+            <p v-else class="italic opacity-50">{{ $t('layerStandard.noDefaultPen') }}</p>
+        </div>
+      </StandardCard>
     </template>
   </div>
 </template>
@@ -55,23 +44,14 @@
 /**
  * Layer Standard View Component - v24 Standardized
  */
-import { computed } from 'vue';
-import Card from 'primevue/card';
 import Badge from 'primevue/badge';
 import Divider from 'primevue/divider';
-import PenTemplateCard from '../PenTemplate/PenTemplateCard.vue';
+import StandardCard from '~/components/shared/StandardCard.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import TraceLink from '~/components/shared/links/TraceLink.vue';
 
-const props = defineProps({
+defineProps({
   standard: { type: Object, required: true },
   variant: { type: String, default: 'card' }
-});
-
-const defaultPen = computed(() => {
-    if (!props.standard.defaultPenId) return null;
-    return {
-        _id: props.standard.defaultPenId,
-        identity: { name: 'Default Pen' },
-        stroke: { color: props.standard.metadata?.color || '#000', weight: 1, pattern: 'SOLID' }
-    };
 });
 </script>

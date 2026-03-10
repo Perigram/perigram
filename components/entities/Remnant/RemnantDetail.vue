@@ -7,13 +7,12 @@
                 <div class="flex items-center gap-4">
                     <i class="pi pi-undo rotate-180"></i>
                     <h1 class="m-0">{{ serial }}</h1>
-                    <EntityStatus :entity="remnant" entity-type="remnant" />
+                    <EntityStatus :entity="remnant" entity-type="remnant" :actions="statusActions" />
                 </div>
             </template>
             <template #icons>
                 <div class="flex gap-2">
                     <Button icon="pi pi-qrcode" text />
-                    <Button :label="$t('common.markUsed')" icon="pi pi-check-circle" severity="success" v-if="state === 'AVAILABLE'" />
                 </div>
             </template>
 
@@ -61,6 +60,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
@@ -68,6 +68,7 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import { useIdentity, useStatus, useSpecs } from '~/composables/useBlocks';
+import { useEntity } from '~/composables/useEntity';
 
 const props = defineProps({
     remnant: {
@@ -76,9 +77,16 @@ const props = defineProps({
     }
 });
 
+const { t } = useI18n();
 const { serial } = useIdentity(props.remnant);
 const { state } = useStatus(props.remnant);
 const { formattedArea, width, length } = useSpecs(props.remnant);
+const { changeStatus } = useEntity('remnant', props.remnant?._id || props.remnant?.id);
+
+const statusActions = computed(() => {
+    if (state.value !== 'AVAILABLE') return [];
+    return [{ label: t('common.markUsed'), icon: 'pi pi-check-circle', severity: 'success', command: () => changeStatus('USED') }];
+});
 
 const geometryStyle = computed(() => {
     const max = 300;

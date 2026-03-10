@@ -8,41 +8,39 @@
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <Card class="card-interactive">
+      <StandardCard class="card-interactive">
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-wrench"></i>
-                    <span class="truncate">{{ name }}</span>
+                    <IdentityBlock :entity="tool" variant="compact" />
                 </div>
                 <Tag v-if="tool.diameter" :value="`D${tool.diameter}`" severity="secondary" />
             </div>
         </template>
-      </Card>
+      </StandardCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <Card class="card-interactive">
+      <StandardCard class="card-interactive">
         <template #title>
             <div class="flex justify-between items-center gap-4">
-                <span class="truncate">{{ name }}</span>
+                <IdentityBlock :entity="tool" />
                 <i class="pi pi-wrench"></i>
             </div>
         </template>
-        <template #content>
-            <Divider />
-            <div class="flex flex-col gap-2">
-                <div v-if="tool.diameter" class="flex justify-between items-center">
-                    <small>Diameter</small>
-                    <span>{{ tool.diameter }} mm</span>
-                </div>
-                <div v-if="tool.angle !== undefined" class="flex justify-between items-center">
-                    <small>Angle</small>
-                    <span>{{ tool.angle }}°</span>
-                </div>
+        <Divider />
+        <div class="flex flex-col gap-2">
+            <div v-if="tool.diameter" class="flex justify-between items-center">
+                <small>{{ $t('toolProfile.diameter') }}</small>
+                <span>{{ tool.diameter }} mm</span>
             </div>
-        </template>
-      </Card>
+            <div v-if="tool.angle !== undefined" class="flex justify-between items-center">
+                <small>{{ $t('toolProfile.angle') }}</small>
+                <span>{{ tool.angle }}°</span>
+            </div>
+        </div>
+      </StandardCard>
     </template>
   </div>
 </template>
@@ -51,9 +49,10 @@
 /**
  * Tool Profile View Component - v24 Standardized
  */
-import Card from 'primevue/card';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
+import StandardCard from '~/components/shared/StandardCard.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({

@@ -8,41 +8,36 @@
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <Card class="card-interactive">
+      <StandardCard class="card-interactive">
         <template #title>
             <div class="flex items-center justify-between gap-4">
-                <span class="truncate">{{ name }}</span>
-                <Badge value="Active" severity="success" />
+                <IdentityBlock :entity="warehouse" variant="compact" />
+                <EntityStatus :entity="warehouse" entity-type="warehouse" variant="inline" />
             </div>
         </template>
         <template #subtitle>
             <small>{{ warehouse.type }}</small>
         </template>
-      </Card>
+      </StandardCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <Card class="card-interactive">
+      <StandardCard class="card-interactive">
         <template #title>
             <div class="flex justify-between items-center gap-4">
-                <span class="truncate">{{ name }}</span>
-                <Tag :value="warehouse.type" severity="secondary" />
+                <IdentityBlock :entity="warehouse" />
+                <Tag v-if="warehouse.type" :value="warehouse.type" severity="secondary" />
             </div>
         </template>
-        <template #content>
-            <Divider />
-            <div class="flex flex-col gap-4">
-                <div class="flex items-start gap-2">
-                    <i class="pi pi-map-marker"></i>
-                    <span>{{ warehouse.address }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <small>Org ID</small>
-                    <span class="italic">{{ warehouse.lineage?.organizationId }}</span>
-                </div>
+        <Divider />
+        <div class="flex flex-col gap-4">
+            <div v-if="warehouse.address" class="flex items-start gap-2">
+                <i class="pi pi-map-marker"></i>
+                <span>{{ warehouse.address }}</span>
             </div>
-        </template>
-      </Card>
+            <EntityStatus :entity="warehouse" entity-type="warehouse" variant="inline" />
+        </div>
+      </StandardCard>
     </template>
   </div>
 </template>
@@ -51,10 +46,11 @@
 /**
  * Warehouse View Component - v24 Standardized
  */
-import Card from 'primevue/card';
 import Divider from 'primevue/divider';
-import Badge from 'primevue/badge';
 import Tag from 'primevue/tag';
+import StandardCard from '~/components/shared/StandardCard.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({

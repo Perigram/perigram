@@ -8,45 +8,43 @@
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <Card class="card-interactive">
+      <StandardCard class="card-interactive">
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
                     <div class="w-6 h-6 rounded-full border" :style="{ backgroundColor: pen.stroke?.color || '#000' }"></div>
-                    <span class="truncate">{{ name }}</span>
+                    <IdentityBlock :entity="pen" variant="compact" />
                 </div>
-                <Tag :value="`${pen.stroke?.weight}px`" severity="secondary" />
+                <Tag v-if="pen.stroke?.weight" :value="`${pen.stroke.weight}px`" severity="secondary" />
             </div>
         </template>
-      </Card>
+      </StandardCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <Card class="card-interactive">
+      <StandardCard class="card-interactive">
         <template #title>
             <div class="flex justify-between items-center gap-4">
-                <span class="truncate">{{ name }}</span>
+                <IdentityBlock :entity="pen" />
                 <div class="w-8 h-8 rounded-full border" :style="{ backgroundColor: pen.stroke?.color || '#000' }"></div>
             </div>
         </template>
-        <template #content>
-            <Divider />
-            <div class="flex flex-col gap-2">
-                <div class="flex justify-between items-center">
-                    <small>Color</small>
-                    <span>{{ pen.stroke?.color }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <small>Weight</small>
-                    <span>{{ pen.stroke?.weight }} px</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <small>Pattern</small>
-                    <span>{{ pen.stroke?.pattern }}</span>
-                </div>
+        <Divider />
+        <div class="flex flex-col gap-2">
+            <div class="flex justify-between items-center">
+                <small>{{ $t('penTemplate.color') }}</small>
+                <span>{{ pen.stroke?.color }}</span>
             </div>
-        </template>
-      </Card>
+            <div class="flex justify-between items-center">
+                <small>{{ $t('penTemplate.weight') }}</small>
+                <span>{{ pen.stroke?.weight }} px</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <small>{{ $t('penTemplate.pattern') }}</small>
+                <span>{{ pen.stroke?.pattern }}</span>
+            </div>
+        </div>
+      </StandardCard>
     </template>
   </div>
 </template>
@@ -55,9 +53,10 @@
 /**
  * Pen Template View Component - v24 Standardized
  */
-import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
+import StandardCard from '~/components/shared/StandardCard.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({

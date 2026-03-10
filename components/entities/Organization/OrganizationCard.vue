@@ -2,50 +2,45 @@
   <div :class="[`variant-${variant}`]">
     <template v-if="variant === 'inline'">
       <div class="inline-flex items-center gap-2">
-        <Avatar :label="name.charAt(0)" shape="circle" size="small" />
+        <Avatar :label="name?.charAt(0)" shape="circle" size="small" />
         <span>{{ name }}</span>
       </div>
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <Card>
+      <StandardCard>
         <template #title>
             <div class="flex items-center gap-4">
-                <Avatar :label="name.charAt(0)" shape="circle" />
-                <span class="truncate">{{ name }}</span>
+                <Avatar :label="name?.charAt(0)" shape="circle" />
+                <IdentityBlock :entity="organization" variant="compact" />
             </div>
         </template>
-        <template #subtitle>
-            <small>{{ organization.type || 'Standard' }}</small>
-        </template>
-      </Card>
+      </StandardCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <Card>
+      <StandardCard>
         <template #title>
             <div class="flex items-center gap-4">
-                <Avatar :label="name.charAt(0)" shape="circle" size="large" />
-                <span class="truncate">{{ name }}</span>
+                <Avatar :label="name?.charAt(0)" shape="circle" size="large" />
+                <IdentityBlock :entity="organization" />
             </div>
         </template>
         <template #subtitle>
             <small>{{ organization.type || 'Standard' }}</small>
         </template>
-        <template #content>
-            <Divider />
-            <div class="flex flex-col gap-2">
-                <div class="flex justify-between items-center">
-                    <small>Billing Status</small>
-                    <Tag :value="organization.billing?.status || 'ACTIVE'" severity="info" />
-                </div>
-                <div class="flex justify-between items-center">
-                    <small>Created</small>
-                    <span>{{ new Date().toLocaleDateString() }}</span>
-                </div>
+        <Divider />
+        <div class="flex flex-col gap-2">
+            <div class="flex justify-between items-center">
+                <small>{{ $t('organization.billingStatus') }}</small>
+                <Tag :value="organization.billing?.status || 'ACTIVE'" severity="info" />
             </div>
-        </template>
-      </Card>
+            <div v-if="createdAt" class="flex justify-between items-center">
+                <small>{{ $t('common.created') }}</small>
+                <span>{{ createdAt }}</span>
+            </div>
+        </div>
+      </StandardCard>
     </template>
   </div>
 </template>
@@ -54,10 +49,12 @@
 /**
  * Organization View Component - v24 Standardized
  */
-import Card from 'primevue/card';
+import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import Avatar from 'primevue/avatar';
+import StandardCard from '~/components/shared/StandardCard.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
@@ -66,4 +63,8 @@ const props = defineProps({
 });
 
 const { name } = useIdentity(props.organization);
+const createdAt = computed(() => {
+    const ts = props.organization.lineage?.createdAt || props.organization.origin?.timestamp;
+    return ts ? new Date(ts).toLocaleDateString() : null;
+});
 </script>
