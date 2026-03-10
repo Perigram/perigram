@@ -23,9 +23,9 @@
     <template v-else>
         <StandardCard>
             <template #header>
-                <TraceChain :entity="entity" />
             </template>
             <template #title>
+                <TraceChain :entity="entity" />
                 <div class="flex justify-between items-start gap-4">
                     <div class="flex flex-col">
                         <slot name="before-identity" />
