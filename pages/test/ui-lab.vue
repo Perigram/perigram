@@ -197,10 +197,10 @@ const mocks = {
 const mockHistory = createMockHistory(['DRAFT', 'ACTIVE', 'CLOSED']);
 
 const fullLineage = {
-    organizationId: '696fd2dda0ab0734cd2a5214',
-    warehouseId: '696fd2dda0ab0734cd2a5215',
-    projectId: '696fd2dda0ab0734cd2a5216',
-    queueId: '696fd2dda0ab0734cd2a5217'
+    organizationId: 'mock-org-acme',
+    warehouseId: 'mock-warehouse-main',
+    projectId: 'mock-project-downtown',
+    queueId: 'mock-queue-morning'
 };
 
 const componentsMap = {

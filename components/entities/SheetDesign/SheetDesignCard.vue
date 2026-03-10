@@ -31,12 +31,10 @@ const { formattedDimensions } = useSpecs(props.design);
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
       <StandardCard class="card-interactive">
-        <template #content>
-            <div class="flex items-center justify-between gap-4">
-                <IdentityBlock :entity="design" variant="compact" />
-                <EntityStatus :entity="design" entity-type="sheet_design" variant="inline" />
-            </div>
-        </template>
+        <div class="flex items-center justify-between gap-4">
+            <IdentityBlock :entity="design" variant="compact" />
+            <EntityStatus :entity="design" entity-type="sheet_design" variant="inline" />
+        </div>
       </StandardCard>
     </template>
 
