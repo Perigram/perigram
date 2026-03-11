@@ -82,6 +82,6 @@ const props = defineProps({
 defineEmits(['set-pen', 'revert']);
 
 const authStore = useAuthStore();
-const canEdit = computed(() => authStore.can('cassettes', 'write'));
+const canEdit = computed(() => authStore.can('layer_standards', 'setPen'));
 const activePenId = computed(() => props.standard.orgPenId || props.standard.defaultPenId);
 </script>

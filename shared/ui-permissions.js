@@ -39,9 +39,11 @@ export const UI_PERMISSIONS = {
         queues: {
             view: true,
             edit: false
+        },
+        layer_standards: {
+            setPen: true
         }
     },
-    'ContractorAdmin': {
         catalogs: {
             create: false,
             edit: false,
@@ -72,13 +74,17 @@ export const UI_PERMISSIONS = {
             edit: true,
             delete: true,
             view: true
+        },
+        layer_standards: {
+            setPen: true
         }
     },
     'IndividualUser': {
         catalogs: { view: true },
         requisitions: { create: true, edit: true, delete: true, view: true, send: true },
         projects: { create: true, edit: true, delete: true, view: true },
-        queues: { create: true, edit: true, delete: true, view: true }
+        queues: { create: true, edit: true, delete: true, view: true },
+        layer_standards: { setPen: true }
     },
     'SuperAdmin': {
         '*': true
