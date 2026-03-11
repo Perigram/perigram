@@ -32,12 +32,29 @@ export const useLayerStandardsStore = defineStore('layerStandards', () => {
         return standards.value.find(s => s.code === code);
     }
 
+    async function setOrgPenOverride(standardId, penId) {
+        await $fetch(`/api/layer-standards/${standardId}/pen`, {
+            method: 'PATCH',
+            body: { penId }
+        });
+        const std = standards.value.find(s => s._id === standardId);
+        if (std) std.orgPenId = penId;
+    }
+
+    async function removeOrgPenOverride(standardId) {
+        await $fetch(`/api/layer-standards/${standardId}/pen`, { method: 'DELETE' });
+        const std = standards.value.find(s => s._id === standardId);
+        if (std) std.orgPenId = null;
+    }
+
     return {
         standards,
         loading,
         error,
         fetchStandards,
         getByCategory,
-        getByCode
+        getByCode,
+        setOrgPenOverride,
+        removeOrgPenOverride
     };
 });

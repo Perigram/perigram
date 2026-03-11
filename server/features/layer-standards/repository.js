@@ -52,3 +52,29 @@ export async function deleteById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }
+// --- Org-level pen overrides ---
+const OVERRIDES_COLLECTION = 'layer_standard_overrides';
+
+export async function findOverridesByOrg(organizationId) {
+  const db = await connectDB();
+  return await db.collection(OVERRIDES_COLLECTION)
+    .find({ organizationId: new ObjectId(organizationId) })
+    .toArray();
+}
+
+export async function upsertOverride(organizationId, standardId, penId) {
+  const db = await connectDB();
+  await db.collection(OVERRIDES_COLLECTION).updateOne(
+    { organizationId: new ObjectId(organizationId), standardId: new ObjectId(standardId) },
+    { $set: { penId: new ObjectId(penId), updatedAt: new Date() } },
+    { upsert: true }
+  );
+}
+
+export async function deleteOverride(organizationId, standardId) {
+  const db = await connectDB();
+  await db.collection(OVERRIDES_COLLECTION).deleteOne({
+    organizationId: new ObjectId(organizationId),
+    standardId: new ObjectId(standardId)
+  });
+}
