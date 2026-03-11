@@ -44,6 +44,7 @@ export const UI_PERMISSIONS = {
             setPen: true
         }
     },
+    'ContractorAdmin': {
         catalogs: {
             create: false,
             edit: false,
