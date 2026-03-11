@@ -99,7 +99,7 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
                         <Button 
                             label="Choose" icon="pi pi-check-circle"
                             size="small"
-                            v-if="!isChosen"
+                            v-if="state === 'COMPLETE'"
                             @click.stop="$emit('choose', run._id)"
                         />
                         <Button 

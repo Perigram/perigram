@@ -875,5 +875,11 @@
     "color": "Color",
     "weight": "Weight",
     "pattern": "Pattern"
+  },
+  "layerStandard": {
+    "defaultPen": "Pen",
+    "noDefaultPen": "No pen assigned",
+    "setPen": "Set pen",
+    "selectPen": "Select pen..."
   }
 }

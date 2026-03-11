@@ -848,5 +848,11 @@
     "color": "Цвет",
     "weight": "Толщина",
     "pattern": "Паттерн"
+  },
+  "layerStandard": {
+    "defaultPen": "Перо",
+    "noDefaultPen": "Перо не назначено",
+    "setPen": "Выбрать перо",
+    "selectPen": "Выберите перо..."
   }
 }
