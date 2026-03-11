@@ -112,10 +112,12 @@ export default defineEventHandler(async (event) => {
   };
   
   // Create nesting run via service
+  const db = await connectDB();
   const runNumber = await nestingRunsService.getNextRunNumber(queue.id);
   const runOrigin = createStatus('NESTING', auth.userId, { note: `Nesting started in ${body.materialMode || 'VIRTUAL'} mode` });
   
   const run = await nestingRunsService.create({
+    identity: { uid: `run-${generateRandomString(8)}` },
     runNumber,
     materialMode: body.materialMode || 'VIRTUAL',
     params,
