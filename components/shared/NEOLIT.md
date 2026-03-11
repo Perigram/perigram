@@ -22,16 +22,16 @@ Entity cards and page components must NEVER import from `useBlocks.js` directly.
 ## Atomic Blocks (`components/shared/blocks/`)
 
 ### `IdentityBlock.vue`
-Standardized display for entity name, slug, and serial. Always use this — never render `entity.identity?.name` directly in a template.
+Standardized display for entity name. IDs, slugs, and serials are hidden to reduce visual noise. Always use this — never render `entity.identity?.name` directly in a template.
 
 **Variants:**
 
 | `variant` | Renders as | Use case |
 |---|---|---|
 | `inline` (default) | `<Chip>` with icon | Pills in lists, tags, lineage |
-| `compact` | 2-line: bold name + muted slug | Card titles, list items |
-| `default` | 2-line: semibold name + small slug | Full card title area |
-| `header` | Large name + slug + serial | Entity detail page headers |
+| `compact` | Bold name | Card titles, list items |
+| `default` | Semibold name | Full card title area |
+| `header` | Large name | Entity detail page headers |
 
 Props: `:entity` (required), `variant`, `icon` (for inline Chip only).
 
@@ -97,5 +97,5 @@ Props: `:entity`, `entity-type`.
 - **`StandardCard.vue`**: Card container for entity cards. Exposes slots: `#header`, `#title`, `#subtitle`, `#footer`, and default slot (= content area). **Note:** `<template #content>` is silently dropped — always use default slot for content.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
-- **`EntityPage.vue`**: Root layout for all entity detail views.
-- **`EntityCard.vue`**: Generic inline card rendered by entity type + id. Used in lists when the specific card component is resolved dynamically. Entity-specific cards (ProjectCard, QueueCard, etc.) use `StandardCard` directly, not EntityCard.
+- **`EntityPage.vue`**: Root layout for all entity detail views. Features a flexible header with an `info` slot for summary data and an optional `sidebar` slot.
+- **`EntityCard.vue`**: Shared entity card chrome. The `inline` variant displays an `IdentityBlock` chip that opens a `Popover` on click, showing `TraceChain` and `EntityStatus`.
