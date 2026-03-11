@@ -277,10 +277,10 @@ async function processNextJob() {
     await db.collection('nesting_runs').updateOne(
       { _id: job.runId },
       { $set: { 
-          status: statusUpdate, 
-          layoutCount: layoutCount,
-          placedCount: totalPlaced,
-          utilization: totalUtilization
+          status: statusUpdate,
+          'data.results.sheetCount': layoutCount,
+          'data.results.placedCount': totalPlaced,
+          'data.results.utilization': totalUtilization
         } 
       }
     );
@@ -288,17 +288,9 @@ async function processNextJob() {
     // Update artifacts status
     if (fileIds.length > 0) {
         const artifactStatus = createStatus('READY', 'SYSTEM', { note: 'File generated' });
-        // Update LAYOUT_DXF with fileId
         await db.collection('artifacts').updateOne(
             { "lineage.runId": job.runId, type: 'LAYOUT_DXF' },
-            {
-                $set: {
-                    fileId: fileIds[0],
-                    mimeType: 'application/dxf',
-                    status: artifactStatus,
-                    updatedAt: new Date()
-                }
-            }
+            { $set: { fileId: fileIds[0], mimeType: 'application/dxf', status: artifactStatus, updatedAt: new Date() } }
         );
     }
     

@@ -83,63 +83,65 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name)
     pen_templates = {str(p["_id"]): p for p in db["pen_templates"].find()}
     
     doc_cache = {}
-    generated_files = []
     
+    # All containers go into a single DXF, arranged in a row with a gap
+    SHEET_GAP = 100  # mm gap between sheets
+
+    new_doc = ezdxf.new()
+    
+    # Pre-create standard layers with styles
+    for code, std in layer_standards.items():
+        pen_id = str(std.get("defaultPenId"))
+        pen = pen_templates.get(pen_id)
+        if code not in new_doc.layers:
+            l = new_doc.layers.new(code)
+            if pen:
+                stroke = pen.get("stroke", {})
+                color_hex = stroke.get("color", "#FFFFFF")
+                l.color = hex_to_aci(color_hex)
+                clean_hex = color_hex.lstrip("#")
+                if len(clean_hex) == 6:
+                    rgb = tuple(int(clean_hex[i:i+2], 16) for i in (0, 2, 4))
+                    l.rgb = rgb
+                weight = stroke.get("weight", 0.25)
+                l.dxf.lineweight = int(weight * 100)
+                pattern = stroke.get("pattern", "SOLID").upper()
+                if pattern == "DASHED":
+                    if "DASHED" not in new_doc.linetypes:
+                        new_doc.linetypes.new("DASHED", dxfattribs={"description": "Dashed", "pattern": [10.0, 5.0, -5.0]})
+                    l.dxf.linetype = "DASHED"
+                elif pattern == "DOTTED":
+                    if "DOTTED" not in new_doc.linetypes:
+                        new_doc.linetypes.new("DOTTED", dxfattribs={"description": "Dotted", "pattern": [0.0, 5.0, -5.0]})
+                    l.dxf.linetype = "DOTTED"
+
+    if "SHEET" not in new_doc.layers:
+        l = new_doc.layers.new("SHEET")
+        l.color = 8
+        l.dxf.lineweight = 15
+
+    new_msp = new_doc.modelspace()
+    
+    x_offset = 0.0
+
     for container in transforms_data:
         container_id = container.get("container_id")
         transforms = container.get("transforms")
         sheet_w = container.get("width", 0)
         sheet_h = container.get("height", 0)
         
-        logger.info(f"Processing container {container_id} with {len(transforms)} items")
-        
-        new_doc = ezdxf.new()
-        
-        # Pre-create standard layers with styles
-        for code, std in layer_standards.items():
-            layer_name = code
-            pen_id = str(std.get("defaultPenId"))
-            pen = pen_templates.get(pen_id)
-            
-            if layer_name not in new_doc.layers:
-                l = new_doc.layers.new(layer_name)
-                if pen:
-                    stroke = pen.get("stroke", {})
-                    color_hex = stroke.get("color", "#FFFFFF")
-                    l.color = hex_to_aci(color_hex)
-                    
-                    # Set TrueColor if possible
-                    clean_hex = color_hex.lstrip("#")
-                    if len(clean_hex) == 6:
-                        rgb = tuple(int(clean_hex[i:i+2], 16) for i in (0, 2, 4))
-                        l.rgb = rgb
-                    
-                    weight = stroke.get("weight", 0.25)
-                    # AutoCAD weight is in mm * 100
-                    # Standard weights: 0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106, 120, 140, 158, 200, 211
-                    l.dxf.lineweight = int(weight * 100)
-                    
-                    pattern = stroke.get("pattern", "SOLID").upper()
-                    if pattern == "DASHED":
-                        if "DASHED" not in new_doc.linetypes:
-                            new_doc.linetypes.new("DASHED", dxfattribs={"description": "Dashed", "pattern": [10.0, 5.0, -5.0]})
-                        l.dxf.linetype = "DASHED"
-                    elif pattern == "DOTTED":
-                        if "DOTTED" not in new_doc.linetypes:
-                            new_doc.linetypes.new("DOTTED", dxfattribs={"description": "Dotted", "pattern": [0.0, 5.0, -5.0]})
-                        l.dxf.linetype = "DOTTED"
+        logger.info(f"Processing container {container_id} with {len(transforms)} items at x_offset={x_offset}")
 
-        new_msp = new_doc.modelspace()
-        
-        # Add sheet boundary
+        # Sheet boundary rectangle, offset into grid position
         if sheet_w > 0 and sheet_h > 0:
-            if "SHEET" not in new_doc.layers:
-                l = new_doc.layers.new("SHEET")
-                l.color = 8 # Gray
-                l.dxf.lineweight = 15 # 0.15mm
-            
-            # Draw rectangle
-            new_msp.add_lwpolyline([(0, 0), (sheet_w, 0), (sheet_w, sheet_h), (0, sheet_h)], close=True, dxfattribs={'layer': 'SHEET'})
+            pts = [
+                (x_offset, 0),
+                (x_offset + sheet_w, 0),
+                (x_offset + sheet_w, sheet_h),
+                (x_offset, sheet_h),
+            ]
+            pl = new_msp.add_lwpolyline(pts, dxfattribs={'layer': 'SHEET'})
+            pl.dxf.flags = 1  # closed
 
         for transform in transforms:
             cassette_id_str = transform.get("cassette_id")
@@ -148,29 +150,25 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name)
             cassette = cassettes_collection.find_one({"_id": cassette_id})
             if not cassette:
                 cassette = baked_cassettes_collection.find_one({"_id": cassette_id})
-                
             if not cassette:
                 logger.error(f"Cassette {cassette_id} not found")
                 continue
                 
             dxf_id = cassette.get("dxfId") or (cassette.get("data") or {}).get("attachment", {}).get("fileId")
             if not dxf_id:
-                 continue
-                 
+                continue
+                
             source_doc = read_dxf_from_gridfs(cassettes_bucket, dxf_id, doc_cache)
             layer_mapping = cassette.get("layerMapping") or (cassette.get("data") or {}).get("layerMapping", {})
             
             source_msp = source_doc.modelspace()
             entities = list(source_msp)
-            
             if not entities:
                 continue
             
-            # Use Loader to copy resources (blocks, linetypes)
             loader = xref.Loader(source_doc, new_doc)
             
-            # Transform matrix
-            x = transform.get("x", 0)
+            x = transform.get("x", 0) + x_offset
             y = transform.get("y", 0)
             angle = transform.get("angle", 0)
             
@@ -181,15 +179,9 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name)
             for entity in entities:
                 try:
                     source_layer = entity.dxf.layer
-                    target_layer = layer_mapping.get(source_layer)
-                    
-                    if not target_layer:
-                        target_layer = source_layer
-                    
+                    target_layer = layer_mapping.get(source_layer) or source_layer
                     if target_layer not in new_doc.layers:
                         new_doc.layers.new(target_layer)
-                    
-                    # Copy entity
                     new_entity = entity.copy()
                     new_msp.add_entity(new_entity)
                     new_entity.dxf.layer = target_layer
@@ -200,17 +192,15 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name)
                 except Exception as ex:
                     logger.warning(f"Failed to copy entity: {ex}")
             
-            # Execute loader to finalize resource copies if any
             loader.execute()
-                
-        # Save file
-        filename = f"{slug}_part_{container_id}.dxf"
-        filepath = os.path.join(output_dir, filename)
-        new_doc.saveas(filepath)
-        generated_files.append({"filename": filename, "path": filepath})
-        logger.info(f"Saved {filepath}")
-        
-    return generated_files
+
+        x_offset += sheet_w + SHEET_GAP
+
+    filename = f"{slug}.dxf"
+    filepath = os.path.join(output_dir, filename)
+    new_doc.saveas(filepath)
+    logger.info(f"Saved {filepath}")
+    return [{"filename": filename, "path": filepath}]
 
 
 if __name__ == "__main__":
