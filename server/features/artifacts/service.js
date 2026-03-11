@@ -7,6 +7,7 @@ import {
 } from '../../core/blocks/index.js';
 import { Artifact } from './model.js';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { generateRandomString } from '../../utils/strings.js';
 
 /**
  * Artifacts Service - v24 Standardized
@@ -20,7 +21,7 @@ export async function create(data, userId) {
   const origin = createStatus(data.status || 'READY', userId || 'SYSTEM', { note: 'Artifact record created' });
 
   const artifactData = {
-    identity: createIdentity(data.name || 'New Artifact'),
+    identity: { uid: `art-${generateRandomString(8)}`, name: data.name || 'New Artifact' },
     origin,
     status: origin,
     lineage: data.lineage || {},
