@@ -189,10 +189,20 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name)
                     if target_layer not in new_doc.layers:
                         new_doc.layers.new(target_layer)
                     
+                    # Capture closed state before copy (may be lost in cross-doc transfer)
+                    is_lwpoly = entity.dxftype() == 'LWPOLYLINE'
+                    was_closed = entity.is_closed if is_lwpoly else None
+
                     # Copy entity
                     new_entity = entity.copy()
                     new_msp.add_entity(new_entity)
                     new_entity.dxf.layer = target_layer
+
+                    # Restore closed flag explicitly — ezdxf may lose it when source uses
+                    # non-standard subclass marker (AcDb2dPolyline misread)
+                    if is_lwpoly and was_closed is not None:
+                        new_entity.closed = was_closed
+
                     new_entity.transform(matrix)
                 except Exception as ex:
                     logger.warning(f"Failed to copy entity: {ex}")
