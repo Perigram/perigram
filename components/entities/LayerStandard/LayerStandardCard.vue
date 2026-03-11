@@ -35,7 +35,7 @@
                 <small>{{ $t('layerStandard.defaultPen') }}</small>
                 <Badge v-if="standard.orgPenId" value="overridden" severity="warn" size="small" />
             </div>
-            <TraceLink v-if="activePenId" type="penTemplate" :id="activePenId" />
+            <PenTemplateCard v-if="activePen" :pen="activePen" variant="inline" />
             <p v-else class="italic opacity-50">{{ $t('layerStandard.noDefaultPen') }}</p>
         </div>
         <template #footer>
@@ -69,10 +69,11 @@ import Badge from 'primevue/badge';
 import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
+import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
 import { useAuthStore } from '~/stores/auth';
+import { usePenTemplatesStore } from '~/stores/penTemplates';
 
 const props = defineProps({
   standard: { type: Object, required: true },
@@ -82,6 +83,12 @@ const props = defineProps({
 defineEmits(['set-pen', 'revert']);
 
 const authStore = useAuthStore();
+const penStore = usePenTemplatesStore();
+
 const canEdit = computed(() => authStore.can('layer_standards', 'setPen'));
-const activePenId = computed(() => props.standard.orgPenId || props.standard.defaultPenId);
+const activePen = computed(() => {
+    const id = props.standard.orgPenId || props.standard.defaultPenId;
+    if (!id) return null;
+    return penStore.pens.find(p => p._id?.toString() === id.toString()) || null;
+});
 </script>

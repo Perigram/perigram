@@ -1,6 +1,28 @@
 import DxfParser from 'dxf-parser';
 
 /**
+ * Build a layer-to-pen map for use with generateSvgData.
+ * Uses org override pen if available, falls back to default pen.
+ * @param {Object} mapping - { layerName: standardCode }
+ * @param {Array} standards - from layerStandardsStore.standards (with orgPenId merged)
+ * @param {Array} pens - from penTemplatesStore.pens
+ * @returns {Object} { layerName: penObject }
+ */
+export function buildLayerPenMap(mapping = {}, standards = [], pens = []) {
+    const result = {};
+    for (const [layerName, standardCode] of Object.entries(mapping)) {
+        if (!standardCode) continue;
+        const standard = standards.find(s => s.code === standardCode);
+        if (!standard) continue;
+        const penId = standard.orgPenId || standard.defaultPenId;
+        if (!penId) continue;
+        const pen = pens.find(p => p._id?.toString() === penId.toString());
+        if (pen) result[layerName] = pen;
+    }
+    return result;
+}
+
+/**
  * Parse DXF file and extract layer names
  * @param {File} file - DXF file object
  * @returns {Promise<string[]>} - Array of unique layer names

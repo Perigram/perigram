@@ -42,8 +42,16 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import { generateSvgDataFromText } from '~/utils/dxfParser';
+import { generateSvgDataFromText, buildLayerPenMap } from '~/utils/dxfParser';
 import { renderCassetteToSVG } from '~/utils/cassetteRenderer';
+import { useLayerStandardsStore } from '~/stores/layerStandards';
+import { usePenTemplatesStore } from '~/stores/penTemplates';
+import { storeToRefs } from 'pinia';
+
+const layerStandardsStore = useLayerStandardsStore();
+const penTemplatesStore = usePenTemplatesStore();
+const { standards } = storeToRefs(layerStandardsStore);
+const { pens, systemPens } = storeToRefs(penTemplatesStore);
 
 const props = defineProps({
   cassetteId: {
@@ -149,7 +157,9 @@ const updateThumbnail = async () => {
       const design = await $fetch(`/api/cassette-designs/by-template/${cassette._id}`);
       if (design?.geometry?.dxfId) {
         const dxfText = await $fetch(`/api/files/download/${design.geometry.dxfId}?bucket=cassettes`);
-        const data = await generateSvgDataFromText(dxfText, {}, { stroke: { color: 'currentColor', weight: 0.5 } });
+        const defaultPen = systemPens.value[0] || { stroke: { color: 'currentColor', weight: 0.5 } };
+        const layerToPenMap = buildLayerPenMap(cassette.definition?.data?.mapping || {}, standards.value, pens.value);
+        const data = await generateSvgDataFromText(dxfText, layerToPenMap, defaultPen);
         if (data) renderingData.value = data;
       }
     } catch (error) {

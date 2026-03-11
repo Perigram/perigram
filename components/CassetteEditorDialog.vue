@@ -276,25 +276,9 @@ const updatePreview = async () => {
   if (!dxfFile.value) return;
   
   try {
-    const { generateSvgData } = await import('~/utils/dxfParser');
-    const currentSystemPens = systemPens.value;
-    const defaultPen = currentSystemPens.length > 0 ? currentSystemPens[0] : {
-      stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' }
-    };
-    
-    const layerToPenMap = {};
-    for (const [layerName, standardCode] of Object.entries(layerMappings.value)) {
-      if (standardCode) {
-        const standard = standards.value.find(s => s.code === standardCode);
-        if (standard && standard.defaultPenId) {
-          const pen = pens.value.find(p => p._id?.toString() === standard.defaultPenId?.toString());
-          if (pen) {
-            layerToPenMap[layerName] = pen;
-          }
-        }
-      }
-    }
-    
+    const { generateSvgData, buildLayerPenMap } = await import('~/utils/dxfParser');
+    const defaultPen = systemPens.value[0] || { stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' } };
+    const layerToPenMap = buildLayerPenMap(layerMappings.value, standards.value, pens.value);
     const data = await generateSvgData(dxfFile.value, layerToPenMap, defaultPen);
     renderingData.value = data;
   } catch (error) {
