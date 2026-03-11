@@ -6,8 +6,8 @@ const COLLECTION = 'projects';
 export async function create(data) {
   const db = await connectDB();
   const doc = {
-    ...data,
-    _id: data.identity.uid // Standard: uid is the _id
+    ...data.toJSON(),
+    _id: data.identity.uid
   };
   await db.collection(COLLECTION).insertOne(doc);
   return doc;
