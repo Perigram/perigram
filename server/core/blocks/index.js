@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { toFlexibleId } from '../utils/objectid.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 import { Identity } from './Identity.js';
 import { Status } from './Status.js';
 import { Lineage } from './Lineage.js';
