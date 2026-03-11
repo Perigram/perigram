@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import { toFlexibleId } from '../utils/objectid.js';
 import { Identity } from './Identity.js';
 import { Status } from './Status.js';
 import { Lineage } from './Lineage.js';
@@ -27,7 +28,8 @@ export const createSpecs = (data) => new Specs(data);
 export const createData = (data = {}) => ({ ...data });
 
 export const inheritLineage = (parent, type) => {
-  return new Lineage(parent?.lineage || {}).add(type, parent?.identity?.uid || parent?._id);
+  const uid = parent?.identity?.uid || parent?._id;
+  return new Lineage(parent?.lineage || {}).add(type, toFlexibleId(uid));
 };
 
 export const createAttachment = (type, fileId, name = '', metadata = {}) => ({
