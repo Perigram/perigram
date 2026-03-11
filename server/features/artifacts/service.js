@@ -21,7 +21,7 @@ export async function create(data, userId) {
   const origin = createStatus(data.status || 'READY', userId || 'SYSTEM', { note: 'Artifact record created' });
 
   const artifactData = {
-    identity: { uid: `art-${generateRandomString(8)}`, name: data.name || 'New Artifact' },
+    identity: { uid: generateRandomString(12), name: data.name || 'New Artifact' },
     origin,
     status: origin,
     type: data.type,
