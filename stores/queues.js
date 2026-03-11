@@ -7,6 +7,7 @@ export const useQueuesStore = defineStore('queues', () => {
     const runs = ref({});
     const loading = ref(false);
     const error = ref(null);
+    const nestingCompleted = ref(null);
     const pollingIntervals = ref({});
 
     function stopPolling(queueId) {
@@ -38,6 +39,8 @@ export const useQueuesStore = defineStore('queues', () => {
                 const hasNestingRuns = queueRuns.some(run => run.status?.state === 'NESTING');
                 if (!hasNestingRuns) {
                     stopPolling(queueId);
+                    // Nesting just completed — notify so UI can re-fetch artifacts
+                    nestingCompleted.value = queueId;
                 }
             } catch (err) {
                 console.error(`Polling error for queue ${queueId}:`, err);
@@ -244,6 +247,7 @@ export const useQueuesStore = defineStore('queues', () => {
         queues,
         currentQueue,
         runs,
+        nestingCompleted,
         loading,
         error,
         fetchQueues,

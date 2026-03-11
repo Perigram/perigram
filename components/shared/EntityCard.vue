@@ -65,7 +65,17 @@
 import { computed, ref } from 'vue';
 /**
  * EntityCard - v24 Standardized
-...
+ * Shared entity card chrome: TraceChain + IdentityBlock + EntityStatus.
+ * Entity-specific cards use this as their container, providing only
+ * entity-specific body/footer content via slots.
+ *
+ * Slots:
+ *   before-identity  — prefix in title row (e.g. queue number badge)
+ *   default          — body content (card variant)
+ *   compact-content  — extra content in compact row
+ *   inline-extra     — suffix in inline row
+ *   footer           — footer actions (card variant)
+ */
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';

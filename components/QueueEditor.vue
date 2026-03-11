@@ -355,7 +355,13 @@ const toolProfilesStore = useToolProfilesStore();
 
 const entries = ref([]);
 const { artifacts } = storeToRefs(artifactsStore);
-const { runs } = storeToRefs(queuesStore);
+const { runs, nestingCompleted } = storeToRefs(queuesStore);
+
+watch(nestingCompleted, (queueId) => {
+    if (queueId && queueId === props.queue._id) {
+        artifactsStore.fetchArtifacts(props.queue._id);
+    }
+});
 const nestingInProgress = ref(false);
 const showAddDialog = ref(false);
 const showUploadDialog = ref(false);

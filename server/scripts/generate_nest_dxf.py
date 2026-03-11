@@ -75,7 +75,7 @@ def hex_to_aci(hex_color):
 def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name):
     db = mongo_client[db_name]
     cassettes_collection = db["cassettes"]
-    baked_cassettes_collection = db["baked_cassettes"]
+    baked_cassettes_collection = db["cassette_designs"]
     cassettes_bucket = GridFSBucket(db, bucket_name="cassettes")
     
     # Fetch layer standards and pens for styling
@@ -176,7 +176,7 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name)
             
             rotationMatrix = Matrix44.z_rotate(angle)
             translationMatrix = Matrix44.translate(x, y, 0)
-            matrix = rotationMatrix * translationMatrix
+            matrix = translationMatrix @ rotationMatrix
             
             for entity in entities:
                 try:

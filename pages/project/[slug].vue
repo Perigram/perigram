@@ -15,20 +15,7 @@
             />
         </template>
 
-        <template #info>
-            <div class="flex items-center gap-6">
-                <div class="flex flex-col">
-                    <small class="text-muted-color">Queues</small>
-                    <span class="font-semibold">{{ project.summary?.queueCount || 0 }}</span>
-                </div>
-                <div class="flex flex-col border-l border-surface-border pl-6">
-                    <small class="text-muted-color">Total Area</small>
-                    <span class="font-semibold">{{ project.summary?.totalArea || 0 }} m²</span>
-                </div>
-            </div>
-        </template>
-
-        <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-6">
             <Tabs :value="activeTabIndex">
                 <TabList>
                     <Tab v-for="(tab, index) in tabs" :key="tab.key" :value="index" @click="onTabChange(index)">
@@ -37,9 +24,7 @@
                 </TabList>
             </Tabs>
             
-            <div class="mt-2">
-                <NuxtPage />
-            </div>
+            <NuxtPage />
         </div>
     </EntityPage>
 </template>

@@ -44,7 +44,7 @@
     </div>
 
     <!-- Preview Dialog -->
-    <Dialog v-model:visible="showPreview" :header="previewArtifactData?.name || 'Artifact Preview'" modal class="w-[95vw] h-[95vh]">
+    <Dialog v-model:visible="showPreview" :header="previewArtifactData?.name || 'Artifact Preview'" modal class="w-[95vw] h-[95vh]" :pt="{ content: { class: 'flex-1 flex flex-col overflow-hidden h-full p-0' } }">
         <div class="flex h-full">
             <div v-if="previewLoading" class="flex-1 flex flex-col items-center justify-center gap-4">
                 <ProgressSpinner />

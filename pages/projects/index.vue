@@ -1,46 +1,12 @@
 <template>
     <div class="flex flex-col gap-6">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-                <h1 class="m-0 text-2xl font-bold">{{ $t('nav.projects') }}</h1>
-                <Button
-                    :label="$t('project.create')"
-                    icon="pi pi-plus"
-                    @click="showCreateDialog = true"
-                />
-            </div>
-
-            <div class="flex flex-wrap items-center gap-3">
-                <IconField class="min-w-[200px]">
-                    <InputIcon class="pi pi-search" />
-                    <InputText
-                        v-model="searchQuery"
-                        :placeholder="$t('common.search')"
-                        class="w-full"
-                    />
-                </IconField>
-
-                <Select
-                    v-model="sortBy"
-                    :options="sortOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    :placeholder="$t('projects.sortBy')"
-                    class="min-w-[180px]"
-                />
-
-                <SelectButton
-                    v-model="viewMode"
-                    :options="viewModes"
-                    optionLabel="label"
-                    optionValue="value"
-                    class="hidden md:inline-flex"
-                >
-                    <template #option="slotProps">
-                        <i :class="slotProps.option.icon"></i>
-                    </template>
-                </SelectButton>
-            </div>
+        <div class="flex items-center justify-between">
+            <h1 class="m-0 text-2xl font-bold">{{ $t('nav.projects') }}</h1>
+            <Button
+                :label="$t('project.create')"
+                icon="pi pi-plus"
+                @click="showCreateDialog = true"
+            />
         </div>
 
         <div
