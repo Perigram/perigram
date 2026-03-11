@@ -28,12 +28,12 @@ const handleCardClick = () => {
             <Divider />
             <div class="grid grid-cols-2 gap-4">
                 <div class="flex flex-col">
-                    <small>Queues</small>
-                    <span>{{ project.summary?.queueCount || 0 }}</span>
+                    <small class="text-muted-color">Queues</small>
+                    <span class="font-semibold">{{ project.summary?.queueCount || 0 }}</span>
                 </div>
                 <div class="flex flex-col">
-                    <small>Total Area</small>
-                    <span>{{ project.summary?.totalArea || 0 }} m²</span>
+                    <small class="text-muted-color">Total Area</small>
+                    <span class="font-semibold">{{ project.summary?.totalArea || 0 }} m²</span>
                 </div>
             </div>
         </template>

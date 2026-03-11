@@ -769,6 +769,22 @@
        Organization, PenTemplate, ToolProfile): correctly have NO EntityStatus — these
        entities have no status block in v24 data model
 =======
+*** Agent Notes
+    [2026-03-11] v24 UI Simplification & Identity Cleanup
+    Files changed:
+    - components/shared/blocks/IdentityBlock.vue (Removed ID/slug/serial display)
+    - components/shared/EntityPage.vue (Flexible header with info slot, optional sidebar)
+    - components/shared/EntityCard.vue (Added Popover for inline variant)
+    - pages/projects/index.vue (Simplified header, removed table variant)
+    - pages/project/[slug].vue (Moved info to header, removed redundant sidebar)
+    - components/shared/NEOLIT.md (Updated documentation)
+    Notes:
+    - Removed ID/Slug/Serial from `IdentityBlock` as per specific task requirement to reduce visual noise.
+    - Optimized `EntityPage` for "no-bloat" layout by moving information blocks to a flexible header slot and making the right-hand sidebar optional.
+    - Consolidated `projects/index` header into a single line and enforced grid-only view.
+    - Implemented click-to-popup for inline entities to provide quick access to traceability and status without full-page navigation.
+    - All changes follow the "Zero Styling Policy" and rely on PrimeVue unstyled components.
+
 * TODO run through all the components and pages and check locales usage.
   For each hardcoded string found, replace them with locale key, and ensure that the keys exist in the locale files.
   Don't modify TODO file for this task results. 
