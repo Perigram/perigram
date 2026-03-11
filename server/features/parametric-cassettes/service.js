@@ -228,13 +228,8 @@ export function generateSimpleDxf(polygons, nestingLayer = '1_3_UNFOLD_BOUNDARY'
   let handleCount = 256;
 
   polygons.forEach((polygon, idx) => {
-    const raw = polygon.coordinates || polygon;
-    if (!raw || raw.length < 3) return;
-
-    // Strip closing vertex if ring closes explicitly (first == last)
-    const first = raw[0], last = raw[raw.length - 1];
-    const coords = (first[0] === last[0] && first[1] === last[1]) ? raw.slice(0, -1) : raw;
-    if (coords.length < 3) return;
+    const coords = polygon.coordinates || polygon;
+    if (!coords || coords.length < 3) return;
 
     const layer = idx === 0 ? nestingLayer : internalLayer;
     const handle = (handleCount++).toString(16).toUpperCase();
@@ -243,7 +238,7 @@ export function generateSimpleDxf(polygons, nestingLayer = '1_3_UNFOLD_BOUNDARY'
     add(5, handle);
     add(100, 'AcDbEntity');
     add(8, layer);
-    add(100, 'AcDb2dPolyline');
+    add(100, 'AcDbPolyline');
     add(90, coords.length);
     add(70, 1); // Closed
     
