@@ -3,8 +3,14 @@
  * ProjectCard - v24 Standardized
  */
 import Button from 'primevue/button';
+import Divider from 'primevue/divider';
 import { useAuthStore } from '~/stores/auth';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+
+const PROJECT_SUMMARY_FIELDS = [
+    { path: 'summary.queueCount', i18n: 'project.queues' },
+];
 
 const props = defineProps({
   project: { type: Object, required: true },
@@ -22,6 +28,12 @@ const handleCardClick = () => {
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
     <EntityCard :entity="project" entity-type="project" :variant="variant">
+        <!-- Card body -->
+        <template v-if="variant === 'card'">
+            <Divider />
+            <DataBlock :entity="project" :fields="PROJECT_SUMMARY_FIELDS" />
+        </template>
+
         <!-- Card footer -->
         <template #footer v-if="variant === 'card'">
             <div class="flex justify-end gap-2" @click.stop>
