@@ -15,7 +15,7 @@ Props: `project` (Object, required), `variant` (String, default `'card'`).
 Emits: `view`, `edit`, `delete`.
 
 - Delegates chrome (TraceChain, IdentityBlock, EntityStatus) to `EntityCard`.
-- Card body: `DataBlock` with `PROJECT_SUMMARY_FIELDS` — `summary.queueCount` and `summary.totalArea`.
+- Card body: none — `Project` has no `data.*` fields in the schema (see DATA_MODEL.md).
 - Footer: edit/delete `Button`s gated by `authStore.can('projects', 'edit|delete')`.
 
 ## ProjectDetail
