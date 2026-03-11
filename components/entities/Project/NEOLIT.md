@@ -1,0 +1,31 @@
+# COMPONENT: Project UI Components
+
+Vue components for displaying and interacting with `Project` entities.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `ProjectCard.vue` | Card display for a project entity — supports `card`, `compact`, `inline` variants via `EntityCard` chrome |
+| `ProjectDetail.vue` | Expanded detail view with queues list and summary sidebar |
+
+## ProjectCard
+
+Props: `project` (Object, required), `variant` (String, default `'card'`).
+Emits: `view`, `edit`, `delete`.
+
+- Delegates chrome (TraceChain, IdentityBlock, EntityStatus) to `EntityCard`.
+- Card body: `DataBlock` with `PROJECT_SUMMARY_FIELDS` — `summary.queueCount` and `summary.totalArea`.
+- Footer: edit/delete `Button`s gated by `authStore.can('projects', 'edit|delete')`.
+
+## ProjectDetail
+
+Props: `project` (Object, required). Emits: `add-queue`.
+
+Fetches queues via `$fetch('/api/queues?lineage.projectId=...')` on mount and on `project._id` change.
+Renders queues as `QueueCard` (compact variant) and shows a `StatusHistory` sidebar panel.
+
+## Related
+- [components/shared/NEOLIT.md](../../shared/NEOLIT.md) — EntityCard, DataBlock, EntityStatus
+- [composables/NEOLIT.md](../../../composables/NEOLIT.md) — useEntity, useEntityList
+- [server/DATA_MODEL.md](../../../server/DATA_MODEL.md) — Project schema (`summary.queueCount`, `summary.totalArea`)
