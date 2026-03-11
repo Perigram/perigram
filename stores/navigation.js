@@ -48,7 +48,8 @@ export const useNavigationStore = defineStore('navigation', () => {
 
     const assetSiblings = computed(() => [
         { id: '/assets/cassettes', name: t('nav.cassettes'), to: '/assets/cassettes', entity: 'cassettes' },
-        { id: '/assets/pens', name: t('nav.pens'), to: '/assets/pens', entity: 'cassettes' }, // Pens usually tied to cassette design
+        { id: '/assets/pens', name: t('nav.pens'), to: '/assets/pens', entity: 'cassettes' },
+        { id: '/assets/layer-standards', name: t('nav.layerStandards'), to: '/assets/layer-standards', entity: 'cassettes' },
         { id: '/assets/tools', name: t('nav.tools'), to: '/assets/tools', entity: 'cassettes' },
         { id: '/assets/templates', name: t('nav.templates'), to: '/assets/templates', entity: 'cassettes' },
     ].filter(a => authStore.hasPermission(a.entity, 'read')));
