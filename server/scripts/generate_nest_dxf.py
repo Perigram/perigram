@@ -193,7 +193,10 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name)
                     new_entity = entity.copy()
                     new_msp.add_entity(new_entity)
                     new_entity.dxf.layer = target_layer
+                    flags = entity.dxf.get('flags', None)
                     new_entity.transform(matrix)
+                    if flags is not None:
+                        new_entity.dxf.flags = flags
                 except Exception as ex:
                     logger.warning(f"Failed to copy entity: {ex}")
             
