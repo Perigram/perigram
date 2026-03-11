@@ -1,46 +1,46 @@
 <template>
     <div class="flex flex-col gap-6">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h1>{{ $t('nav.projects') }}</h1>
-            <div class="flex gap-2">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <h1 class="m-0 text-2xl font-bold">{{ $t('nav.projects') }}</h1>
                 <Button
                     :label="$t('project.create')"
                     icon="pi pi-plus"
                     @click="showCreateDialog = true"
                 />
             </div>
-        </div>
 
-        <div class="flex flex-wrap items-center gap-3">
-            <IconField class="flex-1 min-w-[200px]">
-                <InputIcon class="pi pi-search" />
-                <InputText
-                    v-model="searchQuery"
-                    :placeholder="$t('common.search')"
-                    class="w-full"
+            <div class="flex flex-wrap items-center gap-3">
+                <IconField class="min-w-[200px]">
+                    <InputIcon class="pi pi-search" />
+                    <InputText
+                        v-model="searchQuery"
+                        :placeholder="$t('common.search')"
+                        class="w-full"
+                    />
+                </IconField>
+
+                <Select
+                    v-model="sortBy"
+                    :options="sortOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    :placeholder="$t('projects.sortBy')"
+                    class="min-w-[180px]"
                 />
-            </IconField>
 
-            <Select
-                v-model="sortBy"
-                :options="sortOptions"
-                optionLabel="label"
-                optionValue="value"
-                :placeholder="$t('projects.sortBy')"
-                class="min-w-[180px]"
-            />
-
-            <SelectButton
-                v-model="viewMode"
-                :options="viewModes"
-                optionLabel="label"
-                optionValue="value"
-                class="hidden md:inline-flex"
-            >
-                <template #option="slotProps">
-                    <i :class="slotProps.option.icon"></i>
-                </template>
-            </SelectButton>
+                <SelectButton
+                    v-model="viewMode"
+                    :options="viewModes"
+                    optionLabel="label"
+                    optionValue="value"
+                    class="hidden md:inline-flex"
+                >
+                    <template #option="slotProps">
+                        <i :class="slotProps.option.icon"></i>
+                    </template>
+                </SelectButton>
+            </div>
         </div>
 
         <div
@@ -66,7 +66,7 @@
         <DataView
             v-else
             :value="filteredProjects"
-            :layout="viewMode"
+            layout="grid"
             :paginator="filteredProjects.length > 12"
             :rows="12"
             dataKey="id"
@@ -79,20 +79,6 @@
                         :key="project.slug"
                         :project="project"
                         variant="card"
-                        @view="navigateToProject"
-                        @edit="editProject"
-                        @delete="confirmDeleteProject"
-                    />
-                </div>
-            </template>
-
-            <template #list="slotProps">
-                <div class="flex flex-col gap-4 pt-2">
-                    <ProjectCard
-                        v-for="project in slotProps.items"
-                        :key="project.slug"
-                        :project="project"
-                        variant="compact"
                         @view="navigateToProject"
                         @edit="editProject"
                         @delete="confirmDeleteProject"
@@ -184,7 +170,6 @@
 
     const viewModes = computed(() => [
         { label: t('assets.viewModes.grid'), value: 'grid', icon: 'pi pi-th-large' },
-        { label: t('assets.viewModes.list'), value: 'list', icon: 'pi pi-list' },
     ])
 
     const filteredProjects = computed(() => {

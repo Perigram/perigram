@@ -1,8 +1,29 @@
 <template>
-    <!-- Inline: pill chip -->
+    <!-- Inline: pill chip with popup -->
     <template v-if="variant === 'inline'">
-        <IdentityBlock :entity="entity" variant="inline" :icon="entityConfig.icon" />
-        <slot name="inline-extra" />
+        <div class="inline-flex items-center gap-2 cursor-pointer" @click="togglePopup">
+            <IdentityBlock :entity="entity" variant="inline" :icon="entityConfig.icon" />
+            <slot name="inline-extra" />
+        </div>
+        
+        <Popover ref="op" class="shadow-lg border border-surface-border">
+            <div class="flex flex-col gap-4 p-4 min-w-[300px]">
+                <div class="flex flex-col gap-1">
+                    <small class="text-muted-color">Traceability</small>
+                    <TraceChain :entity="entity" />
+                </div>
+                <Divider class="m-0" />
+                <div class="flex flex-col gap-1">
+                    <small class="text-muted-color">Status & Actions</small>
+                    <EntityStatus 
+                        :entity="entity" 
+                        :entity-type="entityType" 
+                        variant="full" 
+                        @transitioned="$emit('refresh')"
+                    />
+                </div>
+            </div>
+        </Popover>
     </template>
 
     <!-- Compact: identity + status in a card row -->
@@ -41,24 +62,15 @@
 </template>
 
 <script setup>
+import { computed, ref } from 'vue';
 /**
  * EntityCard - v24 Standardized
- * Shared entity card chrome: TraceChain + IdentityBlock + EntityStatus.
- * Entity-specific cards use this as their container, providing only
- * entity-specific body/footer content via slots.
- *
- * Slots:
- *   before-identity  — prefix in title row (e.g. queue number badge)
- *   default          — body content (card variant)
- *   compact-content  — extra content in compact row
- *   inline-extra     — suffix in inline row
- *   footer           — footer actions (card variant)
- */
-import { computed } from 'vue';
-import StandardCard from '~/components/shared/StandardCard.vue';
+...
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
+import Popover from 'primevue/popover';
+import Divider from 'primevue/divider';
 import { ENTITY_UI } from '~/utils/status-engine';
 
 const props = defineProps({
@@ -67,5 +79,12 @@ const props = defineProps({
     variant: { type: String, default: 'card' }
 });
 
+const emit = defineEmits(['refresh']);
+
 const entityConfig = computed(() => ENTITY_UI[props.entityType] || { icon: 'pi pi-box' });
+
+const op = ref();
+const togglePopup = (event) => {
+    op.value.toggle(event);
+};
 </script>

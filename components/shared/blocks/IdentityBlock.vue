@@ -20,24 +20,19 @@ const { name, slug, serial } = useIdentity(props.entity);
     <!-- Header Variant (Main Page Titles) -->
     <div v-if="variant === 'header'" class="flex flex-col gap-1">
       <span class="text-2xl font-semibold">{{ name }}</span>
-      <span class="text-sm text-muted-color">
-        {{ slug }}<template v-if="serial"> · {{ serial }}</template>
-      </span>
     </div>
 
     <!-- Compact Variant (Card rows, lists) -->
     <div v-else-if="variant === 'compact'" class="flex flex-col min-w-0">
       <span class="truncate" :title="name">{{ name }}</span>
-      <span class="text-xs text-muted-color truncate">{{ slug }}</span>
     </div>
 
     <!-- Inline Variant — Chip pill with optional icon -->
-    <Chip v-else-if="variant === 'inline'" :label="name" :icon="icon || undefined" :title="slug" />
+    <Chip v-else-if="variant === 'inline'" :label="name" :icon="icon || undefined" />
 
     <!-- Default (Card title area) -->
     <div v-else class="flex flex-col gap-0.5">
       <span class="font-semibold">{{ name }}</span>
-      <span class="text-sm text-muted-color">{{ slug }}</span>
     </div>
   </div>
 </template>

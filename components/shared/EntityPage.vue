@@ -25,7 +25,12 @@ const emit = defineEmits(['refresh']);
     <div class="flex flex-col md:flex-row justify-between items-start gap-4">
         <div class="flex flex-col gap-2">
             <TraceChain :entity="entity" />
-            <IdentityBlock :entity="entity" variant="header" />
+            <div class="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+                <IdentityBlock :entity="entity" variant="header" />
+                <div v-if="$slots.info" class="flex items-center gap-6 py-2 px-4 bg-emphasis/5 rounded-lg border border-surface-border">
+                    <slot name="info"></slot>
+                </div>
+            </div>
         </div>
         <div class="flex items-center gap-4">
             <EntityStatus 
@@ -43,25 +48,14 @@ const emit = defineEmits(['refresh']);
     <Divider class="m-0" />
 
     <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div :class="[ $slots.sidebar ? 'grid grid-cols-1 lg:grid-cols-12 gap-6' : 'flex flex-col gap-6' ]">
         <!-- Left: Primary Content -->
-        <div class="lg:col-span-8 flex flex-col gap-6">
+        <div :class="[ $slots.sidebar ? 'lg:col-span-8 flex flex-col gap-6' : 'flex flex-col gap-6' ]">
             <slot></slot>
         </div>
 
         <!-- Right: Secondary Info / Sidebar -->
-        <div class="lg:col-span-4 flex flex-col gap-6">
-            <StandardCard title="Information">
-                <div class="flex flex-col gap-4">
-                    <slot name="info"></slot>
-                    <Divider />
-                    <div class="flex flex-col gap-2">
-                        <small>Created</small>
-                        <span v-if="entity.origin">{{ new Date(entity.origin.timestamp).toLocaleString() }}</span>
-                    </div>
-                </div>
-            </StandardCard>
-            
+        <div v-if="$slots.sidebar" class="lg:col-span-4 flex flex-col gap-6">
             <slot name="sidebar"></slot>
         </div>
     </div>
