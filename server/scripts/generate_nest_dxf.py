@@ -176,7 +176,7 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name)
             
             rotationMatrix = Matrix44.z_rotate(angle)
             translationMatrix = Matrix44.translate(x, y, 0)
-            matrix = rotationMatrix * translationMatrix
+            matrix = translationMatrix @ rotationMatrix
             
             for entity in entities:
                 try:
@@ -193,6 +193,8 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name)
                     new_entity = entity.copy()
                     new_msp.add_entity(new_entity)
                     new_entity.dxf.layer = target_layer
+                    if new_entity.dxftype() == 'LWPOLYLINE':
+                        new_entity.closed = entity.closed
                     new_entity.transform(matrix)
                 except Exception as ex:
                     logger.warning(f"Failed to copy entity: {ex}")
