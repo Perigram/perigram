@@ -99,7 +99,7 @@ export default defineEventHandler(async (event) => {
     );
   
   // Generate nesting slug
-  const nestingSlug = `queue-${queue.queueNumber}-${generateRandomString(6)}`;
+  const nestingSlug = `queue-${queue.queueNumber ?? queue.id.slice(-6)}-${generateRandomString(6)}`;
   
   // Material dimensions and pool from request
   const params = {

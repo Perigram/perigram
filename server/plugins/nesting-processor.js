@@ -66,7 +66,7 @@ async function processNextJob() {
       let cassette = await db.collection('cassettes').findOne({ _id: cassetteId });
 
       if (!cassette) {
-        cassette = await db.collection('baked_cassettes').findOne({ _id: cassetteId });
+        cassette = await db.collection('cassette_designs').findOne({ _id: cassetteId });
       }
 
       if (!cassette) {
