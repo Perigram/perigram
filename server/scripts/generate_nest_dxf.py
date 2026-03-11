@@ -78,8 +78,8 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name)
     baked_cassettes_collection = db["cassette_designs"]
     cassettes_bucket = GridFSBucket(db, bucket_name="cassettes")
     
-    # Fetch layer standards and pens for styling
-    layer_standards = {s["code"]: s for s in db["layer_standards"].find()}
+    # Fetch layer standards and pens for styling (v24: code/defaultPenId are in data subfield)
+    layer_standards = {s["data"]["code"]: s for s in db["layer_standards"].find() if s.get("data", {}).get("code")}
     pen_templates = {str(p["_id"]): p for p in db["pen_templates"].find()}
     
     doc_cache = {}
@@ -91,12 +91,12 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name)
     
     # Pre-create standard layers with styles
     for code, std in layer_standards.items():
-        pen_id = str(std.get("defaultPenId"))
-        pen = pen_templates.get(pen_id)
         if code not in new_doc.layers:
             l = new_doc.layers.new(code)
+            pen_id = str(std.get("data", {}).get("defaultPenId", ""))
+            pen = pen_templates.get(pen_id)
             if pen:
-                stroke = pen.get("stroke", {})
+                stroke = pen.get("data", {}).get("stroke", pen.get("stroke", {}))
                 color_hex = stroke.get("color", "#FFFFFF")
                 l.color = hex_to_aci(color_hex)
                 clean_hex = color_hex.lstrip("#")

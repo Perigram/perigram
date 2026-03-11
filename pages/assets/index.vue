@@ -34,6 +34,7 @@ const activeTabIndex = ref(0);
 const tabs = computed(() => [
     { label: t('assets.cassettes'), to: '/assets/cassettes', key: 'cassettes' },
     { label: t('assets.pens'), to: '/assets/pens', key: 'pens' },
+    { label: t('assets.layerStandards'), to: '/assets/layer-standards', key: 'layer-standards' },
     { label: t('assets.tools'), to: '/assets/tools', key: 'tools' },
     { label: t('assets.templates'), to: '/assets/templates', key: 'templates' },
 ]);
@@ -56,10 +57,12 @@ const updateActiveTab = () => {
         activeTabIndex.value = 0;
     } else if (route.path.includes('/pens')) {
         activeTabIndex.value = 1;
-    } else if (route.path.includes('/tools')) {
+    } else if (route.path.includes('/layer-standards')) {
         activeTabIndex.value = 2;
-    } else if (route.path.includes('/templates')) {
+    } else if (route.path.includes('/tools')) {
         activeTabIndex.value = 3;
+    } else if (route.path.includes('/templates')) {
+        activeTabIndex.value = 4;
     }
 };
 

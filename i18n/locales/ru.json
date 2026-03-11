@@ -677,9 +677,14 @@
     "cassettes": "Кассеты",
     "templates": "Шаблоны",
     "pens": "Перья",
+    "layerStandards": "Стандарты слоёв",
     "tools": "Фрезы",
     "newPen": "Новое перо",
     "newTool": "Новая фреза",
+    "layers": {
+      "name": "Название",
+      "pen": "Перо по умолчанию"
+    },
     "loadingPens": "Загрузка перьев...",
     "loadingTools": "Загрузка фрез...",
     "system": "Системный",

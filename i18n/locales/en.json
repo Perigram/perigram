@@ -704,9 +704,14 @@
     "cassettes": "Cassettes",
     "templates": "Templates",
     "pens": "Pens",
+    "layerStandards": "Layer Standards",
     "tools": "Tools",
     "newPen": "New Pen",
     "newTool": "New Tool",
+    "layers": {
+      "name": "Name",
+      "pen": "Default Pen"
+    },
     "loadingPens": "Loading pens...",
     "loadingTools": "Loading tools...",
     "system": "System",
