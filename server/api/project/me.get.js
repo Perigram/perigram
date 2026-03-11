@@ -22,10 +22,9 @@ export default defineEventHandler(async (event) => {
   const countMap = Object.fromEntries(queueCounts.map(c => [c._id?.toString(), c.count]));
   
   const uiProjects = projects.map(p => {
-      return {
-          ...p.toJSON(),
-          results: countMap[p.id] || 0
-      };
+      const json = p.toJSON();
+      json.summary = { ...json.summary, queueCount: countMap[p.id] || 0 };
+      return json;
   });
 
   return {
