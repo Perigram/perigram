@@ -6,6 +6,12 @@ import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import { useAuthStore } from '~/stores/auth';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+
+const PROJECT_SUMMARY_FIELDS = [
+    { path: 'summary.queueCount', i18n: 'project.queues' },
+    { path: 'summary.totalArea',  i18n: 'project.totalArea', suffix: ' m²' },
+];
 
 const props = defineProps({
   project: { type: Object, required: true },
@@ -26,16 +32,7 @@ const handleCardClick = () => {
         <!-- Card body -->
         <template v-if="variant === 'card'">
             <Divider />
-            <div class="grid grid-cols-2 gap-4">
-                <div class="flex flex-col">
-                    <small class="text-muted-color">Queues</small>
-                    <span class="font-semibold">{{ project.summary?.queueCount || 0 }}</span>
-                </div>
-                <div class="flex flex-col">
-                    <small class="text-muted-color">Total Area</small>
-                    <span class="font-semibold">{{ project.summary?.totalArea || 0 }} m²</span>
-                </div>
-            </div>
+            <DataBlock :entity="project" :fields="PROJECT_SUMMARY_FIELDS" />
         </template>
 
         <!-- Card footer -->
