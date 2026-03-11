@@ -70,7 +70,7 @@ export async function create(data, userId) {
 export async function update(id, updates, userId) {
   const pen = await repository.findById(id);
   if (!pen) throw createError({ statusCode: 404, message: 'Pen not found' });
-  if (!pen.ownerId) {
+  if (!pen.lineage?.userId && !pen.ownerId) {
     throw createError({ statusCode: 403, message: 'System pens cannot be modified' });
   }
   
@@ -91,7 +91,7 @@ export async function update(id, updates, userId) {
 
 export async function remove(id, userId) {
   const pen = await getById(id, userId);
-  if (!pen.ownerId) {
+  if (!pen.lineage?.userId && !pen.ownerId) {
     throw createError({ statusCode: 403, message: 'System pens cannot be deleted' });
   }
   await repository.deleteById(id);
