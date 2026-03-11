@@ -24,7 +24,12 @@ export async function create(data, userId) {
     identity: { uid: `art-${generateRandomString(8)}`, name: data.name || 'New Artifact' },
     origin,
     status: origin,
-    lineage: data.lineage || {},
+    type: data.type,
+    lineage: {
+      ...(data.lineage || {}),
+      ...(data.queueId ? { queueId: toFlexibleId(data.queueId) } : {}),
+      ...(data.runId ? { runId: toFlexibleId(data.runId) } : {})
+    },
     data: {
       type: data.type,
       fileId: data.fileId ? toFlexibleId(data.fileId) : null,
