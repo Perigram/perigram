@@ -74,7 +74,7 @@ async function processNextJob() {
         continue;
       }
 
-      const polygonParts = cassette.polygonParts || [];
+      const polygonParts = cassette.polygonParts || cassette.data?.polygonParts || [];
 
       // Handle fallback
       if (polygonParts.length > 0) {

@@ -158,7 +158,7 @@ def process_transforms(transforms_data, output_dir, slug, mongo_client, db_name)
                  continue
                  
             source_doc = read_dxf_from_gridfs(cassettes_bucket, dxf_id, doc_cache)
-            layer_mapping = cassette.get("layerMapping", {})
+            layer_mapping = cassette.get("layerMapping") or (cassette.get("data") or {}).get("layerMapping", {})
             
             source_msp = source_doc.modelspace()
             entities = list(source_msp)
