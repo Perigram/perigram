@@ -45,5 +45,5 @@ COPY workers/cassette-processing .
 Deployed as part of the `file-processing-worker` Docker image (shared image, different entrypoint/command).
 
 ## Related
-- [workers/NEOLIT.md](../NEOLIT.md) — Worker overview
-- [workers/fileprocessing/NEOLIT.md](../fileprocessing/NEOLIT.md) — Shared DXF utilities source
+- [workers/README.md](../README.md) — Worker overview
+- [workers/fileprocessing/README.md](../fileprocessing/README.md) — Shared DXF utilities source

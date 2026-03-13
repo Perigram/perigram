@@ -20,4 +20,4 @@ Key fields:
 - Individual Users: No direct access
 
 ## Related Components
-- [users](../users/NEOLIT.md) - Users belong to organizations
+- [users](../users/README.md) - Users belong to organizations

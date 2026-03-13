@@ -60,6 +60,6 @@ Key fields:
 - Warehouse counts updated on create/use/delete
 
 ## Related Components
-- [sheets](../sheets/NEOLIT.md) - Source of remnants
-- [queues](../queues/NEOLIT.md) - Can use remnants in nesting
-- [warehouses](../warehouses/NEOLIT.md) - Storage location
+- [sheets](../sheets/README.md) - Source of remnants
+- [queues](../queues/README.md) - Can use remnants in nesting
+- [warehouses](../warehouses/README.md) - Storage location

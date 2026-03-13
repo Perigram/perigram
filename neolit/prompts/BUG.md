@@ -10,7 +10,7 @@
 ## Workflow Summary
 
 **Phase 0: Verify Docs Exist**
-- Check NEOLIT.md exists
+- Check README.md exists
 - Verify completeness
 - **If missing:** Use DOCUMENT_COMPONENT.md
 
@@ -22,7 +22,7 @@
 **Phase 2: Root Cause Analysis**
 1. Reproduce bug
 2. Trace through code
-3. Verify against NEOLIT.md - which constraint violated?
+3. Verify against README.md - which constraint violated?
 4. Assess impact
 
 **Phase 3: Fix Implementation**
@@ -31,7 +31,7 @@
 - Fix only the bug (no refactoring)
 
 **Phase 4: Document Changes**
-- Update NEOLIT.md if bug exposed unclear docs
+- Update README.md if bug exposed unclear docs
 - Add agent notes with root cause
 - Move to WAITING
 
@@ -45,7 +45,7 @@ Before marking WAITING, verify using `neolit/standard/validation.md`:
 
 - [ ] Bug actually fixed (verified)
 - [ ] Minimal fix (no extra changes)
-- [ ] Structures still match NEOLIT.md
+- [ ] Structures still match README.md
 - [ ] No API breakage
 - [ ] Docs updated if needed
 - [ ] Agent notes added

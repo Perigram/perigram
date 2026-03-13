@@ -1,6 +1,6 @@
 # Analyze Project for Neolit Integration
 
-**Goal:** Document existing project with NEOLIT.md files.
+**Goal:** Document existing project with README.md files.
 
 ---
 
@@ -18,7 +18,7 @@
 1. Ignore: node_modules, .git, dist, build, vendor
 2. Document ONLY what exists (no guessing)
 3. Extract from actual code (trace through real files)
-4. Match codebase structure (NEOLIT.md placement follows code)
+4. Match codebase structure (README.md placement follows code)
 5. Use C4 levels correctly (see `neolit/standard/levels.md`)
 
 ---
@@ -51,20 +51,20 @@ grep -r "export.*function\|export.*class" --include="*.js" --include="*.ts" | he
 **For single deployable:**
 ```
 PLAN:
-Root: NEOLIT.md (SYSTEM)
-Components: src/auth/NEOLIT.md (COMPONENT)
-            src/user/NEOLIT.md (COMPONENT)
+Root: README.md (SYSTEM)
+Components: src/auth/README.md (COMPONENT)
+            src/user/README.md (COMPONENT)
 Skip CONTAINER level (single deployable)
 ```
 
 **For multi-deployable:**
 ```
 PLAN:
-Root: NEOLIT.md (SYSTEM)
-Containers: api/NEOLIT.md (CONTAINER - deployable)
-            worker/NEOLIT.md (CONTAINER - deployable)
-Components: api/auth/NEOLIT.md (COMPONENT)
-            api/user/NEOLIT.md (COMPONENT)
+Root: README.md (SYSTEM)
+Containers: api/README.md (CONTAINER - deployable)
+            worker/README.md (CONTAINER - deployable)
+Components: api/auth/README.md (COMPONENT)
+            api/user/README.md (COMPONENT)
 ```
 
 **See:** `neolit/standard/levels.md` for level usage criteria
@@ -73,7 +73,7 @@ Components: api/auth/NEOLIT.md (COMPONENT)
 
 ### Phase 3: Create Structure (Empty Files)
 
-Create NEOLIT.md with section headers from templates.
+Create README.md with section headers from templates.
 
 **Use:** `neolit/standard/templates/` for section structure
 
@@ -82,7 +82,7 @@ Create NEOLIT.md with section headers from templates.
 ### Phase 4: Fill Content (Level by Level)
 
 **Order:**
-1. SYSTEM level (root NEOLIT.md)
+1. SYSTEM level (root README.md)
 2. CONTAINER level (if multi-deployable)
 3. COMPONENT level (most detailed)
 4. CODE level (if needed)
@@ -104,7 +104,7 @@ Create NEOLIT.md with section headers from templates.
 ### Phase 5: Verify Navigation
 
 **Test paths:**
-- Can reach every NEOLIT.md from root?
+- Can reach every README.md from root?
 - All cross-links valid?
 - All **Level:** markers correct?
 - CONTAINER used only for deployable units?
@@ -125,9 +125,9 @@ Create NEOLIT.md with section headers from templates.
 
 ## Output Checklist
 
-- [ ] Root NEOLIT.md (SYSTEM, 60-100 lines)
-- [ ] Container NEOLIT.md if multi-deployable (60-80 lines)
-- [ ] Component NEOLIT.md for each component (100-200 lines)
+- [ ] Root README.md (SYSTEM, 60-100 lines)
+- [ ] Container README.md if multi-deployable (60-80 lines)
+- [ ] Component README.md for each component (100-200 lines)
 - [ ] CODE level only where needed (30-80 lines)
 - [ ] All have **Level:** marker
 - [ ] All cross-linked

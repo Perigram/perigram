@@ -59,7 +59,7 @@ This section documents the approved hardening of the v24 Absolute Final architec
 **Objective:** Update documentation to prevent regression.
 
 - Update `AGENTS.md` with explicit "Golden Path" mandates.
-- Update `NEOLIT.md` at all levels to reflect the modularized core.
+- Update `README.md` at all levels to reflect the modularized core.
 
 ---
 

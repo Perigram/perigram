@@ -26,6 +26,6 @@ Fetches queues via `$fetch('/api/queues?lineage.projectId=...')` on mount and on
 Renders queues as `QueueCard` (compact variant) and shows a `StatusHistory` sidebar panel.
 
 ## Related
-- [components/shared/NEOLIT.md](../../shared/NEOLIT.md) — EntityCard, DataBlock, EntityStatus
-- [composables/NEOLIT.md](../../../composables/NEOLIT.md) — useEntity, useEntityList
+- [components/shared/README.md](../../shared/README.md) — EntityCard, DataBlock, EntityStatus
+- [composables/README.md](../../../composables/README.md) — useEntity, useEntityList
 - [server/DATA_MODEL.md](../../../server/DATA_MODEL.md) — Project schema (`summary.queueCount`, `summary.totalArea`)

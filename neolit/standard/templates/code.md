@@ -1,6 +1,6 @@
 # CODE Level Template
 
-**Location:** Sub-component directory (`src/auth/utils/NEOLIT.md`)
+**Location:** Sub-component directory (`src/auth/utils/README.md`)
 
 **Size:** 30-80 lines
 
@@ -89,8 +89,8 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Email validation pattern
 ```
 
 ## Related
-- **[Auth Component](../NEOLIT.md)** - Parent component
-- **[Password Module](../password/NEOLIT.md)** - Password handling (if exists)
+- **[Auth Component](../README.md)** - Parent component
+- **[Password Module](../password/README.md)** - Password handling (if exists)
 ````
 
 ---

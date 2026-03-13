@@ -1,5 +1,5 @@
 # DEPRECATED
-> **WARNING:** This document is outdated. Please refer to `server/NEOLIT.md` and `server/DATA_MODEL.md` for the current (v24 Absolute Final) architecture.
+> **WARNING:** This document is outdated. Please refer to `server/README.md` and `server/DATA_MODEL.md` for the current (v24 Absolute Final) architecture.
 
 # Engineering Data Model (v24 Absolute Final)
 

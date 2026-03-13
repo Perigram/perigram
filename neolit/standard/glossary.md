@@ -1,6 +1,6 @@
 # Glossary
 
-**NEOLIT.md**
+**README.md**
 - Single documentation file at any directory level
 - Content structure determined by C4 level
 - Always includes **Level:** marker

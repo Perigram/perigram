@@ -1,6 +1,6 @@
 # COMPONENT Level Template
 
-**Location:** Functional component directory (`src/auth/NEOLIT.md`, `api/users/NEOLIT.md`)
+**Location:** Functional component directory (`src/auth/README.md`, `api/users/README.md`)
 
 **Size:** 100-200 lines
 
@@ -161,11 +161,11 @@ type UserRole = 'admin' | 'user';
 - MUST hash password before any comparison operation
 
 ## Related
-- **[User Component](../user/NEOLIT.md)** - User data management
-- **[API Middleware](../api/NEOLIT.md)** - Request authentication
-- **[Container](../NEOLIT.md)** - Parent container (if exists)
-- **[System](../../NEOLIT.md)** - System overview
-- **[Workflow: User Login](../../NEOLIT.md#user-login)** - Login workflow
+- **[User Component](../user/README.md)** - User data management
+- **[API Middleware](../api/README.md)** - Request authentication
+- **[Container](../README.md)** - Parent container (if exists)
+- **[System](../../README.md)** - System overview
+- **[Workflow: User Login](../../README.md#user-login)** - Login workflow
 ````
 
 ---

@@ -25,5 +25,5 @@ Permissions are enforced using `server/utils/permissions.js` which validates the
 
 ## Related
 - [server/DATA_MODEL.md](../DATA_MODEL.md) - Generated Data Model.
-- [server/core/machines/](../core/machines/NEOLIT.md) - Lifecycle Engine.
-- [server/utils/](../utils/NEOLIT.md) - Block and Permission utilities.
+- [server/core/machines/](../core/machines/README.md) - Lifecycle Engine.
+- [server/utils/](../utils/README.md) - Block and Permission utilities.

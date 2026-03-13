@@ -38,4 +38,4 @@ Inherits all `BaseEntity` fields.
 - Per-organization permissions in `memberships`
 
 ## Related Components
-- [organizations](../organizations/NEOLIT.md) - Users belong to organizations via memberships and current lineage context
+- [organizations](../organizations/README.md) - Users belong to organizations via memberships and current lineage context

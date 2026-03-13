@@ -1,5 +1,5 @@
 # DEPRECATED
-> **WARNING:** This document is outdated. Please refer to `server/NEOLIT.md` and `server/DATA_MODEL.md` for the current (v24 Absolute Final) architecture.
+> **WARNING:** This document is outdated. Please refer to `server/README.md` and `server/DATA_MODEL.md` for the current (v24 Absolute Final) architecture.
 
 # Migration guide
 This document outlines the major changes and migration steps required for transitioning from the previous version of the project to the latest version. Please follow the instructions carefully to ensure a smooth upgrade process.

@@ -1,6 +1,6 @@
 # Document Component Guide
 
-**Purpose:** Create NEOLIT.md at any level.
+**Purpose:** Create README.md at any level.
 
 ---
 
@@ -49,7 +49,7 @@ Determine:
 
 ---
 
-## Step 4: Create NEOLIT.md
+## Step 4: Create README.md
 
 Copy structure from chosen template, fill with actual content from code.
 
@@ -68,7 +68,7 @@ Copy structure from chosen template, fill with actual content from code.
 
 ## Step 5: Add Cross-Links
 
-Update related NEOLIT.md files:
+Update related README.md files:
 - Parent level → add to components list
 - Related components → add to Related section
 - System workflows → add references if used

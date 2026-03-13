@@ -26,5 +26,5 @@ Governed by `server/core/machines/definitions.js`:
 - **`list`**: Uses a dual-lineage filter (either `organizationId` matches as buyer, or `manufacturerId` matches as seller).
 
 ## Related
-- [catalogs](../catalogs/NEOLIT.md) - Pricing source.
-- [material-piles](../material-piles/NEOLIT.md) - Target for fulfillment.
+- [catalogs](../catalogs/README.md) - Pricing source.
+- [material-piles](../material-piles/README.md) - Target for fulfillment.

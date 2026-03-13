@@ -41,7 +41,7 @@ Inventory counts are updated automatically when:
 - Remnants used in queue (totalRemnants--)
 
 ## Related Components
-- [material-piles](../material-piles/NEOLIT.md) - Batches stored in warehouse
-- [sheets](../sheets/NEOLIT.md) - Sheet inventory in warehouse
-- [remnants](../remnants/NEOLIT.md) - Remnant inventory in warehouse
-- [organizations](../organizations/NEOLIT.md) - Warehouse owner organization
+- [material-piles](../material-piles/README.md) - Batches stored in warehouse
+- [sheets](../sheets/README.md) - Sheet inventory in warehouse
+- [remnants](../remnants/README.md) - Remnant inventory in warehouse
+- [organizations](../organizations/README.md) - Warehouse owner organization

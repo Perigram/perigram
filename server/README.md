@@ -1,4 +1,4 @@
-# NEOLIT.md (CONTAINER Level) - v24 Absolute Final
+# README.md (CONTAINER Level) - v24 Absolute Final
 
 This document describes the established architecture of the Cutkit backend, enforcing the **v24 Standardized Block** principles.
 
@@ -56,4 +56,4 @@ Maintains parent summaries (counts/sums) automatically using lineage-aware aggre
 ## Related
 - [server/core/blocks/index.js](./core/blocks/index.js) (Block Definitions)
 - [server/features/_template/README.md](./features/_template/README.md) (Golden Path Reference)
-- [server/core/machines/NEOLIT.md](./core/machines/NEOLIT.md) (Status Engine Docs)
+- [server/core/machines/README.md](./core/machines/README.md) (Status Engine Docs)

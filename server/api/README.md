@@ -12,7 +12,7 @@ Routes are grouped into sub-directories corresponding to features:
 
 ## Conventions
 - **Method Suffixes:** Files are named `[action].[method].js` (e.g., `index.get.js`, `create.post.js`).
-- **Thin Wrappers:** API handlers should be minimal, delegating all business logic to the corresponding [Server Features](../features/NEOLIT.md).
+- **Thin Wrappers:** API handlers should be minimal, delegating all business logic to the corresponding [Server Features](../features/README.md).
 ## Authentication
 Most routes require authentication, which is handled by `server/middleware/auth.js`.
 Responsibilities:

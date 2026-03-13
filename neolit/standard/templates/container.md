@@ -1,6 +1,6 @@
 # CONTAINER Level Template
 
-**Location:** Deployable unit directory (`api/NEOLIT.md`, `worker/NEOLIT.md`, `frontend/NEOLIT.md`)
+**Location:** Deployable unit directory (`api/README.md`, `worker/README.md`, `frontend/README.md`)
 
 **Size:** 60-80 lines
 
@@ -26,10 +26,10 @@ REST API for client applications (web, mobile)
 - **Scaling:** Horizontal (multiple instances)
 
 ## Components
-- **[Auth](auth/NEOLIT.md)** - Authentication and authorization
-- **[Users](users/NEOLIT.md)** - User management
-- **[Payments](payments/NEOLIT.md)** - Payment processing
-- **[Database](database/NEOLIT.md)** - Database access layer
+- **[Auth](auth/README.md)** - Authentication and authorization
+- **[Users](users/README.md)** - User management
+- **[Payments](payments/README.md)** - Payment processing
+- **[Database](database/README.md)** - Database access layer
 
 ## Technology Stack
 - Framework: Express.js 4.x
@@ -63,8 +63,8 @@ GET    /api/payments/:id
 - Return stack traces in production
 
 ## Related
-- **[System Overview](../NEOLIT.md)** - System architecture
-- **[Worker Container](../worker/NEOLIT.md)** - Background jobs
+- **[System Overview](../README.md)** - System architecture
+- **[Worker Container](../worker/README.md)** - Background jobs
 ````
 
 ---

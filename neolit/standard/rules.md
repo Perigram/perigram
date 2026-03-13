@@ -4,15 +4,15 @@
 
 **Before touching code:**
 
-1. **MUST** verify `NEOLIT.md` exists at correct level
+1. **MUST** verify `README.md` exists at correct level
    - Root level (SYSTEM) → If missing: create using ANALYZE_PROJECT.md
    - Component level (COMPONENT) → If missing: create using DOCUMENT_COMPONENT.md
 
-2. **MUST** verify `NEOLIT.md` has correct **Level:** marker and sections
+2. **MUST** verify `README.md` has correct **Level:** marker and sections
    - Check: `**Level:** SYSTEM | CONTAINER | COMPONENT | CODE`
    - If wrong or incomplete → Fill using appropriate guide
 
-3. **MUST** verify `NEOLIT.md` complete for task
+3. **MUST** verify `README.md` complete for task
    - Has required sections for its level?
    - Has data structures, constraints?
    - If incomplete → Fill gaps using DOCUMENT_COMPONENT.md
@@ -25,8 +25,8 @@
 
 ## Rule 1: Context Assembly
 
-1. **MUST** read root `NEOLIT.md` FIRST (SYSTEM level)
-2. **MUST** read component `NEOLIT.md` (COMPONENT level - exact structures, signatures, constraints)
+1. **MUST** read root `README.md` FIRST (SYSTEM level)
+2. **MUST** read component `README.md` (COMPONENT level - exact structures, signatures, constraints)
 3. **MUST** identify ALL data structures involved
 4. **MUST** trace complete data flow
 5. **MUST** verify understanding (can draw flow? know structures? understand place in system?)
@@ -37,7 +37,7 @@
 
 ## Rule 2: Data Structure Integrity
 
-1. **MUST** follow existing structures EXACTLY (types, fields, constraints from NEOLIT.md)
+1. **MUST** follow existing structures EXACTLY (types, fields, constraints from README.md)
 2. **MUST** match field names CHARACTER-FOR-CHARACTER
 3. **MUST NOT** modify structures without explicit task requirement
 
@@ -48,7 +48,7 @@
 ## Rule 3: Pattern Adherence
 
 1. **MUST** match existing naming conventions EXACTLY
-2. **MUST** use established patterns from architecture (in NEOLIT.md)
+2. **MUST** use established patterns from architecture (in README.md)
 3. **MUST** preserve existing APIs unless task requires change
 
 **Violation:** Pattern violations or API breakage → REJECTED
@@ -57,7 +57,7 @@
 
 ## Rule 4: Documentation Synchronization
 
-1. **MUST** update `NEOLIT.md` when changing implementation
+1. **MUST** update `README.md` when changing implementation
 2. **MUST** update correct level (COMPONENT for code, SYSTEM for workflows, CONTAINER for deployable unit)
 3. **MUST** include documentation in SAME commit as code
 4. **MUST** add agent notes to TODO.org
@@ -67,7 +67,7 @@
 *** Agent Notes
     [2025-12-08] Task description
     Files changed: file1.js, file2.js
-    Docs updated: NEOLIT.md (COMPONENT level)
+    Docs updated: README.md (COMPONENT level)
     Notes: key decisions, patterns used
 ```
 

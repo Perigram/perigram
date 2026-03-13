@@ -8,7 +8,7 @@ Entry point for AI coding agents.
 
 **Read these files IN ORDER:**
 
-1. **`neolit/standard/glossary.md`** - Understand terms (NEOLIT.md, TODO.org, C4 levels)
+1. **`neolit/standard/glossary.md`** - Understand terms (README.md, TODO.org, C4 levels)
 2. **`neolit/standard/levels.md`** - Understand when to use each level
 3. **`neolit/standard/rules.md`** - **MANDATORY** rules 0-6 (READ FULLY)
 4. **`neolit/standard/workflow.md`** - Phase 0-3 workflow (READ FULLY)
@@ -17,11 +17,11 @@ Entry point for AI coding agents.
 
 ## Then Read Project Docs
 
-1. **Root `NEOLIT.md`** (SYSTEM level) - System overview, workflows
-2. **Container `NEOLIT.md`** (CONTAINER level, if exists) - Deployable unit context
-3. **Component `NEOLIT.md`** (COMPONENT level) - Exact structures, constraints
+1. **Root `README.md`** (SYSTEM level) - System overview, workflows
+2. **Container `README.md`** (CONTAINER level, if exists) - Deployable unit context
+3. **Component `README.md`** (COMPONENT level) - Exact structures, constraints
 
-**If any NEOLIT.md missing:** Use `ANALYZE_PROJECT.md` or `DOCUMENT_COMPONENT.md` to create.
+**If any README.md missing:** Use `ANALYZE_PROJECT.md` or `DOCUMENT_COMPONENT.md` to create.
 
 ---
 
@@ -38,7 +38,7 @@ Entry point for AI coding agents.
 *** Agent Notes
     [2025-12-08] Task description
     Files changed: file1.js, file2.js
-    Docs updated: NEOLIT.md (COMPONENT level)
+    Docs updated: README.md (COMPONENT level)
     Notes: key decisions
 ```
 

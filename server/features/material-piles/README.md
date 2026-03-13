@@ -25,5 +25,5 @@ The "Source of Truth" for physical material inventory. Replaces the legacy multi
 ```
 
 ## Related Components
-- [Catalogs](../catalogs/NEOLIT.md) - Definitive material options.
-- [Sheets](../sheets/NEOLIT.md) - Individual units created from a pile.
+- [Catalogs](../catalogs/README.md) - Definitive material options.
+- [Sheets](../sheets/README.md) - Individual units created from a pile.

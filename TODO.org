@@ -17,7 +17,7 @@
     - components/shared/blocks/StatusBadge.vue
     - components/shared/links/TraceChain.vue, TraceLink.vue
     - components/entities/** (Updated cards and details to new standard)
-    - AGENTS.md, NEOLIT.md (Updated constitutional rules)
+    - AGENTS.md, README.md (Updated constitutional rules)
     Notes:
     - Standardized frontend interaction layer via `useEntity` (centralized API mapping).
     - Unified status visualization and transitions into `EntityStatus` and `StatusBadge`.
@@ -160,7 +160,7 @@
     - components/shared/EntityCard.vue (TraceChain + Identity + Status standard)
     - pages/projects/index.vue (Absolute minimal header: Title + New Button only)
     - pages/project/[slug].vue (Removed redundant summary, focused on tab content)
-    - components/shared/NEOLIT.md (Updated documentation)
+    - components/shared/README.md (Updated documentation)
     Notes:
     - Restored `slug` and `serial` to `IdentityBlock` to ensure full entity identification as requested.
     - Stripped `projects/index` header to absolute essentials (Title and Create Button in a single row) to eliminate all perceived "slop".

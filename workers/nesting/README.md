@@ -1,42 +1,59 @@
-# Nesting Worker with jagua-rs Integration
+# COMPONENT: Nesting Worker
 
-This worker integrates the [jagua-rs](https://github.com/JeroenGar/jagua-rs) Rust library for 2D irregular cutting and packing problems.
+The Nesting Worker is a Python-based HTTP service responsible for executing the 2D bin packing algorithm. It is a "pure algorithm" service that processes geometry and returns transformations, without accessing the database.
 
-## Architecture
+## Core Files
+- `worker_service.py`: FastAPI application entry point.
+- `core/nesting_input_builder.py`: Prepares geometry and parameters for the nesting engine.
+- `main.py`: (Deprecated) Old polling entry point.
 
+## Nesting Engine
+The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesting library written in Rust.
+- The `lbf` binary is executed to perform the nesting.
+
+## Architecture & Workflow
+1.  **Input**: Receives POST request with items (polygons) and parameters.
+2.  **Processing**:
+    *   Buffers input polygons by the specified spacing.
+    *   Constructs input JSON for `lbf`.
+    *   Executes `lbf` binary.
+3.  **Output**: Returns nesting solution (layouts and transformations) as JSON.
+
+## API
+### POST /nest
+**Request:**
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "cassette_id": "...",
+      "coords": [[x,y], ...],
+      "handles": ["..."],
+      "count": 5
+    }
+  ],
+  "params": {
+    "width": 1220,
+    "height": 2440,
+    "space": 5,
+    "sheetCount": 10
+  }
+}
 ```
-workers/nesting/
-├── jagua-rs/           # Git submodule of jagua-rs Rust library
-├── jagua_wrapper.py    # Python wrapper for jagua-rs
-├── core/main.py        # Main nesting logic using jagua-rs
-└── requirements.txt    # Python dependencies
-```
 
-## How to build docker image
+**Response:**
+Standard `lbf` JSON output containing layouts and placed items with transformations.
 
-To build and run the nesting worker in a Docker container, follow these steps:
+## Building & Running Locally
 
-1. **Build the Docker image:**
 ```sh
-docker build -t nesting-worker:local .
-```
+# Build image (from project root — Dockerfile uses root-relative paths)
+docker build -t nesting-worker:local -f workers/nesting/Dockerfile .
 
-This will:
-- Build the `jagua-rs` Rust library inside the container.
-- Install Python dependencies from `requirements.txt`.
-- Set up the worker environment.
+# Run container
+docker run --rm -it nesting-worker:local
 
-3. **Run the Docker container:**
-```sh
-docker run --rm -it nesting-worker
-```
-
-You can mount a local directory for input/output if needed:
-```sh
-docker run --rm -it -v $(pwd)/data:/app/data nesting-worker
-```
-
-With network 
-```sh
+# With host network (for local MongoDB)
 docker run --network host -it -v "$(pwd):/app" -w /app nesting-worker:local bash
 ```

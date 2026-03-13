@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 
 const FEATURES_DIR = './server/features';
-const IGNORE = ['_template', 'NEOLIT.md', 'index.js'];
+const IGNORE = ['_template', 'README.md', 'index.js'];
 
 console.log('🚀 Starting Architectural Verification...');
 

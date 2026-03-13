@@ -6,7 +6,7 @@ This directory contains Vue components used in the Cutkit-Demo application.
 - **PrimeVue:** All components MUST use PrimeVue for UI elements (buttons, inputs, tables, dialogs).
 - **Zero Styling Policy:** Components MUST avoid manual styling (colors, text sizes, backgrounds, etc.). Rely on PrimeVue theme presets. No custom CSS except for layout purposes.
 - **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).
-- **Standard Components:** Create reusable components for common UI patterns (cards, modals, forms, tables) and use them consistently across the app. See [components/shared/NEOLIT.md](./shared/NEOLIT.md) for the full list.
+- **Standard Components:** Create reusable components for common UI patterns (cards, modals, forms, tables) and use them consistently across the app. See [components/shared/README.md](./shared/README.md) for the full list.
 - **Use Variants:** Components should support different visual variants (`inline`, `compact`, `card`) to ensure flexibility in different contexts.
 - **Child Components:** When a component needs to display child entities, it must use the child entity's dedicated card component (e.g. NestingRunCard uses ArtifactCard for its artifacts).
 - **Smart Components:** Sub-components should use permissions to conditionally render actions (edit, delete, view) based on user roles.
@@ -45,6 +45,6 @@ Exception: `useStatus` may be used in an entity card **only** for reading `state
 PrimeVue Button, Tag, Badge do not inherit font-size from containers. Always add `size="small"` to these elements inside compact and inline variant contexts.
 
 ## Related
-- [components/shared/NEOLIT.md](./shared/NEOLIT.md) — shared block components, layout containers
-- [composables/NEOLIT.md](../composables/NEOLIT.md) — useEntity, useBlocks
+- [components/shared/README.md](./shared/README.md) — shared block components, layout containers
+- [composables/README.md](../composables/README.md) — useEntity, useBlocks
 - [server/DATA_MODEL.md](../server/DATA_MODEL.md) — entity data shapes

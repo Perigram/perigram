@@ -1,6 +1,6 @@
 # SYSTEM Level Template
 
-**Location:** Project root (`NEOLIT.md`)
+**Location:** Project root (`README.md`)
 
 **Size:** 60-100 lines
 
@@ -24,14 +24,14 @@ Brief description of system (2-3 sentences: what it does, why it exists)
 - Deployment: Docker, Kubernetes, etc
 
 ## Containers (if multi-deployable)
-- **[API Server](api/NEOLIT.md)** - REST API (deployable unit)
-- **[Worker](worker/NEOLIT.md)** - Background jobs (deployable unit)
-- **[Frontend](frontend/NEOLIT.md)** - Web application (deployable unit)
+- **[API Server](api/README.md)** - REST API (deployable unit)
+- **[Worker](worker/README.md)** - Background jobs (deployable unit)
+- **[Frontend](frontend/README.md)** - Web application (deployable unit)
 
 ## Components (if single deployable)
-- **[Auth](src/auth/NEOLIT.md)** - Authentication and authorization
-- **[User](src/user/NEOLIT.md)** - User management
-- **[Payment](src/payment/NEOLIT.md)** - Payment processing
+- **[Auth](src/auth/README.md)** - Authentication and authorization
+- **[User](src/user/README.md)** - User management
+- **[Payment](src/payment/README.md)** - Payment processing
 
 ## Data Flow
 ```
@@ -43,13 +43,13 @@ Client → API → Business Logic → Database
 ## Workflows
 
 ### User Registration
-1. Submit form → [Auth Component](src/auth/NEOLIT.md)
+1. Submit form → [Auth Component](src/auth/README.md)
 2. Validate credentials → Database
-3. Store user → [Database Component](src/database/NEOLIT.md)
-4. Send welcome email → [Worker](worker/NEOLIT.md) (if applicable)
+3. Store user → [Database Component](src/database/README.md)
+4. Send welcome email → [Worker](worker/README.md) (if applicable)
 
 ### Payment Processing
-1. Submit payment → [Payment Component](src/payment/NEOLIT.md)
+1. Submit payment → [Payment Component](src/payment/README.md)
 2. Validate → Payment gateway
 3. Update order → Database
 4. Send confirmation → User

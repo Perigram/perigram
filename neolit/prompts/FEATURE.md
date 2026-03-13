@@ -11,25 +11,25 @@
 ## Workflow Summary
 
 **Phase 0: Verify Docs Exist**
-- Check NEOLIT.md exists at all needed levels
+- Check README.md exists at all needed levels
 - Verify **Level:** markers correct
 - Verify required sections present
 - **If missing:** Use DOCUMENT_COMPONENT.md to create
 
 **Phase 1: Read Docs**
-- Read SYSTEM level (root NEOLIT.md)
+- Read SYSTEM level (root README.md)
 - Read CONTAINER level (if exists)
 - Read COMPONENT level
 - Extract all structures, constraints
 
 **Phase 2: Implement**
-- Follow exact structures from NEOLIT.md
+- Follow exact structures from README.md
 - Honor all constraints (MUST/MUST NOT)
 - Complete fully (no placeholders)
 - Handle all errors
 
 **Phase 3: Document Changes**
-- Update NEOLIT.md (correct level)
+- Update README.md (correct level)
 - Add agent notes to TODO.org
 - Move task to WAITING
 
@@ -43,7 +43,7 @@ Before marking WAITING, verify using `neolit/standard/validation.md`:
 
 - [ ] Docs existed before starting
 - [ ] Read all levels
-- [ ] Structures match NEOLIT.md exactly
+- [ ] Structures match README.md exactly
 - [ ] All constraints honored
 - [ ] Feature complete
 - [ ] Docs updated

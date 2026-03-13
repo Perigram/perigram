@@ -33,5 +33,5 @@ Templates in the `cassettes` collection do NOT store DXF files or physical track
 Access is governed by `lineage.organizationId`. Multi-tenant isolation is enforced at the service layer using `hasLineagePermission`.
 
 ## Related
-- [cassette-designs](../cassette-designs/NEOLIT.md) - Stores baked geometry and DXF references.
-- [parametric-cassettes](../parametric-cassettes/NEOLIT.md) - Engine for evaluating parametric logic.
+- [cassette-designs](../cassette-designs/README.md) - Stores baked geometry and DXF references.
+- [parametric-cassettes](../parametric-cassettes/README.md) - Engine for evaluating parametric logic.

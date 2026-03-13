@@ -67,5 +67,5 @@ The `server/features/statuses/service.js` provides lightweight wrappers for v24 
 - `getStatusHistory()`: Aggregates history from `status_events`.
 
 ## Related
-- [server/core/machines/NEOLIT.md](../../core/machines/NEOLIT.md) (Engine details)
+- [server/core/machines/README.md](../../core/machines/README.md) (Engine details)
 - [server/utils/blocks.js](../../utils/blocks.js) (Block definitions)

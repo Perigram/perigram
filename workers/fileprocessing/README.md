@@ -44,5 +44,5 @@ Polls MongoDB for pending DXF upload jobs, extracts geometry and metadata, gener
 Both instances run from the same Docker image (`file-processing-worker`). Two replicas are deployed per mode via Docker Stack.
 
 ## Related
-- [workers/NEOLIT.md](../NEOLIT.md) — Worker overview
-- [workers/cassette-processing/NEOLIT.md](../cassette-processing/NEOLIT.md) — Shares DXF utilities from this module
+- [workers/README.md](../README.md) — Worker overview
+- [workers/cassette-processing/README.md](../cassette-processing/README.md) — Shares DXF utilities from this module

@@ -31,5 +31,5 @@ Designs are created by "baking" a `cassette_template` with concrete parameters. 
 Every design optionally references its parent `templateId` via lineage. This allows tracing a production design back to its parametric or standard source.
 
 ## Related
-- [cassettes](../cassettes/NEOLIT.md) - The source templates.
-- [artifacts](../artifacts/NEOLIT.md) - Production output management.
+- [cassettes](../cassettes/README.md) - The source templates.
+- [artifacts](../artifacts/README.md) - Production output management.

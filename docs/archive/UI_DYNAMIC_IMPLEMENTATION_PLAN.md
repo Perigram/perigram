@@ -19,14 +19,14 @@ This plan outlines the transition from a unified Contractor-centric UI to a dyna
     - Add computed flags: `isSuperAdmin`, `isManufacturer`, `isContractor`, `isCustomer`, `isOrgAdmin`.
 - [ ] **Localization (`i18n/locales/`):**
     - Add `roles.*` and `features.*` namespaces to `en.json` and `ru.json`.
-- [ ] **Documentation:** Update `stores/NEOLIT.md` to reflect state changes.
+- [ ] **Documentation:** Update `stores/README.md` to reflect state changes.
 
 ### Phase 2: Dynamic Navigation & Breadcrumbs [ ]
 - [ ] **Refactor `layouts/app.vue`:**
     - Convert `mainSections` into a computed property filtering by permission.
     - Update breadcrumb generator to use dynamic `mainSections`.
     - Update user menu to show "System Admin" or "Org Admin" sections conditionally.
-- [ ] **Documentation:** Update `layouts/NEOLIT.md`.
+- [ ] **Documentation:** Update `layouts/README.md`.
 
 ### Phase 3: Composable Feature Hubs [ ]
 - [ ] **Materials Hub (`pages/materials/index.vue`):**

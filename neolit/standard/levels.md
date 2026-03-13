@@ -4,7 +4,7 @@
 
 ### SYSTEM Level (always)
 - **Location:** Project root
-- **Use:** Every project has one SYSTEM level NEOLIT.md
+- **Use:** Every project has one SYSTEM level README.md
 - **Purpose:** Project overview, containers/components list, workflows
 - **Size:** 60-100 lines
 
@@ -44,30 +44,30 @@
 **Single deployable application:**
 ```
 project/
-├── NEOLIT.md              # SYSTEM
+├── README.md              # SYSTEM
 └── src/
     ├── auth/
-    │   └── NEOLIT.md      # COMPONENT (skip CONTAINER)
+    │   └── README.md      # COMPONENT (skip CONTAINER)
     └── user/
-        └── NEOLIT.md      # COMPONENT
+        └── README.md      # COMPONENT
 ```
 
 **Multi-deployable (microservices):**
 ```
 project/
-├── NEOLIT.md              # SYSTEM
+├── README.md              # SYSTEM
 ├── api/
-│   ├── NEOLIT.md          # CONTAINER (deployable: API server)
+│   ├── README.md          # CONTAINER (deployable: API server)
 │   └── auth/
-│       └── NEOLIT.md      # COMPONENT
+│       └── README.md      # COMPONENT
 ├── worker/
-│   ├── NEOLIT.md          # CONTAINER (deployable: background worker)
+│   ├── README.md          # CONTAINER (deployable: background worker)
 │   └── email/
-│       └── NEOLIT.md      # COMPONENT
+│       └── README.md      # COMPONENT
 └── frontend/
-    ├── NEOLIT.md          # CONTAINER (deployable: web app)
+    ├── README.md          # CONTAINER (deployable: web app)
     └── components/
-        └── NEOLIT.md      # COMPONENT
+        └── README.md      # COMPONENT
 ```
 
 ### By Marker in File

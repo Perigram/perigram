@@ -10,7 +10,7 @@
 *** Agent Notes
      [2026-01-09] Reworked CassetteDesigner component.
      Files changed: components/CassetteDesigner.vue, utils/cassetteGraphBuilder.js, utils/cassette.js
-     Docs updated: components/NEOLIT.md (COMPONENT level)
+     Docs updated: components/README.md (COMPONENT level)
      Notes: 
      - Extracted Nodi3D graph building logic to a separate utility.
      - Implemented a more structured state management for cassette data (params and extrusions).
