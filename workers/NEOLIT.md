@@ -1,19 +1,27 @@
 # CONTAINER: Workers
 
-Workers are independent units handling CPU-intensive tasks via MongoDB job queues.
+Three independent processing services. Two use MongoDB polling; one is a stateless HTTP service.
 
 ## Worker List
-- **[nesting](./nesting/):** The primary 2D bin packing worker using `jagua-rs`.
-- **[fileprocessing](./fileprocessing/):** Processes uploaded DXF files into metadata and previews.
-- **[cassette-processing](./cassette-processing/):** Specialized processing for parametric templates.
 
-## Communication Pattern
-1.  **App** creates a job document in `nesting_jobs` or similar collection.
-2.  **Worker** polls for `pending` jobs.
-    *   Updates status to `processing`.
-    *   Fetches files from GridFS.
-    *   Saves results (SVG, DXF, PDF) back to GridFS.
-    *   Updates status to `complete` or `failed`.
+| Worker | Type | Source | Purpose |
+|---|---|---|---|
+| **[nesting](./nesting/)** | HTTP service (FastAPI) | `workers/nesting/` | 2D bin packing via jagua-rs; called directly by the app via `POST /nest` |
+| **[fileprocessing](./fileprocessing/)** | MongoDB polling | `workers/fileprocessing/` | DXF → metadata + SVG; two instances by entity count |
+| **[cassette-processing](./cassette-processing/)** | MongoDB polling | `workers/cassette-processing/` | Parametric cassette template → DXF geometry |
+
+## Communication Patterns
+
+### Nesting Worker (HTTP)
+- Stateless FastAPI service, **no database access**.
+- `cutkit-app` sends geometry via `POST /nest` and waits for the JSON placement result.
+- The app then writes the nesting result to MongoDB itself.
+
+### File & Cassette Processing Workers (MongoDB polling)
+1. **App** creates/updates a document in `user_dxf_files` or `cassettes` with `processingStatus: "pending"`.
+2. **Worker** finds a pending document (atomic findAndModify), locks it to `"processing"`.
+3. Worker fetches binary files from GridFS, processes, and writes outputs back to GridFS.
+4. Worker sets `processingStatus` to `"completed"` or `"error"`.
 
 ## Local Development & Troubleshooting
 ### Run Workers Locally (Compose)

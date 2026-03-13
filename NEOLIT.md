@@ -1,86 +1,173 @@
 # SYSTEM: Cutkit-Demo
 
-Cutkit-Demo is a professional DXF nesting application for CNC manufacturing. It allows users to upload parametric cassette templates, organize them into production batches, and run nesting algorithms to generate optimal material layouts, G-code, and PDF reports.
+Multi-tenant CNC manufacturing platform. Users upload parametric cassette templates, organize them into production queues, run 2D nesting algorithms against material piles, and track the full physical lifecycle of every cut cassette panel — from warehouse receipt to on-site installation.
 
-## Tech Stack
-- **Frontend:** Nuxt.js 3 (SSR), Vue 3, PrimeVue, Tailwind CSS
-- **Backend:** Nuxt Nitro (Node.js), MongoDB (native driver), GridFS for file storage
-- **Workers:** Python-based workers for DXF processing and nesting (using jagua-rs)
-- **Deployment:** Docker & Docker Stack
+---
 
-## Core Architecture
-The system follows a modular architecture with a clean separation between the API/Frontend (Nuxt) and the processing units (Workers).
+## Containers
 
-```mermaid
-graph TD
-    %% Roles and Organizations
-    SA[Super Admin] -- Manages --> ORG[Organization]
-    ORG -- Type: Manufacturer --> MNF[Manufacturer]
-    ORG -- Type: Contractor --> CTR[Contractor]
-    ORG -- Type: Customer --> CST[Customer]
+### 1. `cutkit-app` — Nuxt Web Application
 
-    MNF -- Owns --> CAT[Catalog]
-    MNF -- Owns --> M_WH[Manufacturer Warehouse]
-    CTR -- Owns --> PRJ[Project]
-    CTR -- Owns --> C_WH[Contractor Warehouse]
-    CST -- Views --> PRJ
+**Purpose:** Full-stack web application. Hosts the Vue 3 SPA and the Nitro REST API in a single deployment unit.
 
-    %% Material Lifecycle Flow
-    CAT -- Defines Sheets --> REQ[Requisition Order]
-    CTR -- Creates --> REQ
-    REQ -- Approved by --> MNF
-    MNF -- Sends --> BTC[Batch]
-    BTC -- Contains --> PIL[Pile]
-    PIL -- Received in --> C_WH
-    
-    %% Production Flow
-    PRJ -- Has --> QUE[Queue]
-    QUE -- Uses --> PIL
-    PIL -- Creates --> SHT[Sheet]
-    SHT -- Cut into --> CAS[Cassette Instance]
-    SHT -- Leaves --> REM[Remnant]
-    REM -- Stored in --> C_WH
-    
-    %% Status & Tracking
-    CAS -- Lifecycle --> ST[Nested -> Manufactured -> On-Site -> Installed]
-    
-    %% Relationships
-    SHT -- Link --> SD[Sheet Design / Nesting Layout]
-    SD -- References --> CD[Cassette Design]
-    CD -- Based on --> TPL[Cassette Template]
+| | |
+|---|---|
+| **Technologies** | Nuxt 3 (SSR), Vue 3, PrimeVue 4, Tailwind CSS, Nitro (Node.js) |
+| **Entry points** | `nuxt.config.js` (app), `server/api/**` (API routes) |
+| **Data access** | MongoDB native driver via `server/db/`; GridFS for binary files |
+| **Auth** | Session cookie (HTTP-only). User IDs are OAuth strings, not ObjectIds. |
+| **Port** | 3000 (internal), exposed via reverse proxy |
+| **Health check** | `GET /api/service/health` |
+
+**API Contract (REST `application/json`):**
+
+| Group | Prefix | Responsibility |
+|---|---|---|
+| Auth | `/api/auth/*` | Register, login, logout, org switch, invitations |
+| Entities | `/api/{entity}/*` | CRUD + status transitions for all 20+ entity types |
+| Status engine | `/api/status/*` | Transition requests, history log |
+| Files | `/api/files/*` | Upload (multipart), download (GridFS proxy) |
+| Nesting trigger | `/api/nest/*` | Dispatches geometry to nesting-worker via HTTP |
+| Admin | `/api/users/*`, `/api/organizations/*` | User & org management |
+
+**Internal boundaries:**
+- `server/` — DB-facing backend (features, core, middleware, utils)
+- `composables/`, `components/`, `pages/`, `stores/` — browser-facing frontend
+
+**Patterns:** v24 Golden Path backend, `useEntity` frontend composable. See [server/NEOLIT.md](./server/NEOLIT.md) and [composables/NEOLIT.md](./composables/NEOLIT.md).
+
+---
+
+### 2. `file-processing-worker` — DXF File Processing Service
+
+**Purpose:** Converts uploaded DXF cassette templates into validated metadata, SVG previews, and geometry data. Deployed in two size modes to handle files with large entity counts without blocking normal jobs.
+
+| | |
+|---|---|
+| **Technologies** | Python, ezdxf, pymongo |
+| **Source** | `workers/fileprocessing/` (core logic shared with cassette-processing) |
+| **Entry point** | `workers/fileprocessing/main.py` |
+| **Communication** | MongoDB polling — no inbound HTTP |
+
+**Job contract (MongoDB `user_dxf_files` collection):**
+
+| Field | Description |
+|---|---|
+| `processingStatus` | `pending` → `processing` → `completed` / `error` |
+| `worker_tag` | `undefined` (normal) or `"1k_entity_count"` (large files) |
+| `validEntityCount` | Set by worker on first pass |
+
+**Routing logic:** If entity count exceeds the max limit, the normal worker resets `processingStatus` to `pending` and sets `worker_tag: "1k_entity_count"`, handing off to the high-capacity instance.
+
+**Deployment modes:** `WORKER_TAG` env var distinguishes normal vs `1k_entity_count` instances.
+
+See [workers/fileprocessing/NEOLIT.md](./workers/fileprocessing/NEOLIT.md).
+
+---
+
+### 3. `cassette-processing-worker` (shares image with `file-processing-worker`)
+
+**Purpose:** Bakes parametric cassette template definitions into concrete DXF geometry files, stored back to GridFS.
+
+| | |
+|---|---|
+| **Technologies** | Python, ezdxf, pymongo |
+| **Source** | `workers/cassette-processing/` (imports from `workers/fileprocessing/` for DXF utilities) |
+| **Entry point** | `workers/cassette-processing/main.py` |
+| **Communication** | MongoDB polling — no inbound HTTP |
+
+**Job contract (MongoDB `cassettes` collection):**
+
+| Field | Description |
+|---|---|
+| `processingStatus` | `pending` → `processing` → `completed` / `error` |
+
+See [workers/cassette-processing/NEOLIT.md](./workers/cassette-processing/NEOLIT.md).
+
+---
+
+### 4. `nesting-worker` — 2D Bin Packing Service
+
+**Purpose:** Pure algorithm HTTP service. Receives cassette polygon geometry and sheet parameters, runs the jagua-rs nesting engine, and returns the placement solution. Has no database access.
+
+| | |
+|---|---|
+| **Technologies** | Python, FastAPI, jagua-rs (Rust binary `lbf`) |
+| **Source** | `workers/nesting/` |
+| **Entry point** | `workers/nesting/worker_service.py` |
+| **Communication** | Inbound HTTP from `cutkit-app` |
+
+**API Contract:**
+
+```
+POST /nest
+Content-Type: application/json
+
+Request:
+{
+  "items": [{ "id": int, "cassette_id": str, "coords": [[x,y],...], "handles": [str], "count": int }],
+  "params": { "width": float, "height": float, "space": float, "sheetCount": int }
+}
+
+Response: lbf JSON — layouts with placed items and affine transformations
 ```
 
-### Data Model (v24 Absolute Definitive)
-See [server/NEOLIT.md](./server/NEOLIT.md) for the architectural overview and [server/DATA_MODEL.md](./server/DATA_MODEL.md) for the procedurally generated, up-to-date schema reference.
+See [workers/nesting/NEOLIT.md](./workers/nesting/NEOLIT.md).
 
-The system uses a standardized block-based architecture for all entities:
-- **`identity`**: Unified slug, name, and serial/reference fields.
-- **`origin`**: Immutable snapshot of the creation state.
-- **`status`**: Current state snapshot with metadata and history links.
-- **`lineage`**: Flat, cumulative ancestry trace for O(1) reverse lookups.
-- **`specs`**: Standardized physical DNA (thickness, dimensions, area).
+---
 
-## v24 Core Patterns
-1. **Cumulative Lineage**: Every child inherits its parent's lineage object and adds the parent's ID.
-   - `child.lineage = { ...parent.lineage, projectId: id }`
-2. **Declarative State Machines**: Entity lifecycles are governed by machines defined in `server/core/machines/`.
-3. **Traceability Bridge**: Physical units (`sheets`, `instances`) link to both digital ancestry (`queueId`, `runId`) and physical ancestry (`pileId`, `warehouseId`).
+### 5. `mongo` — MongoDB 4.4 (Infrastructure)
 
-### Containers
-- **Web App (Nuxt):** Handles UI, user management, and business logic orchestration via standardized blocks.
-- **Nesting Worker:** Python service that processes `nesting_runs` and generates `sheet_designs`.
-- **MongoDB:** Primary data store utilizing lineage-based indexing for multi-tenant isolation.
+Primary datastore for all entities, job queues, and file metadata. GridFS stores binary files (DXF, SVG, PDF).
 
-## Key Workflows
-1. **Traceable Production:** From `Project` -> `Queue` -> `Nesting Run` -> `Sheet Design` -> `Physical Sheet` -> `Cassette Instance`.
-2. **Material Lifecycle:** From `Catalog` -> `Requisition` -> `Material Pile` -> `Individual Sheet`.
-3. **State Management:** All status changes are validated by the State Machine Engine and logged to `status_events`.
+**Key indexing strategy:** `lineage.*Id` fields are indexed to enable O(1) reverse lookups across the full ancestry tree (multi-tenant isolation without joins).
 
-## Components List
-See details in sub-directories:
-- [server/features](./server/features/NEOLIT.md) - Core business logic modules.
-- [workers](./workers/NEOLIT.md) - Specialized processing units.
-- [composables](./composables/NEOLIT.md) - Frontend state management.
+---
 
-## Deployment & Ops
-See [DEPLOYMENT.md](./docs/DEPLOYMENT.md) for Docker stack setup, environment configuration, and monitoring strategies.
+## Data Flows
+
+```
+User uploads DXF
+  → cutkit-app stores to GridFS, creates user_dxf_files doc with status=pending
+  → file-processing-worker polls, extracts geometry, writes SVG back to GridFS
+
+User creates Queue + starts Nesting Run
+  → cutkit-app collects cassette polygons from DB
+  → POST /nest to nesting-worker (HTTP, no DB)
+  → nesting-worker returns placement solution
+  → cutkit-app stores nesting_run + sheet_designs to MongoDB
+
+Queue is marked CUT
+  → State machine fires hook → creates Sheet + CassetteInstance documents
+  → Material pile counts decremented
+
+CassetteInstance lifecycle
+  NESTED → MANUFACTURED → ON_SITE → INSTALLED
+  → Every transition logged to status_events, lineage preserved
+```
+
+---
+
+## Cross-Cutting Conventions
+
+- **User IDs** are OAuth string IDs, not MongoDB ObjectIds.
+- **Lineage** is flat and cumulative: `child.lineage = { ...parent.lineage, [parentType]Id: parent._id }`.
+- **Standard Blocks**: Every entity has `identity`, `status`, `origin`, `lineage`. See [server/NEOLIT.md](./server/NEOLIT.md).
+- **State machines**: All status transitions go through `server/core/machines/`; side-effects registered per-feature.
+- **No cross-module DB access**: Features talk to each other via service calls only.
+- **Serialization**: API endpoints always return `Model.toJSON()`, never raw DB docs.
+
+## Component Documentation
+
+| Component | Doc |
+|---|---|
+| Backend API + features | [server/NEOLIT.md](./server/NEOLIT.md) |
+| Feature modules | [server/features/NEOLIT.md](./server/features/NEOLIT.md) |
+| Frontend composables | [composables/NEOLIT.md](./composables/NEOLIT.md) |
+| Frontend components | [components/NEOLIT.md](./components/NEOLIT.md) |
+| All workers overview | [workers/NEOLIT.md](./workers/NEOLIT.md) |
+| File processing worker | [workers/fileprocessing/NEOLIT.md](./workers/fileprocessing/NEOLIT.md) |
+| Cassette processing worker | [workers/cassette-processing/NEOLIT.md](./workers/cassette-processing/NEOLIT.md) |
+| Nesting worker | [workers/nesting/NEOLIT.md](./workers/nesting/NEOLIT.md) |
+| Data schema (generated) | [server/DATA_MODEL.md](./server/DATA_MODEL.md) |
+| Deployment & ops | [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) |
