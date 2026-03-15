@@ -2,7 +2,7 @@
   <div :class="[`variant-${variant}`]">
     <template v-if="variant === 'inline'">
       <Chip>
-        <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: standard.metadata?.color || '#ccc' }" />
+        <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: standard.metadata?.color || 'var(--p-content-border-color)' }" />
         <span>{{ standard.identity?.serial || standard.code }}</span>
       </Chip>
     </template>
@@ -12,7 +12,7 @@
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
-                    <i class="pi pi-palette" :style="{ color: standard.metadata?.color || '#ccc' }"></i>
+                    <i class="pi pi-palette" :style="{ color: standard.metadata?.color || 'var(--p-content-border-color)' }"></i>
                     <IdentityBlock :entity="standard" variant="compact" />
                 </div>
                 <Badge v-if="standard.category" :value="standard.category" severity="secondary" size="small" />

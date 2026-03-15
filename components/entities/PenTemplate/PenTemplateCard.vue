@@ -2,7 +2,7 @@
   <div :class="[`variant-${variant}`]">
     <template v-if="variant === 'inline'">
       <Chip>
-        <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: pen.stroke?.color || '#000' }" />
+        <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: pen.stroke?.color || 'var(--p-content-border-color)' }" />
         <span>{{ pen.identity?.name }}</span>
       </Chip>
     </template>
@@ -12,7 +12,7 @@
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
-                    <div class="w-6 h-6 rounded-full border" :style="{ backgroundColor: pen.stroke?.color || '#000' }"></div>
+                    <div class="w-6 h-6 rounded-full border" :style="{ backgroundColor: pen.stroke?.color || 'var(--p-content-border-color)' }"></div>
                     <IdentityBlock :entity="pen" variant="compact" />
                 </div>
                 <Tag v-if="pen.stroke?.weight" :value="`${pen.stroke.weight}px`" severity="secondary" size="small" />
@@ -26,7 +26,7 @@
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <IdentityBlock :entity="pen" />
-                <div class="w-8 h-8 rounded-full border shrink-0" :style="{ backgroundColor: pen.stroke?.color || '#000' }"></div>
+                <div class="w-8 h-8 rounded-full border shrink-0" :style="{ backgroundColor: pen.stroke?.color || 'var(--p-content-border-color)' }"></div>
             </div>
         </template>
         <Divider />

@@ -30,8 +30,7 @@
             <IdentityBlock :entity="color" />
         </template>
         <Divider />
-        <div class="flex justify-between items-center gap-4">
-            <small>{{ color.identity?.serial || '—' }}</small>
+        <div class="flex justify-end items-center gap-4">
             <small>{{ hexCode || '—' }}</small>
         </div>
       </StandardCard>

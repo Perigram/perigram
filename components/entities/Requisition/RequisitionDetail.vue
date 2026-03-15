@@ -23,7 +23,7 @@
                             <template #title>
                                 <div class="flex justify-between items-center">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-4 h-4 rounded-full border" :style="{ backgroundColor: item.colorHex || item.colorFallback || '#ccc' }"></div>
+                                        <div class="w-4 h-4 rounded-full border" :style="{ backgroundColor: item.colorHex || item.colorFallback || 'var(--p-content-border-color)' }"></div>
                                         <span>{{ item.colorName || item.color }}</span>
                                     </div>
                                     <small>{{ item.colorCode }}</small>

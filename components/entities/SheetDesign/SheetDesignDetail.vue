@@ -4,7 +4,7 @@
 
         <div class="flex justify-between items-center">
             <div class="flex items-center gap-4">
-                <h1 class="m-0">{{ design.identity?.name || $t('sheetDesign.nestingLayout') }}</h1>
+                <IdentityBlock :entity="design" variant="header" />
                 <EntityStatus :entity="design" entity-type="sheet_design" variant="inline" />
             </div>
             <div class="flex gap-2">
@@ -64,6 +64,7 @@ import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
 import StandardCard from '~/components/shared/StandardCard.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 

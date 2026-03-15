@@ -101,7 +101,7 @@ const statusActions = computed(() => {
 
 const colorName = computed(() => props.sheet.specs?.color || 'Unknown');
 const materialName = computed(() => props.sheet.specs?.material || 'Unknown');
-const colorHex = computed(() => props.sheet.specs?.colorHex || '#ccc');
+const colorHex = computed(() => props.sheet.specs?.colorHex || 'var(--p-content-border-color)');
 
 const geometryStyle = computed(() => {
     const max = 400;
