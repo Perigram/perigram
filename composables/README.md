@@ -1,55 +1,162 @@
-# COMPONENT: Composables & Stores - v24 Standardized
+# COMPONENT: Composables & Stores — v24 Standardized
 
 Centralized frontend logic for state management, API interactions, and UI behaviors.
 
-## v24 Core Composables
-These are the primary reactive bridges for working with v24 Block-based entities.
+---
 
-- **[useEntity.js](./useEntity.js):** The main entry point for entity interaction.
-  - `fetch(id)`: Load entity data.
-  - `update(data)`: Patch entity data.
-  - `changeStatus(state, meta)`: Perform state machine transition.
-  - **Computed Blocks**: Automatically unwraps `name`, `slug`, `state`, `lineage`, `specs`, etc.
-- **[useEntityList.js](./useEntityList.js):** Reactive list fetching for entity collections.
-  - `const { items, loading, error, refresh } = useEntityList('queue', { 'lineage.projectId': id })`
-  - Supports optional filter params as query string. Call `fetch()` manually on mount or `refresh()` to reload.
-  - Use this instead of direct `$fetch` for listing entity collections.
-- **[useBlocks.js](./useBlocks.js):** Low-level atomic composables for reactive access to entity blocks: `useIdentity`, `useStatus`, `useSpecs`, `useLineage`.
+## useEntity — Primary Entity Composable
 
-  ⚠️ **Restricted use**: These composables are ONLY imported by the shared block components (`IdentityBlock.vue`, `EntityStatus.vue`, `SpecsBlock.vue`). Entity cards and page components must never import from `useBlocks.js` — they use the block components instead.
+The single entry point for all entity data fetching, updates, status transitions, and **collection listing**.
 
-  Exception: `useStatus` may be used in an entity card to read `state` for a `v-if` conditional (not for display).
-- **[useStatusController.js](./useStatusController.js):** Direct bridge to the State Machine Engine API.
-- **[useStatusHistory.js](./useStatusHistory.js):** Fetches and reactive manages the audit log (`status_events`) for an entity.
-- **[useTraceability.js](./useTraceability.js):** Resolves ancestry and descendants via the lineage block.
-
-## State Management (Pinia)
-Located in `stores/`. Global state that persists across page navigations.
-
-### Key Stores
-- **`auth.js`**: Session, user profile, and global organization context.
-- **`queues.js`**: (formerly batches) Manages nesting jobs and results.
-- **`cassettes.js`**: User templates and designs.
-- **`global.js`**: Layout state, notifications, and shared lookup lists (e.g., projects).
-
-## Usage Guide
-
-### Interacting with a Project
-```javascript
-const { entity: project, fetch, changeStatus, state } = useEntity('project', slug);
-
-onMounted(() => fetch());
-
-const closeProject = () => changeStatus('CLOSED', { note: 'Completed' });
+```js
+const result = useEntity(type, identifier?)
 ```
 
-### Accessing Atomic Data
-```javascript
-const { name, statusColor, formattedArea } = useEntity('queue', id);
-// Returns reactive refs ready for template usage:
-// <span>{{ name }}</span> <Badge :severity="statusColor" />
+`type` is the entity type key (see endpoint map below). `identifier` is optional — can be set later via `fetch(id)`.
+
+### Returned interface
+
+| Property / Method | Type | Description |
+|---|---|---|
+| `entity` | `Ref<object>` | Raw entity JSON from API |
+| `loading` | `Ref<boolean>` | True during any async op |
+| `error` | `Ref<string\|null>` | Last error message |
+| `isTransitioning` | `Ref<boolean>` | Status transition in progress |
+| `name` | `ComputedRef<string>` | `entity.identity.name` |
+| `slug` | `ComputedRef<string>` | `entity.identity.slug` |
+| `serial` | `ComputedRef<string>` | `entity.identity.serial` |
+| `reference` | `ComputedRef<string>` | `entity.identity.reference` |
+| `state` | `ComputedRef<string>` | `entity.status.state` |
+| `statusColor` | `ComputedRef<string>` | PrimeVue severity string |
+| `statusTime` | `ComputedRef<Date>` | `entity.status.timestamp` |
+| `statusMeta` | `ComputedRef<object>` | `entity.status.metadata` |
+| `lineage` | `ComputedRef<object>` | Full lineage block |
+| `getAncestorId(type)` | `(type) => string` | `lineage[typeId]` |
+| `specs` | `ComputedRef<object>` | Full specs block |
+| `formattedDimensions` | `ComputedRef<string>` | `"1200×2400 mm"` |
+| `formattedArea` | `ComputedRef<string>` | `"2.88 m²"` |
+| `fetch(id?)` | `async () => entity` | Load single entity |
+| `update(data)` | `async (data) => entity` | PATCH entity |
+| `changeStatus(state, meta?)` | `async () => result` | State machine transition |
+| `list(filters?)` | `async (filters?) => items[]` | Fetch collection (see below) |
+| `items` | `Ref<array>` | Results from last `list()` call |
+
+### Fetching a single entity
+
+```js
+const { entity, fetch, name, state, changeStatus } = useEntity('project', slug);
+onMounted(() => fetch());
+```
+
+### Fetching a collection (replaces useEntityList)
+
+```js
+const { items, list, loading } = useEntity('queue');
+onMounted(() => list({ 'lineage.projectId': projectId }));
+// items is a ref<array> updated after each list() call
+// call list() again with new filters to refresh
+```
+
+### Endpoint map
+
+| Type key | Single endpoint | List endpoint |
+|---|---|---|
+| `project` | `/api/project/:id` | `/api/projects` |
+| `queue` | `/api/queue/:id` | `/api/queues` |
+| `requisition` | `/api/requisitions/:id` | `/api/requisitions` |
+| `pile` / `batch` | `/api/material-piles/:id` | `/api/material-piles` |
+| `sheet` | `/api/sheets/:id` | `/api/sheets` |
+| `remnant` | `/api/remnants/:id` | `/api/remnants` |
+| `cassetteInstance` | `/api/cassette-instances/:id` | `/api/cassette-instances` |
+| `cassetteDesign` | `/api/cassette-designs/:id` | `/api/cassette-designs` |
+| `sheetDesign` | `/api/sheet-designs/:id` | `/api/sheet-designs` |
+| `artifact` | `/api/artifacts/:id` | `/api/artifacts` |
+| `catalog` | `/api/catalogs/:id` | `/api/catalogs` |
+| `color` | `/api/colors/:id` | `/api/colors` |
+| `warehouse` | `/api/warehouses/:id` | `/api/warehouses` |
+| `user` | `/api/users/:id` | `/api/users` |
+| `organization` | `/api/organizations/:id` | `/api/organizations` |
+| `nestingRun` | `/api/nesting-runs/:id` | `/api/nesting-runs` |
+
+---
+
+## useBlocks — Low-level Block Composables
+
+```js
+import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
+```
+
+⚠️ **Restricted use**: Only imported by shared block components (`IdentityBlock.vue`, `EntityStatus.vue`, `SpecsBlock.vue`). Entity cards and pages **must not** import directly — use the block components or the computed refs from `useEntity` instead.
+
+Exception: `useStatus` may be used in entity cards for a `v-if` conditional (not display).
+
+---
+
+## useStatusController
+
+Direct bridge to the State Machine Engine. Used internally by `useEntity.changeStatus()`.
+
+```js
+const { transition, isTransitioning } = useStatusController();
+await transition(type, id, newState, metadata);
+```
+
+---
+
+## useStatusHistory
+
+Fetches and reactively manages the audit log (`status_events`) for an entity.
+
+```js
+const { events, fetch } = useStatusHistory(type, id);
+```
+
+Used by `<StatusHistory>` component.
+
+---
+
+## useTraceability
+
+Resolves ancestry and descendants via the lineage block.
+
+```js
+const { ancestors, descendants, fetch } = useTraceability(entity);
+```
+
+Used by `<TraceChain>` component.
+
+---
+
+## State Management (Pinia) — stores/
+
+| Store | Contents |
+|---|---|
+| `auth.js` | Session, user profile, global organization context |
+| `queues.js` | Nesting jobs state |
+| `cassettes.js` | User templates and designs |
+| `global.js` | Layout, notifications, shared lookup lists |
+
+---
+
+## Usage Examples
+
+```js
+// Load and display a project
+const { entity, fetch, name, state, changeStatus } = useEntity('project', slug);
+onMounted(() => fetch());
+const close = () => changeStatus('CLOSED', { note: 'Done' });
+
+// List all queues in a project
+const { items: queues, list, loading } = useEntity('queue');
+onMounted(() => list({ 'lineage.projectId': project.value._id }));
+
+// Read computed block values
+const { serial, specs, formattedArea } = useEntity('sheet', id);
+// <span>{{ serial }}</span>  <span>{{ formattedArea }}</span>
 ```
 
 ## Related
-- [server/core/blocks/](../server/core/blocks/) (Backend source of truth)
-- [server/core/machines/](../server/core/machines/) (State Machine definitions)
+
+- [server/core/blocks/README.md](../server/core/blocks/README.md) — Backend block classes
+- [server/core/machines/README.md](../server/core/machines/README.md) — State machine definitions
+- [components/shared/README.md](../components/shared/README.md) — Block display components

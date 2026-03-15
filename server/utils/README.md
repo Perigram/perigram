@@ -1,24 +1,115 @@
-# CODE: Standard Blocks Utility
+# CODE: Server Utilities — Auth & Permissions API
 
-Universal helpers for constructing and inheriting standardized data blocks according to v24 principles.
+Utility functions for authentication and multi-tenant permission enforcement. Used in all API routes and services.
 
-## Core Blocks
-- **`identity`**: Standardizes naming and URL slugs.
-- **`origin`**: Captures immutable creation context (User + Time).
-- **`status`**: Standardized state snapshot for the UI.
-- **`lineage`**: The critical "Cumulative Trace" object for ancestry tracking.
-- **`specs`**: Unified physical DNA (thickness, dimensions).
+---
 
-## Lineage Inheritance Rule
-The utility enforces the rule: `child.lineage = { ...parent.lineage, [parentType]Id: parent._id }`.
+## Auth Context Object
 
-This ensures that every document carries its complete ancestry, enabling:
-1. **Instant Reverse Lookups**: Find all descendants of any ancestor with one query.
-2. **Multi-Tenant Isolation**: Natively filter by `lineage.organizationId`.
+Every API route has `event.context.auth` populated by the auth middleware after JWT verification:
 
-## Functions
-- `createIdentity(name, slug, serial, reference)`
-- `createStatus(state, userId, metadata)`
-- `inheritLineage(parent, parentType)`
-- `createSpecs(data)`
-- `createSummary()`
+```js
+{
+  userId: string,         // OAuth user ID (string, NOT ObjectId)
+  role: string,           // 'SuperAdmin' | 'Admin' | 'User' | 'Viewer'
+  memberships: [          // Array of organization memberships
+    {
+      organizationId: ObjectId,
+      role: string,
+      permissions: {      // Per-entity-type access levels
+        projects: 'read' | 'write' | 'admin' | 'none',
+        queues:   'read' | 'write' | 'admin' | 'none',
+        // ... other entity types
+      }
+    }
+  ],
+  restrictedTo: {         // Optional: entity-specific access restrictions
+    projectIds: [string],
+    queueIds: [string],
+    // ...
+  } | null
+}
+```
+
+---
+
+## permissions.js
+
+### `requireAuth(event)` → `authContext`
+Throws 401 if not authenticated. Returns `event.context.auth`.
+
+```js
+const user = requireAuth(event);
+```
+
+### `hasLineagePermission(user, lineage, entityType, level)` → `boolean`
+Checks if user has the required access level for an entity based on its `lineage.organizationId`.
+
+```js
+// entityType: 'projects' | 'queues' | 'sheets' | 'material-piles' | ...
+// level: 'read' | 'write' | 'admin'
+if (!hasLineagePermission(user, entity.lineage, 'queues', 'write')) { ... }
+```
+SuperAdmin bypasses all checks. Levels are ordered: `none < read < write < admin`.
+
+### `requireLineagePermission(event, lineage, entityType, level)` → `authContext`
+Combines requireAuth + hasLineagePermission. Throws 401/403. Returns user.
+
+```js
+// Standard pattern for protected entity routes:
+const user = requireLineagePermission(event, entity.lineage, 'queues', 'write');
+```
+
+### `getLineageFilter(user)` → `MongoFilter`
+Returns a MongoDB filter for multi-tenant scoping. Plug into repository queries.
+
+```js
+// For list queries — always scope to user's organizations:
+const filter = { ...getLineageFilter(user), status: 'OPEN' };
+const results = await repository.findAll(filter);
+```
+SuperAdmin gets `{}` (no filter). Regular users get `{ 'lineage.organizationId': { $in: [...orgIds] } }`.
+
+### `requirePermission(event, entity, level)` → `authContext`
+Uses `hasPermission()` from auth-helpers (global role-based, not lineage-based). Use for system-level resources without lineage.
+
+### `requireRole(event, ...roles)` → `void`
+Throws 403 if user's role not in allowed list. For admin-only routes.
+
+```js
+requireRole(event, 'SuperAdmin', 'Admin');
+```
+
+---
+
+## auth-helpers.js
+
+### `hashPassword(password)` / `verifyPassword(hash, password)`
+Argon2 password hashing.
+
+### `generateAccessToken(userId)` / `verifyAccessToken(token)`
+JWT signing/verification (15min expiry). Tokens carry only `userId` — permissions fetched fresh from DB on each request.
+
+### `hasPermission(user, entity, requiredLevel)` → `boolean`
+Role-based check using `user.permissions[entity]`. Different from lineage-based — use for non-entity system resources.
+
+### `canAccessEntity(user, entityType, entityId)` → `boolean`
+Checks `user.restrictedTo` whitelist. Returns `true` if no restrictions.
+
+---
+
+## Decision Guide
+
+| Situation | Use |
+|---|---|
+| Any entity with a lineage block | `requireLineagePermission` |
+| List query — scope to user's orgs | `getLineageFilter` |
+| Admin/SuperAdmin only route | `requireRole` |
+| Auth check only, permission later | `requireAuth` |
+| Non-entity resource (system settings) | `requirePermission` / `hasPermission` |
+| Password login flow | `hashPassword` / `verifyPassword` |
+
+## Related
+
+- [server/features/README.md](../features/README.md) — Service layer patterns
+- [server/core/blocks/README.md](../core/blocks/README.md) — Lineage block
