@@ -46,6 +46,10 @@ export class BaseEntity {
     return this._id?.toString();
   }
 
+  get name() {
+    return this.identity?.name || '';
+  }
+
   toJSON() {
     return {
       _id: this._id,
@@ -58,8 +62,8 @@ export class BaseEntity {
       attachments: this.attachments,
       data: this.data,
       summary: this.summary,
-      // Flat convenience aliases (sourced from identity block)
-      name: this.identity.name,
+      // Flat convenience aliases (sourced from entity getter to allow subclass overrides)
+      name: this.name,
       slug: this.identity.slug,
       serial: this.identity.serial,
       reference: this.identity.reference
