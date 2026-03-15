@@ -274,6 +274,8 @@ import InputNumber from 'primevue/inputnumber';
 import Chip from 'primevue/chip';
 import ConfirmDialog from 'primevue/confirmdialog';
 
+import { useEntity } from '~/composables/useEntity';
+
 definePageMeta({
     layout: 'app',
     middleware: 'auth',
@@ -284,6 +286,9 @@ const projectSlug = route.params.slug;
 const { t } = useI18n();
 const toast = useToast();
 const confirm = useConfirm();
+
+const { fetch: fetchEntity, update: updateEntity } = useEntity('project', projectSlug);
+const { list: listMaterials, create: createMaterial } = useEntity('material');
 
 const projectMaterials = ref([]);
 const cutLogs = ref([]);
@@ -322,7 +327,7 @@ onMounted(async () => {
 const fetchProjectData = async () => {
     loading.value = true;
     try {
-        const data = await $fetch(`/api/project/${projectSlug}`);
+        const data = await fetchEntity(projectSlug);
         projectMaterials.value = data.projectMaterials || [];
         cutLogs.value = data.cutLogs || [];
     } catch (error) {
@@ -335,7 +340,7 @@ const fetchProjectData = async () => {
 
 const fetchGlobalMaterials = async () => {
     try {
-        globalMaterials.value = await $fetch('/api/materials');
+        globalMaterials.value = await listMaterials();
     } catch (error) {
         console.error('Failed to fetch global materials:', error);
     }
@@ -373,10 +378,7 @@ const addMaterialToProject = async () => {
 
 const createAndAddMaterial = async () => {
     try {
-        const created = await $fetch('/api/materials', {
-            method: 'POST',
-            body: newGlobalMaterial.value
-        });
+        const created = await createMaterial(newGlobalMaterial.value);
         globalMaterials.value.push(created);
         selectedGlobalMaterialId.value = created._id;
         await addMaterialToProject();
@@ -446,10 +448,7 @@ const confirmDeleteMaterial = (index) => {
 };
 
 const updateProject = async (data) => {
-    return await $fetch(`/api/project/${projectSlug}`, {
-        method: 'PATCH',
-        body: data
-    });
+    return await updateEntity(data);
 };
 
 const addWasteToInventory = async (logEntry) => {

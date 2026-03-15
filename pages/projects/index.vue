@@ -104,6 +104,7 @@
     import { useGlobalStore } from '~/stores/global'
     import { storeToRefs } from 'pinia'
     import { useToast } from 'primevue/usetoast'
+    import { useEntity } from '~/composables/useEntity'
 
     definePageMeta({
         layout: 'app',
@@ -200,10 +201,8 @@
         creating.value = true
         try {
             const slug = editingProject.value.identity?.slug || editingProject.value.slug
-            await $fetch(`/api/project/${slug}`, {
-                method: 'PATCH',
-                body: { name: newProjectName.value.trim() },
-            })
+            const { update } = useEntity('project', slug)
+            await update({ name: newProjectName.value.trim() })
             await globalStore.getProjects()
             closeDialog()
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('project.updated'), life: 3000 })
@@ -218,22 +217,21 @@
     const createProject = async () => {
         creating.value = true
         try {
-            const data = await $fetch('/api/project', {
-                method: 'POST',
-            })
+            const { create, update } = useEntity('project')
+            const newProject = await create({})
 
             if (newProjectName.value.trim()) {
-                await $fetch(`/api/project/${data.slug}`, {
-                    method: 'PATCH',
-                    body: { name: newProjectName.value.trim() },
-                })
+                const slug = newProject.slug || newProject.identity?.slug
+                const { update: updateNew } = useEntity('project', slug)
+                await updateNew({ name: newProjectName.value.trim() })
             }
 
             showCreateDialog.value = false
             newProjectName.value = ''
 
             await globalStore.getProjects()
-            router.push(`/project/${data.slug}`)
+            const slug = newProject.slug || newProject.identity?.slug
+            router.push(`/project/${slug}`)
         } catch (error) {
             console.error('Failed to create project:', error)
             toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 })
@@ -246,9 +244,8 @@
         if (confirm(t('project.confirmDelete'))) {
             try {
                 const slug = project.identity?.slug || project.slug
-                await $fetch(`/api/project/${slug}`, {
-                    method: 'DELETE',
-                })
+                const { remove } = useEntity('project', slug)
+                await remove()
                 await globalStore.getProjects()
                 toast.add({ severity: 'success', summary: t('common.success'), detail: t('project.deleted'), life: 3000 })
             } catch (error) {

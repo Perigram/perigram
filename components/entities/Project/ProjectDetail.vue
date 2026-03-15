@@ -93,7 +93,7 @@ const loadQueues = async () => {
     if (!props.project?._id) return;
     loading.value = true;
     try {
-        queues.value = await $fetch(`/api/queues?lineage.projectId=${props.project._id}`);
+        queues.value = await $fetch(`/api/project/${projectSlug.value}/queues`);
     } catch (e) {
         console.error('Failed to load project queues:', e);
     } finally {

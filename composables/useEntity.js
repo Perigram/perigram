@@ -26,7 +26,8 @@ export const useEntity = (type, identifier = null) => {
 
   // Unified endpoint map for all entity types
   const endpointMap = {
-    project:          { single: id => `/api/project/${id}`,           list: '/api/projects' },
+    material:         { single: id => `/api/materials/${id}`,          list: '/api/materials' },
+    project:          { single: id => `/api/project/${id}`,           list: '/api/project' },
     queue:            { single: id => `/api/queue/${id}`,             list: '/api/queues' },
     requisition:      { single: id => `/api/requisitions/${id}`,      list: '/api/requisitions' },
     batch:            { single: id => `/api/material-piles/${id}`,    list: '/api/material-piles' },
@@ -87,7 +88,7 @@ export const useEntity = (type, identifier = null) => {
     error.value = null;
     try {
       const data = await $fetch(getListEndpoint(filters));
-      items.value = Array.isArray(data) ? data : data.items ?? data.data ?? [];
+      items.value = Array.isArray(data) ? data : data.items ?? data.projects ?? data.data ?? [];
       return items.value;
     } catch (err) {
       error.value = err.data?.message || `Failed to fetch ${type} list`;
@@ -112,6 +113,43 @@ export const useEntity = (type, identifier = null) => {
       return data;
     } catch (err) {
       error.value = err.data?.message || `Failed to update ${type}`;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
+   * Create a new entity (POST to list endpoint)
+   */
+  const create = async (data = {}) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const entry = endpointMap[type];
+      const url = entry ? entry.list : `/api/${type}s`;
+      const result = await $fetch(url, { method: 'POST', body: data });
+      entity.value = result;
+      return result;
+    } catch (err) {
+      error.value = err.data?.message || `Failed to create ${type}`;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
+   * Delete an entity (DELETE to single endpoint)
+   */
+  const remove = async (id = identifier) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await $fetch(getSingleEndpoint(id), { method: 'DELETE' });
+      entity.value = null;
+    } catch (err) {
+      error.value = err.data?.message || `Failed to delete ${type}`;
       throw err;
     } finally {
       loading.value = false;
@@ -157,7 +195,9 @@ export const useEntity = (type, identifier = null) => {
     // Methods
     fetch,
     list,
+    create,
     update,
+    remove,
     changeStatus,
     getAncestorId
   };

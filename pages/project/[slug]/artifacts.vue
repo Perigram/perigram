@@ -47,6 +47,7 @@ const loading = ref(true);
 const loadQueues = async () => {
   loading.value = true;
   try {
+    // Queue listing is project-scoped — access via project sub-resource endpoint
     queues.value = await $fetch(`/api/project/${slug}/queues`);
     // Sort queues by queueNumber descending to show the latest first
     queues.value.sort((a, b) => b.queueNumber - a.queueNumber);
