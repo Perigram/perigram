@@ -45,7 +45,7 @@ export async function find(filter = {}) {
 export async function updateById(uid, updates) {
   const db = await connectDB();
   const flexId = toFlexibleId(uid);
-  const { _id, identity, ...clean } = updates;
+  const { _id, ...clean } = updates;
   await db.collection(COLLECTION).updateOne(
     { _id: flexId }, 
     { $set: clean }
