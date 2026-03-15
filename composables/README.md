@@ -36,7 +36,9 @@ const result = useEntity(type, identifier?)
 | `formattedDimensions` | `ComputedRef<string>` | `"1200×2400 mm"` |
 | `formattedArea` | `ComputedRef<string>` | `"2.88 m²"` |
 | `fetch(id?)` | `async () => entity` | Load single entity |
+| `create(data?)` | `async (data) => entity` | POST to create entity |
 | `update(data)` | `async (data) => entity` | PATCH entity |
+| `remove(id?)` | `async () => void` | DELETE entity |
 | `changeStatus(state, meta?)` | `async () => result` | State machine transition |
 | `list(filters?)` | `async (filters?) => items[]` | Fetch collection (see below) |
 | `items` | `Ref<array>` | Results from last `list()` call |
@@ -59,9 +61,10 @@ onMounted(() => list({ 'lineage.projectId': projectId }));
 
 ### Endpoint map
 
-| Type key | Single endpoint | List endpoint |
+| Type key | Single endpoint | List / create endpoint |
 |---|---|---|
-| `project` | `/api/project/:id` | `/api/projects` |
+| `material` | `/api/materials/:id` | `/api/materials` |
+| `project` | `/api/project/:id` | `/api/project` |
 | `queue` | `/api/queue/:id` | `/api/queues` |
 | `requisition` | `/api/requisitions/:id` | `/api/requisitions` |
 | `pile` / `batch` | `/api/material-piles/:id` | `/api/material-piles` |
@@ -77,6 +80,8 @@ onMounted(() => list({ 'lineage.projectId': projectId }));
 | `user` | `/api/users/:id` | `/api/users` |
 | `organization` | `/api/organizations/:id` | `/api/organizations` |
 | `nestingRun` | `/api/nesting-runs/:id` | `/api/nesting-runs` |
+
+> **Note:** Queue listing for a project uses the project-scoped sub-resource `/api/project/:slug/queues` (not the generic queue list) since queues are always project-scoped.
 
 ---
 
