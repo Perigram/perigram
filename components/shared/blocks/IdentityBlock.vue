@@ -4,6 +4,7 @@
  * Displays Name and ID/Slug/Serial
  */
 import Chip from 'primevue/chip';
+import { toRef } from 'vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
@@ -12,7 +13,7 @@ const props = defineProps({
   icon: { type: String, default: null } // used in inline variant for Chip icon
 });
 
-const { name, slug, serial } = useIdentity(props.entity);
+const { name, slug, serial } = useIdentity(toRef(props, 'entity'));
 </script>
 
 <template>
@@ -20,15 +21,11 @@ const { name, slug, serial } = useIdentity(props.entity);
     <!-- Header Variant (Main Page Titles) -->
     <div v-if="variant === 'header'" class="flex flex-col gap-1">
       <span class="text-2xl font-semibold">{{ name }}</span>
-      <span class="text-sm text-muted-color">
-        {{ slug }}<template v-if="serial"> · {{ serial }}</template>
-      </span>
     </div>
 
     <!-- Compact Variant (Card rows, lists) -->
     <div v-else-if="variant === 'compact'" class="flex flex-col min-w-0">
       <span class="truncate" :title="name">{{ name }}</span>
-      <span class="text-xs text-muted-color truncate">{{ slug }}</span>
     </div>
 
     <!-- Inline Variant — Chip pill with optional icon -->
@@ -37,7 +34,6 @@ const { name, slug, serial } = useIdentity(props.entity);
     <!-- Default (Card title area) -->
     <div v-else class="flex flex-col gap-0.5">
       <span class="font-semibold">{{ name }}</span>
-      <span class="text-sm text-muted-color">{{ slug }}</span>
     </div>
   </div>
 </template>

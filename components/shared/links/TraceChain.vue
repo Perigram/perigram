@@ -23,7 +23,7 @@
  * Visualizes the ancestry tree for any entity.
  * Names are resolved async via useEntityStore (cached, no duplicate fetches).
  */
-import { ref, computed, watchEffect } from 'vue';
+import { ref, computed, toRef, watchEffect } from 'vue';
 import TraceLink from './TraceLink.vue';
 import Button from 'primevue/button';
 import { useLineage } from '~/composables/useBlocks';
@@ -37,7 +37,7 @@ const props = defineProps({
 
 const entityStore = useEntityStore();
 const isExpanded = ref(!props.expandable);
-const { lineage: entityLineage } = useLineage(props.entity);
+const { lineage: entityLineage } = useLineage(toRef(props, 'entity'));
 const labels = ref({});
 
 const activeLineage = computed(() => props.lineage || entityLineage.value);

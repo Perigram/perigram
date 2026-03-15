@@ -4,7 +4,7 @@
  * Mandatory component for managing entity states and transitions.
  * Integrates display (StatusBadge) and logic (useStatusController).
  */
-import { ref, computed } from 'vue';
+import { ref, computed, toRef } from 'vue';
 import Popover from 'primevue/popover';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
@@ -23,7 +23,7 @@ const props = defineProps({
 
 const emit = defineEmits(['transitioned']);
 const authStore = useAuthStore();
-const { state, timestamp, metadata } = useStatus(props.entity);
+const { state, timestamp, metadata } = useStatus(toRef(props, 'entity'));
 const { transition, isTransitioning } = useStatusController();
 const op = ref();
 

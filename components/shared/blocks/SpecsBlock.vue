@@ -3,7 +3,7 @@
  * SpecsBlock - v24 Standardized
  * Displays physical dimensions, thickness, and area.
  */
-import { computed } from 'vue';
+import { computed, toRef } from 'vue';
 import { useSpecs } from '~/composables/useBlocks';
 
 const props = defineProps({
@@ -11,7 +11,7 @@ const props = defineProps({
   variant: { type: String, default: 'default' } // default, compact
 });
 
-const { specs, formattedDimensions, formattedArea } = useSpecs(props.entity);
+const { specs, formattedDimensions, formattedArea } = useSpecs(toRef(props, 'entity'));
 </script>
 
 <template>
