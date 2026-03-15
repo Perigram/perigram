@@ -1,3 +1,32 @@
+* DONE Entity System Refactor & Documentation
+  :PROPERTIES:
+  :ID: entity-system-refactor
+  :END:
+  [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
+
+*** Agent Notes
+     [2026-06-15] Entity system refactor: docs → block enforcement → service isolation → frontend
+     Files changed (code): scripts/check-arch.js, server/core/blocks/BaseEntity.js,
+       server/api/auth/organizations.get.js, server/api/layer-standards/*.js,
+       server/api/organizations/*/invitations.get.js, server/features/**/model.js,
+       server/features/**/service.js, server/features/**/index.js (15 new),
+       server/features/organizations/repository.js, composables/useEntity.js
+     Files deleted: composables/useEntityList.js
+     Docs updated: server/core/blocks/README.md (new, COMPONENT), server/features/README.md,
+       server/utils/README.md, composables/README.md
+     Notes:
+       - All 24 deprecated utils/blocks.js imports replaced with core/blocks/index.js
+       - utils/blocks.js bridge still exists but is now unreferenced; delete in future if safe
+       - BaseEntity.toJSON() now emits serial/reference as flat aliases (from identity block)
+       - Redundant name/slug/serial/reference removed from all model.toJSON() overrides
+       - Entities with serial in data (cassette-instances, material-piles, remnants, sheets)
+         still override flat serial from data — data.serial migration is a future task
+       - check-arch.js now detects: deprecated block imports, repo exports in index.js,
+         API routes importing repo/model directly (58 pre-existing violations remain,
+         mostly in non-v24 features: nesting, notification, payment, statuses, etc.)
+       - useEntityList merged into useEntity.list(filters); single endpoint map
+       - Service layer now properly isolated: 6 API route violations fixed
+
 * TODO Core Architectural Hardening (v24 Final) [4/4]
   :PROPERTIES:
   :ID: arch-hardening-v24
