@@ -5,6 +5,23 @@
   [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
 
 *** Agent Notes
+     [2026-03-15] Frontend API contract compliance — replace raw $fetch with useEntity
+     Files changed: composables/useEntity.js, stores/global.js, pages/projects/index.vue,
+       pages/project/[slug]/data.vue, pages/project/[slug]/artifacts.vue,
+       components/entities/Project/ProjectDetail.vue, server/api/project/index.get.js
+     Docs updated: composables/README.md (COMPONENT level)
+     Notes:
+       - useEntity: added create() (POST to list endpoint) and remove() (DELETE to single endpoint)
+       - useEntity: fixed project list endpoint from /api/projects (wrong) to /api/project
+       - useEntity: added material type to endpoint map
+       - useEntity: list() now handles data.projects response shape
+       - server/api/project/index.get.js: added queue count aggregation (parity with me.get.js)
+       - stores/global.js: getProjects() now uses useEntity('project').list() instead of $fetch
+       - Queue listing for a project goes through the project-scoped sub-resource endpoint
+         (/api/project/:slug/queues) — no generic /api/queues list exists server-side
+       - ProjectDetail.vue: was calling non-existent /api/queues endpoint; fixed to use slug-based route
+
+*** Agent Notes
      [2026-06-15] Entity system refactor: docs → block enforcement → service isolation → frontend
      Files changed (code): scripts/check-arch.js, server/core/blocks/BaseEntity.js,
        server/api/auth/organizations.get.js, server/api/layer-standards/*.js,
