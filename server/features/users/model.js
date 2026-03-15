@@ -1,4 +1,4 @@
-import { BaseEntity } from '../../utils/blocks.js';
+import { BaseEntity } from '~/server/core/blocks/index.js';
 import { PERMISSION_TEMPLATES } from './permission-templates.js';
 
 /**
@@ -62,8 +62,7 @@ export class User extends BaseEntity {
       role: this.role,
       permissions: this.permissions,
       memberships: this.memberships,
-      isActive: this.isActive,
-      name: this.identity.name
+      isActive: this.isActive
     };
   }
 }

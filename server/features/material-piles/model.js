@@ -1,4 +1,4 @@
-import { BaseEntity } from '~/server/utils/blocks';
+import { BaseEntity } from '~/server/core/blocks/index.js';
 
 /**
  * Material Pile Entity - v24 Absolute Final
@@ -25,7 +25,6 @@ export class MaterialPile extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
-      name: this.name,
       serial: this.data?.serial,
       specs: this.data?.specs,
       stock: this.data?.stock

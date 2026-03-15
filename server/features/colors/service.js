@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import * as catalogService from '../catalogs/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission } from '~/server/utils/permissions';
-import { inheritLineage, registerService } from '~/server/utils/blocks';
+import { inheritLineage, registerService } from '~/server/core/blocks/index.js';
 import { Color } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';

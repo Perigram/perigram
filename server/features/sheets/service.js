@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import * as materialPilesRepository from '../material-piles/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createStatus, inheritLineage, registerService } from '~/server/utils/blocks';
+import { createStatus, inheritLineage, registerService } from '~/server/core/blocks/index.js';
 import { Sheet } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';

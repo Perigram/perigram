@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import * as projectsService from '../projects/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
-import { inheritLineage, registerService } from '../../utils/blocks.js';
+import { inheritLineage, registerService } from '~/server/core/blocks/index.js';
 import { Queue } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';

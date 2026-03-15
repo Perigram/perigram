@@ -1,4 +1,4 @@
-import { BaseEntity } from '~/server/utils/blocks';
+import { BaseEntity } from '~/server/core/blocks/index.js';
 
 /**
  * Color Entity - v24 Absolute Final

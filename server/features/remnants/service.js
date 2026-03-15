@@ -3,7 +3,7 @@ import * as warehouseService from '../warehouses/service.js';
 import * as sheetsRepository from '../sheets/repository.js'; 
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createIdentity, createStatus, inheritLineage, createData, createAttachment } from '~/server/utils/blocks';
+import { createIdentity, createStatus, inheritLineage, createData, createAttachment } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';

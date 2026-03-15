@@ -3,7 +3,7 @@ import * as sessionsRepository from '../sessions/repository.js';
 import { hashPassword, verifyPassword, generateSession, generateAccessToken } from '../../utils/auth-helpers.js';
 import { createError } from 'h3';
 import { PERMISSION_TEMPLATES } from './permission-templates.js';
-import { registerService } from '../../utils/blocks.js';
+import { registerService } from '~/server/core/blocks/index.js';
 import { User } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { toFlexibleId } from '../../utils/objectid.js';

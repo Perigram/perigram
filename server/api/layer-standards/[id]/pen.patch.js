@@ -4,7 +4,7 @@
  * Body: { penId: string }
  */
 
-import * as repository from '~/server/features/layer-standards/repository.js';
+import { service } from '~/server/features/layer-standards';
 
 export default defineEventHandler(async (event) => {
   const organizationId = event.context.auth?.organizationId;
@@ -14,6 +14,6 @@ export default defineEventHandler(async (event) => {
   const { penId } = await readBody(event);
   if (!penId) throw createError({ statusCode: 400, message: 'penId is required' });
 
-  await repository.upsertOverride(organizationId, standardId, penId);
+  await service.setOrgOverride(organizationId, standardId, penId);
   return { success: true };
 });

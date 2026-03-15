@@ -4,7 +4,7 @@
 
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { createIdentity, createStatus, createData } from '~/server/utils/blocks';
+import { createIdentity, createStatus, createData } from '~/server/core/blocks/index.js';
 
 function toDTO(material) {
   if (!material) return null;

@@ -5,57 +5,67 @@ import { useStatusController } from './useStatusController';
 /**
  * Unified Entity Composable - v24 Standardized
  * Provides a reactive bridge for interacting with v24 Block-based entities.
- * 
- * @param {string} type - Entity type (e.g., 'project', 'queue')
- * @param {string} identifier - UID or ID or Slug
+ * Covers both single-entity operations and collection listing.
+ *
+ * @param {string} type - Entity type key (e.g., 'project', 'queue')
+ * @param {string} [identifier] - UID, ID, or slug for single-entity operations
  */
 export const useEntity = (type, identifier = null) => {
   const entity = ref(null);
+  const items = ref([]);
   const loading = ref(false);
   const error = ref(null);
 
   const { transition, isTransitioning } = useStatusController();
 
-  // 1. Block Helpers (Reactive to the entity ref)
+  // Block helpers — reactive to entity ref
   const { name, slug, serial, reference } = useIdentity(entity);
   const { state, statusColor, timestamp: statusTime, metadata: statusMeta } = useStatus(entity);
   const { lineage, getAncestorId } = useLineage(entity);
   const { specs, formattedDimensions, formattedArea } = useSpecs(entity);
 
-/**
-   * Resolve API endpoint for this entity
-   */
-  const getEndpoint = (id = identifier || entity.value?._id || entity.value?.id) => {
-    const map = {
-        project: `/api/project/${id}`,
-        queue: `/api/queue/${id}`,
-        requisition: `/api/requisitions/${id}`,
-        batch: `/api/material-piles/${id}`,
-        pile: `/api/material-piles/${id}`,
-        sheet: `/api/sheets/${id}`,
-        remnant: `/api/remnants/${id}`,
-        cassetteInstance: `/api/cassette-instances/${id}`,
-        cassetteDesign: `/api/cassette-designs/${id}`,
-        sheetDesign: `/api/sheet-designs/${id}`,
-        artifact: `/api/artifacts/${id}`,
-        catalog: `/api/catalogs/${id}`,
-        color: `/api/colors/${id}`,
-        warehouse: `/api/warehouses/${id}`,
-        user: `/api/users/${id}`,
-        organization: `/api/organizations/${id}`
-    };
-    return map[type] || `/api/${type}/${id}`;
+  // Unified endpoint map for all entity types
+  const endpointMap = {
+    project:          { single: id => `/api/project/${id}`,           list: '/api/projects' },
+    queue:            { single: id => `/api/queue/${id}`,             list: '/api/queues' },
+    requisition:      { single: id => `/api/requisitions/${id}`,      list: '/api/requisitions' },
+    batch:            { single: id => `/api/material-piles/${id}`,    list: '/api/material-piles' },
+    pile:             { single: id => `/api/material-piles/${id}`,    list: '/api/material-piles' },
+    sheet:            { single: id => `/api/sheets/${id}`,            list: '/api/sheets' },
+    remnant:          { single: id => `/api/remnants/${id}`,          list: '/api/remnants' },
+    cassetteInstance: { single: id => `/api/cassette-instances/${id}`,list: '/api/cassette-instances' },
+    cassetteDesign:   { single: id => `/api/cassette-designs/${id}`,  list: '/api/cassette-designs' },
+    sheetDesign:      { single: id => `/api/sheet-designs/${id}`,     list: '/api/sheet-designs' },
+    artifact:         { single: id => `/api/artifacts/${id}`,         list: '/api/artifacts' },
+    catalog:          { single: id => `/api/catalogs/${id}`,          list: '/api/catalogs' },
+    color:            { single: id => `/api/colors/${id}`,            list: '/api/colors' },
+    warehouse:        { single: id => `/api/warehouses/${id}`,        list: '/api/warehouses' },
+    user:             { single: id => `/api/users/${id}`,             list: '/api/users' },
+    organization:     { single: id => `/api/organizations/${id}`,     list: '/api/organizations' },
+    nestingRun:       { single: id => `/api/nesting-runs/${id}`,      list: '/api/nesting-runs' },
+  };
+
+  const getSingleEndpoint = (id = identifier || entity.value?._id || entity.value?.id) => {
+    const entry = endpointMap[type];
+    return entry ? entry.single(id) : `/api/${type}/${id}`;
+  };
+
+  const getListEndpoint = (filters = {}) => {
+    const entry = endpointMap[type];
+    const base = entry ? entry.list : `/api/${type}s`;
+    const params = new URLSearchParams(filters).toString();
+    return params ? `${base}?${params}` : base;
   };
 
   /**
-   * Fetch entity data from API
+   * Fetch a single entity by ID or slug
    */
   const fetch = async (id = identifier) => {
     if (!id) return;
     loading.value = true;
     error.value = null;
     try {
-      const data = await $fetch(getEndpoint(id));
+      const data = await $fetch(getSingleEndpoint(id));
       entity.value = data;
       return data;
     } catch (err) {
@@ -68,12 +78,33 @@ export const useEntity = (type, identifier = null) => {
   };
 
   /**
-   * Update entity data
+   * Fetch a collection of entities, optionally filtered.
+   * Results are stored in `items` ref.
+   * @param {object} [filters] - Query params as key/value pairs
+   */
+  const list = async (filters) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const data = await $fetch(getListEndpoint(filters));
+      items.value = Array.isArray(data) ? data : data.items ?? data.data ?? [];
+      return items.value;
+    } catch (err) {
+      error.value = err.data?.message || `Failed to fetch ${type} list`;
+      console.error(`[useEntity] Error listing ${type}:`, err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
+   * Update entity data (PATCH)
    */
   const update = async (updates) => {
     loading.value = true;
     try {
-      const data = await $fetch(getEndpoint(), {
+      const data = await $fetch(getSingleEndpoint(), {
         method: 'PATCH',
         body: updates
       });
@@ -88,26 +119,28 @@ export const useEntity = (type, identifier = null) => {
   };
 
   /**
-   * Perform status transition
+   * Perform a state machine status transition
    */
   const changeStatus = async (newState, metadata = {}) => {
     const id = entity.value?._id || entity.value?.id || identifier;
     const result = await transition(type, id, newState, metadata);
     if (result) {
-      // Refresh to get latest state
       await fetch(id);
     }
     return result;
   };
 
   return {
-    // State
+    // Single entity state
     entity,
     loading,
     error,
     isTransitioning,
 
-    // Blocks
+    // Collection state
+    items,
+
+    // Block computed refs
     name,
     slug,
     serial,
@@ -123,8 +156,10 @@ export const useEntity = (type, identifier = null) => {
 
     // Methods
     fetch,
+    list,
     update,
     changeStatus,
     getAncestorId
   };
 };
+

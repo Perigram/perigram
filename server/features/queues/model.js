@@ -1,4 +1,4 @@
-import { BaseEntity } from '../../utils/blocks.js';
+import { BaseEntity } from '~/server/core/blocks/index.js';
 
 /**
  * Queue Entity - v24 Absolute Final
@@ -24,7 +24,6 @@ export class Queue extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
-      name: this.name,
       job: this.data?.job,
       queueNumber: this.data?.queueNumber
     };

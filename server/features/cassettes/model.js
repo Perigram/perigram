@@ -22,8 +22,6 @@ export class Cassette extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
-      name: this.name,
-      slug: this.slug,
       type: this.data.type,
       definition: this.data.definition,
       parameters: this.data.parameters

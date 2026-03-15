@@ -4,7 +4,7 @@
 
 import * as repository from './repository.js';
 import { ObjectId } from 'mongodb';
-import { createIdentity, createStatus, createData } from '../../utils/blocks.js';
+import { createIdentity, createStatus, createData } from '~/server/core/blocks/index.js';
 import { createError } from 'h3';
 
 function toDTO(tool) {

@@ -1,7 +1,7 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createStatus, registerService } from '~/server/utils/blocks';
+import { createStatus, registerService } from '~/server/core/blocks/index.js';
 import { MaterialPile } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';

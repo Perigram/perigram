@@ -1,4 +1,4 @@
-import { BaseEntity } from '~/server/utils/blocks';
+import { BaseEntity } from '~/server/core/blocks/index.js';
 
 /**
  * Warehouse Entity - v24 Absolute Final
@@ -41,7 +41,6 @@ export class Warehouse extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
-      name: this.name,
       organizationId: this.organizationId,
       address: this.data.address,
       contactPerson: this.data.contactPerson,

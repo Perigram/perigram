@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import { hasPermission } from '../../utils/auth-helpers.js';
 import { getLineageFilter } from '../../utils/permissions.js';
-import { registerService } from '../../utils/blocks.js';
+import { registerService } from '~/server/core/blocks/index.js';
 import { Organization } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
@@ -91,4 +91,10 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   if (userRole !== 'SuperAdmin') throw createError({ statusCode: 403, message: 'Only SuperAdmin can delete' });
   return await repository.deleteById(uid);
+}
+
+export async function getByIds(ids) {
+  if (!ids || ids.length === 0) return [];
+  const raws = await repository.findByIds(ids);
+  return raws.map(raw => new Organization(raw).toJSON());
 }

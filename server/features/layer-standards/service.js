@@ -1,6 +1,6 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { createIdentity, createData, createStatus } from '~/server/utils/blocks';
+import { createIdentity, createData, createStatus } from '~/server/core/blocks/index.js';
 import { ObjectId } from 'mongodb';
 
 /**
@@ -104,4 +104,18 @@ export function generateLayerName(standard, parameters = {}, locale = 'en') {
   
   // Prepend code
   return `${config.code}_${layerName}`;
+}
+
+// --- Org-level pen overrides ---
+
+export async function getOverridesForOrg(organizationId) {
+  return await repository.findOverridesByOrg(organizationId);
+}
+
+export async function setOrgOverride(organizationId, standardId, penId) {
+  await repository.upsertOverride(organizationId, standardId, penId);
+}
+
+export async function removeOrgOverride(organizationId, standardId) {
+  await repository.deleteOverride(organizationId, standardId);
 }

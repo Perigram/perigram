@@ -1,4 +1,4 @@
-import { BaseEntity } from '~/server/utils/blocks';
+import { BaseEntity } from '~/server/core/blocks/index.js';
 
 /**
  * Catalog Entity - v24 Absolute Final
@@ -22,7 +22,6 @@ export class Catalog extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
-      name: this.name,
       material: this.data?.material,
       pricing: this.data?.pricing,
       options: this.data?.options

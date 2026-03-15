@@ -4,7 +4,6 @@
  */
 
 import { service } from '~/server/features/layer-standards';
-import * as repository from '~/server/features/layer-standards/repository.js';
 
 export default defineEventHandler(async (event) => {
   const organizationId = event.context.auth?.organizationId || null;
@@ -12,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   if (!organizationId) return standards;
 
-  const orgOverrides = await repository.findOverridesByOrg(organizationId);
+  const orgOverrides = await service.getOverridesForOrg(organizationId);
   const overrideMap = Object.fromEntries(orgOverrides.map(o => [o.standardId.toString(), o.penId.toString()]));
 
   return standards.map(s => ({

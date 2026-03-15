@@ -1,4 +1,4 @@
-import { BaseEntity } from '~/server/utils/blocks';
+import { BaseEntity } from '~/server/core/blocks/index.js';
 
 /**
  * Sheet Entity - v24 Absolute Final
@@ -20,7 +20,6 @@ export class Sheet extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
-      name: this.name,
       serial: this.data?.serial
     };
   }

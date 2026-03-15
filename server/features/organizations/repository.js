@@ -37,3 +37,8 @@ export async function deleteById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
 }
+export async function findByIds(ids) {
+  const db = await connectDB();
+  const objectIds = ids.map(id => new ObjectId(id.toString()));
+  return await db.collection(COLLECTION).find({ _id: { $in: objectIds } }).toArray();
+}

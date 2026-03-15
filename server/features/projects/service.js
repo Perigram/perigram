@@ -3,7 +3,7 @@ import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { generateRandomString } from '../../utils/strings.js';
 import standardSlugify from 'standard-slugify';
-import { createStatus, registerService } from '../../utils/blocks.js';
+import { createStatus, registerService } from '~/server/core/blocks/index.js';
 import { Project } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';

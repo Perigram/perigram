@@ -24,8 +24,6 @@ export class EntityName extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
-      name: this.name,
-      slug: this.slug,
       customField: this.data.customField
     };
   }

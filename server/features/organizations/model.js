@@ -1,4 +1,4 @@
-import { BaseEntity } from '~/server/utils/blocks';
+import { BaseEntity } from '~/server/core/blocks/index.js';
 
 /**
  * Organization Entity - v24 Absolute Final
@@ -36,7 +36,6 @@ export class Organization extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
-      name: this.name,
       type: this.type
     };
   }

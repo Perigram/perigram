@@ -95,3 +95,7 @@ async function processJoin(invitation, user) {
   
   return { success: true };
 }
+
+export async function listByOrg(organizationId) {
+  return await repository.findByOrg(organizationId);
+}

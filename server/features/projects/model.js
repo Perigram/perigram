@@ -1,4 +1,4 @@
-import { BaseEntity } from '../../utils/blocks.js';
+import { BaseEntity } from '~/server/core/blocks/index.js';
 
 /**
  * Project Entity - v24 Absolute Final
@@ -24,9 +24,7 @@ export class Project extends BaseEntity {
 
   toJSON() {
     return {
-      ...super.toJSON(),
-      name: this.name,
-      slug: this.slug
+      ...super.toJSON()
     };
   }
 }

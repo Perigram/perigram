@@ -58,9 +58,11 @@ export class BaseEntity {
       attachments: this.attachments,
       data: this.data,
       summary: this.summary,
-      // Legacy flat compatibility fields
+      // Flat convenience aliases (sourced from identity block)
       name: this.identity.name,
-      slug: this.identity.slug
+      slug: this.identity.slug,
+      serial: this.identity.serial,
+      reference: this.identity.reference
     };
   }
 

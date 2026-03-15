@@ -23,7 +23,6 @@ export class SheetDesign extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
-      name: this.name,
       geometry: this.data.geometry
     };
   }
