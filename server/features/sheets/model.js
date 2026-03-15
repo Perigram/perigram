@@ -20,6 +20,7 @@ export class Sheet extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
+      name: this.name,
       serial: this.data?.serial
     };
   }

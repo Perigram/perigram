@@ -22,6 +22,7 @@ export class Catalog extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
+      name: this.name,
       material: this.data?.material,
       pricing: this.data?.pricing,
       options: this.data?.options

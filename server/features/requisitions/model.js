@@ -22,6 +22,7 @@ export class Requisition extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
+      name: this.name,
       items: this.data.items,
       totalPrice: this.data.totalPrice,
       currency: this.data.currency,

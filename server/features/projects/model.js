@@ -24,7 +24,9 @@ export class Project extends BaseEntity {
 
   toJSON() {
     return {
-      ...super.toJSON()
+      ...super.toJSON(),
+      // Slug falls back to id for projects without an explicit slug
+      slug: this.slug
     };
   }
 }

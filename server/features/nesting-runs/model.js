@@ -24,6 +24,7 @@ export class NestingRun extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
+      name: this.name,
       results: this.data.results,
       layoutData: this.data.layoutData,
       artifactIds: this.data.artifactIds

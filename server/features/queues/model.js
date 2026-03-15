@@ -24,6 +24,7 @@ export class Queue extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
+      name: this.name,
       job: this.data?.job,
       queueNumber: this.data?.queueNumber
     };

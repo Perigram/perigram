@@ -22,6 +22,7 @@ export class Artifact extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
+      name: this.name,
       type: this.data.type,
       fileId: this.data.fileId,
       mimeType: this.data.mimeType,

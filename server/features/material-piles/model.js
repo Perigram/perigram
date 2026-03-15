@@ -25,6 +25,7 @@ export class MaterialPile extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
+      name: this.name,
       serial: this.data?.serial,
       specs: this.data?.specs,
       stock: this.data?.stock

@@ -21,6 +21,7 @@ export class CassetteInstance extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
+      name: this.name,
       serial: this.data.serial,
       reference: this.data.reference
     };

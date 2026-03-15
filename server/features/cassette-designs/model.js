@@ -23,6 +23,7 @@ export class CassetteDesign extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
+      name: this.name,
       geometry: this.data.geometry,
       parameters: this.data.parameters
     };
