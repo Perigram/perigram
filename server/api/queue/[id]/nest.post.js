@@ -14,7 +14,7 @@ import { connectDB } from '../../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 import { generateRandomString } from '../../../utils/strings.js';
 import { requireAuth } from '../../../utils/permissions.js';
-import { createStatus, inheritLineage } from '../../../utils/blocks.js';
+import { createStatus, inheritLineage } from '../../../core/blocks/index.js';
 import { toFlexibleId } from '../../../utils/objectid.js';
 
 export default defineEventHandler(async (event) => {

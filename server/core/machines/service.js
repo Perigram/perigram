@@ -1,7 +1,7 @@
 import { stateMachines } from './definitions.js';
 import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
-import { createStatus, getService } from '../../utils/blocks.js';
+import { createStatus, getService } from '../../core/blocks/index.js';
 import { hooks } from './hooks.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { createError } from 'h3';
