@@ -6,7 +6,6 @@
 import IdentityBlock from './blocks/IdentityBlock.vue';
 import EntityStatus from './status/EntityStatus.vue';
 import TraceChain from './links/TraceChain.vue';
-import StandardCard from './StandardCard.vue';
 import Divider from 'primevue/divider';
 
 const props = defineProps({

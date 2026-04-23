@@ -4,10 +4,12 @@
 
         <Panel>
             <template #header>
-                <div class="flex items-center gap-4">
+                <div class="flex flex-wrap items-start gap-4 min-w-0">
                     <i class="pi pi-undo rotate-180"></i>
-                    <h1 class="m-0">{{ serial }}</h1>
-                    <EntityStatus :entity="remnant" entity-type="remnant" :actions="statusActions" />
+                    <h1 class="m-0 min-w-0">{{ serial }}</h1>
+                    <div class="min-w-0">
+                        <EntityStatus :entity="remnant" entity-type="remnant" :actions="statusActions" />
+                    </div>
                 </div>
             </template>
             <template #icons>

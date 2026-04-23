@@ -8,7 +8,7 @@
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <StandardCard class="card-interactive">
+      <EntityCard :entity="color" entity-type="color" variant="compact" class="card-interactive" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex items-center gap-4 min-w-0">
                 <div class="w-6 h-6 rounded-full border shrink-0" :style="swatchStyle"></div>
@@ -18,11 +18,11 @@
         <template #subtitle>
             <small>{{ color.identity?.serial || hexCode || '—' }}</small>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <StandardCard class="card-interactive">
+      <EntityCard :entity="color" entity-type="color" variant="card" class="card-interactive" :show-trace="false" :show-status="false">
         <template #header>
             <div class="h-32 w-full" :style="swatchStyle"></div>
         </template>
@@ -33,7 +33,7 @@
         <div class="flex justify-end items-center gap-4">
             <small>{{ hexCode || '—' }}</small>
         </div>
-      </StandardCard>
+      </EntityCard>
     </template>
   </div>
 </template>
@@ -45,7 +45,7 @@
 import { computed } from 'vue';
 import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 
 const props = defineProps({

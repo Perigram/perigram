@@ -2,10 +2,12 @@
     <div class="flex flex-col gap-8">
         <TraceChain :entity="warehouse" />
 
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div class="flex items-center gap-4">
+        <div class="flex flex-col md:flex-row justify-between items-start gap-6 min-w-0">
+            <div class="flex flex-wrap items-start gap-4 min-w-0">
                 <IdentityBlock :entity="warehouse" variant="header" />
-                <EntityStatus :entity="warehouse" entity-type="warehouse" variant="inline" />
+                <div class="min-w-0">
+                    <EntityStatus :entity="warehouse" entity-type="warehouse" variant="inline" />
+                </div>
             </div>
             <div class="flex gap-2" v-if="authStore.can('warehouses', 'edit')">
                 <Button icon="pi pi-pencil" severity="secondary" text @click="$emit('edit', warehouse)" />
@@ -19,7 +21,7 @@
 
         <!-- Operational Stock -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StandardCard>
+            <Card>
                 <template #title>
                     <div class="flex items-center gap-4">
                         <i class="pi pi-truck"></i>
@@ -29,8 +31,8 @@
                 <template #subtitle>
                     <small>{{ $t('warehouse.activeShipments') }}</small>
                 </template>
-            </StandardCard>
-            <StandardCard>
+            </Card>
+            <Card>
                 <template #title>
                     <div class="flex items-center gap-4">
                         <i class="pi pi-file"></i>
@@ -40,8 +42,8 @@
                 <template #subtitle>
                     <small>{{ $t('warehouse.rawSheets') }}</small>
                 </template>
-            </StandardCard>
-            <StandardCard>
+            </Card>
+            <Card>
                 <template #title>
                     <div class="flex items-center gap-4">
                         <i class="pi pi-undo"></i>
@@ -51,14 +53,14 @@
                 <template #subtitle>
                     <small>{{ $t('warehouse.recoveredArea') }}</small>
                 </template>
-            </StandardCard>
+            </Card>
         </div>
     </div>
 </template>
 
 <script setup>
 import Button from 'primevue/button';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import Card from 'primevue/card';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';

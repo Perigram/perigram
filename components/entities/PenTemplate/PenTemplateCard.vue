@@ -8,7 +8,7 @@
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <StandardCard class="card-interactive">
+      <EntityCard :entity="pen" entity-type="pen_template" variant="compact" class="card-interactive" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
@@ -18,11 +18,11 @@
                 <Tag v-if="pen.stroke?.weight" :value="`${pen.stroke.weight}px`" severity="secondary" size="small" />
             </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <StandardCard class="card-interactive">
+      <EntityCard :entity="pen" entity-type="pen_template" variant="card" class="card-interactive" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <IdentityBlock :entity="pen" />
@@ -31,7 +31,7 @@
         </template>
         <Divider />
         <DataBlock :entity="pen" :fields="FIELDS" />
-      </StandardCard>
+      </EntityCard>
     </template>
   </div>
 </template>
@@ -43,7 +43,7 @@
 import Tag from 'primevue/tag';
 import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 

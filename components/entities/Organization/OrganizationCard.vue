@@ -8,18 +8,18 @@
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <StandardCard>
+      <EntityCard :entity="organization" entity-type="organization" variant="compact" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex items-center gap-4">
                 <Avatar :label="organization.identity?.name?.charAt(0)" shape="circle" />
                 <IdentityBlock :entity="organization" variant="compact" />
             </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <StandardCard>
+      <EntityCard :entity="organization" entity-type="organization" variant="card" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex items-center gap-4">
                 <Avatar :label="organization.identity?.name?.charAt(0)" shape="circle" size="large" />
@@ -40,7 +40,7 @@
                 <span>{{ createdAt }}</span>
             </div>
         </div>
-      </StandardCard>
+      </EntityCard>
     </template>
   </div>
 </template>
@@ -54,7 +54,7 @@ import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import Avatar from 'primevue/avatar';
 import Chip from 'primevue/chip';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 
 const props = defineProps({

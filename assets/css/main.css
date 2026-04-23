@@ -14,12 +14,12 @@
 }
 
 /* Input components fill available width by default */
-.p-inputtext,
-.p-select,
-.p-password,
-.p-textarea,
-.p-inputnumber,
-.p-inputchips {
+/* .p-inputchips, */
+/* .p-select, */
+/* .p-password, */
+/* .p-textarea, */
+/* .p-inputnumber, */
+.p-inputtext {
     width: 100%;
 }
 

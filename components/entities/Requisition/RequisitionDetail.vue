@@ -2,10 +2,12 @@
     <div class="flex flex-col gap-8">
         <TraceChain :entity="requisition" />
 
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div class="flex items-center gap-4">
+        <div class="flex flex-col md:flex-row justify-between items-start gap-6 min-w-0">
+            <div class="flex flex-wrap items-start gap-4 min-w-0">
                 <h1 class="m-0">#{{ serial }}</h1>
-                <EntityStatus :entity="requisition" entity-type="requisition" :actions="statusActions" />
+                <div class="min-w-0">
+                    <EntityStatus :entity="requisition" entity-type="requisition" :actions="statusActions" />
+                </div>
             </div>
         </div>
 
@@ -19,7 +21,7 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <StandardCard v-for="(item, idx) in requisition.items" :key="idx" class="card-interactive">
+                        <Card v-for="(item, idx) in requisition.items" :key="idx" class="card-interactive">
                             <template #title>
                                 <div class="flex justify-between items-center">
                                     <div class="flex items-center gap-2">
@@ -29,20 +31,22 @@
                                     <small>{{ item.colorCode }}</small>
                                 </div>
                             </template>
-                            <Divider />
-                            <SpecsBlock :entity="item" />
-                            <Divider />
-                            <div class="flex justify-between items-center">
-                                <div class="flex flex-col">
-                                    <small>{{ $t('common.quantity') }}</small>
-                                    <span class="text-xl">{{ item.quantity }}</span>
+                            <template #content>
+                                <Divider />
+                                <SpecsBlock :entity="item" />
+                                <Divider />
+                                <div class="flex justify-between items-center">
+                                    <div class="flex flex-col">
+                                        <small>{{ $t('common.quantity') }}</small>
+                                        <span class="text-xl">{{ item.quantity }}</span>
+                                    </div>
+                                    <div class="flex flex-col text-right">
+                                        <small>{{ $t('common.subtotal') }}</small>
+                                        <span class="text-xl">${{ item.totalPrice?.toFixed(2) }}</span>
+                                    </div>
                                 </div>
-                                <div class="flex flex-col text-right">
-                                    <small>{{ $t('common.subtotal') }}</small>
-                                    <span class="text-xl">${{ item.totalPrice?.toFixed(2) }}</span>
-                                </div>
-                            </div>
-                        </StandardCard>
+                            </template>
+                        </Card>
                     </div>
                 </div>
 
@@ -65,9 +69,9 @@
 import { computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import Panel from 'primevue/panel';
+import Card from 'primevue/card';
 import Fieldset from 'primevue/fieldset';
 import Divider from 'primevue/divider';
-import StandardCard from '~/components/shared/StandardCard.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';

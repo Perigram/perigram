@@ -36,7 +36,7 @@
                     <div class="flex flex-col gap-6 py-4">
                         <div v-if="projectMaterials.length === 0" class="py-12 flex flex-col items-center justify-center text-center italic opacity-50">
                             <i class="pi pi-database text-5xl mb-4"></i>
-                            <p>No materials in this project yet.</p>
+                            <p>{{ $t('projectData.noMaterials') }}</p>
                             <Button :label="$t('projectData.addMaterial')" icon="pi pi-plus" text size="small" @click="showAddMaterialDialog = true" />
                         </div>
 
@@ -91,7 +91,7 @@
                                         <div v-if="pm.wastePolygons && pm.wastePolygons.length > 0" class="flex flex-wrap gap-2">
                                             <Chip v-for="(wp, wIdx) in pm.wastePolygons" :key="wIdx" :label="`${$t('projectData.wasteArea')} #${wIdx+1} (${wp.area || 0}m²)`" removable @remove="removeWaste(pm, wIdx)" />
                                         </div>
-                                        <p v-else class="text-center italic py-4">No waste polygons available.</p>
+                                        <p v-else class="text-center italic py-4">{{ $t('projectData.noWastePolygons') }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -154,7 +154,7 @@
         >
             <div class="flex flex-col gap-4 py-4">
                 <div class="flex flex-col gap-1">
-                    <label>Select from Global Library</label>
+                    <label>{{ $t('projectData.selectFromGlobalLibrary') }}</label>
                     <Select 
                         v-model="selectedGlobalMaterialId" 
                         :options="globalMaterials" 
@@ -172,7 +172,7 @@
                     </Select>
                 </div>
                 <div class="p-4 border border-dashed rounded text-center">
-                    <small>Material not found?</small>
+                    <small>{{ $t('projectData.materialNotFound') }}</small>
                     <Button :label="$t('projectData.createNewMaterial')" text size="small" @click="showCreateMaterialDialog = true" />
                 </div>
             </div>
@@ -229,16 +229,16 @@
             <div class="flex flex-col gap-4 py-4" v-if="activeProjectMaterial">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="flex flex-col gap-1">
-                        <label>Width (mm)</label>
+                        <label>{{ $t('queue.width') }}</label>
                         <InputNumber v-model="sheetForm.width" :min="1" />
                     </div>
                     <div class="flex flex-col gap-1">
-                        <label>Height (mm)</label>
+                        <label>{{ $t('queue.length') }}</label>
                         <InputNumber v-model="sheetForm.height" :min="1" />
                     </div>
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label>Quantity</label>
+                    <label>{{ $t('common.quantity') }}</label>
                     <InputNumber v-model="sheetForm.quantity" :min="1" showButtons />
                 </div>
             </div>
@@ -351,7 +351,7 @@ const addMaterialToProject = async () => {
     if (!mat) return;
 
     if (projectMaterials.value.some(pm => pm.material.code === mat.code)) {
-        toast.add({ severity: 'warn', summary: 'Warning', detail: 'Material already in project', life: 3000 });
+        toast.add({ severity: 'warn', summary: t('common.warning'), detail: t('projectData.materialAlreadyInProject'), life: 3000 });
         return;
     }
 
@@ -370,7 +370,7 @@ const addMaterialToProject = async () => {
         projectMaterials.value = newProjectMaterials;
         showAddMaterialDialog.value = false;
         selectedGlobalMaterialId.value = null;
-        toast.add({ severity: 'success', summary: t('common.success'), detail: 'Material added to project', life: 3000 });
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('projectData.materialAddedToProject'), life: 3000 });
     } catch (error) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: t('errors.saveFailed'), life: 3000 });
     }
@@ -412,7 +412,7 @@ const saveSheets = async () => {
     try {
         await updateProject({ projectMaterials: projectMaterials.value });
         showAddSheetsDialog.value = false;
-        toast.add({ severity: 'success', summary: t('common.success'), detail: 'Sheets added', life: 3000 });
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('projectData.sheetsAdded'), life: 3000 });
     } catch (error) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: t('errors.saveFailed'), life: 3000 });
     }
@@ -430,8 +430,8 @@ const removeWaste = async (pm, index) => {
 
 const confirmDeleteMaterial = (index) => {
     confirm.require({
-        message: 'Remove material from project?',
-        header: 'Confirmation',
+        message: t('projectData.confirmRemoveMaterial'),
+        header: t('common.confirmation'),
         icon: 'pi pi-exclamation-triangle',
         accept: async () => {
             const newMats = [...projectMaterials.value];
@@ -452,7 +452,7 @@ const updateProject = async (data) => {
 };
 
 const addWasteToInventory = async (logEntry) => {
-    toast.add({ severity: 'info', summary: 'Coming Soon', detail: 'Waste extraction from artifacts', life: 3000 });
+    toast.add({ severity: 'info', summary: t('common.comingSoon'), detail: t('projectData.wasteExtractionFromArtifacts'), life: 3000 });
 };
 
 const formatDate = (date) => {

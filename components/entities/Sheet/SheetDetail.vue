@@ -4,10 +4,12 @@
 
         <Panel>
             <template #header>
-                <div class="flex items-center gap-4">
+                <div class="flex flex-wrap items-start gap-4 min-w-0">
                     <i class="pi pi-file"></i>
-                    <h1 class="m-0">{{ sheetSerial }}</h1>
-                    <EntityStatus :entity="sheet" entity-type="sheet" :actions="statusActions" />
+                    <h1 class="m-0 min-w-0">{{ sheetSerial }}</h1>
+                    <div class="min-w-0">
+                        <EntityStatus :entity="sheet" entity-type="sheet" :actions="statusActions" />
+                    </div>
                 </div>
             </template>
             <template #icons>

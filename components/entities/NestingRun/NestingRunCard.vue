@@ -8,7 +8,7 @@ import Button from 'primevue/button';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import ArtifactCard from '../Artifact/ArtifactCard.vue';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 import { useStatus } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
 
@@ -27,6 +27,10 @@ const { state } = useStatus(props.run);
 
 const canManage = computed(() => authStore.can('queues', 'edit'));
 const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
+const statusActions = computed(() => {
+    if (!canManage.value || state.value !== 'COMPLETE') return [];
+    return [{ label: 'Choose', to: 'CHOSEN', icon: 'pi pi-check-circle', severity: 'success', command: () => emit('choose', props.run._id) }];
+});
 </script>
 
 <template>
@@ -38,23 +42,27 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <StandardCard>
+      <EntityCard :entity="run" entity-type="nesting_run" variant="compact" :show-trace="false" :show-status="false">
         <template #title>
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-start gap-3 min-w-0">
                 <IdentityBlock :entity="run" variant="compact" />
-                <EntityStatus :entity="run" entity-type="nesting_run" variant="inline" />
+                <div class="shrink-0">
+                    <EntityStatus :entity="run" entity-type="nesting_run" variant="inline" :actions="statusActions" />
+                </div>
             </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
 
     <!-- Card -->
     <template v-else-if="variant === 'card'">
-      <StandardCard>
+      <EntityCard :entity="run" entity-type="nesting_run" variant="card" :show-trace="false" :show-status="false">
         <template #title>
-            <div class="flex justify-between items-center gap-4">
+            <div class="flex justify-between items-start gap-3 min-w-0">
                 <IdentityBlock :entity="run" />
-                <EntityStatus :entity="run" entity-type="nesting_run" variant="inline" />
+                <div class="shrink-0">
+                    <EntityStatus :entity="run" entity-type="nesting_run" variant="inline" :actions="statusActions" />
+                </div>
             </div>
         </template>
         <Divider />
@@ -97,12 +105,6 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
                 <div class="flex flex-wrap justify-between items-center gap-2">
                     <div class="flex gap-2">
                         <Button 
-                            label="Choose" icon="pi pi-check-circle"
-                            size="small"
-                            v-if="state === 'COMPLETE'"
-                            @click.stop="$emit('choose', run._id)"
-                        />
-                        <Button 
                             icon="pi pi-trash" severity="danger" text
                             size="small"
                             @click.stop="$emit('delete', run._id)"
@@ -111,7 +113,7 @@ const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 
                 </div>
             </template>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
   </div>
 </template>

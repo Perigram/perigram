@@ -4,36 +4,59 @@
  * Displays Name and ID/Slug/Serial
  */
 import Chip from 'primevue/chip';
-import { toRef } from 'vue';
+import { computed, toRef } from 'vue';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
   entity: { type: Object, required: true },
   variant: { type: String, default: 'default' }, // default, compact, inline, header
-  icon: { type: String, default: null } // used in inline variant for Chip icon
+  icon: { type: String, default: null }, // used in inline variant for Chip icon
+  fields: { type: Array, default: () => [] } // optional extra fields: slug, serial, reference, uid
 });
 
-const { name, slug, serial } = useIdentity(toRef(props, 'entity'));
+const { name, slug, serial, reference } = useIdentity(toRef(props, 'entity'));
+const uid = computed(() => props.entity?.identity?.uid || props.entity?.uid || props.entity?.id || props.entity?._id || '');
+const primary = computed(() => name.value || slug.value || uid.value || 'Unnamed');
+
+const fieldValueMap = computed(() => ({
+  uid: uid.value,
+  slug: slug.value,
+  serial: serial.value,
+  reference: reference.value
+}));
+
+const identityMeta = computed(() => {
+  if (!Array.isArray(props.fields) || props.fields.length === 0) return [];
+
+  return props.fields
+    .map((key) => ({ key, value: fieldValueMap.value[key] }))
+    .filter((item) => item.value && item.value !== primary.value);
+});
+
+const identityMetaText = computed(() => identityMeta.value.map((item) => `${item.key}: ${item.value}`).join(' · '));
 </script>
 
 <template>
-  <div v-if="entity" class="identity-block">
+  <div v-if="props.entity" class="identity-block min-w-0">
     <!-- Header Variant (Main Page Titles) -->
-    <div v-if="variant === 'header'" class="flex flex-col gap-1">
-      <span class="text-2xl font-semibold">{{ name }}</span>
+    <div v-if="variant === 'header'" class="flex flex-col gap-1 min-w-0">
+      <span class="truncate" :title="primary">{{ primary }}</span>
+      <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
     </div>
 
     <!-- Compact Variant (Card rows, lists) -->
     <div v-else-if="variant === 'compact'" class="flex flex-col min-w-0">
-      <span class="truncate" :title="name">{{ name }}</span>
+      <span class="truncate" :title="primary">{{ primary }}</span>
+      <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
     </div>
 
     <!-- Inline Variant — Chip pill with optional icon -->
-    <Chip v-else-if="variant === 'inline'" :label="name" :icon="icon || undefined" :title="slug" />
+    <Chip v-else-if="variant === 'inline'" :label="primary" :icon="icon || undefined" :title="identityMetaText || primary" />
 
     <!-- Default (Card title area) -->
-    <div v-else class="flex flex-col gap-0.5">
-      <span class="font-semibold">{{ name }}</span>
+    <div v-else class="flex flex-col gap-0.5 min-w-0">
+      <span class="truncate" :title="primary">{{ primary }}</span>
+      <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
     </div>
   </div>
 </template>

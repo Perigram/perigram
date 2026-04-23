@@ -6,7 +6,7 @@
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <StandardCard class="card-interactive">
+      <EntityCard :entity="tool" entity-type="tool_profile" variant="compact" class="card-interactive" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
@@ -16,11 +16,11 @@
                 <Tag v-if="tool.diameter" :value="`D${tool.diameter}`" severity="secondary" size="small" />
             </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <StandardCard class="card-interactive">
+      <EntityCard :entity="tool" entity-type="tool_profile" variant="card" class="card-interactive" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <IdentityBlock :entity="tool" />
@@ -29,7 +29,7 @@
         </template>
         <Divider />
         <DataBlock :entity="tool" :fields="FIELDS" />
-      </StandardCard>
+      </EntityCard>
     </template>
   </div>
 </template>
@@ -40,7 +40,7 @@
  */
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 

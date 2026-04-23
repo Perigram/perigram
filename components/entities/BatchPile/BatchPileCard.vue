@@ -7,14 +7,16 @@
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <StandardCard class="card-interactive">
+      <EntityCard :entity="pile" entity-type="material_pile" variant="compact" class="card-interactive" :show-trace="false" :show-status="false">
         <template #title>
-          <div class="flex justify-between items-center gap-4">
-            <div class="flex items-center gap-2">
+          <div class="flex justify-between items-start gap-3 min-w-0">
+            <div class="flex items-center gap-2 min-w-0">
               <i class="pi pi-clone"></i>
               <IdentityBlock :entity="pile" variant="compact" />
             </div>
-            <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
+            <div class="shrink-0">
+              <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
+            </div>
           </div>
         </template>
         <template #subtitle>
@@ -23,16 +25,18 @@
             <small v-if="pile.stock">{{ remaining }} / {{ pile.stock.total }} remaining</small>
           </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
 
     <!-- Card -->
     <template v-else>
-      <StandardCard class="card-interactive">
+      <EntityCard :entity="pile" entity-type="material_pile" variant="card" class="card-interactive" :show-trace="false" :show-status="false">
         <template #title>
-          <div class="flex justify-between items-start gap-4">
+          <div class="flex justify-between items-start gap-3 min-w-0">
             <IdentityBlock :entity="pile" />
-            <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
+            <div class="shrink-0">
+              <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
+            </div>
           </div>
         </template>
         <template #subtitle>
@@ -41,7 +45,7 @@
             <small v-if="pile.stock">{{ remaining }} / {{ pile.stock.total }} remaining</small>
           </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
   </div>
 </template>
@@ -49,7 +53,7 @@
 <script setup>
 import { computed } from 'vue';
 import Tag from 'primevue/tag';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 

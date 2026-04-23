@@ -45,7 +45,10 @@
     "reusable": "Годен",
     "waste": "Отход",
     "printTag": "Печать бирки",
-    "markUsed": "Отметить использованным"
+    "markUsed": "Отметить использованным",
+    "type": "Тип",
+    "warning": "Предупреждение",
+    "comingSoon": "Скоро"
   },
   "footer": {
     "termsAndConditions": "Условия и положения",
@@ -132,7 +135,8 @@
     "viewArtifacts": "Просмотр артефактов",
     "completedQueues": "Завершённые очереди",
     "totalCassettes": "Всего кассет",
-    "totalArea": "Общая площадь"
+    "totalArea": "Общая площадь",
+    "lifecycle": "Жизненный цикл"
   },
   "file": {
     "upload": "Загрузить файлы",
@@ -314,7 +318,16 @@
       "composite": "Алюминиевый композит",
       "steel": "Сталь",
       "aluminum": "Алюминий"
-    }
+    },
+    "noMaterials": "В этом проекте пока нет материалов.",
+    "noWastePolygons": "Полигоны отходов отсутствуют.",
+    "selectFromGlobalLibrary": "Выберите из глобальной библиотеки",
+    "materialNotFound": "Материал не найден?",
+    "materialAlreadyInProject": "Материал уже добавлен в проект",
+    "materialAddedToProject": "Материал добавлен в проект",
+    "sheetsAdded": "Листы добавлены",
+    "confirmRemoveMaterial": "Удалить материал из проекта?",
+    "wasteExtractionFromArtifacts": "Извлечение отходов из артефактов"
   },
   "results": {
     "title": "Результаты",
@@ -484,7 +497,24 @@
     "invitationLink": "Ссылка на приглашение",
     "expires": "Истекает",
     "generateLink": "Создать ссылку",
-    "permissions": "Разрешения"
+    "permissions": "Разрешения",
+    "orgTypes": {
+      "manufacturer": "Производитель",
+      "contractor": "Подрядчик",
+      "customer": "Заказчик"
+    },
+    "or": "Или",
+    "organizationCreated": "Организация создана",
+    "organizationCreateFailed": "Не удалось создать организацию",
+    "accountCreatedSuccessfully": "Аккаунт успешно создан",
+    "registrationFailed": "Ошибка регистрации",
+    "invitationTitle": "Приглашение в организацию",
+    "fetchingInvitation": "Загружаем данные приглашения...",
+    "invitedToJoin": "Вас приглашают присоединиться к",
+    "joinOrganization": "Присоединиться к организации",
+    "loginToJoin": "Войти для присоединения",
+    "loginRequiredForInvitation": "Чтобы принять приглашение, необходимо войти в систему.",
+    "organizationJoined": "Вы присоединились к организации"
   },
   "roles": {
     "SuperAdmin": "Администратор системы",
@@ -627,7 +657,8 @@
     "gridView": "Вид сеткой",
     "tableView": "Вид таблицей",
     "runDeleted": "Попытка раскроя удалена",
-    "confirmDeleteRun": "Вы уверены, что хотите удалить эту попытку раскроя? Все связанные артефакты также будут удалены."
+    "confirmDeleteRun": "Вы уверены, что хотите удалить эту попытку раскроя? Все связанные артефакты также будут удалены.",
+    "static": "Статический"
   },
   "queues": {
     "entries": "Записи",
@@ -656,7 +687,10 @@
     "markCompleteFailed": "Не удалось отметить очередь как завершённую",
     "sheetUploaded": "Свой лист успешно загружен",
     "noPolygonsInSheet": "В DXF файле листа не найдено подходящих полигонов",
-    "sheetParseError": "Ошибка при чтении DXF файла листа"
+    "sheetParseError": "Ошибка при чтении DXF файла листа",
+    "switchingToWarehouse": "Переключение на склад",
+    "selectWarehouseHint": "Выберите склад и источники инвентаря, соответствующие размерам этого раскроя.",
+    "requisitionRedirect": "Создайте новую заявку с этими параметрами."
   },
   "artifacts": {
     "noQueues": "В этом проекте пока нет очередей.",

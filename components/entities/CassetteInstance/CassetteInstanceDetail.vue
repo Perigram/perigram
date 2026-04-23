@@ -2,10 +2,12 @@
     <div class="flex flex-col gap-8">
         <TraceChain :entity="instance" />
 
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div class="flex items-center gap-4">
+        <div class="flex flex-col md:flex-row justify-between items-start gap-6 min-w-0">
+            <div class="flex flex-wrap items-start gap-4 min-w-0">
                 <h1 class="m-0">{{ $t('cassetteInstance.lifecycleTitle') }}</h1>
-                <EntityStatus :entity="instance" entity-type="cassette_instance" :actions="statusActions" />
+                <div class="min-w-0">
+                    <EntityStatus :entity="instance" entity-type="cassette_instance" :actions="statusActions" />
+                </div>
             </div>
             <div class="flex gap-2">
                 <Button :label="$t('cassetteInstance.printLabel')" icon="pi pi-print" text />
@@ -20,21 +22,27 @@
                         <i class="pi pi-history"></i>
                         <h2 class="m-0 text-base">{{ $t('cassetteInstance.tracking') }}</h2>
                     </div>
-                    <StandardCard>
-                        <StatusHistory :entity="instance" entity-type="cassette_instance" />
-                    </StandardCard>
+                    <Card>
+                        <template #content>
+                            <StatusHistory :entity="instance" entity-type="cassette_instance" />
+                        </template>
+                    </Card>
                 </div>
 
                 <!-- References -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <StandardCard>
+                    <Card>
                         <template #title><small>{{ $t('cassetteInstance.parentDesign') }}</small></template>
-                        <TraceLink type="cassetteDesign" :id="instance.cassetteDesignId" />
-                    </StandardCard>
-                    <StandardCard>
+                        <template #content>
+                            <TraceLink type="cassetteDesign" :id="instance.cassetteDesignId" />
+                        </template>
+                    </Card>
+                    <Card>
                         <template #title><small>{{ $t('cassetteInstance.materialSource') }}</small></template>
-                        <TraceLink type="sheet" :id="instance.sheetId" />
-                    </StandardCard>
+                        <template #content>
+                            <TraceLink type="sheet" :id="instance.sheetId" />
+                        </template>
+                    </Card>
                 </div>
             </div>
 
@@ -65,7 +73,7 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Divider from 'primevue/divider';

@@ -31,12 +31,13 @@
                         :options="organizations" 
                         optionLabel="name" 
                         optionValue="_id" 
-                        placeholder="Select organization"
+                        :placeholder="$t('auth.organization')"
                         class="w-full"
                         :loading="loadingOrgs"
                     />
                     <small>
-                        Or <a href="#" @click.prevent="showCreateOrg = true">create new organization</a>
+                        {{ $t('auth.or') }}
+                        <a href="#" @click.prevent="showCreateOrg = true">{{ $t('auth.createOrg') }}</a>
                     </small>
                 </div>
 
@@ -53,31 +54,34 @@
         <Dialog v-model:visible="showCreateOrg" :header="$t('auth.createOrg')" modal>
             <div class="flex flex-col gap-4 py-4">
                 <div class="flex flex-col gap-1">
-                    <label>Organization Name</label>
+                    <label>{{ $t('common.name') }}</label>
                     <InputText v-model="newOrg.name" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label>Type</label>
+                    <label>{{ $t('common.type') }}</label>
                     <Select 
                         v-model="newOrg.type" 
-                        :options="['Manufacturer', 'Contractor', 'Customer']" 
+                        :options="orgTypeOptions"
+                        optionLabel="label"
+                        optionValue="value"
                         class="w-full" 
                     />
                 </div>
             </div>
             <template #footer>
-                <Button label="Cancel" text severity="secondary" @click="showCreateOrg = false" />
-                <Button label="Create" @click="createOrganization" :loading="creatingOrg" />
+                <Button :label="$t('common.cancel')" text severity="secondary" @click="showCreateOrg = false" />
+                <Button :label="$t('common.create')" @click="createOrganization" :loading="creatingOrg" />
             </template>
         </Dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from 'primevue/usetoast';
+import { useI18n } from 'vue-i18n';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
@@ -91,6 +95,7 @@ definePageMeta({
 const router = useRouter();
 const authStore = useAuthStore();
 const toast = useToast();
+const { t } = useI18n();
 
 const form = ref({
     name: '',
@@ -105,6 +110,11 @@ const loadingOrgs = ref(false);
 const showCreateOrg = ref(false);
 const creatingOrg = ref(false);
 const newOrg = ref({ name: '', type: 'Contractor' });
+const orgTypeOptions = computed(() => ([
+    { label: t('auth.orgTypes.manufacturer'), value: 'Manufacturer' },
+    { label: t('auth.orgTypes.contractor'), value: 'Contractor' },
+    { label: t('auth.orgTypes.customer'), value: 'Customer' }
+]));
 
 onMounted(async () => {
     loadingOrgs.value = true;
@@ -132,9 +142,9 @@ const createOrganization = async () => {
         organizations.value.push(org);
         form.value.organizationId = org._id;
         showCreateOrg.value = false;
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Organization created', life: 3000 });
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.organizationCreated'), life: 3000 });
     } catch (e) {
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create organization', life: 3000 });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: t('auth.organizationCreateFailed'), life: 3000 });
     } finally {
         creatingOrg.value = false;
     }
@@ -144,10 +154,10 @@ const handleRegister = async () => {
     loading.value = true;
     try {
         await authStore.register(form.value);
-        toast.add({ severity: 'success', summary: 'Welcome!', detail: 'Account created successfully', life: 3000 });
+        toast.add({ severity: 'success', summary: t('auth.welcome'), detail: t('auth.accountCreatedSuccessfully'), life: 3000 });
         router.push('/auth/login');
     } catch (error) {
-        toast.add({ severity: 'error', summary: 'Error', detail: error.message || 'Registration failed', life: 3000 });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error.message || t('auth.registrationFailed'), life: 3000 });
     } finally {
         loading.value = false;
     }

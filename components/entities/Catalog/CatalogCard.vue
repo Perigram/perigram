@@ -5,7 +5,7 @@
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useAuthStore } from '~/stores/auth';
 
@@ -27,7 +27,7 @@ const handleCardClick = () => emit('view', props.catalog);
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <StandardCard>
+      <EntityCard :entity="catalog" entity-type="catalog" variant="compact" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex items-center gap-2">
                 <i class="pi pi-book"></i>
@@ -37,11 +37,11 @@ const handleCardClick = () => emit('view', props.catalog);
         <template #subtitle>
             <Tag :value="catalog.material" severity="secondary" size="small" />
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <StandardCard>
+      <EntityCard :entity="catalog" entity-type="catalog" variant="card" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <IdentityBlock :entity="catalog" />
@@ -59,7 +59,7 @@ const handleCardClick = () => emit('view', props.catalog);
                 <Button v-if="authStore.can('catalogs', 'delete')" icon="pi pi-trash" text rounded size="small" severity="danger" aria-label="Delete" @click="$emit('delete', catalog)" />
             </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
   </div>
 </template>

@@ -4,7 +4,7 @@
         <Panel>
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div class="flex flex-col gap-1 flex-1 min-w-0">
-                    <div class="flex items-center gap-3">
+                    <div class="flex flex-wrap items-start gap-3 min-w-0">
                         <Select
                             v-if="queues?.length > 0"
                             :modelValue="queue._id"
@@ -19,22 +19,11 @@
                             </template>
                         </Select>
                         <h2 v-else class="m-0">{{ queueName }}</h2>
-                        <EntityStatus :entity="queue" entity-type="queue" variant="inline" />
+                        <div class="min-w-0">
+                            <EntityStatus :entity="queue" entity-type="queue" variant="inline" :actions="queueStatusActions" />
+                        </div>
                     </div>
                     <TraceChain :entity="queue" />
-                </div>
-                
-                <div class="flex gap-2">
-                    <Button 
-                        v-if="queueState === 'READY' && hasChosenRun && authStore.can('queues', 'edit')"
-                        :label="$t('queue.markCut')" icon="pi pi-scissors" severity="success" size="small"
-                        @click="markCutHandler"
-                    />
-                    <Button 
-                        v-if="queueState !== 'DRAFT' && authStore.can('queues', 'edit')"
-                        :label="$t('queue.resetToDraft')" icon="pi pi-refresh" severity="warning" size="small" text
-                        @click="resetToDraft"
-                    />
                 </div>
             </div>
         </Panel>
@@ -68,7 +57,8 @@
                 <AccordionHeader>{{ $t('projectData.sheets') }}</AccordionHeader>
                 <AccordionContent>
                     <div class="flex flex-col gap-6" v-if="queueState === 'DRAFT'">
-                        <StandardCard>
+                        <Card>
+                            <template #content>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div class="flex flex-col gap-4">
                                     <div class="flex flex-col gap-1">
@@ -131,7 +121,8 @@
                                     </div>
                                 </div>
                             </div>
-                        </StandardCard>
+                            </template>
+                        </Card>
 
                         <!-- Run Action -->
                         <div class="flex flex-col gap-4">
@@ -172,7 +163,7 @@
 
                         <div v-if="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                             <template v-for="entry in entries" :key="entry?._id || Math.random()">
-                                <StandardCard v-if="entry" class="card-interactive">
+                                <Card v-if="entry" class="card-interactive">
                                     <template #title>
                                         <div class="flex justify-between items-center gap-2">
                                             <span class="truncate">{{ getCassetteName(entry.cassetteTemplateId) }}</span>
@@ -182,32 +173,34 @@
                                                     size="small" class="w-16"
                                                     @update:model-value="saveQueue"
                                                 />
-                                                <small>pcs</small>
+                                                <small>{{ $t('common.units') }}</small>
                                                 <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="confirmDelete(entry)" :disabled="queueState !== 'DRAFT'" />
                                             </div>
                                         </div>
                                     </template>
-                                    <CassetteThumbnail 
-                                        :cassette-id="entry.cassetteTemplateId" 
-                                        :cassette="getCassetteData(entry.cassetteTemplateId)"
-                                        :dimensions="entry.dimensions"
-                                    />
-                                    <Divider />
-                                    <!-- Parameters -->
-                                    <div v-if="entry.type === 'PARAMETRIC'" class="grid grid-cols-2 gap-4">
-                                        <div v-for="param in getEntryParameters(entry)" :key="param" class="flex flex-col">
-                                            <small>{{ param }}</small>
-                                            <InputNumber 
-                                                v-model="entry.dimensions[param]" :disabled="queueState !== 'DRAFT'"
-                                                size="small" :min="0"
-                                                @update:model-value="saveQueue"
-                                            />
+                                    <template #content>
+                                        <CassetteThumbnail 
+                                            :cassette-id="entry.cassetteTemplateId" 
+                                            :cassette="getCassetteData(entry.cassetteTemplateId)"
+                                            :dimensions="entry.dimensions"
+                                        />
+                                        <Divider />
+                                        <!-- Parameters -->
+                                        <div v-if="entry.type === 'PARAMETRIC'" class="grid grid-cols-2 gap-4">
+                                            <div v-for="param in getEntryParameters(entry)" :key="param" class="flex flex-col">
+                                                <small>{{ param }}</small>
+                                                <InputNumber 
+                                                    v-model="entry.dimensions[param]" :disabled="queueState !== 'DRAFT'"
+                                                    size="small" :min="0"
+                                                    @update:model-value="saveQueue"
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div v-else class="flex justify-center italic opacity-20">
-                                        <span>Static</span>
-                                    </div>
-                                </StandardCard>
+                                        <div v-else class="flex justify-center italic opacity-20">
+                                            <span>{{ $t('queue.static') }}</span>
+                                        </div>
+                                    </template>
+                                </Card>
                             </template>
                         </div>
 
@@ -312,11 +305,11 @@ import Select from 'primevue/select';
 import SelectButton from 'primevue/selectbutton';
 import MultiSelect from 'primevue/multiselect';
 import Message from 'primevue/message';
+import Card from 'primevue/card';
 import Divider from 'primevue/divider';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Checkbox from 'primevue/checkbox';
-import StandardCard from '~/components/shared/StandardCard.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FileUpload from 'primevue/fileupload';
 import ConfirmDialog from 'primevue/confirmdialog';
@@ -433,6 +426,28 @@ const nestingOptions = ref({    materialMode: props.queue.nestingParams?.materia
 
 const queueRuns = computed(() => runs.value[props.queue._id] || []);
 const hasChosenRun = computed(() => queueRuns.value.some(r => r.status?.state === 'CHOSEN'));
+const queueStatusActions = computed(() => {
+    if (!authStore.can('queues', 'edit')) return [];
+
+    const actions = [];
+    if (queueState.value === 'READY' && hasChosenRun.value) {
+        actions.push({
+            label: t('queue.markCut'),
+            icon: 'pi pi-scissors',
+            severity: 'success',
+            command: () => markCutHandler()
+        });
+    }
+    if (queueState.value !== 'DRAFT') {
+        actions.push({
+            label: t('queue.resetToDraft'),
+            icon: 'pi pi-refresh',
+            severity: 'warning',
+            command: () => resetToDraft()
+        });
+    }
+    return actions;
+});
 
 const warehouseShortage = computed(() => {
     if (nestingOptions.value.materialMode !== 'WAREHOUSE') return null;
@@ -603,12 +618,12 @@ const runNesting = async () => {
 
 const markCutHandler = async () => {
     confirm.require({
-        message: 'This will update physical stock and create cassette instances. Continue?',
-        header: 'Mark as CUT',
+        message: t('queue.confirmMarkCut'),
+        header: t('queue.markCut'),
         icon: 'pi pi-scissors',
         accept: async () => {
             try { await queuesStore.markCut(props.queue._id); emit('updated'); }
-            catch (e) { toast.add({ severity: 'error', summary: 'Error', detail: e.message }); }
+            catch (e) { toast.add({ severity: 'error', summary: t('common.error'), detail: e.message }); }
         }
     });
 };
@@ -632,16 +647,16 @@ const chooseRunHandler = async (id) => {
 
 const deleteRunHandler = async (id) => {
     confirm.require({
-        message: 'Delete this nesting run?',
-        header: 'Confirmation',
+        message: t('queue.confirmDeleteRun'),
+        header: t('common.confirmation'),
         icon: 'pi pi-exclamation-triangle',
         accept: async () => {
             try { 
                 await queuesStore.deleteRun(props.queue._id, id); 
-                toast.add({ severity: 'success', summary: 'Deleted', detail: 'Nesting run removed', life: 2000 });
+                toast.add({ severity: 'success', summary: t('common.success'), detail: t('queue.runDeleted'), life: 2000 });
                 emit('updated'); 
             }
-            catch (e) { toast.add({ severity: 'error', summary: 'Error', detail: e.message }); }
+            catch (e) { toast.add({ severity: 'error', summary: t('common.error'), detail: e.message }); }
         }
     });
 };
@@ -654,8 +669,8 @@ const handleConvertToPhysical = async (runId) => {
     nestingOptions.value.virtualLength = run.params?.height || 1500;
     toast.add({ 
         severity: 'info', 
-        summary: 'Switching to Warehouse', 
-        detail: 'Please select warehouse and inventory sources to match this run dimensions.',
+        summary: t('queues.switchingToWarehouse'),
+        detail: t('queues.selectWarehouseHint'),
         life: 5000 
     });
 };
@@ -665,14 +680,14 @@ const handleCreateRequisition = async (runId) => {
     if (!run) return;
     confirm.require({
         message: `Create a requisition for ${run.layoutCount} sheets (${run.params?.width}x${run.params?.height}) based on this nesting?`,
-        header: 'Material Requisition',
+        header: t('requisition.title'),
         icon: 'pi pi-shopping-cart',
         accept: async () => {
             try {
                 navigateTo('/materials');
-                toast.add({ severity: 'success', summary: 'Redirecting', detail: 'Please create a new requisition with these specs.' });
+                toast.add({ severity: 'success', summary: t('common.success'), detail: t('queues.requisitionRedirect') });
             } catch (e) {
-                toast.add({ severity: 'error', summary: 'Error', detail: e.message });
+                toast.add({ severity: 'error', summary: t('common.error'), detail: e.message });
             }
         }
     });
@@ -685,8 +700,8 @@ const onArtifactClick = (a) => {
 
 const confirmDelete = (entry) => {
     confirm.require({
-        message: 'Remove this item from the queue?',
-        header: 'Confirmation',
+        message: t('queue.confirmDeleteEntry'),
+        header: t('common.confirmation'),
         icon: 'pi pi-exclamation-triangle',
         accept: async () => {
             entries.value = entries.value.filter(e => e._id !== entry._id);

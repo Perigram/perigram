@@ -2,14 +2,13 @@
     <div class="flex flex-col gap-8">
         <TraceChain :entity="queue" />
 
-        <div class="flex justify-between items-center">
-            <div class="flex items-center gap-6">
+        <div class="flex justify-between items-start gap-4 min-w-0">
+            <div class="flex flex-wrap items-start gap-4 min-w-0">
                 <IdentityBlock :entity="queue" variant="header" />
-                <EntityStatus :entity="queue" entity-type="queue" variant="inline" />
+                <EntityStatus :entity="queue" entity-type="queue" variant="inline" :actions="queueStatusActions" />
             </div>
             <div class="flex gap-3">
                 <Button :label="$t('queue.nestingConfig')" icon="pi pi-sliders-h" severity="secondary" outlined />
-                <Button v-if="queue.status?.state === 'DRAFT'" :label="$t('queues.runNesting')" icon="pi pi-play" severity="success" @click="$emit('run-nesting', queue._id)" />
             </div>
         </div>
 
@@ -76,6 +75,8 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
@@ -91,5 +92,16 @@ const props = defineProps({
     queue: { type: Object, required: true }
 });
 
-defineEmits(['run-nesting']);
+const emit = defineEmits(['run-nesting']);
+const { t } = useI18n();
+
+const queueStatusActions = computed(() => {
+    if (props.queue.status?.state !== 'DRAFT') return [];
+    return [{
+        label: t('queues.runNesting'),
+        icon: 'pi pi-play',
+        severity: 'success',
+        command: () => emit('run-nesting', props.queue._id)
+    }];
+});
 </script>

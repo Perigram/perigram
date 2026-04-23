@@ -8,7 +8,7 @@
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <StandardCard>
+      <EntityCard :entity="standard" entity-type="layer_standard" variant="compact" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
@@ -18,11 +18,11 @@
                 <Badge v-if="standard.category" :value="standard.category" severity="secondary" size="small" />
             </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <StandardCard>
+      <EntityCard :entity="standard" entity-type="layer_standard" variant="card" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <IdentityBlock :entity="standard" />
@@ -55,7 +55,7 @@
                 />
             </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
   </div>
 </template>
@@ -70,7 +70,7 @@ import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useAuthStore } from '~/stores/auth';
 import { usePenTemplatesStore } from '~/stores/penTemplates';

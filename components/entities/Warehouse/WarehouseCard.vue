@@ -5,23 +5,25 @@
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <StandardCard class="card-interactive">
+      <EntityCard :entity="warehouse" entity-type="warehouse" variant="compact" class="card-interactive" :show-trace="false" :show-status="false">
         <template #title>
-            <div class="flex items-center justify-between gap-4">
+            <div class="flex items-start justify-between gap-3 min-w-0">
                 <IdentityBlock :entity="warehouse" variant="compact" />
-                <EntityStatus :entity="warehouse" entity-type="warehouse" variant="inline" />
+                <div class="shrink-0">
+                    <EntityStatus :entity="warehouse" entity-type="warehouse" variant="inline" />
+                </div>
             </div>
         </template>
         <template #subtitle>
             <small>{{ warehouse.type }}</small>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <StandardCard class="card-interactive">
+      <EntityCard :entity="warehouse" entity-type="warehouse" variant="card" class="card-interactive" :show-trace="false" :show-status="false">
         <template #title>
-            <div class="flex justify-between items-center gap-4">
+            <div class="flex justify-between items-start gap-3 min-w-0">
                 <IdentityBlock :entity="warehouse" />
                 <Tag v-if="warehouse.type" :value="warehouse.type" severity="secondary" size="small" />
             </div>
@@ -31,7 +33,7 @@
             <DataBlock :entity="warehouse" :fields="FIELDS" />
             <EntityStatus :entity="warehouse" entity-type="warehouse" variant="inline" />
         </div>
-      </StandardCard>
+      </EntityCard>
     </template>
   </div>
 </template>
@@ -42,7 +44,7 @@
  */
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';

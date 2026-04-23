@@ -13,8 +13,10 @@ dotenv.config();
 
 import { service } from '../features/layer-standards/index.js';
 import { connectDB } from '../db/mongo.js';
+import { ObjectId } from 'mongodb';
 
 // Layer standards data - parametric templates
+// defaultPen: system pen name to assign by default (matched at seed time)
 const LAYER_STANDARDS = [
   {
     code: "1_1_FACE",
@@ -24,7 +26,7 @@ const LAYER_STANDARDS = [
       en: { nameTemplate: "Cassette_Face" }
     },
     parameters: [],
-    defaultPenId: null
+    defaultPen: "Black Solid 0.35mm"
   },
   {
     code: "1_2_UNFOLD",
@@ -34,7 +36,7 @@ const LAYER_STANDARDS = [
       en: { nameTemplate: "Cassette_Unfold" }
     },
     parameters: [],
-    defaultPenId: null
+    defaultPen: "Black Solid 0.35mm"
   },
   {
     code: "1_3_UNFOLD_BOUNDARY",
@@ -44,7 +46,7 @@ const LAYER_STANDARDS = [
       en: { nameTemplate: "Unfold_Boundary" }
     },
     parameters: [],
-    defaultPenId: null
+    defaultPen: "Black Solid 0.35mm"
   },
   {
     code: "2_1_CUT",
@@ -54,7 +56,7 @@ const LAYER_STANDARDS = [
       en: { nameTemplate: "Cut_{diameter}" }
     },
     parameters: ["diameter"],
-    defaultPenId: null
+    defaultPen: "Red Solid 0.5mm"
   },
   {
     code: "2_2_HOLE",
@@ -64,7 +66,7 @@ const LAYER_STANDARDS = [
       en: { nameTemplate: "Hole_{diameter}" }
     },
     parameters: ["diameter"],
-    defaultPenId: null
+    defaultPen: "Red Solid 0.5mm"
   },
   {
     code: "3_1_BEND",
@@ -74,7 +76,7 @@ const LAYER_STANDARDS = [
       en: { nameTemplate: "Mill_{angle}" }
     },
     parameters: ["angle"],
-    defaultPenId: null
+    defaultPen: "Blue Dashed 0.25mm"
   },
   {
     code: "3_2_ENGRAVE",
@@ -84,7 +86,7 @@ const LAYER_STANDARDS = [
       en: { nameTemplate: "Engraving" }
     },
     parameters: [],
-    defaultPenId: null
+    defaultPen: "Green Solid 0.7mm"
   }
 ];
 
@@ -92,9 +94,12 @@ async function main() {
   console.log('🌱 Seeding layer standards...\n');
   
   try {
-    // Connect to database
-    await connectDB();
+    const db = await connectDB();
     
+    // Resolve system pen IDs by name
+    const systemPens = await db.collection('pen_templates').find({ 'lineage.userId': null }).toArray();
+    const penByName = Object.fromEntries(systemPens.map(p => [p.identity?.name, p._id]));
+
     // Check if standards already exist
     const existingCount = await service.getCount();
     
@@ -105,10 +110,18 @@ async function main() {
       console.log('   db.layer_standards.drop();\n');
       process.exit(1);
     }
+
+    // Resolve defaultPenId from pen name
+    const resolved = LAYER_STANDARDS.map(s => {
+      const { defaultPen, ...rest } = s;
+      const penId = defaultPen ? (penByName[defaultPen] || null) : null;
+      if (defaultPen && !penId) console.warn(`  ⚠️  Pen not found: "${defaultPen}" for ${s.code}`);
+      return { ...rest, defaultPenId: penId };
+    });
     
     // Seed standards
-    console.log(`📝 Creating ${LAYER_STANDARDS.length} layer standards...`);
-    const ids = await service.seed(LAYER_STANDARDS);
+    console.log(`📝 Creating ${resolved.length} layer standards...`);
+    const ids = await service.seed(resolved);
     
     console.log(`\n✅ Successfully created ${Object.keys(ids).length} layer standards:`);
     
@@ -116,7 +129,8 @@ async function main() {
     const standards = await service.getAll();
     for (const std of standards) {
       const params = std.parameters?.length > 0 ? ` (params: ${std.parameters.join(', ')})` : '';
-      console.log(`   - ${std.code}: ${std.i18n.en.nameTemplate}${params} (${std.category})`);
+      const pen = std.defaultPenId ? systemPens.find(p => p._id.equals(std.defaultPenId))?.identity?.name || std.defaultPenId : 'none';
+      console.log(`   - ${std.code}: ${std.i18n?.en?.nameTemplate}${params} (${std.category}) → ${pen}`);
     }
     
     console.log('\n✨ Seeding complete!');

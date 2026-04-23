@@ -5,28 +5,32 @@
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <StandardCard>
+      <EntityCard :entity="template" entity-type="cassette_template" variant="compact" :show-trace="false" :show-status="false">
         <template #title>
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-2">
+            <div class="flex items-start justify-between gap-3 min-w-0">
+                <div class="flex items-center gap-2 min-w-0">
                     <i class="pi pi-clone"></i>
                     <IdentityBlock :entity="template" variant="compact" />
                 </div>
-                <EntityStatus :entity="template" entity-type="cassette_template" variant="inline" />
+                <div class="shrink-0">
+                    <EntityStatus :entity="template" entity-type="cassette_template" variant="inline" />
+                </div>
             </div>
         </template>
         <template #subtitle>
             <small>{{ template.definition?.type }}</small>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <StandardCard>
+      <EntityCard :entity="template" entity-type="cassette_template" variant="card" :show-trace="false" :show-status="false">
         <template #title>
-            <div class="flex justify-between items-center gap-4">
+            <div class="flex justify-between items-start gap-3 min-w-0">
                 <IdentityBlock :entity="template" />
-                <EntityStatus :entity="template" entity-type="cassette_template" variant="inline" />
+                <div class="shrink-0">
+                    <EntityStatus :entity="template" entity-type="cassette_template" variant="inline" />
+                </div>
             </div>
         </template>
         <template #subtitle>
@@ -43,7 +47,7 @@
                 <Button icon="pi pi-download" text size="small" @click="emit('download', template)" />
             </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
   </div>
 </template>
@@ -56,7 +60,7 @@ import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 

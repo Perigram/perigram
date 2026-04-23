@@ -5,22 +5,26 @@
     </template>
 
     <template v-else-if="variant === 'compact'">
-      <StandardCard>
+      <EntityCard :entity="instance" entity-type="cassette_instance" variant="compact" :show-trace="false" :show-status="false">
         <template #title>
-            <div class="flex items-center justify-between gap-4">
+            <div class="flex items-start justify-between gap-3 min-w-0">
                 <IdentityBlock :entity="instance" variant="compact" />
-                <EntityStatus :entity="instance" entity-type="cassette_instance" variant="inline" />
+                <div class="shrink-0">
+                    <EntityStatus :entity="instance" entity-type="cassette_instance" variant="inline" />
+                </div>
             </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
-      <StandardCard>
+      <EntityCard :entity="instance" entity-type="cassette_instance" variant="card" :show-trace="false" :show-status="false">
         <template #title>
-            <div class="flex justify-between items-center gap-4">
+            <div class="flex justify-between items-start gap-3 min-w-0">
                 <IdentityBlock :entity="instance" />
-                <EntityStatus :entity="instance" entity-type="cassette_instance" variant="inline" />
+                <div class="shrink-0">
+                    <EntityStatus :entity="instance" entity-type="cassette_instance" variant="inline" />
+                </div>
             </div>
         </template>
         <Divider />
@@ -30,7 +34,7 @@
                 <TraceLink type="cassetteDesign" :id="instance.lineage.designId" />
             </div>
         </div>
-      </StandardCard>
+      </EntityCard>
     </template>
   </div>
 </template>
@@ -43,7 +47,7 @@ import Divider from 'primevue/divider';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 
 const props = defineProps({
   instance: { type: Object, required: true },

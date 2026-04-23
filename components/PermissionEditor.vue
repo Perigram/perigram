@@ -6,7 +6,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <StandardCard
+            <Card
                 v-for="feature in entities"
                 :key="feature.key"
                 :class="localPermissions[feature.key] === 'none' ? 'opacity-50' : ''"
@@ -22,18 +22,20 @@
                         </div>
                     </div>
                 </template>
-                <div class="flex flex-col gap-3">
-                    <SelectButton
-                        v-model="localPermissions[feature.key]"
-                        :options="PERMISSION_LEVELS"
-                        option-label="label"
-                        option-value="value"
-                    />
-                    <p class="italic opacity-60 m-0">
-                        {{ getDescription(feature.key, localPermissions[feature.key]) }}
-                    </p>
-                </div>
-            </StandardCard>
+                <template #content>
+                    <div class="flex flex-col gap-3">
+                        <SelectButton
+                            v-model="localPermissions[feature.key]"
+                            :options="PERMISSION_LEVELS"
+                            option-label="label"
+                            option-value="value"
+                        />
+                        <p class="italic opacity-60 m-0">
+                            {{ getDescription(feature.key, localPermissions[feature.key]) }}
+                        </p>
+                    </div>
+                </template>
+            </Card>
         </div>
 
         <div class="pt-6 border-t flex justify-end gap-3">
@@ -47,7 +49,7 @@
 import { ref, watch } from 'vue';
 import SelectButton from 'primevue/selectbutton';
 import Button from 'primevue/button';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import Card from 'primevue/card';
 
 const props = defineProps({
     permissions: { type: Object, default: () => ({}) }

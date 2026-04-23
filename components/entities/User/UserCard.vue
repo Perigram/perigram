@@ -10,20 +10,22 @@
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <StandardCard @click="handleCardClick" class="cursor-pointer">
+      <EntityCard :entity="user" entity-type="user" variant="compact" @click="handleCardClick" class="cursor-pointer" :show-trace="false" :show-status="false">
         <template #title>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3 min-w-0">
                 <Avatar :image="user.identity?.avatarUrl" :label="!user.identity?.avatarUrl ? user.identity?.name?.charAt(0) : null" shape="circle" />
                 <IdentityBlock :entity="user" variant="compact" />
-                <EntityStatus :entity="user" entity-type="user" variant="inline" />
+                <div class="shrink-0">
+                    <EntityStatus :entity="user" entity-type="user" variant="inline" />
+                </div>
             </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
 
     <!-- Card -->
     <template v-else-if="variant === 'card'">
-      <StandardCard @click="handleCardClick" class="cursor-pointer">
+      <EntityCard :entity="user" entity-type="user" variant="card" @click="handleCardClick" class="cursor-pointer" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex flex-col items-center gap-4 text-center">
                 <Avatar :image="user.identity?.avatarUrl" :label="!user.identity?.avatarUrl ? user.identity?.name?.charAt(0) : null" shape="circle" size="xlarge" />
@@ -41,7 +43,7 @@
                 <Button v-if="authStore.can('users', 'delete')" icon="pi pi-trash" text size="small" severity="danger" @click="$emit('delete', user)" />
             </div>
         </template>
-      </StandardCard>
+      </EntityCard>
     </template>
   </div>
 </template>
@@ -54,7 +56,7 @@ import Divider from 'primevue/divider';
 import Avatar from 'primevue/avatar';
 import Chip from 'primevue/chip';
 import Button from 'primevue/button';
-import StandardCard from '~/components/shared/StandardCard.vue';
+import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import { useAuthStore } from '~/stores/auth';

@@ -50,7 +50,7 @@
         </template>
         <template #subtitle>
             <div class="flex items-center justify-between gap-2">
-                <EntityStatus :entity="cassette" variant="inline" />
+                <EntityStatus :entity="cassette" entity-type="cassette" variant="inline" />
                 <small>{{ formatDate(cassette.status?.timestamp || cassette.origin?.timestamp) }}</small>
             </div>
         </template>
