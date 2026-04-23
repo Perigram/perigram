@@ -17,14 +17,14 @@ All entity-related components MUST use these patterns:
 
 | Concern | Pattern |
 |---|---|
-| Identity display (name, slug, serial) | `<IdentityBlock :entity="..." variant="..." />` |
-| Status display + transitions | `<EntityStatus :entity="..." entity-type="..." />` |
+| Identity display (default: name/slug) | `<IdentityBlock :entity="..." variant="..." />` |
+| Status display + transitions/actions | `<EntityStatus :entity="..." entity-type="..." :actions="..." />` |
 | Read-only status display | `<StatusBadge :entity="..." />` |
 | Structured key/value data (specs, parameters, tool dims) | `<DataBlock :entity="..." :fields="ENTITY_FIELDS" />` |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StatusHistory :entity="..." entity-type="..." />` |
 | CRUD + status operations | `useEntity(type, id)` |
-| Card container | `<StandardCard>` (NOT raw PrimeVue `Card`) |
+| Card container | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Card>` |
 | Dialog container | `<StandardDialog>` |
 
 ## Composables Rule

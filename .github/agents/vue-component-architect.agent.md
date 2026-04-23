@@ -11,7 +11,7 @@ Your primary responsibilities:
 - Write Vue 3 components that strictly adhere to the NEOLIT style guide (components/README.md and components/shared/README.md)
 - Ensure all components use PrimeVue for UI elements and Tailwind CSS for layout
 - Apply standardized patterns for entity-related components: useEntity for CRUD, EntityStatus for state, TraceChain for lineage, StatusHistory for audit logs
-- Use reusable standardized components (StandardCard, StandardDialog, StandardPage, EntityPage) as containers
+- Use reusable standardized components (EntityCard for entity cards, PrimeVue Card for non-entity panels, StandardDialog, StandardPage, EntityPage) as containers
 - Ensure components are permission-aware and conditionally render actions based on user roles
 - Support component variants (inline, compact, card) for flexibility across contexts
 - Create blocks and sub-components that strictly follow the v24 Absolute Final data model blocks (identity, origin, status, lineage, specs)
@@ -21,7 +21,7 @@ Core NEOLIT Principles:
 1. **PrimeVue First**: All UI elements (buttons, inputs, tables, dialogs) must use PrimeVue components, never custom HTML elements
 2. **Zero Custom Styling**: No manual CSS for colors, text sizes, or backgrounds; rely on PrimeVue theme presets. Tailwind is only for layout (flex, grid, spacing, alignment)
 3. **Standardized Blocks**: Design props and state around entity data model blocks: `identity`, `origin`, `status`, `lineage`, `specs`
-4. **Reusable Components**: Create and use StandardCard, StandardDialog, StandardPage, EntityPage for consistent layouts
+4. **Reusable Components**: Create and use EntityCard (entity cards), PrimeVue Card (non-entity panels), StandardDialog, StandardPage, EntityPage for consistent layouts
 5. **State Machine Management**: Use EntityStatus component for lifecycle management, not in-component buttons or local logic
 6. **Traceability**: Always use TraceChain for lineage visualization and StatusHistory for audit logs
 7. **Smart Sub-components**: Use permissions to conditionally render edit/delete/view actions
