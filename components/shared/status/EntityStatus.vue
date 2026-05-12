@@ -8,6 +8,7 @@ import { ref, computed, toRef } from 'vue';
 import Popover from 'primevue/popover';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
+import { useI18n } from 'vue-i18n';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import { useStatus } from '~/composables/useBlocks';
 import { useStatusController } from '~/composables/useStatusController';
@@ -23,6 +24,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['transitioned']);
+const { t } = useI18n();
 const { state, timestamp, metadata } = useStatus(toRef(props, 'entity'));
 const { transition, isTransitioning } = useStatusController();
 const op = ref();
@@ -54,7 +56,7 @@ const customActions = computed(() => {
 // TODO: In a real implementation, we would fetch available transitions for current state from backend
 const defaultTransitions = computed(() => {
     // Basic defaults if nothing else is provided
-    if (state.value === 'DRAFT') return [{ label: 'Ready', to: 'READY', severity: 'success', icon: 'pi pi-check' }];
+    if (state.value === 'DRAFT') return [{ label: t('status.ready'), to: 'READY', severity: 'success', icon: 'pi pi-check' }];
     return [];
 });
 
@@ -115,11 +117,11 @@ const runAction = async (action) => {
 
               <div v-if="timestamp || metadata?.note" class="flex flex-col gap-3">
                   <div v-if="timestamp" class="flex flex-col">
-                      <small>Last Updated</small>
+                      <small>{{ $t('common.lastUpdated') }}</small>
                       <span>{{ timestamp.toLocaleString() }}</span>
                   </div>
                   <div v-if="metadata?.note" class="flex flex-col">
-                      <small>Note</small>
+                      <small>{{ $t('common.note') }}</small>
                       <span class="italic">"{{ metadata.note }}"</span>
                   </div>
               </div>

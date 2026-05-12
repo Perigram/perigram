@@ -40,6 +40,12 @@ Exception: `useStatus` may be used in an entity card **only** for reading `state
 - For standard CRUD and status operations, use `useEntity` — no direct `$fetch` calls.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`.
 
+## Localization
+
+- User-visible labels, headings, dialog headers, toast summaries/details, placeholders, and accessible labels must use `$t(...)` in templates or `t(...)` from `useI18n()` in script.
+- Keep `i18n/locales/en.json` and `i18n/locales/ru.json` structurally aligned whenever adding keys.
+- Brand names such as `CutKit` remain literal and are not localized.
+
 ## Sizing
 
 PrimeVue Button, Tag, Badge do not inherit font-size from containers. Always add `size="small"` to these elements inside compact and inline variant contexts.

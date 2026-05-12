@@ -2,6 +2,7 @@
   "common": {
     "loading": "Loading...",
     "error": "Error",
+    "info": "Info",
     "success": "Success",
     "cancel": "Cancel",
     "save": "Save",
@@ -19,11 +20,23 @@
     "confirmation": "Confirmation",
     "yes": "Yes",
     "no": "No",
+    "approve": "Approve",
+    "reject": "Reject",
+    "revoke": "Revoke",
+    "copied": "Copied",
+    "active": "Active",
+    "pending": "Pending",
     "back": "Back",
     "next": "Next",
     "search": "Search",
     "filter": "Filter",
     "details": "Details",
+    "name": "Name",
+    "description": "Description",
+    "area": "Area",
+    "terms": "Terms",
+    "metadata": "Metadata",
+    "project": "Project",
     "optional": "Optional",
     "quantity": "Quantity",
     "subtotal": "Subtotal",
@@ -48,7 +61,14 @@
     "markUsed": "Mark Used",
     "type": "Type",
     "warning": "Warning",
-    "comingSoon": "Coming Soon"
+    "comingSoon": "Coming Soon",
+    "unknown": "Unknown",
+    "notAvailable": "N/A",
+    "traceability": "Traceability",
+    "statusAndActions": "Status & Actions",
+    "lastUpdated": "Last Updated",
+    "note": "Note",
+    "history": "History"
   },
   "footer": {
     "termsAndConditions": "Terms and Conditions",
@@ -114,7 +134,8 @@
     "onSite": "On Site",
     "installed": "Installed",
     "inCutting": "In Cutting",
-    "milled": "Milled"
+    "milled": "Milled",
+    "ready": "Ready"
   },
   "dashboard": {
     "welcome": "Welcome to CutKit",
@@ -162,7 +183,12 @@
     "completedQueues": "Completed Queues",
     "totalCassettes": "Total Cassettes",
     "totalArea": "Total Area",
-    "lifecycle": "Lifecycle"
+    "lifecycle": "Lifecycle",
+    "cassettes": "Cassettes",
+    "edit": "Edit Project",
+    "updated": "Project updated",
+    "confirmDelete": "Are you sure you want to delete this project?",
+    "deleted": "Project deleted"
   },
   "file": {
     "upload": "Upload Files",
@@ -214,6 +240,7 @@
     "noPreview": "No preview available",
     "selectLayerType": "Select layer type",
     "parameters": "Parameters",
+    "design": "Design",
     "parametersHelp": "Define variable dimensions for batch entries",
     "parametersPlaceholder": "e.g., A, B, C",
     "parametersHint": "Common: A, B, C, D, E, F, horizontal_seam_width",
@@ -315,6 +342,8 @@
     "sheets": "Sheets Inventory",
     "addSheets": "Add Sheets",
     "material": "Material",
+    "addMaterial": "Add Material",
+    "type": "Type",
     "size": "Size",
     "quantity": "Quantity",
     "totalSheets": "Total Sheets",
@@ -425,10 +454,22 @@
     "logout": "Logout",
     "settings": "Settings",
     "language": "Language",
+    "languageHelp": "Choose your preferred interface language.",
     "account": "Account",
     "billing": "Billing",
     "preferences": "Preferences",
     "authentication": "Authentication",
+    "developerTools": "Developer Tools",
+    "myOrganizations": "My Organizations",
+    "unknownOrganization": "Unknown Organization",
+    "membershipPending": "Your membership request is awaiting administrator confirmation.",
+    "manageTeam": "Manage Team",
+    "viewOrganization": "View Organization",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "phone": "Phone",
+    "address": "Address",
     "loggedInOAuth": "You are logged in with your OAuth provider.",
     "usageStatistics": "Usage Statistics",
     "comingSoon": "coming soon",
@@ -482,6 +523,22 @@
     "failedToSend": "Failed to send message",
     "supportChatList": "Support Chat List",
     "unknownUser": "Unknown User",
+    "failedToLoadOrganizations": "Failed to load organizations",
+    "organizationUpdated": "Organization updated",
+    "organizationCreated": "Organization created",
+    "failedToLoadUsers": "Failed to load users",
+    "editUser": "Edit User",
+    "createUser": "Create User",
+    "editPermissions": "Edit Permissions",
+    "updateNotImplemented": "Update not fully implemented",
+    "systemDiagnostics": "System Diagnostics",
+    "currentUserContext": "Current User Context",
+    "organizationType": "Organization Type",
+    "effectiveUiPermissions": "Effective UI Permissions",
+    "feature": "Feature",
+    "action": "Action",
+    "allowed": "Allowed?",
+    "globalPermissionMatrix": "Global Permission Matrix (Reference)",
     "ago": "{time} ago",
     "daysShort": "{count}d",
     "hoursShort": "{count}h",
@@ -499,6 +556,7 @@
     "purchaseHistory": "Purchase History",
     "noHistory": "No purchase history yet.",
     "credits": "Credits",
+    "role": "Role",
     "errors": {
       "loadOptionsFailed": "Failed to load payment options.",
       "createLinkFailed": "Failed to create payment link."
@@ -525,6 +583,40 @@
     "expires": "Expires",
     "generateLink": "Generate Link",
     "permissions": "Permissions",
+    "activeInvitations": "Active Invitations",
+    "joinRequests": "Join Requests",
+    "inviteMemberNote": "Generate a unique link that a user can use to join your organization.",
+    "revokeInvitationConfirm": "Are you sure you want to revoke this invitation?",
+    "invitationRevoked": "Invitation revoked",
+    "invitationCopied": "Invitation link copied to clipboard",
+    "userCreated": "User created successfully",
+    "userRemoved": "User removed",
+    "removeUserConfirm": "Are you sure you want to remove {name}?",
+    "permissionsUpdated": "Permissions updated",
+    "featureAccessControl": "Feature Access Control",
+    "featureAccessControlHelp": "Configure granular access levels for each system module.",
+    "membership": {
+      "approve": "User approved",
+      "reject": "User rejected"
+    },
+    "permissionLevels": {
+      "none": "None",
+      "read": "Read",
+      "write": "Write",
+      "admin": "Admin"
+    },
+    "permissionLevelLabels": {
+      "none": "No Access",
+      "read": "View Only",
+      "write": "Edit Access",
+      "admin": "Full Control"
+    },
+    "permissionDescriptions": {
+      "none": "No access to {feature}. Feature will be hidden from UI.",
+      "read": "Can view {feature} data and tracking info. Cannot modify.",
+      "write": "Can create and update {feature}. Limited deletion.",
+      "admin": "Total control over {feature}, including deletion and settings."
+    },
     "orgTypes": {
       "manufacturer": "Manufacturer",
       "contractor": "Contractor",
@@ -541,7 +633,8 @@
     "joinOrganization": "Join Organization",
     "loginToJoin": "Login to Join",
     "loginRequiredForInvitation": "You need to be logged in to accept this invitation.",
-    "organizationJoined": "You have joined the organization"
+    "organizationJoined": "You have joined the organization",
+    "loginFailed": "Login failed"
   },
   "roles": {
     "SuperAdmin": "System Administrator",
@@ -553,7 +646,9 @@
   "features": {
     "projects": "Projects",
     "assets": "Assets",
-    "materials": "Warehouse",
+    "queues": "Production Queues",
+    "cassettes": "Cassette Library",
+    "materials": "Physical Materials",
     "warehouses": "Warehouses",
     "catalogs": "Catalogs",
     "requisitions": "Requisitions",
@@ -566,6 +661,7 @@
   },
   "piles": {
     "title": "Material Piles",
+    "pile": "Pile",
     "subtitle": "Material shipments received from manufacturers.",
     "manualPile": "Manual Material Pile",
     "noPiles": "No material piles found",
@@ -576,19 +672,29 @@
   "remnants": {
     "title": "Remnants",
     "subtitle": "Available material offcuts for reuse.",
-    "noRemnants": "No remnants found"
+    "noRemnants": "No remnants found",
+    "reusability": "Reusability"
   },
   "sheets": {
     "title": "Physical Sheets",
     "subtitle": "Individual physical material sheets in inventory.",
-    "noSheets": "No physical sheets found"
+    "noSheets": "No physical sheets found",
+    "materialColor": "Material / Color",
+    "physicalRepresentation": "Physical Representation",
+    "surface": "Surface",
+    "markMilled": "Mark Milled"
   },
   "cassetteInstance": {
     "updateStatus": "Update Status",
     "printLabel": "Print Label",
     "updatePhysicalStatus": "Update Physical Status",
     "selectNewStatus": "Select new status...",
-    "addNotePlaceholder": "Add a note (e.g., Arrived at sector 4)..."
+    "addNotePlaceholder": "Add a note (e.g., Arrived at sector 4)...",
+    "create": "Create Cassette Instance",
+    "tracking": "Tracking",
+    "lifecycleTitle": "Lifecycle",
+    "parentDesign": "Parent Design",
+    "materialSource": "Material Source"
   },
   "statistics": {
     "title": "Statistics",
@@ -624,8 +730,27 @@
     "chatTitle": "Support Chat",
     "description": "Need help? Contact us!",
     "button": "Support",
+    "email": "Email",
     "typeMessage": "Type your message...",
     "send": "Send"
+  },
+  "batch": {
+    "name": "Batch Name"
+  },
+  "uiLab": {
+    "title": "UI LAB v24",
+    "variants": {
+      "card": "Card",
+      "compact": "Compact",
+      "inline": "Inline"
+    },
+    "statusHistory": "Status History",
+    "traceabilityChain": "Traceability (Lineage Chain)",
+    "fullChain": "Full Chain",
+    "collapsedChain": "Collapsed Chain",
+    "dashboardVariant": "Dashboard Variant",
+    "listVariant": "List Variant",
+    "minimalVariant": "Minimal Variant"
   },
   "queue": {
     "title": "Queues",
@@ -655,6 +780,8 @@
     "cassette": "Cassette",
     "selectCassette": "Select cassette template",
     "quantity": "Quantity",
+    "width": "Width",
+    "length": "Length",
     "dimensions": "Dimensions",
     "addNewEntry": "Add New Entry",
     "unknownCassette": "Unknown Cassette",
@@ -665,6 +792,7 @@
     "notFound": "Queue not found.",
     "runs": "Runs",
     "jobItems": "Job Items",
+    "nestingRuns": "Nesting Runs",
     "nestingConfig": "Nesting Config",
     "jobComposition": "Job Composition",
     "runStatus": {
@@ -701,6 +829,8 @@
     "quantity": "Quantity",
     "addEntry": "Add Entry",
     "noEntries": "No entries in this queue. Add entries to begin nesting.",
+    "jobItems": "Job Items",
+    "nestingRuns": "Nesting Runs",
     "confirmDeleteEntry": "Are you sure you want to delete this entry?",
     "confirmDeleteArtifact": "Are you sure you want to delete this artifact?",
     "nestingStarted": "Nesting Started",
@@ -734,7 +864,13 @@
     "deleteFailed": "Failed to delete artifact",
     "downloadFailed": "Failed to download artifact",
     "generatingPreview": "Generating preview...",
-    "previewFailed": "Failed to generate preview"
+    "previewFailed": "Failed to generate preview",
+    "previewTitle": "Artifact Preview",
+    "loadingPreview": "Loading preview...",
+    "pdfPreviewUnavailable": "PDF Preview not available",
+    "downloadFilePrompt": "Please download the file.",
+    "fetchContentFailed": "Failed to fetch artifact content",
+    "loadDxfPreviewFailed": "Failed to load DXF preview: {message}"
   },
   "assets": {
     "cassettes": "Cassettes",
@@ -792,6 +928,11 @@
     "materialType": "Material Type",
     "thickness": "Thickness",
     "description": "Description",
+    "coreMaterial": "Core Material",
+    "width": "Width",
+    "length": "Length",
+    "foilThicknessOptions": "Foil Thickness Options",
+    "sheetThicknessOptions": "Sheet Thickness Options",
     "addColor": "Add New Color",
     "editColor": "Edit Color",
     "colorName": "Color Name",
@@ -873,6 +1014,7 @@
     "project": "Project",
     "linkToProject": "Link to project...",
     "orderItems": "Order Items",
+    "items": "Items",
     "addItem": "Add Item",
     "selectCatalog": "Select Catalog",
     "catalog": "Catalog",
@@ -915,5 +1057,17 @@
     "noDefaultPen": "No pen assigned",
     "setPen": "Set pen",
     "selectPen": "Select pen..."
+  },
+  "organization": {
+    "type": "Organization Type"
+  },
+  "sheetDesign": {
+    "downloadDxf": "Download DXF",
+    "exportGCode": "Export G-code",
+    "utilization": "Utilization",
+    "parts": "Parts",
+    "cuttingLength": "Cutting Length",
+    "estimatedTime": "Estimated Time",
+    "instances": "Instances"
   }
 }

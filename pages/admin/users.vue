@@ -21,7 +21,7 @@
                     <Tag :value="$t(`roles.${slotProps.data.role}`)" :severity="getRoleSeverity(slotProps.data.role)" />
                 </template>
             </Column>
-            <Column :header="$t('common.actions')" class="text-right">
+            <Column :header="$t('common.actions.title')" class="text-right">
                 <template #body="slotProps">
                     <div class="flex justify-end gap-2">
                         <Button icon="pi pi-pencil" text @click="editUser(slotProps.data)" />
@@ -32,12 +32,12 @@
         </DataTable>
 
         <!-- User Dialog -->
-        <Dialog v-model:visible="userDialog" :header="editMode ? 'Edit User' : 'Create User'" modal class="w-full max-w-md">
+        <Dialog v-model:visible="userDialog" :header="editMode ? $t('admin.editUser') : $t('admin.createUser')" modal class="w-full max-w-md">
             <UserForm :user="selectedUser" @save="saveUser" @cancel="userDialog = false" />
         </Dialog>
 
         <!-- Permissions Dialog -->
-        <Dialog v-model:visible="permDialog" header="Edit Permissions" modal class="w-full max-w-lg">
+        <Dialog v-model:visible="permDialog" :header="$t('admin.editPermissions')" modal class="w-full max-w-lg">
             <PermissionEditor 
                 v-if="selectedUser" 
                 :permissions="selectedUser.permissions" 
@@ -49,6 +49,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -64,6 +65,7 @@ definePageMeta({
 });
 
 const toast = useToast();
+const { t } = useI18n();
 const users = ref([]);
 const loading = ref(false);
 const userDialog = ref(false);
@@ -77,7 +79,7 @@ const loadUsers = async () => {
         const data = await $fetch('/api/users');
         users.value = data;
     } catch (error) {
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load users' });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: t('admin.failedToLoadUsers') });
     } finally {
         loading.value = false;
     }
@@ -115,18 +117,18 @@ const saveUser = async (formData) => {
         if (editMode.value) {
             // Update user logic here (endpoint needed if strictly editing fields other than permissions)
             // For now, assuming create logic mainly
-            toast.add({ severity: 'info', summary: 'Info', detail: 'Update not fully implemented' });
+            toast.add({ severity: 'info', summary: t('common.info'), detail: t('admin.updateNotImplemented') });
         } else {
             await $fetch('/api/users', {
                 method: 'POST',
                 body: formData
             });
-            toast.add({ severity: 'success', summary: 'Success', detail: 'User created' });
+            toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.userCreated') });
         }
         userDialog.value = false;
         loadUsers();
     } catch (error) {
-        toast.add({ severity: 'error', summary: 'Error', detail: error.message });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error.message });
     }
 };
 
@@ -136,11 +138,11 @@ const savePermissions = async (newPermissions) => {
             method: 'PATCH',
             body: { permissions: newPermissions }
         });
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Permissions updated' });
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.permissionsUpdated') });
         permDialog.value = false;
         loadUsers();
     } catch (error) {
-        toast.add({ severity: 'error', summary: 'Error', detail: error.message });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error.message });
     }
 };
 

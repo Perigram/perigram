@@ -21,7 +21,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <!-- Visual Swatch -->
                 <Card>
-                    <template #title><small>Material / Color</small></template>
+                    <template #title><small>{{ $t('sheets.materialColor') }}</small></template>
                     <template #content>
                         <div class="flex items-center gap-4">
                             <div 
@@ -45,13 +45,13 @@
 
         <div class="grid-details">
             <div class="lg:col-span-3">
-                 <Fieldset legend="Physical Representation">
+                 <Fieldset :legend="$t('sheets.physicalRepresentation')">
                     <div class="aspect-[16/9] border rounded flex items-center justify-center relative overflow-hidden">
                         <div 
                             class="border border-dashed rounded flex items-center justify-center flex-col gap-4"
                             :style="geometryStyle"
                         >
-                            <small>Surface</small>
+                            <small>{{ $t('sheets.surface') }}</small>
                             <span class="text-2xl">{{ sheetWidth }}x{{ sheetLength }}</span>
                         </div>
                     </div>
@@ -59,7 +59,7 @@
             </div>
 
             <div class="flex flex-col gap-8">
-                <Panel header="History">
+                <Panel :header="$t('common.history')">
                     <StatusHistory :entity="sheet" entity-type="sheet" />
                 </Panel>
             </div>
@@ -69,6 +69,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
@@ -83,6 +84,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update-status']);
+const { t } = useI18n();
 
 const { serial: sheetSerial } = useIdentity(props.sheet);
 const { state: sheetState } = useStatus(props.sheet);
@@ -92,7 +94,7 @@ const statusActions = computed(() => {
     const actions = [];
     if (sheetState.value === 'IN-CUTTING' || sheetState.value === 'in cutting') {
         actions.push({ 
-            label: 'Mark Milled', 
+            label: t('sheets.markMilled'),
             icon: 'pi pi-check', 
             severity: 'success', 
             command: () => emit('update-status', { id: props.sheet._id, status: 'milled' }) 
@@ -101,8 +103,8 @@ const statusActions = computed(() => {
     return actions;
 });
 
-const colorName = computed(() => props.sheet.specs?.color || 'Unknown');
-const materialName = computed(() => props.sheet.specs?.material || 'Unknown');
+const colorName = computed(() => props.sheet.specs?.color || t('common.unknown'));
+const materialName = computed(() => props.sheet.specs?.material || t('common.unknown'));
 const colorHex = computed(() => props.sheet.specs?.colorHex || 'var(--p-content-border-color)');
 
 const geometryStyle = computed(() => {

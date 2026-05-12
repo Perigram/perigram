@@ -2,7 +2,7 @@
   <div class="flex flex-col items-center justify-center min-h-screen">
     <h1>{{ $t('auth.authenticating') }}</h1>
     <ProgressSpinner />
-    <p>Please wait a moment while we process your authentication.</p>
+    <p>{{ $t('auth.authenticatingWait') }}</p>
   </div>
 </template>
 

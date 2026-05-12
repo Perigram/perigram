@@ -3,7 +3,7 @@
     <div class="max-w-4xl mx-auto space-y-12">
       
       <div class="flex justify-between items-center border-b pb-4">
-        <h1>UI LAB v24</h1>
+        <h1>{{ $t('uiLab.title') }}</h1>
         <div class="flex gap-4">
           <ThemeSwitcher />
           <LanguageSwitcher />
@@ -28,21 +28,21 @@
             
             <div class="space-y-12">
                 <div class="space-y-2">
-                    <small>Card</small>
+                    <small>{{ $t('uiLab.variants.card') }}</small>
                     <div class="max-w-md">
                         <component :is="comp.component" v-bind="comp.props" variant="card" />
                     </div>
                 </div>
 
                 <div class="space-y-2">
-                    <small>Compact</small>
+                    <small>{{ $t('uiLab.variants.compact') }}</small>
                     <div class="max-w-sm">
                         <component :is="comp.component" v-bind="comp.props" variant="compact" />
                     </div>
                 </div>
 
                 <div class="space-y-2">
-                    <small>Inline</small>
+                    <small>{{ $t('uiLab.variants.inline') }}</small>
                     <div class="flex items-center gap-4">
                         <component :is="comp.component" v-bind="comp.props" variant="inline" />
                     </div>
@@ -54,7 +54,7 @@
         <template v-else>
             <div class="space-y-12">
                 <section class="space-y-4">
-                    <h3 class="text-base">Status History</h3>
+                    <h3 class="text-base">{{ $t('uiLab.statusHistory') }}</h3>
                     <div class="border rounded p-8">
                         <StatusHistory 
                             entityType="project" 
@@ -65,14 +65,14 @@
                 </section>
 
                 <section class="space-y-4">
-                    <h3 class="text-base">Traceability (Lineage Chain)</h3>
+                    <h3 class="text-base">{{ $t('uiLab.traceabilityChain') }}</h3>
                     <div class="space-y-8">
                         <div class="border rounded p-4">
-                            <small class="block mb-2">Full Chain</small>
+                            <small class="block mb-2">{{ $t('uiLab.fullChain') }}</small>
                             <TraceChain :lineage="fullLineage" />
                         </div>
                         <div class="border rounded p-4">
-                            <small class="block mb-2">Collapsed Chain</small>
+                            <small class="block mb-2">{{ $t('uiLab.collapsedChain') }}</small>
                             <TraceChain :lineage="fullLineage" :expandable="true" />
                         </div>
                     </div>

@@ -44,11 +44,11 @@
     </div>
 
     <!-- Preview Dialog -->
-    <Dialog v-model:visible="showPreview" :header="previewArtifactData?.name || 'Artifact Preview'" modal class="w-[95vw] h-[95vh]" :pt="{ content: { class: 'flex-1 flex flex-col overflow-hidden h-full p-0' } }">
+    <Dialog v-model:visible="showPreview" :header="previewArtifactData?.name || $t('artifacts.previewTitle')" modal class="w-[95vw] h-[95vh]" :pt="{ content: { class: 'flex-1 flex flex-col overflow-hidden h-full p-0' } }">
         <div class="flex h-full">
             <div v-if="previewLoading" class="flex-1 flex flex-col items-center justify-center gap-4">
                 <ProgressSpinner />
-                <small>Loading preview...</small>
+                <small>{{ $t('artifacts.loadingPreview') }}</small>
             </div>
             <div v-else-if="previewError" class="flex-1 flex flex-col items-center justify-center gap-4">
                 <i class="pi pi-exclamation-circle text-4xl"></i>
@@ -102,8 +102,8 @@
                 <div v-else-if="isPdf" class="flex-1 flex flex-col items-center justify-center gap-6">
                     <i class="pi pi-file-pdf text-6xl opacity-20"></i>
                     <div class="text-center">
-                        <p>PDF Preview not available</p>
-                        <small>Please download the file.</small>
+                        <p>{{ $t('artifacts.pdfPreviewUnavailable') }}</p>
+                        <small>{{ $t('artifacts.downloadFilePrompt') }}</small>
                     </div>
                     <Button :label="$t('common.download')" icon="pi pi-download" @click="downloadArtifact(previewArtifactData)" />
                 </div>
@@ -218,7 +218,7 @@ const previewArtifact = async (artifact) => {
     if (artifact.type === 'LAYOUT_DXF' || artifact.type === 'DXF') {
         try {
             const response = await fetch(`/api/artifacts/${artifact._id}`);
-            if (!response.ok) throw new Error('Failed to fetch artifact content');
+            if (!response.ok) throw new Error(t('artifacts.fetchContentFailed'));
             const dxfText = await response.text();
             
             // Build layer mapping from standards
@@ -232,7 +232,7 @@ const previewArtifact = async (artifact) => {
             visibleLayers.value = svgData.value.layers.map(l => l.name);
         } catch (e) {
             console.error('Preview error:', e);
-            previewError.value = 'Failed to load DXF preview: ' + e.message;
+            previewError.value = t('artifacts.loadDxfPreviewFailed', { message: e.message });
         } finally {
             previewLoading.value = false;
         }
@@ -248,16 +248,16 @@ const onArtifactClick = (artifact) => {
 
 const confirmDelete = (artifact) => {
   confirm.require({
-      message: 'Delete this artifact? This cannot be undone.',
-      header: 'Confirmation',
+      message: t('artifacts.deleteConfirm'),
+      header: t('common.confirmation'),
       icon: 'pi pi-exclamation-triangle',
       accept: async () => {
           try {
               await $fetch(`/api/artifacts/${artifact._id}`, { method: 'DELETE' });
-              toast.add({ severity: 'success', summary: 'Success', detail: 'Artifact deleted' });
+              toast.add({ severity: 'success', summary: t('common.success'), detail: t('artifacts.deleted') });
               if (props.batchId) artifactsStore.fetchArtifacts(props.batchId);
           } catch (e) {
-              toast.add({ severity: 'error', summary: 'Error', detail: e.message });
+              toast.add({ severity: 'error', summary: t('common.error'), detail: e.message });
           }
       }
   });

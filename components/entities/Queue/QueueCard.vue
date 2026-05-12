@@ -33,11 +33,11 @@ const handleCardClick = () => {
             <Divider />
             <div class="grid grid-cols-2 gap-4">
                 <div class="flex flex-col">
-                    <small>Job Items</small>
+                    <small>{{ $t('queue.jobItems') }}</small>
                     <span>{{ queue.job?.items?.length || 0 }}</span>
                 </div>
                 <div class="flex flex-col">
-                    <small>Nesting Runs</small>
+                    <small>{{ $t('queue.nestingRuns') }}</small>
                     <span>{{ queue.summary?.runCount || 0 }}</span>
                 </div>
             </div>
@@ -46,8 +46,8 @@ const handleCardClick = () => {
         <!-- Card footer -->
         <template #footer v-if="variant === 'card'">
             <div class="flex justify-end gap-2" @click.stop>
-                <Button v-if="authStore.can('queues', 'edit')" icon="pi pi-pencil" text rounded size="small" aria-label="Edit" @click="$emit('edit', queue)" />
-                <Button v-if="authStore.can('queues', 'delete')" icon="pi pi-trash" text rounded size="small" severity="danger" aria-label="Delete" @click="$emit('delete', queue)" />
+                <Button v-if="authStore.can('queues', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="$emit('edit', queue)" />
+                <Button v-if="authStore.can('queues', 'delete')" icon="pi pi-trash" text rounded size="small" severity="danger" :aria-label="$t('common.delete')" @click="$emit('delete', queue)" />
             </div>
         </template>
     </EntityCard>

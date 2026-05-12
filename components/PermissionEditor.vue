@@ -1,8 +1,8 @@
 <template>
     <div class="flex flex-col gap-8">
         <div class="flex flex-col gap-2">
-            <h3 class="m-0">Feature Access Control</h3>
-            <p>Configure granular access levels for each system module.</p>
+            <h3 class="m-0">{{ $t('auth.featureAccessControl') }}</h3>
+            <p>{{ $t('auth.featureAccessControlHelp') }}</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -46,7 +46,8 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import SelectButton from 'primevue/selectbutton';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -56,25 +57,26 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['save']);
+const { t } = useI18n();
 
-const PERMISSION_LEVELS = [
-    { label: 'None',  value: 'none' },
-    { label: 'Read',  value: 'read' },
-    { label: 'Write', value: 'write' },
-    { label: 'Admin', value: 'admin' }
-];
+const PERMISSION_LEVELS = computed(() => [
+    { label: t('auth.permissionLevels.none'),  value: 'none' },
+    { label: t('auth.permissionLevels.read'),  value: 'read' },
+    { label: t('auth.permissionLevels.write'), value: 'write' },
+    { label: t('auth.permissionLevels.admin'), value: 'admin' }
+]);
 
-const entities = [
-    { key: 'projects',     label: 'Projects' },
-    { key: 'queues',       label: 'Production Queues' },
-    { key: 'cassettes',    label: 'Cassette Library' },
-    { key: 'warehouses',   label: 'Warehouses' },
-    { key: 'catalogs',     label: 'Material Catalogs' },
-    { key: 'requisitions', label: 'Requisitions' },
-    { key: 'materials',    label: 'Physical Materials' },
-    { key: 'users',        label: 'Team Members' },
-    { key: 'organizations',label: 'Organization' }
-];
+const entities = computed(() => [
+    { key: 'projects',      label: t('features.projects') },
+    { key: 'queues',        label: t('features.queues') },
+    { key: 'cassettes',     label: t('features.cassettes') },
+    { key: 'warehouses',    label: t('features.warehouses') },
+    { key: 'catalogs',      label: t('features.catalogs') },
+    { key: 'requisitions',  label: t('features.requisitions') },
+    { key: 'materials',     label: t('features.materials') },
+    { key: 'users',         label: t('features.users') },
+    { key: 'organizations', label: t('features.organizations') }
+]);
 
 const localPermissions = ref({ ...props.permissions });
 
@@ -102,15 +104,21 @@ const getIcon = (key) => {
 };
 
 const getLevelLabel = (level) => {
-    const labels = { none: 'No Access', read: 'View Only', write: 'Edit Access', admin: 'Full Control' };
+    const labels = {
+        none:  t('auth.permissionLevelLabels.none'),
+        read:  t('auth.permissionLevelLabels.read'),
+        write: t('auth.permissionLevelLabels.write'),
+        admin: t('auth.permissionLevelLabels.admin')
+    };
     return labels[level] || level;
 };
 
 const getDescription = (key, level) => {
-    if (level === 'none')  return `No access to ${key}. Feature will be hidden from UI.`;
-    if (level === 'read')  return `Can view ${key} data and tracking info. Cannot modify.`;
-    if (level === 'write') return `Can create and update ${key}. Limited deletion.`;
-    if (level === 'admin') return `Total control over ${key}, including deletion and settings.`;
+    const feature = entities.value.find(item => item.key === key)?.label || key;
+    if (level === 'none')  return t('auth.permissionDescriptions.none', { feature });
+    if (level === 'read')  return t('auth.permissionDescriptions.read', { feature });
+    if (level === 'write') return t('auth.permissionDescriptions.write', { feature });
+    if (level === 'admin') return t('auth.permissionDescriptions.admin', { feature });
     return '';
 };
 </script>

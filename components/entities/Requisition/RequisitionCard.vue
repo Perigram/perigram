@@ -26,7 +26,7 @@ const handleCardClick = () => {
       <template v-if="variant === 'card'">
         <Divider />
         <div class="flex justify-between items-center">
-            <small>Items</small>
+            <small>{{ $t('requisition.items') }}</small>
             <span>{{ requisition.data?.items?.length || 0 }}</span>
         </div>
       </template>

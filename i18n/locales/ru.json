@@ -2,6 +2,7 @@
   "common": {
     "loading": "Загрузка...",
     "error": "Ошибка",
+    "info": "Информация",
     "success": "Успешно",
     "cancel": "Отмена",
     "save": "Сохранить",
@@ -19,11 +20,23 @@
     "confirmation": "Подтверждение",
     "yes": "Да",
     "no": "Нет",
+    "approve": "Одобрить",
+    "reject": "Отклонить",
+    "revoke": "Отозвать",
+    "copied": "Скопировано",
+    "active": "Активно",
+    "pending": "Ожидает",
     "back": "Назад",
     "next": "Далее",
     "search": "Поиск",
     "filter": "Фильтр",
     "details": "Подробности",
+    "name": "Имя",
+    "description": "Описание",
+    "area": "Площадь",
+    "terms": "Условия",
+    "metadata": "Метаданные",
+    "project": "Проект",
     "optional": "необязательно",
     "quantity": "Количество",
     "subtotal": "Подытог",
@@ -48,7 +61,14 @@
     "markUsed": "Отметить использованным",
     "type": "Тип",
     "warning": "Предупреждение",
-    "comingSoon": "Скоро"
+    "comingSoon": "Скоро",
+    "unknown": "Неизвестно",
+    "notAvailable": "Н/Д",
+    "traceability": "Трассируемость",
+    "statusAndActions": "Статус и действия",
+    "lastUpdated": "Последнее обновление",
+    "note": "Примечание",
+    "history": "История"
   },
   "footer": {
     "termsAndConditions": "Условия и положения",
@@ -88,7 +108,34 @@
     "home": "Главная",
     "dashboard": "Панель управления",
     "logout": "Выйти",
-    "login": "Войти / Регистрация"
+    "login": "Войти / Регистрация",
+    "admin": "Администрирование",
+    "settings": "Настройки"
+  },
+  "status": {
+    "draft": "Черновик",
+    "submitted": "Отправлено",
+    "approved": "Одобрено",
+    "rejected": "Отклонено",
+    "fulfilling": "В исполнении",
+    "fulfilled": "Исполнено",
+    "canceled": "Отменено",
+    "requested": "Запрошено",
+    "assembled": "Собрано",
+    "sent": "Отправлено",
+    "shipped": "Отгружено",
+    "arrived": "Прибыло",
+    "inStock": "На складе",
+    "partiallyUsed": "Частично использовано",
+    "usedUp": "Израсходовано",
+    "cut": "Разрезано",
+    "nested": "Разложено",
+    "manufactured": "Изготовлено",
+    "onSite": "На объекте",
+    "installed": "Установлено",
+    "inCutting": "В резке",
+    "milled": "Фрезеровано",
+    "ready": "Готово"
   },
   "dashboard": {
     "welcome": "Добро пожаловать в CutKit",
@@ -136,7 +183,12 @@
     "completedQueues": "Завершённые очереди",
     "totalCassettes": "Всего кассет",
     "totalArea": "Общая площадь",
-    "lifecycle": "Жизненный цикл"
+    "lifecycle": "Жизненный цикл",
+    "cassettes": "Кассеты",
+    "edit": "Редактировать проект",
+    "updated": "Проект обновлён",
+    "confirmDelete": "Вы уверены, что хотите удалить этот проект?",
+    "deleted": "Проект удалён"
   },
   "file": {
     "upload": "Загрузить файлы",
@@ -188,6 +240,7 @@
     "noPreview": "Предпросмотр недоступен",
     "selectLayerType": "Выберите тип слоя",
     "parameters": "Параметры",
+    "design": "Дизайн",
     "parametersHelp": "Определите переменные размеры для записей партии",
     "parametersPlaceholder": "например, A, B, C",
     "parametersHint": "Общие: A, B, C, D, E, F, horizontal_seam_width",
@@ -289,6 +342,8 @@
     "sheets": "Инвентарь листов",
     "addSheets": "Добавить листы",
     "material": "Материал",
+    "addMaterial": "Добавить материал",
+    "type": "Тип",
     "size": "Размер",
     "quantity": "Количество",
     "totalSheets": "Всего листов",
@@ -399,10 +454,22 @@
     "logout": "Выйти",
     "settings": "Настройки",
     "language": "Язык",
+    "languageHelp": "Выберите предпочитаемый язык интерфейса.",
     "account": "Аккаунт",
     "billing": "Биллинг",
     "preferences": "Предпочтения",
     "authentication": "Аутентификация",
+    "developerTools": "Инструменты разработчика",
+    "myOrganizations": "Мои организации",
+    "unknownOrganization": "Неизвестная организация",
+    "membershipPending": "Ваш запрос на вступление ожидает подтверждения администратора.",
+    "manageTeam": "Управлять командой",
+    "viewOrganization": "Просмотреть организацию",
+    "name": "Имя",
+    "email": "Email",
+    "password": "Пароль",
+    "phone": "Телефон",
+    "address": "Адрес",
     "loggedInOAuth": "Вы вошли через OAuth провайдера.",
     "usageStatistics": "Статистика использования",
     "comingSoon": "скоро",
@@ -456,6 +523,22 @@
     "failedToSend": "Не удалось отправить сообщение",
     "supportChatList": "Список чатов поддержки",
     "unknownUser": "Неизвестный пользователь",
+    "failedToLoadOrganizations": "Не удалось загрузить организации",
+    "organizationUpdated": "Организация обновлена",
+    "organizationCreated": "Организация создана",
+    "failedToLoadUsers": "Не удалось загрузить пользователей",
+    "editUser": "Редактировать пользователя",
+    "createUser": "Создать пользователя",
+    "editPermissions": "Редактировать разрешения",
+    "updateNotImplemented": "Обновление реализовано не полностью",
+    "systemDiagnostics": "Системная диагностика",
+    "currentUserContext": "Текущий контекст пользователя",
+    "organizationType": "Тип организации",
+    "effectiveUiPermissions": "Эффективные разрешения интерфейса",
+    "feature": "Функция",
+    "action": "Действие",
+    "allowed": "Разрешено?",
+    "globalPermissionMatrix": "Глобальная матрица разрешений (справочник)",
     "ago": "{time} назад",
     "daysShort": "{count}д",
     "hoursShort": "{count}ч",
@@ -473,6 +556,7 @@
     "purchaseHistory": "История покупок",
     "noHistory": "Истории покупок пока нет.",
     "credits": "Кредитов",
+    "role": "Роль",
     "errors": {
       "loadOptionsFailed": "Не удалось загрузить варианты оплаты.",
       "createLinkFailed": "Не удалось создать ссылку на оплату."
@@ -480,6 +564,7 @@
   },
   "auth": {
     "login": "Войти",
+    "logout": "Выйти",
     "signup": "Зарегистрироваться",
     "loginSignup": "Войти / Регистрация",
     "welcome": "Добро пожаловать в Cutkit",
@@ -498,6 +583,40 @@
     "expires": "Истекает",
     "generateLink": "Создать ссылку",
     "permissions": "Разрешения",
+    "activeInvitations": "Активные приглашения",
+    "joinRequests": "Запросы на вступление",
+    "inviteMemberNote": "Создайте уникальную ссылку, по которой пользователь сможет присоединиться к вашей организации.",
+    "revokeInvitationConfirm": "Вы уверены, что хотите отозвать это приглашение?",
+    "invitationRevoked": "Приглашение отозвано",
+    "invitationCopied": "Ссылка на приглашение скопирована в буфер обмена",
+    "userCreated": "Пользователь успешно создан",
+    "userRemoved": "Пользователь удалён",
+    "removeUserConfirm": "Вы уверены, что хотите удалить {name}?",
+    "permissionsUpdated": "Разрешения обновлены",
+    "featureAccessControl": "Управление доступом к функциям",
+    "featureAccessControlHelp": "Настройте детальные уровни доступа для каждого системного модуля.",
+    "membership": {
+      "approve": "Пользователь одобрен",
+      "reject": "Пользователь отклонён"
+    },
+    "permissionLevels": {
+      "none": "Нет",
+      "read": "Чтение",
+      "write": "Запись",
+      "admin": "Админ"
+    },
+    "permissionLevelLabels": {
+      "none": "Нет доступа",
+      "read": "Только просмотр",
+      "write": "Доступ к редактированию",
+      "admin": "Полный контроль"
+    },
+    "permissionDescriptions": {
+      "none": "Нет доступа к {feature}. Функция будет скрыта в интерфейсе.",
+      "read": "Можно просматривать данные {feature} и информацию отслеживания. Изменения запрещены.",
+      "write": "Можно создавать и обновлять {feature}. Удаление ограничено.",
+      "admin": "Полный контроль над {feature}, включая удаление и настройки."
+    },
     "orgTypes": {
       "manufacturer": "Производитель",
       "contractor": "Подрядчик",
@@ -514,7 +633,8 @@
     "joinOrganization": "Присоединиться к организации",
     "loginToJoin": "Войти для присоединения",
     "loginRequiredForInvitation": "Чтобы принять приглашение, необходимо войти в систему.",
-    "organizationJoined": "Вы присоединились к организации"
+    "organizationJoined": "Вы присоединились к организации",
+    "loginFailed": "Не удалось войти"
   },
   "roles": {
     "SuperAdmin": "Администратор системы",
@@ -526,7 +646,9 @@
   "features": {
     "projects": "Проекты",
     "assets": "Библиотека",
-    "materials": "Склад",
+    "queues": "Производственные очереди",
+    "cassettes": "Библиотека кассет",
+    "materials": "Физические материалы",
     "warehouses": "Склады",
     "catalogs": "Каталоги",
     "requisitions": "Заявки",
@@ -539,6 +661,7 @@
   },
   "piles": {
     "title": "Складские партии",
+    "pile": "Партия",
     "subtitle": "Поставки материалов, полученные от производителей.",
     "manualPile": "Партия материала вручную",
     "noPiles": "Партии материалов не найдены",
@@ -549,19 +672,29 @@
   "remnants": {
     "title": "Остатки",
     "subtitle": "Доступные обрезки материала для повторного использования.",
-    "noRemnants": "Остатки не найдены"
+    "noRemnants": "Остатки не найдены",
+    "reusability": "Повторное использование"
   },
   "sheets": {
     "title": "Листы",
     "subtitle": "Отдельные физические листы материала в инвентаре.",
-    "noSheets": "Листы не найдены"
+    "noSheets": "Листы не найдены",
+    "materialColor": "Материал / Цвет",
+    "physicalRepresentation": "Физическое представление",
+    "surface": "Поверхность",
+    "markMilled": "Отметить фрезерованным"
   },
   "cassetteInstance": {
     "updateStatus": "Обновить статус",
     "printLabel": "Печать этикетки",
     "updatePhysicalStatus": "Обновить физический статус",
     "selectNewStatus": "Выберите новый статус...",
-    "addNotePlaceholder": "Добавьте примечание (напр., Доставлено в сектор 4)..."
+    "addNotePlaceholder": "Добавьте примечание (напр., Доставлено в сектор 4)...",
+    "create": "Создать экземпляр кассеты",
+    "tracking": "Отслеживание",
+    "lifecycleTitle": "Жизненный цикл",
+    "parentDesign": "Родительский дизайн",
+    "materialSource": "Источник материала"
   },
   "statistics": {
     "title": "Статистика",
@@ -597,8 +730,27 @@
     "chatTitle": "Чат поддержки",
     "description": "Нужна помощь? Свяжитесь с нами!",
     "button": "Поддержка",
+    "email": "Email",
     "typeMessage": "Введите сообщение...",
     "send": "Отправить"
+  },
+  "batch": {
+    "name": "Название партии"
+  },
+  "uiLab": {
+    "title": "UI LAB v24",
+    "variants": {
+      "card": "Карточка",
+      "compact": "Компактный",
+      "inline": "Строковый"
+    },
+    "statusHistory": "История статусов",
+    "traceabilityChain": "Трассируемость (цепочка происхождения)",
+    "fullChain": "Полная цепочка",
+    "collapsedChain": "Свернутая цепочка",
+    "dashboardVariant": "Вариант для панели",
+    "listVariant": "Вариант для списка",
+    "minimalVariant": "Минимальный вариант"
   },
   "queue": {
     "title": "Очереди",
@@ -628,6 +780,8 @@
     "cassette": "Кассета",
     "selectCassette": "Выберите шаблон кассеты",
     "quantity": "Количество",
+    "width": "Ширина",
+    "length": "Длина",
     "dimensions": "Размеры",
     "addNewEntry": "Добавить новую запись",
     "unknownCassette": "Неизвестная кассета",
@@ -638,6 +792,7 @@
     "notFound": "Очередь не найдена.",
     "runs": "Попытки раскроя",
     "jobItems": "Позиции заказа",
+    "nestingRuns": "Запуски раскроя",
     "nestingConfig": "Конфиг. раскроя",
     "jobComposition": "Состав работы",
     "runStatus": {
@@ -674,6 +829,8 @@
     "quantity": "Количество",
     "addEntry": "Добавить запись",
     "noEntries": "Нет записей в этой очереди",
+    "jobItems": "Позиции задания",
+    "nestingRuns": "Запуски раскроя",
     "confirmDeleteEntry": "Вы уверены, что хотите удалить эту запись?",
     "confirmDeleteArtifact": "Вы уверены, что хотите удалить этот артефакт?",
     "nestingStarted": "Раскрой запущен",
@@ -707,7 +864,13 @@
     "deleteFailed": "Не удалось удалить артефакт",
     "downloadFailed": "Не удалось скачать артефакт",
     "generatingPreview": "Генерация предпросмотра...",
-    "previewFailed": "Не удалось сгенерировать предпросмотр"
+    "previewFailed": "Не удалось сгенерировать предпросмотр",
+    "previewTitle": "Предпросмотр артефакта",
+    "loadingPreview": "Загрузка предпросмотра...",
+    "pdfPreviewUnavailable": "Предпросмотр PDF недоступен",
+    "downloadFilePrompt": "Пожалуйста, скачайте файл.",
+    "fetchContentFailed": "Не удалось получить содержимое артефакта",
+    "loadDxfPreviewFailed": "Не удалось загрузить предпросмотр DXF: {message}"
   },
   "assets": {
     "cassettes": "Кассеты",
@@ -765,6 +928,11 @@
     "materialType": "Тип материала",
     "thickness": "Толщина",
     "description": "Описание",
+    "coreMaterial": "Основной материал",
+    "width": "Ширина",
+    "length": "Длина",
+    "foilThicknessOptions": "Варианты толщины плёнки",
+    "sheetThicknessOptions": "Варианты толщины листа",
     "addColor": "Добавить цвет",
     "editColor": "Редактировать цвет",
     "colorName": "Название цвета",
@@ -846,6 +1014,7 @@
     "project": "Проект",
     "linkToProject": "Связать с проектом...",
     "orderItems": "Состав заказа",
+    "items": "Позиции",
     "addItem": "Добавить позицию",
     "selectCatalog": "Выберите каталог",
     "catalog": "Каталог",
@@ -888,5 +1057,17 @@
     "noDefaultPen": "Перо не назначено",
     "setPen": "Выбрать перо",
     "selectPen": "Выберите перо..."
+  },
+  "organization": {
+    "type": "Тип организации"
+  },
+  "sheetDesign": {
+    "downloadDxf": "Скачать DXF",
+    "exportGCode": "Экспорт G-code",
+    "utilization": "Использование",
+    "parts": "Детали",
+    "cuttingLength": "Длина реза",
+    "estimatedTime": "Расчетное время",
+    "instances": "Экземпляры"
   }
 }

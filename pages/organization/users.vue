@@ -27,7 +27,7 @@
     </DataTable>
 
     <div v-if="invitations.length > 0" class="flex flex-col gap-4 mt-8">
-        <h2>Active Invitations</h2>
+        <h2>{{ $t('auth.activeInvitations') }}</h2>
         <DataTable :value="invitations">
             <Column :header="$t('auth.invitationLink')">
                 <template #body="{ data }">
@@ -47,7 +47,7 @@
             </Column>
             <Column :header="$t('common.actions.title')" class="text-right">
                 <template #body="{ data }">
-                    <Button icon="pi pi-trash" text severity="danger" @click="revokeInvite(data._id)" v-tooltip.top="'Revoke'" />
+                    <Button icon="pi pi-trash" text severity="danger" @click="revokeInvite(data._id)" v-tooltip.top="$t('common.revoke')" />
                 </template>
             </Column>
         </DataTable>
@@ -57,7 +57,7 @@
     <div v-if="pendingUsers.length > 0" class="flex flex-col gap-4 mt-8">
         <h2 class="flex items-center gap-2">
             <i class="pi pi-clock"></i>
-            Join Requests
+            {{ $t('auth.joinRequests') }}
         </h2>
         <DataTable :value="pendingUsers">
             <Column field="name" :header="$t('profile.name')" sortable />
@@ -76,9 +76,9 @@
     <!-- Invite Member Dialog -->
     <Dialog v-model:visible="showInviteDialog" :header="$t('auth.inviteMember')" :style="{ width: '450px' }" modal>
         <div class="flex flex-col gap-4 pt-4">
-            <p>{{ $t('auth.inviteMemberNote') || 'Generate a unique link that a user can use to join your organization.' }}</p>
+            <p>{{ $t('auth.inviteMemberNote') }}</p>
             <div class="flex flex-col gap-2">
-                <label>Role *</label>
+                <label>{{ $t('billing.role') }} *</label>
                 <Select v-model="inviteForm.role" :options="roleOptions" optionLabel="label" optionValue="value" class="w-full" />
             </div>
             <div v-if="generatedUrl" class="mt-4">
@@ -117,7 +117,7 @@
           <Password v-model="form.password" required toggleMask class="w-full" :inputStyle="{ width: '100%' }" />
         </div>
         <div class="flex flex-col gap-2">
-          <label>Role *</label>
+          <label>{{ $t('billing.role') }} *</label>
           <Select v-model="form.role" :options="roleOptions" optionLabel="label" optionValue="value" required class="w-full" />
         </div>
         <div class="flex justify-end gap-2 mt-4">
@@ -185,13 +185,13 @@ const getInvitationUrl = (token) => {
 };
 
 const revokeInvite = async (id) => {
-    if (confirm('Are you sure you want to revoke this invitation?')) {
+    if (confirm(t('auth.revokeInvitationConfirm'))) {
         try {
             await $fetch(`/api/organizations/${authStore.userData.organizationId}/invitations/${id}`, { method: 'DELETE' });
             await loadInvitations();
-            toast.add({ severity: 'success', summary: 'Success', detail: 'Invitation revoked', life: 3000 });
+            toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.invitationRevoked'), life: 3000 });
         } catch (e) {
-            toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 });
+            toast.add({ severity: 'error', summary: t('common.error'), detail: e.message, life: 3000 });
         }
     }
 };
@@ -228,7 +228,7 @@ async function loadUsers() {
     await loadInvitations();
   } catch (error) {
     if (error.status !== 401) {
-        toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 });
     }
   } finally {
     loading.value = false;
@@ -251,7 +251,7 @@ async function generateInvite() {
         generatedUrl.value = getInvitationUrl(res.token);
         await loadInvitations();
     } catch (e) {
-        toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: e.message, life: 3000 });
     } finally {
         generatingInvite.value = false;
     }
@@ -263,16 +263,16 @@ async function confirmMembership(userId, action) {
             method: 'POST',
             body: { action, organizationId: authStore.userData.organizationId }
         });
-        toast.add({ severity: 'success', summary: 'Success', detail: `User ${action}d`, life: 3000 });
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t(`auth.membership.${action}`), life: 3000 });
         await loadUsers();
     } catch (e) {
-        toast.add({ severity: 'error', summary: 'Error', detail: e.message, life: 3000 });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: e.message, life: 3000 });
     }
 }
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text);
-    toast.add({ severity: 'success', summary: 'Copied', detail: 'Invitation link copied to clipboard', life: 2000 });
+    toast.add({ severity: 'success', summary: t('common.copied'), detail: t('auth.invitationCopied'), life: 2000 });
 }
 
 async function createUser() {
@@ -285,12 +285,12 @@ async function createUser() {
         organizationId: authStore.userData.organizationId
       }
     });
-    toast.add({ severity: 'success', summary: 'Success', detail: 'User created successfully', life: 3000 });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.userCreated'), life: 3000 });
     showCreateDialog.value = false;
     form.value = { name: '', email: '', password: '', role: 'IndividualUser' };
     await loadUsers();
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 });
   } finally {
     submitting.value = false;
   }
@@ -307,22 +307,22 @@ async function savePermissions(permissions) {
       method: 'PATCH',
       body: { permissions }
     });
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Permissions updated', life: 3000 });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.permissionsUpdated'), life: 3000 });
     showPermissionsDialog.value = false;
     await loadUsers();
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 });
   }
 }
 
 async function confirmDelete(user) {
-    if (confirm(`Are you sure you want to remove ${user.name}?`)) {
+    if (confirm(t('auth.removeUserConfirm', { name: user.name }))) {
         try {
             await $fetch(`/api/users/${user._id}`, { method: 'DELETE' });
-            toast.add({ severity: 'success', summary: 'Success', detail: 'User removed', life: 3000 });
+            toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.userRemoved'), life: 3000 });
             await loadUsers();
         } catch (error) {
-            toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
+            toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 });
         }
     }
 }

@@ -41,7 +41,7 @@ const handleCardClick = () => {
             text
             rounded
             size="small"
-            aria-label="Edit"
+            :aria-label="$t('common.edit')"
             @click="$emit('edit', project)"
           />
           <Button
@@ -51,7 +51,7 @@ const handleCardClick = () => {
             rounded
             size="small"
             severity="danger"
-            aria-label="Delete"
+            :aria-label="$t('common.delete')"
             @click="$emit('delete', project)"
           />
         </div>

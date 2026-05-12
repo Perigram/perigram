@@ -1,11 +1,11 @@
 <template>
-    <Dialog v-model:visible="visible" header="Buy Credits" modal>
+    <Dialog v-model:visible="visible" :header="$t('billing.title')" modal>
         <div class="flex flex-col gap-6 py-4">
             <Card>
                 <template #content>
                     <div class="flex justify-between items-center">
                         <div class="flex flex-col gap-1">
-                            <small>Your current balance:</small>
+                            <small>{{ $t('billing.currentBalance') }}</small>
                             <Tag :value="user.balance || 0" severity="info" />
                         </div>
                     </div>
@@ -21,7 +21,7 @@
             </div>
 
             <div v-else class="flex flex-col gap-4">
-                <label>Select a package:</label>
+                <label>{{ $t('billing.selectPackage') }}</label>
                 <Select v-model="selectedOption" :options="options" optionLabel="title" class="w-full">
                     <template #option="slotProps">
                         <div class="flex flex-col gap-1">
@@ -34,14 +34,15 @@
             </div>
         </div>
         <template #footer>
-            <Button label="Cancel" severity="secondary" text @click="$emit('close')" />
-            <Button label="Buy Now" @click="handleBuy" :disabled="!selectedOption || processing" :loading="joining" />
+            <Button :label="$t('common.cancel')" severity="secondary" text @click="$emit('close')" />
+            <Button :label="$t('billing.buyNow')" @click="handleBuy" :disabled="!selectedOption || processing" :loading="processing" />
         </template>
     </Dialog>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { storeToRefs } from 'pinia';
 import Card from 'primevue/card';
@@ -53,6 +54,7 @@ import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 
 const emit = defineEmits(['close']);
+const { t } = useI18n();
 const authStore = useAuthStore();
 const { user } = storeToRefs(authStore);
 
@@ -71,7 +73,7 @@ onMounted(async () => {
             selectedOption.value = options.value[0];
         }
     } catch (err) {
-        error.value = "Failed to load payment options.";
+        error.value = t('billing.errors.loadOptionsFailed');
     } finally {
         loading.value = false;
     }
@@ -84,7 +86,7 @@ const handleBuy = async () => {
         const data = await $fetch(`/api/payment/paywalllink?stripePriceId=${selectedOption.value.stripePriceId}`);
         window.location.href = data.url;
     } catch (err) {
-        error.value = "Failed to create payment link.";
+        error.value = t('billing.errors.createLinkFailed');
     } finally {
         processing.value = false;
     }

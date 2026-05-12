@@ -1,19 +1,19 @@
 <template>
     <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-2">
-            <label>Name</label>
+            <label>{{ $t('profile.name') }}</label>
             <InputText v-model="form.name" />
         </div>
         <div class="flex flex-col gap-2">
-            <label>Email</label>
+            <label>{{ $t('profile.email') }}</label>
             <InputText v-model="form.email" type="email" />
         </div>
         <div class="flex flex-col gap-2" v-if="!editMode">
-            <label>Password</label>
+            <label>{{ $t('profile.password') }}</label>
             <Password v-model="form.password" :feedback="false" toggleMask />
         </div>
         <div class="flex flex-col gap-2">
-            <label>Role</label>
+            <label>{{ $t('billing.role') }}</label>
             <Select 
                 v-model="form.role" 
                 :options="roles" 

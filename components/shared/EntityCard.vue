@@ -10,14 +10,14 @@
             <div class="flex flex-col gap-4 p-4 min-w-[300px]">
                 <template v-if="showTrace">
                     <div class="flex flex-col gap-1">
-                        <small class="text-muted-color">Traceability</small>
+                        <small class="text-muted-color">{{ $t('common.traceability') }}</small>
                         <TraceChain :entity="entity" />
                     </div>
                 </template>
                 <template v-if="showStatus">
                     <Divider v-if="showTrace" class="m-0" />
                     <div class="flex flex-col gap-1">
-                        <small class="text-muted-color">Status & Actions</small>
+                        <small class="text-muted-color">{{ $t('common.statusAndActions') }}</small>
                         <EntityStatus 
                             :entity="entity" 
                             :entity-type="entityType" 

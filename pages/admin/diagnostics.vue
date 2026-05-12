@@ -1,24 +1,24 @@
 <template>
     <div class="flex flex-col gap-6 p-6">
-        <h1 class="text-2xl font-bold">System Diagnostics</h1>
+        <h1 class="text-2xl font-bold">{{ $t('admin.systemDiagnostics') }}</h1>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Current User State -->
             <Card>
-                <template #title>Current User Context</template>
+                <template #title>{{ $t('admin.currentUserContext') }}</template>
                 <template #content>
                     <div class="flex flex-col gap-2 text-sm">
                         <div class="grid grid-cols-2">
-                            <span class="opacity-60">User ID:</span>
+                            <span class="opacity-60">{{ $t('admin.userId') }}:</span>
                             <span class="font-mono">{{ authStore.userData?.id }}</span>
                         </div>
                         <div class="grid grid-cols-2">
-                            <span class="opacity-60">Role:</span>
+                            <span class="opacity-60">{{ $t('billing.role') }}:</span>
                             <span class="font-bold text-primary">{{ authStore.userData?.role }}</span>
                         </div>
                         <div class="grid grid-cols-2">
-                            <span class="opacity-60">Organization Type:</span>
-                            <span>{{ authStore.organizationData?.type || 'N/A' }}</span>
+                            <span class="opacity-60">{{ $t('admin.organizationType') }}:</span>
+                            <span>{{ authStore.organizationData?.type || $t('common.notAvailable') }}</span>
                         </div>
                     </div>
                 </template>
@@ -26,15 +26,15 @@
 
             <!-- Effective UI Permissions -->
             <Card>
-                <template #title>Effective UI Permissions</template>
+                <template #title>{{ $t('admin.effectiveUiPermissions') }}</template>
                 <template #content>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead>
                                 <tr class="text-left opacity-60 text-[10px] uppercase font-black">
-                                    <th class="pb-2">Feature</th>
-                                    <th class="pb-2">Action</th>
-                                    <th class="pb-2 text-right">Allowed?</th>
+                                    <th class="pb-2">{{ $t('admin.feature') }}</th>
+                                    <th class="pb-2">{{ $t('admin.action') }}</th>
+                                    <th class="pb-2 text-right">{{ $t('admin.allowed') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -43,7 +43,7 @@
                                         <td class="py-1 font-mono text-xs">{{ feature }}</td>
                                         <td class="py-1">{{ action }}</td>
                                         <td class="py-1 text-right">
-                                            <Tag :severity="allowed ? 'success' : 'danger'" :value="allowed ? 'YES' : 'NO'" size="small" />
+                                            <Tag :severity="allowed ? 'success' : 'danger'" :value="allowed ? $t('common.yes') : $t('common.no')" size="small" />
                                         </td>
                                     </tr>
                                 </template>
@@ -55,7 +55,7 @@
         </div>
 
         <!-- Full Matrix Reference -->
-        <Panel header="Global Permission Matrix (Reference)" toggleable collapsed>
+        <Panel :header="$t('admin.globalPermissionMatrix')" toggleable collapsed>
             <pre class="text-[10px] font-mono bg-[var(--p-surface-100)] p-4 rounded-xl overflow-auto border border-[var(--p-content-border-color)]">{{ UI_PERMISSIONS }}</pre>
         </Panel>
     </div>

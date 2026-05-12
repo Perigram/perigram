@@ -32,6 +32,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from 'primevue/usetoast';
 import InputText from 'primevue/inputtext';
@@ -45,6 +46,7 @@ definePageMeta({
 const router = useRouter();
 const authStore = useAuthStore();
 const toast = useToast();
+const { t } = useI18n();
 
 const email = ref('');
 const password = ref('');
@@ -56,7 +58,7 @@ const handleLogin = async () => {
         await authStore.login(email.value, password.value);
         router.push('/');
     } catch (error) {
-        toast.add({ severity: 'error', summary: 'Error', detail: error.message || 'Login failed', life: 3000 });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error.message || t('auth.loginFailed'), life: 3000 });
     } finally {
         loading.value = false;
     }

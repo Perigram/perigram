@@ -21,7 +21,7 @@
                     <span>{{ slotProps.data.email }}</span>
                 </template>
             </Column>
-            <Column :header="$t('common.actions')" class="text-right">
+            <Column :header="$t('common.actions.title')" class="text-right">
                 <template #body="slotProps">
                     <div class="flex justify-end gap-2">
                         <Button icon="pi pi-pencil" text @click="editOrg(slotProps.data)" />
@@ -69,6 +69,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -84,6 +85,7 @@ definePageMeta({
 });
 
 const toast = useToast();
+const { t } = useI18n();
 const organizations = ref([]);
 const loading = ref(false);
 const orgDialog = ref(false);
@@ -97,7 +99,7 @@ const loadOrgs = async () => {
         const data = await $fetch('/api/organizations');
         organizations.value = data;
     } catch (error) {
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load organizations' });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: t('admin.failedToLoadOrganizations') });
     } finally {
         loading.value = false;
     }
@@ -123,18 +125,18 @@ const saveOrg = async () => {
                 method: 'PATCH',
                 body: form.value
             });
-            toast.add({ severity: 'success', summary: 'Success', detail: 'Organization updated' });
+            toast.add({ severity: 'success', summary: t('common.success'), detail: t('admin.organizationUpdated') });
         } else {
             await $fetch('/api/organizations', {
                 method: 'POST',
                 body: form.value
             });
-            toast.add({ severity: 'success', summary: 'Success', detail: 'Organization created' });
+            toast.add({ severity: 'success', summary: t('common.success'), detail: t('admin.organizationCreated') });
         }
         orgDialog.value = false;
         loadOrgs();
     } catch (error) {
-        toast.add({ severity: 'error', summary: 'Error', detail: error.message });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error.message });
     }
 };
 

@@ -24,7 +24,7 @@
                     <span>{{ formattedArea }}</span>
                 </div>
                 <div class="flex flex-col">
-                    <small>Reusability</small>
+                    <small>{{ $t('remnants.reusability') }}</small>
                     <div class="flex items-center gap-2">
                         <i :class="remnant.isReusable ? 'pi pi-check-circle' : 'pi pi-times-circle'"></i>
                         <span>{{ remnant.isReusable ? $t('common.reusable') : $t('common.waste') }}</span>

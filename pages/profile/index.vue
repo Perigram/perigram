@@ -60,7 +60,7 @@
                                         </template>
                                     </Card>
                                     <div class="pt-4 border-t border-dashed">
-                                        <p class="mb-3">Developer Tools</p>
+                                        <p class="mb-3">{{ $t('profile.developerTools') }}</p>
                                         <Button :label="$t('billing.addTestCredits')" icon="pi pi-plus" severity="secondary" text @click="addCredits" />
                                     </div>
                                 </div>
@@ -109,7 +109,7 @@
                                                 @change="onLocaleChange"
                                                 class="w-full md:w-80"
                                             />
-                                            <small>Choose your preferred interface language.</small>
+                                            <small>{{ $t('profile.languageHelp') }}</small>
                                         </div>
                                     </div>
                                 </div>
@@ -122,7 +122,7 @@
                     <div class="py-4 flex flex-col gap-6">
                         <!-- Create New Organization Button -->
                         <div class="flex justify-between items-center px-1">
-                            <h2 class="m-0">My Organizations</h2>
+                            <h2 class="m-0">{{ $t('profile.myOrganizations') }}</h2>
                             <Button :label="$t('auth.createOrg')" icon="pi pi-plus" @click="showCreateOrgDialog = true" />
                         </div>
 
@@ -139,8 +139,8 @@
                                     <div class="flex items-center justify-between mb-4">
                                         <span class="text-lg">{{ getOrgName(membership.organizationId) }}</span>
                                         <div class="flex gap-2">
-                                            <Tag v-if="membership.status === 'pending'" value="PENDING" severity="warn" />
-                                            <Tag v-if="membership.organizationId === authStore.userData.organizationId" value="ACTIVE" severity="success" />
+                                            <Tag v-if="membership.status === 'pending'" :value="$t('common.pending')" severity="warn" />
+                                            <Tag v-if="membership.organizationId === authStore.userData.organizationId" :value="$t('common.active')" severity="success" />
                                         </div>
                                     </div>
                                     <div class="flex flex-col gap-3 py-2">
@@ -149,11 +149,11 @@
                                             <span>{{ membership.role }}</span>
                                         </div>
                                         <div v-if="membership.status === 'pending'" class="mt-2 py-2 italic opacity-60">
-                                            Your membership request is awaiting administrator confirmation.
+                                            {{ $t('profile.membershipPending') }}
                                         </div>
                                         <div v-else class="flex justify-between items-center mt-2 pt-2 border-t border-muted border-dashed">
-                                            <Button v-if="membership.role.includes('Admin')" label="Manage Team" icon="pi pi-users" text size="small" @click.stop="router.push('/organization/users')" />
-                                            <Button v-else label="View Organization" icon="pi pi-building" text size="small" />
+                                            <Button v-if="membership.role.includes('Admin')" :label="$t('profile.manageTeam')" icon="pi pi-users" text size="small" @click.stop="router.push('/organization/users')" />
+                                            <Button v-else :label="$t('profile.viewOrganization')" icon="pi pi-building" text size="small" />
                                         </div>
                                     </div>
                                 </template>
@@ -231,7 +231,7 @@ definePageMeta({
 
 const router = useRouter();
 const toast = useToast();
-const { locale, locales, setLocale } = useI18n();
+const { t, locale, locales, setLocale } = useI18n();
 
 const authStore = useAuthStore();
 const { user: userRef } = storeToRefs(authStore);
@@ -243,7 +243,7 @@ const submittingOrg = ref(false);
 
 const getOrgName = (orgId) => {
     const org = authStore.userOrganizations.find(o => o._id.toString() === orgId.toString());
-    return org ? org.name : 'Unknown Organization';
+    return org ? org.name : t('profile.unknownOrganization');
 };
 
 const orgForm = ref({
@@ -253,9 +253,9 @@ const orgForm = ref({
 });
 
 const orgTypeOptions = [
-    { label: 'Contractor', value: 'Contractor' },
-    { label: 'Manufacturer', value: 'Manufacturer' },
-    { label: 'Customer', value: 'Customer' },
+    { label: t('auth.orgTypes.contractor'), value: 'Contractor' },
+    { label: t('auth.orgTypes.manufacturer'), value: 'Manufacturer' },
+    { label: t('auth.orgTypes.customer'), value: 'Customer' },
 ];
 
 const createOrganization = async () => {
@@ -265,12 +265,12 @@ const createOrganization = async () => {
             method: 'POST',
             body: orgForm.value
         });
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Organization created successfully', life: 3000 });
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.organizationCreated'), life: 3000 });
         showCreateOrgDialog.value = false;
         // Refresh auth state to get new organization and role
         await authStore.setUser();
     } catch (error) {
-        toast.add({ severity: 'error', summary: 'Error', detail: error.message || 'Failed to create organization', life: 3000 });
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error.message || t('auth.organizationCreateFailed'), life: 3000 });
     } finally {
         submittingOrg.value = false;
     }
