@@ -4,7 +4,7 @@ This directory contains Vue components used in the Cutkit-Demo application.
 
 ## Style Guide
 - **PrimeVue:** All components MUST use PrimeVue for UI elements (buttons, inputs, tables, dialogs).
-- **Zero Styling Policy:** Components MUST avoid manual styling (colors, text sizes, backgrounds, etc.). Rely on PrimeVue theme presets. No custom CSS except for layout purposes.
+- **Zero Styling Policy:** Components MUST avoid manual styling (colors, text sizes, backgrounds, etc.). Rely on PrimeVue theme presets and `assets/tokens/` projections. No custom CSS except for layout purposes.
 - **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).
 - **Standard Components:** Create reusable components for common UI patterns (cards, modals, forms, tables) and use them consistently across the app. See [components/shared/README.md](./shared/README.md) for the full list.
 - **Use Variants:** Components should support different visual variants (`inline`, `compact`, `card`) to ensure flexibility in different contexts.
@@ -34,6 +34,12 @@ entity key, component prop name, variants, status policy, trace policy, factory 
 `utils/design-system.js` attaches Vue components and factories to that contract.
 
 `pages/test/ui-lab.vue` renders from this manifest. When adding or renaming an entity card, update the manifest and its DTO factory instead of hand-editing UI lab sections.
+
+## Visual Tokens
+
+`assets/tokens/index.js` is the source for app-level visual tokens. Tailwind aliases, PrimeVue component overrides, and global `--ck-*` CSS variables must stay aligned with it.
+
+Use token-backed classes such as `max-w-app`, PrimeVue semantic classes, and shared layout helpers (`grid-hub`, `grid-details`) instead of local arbitrary max-widths, colors, radii, or transition durations.
 
 ## Composables Rule
 

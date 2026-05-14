@@ -42,10 +42,10 @@
 ## Hubs (components/hubs/)
 - [ ] BatchesTab.vue
 - [ ] CatalogsTab.vue
-- [ ] CatalogsTab.v23.vue
+- [x] CatalogsTab.v23.vue removed after import scan
 - [ ] RemnantsTab.vue
 - [ ] RequisitionsTab.vue
-- [ ] RequisitionsTab.v23.vue
+- [x] RequisitionsTab.v23.vue removed after import scan
 - [ ] SheetsTab.vue
 - [ ] WarehouseHub.vue
 

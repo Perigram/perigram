@@ -362,3 +362,28 @@
     - Converted standard user/organization CRUD/list calls in used Vue pages to `useEntity`; remaining direct `$fetch` calls are custom workflows such as invitations, permissions, support, uploads, payment, artifact download/delete, or project-scoped queue listings.
     - Fixed `SheetDetail` specs reading by deriving width/length from `sheet.specs`/`sheet.data.specs` instead of non-existent `useSpecs().width/length`.
     - Verified direct Card/Dialog scan is clean outside shared wrappers and touched Vue SFCs parse successfully.
+
+*** Agent Notes
+    [2026-05-14] Centralize frontend visual tokens and cleanup legacy Vue files
+    Files changed:
+    - assets/tokens/index.js
+    - assets/presets/re_l.js
+    - assets/css/main.css
+    - tailwind.config.js
+    - components/shared/StandardPage.vue
+    - shared/design-system.spec.js
+    - components/CassetteDesigner.old.vue
+    - components/hubs/CatalogsTab.v23.vue
+    - components/hubs/RequisitionsTab.v23.vue
+    Docs updated:
+    - assets/README.md
+    - assets/tokens/README.md
+    - docs/DESIGN_SYSTEM.md
+    - components/README.md
+    - components/shared/README.md
+    - docs/archive/TODO_STYLING.md
+    - TODO.org
+    Notes:
+    - Added a single token module that projects app tokens to PrimeVue and Tailwind while keeping color roles backed by PrimeVue semantic variables.
+    - Added design-system guard tests for token projections, raw Card/Dialog ownership, and useBlocks isolation.
+    - Removed legacy Vue files after import/routing scans confirmed no live references.

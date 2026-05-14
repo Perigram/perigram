@@ -15,7 +15,7 @@ Entity cards and page components must NEVER import from `useBlocks.js` directly.
 |---|---|
 | `const { name } = useIdentity(entity)` | `const { name } = useIdentity(project)` |
 
-**Exception:** `useStatus` in an entity card is acceptable **only** for reading `state` to drive a `v-if` conditional. Never for display.
+State-only conditionals in entity cards should use a local `computed` from `entity.status?.state`. Do not import `useStatus` outside shared status/block primitives.
 
 ---
 
@@ -106,6 +106,8 @@ Props: `:entity`, `entity-type`.
 - **`EntityCard.vue`**: Shared entity card chrome built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`). Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome.
 
 Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, and `Panel` for non-entity sections.
+
+Shared wrappers also own token-backed visual chrome. When a wrapper needs a new width, radius, spacing, or motion value, add it to `assets/tokens/index.js` and project it through Tailwind or CSS variables instead of hardcoding it in feature components.
 
 ## Demo Contract
 

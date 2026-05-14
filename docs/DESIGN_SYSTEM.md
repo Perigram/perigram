@@ -1,32 +1,34 @@
 # CutKit Design System
 
-## Source of Truth
+## Source Of Truth
 
-The frontend design-system contract is manifest-driven:
+CutKit uses PrimeVue 4, Tailwind utilities, and a small app token layer. The design system is code-driven:
 
-- `utils/design-system-contract.js` defines entity metadata without Vue imports.
-- `utils/design-system.js` binds that metadata to Vue card components and DTO factories.
-- `test-data/factories.js` provides DTO-shaped examples.
-- `/test/ui-lab` renders directly from the manifest.
+- `assets/tokens/index.js` owns semantic app tokens and exports PrimeVue/Tailwind projections.
+- `assets/presets/re_l.js` is the PrimeVue preset and consumes component token overrides.
+- `tailwind.config.js` exposes semantic Tailwind aliases backed by PrimeVue `--p-*` and CutKit `--ck-*` variables.
+- `assets/css/main.css` declares runtime `--ck-*` variables and only global layout helpers.
+- `utils/design-system-contract.js` defines the entity card/demo contract.
+- `/test/ui-lab` renders directly from that contract and `test-data/factories.js`.
 
-New entity cards must be added to the manifest before they appear in UI lab.
+## Token Policy
 
-## Entity Card Contract
+Use PrimeVue semantic variables for color and component state. Use CutKit `--ck-*` tokens for app layout, radius, and motion values that PrimeVue does not own.
 
-Every entity card should support:
+Allowed local hardcoded visual values are limited to real data, such as pen stroke colors, DXF layer colors, or uploaded asset metadata. Page-local decorative colors, radii, animation durations, and max-widths must be promoted to tokens or removed.
 
-- `variant="inline"`
-- `variant="compact"`
-- `variant="card"`
+## Component Contract
 
-Cards use shared primitives for standard blocks:
+Entity cards support `variant="inline"`, `variant="compact"`, and `variant="card"`.
 
-- `IdentityBlock` for `identity`
-- `EntityStatus` or `StatusBadge` for `status`
-- `TraceChain` for `lineage`
-- `SpecsBlock` for physical dimensions
-- `DataBlock` for entity-specific label/value fields
-- `EntityCard` for card chrome
+Shared ownership:
+
+- `EntityCard` owns card chrome and is the only non-legacy direct owner of PrimeVue `Card`.
+- `StandardDialog` owns dialog chrome and is the only direct owner of PrimeVue `Dialog`.
+- `StandardPage` owns page shell width and spacing.
+- `IdentityBlock`, `EntityStatus`, `StatusBadge`, `TraceChain`, `SpecsBlock`, and `DataBlock` own v24 block visualization.
+
+Feature pages/components should compose these primitives with PrimeVue form/table controls and semantic layout classes. They should not import `primevue/card`, `primevue/dialog`, or `useBlocks` directly.
 
 ## DTO Contract
 
@@ -44,20 +46,13 @@ Required v24 blocks:
 
 Hoisted aliases are allowed only when current model/service DTOs emit them.
 
-## Legacy Quarantine
+## Cleanup Policy
 
-Legacy/demo surfaces are excluded from the manifest until intentionally migrated:
-
-- `components/**/*.v23.vue`
-- `components/CassetteDesigner.old.vue`
-- archived styling notes under `docs/archive/`
-- one-off diagnostics pages not intended as design-system examples
-
-Do not delete quarantined files without a separate import check and cleanup task.
+Legacy files are deleted only after import/routing scans prove they are unused. One-off diagnostics pages may exist outside the design-system manifest, but they must still use shared wrappers and token rules when they are routed.
 
 ## Verification
 
-Run the focused contract check after changing manifest/factories:
+Run the focused contract check after changing tokens, wrappers, manifest, or factories:
 
 ```bash
 npx vitest run shared/design-system.spec.js
