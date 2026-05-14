@@ -3,7 +3,7 @@
     <template v-if="variant === 'inline'">
       <Chip>
         <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: standard.metadata?.color || 'var(--p-content-border-color)' }" />
-        <span>{{ standard.identity?.serial || standard.code }}</span>
+        <IdentityBlock :entity="standard" variant="compact" />
       </Chip>
     </template>
 

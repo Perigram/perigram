@@ -3,7 +3,7 @@
     <template v-if="variant === 'inline'">
       <Chip>
         <div class="w-3 h-3 rounded-full shrink-0" :style="swatchStyle" />
-        <span>{{ color.identity?.name }}</span>
+        <IdentityBlock :entity="color" variant="compact" />
       </Chip>
     </template>
 
@@ -16,7 +16,7 @@
             </div>
         </template>
         <template #subtitle>
-            <small>{{ color.identity?.serial || hexCode || '—' }}</small>
+            <small>{{ color.serial || hexCode || '—' }}</small>
         </template>
       </EntityCard>
     </template>

@@ -135,7 +135,12 @@
     "installed": "Installed",
     "inCutting": "In Cutting",
     "milled": "Milled",
-    "ready": "Ready"
+    "ready": "Ready",
+    "active": "Active",
+    "available": "Available",
+    "nesting": "Nesting",
+    "generating": "Generating",
+    "scrap": "Scrap"
   },
   "dashboard": {
     "welcome": "Welcome to CutKit",
@@ -544,7 +549,42 @@
     "hoursShort": "{count}h",
     "minutesShort": "{count}m",
     "secondsShort": "{count}s",
-    "selectChatPrompt": "Select a chat from the list to start messaging"
+    "selectChatPrompt": "Select a chat from the list to start messaging",
+    "dataModelReview": {
+      "title": "Data Model Review",
+      "subtitle": "Review generated entity fields, flag bad extraction output, and export a refactoring plan.",
+      "exportPlan": "Export Plan",
+      "filters": "Filters",
+      "collections": "Collections",
+      "flagged": "Flagged",
+      "annotated": "Annotated",
+      "visible": "Visible",
+      "flaggedSummary": "{count} generated fields need review.",
+      "issueCount": "{count} flags",
+      "field": "Field",
+      "source": "Source",
+      "flags": "Flags",
+      "decision": "Decision",
+      "target": "Target",
+      "targetPlaceholder": "identity.serial, specs.width, data.name...",
+      "allCollections": "All collections",
+      "loadFailed": "Failed to load data models",
+      "planTitle": "# Data Model Refactoring Review",
+      "generated": "Generated",
+      "decisions": {
+        "unchecked": "Unchecked",
+        "keep": "Keep",
+        "remove": "Remove",
+        "rename": "Rename",
+        "move": "Move",
+        "investigate": "Investigate"
+      },
+      "issueFilters": {
+        "all": "All fields",
+        "flagged": "Flagged only",
+        "annotated": "Annotated only"
+      }
+    }
   },
   "billing": {
     "title": "Billing",
@@ -738,11 +778,51 @@
     "name": "Batch Name"
   },
   "uiLab": {
-    "title": "UI LAB v24",
+    "title": "Design System Lab",
+    "subtitle": "Manifest-driven demo of entity cards, shared primitives, DTO contracts, and theme behavior.",
+    "groups": {
+      "production": "Production",
+      "material": "Material",
+      "master": "Master Data",
+      "system": "System"
+    },
+    "sections": {
+      "primitives": "Primitives",
+      "contract": "Contract"
+    },
     "variants": {
       "card": "Card",
       "compact": "Compact",
       "inline": "Inline"
+    },
+    "statusPolicy": {
+      "interactive": "Interactive status",
+      "hidden": "Status hidden",
+      "readonly": "Read-only status"
+    },
+    "tracePolicy": {
+      "enabled": "Trace enabled",
+      "hidden": "Trace hidden"
+    },
+    "primitives": {
+      "identity": "Identity",
+      "status": "Status & history",
+      "trace": "Trace chain",
+      "data": "Specs & data"
+    },
+    "contract": {
+      "title": "Manifest health",
+      "entities": "Entities",
+      "variants": "Variants",
+      "issues": "Issues",
+      "source": "Source",
+      "entity": "Entity",
+      "entityType": "Entity type",
+      "prop": "Prop",
+      "status": "Status",
+      "trace": "Trace",
+      "docs": "Docs",
+      "ok": "Manifest contract is complete."
     },
     "statusHistory": "Status History",
     "traceabilityChain": "Traceability (Lineage Chain)",
@@ -751,6 +831,29 @@
     "dashboardVariant": "Dashboard Variant",
     "listVariant": "List Variant",
     "minimalVariant": "Minimal Variant"
+  },
+  "entities": {
+    "project": "Project",
+    "queue": "Queue",
+    "nestingRun": "Nesting Run",
+    "sheetDesign": "Sheet Design",
+    "cassetteDesign": "Cassette Design",
+    "cassetteTemplate": "Cassette Template",
+    "cassetteInstance": "Cassette Instance",
+    "requisition": "Requisition",
+    "materialPile": "Material Pile",
+    "batchPile": "Batch Pile",
+    "sheet": "Physical Sheet",
+    "remnant": "Remnant",
+    "catalog": "Material Catalog",
+    "color": "Finish Color",
+    "warehouse": "Warehouse",
+    "toolProfile": "Tool Profile",
+    "penTemplate": "Pen Template",
+    "layerStandard": "Layer Standard",
+    "user": "User Profile",
+    "organization": "Organization",
+    "artifact": "Artifact"
   },
   "queue": {
     "title": "Queues",
@@ -878,6 +981,7 @@
     "pens": "Pens",
     "layerStandards": "Layer Standards",
     "tools": "Tools",
+    "toolsSubtitle": "Manage CNC tool geometry and kerf profiles.",
     "newPen": "New Pen",
     "newTool": "New Tool",
     "layers": {

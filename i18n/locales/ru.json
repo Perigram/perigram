@@ -135,7 +135,12 @@
     "installed": "Установлено",
     "inCutting": "В резке",
     "milled": "Фрезеровано",
-    "ready": "Готово"
+    "ready": "Готово",
+    "active": "Активно",
+    "available": "Доступно",
+    "nesting": "Раскрой",
+    "generating": "Генерируется",
+    "scrap": "Списано"
   },
   "dashboard": {
     "welcome": "Добро пожаловать в CutKit",
@@ -544,7 +549,42 @@
     "hoursShort": "{count}ч",
     "minutesShort": "{count}м",
     "secondsShort": "{count}с",
-    "selectChatPrompt": "Выберите чат из списка, чтобы начать общение"
+    "selectChatPrompt": "Выберите чат из списка, чтобы начать общение",
+    "dataModelReview": {
+      "title": "Проверка модели данных",
+      "subtitle": "Проверьте сгенерированные поля сущностей, отметьте ошибки извлечения и экспортируйте план рефакторинга.",
+      "exportPlan": "Экспорт плана",
+      "filters": "Фильтры",
+      "collections": "Коллекции",
+      "flagged": "С флагами",
+      "annotated": "Размечено",
+      "visible": "Видимо",
+      "flaggedSummary": "{count} сгенерированных полей требуют проверки.",
+      "issueCount": "{count} флагов",
+      "field": "Поле",
+      "source": "Источник",
+      "flags": "Флаги",
+      "decision": "Решение",
+      "target": "Цель",
+      "targetPlaceholder": "identity.serial, specs.width, data.name...",
+      "allCollections": "Все коллекции",
+      "loadFailed": "Не удалось загрузить модели данных",
+      "planTitle": "# Проверка рефакторинга модели данных",
+      "generated": "Сгенерировано",
+      "decisions": {
+        "unchecked": "Не проверено",
+        "keep": "Оставить",
+        "remove": "Удалить",
+        "rename": "Переименовать",
+        "move": "Перенести",
+        "investigate": "Проверить"
+      },
+      "issueFilters": {
+        "all": "Все поля",
+        "flagged": "Только с флагами",
+        "annotated": "Только размеченные"
+      }
+    }
   },
   "billing": {
     "title": "Биллинг",
@@ -738,11 +778,51 @@
     "name": "Название партии"
   },
   "uiLab": {
-    "title": "UI LAB v24",
+    "title": "Лаборатория дизайн-системы",
+    "subtitle": "Демо сущностей, общих блоков, DTO-контрактов и темы на основе манифеста.",
+    "groups": {
+      "production": "Производство",
+      "material": "Материалы",
+      "master": "Справочники",
+      "system": "Система"
+    },
+    "sections": {
+      "primitives": "Примитивы",
+      "contract": "Контракт"
+    },
     "variants": {
       "card": "Карточка",
       "compact": "Компактный",
       "inline": "Строковый"
+    },
+    "statusPolicy": {
+      "interactive": "Интерактивный статус",
+      "hidden": "Статус скрыт",
+      "readonly": "Статус только для чтения"
+    },
+    "tracePolicy": {
+      "enabled": "Трассировка включена",
+      "hidden": "Трассировка скрыта"
+    },
+    "primitives": {
+      "identity": "Идентичность",
+      "status": "Статус и история",
+      "trace": "Цепочка происхождения",
+      "data": "Характеристики и данные"
+    },
+    "contract": {
+      "title": "Состояние манифеста",
+      "entities": "Сущности",
+      "variants": "Варианты",
+      "issues": "Проблемы",
+      "source": "Источник",
+      "entity": "Сущность",
+      "entityType": "Тип сущности",
+      "prop": "Prop",
+      "status": "Статус",
+      "trace": "Трассировка",
+      "docs": "Документация",
+      "ok": "Контракт манифеста полный."
     },
     "statusHistory": "История статусов",
     "traceabilityChain": "Трассируемость (цепочка происхождения)",
@@ -751,6 +831,29 @@
     "dashboardVariant": "Вариант для панели",
     "listVariant": "Вариант для списка",
     "minimalVariant": "Минимальный вариант"
+  },
+  "entities": {
+    "project": "Проект",
+    "queue": "Очередь",
+    "nestingRun": "Запуск раскроя",
+    "sheetDesign": "Дизайн листа",
+    "cassetteDesign": "Дизайн кассеты",
+    "cassetteTemplate": "Шаблон кассеты",
+    "cassetteInstance": "Экземпляр кассеты",
+    "requisition": "Заявка",
+    "materialPile": "Стопка материала",
+    "batchPile": "Стопка партии",
+    "sheet": "Физический лист",
+    "remnant": "Остаток",
+    "catalog": "Каталог материала",
+    "color": "Цвет отделки",
+    "warehouse": "Склад",
+    "toolProfile": "Профиль инструмента",
+    "penTemplate": "Шаблон пера",
+    "layerStandard": "Стандарт слоя",
+    "user": "Профиль пользователя",
+    "organization": "Организация",
+    "artifact": "Артефакт"
   },
   "queue": {
     "title": "Очереди",
@@ -878,6 +981,7 @@
     "pens": "Перья",
     "layerStandards": "Стандарты слоёв",
     "tools": "Фрезы",
+    "toolsSubtitle": "Управление геометрией инструмента и профилями реза.",
     "newPen": "Новое перо",
     "newTool": "Новая фреза",
     "layers": {

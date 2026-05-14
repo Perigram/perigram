@@ -3,7 +3,7 @@
     <template v-if="variant === 'inline'">
       <Chip>
         <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: pen.stroke?.color || 'var(--p-content-border-color)' }" />
-        <span>{{ pen.identity?.name }}</span>
+        <IdentityBlock :entity="pen" variant="compact" />
       </Chip>
     </template>
 
@@ -25,12 +25,18 @@
       <EntityCard :entity="pen" entity-type="pen_template" variant="card" class="card-interactive" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex justify-between items-center gap-4">
-                <IdentityBlock :entity="pen" />
+                <div class="flex items-center gap-2 min-w-0">
+                    <IdentityBlock :entity="pen" />
+                    <Tag v-if="!pen.ownerId" :value="$t('assets.system')" severity="info" size="small" />
+                </div>
                 <div class="w-8 h-8 rounded-full border shrink-0" :style="{ backgroundColor: pen.stroke?.color || 'var(--p-content-border-color)' }"></div>
             </div>
         </template>
         <Divider />
         <DataBlock :entity="pen" :fields="FIELDS" />
+        <template #footer>
+            <slot name="footer" />
+        </template>
       </EntityCard>
     </template>
   </div>

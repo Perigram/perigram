@@ -18,7 +18,7 @@
             </div>
         </template>
         <template #subtitle>
-            <small>{{ template.definition?.type }}</small>
+            <small>{{ templateType }}</small>
         </template>
       </EntityCard>
     </template>
@@ -34,12 +34,12 @@
             </div>
         </template>
         <template #subtitle>
-            <small>{{ template.definition?.type }}</small>
+            <small>{{ templateType }}</small>
         </template>
         <Divider />
         <CassetteThumbnail :cassette="template" />
         <div class="flex flex-wrap gap-2 mt-2">
-            <Tag v-for="param in template.definition?.parameters" :key="param" :value="param" severity="secondary" size="small" />
+            <Tag v-for="param in templateParameters" :key="param" :value="param" severity="secondary" size="small" />
         </div>
         <template #footer>
             <div class="flex gap-2">
@@ -59,6 +59,7 @@
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
+import { computed } from 'vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
@@ -70,4 +71,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['create-instance', 'download']);
+
+const templateType = computed(() => props.template.type || props.template.data?.type || props.template.definition?.type || '');
+const templateParameters = computed(() => props.template.parameters || props.template.data?.parameters || props.template.definition?.parameters || []);
 </script>

@@ -2,8 +2,8 @@
   <div :class="[`variant-${variant}`]">
     <template v-if="variant === 'inline'">
       <Chip>
-        <Avatar :label="organization.identity?.name?.charAt(0)" shape="circle" size="small" />
-        <span>{{ organization.identity?.name }}</span>
+        <Avatar :label="avatarLabel" shape="circle" size="small" />
+        <IdentityBlock :entity="organization" variant="compact" />
       </Chip>
     </template>
 
@@ -11,7 +11,7 @@
       <EntityCard :entity="organization" entity-type="organization" variant="compact" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex items-center gap-4">
-                <Avatar :label="organization.identity?.name?.charAt(0)" shape="circle" />
+                <Avatar :label="avatarLabel" shape="circle" />
                 <IdentityBlock :entity="organization" variant="compact" />
             </div>
         </template>
@@ -22,7 +22,7 @@
       <EntityCard :entity="organization" entity-type="organization" variant="card" :show-trace="false" :show-status="false">
         <template #title>
             <div class="flex items-center gap-4">
-                <Avatar :label="organization.identity?.name?.charAt(0)" shape="circle" size="large" />
+                <Avatar :label="avatarLabel" shape="circle" size="large" />
                 <IdentityBlock :entity="organization" />
             </div>
         </template>
@@ -61,6 +61,8 @@ const props = defineProps({
   organization: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
+
+const avatarLabel = computed(() => (props.organization.name || props.organization.identity?.name || '?').charAt(0));
 
 const createdAt = computed(() => {
     const ts = props.organization.lineage?.createdAt || props.organization.origin?.timestamp;

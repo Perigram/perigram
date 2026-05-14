@@ -1,62 +1,46 @@
 <template>
-  <Panel class="variant-showcase-panel">
-    <template #header>
-      <div class="flex flex-col">
-        <h3 class="text-xl font-black uppercase tracking-widest">{{ title }}</h3>
-        <p class="text-xs opacity-50 font-bold uppercase tracking-[0.2em]">{{ subtitle }}</p>
-      </div>
-    </template>
+  <div class="flex flex-col gap-6">
+    <header class="flex flex-col gap-2 border-b pb-4">
+      <h1 class="m-0">{{ $t('uiLab.sections.primitives') }}</h1>
+      <p class="m-0 text-muted-color">{{ $t('uiLab.subtitle') }}</p>
+    </header>
 
-    <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 pt-4">
-      <!-- Card Variant Column -->
-      <div class="xl:col-span-5 flex flex-col gap-4">
-        <div class="flex items-center gap-2 opacity-40">
-          <Badge value="CARD" severity="primary" size="small" />
-          <span class="text-[9px] font-black uppercase tracking-widest">{{ $t('uiLab.dashboardVariant') }}</span>
-        </div>
-        <div class="flex-grow">
-           <slot />
-        </div>
-      </div>
-
-      <!-- Other Variants Column -->
-      <div class="xl:col-span-7 flex flex-col gap-8">
-        <!-- Compact Variant -->
-        <div v-if="$slots.compact" class="flex flex-col gap-4">
-          <div class="flex items-center gap-2 opacity-40">
-            <Badge value="COMPACT" severity="secondary" size="small" />
-            <span class="text-[9px] font-black uppercase tracking-widest">{{ $t('uiLab.listVariant') }}</span>
+    <DataTable :value="rows" size="small">
+      <Column :header="$t('uiLab.contract.entity')">
+        <template #body="{ data }">
+          <div class="flex flex-col">
+            <span>{{ $t(data.labelKey) }}</span>
+            <small class="text-muted-color">{{ data.entityType }}</small>
           </div>
-          <slot name="compact" />
-        </div>
-
-        <!-- Inline Variant -->
-        <div v-if="$slots.inline" class="flex flex-col gap-4">
-          <div class="flex items-center gap-2 opacity-40">
-            <Badge value="INLINE" severity="success" size="small" />
-            <span class="text-[9px] font-black uppercase tracking-widest">{{ $t('uiLab.minimalVariant') }}</span>
+        </template>
+      </Column>
+      <Column :header="$t('uiLab.variants.inline')">
+        <template #body="{ data }">
+          <component :is="data.component" v-bind="data.props" variant="inline" />
+        </template>
+      </Column>
+      <Column :header="$t('uiLab.variants.compact')">
+        <template #body="{ data }">
+          <component :is="data.component" v-bind="data.props" variant="compact" />
+        </template>
+      </Column>
+      <Column :header="$t('uiLab.variants.card')">
+        <template #body="{ data }">
+          <div class="max-w-sm">
+            <component :is="data.component" v-bind="data.props" variant="card" />
           </div>
-          <div class="p-4 border-2 border-dashed rounded-2xl flex items-center justify-center opacity-80">
-             <slot name="inline" />
-          </div>
-        </div>
-      </div>
-    </div>
-  </Panel>
+        </template>
+      </Column>
+    </DataTable>
+  </div>
 </template>
 
 <script setup>
-import Panel from 'primevue/panel';
-import Badge from 'primevue/badge';
+definePageMeta({ layout: 'ui-lab-layout' });
 
-defineProps({
-  title: { type: String, required: true },
-  subtitle: { type: String, default: '' }
-});
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import { createDesignSystemDemoRows } from '~/utils/design-system.js';
+
+const rows = createDesignSystemDemoRows();
 </script>
-
-<style scoped>
-:deep(.p-panel-content) {
-  padding: 2rem !important;
-}
-</style>
