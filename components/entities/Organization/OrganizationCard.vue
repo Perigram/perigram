@@ -27,14 +27,11 @@
             </div>
         </template>
         <template #subtitle>
-            <small>{{ organization.type || 'Standard' }}</small>
+            <small>{{ organization.data?.type || organization.type || $t('common.default') }}</small>
         </template>
         <Divider />
         <div class="flex flex-col gap-2">
-            <div class="flex justify-between items-center">
-                <small>{{ $t('organization.type') }}</small>
-                <Tag :value="organization.type || '—'" severity="secondary" size="small" />
-            </div>
+            <DataBlock :entity="organization" :fields="ORGANIZATION_FIELDS" />
             <div v-if="createdAt" class="flex justify-between items-center">
                 <small>{{ $t('common.created') }}</small>
                 <span>{{ createdAt }}</span>
@@ -51,10 +48,10 @@
  */
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
-import Tag from 'primevue/tag';
 import Avatar from 'primevue/avatar';
 import Chip from 'primevue/chip';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 
 const props = defineProps({
@@ -63,6 +60,12 @@ const props = defineProps({
 });
 
 const avatarLabel = computed(() => (props.organization.name || props.organization.identity?.name || '?').charAt(0));
+
+const ORGANIZATION_FIELDS = [
+  { path: 'data.type', i18n: 'organization.type' },
+  { path: 'data.email', i18n: 'profile.email' },
+  { path: 'data.phone', i18n: 'profile.phone' }
+];
 
 const createdAt = computed(() => {
     const ts = props.organization.lineage?.createdAt || props.organization.origin?.timestamp;

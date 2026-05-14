@@ -21,8 +21,8 @@
         </template>
         <template #subtitle>
           <div class="flex items-center gap-2">
-            <Tag v-if="pile.specs?.thickness" :value="`${pile.specs.thickness}mm`" severity="secondary" size="small" />
-            <small v-if="pile.stock">{{ remaining }} / {{ pile.stock.total }} remaining</small>
+            <Tag v-if="sheetThickness" :value="`${sheetThickness}mm`" severity="secondary" size="small" />
+            <small v-if="stock">{{ remaining }} / {{ stock.total }}</small>
           </div>
         </template>
       </EntityCard>
@@ -41,10 +41,12 @@
         </template>
         <template #subtitle>
           <div class="flex items-center gap-2">
-            <Tag v-if="pile.specs?.thickness" :value="`${pile.specs.thickness}mm`" severity="secondary" size="small" />
-            <small v-if="pile.stock">{{ remaining }} / {{ pile.stock.total }} remaining</small>
+            <Tag v-if="sheetThickness" :value="`${sheetThickness}mm`" severity="secondary" size="small" />
+            <small v-if="stock">{{ remaining }} / {{ stock.total }}</small>
           </div>
         </template>
+        <Divider />
+        <DataBlock :entity="pile" :fields="PILE_FIELDS" />
       </EntityCard>
     </template>
   </div>
@@ -53,7 +55,9 @@
 <script setup>
 import { computed } from 'vue';
 import Tag from 'primevue/tag';
+import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 
@@ -62,5 +66,13 @@ const props = defineProps({
     variant: { type: String, default: 'card' }
 });
 
-const remaining = computed(() => (props.pile.stock?.total || 0) - (props.pile.stock?.used || 0));
+const PILE_FIELDS = [
+    { path: 'data.specs.sheetThickness', i18n: 'catalog.sheetThickness', suffix: ' mm' },
+    { path: 'data.stock.total', i18n: 'piles.stockTotal' },
+    { path: 'data.stock.used', i18n: 'piles.stockUsed' }
+];
+
+const stock = computed(() => props.pile.data?.stock || props.pile.stock || null);
+const sheetThickness = computed(() => props.pile.data?.specs?.sheetThickness || props.pile.specs?.sheetThickness || null);
+const remaining = computed(() => (stock.value?.total || 0) - (stock.value?.used || 0));
 </script>

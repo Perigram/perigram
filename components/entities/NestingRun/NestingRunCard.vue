@@ -7,6 +7,7 @@ import Divider from 'primevue/divider';
 import Button from 'primevue/button';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import ArtifactCard from '../Artifact/ArtifactCard.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import { useAuthStore } from '~/stores/auth';
@@ -27,6 +28,11 @@ const canManage = computed(() => authStore.can('queues', 'edit'));
 const state = computed(() => props.run.status?.state || props.run.state || 'UNKNOWN');
 const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
 const artifactType = (artifact) => artifact.data?.type || '';
+const RUN_FIELDS = [
+    { path: 'data.results.sheetCount', i18n: 'results.sheets' },
+    { path: 'data.results.efficiency', i18n: 'sheetDesign.utilization', suffix: '%' },
+    { path: 'data.results.remnantArea', i18n: 'results.area', suffix: ' m²' }
+];
 const statusActions = computed(() => {
     if (!canManage.value || state.value !== 'COMPLETE') return [];
     return [{ label: 'Choose', to: 'CHOSEN', icon: 'pi pi-check-circle', severity: 'success', command: () => emit('choose', props.run._id) }];
@@ -69,17 +75,7 @@ const statusActions = computed(() => {
         <div class="flex flex-col gap-4">
             <!-- Results -->
             <div v-if="isComplete" class="flex flex-col gap-2">
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-1">
-                        <i class="pi pi-clone text-sm"></i>
-                        <span class="text-sm">{{ run.results?.sheetCount || 0 }} Sheets</span>
-                    </div>
-                    <div v-if="run.results?.efficiency" class="flex items-center gap-1">
-                        <i class="pi pi-chart-bar text-sm"></i>
-                        <span class="text-sm">{{ run.results.efficiency.toFixed(1) }}%</span>
-                    </div>
-                </div>
-
+                <DataBlock :entity="run" :fields="RUN_FIELDS" />
                 <div class="flex flex-wrap gap-1">
                     <ArtifactCard 
                         v-for="artifact in [...artifacts].sort((a,b) => (artifactType(a) === 'LAYOUT_DXF' ? -1 : 1))" 
@@ -96,7 +92,7 @@ const statusActions = computed(() => {
                 <i class="pi pi-spin pi-spinner"></i>
             </div>
             <div v-else-if="state === 'ERROR'" class="text-sm italic text-muted-color">
-                Nesting failed
+                {{ $t('results.failed') }}
             </div>
         </div>
         <template #footer>

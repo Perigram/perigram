@@ -32,7 +32,9 @@
     "filter": "Filter",
     "details": "Details",
     "name": "Name",
+    "default": "Default",
     "description": "Description",
+    "reference": "Reference",
     "area": "Area",
     "terms": "Terms",
     "metadata": "Metadata",
@@ -392,6 +394,7 @@
   "results": {
     "title": "Results",
     "noResults": "No results yet",
+    "failed": "Nesting failed",
     "sheets": "Sheets",
     "parts": "Parts",
     "efficiency": "Efficiency",

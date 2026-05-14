@@ -1,12 +1,12 @@
 <template>
-  <div class="flex flex-col gap-2">
+  <div class="grid grid-cols-1 gap-2">
     <div
       v-for="row in visibleRows"
       :key="row.label"
-      class="flex justify-between items-center"
+      class="flex items-center justify-between gap-4 border-b border-content-border pb-2 last:border-b-0 last:pb-0"
     >
-      <small>{{ row.label }}</small>
-      <span>{{ row.display }}</span>
+      <small class="text-muted-color">{{ row.label }}</small>
+      <span class="font-medium text-right">{{ row.display }}</span>
     </div>
   </div>
 </template>

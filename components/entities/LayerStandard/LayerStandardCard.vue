@@ -32,8 +32,8 @@
         <Divider />
         <div class="flex flex-col gap-2">
             <div class="flex items-center justify-between gap-2">
-                <small>{{ $t('layerStandard.defaultPen') }}</small>
-                <Badge v-if="standard.orgPenId" value="overridden" severity="warn" size="small" />
+                <small class="text-muted-color">{{ standard.data?.code || standard.code || $t('layerStandard.defaultPen') }}</small>
+                <Badge v-if="standard.data?.orgPenId || standard.orgPenId" value="overridden" severity="warn" size="small" />
             </div>
             <PenTemplateCard v-if="activePen" :pen="activePen" variant="inline" />
             <p v-else class="italic opacity-50">{{ $t('layerStandard.noDefaultPen') }}</p>
@@ -41,7 +41,7 @@
         <template #footer>
             <div v-if="canEdit" class="flex justify-end gap-2" @click.stop>
                 <Button
-                    v-if="standard.orgPenId"
+                    v-if="standard.data?.orgPenId || standard.orgPenId"
                     icon="pi pi-refresh"
                     :label="$t('common.revert')"
                     text size="small" severity="secondary"
@@ -87,7 +87,7 @@ const penStore = usePenTemplatesStore();
 
 const canEdit = computed(() => authStore.can('layer_standards', 'setPen'));
 const activePen = computed(() => {
-    const id = props.standard.orgPenId || props.standard.defaultPenId;
+    const id = props.standard.data?.orgPenId || props.standard.orgPenId || props.standard.data?.defaultPenId || props.standard.defaultPenId;
     if (!id) return null;
     return penStore.pens.find(p => p._id?.toString() === id.toString()) || null;
 });

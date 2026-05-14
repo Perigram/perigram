@@ -23,6 +23,8 @@
             <Badge :value="Object.keys(design.parameters || {}).length" severity="secondary" size="small" />
           </div>
         </template>
+        <Divider />
+        <DataBlock :entity="design" :fields="DESIGN_FIELDS" />
       </EntityCard>
     </template>
   </div>
@@ -34,11 +36,19 @@
  * CassetteDesign has no status — uses EntityCard with status disabled.
  */
 import Badge from 'primevue/badge';
+import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 
 const props = defineProps({
   design: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
+
+const DESIGN_FIELDS = [
+  { path: 'data.parameters.A', i18n: 'cassette.rootDim', suffix: ' mm' },
+  { path: 'data.parameters.C', i18n: 'cassette.faceDepth', suffix: ' mm' },
+  { path: 'data.geometry.dxfId', i18n: 'file.name' }
+];
 </script>

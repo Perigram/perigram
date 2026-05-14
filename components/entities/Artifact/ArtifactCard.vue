@@ -8,6 +8,12 @@ import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+
+const ARTIFACT_FIELDS = [
+  { path: 'attachments.primary.name', i18n: 'file.name' },
+  { path: 'data.type', i18n: 'file.type' }
+];
 
 const props = defineProps({
   artifact: { type: Object, required: true },
@@ -75,8 +81,11 @@ const typeLabel = computed(() => artifactType.value.replace('LAYOUT_', '') || 'F
             <small>{{ typeLabel }}</small>
         </template>
         <Divider />
-        <div class="flex justify-center">
-            <i :class="['pi', 'text-4xl', icon]"></i>
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-ui border border-content-border flex items-center justify-center shrink-0">
+                <i :class="['pi', 'text-xl', icon]"></i>
+            </div>
+            <DataBlock :entity="artifact" :fields="ARTIFACT_FIELDS" class="flex-1" />
         </div>
       </EntityCard>
     </template>

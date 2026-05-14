@@ -33,6 +33,8 @@
             </div>
         </template>
         <Divider />
+        <DataBlock :entity="user" :fields="USER_FIELDS" />
+        <Divider />
         <div class="flex justify-center">
             <EntityStatus :entity="user" entity-type="user" />
         </div>
@@ -58,6 +60,7 @@ import Chip from 'primevue/chip';
 import Button from 'primevue/button';
 import { computed } from 'vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import { useAuthStore } from '~/stores/auth';
@@ -72,6 +75,11 @@ const authStore = useAuthStore();
 
 const avatarUrl = computed(() => props.user.identity?.avatarUrl || props.user.avatarUrl || null);
 const avatarLabel = computed(() => (props.user.name || props.user.identity?.name || '?').charAt(0));
+
+const USER_FIELDS = [
+  { path: 'data.email', i18n: 'profile.email' },
+  { path: 'data.role', i18n: 'billing.role' }
+];
 
 const handleCardClick = () => {
     emit('view', props.user);

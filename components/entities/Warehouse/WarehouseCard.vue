@@ -50,9 +50,11 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 
 const FIELDS = [
-    { path: 'type',          i18n: 'warehouse.type' },
-    { path: 'address',       i18n: 'warehouse.address' },
-    { path: 'contactPerson', i18n: 'warehouse.contactPerson' }
+    { path: 'data.type',          i18n: 'warehouse.type' },
+    { path: 'data.address',       i18n: 'warehouse.address' },
+    { path: 'data.contactPerson', i18n: 'warehouse.contactPerson' },
+    { path: 'data.stats.totalSheets', i18n: 'warehouse.rawSheets' },
+    { path: 'data.stats.totalRemnants', i18n: 'warehouse.remnants' }
 ];
 
 const props = defineProps({

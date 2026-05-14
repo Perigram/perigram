@@ -13,7 +13,7 @@
                     <i class="pi pi-wrench"></i>
                     <IdentityBlock :entity="tool" variant="compact" />
                 </div>
-                <Tag v-if="tool.diameter" :value="`D${tool.diameter}`" severity="secondary" size="small" />
+                <Tag v-if="tool.data?.diameter || tool.diameter" :value="`D${tool.data?.diameter || tool.diameter}`" severity="secondary" size="small" />
             </div>
         </template>
       </EntityCard>
@@ -24,7 +24,7 @@
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <IdentityBlock :entity="tool" />
-                <i class="pi pi-wrench"></i>
+                <Tag v-if="tool.data?.diameter || tool.diameter" :value="`D${tool.data?.diameter || tool.diameter}`" severity="secondary" size="small" />
             </div>
         </template>
         <Divider />
@@ -45,9 +45,9 @@ import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 
 const FIELDS = [
-    { path: 'diameter', i18n: 'toolProfile.diameter', suffix: ' mm' },
-    { path: 'angle',    i18n: 'toolProfile.angle',    suffix: '°' },
-    { path: 'kerf',     i18n: 'toolProfile.kerf',     suffix: ' mm' }
+    { path: 'data.diameter', i18n: 'toolProfile.diameter', suffix: ' mm' },
+    { path: 'data.angle',    i18n: 'toolProfile.angle',    suffix: '°' },
+    { path: 'data.kerf',     i18n: 'toolProfile.kerf',     suffix: ' mm' }
 ];
 
 const props = defineProps({

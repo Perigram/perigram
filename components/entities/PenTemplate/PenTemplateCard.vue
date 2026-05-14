@@ -2,7 +2,7 @@
   <div :class="[`variant-${variant}`]">
     <template v-if="variant === 'inline'">
       <Chip>
-        <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: pen.stroke?.color || 'var(--p-content-border-color)' }" />
+        <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: pen.data?.stroke?.color || pen.stroke?.color || 'var(--p-content-border-color)' }" />
         <IdentityBlock :entity="pen" variant="compact" />
       </Chip>
     </template>
@@ -12,10 +12,10 @@
         <template #title>
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
-                    <div class="w-6 h-6 rounded-full border" :style="{ backgroundColor: pen.stroke?.color || 'var(--p-content-border-color)' }"></div>
+                    <div class="w-6 h-6 rounded-full border" :style="{ backgroundColor: pen.data?.stroke?.color || pen.stroke?.color || 'var(--p-content-border-color)' }"></div>
                     <IdentityBlock :entity="pen" variant="compact" />
                 </div>
-                <Tag v-if="pen.stroke?.weight" :value="`${pen.stroke.weight}px`" severity="secondary" size="small" />
+                <Tag v-if="pen.data?.stroke?.weight || pen.stroke?.weight" :value="`${pen.data?.stroke?.weight || pen.stroke?.weight}px`" severity="secondary" size="small" />
             </div>
         </template>
       </EntityCard>
@@ -29,7 +29,7 @@
                     <IdentityBlock :entity="pen" />
                     <Tag v-if="!pen.ownerId" :value="$t('assets.system')" severity="info" size="small" />
                 </div>
-                <div class="w-8 h-8 rounded-full border shrink-0" :style="{ backgroundColor: pen.stroke?.color || 'var(--p-content-border-color)' }"></div>
+                <div class="w-8 h-8 rounded-full border shrink-0" :style="{ backgroundColor: pen.data?.stroke?.color || pen.stroke?.color || 'var(--p-content-border-color)' }"></div>
             </div>
         </template>
         <Divider />
@@ -54,9 +54,9 @@ import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 
 const FIELDS = [
-    { path: 'stroke.color',   i18n: 'penTemplate.color' },
-    { path: 'stroke.weight',  i18n: 'penTemplate.weight',  suffix: ' px' },
-    { path: 'stroke.pattern', i18n: 'penTemplate.pattern' }
+    { path: 'data.stroke.color',   i18n: 'penTemplate.color' },
+    { path: 'data.stroke.weight',  i18n: 'penTemplate.weight',  suffix: ' px' },
+    { path: 'data.stroke.pattern', i18n: 'penTemplate.pattern' }
 ];
 
 const props = defineProps({

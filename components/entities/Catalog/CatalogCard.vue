@@ -6,6 +6,7 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useAuthStore } from '~/stores/auth';
 
@@ -18,6 +19,11 @@ const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
 
 const handleCardClick = () => emit('view', props.catalog);
+
+const CATALOG_FIELDS = [
+  { path: 'summary.colorCount', i18n: 'catalog.colorsAvailable' },
+  { path: 'data.pricing.pricePerSqm', i18n: 'catalog.pricePerSqm', prefix: '$' }
+];
 </script>
 
 <template>
@@ -35,7 +41,7 @@ const handleCardClick = () => emit('view', props.catalog);
             </div>
         </template>
         <template #subtitle>
-            <Tag :value="catalog.material" severity="secondary" size="small" />
+            <Tag :value="catalog.data?.material || catalog.material" severity="secondary" size="small" />
         </template>
       </EntityCard>
     </template>
@@ -45,14 +51,11 @@ const handleCardClick = () => emit('view', props.catalog);
         <template #title>
             <div class="flex justify-between items-center gap-4">
                 <IdentityBlock :entity="catalog" />
-                <Tag :value="catalog.material" severity="secondary" size="small" />
+                <Tag :value="catalog.data?.material || catalog.material" severity="secondary" size="small" />
             </div>
         </template>
         <Divider />
-        <div class="flex justify-between items-center">
-            <small>{{ $t('catalog.colorsAvailable') }}</small>
-            <span>{{ catalog.summary?.colorCount || 0 }}</span>
-        </div>
+        <DataBlock :entity="catalog" :fields="CATALOG_FIELDS" />
         <template #footer>
             <div class="flex justify-end gap-2" @click.stop>
                 <Button v-if="authStore.can('catalogs', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="$emit('edit', catalog)" />

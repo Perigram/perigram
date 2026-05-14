@@ -6,7 +6,7 @@
             <slot name="inline-extra" />
         </div>
         
-        <Popover ref="op" class="shadow-lg border border-surface-border">
+        <Popover ref="op" class="shadow-lg border border-content-border">
             <div class="flex flex-col gap-4 p-4 min-w-[var(--ck-entity-popover-min-width)]">
                 <template v-if="showTrace">
                     <div class="flex flex-col gap-1">
@@ -32,7 +32,7 @@
 
     <!-- Compact: identity + status in a card row -->
     <template v-else-if="variant === 'compact'">
-        <Card class="h-full">
+        <Card class="h-full border border-content-border shadow-sm hover:shadow-md transition-shadow duration-normal">
             <template #content>
             <template v-if="$slots.header">
                 <slot name="header" />
@@ -52,7 +52,7 @@
                 </div>
             </div>
             <template v-if="$slots.subtitle">
-                <div class="mt-2">
+                <div class="mt-2 text-sm text-muted-color">
                     <slot name="subtitle" />
                 </div>
             </template>
@@ -63,7 +63,7 @@
 
     <!-- Card: full chrome — tracechain / identity+status / body / footer -->
     <template v-else>
-        <Card class="h-full">
+        <Card class="h-full border border-content-border shadow-sm hover:shadow-md transition-shadow duration-normal">
             <template #header v-if="$slots.header">
                 <slot name="header" />
             </template>
@@ -85,7 +85,9 @@
                 </template>
             </template>
             <template #subtitle v-if="$slots.subtitle">
-                <slot name="subtitle" />
+                <div class="text-sm text-muted-color">
+                    <slot name="subtitle" />
+                </div>
             </template>
             <template #content>
                 <slot />

@@ -37,8 +37,11 @@
             <small>{{ templateType }}</small>
         </template>
         <Divider />
-        <CassetteThumbnail :cassette="template" />
-        <div class="flex flex-wrap gap-2 mt-2">
+        <div class="grid grid-cols-1 gap-4">
+            <CassetteThumbnail :cassette="template" />
+            <DataBlock :entity="templateSummary" :fields="TEMPLATE_FIELDS" />
+        </div>
+        <div v-if="templateParameters.length" class="flex flex-wrap gap-2 mt-4">
             <Tag v-for="param in templateParameters" :key="param" :value="param" severity="secondary" size="small" />
         </div>
         <template #footer>
@@ -64,6 +67,12 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+
+const TEMPLATE_FIELDS = [
+    { path: 'type', i18n: 'common.type' },
+    { path: 'parameterCount', i18n: 'cassette.parametersTitle' }
+];
 
 const props = defineProps({
   template: { type: Object, required: true },
@@ -72,6 +81,13 @@ const props = defineProps({
 
 const emit = defineEmits(['create-instance', 'download']);
 
-const templateType = computed(() => props.template.type || props.template.data?.type || props.template.definition?.type || '');
-const templateParameters = computed(() => props.template.parameters || props.template.data?.parameters || props.template.definition?.parameters || []);
+const templateType = computed(() => props.template.data?.type || props.template.type || props.template.definition?.type || '');
+const templateParameters = computed(() => {
+    const raw = props.template.data?.parameters || props.template.parameters || props.template.definition?.parameters || [];
+    return Array.isArray(raw) ? raw : Object.keys(raw);
+});
+const templateSummary = computed(() => ({
+    type: templateType.value,
+    parameterCount: templateParameters.value.length
+}));
 </script>

@@ -16,7 +16,7 @@
             </div>
         </template>
         <template #subtitle>
-            <small>{{ color.serial || hexCode || '—' }}</small>
+            <small>{{ color.data?.code || color.identity?.serial || hexCode || '—' }}</small>
         </template>
       </EntityCard>
     </template>
@@ -30,8 +30,13 @@
             <IdentityBlock :entity="color" />
         </template>
         <Divider />
-        <div class="flex justify-end items-center gap-4">
-            <small>{{ hexCode || '—' }}</small>
+        <div class="flex justify-between items-center gap-4">
+            <small class="text-muted-color">{{ $t('catalog.colorCode') }}</small>
+            <span class="font-medium">{{ color.data?.code || color.identity?.serial || hexCode || '—' }}</span>
+        </div>
+        <div class="flex justify-between items-center gap-4 mt-2">
+            <small class="text-muted-color">{{ $t('assets.color') }}</small>
+            <span class="font-mono">{{ hexCode || '—' }}</span>
         </div>
       </EntityCard>
     </template>

@@ -4,8 +4,10 @@
  */
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
+import { computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 
 const props = defineProps({
   queue: { type: Object, required: true },
@@ -14,6 +16,12 @@ const props = defineProps({
 
 const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
+const queueSummaryFields = computed(() => [
+    { path: 'data.job.items.length', i18n: 'queue.jobItems' },
+    { path: 'summary.runCount', i18n: 'queue.nestingRuns' },
+    { path: 'summary.sheetCount', i18n: 'results.sheets' },
+    { path: 'summary.totalArea', i18n: 'common.area', suffix: ' m²' }
+]);
 
 const handleCardClick = () => {
     emit('view', props.queue);
@@ -31,16 +39,7 @@ const handleCardClick = () => {
         <!-- Card body -->
         <template v-if="variant === 'card'">
             <Divider />
-            <div class="grid grid-cols-2 gap-4">
-                <div class="flex flex-col">
-                    <small>{{ $t('queue.jobItems') }}</small>
-                    <span>{{ queue.job?.items?.length || 0 }}</span>
-                </div>
-                <div class="flex flex-col">
-                    <small>{{ $t('queue.nestingRuns') }}</small>
-                    <span>{{ queue.summary?.runCount || 0 }}</span>
-                </div>
-            </div>
+            <DataBlock :entity="queue" :fields="queueSummaryFields" />
         </template>
 
         <!-- Card footer -->

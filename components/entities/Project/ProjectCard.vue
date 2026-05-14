@@ -10,6 +10,7 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 
 const PROJECT_SUMMARY_FIELDS = [
     { path: 'summary.queueCount', i18n: 'project.queues' },
+    { path: 'summary.totalArea', i18n: 'project.totalArea', suffix: ' m²' }
 ];
 
 const props = defineProps({

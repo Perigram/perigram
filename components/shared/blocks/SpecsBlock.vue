@@ -26,22 +26,22 @@ const { specs, formattedDimensions, formattedArea } = useSpecs(toRef(props, 'ent
 
     <!-- Default Variant -->
     <template v-else>
-        <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+        <div class="grid grid-cols-2 gap-3">
             <div v-if="specs.sheetThickness" class="flex flex-col">
                 <small class="text-muted-color">{{ $t('catalog.sheetThickness') }}</small>
-                <span class="font-medium">{{ specs.sheetThickness }} mm</span>
+                <span class="font-semibold">{{ specs.sheetThickness }} mm</span>
             </div>
             <div v-if="specs.foilThickness" class="flex flex-col">
                 <small class="text-muted-color">{{ $t('catalog.foilThickness') }}</small>
-                <span class="font-medium">{{ specs.foilThickness }} mm</span>
+                <span class="font-semibold">{{ specs.foilThickness }} mm</span>
             </div>
             <div class="flex flex-col">
                 <small class="text-muted-color">{{ $t('catalog.dimensions') }}</small>
-                <span class="font-medium">{{ formattedDimensions }}</span>
+                <span class="font-semibold">{{ formattedDimensions }}</span>
             </div>
             <div class="flex flex-col">
                 <small class="text-muted-color">{{ $t('common.area') }}</small>
-                <span class="font-medium">{{ formattedArea }}</span>
+                <span class="font-semibold">{{ formattedArea }}</span>
             </div>
         </div>
     </template>

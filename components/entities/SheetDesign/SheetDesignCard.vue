@@ -6,12 +6,18 @@ import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 
 const props = defineProps({
   design: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
+
+const DESIGN_FIELDS = [
+  { path: 'lineage.queueId', i18n: 'entities.queue' },
+  { path: 'data.geometry.dxfId', i18n: 'file.name' }
+];
 </script>
 
 <template>
@@ -48,6 +54,8 @@ const props = defineProps({
         </template>
         <Divider />
         <SpecsBlock :entity="design" />
+        <Divider />
+        <DataBlock :entity="design" :fields="DESIGN_FIELDS" />
       </EntityCard>
     </template>
   </div>
