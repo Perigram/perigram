@@ -20,11 +20,12 @@ Handles the evaluation and "baking" of parametric cassette templates into static
 
 ### Baked Cassette (DB)
 Baked instances are stored in the `cassettes` collection with `type: "BAKED_PARAMETRIC"` and `isTemporary: true`.
+Template and lineage IDs use flexible ID handling (`toFlexibleId`) to support both string UIDs and ObjectIds.
 
 ## Workflows
 
 ### 1. Baking for Nesting
-Triggered during `POST /api/batch/:id/nest`:
+Triggered during `POST /api/queue/:id/nest`:
 1. System identifies entries using `PARAMETRIC` templates.
 2. For each unique set of dimensions, `bakeTemplateInstance` is called.
 3. A DXF is generated and stored in GridFS.
@@ -42,6 +43,8 @@ Triggered by `GET /api/cassettes/:id/export?A=...&B=...`:
 The module uses the same `nodi-modular` WASM engine and `cassetteGraphBuilder` utility as the frontend designer. This ensures 100% parity between the visual designer and the generated nesting/export DXF files.
 Runtime requires `nodi-modular/index_bg.wasm` to be present in the production image (copied from node_modules or bundled in the Nuxt output).
 Runtime also requires `public/Cassette.json` to be present in the production image.
+The engine instance is stateful and not concurrency-safe for parallel `loadGraph`/`evaluate`.
+`service.js` enforces this with a process-wide evaluation lock and per-call deep cloning of the template graph before `loadGraph`.
 
 ## Shared Utilities
 - `server/utils/cassetteGraphBuilder.js`: Shared by both frontend components and backend services to construct the geometry evaluation graph.

@@ -32,6 +32,11 @@ Inherits all `BaseEntity` fields.
 4. Token → `generateAccessToken(userId)` (JWT, 15m)
 5. Middleware → `server/middleware/auth.js` populates `event.context.auth`
 
+## Persistence Notes
+- `User.toJSON()` strips `data.passwordHash` and is safe for API responses.
+- `repository.create()` restores `data.passwordHash` from the model instance before inserting into MongoDB; persistence must not rely on the public JSON shape for sensitive fields.
+- Existing users without `data.passwordHash` cannot log in until their password is reset or the account is recreated.
+
 ## Permission System
 - Global role check (e.g. `SuperAdmin`)
 - Organization context via `user.lineage.organizationId`

@@ -7,23 +7,25 @@ Manages cassette templates (Standard and Parametric) using standardized v24 arch
 - `service.js`: Template management and permission handling.
 
 ## Data Structure (v24)
-Aligned with `@PROPOSED_DATA_MODEL.md` Section 10:
 
 - **`identity`**: `{ slug, name, serial, reference }`
 - **`status`**: Current snapshot [StatusBlock].
 - **`origin`**: Creation snapshot [StatusBlock].
 - **`lineage`**: `{ organizationId }`
-- **`definition`**:
-    - `type`: `PARAMETRIC` | `STANDARD`
-    - `data`: The JSON Graph or Logic.
-    - `parameters`: Array<String> (Configurable variable names).
+- **`data.type`**: `PARAMETRIC` | `STANDARD`
+- **`data.definition`**:
+    - Parametric templates store the designer graph `{ params, extrusions }`.
+    - Standard uploaded templates store layer mapping data such as `{ mapping }`.
+- **`data.parameters`**: Array<String> of configurable variable names.
+
+`Cassette.toJSON()` hoists `type`, `definition`, and `parameters` for frontend compatibility. Frontend cards, thumbnails, and queue editors should read those hoisted fields first. Older records may also carry `data.params` / `data.extrusions` directly; the model normalizes that legacy graph into `definition`.
 
 ## Key Workflows
 
 ### Digital Intent vs. Baked Geometry
 Templates in the `cassettes` collection do NOT store DXF files or physical tracking data. They serve as the source for `cassette_designs`.
-- **Parametric**: The `definition.data` contains the Nodi3D graph logic.
-- **Standard**: The `definition.data` contains the static definition which is baked into a `cassette_design` for production.
+- **Parametric**: `data.definition` contains the editable designer graph.
+- **Standard**: `data.definition.mapping` contains layer mapping; baked geometry lives in `cassette_designs`.
 
 ### Update Operations
 - **`updateLayerMapping`**: Updates the mapping between DXF layers and production tools/standards.

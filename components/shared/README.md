@@ -82,7 +82,7 @@ Props: `:entity`, `entity-type`, `variant` (`inline` | `compact` | `full`), `:ac
 Rendering guard: component renders only when `props.entity` is present.
 Behavior: component auto-expands when custom `actions` are provided; otherwise inline mode uses badge + popover.
 
-**Entities WITHOUT status** (do not add EntityStatus): Catalog, CassetteDesign, Color, LayerStandard, ToolProfile, Organization, PenTemplate.
+**Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the `status` policy in `utils/design-system-contract.js` to decide whether a card shows `EntityStatus`, hides it, or renders read-only status.
 
 ### `StatusHistory.vue`
 Fetches and displays the audit log (`status_events`) for any entity.
@@ -104,3 +104,14 @@ Props: `:entity`, `entity-type`.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
 - **`EntityPage.vue`**: Root layout for all entity detail views. Features a flexible header with an `info` slot for summary data and an optional `sidebar` slot.
 - **`EntityCard.vue`**: Shared entity card chrome built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`). Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome.
+
+Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, and `Panel` for non-entity sections.
+
+## Demo Contract
+
+The design-system demo is contract-driven:
+- `utils/design-system-contract.js` contains entity UI policy and expected card prop names.
+- `utils/design-system.js` binds the contract to actual Vue components and DTO factories.
+- `test-data/factories.js` provides DTO-shaped examples with v24 blocks preserved.
+
+Shared primitives should be demoed through this manifest so component coverage and contract drift are visible in `/test/ui-lab`.

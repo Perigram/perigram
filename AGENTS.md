@@ -6,6 +6,34 @@ README.md documentation files are created at different places in the project and
 
 ---
 
+# Engineering Execution Guidelines
+
+These behavioral rules apply to all coding, review, and refactoring tasks.
+
+## Think Before Coding
+- State assumptions explicitly. If the task is ambiguous or multiple interpretations exist, surface the ambiguity before choosing an approach.
+- If a simpler solution exists, mention it and prefer it unless the task requires more.
+- If required context is missing and a reasonable assumption would be risky, ask for clarification.
+
+## Simplicity First
+- Implement the minimum code needed to solve the requested problem.
+- Do not add speculative features, abstractions, configurability, or error handling for impossible scenarios.
+- If an implementation becomes large or indirect, simplify it before continuing.
+
+## Surgical Changes
+- Change only lines that directly support the requested task.
+- Do not refactor, reformat, improve adjacent code, or remove unrelated dead code unless explicitly asked.
+- Match existing project style and conventions, even when another style might be preferable.
+- Remove only imports, variables, functions, or files made unused by the current change.
+
+## Goal-Driven Execution
+- Convert tasks into verifiable success criteria before implementation.
+- For bug fixes, prefer reproducing the issue with a focused test or check before fixing it.
+- For validation or behavior changes, verify the expected success and failure paths.
+- Continue until the task is implemented, documented, and verified, or clearly report the blocker.
+
+---
+
 # Documentation Workflow 
 C4 levels are used internally to interpret the scope and detail of README.md documentation files.
 
@@ -161,5 +189,4 @@ All frontend features must strictly adhere to the standardized interaction layer
 - **User IDs:** Authenticated user IDs (`userId`) are strings (OAuth IDs), not MongoDB ObjectIds.
 - **Data Access:** No cross-module DB access (use service calls).
 - **Documentation Rule:** Every code change MUST update relevant README.md docs in the same task session.
-
 

@@ -1,6 +1,8 @@
 # Test Data Factories
 
-**Enterprise Pattern:** Reusable factory functions for consistent test data across the application.
+**Enterprise Pattern:** Reusable factory functions for consistent test data across the application and design-system demos.
+
+Factories in this directory represent **API DTO shape**, not raw MongoDB documents. They preserve v24 blocks (`identity`, `origin`, `status`, `lineage`, `attachments`, `data`, `summary`) and add only real hoisted DTO aliases emitted by current models/services.
 
 ## Why Factory Functions?
 
@@ -28,7 +30,7 @@ const mockProject = createMockProject({
 3. **Easy Overrides** - Customize only what you need
 4. **Type Safety** - Can be easily typed with TypeScript
 5. **Documentation** - Factory functions document the expected schema
-6. **Reusability** - Use across tests, storybook, UI lab, etc.
+6. **Reusability** - Use across tests and UI lab.
 
 ## Usage
 
@@ -85,12 +87,13 @@ export function createMockYourEntity(overrides = {}) {
 }
 ```
 
-## Real-World Alignment
+## Design-System Alignment
 
 Factories are built from:
-- Actual repository.js schema definitions
-- Service.js business logic patterns
-- Test spec examples
-- Production data structures
+- v24 block contract in `server/core/blocks/README.md`
+- API DTO shapes emitted by feature models/services
+- Entity design-system manifest in `utils/design-system-contract.js`
 
 This ensures mock data matches what your API actually expects/returns.
+
+When a component needs a new field for display, update the relevant DTO factory and manifest entry together. Do not add flat compatibility fields unless the API actually returns them.

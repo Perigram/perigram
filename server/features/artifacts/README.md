@@ -13,20 +13,31 @@ Unified file storage and metadata registry for all generated system outputs (G-C
 
 ## Key Workflows
 1. **Generation**: Created by background workers (Nesting, G-Code) with an initial state of `GENERATING`.
-2. **Persistence**: Linked to GridFS via `fileId`. Status must be transitioned to `READY` for retrieval.
+2. **Persistence**: Linked to GridFS via `attachments.primary.fileId`. Status must be transitioned to `READY` for retrieval.
 3. **Traceability**: Indexed by any ID in the lineage (e.g., `lineage.runId`).
 
 ## Data Structure
 ```typescript
 {
   identity: { name },
-  type: Enum(LAYOUT_DXF, LAYOUT_SVG, PDF_PASSPORT, REPORT),
-  fileId: ObjectId,
   lineage: { organizationId, projectId, queueId, runId, sheetId, instanceId },
   status: StatusBlock,
-  metadata: Object
+  attachments: {
+    primary: {
+      type: Enum(LAYOUT_DXF, LAYOUT_SVG, PDF_PASSPORT, REPORT),
+      fileId: ObjectId,
+      name: string,
+      metadata: { mimeType: string, bucketName: string }
+    }
+  },
+  data: {
+    type: Enum(LAYOUT_DXF, LAYOUT_SVG, PDF_PASSPORT, REPORT),
+    metadata: Object
+  }
 }
 ```
+
+`data.type` identifies the artifact kind for querying and UI display. `attachments.primary` is the standard file block for the generated binary in GridFS.
 
 ## APIs
 - `GET /api/artifacts/:id` - Streams content from type-specific bucket. Requires `READY` status.

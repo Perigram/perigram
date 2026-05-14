@@ -179,6 +179,7 @@ CassetteInstance lifecycle
 | Feature modules | [server/features/README.md](./server/features/README.md) |
 | Frontend composables | [composables/README.md](./composables/README.md) |
 | Frontend components | [components/README.md](./components/README.md) |
+| Frontend design system | [docs/DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md) |
 | All workers overview | [workers/README.md](./workers/README.md) |
 | File processing worker | [workers/fileprocessing/README.md](./workers/fileprocessing/README.md) |
 | Cassette processing worker | [workers/cassette-processing/README.md](./workers/cassette-processing/README.md) |

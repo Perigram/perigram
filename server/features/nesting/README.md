@@ -3,12 +3,12 @@
 Handles the orchestration of nesting jobs, including job creation, worker communication, and result file generation.
 
 ## Core Files
-- `server/api/batch/[id]/nest.post.js`: Endpoint to trigger nesting.
+- `server/api/queue/[id]/nest.post.js`: Endpoint to trigger nesting.
 - `server/plugins/nesting-processor.js`: Background processor that polls for pending jobs.
 - `server/scripts/generate_nest_dxf.py`: Python script for generating result DXF files.
 
 ## Workflow
-1.  **Job Creation**: `nest.post.js` creates a `nesting_job` in MongoDB with status `pending`. It prepares the list of cassettes (standard or baked).
+1.  **Job Creation**: `nest.post.js` creates a `nesting_job` in MongoDB with status `pending`. It prepares the list of cassettes (standard or baked). The endpoint also guards against duplicate submissions with an in-process per-queue lock plus DB-level active-job checks.
 2.  **Polling**: `nesting-processor.js` (Nitro plugin) polls for `pending` jobs.
 3.  **Preparation**: The processor fetches cassette geometries (polygons) from the `cassettes` collection.
 4.  **Nesting**: The processor sends the geometry to the **Nesting Worker** (HTTP service).

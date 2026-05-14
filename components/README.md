@@ -24,20 +24,30 @@ All entity-related components MUST use these patterns:
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StatusHistory :entity="..." entity-type="..." />` |
 | CRUD + status operations | `useEntity(type, id)` |
-| Card container | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Card>` |
+| Card/container chrome | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout |
 | Dialog container | `<StandardDialog>` |
+
+## Design System Manifest
+
+`utils/design-system-contract.js` defines the frontend design-system contract for entity demos:
+entity key, component prop name, variants, status policy, trace policy, factory name, and docs links.
+`utils/design-system.js` attaches Vue components and factories to that contract.
+
+`pages/test/ui-lab.vue` renders from this manifest. When adding or renaming an entity card, update the manifest and its DTO factory instead of hand-editing UI lab sections.
 
 ## Composables Rule
 
 `useBlocks.js` composables (`useIdentity`, `useStatus`, `useSpecs`, `useLineage`) are **only** used inside the shared block components (`IdentityBlock`, `EntityStatus`, `SpecsBlock`). Entity cards and pages must never import from `useBlocks.js` — they compose the block components instead.
 
-Exception: `useStatus` may be used in an entity card **only** for reading `state` in a `v-if` conditional (not for display).
+No exceptions are currently needed in used entity pages/cards; state-only conditionals should use a local `computed` from `entity.status?.state`.
 
 ## Data Access
 
 - Access entity-specific fields (e.g. `pen.stroke.color`, `tool.diameter`) directly in the template — only standardized block fields (identity, status, specs) go through block components.
 - Never hardcode values or make assumptions about data structure — check `server/DATA_MODEL.md` first.
+- For cassette templates and queue entries, derive parametric vs static display from the cassette DTO itself (`parameters` presence and template data), not only from saved queue item flags.
 - For standard CRUD and status operations, use `useEntity` — no direct `$fetch` calls.
+- Direct `$fetch` is reserved for custom workflows that are not represented by `useEntity`: uploads/downloads, invitations, permissions, support chat, payments, debug endpoints, and project-scoped subresources.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`.
 
 ## Localization

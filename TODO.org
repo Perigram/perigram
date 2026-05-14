@@ -5,6 +5,118 @@
   [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
 
 *** Agent Notes
+     [2026-05-14] Fix queue nesting failure for parametric template string IDs
+     Files changed: server/features/parametric-cassettes/repository.js,
+       server/features/parametric-cassettes/service.js,
+       server/api/queue/[id]/nest.post.js
+     Docs updated: server/features/parametric-cassettes/README.md (COMPONENT level)
+     Notes: Replaced hard ObjectId conversion with toFlexibleId in template
+       lookup, dedupe lookup, and baked lineage write so parametric nesting
+       works with string cassette IDs such as `g-ynl6th`. Queue item
+       preparation was also switched from parallel Promise.all to sequential
+       processing to avoid WASM engine re-entrancy panics during bake.
+
+*** Agent Notes
+     [2026-05-14] Fix cassette template preview and parameter display
+     Files changed: components/CassetteThumbnail.vue,
+       components/entities/CassetteTemplate/CassetteTemplateCard.vue,
+       components/QueueEditor.vue, components/CassetteEditorDialog.vue,
+       server/features/cassettes/model.js, server/features/cassettes/service.js,
+       server/features/cassettes/model.spec.js,
+       server/features/parametric-cassettes/service.js
+     Docs updated: server/features/cassettes/README.md (COMPONENT level),
+       components/README.md (COMPONENT level)
+     Notes: Aligned frontend consumers and parametric evaluation with the
+       v24 cassette DTO shape (`type`, `definition`, `parameters`). Existing
+       direct `data.params` / `data.extrusions` graphs are normalized into
+       `definition`, and cassette updates now persist edited designer graphs
+       under `data.definition`. Queue entries derive parametric/static display
+       from the selected cassette template so previously saved `STATIC` job
+       items self-heal when the template is parametric.
+
+*** Agent Notes
+     [2026-05-14] Standardize artifact file references on attachments block
+     Files changed: server/features/artifacts/model.js,
+       server/features/artifacts/service.js, server/features/artifacts/repository.js,
+       server/features/files/service.js, server/api/artifacts/[id].get.js,
+       server/api/queue/[id]/nest.post.js, server/plugins/nesting-processor.js,
+       workers/nesting/core/main.py, server/db/indexes.js,
+       server/features/results/resultcontroller.js,
+       components/ArtifactsTable.vue, components/entities/Artifact/ArtifactCard.vue,
+       components/entities/NestingRun/NestingRunCard.vue
+     Docs updated: server/features/artifacts/README.md (COMPONENT level),
+       server/DATA_MODEL.md (generated schema summary)
+     Notes: Artifacts now use `data.type` plus `attachments.primary`
+       for the GridFS file pointer. Fixed processor placeholder updates to
+       query `data.type`/`lineage.runId` and fixed artifact deletion to
+       remove the linked GridFS file.
+
+*** Agent Notes
+     [2026-05-14] Fix layer standards endpoint and seed helpers
+     Files changed: server/features/layer-standards/repository.js,
+       server/features/layer-standards/service.js,
+       server/features/pen-templates/service.js,
+       server/features/tool-profiles/service.js,
+       server/scripts/seed-all.js
+     Docs updated: server/features/layer-standards/README.md (COMPONENT level),
+       server/features/pen-templates/README.md (COMPONENT level),
+       server/features/tool-profiles/README.md (COMPONENT level)
+     Notes: Replaced raw ObjectId usage with toFlexibleId() for string organization
+       UIDs, restored getCount()/seed() used by server/scripts/seed-layer-standards.js,
+       fixed standalone seed imports, and reordered system pens before layer standards
+       so defaultPenId references can resolve.
+
+*** Agent Notes
+     [2026-05-14] Fix cassette designer initial data hydration for v24 and legacy shapes
+     Files changed: components/CassetteDesigner.vue
+     Docs updated: server/features/cassettes/README.md (COMPONENT level)
+     Notes: Added a normalizer for designer graph input so missing `data.extrusions`
+       no longer throws; accepts `definition.data`, hoisted `definition`,
+       `data.definition`, and legacy direct `data.params` / `data.extrusions`;
+       also rehydrates when the dialog reuses the mounted designer for another cassette.
+
+*** Agent Notes
+     [2026-05-14] Add data model review interface and extractor quality flags
+     Files changed: server/utils/extract-data-models.js, pages/admin/data-model-review.vue,
+       i18n/locales/en.json, i18n/locales/ru.json, server/DATA_MODEL.md
+     Docs updated: server/utils/README.md (CODE level)
+     Notes: Replaced brittle comma/comment extraction with top-level object parsing,
+       added source/issues metadata for generated fields, and added an admin review page
+       that stores annotations in localStorage and exports a Markdown refactoring plan.
+
+*** Agent Notes
+     [2026-05-14] Fix organization repository mixed-ID lookups used by auth middleware
+     Files changed: server/features/organizations/repository.js
+     Docs updated: server/features/organizations/README.md (COMPONENT level)
+     Notes: Replaced raw ObjectId construction in organization repository lookups with
+       toFlexibleId() so string UIDs like org-xxxxxxxx do not crash session auth.
+
+*** Agent Notes
+     [2026-05-14] Fix auth registration persistence so login can verify passwords
+     Files changed: server/features/users/repository.js, server/features/users/users.spec.js
+     Docs updated: server/features/users/README.md (COMPONENT level)
+     Notes: User.toJSON() intentionally strips passwordHash for API responses; repository.create()
+       now restores the model's data.passwordHash before insert, and tests cover register -> login.
+
+*** Agent Notes
+     [2026-05-14] Establish manifest-driven frontend design system demo
+     Files changed: utils/design-system-contract.js, utils/design-system.js,
+       test-data/factories.js, pages/test/ui-lab.vue, shared/design-system.spec.js,
+       components/entities/Color/ColorCard.vue, components/entities/User/UserCard.vue,
+       components/entities/Organization/OrganizationCard.vue,
+       components/entities/PenTemplate/PenTemplateCard.vue,
+       components/entities/LayerStandard/LayerStandardCard.vue, pages/assets/tools.vue,
+       utils/status-engine.js, i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: docs/DESIGN_SYSTEM.md, components/README.md,
+       components/shared/README.md, test-data/README.md, utils/README.md,
+       pages/test/README.md, server/features/sheet-designs/README.md, README.md
+     Notes: UI lab now renders entity cards and shared primitives from a
+       design-system manifest. DTO factories now preserve v24 blocks and only
+       include real API hoists. Added a focused Vitest contract check for
+       manifest completeness, factory DTO shape, artifact attachments, and
+       cassette template parameter shape.
+
+*** Agent Notes
      [2026-03-15] Frontend API contract compliance — replace raw $fetch with useEntity
      Files changed: composables/useEntity.js, stores/global.js, pages/projects/index.vue,
        pages/project/[slug]/data.vue, pages/project/[slug]/artifacts.vue,
@@ -233,3 +345,20 @@
 
 * TODO review cassette baking and usage in nesting
   Baked cassette should include all the layers using layer standard. Only the one layer should be used in nesting, that in marked as nesting layer in standard. Artifacts created during nesting should use transform data for placing other layers data back to nested cassettes. Of course, everything should be done procedurally without hardcoding layer names etc.
+
+*** Agent Notes
+    [2026-05-14] Used Vue Surface Design-System Rewrite
+    Files changed:
+    - components/AdminSupportChat.vue, components/AdminSupportChatList.vue, components/ArtifactsTable.vue, components/AssetsLibrary.vue, components/BuyCreditsDialog.vue, components/CassetteDesigner.vue, components/CassetteManager.vue, components/PartLibrary.vue, components/PermissionEditor.vue, components/ProjectStatistics.vue, components/QueueEditor.vue
+    - components/entities/Artifact/ArtifactCard.vue, components/entities/CassetteInstance/CassetteInstanceDetail.vue, components/entities/NestingRun/NestingRunCard.vue, components/entities/PenTemplate/PenTemplateCard.vue, components/entities/Project/ProjectDetail.vue, components/entities/Remnant/RemnantDetail.vue, components/entities/Requisition/RequisitionDetail.vue, components/entities/Sheet/SheetDetail.vue, components/entities/SheetDesign/SheetDesignDetail.vue, components/entities/Warehouse/WarehouseDetail.vue
+    - pages/admin/data-model-review.vue, pages/admin/diagnostics.vue, pages/admin/organizations.vue, pages/admin/users.vue, pages/assets/layer-standards.vue, pages/assets/pens.vue, pages/assets/templates.vue, pages/auth/register.vue, pages/invitation/[token].vue, pages/organization/users.vue, pages/profile/index.vue, pages/project/[slug]/data.vue, pages/projects/index.vue, pages/test/ui-lab.vue
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - Removed direct `primevue/card` and `primevue/dialog` usage from used pages/components; only `EntityCard` and `StandardDialog` own those primitives now.
+    - Removed direct `useBlocks` imports from used entity/page components; block composables are isolated to shared atomic blocks.
+    - Converted standard user/organization CRUD/list calls in used Vue pages to `useEntity`; remaining direct `$fetch` calls are custom workflows such as invitations, permissions, support, uploads, payment, artifact download/delete, or project-scoped queue listings.
+    - Fixed `SheetDetail` specs reading by deriving width/length from `sheet.specs`/`sheet.data.specs` instead of non-existent `useSpecs().width/length`.
+    - Verified direct Card/Dialog scan is clean outside shared wrappers and touched Vue SFCs parse successfully.

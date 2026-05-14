@@ -109,6 +109,17 @@ Checks `user.restrictedTo` whitelist. Returns `true` if no restrictions.
 | Non-entity resource (system settings) | `requirePermission` / `hasPermission` |
 | Password login flow | `hashPassword` / `verifyPassword` |
 
+## extract-data-models.js
+
+Generates the debug data-model inventory consumed by `/api/debug/data-models` and `server/DATA_MODEL.md`.
+
+The extractor is code-aware but not a schema compiler. It reads feature `model.js`, `service.js`, and `repository.js`, then extracts:
+- standard v24 blocks from `BaseEntity`
+- `lineage.*` keys from literal lineage objects
+- `data.*` keys from `data`/`params` object literals and `this.data.*` assignments
+
+Extraction output includes `source` and `issues` fields so `/admin/data-model-review` can flag suspicious generated fields before refactoring. Treat `server/DATA_MODEL.md` as review input, not the final contract, when a field is marked with issues.
+
 ## Related
 
 - [server/features/README.md](../features/README.md) — Service layer patterns

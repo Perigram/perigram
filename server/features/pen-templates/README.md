@@ -34,6 +34,7 @@ This component manages the display styles (pens) for DXF layers, including color
 - **System Pens:** Pens with `ownerId: null` are read-only and available to all users.
 - **Ownership:** User IDs are strings from OAuth providers.
 - **Color Format:** Colors must be in 6-digit Hex format with `#` prefix.
+- **Seeding:** `server/scripts/seed-system-pens.js` imports this feature directly from Node, so service imports must use relative server paths rather than the Nuxt `~` alias.
 
 ## Related
 - [Layer Standards](../layer-standards/) - Layers are assigned a default pen.

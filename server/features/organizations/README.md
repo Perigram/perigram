@@ -14,6 +14,10 @@ Key fields:
 - `type`: "Manufacturer" | "Contractor" | "Customer" | "ServiceProvider"
 - `settings`: Type-specific object (contractor.canCut, contractor.balance, etc.)
 
+## ID Handling
+- Organization `_id` values may be Mongo ObjectIds or string UIDs such as `org-xxxxxxxx`.
+- Repository lookups use `toFlexibleId()` for `findById`, `updateById`, `deleteById`, and `findByIds` so auth middleware can resolve `user.organizationId` without assuming ObjectId format.
+
 ## Access Control
 - SuperAdmin: Full CRUD on all organizations
 - Org Admins: Read/Update own organization only

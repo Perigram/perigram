@@ -1,0 +1,32 @@
+# COMPONENT: Tool Profiles
+
+System and user-owned CNC tool definitions used by nesting, cassette processing, and layer/tool mapping flows.
+
+## Core Files
+- `service.js`: Validates tool profile data and exposes CRUD-style operations.
+- `repository.js`: MongoDB access for `tool_profiles`.
+- `index.js`: Public feature entry point exporting the service namespace.
+
+## Data Structure
+Collection: `tool_profiles`
+
+Key fields:
+- `identity.name`: Display name.
+- `lineage.userId`: `null` for system tools, string user ID for user-owned tools.
+- `data.diameter`: Positive numeric tool diameter.
+- `data.angle`: Numeric angle; defaults to `0`.
+- `data.kerf`: Cut width; defaults to `diameter`.
+- `data.description`: Optional text.
+
+## Key Functions
+- `listAll(userId)`: Returns system tools plus tools owned by the user.
+- `create(data, userId)`: Creates a system tool when `userId` is null, otherwise user-owned.
+- `update(id, updates, userId)`: Updates a non-system tool.
+- `remove(id, userId)`: Deletes a non-system tool.
+
+## Seeding
+`server/scripts/seed-system-tools.js` imports this feature directly from Node, so service imports must use relative server paths rather than the Nuxt `~` alias.
+
+## Related
+- [Layer Standards](../layer-standards/README.md) - Layer categories map to tool and pen behavior.
+- [Pen Templates](../pen-templates/README.md) - Visual layer styling.
