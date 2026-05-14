@@ -2,14 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    --ck-page-max-width: 1600px;
+    --ck-grid-gap: 1.5rem;
+    --ck-details-gap: 2rem;
+    --ck-dialog-sm: 24rem;
+    --ck-dialog-md: 42rem;
+    --ck-dialog-lg: 56rem;
+    --ck-dialog-xl: 72rem;
+    --ck-radius-ui: 0.5rem;
+    --ck-motion-fast: 120ms;
+    --ck-motion-normal: 200ms;
+}
+
 /* Minimal layout helpers only */
 @layer utilities {
     .grid-hub {
-        @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-6;
+        @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-[var(--ck-grid-gap)];
     }
 
     .grid-details {
-        @apply grid grid-cols-1 lg:grid-cols-4 gap-8;
+        @apply grid grid-cols-1 lg:grid-cols-4 gap-[var(--ck-details-gap)];
     }
 }
 

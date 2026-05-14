@@ -1,23 +1,9 @@
 import { definePreset } from '@primeuix/themes'
 import Aura from '@primeuix/themes/aura'
+import { primeComponentTokens } from '../tokens/index.js'
 
 const Re_L = definePreset(Aura, {
-    components: {
-        dataview: {
-            root: {
-                background: 'transparent',
-                borderWidth: '0'
-            },
-            content: {
-                background: 'transparent',
-                borderWidth: '0'
-            },
-            header: {
-                background: 'transparent',
-                borderWidth: '0'
-            }
-        }
-    }
+    components: primeComponentTokens
 })
 
 export default Re_L
