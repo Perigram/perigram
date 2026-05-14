@@ -74,7 +74,7 @@
                                             </Column>
                                             <Column field="available" :header="$t('metadata.available')" />
                                             <Column field="quantity" :header="$t('projectData.quantity')" />
-                                            <Column header="" style="width: 40px">
+                                            <Column header="" style="width: var(--ck-table-action-column-width)">
                                                 <template #body="slotProps">
                                                     <Button icon="pi pi-times" severity="danger" text rounded size="small" @click="removeSheets(pm, slotProps.index)" />
                                                 </template>

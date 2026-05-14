@@ -15,7 +15,17 @@ export const designTokens = {
         dialogSm: '24rem',
         dialogMd: '42rem',
         dialogLg: '56rem',
-        dialogXl: '72rem'
+        dialogXl: '72rem',
+        supportChatWidth: '25rem',
+        supportChatHeight: '31.25rem',
+        supportChatAdminHeight: 'calc(100vh - 12rem)',
+        supportChatMessageMax: '85%',
+        supportChatAdminMessageMax: '80%',
+        entityPopoverMinWidth: '18.75rem',
+        swatchSize: '2.625rem',
+        floatingMenuMinWidth: '12.5rem',
+        previewDialogHeight: '95vh',
+        tableActionColumnWidth: '3rem'
     },
     radius: {
         ui: '0.5rem',
@@ -35,6 +45,16 @@ export const cssVariableTokens = {
     '--ck-dialog-md': designTokens.layout.dialogMd,
     '--ck-dialog-lg': designTokens.layout.dialogLg,
     '--ck-dialog-xl': designTokens.layout.dialogXl,
+    '--ck-support-chat-width': designTokens.layout.supportChatWidth,
+    '--ck-support-chat-height': designTokens.layout.supportChatHeight,
+    '--ck-support-chat-admin-height': designTokens.layout.supportChatAdminHeight,
+    '--ck-support-chat-message-max': designTokens.layout.supportChatMessageMax,
+    '--ck-support-chat-admin-message-max': designTokens.layout.supportChatAdminMessageMax,
+    '--ck-entity-popover-min-width': designTokens.layout.entityPopoverMinWidth,
+    '--ck-swatch-size': designTokens.layout.swatchSize,
+    '--ck-floating-menu-min-width': designTokens.layout.floatingMenuMinWidth,
+    '--ck-preview-dialog-height': designTokens.layout.previewDialogHeight,
+    '--ck-table-action-column-width': designTokens.layout.tableActionColumnWidth,
     '--ck-radius-ui': designTokens.radius.ui,
     '--ck-motion-fast': designTokens.motion.fast,
     '--ck-motion-normal': designTokens.motion.normal
@@ -64,7 +84,26 @@ export const tailwindThemeExtension = {
         }
     },
     maxWidth: {
-        app: 'var(--ck-page-max-width)'
+        app: 'var(--ck-page-max-width)',
+        'dialog-sm': 'var(--ck-dialog-sm)',
+        'dialog-md': 'var(--ck-dialog-md)',
+        'dialog-lg': 'var(--ck-dialog-lg)',
+        'dialog-xl': 'var(--ck-dialog-xl)',
+        'support-chat': 'var(--ck-support-chat-width)',
+        'entity-popover': 'var(--ck-entity-popover-min-width)',
+        'floating-menu': 'var(--ck-floating-menu-min-width)'
+    },
+    width: {
+        swatch: 'var(--ck-swatch-size)'
+    },
+    height: {
+        swatch: 'var(--ck-swatch-size)',
+        'support-chat': 'var(--ck-support-chat-height)',
+        'support-chat-admin': 'var(--ck-support-chat-admin-height)',
+        'preview-dialog': 'var(--ck-preview-dialog-height)'
+    },
+    minHeight: {
+        'support-chat': 'var(--ck-support-chat-height)'
     },
     borderRadius: {
         ui: 'var(--ck-radius-ui)'
@@ -74,6 +113,16 @@ export const tailwindThemeExtension = {
         normal: 'var(--ck-motion-normal)'
     }
 };
+
+export const supportAvatarPalette = [
+    'var(--p-red-500)',
+    'var(--p-orange-500)',
+    'var(--p-green-500)',
+    'var(--p-blue-500)',
+    'var(--p-indigo-500)',
+    'var(--p-purple-500)',
+    'var(--p-pink-500)'
+];
 
 export const primeComponentTokens = {
     dataview: {

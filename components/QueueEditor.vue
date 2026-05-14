@@ -216,7 +216,7 @@
                                     <InputNumber v-if="isParametricEntry(data)" v-model="data.dimensions[param]" fluid size="small" />
                                 </template>
                             </Column>
-                            <Column v-if="queueState === 'DRAFT'" style="width: 3rem">
+                            <Column v-if="queueState === 'DRAFT'" style="width: var(--ck-table-action-column-width)">
                                 <template #body="{ data }"><Button icon="pi pi-trash" severity="danger" text @click="confirmDelete(data)" size="small" /></template>
                             </Column>
                         </DataTable>

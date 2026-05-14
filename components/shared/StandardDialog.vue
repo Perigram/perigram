@@ -36,12 +36,12 @@ defineEmits(['cancel', 'save']);
 
 const sizeClass = computed(() => {
     switch (props.size) {
-        case 'sm': return 'max-w-sm';
-        case 'lg': return 'max-w-4xl';
-        case 'xl': return 'max-w-6xl';
+        case 'sm': return 'max-w-dialog-sm';
+        case 'lg': return 'max-w-dialog-lg';
+        case 'xl': return 'max-w-dialog-xl';
         case 'full': return 'max-w-full m-4';
         case 'md':
-        default: return 'max-w-2xl';
+        default: return 'max-w-dialog-md';
     }
 });
 </script>

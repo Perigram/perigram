@@ -21,7 +21,7 @@
         </div>
 
         <div v-if="loading" class="flex items-center justify-center py-12">
-            <ProgressSpinner style="width: 40px; height: 40px" />
+            <ProgressSpinner class="w-10 h-10" />
         </div>
 
         <div v-else-if="!projects || projects.length === 0" class="text-center py-16 border-2 border-dashed rounded-xl">

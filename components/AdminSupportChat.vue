@@ -18,7 +18,7 @@
             </template>
 
             <!-- Messages Area -->
-            <div ref="messagesContainer" class="h-[calc(100vh-300px)] overflow-y-auto p-4 flex flex-col gap-4">
+            <div ref="messagesContainer" class="h-[calc(var(--ck-support-chat-admin-height)-7rem)] overflow-y-auto p-4 flex flex-col gap-4">
                 <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-4">
                     <ProgressSpinner />
                     <p>{{ $t('admin.loadingMessages') }}</p>
@@ -36,7 +36,7 @@
                         </div>
                         <!-- Message Bubble -->
                         <div 
-                            class="max-w-[80%] flex flex-col gap-1"
+                            class="max-w-[var(--ck-support-chat-admin-message-max)] flex flex-col gap-1"
                             :class="message.sender === 'support' ? 'ml-auto items-end' : 'mr-auto items-start'"
                         >
                             <Panel 

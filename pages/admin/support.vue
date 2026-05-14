@@ -1,12 +1,12 @@
 <template>
-    <div class="flex h-[calc(100vh-12rem)] min-h-[500px] border border-[var(--p-content-border-color)] rounded-2xl overflow-hidden shadow-sm bg-[var(--p-content-background)]">
+    <div class="flex h-support-chat-admin min-h-support-chat border border-content-border rounded-ui overflow-hidden shadow-sm bg-content">
         <AdminSupportChatList
-            class="w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-[var(--p-content-border-color)]"
+            class="w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-content-border"
             :class="{'hidden md:flex': selectedUserId, 'flex': !selectedUserId}"
             @select-chat="handleChatSelection"
         />
         
-        <div class="flex-1 min-w-0 bg-[var(--p-content-background)]">
+        <div class="flex-1 min-w-0 bg-content">
             <AdminSupportChat 
                 v-if="selectedUserId"
                 :key="selectedUserId"

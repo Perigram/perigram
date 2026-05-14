@@ -168,7 +168,7 @@
             <div
                 v-if="addDialog.visible"
                 :style="{ position: 'absolute', left: addDialog.screenX + 'px', top: addDialog.screenY + 'px', transform: 'translate(-50%, -100%)' }"
-                class="z-50 mb-8 border rounded p-4 flex flex-col gap-4 min-w-[200px]"
+                class="z-50 mb-8 border rounded p-4 flex flex-col gap-4 min-w-floating-menu"
             >
                 <div class="flex flex-col gap-1">
                     <small>{{ $t('cassette.addGeometry') }}</small>

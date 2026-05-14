@@ -81,6 +81,9 @@ describe('Design system manifest', () => {
     expect(designTokens.layout.pageMaxWidth).toBe('1600px');
     expect(cssVariableTokens['--ck-page-max-width']).toBe(designTokens.layout.pageMaxWidth);
     expect(tailwindThemeExtension.maxWidth.app).toBe('var(--ck-page-max-width)');
+    expect(tailwindThemeExtension.height['support-chat']).toBe('var(--ck-support-chat-height)');
+    expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
+    expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens.dataview.root.background).toBe('transparent');
   });
 

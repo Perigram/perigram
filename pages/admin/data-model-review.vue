@@ -61,7 +61,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="field in filteredFields(model)" :key="field.name" class="border-t border-[var(--p-content-border-color)] align-top">
+                                    <tr v-for="field in filteredFields(model)" :key="field.name" class="border-t border-content-border align-top">
                                         <td class="py-3 pr-3 font-mono">{{ field.name }}</td>
                                         <td class="py-3 pr-3">{{ field.type }}</td>
                                         <td class="py-3 pr-3">{{ field.source || 'standard' }}</td>

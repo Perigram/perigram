@@ -58,7 +58,7 @@
           <label>{{ $t('assets.color') }}</label>
           <div class="flex gap-2">
             <InputText v-model="form.stroke.color" :placeholder="$t('assets.placeholders.color')" class="flex-1" />
-            <div class="w-[42px] h-[42px] border rounded shrink-0" :style="{ backgroundColor: form.stroke.color }"></div>
+            <div class="w-swatch h-swatch border rounded shrink-0" :style="{ backgroundColor: form.stroke.color }"></div>
           </div>
         </div>
         

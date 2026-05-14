@@ -10,6 +10,16 @@
     --ck-dialog-md: 42rem;
     --ck-dialog-lg: 56rem;
     --ck-dialog-xl: 72rem;
+    --ck-support-chat-width: 25rem;
+    --ck-support-chat-height: 31.25rem;
+    --ck-support-chat-admin-height: calc(100vh - 12rem);
+    --ck-support-chat-message-max: 85%;
+    --ck-support-chat-admin-message-max: 80%;
+    --ck-entity-popover-min-width: 18.75rem;
+    --ck-swatch-size: 2.625rem;
+    --ck-floating-menu-min-width: 12.5rem;
+    --ck-preview-dialog-height: 95vh;
+    --ck-table-action-column-width: 3rem;
     --ck-radius-ui: 0.5rem;
     --ck-motion-fast: 120ms;
     --ck-motion-normal: 200ms;

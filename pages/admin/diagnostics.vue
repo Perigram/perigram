@@ -34,7 +34,7 @@
                             </thead>
                             <tbody>
                                 <template v-for="(actions, feature) in myPermissions" :key="feature">
-                                    <tr v-for="(allowed, action) in actions" :key="action" class="border-t border-[var(--p-content-border-color)]">
+                                    <tr v-for="(allowed, action) in actions" :key="action" class="border-t border-content-border">
                                         <td class="py-1 font-mono text-xs">{{ feature }}</td>
                                         <td class="py-1">{{ action }}</td>
                                         <td class="py-1 text-right">
@@ -50,7 +50,7 @@
 
         <!-- Full Matrix Reference -->
         <Panel :header="$t('admin.globalPermissionMatrix')" toggleable collapsed>
-            <pre class="text-[10px] font-mono bg-[var(--p-surface-100)] p-4 rounded-xl overflow-auto border border-[var(--p-content-border-color)]">{{ UI_PERMISSIONS }}</pre>
+            <pre class="text-[10px] font-mono bg-surface-100 p-4 rounded-ui overflow-auto border border-content-border">{{ UI_PERMISSIONS }}</pre>
         </Panel>
     </div>
 </template>

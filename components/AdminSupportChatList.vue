@@ -17,7 +17,7 @@
                                 <Avatar 
                                     :label="getUserName(chat.user)" 
                                     shape="circle" 
-                                    :style="{ backgroundColor: letterToBg(getUserName(chat.user)), color: '#fff' }"
+                                    :style="{ backgroundColor: letterToBg(getUserName(chat.user)), color: 'var(--p-primary-contrast-color)' }"
                                 />
                                 <span class="truncate">{{ chat.user?.name || $t('admin.unknownUser') }}</span>
                             </div>
@@ -64,6 +64,7 @@ import Divider from 'primevue/divider'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
+import { supportAvatarPalette } from '~/assets/tokens/index.js'
 
 const { t } = useI18n()
 const chatList = ref([])
@@ -134,8 +135,7 @@ const letterToBg = (letter) => {
     for (let i = 0; i < letter.length; i++) {
         val += letter.charCodeAt(i);
     }
-    const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899'];
-    return colors[val % colors.length];
+    return supportAvatarPalette[val % supportAvatarPalette.length];
 }
 
 const getTimeAgo = (timestamp) => {

@@ -4,10 +4,10 @@
       <ProgressSpinner />
     </div>
 
-    <div v-else-if="!queues || queues.length === 0" class="text-center py-20 px-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)] mx-1">
-      <i class="pi pi-file-excel text-6xl text-[var(--p-text-muted-color)] mb-4 opacity-30 block"></i>
-      <p class="text-xl font-bold text-[var(--p-text-color)] m-0 uppercase tracking-wider">{{ $t('artifacts.noQueues') }}</p>
-      <p class="text-[var(--p-text-secondary-color)] mt-2 font-medium">{{ $t('artifacts.createQueueFirst') }}</p>
+    <div v-else-if="!queues || queues.length === 0" class="text-center py-20 px-6 border-2 border-dashed border-content-border rounded-ui bg-content mx-1">
+      <i class="pi pi-file-excel text-6xl text-text-muted mb-4 opacity-30 block"></i>
+      <p class="text-xl font-bold m-0 uppercase tracking-wider">{{ $t('artifacts.noQueues') }}</p>
+      <p class="text-text-muted mt-2 font-medium">{{ $t('artifacts.createQueueFirst') }}</p>
     </div>
 
     <Accordion v-else :multiple="true" :value="['0']" class="flex flex-col gap-4">

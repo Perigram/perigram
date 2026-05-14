@@ -7,7 +7,7 @@
         </div>
         
         <Popover ref="op" class="shadow-lg border border-surface-border">
-            <div class="flex flex-col gap-4 p-4 min-w-[300px]">
+            <div class="flex flex-col gap-4 p-4 min-w-[var(--ck-entity-popover-min-width)]">
                 <template v-if="showTrace">
                     <div class="flex flex-col gap-1">
                         <small class="text-muted-color">{{ $t('common.traceability') }}</small>
