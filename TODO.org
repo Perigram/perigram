@@ -387,3 +387,25 @@
     - Added a single token module that projects app tokens to PrimeVue and Tailwind while keeping color roles backed by PrimeVue semantic variables.
     - Added design-system guard tests for token projections, raw Card/Dialog ownership, and useBlocks isolation.
     - Removed legacy Vue files after import/routing scans confirmed no live references.
+
+*** Agent Notes
+    [2026-05-14] Apply visual tokens in shared wrappers and support components
+    Files changed:
+    - assets/tokens/index.js
+    - assets/css/main.css
+    - components/shared/StandardDialog.vue
+    - components/shared/EntityCard.vue
+    - components/ChatSupport.vue
+    - components/AdminSupportChat.vue
+    - components/AdminSupportChatList.vue
+    - components/AssetsLibrary.vue
+    - pages/admin/support.vue
+    - pages/assets/pens.vue
+    - shared/design-system.spec.js
+    Docs updated:
+    - assets/tokens/README.md
+    - docs/DESIGN_SYSTEM.md
+    - TODO.org
+    Notes:
+    - Moved dialog widths, support chat dimensions, message max widths, entity popover/menu widths, preview height, table action column width, swatch size, and support avatar palette into the token module.
+    - Updated shared wrappers and support/asset/admin/project components to consume token-backed Tailwind classes or CSS variables instead of local visual constants.
