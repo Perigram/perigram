@@ -147,10 +147,10 @@
         </Tabs>
 
         <!-- Add Material Dialog -->
-        <Dialog 
+        <StandardDialog
             v-model:visible="showAddMaterialDialog" 
             :header="$t('projectData.addMaterialToProject')" 
-            modal 
+            size="sm"
         >
             <div class="flex flex-col gap-4 py-4">
                 <div class="flex flex-col gap-1">
@@ -180,10 +180,10 @@
                 <Button :label="$t('common.cancel')" text severity="secondary" @click="showAddMaterialDialog = false" />
                 <Button :label="$t('common.add')" @click="addMaterialToProject" :disabled="!selectedGlobalMaterialId" />
             </template>
-        </Dialog>
+        </StandardDialog>
 
         <!-- Create New Material Dialog (Global) -->
-        <Dialog v-model:visible="showCreateMaterialDialog" :header="$t('projectData.createGlobalMaterial')" modal>
+        <StandardDialog v-model:visible="showCreateMaterialDialog" :header="$t('projectData.createGlobalMaterial')" size="sm">
             <div class="grid grid-cols-1 gap-4 py-4">
                 <div class="flex flex-col gap-1">
                     <label>{{ $t('common.name') }}</label>
@@ -218,13 +218,13 @@
                 <Button :label="$t('common.cancel')" text severity="secondary" @click="showCreateMaterialDialog = false" />
                 <Button :label="$t('projectData.createAndAdd')" @click="createAndAddMaterial" />
             </template>
-        </Dialog>
+        </StandardDialog>
 
         <!-- Add Sheets Dialog -->
-        <Dialog 
+        <StandardDialog
             v-model:visible="showAddSheetsDialog" 
             :header="$t('projectData.addSheets')" 
-            modal 
+            size="sm"
         >
             <div class="flex flex-col gap-4 py-4" v-if="activeProjectMaterial">
                 <div class="grid grid-cols-2 gap-4">
@@ -246,7 +246,7 @@
                 <Button :label="$t('common.cancel')" text severity="secondary" @click="showAddSheetsDialog = false" />
                 <Button :label="$t('common.add')" @click="saveSheets" />
             </template>
-        </Dialog>
+        </StandardDialog>
 
         <ConfirmDialog />
     </div>
@@ -267,7 +267,6 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import Dialog from 'primevue/dialog';
 import Select from 'primevue/select';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
@@ -275,6 +274,7 @@ import Chip from 'primevue/chip';
 import ConfirmDialog from 'primevue/confirmdialog';
 
 import { useEntity } from '~/composables/useEntity';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 
 definePageMeta({
     layout: 'app',

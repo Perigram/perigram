@@ -39,13 +39,11 @@
                             class="max-w-[80%] flex flex-col gap-1"
                             :class="message.sender === 'support' ? 'ml-auto items-end' : 'mr-auto items-start'"
                         >
-                            <Card 
+                            <Panel 
                                 :class="message.sender === 'support' ? 'card-active' : ''"
                             >
-                                <template #content>
-                                    <p class="m-0 break-words">{{ message.message }}</p>
-                                </template>
-                            </Card>
+                                <p class="m-0 break-words">{{ message.message }}</p>
+                            </Panel>
                             <small>{{ formatTime(message.timestamp) }}</small>
                         </div>
                     </template>
@@ -84,7 +82,6 @@
 import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
-import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Textarea from 'primevue/textarea';

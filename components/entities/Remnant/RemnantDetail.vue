@@ -71,7 +71,6 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
-import { useIdentity, useStatus, useSpecs } from '~/composables/useBlocks';
 import { useEntity } from '~/composables/useEntity';
 
 const props = defineProps({
@@ -82,10 +81,16 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
-const { serial } = useIdentity(props.remnant);
-const { state } = useStatus(props.remnant);
-const { formattedArea, width, length } = useSpecs(props.remnant);
 const { changeStatus } = useEntity('remnant', props.remnant?._id || props.remnant?.id);
+const serial = computed(() => props.remnant.identity?.serial || props.remnant.serial || props.remnant.name || 'Unnamed');
+const state = computed(() => props.remnant.status?.state || props.remnant.state || 'UNKNOWN');
+const specs = computed(() => props.remnant.specs || props.remnant.data?.specs || {});
+const width = computed(() => specs.value.width || 0);
+const length = computed(() => specs.value.length || 0);
+const formattedArea = computed(() => {
+    const area = Number(specs.value.area || 0);
+    return `${area.toFixed(2)} m²`;
+});
 
 const statusActions = computed(() => {
     if (state.value !== 'AVAILABLE') return [];

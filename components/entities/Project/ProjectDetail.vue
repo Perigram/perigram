@@ -66,7 +66,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
@@ -75,7 +75,6 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';
-import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
     project: { type: Object, required: true }
@@ -84,7 +83,8 @@ const props = defineProps({
 defineEmits(['add-queue']);
 
 const router = useRouter();
-const { name: projectName, slug: projectSlug } = useIdentity(props.project);
+const projectName = computed(() => props.project.identity?.name || props.project.name || 'Unnamed');
+const projectSlug = computed(() => props.project.identity?.slug || props.project.slug || props.project._id || props.project.id || '');
 
 const queues = ref([]);
 const loading = ref(false);

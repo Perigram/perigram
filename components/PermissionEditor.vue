@@ -6,12 +6,12 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card
+            <Panel
                 v-for="feature in entities"
                 :key="feature.key"
                 :class="localPermissions[feature.key] === 'none' ? 'opacity-50' : ''"
             >
-                <template #title>
+                <template #header>
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 border rounded flex items-center justify-center">
                             <i :class="getIcon(feature.key)"></i>
@@ -22,20 +22,18 @@
                         </div>
                     </div>
                 </template>
-                <template #content>
-                    <div class="flex flex-col gap-3">
-                        <SelectButton
-                            v-model="localPermissions[feature.key]"
-                            :options="PERMISSION_LEVELS"
-                            option-label="label"
-                            option-value="value"
-                        />
-                        <p class="italic opacity-60 m-0">
-                            {{ getDescription(feature.key, localPermissions[feature.key]) }}
-                        </p>
-                    </div>
-                </template>
-            </Card>
+                <div class="flex flex-col gap-3">
+                    <SelectButton
+                        v-model="localPermissions[feature.key]"
+                        :options="PERMISSION_LEVELS"
+                        option-label="label"
+                        option-value="value"
+                    />
+                    <p class="italic opacity-60 m-0">
+                        {{ getDescription(feature.key, localPermissions[feature.key]) }}
+                    </p>
+                </div>
+            </Panel>
         </div>
 
         <div class="pt-6 border-t flex justify-end gap-3">
@@ -50,7 +48,7 @@ import { ref, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SelectButton from 'primevue/selectbutton';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
+import Panel from 'primevue/panel';
 
 const props = defineProps({
     permissions: { type: Object, default: () => ({}) }

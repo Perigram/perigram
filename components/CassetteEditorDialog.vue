@@ -224,8 +224,9 @@ watch(() => props.cassetteId, async (newId) => {
   if (newId) {
     try {
       cassette.value = await cassettesStore.fetchById(newId);
-      if (cassette.value.definition?.data?.mapping) {
-        layerMappings.value = { ...cassette.value.definition.data.mapping };
+      const mapping = cassette.value.definition?.mapping || cassette.value.definition?.data?.mapping || cassette.value.data?.definition?.mapping;
+      if (mapping) {
+        layerMappings.value = { ...mapping };
       }
     } catch (error) {
       errorMessage.value = 'Failed to load cassette';

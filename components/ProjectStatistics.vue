@@ -1,31 +1,34 @@
 <template>
-    <Card>
-        <template #title>{{ $t('statistics.title') }}</template>
-        <template #content>
+    <Panel :header="$t('statistics.title')">
             <div v-if="statistics && statistics.sheetsUsed !== undefined" class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <Card>
-                    <template #title>{{ statistics.sheetsUsed || 0 }}</template>
-                    <template #subtitle>{{ $t('results.sheets') }}</template>
-                </Card>
-                <Card>
-                    <template #title>{{ (statistics.totalAreaUsed || 0).toFixed(2) }} m²</template>
-                    <template #subtitle>{{ $t('statistics.totalArea') }}</template>
-                </Card>
-                <Card>
-                    <template #title>{{ (statistics.utilizationRate || 0).toFixed(2) }}%</template>
-                    <template #subtitle>{{ $t('statistics.efficiency') }}</template>
-                </Card>
+                <Panel>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xl">{{ statistics.sheetsUsed || 0 }}</span>
+                        <small>{{ $t('results.sheets') }}</small>
+                    </div>
+                </Panel>
+                <Panel>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xl">{{ (statistics.totalAreaUsed || 0).toFixed(2) }} m²</span>
+                        <small>{{ $t('statistics.totalArea') }}</small>
+                    </div>
+                </Panel>
+                <Panel>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xl">{{ (statistics.utilizationRate || 0).toFixed(2) }}%</span>
+                        <small>{{ $t('statistics.efficiency') }}</small>
+                    </div>
+                </Panel>
             </div>
             <div v-else class="flex flex-col items-center py-8">
                 <i class="pi pi-chart-line text-3xl"></i>
                 <p>{{ $t('results.noResults') }}</p>
             </div>
-        </template>
-    </Card>
+    </Panel>
 </template>
 
 <script setup>
-import Card from 'primevue/card';
+import Panel from 'primevue/panel';
 const props = defineProps({
     statistics: {
         type: Object,

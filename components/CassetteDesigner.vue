@@ -47,29 +47,27 @@
                     <div v-if="cassetteData.extrusions.length === 0" class="py-12 text-center italic">
                         {{ $t('cassette.noFaces') }}<br>{{ $t('cassette.clickEdgeToGrow') }}
                     </div>
-                    <Card v-for="(ext, idx) in cassetteData.extrusions" :key="idx" 
+                    <Panel v-for="(ext, idx) in cassetteData.extrusions" :key="idx" 
                         @mouseenter="highlightExtrusion(idx)"
                         @mouseleave="highlightExtrusion(null)"
                     >
-                        <template #content>
-                            <div class="flex flex-col gap-2">
-                                <div class="flex justify-between items-center">
-                                    <div class="flex items-center gap-2">
-                                        <Tag :value="ext.param" severity="info" />
-                                        <small>{{ $t('cassette.edge') }} {{ ext.edge }}</small>
-                                    </div>
-                                    <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="removeExtrusion(idx)" />
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center gap-2">
+                                    <Tag :value="ext.param" severity="info" />
+                                    <small>{{ $t('cassette.edge') }} {{ ext.edge }}</small>
                                 </div>
-                                <Select 
-                                    v-model="ext.param" 
-                                    :options="availableParams" 
-                                    size="small"
-                                    class="w-full" 
-                                    @change="rebuildAndEvaluate"
-                                />
+                                <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="removeExtrusion(idx)" />
                             </div>
-                        </template>
-                    </Card>
+                            <Select 
+                                v-model="ext.param" 
+                                :options="availableParams" 
+                                size="small"
+                                class="w-full" 
+                                @change="rebuildAndEvaluate"
+                            />
+                        </div>
+                    </Panel>
                 </div>
             </Panel>
 
@@ -197,7 +195,7 @@
         <Toast />
         
         <!-- Add Parameter Dialog -->
-        <Dialog v-model:visible="showAddParamDialog" :header="$t('cassette.addCustomParameter')" modal>
+        <StandardDialog v-model:visible="showAddParamDialog" :header="$t('cassette.addCustomParameter')" size="sm">
             <div class="flex flex-col gap-4 py-4">
                 <div class="flex flex-col gap-1">
                     <label>{{ $t('cassette.parameterName') }}</label>
@@ -212,20 +210,18 @@
                 <Button :label="$t('common.cancel')" text severity="secondary" @click="showAddParamDialog = false" />
                 <Button :label="$t('common.add')" @click="addCustomParam" :disabled="!newParam.name" />
             </template>
-        </Dialog>
+        </StandardDialog>
     </div>
 </template>
 
 <script setup>
-    import { ref, onMounted, reactive, computed } from 'vue'
+    import { ref, onMounted, reactive, computed, watch } from 'vue'
     import { useI18n } from 'vue-i18n'
-    import Card from 'primevue/card'
     import Panel from 'primevue/panel'
     import Button from 'primevue/button'
     import InputNumber from 'primevue/inputnumber'
     import InputText from 'primevue/inputtext'
     import Select from 'primevue/select'
-    import Dialog from 'primevue/dialog'
     import Toast from 'primevue/toast'
     import Inplace from 'primevue/inplace'
     import ProgressSpinner from 'primevue/progressspinner'
@@ -233,6 +229,7 @@
     import Tag from 'primevue/tag'
     import { useToast } from 'primevue/usetoast'
     import { useCassettesStore } from '~/stores/cassettes'
+    import StandardDialog from '~/components/shared/StandardDialog.vue'
 
     const { t } = useI18n()
     const props = defineProps({
@@ -246,29 +243,58 @@
     const cassettesStore = useCassettesStore()
     const emit = defineEmits(['saved'])
 
+    const DEFAULT_CASSETTE_GRAPH = {
+        params: { A: 600, B: 600 },
+        extrusions: []
+    }
+
+    const isDesignerGraph = (value) => {
+        return value && typeof value === 'object' && (value.params || value.extrusions)
+    }
+
+    const normalizeDesignerGraph = (initialData) => {
+        const candidates = [
+            initialData?.definition?.data,
+            initialData?.definition,
+            initialData?.data?.definition,
+            initialData?.data
+        ]
+
+        const graph = candidates.find(isDesignerGraph) || {}
+        const params = graph.params && typeof graph.params === 'object'
+            ? graph.params
+            : DEFAULT_CASSETTE_GRAPH.params
+        const extrusions = Array.isArray(graph.extrusions)
+            ? graph.extrusions
+            : DEFAULT_CASSETTE_GRAPH.extrusions
+
+        return {
+            params: { ...DEFAULT_CASSETTE_GRAPH.params, ...params },
+            extrusions: extrusions.map(ext => ({ ...ext }))
+        }
+    }
+
+    const initialGraph = normalizeDesignerGraph(props.initialData)
+
     // State
     const isReady = ref(false)
     const cassetteName = ref(props.initialData?.name || t('cassette.newCassette'))
     const cassetteData = reactive({
-        params: { 
-            A: 600, 
-            B: 600 
-        },
-        extrusions: [],
+        params: initialGraph.params,
+        extrusions: initialGraph.extrusions,
     })
 
     const showAddParamDialog = ref(false)
     const newParam = reactive({ name: '', value: 100 })
 
-    // Load initial data if provided
-    if (props.initialData?.definition?.data) {
-        Object.assign(cassetteData.params, props.initialData.definition.data.params)
-        cassetteData.extrusions = [...props.initialData.definition.data.extrusions]
-    } else if (props.initialData?.data) {
-        // Fallback for legacy data
-        Object.assign(cassetteData.params, props.initialData.data.params)
-        cassetteData.extrusions = [...props.initialData.data.extrusions]
+    const hydrateFromInitialData = (initialData) => {
+        const graph = normalizeDesignerGraph(initialData)
+        cassetteName.value = initialData?.name || t('cassette.newCassette')
+        cassetteData.params = graph.params
+        cassetteData.extrusions = graph.extrusions
     }
+
+    watch(() => props.initialData, hydrateFromInitialData)
 
     // UI State
     const hoveredEdge = ref(null)

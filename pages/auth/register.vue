@@ -51,7 +51,7 @@
         </div>
 
         <!-- Create Organization Dialog -->
-        <Dialog v-model:visible="showCreateOrg" :header="$t('auth.createOrg')" modal>
+        <StandardDialog v-model:visible="showCreateOrg" :header="$t('auth.createOrg')" size="sm">
             <div class="flex flex-col gap-4 py-4">
                 <div class="flex flex-col gap-1">
                     <label>{{ $t('common.name') }}</label>
@@ -72,7 +72,7 @@
                 <Button :label="$t('common.cancel')" text severity="secondary" @click="showCreateOrg = false" />
                 <Button :label="$t('common.create')" @click="createOrganization" :loading="creatingOrg" />
             </template>
-        </Dialog>
+        </StandardDialog>
     </div>
 </template>
 
@@ -86,7 +86,8 @@ import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
-import Dialog from 'primevue/dialog';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { useEntity } from '~/composables/useEntity';
 
 definePageMeta({
     layout: 'empty'
@@ -96,6 +97,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const toast = useToast();
 const { t } = useI18n();
+const organizationsEntity = useEntity('organization');
 
 const form = ref({
     name: '',
@@ -121,8 +123,7 @@ onMounted(async () => {
     try {
         // TODO: This endpoint needs to be public or we need a way to list orgs for registration
         // For now assuming we have a public endpoint or we use a temporary solution
-        const res = await $fetch('/api/organizations');
-        organizations.value = res;
+        organizations.value = await organizationsEntity.list();
     } catch (e) {
         // Fallback or empty
     } finally {
@@ -135,10 +136,7 @@ const createOrganization = async () => {
     try {
         // We need a public endpoint for this or handle it differently
         // For now, let's assume we can create it
-        const org = await $fetch('/api/organizations', {
-            method: 'POST',
-            body: newOrg.value
-        });
+        const org = await organizationsEntity.create(newOrg.value);
         organizations.value.push(org);
         form.value.organizationId = org._id;
         showCreateOrg.value = false;

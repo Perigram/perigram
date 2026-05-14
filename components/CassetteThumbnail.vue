@@ -71,6 +71,17 @@ const props = defineProps({
 const renderingData = ref(null);
 const loading = ref(false);
 
+const cassetteType = (cassette) => cassette?.type || cassette?.data?.type || cassette?.definition?.type || '';
+const cassetteDefinition = (cassette) => cassette?.definition?.data || cassette?.definition || cassette?.data?.definition || {};
+const cassetteMapping = (cassette) => cassetteDefinition(cassette)?.mapping || {};
+const cassetteGraph = (cassette) => {
+  const definition = cassetteDefinition(cassette);
+  return {
+    params: definition?.params || {},
+    extrusions: Array.isArray(definition?.extrusions) ? definition.extrusions : []
+  };
+};
+
 // Cache keys to prevent redundant renders
 let lastRenderKey = '';
 
@@ -123,7 +134,10 @@ const updateThumbnail = async () => {
   }
 
   // 2. Handle Parametric Templates
-  if (cassette.definition?.type === 'PARAMETRIC' || (cassette.definition?.data && !cassette.definition?.dxfId)) {
+  const type = cassetteType(cassette);
+  const graph = cassetteGraph(cassette);
+
+  if (type === 'PARAMETRIC' || graph.extrusions.length > 0 || Object.keys(graph.params).length > 0) {
     loading.value = true;
     try {
       if (window.requestIdleCallback) {
@@ -134,10 +148,10 @@ const updateThumbnail = async () => {
 
       const renderData = {
         params: {
-          ...(cassette.definition?.data?.params || {}),
+          ...graph.params,
           ...(props.dimensions || {})
         },
-        extrusions: cassette.definition?.data?.extrusions || []
+        extrusions: graph.extrusions
       };
       
       const result = await renderCassetteToSVG(renderData);
@@ -151,14 +165,14 @@ const updateThumbnail = async () => {
   }
 
   // 3. Handle Standard Templates (Fallback: find associated design)
-  if (cassette.definition?.type === 'STANDARD') {
+  if (type === 'STANDARD') {
     loading.value = true;
     try {
       const design = await $fetch(`/api/cassette-designs/by-template/${cassette._id}`);
       if (design?.geometry?.dxfId) {
         const dxfText = await $fetch(`/api/files/download/${design.geometry.dxfId}?bucket=cassettes`);
         const defaultPen = systemPens.value[0] || { stroke: { color: 'currentColor', weight: 0.5 } };
-        const layerToPenMap = buildLayerPenMap(cassette.definition?.data?.mapping || {}, standards.value, pens.value);
+        const layerToPenMap = buildLayerPenMap(cassetteMapping(cassette), standards.value, pens.value);
         const data = await generateSvgDataFromText(dxfText, layerToPenMap, defaultPen);
         if (data) renderingData.value = data;
       }

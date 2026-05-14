@@ -6,7 +6,7 @@
     <div v-else-if="error" class="px-1">
       <Message severity="error">{{ error }}</Message>
     </div>
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-1">
+    <div v-else class="grid-hub px-1">
       <LayerStandardCard
         v-for="std in standards"
         :key="std._id"
@@ -17,7 +17,7 @@
     </div>
 
     <!-- Pen assignment dialog -->
-    <Dialog v-model:visible="dialogVisible" :header="$t('layerStandard.setPen')" modal :style="{ width: '24rem' }">
+    <StandardDialog v-model:visible="dialogVisible" :header="$t('layerStandard.setPen')" size="sm">
       <div class="flex flex-col gap-4 pt-2">
         <Select
           v-model="selectedPenId"
@@ -32,7 +32,7 @@
         <Button :label="$t('common.cancel')" text @click="dialogVisible = false" />
         <Button :label="$t('common.save')" :disabled="!selectedPenId" @click="savePen" />
       </template>
-    </Dialog>
+    </StandardDialog>
   </div>
 </template>
 
@@ -44,9 +44,9 @@ import { storeToRefs } from 'pinia';
 import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
 import ProgressSpinner from 'primevue/progressspinner';
 import Message from 'primevue/message';
-import Dialog from 'primevue/dialog';
 import Select from 'primevue/select';
 import Button from 'primevue/button';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 
 definePageMeta({
   layout: 'app',

@@ -23,8 +23,14 @@
     </div>
 
     <div class="grid-hub">
-      <Card v-for="cassette in cassettes" :key="cassette._id" 
+      <EntityCard
+        v-for="cassette in cassettes"
+        :key="cassette._id"
+        :entity="cassette"
+        entity-type="cassette_template"
         class="card-interactive"
+        :show-trace="false"
+        :show-status="false"
       >
         <template #header>
             <div class="aspect-square relative overflow-hidden">
@@ -54,7 +60,7 @@
                 <small>{{ formatDate(cassette.status?.timestamp || cassette.origin?.timestamp) }}</small>
             </div>
         </template>
-      </Card>
+      </EntityCard>
     </div>
 
     <CassetteEditorDialog 
@@ -62,15 +68,14 @@
       @uploaded="handleUploaded"
     />
 
-    <Dialog 
+    <StandardDialog
       v-model:visible="showDesignerDialog"
       :header="$t('cassette.designerTitle')"
-      :style="{ width: '95vw', height: '95vh' }"
-      :modal="true"
+      size="full"
       @hide="editingCassette = null"
     >
       <CassetteDesigner :initial-data="editingCassette" @saved="showDesignerDialog = false" />
-    </Dialog>
+    </StandardDialog>
     <ConfirmDialog />
   </div>
 </template>
@@ -81,8 +86,6 @@ import { useI18n } from 'vue-i18n';
 import { useCassettesStore } from '~/stores/cassettes';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
-import Tag from 'primevue/tag';
-import Dialog from 'primevue/dialog';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Inplace from 'primevue/inplace';
 import InputText from 'primevue/inputtext';
@@ -92,7 +95,8 @@ import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteDesigner from './CassetteDesigner.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
-import { useIdentity } from '~/composables/useBlocks';
+import EntityCard from '~/components/shared/EntityCard.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 
 const { t } = useI18n();
 const cassettesStore = useCassettesStore();
@@ -116,8 +120,7 @@ const formatDate = (date) => {
 };
 
 const getCassetteName = (cassette) => {
-    const { name } = useIdentity(cassette);
-    return name.value;
+    return cassette?.identity?.name || cassette?.name || cassette?.identity?.slug || cassette?.slug || 'Unnamed';
 };
 
 const handleDelete = async (cassetteId) => {

@@ -22,27 +22,19 @@
                         <i class="pi pi-history"></i>
                         <h2 class="m-0 text-base">{{ $t('cassetteInstance.tracking') }}</h2>
                     </div>
-                    <Card>
-                        <template #content>
-                            <StatusHistory :entity="instance" entity-type="cassette_instance" />
-                        </template>
-                    </Card>
+                    <Panel>
+                        <StatusHistory :entity="instance" entity-type="cassette_instance" />
+                    </Panel>
                 </div>
 
                 <!-- References -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card>
-                        <template #title><small>{{ $t('cassetteInstance.parentDesign') }}</small></template>
-                        <template #content>
-                            <TraceLink type="cassetteDesign" :id="instance.cassetteDesignId" />
-                        </template>
-                    </Card>
-                    <Card>
-                        <template #title><small>{{ $t('cassetteInstance.materialSource') }}</small></template>
-                        <template #content>
-                            <TraceLink type="sheet" :id="instance.sheetId" />
-                        </template>
-                    </Card>
+                    <Panel :header="$t('cassetteInstance.parentDesign')">
+                        <TraceLink type="cassetteDesign" :id="instance.cassetteDesignId" />
+                    </Panel>
+                    <Panel :header="$t('cassetteInstance.materialSource')">
+                        <TraceLink type="sheet" :id="instance.sheetId" />
+                    </Panel>
                 </div>
             </div>
 
@@ -73,7 +65,6 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
-import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Divider from 'primevue/divider';

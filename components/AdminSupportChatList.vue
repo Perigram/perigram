@@ -7,12 +7,12 @@
             
             <div class="flex flex-col gap-2 p-2">
                 <div v-if="chatList.length > 0" class="flex flex-col gap-2">
-                    <Card
+                    <Panel
                         v-for="chat in chatList" 
                         :key="chat.userId" 
                         @click="selectChat(chat.userId)"
                     >
-                        <template #title>
+                        <template #header>
                             <div class="flex items-center gap-3">
                                 <Avatar 
                                     :label="getUserName(chat.user)" 
@@ -22,17 +22,13 @@
                                 <span class="truncate">{{ chat.user?.name || $t('admin.unknownUser') }}</span>
                             </div>
                         </template>
-                        <template #subtitle>
-                            <small>ID: {{ chat.userId.slice(-8) }}</small>
-                        </template>
-                        <template #content>
-                            <Divider />
-                            <div class="flex flex-col">
-                                <p class="m-0 italic truncate">{{ chat.lastMessage }}</p>
-                                <small>{{ getTimeAgo(chat.timestamp) }}</small>
-                            </div>
-                        </template>
-                    </Card>
+                        <small>ID: {{ chat.userId.slice(-8) }}</small>
+                        <Divider />
+                        <div class="flex flex-col">
+                            <p class="m-0 italic truncate">{{ chat.lastMessage }}</p>
+                            <small>{{ getTimeAgo(chat.timestamp) }}</small>
+                        </div>
+                    </Panel>
                 </div> 
 
                 <div v-else-if="loading" class="flex flex-col items-center py-20">
@@ -63,7 +59,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Panel from 'primevue/panel'
-import Card from 'primevue/card'
 import Avatar from 'primevue/avatar'
 import Divider from 'primevue/divider'
 import Message from 'primevue/message'

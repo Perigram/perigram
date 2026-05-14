@@ -1,16 +1,14 @@
 <template>
-    <Dialog v-model:visible="visible" :header="$t('billing.title')" modal>
+    <StandardDialog v-model:visible="visible" :header="$t('billing.title')" size="sm">
         <div class="flex flex-col gap-6 py-4">
-            <Card>
-                <template #content>
-                    <div class="flex justify-between items-center">
-                        <div class="flex flex-col gap-1">
-                            <small>{{ $t('billing.currentBalance') }}</small>
-                            <Tag :value="user.balance || 0" severity="info" />
-                        </div>
+            <Panel>
+                <div class="flex justify-between items-center">
+                    <div class="flex flex-col gap-1">
+                        <small>{{ $t('billing.currentBalance') }}</small>
+                        <Tag :value="user.balance || 0" severity="info" />
                     </div>
-                </template>
-            </Card>
+                </div>
+            </Panel>
 
             <div v-if="loading" class="flex justify-center py-8">
                 <ProgressSpinner />
@@ -37,7 +35,7 @@
             <Button :label="$t('common.cancel')" severity="secondary" text @click="$emit('close')" />
             <Button :label="$t('billing.buyNow')" @click="handleBuy" :disabled="!selectedOption || processing" :loading="processing" />
         </template>
-    </Dialog>
+    </StandardDialog>
 </template>
 
 <script setup>
@@ -45,13 +43,13 @@ import { ref, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { storeToRefs } from 'pinia';
-import Card from 'primevue/card';
+import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
-import Dialog from 'primevue/dialog';
 import ProgressSpinner from 'primevue/progressspinner';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 
 const emit = defineEmits(['close']);
 const { t } = useI18n();

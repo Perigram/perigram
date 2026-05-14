@@ -21,46 +21,40 @@
 
         <!-- Operational Stock -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-                <template #title>
+            <Panel>
+                <template #header>
                     <div class="flex items-center gap-4">
                         <i class="pi pi-truck"></i>
                         <span>{{ warehouseStats.totalBatches || 0 }}</span>
                     </div>
                 </template>
-                <template #subtitle>
-                    <small>{{ $t('warehouse.activeShipments') }}</small>
-                </template>
-            </Card>
-            <Card>
-                <template #title>
+                <small>{{ $t('warehouse.activeShipments') }}</small>
+            </Panel>
+            <Panel>
+                <template #header>
                     <div class="flex items-center gap-4">
                         <i class="pi pi-file"></i>
                         <span>{{ warehouseStats.totalSheets || 0 }}</span>
                     </div>
                 </template>
-                <template #subtitle>
-                    <small>{{ $t('warehouse.rawSheets') }}</small>
-                </template>
-            </Card>
-            <Card>
-                <template #title>
+                <small>{{ $t('warehouse.rawSheets') }}</small>
+            </Panel>
+            <Panel>
+                <template #header>
                     <div class="flex items-center gap-4">
                         <i class="pi pi-undo"></i>
                         <span>{{ warehouseStats.totalRemnants || 0 }}</span>
                     </div>
                 </template>
-                <template #subtitle>
-                    <small>{{ $t('warehouse.recoveredArea') }}</small>
-                </template>
-            </Card>
+                <small>{{ $t('warehouse.recoveredArea') }}</small>
+            </Panel>
         </div>
     </div>
 </template>
 
 <script setup>
 import Button from 'primevue/button';
-import Card from 'primevue/card';
+import Panel from 'primevue/panel';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';

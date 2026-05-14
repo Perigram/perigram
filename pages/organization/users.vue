@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col gap-6">
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-[var(--p-text-color)]">{{ $t('features.users') }}</h1>
+      <h1 class="text-2xl font-bold">{{ $t('features.users') }}</h1>
       <div class="flex gap-2">
         <Button :label="$t('auth.inviteMember')" icon="pi pi-link" severity="secondary" @click="showInviteDialog = true" />
         <Button :label="$t('common.create')" icon="pi pi-user-plus" @click="showCreateDialog = true" />
@@ -74,7 +74,7 @@
     </div>
 
     <!-- Invite Member Dialog -->
-    <Dialog v-model:visible="showInviteDialog" :header="$t('auth.inviteMember')" :style="{ width: '450px' }" modal>
+    <StandardDialog v-model:visible="showInviteDialog" :header="$t('auth.inviteMember')" size="sm">
         <div class="flex flex-col gap-4 pt-4">
             <p>{{ $t('auth.inviteMemberNote') }}</p>
             <div class="flex flex-col gap-2">
@@ -82,27 +82,25 @@
                 <Select v-model="inviteForm.role" :options="roleOptions" optionLabel="label" optionValue="value" class="w-full" />
             </div>
             <div v-if="generatedUrl" class="mt-4">
-                <Card>
-                    <template #content>
-                        <div class="flex flex-col gap-2">
-                            <small>{{ $t('auth.invitationLink') }}</small>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs font-mono truncate flex-1">{{ generatedUrl }}</span>
-                                <Button icon="pi pi-copy" text size="small" @click="copyToClipboard(generatedUrl)" />
-                            </div>
+                <Panel>
+                    <div class="flex flex-col gap-2">
+                        <small>{{ $t('auth.invitationLink') }}</small>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-mono truncate flex-1">{{ generatedUrl }}</span>
+                            <Button icon="pi pi-copy" text size="small" @click="copyToClipboard(generatedUrl)" />
                         </div>
-                    </template>
-                </Card>
+                    </div>
+                </Panel>
             </div>
         </div>
         <template #footer>
             <Button :label="$t('common.close')" text severity="secondary" @click="showInviteDialog = false; generatedUrl = null" />
             <Button :label="$t('auth.generateLink')" icon="pi pi-link" @click="generateInvite" :loading="generatingInvite" v-if="!generatedUrl" />
         </template>
-    </Dialog>
+    </StandardDialog>
 
     <!-- Create User Dialog -->
-    <Dialog v-model:visible="showCreateDialog" :header="$t('auth.createAccount')" :style="{ width: '500px' }" modal>
+    <StandardDialog v-model:visible="showCreateDialog" :header="$t('auth.createAccount')" size="sm">
       <form @submit.prevent="createUser" class="flex flex-col gap-4 pt-4">
         <div class="flex flex-col gap-2">
           <label>{{ $t('profile.name') }} *</label>
@@ -125,10 +123,10 @@
           <Button type="submit" :label="$t('common.create')" :loading="submitting" />
         </div>
       </form>
-    </Dialog>
+    </StandardDialog>
 
     <!-- Permissions Dialog -->
-    <Dialog v-model:visible="showPermissionsDialog" :header="`${$t('auth.permissions')}: ${selectedUser?.name}`" :style="{ width: '800px' }" modal>
+    <StandardDialog v-model:visible="showPermissionsDialog" :header="`${$t('auth.permissions')}: ${selectedUser?.name}`" size="lg">
         <div class="pt-4">
             <PermissionEditor 
                 v-if="selectedUser" 
@@ -136,7 +134,7 @@
                 @save="savePermissions" 
             />
         </div>
-    </Dialog>
+    </StandardDialog>
   </div>
 </template>
 
@@ -152,9 +150,10 @@ import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
-import Card from 'primevue/card';
-import Dialog from 'primevue/dialog';
+import Panel from 'primevue/panel';
 import PermissionEditor from '~/components/PermissionEditor.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { useEntity } from '~/composables/useEntity';
 
 definePageMeta({
   layout: 'app',
@@ -164,6 +163,7 @@ definePageMeta({
 const { t } = useI18n();
 const authStore = useAuthStore();
 const toast = useToast();
+const usersEntity = useEntity('user');
 
 const users = ref([]);
 const loading = ref(false);
@@ -218,7 +218,7 @@ const roleOptions = computed(() => {
 async function loadUsers() {
   loading.value = true;
   try {
-    const allUsers = await $fetch('/api/users');
+    const allUsers = await usersEntity.list();
     users.value = allUsers.filter(u => 
         u.memberships?.some(m => m.organizationId.toString() === authStore.userData.organizationId.toString() && m.status === 'active')
     );
@@ -278,12 +278,9 @@ function copyToClipboard(text) {
 async function createUser() {
   submitting.value = true;
   try {
-    await $fetch('/api/users', {
-      method: 'POST',
-      body: {
+    await usersEntity.create({
         ...form.value,
         organizationId: authStore.userData.organizationId
-      }
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.userCreated'), life: 3000 });
     showCreateDialog.value = false;
@@ -318,7 +315,8 @@ async function savePermissions(permissions) {
 async function confirmDelete(user) {
     if (confirm(t('auth.removeUserConfirm', { name: user.name }))) {
         try {
-            await $fetch(`/api/users/${user._id}`, { method: 'DELETE' });
+            const { remove } = useEntity('user', user._id);
+            await remove();
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.userRemoved'), life: 3000 });
             await loadUsers();
         } catch (error) {

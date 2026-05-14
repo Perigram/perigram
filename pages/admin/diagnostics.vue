@@ -4,32 +4,27 @@
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Current User State -->
-            <Card>
-                <template #title>{{ $t('admin.currentUserContext') }}</template>
-                <template #content>
-                    <div class="flex flex-col gap-2 text-sm">
-                        <div class="grid grid-cols-2">
-                            <span class="opacity-60">{{ $t('admin.userId') }}:</span>
-                            <span class="font-mono">{{ authStore.userData?.id }}</span>
-                        </div>
-                        <div class="grid grid-cols-2">
-                            <span class="opacity-60">{{ $t('billing.role') }}:</span>
-                            <span class="font-bold text-primary">{{ authStore.userData?.role }}</span>
-                        </div>
-                        <div class="grid grid-cols-2">
-                            <span class="opacity-60">{{ $t('admin.organizationType') }}:</span>
-                            <span>{{ authStore.organizationData?.type || $t('common.notAvailable') }}</span>
-                        </div>
+            <Panel :header="$t('admin.currentUserContext')">
+                <div class="flex flex-col gap-2 text-sm">
+                    <div class="grid grid-cols-2">
+                        <span class="opacity-60">{{ $t('admin.userId') }}:</span>
+                        <span class="font-mono">{{ authStore.userData?.id }}</span>
                     </div>
-                </template>
-            </Card>
+                    <div class="grid grid-cols-2">
+                        <span class="opacity-60">{{ $t('billing.role') }}:</span>
+                        <span class="font-bold text-primary">{{ authStore.userData?.role }}</span>
+                    </div>
+                    <div class="grid grid-cols-2">
+                        <span class="opacity-60">{{ $t('admin.organizationType') }}:</span>
+                        <span>{{ authStore.organizationData?.type || $t('common.notAvailable') }}</span>
+                    </div>
+                </div>
+            </Panel>
 
             <!-- Effective UI Permissions -->
-            <Card>
-                <template #title>{{ $t('admin.effectiveUiPermissions') }}</template>
-                <template #content>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
+            <Panel :header="$t('admin.effectiveUiPermissions')">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
                             <thead>
                                 <tr class="text-left opacity-60 text-[10px] uppercase font-black">
                                     <th class="pb-2">{{ $t('admin.feature') }}</th>
@@ -48,10 +43,9 @@
                                     </tr>
                                 </template>
                             </tbody>
-                        </table>
-                    </div>
-                </template>
-            </Card>
+                    </table>
+                </div>
+            </Panel>
         </div>
 
         <!-- Full Matrix Reference -->
@@ -66,6 +60,7 @@ import { computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { UI_PERMISSIONS, resolveUiPermission } from '~/shared/ui-permissions';
 import Tag from 'primevue/tag';
+import Panel from 'primevue/panel';
 
 definePageMeta({
     layout: 'app',

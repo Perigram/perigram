@@ -14,9 +14,7 @@
                 <TabPanel value="0">
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-6 py-4">
                         <div class="md:col-span-4">
-                            <Card class="h-full card-interactive">
-                                <template #title><small>{{ $t('profile.title') }}</small></template>
-                                <template #content>
+                            <Panel class="h-full card-interactive" :header="$t('profile.title')">
                                     <div class="flex flex-col items-center text-center gap-4 py-4">
                                         <Avatar :label="user.name ? user.name[0].toUpperCase() : 'U'" size="xlarge" shape="circle" />
                                         <div class="flex flex-col gap-1">
@@ -24,32 +22,25 @@
                                             <p class="m-0 italic">{{ user.email }}</p>
                                         </div>
                                     </div>
-                                </template>
-                            </Card>
+                            </Panel>
                         </div>
                         <div class="md:col-span-8">
-                            <Card class="h-full card-interactive">
-                                <template #title><small>{{ $t('profile.authentication') }}</small></template>
-                                <template #content>
+                            <Panel class="h-full card-interactive" :header="$t('profile.authentication')">
                                     <div class="flex flex-col gap-6 py-2">
                                         <div class="mt-auto">
                                             <Button :label="$t('nav.logout')" icon="pi pi-sign-out" severity="danger" outlined @click="logoutHandler" />
                                         </div>
                                     </div>
-                                </template>
-                            </Card>
+                            </Panel>
                         </div>
                     </div>
                 </TabPanel>
 
                 <TabPanel value="1">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
-                        <Card class="card-interactive">
-                            <template #title><small>{{ $t('billing.creditBalance') }}</small></template>
-                            <template #content>
+                        <Panel class="card-interactive" :header="$t('billing.creditBalance')">
                                 <div class="flex flex-col gap-6 py-2">
-                                    <Card>
-                                        <template #content>
+                                    <Panel>
                                             <div class="flex justify-between items-center p-6">
                                                 <div class="flex flex-col gap-1">
                                                     <small>{{ $t('profile.balance') }}</small>
@@ -57,44 +48,35 @@
                                                 </div>
                                                 <Button :label="$t('profile.buyCredits')" icon="pi pi-shopping-cart" size="large" @click="showBuyCredits = true" />
                                             </div>
-                                        </template>
-                                    </Card>
+                                    </Panel>
                                     <div class="pt-4 border-t border-dashed">
                                         <p class="mb-3">{{ $t('profile.developerTools') }}</p>
                                         <Button :label="$t('billing.addTestCredits')" icon="pi pi-plus" severity="secondary" text @click="addCredits" />
                                     </div>
                                 </div>
-                            </template>
-                        </Card>
+                        </Panel>
                         
-                        <Card class="card-interactive">
-                            <template #title><small>{{ $t('billing.purchaseHistory') }}</small></template>
-                            <template #content>
+                        <Panel class="card-interactive" :header="$t('billing.purchaseHistory')">
                                 <div class="flex flex-col items-center justify-center py-12 text-center gap-4 border-2 border-dashed rounded opacity-50">
                                     <i class="pi pi-history text-4xl"></i>
                                     <p class="m-0 italic">{{ $t('billing.noHistory') }}</p>
                                 </div>
-                            </template>
-                        </Card>
+                        </Panel>
                     </div>
                 </TabPanel>
 
                 <TabPanel value="2">
                     <div class="max-w-2xl py-4">
-                        <Card class="card-interactive">
-                            <template #title><small>{{ $t('profile.settings') }}</small></template>
-                            <template #content>
+                        <Panel class="card-interactive" :header="$t('profile.settings')">
                                 <div class="flex flex-col gap-8 py-2">
                                     <div class="flex flex-col gap-3">
                                         <label>{{ $t('profile.theme') }}</label>
-                                        <Card>
-                                            <template #content>
+                                        <Panel>
                                                 <div class="flex items-center gap-3">
                                                     <i class="pi pi-palette text-xl"></i>
                                                     <p class="m-0 italic">{{ $t('profile.themeNotImplemented') }}</p>
                                                 </div>
-                                            </template>
-                                        </Card>
+                                        </Panel>
                                     </div>
                                     
                                     <div class="flex flex-col gap-3">
@@ -113,8 +95,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            </template>
-                        </Card>
+                        </Panel>
                     </div>
                 </TabPanel>
 
@@ -128,14 +109,13 @@
 
                         <!-- Memberships List -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Card 
+                            <Panel 
                                 v-for="membership in authStore.userData.memberships" 
                                 :key="membership.organizationId"
                                 class="relative overflow-hidden card-interactive"
                                 :class="[membership.status === 'pending' ? 'opacity-50' : '']"
                                 @click="membership.status !== 'pending' && authStore.switchOrganization(membership.organizationId)"
                             >
-                                <template #content>
                                     <div class="flex items-center justify-between mb-4">
                                         <span class="text-lg">{{ getOrgName(membership.organizationId) }}</span>
                                         <div class="flex gap-2">
@@ -156,23 +136,19 @@
                                             <Button v-else :label="$t('profile.viewOrganization')" icon="pi pi-building" text size="small" />
                                         </div>
                                     </div>
-                                </template>
-                            </Card>
+                            </Panel>
                         </div>
                     </div>
                 </TabPanel>
 
                 <TabPanel value="4">
                     <div class="py-4">
-                        <Card class="card-interactive">
-                            <template #title><small>{{ $t('profile.usageStatistics') }}</small></template>
-                            <template #content>
+                        <Panel class="card-interactive" :header="$t('profile.usageStatistics')">
                                 <div class="flex flex-col items-center justify-center py-20 text-center gap-4 border-2 border-dashed rounded opacity-50">
                                     <i class="pi pi-chart-bar text-5xl"></i>
                                     <p class="m-0 italic">{{ $t('profile.usageStatisticsComingSoon') }}</p>
                                 </div>
-                            </template>
-                        </Card>
+                        </Panel>
                     </div>
                 </TabPanel>
             </TabPanels>
@@ -180,7 +156,7 @@
 
         <BuyCreditsDialog v-if="showBuyCredits" @close="showBuyCredits = false" />
 
-        <Dialog v-model:visible="showCreateOrgDialog" :header="$t('auth.createOrg')" modal>
+        <StandardDialog v-model:visible="showCreateOrgDialog" :header="$t('auth.createOrg')" size="sm">
             <form @submit.prevent="createOrganization" class="flex flex-col gap-4 pt-4">
                 <div class="flex flex-col gap-1">
                     <label>{{ $t('common.name') }} *</label>
@@ -199,7 +175,7 @@
                     <Button type="submit" :label="$t('common.create')" :loading="submittingOrg" />
                 </div>
             </form>
-        </Dialog>
+        </StandardDialog>
     </div>
 </template>
 
@@ -215,14 +191,15 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import Card from 'primevue/card';
+import Panel from 'primevue/panel';
 import Avatar from 'primevue/avatar';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
-import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import { useToast } from 'primevue/usetoast';
 import BuyCreditsDialog from '~/components/BuyCreditsDialog.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { useEntity } from '~/composables/useEntity';
 
 definePageMeta({
     layout: "app",
@@ -232,6 +209,7 @@ definePageMeta({
 const router = useRouter();
 const toast = useToast();
 const { t, locale, locales, setLocale } = useI18n();
+const organizationsEntity = useEntity('organization');
 
 const authStore = useAuthStore();
 const { user: userRef } = storeToRefs(authStore);
@@ -261,10 +239,7 @@ const orgTypeOptions = [
 const createOrganization = async () => {
     submittingOrg.value = true;
     try {
-        await $fetch('/api/organizations', {
-            method: 'POST',
-            body: orgForm.value
-        });
+        await organizationsEntity.create(orgForm.value);
         toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.organizationCreated'), life: 3000 });
         showCreateOrgDialog.value = false;
         // Refresh auth state to get new organization and role

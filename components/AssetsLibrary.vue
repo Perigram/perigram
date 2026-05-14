@@ -69,34 +69,33 @@
     </Tabs>
     
     <!-- Pen Dialog -->
-    <Dialog 
+    <StandardDialog
       v-model:visible="showPenDialog" 
       :header="editingPen ? $t('assets.editPen') : $t('assets.newPen')"
-      :modal="true"
-      :style="{ width: '95vw', maxWidth: '500px' }"
+      size="sm"
     >
       <div class="flex flex-col gap-6 py-4">
         <div class="flex flex-col gap-2">
-          <label class="font-medium text-[var(--p-text-color)]">{{ $t('batch.name') }}</label>
+          <label>{{ $t('batch.name') }}</label>
           <InputText v-model="penForm.name" :placeholder="$t('assets.placeholders.penName')" class="w-full" autofocus />
         </div>
         
         <div class="flex flex-col gap-2">
-          <label class="font-medium text-[var(--p-text-color)]">{{ $t('assets.color') }}</label>
+          <label>{{ $t('assets.color') }}</label>
           <div class="flex gap-2">
             <InputText v-model="penForm.stroke.color" :placeholder="$t('assets.placeholders.color')" class="flex-1" />
-            <div class="w-[42px] h-[42px] border border-[var(--p-content-border-color)] rounded shrink-0" :style="{ background: penForm.stroke.color }"></div>
+            <div class="w-[42px] h-[42px] border rounded shrink-0" :style="{ backgroundColor: penForm.stroke.color }"></div>
           </div>
         </div>
         
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-2">
-            <label class="font-medium text-[var(--p-text-color)]">{{ $t('assets.weight') }} (mm)</label>
+            <label>{{ $t('assets.weight') }} (mm)</label>
             <InputNumber v-model="penForm.stroke.weight" :min="0.1" :max="10" :step="0.1" mode="decimal" :minFractionDigits="2" class="w-full" />
           </div>
           
           <div class="flex flex-col gap-2">
-            <label class="font-medium text-[var(--p-text-color)]">{{ $t('assets.pattern') }}</label>
+            <label>{{ $t('assets.pattern') }}</label>
             <Select 
               v-model="penForm.stroke.pattern" 
               :options="patternOptions" 
@@ -112,29 +111,28 @@
         <Button :label="$t('common.cancel')" text severity="secondary" @click="closePenDialog" />
         <Button :label="$t('common.save')" @click="savePen" />
       </template>
-    </Dialog>
+    </StandardDialog>
     
     <!-- Tool Dialog -->
-    <Dialog 
+    <StandardDialog
       v-model:visible="showToolDialog" 
       :header="editingTool ? $t('assets.editTool') : $t('assets.newTool')"
-      :modal="true"
-      :style="{ width: '95vw', maxWidth: '500px' }"
+      size="sm"
     >
       <div class="flex flex-col gap-6 py-4">
         <div class="flex flex-col gap-2">
-          <label class="font-medium text-[var(--p-text-color)]">{{ $t('batch.name') }}</label>
+          <label>{{ $t('batch.name') }}</label>
           <InputText v-model="toolForm.name" :placeholder="$t('assets.placeholders.toolName')" class="w-full" autofocus />
         </div>
         
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-2">
-            <label class="font-medium text-[var(--p-text-color)]">{{ $t('assets.diameter') }} (mm)</label>
+            <label>{{ $t('assets.diameter') }} (mm)</label>
             <InputNumber v-model="toolForm.diameter" :min="0.1" :max="100" :step="0.1" mode="decimal" :minFractionDigits="2" class="w-full" />
           </div>
           
           <div class="flex flex-col gap-2">
-            <label class="font-medium text-[var(--p-text-color)]">{{ $t('assets.angle') }} (°)</label>
+            <label>{{ $t('assets.angle') }} (°)</label>
             <InputNumber v-model="toolForm.angle" :min="0" :max="180" :step="1" class="w-full" />
           </div>
         </div>
@@ -144,7 +142,7 @@
         <Button :label="$t('common.cancel')" text severity="secondary" @click="closeToolDialog" />
         <Button :label="$t('common.save')" @click="saveTool" />
       </template>
-    </Dialog>
+    </StandardDialog>
     
     <ConfirmDialog />
   </div>
@@ -158,9 +156,6 @@ import { useToolProfilesStore } from '~/stores/toolProfiles';
 import { storeToRefs } from 'pinia';
 import { useConfirm } from 'primevue/useconfirm';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
-import Tag from 'primevue/tag';
-import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Select from 'primevue/select';
@@ -175,6 +170,7 @@ import Message from 'primevue/message';
 import { useToast } from 'primevue/usetoast';
 import PenTemplateCard from './entities/PenTemplate/PenTemplateCard.vue';
 import ToolProfileCard from './entities/ToolProfile/ToolProfileCard.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 
 const { t } = useI18n();
 const penTemplatesStore = usePenTemplatesStore();

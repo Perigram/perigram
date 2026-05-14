@@ -8,7 +8,6 @@ import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import { useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
   artifact: { type: Object, required: true },
@@ -17,16 +16,17 @@ const props = defineProps({
 
 defineEmits(['click']);
 
-const { state } = useStatus(props.artifact);
+const state = computed(() => props.artifact.status?.state || props.artifact.state || 'UNKNOWN');
+const artifactType = computed(() => props.artifact.data?.type || '');
 
 const icon = computed(() => {
-  const type = props.artifact.type;
+  const type = artifactType.value;
   if (type === 'LAYOUT_DXF') return 'pi-file-pdf';
   if (type === 'NESTING_REPORT') return 'pi-chart-bar';
   return 'pi-file';
 });
 
-const typeLabel = computed(() => props.artifact.type?.replace('LAYOUT_', '') || 'FILE');
+const typeLabel = computed(() => artifactType.value.replace('LAYOUT_', '') || 'FILE');
 </script>
 
 <template>

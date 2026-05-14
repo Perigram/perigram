@@ -18,32 +18,26 @@
         <div class="grid-details">
             <div class="lg:col-span-3 flex flex-col gap-8">
                 <!-- Geometry Viewer -->
-                <Card>
-                    <template #content>
-                        <div class="aspect-[2/1] flex items-center justify-center italic opacity-20">
-                            GEOMETRY PREVIEW
-                        </div>
-                    </template>
-                </Card>
+                <Panel>
+                    <div class="aspect-[2/1] flex items-center justify-center italic opacity-20">
+                        GEOMETRY PREVIEW
+                    </div>
+                </Panel>
 
                 <!-- Stats -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <Card>
-                        <template #title>{{ design.specs?.utilization }}%</template>
-                        <template #subtitle>{{ $t('sheetDesign.utilization') }}</template>
-                    </Card>
-                    <Card>
-                        <template #title>{{ design.specs?.partsCount }}</template>
-                        <template #subtitle>{{ $t('sheetDesign.parts') }}</template>
-                    </Card>
-                    <Card>
-                        <template #title>{{ design.specs?.cuttingLength }} m</template>
-                        <template #subtitle>{{ $t('sheetDesign.cuttingLength') }}</template>
-                    </Card>
-                    <Card>
-                        <template #title>{{ design.specs?.estimatedTime }} min</template>
-                        <template #subtitle>{{ $t('sheetDesign.estimatedTime') }}</template>
-                    </Card>
+                    <Panel>
+                        <div class="flex flex-col gap-1"><span class="text-xl">{{ design.specs?.utilization }}%</span><small>{{ $t('sheetDesign.utilization') }}</small></div>
+                    </Panel>
+                    <Panel>
+                        <div class="flex flex-col gap-1"><span class="text-xl">{{ design.specs?.partsCount }}</span><small>{{ $t('sheetDesign.parts') }}</small></div>
+                    </Panel>
+                    <Panel>
+                        <div class="flex flex-col gap-1"><span class="text-xl">{{ design.specs?.cuttingLength }} m</span><small>{{ $t('sheetDesign.cuttingLength') }}</small></div>
+                    </Panel>
+                    <Panel>
+                        <div class="flex flex-col gap-1"><span class="text-xl">{{ design.specs?.estimatedTime }} min</span><small>{{ $t('sheetDesign.estimatedTime') }}</small></div>
+                    </Panel>
                 </div>
             </div>
 
@@ -67,7 +61,6 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
-import Card from 'primevue/card';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';

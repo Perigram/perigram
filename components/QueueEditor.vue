@@ -57,8 +57,7 @@
                 <AccordionHeader>{{ $t('projectData.sheets') }}</AccordionHeader>
                 <AccordionContent>
                     <div class="flex flex-col gap-6" v-if="queueState === 'DRAFT'">
-                        <Card>
-                            <template #content>
+                        <Panel>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div class="flex flex-col gap-4">
                                     <div class="flex flex-col gap-1">
@@ -121,8 +120,7 @@
                                     </div>
                                 </div>
                             </div>
-                            </template>
-                        </Card>
+                        </Panel>
 
                         <!-- Run Action -->
                         <div class="flex flex-col gap-4">
@@ -163,8 +161,8 @@
 
                         <div v-if="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                             <template v-for="entry in entries" :key="entry?._id || Math.random()">
-                                <Card v-if="entry" class="card-interactive">
-                                    <template #title>
+                                <Panel v-if="entry" class="card-interactive h-full">
+                                    <template #header>
                                         <div class="flex justify-between items-center gap-2">
                                             <span class="truncate">{{ getCassetteName(entry.cassetteTemplateId) }}</span>
                                             <div class="flex items-center gap-1">
@@ -178,29 +176,27 @@
                                             </div>
                                         </div>
                                     </template>
-                                    <template #content>
-                                        <CassetteThumbnail 
-                                            :cassette-id="entry.cassetteTemplateId" 
-                                            :cassette="getCassetteData(entry.cassetteTemplateId)"
-                                            :dimensions="entry.dimensions"
-                                        />
-                                        <Divider />
-                                        <!-- Parameters -->
-                                        <div v-if="entry.type === 'PARAMETRIC'" class="grid grid-cols-2 gap-4">
-                                            <div v-for="param in getEntryParameters(entry)" :key="param" class="flex flex-col">
-                                                <small>{{ param }}</small>
-                                                <InputNumber 
-                                                    v-model="entry.dimensions[param]" :disabled="queueState !== 'DRAFT'"
-                                                    size="small" :min="0"
-                                                    @update:model-value="saveQueue"
-                                                />
-                                            </div>
+                                    <CassetteThumbnail 
+                                        :cassette-id="entry.cassetteTemplateId" 
+                                        :cassette="getCassetteData(entry.cassetteTemplateId)"
+                                        :dimensions="entry.dimensions"
+                                    />
+                                    <Divider />
+                                    <!-- Parameters -->
+                                    <div v-if="isParametricEntry(entry)" class="grid grid-cols-2 gap-4">
+                                        <div v-for="param in getEntryParameters(entry)" :key="param" class="flex flex-col">
+                                            <small>{{ param }}</small>
+                                            <InputNumber 
+                                                v-model="entry.dimensions[param]" :disabled="queueState !== 'DRAFT'"
+                                                size="small" :min="0"
+                                                @update:model-value="saveQueue"
+                                            />
                                         </div>
-                                        <div v-else class="flex justify-center italic opacity-20">
-                                            <span>{{ $t('queue.static') }}</span>
-                                        </div>
-                                    </template>
-                                </Card>
+                                    </div>
+                                    <div v-else class="flex justify-center italic opacity-20">
+                                        <span>{{ $t('queue.static') }}</span>
+                                    </div>
+                                </Panel>
                             </template>
                         </div>
 
@@ -213,11 +209,11 @@
                             </Column>
                             <Column v-for="param in allParameters" :key="param" :header="param" :field="`dimensions.${param}`">
                                 <template #body="{ data }">
-                                    <span v-if="data.type === 'PARAMETRIC'">{{ data.dimensions?.[param] || '-' }}</span>
+                                    <span v-if="isParametricEntry(data)">{{ data.dimensions?.[param] || '-' }}</span>
                                     <span v-else class="opacity-20">-</span>
                                 </template>
                                 <template #editor="{ data }">
-                                    <InputNumber v-if="data.type === 'PARAMETRIC'" v-model="data.dimensions[param]" fluid size="small" />
+                                    <InputNumber v-if="isParametricEntry(data)" v-model="data.dimensions[param]" fluid size="small" />
                                 </template>
                             </Column>
                             <Column v-if="queueState === 'DRAFT'" style="width: 3rem">
@@ -305,7 +301,6 @@ import Select from 'primevue/select';
 import SelectButton from 'primevue/selectbutton';
 import MultiSelect from 'primevue/multiselect';
 import Message from 'primevue/message';
-import Card from 'primevue/card';
 import Divider from 'primevue/divider';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
@@ -324,7 +319,6 @@ import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue'
 import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
-import { useIdentity, useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
     queue: { type: Object, required: true },
@@ -338,8 +332,8 @@ const confirm = useConfirm();
 const toast = useToast();
 const authStore = useAuthStore();
 
-const { state: queueState } = useStatus(props.queue);
-const { name: queueName } = useIdentity(props.queue);
+const queueState = computed(() => props.queue.status?.state || props.queue.state || 'UNKNOWN');
+const queueName = computed(() => props.queue.identity?.name || props.queue.name || props.queue.identity?.slug || props.queue.slug || 'Unnamed');
 
 const queuesStore = useQueuesStore();
 const cassettesStore = useCassettesStore();
@@ -385,31 +379,39 @@ const getCassetteData = (id) => {
 const getCassetteName = (id) => {
     const data = getCassetteData(id);
     if (!data) return 'Unknown';
-    const { name } = useIdentity(data);
-    return name.value;
+    return data.identity?.name || data.name || data.identity?.slug || data.slug || 'Unnamed';
+};
+
+const getCassetteType = (data) => data?.type || data?.data?.type || data?.definition?.type || '';
+const getCassetteParameters = (data) => data?.parameters || data?.data?.parameters || data?.definition?.parameters || [];
+const getEntryCassetteData = (entry) => getCassetteData(entry?.cassetteTemplateId || entry?.id);
+const isParametricEntry = (entry) => {
+    const data = getEntryCassetteData(entry);
+    if (data) return !data.geometry && getCassetteParameters(data).length > 0;
+    return entry?.type === 'PARAMETRIC';
 };
 
 const getEntryParameters = (e) => {
-    const data = getCassetteData(e.cassetteTemplateId);
+    const data = getEntryCassetteData(e);
     if (!data || !!data.geometry) return []; 
-    if (data.definition?.type === 'PARAMETRIC') return data.definition.parameters || [];
+    if (getCassetteType(data) === 'PARAMETRIC') return getCassetteParameters(data);
     return [];
 };
 
 const allAvailableCassettes = computed(() => {
     const items = [...cassettes.value, ...cassetteDesigns.value];
-    return items.map(item => {
-        const { name } = useIdentity(item);
-        return { ...item, name: name.value };
-    });
+    return items.map(item => ({
+        ...item,
+        name: item.identity?.name || item.name || item.identity?.slug || item.slug || 'Unnamed'
+    }));
 });
 
 const allParameters = computed(() => {
     const params = new Set();
     entries.value.forEach(e => {
-        const data = getCassetteData(e.cassetteTemplateId);
-        if (data?.definition?.parameters) {
-            data.definition.parameters.forEach(p => params.add(p));
+        const data = getEntryCassetteData(e);
+        if (data) {
+            getCassetteParameters(data).forEach(p => params.add(p));
         }
     });
     return Array.from(params);
@@ -529,6 +531,7 @@ const loadQueueData = async () => {
                 dimensions: item.parameters || item.dimensions || {},
                 type: item.type || 'STATIC'
             }));
+            entries.value.forEach(syncEntryWithCassette);
             if (queueState.value === 'CUT') loadInstances();
         }
     } catch (e) { console.error('Failed to load queue data:', e); }
@@ -560,12 +563,30 @@ const formatDate = (d) => new Date(d).toLocaleString();
 
 const onNewCassetteChange = () => {
     const data = getCassetteData(newEntry.value.cassetteTemplateId);
-    if (data?.definition?.type === 'PARAMETRIC') {
+    if (getCassetteParameters(data).length > 0) {
         newEntry.value.dimensions = {};
-        (data.definition.parameters || []).forEach(p => newEntry.value.dimensions[p] = 0);
+        getCassetteParameters(data).forEach(p => newEntry.value.dimensions[p] = 0);
     } else {
         newEntry.value.dimensions = {};
     }
+};
+
+const syncEntryWithCassette = (entry) => {
+    const data = getEntryCassetteData(entry);
+    if (!data) return entry;
+
+    const isDesign = !!data.geometry;
+    const type = (!isDesign && getCassetteParameters(data).length > 0) ? 'PARAMETRIC' : 'STATIC';
+    entry.type = type;
+
+    if (type === 'PARAMETRIC') {
+        entry.dimensions = entry.dimensions || {};
+        getCassetteParameters(data).forEach((param) => {
+            if (entry.dimensions[param] === undefined) entry.dimensions[param] = 0;
+        });
+    }
+
+    return entry;
 };
 
 const addEntry = async (item = null) => {
@@ -573,7 +594,7 @@ const addEntry = async (item = null) => {
     if (!data) return;
 
     const isDesign = !!data.geometry;
-    const type = (!isDesign && data.definition?.type === 'PARAMETRIC') ? 'PARAMETRIC' : 'STATIC';
+    const type = (!isDesign && getCassetteParameters(data).length > 0) ? 'PARAMETRIC' : 'STATIC';
     
     const entryData = item ? {
         cassetteTemplateId: data._id,
@@ -581,12 +602,12 @@ const addEntry = async (item = null) => {
         dimensions: {}
     } : { ...newEntry.value };
 
-    entries.value.push({ 
+    entries.value.push(syncEntryWithCassette({ 
         ...entryData, 
         _id: `temp_${Date.now()}`, 
         type, 
         id: data._id 
-    });
+    }));
     
     await saveQueue();
     newEntry.value = { cassetteTemplateId: null, quantity: 1, dimensions: {} };
@@ -595,6 +616,7 @@ const addEntry = async (item = null) => {
 
 const saveQueue = async () => {
     try { 
+        entries.value.forEach(syncEntryWithCassette);
         await $fetch(`/api/queue/${props.queue._id}`, { 
             method: 'PUT', 
             body: { 

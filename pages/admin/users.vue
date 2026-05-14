@@ -32,18 +32,18 @@
         </DataTable>
 
         <!-- User Dialog -->
-        <Dialog v-model:visible="userDialog" :header="editMode ? $t('admin.editUser') : $t('admin.createUser')" modal class="w-full max-w-md">
+        <StandardDialog v-model:visible="userDialog" :header="editMode ? $t('admin.editUser') : $t('admin.createUser')" size="sm">
             <UserForm :user="selectedUser" @save="saveUser" @cancel="userDialog = false" />
-        </Dialog>
+        </StandardDialog>
 
         <!-- Permissions Dialog -->
-        <Dialog v-model:visible="permDialog" :header="$t('admin.editPermissions')" modal class="w-full max-w-lg">
+        <StandardDialog v-model:visible="permDialog" :header="$t('admin.editPermissions')" size="md">
             <PermissionEditor 
                 v-if="selectedUser" 
                 :permissions="selectedUser.permissions" 
                 @save="savePermissions" 
             />
-        </Dialog>
+        </StandardDialog>
     </div>
 </template>
 
@@ -55,9 +55,10 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
-import Dialog from 'primevue/dialog';
 import UserForm from '~/components/UserForm.vue';
 import PermissionEditor from '~/components/PermissionEditor.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { useEntity } from '~/composables/useEntity';
 
 definePageMeta({
     layout: 'app',
@@ -72,12 +73,12 @@ const userDialog = ref(false);
 const permDialog = ref(false);
 const selectedUser = ref(null);
 const editMode = ref(false);
+const usersEntity = useEntity('user');
 
 const loadUsers = async () => {
     loading.value = true;
     try {
-        const data = await $fetch('/api/users');
-        users.value = data;
+        users.value = await usersEntity.list();
     } catch (error) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: t('admin.failedToLoadUsers') });
     } finally {
@@ -119,10 +120,7 @@ const saveUser = async (formData) => {
             // For now, assuming create logic mainly
             toast.add({ severity: 'info', summary: t('common.info'), detail: t('admin.updateNotImplemented') });
         } else {
-            await $fetch('/api/users', {
-                method: 'POST',
-                body: formData
-            });
+            await usersEntity.create(formData);
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.userCreated') });
         }
         userDialog.value = false;

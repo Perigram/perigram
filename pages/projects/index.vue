@@ -54,11 +54,10 @@
         </DataView>
 
         <!-- Create/Edit Project Dialog -->
-        <Dialog
+        <StandardDialog
             v-model:visible="showCreateDialog"
             :header="editingProject ? $t('project.edit') : $t('project.create')"
-            modal
-            :style="{ width: '95vw', maxWidth: '500px' }"
+            size="sm"
         >
             <div class="py-4">
                 <div class="flex flex-col gap-2">
@@ -85,7 +84,7 @@
                     @click="editingProject ? saveProject() : createProject()"
                 />
             </template>
-        </Dialog>
+        </StandardDialog>
     </div>
 </template>
 
@@ -94,13 +93,9 @@
     import DataView from 'primevue/dataview'
     import Button from 'primevue/button'
     import InputText from 'primevue/inputtext'
-    import Select from 'primevue/select'
-    import SelectButton from 'primevue/selectbutton'
-    import Dialog from 'primevue/dialog'
     import ProgressSpinner from 'primevue/progressspinner'
-    import IconField from 'primevue/iconfield'
-    import InputIcon from 'primevue/inputicon'
     import ProjectCard from '~/components/entities/Project/ProjectCard.vue'
+    import StandardDialog from '~/components/shared/StandardDialog.vue'
     import { useGlobalStore } from '~/stores/global'
     import { storeToRefs } from 'pinia'
     import { useToast } from 'primevue/usetoast'

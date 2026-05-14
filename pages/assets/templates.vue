@@ -8,28 +8,27 @@
       />
     </div>
     
-    <div class="text-center py-20 px-6 border-2 border-dashed border-[var(--p-content-border-color)] rounded-xl bg-[var(--p-content-background)]">
-      <i class="pi pi-inbox text-6xl text-[var(--p-text-muted-color)] mb-4 opacity-50 block"></i>
-      <p class="text-lg text-[var(--p-text-secondary-color)]">{{ $t('assets.templateManagementComingSoon') }}</p>
+    <div class="flex flex-col items-center justify-center gap-3 py-20 border border-dashed rounded">
+      <i class="pi pi-inbox text-4xl opacity-50"></i>
+      <p class="m-0 text-muted-color">{{ $t('assets.templateManagementComingSoon') }}</p>
     </div>
     
-    <Dialog 
+    <StandardDialog
       v-model:visible="showDialog" 
       :header="$t('assets.newTemplate')"
-      :modal="true"
-      :style="{ width: '95vw', maxWidth: '500px' }"
+      size="sm"
     >
       <div class="py-4 text-center opacity-60">
         <p>{{ $t('assets.templateCreationComingSoon') }}</p>
       </div>
-    </Dialog>
+    </StandardDialog>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 
 definePageMeta({
   layout: 'app',

@@ -9,7 +9,6 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import ArtifactCard from '../Artifact/ArtifactCard.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
-import { useStatus } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
 
 const props = defineProps({
@@ -23,10 +22,11 @@ const props = defineProps({
 const emit = defineEmits(['select', 'choose', 'delete', 'artifact-click', 'convert-to-physical', 'create-requisition']);
 
 const authStore = useAuthStore();
-const { state } = useStatus(props.run);
 
 const canManage = computed(() => authStore.can('queues', 'edit'));
+const state = computed(() => props.run.status?.state || props.run.state || 'UNKNOWN');
 const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
+const artifactType = (artifact) => artifact.data?.type || '';
 const statusActions = computed(() => {
     if (!canManage.value || state.value !== 'COMPLETE') return [];
     return [{ label: 'Choose', to: 'CHOSEN', icon: 'pi pi-check-circle', severity: 'success', command: () => emit('choose', props.run._id) }];
@@ -82,7 +82,7 @@ const statusActions = computed(() => {
 
                 <div class="flex flex-wrap gap-1">
                     <ArtifactCard 
-                        v-for="artifact in [...artifacts].sort((a,b) => (a.type === 'LAYOUT_DXF' ? -1 : 1))" 
+                        v-for="artifact in [...artifacts].sort((a,b) => (artifactType(a) === 'LAYOUT_DXF' ? -1 : 1))" 
                         :key="artifact._id" 
                         :artifact="artifact" 
                         variant="inline"

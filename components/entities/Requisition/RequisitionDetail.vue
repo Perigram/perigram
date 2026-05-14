@@ -21,8 +21,8 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card v-for="(item, idx) in requisition.items" :key="idx" class="card-interactive">
-                            <template #title>
+                        <Panel v-for="(item, idx) in requisition.items" :key="idx" class="card-interactive">
+                            <template #header>
                                 <div class="flex justify-between items-center">
                                     <div class="flex items-center gap-2">
                                         <div class="w-4 h-4 rounded-full border" :style="{ backgroundColor: item.colorHex || item.colorFallback || 'var(--p-content-border-color)' }"></div>
@@ -31,22 +31,20 @@
                                     <small>{{ item.colorCode }}</small>
                                 </div>
                             </template>
-                            <template #content>
-                                <Divider />
-                                <SpecsBlock :entity="item" />
-                                <Divider />
-                                <div class="flex justify-between items-center">
-                                    <div class="flex flex-col">
-                                        <small>{{ $t('common.quantity') }}</small>
-                                        <span class="text-xl">{{ item.quantity }}</span>
-                                    </div>
-                                    <div class="flex flex-col text-right">
-                                        <small>{{ $t('common.subtotal') }}</small>
-                                        <span class="text-xl">${{ item.totalPrice?.toFixed(2) }}</span>
-                                    </div>
+                            <Divider />
+                            <SpecsBlock :entity="item" />
+                            <Divider />
+                            <div class="flex justify-between items-center">
+                                <div class="flex flex-col">
+                                    <small>{{ $t('common.quantity') }}</small>
+                                    <span class="text-xl">{{ item.quantity }}</span>
                                 </div>
-                            </template>
-                        </Card>
+                                <div class="flex flex-col text-right">
+                                    <small>{{ $t('common.subtotal') }}</small>
+                                    <span class="text-xl">${{ item.totalPrice?.toFixed(2) }}</span>
+                                </div>
+                            </div>
+                        </Panel>
                     </div>
                 </div>
 
@@ -69,14 +67,12 @@
 import { computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import Panel from 'primevue/panel';
-import Card from 'primevue/card';
 import Fieldset from 'primevue/fieldset';
 import Divider from 'primevue/divider';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
-import { useIdentity, useStatus } from '~/composables/useBlocks';
 
 const props = defineProps({
     requisition: {
@@ -88,8 +84,8 @@ const props = defineProps({
 const emit = defineEmits(['send', 'approve', 'reject', 'start-fulfillment', 'fulfill']);
 
 const authStore = useAuthStore();
-const { serial } = useIdentity(props.requisition);
-const { state: requisitionState } = useStatus(props.requisition);
+const serial = computed(() => props.requisition.identity?.serial || props.requisition.requisitionNumber || props.requisition.data?.requisitionNumber || props.requisition.name || 'Unnamed');
+const requisitionState = computed(() => props.requisition.status?.state || props.requisition.state || 'UNKNOWN');
 
 const statusActions = computed(() => {
     const actions = [];

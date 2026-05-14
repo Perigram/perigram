@@ -1,46 +1,24 @@
 <template>
-  <div class="flex flex-col gap-6">
-    <div class="flex justify-end items-center px-1">
+  <StandardPage :title="$t('assets.tools')" :subtitle="$t('assets.toolsSubtitle')">
+    <template #actions>
       <Button 
         :label="$t('assets.newTool')" 
         icon="pi pi-plus" 
         @click="showDialog = true"
       />
-    </div>
+    </template>
     
     <div v-if="loading" class="flex items-center justify-center py-12">
       <ProgressSpinner />
     </div>
-    <div v-else-if="error" class="px-1">
+    <div v-else-if="error">
       <Message severity="error">{{ error }}</Message>
     </div>
     
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-1">
-      <Card v-for="tool in tools" :key="tool._id" 
-        class="h-full border border-[var(--p-content-border-color)] hover:border-[var(--p-primary-color)] transition-all duration-300 shadow-sm hover:shadow-md"
-      >
-        <template #title>
-          <div class="flex items-center justify-between gap-3 min-w-0 pt-2 px-1">
-            <span class="truncate font-bold text-lg text-[var(--p-text-color)]">{{ tool.name }}</span>
-            <Tag v-if="!tool.ownerId" :value="$t('assets.system')" severity="info" class="text-[10px] uppercase flex-shrink-0" />
-          </div>
-        </template>
-        <template #content>
-          <div class="py-4 px-1 flex flex-col gap-4">
-            <div class="w-16 h-16 mx-auto flex items-center justify-center bg-[var(--p-primary-50)] text-[var(--p-primary-color)] rounded-full">
-              <i class="pi pi-cog text-3xl"></i>
-            </div>
-            <div class="grid grid-cols-2 gap-y-2 text-xs">
-              <span class="font-medium text-[var(--p-text-muted-color)]">{{ $t('assets.diameter') }}:</span>
-              <span class="text-right font-bold text-[var(--p-text-color)]">Ø{{ tool.diameter }}mm</span>
-              
-              <span class="font-medium text-[var(--p-text-muted-color)]">{{ $t('assets.angle') }}:</span>
-              <span class="text-right font-bold text-[var(--p-text-color)]">{{ tool.angle }}°</span>
-            </div>
-          </div>
-        </template>
-        <template #footer>
-          <div class="flex justify-end gap-2 pt-4 border-t border-[var(--p-content-border-color)] mt-auto px-1" v-if="tool.ownerId">
+    <div v-else class="grid-hub">
+      <div v-for="tool in tools" :key="tool._id" class="flex flex-col gap-2">
+        <ToolProfileCard :tool="tool" variant="card" />
+        <div class="flex justify-end gap-2" v-if="tool.ownerId">
             <Button 
               icon="pi pi-pencil" 
               severity="secondary" 
@@ -59,32 +37,29 @@
               @click="deleteToolConfirm(tool)"
               v-tooltip.top="$t('common.delete')"
             />
-          </div>
-        </template>
-      </Card>
+        </div>
+      </div>
     </div>
     
-    <!-- Tool Dialog -->
-    <Dialog 
+    <StandardDialog 
       v-model:visible="showDialog" 
       :header="editingTool ? $t('assets.editTool') : $t('assets.newTool')"
-      :modal="true"
-      :style="{ width: '95vw', maxWidth: '500px' }"
+      size="sm"
     >
       <div class="flex flex-col gap-6 py-4">
         <div class="flex flex-col gap-2">
-          <label class="font-medium text-[var(--p-text-color)]">{{ $t('batch.name') }}</label>
+          <label>{{ $t('batch.name') }}</label>
           <InputText v-model="form.name" :placeholder="$t('assets.placeholders.toolName')" class="w-full" autofocus />
         </div>
         
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-2">
-            <label class="font-medium text-[var(--p-text-color)]">{{ $t('assets.diameter') }} (mm)</label>
+            <label>{{ $t('assets.diameter') }} (mm)</label>
             <InputNumber v-model="form.diameter" :min="0.1" :max="100" :step="0.1" mode="decimal" :minFractionDigits="2" class="w-full" />
           </div>
           
           <div class="flex flex-col gap-2">
-            <label class="font-medium text-[var(--p-text-color)]">{{ $t('assets.angle') }} (°)</label>
+            <label>{{ $t('assets.angle') }} (°)</label>
             <InputNumber v-model="form.angle" :min="0" :max="180" :step="1" class="w-full" />
           </div>
         </div>
@@ -94,10 +69,10 @@
         <Button :label="$t('common.cancel')" text severity="secondary" @click="closeDialog" />
         <Button :label="$t('common.save')" @click="saveTool" />
       </template>
-    </Dialog>
+    </StandardDialog>
     
     <ConfirmDialog />
-  </div>
+  </StandardPage>
 </template>
 
 <script setup>
@@ -108,14 +83,14 @@ import { storeToRefs } from 'pinia';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
-import Tag from 'primevue/tag';
-import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import ConfirmDialog from 'primevue/confirmdialog';
 import ProgressSpinner from 'primevue/progressspinner';
 import Message from 'primevue/message';
+import StandardPage from '~/components/shared/StandardPage.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
+import ToolProfileCard from '~/components/entities/ToolProfile/ToolProfileCard.vue';
 
 definePageMeta({
   layout: 'app',

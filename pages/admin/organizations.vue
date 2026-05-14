@@ -31,7 +31,7 @@
         </DataTable>
 
         <!-- Organization Dialog -->
-        <Dialog v-model:visible="orgDialog" :header="editMode ? $t('common.edit') : $t('common.create')" modal>
+        <StandardDialog v-model:visible="orgDialog" :header="editMode ? $t('common.edit') : $t('common.create')" size="sm">
             <div class="flex flex-col gap-4 py-4">
                 <div class="flex flex-col gap-1">
                     <label>{{ $t('common.name') }} *</label>
@@ -63,7 +63,7 @@
                 <Button :label="$t('common.cancel')" text severity="secondary" @click="orgDialog = false" />
                 <Button :label="editMode ? $t('common.save') : $t('common.create')" @click="saveOrg" />
             </template>
-        </Dialog>
+        </StandardDialog>
     </div>
 </template>
 
@@ -75,9 +75,10 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
-import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { useEntity } from '~/composables/useEntity';
 
 definePageMeta({
     layout: 'app',
@@ -92,12 +93,12 @@ const orgDialog = ref(false);
 const editMode = ref(false);
 const form = ref({ name: '', type: 'Contractor', email: '', phone: '', address: '' });
 const selectedId = ref(null);
+const organizationsEntity = useEntity('organization');
 
 const loadOrgs = async () => {
     loading.value = true;
     try {
-        const data = await $fetch('/api/organizations');
-        organizations.value = data;
+        organizations.value = await organizationsEntity.list();
     } catch (error) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: t('admin.failedToLoadOrganizations') });
     } finally {
@@ -121,16 +122,11 @@ const editOrg = (org) => {
 const saveOrg = async () => {
     try {
         if (editMode.value) {
-            await $fetch(`/api/organizations/${selectedId.value}`, {
-                method: 'PATCH',
-                body: form.value
-            });
+            const { update } = useEntity('organization', selectedId.value);
+            await update(form.value);
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('admin.organizationUpdated') });
         } else {
-            await $fetch('/api/organizations', {
-                method: 'POST',
-                body: form.value
-            });
+            await organizationsEntity.create(form.value);
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('admin.organizationCreated') });
         }
         orgDialog.value = false;

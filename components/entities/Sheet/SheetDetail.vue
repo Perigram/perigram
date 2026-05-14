@@ -20,21 +20,18 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <!-- Visual Swatch -->
-                <Card>
-                    <template #title><small>{{ $t('sheets.materialColor') }}</small></template>
-                    <template #content>
-                        <div class="flex items-center gap-4">
-                            <div 
-                                class="w-12 h-12 border rounded"
-                                :style="{ backgroundColor: colorHex }"
-                            ></div>
-                            <div class="flex flex-col">
-                                <span class="text-xl">{{ colorName }}</span>
-                                <small>{{ materialName }}</small>
-                            </div>
+                <Panel :header="$t('sheets.materialColor')">
+                    <div class="flex items-center gap-4">
+                        <div 
+                            class="w-12 h-12 border rounded"
+                            :style="{ backgroundColor: colorHex }"
+                        ></div>
+                        <div class="flex flex-col">
+                            <span class="text-xl">{{ colorName }}</span>
+                            <small>{{ materialName }}</small>
                         </div>
-                    </template>
-                </Card>
+                    </div>
+                </Panel>
 
                 <!-- Physical Specs -->
                 <div class="lg:col-span-3">
@@ -77,7 +74,6 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
-import { useIdentity, useStatus, useSpecs } from '~/composables/useBlocks';
 
 const props = defineProps({
     sheet: { type: Object, required: true }
@@ -86,9 +82,11 @@ const props = defineProps({
 const emit = defineEmits(['update-status']);
 const { t } = useI18n();
 
-const { serial: sheetSerial } = useIdentity(props.sheet);
-const { state: sheetState } = useStatus(props.sheet);
-const { width: sheetWidth, length: sheetLength } = useSpecs(props.sheet);
+const sheetSerial = computed(() => props.sheet.identity?.serial || props.sheet.serial || props.sheet.identity?.name || props.sheet.name || 'Unnamed');
+const sheetState = computed(() => props.sheet.status?.state || props.sheet.state || 'UNKNOWN');
+const sheetSpecs = computed(() => props.sheet.specs || props.sheet.data?.specs || {});
+const sheetWidth = computed(() => sheetSpecs.value.width || 0);
+const sheetLength = computed(() => sheetSpecs.value.length || 0);
 
 const statusActions = computed(() => {
     const actions = [];

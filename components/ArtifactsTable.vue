@@ -16,11 +16,11 @@
         @click="onArtifactClick(artifact)"
       >
         <div class="flex items-center gap-4">
-          <i :class="getArtifactIcon(artifact.mimeType)"></i>
+          <i :class="getArtifactIcon(artifactMimeType(artifact))"></i>
           <div class="flex flex-col">
             <span>{{ artifact.name }}</span>
             <div class="flex items-center gap-2">
-               <small>{{ artifact.type.replace('LAYOUT_', '') }}</small>
+               <small>{{ artifactType(artifact).replace('LAYOUT_', '') }}</small>
                <Tag :value="artifact.status?.state || artifact.status" :severity="getStatusSeverity(artifact.status)" />
             </div>
           </div>
@@ -44,7 +44,7 @@
     </div>
 
     <!-- Preview Dialog -->
-    <Dialog v-model:visible="showPreview" :header="previewArtifactData?.name || $t('artifacts.previewTitle')" modal class="w-[95vw] h-[95vh]" :pt="{ content: { class: 'flex-1 flex flex-col overflow-hidden h-full p-0' } }">
+    <StandardDialog v-model:visible="showPreview" :header="previewArtifactData?.name || $t('artifacts.previewTitle')" size="full" class="h-[95vh]" :pt="{ content: { class: 'flex-1 flex flex-col overflow-hidden h-full p-0' } }">
         <div class="flex h-full">
             <div v-if="previewLoading" class="flex-1 flex flex-col items-center justify-center gap-4">
                 <ProgressSpinner />
@@ -109,7 +109,7 @@
                 </div>
             </div>
         </div>
-    </Dialog>
+    </StandardDialog>
 
     <ConfirmDialog />
   </div>
@@ -126,8 +126,8 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Checkbox from 'primevue/checkbox';
 import ProgressSpinner from 'primevue/progressspinner';
-import Dialog from 'primevue/dialog';
 import ConfirmDialog from 'primevue/confirmdialog';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { generateSvgData } from '~/utils/dxfParser';
@@ -155,7 +155,7 @@ const previewError = ref(null);
 const svgData = ref(null);
 const visibleLayers = ref([]);
 const transform = ref({ x: 0, y: 0, scale: 1 });
-const isPdf = computed(() => previewArtifactData.value?.mimeType?.includes('pdf') || previewArtifactData.value?.type === 'PDF_PASSPORT');
+const isPdf = computed(() => artifactMimeType(previewArtifactData.value).includes('pdf') || artifactType(previewArtifactData.value) === 'PDF_PASSPORT');
 
 const filteredLayers = computed(() => {
     if (!svgData.value) return [];
@@ -207,6 +207,27 @@ const stopPan = () => {
     window.removeEventListener('mouseup', stopPan);
 };
 
+const artifactType = (artifact) => artifact?.data?.type || '';
+const artifactMimeType = (artifact) => artifact?.attachments?.primary?.metadata?.mimeType || '';
+
+const getArtifactIcon = (mimeType) => {
+    if (mimeType.includes('pdf')) return 'pi pi-file-pdf';
+    if (mimeType.includes('svg')) return 'pi pi-image';
+    return 'pi pi-file';
+};
+
+const getStatusSeverity = (status) => {
+    const state = status?.state || status;
+    if (state === 'READY') return 'success';
+    if (state === 'FAILED' || state === 'ERROR') return 'danger';
+    return 'secondary';
+};
+
+const downloadArtifact = (artifact) => {
+    if (!artifact?._id) return;
+    window.location.href = `/api/artifacts/${artifact._id}`;
+};
+
 const previewArtifact = async (artifact) => {
     previewArtifactData.value = artifact;
     showPreview.value = true;
@@ -215,7 +236,8 @@ const previewArtifact = async (artifact) => {
     svgData.value = null;
     resetTransform();
 
-    if (artifact.type === 'LAYOUT_DXF' || artifact.type === 'DXF') {
+    const type = artifactType(artifact);
+    if (type === 'LAYOUT_DXF' || type === 'DXF') {
         try {
             const response = await fetch(`/api/artifacts/${artifact._id}`);
             if (!response.ok) throw new Error(t('artifacts.fetchContentFailed'));
