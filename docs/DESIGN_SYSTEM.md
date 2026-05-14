@@ -21,6 +21,8 @@ Allowed local hardcoded visual values are limited to real data, such as pen stro
 
 Entity cards support `variant="inline"`, `variant="compact"`, and `variant="card"`.
 
+Card content is part of the contract, not filler. The title area owns identity and status, the body uses `SpecsBlock`/`DataBlock` for concise operational facts, and the footer owns actions. Prefer canonical DTO paths (`data.*`, `identity.*`, `lineage.*`, `attachments.*`, `summary.*`) and use flat aliases only as compatibility fallbacks where current services still emit them.
+
 Shared ownership:
 
 - `EntityCard` owns card chrome and is the only non-legacy direct owner of PrimeVue `Card`.

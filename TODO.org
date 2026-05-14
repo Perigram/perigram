@@ -117,6 +117,19 @@
        cassette template parameter shape.
 
 *** Agent Notes
+     [2026-05-14] Refactor entity card information hierarchy
+     Files changed: components/shared/EntityCard.vue,
+       components/shared/blocks/DataBlock.vue, components/shared/blocks/SpecsBlock.vue,
+       components/entities/*/*Card.vue, i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/README.md (COMPONENT level),
+       docs/DESIGN_SYSTEM.md
+     Notes: Reworked used entity cards to show identity/status in titles,
+       canonical DTO-backed specs/data in card bodies, and actions in footers.
+       Replaced decorative-only card bodies and weak flat-field reads with
+       `DataBlock`/`SpecsBlock` summaries using `data.*`, `identity.*`,
+       `lineage.*`, `attachments.*`, and `summary.*` paths where available.
+
+*** Agent Notes
      [2026-03-15] Frontend API contract compliance — replace raw $fetch with useEntity
      Files changed: composables/useEntity.js, stores/global.js, pages/projects/index.vue,
        pages/project/[slug]/data.vue, pages/project/[slug]/artifacts.vue,

@@ -49,7 +49,8 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
 
 ## Data Access
 
-- Access entity-specific fields (e.g. `pen.stroke.color`, `tool.diameter`) directly in the template — only standardized block fields (identity, status, specs) go through block components.
+- Prefer canonical DTO blocks for entity data: `identity.*`, `status.*`, `lineage.*`, `attachments.*`, `data.*`, `summary.*`. Hoisted aliases may be used only as defensive fallbacks when a current API response still emits them.
+- Entity cards should present an operational summary, not decorative placeholders: identity/status in the title, concise specs/data in the body, and actions in the footer.
 - Never hardcode values or make assumptions about data structure — check `server/DATA_MODEL.md` first.
 - For cassette templates and queue entries, derive parametric vs static display from the cassette DTO itself (`parameters` presence and template data), not only from saved queue item flags.
 - For standard CRUD and status operations, use `useEntity` — no direct `$fetch` calls.
