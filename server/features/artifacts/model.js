@@ -7,13 +7,11 @@ import { BaseEntity } from '../../core/blocks/index.js';
 export class Artifact extends BaseEntity {
   constructor(raw = {}) {
     super(raw);
-    
+
     this.data = {
       ...this.data,
-      type: raw.type || raw.data?.type || '',
-      fileId: raw.fileId || raw.data?.fileId || null,
-      mimeType: raw.mimeType || raw.data?.mimeType || '',
-      metadata: raw.metadata || raw.data?.metadata || {}
+      type: raw.data?.type || '',
+      metadata: raw.data?.metadata || {}
     };
   }
 
@@ -22,12 +20,7 @@ export class Artifact extends BaseEntity {
   toJSON() {
     return {
       ...super.toJSON(),
-      name: this.name,
-      type: this.data.type,
-      fileId: this.data.fileId,
-      mimeType: this.data.mimeType,
-      metadata: this.data.metadata,
-      url: this.data.fileId ? `/api/files/download/${this.data.fileId}` : null
+      name: this.name
     };
   }
 }

@@ -96,7 +96,7 @@ const INDEXES = {
     { keys: { 'lineage.projectId': 1 }, options: { name: 'lineage_project_idx' } },
     { keys: { 'lineage.queueId': 1 }, options: { name: 'lineage_queue_idx' } },
     { keys: { 'lineage.runId': 1 }, options: { name: 'lineage_run_idx' } },
-    { keys: { type: 1 }, options: { name: 'type_idx' } }
+    { keys: { 'data.type': 1 }, options: { name: 'data_type_idx' } }
   ],
 
   // Status Events Collection

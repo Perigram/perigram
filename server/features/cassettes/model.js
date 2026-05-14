@@ -11,7 +11,7 @@ export class Cassette extends BaseEntity {
     this.data = {
       ...this.data,
       type: raw.type || raw.data?.type || 'PARAMETRIC',
-      definition: raw.definition || raw.data?.definition || null,
+      definition: raw.definition || raw.data?.definition || normalizeLegacyDefinition(raw.data),
       parameters: raw.parameters || raw.data?.parameters || []
     };
   }
@@ -27,4 +27,15 @@ export class Cassette extends BaseEntity {
       parameters: this.data.parameters
     };
   }
+}
+
+function normalizeLegacyDefinition(data = {}) {
+  if (data.params || data.extrusions) {
+    return {
+      params: data.params || {},
+      extrusions: Array.isArray(data.extrusions) ? data.extrusions : []
+    };
+  }
+
+  return null;
 }

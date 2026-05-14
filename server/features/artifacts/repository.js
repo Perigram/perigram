@@ -23,6 +23,20 @@ export async function find(filter = {}) {
   return await db.collection(COLLECTION).find(filter).toArray();
 }
 
+export async function findOne(filter = {}) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).findOne(filter);
+}
+
+export async function updateById(id, patch) {
+  const db = await connectDB();
+  await db.collection(COLLECTION).updateOne(
+    { _id: toFlexibleId(id) },
+    { $set: patch }
+  );
+  return await findById(id);
+}
+
 export async function deleteById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });

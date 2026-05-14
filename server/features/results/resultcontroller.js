@@ -34,8 +34,8 @@ export async function getResults(userId, projectSlug) {
             .find({ 'lineage.runId': latestRun._id })
             .toArray();
 
-        const svgs = artifacts.filter(a => a.data?.type === 'SVG').map(a => `/api/files/result/svg/${a._id}`);
-        const dxfs = artifacts.filter(a => a.data?.type === 'DXF').map(a => `/api/files/result/dxf/${a._id}`);
+        const svgs = artifacts.filter(a => a.data?.type === 'LAYOUT_SVG').map(a => `/api/artifacts/${a._id}`);
+        const dxfs = artifacts.filter(a => a.data?.type === 'LAYOUT_DXF').map(a => `/api/artifacts/${a._id}`);
 
         return {
             id: queue._id,

@@ -1,7 +1,7 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { createIdentity, createData, createStatus } from '~/server/core/blocks/index.js';
-import { ObjectId } from 'mongodb';
+import { createIdentity, createData, createStatus } from '../../core/blocks/index.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 /**
  * Layer Standards Service - v24 Standardized
@@ -19,7 +19,7 @@ function toDTO(standard) {
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { code, category, name, i18n, parameters, defaultPenId } = data;
 
-  const lineage = userOrg ? { organizationId: new ObjectId(userOrg) } : {};
+  const lineage = userOrg ? { organizationId: toFlexibleId(userOrg) } : {};
   const origin = createStatus('ACTIVE', userId || 'SYSTEM', { note: 'Layer standard created' });
 
   const standardData = {
@@ -30,7 +30,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     data: createData({
       code,
       category,
-      defaultPenId: defaultPenId ? new ObjectId(defaultPenId) : null,
+      defaultPenId: defaultPenId ? toFlexibleId(defaultPenId) : null,
       i18n: i18n || { en: { nameTemplate: name }, ru: { nameTemplate: name } },
       parameters: parameters || []
     })
@@ -47,6 +47,24 @@ export async function list(filter = {}) {
 
 export async function getAll() {
   return await list({});
+}
+
+export async function getCount(filter = {}) {
+  return await repository.count(filter);
+}
+
+export async function seed(standards = []) {
+  const created = {};
+  for (const standard of standards) {
+    const existing = await repository.findByCode(standard.code);
+    if (existing) {
+      created[standard.code] = existing._id;
+      continue;
+    }
+    const result = await create(standard, 'SYSTEM');
+    created[standard.code] = result._id;
+  }
+  return created;
 }
 
 export async function getByCategory(category) {

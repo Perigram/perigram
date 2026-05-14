@@ -5,7 +5,7 @@
 
 import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
-import { toObjectId } from '../../utils/objectid.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 const CASSETTES_COLLECTION = 'cassettes';
 const BAKED_COLLECTION = 'cassette_designs';
@@ -17,7 +17,7 @@ const BAKED_COLLECTION = 'cassette_designs';
  */
 export async function findTemplateById(id) {
   const db = await connectDB();
-  return await db.collection(CASSETTES_COLLECTION).findOne({ _id: toObjectId(id) });
+  return await db.collection(CASSETTES_COLLECTION).findOne({ _id: toFlexibleId(id) });
 }
 
 /**
@@ -45,7 +45,7 @@ export async function createBakedInstance(data) {
 export async function findExistingBakedInstance(originalId, dimensions) {
   const db = await connectDB();
   return await db.collection(BAKED_COLLECTION).findOne({
-    'lineage.originalCassetteId': toObjectId(originalId),
+    'lineage.originalCassetteId': toFlexibleId(originalId),
     'data.dimensions': dimensions
   });
 }

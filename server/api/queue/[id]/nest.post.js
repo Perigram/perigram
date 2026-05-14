@@ -17,12 +17,19 @@ import { requireAuth } from '../../../utils/permissions.js';
 import { createStatus, inheritLineage } from '../../../core/blocks/index.js';
 import { toFlexibleId } from '../../../utils/objectid.js';
 
+const activeQueueNestLocks = new Set();
+
 export default defineEventHandler(async (event) => {
+  const queueId = event.context.params.id;
+  if (activeQueueNestLocks.has(queueId)) {
+    throw createError({ statusCode: 409, message: 'Queue nesting is already in progress' });
+  }
+  activeQueueNestLocks.add(queueId);
+
   try {
     requireAuth(event);
     const auth = event.context.auth;
     const userId = auth.userId;
-    const queueId = event.context.params.id;
     const body = await readBody(event);
     
     console.log('Nest request:', { queueId, userId, body });
@@ -44,16 +51,15 @@ export default defineEventHandler(async (event) => {
       itemsCount: queue.job?.items?.length 
     });
     
-    if (queue.status === 'NESTING') {
-      const db = await connectDB();
-      const existingJob = await db.collection('nesting_jobs').findOne({
-        queueId: toFlexibleId(queue.id),
-        status: { $in: ['pending', 'processing'] }
-      });
-      
-      if (existingJob) {
-        throw createError({ statusCode: 400, message: 'Queue is already nesting' });
-      }
+    // Guard against double-submit/race: only one active job per queue.
+    const db = await connectDB();
+    const existingJob = await db.collection('nesting_jobs').findOne({
+      queueId: toFlexibleId(queue.id),
+      status: { $in: ['pending', 'processing'] }
+    });
+
+    if (existingJob || queue.status?.state === 'NESTING') {
+      throw createError({ statusCode: 400, message: 'Queue is already nesting' });
     }
     
     if (!queue.job?.items || queue.job.items.length === 0) {
@@ -61,42 +67,45 @@ export default defineEventHandler(async (event) => {
     }
     
     // Bake parametric cassettes and prepare files list for worker
-    const jobFiles = await Promise.all(
-      queue.job.items.map(async (entry) => {
-        try {
-          if (entry.type === 'PARAMETRIC') {
-            const template = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth);
-            console.log(`Baking parametric template: ${template.identity?.name || template.name}`);
-            const bakedCassette = await bakeTemplateInstance(toFlexibleId(template.id), entry.parameters || {}, userId);
-            return {
-              cassetteId: bakedCassette._id.toString(),
-              count: entry.quantity,
-              dimensions: entry.parameters || {}
-            };
-          }
-          // Try to find as a Design first
-          let item = await cassetteDesignService.getById(entry.id, auth.userId, auth.role, auth).catch(() => null);
-          
-          // If not found, try as a Template (Standard)
-          if (!item) {
-            item = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth).catch(() => null);
-          }
-
-          if (!item) {
-            throw createError({ statusCode: 400, message: `Cassette item ${entry.id} not found in any collection` });
-          }
-
-          return {
-            cassetteId: item.id || item._id.toString(),
+    // IMPORTANT: bake/evaluate must run sequentially because the shared
+    // nodi-modular WASM engine is not safe for concurrent loadGraph/evaluate.
+    const jobFiles = [];
+    for (const entry of queue.job.items) {
+      try {
+        if (entry.type === 'PARAMETRIC') {
+          const template = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth);
+          console.log(`Baking parametric template: ${template.identity?.name || template.name}`);
+          const bakedCassette = await bakeTemplateInstance(toFlexibleId(template.id), entry.parameters || {}, userId);
+          jobFiles.push({
+            cassetteId: bakedCassette._id.toString(),
             count: entry.quantity,
             dimensions: entry.parameters || {}
-          };
-        } catch (e) {
-          console.error(`Error processing queue item ${entry.id}:`, e);
-          throw createError({ statusCode: 400, message: `Failed to process item ${entry.id}: ${e.message}` });
+          });
+          continue;
         }
-      })
-    );
+
+        // Try to find as a Design first
+        let item = await cassetteDesignService.getById(entry.id, auth.userId, auth.role, auth).catch(() => null);
+
+        // If not found, try as a Template (Standard)
+        if (!item) {
+          item = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth).catch(() => null);
+        }
+
+        if (!item) {
+          throw createError({ statusCode: 400, message: `Cassette item ${entry.id} not found in any collection` });
+        }
+
+        jobFiles.push({
+          cassetteId: item.id || item._id.toString(),
+          count: entry.quantity,
+          dimensions: entry.parameters || {}
+        });
+      } catch (e) {
+        console.error(`Error processing queue item ${entry.id}:`, e);
+        throw createError({ statusCode: 400, message: `Failed to process item ${entry.id}: ${e.message}` });
+      }
+    }
   
   // Generate nesting slug
   const nestingSlug = `queue-${queue.queueNumber ?? queue.id.slice(-6)}-${generateRandomString(6)}`;
@@ -112,7 +121,6 @@ export default defineEventHandler(async (event) => {
   };
   
   // Create nesting run via service
-  const db = await connectDB();
   const runNumber = await nestingRunsService.getNextRunNumber(queue.id);
   const runOrigin = createStatus('NESTING', auth.userId, { note: `Nesting started in ${body.materialMode || 'VIRTUAL'} mode` });
   
@@ -153,7 +161,6 @@ export default defineEventHandler(async (event) => {
             queueId: toFlexibleId(queue.id),
             runId,
             name: `${queue.name} - Technical Passports`,
-            generatedBy: nestingSlug,
             status: 'GENERATING',
             metadata: { templateId: body.pdfTemplateId }
         });
@@ -164,7 +171,6 @@ export default defineEventHandler(async (event) => {
             queueId: toFlexibleId(queue.id),
             runId,
             name: `${queue.name} - LAYOUT_DXF.dxf`,
-            generatedBy: nestingSlug,
             status: 'GENERATING'
         });
         artifacts.push(art);
@@ -180,5 +186,7 @@ export default defineEventHandler(async (event) => {
 } catch (error) {
   console.error('Nesting endpoint error:', error);
   throw error;
+} finally {
+  activeQueueNestLocks.delete(queueId);
 }
 });

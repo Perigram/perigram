@@ -38,3 +38,15 @@ export async function getFileStream(fileId, bucketName = 'uploads') {
     throw createError({ statusCode: 404, message: 'File not found' });
   }
 }
+
+export async function deleteFile(fileId, bucketName = 'uploads') {
+  const db = await connectDB();
+  const bucket = new GridFSBucket(db, { bucketName });
+
+  try {
+    await bucket.delete(toFlexibleId(fileId));
+  } catch (err) {
+    if (err?.code === 'ENOENT' || err?.message?.includes('FileNotFound') || err?.message?.includes('File not found')) return;
+    throw err;
+  }
+}

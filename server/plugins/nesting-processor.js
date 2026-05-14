@@ -13,6 +13,7 @@ import {
   GridFSBucket
 } from 'mongodb';
 import { createStatus } from '../core/blocks/index.js';
+import { service as artifactService } from '../features/artifacts/index.js';
 
 export default defineNitroPlugin(async (nitroApp) => {
   console.log('Nesting Processor Plugin Started');
@@ -287,11 +288,7 @@ async function processNextJob() {
 
     // Update artifacts status
     if (fileIds.length > 0) {
-        const artifactStatus = createStatus('READY', 'SYSTEM', { note: 'File generated' });
-        await db.collection('artifacts').updateOne(
-            { "lineage.runId": job.runId, type: 'LAYOUT_DXF' },
-            { $set: { fileId: fileIds[0], mimeType: 'application/dxf', status: artifactStatus, updatedAt: new Date() } }
-        );
+        await artifactService.markReadyByRun(job.runId, 'LAYOUT_DXF', fileIds[0], 'application/dxf');
     }
     
     // Mark other placeholders as FAILED for now if not implemented

@@ -30,6 +30,131 @@ const STANDARD_BLOCKS = [
   { name: 'attachments', type: 'Object', description: 'Standard Attachments Block (files)' }
 ];
 
+function stripComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
+function findMatchingBrace(source, openIndex) {
+  let depth = 0;
+  let quote = null;
+  let escaped = false;
+
+  for (let i = openIndex; i < source.length; i++) {
+    const char = source[i];
+
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+      continue;
+    }
+
+    if (char === '{') depth++;
+    if (char === '}') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+
+  return -1;
+}
+
+function extractObjectBodies(source, patterns) {
+  const bodies = [];
+
+  for (const pattern of patterns) {
+    let match;
+    pattern.lastIndex = 0;
+    while ((match = pattern.exec(source)) !== null) {
+      const openIndex = source.indexOf('{', match.index);
+      if (openIndex === -1) continue;
+      const closeIndex = findMatchingBrace(source, openIndex);
+      if (closeIndex === -1) continue;
+      bodies.push(source.slice(openIndex + 1, closeIndex));
+      pattern.lastIndex = closeIndex + 1;
+    }
+  }
+
+  return bodies;
+}
+
+function splitTopLevelProperties(objectBody) {
+  const props = [];
+  let start = 0;
+  let depth = 0;
+  let quote = null;
+  let escaped = false;
+
+  for (let i = 0; i < objectBody.length; i++) {
+    const char = objectBody[i];
+
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+      continue;
+    }
+
+    if ('{[('.includes(char)) depth++;
+    if ('}])'.includes(char)) depth--;
+
+    if (char === ',' && depth === 0) {
+      props.push(objectBody.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+
+  const last = objectBody.slice(start).trim();
+  if (last) props.push(last);
+  return props;
+}
+
+function extractPropertyName(prop) {
+  if (!prop || prop.startsWith('...')) return null;
+  const match = prop.match(/^([A-Za-z_$][\w$]*)\s*(?::|=|$)/);
+  return match?.[1] || null;
+}
+
+function createField(name, source) {
+  const issues = [];
+  if (/[^A-Za-z0-9_.]/.test(name)) issues.push('invalid-name');
+  if (name.includes('\n')) issues.push('multiline-name');
+  if (/\boptional|required|parent\b/i.test(name)) issues.push('prose-in-name');
+  if (name.includes('//')) issues.push('comment-captured');
+  if (['serial', 'reference'].includes(name)) issues.push('identity-duplicate');
+  if (name.endsWith('Id') || name.endsWith('Ids')) issues.push('relationship-candidate');
+  if (['specs', 'stock', 'geometry', 'options', 'pricing', 'settings', 'visuals', 'job', 'results', 'layoutData', 'attachment', 'attachments'].includes(name)) {
+    issues.push('complex-shape');
+  }
+
+  return {
+    type: inferType(name),
+    description: `${camelToWords(name)} field`,
+    source,
+    issues
+  };
+}
+
 /**
  * Extract fields specific to the 'data' block from service/repository files
  */
@@ -43,45 +168,49 @@ function extractDataFields(featurePath) {
     const p = path.join(featurePath, f);
     if (fs.existsSync(p)) content += fs.readFileSync(p, 'utf-8') + '\n';
   }
+  content = stripComments(content);
 
   // Strategy 1: Explicit 'data' or 'params' object construction
-  // Matches: data: { key1, key2: val } or params: { key1 } 
-  const objectRegex = /(?:data|params)\s*:\s*createData\(\s*\{([^}]+)\}\s*\)|(?:data|params)\s*:\s*\{([^}]+)\}/g;
-  let match;
-  while ((match = objectRegex.exec(content)) !== null) {
-      const inner = match[1] || match[2];
-      const props = inner.split(',').map(p => p.split(':')[0].trim());
+  // Matches: data: { key1, key2: val }, params: { key1 }, or data: createData({ key1 })
+  const objectBodies = extractObjectBodies(content, [
+    /(?:data|params)\s*:\s*createData\(\s*\{/g,
+    /(?:data|params)\s*:\s*\{/g
+  ]);
+  for (const inner of objectBodies) {
+      const props = splitTopLevelProperties(inner).map(extractPropertyName);
       for (const p of props) {
-          if (!p || p.startsWith('...')) continue;
+          if (!p) continue;
           if (['identity', 'lineage', 'status', 'origin', 'attachments', 'metadata', 'fileId', 'name', 'definition'].includes(p)) continue;
-          dataFields.set(`data.${p}`, { type: inferType(p), description: `${camelToWords(p)} field` });
+          dataFields.set(`data.${p}`, createField(p, 'object-literal'));
       }
   }
 
   // Strategy 2: Class Constructor Assignment (this.data = { ... })
-  const classAssignRegex = /this\.data\s*=\s*\{([^}]+)\}/g;
-  while ((match = classAssignRegex.exec(content)) !== null) {
-      const inner = match[1];
-      const props = inner.split(',').map(p => p.split(':')[0].trim());
+  const classBodies = extractObjectBodies(content, [/this\.data\s*=\s*\{/g]);
+  for (const inner of classBodies) {
+      const props = splitTopLevelProperties(inner).map(extractPropertyName);
       for (const p of props) {
-          if (!p || p.startsWith('...')) continue;
-          dataFields.set(`data.${p}`, { type: inferType(p), description: `${camelToWords(p)} field` });
+          if (!p) continue;
+          dataFields.set(`data.${p}`, createField(p, 'class-assignment'));
       }
   }
 
   // Strategy 3: Dot notation assignment (data.field = val)
   // Matches: data.someField = ... or this.data.someField = ...
   const dotAssignRegex = /(?:this\.|^|\s)data\.([\w]+)\s*=/g;
+  let match;
   while ((match = dotAssignRegex.exec(content)) !== null) {
       const p = match[1];
       if (['metadata'].includes(p)) continue;
-      dataFields.set(`data.${p}`, { type: inferType(p), description: `${camelToWords(p)} field` });
+      dataFields.set(`data.${p}`, createField(p, 'dot-assignment'));
   }
 
   return Array.from(dataFields.entries()).map(([name, info]) => ({
     name,
     type: info.type,
-    description: info.description
+    description: info.description,
+    source: info.source,
+    issues: info.issues
   }));
 }
 
@@ -135,17 +264,19 @@ export async function extractDataModels() {
         for (const p of props) {
             if (!p || p.startsWith('...')) continue;
             if (lineageFields.find(f => f.name === `lineage.${p}`)) continue;
-            lineageFields.push({ name: `lineage.${p}`, type: 'ObjectId', description: `Lineage link to ${p}` });
+            lineageFields.push({ name: `lineage.${p}`, type: 'ObjectId | string', description: `Lineage link to ${p}`, source: 'lineage-literal', issues: [] });
         }
     }
 
     const allFields = [...STANDARD_BLOCKS, ...lineageFields, ...entitySpecificFields];
+    const issues = allFields.flatMap(field => (field.issues || []).map(issue => ({ field: field.name, issue })));
 
     models.push({
       collection,
       feature,
       description: `${camelToWords(feature).replace(/^\w/, c => c.toUpperCase())} - manages ${collection.replace(/_/g, ' ')}`,
-      fields: allFields
+      fields: allFields,
+      issues
     });
   }
   
@@ -183,7 +314,9 @@ export function generateMarkdown(models) {
     });
 
     for (const field of sortedFields) {
-      md += `| \`${field.name}\` | ${field.type} | ${field.description} |\n`;
+      const type = String(field.type).replace(/\|/g, '\\|');
+      const description = String(field.description).replace(/\|/g, '\\|');
+      md += `| \`${field.name}\` | ${type} | ${description} |\n`;
     }
     md += '\n';
   }

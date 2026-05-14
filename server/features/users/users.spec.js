@@ -60,6 +60,23 @@ describe('User Management & Auth', () => {
     expect(user.role).toBe('ManufacturerAdmin');
     expect(user.permissions.catalogs).toBe('admin');
     expect(user.isActive).toBe(true);
+
+    const raw = await db.collection('users').findOne({ 'data.email': 'test@example.com' });
+    expect(raw.data.passwordHash).toBe('hashed_password');
+  });
+
+  it('should allow login after registration', async () => {
+    await userService.register({
+      email: 'login@example.com',
+      password: 'password123',
+      name: 'Login User'
+    });
+
+    const result = await userService.login('login@example.com', 'correct_password');
+
+    expect(result.user.email).toBe('login@example.com');
+    expect(result.sessionId).toBeTruthy();
+    expect(result.accessToken).toBeTruthy();
   });
 
   it('should allow switching organizations if membership exists', async () => {

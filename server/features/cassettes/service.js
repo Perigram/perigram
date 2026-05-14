@@ -198,11 +198,17 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   const { identity, origin, status, lineage, data: updatesData, ...clean } = updates;
   
   if (updates.name) cassette.identity.name = updates.name;
+
+  const normalizedUpdatesData = updatesData && (updatesData.params || updatesData.extrusions)
+    ? { definition: updatesData }
+    : (updatesData || {});
+
+  const { name, ...cleanData } = clean;
   
   const cassetteData = {
     ...cassette.data,
-    ...updatesData,
-    ...clean
+    ...normalizedUpdatesData,
+    ...cleanData
   };
 
   await repository.updateById(id, { identity: cassette.identity, data: cassetteData });

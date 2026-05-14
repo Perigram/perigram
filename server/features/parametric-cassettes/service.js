@@ -5,11 +5,12 @@
 
 import * as repository from './repository.js';
 import { connectDB } from '../../db/mongo.js';
-import { GridFSBucket, ObjectId } from 'mongodb';
+import { GridFSBucket } from 'mongodb';
 import { buildNodiGraph } from '../../utils/cassetteGraphBuilder.js';
 import init, { Modular } from 'nodi-modular';
 import fs from 'fs/promises';
 import path from 'path';
+import { toFlexibleId } from '../../utils/objectid.js';
 import { 
   createIdentity, 
   createStatus, 
@@ -17,14 +18,23 @@ import {
   createAttachment 
 } from '../../core/blocks/index.js';
 
-let modularInstance = null;
+let wasmInitialized = false;
 let baseTemplateGraph = null;
+let evaluationChain = Promise.resolve();
+
+async function runWithEvaluationLock(task) {
+  const run = evaluationChain.then(() => task());
+  evaluationChain = run.catch(() => {});
+  return run;
+}
 
 /**
  * Initialize the Nodi engine on the server
  */
 async function getEngine() {
-  if (modularInstance) return modularInstance;
+  if (wasmInitialized && baseTemplateGraph) {
+    return Modular.new();
+  }
 
   try {
     // Load WASM from node_modules
@@ -46,8 +56,6 @@ async function getEngine() {
     const wasmBuffer = await fs.readFile(wasmPath);
     await init(wasmBuffer);
     
-    modularInstance = Modular.new();
-    
     // Load the default graph structure
     const graphCandidates = [
       path.resolve(process.cwd(), 'public/Cassette.json'),
@@ -66,8 +74,9 @@ async function getEngine() {
     }
     const graphContent = await fs.readFile(graphPath, 'utf-8');
     baseTemplateGraph = JSON.parse(graphContent);
+    wasmInitialized = true;
     
-    return modularInstance;
+    return Modular.new();
   } catch (err) {
     console.error('Failed to initialize parametric engine:', err);
     throw err;
@@ -286,62 +295,75 @@ function calculateArea(vertices) {
  * Evaluate a parametric cassette and return its boundary coordinates
  */
 export async function evaluateTemplate(cassetteId, dimensions) {
-  const template = await repository.findTemplateById(cassetteId);
-  if (!template) throw new Error('Template not found');
+  return runWithEvaluationLock(async () => {
+    const template = await repository.findTemplateById(cassetteId);
+    if (!template) throw new Error('Template not found');
 
-  const engine = await getEngine();
-  
-  // Merge entry dimensions with template data - v24 uses definition.data
-  const definitionData = template.definition?.data || template.data || {};
-  const cassetteData = {
-    params: { ...(definitionData.params || {}), ...dimensions },
-    extrusions: definitionData.extrusions || []
-  };
-
-  // Build the graph for this specific set of parameters
-  const { graph } = buildNodiGraph(cassetteData, baseTemplateGraph);
-  engine.loadGraph(JSON.stringify(graph));
-
-  try {
-    const result = await engine.evaluate();
-    if (!result || !result.geometryIdentifiers) {
-      throw new Error('Geometry evaluation returned no identifiers');
-    }
+    const engine = await getEngine();
     
-    const { geometryIdentifiers } = result;
+    const definitionData = template.data?.definition || template.definition?.data || template.definition || {};
+    const mergedParams = { ...(definitionData.params || {}), ...dimensions };
 
-    const allCurves = [];
-    geometryIdentifiers.forEach((id) => {
-      const interop = engine.findGeometryInteropById(id);
-      if (interop?.variant === 'Curve' && interop?.data?.vertices) {
-        const vertices = interop.data.vertices;
-        if (Array.isArray(vertices) && vertices.length >= 3) {
-          allCurves.push({ 
-            vertices, 
-            id,
-            area: calculateArea(vertices)
-          });
-        }
-      }
-    });
-    
-    if (allCurves.length === 0) {
-      throw new Error('Geometry evaluation produced no valid curves');
+    // Keep backend evaluation behavior aligned with frontend renderer:
+    // zero/NaN/negative values can panic the WASM engine on graph evaluation.
+    const sanitizedParams = {};
+    for (const [key, value] of Object.entries(mergedParams)) {
+      const num = Number(value);
+      sanitizedParams[key] = Number.isFinite(num) && num > 0 ? num : 1;
     }
 
-    // Sort by area descending so largest is first (assumed boundary)
-    allCurves.sort((a, b) => b.area - a.area);
-
-    const polygons = allCurves.map(c => ({ coordinates: c.vertices }));
-
-    return {
-      polygons,
-      dimensions: cassetteData.params
+    const cassetteData = {
+      params: sanitizedParams,
+      extrusions: definitionData.extrusions || []
     };
-  } catch (e) {
-    console.error('Nodi evaluation failed:', e);
-    throw new Error(`Geometry evaluation failed: ${e.message}`);
-  }
+
+    // Always pass a deep-cloned template graph to avoid shared-reference aliasing
+    // across repeated WASM evaluations.
+    const isolatedBaseGraph = JSON.parse(JSON.stringify(baseTemplateGraph));
+    const { graph } = buildNodiGraph(cassetteData, isolatedBaseGraph);
+    engine.loadGraph(JSON.stringify(graph));
+
+    try {
+      const result = await engine.evaluate();
+      if (!result || !result.geometryIdentifiers) {
+        throw new Error('Geometry evaluation returned no identifiers');
+      }
+      
+      const { geometryIdentifiers } = result;
+
+      const allCurves = [];
+      geometryIdentifiers.forEach((id) => {
+        const interop = engine.findGeometryInteropById(id);
+        if (interop?.variant === 'Curve' && interop?.data?.vertices) {
+          const vertices = interop.data.vertices;
+          if (Array.isArray(vertices) && vertices.length >= 3) {
+            allCurves.push({ 
+              vertices, 
+              id,
+              area: calculateArea(vertices)
+            });
+          }
+        }
+      });
+      
+      if (allCurves.length === 0) {
+        throw new Error('Geometry evaluation produced no valid curves');
+      }
+
+      // Sort by area descending so largest is first (assumed boundary)
+      allCurves.sort((a, b) => b.area - a.area);
+
+      const polygons = allCurves.map(c => ({ coordinates: c.vertices }));
+
+      return {
+        polygons,
+        dimensions: cassetteData.params
+      };
+    } catch (e) {
+      console.error('Nodi evaluation failed:', e);
+      throw new Error(`Geometry evaluation failed: ${e.message}`);
+    }
+  });
 }
 
 /**
@@ -394,7 +416,7 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
     origin,
     status: origin,
     lineage: {
-      originalCassetteId: new ObjectId(cassetteId)
+      originalCassetteId: toFlexibleId(cassetteId)
     },
     data: createData({
       type: 'BAKED_PARAMETRIC',

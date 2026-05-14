@@ -202,31 +202,53 @@ def build_result_dxf_files(owner_id, slug, result_containers):
             },
         }
     )
+
+    job = db["nesting_jobs"].find_one({"slug": slug})
     
     # Update artifacts with file IDs
-    if dxf_files:
+    if job and dxf_files:
         dxf_file_id = db["nestDxf.files"].find_one({"filename": dxf_files[0]})["_id"]
         db["artifacts"].update_one(
-            {"generatedBy": slug, "type": "LAYOUT_DXF"},
+            {"lineage.runId": job.get("runId"), "data.type": "LAYOUT_DXF"},
             {"$set": {
-                "status": "READY",
-                "fileId": dxf_file_id,
-                "mimeType": "application/dxf",
+                "status": artifact_status("READY", "File generated"),
+                "attachments.primary": artifact_attachment("LAYOUT_DXF", dxf_file_id, dxf_files[0], "application/dxf", "nestDxf"),
                 "updatedAt": datetime.now()
             }}
         )
     
-    if svg_files:
+    if job and svg_files:
         svg_file_id = db["nestSvg.files"].find_one({"filename": svg_files[0]})["_id"]
         db["artifacts"].update_one(
-            {"generatedBy": slug, "type": "LAYOUT_SVG"},
+            {"lineage.runId": job.get("runId"), "data.type": "LAYOUT_SVG"},
             {"$set": {
-                "status": "READY",
-                "fileId": svg_file_id,
-                "mimeType": "image/svg+xml",
+                "status": artifact_status("READY", "File generated"),
+                "attachments.primary": artifact_attachment("LAYOUT_SVG", svg_file_id, svg_files[0], "image/svg+xml", "nestSvg"),
                 "updatedAt": datetime.now()
             }}
         )
+
+def artifact_status(state, note):
+    now = datetime.now()
+    return {
+        "state": state,
+        "userId": "SYSTEM",
+        "timestamp": now,
+        "metadata": {"note": note},
+        "eventId": None
+    }
+
+def artifact_attachment(artifact_type, file_id, name, mime_type, bucket_name):
+    return {
+        "type": artifact_type,
+        "fileId": file_id,
+        "name": name,
+        "metadata": {
+            "mimeType": mime_type,
+            "bucketName": bucket_name
+        },
+        "timestamp": datetime.now()
+    }
  
 def build_part(transforms):
     """

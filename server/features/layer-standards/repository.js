@@ -1,5 +1,6 @@
-import { connectDB } from '~/server/db/mongo';
+import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 const COLLECTION = 'layer_standards';
 
@@ -25,7 +26,7 @@ export async function bulkCreate(docs) {
 
 export async function findById(id) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
+  return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) });
 }
 
 export async function findByCode(code) {
@@ -38,11 +39,16 @@ export async function find(filter = {}) {
   return await db.collection(COLLECTION).find(filter).toArray();
 }
 
+export async function count(filter = {}) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).countDocuments(filter);
+}
+
 export async function updateById(id, updates) {
   const db = await connectDB();
   const { _id, ...clean } = updates;
   await db.collection(COLLECTION).updateOne(
-    { _id: new ObjectId(id) }, 
+    { _id: toFlexibleId(id) }, 
     { $set: clean }
   );
   return await findById(id);
@@ -50,7 +56,7 @@ export async function updateById(id, updates) {
 
 export async function deleteById(id) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).deleteOne({ _id: new ObjectId(id) });
+  return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });
 }
 // --- Org-level pen overrides ---
 const OVERRIDES_COLLECTION = 'layer_standard_overrides';
@@ -58,15 +64,15 @@ const OVERRIDES_COLLECTION = 'layer_standard_overrides';
 export async function findOverridesByOrg(organizationId) {
   const db = await connectDB();
   return await db.collection(OVERRIDES_COLLECTION)
-    .find({ organizationId: new ObjectId(organizationId) })
+    .find({ organizationId: toFlexibleId(organizationId) })
     .toArray();
 }
 
 export async function upsertOverride(organizationId, standardId, penId) {
   const db = await connectDB();
   await db.collection(OVERRIDES_COLLECTION).updateOne(
-    { organizationId: new ObjectId(organizationId), standardId: new ObjectId(standardId) },
-    { $set: { penId: new ObjectId(penId), updatedAt: new Date() } },
+    { organizationId: toFlexibleId(organizationId), standardId: toFlexibleId(standardId) },
+    { $set: { penId: toFlexibleId(penId), updatedAt: new Date() } },
     { upsert: true }
   );
 }
@@ -74,7 +80,7 @@ export async function upsertOverride(organizationId, standardId, penId) {
 export async function deleteOverride(organizationId, standardId) {
   const db = await connectDB();
   await db.collection(OVERRIDES_COLLECTION).deleteOne({
-    organizationId: new ObjectId(organizationId),
-    standardId: new ObjectId(standardId)
+    organizationId: toFlexibleId(organizationId),
+    standardId: toFlexibleId(standardId)
   });
 }

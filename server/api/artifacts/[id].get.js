@@ -9,12 +9,16 @@ export default defineEventHandler(async (event) => {
   
   // Auth and basic checks are assumed to be in the service layer
   const artifact = await service.getById(id);
+  const artifactType = artifact.data?.type;
+  const primaryAttachment = artifact.attachments?.primary;
+  const fileId = primaryAttachment?.fileId;
+  const mimeType = primaryAttachment?.metadata?.mimeType;
   
   console.log('[artifacts/[id].get] Artifact found:', { 
     id: artifact._id, 
-    type: artifact.type,
+    type: artifactType,
     status: artifact.status, 
-    hasFileId: !!artifact.fileId 
+    hasFileId: !!fileId 
   });
 
   // Check if the artifact is ready and has a file
@@ -26,7 +30,7 @@ export default defineEventHandler(async (event) => {
     });
   }
   
-  if (!artifact.fileId) {
+  if (!fileId) {
     throw createError({
       statusCode: 404,
       message: 'Artifact has no file attached.',
@@ -35,19 +39,19 @@ export default defineEventHandler(async (event) => {
 
   // Get the correct bucket based on artifact type
   let bucket;
-  if (artifact.type === 'LAYOUT_SVG') {
+  if (artifactType === 'LAYOUT_SVG') {
     bucket = await getSvgResultBucket();
-  } else if (artifact.type === 'LAYOUT_DXF') {
+  } else if (artifactType === 'LAYOUT_DXF') {
     bucket = await getDxfResultBucket();
   } else {
     throw createError({
       statusCode: 400,
-      message: `Unsupported artifact type: ${artifact.type}`,
+      message: `Unsupported artifact type: ${artifactType}`,
     });
   }
   
   // Check if the file actually exists in GridFS
-  const file = await bucket.find({ _id: toObjectId(artifact.fileId) }).next();
+  const file = await bucket.find({ _id: toObjectId(fileId) }).next();
   if (!file) {
     throw createError({
       statusCode: 404,
@@ -57,12 +61,12 @@ export default defineEventHandler(async (event) => {
 
   // Set headers for file download
   setResponseHeaders(event, {
-    'Content-Type': artifact.mimeType || 'application/octet-stream',
+    'Content-Type': mimeType || 'application/octet-stream',
     'Content-Length': file.length,
     'Content-Disposition': `attachment; filename="${encodeURIComponent(artifact.name)}"`,
     'Cache-Control': 'public, max-age=31536000, immutable'
   });
 
   // Create a download stream and return it
-  return bucket.openDownloadStream(toObjectId(artifact.fileId));
+  return bucket.openDownloadStream(toObjectId(fileId));
 });

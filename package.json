@@ -44,6 +44,7 @@
     "@primevue/nuxt-module": "^4.4.1",
     "@types/node": "^22.10.2",
     "kickstart-scripts": "^1.0.1",
+    "module-alias": "^2.3.4",
     "mongodb-memory-server": "^10.1.2",
     "patch-package": "^8.0.0",
     "prettier": "3.5.3",
