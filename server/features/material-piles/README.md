@@ -9,6 +9,7 @@ The "Source of Truth" for physical material inventory. Replaces the legacy multi
 
 ## Key Logic
 - `allocate()`: Atomically increments `used` stock and triggers state change to `DEPLETED` when finished.
+- `allocateSheets()`: Compatibility allocation helper used by tests/legacy callers; increments `data.stock.used` and returns placeholder sheet allocations.
 - `updateStatus()`: Standardized state transitions with audit trail/notes.
 - `create()`: Standardized block initialization with physical specs validation.
 

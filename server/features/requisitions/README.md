@@ -21,7 +21,7 @@ Governed by `server/core/machines/definitions.js`:
 - **FULFILLED**: Material Piles created and added to inventory.
 
 ## Key Operations
-- **`create`**: Snapshots prices from `catalogs` and `colors` to prevent historical price drift.
+- **`create`**: Contractor-only operation. Snapshots prices from `catalogs` and `colors` to prevent historical price drift.
 - **`transition`**: Moves requisition through lifecycle via `statusService`.
 - **`list`**: Uses a dual-lineage filter (either `organizationId` matches as buyer, or `manufacturerId` matches as seller).
 

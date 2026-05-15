@@ -9,9 +9,9 @@ Individual physical units tracked throughout the production lifecycle.
 
 ## Key Workflows
 1. **Instantiation**: Multiple sheets are created from a single `material_pile` via `sheetsService.createFromPile()`.
-2. **Batch Allocation**: `allocateFromBatch()` provides a high-level bridge for creating sheets from piles in the context of material batches.
+2. **Batch Allocation**: `allocateFromPile()` provides a high-level bridge for creating sheets from piles.
 3. **Nesting Hand-off**: Assigned to a `nesting_run` (digital link).
-4. **Production Update**: State changes to `MILLED` once the CNC process is complete.
+4. **Production Update**: `finishMilling()` validates `IN-CUTTING`, stores produced cassette/remnant IDs in `data`, transitions the sheet to `MILLED`, and adjusts warehouse counters.
 
 ## Data Structure
 ```typescript

@@ -11,18 +11,14 @@ Waste material tracking system for reusable sheet remnants after cutting.
 Collection: `remnants`
 
 Key fields:
-- `remnantNumber`: Unique identifier (e.g., "REM-000001")
-- `sheetId`: Source sheet (ObjectId)
-- `warehouseId`: Storage location (ObjectId)
-- `material`, `color`, `thickness`, `foilThickness`: Material specs
-- `geometryDxf`: DXF geometry data for remnant shape (String)
-- `area`: Remnant area in m² (Number)
-- `width`, `height`: Bounding box dimensions (mm)
-- `qrCode`: Optional QR code for tracking
-- `isReusable`: Boolean flag (true if area ≥ 0.1 m²)
-- `status`: "in_stock" | "used"
-- `usedInQueueId`: Queue where remnant was used (ObjectId)
-- `createdAt`, `createdBy`: Audit fields
+- `identity`: Standard identity block with generated remnant number/name
+- `lineage`: Includes source `sheetId` or storage `warehouseId` plus inherited organization/project context
+- `status`: Standard status block (`AVAILABLE`, `USED`, etc.)
+- `data.geometry`: Geometry payload for future nesting reuse
+- `data.attachment`: Optional DXF attachment descriptor
+- `data.specs`: Area, width/height, material, color, and thickness metadata
+- `data.isReusable`: Boolean flag (true if area ≥ 0.1 m²)
+- `data.usedInQueueId`: Queue where remnant was reserved/used
 
 ## Access Control
 - Users can access remnants in warehouses they have access to
@@ -38,7 +34,7 @@ Key fields:
 - `createMany()`: Bulk create remnants (used by sheets.finishMilling)
 - `list()`: List remnants in accessible warehouses
 - `searchReusable()`: Find reusable remnants for nesting (sorted by area desc)
-- `markAsUsed()`: Mark remnant as used in queue, decrement warehouse count
+- `markAsUsed()`: Mark remnant as `USED`, record `data.usedInQueueId`, and decrement warehouse remnant count
 - `remove()`: Delete remnant (only if not used)
 
 ## Integration with Sheets/Queues

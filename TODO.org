@@ -275,6 +275,21 @@
       workflows, Mongo/Nitro/Vue adapters, devtools, read-only MCP handlers,
       and the CNC domain pack.
 
+*** Agent Notes
+    [2026-05-15] Align domain service tests with v24 contracts
+    Files changed: server/features/*/*.spec.js,
+      server/features/material-piles/service.js, server/features/remnants/service.js,
+      server/features/requisitions/service.js, server/features/sheets/service.js,
+      server/features/warehouses/service.js
+    Docs updated: server/features/material-piles/README.md,
+      server/features/remnants/README.md, server/features/requisitions/README.md,
+      server/features/sheets/README.md, server/features/warehouses/README.md
+    Notes: Updated stale specs from pre-v24 root fields and flat permission
+      objects to block-shaped documents and membership-scoped permissions.
+      Restored documented service helpers for sheet milling, remnant usage,
+      material allocation compatibility, warehouse inventory counts, and
+      contractor-only requisition creation.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24

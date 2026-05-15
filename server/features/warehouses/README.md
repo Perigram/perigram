@@ -11,14 +11,13 @@ Warehouse management with inventory tracking for material batches, sheets, and r
 Collection: `warehouses`
 
 Key fields:
-- `name`: Warehouse name
-- `organizationId`: Owner organization (ObjectId)
-- `address`: Physical address
-- `contactPerson`: Contact information
-- `totalBatches`: Cached count of material batches (Number)
-- `totalSheets`: Cached count of sheets in stock (Number)
-- `totalRemnants`: Cached count of remnants in stock (Number)
-- `createdAt`, `createdBy`: Audit fields
+- `identity.name`: Warehouse name
+- `lineage.organizationId`: Owner organization
+- `data.address`: Physical address
+- `data.contactPerson`: Contact information
+- `data.stats.totalBatches`: Cached count of material batches
+- `data.stats.totalSheets`: Cached count of sheets in stock
+- `data.stats.totalRemnants`: Cached count of remnants in stock
 
 ## Access Control
 - Org Admins: Create/Update/Delete warehouses in their organization
