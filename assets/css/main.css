@@ -3,9 +3,12 @@
 @tailwind utilities;
 
 :root {
+    --ck-page-background: var(--p-surface-50);
+    --ck-chrome-background: color-mix(in srgb, var(--p-content-background), transparent 6%);
+    --ck-subtle-background: var(--p-surface-100);
     --ck-page-max-width: 1600px;
-    --ck-grid-gap: 1.5rem;
-    --ck-details-gap: 2rem;
+    --ck-grid-gap: 1.25rem;
+    --ck-details-gap: 1.5rem;
     --ck-dialog-sm: 24rem;
     --ck-dialog-md: 42rem;
     --ck-dialog-lg: 56rem;
@@ -21,8 +24,34 @@
     --ck-preview-dialog-height: 95vh;
     --ck-table-action-column-width: 3rem;
     --ck-radius-ui: 0.5rem;
+    --ck-radius-panel: 0.625rem;
+    --ck-shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 1px rgb(15 23 42 / 0.04);
+    --ck-shadow-card-hover: 0 10px 24px rgb(15 23 42 / 0.10), 0 2px 6px rgb(15 23 42 / 0.06);
+    --ck-shadow-overlay: 0 18px 48px rgb(15 23 42 / 0.18);
     --ck-motion-fast: 120ms;
     --ck-motion-normal: 200ms;
+}
+
+.dark-mode {
+    --ck-page-background: var(--p-surface-950);
+    --ck-chrome-background: color-mix(in srgb, var(--p-surface-900), transparent 8%);
+    --ck-subtle-background: var(--p-surface-900);
+    --ck-shadow-card: 0 1px 2px rgb(0 0 0 / 0.22), 0 0 0 1px rgb(255 255 255 / 0.03);
+    --ck-shadow-card-hover: 0 16px 34px rgb(0 0 0 / 0.34), 0 0 0 1px rgb(255 255 255 / 0.05);
+    --ck-shadow-overlay: 0 22px 56px rgb(0 0 0 / 0.46);
+}
+
+html {
+    background: var(--ck-page-background);
+}
+
+body {
+    background: var(--ck-page-background);
+    color: var(--p-text-color);
+}
+
+::selection {
+    background: color-mix(in srgb, var(--p-primary-color), transparent 78%);
 }
 
 /* Minimal layout helpers only */

@@ -1,9 +1,9 @@
 <template>
   <div class="flex flex-col gap-8">
-    <header class="flex flex-col gap-4 border-b pb-4">
+    <header class="flex flex-col gap-4 rounded-panel border border-content-border bg-content p-5 shadow-card">
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 class="m-0">{{ $t('uiLab.title') }}</h1>
+          <h1 class="m-0 text-2xl font-semibold">{{ $t('uiLab.title') }}</h1>
           <p class="m-0 text-muted-color">{{ $t('uiLab.subtitle') }}</p>
         </div>
         <div class="flex gap-2">
@@ -37,10 +37,10 @@
     </header>
 
     <section v-if="activeGroup" class="flex flex-col gap-10">
-      <article v-for="row in activeRows" :key="row.key" class="flex flex-col gap-4">
+      <article v-for="row in activeRows" :key="row.key" class="flex flex-col gap-4 rounded-panel border border-content-border bg-content p-4 shadow-card">
         <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 class="m-0 text-base">{{ $t(row.labelKey) }}</h2>
+            <h2 class="m-0 text-base font-semibold">{{ $t(row.labelKey) }}</h2>
             <small class="text-muted-color">{{ row.entityType }} · {{ row.propName }}</small>
           </div>
           <div class="flex flex-wrap gap-2">
