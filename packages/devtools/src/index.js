@@ -77,6 +77,16 @@ export function summarizeUiComponents(contracts = [], componentInventory = {}) {
   }));
 }
 
+export function summarizeUiPrimitives(primitives = []) {
+  return primitives.map(primitive => ({
+    key: primitive.key,
+    kind: primitive.kind,
+    componentPath: primitive.componentPath,
+    purpose: primitive.purpose,
+    docs: primitive.docs || []
+  }));
+}
+
 export function validateUiFieldPaths({ components = [], dataModelFields = [], compatibilityAliases = {} } = {}) {
   const canonicalFields = new Set(dataModelFields.map(field => `${field.entityType}:${field.name}`));
   const issues = [];
@@ -118,6 +128,7 @@ export function createFrameworkManifest({
 } = {}) {
   const workflowEntries = Object.entries(workflows).map(([type, workflow]) => ({ type, workflow }));
   const uiComponents = summarizeUiComponents(designSystem.contracts || [], designSystem.componentInventory || {});
+  const uiPrimitives = summarizeUiPrimitives(designSystem.primitives || []);
 
   return {
     schemaVersion: 1,
@@ -131,6 +142,7 @@ export function createFrameworkManifest({
     designSystem: {
       variants: designSystem.variants || [],
       groups: designSystem.groups || [],
+      primitives: uiPrimitives,
       components: uiComponents,
       tokens: designSystem.tokens || {}
     },

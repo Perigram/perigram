@@ -2,7 +2,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { designTokens, cssVariableTokens, tailwindThemeExtension } from '../assets/tokens/index.js';
-import { DESIGN_SYSTEM_ENTITY_CONTRACTS, DESIGN_SYSTEM_GROUPS, DESIGN_SYSTEM_VARIANTS } from '../utils/design-system-contract.js';
+import { DESIGN_SYSTEM_ENTITY_CONTRACTS, DESIGN_SYSTEM_GROUPS, DESIGN_SYSTEM_PRIMITIVES, DESIGN_SYSTEM_VARIANTS } from '../utils/design-system-contract.js';
 import { cncEntities, cncFrontendEntities, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
 import {
   createFrameworkManifest,
@@ -82,6 +82,7 @@ const handlers = createReadOnlyToolHandlers({
   getFrameworkManifest: () => manifest,
   listRoutes: () => routes,
   listUiComponents: () => manifest.designSystem.components,
+  listUiPrimitives: () => manifest.designSystem.primitives,
   listDesignTokens: () => manifest.designSystem.tokens,
   listRelationships: () => manifest.relationships,
   listSummaries: () => manifest.summaries,
@@ -117,6 +118,11 @@ async function main() {
 
   if (command === 'list-ui-components') {
     print(manifest.designSystem.components);
+    return;
+  }
+
+  if (command === 'list-ui-primitives') {
+    print(manifest.designSystem.primitives);
     return;
   }
 
@@ -183,6 +189,7 @@ async function main() {
       manifest: await handlers.get_framework_manifest(),
       routes: await handlers.list_routes(),
       uiComponents: await handlers.list_ui_components(),
+      uiPrimitives: await handlers.list_ui_primitives(),
       relationships: await handlers.list_relationships(),
       docs: await handlers.query_docs({ query: 'workflow' }),
       transition: await handlers.simulate_transition({
@@ -201,6 +208,7 @@ async function main() {
       'list-workflows',
       'list-routes',
       'list-ui-components',
+      'list-ui-primitives',
       'list-design-tokens',
       'list-relationships',
       'list-summaries',
@@ -224,6 +232,7 @@ function createManifest() {
     designSystem: {
       variants: DESIGN_SYSTEM_VARIANTS,
       groups: DESIGN_SYSTEM_GROUPS,
+      primitives: DESIGN_SYSTEM_PRIMITIVES,
       contracts: DESIGN_SYSTEM_ENTITY_CONTRACTS,
       componentInventory,
       tokens: {

@@ -4,6 +4,7 @@ import path from 'path';
 import {
   DESIGN_SYSTEM_ENTITY_CONTRACTS,
   DESIGN_SYSTEM_VARIANTS,
+  DESIGN_SYSTEM_PRIMITIVES,
   validateDesignSystemContracts
 } from '../utils/design-system-contract.js';
 import * as factories from '../test-data/factories.js';
@@ -61,6 +62,20 @@ describe('Design system manifest', () => {
 
       for (const doc of entry.docs) {
         expect(fs.existsSync(doc), `${entry.key} doc missing: ${doc}`).toBe(true);
+      }
+    }
+  });
+
+  it('declares shared design-system primitives with existing components and docs', () => {
+    expect(DESIGN_SYSTEM_PRIMITIVES.length).toBeGreaterThan(0);
+
+    for (const primitive of DESIGN_SYSTEM_PRIMITIVES) {
+      expect(primitive.key).toBeTruthy();
+      expect(primitive.kind).toBeTruthy();
+      expect(fs.existsSync(path.join(REPO_ROOT, primitive.componentPath)), primitive.componentPath).toBe(true);
+
+      for (const doc of primitive.docs || []) {
+        expect(fs.existsSync(path.join(REPO_ROOT, doc)), `${primitive.key} doc missing: ${doc}`).toBe(true);
       }
     }
   });

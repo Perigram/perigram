@@ -379,6 +379,155 @@
         "labelKey": "uiLab.groups.system"
       }
     ],
+    "primitives": [
+      {
+        "componentPath": "components/shared/EntityCard.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "EntityCard",
+        "kind": "entity-chrome",
+        "purpose": "Standard entity card chrome with identity, optional trace, optional status, content, and footer slots."
+      },
+      {
+        "componentPath": "components/shared/EntityPage.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "EntityPage",
+        "kind": "entity-layout",
+        "purpose": "Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots."
+      },
+      {
+        "componentPath": "components/shared/blocks/IdentityBlock.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "IdentityBlock",
+        "kind": "block",
+        "purpose": "Canonical identity rendering for names, slugs, serials, references, and inline trace labels."
+      },
+      {
+        "componentPath": "components/shared/blocks/DataBlock.vue",
+        "docs": [
+          "components/shared/README.md",
+          "utils/README.md"
+        ],
+        "key": "DataBlock",
+        "kind": "block",
+        "purpose": "Canonical label/value rows for generated entity data fields."
+      },
+      {
+        "componentPath": "components/shared/blocks/SpecsBlock.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "SpecsBlock",
+        "kind": "block",
+        "purpose": "Canonical width, length, area, and thickness display for entities with specs."
+      },
+      {
+        "componentPath": "components/shared/blocks/StatusBadge.vue",
+        "docs": [
+          "components/shared/README.md",
+          "utils/README.md"
+        ],
+        "key": "StatusBadge",
+        "kind": "status",
+        "purpose": "Read-only status tag using the shared status mapping."
+      },
+      {
+        "componentPath": "components/shared/status/EntityStatus.vue",
+        "docs": [
+          "components/shared/README.md",
+          "utils/README.md"
+        ],
+        "key": "EntityStatus",
+        "kind": "status",
+        "purpose": "Interactive status display and workflow-derived transition actions."
+      },
+      {
+        "componentPath": "components/shared/status/StatusHistory.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "StatusHistory",
+        "kind": "status",
+        "purpose": "Status audit timeline for entity lifecycle events."
+      },
+      {
+        "componentPath": "components/shared/links/TraceLink.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "TraceLink",
+        "kind": "trace",
+        "purpose": "Icon-aware link to a related entity."
+      },
+      {
+        "componentPath": "components/shared/links/TraceChain.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "TraceChain",
+        "kind": "trace",
+        "purpose": "Canonical lineage breadcrumb chain for entity ancestry."
+      },
+      {
+        "componentPath": "components/shared/ActionToolbar.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "ActionToolbar",
+        "kind": "layout",
+        "purpose": "Responsive title, subtitle, and action-row layout."
+      },
+      {
+        "componentPath": "components/shared/ResponsiveGrid.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "ResponsiveGrid",
+        "kind": "layout",
+        "purpose": "Token-backed responsive repeated-item grid."
+      },
+      {
+        "componentPath": "components/shared/StateBlock.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "StateBlock",
+        "kind": "layout",
+        "purpose": "Standard loading, empty, and error states."
+      },
+      {
+        "componentPath": "components/shared/TableFrame.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "TableFrame",
+        "kind": "layout",
+        "purpose": "Standard frame for PrimeVue DataTable surfaces."
+      },
+      {
+        "componentPath": "components/shared/StandardDialog.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "StandardDialog",
+        "kind": "layout",
+        "purpose": "Standard modal shell with footer and responsive sizing."
+      },
+      {
+        "componentPath": "components/shared/StandardPage.vue",
+        "docs": [
+          "components/shared/README.md"
+        ],
+        "key": "StandardPage",
+        "kind": "layout",
+        "purpose": "Standard page shell with header and breadcrumbs."
+      }
+    ],
     "tokens": {
       "cssVariableTokens": {
         "--ck-chrome-background": "color-mix(in srgb, var(--p-content-background), transparent 6%)",

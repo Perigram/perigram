@@ -57,6 +57,7 @@ describe('Framework package contracts', () => {
       summaries: [],
       designSystem: {
         contracts: [],
+        primitives: [{ key: 'EntityCard', kind: 'entity-chrome', componentPath: 'components/shared/EntityCard.vue', purpose: 'Card chrome' }],
         componentInventory: {},
         tokens: {}
       },
@@ -71,6 +72,7 @@ describe('Framework package contracts', () => {
       listRoutes: () => summarizeRoutes(cncFrontendEntities),
       listSummaries: () => summarizeSummaries([]),
       listUiComponents: () => manifest.designSystem.components,
+      listUiPrimitives: () => manifest.designSystem.primitives,
       listDesignTokens: () => manifest.designSystem.tokens,
       listRelationships: () => manifest.relationships,
       validateUiContracts: () => manifest.validations,
@@ -87,6 +89,7 @@ describe('Framework package contracts', () => {
     await expect(handlers.list_entities()).resolves.toContainEqual(expect.objectContaining({ type: 'project' }));
     await expect(handlers.get_entity_schema({ type: 'queue' })).resolves.toMatchObject({ collection: 'queues' });
     await expect(handlers.list_routes()).resolves.toContainEqual(expect.objectContaining({ type: 'project', single: '/api/project/:id' }));
+    await expect(handlers.list_ui_primitives()).resolves.toContainEqual(expect.objectContaining({ key: 'EntityCard', kind: 'entity-chrome' }));
     await expect(handlers.query_docs({ query: 'workflow' })).resolves.toContainEqual(expect.objectContaining({ path: 'README.md' }));
     await expect(handlers.get_framework_manifest()).resolves.toMatchObject({ schemaVersion: 1, validations: { ok: true } });
     await expect(handlers.validate_ui_contracts()).resolves.toEqual({ ok: true, issues: [] });
@@ -105,5 +108,9 @@ describe('Framework package contracts', () => {
       'data.parameters.length',
       'data.type'
     ]);
+    expect(committed.designSystem.primitives).toContainEqual(expect.objectContaining({
+      key: 'EntityPage',
+      componentPath: 'components/shared/EntityPage.vue'
+    }));
   });
 });

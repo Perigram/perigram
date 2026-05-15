@@ -15,6 +15,7 @@
     "framework:list-entities": "node scripts/framework-inspect.js list-entities",
     "framework:list-workflows": "node scripts/framework-inspect.js list-workflows",
     "framework:list-routes": "node scripts/framework-inspect.js list-routes",
+    "framework:list-ui-primitives": "node scripts/framework-inspect.js list-ui-primitives",
     "framework:query-docs": "node scripts/framework-inspect.js query-docs",
     "framework:manifest": "node scripts/framework-inspect.js check-manifest",
     "framework:write-manifest": "node scripts/framework-inspect.js write-manifest",
