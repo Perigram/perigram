@@ -39,6 +39,8 @@ entity key, component prop name, variants, status policy, trace policy, factory 
 
 `assets/tokens/index.js` is the source for app-level visual tokens. Tailwind aliases, PrimeVue component overrides, and global `--ck-*` CSS variables must stay aligned with it.
 
+Current app chrome uses `bg-page`, `bg-chrome`, `bg-subtle`, `rounded-ui`, `rounded-panel`, `shadow-card`, `shadow-card-hover`, and `shadow-overlay`. New shared wrappers should consume these aliases instead of local shadows, arbitrary backgrounds, or one-off radii.
+
 Use token-backed classes such as `max-w-app`, PrimeVue semantic classes, and shared layout helpers (`grid-hub`, `grid-details`) instead of local arbitrary max-widths, colors, radii, or transition durations.
 
 ## Composables Rule

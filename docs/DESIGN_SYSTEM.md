@@ -15,6 +15,8 @@ CutKit uses PrimeVue 4, Tailwind utilities, and a small app token layer. The des
 
 Use PrimeVue semantic variables for color and component state. Use CutKit `--ck-*` tokens for app layout, radius, and motion values that PrimeVue does not own.
 
+The active visual language is a quiet operational UI: zinc-neutral surfaces, teal primary actions, compact 8-10px radii, subtle card elevation, and visible focus rings. Avoid adding decorative gradients, large ornamental backgrounds, or page-local theme colors; promote durable visual decisions to `assets/tokens/index.js`.
+
 Allowed local hardcoded visual values are limited to real data, such as pen stroke colors, DXF layer colors, or uploaded asset metadata. Page-local decorative colors, radii, animation durations, chat/dialog dimensions, swatch sizes, and max-widths must be promoted to tokens or removed.
 
 ## Component Contract
@@ -58,4 +60,10 @@ Run the focused contract check after changing tokens, wrappers, manifest, or fac
 
 ```bash
 npx vitest run shared/design-system.spec.js
+```
+
+For token syntax, import-check the token and preset modules:
+
+```bash
+node -e "import('./assets/presets/re_l.js').then(() => console.log('preset ok'))"
 ```

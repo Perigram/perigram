@@ -130,6 +130,17 @@
        `lineage.*`, `attachments.*`, and `summary.*` paths where available.
 
 *** Agent Notes
+     [2026-05-15] Apply modern centralized design-system styling
+     Files changed: assets/tokens/index.js, assets/presets/re_l.js,
+       assets/css/main.css, components/shared/EntityCard.vue,
+       layouts/ui-lab-layout.vue, pages/test/ui-lab.vue
+     Docs updated: docs/DESIGN_SYSTEM.md, components/README.md
+     Notes: Added PrimeVue semantic tokens for teal primary actions,
+       zinc-neutral surfaces, visible focus rings, compact radii, and shared
+       elevation. Projected the same decisions through Tailwind aliases and
+       CSS variables so shared wrappers and UI lab use app-wide token classes.
+
+*** Agent Notes
      [2026-03-15] Frontend API contract compliance — replace raw $fetch with useEntity
      Files changed: composables/useEntity.js, stores/global.js, pages/projects/index.vue,
        pages/project/[slug]/data.vue, pages/project/[slug]/artifacts.vue,
