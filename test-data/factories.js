@@ -119,7 +119,7 @@ export function createMockNestingRun(overrides = {}) {
     ...createEntity({
       uid: MOCK_IDS.runId,
       name: 'Run #1',
-      state: 'READY',
+      state: 'COMPLETE',
       lineage: {
         organizationId: MOCK_IDS.organizationId,
         projectId: MOCK_IDS.projectId,
@@ -201,7 +201,7 @@ export function createMockCassetteInstance(overrides = {}) {
       name: 'Instance Panel-A-01',
       serial: 'INST-0001',
       reference: 'Panel-A-01',
-      state: 'MANUFACTURED',
+      state: 'PRODUCED',
       lineage: {
         projectId: MOCK_IDS.projectId,
         queueId: MOCK_IDS.queueId,
@@ -406,7 +406,7 @@ export function createMockRequisition(overrides = {}) {
       uid: 'requisition-demo-001',
       name: 'Q1 Material Order',
       serial: 'REQ-2025-001',
-      state: 'SUBMITTED',
+      state: 'SENT',
       lineage: { organizationId: MOCK_IDS.organizationId, projectId: MOCK_IDS.projectId },
       data: { items, notes: ['Priority delivery requested.'], requisitionNumber: 'REQ-2025-001', totalPrice: 12500, currency: 'USD' },
       hoists: { items, requisitionNumber: 'REQ-2025-001', totalPrice: 12500, currency: 'USD' }

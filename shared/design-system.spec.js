@@ -13,6 +13,8 @@ import {
   primeComponentTokens,
   tailwindThemeExtension
 } from '../assets/tokens/index.js';
+import { cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { STATUS_MAPPINGS } from '../utils/status-engine.js';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 
@@ -157,5 +159,27 @@ describe('Design system manifest', () => {
       expect.objectContaining({ to: 'IN-CUTTING' }),
       expect.objectContaining({ to: 'SCRAP' })
     ]));
+  });
+
+  it('keeps factory demo states and badge mappings aligned with workflow definitions', () => {
+    for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {
+      const workflow = cncWorkflows[entry.entityType];
+      if (!workflow) continue;
+
+      const entity = factories[entry.factoryName]();
+      expect(
+        Object.keys(workflow.states),
+        `${entry.key} factory state ${entity.status.state} must exist in workflow ${entry.entityType}`
+      ).toContain(entity.status.state);
+    }
+
+    for (const [entityType, workflow] of Object.entries(cncWorkflows)) {
+      for (const state of Object.keys(workflow.states)) {
+        expect(
+          STATUS_MAPPINGS[state] || STATUS_MAPPINGS[state.toLowerCase()],
+          `${entityType}.${state} missing status badge mapping`
+        ).toBeTruthy();
+      }
+    }
   });
 });
