@@ -6,7 +6,7 @@
             <slot name="inline-extra" />
         </div>
         
-        <Popover ref="op" class="shadow-overlay border border-content-border">
+        <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
             <div class="flex flex-col gap-4 p-4 min-w-[var(--ck-entity-popover-min-width)]">
                 <template v-if="showTrace">
                     <div class="flex flex-col gap-1">
@@ -32,7 +32,7 @@
 
     <!-- Compact: identity + status in a card row -->
     <template v-else-if="variant === 'compact'">
-        <Card class="h-full border border-content-border shadow-card hover:shadow-card-hover transition-shadow duration-normal">
+        <Card class="h-full border border-content-border [box-shadow:var(--ck-shadow-card)] hover:[box-shadow:var(--ck-shadow-card-hover)] transition-shadow duration-normal">
             <template #content>
             <template v-if="$slots.header">
                 <slot name="header" />
@@ -63,7 +63,7 @@
 
     <!-- Card: full chrome — tracechain / identity+status / body / footer -->
     <template v-else>
-        <Card class="h-full border border-content-border shadow-card hover:shadow-card-hover transition-shadow duration-normal">
+        <Card class="h-full border border-content-border [box-shadow:var(--ck-shadow-card)] hover:[box-shadow:var(--ck-shadow-card-hover)] transition-shadow duration-normal">
             <template #header v-if="$slots.header">
                 <slot name="header" />
             </template>

@@ -1,7 +1,7 @@
 <template>
-    <div class="flex flex-col min-h-screen bg-surface-50 dark:bg-surface-950">
-    <header class="sticky top-2 z-50 m-2 backdrop-blur-md shadow-sm border border-surface-200 dark:border-surface-700 rounded-lg">
-            <nav class="max-w-[1600px] mx-auto px-4 h-14 flex items-center justify-between gap-2 ">
+    <div class="flex flex-col min-h-screen bg-[var(--ck-page-background)]">
+    <header class="sticky top-0 z-50 border-b border-content-border bg-[var(--ck-chrome-background)] backdrop-blur-md">
+            <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2 ">
                 <!-- Left: Logo & Breadcrumbs -->
                 <div class="flex items-center h-full min-w-0 flex-1">
                     <NuxtLink
@@ -72,7 +72,7 @@
             </nav>
         </header>
 
-        <main class="flex-1 max-w-[1600px] w-full mx-auto p-4 md:p-6 lg:p-8">
+        <main class="flex-1 max-w-[var(--ck-page-max-width)] w-full mx-auto p-4 md:p-6 lg:p-8">
             <slot />
         </main>
 
@@ -83,7 +83,7 @@
             severity="secondary"
             @click="supportDialog = true"
             v-if="!supportDialog"
-            class="fixed bottom-8 right-8 z-[999] shadow-lg"
+            class="fixed bottom-8 right-8 z-[999] [box-shadow:var(--ck-shadow-overlay)]"
         />
     </div>
 </template>

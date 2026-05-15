@@ -1,7 +1,7 @@
 <template>
-    <div class="flex flex-col min-h-screen bg-page">
-        <header class="sticky top-0 z-50 border-b border-content-border bg-chrome backdrop-blur">
-            <nav class="max-w-app mx-auto px-4 h-14 flex items-center justify-between gap-2">
+    <div class="flex flex-col min-h-screen bg-[var(--ck-page-background)]">
+        <header class="sticky top-0 z-50 border-b border-content-border bg-[var(--ck-chrome-background)] backdrop-blur">
+            <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2">
                 <!-- Left: Logo -->
                 <div class="flex items-center h-full min-w-0 flex-1">
                     <NuxtLink
@@ -10,7 +10,7 @@
                     >
                         <span>CutKit UI Lab</span>
                     </NuxtLink>
-                    <div class="px-2 py-0.5 rounded-ui bg-subtle text-[10px] font-bold uppercase text-muted-color border border-content-border">
+                    <div class="px-2 py-0.5 rounded-ui bg-[var(--ck-subtle-background)] text-[10px] font-bold uppercase text-muted-color border border-content-border">
                         Test Mode
                     </div>
                 </div>
@@ -26,7 +26,7 @@
                     />
                     
                     <div class="relative flex items-center">
-                        <div class="flex items-center gap-2 px-2 py-1 rounded-ui hover:bg-subtle cursor-pointer">
+                        <div class="flex items-center gap-2 px-2 py-1 rounded-ui hover:bg-[var(--ck-subtle-background)] cursor-pointer">
                             <Avatar 
                                 label="T"
                                 shape="circle" 
@@ -40,7 +40,7 @@
             </nav>
         </header>
 
-        <main class="flex-1 max-w-app w-full mx-auto p-4 md:p-6 lg:p-8">
+        <main class="flex-1 max-w-[var(--ck-page-max-width)] w-full mx-auto p-4 md:p-6 lg:p-8">
             <slot />
         </main>
     </div>
