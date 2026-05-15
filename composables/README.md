@@ -104,6 +104,7 @@ Exception: `useStatus` may be used in entity cards for a `v-if` conditional (not
 ## useStatusController
 
 Direct bridge to the State Machine Engine. Used internally by `useEntity.changeStatus()`.
+Supports both camelCase and snake_case entity type keys for runtime status components.
 
 ```js
 const { transition, isTransitioning } = useStatusController();

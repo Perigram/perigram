@@ -403,6 +403,19 @@
       before legacy flat fallbacks. Added a design-system contract check that
       prevents entity cards from overriding `EntityCard` title chrome.
 
+*** Agent Notes
+    [2026-05-15] Derive EntityStatus actions from workflows
+    Files changed: utils/status-actions.js,
+      components/shared/status/EntityStatus.vue,
+      composables/useStatusController.js, shared/design-system.spec.js
+    Docs updated: utils/README.md, components/shared/README.md,
+      composables/README.md, TODO.org
+    Notes: Replaced the hardcoded DRAFT->READY default action in
+      `EntityStatus` with workflow-derived actions from the CNC domain pack.
+      Tests cover queue and sheet transitions so status controls stay tied to
+      actual workflow definitions, and status endpoint resolution now accepts
+      snake_case entity keys used by entity cards.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24

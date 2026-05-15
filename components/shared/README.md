@@ -83,6 +83,7 @@ Rendering guard: component renders only when `props.entity` is present.
 Behavior: component auto-expands when custom `actions` are provided; otherwise inline mode uses badge + popover.
 
 **Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the `status` policy in `utils/design-system-contract.js` to decide whether a card shows `EntityStatus`, hides it, or renders read-only status.
+Default transition actions are derived from workflow definitions through `utils/status-actions.js`; card components should only pass custom actions for domain-specific commands such as choosing a completed nesting run.
 
 ### `StatusHistory.vue`
 Fetches and displays the audit log (`status_events`) for any entity.
