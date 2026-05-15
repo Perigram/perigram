@@ -12,3 +12,7 @@ Read-only MCP tool handlers for LLM-assisted industrial app planning. This packa
 
 `simulate_transition` receives the workflow validator through dependency
 injection so this package remains read-only and framework-adapter neutral.
+
+Use `node scripts/framework-inspect.js mcp-smoke` for the current local
+read-only handler smoke test. This is intentionally not a write-capable app
+builder.

@@ -12,7 +12,9 @@ The system consists of three main parts: the transition engine, the dynamic hook
 
 The reusable workflow API is being extracted to
 [`@cutkit/workflows`](../../../packages/workflows/README.md). The current
-`service.js` remains the runtime adapter until the package is covered by tests.
+`service.js` is the runtime adapter and delegates transition validation to the
+package while still using the app's existing definitions, event log, and hook
+dispatch.
 
 ### 2. Dynamic Hook Registry (`hooks.js` & Feature Registry)
 Acts as a decoupled dispatcher for side-effects. To prevent architectural leaks, manufacturing-specific logic is NOT implemented in the core engine.
@@ -24,6 +26,8 @@ Acts as a decoupled dispatcher for side-effects. To prevent architectural leaks,
 Synchronizes parent summaries based on child activity using lineage-aware MongoDB aggregation pipelines.
 - **Trigger**: Called by the `triggerAggregator` hook whenever an entity changes state.
 - **Standardization**: Uses `pluralize()` to resolve target and parent collections.
+- **Domain Rules**: Summary rules are loaded from `@cutkit/domain-cnc`; the
+  aggregator remains the Mongo runtime adapter.
 
 ## Data Flow
 1. User/System triggers `statusService.transition(type, id, state, ...)`.

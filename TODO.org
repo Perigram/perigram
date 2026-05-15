@@ -290,6 +290,58 @@
       material allocation compatibility, warehouse inventory counts, and
       contractor-only requisition creation.
 
+*** Agent Notes
+    [2026-05-15] Route core block compatibility path through package core
+    Files changed: packages/core/src/index.js, server/core/blocks/index.js,
+      shared/framework-packages.spec.js
+    Docs updated: packages/core/README.md,
+      server/core/blocks/README.md, TODO.org
+    Notes: Moved the active server block export surface onto the internal
+      `@cutkit/core` implementation while preserving the existing
+      `~/server/core/blocks/index.js` import path and server-specific
+      ObjectId/flexible-ID factory behavior. Added framework package contract
+      tests for core definitions, workflow validation, CNC definitions, and
+      read-only MCP handlers.
+
+*** Agent Notes
+    [2026-05-15] Delegate status transition validation to workflow package
+    Files changed: server/core/machines/service.js
+    Docs updated: server/core/machines/README.md,
+      packages/workflows/README.md, TODO.org
+    Notes: Reused `@cutkit/workflows` transition validation inside the runtime
+      status service while preserving existing app state-machine definitions,
+      Mongo status event logging, and hook dispatch behavior.
+
+*** Agent Notes
+    [2026-05-15] Move frontend entity route metadata into framework packages
+    Files changed: packages/domain-cnc/src/index.js,
+      composables/useEntity.js, shared/framework-packages.spec.js
+    Docs updated: packages/domain-cnc/README.md, packages/vue/README.md,
+      composables/README.md, TODO.org
+    Notes: Added CNC frontend endpoint definitions and switched `useEntity`
+      to build its route map through the package helper, preserving the
+      existing composable API and route strings.
+
+*** Agent Notes
+    [2026-05-15] Move summary aggregation rules into CNC domain pack
+    Files changed: packages/domain-cnc/src/index.js,
+      server/core/machines/aggregator.js
+    Docs updated: packages/domain-cnc/README.md,
+      server/core/machines/README.md, TODO.org
+    Notes: Replaced the runtime hardcoded aggregation map with one derived
+      from `cncSummaries`, keeping the Mongo aggregation adapter in place and
+      preserving queue/project/catalog summary behavior.
+
+*** Agent Notes
+    [2026-05-15] Add read-only framework inspection CLI
+    Files changed: package.json, scripts/framework-inspect.js
+    Docs updated: packages/devtools/README.md, packages/mcp/README.md,
+      TODO.org
+    Notes: Added local read-only commands for listing framework entities and
+      workflows, validating definitions plus the architecture gate, and
+      smoke-testing MCP-style handlers without adding external dependencies or
+      write-capable codegen tools.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24

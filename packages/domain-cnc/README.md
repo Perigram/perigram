@@ -5,8 +5,10 @@ Cutkit CNC domain definitions for the framework extraction. This package is the 
 ## Contents
 
 - Entity definitions for current v24 persisted entities.
+- Frontend endpoint definitions for the app's `useEntity` type keys.
 - Workflow definitions matching `server/core/machines/definitions.js`.
 - Summary definitions replacing hardcoded aggregator rules in a later migration.
+- Summary definitions consumed by the current Mongo aggregator adapter.
 
 ## Related
 
