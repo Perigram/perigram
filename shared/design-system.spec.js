@@ -14,6 +14,7 @@ import {
   tailwindThemeExtension
 } from '../assets/tokens/index.js';
 import { cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { STATUS_MAPPINGS } from '../utils/status-engine.js';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
@@ -181,5 +182,27 @@ describe('Design system manifest', () => {
         ).toBeTruthy();
       }
     }
+  });
+
+  it('formats generated DataBlock values without artificial object strings', () => {
+    const entity = {
+      data: {
+        count: 3,
+        active: true,
+        tags: ['A', 'B'],
+        items: [{ id: 'item-1' }, { id: 'item-2' }],
+        catalog: { code: 'RAL-9016' },
+        geometry: { vertices: [] }
+      }
+    };
+
+    expect(resolveDataPath(entity, 'data.catalog.code')).toBe('RAL-9016');
+    expect(decorateDataValue(entity.data.count, { suffix: ' pcs' })).toBe('3 pcs');
+    expect(decorateDataValue(entity.data.active, { trueLabel: 'Yes', falseLabel: 'No' })).toBe('Yes');
+    expect(decorateDataValue(entity.data.tags)).toBe('A, B');
+    expect(decorateDataValue(entity.data.items)).toBe('2');
+    expect(decorateDataValue(entity.data.catalog)).toBe('RAL-9016');
+    expect(decorateDataValue(entity.data.geometry)).toBeNull();
+    expect(decorateDataValue(entity.data.geometry)).not.toBe('[object Object]');
   });
 });

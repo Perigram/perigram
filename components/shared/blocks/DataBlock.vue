@@ -26,6 +26,7 @@
  */
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { decorateDataValue, resolveDataPath } from '~/utils/data-display.js';
 
 const props = defineProps({
     entity: { type: Object, required: true },
@@ -34,16 +35,16 @@ const props = defineProps({
 
 const { t } = useI18n();
 
-/** Resolve a dot-notation path against an object */
-const resolvePath = (obj, path) =>
-    path.split('.').reduce((acc, key) => acc?.[key], obj);
-
 const visibleRows = computed(() =>
     props.fields
         .map(field => {
-            const raw = resolvePath(props.entity, field.path);
-            if (raw == null || raw === '') return null;
-            const display = `${field.prefix ?? ''}${raw}${field.suffix ?? ''}`;
+            const raw = resolveDataPath(props.entity, field.path);
+            const display = decorateDataValue(raw, {
+                ...field,
+                trueLabel: t('common.yes'),
+                falseLabel: t('common.no')
+            });
+            if (!display) return null;
             return { label: t(field.i18n), display };
         })
         .filter(Boolean)
