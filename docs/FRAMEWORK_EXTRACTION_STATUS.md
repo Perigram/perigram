@@ -13,7 +13,8 @@ Current execution status for separating the Cutkit industrial workflow model int
 | CNC domain pack | Done | Entity, workflow, summary, and frontend route metadata live in `@cutkit/domain-cnc`. |
 | Frontend adapter | Done | `composables/useEntity.js` builds endpoint metadata through `@cutkit/vue`. |
 | Summary adapter | Done | Machine aggregation derives summary rules from `cncSummaries`. |
-| Read-only devtools/MCP | In progress | CLI and MCP-style handlers expose entities, workflows, routes, docs lookup, transition simulation, and architecture validation. |
+| UI/design-system framework contract | Done | `framework.manifest.json` snapshots UI components, status policies, field paths, and token projections. |
+| Read-only devtools/MCP | In progress | CLI and MCP-style handlers expose entities, workflows, routes, docs lookup, UI components, relationships, summaries, manifest data, transition simulation, and validation. |
 | Write-capable app builder | Not started | Intentionally blocked until read-only inspection contracts are stable. |
 | External package publishing | Not started | Packages are private workspace packages; no separate repo or registry publish exists yet. |
 
@@ -23,11 +24,12 @@ Run these checks after framework changes:
 
 ```bash
 node scripts/check-arch.js
+npm run framework:manifest
 npm run framework:validate
 npx vitest run --reporter=dot
 ```
 
-The latest completed execution for this update passed `node scripts/check-arch.js`, `npm run framework:validate`, and `npx vitest run --reporter=dot`.
+The latest completed execution for this update passed `node scripts/check-arch.js`, `npm run framework:manifest`, `npm run framework:validate`, and `npx vitest run --reporter=dot`.
 
 ## Module Boundaries
 
@@ -38,6 +40,9 @@ flowchart LR
   StatusService[server/core/machines/service.js]
   Aggregator[server/core/machines/aggregator.js]
   UseEntity[composables/useEntity.js]
+  DesignSystem[utils/design-system-contract.js]
+  Tokens[assets/tokens/index.js]
+  Manifest[framework.manifest.json]
   InspectCLI[scripts/framework-inspect.js]
 
   CorePkg[@cutkit/core]
@@ -56,10 +61,38 @@ flowchart LR
   App --> UseEntity
   UseEntity --> VuePkg
   UseEntity --> DomainPkg
+  App --> DesignSystem
+  App --> Tokens
+  DesignSystem --> Manifest
+  Tokens --> Manifest
   InspectCLI --> DevtoolsPkg
   InspectCLI --> MCPPkg
   InspectCLI --> DomainPkg
+  InspectCLI --> Manifest
   MCPPkg --> WorkflowPkg
+```
+
+## UI Contract Relationships
+
+```mermaid
+flowchart LR
+  EntityCards[components/entities/*/*Card.vue]
+  SharedUI[components/shared primitives]
+  Contract[utils/design-system-contract.js]
+  Factories[test-data/factories.js]
+  DataModel[server/DATA_MODEL.md]
+  Tokens[assets/tokens/index.js]
+  Manifest[framework.manifest.json]
+  MCP[@cutkit/mcp]
+
+  EntityCards --> SharedUI
+  EntityCards --> Contract
+  Factories --> Contract
+  DataModel --> Manifest
+  Contract --> Manifest
+  Tokens --> Manifest
+  EntityCards --> Manifest
+  Manifest --> MCP
 ```
 
 ## Runtime Relationships
@@ -137,6 +170,7 @@ flowchart TD
 
 ## Next Execution Steps
 
-1. Stabilize read-only MCP inspection around entities, workflows, routes, docs, transition simulation, and architecture validation.
-2. Add a schema-to-scaffold generator only after inspection contracts and generated output rules are reviewed.
-3. Decide whether to keep packages in this repo or split them into a new repo after at least one generated app proof-of-concept uses the package APIs.
+1. Stabilize read-only MCP inspection around entities, workflows, routes, docs, transition simulation, UI contracts, and architecture validation.
+2. Use manifest validation findings to clean remaining UI/status/layout drift in small batches.
+3. Add a schema-to-scaffold generator only after inspection contracts and generated output rules are reviewed.
+4. Decide whether to keep packages in this repo or split them into a new repo after at least one generated app proof-of-concept uses the package APIs.

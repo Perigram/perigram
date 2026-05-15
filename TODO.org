@@ -355,6 +355,24 @@
       API with route listing and docs query handlers so LLM agents can inspect
       app/API context before any future write-capable generator exists.
 
+*** Agent Notes
+    [2026-05-15] Add framework manifest and UI truth checks
+    Files changed: framework.manifest.json, package.json,
+      scripts/framework-inspect.js, packages/devtools/src/index.js,
+      packages/mcp/src/index.js, shared/framework-packages.spec.js,
+      shared/design-system.spec.js,
+      components/entities/CassetteTemplate/CassetteTemplateCard.vue
+    Docs updated: README.md, packages/README.md,
+      packages/devtools/README.md, packages/mcp/README.md,
+      docs/DESIGN_SYSTEM.md, components/README.md,
+      docs/FRAMEWORK_EXTRACTION_STATUS.md, TODO.org
+    Notes: Added a committed framework manifest for read-only LLM/RAG/MCP
+      inspection of packages, entities, routes, workflows, summaries,
+      relationships, UI component contracts, field paths, and design tokens.
+      Manifest validation now gates UI field paths against data-model truth and
+      explicit compatibility aliases. Removed synthetic cassette template
+      `type`/`parameterCount` display fields from the card contract.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24

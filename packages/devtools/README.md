@@ -1,6 +1,6 @@
 # COMPONENT: @cutkit/devtools
 
-Read-only inspection helpers for framework definitions. CLI wiring will be added after the package API is covered by tests.
+Read-only inspection helpers for framework definitions, UI/design-system contracts, and manifest validation.
 
 The app-level CLI entrypoint is `scripts/framework-inspect.js`.
 
@@ -9,6 +9,13 @@ The app-level CLI entrypoint is `scripts/framework-inspect.js`.
 - `summarizeDefinitions(definitions)`
 - `summarizeWorkflows(workflows)`
 - `summarizeRoutes(definitions)`
+- `summarizeSummaries(summaries)`
+- `summarizeRelationships({ summaries, dataModelFields })`
+- `summarizeUiComponents(contracts, componentInventory)`
+- `createFrameworkManifest(inputs)`
+- `validateFrameworkManifest(inputs)`
+- `validateUiFieldPaths(inputs)`
+- `validateStatusPolicies(inputs)`
 - `queryDocs(corpus, query)`
 - `validateDefinitionSet(definitions)`
 
@@ -19,6 +26,10 @@ npm run framework:list-entities
 npm run framework:list-workflows
 npm run framework:list-routes
 npm run framework:query-docs -- workflow
+npm run framework:manifest
+npm run framework:write-manifest
 npm run framework:validate
 node scripts/framework-inspect.js mcp-smoke
 ```
+
+`framework.manifest.json` is committed and must stay synchronized with source metadata. Use `npm run framework:write-manifest` after intentional framework/UI contract changes, then `npm run framework:manifest` to verify the committed file.

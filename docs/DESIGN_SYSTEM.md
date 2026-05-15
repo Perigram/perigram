@@ -53,6 +53,8 @@ Required v24 blocks:
 
 Hoisted aliases are allowed only when current model/service DTOs emit them.
 
+`framework.manifest.json` snapshots the design-system contract for LLM/RAG/MCP consumers. It records entity card components, status policies, trace policies, `DataBlock` field paths, shared token projections, and validation results without requiring Vue component loading.
+
 ## Cleanup Policy
 
 Legacy files are deleted only after import/routing scans prove they are unused. One-off diagnostics pages may exist outside the design-system manifest, but they must still use shared wrappers and token rules when they are routed.
@@ -69,4 +71,11 @@ For token syntax, import-check the token and preset modules:
 
 ```bash
 node -e "import('./assets/presets/re_l.js').then(() => console.log('preset ok'))"
+```
+
+After changing entity card fields, factories, component contracts, or tokens, refresh and verify the framework manifest:
+
+```bash
+npm run framework:write-manifest
+npm run framework:manifest
 ```

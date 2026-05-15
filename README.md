@@ -186,6 +186,7 @@ CassetteInstance lifecycle
 | Frontend components | [components/README.md](./components/README.md) |
 | Frontend design system | [docs/DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md) |
 | Framework packages | [packages/README.md](./packages/README.md) |
+| Framework manifest | [framework.manifest.json](./framework.manifest.json) |
 | Framework extraction status | [docs/FRAMEWORK_EXTRACTION_STATUS.md](./docs/FRAMEWORK_EXTRACTION_STATUS.md) |
 | All workers overview | [workers/README.md](./workers/README.md) |
 | File processing worker | [workers/fileprocessing/README.md](./workers/fileprocessing/README.md) |

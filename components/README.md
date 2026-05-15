@@ -39,6 +39,8 @@ entity key, component prop name, variants, status policy, trace policy, factory 
 
 `pages/test/ui-lab.vue` renders from this manifest. When adding or renaming an entity card, update the manifest and its DTO factory instead of hand-editing UI lab sections.
 
+`framework.manifest.json` snapshots this same contract for framework consumers. Entity card `DataBlock` paths are validated against `server/DATA_MODEL.md` fields plus explicit compatibility aliases, so avoid synthetic display-only fields unless they are represented in DTO metadata first.
+
 ## Visual Tokens
 
 `assets/tokens/index.js` is the source for app-level visual tokens. Tailwind aliases, PrimeVue component overrides, and global `--ck-*` CSS variables must stay aligned with it.
