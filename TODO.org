@@ -436,6 +436,19 @@
       cassette instance lifecycle actions in favor of workflow-derived status
       controls.
 
+*** Agent Notes
+    [2026-05-15] Align UI lab DTO statuses with workflows
+    Files changed: test-data/factories.js, utils/status-engine.js,
+      i18n/locales/en.json, i18n/locales/ru.json,
+      shared/design-system.spec.js
+    Docs updated: test-data/README.md, utils/README.md, i18n/README.md,
+      TODO.org
+    Notes: Replaced stale demo states with canonical workflow states:
+      nesting runs use `COMPLETE`, cassette instances use `PRODUCED`, and
+      requisitions use `SENT`. Added coverage that validates workflow-backed
+      design-system factories and ensures every CNC workflow state has a
+      status badge mapping and locale-backed label.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24

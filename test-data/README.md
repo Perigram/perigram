@@ -93,7 +93,9 @@ Factories are built from:
 - v24 block contract in `server/core/blocks/README.md`
 - API DTO shapes emitted by feature models/services
 - Entity design-system manifest in `utils/design-system-contract.js`
+- Workflow state definitions in `packages/domain-cnc/src/index.js`
 
 This ensures mock data matches what your API actually expects/returns.
 
 When a component needs a new field for display, update the relevant DTO factory and manifest entry together. Do not add flat compatibility fields unless the API actually returns them.
+When an entity type has a workflow, the factory `status.state` must be one of that workflow's canonical states; `shared/design-system.spec.js` enforces this for UI lab demos.
