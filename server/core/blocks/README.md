@@ -2,7 +2,7 @@
 
 Canonical class library for all v24 entities. Every feature model extends `BaseEntity` and composes these blocks.
 
-Implementation source is `packages/core`; this directory is the application
+Implementation source is `@cutkit/core`; this directory is the application
 compatibility import path and owns server-specific helpers such as ObjectId
 attachment creation and flexible-ID lineage inheritance.
 

@@ -22,3 +22,5 @@ The committed [framework.manifest.json](../framework.manifest.json) is the read-
 ## Extraction Rule
 
 Existing runtime imports stay in place until a package is proven by tests and wrapped by compatibility exports. Packages must stay domain-agnostic except `@cutkit/domain-cnc`.
+
+Nuxt, Nitro, Vite, and Vitest resolve `@cutkit/*` aliases directly to package `src/index.js` files. Runtime app code should use those package aliases instead of relative `packages/*` paths because Nuxt dev output is executed from `.nuxt/dev`.

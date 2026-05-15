@@ -373,6 +373,17 @@
       explicit compatibility aliases. Removed synthetic cassette template
       `type`/`parameterCount` display fields from the card contract.
 
+*** Agent Notes
+    [2026-05-15] Fix Nuxt package alias resolution for framework imports
+    Files changed: nuxt.config.js, vitest.config.js,
+      server/core/blocks/index.js, server/core/machines/service.js,
+      server/core/machines/aggregator.js, composables/useEntity.js
+    Docs updated: server/core/blocks/README.md, composables/README.md,
+      packages/README.md, TODO.org
+    Notes: Added explicit `@cutkit/*` aliases for Nuxt, Nitro, Vite, and
+      Vitest, then switched runtime app imports away from relative
+      `packages/*` paths that resolve incorrectly from `.nuxt/dev`.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24
