@@ -381,8 +381,9 @@
     Docs updated: server/core/blocks/README.md, composables/README.md,
       packages/README.md, TODO.org
     Notes: Added explicit `@cutkit/*` aliases for Nuxt, Nitro, Vite, and
-      Vitest, then switched runtime app imports away from relative
-      `packages/*` paths that resolve incorrectly from `.nuxt/dev`.
+      Vitest tooling, then switched runtime app imports to Nuxt root aliases
+      instead of deep relative `packages/*` paths that resolve incorrectly
+      from `.nuxt/dev`.
 
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
