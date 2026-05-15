@@ -112,5 +112,11 @@ describe('Framework package contracts', () => {
       key: 'EntityPage',
       componentPath: 'components/shared/EntityPage.vue'
     }));
+
+    const docsResult = spawnSync(process.execPath, ['scripts/framework-inspect.js', 'query-docs', 'EntityPage'], { encoding: 'utf8' });
+    expect(docsResult.status).toBe(0);
+    expect(JSON.parse(docsResult.stdout)).toContainEqual(expect.objectContaining({
+      path: 'components/shared/README.md'
+    }));
   });
 });

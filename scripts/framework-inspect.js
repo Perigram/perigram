@@ -65,14 +65,20 @@ const docsCorpus = loadDocs([
   'server/features/README.md',
   'server/core/blocks/README.md',
   'server/core/machines/README.md',
+  'components/README.md',
+  'components/shared/README.md',
   'composables/README.md',
+  'utils/README.md',
+  'test-data/README.md',
+  'i18n/README.md',
   'packages/README.md',
   'packages/core/README.md',
   'packages/workflows/README.md',
   'packages/domain-cnc/README.md',
   'packages/devtools/README.md',
   'packages/mcp/README.md',
-  'docs/FRAMEWORK_EXTRACTION_STATUS.md'
+  'docs/FRAMEWORK_EXTRACTION_STATUS.md',
+  'docs/DESIGN_SYSTEM.md'
 ]);
 
 const handlers = createReadOnlyToolHandlers({
