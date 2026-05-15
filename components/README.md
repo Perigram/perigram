@@ -41,6 +41,8 @@ entity key, component prop name, variants, status policy, trace policy, factory 
 
 Current app chrome uses `bg-page`, `bg-chrome`, `bg-subtle`, `rounded-ui`, `rounded-panel`, `shadow-card`, `shadow-card-hover`, and `shadow-overlay`. New shared wrappers should consume these aliases instead of local shadows, arbitrary backgrounds, or one-off radii.
 
+For shell/layout chrome that must update reliably during Nuxt dev HMR, direct CSS-variable utilities such as `bg-[var(--ck-page-background)]` and `[box-shadow:var(--ck-shadow-card)]` are acceptable. This avoids depending on a Tailwind config restart for newly added aliases.
+
 Use token-backed classes such as `max-w-app`, PrimeVue semantic classes, and shared layout helpers (`grid-hub`, `grid-details`) instead of local arbitrary max-widths, colors, radii, or transition durations.
 
 ## Composables Rule

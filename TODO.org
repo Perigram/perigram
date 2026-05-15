@@ -141,6 +141,17 @@
        CSS variables so shared wrappers and UI lab use app-wide token classes.
 
 *** Agent Notes
+     [2026-05-15] Wire modern tokens into product app shell
+     Files changed: layouts/app.vue, layouts/ui-lab-layout.vue,
+       pages/test/ui-lab.vue, components/shared/EntityCard.vue
+     Docs updated: docs/DESIGN_SYSTEM.md, components/README.md
+     Notes: Product pages use `layouts/app.vue`, so app shell background,
+       header chrome, max width, support button elevation, and entity card
+       shadows now consume `--ck-*` CSS variables directly. This provides a
+       visible product-app verification path independent of Tailwind config
+       alias reloads.
+
+*** Agent Notes
      [2026-03-15] Frontend API contract compliance — replace raw $fetch with useEntity
      Files changed: composables/useEntity.js, stores/global.js, pages/projects/index.vue,
        pages/project/[slug]/data.vue, pages/project/[slug]/artifacts.vue,
