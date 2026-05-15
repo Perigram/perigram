@@ -7,16 +7,67 @@ import path from 'path';
 
 const FEATURES_DIR = './server/features';
 const API_DIR = './server/api';
+const ENTITY_FEATURES = [
+  'artifacts',
+  'cassette-designs',
+  'cassette-instances',
+  'cassettes',
+  'catalogs',
+  'colors',
+  'material-piles',
+  'nesting-runs',
+  'organizations',
+  'projects',
+  'queues',
+  'remnants',
+  'requisitions',
+  'sheet-designs',
+  'sheets',
+  'users',
+  'warehouses'
+];
+const CAPABILITY_FEATURES = [
+  'files',
+  'invitations',
+  'layer-standards',
+  'material-options',
+  'materials',
+  'nesting',
+  'notification',
+  'parametric-cassettes',
+  'payment',
+  'pen-templates',
+  'results',
+  'sessions',
+  'statuses',
+  'support',
+  'system-settings',
+  'tool-profiles'
+];
 const IGNORE = ['_template', 'README.md', 'index.js'];
 
 console.log('🚀 Starting Architectural Verification...');
 
-const features = fs.readdirSync(FEATURES_DIR).filter(f => !IGNORE.includes(f) && fs.statSync(path.join(FEATURES_DIR, f)).isDirectory());
+const directories = fs.readdirSync(FEATURES_DIR).filter(f => !IGNORE.includes(f) && fs.statSync(path.join(FEATURES_DIR, f)).isDirectory());
+const declared = new Set([...ENTITY_FEATURES, ...CAPABILITY_FEATURES]);
+const features = ENTITY_FEATURES;
 
 let errors = 0;
 
+directories.forEach(feature => {
+  if (!declared.has(feature)) {
+    console.error(`❌ Feature directory [${feature}] is not classified as an entity or capability`);
+    errors++;
+  }
+});
+
 features.forEach(feature => {
   const dir = path.join(FEATURES_DIR, feature);
+  if (!fs.existsSync(dir)) {
+    console.error(`❌ Declared entity feature is missing: ${feature}`);
+    errors++;
+    return;
+  }
   const files = fs.readdirSync(dir);
 
   console.log(`\nChecking feature: [${feature}]`);
@@ -120,4 +171,3 @@ if (errors === 0) {
   console.error(`❌ Found ${errors} architectural violations.`);
   process.exit(1);
 }
-

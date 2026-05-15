@@ -4,12 +4,16 @@ import * as colorRepository from '../colors/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { ObjectId } from 'mongodb';
-import { createIdentity, createStatus, inheritLineage, createData } from '~/server/core/blocks/index.js';
+import { createIdentity, createStatus, inheritLineage, createData, registerService } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service';
 
 /**
  * Requisitions Service - v24 Standardized
  */
+
+registerService('requisition', {
+  getById: (id) => getById(id)
+});
 
 function toDTO(requisition) {
   if (!requisition) return null;

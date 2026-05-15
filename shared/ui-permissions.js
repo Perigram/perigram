@@ -19,7 +19,8 @@ export const UI_PERMISSIONS = {
             create: true,
             edit: true,
             delete: true,
-            view: true
+            view: true,
+            view_contractors: true
         },
         requisitions: {
             create: false,
@@ -49,7 +50,8 @@ export const UI_PERMISSIONS = {
             create: false,
             edit: false,
             delete: false,
-            view: true
+            view: true,
+            view_all: true
         },
         warehouses: {
             create: true,

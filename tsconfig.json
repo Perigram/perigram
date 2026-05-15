@@ -21,7 +21,15 @@
       "~/*": ["./*"],
       "@@/*": ["./*"],
       "@/*": ["./*"],
-      "~~/server/*": ["./server/*"]
+      "~~/server/*": ["./server/*"],
+      "@cutkit/core": ["./packages/core/src/index.js"],
+      "@cutkit/workflows": ["./packages/workflows/src/index.js"],
+      "@cutkit/mongo": ["./packages/mongo/src/index.js"],
+      "@cutkit/nitro": ["./packages/nitro/src/index.js"],
+      "@cutkit/vue": ["./packages/vue/src/index.js"],
+      "@cutkit/devtools": ["./packages/devtools/src/index.js"],
+      "@cutkit/mcp": ["./packages/mcp/src/index.js"],
+      "@cutkit/domain-cnc": ["./packages/domain-cnc/src/index.js"]
     }
   },
   "include": [
@@ -35,4 +43,3 @@
     ".output"
   ]
 }
-

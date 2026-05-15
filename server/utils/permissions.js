@@ -55,6 +55,15 @@ export function requirePermission(event, entity, level) {
   return user;
 }
 
+// Legacy organization-level access helper retained for older tests/callers.
+// New v24 services should prefer hasLineagePermission().
+export function checkEntityAccess(user, entity, entityOrgId) {
+  if (user?.role === 'SuperAdmin') return true;
+  if (!entityOrgId) return false;
+  const userOrgId = user?.organizationId || entity?.organizationId || entity?.lineage?.organizationId;
+  return userOrgId?.toString() === entityOrgId?.toString();
+}
+
 // Organization filtering for multi-tenant queries using lineage
 export function getLineageFilter(user) {
   if (user.role === 'SuperAdmin') return {};
