@@ -449,6 +449,16 @@
       design-system factories and ensures every CNC workflow state has a
       status badge mapping and locale-backed label.
 
+*** Agent Notes
+    [2026-05-15] Normalize generated data field formatting
+    Files changed: utils/data-display.js,
+      components/shared/blocks/DataBlock.vue, shared/design-system.spec.js
+    Docs updated: utils/README.md, components/shared/README.md, TODO.org
+    Notes: Moved `DataBlock` path resolution and value formatting into a
+      shared utility. Generated entity cards now format scalars, booleans,
+      scalar arrays, object arrays, and identifiable object references without
+      rendering artificial `[object Object]` values.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24
