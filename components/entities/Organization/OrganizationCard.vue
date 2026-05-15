@@ -9,22 +9,16 @@
 
     <template v-else-if="variant === 'compact'">
       <EntityCard :entity="organization" entity-type="organization" variant="compact" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex items-center gap-4">
-                <Avatar :label="avatarLabel" shape="circle" />
-                <IdentityBlock :entity="organization" variant="compact" />
-            </div>
+        <template #before-identity>
+            <Avatar :label="avatarLabel" shape="circle" />
         </template>
       </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
       <EntityCard :entity="organization" entity-type="organization" variant="card" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex items-center gap-4">
-                <Avatar :label="avatarLabel" shape="circle" size="large" />
-                <IdentityBlock :entity="organization" />
-            </div>
+        <template #before-identity>
+            <Avatar :label="avatarLabel" shape="circle" size="large" />
         </template>
         <template #subtitle>
             <small>{{ organization.data?.type || organization.type || $t('common.default') }}</small>

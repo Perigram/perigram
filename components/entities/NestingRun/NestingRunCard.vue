@@ -5,7 +5,6 @@
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import ArtifactCard from '../Artifact/ArtifactCard.vue';
@@ -48,29 +47,12 @@ const statusActions = computed(() => {
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <EntityCard :entity="run" entity-type="nesting_run" variant="compact" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex justify-between items-start gap-3 min-w-0">
-                <IdentityBlock :entity="run" variant="compact" />
-                <div class="shrink-0">
-                    <EntityStatus :entity="run" entity-type="nesting_run" variant="inline" :actions="statusActions" />
-                </div>
-            </div>
-        </template>
-      </EntityCard>
+      <EntityCard :entity="run" entity-type="nesting_run" variant="compact" :show-trace="false" :status-actions="statusActions" />
     </template>
 
     <!-- Card -->
     <template v-else-if="variant === 'card'">
-      <EntityCard :entity="run" entity-type="nesting_run" variant="card" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex justify-between items-start gap-3 min-w-0">
-                <IdentityBlock :entity="run" />
-                <div class="shrink-0">
-                    <EntityStatus :entity="run" entity-type="nesting_run" variant="inline" :actions="statusActions" />
-                </div>
-            </div>
-        </template>
+      <EntityCard :entity="run" entity-type="nesting_run" variant="card" :show-trace="false" :status-actions="statusActions">
         <Divider />
         <div class="flex flex-col gap-4">
             <!-- Results -->

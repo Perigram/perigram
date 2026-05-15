@@ -7,7 +7,6 @@ import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 
 const ARTIFACT_FIELDS = [
@@ -48,17 +47,9 @@ const typeLabel = computed(() => artifactType.value.replace('LAYOUT_', '') || 'F
 
     <!-- COMPACT: List item with more info -->
     <template v-else-if="variant === 'compact'">
-      <EntityCard :entity="artifact" entity-type="artifact" variant="compact" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex items-start justify-between gap-2 min-w-0">
-                <div class="flex items-center gap-2 min-w-0">
-                    <i :class="['pi', icon]"></i>
-                    <IdentityBlock :entity="artifact" variant="compact" />
-                </div>
-                <div class="shrink-0">
-                    <EntityStatus :entity="artifact" entity-type="artifact" variant="inline" />
-                </div>
-            </div>
+      <EntityCard :entity="artifact" entity-type="artifact" variant="compact" :show-trace="false">
+        <template #before-identity>
+            <i :class="['pi', icon]"></i>
         </template>
         <template #subtitle>
             <small>{{ typeLabel }}</small>
@@ -68,14 +59,9 @@ const typeLabel = computed(() => artifactType.value.replace('LAYOUT_', '') || 'F
 
     <!-- CARD: Full featured card -->
     <template v-else-if="variant === 'card'">
-      <EntityCard :entity="artifact" entity-type="artifact" variant="card" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex justify-between items-start gap-3 min-w-0">
-                <IdentityBlock :entity="artifact" />
-                <div class="shrink-0">
-                    <EntityStatus :entity="artifact" entity-type="artifact" variant="inline" />
-                </div>
-            </div>
+      <EntityCard :entity="artifact" entity-type="artifact" variant="card" :show-trace="false">
+        <template #before-identity>
+            <i :class="['pi', icon]"></i>
         </template>
         <template #subtitle>
             <small>{{ typeLabel }}</small>

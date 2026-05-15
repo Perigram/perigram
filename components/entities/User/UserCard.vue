@@ -10,34 +10,21 @@
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <EntityCard :entity="user" entity-type="user" variant="compact" @click="handleCardClick" class="cursor-pointer" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex items-center gap-3 min-w-0">
-                <Avatar :image="avatarUrl" :label="!avatarUrl ? avatarLabel : null" shape="circle" />
-                <IdentityBlock :entity="user" variant="compact" />
-                <div class="shrink-0">
-                    <EntityStatus :entity="user" entity-type="user" variant="inline" />
-                </div>
-            </div>
+      <EntityCard :entity="user" entity-type="user" variant="compact" @click="handleCardClick" class="cursor-pointer" :show-trace="false">
+        <template #before-identity>
+            <Avatar :image="avatarUrl" :label="!avatarUrl ? avatarLabel : null" shape="circle" />
         </template>
       </EntityCard>
     </template>
 
     <!-- Card -->
     <template v-else-if="variant === 'card'">
-      <EntityCard :entity="user" entity-type="user" variant="card" @click="handleCardClick" class="cursor-pointer" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex flex-col items-center gap-4 text-center">
-                <Avatar :image="avatarUrl" :label="!avatarUrl ? avatarLabel : null" shape="circle" size="xlarge" />
-                <IdentityBlock :entity="user" variant="compact" />
-            </div>
+      <EntityCard :entity="user" entity-type="user" variant="card" @click="handleCardClick" class="cursor-pointer" :show-trace="false">
+        <template #before-identity>
+            <Avatar :image="avatarUrl" :label="!avatarUrl ? avatarLabel : null" shape="circle" size="xlarge" />
         </template>
         <Divider />
         <DataBlock :entity="user" :fields="USER_FIELDS" />
-        <Divider />
-        <div class="flex justify-center">
-            <EntityStatus :entity="user" entity-type="user" />
-        </div>
         <template #footer>
             <Divider />
             <div class="flex justify-center gap-2" @click.stop>
@@ -62,7 +49,6 @@ import { computed } from 'vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import { useAuthStore } from '~/stores/auth';
 
 const props = defineProps({

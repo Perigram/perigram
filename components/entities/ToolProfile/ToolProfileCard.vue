@@ -7,25 +7,22 @@
 
     <template v-else-if="variant === 'compact'">
       <EntityCard :entity="tool" entity-type="tool_profile" variant="compact" class="card-interactive" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-2">
-                    <i class="pi pi-wrench"></i>
-                    <IdentityBlock :entity="tool" variant="compact" />
-                </div>
-                <Tag v-if="tool.data?.diameter || tool.diameter" :value="`D${tool.data?.diameter || tool.diameter}`" severity="secondary" size="small" />
-            </div>
+        <template #before-identity>
+            <i class="pi pi-wrench"></i>
+        </template>
+        <template #subtitle>
+            <Tag v-if="diameter" :value="`D${diameter}`" severity="secondary" size="small" />
         </template>
       </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
       <EntityCard :entity="tool" entity-type="tool_profile" variant="card" class="card-interactive" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex justify-between items-center gap-4">
-                <IdentityBlock :entity="tool" />
-                <Tag v-if="tool.data?.diameter || tool.diameter" :value="`D${tool.data?.diameter || tool.diameter}`" severity="secondary" size="small" />
-            </div>
+        <template #before-identity>
+            <i class="pi pi-wrench"></i>
+        </template>
+        <template #subtitle>
+            <Tag v-if="diameter" :value="`D${diameter}`" severity="secondary" size="small" />
         </template>
         <Divider />
         <DataBlock :entity="tool" :fields="FIELDS" />
@@ -38,6 +35,7 @@
 /**
  * Tool Profile View Component - v24 Standardized
  */
+import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import EntityCard from '~/components/shared/EntityCard.vue';
@@ -54,4 +52,6 @@ const props = defineProps({
   tool: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
+
+const diameter = computed(() => props.tool.data?.diameter || props.tool.diameter || null);
 </script>

@@ -9,11 +9,8 @@
 
     <template v-else-if="variant === 'compact'">
       <EntityCard :entity="color" entity-type="color" variant="compact" class="card-interactive" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex items-center gap-4 min-w-0">
-                <div class="w-6 h-6 rounded-full border shrink-0" :style="swatchStyle"></div>
-                <IdentityBlock :entity="color" variant="compact" />
-            </div>
+        <template #before-identity>
+            <div class="w-6 h-6 rounded-full border shrink-0" :style="swatchStyle"></div>
         </template>
         <template #subtitle>
             <small>{{ color.data?.code || color.identity?.serial || hexCode || '—' }}</small>
@@ -25,9 +22,6 @@
       <EntityCard :entity="color" entity-type="color" variant="card" class="card-interactive" :show-trace="false" :show-status="false">
         <template #header>
             <div class="h-32 w-full" :style="swatchStyle"></div>
-        </template>
-        <template #title>
-            <IdentityBlock :entity="color" />
         </template>
         <Divider />
         <div class="flex justify-between items-center gap-4">

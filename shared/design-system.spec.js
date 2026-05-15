@@ -121,4 +121,14 @@ describe('Design system manifest', () => {
     expect(cassetteTemplate.fieldPaths).not.toContain('type');
     expect(cassetteTemplate.fieldPaths).not.toContain('parameterCount');
   });
+
+  it('keeps entity cards on shared EntityCard title chrome', () => {
+    const offenders = walkFiles(
+      path.join(REPO_ROOT, 'components/entities'),
+      (file) => file.endsWith('Card.vue') && !file.endsWith('.old.vue') && !file.endsWith('.v23.vue')
+    ).filter((file) => fs.readFileSync(file, 'utf8').includes('<template #title>'))
+      .map((file) => path.relative(REPO_ROOT, file));
+
+    expect(offenders).toEqual([]);
+  });
 });

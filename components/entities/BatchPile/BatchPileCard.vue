@@ -7,17 +7,9 @@
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <EntityCard :entity="pile" entity-type="material_pile" variant="compact" class="card-interactive" :show-trace="false" :show-status="false">
-        <template #title>
-          <div class="flex justify-between items-start gap-3 min-w-0">
-            <div class="flex items-center gap-2 min-w-0">
-              <i class="pi pi-clone"></i>
-              <IdentityBlock :entity="pile" variant="compact" />
-            </div>
-            <div class="shrink-0">
-              <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
-            </div>
-          </div>
+      <EntityCard :entity="pile" entity-type="material_pile" variant="compact" class="card-interactive" :show-trace="false">
+        <template #before-identity>
+          <i class="pi pi-clone"></i>
         </template>
         <template #subtitle>
           <div class="flex items-center gap-2">
@@ -30,14 +22,9 @@
 
     <!-- Card -->
     <template v-else>
-      <EntityCard :entity="pile" entity-type="material_pile" variant="card" class="card-interactive" :show-trace="false" :show-status="false">
-        <template #title>
-          <div class="flex justify-between items-start gap-3 min-w-0">
-            <IdentityBlock :entity="pile" />
-            <div class="shrink-0">
-              <EntityStatus :entity="pile" entity-type="material_pile" variant="inline" />
-            </div>
-          </div>
+      <EntityCard :entity="pile" entity-type="material_pile" variant="card" class="card-interactive" :show-trace="false">
+        <template #before-identity>
+          <i class="pi pi-clone"></i>
         </template>
         <template #subtitle>
           <div class="flex items-center gap-2">
@@ -59,7 +46,6 @@ import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 
 const props = defineProps({
     pile: { type: Object, required: true },

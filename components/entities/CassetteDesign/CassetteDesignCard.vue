@@ -6,22 +6,16 @@
 
     <template v-else-if="variant === 'compact'">
       <EntityCard :entity="design" entity-type="cassette_design" variant="compact" :show-trace="false" :show-status="false">
-        <template #title>
-          <div class="flex items-center justify-between gap-4">
-            <IdentityBlock :entity="design" variant="compact" />
-            <Badge :value="Object.keys(design.parameters || {}).length" severity="secondary" size="small" />
-          </div>
+        <template #subtitle>
+          <Badge v-if="parameterCount" :value="parameterCount" severity="secondary" size="small" />
         </template>
       </EntityCard>
     </template>
 
     <template v-else>
       <EntityCard :entity="design" entity-type="cassette_design" variant="card" :show-trace="false" :show-status="false">
-        <template #title>
-          <div class="flex items-center justify-between gap-4">
-            <IdentityBlock :entity="design" />
-            <Badge :value="Object.keys(design.parameters || {}).length" severity="secondary" size="small" />
-          </div>
+        <template #subtitle>
+          <Badge v-if="parameterCount" :value="parameterCount" severity="secondary" size="small" />
         </template>
         <Divider />
         <DataBlock :entity="design" :fields="DESIGN_FIELDS" />
@@ -35,6 +29,7 @@
  * Cassette Design View Component - v24 Standardized
  * CassetteDesign has no status — uses EntityCard with status disabled.
  */
+import { computed } from 'vue';
 import Badge from 'primevue/badge';
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
@@ -51,4 +46,6 @@ const DESIGN_FIELDS = [
   { path: 'data.parameters.C', i18n: 'cassette.faceDepth', suffix: ' mm' },
   { path: 'data.geometry.dxfId', i18n: 'file.name' }
 ];
+
+const parameterCount = computed(() => Object.keys(props.design.data?.parameters || props.design.parameters || {}).length);
 </script>

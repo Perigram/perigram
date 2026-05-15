@@ -2,37 +2,34 @@
   <div :class="[`variant-${variant}`]">
     <template v-if="variant === 'inline'">
       <Chip>
-        <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: standard.metadata?.color || 'var(--p-content-border-color)' }" />
+        <i class="pi pi-palette" />
         <IdentityBlock :entity="standard" variant="compact" />
       </Chip>
     </template>
 
     <template v-else-if="variant === 'compact'">
       <EntityCard :entity="standard" entity-type="layer_standard" variant="compact" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-2">
-                    <i class="pi pi-palette" :style="{ color: standard.metadata?.color || 'var(--p-content-border-color)' }"></i>
-                    <IdentityBlock :entity="standard" variant="compact" />
-                </div>
-                <Badge v-if="standard.category" :value="standard.category" severity="secondary" size="small" />
-            </div>
+        <template #before-identity>
+            <i class="pi pi-palette"></i>
+        </template>
+        <template #subtitle>
+            <Badge v-if="category" :value="category" severity="secondary" size="small" />
         </template>
       </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
       <EntityCard :entity="standard" entity-type="layer_standard" variant="card" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex justify-between items-center gap-4">
-                <IdentityBlock :entity="standard" />
-                <Badge v-if="standard.category" :value="standard.category" severity="secondary" size="small" />
-            </div>
+        <template #before-identity>
+            <i class="pi pi-palette"></i>
+        </template>
+        <template #subtitle>
+            <Badge v-if="category" :value="category" severity="secondary" size="small" />
         </template>
         <Divider />
         <div class="flex flex-col gap-2">
             <div class="flex items-center justify-between gap-2">
-                <small class="text-muted-color">{{ standard.data?.code || standard.code || $t('layerStandard.defaultPen') }}</small>
+                <small class="text-muted-color">{{ standardCode || $t('layerStandard.defaultPen') }}</small>
                 <Badge v-if="standard.data?.orgPenId || standard.orgPenId" value="overridden" severity="warn" size="small" />
             </div>
             <PenTemplateCard v-if="activePen" :pen="activePen" variant="inline" />
@@ -86,6 +83,8 @@ const authStore = useAuthStore();
 const penStore = usePenTemplatesStore();
 
 const canEdit = computed(() => authStore.can('layer_standards', 'setPen'));
+const category = computed(() => props.standard.data?.category || props.standard.category || '');
+const standardCode = computed(() => props.standard.data?.code || props.standard.code || '');
 const activePen = computed(() => {
     const id = props.standard.data?.orgPenId || props.standard.orgPenId || props.standard.data?.defaultPenId || props.standard.defaultPenId;
     if (!id) return null;

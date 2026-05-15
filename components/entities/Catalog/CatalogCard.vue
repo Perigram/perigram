@@ -5,6 +5,7 @@
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
+import { computed } from 'vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
@@ -19,6 +20,7 @@ const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
 
 const handleCardClick = () => emit('view', props.catalog);
+const material = computed(() => props.catalog.data?.material || props.catalog.material || '');
 
 const CATALOG_FIELDS = [
   { path: 'summary.colorCount', i18n: 'catalog.colorsAvailable' },
@@ -34,25 +36,22 @@ const CATALOG_FIELDS = [
 
     <template v-else-if="variant === 'compact'">
       <EntityCard :entity="catalog" entity-type="catalog" variant="compact" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex items-center gap-2">
-                <i class="pi pi-book"></i>
-                <IdentityBlock :entity="catalog" variant="compact" />
-            </div>
+        <template #before-identity>
+            <i class="pi pi-book"></i>
         </template>
         <template #subtitle>
-            <Tag :value="catalog.data?.material || catalog.material" severity="secondary" size="small" />
+            <Tag v-if="material" :value="material" severity="secondary" size="small" />
         </template>
       </EntityCard>
     </template>
 
     <template v-else-if="variant === 'card'">
       <EntityCard :entity="catalog" entity-type="catalog" variant="card" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex justify-between items-center gap-4">
-                <IdentityBlock :entity="catalog" />
-                <Tag :value="catalog.data?.material || catalog.material" severity="secondary" size="small" />
-            </div>
+        <template #before-identity>
+            <i class="pi pi-book"></i>
+        </template>
+        <template #subtitle>
+            <Tag v-if="material" :value="material" severity="secondary" size="small" />
         </template>
         <Divider />
         <DataBlock :entity="catalog" :fields="CATALOG_FIELDS" />

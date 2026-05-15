@@ -5,7 +5,6 @@
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 
@@ -29,29 +28,12 @@ const DESIGN_FIELDS = [
 
     <!-- Compact -->
     <template v-else-if="variant === 'compact'">
-      <EntityCard :entity="design" entity-type="sheet_design" variant="compact" class="card-interactive" :show-trace="false" :show-status="false">
-        <template #title>
-          <div class="flex items-start justify-between gap-3 min-w-0">
-              <IdentityBlock :entity="design" variant="compact" />
-              <div class="shrink-0">
-                  <EntityStatus :entity="design" entity-type="sheet_design" variant="inline" />
-              </div>
-          </div>
-        </template>
-      </EntityCard>
+      <EntityCard :entity="design" entity-type="sheet_design" variant="compact" class="card-interactive" :show-trace="false" />
     </template>
 
     <!-- Card -->
     <template v-else-if="variant === 'card'">
-      <EntityCard :entity="design" entity-type="sheet_design" variant="card" class="card-interactive" :show-trace="false" :show-status="false">
-        <template #title>
-            <div class="flex justify-between items-start gap-3 min-w-0">
-                <IdentityBlock :entity="design" />
-                <div class="shrink-0">
-                    <EntityStatus :entity="design" entity-type="sheet_design" variant="inline" />
-                </div>
-            </div>
-        </template>
+      <EntityCard :entity="design" entity-type="sheet_design" variant="card" class="card-interactive" :show-trace="false">
         <Divider />
         <SpecsBlock :entity="design" />
         <Divider />

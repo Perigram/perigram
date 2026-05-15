@@ -22,6 +22,7 @@
                             :entity="entity" 
                             :entity-type="entityType" 
                             variant="full" 
+                            :actions="statusActions"
                             @transitioned="$emit('refresh')"
                         />
                     </div>
@@ -48,7 +49,7 @@
                     </template>
                 </div>
                 <div v-if="showStatus" class="shrink-0">
-                    <EntityStatus :entity="entity" :entity-type="entityType" variant="inline" />
+                    <EntityStatus :entity="entity" :entity-type="entityType" variant="inline" :actions="statusActions" />
                 </div>
             </div>
             <template v-if="$slots.subtitle">
@@ -79,7 +80,7 @@
                             <IdentityBlock :entity="entity" />
                         </div>
                         <div v-if="showStatus" class="shrink-0 self-start">
-                            <EntityStatus :entity="entity" :entity-type="entityType" variant="inline" />
+                            <EntityStatus :entity="entity" :entity-type="entityType" variant="inline" :actions="statusActions" />
                         </div>
                     </div>
                 </template>
@@ -130,7 +131,8 @@ const props = defineProps({
     entityType: { type: String, required: true },
     variant: { type: String, default: 'card' },
     showStatus: { type: Boolean, default: true },
-    showTrace: { type: Boolean, default: true }
+    showTrace: { type: Boolean, default: true },
+    statusActions: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['refresh']);
