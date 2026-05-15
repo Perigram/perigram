@@ -16,6 +16,36 @@ export function summarizeWorkflows(workflows = []) {
   }));
 }
 
+export function summarizeRoutes(definitions = []) {
+  return definitions.map(definition => ({
+    type: definition.type,
+    collection: definition.collection,
+    single: definition.routes?.single || null,
+    list: definition.routes?.list || null
+  }));
+}
+
+export function queryDocs(corpus = [], query = '') {
+  const needle = String(query || '').trim().toLowerCase();
+  if (!needle) return [];
+
+  return corpus
+    .map(document => {
+      const content = String(document.content || '');
+      const index = content.toLowerCase().indexOf(needle);
+      if (index === -1) return null;
+
+      const start = Math.max(0, index - 120);
+      const end = Math.min(content.length, index + needle.length + 120);
+      return {
+        path: document.path,
+        title: document.title || document.path,
+        snippet: content.slice(start, end).replace(/\s+/g, ' ').trim()
+      };
+    })
+    .filter(Boolean);
+}
+
 export function validateDefinitionSet(definitions = []) {
   const errors = [];
   const seen = new Set();

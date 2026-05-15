@@ -46,11 +46,14 @@ describe('Framework package contracts', () => {
     const { cncEntities, cncWorkflows, cncFrontendEntities } = await import('../packages/domain-cnc/src/index.js');
     const { createEndpointMap, getSingleEndpoint, getListEndpoint } = await import('../packages/vue/src/index.js');
     const { createReadOnlyToolHandlers } = await import('../packages/mcp/src/index.js');
+    const { queryDocs, summarizeRoutes } = await import('../packages/devtools/src/index.js');
 
     const handlers = createReadOnlyToolHandlers({
       listEntities: () => cncEntities,
       getEntity: type => cncEntities.find(entity => entity.type === type),
       getWorkflow: type => cncWorkflows[type],
+      listRoutes: () => summarizeRoutes(cncFrontendEntities),
+      queryDocs: query => queryDocs([{ path: 'README.md', content: 'Workflow framework documentation' }], query),
       validateArchitecture: () => ({ ok: true }),
       validateTransition: () => ({ ok: true })
     });
@@ -62,6 +65,8 @@ describe('Framework package contracts', () => {
     expect(getListEndpoint(endpointMap, 'cassetteInstance', { 'lineage.queueId': 'q-1' })).toBe('/api/cassette-instances?lineage.queueId=q-1');
     await expect(handlers.list_entities()).resolves.toContainEqual(expect.objectContaining({ type: 'project' }));
     await expect(handlers.get_entity_schema({ type: 'queue' })).resolves.toMatchObject({ collection: 'queues' });
+    await expect(handlers.list_routes()).resolves.toContainEqual(expect.objectContaining({ type: 'project', single: '/api/project/:id' }));
+    await expect(handlers.query_docs({ query: 'workflow' })).resolves.toContainEqual(expect.objectContaining({ path: 'README.md' }));
     await expect(handlers.validate_architecture()).resolves.toEqual({ ok: true });
   });
 });

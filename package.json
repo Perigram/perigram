@@ -14,6 +14,8 @@
     "test": "vitest",
     "framework:list-entities": "node scripts/framework-inspect.js list-entities",
     "framework:list-workflows": "node scripts/framework-inspect.js list-workflows",
+    "framework:list-routes": "node scripts/framework-inspect.js list-routes",
+    "framework:query-docs": "node scripts/framework-inspect.js query-docs",
     "framework:validate": "node scripts/framework-inspect.js validate"
   },
   "dependencies": {
