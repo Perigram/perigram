@@ -1,15 +1,64 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { cncEntities, cncFrontendEntities, cncWorkflows } from '../packages/domain-cnc/src/index.js';
-import { queryDocs, summarizeDefinitions, summarizeRoutes, summarizeWorkflows, validateDefinitionSet } from '../packages/devtools/src/index.js';
+import { designTokens, cssVariableTokens, tailwindThemeExtension } from '../assets/tokens/index.js';
+import { DESIGN_SYSTEM_ENTITY_CONTRACTS, DESIGN_SYSTEM_GROUPS, DESIGN_SYSTEM_VARIANTS } from '../utils/design-system-contract.js';
+import { cncEntities, cncFrontendEntities, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import {
+  createFrameworkManifest,
+  queryDocs,
+  summarizeDefinitions,
+  summarizeRoutes,
+  summarizeWorkflows,
+  validateDefinitionSet
+} from '../packages/devtools/src/index.js';
 import { createReadOnlyToolHandlers } from '../packages/mcp/src/index.js';
 import { validateTransition } from '../packages/workflows/src/index.js';
 
 const command = process.argv[2] || 'help';
+const MANIFEST_PATH = 'framework.manifest.json';
+const PACKAGE_NAMES = [
+  '@cutkit/core',
+  '@cutkit/workflows',
+  '@cutkit/mongo',
+  '@cutkit/nitro',
+  '@cutkit/vue',
+  '@cutkit/devtools',
+  '@cutkit/mcp',
+  '@cutkit/domain-cnc'
+];
+const UI_COMPONENT_PATHS = {
+  project: 'components/entities/Project/ProjectCard.vue',
+  queue: 'components/entities/Queue/QueueCard.vue',
+  nestingRun: 'components/entities/NestingRun/NestingRunCard.vue',
+  sheetDesign: 'components/entities/SheetDesign/SheetDesignCard.vue',
+  cassetteDesign: 'components/entities/CassetteDesign/CassetteDesignCard.vue',
+  cassetteTemplate: 'components/entities/CassetteTemplate/CassetteTemplateCard.vue',
+  cassetteInstance: 'components/entities/CassetteInstance/CassetteInstanceCard.vue',
+  requisition: 'components/entities/Requisition/RequisitionCard.vue',
+  materialPile: 'components/entities/MaterialPile/PileCard.vue',
+  batchPile: 'components/entities/BatchPile/BatchPileCard.vue',
+  sheet: 'components/entities/Sheet/SheetCard.vue',
+  remnant: 'components/entities/Remnant/RemnantCard.vue',
+  catalog: 'components/entities/Catalog/CatalogCard.vue',
+  color: 'components/entities/Color/ColorCard.vue',
+  warehouse: 'components/entities/Warehouse/WarehouseCard.vue',
+  toolProfile: 'components/entities/ToolProfile/ToolProfileCard.vue',
+  penTemplate: 'components/entities/PenTemplate/PenTemplateCard.vue',
+  layerStandard: 'components/entities/LayerStandard/LayerStandardCard.vue',
+  user: 'components/entities/User/UserCard.vue',
+  organization: 'components/entities/Organization/OrganizationCard.vue',
+  artifact: 'components/entities/Artifact/ArtifactCard.vue'
+};
+const COMPATIBILITY_ALIASES = {
+  cassette_template: ['data.definition', 'data.parameters', 'data.type']
+};
 
 const workflows = Object.entries(cncWorkflows).map(([type, workflow]) => ({ type, workflow }));
 const routes = summarizeRoutes(cncFrontendEntities);
+const dataModelFields = loadDataModelFields('server/DATA_MODEL.md');
+const componentInventory = createComponentInventory();
+const manifest = createManifest();
 const docsCorpus = loadDocs([
   'README.md',
   'server/README.md',
@@ -30,7 +79,13 @@ const handlers = createReadOnlyToolHandlers({
   listEntities: () => cncEntities,
   getEntity: type => cncEntities.find(entity => entity.type === type) || cncFrontendEntities.find(entity => entity.type === type) || null,
   getWorkflow: type => cncWorkflows[type] || null,
+  getFrameworkManifest: () => manifest,
   listRoutes: () => routes,
+  listUiComponents: () => manifest.designSystem.components,
+  listDesignTokens: () => manifest.designSystem.tokens,
+  listRelationships: () => manifest.relationships,
+  listSummaries: () => manifest.summaries,
+  validateUiContracts: () => manifest.validations,
   queryDocs: query => queryDocs(docsCorpus, query),
   validateArchitecture: () => {
     const result = spawnSync(process.execPath, ['scripts/check-arch.js'], { encoding: 'utf8' });
@@ -60,6 +115,46 @@ async function main() {
     return;
   }
 
+  if (command === 'list-ui-components') {
+    print(manifest.designSystem.components);
+    return;
+  }
+
+  if (command === 'list-design-tokens') {
+    print(manifest.designSystem.tokens);
+    return;
+  }
+
+  if (command === 'list-relationships') {
+    print(manifest.relationships);
+    return;
+  }
+
+  if (command === 'list-summaries') {
+    print(manifest.summaries);
+    return;
+  }
+
+  if (command === 'manifest') {
+    print(manifest);
+    return;
+  }
+
+  if (command === 'write-manifest') {
+    writeFileSync(MANIFEST_PATH, `${stableStringify(manifest)}\n`);
+    print({ ok: true, path: MANIFEST_PATH });
+    return;
+  }
+
+  if (command === 'check-manifest') {
+    const expected = `${stableStringify(manifest)}\n`;
+    const actual = existsSync(MANIFEST_PATH) ? readFileSync(MANIFEST_PATH, 'utf8') : null;
+    const ok = actual === expected;
+    print({ ok, path: MANIFEST_PATH, validations: manifest.validations });
+    process.exitCode = ok && manifest.validations.ok ? 0 : 1;
+    return;
+  }
+
   if (command === 'query-docs') {
     const query = process.argv.slice(3).join(' ') || 'framework';
     print(queryDocs(docsCorpus, query));
@@ -69,12 +164,14 @@ async function main() {
   if (command === 'validate') {
     const definitionResult = validateDefinitionSet(cncEntities);
     const architectureResult = await handlers.validate_architecture();
+    const uiResult = await handlers.validate_ui_contracts();
     print({
-      ok: definitionResult.ok && architectureResult.ok,
+      ok: definitionResult.ok && architectureResult.ok && uiResult.ok,
       definitions: definitionResult,
-      architecture: { ok: architectureResult.ok, status: architectureResult.status }
+      architecture: { ok: architectureResult.ok, status: architectureResult.status },
+      ui: uiResult
     });
-    process.exitCode = definitionResult.ok && architectureResult.ok ? 0 : 1;
+    process.exitCode = definitionResult.ok && architectureResult.ok && uiResult.ok ? 0 : 1;
     return;
   }
 
@@ -83,7 +180,10 @@ async function main() {
       entities: await handlers.list_entities(),
       queueWorkflow: await handlers.get_workflow({ type: 'queue' }),
       queueSchema: await handlers.get_entity_schema({ type: 'queue' }),
+      manifest: await handlers.get_framework_manifest(),
       routes: await handlers.list_routes(),
+      uiComponents: await handlers.list_ui_components(),
+      relationships: await handlers.list_relationships(),
       docs: await handlers.query_docs({ query: 'workflow' }),
       transition: await handlers.simulate_transition({
         type: 'queue',
@@ -96,8 +196,94 @@ async function main() {
   }
 
   print({
-    commands: ['list-entities', 'list-workflows', 'list-routes', 'query-docs', 'validate', 'mcp-smoke']
+    commands: [
+      'list-entities',
+      'list-workflows',
+      'list-routes',
+      'list-ui-components',
+      'list-design-tokens',
+      'list-relationships',
+      'list-summaries',
+      'query-docs',
+      'manifest',
+      'write-manifest',
+      'check-manifest',
+      'validate',
+      'mcp-smoke'
+    ]
   });
+}
+
+function createManifest() {
+  return createFrameworkManifest({
+    packages: PACKAGE_NAMES.map(name => ({ name })),
+    entities: cncEntities,
+    frontendEntities: cncFrontendEntities,
+    workflows: cncWorkflows,
+    summaries: cncSummaries,
+    designSystem: {
+      variants: DESIGN_SYSTEM_VARIANTS,
+      groups: DESIGN_SYSTEM_GROUPS,
+      contracts: DESIGN_SYSTEM_ENTITY_CONTRACTS,
+      componentInventory,
+      tokens: {
+        designTokens,
+        cssVariableTokens,
+        tailwindThemeExtension
+      }
+    },
+    dataModelFields,
+    compatibilityAliases: COMPATIBILITY_ALIASES
+  });
+}
+
+function createComponentInventory() {
+  return Object.fromEntries(Object.entries(UI_COMPONENT_PATHS).map(([key, componentPath]) => [
+    key,
+    {
+      componentPath,
+      fieldPaths: existsSync(componentPath) ? extractDataBlockFieldPaths(readFileSync(componentPath, 'utf8')) : []
+    }
+  ]));
+}
+
+function extractDataBlockFieldPaths(source) {
+  return Array.from(source.matchAll(/path:\s*['"]([^'"]+)['"]/g))
+    .map(match => match[1])
+    .filter((path, index, paths) => paths.indexOf(path) === index)
+    .sort();
+}
+
+function loadDataModelFields(path) {
+  if (!existsSync(path)) return [];
+  const collectionToEntity = new Map(cncEntities.map(entity => [entity.collection, entity.type]));
+  const fields = [];
+  let collection = null;
+
+  for (const line of readFileSync(path, 'utf8').split('\n')) {
+    const heading = line.match(/^###\s+(.+)$/);
+    if (heading) {
+      collection = heading[1].trim();
+      continue;
+    }
+
+    const field = line.match(/^\|\s+`([^`]+)`\s+\|/);
+    if (!field || !collection) continue;
+
+    const entityType = collectionToEntity.get(collection) || singularizeCollection(collection);
+    fields.push({ entityType, collection, name: field[1] });
+    if (entityType === 'cassette') {
+      fields.push({ entityType: 'cassette_template', collection, name: field[1] });
+    }
+  }
+
+  return fields;
+}
+
+function singularizeCollection(collection) {
+  return collection
+    .replace(/ies$/, 'y')
+    .replace(/s$/, '');
 }
 
 function loadDocs(paths) {
@@ -108,6 +294,16 @@ function loadDocs(paths) {
       title: path,
       content: readFileSync(path, 'utf8')
     }));
+}
+
+function stableStringify(value) {
+  return JSON.stringify(sortKeys(value), null, 2);
+}
+
+function sortKeys(value) {
+  if (Array.isArray(value)) return value.map(sortKeys);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.keys(value).sort().map(key => [key, sortKeys(value[key])]));
 }
 
 function print(value) {

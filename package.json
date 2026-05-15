@@ -16,6 +16,8 @@
     "framework:list-workflows": "node scripts/framework-inspect.js list-workflows",
     "framework:list-routes": "node scripts/framework-inspect.js list-routes",
     "framework:query-docs": "node scripts/framework-inspect.js query-docs",
+    "framework:manifest": "node scripts/framework-inspect.js check-manifest",
+    "framework:write-manifest": "node scripts/framework-inspect.js write-manifest",
     "framework:validate": "node scripts/framework-inspect.js validate"
   },
   "dependencies": {

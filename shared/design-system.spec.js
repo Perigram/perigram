@@ -111,4 +111,14 @@ describe('Design system manifest', () => {
 
     expect(offenders).toEqual([]);
   });
+
+  it('keeps framework manifest UI fields tied to canonical DTO paths', () => {
+    const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'framework.manifest.json'), 'utf8'));
+    const cassetteTemplate = manifest.designSystem.components.find(component => component.key === 'cassetteTemplate');
+
+    expect(manifest.validations).toEqual({ ok: true, issues: [] });
+    expect(cassetteTemplate.fieldPaths).toEqual(['data.parameters.length', 'data.type']);
+    expect(cassetteTemplate.fieldPaths).not.toContain('type');
+    expect(cassetteTemplate.fieldPaths).not.toContain('parameterCount');
+  });
 });

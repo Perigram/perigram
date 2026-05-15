@@ -39,7 +39,7 @@
         <Divider />
         <div class="grid grid-cols-1 gap-4">
             <CassetteThumbnail :cassette="template" />
-            <DataBlock :entity="templateSummary" :fields="TEMPLATE_FIELDS" />
+            <DataBlock :entity="templateForDisplay" :fields="TEMPLATE_FIELDS" />
         </div>
         <div v-if="templateParameters.length" class="flex flex-wrap gap-2 mt-4">
             <Tag v-for="param in templateParameters" :key="param" :value="param" severity="secondary" size="small" />
@@ -70,8 +70,8 @@ import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 
 const TEMPLATE_FIELDS = [
-    { path: 'type', i18n: 'common.type' },
-    { path: 'parameterCount', i18n: 'cassette.parametersTitle' }
+    { path: 'data.type', i18n: 'common.type' },
+    { path: 'data.parameters.length', i18n: 'cassette.parametersTitle' }
 ];
 
 const props = defineProps({
@@ -86,8 +86,12 @@ const templateParameters = computed(() => {
     const raw = props.template.data?.parameters || props.template.parameters || props.template.definition?.parameters || [];
     return Array.isArray(raw) ? raw : Object.keys(raw);
 });
-const templateSummary = computed(() => ({
-    type: templateType.value,
-    parameterCount: templateParameters.value.length
+const templateForDisplay = computed(() => ({
+    ...props.template,
+    data: {
+        ...(props.template.data || {}),
+        type: templateType.value,
+        parameters: templateParameters.value
+    }
 }));
 </script>
