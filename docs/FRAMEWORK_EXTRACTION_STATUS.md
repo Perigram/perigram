@@ -27,7 +27,7 @@ npm run framework:validate
 npx vitest run --reporter=dot
 ```
 
-The latest completed execution before this update passed `node scripts/check-arch.js`, `npm run framework:validate`, and `npx vitest run --reporter=dot`.
+The latest completed execution for this update passed `node scripts/check-arch.js`, `npm run framework:validate`, and `npx vitest run --reporter=dot`.
 
 ## Module Boundaries
 
