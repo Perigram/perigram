@@ -342,6 +342,19 @@
       smoke-testing MCP-style handlers without adding external dependencies or
       write-capable codegen tools.
 
+*** Agent Notes
+    [2026-05-15] Document framework status diagrams and expand read-only inspection
+    Files changed: package.json, scripts/framework-inspect.js,
+      packages/devtools/src/index.js, packages/mcp/src/index.js,
+      shared/framework-packages.spec.js
+    Docs updated: docs/FRAMEWORK_EXTRACTION_STATUS.md,
+      packages/README.md, packages/devtools/README.md,
+      packages/mcp/README.md, README.md, TODO.org
+    Notes: Added Mermaid module, runtime, entity-relationship, and LLM/RAG/MCP
+      diagrams with current execution status. Extended the read-only framework
+      API with route listing and docs query handlers so LLM agents can inspect
+      app/API context before any future write-capable generator exists.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24

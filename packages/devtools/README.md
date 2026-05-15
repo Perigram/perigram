@@ -8,6 +8,8 @@ The app-level CLI entrypoint is `scripts/framework-inspect.js`.
 
 - `summarizeDefinitions(definitions)`
 - `summarizeWorkflows(workflows)`
+- `summarizeRoutes(definitions)`
+- `queryDocs(corpus, query)`
 - `validateDefinitionSet(definitions)`
 
 ## Commands
@@ -15,6 +17,8 @@ The app-level CLI entrypoint is `scripts/framework-inspect.js`.
 ```bash
 npm run framework:list-entities
 npm run framework:list-workflows
+npm run framework:list-routes
+npm run framework:query-docs -- workflow
 npm run framework:validate
 node scripts/framework-inspect.js mcp-smoke
 ```

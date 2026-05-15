@@ -7,6 +7,8 @@ Read-only MCP tool handlers for LLM-assisted industrial app planning. This packa
 - `list_entities`
 - `get_entity_schema`
 - `get_workflow`
+- `list_routes`
+- `query_docs`
 - `simulate_transition`
 - `validate_architecture`
 
