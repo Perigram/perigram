@@ -73,6 +73,10 @@ SuperAdmin gets `{}` (no filter). Regular users get `{ 'lineage.organizationId':
 ### `requirePermission(event, entity, level)` → `authContext`
 Uses `hasPermission()` from auth-helpers (global role-based, not lineage-based). Use for system-level resources without lineage.
 
+### `checkEntityAccess(user, entity, entityOrgId)` → `boolean`
+Legacy organization-level compatibility helper. New v24 services should use
+`hasLineagePermission()` / `requireLineagePermission()` instead.
+
 ### `requireRole(event, ...roles)` → `void`
 Throws 403 if user's role not in allowed list. For admin-only routes.
 
@@ -108,6 +112,12 @@ Checks `user.restrictedTo` whitelist. Returns `true` if no restrictions.
 | Auth check only, permission later | `requireAuth` |
 | Non-entity resource (system settings) | `requirePermission` / `hasPermission` |
 | Password login flow | `hashPassword` / `verifyPassword` |
+
+## Deprecated Bridges
+
+`server/utils/blocks.js` re-exports the core block API for legacy tests/callers
+only. Feature code must import from `server/core/blocks/index.js`; the
+architecture checker enforces this for v24 entity modules.
 
 ## extract-data-models.js
 

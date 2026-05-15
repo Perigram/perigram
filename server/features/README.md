@@ -1,6 +1,9 @@
 # COMPONENT: Server Features — v24 Entity Modules
 
-Business logic modules following the v24 Service-Repository-Model pattern. Each module is a self-contained vertical slice.
+Business logic modules following the v24 Service-Repository-Model pattern.
+Persisted entity modules are self-contained vertical slices. Capability modules
+that are not entities may live under `server/features/` for now, but they are
+classified separately and are not forced into fake v24 entity files.
 
 ## Required File Structure
 
@@ -13,7 +16,19 @@ Every feature module in `server/features/[name]/` **must** contain:
 | `service.js` | All business logic, permissions, cross-module calls. Calls `registerService()`. |
 | `index.js` | **Public API.** Exports `service` namespace only — never `repository` or `model`. |
 
-`node scripts/check-arch.js` enforces this structure. Run before every commit.
+`node scripts/check-arch.js` enforces this structure for the declared entity
+feature set. Run before every commit.
+
+### Entity vs Capability Modules
+
+The strict Golden Path applies to persisted entities with a stable block DTO.
+Support capabilities are documented and classified, but do not need empty
+`model.js` files just to satisfy the checker.
+
+| Kind | Modules |
+|---|---|
+| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `material-piles`, `nesting-runs`, `organizations`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `users`, `warehouses` |
+| Capability modules | `files`, `invitations`, `layer-standards`, `material-options`, `materials`, `nesting`, `notification`, `parametric-cassettes`, `payment`, `pen-templates`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `tool-profiles` |
 
 ---
 
@@ -98,3 +113,4 @@ registerService('project', { getById, list, create, update });
 - [server/core/machines/README.md](../core/machines/README.md) — Lifecycle engine
 - [server/utils/README.md](../utils/README.md) — Permissions API
 - [server/features/_template/README.md](./_template/README.md) — Golden Path template
+- [packages/domain-cnc/README.md](../../packages/domain-cnc/README.md) — CNC entity/workflow definition pack

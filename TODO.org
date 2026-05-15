@@ -255,6 +255,26 @@
     - Hardened `toFlexibleId` usage throughout repositories to support mixed string UIDs and ObjectIds.
     - Relaxed `Status` block requirements to support legacy data hydration during auth flows.
 
+*** Agent Notes
+    [2026-05-15] Stabilize v24 entity boundary and scaffold framework packages
+    Files changed: scripts/check-arch.js, package.json, package-lock.json,
+      tsconfig.json, packages/**, shared/ui-permissions.js,
+      server/utils/blocks.js, server/utils/permissions.js,
+      server/features/*/repository.js, server/features/remnants/service.js,
+      server/features/requisitions/service.js
+    Docs updated: README.md (SYSTEM level), server/README.md (CONTAINER level),
+      server/features/README.md (COMPONENT level),
+      server/core/machines/README.md (COMPONENT level),
+      server/utils/README.md (CODE level), packages/README.md and package
+      README files (COMPONENT level)
+    Notes: Reclassified `server/features` into strict v24 entity modules and
+      support capabilities so the architecture checker no longer reports fake
+      violations for non-entities. Fixed flexible-ID repository lookups for
+      remaining entity modules, registered remnant/requisition services, and
+      added private `@cutkit/*` workspace package skeletons for core,
+      workflows, Mongo/Nitro/Vue adapters, devtools, read-only MCP handlers,
+      and the CNC domain pack.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24

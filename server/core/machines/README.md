@@ -10,6 +10,10 @@ The system consists of three main parts: the transition engine, the dynamic hook
 - **`service.js`**: Orchestrates transitions, performs role validation, updates entity snapshots (`status` block), and logs history to `status_events`.
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and `pluralize()` for collection resolution.
 
+The reusable workflow API is being extracted to
+[`@cutkit/workflows`](../../../packages/workflows/README.md). The current
+`service.js` remains the runtime adapter until the package is covered by tests.
+
 ### 2. Dynamic Hook Registry (`hooks.js` & Feature Registry)
 Acts as a decoupled dispatcher for side-effects. To prevent architectural leaks, manufacturing-specific logic is NOT implemented in the core engine.
 - **Global Hooks (`hooks.js`)**: System-wide primitives (e.g., `propagateToChildren`, `triggerAggregator`).
@@ -35,3 +39,4 @@ Synchronizes parent summaries based on child activity using lineage-aware MongoD
 - [server/core/blocks/](../core/blocks/) (Standard Block classes)
 - [server/utils/objectid.js](../utils/objectid.js) (Flexible ID handling)
 - [server/utils/strings.js](../utils/strings.js) (Pluralization helper)
+- [packages/workflows/README.md](../../../packages/workflows/README.md) (Framework workflow package)

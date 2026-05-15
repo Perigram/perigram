@@ -50,6 +50,11 @@ If you hit "JS heap out of memory": `export NODE_OPTIONS="--max-old-space-size=4
 
 **Patterns:** v24 Golden Path backend, `useEntity` frontend composable. See [server/README.md](./server/README.md) and [composables/README.md](./composables/README.md).
 
+**Framework extraction:** The reusable industrial workflow kernel is being
+extracted in-place as private npm workspace packages under
+[`packages/`](./packages/README.md). Current runtime imports remain stable while
+the packages mature behind compatibility wrappers.
+
 ---
 
 ### 2. `file-processing-worker` — DXF File Processing Service
@@ -180,6 +185,7 @@ CassetteInstance lifecycle
 | Frontend composables | [composables/README.md](./composables/README.md) |
 | Frontend components | [components/README.md](./components/README.md) |
 | Frontend design system | [docs/DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md) |
+| Framework packages | [packages/README.md](./packages/README.md) |
 | All workers overview | [workers/README.md](./workers/README.md) |
 | File processing worker | [workers/fileprocessing/README.md](./workers/fileprocessing/README.md) |
 | Cassette processing worker | [workers/cassette-processing/README.md](./workers/cassette-processing/README.md) |

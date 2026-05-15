@@ -6,6 +6,11 @@ This document describes the established architecture of the Cutkit backend, enfo
 
 Every entity in the system is built from the same set of fundamental primitives (Blocks). These are implemented as strictly validated classes in `server/core/blocks/`.
 
+The reusable kernel is now mirrored in the internal workspace package
+[`@cutkit/core`](../packages/core/README.md). Runtime code still imports from
+`server/core/blocks/` until compatibility wrappers and package tests are
+complete.
+
 ### 1.1. BaseEntity Structure
 All domain models extend `BaseEntity`.
 
@@ -48,7 +53,24 @@ Governs entity lifecycles using declarative state machines.
 ### 3.2. Centralized Aggregator
 Maintains parent summaries (counts/sums) automatically using lineage-aware aggregation. Triggered by status transitions.
 
-## 4. Architectural Guardrails
+## 4. Framework Extraction Boundary
+
+Reusable framework concerns are being separated from the CNC domain in private
+workspace packages:
+
+| Package | Backend concern |
+|---|---|
+| `@cutkit/core` | Blocks, entity registry, serialization helpers |
+| `@cutkit/workflows` | Lifecycle definitions and transition validation |
+| `@cutkit/mongo` | Mongo repository, event-store, and summary adapters |
+| `@cutkit/domain-cnc` | CNC entity/workflow/summary definitions |
+| `@cutkit/devtools` | Architecture and data-model inspection helpers |
+| `@cutkit/mcp` | Read-only schema/workflow/doc tool handlers |
+
+The current app remains the source of truth until each package is covered by
+tests and wrapped through the existing import paths.
+
+## 5. Architectural Guardrails
 *   **`scripts/check-arch.js`**: Automated script that verifies feature modules against the Golden Path. Every backend task must pass this check.
 *   **Service-Repository Separation**: Services never touch `db.collection`.
 *   **Serialization**: APIs must return `toJSON()` results, never raw database documents.
@@ -57,3 +79,4 @@ Maintains parent summaries (counts/sums) automatically using lineage-aware aggre
 - [server/core/blocks/index.js](./core/blocks/index.js) (Block Definitions)
 - [server/features/_template/README.md](./features/_template/README.md) (Golden Path Reference)
 - [server/core/machines/README.md](./core/machines/README.md) (Status Engine Docs)
+- [packages/README.md](../packages/README.md) (Framework package extraction)
