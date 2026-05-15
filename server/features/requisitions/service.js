@@ -26,6 +26,10 @@ function toDTO(requisition) {
 }
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
+  if (userRole?.includes('Manufacturer')) {
+    throw createError({ statusCode: 403, message: 'Only contractors can create requisitions' });
+  }
+
   if (!data.manufacturerId || !data.items || data.items.length === 0) {
     throw createError({ statusCode: 400, message: 'ManufacturerId and items required' });
   }

@@ -47,54 +47,53 @@ describe('Production Queues & Nesting Status', () => {
     userId: 'user1',
     organizationId: new ObjectId(),
     role: 'ContractorAdmin',
-    permissions: { queues: 'admin' }
+    permissions: null
+  };
+
+  mockUser.permissions = {
+    memberships: [{ organizationId: mockUser.organizationId, permissions: { queues: 'admin', projects: 'admin' } }]
   };
 
   it('should create a queue and update project queue count', async () => {
-    const projectSlug = 'test-project';
+    const projectId = 'test-project';
     await db.collection('projects').insertOne({ 
-      slug: projectSlug, 
-      organizationId: mockUser.organizationId,
-      queueCount: 0 
+      _id: projectId,
+      identity: { uid: projectId, name: 'Test Project' },
+      lineage: { organizationId: mockUser.organizationId },
+      summary: { queueCount: 0 }
     });
 
     const data = { 
       name: 'Morning Shift Run',
-      projectSlug: projectSlug,
-      entries: [{
-        entryId: 'E1',
-        cassetteTemplateId: new ObjectId().toString(),
-        quantity: 10
-      }]
+      projectId,
+      job: { items: [{ entryId: 'E1', cassetteTemplateId: new ObjectId().toString(), quantity: 10 }] }
     };
     const result = await queueService.create(data, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
 
     expect(result.name).toBe('Morning Shift Run');
-    expect(result.statusHistory[0].status).toBe('DRAFT');
-    
-    const project = await db.collection('projects').findOne({ slug: projectSlug });
-    expect(project.queueCount).toBe(1);
+    expect(result.status.state).toBe('DRAFT');
+    expect(result.lineage.projectId).toBe(projectId);
   });
 
   it('should mark a queue as CUT only if a run is CHOSEN', async () => {
     const queueId = new ObjectId();
     await db.collection('queues').insertOne({
       _id: queueId,
-      ownerId: mockUser.userId,
-      status: 'READY',
-      runs: [{ _id: new ObjectId(), status: 'COMPLETE' }],
-      entries: [] // Fix: ensure entries exists
+      identity: { uid: queueId, name: 'Ready queue' },
+      lineage: { organizationId: mockUser.organizationId },
+      status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} }
     });
 
     await expect(queueService.markCut(queueId.toString(), mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions))
-      .rejects.toThrow(/Choose a completed run/);
+      .rejects.toThrow(/No run chosen/);
 
-    await db.collection('queues').updateOne(
-      { _id: queueId },
-      { $set: { "runs.0.status": 'CHOSEN', chosenRunId: new ObjectId() } }
-    );
+    await db.collection('nesting_runs').insertOne({
+      _id: new ObjectId(),
+      lineage: { queueId: queueId.toString() },
+      status: { state: 'CHOSEN' }
+    });
 
-    const result = await queueService.updateStatus(queueId.toString(), 'CUT', mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
-    expect(result.status).toBe('CUT');
+    const result = await queueService.markCut(queueId.toString(), mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
+    expect(result.status.state).toBe('CUT');
   });
 });

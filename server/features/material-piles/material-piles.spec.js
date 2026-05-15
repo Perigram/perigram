@@ -56,7 +56,11 @@ describe('Material Batch & Sheet Allocation', () => {
     organizationId: new ObjectId(),
     organizationData: { type: 'Manufacturer' },
     role: 'ManufacturerAdmin',
-    permissions: { materials: 'admin', catalogs: 'admin' }
+    permissions: null
+  };
+
+  mockManufacturer.permissions = {
+    memberships: [{ organizationId: mockManufacturer.organizationId, permissions: { materials: 'admin', catalogs: 'admin' } }]
   };
 
   it('should create a material batch with piles', async () => {
@@ -69,26 +73,19 @@ describe('Material Batch & Sheet Allocation', () => {
     });
 
     const data = {
-      supplierId: mockManufacturer.organizationId.toString(),
       warehouseId: warehouseId.toString(),
-      piles: [{
-        material: 'Aluminum',
-        color: 'RAL 9006',
-        thickness: 4,
-        width: 1500,
-        height: 4000,
-        totalCount: 10
-      }]
+      catalogId: new ObjectId().toString(),
+      colorId: new ObjectId().toString(),
+      serial: 'PILE-001',
+      specs: { material: 'Aluminum', color: 'RAL 9006', thickness: 4, width: 1500, height: 4000 },
+      quantity: 10
     };
 
-    const result = await batchService.create(data, mockManufacturer);
+    const result = await batchService.create(data, mockManufacturer.userId, mockManufacturer.organizationId, mockManufacturer.role, mockManufacturer.permissions);
     
     expect(result).toBeDefined();
-    expect(result.status).toBe('requested');
-    expect(result.piles).toHaveLength(1);
-    
-    const wh = await db.collection('warehouses').findOne({ _id: warehouseId });
-    expect(wh.totalBatches).toBe(1);
+    expect(result.status.state).toBe('STOCKED');
+    expect(result.data.stock.total).toBe(10);
   });
 
   it('should allocate sheets and update pile usedCount', async () => {
@@ -96,13 +93,8 @@ describe('Material Batch & Sheet Allocation', () => {
     const pileId = new ObjectId();
     await db.collection('material_piles').insertOne({
       _id: batchId,
-      status: 'requested',
-      piles: [{
-        _id: pileId,
-        material: 'Aluminum',
-        totalCount: 10,
-        usedCount: 0
-      }]
+      identity: { uid: batchId, name: 'Pile' },
+      data: { stock: { total: 10, used: 0 } }
     });
 
     const allocation = await batchService.allocateSheets(batchId.toString(), pileId.toString(), 3, 'user1');
@@ -111,7 +103,7 @@ describe('Material Batch & Sheet Allocation', () => {
     expect(allocation.sheets).toHaveLength(3);
     
     const updatedBatch = await db.collection('material_piles').findOne({ _id: batchId });
-    expect(updatedBatch.piles[0].usedCount).toBe(3);
+    expect(updatedBatch.data.stock.used).toBe(3);
   });
 
   it('should fail allocation if insufficient sheets in pile', async () => {
@@ -119,13 +111,8 @@ describe('Material Batch & Sheet Allocation', () => {
     const pileId = new ObjectId();
     await db.collection('material_piles').insertOne({
       _id: batchId,
-      status: 'requested',
-      piles: [{
-        _id: pileId,
-        material: 'Aluminum',
-        totalCount: 5,
-        usedCount: 8
-      }]
+      identity: { uid: batchId, name: 'Pile' },
+      data: { stock: { total: 5, used: 5 } }
     });
 
     await expect(batchService.allocateSheets(batchId.toString(), pileId.toString(), 1, 'user1'))

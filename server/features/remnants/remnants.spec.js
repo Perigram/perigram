@@ -46,50 +46,68 @@ describe('Remnants & Reusability Logic', () => {
   const mockUser = {
     userId: 'user1',
     organizationId: new ObjectId(),
-    role: 'ContractorAdmin'
+    role: 'ContractorAdmin',
+    memberships: null,
+    permissions: null
   };
+
+  mockUser.memberships = [{ organizationId: mockUser.organizationId, permissions: { materials: 'admin', warehouses: 'admin' } }];
+  mockUser.permissions = { memberships: mockUser.memberships };
 
   it('should mark remnant as reusable if area >= 0.1 m2', async () => {
     const warehouseId = new ObjectId();
     await db.collection('warehouses').insertOne({ _id: warehouseId, organizationId: mockUser.organizationId });
 
     const sheetId = new ObjectId();
+    await db.collection('sheets').insertOne({
+      _id: sheetId,
+      identity: { uid: sheetId, name: 'Sheet' },
+      lineage: { organizationId: mockUser.organizationId, warehouseId },
+      data: { specs: { thickness: 4 } }
+    });
     
     const large = await remnantService.create({
       sheetId: sheetId.toString(),
       warehouseId: warehouseId.toString(),
-      geometryDxf: '...',
+      geometryDxf: new ObjectId().toString(),
       area: 0.15 
-    }, mockUser);
+    }, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
     expect(large.isReusable).toBe(true);
 
     const small = await remnantService.create({
       sheetId: sheetId.toString(),
       warehouseId: warehouseId.toString(),
-      geometryDxf: '...',
+      geometryDxf: new ObjectId().toString(),
       area: 0.05 
-    }, mockUser);
+    }, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
     expect(small.isReusable).toBe(false);
   });
 
   it('should mark remnant as used and update warehouse', async () => {
     const warehouseId = new ObjectId();
-    await db.collection('warehouses').insertOne({ _id: warehouseId, totalRemnants: 1, organizationId: mockUser.organizationId });
+    await db.collection('warehouses').insertOne({
+      _id: warehouseId,
+      identity: { uid: warehouseId, name: 'Warehouse' },
+      data: { stats: { totalRemnants: 1 } },
+      lineage: { organizationId: mockUser.organizationId }
+    });
 
     const remnantId = new ObjectId();
     await db.collection('remnants').insertOne({
       _id: remnantId,
-      status: 'in_stock',
-      warehouseId: warehouseId
+      identity: { uid: remnantId, name: 'Remnant' },
+      lineage: { organizationId: mockUser.organizationId, warehouseId },
+      status: { state: 'AVAILABLE' },
+      data: { isReusable: true }
     });
 
     const queueId = new ObjectId();
     const result = await remnantService.markAsUsed(remnantId.toString(), queueId.toString(), mockUser);
     
-    expect(result.status).toBe('used');
+    expect(result.status.state).toBe('USED');
     expect(result.usedInQueueId.toString()).toBe(queueId.toString());
 
     const wh = await db.collection('warehouses').findOne({ _id: warehouseId });
-    expect(wh.totalRemnants).toBe(0);
+    expect(wh.data.stats.totalRemnants).toBe(0);
   });
 });

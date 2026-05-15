@@ -155,3 +155,25 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
   
   return await repository.deleteById(id);
 }
+
+export async function markAsUsed(id, queueId, user) {
+  const remnant = await repository.findById(id);
+  if (!remnant) throw createError({ statusCode: 404, message: 'Remnant not found' });
+
+  const data = {
+    ...(remnant.data || {}),
+    usedInQueueId: queueId,
+    isReusable: false
+  };
+  const status = createStatus('USED', user?.userId || 'SYSTEM', { note: 'Remnant used in queue', queueId });
+
+  await repository.updateById(id, { data, status });
+
+  const warehouseId = remnant.lineage?.warehouseId || remnant.warehouseId;
+  if (warehouseId) {
+    await warehouseService.updateInventoryCounts(warehouseId, { totalRemnants: -1 });
+  }
+
+  const updated = await repository.findById(id);
+  return toDTO(updated);
+}

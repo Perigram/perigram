@@ -40,46 +40,63 @@ describe('Warehouse & Inventory Counting', () => {
 
   beforeEach(async () => {
     await db.collection('warehouses').deleteMany({});
+    await db.collection('organizations').deleteMany({});
   });
 
   const mockUser = {
     userId: 'user1',
     organizationId: new ObjectId(),
     role: 'ContractorAdmin',
-    permissions: { warehouses: 'admin' }
+    permissions: null
   };
 
+  mockUser.permissions = {
+    memberships: [{ organizationId: mockUser.organizationId, permissions: { warehouses: 'admin' } }]
+  };
+
+  async function insertOrganization() {
+    await db.collection('organizations').insertOne({
+      _id: mockUser.organizationId,
+      identity: { uid: mockUser.organizationId, name: 'Org' },
+      data: { type: 'Customer' }
+    });
+  }
+
   it('should maintain inventory counters correctly', async () => {
+    await insertOrganization();
+
     const warehouse = await warehouseService.create({
       name: 'South Warehouse',
       organizationId: mockUser.organizationId.toString()
-    }, mockUser);
+    }, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
 
     const warehouseId = warehouse._id.toString();
 
     await warehouseService.updateInventoryCounts(warehouseId, { totalBatches: 1 });
-    let updated = await warehouseService.getById(warehouseId, mockUser);
-    expect(updated.totalBatches).toBe(1);
+    let updated = await warehouseService.getById(warehouseId);
+    expect(updated.data.stats.totalBatches).toBe(1);
 
     await warehouseService.updateInventoryCounts(warehouseId, { totalSheets: 5, totalRemnants: 2 });
-    updated = await warehouseService.getById(warehouseId, mockUser);
-    expect(updated.totalSheets).toBe(5);
-    expect(updated.totalRemnants).toBe(2);
+    updated = await warehouseService.getById(warehouseId);
+    expect(updated.data.stats.totalSheets).toBe(5);
+    expect(updated.data.stats.totalRemnants).toBe(2);
 
     await warehouseService.updateInventoryCounts(warehouseId, { totalSheets: -2 });
-    updated = await warehouseService.getById(warehouseId, mockUser);
-    expect(updated.totalSheets).toBe(3);
+    updated = await warehouseService.getById(warehouseId);
+    expect(updated.data.stats.totalSheets).toBe(3);
   });
 
   it('should prevent deletion of warehouse with inventory', async () => {
+    await insertOrganization();
+
     const warehouse = await warehouseService.create({
       name: 'Busy Warehouse',
       organizationId: mockUser.organizationId.toString()
-    }, mockUser);
+    }, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
     
     await warehouseService.updateInventoryCounts(warehouse._id.toString(), { totalSheets: 1 });
 
-    await expect(warehouseService.remove(warehouse._id.toString(), mockUser))
+    await expect(warehouseService.remove(warehouse._id.toString(), mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions))
       .rejects.toThrow(/Cannot delete warehouse with inventory/);
   });
 });

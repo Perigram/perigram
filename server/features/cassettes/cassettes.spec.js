@@ -41,22 +41,29 @@ describe('Cassette Management & Ownership', () => {
   const user1 = {
     userId: 'user1',
     organizationId: new ObjectId(),
-    permissions: { cassettes: 'admin' }
+    permissions: null
   };
 
   const user2 = {
     userId: 'user2',
     organizationId: new ObjectId(),
-    permissions: { cassettes: 'admin' }
+    permissions: null
+  };
+
+  user1.permissions = {
+    memberships: [{ organizationId: user1.organizationId, permissions: { cassettes: 'admin' } }]
+  };
+  user2.permissions = {
+    memberships: [{ organizationId: user2.organizationId, permissions: { cassettes: 'admin' } }]
   };
 
   it('should create a standard cassette', async () => {
-    const data = { name: 'Standard Unit' };
+    const data = { name: 'Standard Unit', type: 'STANDARD' };
     const result = await cassetteService.create(data, user1.userId, user1.organizationId, 'ContractorAdmin', user1.permissions);
 
     expect(result.name).toBe('Standard Unit');
     expect(result.type).toBe('STANDARD');
-    expect(result.userId).toBe(user1.userId);
+    expect(result.lineage.organizationId.toString()).toBe(user1.organizationId.toString());
   });
 
   it('should create a parametric cassette and extract params', async () => {
@@ -69,8 +76,8 @@ describe('Cassette Management & Ownership', () => {
     const result = await cassetteService.create(data, user1.userId, user1.organizationId, 'ContractorAdmin', user1.permissions);
 
     expect(result.type).toBe('PARAMETRIC');
-    expect(result.parameters).toContain('width');
-    expect(result.parameters).toContain('height');
+    expect(result.definition.params.width).toBe(100);
+    expect(result.definition.params.height).toBe(200);
   });
 
   it('should deny access to cassettes owned by other users', async () => {
@@ -82,7 +89,7 @@ describe('Cassette Management & Ownership', () => {
       user2.organizationId, 
       'ContractorAdmin', 
       user2.permissions
-    )).rejects.toThrow(/Access denied/);
+    )).rejects.toThrow(/Permission denied/);
   });
 
   it('should allow SuperAdmin to access any cassette', async () => {
@@ -93,7 +100,7 @@ describe('Cassette Management & Ownership', () => {
       'admin-id', 
       null, 
       'SuperAdmin', 
-      { cassettes: 'admin' }
+      { memberships: [] }
     );
     expect(result.name).toBe('User 1 Template');
   });

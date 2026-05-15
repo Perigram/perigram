@@ -134,3 +134,26 @@ export async function allocate(uid, count, userId, userRole) {
   
   return await getById(uid);
 }
+
+export async function allocateSheets(uid, pileId, count, userId) {
+  const pileRaw = await repository.findById(uid);
+  if (!pileRaw) throw createError({ statusCode: 404, message: 'Material pile not found' });
+  const pile = new MaterialPile(pileRaw);
+
+  const available = (pile.data?.stock?.total || 0) - (pile.data?.stock?.used || 0);
+  if (available < count) {
+    throw createError({ statusCode: 400, message: 'Insufficient sheets in pile' });
+  }
+
+  pile.data.stock.used += count;
+  await repository.updateById(uid, pile);
+
+  return {
+    success: true,
+    sheets: Array.from({ length: count }, (_, index) => ({
+      id: `${pileId || uid}-${index + 1}`,
+      pileId: pileId || uid,
+      userId
+    }))
+  };
+}

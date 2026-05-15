@@ -17,14 +17,6 @@ vi.mock('h3', () => ({
   })
 }));
 
-vi.mock('~/server/utils/auth-helpers', () => ({
-  hasPermission: vi.fn(() => true)
-}));
-
-vi.mock('~/server/utils/permissions', () => ({
-  checkEntityAccess: vi.fn((user, entity, ownerId) => user.organizationId.toString() === ownerId.toString())
-}));
-
 describe('Catalog Management', () => {
   let con;
   let mongoServer;
@@ -50,21 +42,29 @@ describe('Catalog Management', () => {
     userId: 'user1',
     organizationId: new ObjectId(),
     organizationData: { type: 'Manufacturer' },
-    role: 'ManufacturerAdmin'
+    role: 'ManufacturerAdmin',
+    permissions: null
+  };
+
+  mockUser.permissions = {
+    memberships: [{ organizationId: mockUser.organizationId, permissions: { catalogs: 'admin' } }]
   };
 
   it('should create a catalog with material constraints', async () => {
     const catalog = await catalogService.create({
       name: 'Standard Aluminum Composite',
       manufacturerId: mockUser.organizationId.toString(),
-      foilThicknessOptions: [0.3, 0.5],
-      sheetThicknessOptions: [3, 4],
-      widthOptions: [1220, 1500]
-    }, mockUser);
+      material: 'Aluminum Composite',
+      options: {
+        foilThicknesses: [0.3, 0.5],
+        sheetThicknesses: [3, 4],
+        widths: [1220, 1500]
+      }
+    }, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
 
     expect(catalog.name).toBe('Standard Aluminum Composite');
-    expect(catalog.foilThicknessOptions).toContain(0.3);
-    expect(catalog.sheetThicknessOptions).toContain(4);
+    expect(catalog.data.options.foilThicknesses).toContain(0.3);
+    expect(catalog.data.options.sheetThicknesses).toContain(4);
   });
 
   it('should enforce manufacturer ownership when removing catalog', async () => {
@@ -72,11 +72,11 @@ describe('Catalog Management', () => {
     const catalogId = new ObjectId();
     await db.collection('catalogs').insertOne({
       _id: catalogId,
-      name: 'Other Brand',
-      manufacturerId: otherManufacturerId
+      identity: { uid: catalogId, name: 'Other Brand' },
+      lineage: { organizationId: otherManufacturerId }
     });
 
-    await expect(catalogService.remove(catalogId.toString(), mockUser))
-      .rejects.toThrow(/Cannot delete catalog from other manufacturer/);
+    await expect(catalogService.remove(catalogId.toString(), mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions))
+      .rejects.toThrow(/Permission denied/);
   });
 });

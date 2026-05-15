@@ -111,3 +111,34 @@ export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   
   return await repository.deleteById(uid);
 }
+
+export async function finishMilling(uid, cassetteInstanceIds = [], remnantIds = [], user = {}) {
+  const raw = await repository.findById(uid);
+  if (!raw) throw createError({ statusCode: 404, message: 'Sheet not found' });
+
+  const currentState = raw.status?.state || raw.status;
+  if (currentState !== 'IN-CUTTING' && currentState !== 'in_cutting') {
+    throw createError({ statusCode: 400, message: 'Sheet must be in cutting status' });
+  }
+
+  const sheet = new Sheet(raw);
+  sheet.data = {
+    ...sheet.data,
+    cassetteInstanceIds,
+    remnantIds
+  };
+  sheet.applyStatus('MILLED', user.userId || 'SYSTEM', { note: 'Milling completed' });
+
+  await repository.updateById(uid, sheet);
+
+  const warehouseId = raw.lineage?.warehouseId || raw.warehouseId;
+  if (warehouseId) {
+    const { updateInventoryCounts } = await import('../warehouses/service.js');
+    await updateInventoryCounts(warehouseId, {
+      totalSheets: -1,
+      totalRemnants: remnantIds.length
+    });
+  }
+
+  return await getById(uid);
+}

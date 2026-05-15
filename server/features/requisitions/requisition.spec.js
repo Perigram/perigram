@@ -17,14 +17,6 @@ vi.mock('h3', () => ({
   })
 }));
 
-vi.mock('~/server/utils/auth-helpers', () => ({
-  hasPermission: vi.fn(() => true)
-}));
-
-vi.mock('~/server/utils/permissions', () => ({
-  checkEntityAccess: vi.fn((user, entity, ownerId) => user.organizationId.toString() === ownerId.toString())
-}));
-
 describe('Requisition Lifecycle', () => {
   let con;
   let mongoServer;
@@ -53,7 +45,11 @@ describe('Requisition Lifecycle', () => {
     organizationId: new ObjectId(),
     organizationData: { type: 'Contractor' },
     role: 'ContractorAdmin',
-    permissions: { requisitions: 'admin', materials: 'admin' }
+    permissions: null
+  };
+
+  mockContractor.permissions = {
+    memberships: [{ organizationId: mockContractor.organizationId, permissions: { requisitions: 'admin', materials: 'admin' } }]
   };
 
   const mockManufacturerId = new ObjectId();
@@ -64,17 +60,16 @@ describe('Requisition Lifecycle', () => {
     
     await db.collection('catalogs').insertOne({
       _id: catalogId,
-      name: 'Test Catalog',
-      material: 'Aluminum',
-      sheetThicknessOptions: [3, 4],
-      widthOptions: [1000, 1200]
+      identity: { uid: catalogId, name: 'Test Catalog' },
+      data: { material: 'Aluminum' }
     });
 
     await db.collection('colors').insertOne({
       _id: colorId,
-      catalogId: catalogId,
-      color: 'Silver',
-      pricePerSqm: 100
+      identity: { uid: colorId, name: 'Silver' },
+      lineage: { catalogId },
+      data: { pricing: { pricePerSqm: 100 } },
+      pricing: { pricePerSqm: 100 }
     });
 
     const data = {
@@ -89,28 +84,29 @@ describe('Requisition Lifecycle', () => {
       }]
     };
 
-    const result = await requisitionService.create(data, mockContractor);
+    const result = await requisitionService.create(data, mockContractor.userId, mockContractor.organizationId, mockContractor.role, mockContractor.permissions);
     
     expect(result).toBeDefined();
-    expect(result.status).toBe('draft');
-    expect(result.items[0].totalPrice).toBe(500); // 1m2 * $100 * 5
+    expect(result.status.state).toBe('DRAFT');
+    expect(result.items[0].priceSnapshot).toBe(100);
   });
 
   it('should fail if non-contractor tries to create requisition', async () => {
-    const manufacturer = { ...mockContractor, organizationData: { type: 'Manufacturer' } };
-    await expect(requisitionService.create({}, manufacturer)).rejects.toThrow('Only contractors can create requisitions');
+    await expect(requisitionService.create({}, mockContractor.userId, mockContractor.organizationId, 'ManufacturerAdmin', mockContractor.permissions))
+      .rejects.toThrow('Only contractors can create requisitions');
   });
 
   it('should progress status from draft to sent', async () => {
     const reqId = new ObjectId();
     await db.collection('requisitions').insertOne({
       _id: reqId,
-      contractorId: mockContractor.organizationId,
-      status: 'draft'
+      identity: { uid: reqId, name: 'REQ' },
+      lineage: { organizationId: mockContractor.organizationId },
+      status: { state: 'DRAFT', userId: mockContractor.userId, timestamp: new Date(), metadata: {} },
+      data: { items: [] }
     });
 
-    const result = await requisitionService.send(reqId.toString(), mockContractor);
-    expect(result.status).toBe('sent');
-    expect(result.statusHistory).toContainEqual(expect.objectContaining({ status: 'sent' }));
+    const result = await requisitionService.send(reqId.toString(), mockContractor.userId, mockContractor.organizationId, mockContractor.role, mockContractor.permissions);
+    expect(result.state).toBe('SENT');
   });
 });

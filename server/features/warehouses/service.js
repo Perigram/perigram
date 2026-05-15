@@ -72,5 +72,22 @@ export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, warehouse.lineage, 'warehouses', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
+  const stats = warehouse.data?.stats || {};
+  if ((stats.totalBatches || 0) > 0 || (stats.totalSheets || 0) > 0 || (stats.totalRemnants || 0) > 0) {
+    throw createError({ statusCode: 400, message: 'Cannot delete warehouse with inventory' });
+  }
   return await repository.deleteById(uid);
+}
+
+export async function updateInventoryCounts(uid, increments = {}) {
+  const warehouse = await getById(uid);
+  if (!warehouse) throw createError({ statusCode: 404, message: 'Warehouse not found' });
+
+  const stats = { ...(warehouse.data?.stats || {}) };
+  for (const [key, value] of Object.entries(increments)) {
+    stats[key] = (stats[key] || 0) + value;
+  }
+
+  await repository.updateById(uid, { data: { ...warehouse.data, stats } });
+  return await getById(uid);
 }
