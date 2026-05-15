@@ -116,6 +116,18 @@ export function validateStatusPolicies({ components = [], workflows = {} } = {})
     });
 }
 
+export function validateUiPrimitives(primitives = []) {
+  return primitives.flatMap(primitive => {
+    const issues = [];
+    if (!primitive.key) issues.push('missing key');
+    if (!primitive.kind) issues.push('missing kind');
+    if (!primitive.componentPath) issues.push('missing component path');
+    if (!primitive.purpose) issues.push('missing purpose');
+    if (!Array.isArray(primitive.docs) || primitive.docs.length === 0) issues.push('missing docs');
+    return issues.map(issue => ({ key: primitive.key || 'unknown', issue }));
+  });
+}
+
 export function createFrameworkManifest({
   packages = [],
   entities = [],
@@ -150,6 +162,7 @@ export function createFrameworkManifest({
       entities,
       workflows,
       uiComponents,
+      uiPrimitives,
       dataModelFields,
       compatibilityAliases
     })
@@ -160,16 +173,19 @@ export function validateFrameworkManifest({
   entities = [],
   workflows = {},
   uiComponents = [],
+  uiPrimitives = [],
   dataModelFields = [],
   compatibilityAliases = {}
 } = {}) {
   const definitionResult = validateDefinitionSet(entities);
   const uiFieldIssues = validateUiFieldPaths({ components: uiComponents, dataModelFields, compatibilityAliases });
   const statusIssues = validateStatusPolicies({ components: uiComponents, workflows });
+  const primitiveIssues = validateUiPrimitives(uiPrimitives);
   const issues = [
     ...definitionResult.errors.map(error => ({ area: 'entities', issue: error })),
     ...uiFieldIssues.map(issue => ({ area: 'ui-fields', ...issue })),
-    ...statusIssues.map(issue => ({ area: 'status-policy', ...issue }))
+    ...statusIssues.map(issue => ({ area: 'status-policy', ...issue })),
+    ...primitiveIssues.map(issue => ({ area: 'ui-primitives', ...issue }))
   ];
 
   return {

@@ -48,7 +48,7 @@ describe('Framework package contracts', () => {
     const { cncEntities, cncWorkflows, cncFrontendEntities } = await import('../packages/domain-cnc/src/index.js');
     const { createEndpointMap, getSingleEndpoint, getListEndpoint } = await import('../packages/vue/src/index.js');
     const { createReadOnlyToolHandlers } = await import('../packages/mcp/src/index.js');
-    const { createFrameworkManifest, queryDocs, summarizeRoutes, summarizeSummaries } = await import('../packages/devtools/src/index.js');
+    const { createFrameworkManifest, queryDocs, summarizeRoutes, summarizeSummaries, validateUiPrimitives } = await import('../packages/devtools/src/index.js');
     const manifest = createFrameworkManifest({
       packages: [{ name: '@cutkit/core' }],
       entities: cncEntities,
@@ -57,7 +57,13 @@ describe('Framework package contracts', () => {
       summaries: [],
       designSystem: {
         contracts: [],
-        primitives: [{ key: 'EntityCard', kind: 'entity-chrome', componentPath: 'components/shared/EntityCard.vue', purpose: 'Card chrome' }],
+        primitives: [{
+          key: 'EntityCard',
+          kind: 'entity-chrome',
+          componentPath: 'components/shared/EntityCard.vue',
+          purpose: 'Card chrome',
+          docs: ['components/shared/README.md']
+        }],
         componentInventory: {},
         tokens: {}
       },
@@ -94,6 +100,11 @@ describe('Framework package contracts', () => {
     await expect(handlers.get_framework_manifest()).resolves.toMatchObject({ schemaVersion: 1, validations: { ok: true } });
     await expect(handlers.validate_ui_contracts()).resolves.toEqual({ ok: true, issues: [] });
     await expect(handlers.validate_architecture()).resolves.toEqual({ ok: true });
+    expect(validateUiPrimitives(manifest.designSystem.primitives)).toEqual([]);
+    expect(validateUiPrimitives([{ key: 'BrokenPrimitive' }])).toContainEqual(expect.objectContaining({
+      key: 'BrokenPrimitive',
+      issue: 'missing kind'
+    }));
   });
 
   it('keeps the committed framework manifest synchronized with source metadata', () => {
