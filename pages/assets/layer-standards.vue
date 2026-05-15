@@ -1,12 +1,10 @@
 <template>
   <div class="flex flex-col gap-6">
-    <div v-if="loading" class="flex items-center justify-center py-12">
-      <ProgressSpinner />
-    </div>
+    <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <div v-else-if="error" class="px-1">
       <Message severity="error">{{ error }}</Message>
     </div>
-    <div v-else class="grid-hub px-1">
+    <ResponsiveGrid v-else>
       <LayerStandardCard
         v-for="std in standards"
         :key="std._id"
@@ -14,7 +12,7 @@
         @set-pen="openPenDialog"
         @revert="revert"
       />
-    </div>
+    </ResponsiveGrid>
 
     <!-- Pen assignment dialog -->
     <StandardDialog v-model:visible="dialogVisible" :header="$t('layerStandard.setPen')" size="sm">
@@ -42,11 +40,12 @@ import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { storeToRefs } from 'pinia';
 import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
-import ProgressSpinner from 'primevue/progressspinner';
 import Message from 'primevue/message';
 import Select from 'primevue/select';
 import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
 
 definePageMeta({
   layout: 'app',

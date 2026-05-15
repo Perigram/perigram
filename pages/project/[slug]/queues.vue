@@ -23,19 +23,16 @@
         </div>
 
         <!-- Empty state -->
-        <div
-            v-else-if="queues.length === 0"
-            class="text-center py-20 px-6 border-2 border-dashed rounded-xl mx-1"
-        >
-            <i class="pi pi-inbox text-6xl mb-4 opacity-30 block"></i>
-            <p class="mb-6">{{ $t('queue.empty') }}</p>
-            <Button
-                :label="$t('queue.createFirst')"
-                icon="pi pi-plus"
-                @click="createNewQueue"
-                size="large"
-            />
-        </div>
+        <StateBlock v-else-if="queues.length === 0" :message="$t('queue.empty')" icon="pi pi-inbox">
+            <template #actions>
+                <Button
+                    :label="$t('queue.createFirst')"
+                    icon="pi pi-plus"
+                    @click="createNewQueue"
+                    size="large"
+                />
+            </template>
+        </StateBlock>
     </div>
 </template>
 
@@ -46,6 +43,7 @@
     import { storeToRefs } from 'pinia'
     import QueueEditor from '~/components/QueueEditor.vue'
     import Button from 'primevue/button'
+    import StateBlock from '~/components/shared/StateBlock.vue'
 
     definePageMeta({
         layout: 'app',
@@ -86,4 +84,3 @@
         await refreshQueues()
     }
 </script>
-

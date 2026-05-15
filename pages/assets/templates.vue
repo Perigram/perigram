@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-6">
-    <div class="flex justify-end items-center px-1">
+    <div class="flex justify-end items-center">
       <Button 
         :label="$t('assets.newTemplate')" 
         icon="pi pi-plus" 
@@ -8,10 +8,7 @@
       />
     </div>
     
-    <div class="flex flex-col items-center justify-center gap-3 py-20 border border-dashed rounded">
-      <i class="pi pi-inbox text-4xl opacity-50"></i>
-      <p class="m-0 text-muted-color">{{ $t('assets.templateManagementComingSoon') }}</p>
-    </div>
+    <StateBlock :message="$t('assets.templateManagementComingSoon')" icon="pi pi-inbox" />
     
     <StandardDialog
       v-model:visible="showDialog" 
@@ -29,6 +26,7 @@
 import { ref } from 'vue';
 import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
 
 definePageMeta({
   layout: 'app',

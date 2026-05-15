@@ -1,8 +1,7 @@
 <template>
   <div class="flex flex-col gap-6">
-    <div class="flex items-center justify-between gap-4">
-      <h2>{{ $t('nav.cassettes') }}</h2>
-      <div class="flex gap-2">
+    <ActionToolbar :title="$t('nav.cassettes')">
+      <template #actions>
         <Button 
           :label="$t('cassette.upload')" 
           icon="pi pi-upload"
@@ -14,15 +13,12 @@
           icon="pi pi-pencil"
           @click="showDesignerDialog = true"
         />
-      </div>
-    </div>
+      </template>
+    </ActionToolbar>
 
-    <div v-if="!cassettes || cassettes.length === 0" class="text-center py-20 border border-dashed rounded italic opacity-50">
-      <i class="pi pi-inbox text-6xl block mb-4"></i>
-      <p>{{ !cassettes ? $t('cassette.loading') : $t('cassette.noCassettes') }}</p>
-    </div>
+    <StateBlock v-if="!cassettes || cassettes.length === 0" :message="!cassettes ? $t('cassette.loading') : $t('cassette.noCassettes')" icon="pi pi-inbox" />
 
-    <div class="grid-hub">
+    <ResponsiveGrid v-else>
       <EntityCard
         v-for="cassette in cassettes"
         :key="cassette._id"
@@ -61,7 +57,7 @@
             </div>
         </template>
       </EntityCard>
-    </div>
+    </ResponsiveGrid>
 
     <CassetteEditorDialog 
       v-model="showUploadDialog"
@@ -97,6 +93,9 @@ import CassetteThumbnail from './CassetteThumbnail.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
 
 const { t } = useI18n();
 const cassettesStore = useCassettesStore();

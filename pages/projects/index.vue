@@ -1,33 +1,20 @@
 <template>
-    <div class="flex flex-col gap-6">
-        <div class="flex items-center justify-between">
-            <h1 class="m-0 text-2xl font-bold">{{ $t('nav.projects') }}</h1>
-            <Button
-                :label="$t('project.create')"
-                icon="pi pi-plus"
-                @click="showCreateDialog = true"
-            />
-        </div>
+    <StandardPage :title="$t('nav.projects')">
+        <template #actions>
+            <Button :label="$t('project.create')" icon="pi pi-plus" @click="showCreateDialog = true" />
+        </template>
 
-        <div
-            v-if="loading"
-            class="flex items-center justify-center py-20"
-        >
-            <ProgressSpinner />
-        </div>
+        <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
 
-        <div
-            v-else-if="!projects || projects.length === 0"
-            class="text-center py-20 border border-dashed rounded italic opacity-50"
-        >
-            <i class="pi pi-inbox text-6xl mb-4"></i>
-            <p>{{ $t('projects.noProjects') }}</p>
-            <Button
-                :label="$t('projects.createFirst')"
-                icon="pi pi-plus"
-                @click="showCreateDialog = true"
-            />
-        </div>
+        <StateBlock v-else-if="!projects || projects.length === 0" :message="$t('projects.noProjects')" icon="pi pi-inbox">
+            <template #actions>
+                <Button
+                    :label="$t('projects.createFirst')"
+                    icon="pi pi-plus"
+                    @click="showCreateDialog = true"
+                />
+            </template>
+        </StateBlock>
 
         <DataView
             v-else
@@ -39,7 +26,7 @@
             :loading="loading"
         >
             <template #grid="slotProps">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-2">
+                <ResponsiveGrid>
                     <ProjectCard
                         v-for="project in slotProps.items"
                         :key="project.slug"
@@ -49,7 +36,7 @@
                         @edit="editProject"
                         @delete="confirmDeleteProject"
                     />
-                </div>
+                </ResponsiveGrid>
             </template>
         </DataView>
 
@@ -85,7 +72,7 @@
                 />
             </template>
         </StandardDialog>
-    </div>
+    </StandardPage>
 </template>
 
 <script setup>
@@ -93,9 +80,11 @@
     import DataView from 'primevue/dataview'
     import Button from 'primevue/button'
     import InputText from 'primevue/inputtext'
-    import ProgressSpinner from 'primevue/progressspinner'
     import ProjectCard from '~/components/entities/Project/ProjectCard.vue'
     import StandardDialog from '~/components/shared/StandardDialog.vue'
+    import StandardPage from '~/components/shared/StandardPage.vue'
+    import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue'
+    import StateBlock from '~/components/shared/StateBlock.vue'
     import { useGlobalStore } from '~/stores/global'
     import { storeToRefs } from 'pinia'
     import { useToast } from 'primevue/usetoast'

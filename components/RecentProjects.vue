@@ -1,15 +1,14 @@
 <template>
     <div class="flex flex-col gap-6">
-        <div class="flex items-center justify-between gap-4 px-1">
-            <h2 class="text-xl font-bold">{{ $t('nav.recentProjects') }}</h2>
-            <div class="flex items-center gap-2">
-                <Button 
+        <ActionToolbar :title="$t('nav.recentProjects')">
+            <template #actions>
+                <Button
                     :label="$t('dashboard.viewAll')"
                     text
                     size="small"
                     @click="viewAllProjects"
                 />
-                <Button 
+                <Button
                     icon="pi pi-refresh"
                     text
                     rounded
@@ -17,32 +16,30 @@
                     @click="$emit('refresh')"
                     :loading="loading"
                 />
-            </div>
-        </div>
+            </template>
+        </ActionToolbar>
 
-        <div v-if="loading" class="flex items-center justify-center py-12">
-            <ProgressSpinner class="w-10 h-10" />
-        </div>
+        <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
 
-        <div v-else-if="!projects || projects.length === 0" class="text-center py-16 border-2 border-dashed rounded-xl">
-            <i class="pi pi-inbox text-5xl mb-4 opacity-30 block"></i>
-            <p class="text-lg mb-6">{{ $t('dashboard.noProjects') }}</p>
-            <Button 
-                :label="$t('dashboard.createFirstProject')"
-                icon="pi pi-plus"
-                @click="createProject"
-            />
-        </div>
+        <StateBlock v-else-if="!projects || projects.length === 0" :message="$t('dashboard.noProjects')" icon="pi pi-inbox">
+            <template #actions>
+                <Button
+                    :label="$t('dashboard.createFirstProject')"
+                    icon="pi pi-plus"
+                    @click="createProject"
+                />
+            </template>
+        </StateBlock>
 
-        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ProjectCard 
-                v-for="project in recentProjects" 
+        <ResponsiveGrid v-else variant="dense">
+            <ProjectCard
+                v-for="project in recentProjects"
                 :key="project.slug"
                 :project="project"
                 variant="card"
                 @view="openProject(project.identity?.slug || project.slug)"
             />
-        </div>
+        </ResponsiveGrid>
     </div>
 </template>
 
@@ -51,7 +48,9 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import ProjectCard from '~/components/entities/Project/ProjectCard.vue';
 import Button from 'primevue/button';
-import ProgressSpinner from 'primevue/progressspinner';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
 
 const props = defineProps({
     projects: {

@@ -1,10 +1,10 @@
 <template>
-    <div class="flex flex-col gap-6">
-        <div class="flex justify-between items-center">
-            <h1>{{ $t('features.users') }}</h1>
+    <StandardPage :title="$t('features.users')">
+        <template #actions>
             <Button :label="$t('common.create')" icon="pi pi-user-plus" @click="openCreateUser" />
-        </div>
+        </template>
 
+        <TableFrame>
         <DataTable :value="users" :loading="loading" stripedRows>
             <Column field="name" :header="$t('profile.name')" sortable>
                 <template #body="slotProps">
@@ -30,6 +30,7 @@
                 </template>
             </Column>
         </DataTable>
+        </TableFrame>
 
         <!-- User Dialog -->
         <StandardDialog v-model:visible="userDialog" :header="editMode ? $t('admin.editUser') : $t('admin.createUser')" size="sm">
@@ -44,7 +45,7 @@
                 @save="savePermissions" 
             />
         </StandardDialog>
-    </div>
+    </StandardPage>
 </template>
 
 <script setup>
@@ -58,6 +59,8 @@ import Tag from 'primevue/tag';
 import UserForm from '~/components/UserForm.vue';
 import PermissionEditor from '~/components/PermissionEditor.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import StandardPage from '~/components/shared/StandardPage.vue';
+import TableFrame from '~/components/shared/TableFrame.vue';
 import { useEntity } from '~/composables/useEntity';
 
 definePageMeta({

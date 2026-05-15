@@ -1,11 +1,11 @@
 <template>
-    <div class="flex flex-col gap-6">
-        <div class="flex justify-between items-center">
-            <h1>{{ $t('features.organizations') }}</h1>
+    <StandardPage :title="$t('features.organizations')">
+        <template #actions>
             <Button :label="$t('common.create')" icon="pi pi-plus" @click="openCreateOrg" />
-        </div>
+        </template>
 
-        <DataTable :value="organizations" :loading="loading" stripedRows class="border rounded">
+        <TableFrame>
+        <DataTable :value="organizations" :loading="loading" stripedRows>
             <Column field="name" :header="$t('common.name')" sortable>
                 <template #body="slotProps">
                     <span>{{ slotProps.data.name }}</span>
@@ -29,6 +29,7 @@
                 </template>
             </Column>
         </DataTable>
+        </TableFrame>
 
         <!-- Organization Dialog -->
         <StandardDialog v-model:visible="orgDialog" :header="editMode ? $t('common.edit') : $t('common.create')" size="sm">
@@ -64,7 +65,7 @@
                 <Button :label="editMode ? $t('common.save') : $t('common.create')" @click="saveOrg" />
             </template>
         </StandardDialog>
-    </div>
+    </StandardPage>
 </template>
 
 <script setup>
@@ -78,6 +79,8 @@ import Tag from 'primevue/tag';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import StandardPage from '~/components/shared/StandardPage.vue';
+import TableFrame from '~/components/shared/TableFrame.vue';
 import { useEntity } from '~/composables/useEntity';
 
 definePageMeta({

@@ -1,14 +1,12 @@
 <template>
   <div class="flex flex-col gap-8">
-    <div class="flex justify-between items-center">
-      <div class="flex flex-col">
-        <h2 class="m-0">{{ $t('features.requisitions') }}</h2>
-        <small>{{ $t('requisition.subtitle') || 'Track material orders and fulfillment status.' }}</small>
-      </div>
-      <Button v-if="authStore.can('requisitions', 'create')" :label="$t('common.create')" icon="pi pi-plus" @click="$emit('create')" />
-    </div>
+    <ActionToolbar :title="$t('features.requisitions')" :subtitle="$t('requisition.subtitle') || 'Track material orders and fulfillment status.'">
+      <template #actions>
+        <Button v-if="authStore.can('requisitions', 'create')" :label="$t('common.create')" icon="pi pi-plus" @click="$emit('create')" />
+      </template>
+    </ActionToolbar>
 
-    <div class="grid-hub">
+    <ResponsiveGrid v-if="requisitions.length">
         <RequisitionCard 
             v-for="requisition in requisitions" 
             :key="requisition._id" 
@@ -18,19 +16,22 @@
             @edit="openEditDialog"
             @delete="confirmDelete"
         />
-    </div>
+    </ResponsiveGrid>
 
-    <div v-if="!loading && requisitions.length === 0" class="flex flex-col items-center py-20">
-        <i class="pi pi-shopping-cart text-4xl"></i>
-        <p>{{ $t('requisition.noRequisitions') }}</p>
+    <StateBlock v-if="!loading && requisitions.length === 0" :message="$t('requisition.noRequisitions')" icon="pi pi-shopping-cart">
+      <template #actions>
         <Button v-if="authStore.can('requisitions', 'create')" :label="$t('requisition.newRequisition')" icon="pi pi-plus" text @click="$emit('create')" />
-    </div>
+      </template>
+    </StateBlock>
   </div>
 </template>
 
 <script setup>
 import { useAuthStore } from '~/stores/auth';
 import RequisitionCard from '~/components/entities/Requisition/RequisitionCard.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
 
 const props = defineProps({
     requisitions: { type: Array, default: () => [] },

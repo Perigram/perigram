@@ -1,11 +1,8 @@
 <template>
   <div class="flex flex-col gap-8">
-    <div class="flex flex-col">
-      <h2 class="m-0">{{ $t('sheets.title') }}</h2>
-      <small>{{ $t('sheets.subtitle') }}</small>
-    </div>
+    <ActionToolbar :title="$t('sheets.title')" :subtitle="$t('sheets.subtitle')" />
 
-    <div class="grid-hub">
+    <ResponsiveGrid v-if="sheets.length">
         <SheetCard 
             v-for="sheet in sheets" 
             :key="sheet._id" 
@@ -13,17 +10,17 @@
             variant="card"
             @click="viewDetails(sheet)"
         />
-    </div>
+    </ResponsiveGrid>
 
-    <div v-if="!loading && sheets.length === 0" class="flex flex-col items-center py-20">
-        <i class="pi pi-file text-4xl"></i>
-        <p>{{ $t('sheets.noSheets') }}</p>
-    </div>
+    <StateBlock v-if="!loading && sheets.length === 0" :message="$t('sheets.noSheets')" icon="pi pi-file" />
   </div>
 </template>
 
 <script setup>
 import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
 
 const props = defineProps({
     sheets: { type: Array, default: () => [] },

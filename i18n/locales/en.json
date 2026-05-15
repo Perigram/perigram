@@ -811,7 +811,10 @@
       "identity": "Identity",
       "status": "Status & history",
       "trace": "Trace chain",
-      "data": "Specs & data"
+      "data": "Specs & data",
+      "layout": "Layout primitives",
+      "toolbar": "Toolbar",
+      "empty": "Empty state"
     },
     "contract": {
       "title": "Manifest health",
@@ -987,6 +990,8 @@
     "toolsSubtitle": "Manage CNC tool geometry and kerf profiles.",
     "newPen": "New Pen",
     "newTool": "New Tool",
+    "noPens": "No pens found",
+    "noTools": "No tools found",
     "layers": {
       "name": "Name",
       "pen": "Default Pen"

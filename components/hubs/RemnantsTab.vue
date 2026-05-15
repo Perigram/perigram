@@ -1,11 +1,8 @@
 <template>
   <div class="flex flex-col gap-8">
-    <div class="flex flex-col">
-      <h2 class="m-0">{{ $t('remnants.title') }}</h2>
-      <small>{{ $t('remnants.subtitle') }}</small>
-    </div>
+    <ActionToolbar :title="$t('remnants.title')" :subtitle="$t('remnants.subtitle')" />
 
-    <div class="grid-hub">
+    <ResponsiveGrid v-if="remnants.length">
         <RemnantCard 
             v-for="remnant in remnants" 
             :key="remnant._id" 
@@ -13,17 +10,17 @@
             variant="card"
             @click="viewDetails(remnant)"
         />
-    </div>
+    </ResponsiveGrid>
 
-    <div v-if="!loading && remnants.length === 0" class="flex flex-col items-center py-20">
-        <i class="pi pi-box text-4xl"></i>
-        <p>{{ $t('remnants.noRemnants') }}</p>
-    </div>
+    <StateBlock v-if="!loading && remnants.length === 0" :message="$t('remnants.noRemnants')" icon="pi pi-box" />
   </div>
 </template>
 
 <script setup>
 import RemnantCard from '~/components/entities/Remnant/RemnantCard.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
 
 const props = defineProps({
     remnants: { type: Array, default: () => [] },

@@ -1,14 +1,12 @@
 <template>
   <div class="flex flex-col gap-8">
-    <div class="flex justify-between items-center">
-      <div class="flex flex-col">
-        <h2 class="m-0">{{ $t('piles.title') }}</h2>
-        <small>{{ $t('piles.subtitle') }}</small>
-      </div>
-      <Button v-if="authStore.can('materials', 'create')" :label="$t('common.create')" icon="pi pi-plus" @click="$emit('create')" />
-    </div>
+    <ActionToolbar :title="$t('piles.title')" :subtitle="$t('piles.subtitle')">
+      <template #actions>
+        <Button v-if="authStore.can('materials', 'create')" :label="$t('common.create')" icon="pi pi-plus" @click="$emit('create')" />
+      </template>
+    </ActionToolbar>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <ResponsiveGrid v-if="piles.length">
         <PileCard 
             v-for="pile in piles" 
             :key="pile._id" 
@@ -16,12 +14,9 @@
             variant="card"
             @view="viewDetails"
         />
-    </div>
+    </ResponsiveGrid>
     
-    <div v-if="!loading && piles.length === 0" class="flex flex-col items-center py-20 opacity-50">
-        <i class="pi pi-database text-4xl mb-4"></i>
-        <p>{{ $t('piles.noPiles') }}</p>
-    </div>
+    <StateBlock v-if="!loading && piles.length === 0" :message="$t('piles.noPiles')" icon="pi pi-database" />
   </div>
 </template>
 
@@ -32,6 +27,9 @@
 import Button from 'primevue/button';
 import PileCard from '~/components/entities/MaterialPile/PileCard.vue';
 import { useAuthStore } from '~/stores/auth';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
 
 const props = defineProps({
     piles: { type: Array, default: () => [] },

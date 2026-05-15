@@ -8,14 +8,14 @@
       />
     </template>
     
-    <div v-if="loading" class="flex items-center justify-center py-12">
-      <ProgressSpinner />
-    </div>
+    <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <div v-else-if="error">
       <Message severity="error">{{ error }}</Message>
     </div>
     
-    <div v-else class="grid-hub">
+    <StateBlock v-else-if="!tools.length" :message="$t('assets.noTools')" icon="pi pi-wrench" />
+
+    <ResponsiveGrid v-else>
       <div v-for="tool in tools" :key="tool._id" class="flex flex-col gap-2">
         <ToolProfileCard :tool="tool" variant="card" />
         <div class="flex justify-end gap-2" v-if="tool.ownerId">
@@ -39,7 +39,7 @@
             />
         </div>
       </div>
-    </div>
+    </ResponsiveGrid>
     
     <StandardDialog 
       v-model:visible="showDialog" 
@@ -86,10 +86,11 @@ import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import ConfirmDialog from 'primevue/confirmdialog';
-import ProgressSpinner from 'primevue/progressspinner';
 import Message from 'primevue/message';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
 import ToolProfileCard from '~/components/entities/ToolProfile/ToolProfileCard.vue';
 
 definePageMeta({

@@ -1,15 +1,12 @@
 <template>
-  <div class="flex flex-col gap-6">
-    <div class="flex items-center justify-between">
-        <h1>{{ $t('features.requisitions') }}</h1>
-    </div>
-
+  <StandardPage :title="$t('features.requisitions')">
     <RequisitionsTab />
-  </div>
+  </StandardPage>
 </template>
 
 <script setup>
 import RequisitionsTab from '~/components/hubs/RequisitionsTab.vue';
+import StandardPage from '~/components/shared/StandardPage.vue';
 
 definePageMeta({
   layout: 'app',

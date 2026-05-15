@@ -8,14 +8,14 @@
       />
     </div>
     
-    <div v-if="loading" class="flex items-center justify-center py-12">
-      <ProgressSpinner />
-    </div>
+    <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <div v-else-if="error" class="px-1">
       <Message severity="error">{{ error }}</Message>
     </div>
     
-    <div v-else class="grid-hub px-1">
+    <StateBlock v-else-if="!pens.length" :message="$t('assets.noPens')" icon="pi pi-pencil" />
+
+    <ResponsiveGrid v-else>
       <PenTemplateCard v-for="pen in pens" :key="pen._id" :pen="pen">
         <template #footer>
           <div class="flex justify-end gap-2" v-if="pen.ownerId">
@@ -40,7 +40,7 @@
           </div>
         </template>
       </PenTemplateCard>
-    </div>
+    </ResponsiveGrid>
     
     <!-- Pen Dialog -->
     <StandardDialog
@@ -103,9 +103,10 @@ import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Select from 'primevue/select';
 import ConfirmDialog from 'primevue/confirmdialog';
-import ProgressSpinner from 'primevue/progressspinner';
 import Message from 'primevue/message';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 
 definePageMeta({

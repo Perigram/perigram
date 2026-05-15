@@ -32,7 +32,8 @@
                         <i class="pi pi-list"></i>
                         {{ $t('queue.jobComposition') }}
                     </h3>
-                    <DataTable :value="queue.job?.items || []" class="border rounded overflow-hidden" responsiveLayout="scroll">
+                    <TableFrame>
+                    <DataTable :value="queue.job?.items || []" responsiveLayout="scroll">
                         <Column :header="$t('file.type')">
                             <template #body="{ data }">
                                 <Tag :value="data.type" severity="secondary" />
@@ -52,6 +53,7 @@
                             </template>
                         </Column>
                     </DataTable>
+                    </TableFrame>
                 </div>
             </div>
 
@@ -87,6 +89,7 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
+import TableFrame from '~/components/shared/TableFrame.vue';
 
 const props = defineProps({
     queue: { type: Object, required: true }

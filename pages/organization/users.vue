@@ -1,13 +1,11 @@
 <template>
-  <div class="flex flex-col gap-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">{{ $t('features.users') }}</h1>
-      <div class="flex gap-2">
+  <StandardPage :title="$t('features.users')">
+    <template #actions>
         <Button :label="$t('auth.inviteMember')" icon="pi pi-link" severity="secondary" @click="showInviteDialog = true" />
         <Button :label="$t('common.create')" icon="pi pi-user-plus" @click="showCreateDialog = true" />
-      </div>
-    </div>
+    </template>
 
+    <TableFrame>
     <DataTable :value="users" :loading="loading" stripedRows>
       <Column field="name" :header="$t('profile.name')" sortable />
       <Column field="email" :header="$t('profile.email')" sortable />
@@ -25,9 +23,11 @@
         </template>
       </Column>
     </DataTable>
+    </TableFrame>
 
-    <div v-if="invitations.length > 0" class="flex flex-col gap-4 mt-8">
-        <h2>{{ $t('auth.activeInvitations') }}</h2>
+    <div v-if="invitations.length > 0" class="flex flex-col gap-4">
+        <ActionToolbar :title="$t('auth.activeInvitations')" />
+        <TableFrame>
         <DataTable :value="invitations">
             <Column :header="$t('auth.invitationLink')">
                 <template #body="{ data }">
@@ -51,14 +51,13 @@
                 </template>
             </Column>
         </DataTable>
+        </TableFrame>
     </div>
 
     <!-- Pending Members Section -->
-    <div v-if="pendingUsers.length > 0" class="flex flex-col gap-4 mt-8">
-        <h2 class="flex items-center gap-2">
-            <i class="pi pi-clock"></i>
-            {{ $t('auth.joinRequests') }}
-        </h2>
+    <div v-if="pendingUsers.length > 0" class="flex flex-col gap-4">
+        <ActionToolbar :title="$t('auth.joinRequests')" />
+        <TableFrame>
         <DataTable :value="pendingUsers">
             <Column field="name" :header="$t('profile.name')" sortable />
             <Column field="email" :header="$t('profile.email')" />
@@ -71,6 +70,7 @@
                 </template>
             </Column>
         </DataTable>
+        </TableFrame>
     </div>
 
     <!-- Invite Member Dialog -->
@@ -135,7 +135,7 @@
             />
         </div>
     </StandardDialog>
-  </div>
+  </StandardPage>
 </template>
 
 <script setup>
@@ -153,6 +153,9 @@ import Tag from 'primevue/tag';
 import Panel from 'primevue/panel';
 import PermissionEditor from '~/components/PermissionEditor.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import StandardPage from '~/components/shared/StandardPage.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import TableFrame from '~/components/shared/TableFrame.vue';
 import { useEntity } from '~/composables/useEntity';
 
 definePageMeta({

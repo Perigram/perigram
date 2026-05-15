@@ -1,14 +1,13 @@
 <template>
   <div class="flex flex-col gap-6 py-4">
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <ProgressSpinner />
-    </div>
+    <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
 
-    <div v-else-if="!queues || queues.length === 0" class="text-center py-20 px-6 border-2 border-dashed border-content-border rounded-ui bg-content mx-1">
-      <i class="pi pi-file-excel text-6xl text-text-muted mb-4 opacity-30 block"></i>
-      <p class="text-xl font-bold m-0 uppercase tracking-wider">{{ $t('artifacts.noQueues') }}</p>
-      <p class="text-text-muted mt-2 font-medium">{{ $t('artifacts.createQueueFirst') }}</p>
-    </div>
+    <StateBlock
+      v-else-if="!queues || queues.length === 0"
+      :message="$t('artifacts.noQueues')"
+      :description="$t('artifacts.createQueueFirst')"
+      icon="pi pi-file-excel"
+    />
 
     <Accordion v-else :multiple="true" :value="['0']" class="flex flex-col gap-4">
       <AccordionPanel v-for="(queue, index) in queues" :key="queue._id" :value="index.toString()">
@@ -30,8 +29,8 @@ import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
-import ProgressSpinner from 'primevue/progressspinner';
 import ArtifactsTable from '~/components/ArtifactsTable.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
 
 definePageMeta({
   layout: 'app',

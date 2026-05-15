@@ -95,6 +95,25 @@
             <DataBlock :entity="pileEntity" :fields="pileFields" />
           </div>
       </Panel>
+
+      <Panel :header="$t('uiLab.primitives.layout')">
+          <div class="flex flex-col gap-4">
+            <ActionToolbar :title="$t('uiLab.primitives.toolbar')" :subtitle="$t('uiLab.subtitle')">
+              <template #actions>
+                <Button :label="$t('common.create')" icon="pi pi-plus" size="small" />
+              </template>
+            </ActionToolbar>
+            <ResponsiveGrid variant="dense">
+              <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-inbox" />
+              <TableFrame>
+                <DataTable :value="contractRows.slice(0, 2)" size="small">
+                  <Column field="label" :header="$t('uiLab.contract.entity')" />
+                  <Column field="status" :header="$t('uiLab.contract.status')" />
+                </DataTable>
+              </TableFrame>
+            </ResponsiveGrid>
+          </div>
+      </Panel>
     </section>
 
     <section v-else class="flex flex-col gap-4">
@@ -156,6 +175,10 @@ import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
+import TableFrame from '~/components/shared/TableFrame.vue';
 import {
   DESIGN_SYSTEM_GROUPS,
   DESIGN_SYSTEM_VARIANTS,

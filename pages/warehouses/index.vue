@@ -1,5 +1,6 @@
 <script setup>
 import WarehouseHub from '~/components/hubs/WarehouseHub.vue';
+import StandardPage from '~/components/shared/StandardPage.vue';
 
 definePageMeta({
   layout: 'app',
@@ -8,11 +9,7 @@ definePageMeta({
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
-    <div class="flex items-center justify-between">
-        <h1>{{ $t('features.warehouses') }}</h1>
-    </div>
-
+  <StandardPage :title="$t('features.warehouses')">
     <WarehouseHub />
-  </div>
+  </StandardPage>
 </template>
