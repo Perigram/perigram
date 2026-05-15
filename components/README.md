@@ -23,6 +23,7 @@ All entity-related components MUST use these patterns:
 | Structured key/value data (specs, parameters, tool dims) | `<DataBlock :entity="..." :fields="ENTITY_FIELDS" />` |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StatusHistory :entity="..." entity-type="..." />` |
+| Detail page header | `<EntityPage :entity="..." entity-type="..." />` |
 | CRUD + status operations | `useEntity(type, id)` |
 | Card/container chrome | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout |
 | Section/page action rows | `<ActionToolbar>` |
@@ -33,6 +34,7 @@ All entity-related components MUST use these patterns:
 
 When a card needs custom lifecycle commands, pass them to `EntityCard` through `:status-actions` so the shared title/status layout remains the single owner of status placement.
 Entity-specific card components should use `before-identity`, `subtitle`, body, and footer slots; do not override `#title`, because that bypasses standardized identity/status layout.
+Entity detail components should use `EntityPage` for trace, identity, status, and page actions instead of rebuilding header rows locally.
 
 ## Design System Manifest
 

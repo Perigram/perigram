@@ -416,6 +416,26 @@
       actual workflow definitions, and status endpoint resolution now accepts
       snake_case entity keys used by entity cards.
 
+*** Agent Notes
+    [2026-05-15] Standardize entity detail headers on EntityPage
+    Files changed: components/shared/EntityPage.vue,
+      components/entities/Project/ProjectDetail.vue,
+      components/entities/Queue/QueueDetail.vue,
+      components/entities/Warehouse/WarehouseDetail.vue,
+      components/entities/SheetDesign/SheetDesignDetail.vue,
+      components/entities/CassetteInstance/CassetteInstanceDetail.vue,
+      components/entities/Requisition/RequisitionDetail.vue,
+      components/entities/Remnant/RemnantDetail.vue,
+      components/entities/Sheet/SheetDetail.vue,
+      shared/design-system.spec.js
+    Docs updated: components/shared/README.md, components/README.md,
+      TODO.org
+    Notes: Added `statusActions` pass-through to `EntityPage` and migrated
+      entity detail views away from local trace/identity/status header rows.
+      Corrected sheet milling status to `MILLED` and removed stale lowercase
+      cassette instance lifecycle actions in favor of workflow-derived status
+      controls.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24
