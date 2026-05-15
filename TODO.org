@@ -482,6 +482,16 @@
       retrieve UI primitive and generated-app rules, not only backend package
       docs.
 
+*** Agent Notes
+    [2026-05-15] Validate design primitive metadata in devtools
+    Files changed: packages/devtools/src/index.js,
+      shared/framework-packages.spec.js
+    Docs updated: packages/devtools/README.md, TODO.org
+    Notes: Added `validateUiPrimitives()` and included primitive metadata
+      issues in framework manifest validation so MCP consumers can trust that
+      generated-app primitives have keys, kinds, component paths, purposes, and
+      docs.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24
