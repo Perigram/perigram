@@ -1,23 +1,10 @@
 <template>
-    <div class="flex flex-col gap-8">
-        <TraceChain :entity="sheet" />
+    <EntityPage :entity="sheet" entity-type="sheet" :status-actions="statusActions">
+        <template #actions>
+            <Button icon="pi pi-qrcode" text />
+        </template>
 
         <Panel>
-            <template #header>
-                <div class="flex flex-wrap items-start gap-4 min-w-0">
-                    <i class="pi pi-file"></i>
-                    <h1 class="m-0 min-w-0">{{ sheetSerial }}</h1>
-                    <div class="min-w-0">
-                        <EntityStatus :entity="sheet" entity-type="sheet" :actions="statusActions" />
-                    </div>
-                </div>
-            </template>
-            <template #icons>
-                <div class="flex gap-2">
-                    <Button icon="pi pi-qrcode" text />
-                </div>
-            </template>
-
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <!-- Visual Swatch -->
                 <Panel :header="$t('sheets.materialColor')">
@@ -61,7 +48,7 @@
                 </Panel>
             </div>
         </div>
-    </div>
+    </EntityPage>
 </template>
 
 <script setup>
@@ -70,10 +57,9 @@ import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
+import EntityPage from '~/components/shared/EntityPage.vue';
 
 const props = defineProps({
     sheet: { type: Object, required: true }
@@ -82,7 +68,6 @@ const props = defineProps({
 const emit = defineEmits(['update-status']);
 const { t } = useI18n();
 
-const sheetSerial = computed(() => props.sheet.identity?.serial || props.sheet.serial || props.sheet.identity?.name || props.sheet.name || 'Unnamed');
 const sheetState = computed(() => props.sheet.status?.state || props.sheet.state || 'UNKNOWN');
 const sheetSpecs = computed(() => props.sheet.specs || props.sheet.data?.specs || {});
 const sheetWidth = computed(() => sheetSpecs.value.width || 0);
@@ -95,7 +80,7 @@ const statusActions = computed(() => {
             label: t('sheets.markMilled'),
             icon: 'pi pi-check', 
             severity: 'success', 
-            command: () => emit('update-status', { id: props.sheet._id, status: 'milled' }) 
+            command: () => emit('update-status', { id: props.sheet._id, status: 'MILLED' }) 
         });
     }
     return actions;

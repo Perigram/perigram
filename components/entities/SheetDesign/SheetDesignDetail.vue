@@ -1,19 +1,9 @@
 <template>
-    <div class="flex flex-col gap-8">
-        <TraceChain :entity="design" />
-
-        <div class="flex justify-between items-start gap-4 min-w-0">
-            <div class="flex flex-wrap items-start gap-4 min-w-0">
-                <IdentityBlock :entity="design" variant="header" />
-                <div class="min-w-0">
-                    <EntityStatus :entity="design" entity-type="sheet_design" variant="inline" />
-                </div>
-            </div>
-            <div class="flex gap-2">
+    <EntityPage :entity="design" entity-type="sheet_design">
+        <template #actions>
                 <Button :label="$t('sheetDesign.downloadDxf')" icon="pi pi-download" />
                 <Button :label="$t('sheetDesign.exportGCode')" icon="pi pi-file-export" text />
-            </div>
-        </div>
+        </template>
 
         <div class="grid-details">
             <div class="lg:col-span-3 flex flex-col gap-8">
@@ -53,17 +43,15 @@
                 </Panel>
             </div>
         </div>
-    </div>
+    </EntityPage>
 </template>
 
 <script setup>
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
+import EntityPage from '~/components/shared/EntityPage.vue';
 
 defineProps({
     design: { type: Object, required: true }

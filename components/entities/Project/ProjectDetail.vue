@@ -1,20 +1,12 @@
 <template>
-    <div class="flex flex-col gap-8">
-        <TraceChain :entity="project" />
-
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div class="flex flex-col">
-                <div class="flex items-center gap-4">
-                    <h1 class="m-0">{{ projectName }}</h1>
-                    <EntityStatus :entity="project" entity-type="project" />
-                </div>
-                <small>{{ $t('common.created') }}: {{ project.origin?.timestamp ? new Date(project.origin.timestamp).toLocaleDateString() : '—' }}</small>
-            </div>
-            <div class="flex gap-2">
+    <EntityPage :entity="project" entity-type="project">
+        <template #info>
+            <small>{{ $t('common.created') }}: {{ project.origin?.timestamp ? new Date(project.origin.timestamp).toLocaleDateString() : '—' }}</small>
+        </template>
+        <template #actions>
                 <Button :label="$t('project.settings')" icon="pi pi-cog" text />
                 <Button :label="$t('project.createQueue')" icon="pi pi-plus" @click="$emit('add-queue', project)" />
-            </div>
-        </div>
+        </template>
 
         <div class="grid-details">
             <!-- Main Content: Queues List -->
@@ -62,7 +54,7 @@
                 </Panel>
             </div>
         </div>
-    </div>
+    </EntityPage>
 </template>
 
 <script setup>
@@ -71,10 +63,9 @@ import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Divider from 'primevue/divider';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';
+import EntityPage from '~/components/shared/EntityPage.vue';
 
 const props = defineProps({
     project: { type: Object, required: true }
@@ -83,7 +74,6 @@ const props = defineProps({
 defineEmits(['add-queue']);
 
 const router = useRouter();
-const projectName = computed(() => props.project.identity?.name || props.project.name || 'Unnamed');
 const projectSlug = computed(() => props.project.identity?.slug || props.project.slug || props.project._id || props.project.id || '');
 
 const queues = ref([]);

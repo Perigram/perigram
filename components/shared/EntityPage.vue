@@ -12,7 +12,8 @@ const props = defineProps({
   entity: { type: Object, required: true },
   entityType: { type: String, required: true },
   title: { type: String, default: null },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
+  statusActions: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['refresh']);
@@ -36,6 +37,7 @@ const emit = defineEmits(['refresh']);
                 :entity="entity" 
                 :entity-type="entityType" 
                 variant="full" 
+                :actions="statusActions"
                 @transitioned="$emit('refresh')"
             />
             <div class="flex gap-2">

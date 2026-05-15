@@ -1,16 +1,8 @@
 <template>
-    <div class="flex flex-col gap-8">
-        <TraceChain :entity="queue" />
-
-        <div class="flex justify-between items-start gap-4 min-w-0">
-            <div class="flex flex-wrap items-start gap-4 min-w-0">
-                <IdentityBlock :entity="queue" variant="header" />
-                <EntityStatus :entity="queue" entity-type="queue" variant="inline" :actions="queueStatusActions" />
-            </div>
-            <div class="flex gap-3">
+    <EntityPage :entity="queue" entity-type="queue" :status-actions="queueStatusActions">
+        <template #actions>
                 <Button :label="$t('queue.nestingConfig')" icon="pi pi-sliders-h" severity="secondary" outlined />
-            </div>
-        </div>
+        </template>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-10">
              <!-- Left: Components & Layouts -->
@@ -73,23 +65,21 @@
                 </Panel>
             </div>
         </div>
-    </div>
+    </EntityPage>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import Panel from 'primevue/panel';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import TableFrame from '~/components/shared/TableFrame.vue';
+import EntityPage from '~/components/shared/EntityPage.vue';
 
 const props = defineProps({
     queue: { type: Object, required: true }

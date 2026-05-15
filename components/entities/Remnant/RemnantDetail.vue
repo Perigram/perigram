@@ -1,23 +1,10 @@
 <template>
-    <div class="flex flex-col gap-8">
-        <TraceChain :entity="remnant" />
+    <EntityPage :entity="remnant" entity-type="remnant" :status-actions="statusActions">
+        <template #actions>
+            <Button icon="pi pi-qrcode" text />
+        </template>
 
         <Panel>
-            <template #header>
-                <div class="flex flex-wrap items-start gap-4 min-w-0">
-                    <i class="pi pi-undo rotate-180"></i>
-                    <h1 class="m-0 min-w-0">{{ serial }}</h1>
-                    <div class="min-w-0">
-                        <EntityStatus :entity="remnant" entity-type="remnant" :actions="statusActions" />
-                    </div>
-                </div>
-            </template>
-            <template #icons>
-                <div class="flex gap-2">
-                    <Button icon="pi pi-qrcode" text />
-                </div>
-            </template>
-
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div class="flex flex-col">
                     <small>{{ $t('results.area') }}</small>
@@ -58,7 +45,7 @@
                 </Panel>
             </div>
         </div>
-    </div>
+    </EntityPage>
 </template>
 
 <script setup>
@@ -67,11 +54,10 @@ import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
 import { useEntity } from '~/composables/useEntity';
+import EntityPage from '~/components/shared/EntityPage.vue';
 
 const props = defineProps({
     remnant: {
@@ -82,7 +68,6 @@ const props = defineProps({
 
 const { t } = useI18n();
 const { changeStatus } = useEntity('remnant', props.remnant?._id || props.remnant?.id);
-const serial = computed(() => props.remnant.identity?.serial || props.remnant.serial || props.remnant.name || 'Unnamed');
 const state = computed(() => props.remnant.status?.state || props.remnant.state || 'UNKNOWN');
 const specs = computed(() => props.remnant.specs || props.remnant.data?.specs || {});
 const width = computed(() => specs.value.width || 0);

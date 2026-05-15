@@ -132,6 +132,18 @@ describe('Design system manifest', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('keeps entity details on shared EntityPage header chrome', () => {
+    const offenders = walkFiles(
+      path.join(REPO_ROOT, 'components/entities'),
+      (file) => file.endsWith('Detail.vue') && !file.endsWith('.old.vue') && !file.endsWith('.v23.vue')
+    ).filter((file) => {
+      const source = fs.readFileSync(file, 'utf8');
+      return /<TraceChain\s+:entity|<IdentityBlock[^>]+variant=["']header["']|<EntityStatus\b/.test(source);
+    }).map((file) => path.relative(REPO_ROOT, file));
+
+    expect(offenders).toEqual([]);
+  });
+
   it('derives status actions from workflow definitions instead of hardcoded fallbacks', async () => {
     const { getWorkflowStatusActions } = await import('../utils/status-actions.js');
 

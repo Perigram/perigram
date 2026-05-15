@@ -1,15 +1,5 @@
 <template>
-    <div class="flex flex-col gap-8">
-        <TraceChain :entity="requisition" />
-
-        <div class="flex flex-col md:flex-row justify-between items-start gap-6 min-w-0">
-            <div class="flex flex-wrap items-start gap-4 min-w-0">
-                <h1 class="m-0">#{{ serial }}</h1>
-                <div class="min-w-0">
-                    <EntityStatus :entity="requisition" entity-type="requisition" :actions="statusActions" />
-                </div>
-            </div>
-        </div>
+    <EntityPage :entity="requisition" entity-type="requisition" :status-actions="statusActions">
 
         <div class="grid-details">
             <div class="lg:col-span-3 flex flex-col gap-8">
@@ -60,19 +50,19 @@
                 </Panel>
             </div>
         </div>
-    </div>
+    </EntityPage>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Divider from 'primevue/divider';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
+import EntityPage from '~/components/shared/EntityPage.vue';
 
 const props = defineProps({
     requisition: {
@@ -84,7 +74,7 @@ const props = defineProps({
 const emit = defineEmits(['send', 'approve', 'reject', 'start-fulfillment', 'fulfill']);
 
 const authStore = useAuthStore();
-const serial = computed(() => props.requisition.identity?.serial || props.requisition.requisitionNumber || props.requisition.data?.requisitionNumber || props.requisition.name || 'Unnamed');
+const { t } = useI18n();
 const requisitionState = computed(() => props.requisition.status?.state || props.requisition.state || 'UNKNOWN');
 
 const statusActions = computed(() => {
@@ -92,21 +82,21 @@ const statusActions = computed(() => {
     const id = props.requisition._id;
 
     if (requisitionState.value === 'DRAFT' && authStore.can('requisitions', 'send')) {
-        actions.push({ label: 'Submit Requisition', icon: 'pi pi-send', command: () => emit('send', id) });
+        actions.push({ label: t('status.sent'), icon: 'pi pi-send', command: () => emit('send', id) });
     }
 
     if (requisitionState.value === 'SENT') {
         if (authStore.can('requisitions', 'approve')) {
-            actions.push({ label: 'Approve', icon: 'pi pi-check', severity: 'success', command: () => emit('approve', id) });
+            actions.push({ label: t('status.approved'), icon: 'pi pi-check', severity: 'success', command: () => emit('approve', id) });
         }
         if (authStore.can('requisitions', 'reject')) {
-            actions.push({ label: 'Reject', icon: 'pi pi-times', severity: 'danger', command: () => emit('reject', id) });
+            actions.push({ label: t('status.rejected'), icon: 'pi pi-times', severity: 'danger', command: () => emit('reject', id) });
         }
     }
 
     if (requisitionState.value === 'APPROVED' && authStore.can('requisitions', 'fulfill')) {
-        actions.push({ label: 'Start Fulfillment', icon: 'pi pi-play', severity: 'info', command: () => emit('start-fulfillment', id) });
-        actions.push({ label: 'Complete & Ship', icon: 'pi pi-box', severity: 'success', command: () => emit('fulfill', id) });
+        actions.push({ label: t('status.fulfilling'), icon: 'pi pi-play', severity: 'info', command: () => emit('start-fulfillment', id) });
+        actions.push({ label: t('status.fulfilled'), icon: 'pi pi-box', severity: 'success', command: () => emit('fulfill', id) });
     }
 
     return actions;
