@@ -6,6 +6,7 @@ import { hooks } from './hooks.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { createError } from 'h3';
 import { pluralize } from '../../utils/strings.js';
+import { validateTransition } from '../../../packages/workflows/src/index.js';
 
 /**
  * Unified Status Service - v24 Absolute Final
@@ -48,10 +49,15 @@ export const statusService = {
     const currentState = entity.status?.state || machine.initial;
     
     // 1. Validate Transition
-    const transition = machine.transitions.find(t => t.from === currentState && t.to === targetState);
-    const isSelfLoop = currentState === targetState && machine.states[currentState]?.canUpdateMeta;
-    
-    if (!transition && !isSelfLoop) {
+    const validation = validateTransition({
+      workflow: machine,
+      currentState,
+      targetState,
+      role: userRole
+    });
+    const transition = validation.transition;
+
+    if (!validation.ok && validation.reason === 'invalid_transition') {
       throw createError({ 
         statusCode: 400, 
         message: `Invalid transition from ${currentState} to ${targetState} for ${entityType}` 
@@ -59,10 +65,10 @@ export const statusService = {
     }
     
     // 2. Validate Role (unless SYSTEM action)
-    if (transition && !transition.roles.includes(userRole) && userRole !== 'SYSTEM') {
+    if (!validation.ok && validation.reason === 'role_denied') {
       throw createError({ 
         statusCode: 403, 
-        message: `Unauthorized: Role "${userRole}" cannot perform transition ${currentState} -> ${targetState} for ${entityType}. Allowed roles: ${transition.roles.join(', ')}` 
+        message: `Unauthorized: Role "${userRole}" cannot perform transition ${currentState} -> ${targetState} for ${entityType}. Allowed roles: ${validation.allowedRoles.join(', ')}` 
       });
     }
     

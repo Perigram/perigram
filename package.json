@@ -11,7 +11,10 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "test": "vitest"
+    "test": "vitest",
+    "framework:list-entities": "node scripts/framework-inspect.js list-entities",
+    "framework:list-workflows": "node scripts/framework-inspect.js list-workflows",
+    "framework:validate": "node scripts/framework-inspect.js validate"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",

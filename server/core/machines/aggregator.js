@@ -2,38 +2,23 @@ import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { pluralize } from '../../utils/strings.js';
+import { cncSummaries } from '../../../packages/domain-cnc/src/index.js';
 
 /**
  * Centralized Aggregation Engine - v24 Expanded
  */
 
-const AGGREGATION_MAP = {
-  queue: {
-    parentType: 'project',
-    parentIdKey: 'projectId',
-    fields: { count: 'queueCount' }
-  },
-  cassette_instance: {
-    parentType: 'project',
-    parentIdKey: 'projectId',
-    fields: { count: 'instanceCount' }
-  },
-  nesting_run: {
-    parentType: 'queue',
-    parentIdKey: 'queueId',
-    fields: { count: 'runCount' }
-  },
-  sheet: {
-    parentType: 'queue',
-    parentIdKey: 'queueId',
-    fields: { count: 'sheetCount', sum: { area: 'totalArea' } }
-  },
-  color: {
-    parentType: 'catalog',
-    parentIdKey: 'catalogId',
-    fields: { count: 'colorCount' }
+const AGGREGATION_MAP = Object.fromEntries(cncSummaries.map(summary => [
+  summary.entityType,
+  {
+    parentType: summary.parentType,
+    parentIdKey: summary.parentIdKey,
+    fields: {
+      count: summary.countField,
+      sum: summary.sumFields
+    }
   }
-};
+]));
 
 export const aggregator = {
   async syncParentSummary(entityType, lineage) {
@@ -75,12 +60,6 @@ export const aggregator = {
         updateFields[`summary.${dest}`] = results?.[dest] || 0;
       });
     }
-
-    // Special Case: Sheets update Queue Area
-    if (entityType === 'sheet') {
-       updateFields['summary.totalArea'] = results?.totalArea || 0;
-    }
-
     if (Object.keys(updateFields).length > 0) {
       await db.collection(parentCollection).updateOne({ _id: flexParentId }, { $set: updateFields });
     }

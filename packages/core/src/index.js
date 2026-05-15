@@ -3,9 +3,10 @@ const services = new Map();
 
 export class Identity {
   constructor(uid = null, name = '', slug = '', serial = '', reference = '') {
+    if (!uid) throw new Error('Identity: uid is required');
     this.uid = uid;
     this.name = name;
-    this.slug = slug;
+    this.slug = slug || (typeof uid === 'string' && uid.length !== 24 ? uid : '');
     this.serial = serial;
     this.reference = reference;
   }
@@ -17,10 +18,11 @@ export class Identity {
 
 export class Status {
   constructor(state, userId = 'SYSTEM', metadata = {}, eventId = null, timestamp = new Date()) {
+    if (!state) throw new Error('Status: state is required');
     this.state = state;
-    this.userId = userId;
-    this.timestamp = timestamp;
-    this.metadata = metadata;
+    this.userId = userId || 'SYSTEM';
+    this.timestamp = timestamp ? new Date(timestamp) : new Date();
+    this.metadata = metadata || {};
     this.eventId = eventId;
   }
 
@@ -37,16 +39,22 @@ export class Status {
 
 export class Lineage {
   constructor(raw = {}) {
-    Object.assign(this, raw);
+    for (const [key, value] of Object.entries(raw)) {
+      if (value) this[key] = value;
+    }
   }
 
   add(type, id) {
-    this[`${type}Id`] = id;
+    if (id) this[`${type}Id`] = id;
     return this;
   }
 
   toJSON() {
-    return { ...this };
+    const json = {};
+    for (const [key, value] of Object.entries(this)) {
+      if (typeof value !== 'function') json[key] = value;
+    }
+    return json;
   }
 }
 
@@ -104,6 +112,14 @@ export class BaseEntity {
     return this;
   }
 
+  async getAncestor(type) {
+    const uid = this.lineage[`${type}Id`] || this.lineage[`${type}Uid`] || this.lineage[type];
+    if (!uid) return null;
+    const service = getService(type);
+    if (!service) return null;
+    return await service.getById(uid);
+  }
+
   toJSON() {
     return {
       _id: this._id,
@@ -154,5 +170,5 @@ export const createIdentity = (name, slug = '', serial = '', reference = '', uid
 export const createStatus = (state, userId = 'SYSTEM', metadata = {}, eventId = null) => new Status(state, userId, metadata, eventId);
 export const createSpecs = (data = {}) => new Specs(data);
 export const createData = (data = {}) => ({ ...data });
-export const inheritLineage = (parent, type) => new Lineage(parent?.lineage || {}).add(type, parent?.identity?.uid || parent?._id);
+export const inheritLineage = (parent, type, mapId = value => value) => new Lineage(parent?.lineage || {}).add(type, mapId(parent?.identity?.uid || parent?._id));
 export const createAttachment = (type, fileId, name = '', metadata = {}) => ({ type, fileId, name, metadata, timestamp: new Date() });

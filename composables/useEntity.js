@@ -1,6 +1,10 @@
 import { ref, computed } from 'vue';
 import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 import { useStatusController } from './useStatusController';
+import { createEndpointMap, getSingleEndpoint as resolveSingleEndpoint, getListEndpoint as resolveListEndpoint } from '~/packages/vue/src/index.js';
+import { cncFrontendEntities } from '~/packages/domain-cnc/src/index.js';
+
+const endpointMap = createEndpointMap(cncFrontendEntities);
 
 /**
  * Unified Entity Composable - v24 Standardized
@@ -24,38 +28,12 @@ export const useEntity = (type, identifier = null) => {
   const { lineage, getAncestorId } = useLineage(entity);
   const { specs, formattedDimensions, formattedArea } = useSpecs(entity);
 
-  // Unified endpoint map for all entity types
-  const endpointMap = {
-    material:         { single: id => `/api/materials/${id}`,          list: '/api/materials' },
-    project:          { single: id => `/api/project/${id}`,           list: '/api/project' },
-    queue:            { single: id => `/api/queue/${id}`,             list: '/api/queues' },
-    requisition:      { single: id => `/api/requisitions/${id}`,      list: '/api/requisitions' },
-    batch:            { single: id => `/api/material-piles/${id}`,    list: '/api/material-piles' },
-    pile:             { single: id => `/api/material-piles/${id}`,    list: '/api/material-piles' },
-    sheet:            { single: id => `/api/sheets/${id}`,            list: '/api/sheets' },
-    remnant:          { single: id => `/api/remnants/${id}`,          list: '/api/remnants' },
-    cassetteInstance: { single: id => `/api/cassette-instances/${id}`,list: '/api/cassette-instances' },
-    cassetteDesign:   { single: id => `/api/cassette-designs/${id}`,  list: '/api/cassette-designs' },
-    sheetDesign:      { single: id => `/api/sheet-designs/${id}`,     list: '/api/sheet-designs' },
-    artifact:         { single: id => `/api/artifacts/${id}`,         list: '/api/artifacts' },
-    catalog:          { single: id => `/api/catalogs/${id}`,          list: '/api/catalogs' },
-    color:            { single: id => `/api/colors/${id}`,            list: '/api/colors' },
-    warehouse:        { single: id => `/api/warehouses/${id}`,        list: '/api/warehouses' },
-    user:             { single: id => `/api/users/${id}`,             list: '/api/users' },
-    organization:     { single: id => `/api/organizations/${id}`,     list: '/api/organizations' },
-    nestingRun:       { single: id => `/api/nesting-runs/${id}`,      list: '/api/nesting-runs' },
-  };
-
   const getSingleEndpoint = (id = identifier || entity.value?._id || entity.value?.id) => {
-    const entry = endpointMap[type];
-    return entry ? entry.single(id) : `/api/${type}/${id}`;
+    return resolveSingleEndpoint(endpointMap, type, id);
   };
 
   const getListEndpoint = (filters = {}) => {
-    const entry = endpointMap[type];
-    const base = entry ? entry.list : `/api/${type}s`;
-    const params = new URLSearchParams(filters).toString();
-    return params ? `${base}?${params}` : base;
+    return resolveListEndpoint(endpointMap, type, filters);
   };
 
   /**
@@ -124,10 +102,9 @@ export const useEntity = (type, identifier = null) => {
    */
   const create = async (data = {}) => {
     loading.value = true;
-    error.value = null;
+      error.value = null;
     try {
-      const entry = endpointMap[type];
-      const url = entry ? entry.list : `/api/${type}s`;
+      const url = resolveListEndpoint(endpointMap, type);
       const result = await $fetch(url, { method: 'POST', body: data });
       entity.value = result;
       return result;
@@ -202,4 +179,3 @@ export const useEntity = (type, identifier = null) => {
     getAncestorId
   };
 };
-
