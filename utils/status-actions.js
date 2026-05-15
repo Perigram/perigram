@@ -1,0 +1,37 @@
+import { STATUS_MAPPINGS } from './status-engine.js';
+import { cncWorkflows } from '~/packages/domain-cnc/src/index.js';
+
+export function getWorkflowStatusActions({
+  entityType,
+  state,
+  workflows = cncWorkflows,
+  mappings = STATUS_MAPPINGS,
+  t = value => value
+} = {}) {
+  const workflow = workflows[entityType];
+  if (!workflow || !state) return [];
+
+  return (workflow.transitions || [])
+    .filter(transition => transition.from === state)
+    .map(transition => {
+      const mapping = mappings[transition.to] || mappings[String(transition.to).toLowerCase()] || {};
+      return {
+        label: translateStatusLabel(transition.to, mapping.label, t),
+        to: transition.to,
+        severity: mapping.severity || 'secondary',
+        icon: mapping.icon || 'pi pi-arrow-right'
+      };
+    });
+}
+
+function translateStatusLabel(state, labelKey, t) {
+  if (labelKey) {
+    const translated = t(labelKey);
+    if (translated && translated !== labelKey) return translated;
+  }
+
+  return String(state)
+    .replace(/[_-]/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, char => char.toUpperCase());
+}

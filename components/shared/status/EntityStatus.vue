@@ -12,6 +12,7 @@ import { useI18n } from 'vue-i18n';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import { useStatus } from '~/composables/useBlocks';
 import { useStatusController } from '~/composables/useStatusController';
+import { getWorkflowStatusActions } from '~/utils/status-actions.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -53,11 +54,12 @@ const customActions = computed(() => {
     return [];
 });
 
-// TODO: In a real implementation, we would fetch available transitions for current state from backend
 const defaultTransitions = computed(() => {
-    // Basic defaults if nothing else is provided
-    if (state.value === 'DRAFT') return [{ label: t('status.ready'), to: 'READY', severity: 'success', icon: 'pi pi-check' }];
-    return [];
+    return getWorkflowStatusActions({
+        entityType: props.entityType,
+        state: state.value,
+        t
+    });
 });
 
 const effectiveActions = computed(() => {

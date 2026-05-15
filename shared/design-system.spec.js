@@ -131,4 +131,19 @@ describe('Design system manifest', () => {
 
     expect(offenders).toEqual([]);
   });
+
+  it('derives status actions from workflow definitions instead of hardcoded fallbacks', async () => {
+    const { getWorkflowStatusActions } = await import('../utils/status-actions.js');
+
+    expect(getWorkflowStatusActions({ entityType: 'queue', state: 'DRAFT', t: key => key })).toContainEqual(expect.objectContaining({
+      to: 'NESTING'
+    }));
+    expect(getWorkflowStatusActions({ entityType: 'queue', state: 'DRAFT', t: key => key })).not.toContainEqual(expect.objectContaining({
+      to: 'READY'
+    }));
+    expect(getWorkflowStatusActions({ entityType: 'sheet', state: 'AVAILABLE', t: key => key })).toEqual(expect.arrayContaining([
+      expect.objectContaining({ to: 'IN-CUTTING' }),
+      expect.objectContaining({ to: 'SCRAP' })
+    ]));
+  });
 });
