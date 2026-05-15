@@ -107,7 +107,7 @@ Props: `:entity`, `entity-type`.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
 - **`EntityPage.vue`**: Root layout for all entity detail views. Features a flexible header with an `info` slot for summary data and an optional `sidebar` slot.
-- **`EntityCard.vue`**: Shared entity card chrome built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`). Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome.
+- **`EntityCard.vue`**: Shared entity card chrome built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`). Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and `statusActions` for passing entity-specific state-machine actions into the shared status block without rebuilding the title row. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot.
 
 Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
 

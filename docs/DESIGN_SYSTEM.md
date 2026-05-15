@@ -30,6 +30,7 @@ Card content is part of the contract, not filler. The title area owns identity a
 Shared ownership:
 
 - `EntityCard` owns card chrome and is the only non-legacy direct owner of PrimeVue `Card`.
+- Entity-specific cards pass custom lifecycle commands through `EntityCard` `statusActions`; they should not rebuild identity/status title rows just to customize status buttons.
 - `StandardDialog` owns dialog chrome and is the only direct owner of PrimeVue `Dialog`.
 - `StandardPage` owns page shell width and spacing.
 - `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, and `TableFrame` own repeated page-level layout patterns.

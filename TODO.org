@@ -385,6 +385,24 @@
       instead of deep relative `packages/*` paths that resolve incorrectly
       from `.nuxt/dev`.
 
+*** Agent Notes
+    [2026-05-15] Normalize first entity card status layouts
+    Files changed: components/shared/EntityCard.vue,
+      components/entities/NestingRun/NestingRunCard.vue,
+      components/entities/CassetteTemplate/CassetteTemplateCard.vue,
+      components/entities/CassetteInstance/CassetteInstanceCard.vue,
+      components/entities/SheetDesign/SheetDesignCard.vue,
+      components/entities/BatchPile/BatchPileCard.vue,
+      components/entities/Warehouse/WarehouseCard.vue,
+      components/entities/Artifact/ArtifactCard.vue
+    Docs updated: components/shared/README.md, components/README.md,
+      docs/DESIGN_SYSTEM.md, TODO.org
+    Notes: Added `statusActions` pass-through to `EntityCard` and moved entity
+      cards away from duplicated hand-built identity/status title rows.
+      Warehouse and other entity subtitles now read canonical `data.*` values
+      before legacy flat fallbacks. Added a design-system contract check that
+      prevents entity cards from overriding `EntityCard` title chrome.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24

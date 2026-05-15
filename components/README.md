@@ -31,6 +31,9 @@ All entity-related components MUST use these patterns:
 | Data table frame | `<TableFrame><DataTable ... /></TableFrame>` |
 | Dialog container | `<StandardDialog>` |
 
+When a card needs custom lifecycle commands, pass them to `EntityCard` through `:status-actions` so the shared title/status layout remains the single owner of status placement.
+Entity-specific card components should use `before-identity`, `subtitle`, body, and footer slots; do not override `#title`, because that bypasses standardized identity/status layout.
+
 ## Design System Manifest
 
 `utils/design-system-contract.js` defines the frontend design-system contract for entity demos:
