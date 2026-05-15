@@ -472,6 +472,16 @@
       devtools CLI, and read-only MCP handlers now expose the primitive set
       alongside entity cards and token projections for app-generation tooling.
 
+*** Agent Notes
+    [2026-05-15] Expand framework docs corpus for UI generation
+    Files changed: scripts/framework-inspect.js,
+      shared/framework-packages.spec.js
+    Docs updated: packages/devtools/README.md, TODO.org
+    Notes: Added component, shared UI, utility, test-data, i18n, and design
+      system docs to the local `query-docs` corpus so MCP/RAG lookups can
+      retrieve UI primitive and generated-app rules, not only backend package
+      docs.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24
