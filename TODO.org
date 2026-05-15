@@ -459,6 +459,19 @@
       scalar arrays, object arrays, and identifiable object references without
       rendering artificial `[object Object]` values.
 
+*** Agent Notes
+    [2026-05-15] Expose shared UI primitives through framework metadata
+    Files changed: utils/design-system-contract.js,
+      packages/devtools/src/index.js, packages/mcp/src/index.js,
+      scripts/framework-inspect.js, package.json, framework.manifest.json,
+      shared/design-system.spec.js, shared/framework-packages.spec.js
+    Docs updated: utils/README.md, packages/README.md,
+      packages/devtools/README.md, packages/mcp/README.md, TODO.org
+    Notes: Added shared design-system primitive metadata for entity chrome,
+      status, trace, blocks, and layout wrappers. The framework manifest,
+      devtools CLI, and read-only MCP handlers now expose the primitive set
+      alongside entity cards and token projections for app-generation tooling.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24

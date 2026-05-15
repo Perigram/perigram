@@ -5,6 +5,7 @@ Shared frontend utility modules used by Vue pages/components.
 ## Design System Contract
 
 - `design-system-contract.js`: UI contract metadata for entity demos. Defines entity keys, card prop names, status/trace policy, factory names, variants, groups, and docs links without importing Vue components.
+  It also declares shared design-system primitives (`EntityCard`, `EntityPage`, blocks, status, trace, and layout wrappers) for framework manifests and MCP discovery.
 - `design-system.js`: Runtime binding that attaches Vue card components and DTO factories to the contract. Used by `/test/ui-lab`.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`.
 - `status-engine.js`: Central status severity/icon mapping and entity route/icon registry used by shared status and trace components. It must include every canonical workflow state exposed by `packages/domain-cnc/src/index.js`, including terminal states, so generated entity UI never falls back to unknown badges.

@@ -17,7 +17,7 @@ Internal npm workspace packages used to extract the reusable industrial workflow
 
 Current extraction status, module boundaries, runtime relationships, and Mermaid diagrams are maintained in [docs/FRAMEWORK_EXTRACTION_STATUS.md](../docs/FRAMEWORK_EXTRACTION_STATUS.md).
 
-The committed [framework.manifest.json](../framework.manifest.json) is the read-only contract for LLM/RAG/MCP inspection. It combines package metadata, entity definitions, workflows, routes, summaries, inferred relationships, design-system component contracts, and token projections.
+The committed [framework.manifest.json](../framework.manifest.json) is the read-only contract for LLM/RAG/MCP inspection. It combines package metadata, entity definitions, workflows, routes, summaries, inferred relationships, entity component contracts, shared design-system primitives, and token projections.
 
 ## Extraction Rule
 

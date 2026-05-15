@@ -10,6 +10,7 @@ Read-only MCP tool handlers for LLM-assisted industrial app planning. This packa
 - `get_framework_manifest`
 - `list_routes`
 - `list_ui_components`
+- `list_ui_primitives`
 - `list_design_tokens`
 - `list_relationships`
 - `list_summaries`
