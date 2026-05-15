@@ -2,7 +2,7 @@ import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { pluralize } from '../../utils/strings.js';
-import { cncSummaries } from '../../../packages/domain-cnc/src/index.js';
+import { cncSummaries } from '@cutkit/domain-cnc';
 
 /**
  * Centralized Aggregation Engine - v24 Expanded

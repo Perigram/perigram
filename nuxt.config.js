@@ -1,8 +1,23 @@
 import { schemaWebSite } from './utils/schema'
 import Re_L from './assets/presets/re_l'
+import { fileURLToPath } from 'node:url'
+
+const resolveRoot = (path) => fileURLToPath(new URL(path, import.meta.url))
+const cutkitAliases = {
+    '@cutkit/core': resolveRoot('./packages/core/src/index.js'),
+    '@cutkit/workflows': resolveRoot('./packages/workflows/src/index.js'),
+    '@cutkit/mongo': resolveRoot('./packages/mongo/src/index.js'),
+    '@cutkit/nitro': resolveRoot('./packages/nitro/src/index.js'),
+    '@cutkit/vue': resolveRoot('./packages/vue/src/index.js'),
+    '@cutkit/devtools': resolveRoot('./packages/devtools/src/index.js'),
+    '@cutkit/mcp': resolveRoot('./packages/mcp/src/index.js'),
+    '@cutkit/domain-cnc': resolveRoot('./packages/domain-cnc/src/index.js')
+}
 
 export default defineNuxtConfig({
     compatibilityDate: '2025-07-15',
+
+    alias: cutkitAliases,
 
     devtools: { enabled: true },
 
@@ -60,6 +75,9 @@ export default defineNuxtConfig({
     },
 
     vite: {
+        resolve: {
+            alias: cutkitAliases
+        },
         css: {
             preprocessorOptions: {
                 scss: {
@@ -138,6 +156,7 @@ export default defineNuxtConfig({
 
     nitro: {
         compressPublicAssets: true,
+        alias: cutkitAliases,
         routeRules: {
             // ... (keep routeRules as is)
         },

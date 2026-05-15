@@ -1,19 +1,32 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
 
+const cutkitAliases = {
+  '@cutkit/core': path.resolve(__dirname, './packages/core/src/index.js'),
+  '@cutkit/workflows': path.resolve(__dirname, './packages/workflows/src/index.js'),
+  '@cutkit/mongo': path.resolve(__dirname, './packages/mongo/src/index.js'),
+  '@cutkit/nitro': path.resolve(__dirname, './packages/nitro/src/index.js'),
+  '@cutkit/vue': path.resolve(__dirname, './packages/vue/src/index.js'),
+  '@cutkit/devtools': path.resolve(__dirname, './packages/devtools/src/index.js'),
+  '@cutkit/mcp': path.resolve(__dirname, './packages/mcp/src/index.js'),
+  '@cutkit/domain-cnc': path.resolve(__dirname, './packages/domain-cnc/src/index.js')
+};
+
 export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
     alias: {
       '~': path.resolve(__dirname, './'),
-      '@': path.resolve(__dirname, './')
+      '@': path.resolve(__dirname, './'),
+      ...cutkitAliases
     }
   },
   resolve: {
     alias: {
       '~': path.resolve(__dirname, './'),
-      '@': path.resolve(__dirname, './')
+      '@': path.resolve(__dirname, './'),
+      ...cutkitAliases
     }
   }
 });

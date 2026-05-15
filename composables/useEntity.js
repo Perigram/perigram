@@ -1,8 +1,8 @@
 import { ref, computed } from 'vue';
 import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 import { useStatusController } from './useStatusController';
-import { createEndpointMap, getSingleEndpoint as resolveSingleEndpoint, getListEndpoint as resolveListEndpoint } from '~/packages/vue/src/index.js';
-import { cncFrontendEntities } from '~/packages/domain-cnc/src/index.js';
+import { createEndpointMap, getSingleEndpoint as resolveSingleEndpoint, getListEndpoint as resolveListEndpoint } from '@cutkit/vue';
+import { cncFrontendEntities } from '@cutkit/domain-cnc';
 
 const endpointMap = createEndpointMap(cncFrontendEntities);
 

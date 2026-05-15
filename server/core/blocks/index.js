@@ -12,7 +12,7 @@ import {
   getEntityDefinition,
   listEntityDefinitions,
   createData
-} from '../../../packages/core/src/index.js';
+} from '@cutkit/core';
 
 export {
   Identity,

@@ -6,7 +6,7 @@ import { hooks } from './hooks.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { createError } from 'h3';
 import { pluralize } from '../../utils/strings.js';
-import { validateTransition } from '../../../packages/workflows/src/index.js';
+import { validateTransition } from '@cutkit/workflows';
 
 /**
  * Unified Status Service - v24 Absolute Final
