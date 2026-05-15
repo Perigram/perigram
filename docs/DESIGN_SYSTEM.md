@@ -32,6 +32,7 @@ Shared ownership:
 - `EntityCard` owns card chrome and is the only non-legacy direct owner of PrimeVue `Card`.
 - `StandardDialog` owns dialog chrome and is the only direct owner of PrimeVue `Dialog`.
 - `StandardPage` owns page shell width and spacing.
+- `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, and `TableFrame` own repeated page-level layout patterns.
 - `IdentityBlock`, `EntityStatus`, `StatusBadge`, `TraceChain`, `SpecsBlock`, and `DataBlock` own v24 block visualization.
 
 Feature pages/components should compose these primitives with PrimeVue form/table controls and semantic layout classes. They should not import `primevue/card`, `primevue/dialog`, or `useBlocks` directly.

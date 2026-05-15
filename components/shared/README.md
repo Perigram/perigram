@@ -100,12 +100,16 @@ Props: `:entity`, `entity-type`.
 
 ## Layout Containers (`components/shared/`)
 
+- **`ActionToolbar.vue`**: Responsive title/subtitle/actions row for pages, sections, and tab panels. Use instead of ad hoc `flex justify-between` header markup.
+- **`ResponsiveGrid.vue`**: Token-backed responsive grid for cards and repeated item surfaces. Variants: `cards` (default), `dense`, `wide`.
+- **`StateBlock.vue`**: Standard loading/empty/error state block with icon, message, optional description, and action slot.
+- **`TableFrame.vue`**: Standard bordered/elevated frame around PrimeVue `DataTable` surfaces.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
 - **`EntityPage.vue`**: Root layout for all entity detail views. Features a flexible header with an `info` slot for summary data and an optional `sidebar` slot.
 - **`EntityCard.vue`**: Shared entity card chrome built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`). Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome.
 
-Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, and `Panel` for non-entity sections.
+Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
 
 Shared wrappers also own token-backed visual chrome. When a wrapper needs a new width, radius, spacing, or motion value, add it to `assets/tokens/index.js` and project it through Tailwind or CSS variables instead of hardcoding it in feature components.
 

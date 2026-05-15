@@ -25,6 +25,10 @@ All entity-related components MUST use these patterns:
 | Audit log | `<StatusHistory :entity="..." entity-type="..." />` |
 | CRUD + status operations | `useEntity(type, id)` |
 | Card/container chrome | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout |
+| Section/page action rows | `<ActionToolbar>` |
+| Repeated card grids | `<ResponsiveGrid>` |
+| Loading/empty/error surfaces | `<StateBlock>` |
+| Data table frame | `<TableFrame><DataTable ... /></TableFrame>` |
 | Dialog container | `<StandardDialog>` |
 
 ## Design System Manifest

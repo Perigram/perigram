@@ -152,6 +152,25 @@
        alias reloads.
 
 *** Agent Notes
+     [2026-05-15] Add shared layout primitives and adopt repeated surfaces
+     Files changed: components/shared/ActionToolbar.vue,
+       components/shared/ResponsiveGrid.vue, components/shared/StateBlock.vue,
+       components/shared/TableFrame.vue, components/shared/StandardPage.vue,
+       components/hubs/*.vue, components/CassetteManager.vue,
+       components/RecentProjects.vue, components/entities/Queue/QueueDetail.vue,
+       pages/projects/index.vue, pages/admin/*.vue, pages/organization/users.vue,
+       pages/assets/*.vue, pages/project/[slug]/artifacts.vue,
+       pages/project/[slug]/queues.vue, pages/catalog/index.vue,
+       pages/requisitions/index.vue, pages/warehouses/index.vue,
+       pages/test/ui-lab.vue, i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/README.md, components/shared/README.md,
+       docs/DESIGN_SYSTEM.md
+     Notes: Added the missing page-level presentation layer for responsive
+       action headers, card grids, loading/empty/error states, and data table
+       frames. Replaced repeated ad hoc markup in used list, hub, admin, asset,
+       queue, and UI lab surfaces with those primitives.
+
+*** Agent Notes
      [2026-03-15] Frontend API contract compliance — replace raw $fetch with useEntity
      Files changed: composables/useEntity.js, stores/global.js, pages/projects/index.vue,
        pages/project/[slug]/data.vue, pages/project/[slug]/artifacts.vue,
