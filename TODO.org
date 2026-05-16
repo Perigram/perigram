@@ -492,6 +492,17 @@
       generated-app primitives have keys, kinds, component paths, purposes, and
       docs.
 
+*** Agent Notes
+    [2026-05-16] Make UI lab represent framework primitives
+    Files changed: pages/test/ui-lab.vue, utils/design-system.js,
+      shared/design-system.spec.js, i18n/locales/en.json,
+      i18n/locales/ru.json
+    Docs updated: pages/test/README.md, TODO.org
+    Notes: Kept the UI lab page composition local, but made the primitives tab
+      render from `DESIGN_SYSTEM_PRIMITIVES`. Added examples for every declared
+      framework primitive, including entity chrome/layout, status, trace,
+      blocks, table, dialog, page, and layout wrappers.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24
