@@ -180,6 +180,7 @@ describe('Design system manifest', () => {
     expect(source).toContain('reviewFieldFeedbackFor');
     expect(source).toContain('reviewExpanded');
     expect(source).toContain('toggleReview');
+    expect(source).toContain('expandedReviews = ref(new Set())');
     expect(source).toContain('uiLab.review.title');
     expect(source).toContain('cutkit:ui-lab-feedback:v1');
   });

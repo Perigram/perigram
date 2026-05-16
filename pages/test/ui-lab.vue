@@ -55,14 +55,6 @@
           <div class="flex flex-wrap items-center gap-2">
             <Tag :value="$t(`uiLab.statusPolicy.${row.status}`)" severity="secondary" />
             <Tag :value="row.trace ? $t('uiLab.tracePolicy.enabled') : $t('uiLab.tracePolicy.hidden')" severity="secondary" />
-            <Button
-              :icon="reviewExpanded(row.key) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
-              :label="$t('uiLab.review.toggle')"
-              severity="secondary"
-              text
-              size="small"
-              @click="toggleReview(row.key)"
-            />
           </div>
         </div>
 
@@ -99,7 +91,24 @@
           />
         </div>
 
-        <Panel v-if="reviewExpanded(row.key) && row.model" :header="$t('uiLab.review.title')">
+        <Panel v-if="row.model">
+          <template #header>
+            <div class="flex items-center justify-between gap-3 w-full">
+              <div class="flex flex-col gap-0.5">
+                <span class="font-medium">{{ $t('uiLab.review.title') }}</span>
+                <small class="text-muted-color">{{ row.model.collection }} · {{ row.model.fields?.length || 0 }} {{ $t('uiLab.review.fields') }}</small>
+              </div>
+              <Button
+                :icon="reviewExpanded(row.key) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+                :aria-label="$t('uiLab.review.toggle')"
+                severity="secondary"
+                text
+                size="small"
+                @click="toggleReview(row.key)"
+              />
+            </div>
+          </template>
+          <template v-if="reviewExpanded(row.key)">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
               <div class="flex flex-col gap-1">
                 <small class="text-muted-color">{{ $t('uiLab.review.collection') }}</small>
@@ -180,6 +189,7 @@
                 </tbody>
               </table>
             </div>
+          </template>
         </Panel>
       </article>
     </section>
@@ -459,7 +469,7 @@ const feedback = ref(loadFeedback());
 const reviewModels = ref([]);
 const reviewLoading = ref(false);
 const reviewError = ref(null);
-const expandedReviews = ref(new Set(rows.map(row => row.key)));
+const expandedReviews = ref(new Set());
 
 const activeSection = ref(groups[0]?.id || 'contract');
 const dialogVisible = ref(false);
