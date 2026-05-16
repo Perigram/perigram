@@ -735,3 +735,20 @@
     Notes:
     - Moved dialog widths, support chat dimensions, message max widths, entity popover/menu widths, preview height, table action column width, swatch size, and support avatar palette into the token module.
     - Updated shared wrappers and support/asset/admin/project components to consume token-backed Tailwind classes or CSS variables instead of local visual constants.
+
+*** Agent Notes
+    [2026-05-16] Align data-model review with framework entity manifest
+    Files changed:
+    - packages/domain-cnc/src/index.js
+    - framework.manifest.json
+    - pages/admin/data-model-review.vue
+    - shared/framework-packages.spec.js
+    - shared/design-system.spec.js
+    Docs updated:
+    - packages/domain-cnc/README.md
+    - pages/admin/README.md
+    - server/utils/README.md
+    - TODO.org
+    Notes:
+    - Added materials, layer standards, pen templates, and tool profiles to the CNC framework entity manifest source.
+    - Kept template/auth/audit/preset support collections visible in data-model review but excluded them from missing-manifest warnings.
