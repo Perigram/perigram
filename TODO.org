@@ -518,6 +518,15 @@
       entity/primitive, and added framework-manifest consistency checks to
       data-model-review.
 
+*** Agent Notes
+    [2026-05-16] Add UI lab feedback export workflow
+    Files changed: pages/test/ui-lab.vue, i18n/locales/en.json,
+      i18n/locales/ru.json
+    Docs updated: pages/test/README.md, TODO.org
+    Notes: Added `Export Feedback` and reset actions to UI Lab using the same
+      localStorage-to-markdown workflow as data-model-review. Corrected
+      PrimeVue Select option props so feedback decision labels render.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24

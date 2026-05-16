@@ -9,7 +9,7 @@ Internal visual verification pages for UI contracts and component variants.
 The page demonstrates:
 - entity card variants: `card`, `compact`, `inline`
 - every shared primitive declared in `DESIGN_SYSTEM_PRIMITIVES`, including entity chrome/layout, identity/data/spec/status blocks, trace links, table/dialog/page wrappers, and layout helpers
-- per-entity and per-primitive feedback controls persisted in localStorage under `cutkit:ui-lab-feedback:v1`
+- per-entity and per-primitive feedback controls persisted in localStorage under `cutkit:ui-lab-feedback:v1`, with markdown export to `ui-lab-feedback.md`
 - manifest health: missing component/factory/docs/DTO block issues
 
 Demo data comes from `test-data/factories.js` and should match API DTO shape.
