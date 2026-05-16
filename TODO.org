@@ -767,3 +767,17 @@
     Notes:
     - Loaded `/api/debug/data-models` directly in UI lab and attached matched model fields to each entity row.
     - Added per-field review controls and included both component and data-model feedback in the UI lab export.
+
+*** Agent Notes
+    [2026-05-16] Make UI lab data-model review collapsible
+    Files changed:
+    - pages/test/ui-lab.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    - pages/test/README.md
+    - shared/design-system.spec.js
+    Docs updated:
+    - pages/test/README.md
+    - TODO.org
+    Notes:
+    - Added per-row review toggle state so the data-model section can be collapsed and expanded without hiding the component preview.
