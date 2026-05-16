@@ -814,17 +814,24 @@
       "hidden": "Trace hidden"
     },
     "primitives": {
+      "contract": "Framework primitive contract",
+      "primitive": "Primitive",
+      "kind": "Kind",
+      "componentPath": "Component path",
       "identity": "Identity",
       "status": "Status & history",
       "trace": "Trace chain",
       "data": "Specs & data",
       "layout": "Layout primitives",
       "toolbar": "Toolbar",
-      "empty": "Empty state"
+      "empty": "Empty state",
+      "standardDialog": "Standard dialog",
+      "standardPage": "Standard page"
     },
     "contract": {
       "title": "Manifest health",
       "entities": "Entities",
+      "primitives": "Primitives",
       "variants": "Variants",
       "issues": "Issues",
       "source": "Source",

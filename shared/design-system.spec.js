@@ -80,6 +80,18 @@ describe('Design system manifest', () => {
     }
   });
 
+  it('renders every declared shared primitive in UI lab examples', () => {
+    const source = fs.readFileSync(path.join(REPO_ROOT, 'pages/test/ui-lab.vue'), 'utf8');
+    const match = source.match(/const PRIMITIVE_EXAMPLE_KEYS = \[([\s\S]*?)\];/);
+    expect(match).toBeTruthy();
+
+    const exampleKeys = Array.from(match[1].matchAll(/'([^']+)'/g)).map(item => item[1]).sort();
+    const primitiveKeys = DESIGN_SYSTEM_PRIMITIVES.map(primitive => primitive.key).sort();
+
+    expect(exampleKeys).toEqual(primitiveKeys);
+    expect(source).toContain('DESIGN_SYSTEM_PRIMITIVES');
+  });
+
   it('uses canonical artifact attachment and data type shape', () => {
     const artifact = factories.createMockArtifact();
 
