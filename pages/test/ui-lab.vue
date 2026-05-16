@@ -39,7 +39,14 @@
     </header>
 
     <section v-if="activeGroup" class="flex flex-col gap-10">
-      <article v-for="row in activeRows" :key="row.key" class="flex flex-col gap-4 rounded-panel border border-content-border bg-content p-4 [box-shadow:var(--ck-shadow-card)]">
+      <Message v-if="reviewError" severity="warn">
+        {{ reviewError }}
+      </Message>
+      <Message v-else-if="reviewLoading" severity="info">
+        {{ $t('common.loading') }}
+      </Message>
+
+      <article v-for="row in activeRowsWithModels" :key="row.key" class="flex flex-col gap-4 rounded-panel border border-content-border bg-content p-4 [box-shadow:var(--ck-shadow-card)]">
         <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <h2 class="m-0 text-base font-semibold">{{ $t(row.labelKey) }}</h2>
@@ -83,6 +90,94 @@
             auto-resize
           />
         </div>
+
+        <Panel :header="$t('uiLab.review.title')">
+          <template v-if="row.model">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div class="flex flex-col gap-1">
+                <small class="text-muted-color">{{ $t('uiLab.review.collection') }}</small>
+                <strong>{{ row.model.collection }}</strong>
+              </div>
+              <div class="flex flex-col gap-1">
+                <small class="text-muted-color">{{ $t('uiLab.review.fields') }}</small>
+                <strong>{{ row.model.fields?.length || 0 }}</strong>
+              </div>
+              <div class="flex flex-col gap-1">
+                <small class="text-muted-color">{{ $t('uiLab.review.source') }}</small>
+                <strong>{{ row.model.feature }}</strong>
+              </div>
+              <div class="flex flex-col gap-1">
+                <small class="text-muted-color">{{ $t('uiLab.review.issues') }}</small>
+                <strong>{{ row.model.issues?.length || 0 }}</strong>
+              </div>
+            </div>
+
+            <Message v-if="row.model.issues?.length" severity="warn" class="mt-4">
+              {{ row.model.issues.map((issue) => `${issue.field}: ${issue.issue}`).join(' · ') }}
+            </Message>
+
+            <div class="mt-4 overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr>
+                    <th class="text-left py-2">{{ $t('admin.dataModelReview.field') }}</th>
+                    <th class="text-left py-2">{{ $t('common.type') }}</th>
+                    <th class="text-left py-2">{{ $t('uiLab.review.flags') }}</th>
+                    <th class="text-left py-2">{{ $t('admin.dataModelReview.decision') }}</th>
+                    <th class="text-left py-2">{{ $t('admin.dataModelReview.target') }}</th>
+                    <th class="text-left py-2">{{ $t('common.note') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="field in row.model.fields || []" :key="field.name" class="border-t border-content-border align-top">
+                    <td class="py-3 pr-3 font-mono">{{ field.name }}</td>
+                    <td class="py-3 pr-3">{{ field.type }}</td>
+                    <td class="py-3 pr-3">
+                      <div class="flex flex-wrap gap-2">
+                        <Tag
+                          v-for="issue in field.issues || []"
+                          :key="issue"
+                          :value="issue"
+                          severity="warn"
+                          size="small"
+                        />
+                      </div>
+                    </td>
+                    <td class="py-3 pr-3 min-w-48">
+                      <Select
+                        v-model="reviewFieldFeedbackFor(row, field).decision"
+                        :options="reviewDecisionOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        class="w-full"
+                      />
+                    </td>
+                    <td class="py-3 pr-3 min-w-44">
+                      <InputText
+                        v-if="reviewFieldFeedbackFor(row, field).decision === 'rename' || reviewFieldFeedbackFor(row, field).decision === 'move'"
+                        v-model="reviewFieldFeedbackFor(row, field).target"
+                        :placeholder="$t('uiLab.review.targetPlaceholder')"
+                        class="w-full"
+                      />
+                    </td>
+                    <td class="py-3 min-w-64">
+                      <Textarea
+                        v-model="reviewFieldFeedbackFor(row, field).note"
+                        :placeholder="$t('uiLab.feedback.placeholder')"
+                        rows="2"
+                        class="w-full"
+                        auto-resize
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
+          <Message v-else severity="info">
+            {{ $t('uiLab.review.noModel') }}
+          </Message>
+        </Panel>
       </article>
     </section>
 
@@ -278,9 +373,10 @@
 <script setup>
 definePageMeta({ layout: 'ui-lab-layout' });
 
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
 import Panel from 'primevue/panel';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
@@ -290,6 +386,7 @@ import Message from 'primevue/message';
 import Textarea from 'primevue/textarea';
 import ThemeSwitcher from '~/components/ThemeSwitcher.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
+import frameworkManifest from '~/framework.manifest.json';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
@@ -328,6 +425,7 @@ const groups = DESIGN_SYSTEM_GROUPS;
 const variants = DESIGN_SYSTEM_VARIANTS;
 const FEEDBACK_STORAGE_KEY = 'cutkit:ui-lab-feedback:v1';
 const { t } = useI18n();
+const ENTITY_COLLECTION_BY_TYPE = new Map((frameworkManifest.entities || []).map(entity => [entity.type, entity.collection]));
 const PRIMITIVE_EXAMPLE_KEYS = [
   'EntityCard',
   'EntityPage',
@@ -355,11 +453,18 @@ const rows = createDesignSystemDemoRows();
 const manifestIssues = validateDesignSystemManifest();
 const entityStore = useEntityStore();
 const feedback = ref(loadFeedback());
+const reviewModels = ref([]);
+const reviewLoading = ref(false);
+const reviewError = ref(null);
 
 const activeSection = ref(groups[0]?.id || 'contract');
 const dialogVisible = ref(false);
 const activeGroup = computed(() => groups.find((group) => group.id === activeSection.value));
 const activeRows = computed(() => rows.filter((row) => row.group === activeSection.value));
+const activeRowsWithModels = computed(() => activeRows.value.map((row) => ({
+  ...row,
+  model: reviewModelForRow(row)
+})));
 
 const primitiveEntity = createMockQueue();
 const pileEntity = createMockPile();
@@ -386,6 +491,15 @@ const feedbackDecisionOptions = computed(() => [
   { label: t('uiLab.feedback.decisions.ok'), value: 'ok' }
 ]);
 
+const reviewDecisionOptions = computed(() => [
+  { label: t('admin.dataModelReview.decisions.unchecked'), value: 'unchecked' },
+  { label: t('admin.dataModelReview.decisions.keep'), value: 'keep' },
+  { label: t('admin.dataModelReview.decisions.remove'), value: 'remove' },
+  { label: t('admin.dataModelReview.decisions.rename'), value: 'rename' },
+  { label: t('admin.dataModelReview.decisions.move'), value: 'move' },
+  { label: t('admin.dataModelReview.decisions.investigate'), value: 'investigate' }
+]);
+
 const contractRows = computed(() =>
   rows.map((row) => ({
     label: row.key,
@@ -401,12 +515,27 @@ function feedbackKey(scope, key) {
   return `${scope}:${key}`;
 }
 
-function feedbackFor(scope, key) {
+function feedbackFor(scope, key, meta = {}) {
   const id = feedbackKey(scope, key);
   if (!feedback.value[id]) {
     feedback.value[id] = { scope, key, decision: 'unchecked', note: '' };
   }
+  if (meta.component && !feedback.value[id].component) feedback.value[id].component = meta.component;
+  if (meta.field && !feedback.value[id].field) feedback.value[id].field = meta.field;
   return feedback.value[id];
+}
+
+function reviewModelForRow(row) {
+  const collection = ENTITY_COLLECTION_BY_TYPE.get(row.entityType);
+  if (!collection) return null;
+  return reviewModels.value.find(model => model.collection === collection) || null;
+}
+
+function reviewFieldFeedbackFor(row, field) {
+  return feedbackFor('model', `${row.key}:${field.name}`, {
+    component: row.key,
+    field: field.name
+  });
 }
 
 function loadFeedback() {
@@ -417,6 +546,20 @@ function loadFeedback() {
     return JSON.parse(saved);
   } catch {
     return {};
+  }
+}
+
+async function loadReviewModels() {
+  reviewLoading.value = true;
+  reviewError.value = null;
+  try {
+    const result = await $fetch('/api/debug/data-models');
+    if (!result.success) throw new Error(result.error || t('admin.dataModelReview.loadFailed'));
+    reviewModels.value = result.models || [];
+  } catch (err) {
+    reviewError.value = err.data?.message || err.message || t('admin.dataModelReview.loadFailed');
+  } finally {
+    reviewLoading.value = false;
   }
 }
 
@@ -433,8 +576,22 @@ function buildFeedbackMarkdown() {
     '|---|---|---|---|'
   ];
 
-  for (const row of rows) {
-    lines.push(`| ${row.scope} | \`${row.key}\` | ${row.decision || 'unchecked'} | ${(row.note || '').replace(/\n/g, ' ')} |`);
+  for (const row of rows.filter(item => item.scope !== 'model')) {
+    lines.push(`| ${row.scope} | \`${row.component || row.key}\` | ${row.decision || 'unchecked'} | ${(row.note || '').replace(/\n/g, ' ')} |`);
+  }
+
+  const modelRows = rows.filter(item => item.scope === 'model');
+  if (modelRows.length) {
+    lines.push(
+      '',
+      t('uiLab.review.planTitle'),
+      '',
+      `| ${t('uiLab.feedback.component')} | ${t('admin.dataModelReview.field')} | ${t('admin.dataModelReview.decision')} | ${t('admin.dataModelReview.target')} | ${t('common.note')} |`,
+      '|---|---|---|---|---|'
+    );
+    for (const row of modelRows) {
+      lines.push(`| \`${row.component || row.key}\` | \`${row.field || row.key}\` | ${row.decision || 'unchecked'} | ${row.target || ''} | ${(row.note || '').replace(/\n/g, ' ')} |`);
+    }
   }
 
   return lines.join('\n');
@@ -475,6 +632,10 @@ function seedDemoTraceEntities() {
     };
   }
 }
+
+onMounted(async () => {
+  await loadReviewModels();
+});
 
 watch(feedback, value => {
   if (import.meta.client) {

@@ -850,6 +850,17 @@
         "ok": "OK"
       }
     },
+    "review": {
+      "title": "Data model review",
+      "collection": "Collection",
+      "fields": "Fields",
+      "source": "Source",
+      "issues": "Issues",
+      "flags": "Flags",
+      "noModel": "No extracted model matched this component.",
+      "targetPlaceholder": "Rename target or destination",
+      "planTitle": "## Data model review"
+    },
     "contract": {
       "title": "Manifest health",
       "entities": "Entities",
