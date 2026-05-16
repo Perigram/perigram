@@ -10,7 +10,7 @@ The page demonstrates:
 - entity card variants: `card`, `compact`, `inline`
 - every shared primitive declared in `DESIGN_SYSTEM_PRIMITIVES`, including entity chrome/layout, identity/data/spec/status blocks, trace links, table/dialog/page wrappers, and layout helpers
 - per-entity and per-primitive feedback controls persisted in localStorage under `cutkit:ui-lab-feedback:v1`, with markdown export to `ui-lab-feedback.md`
-- embedded data-model review for each entity row, loaded from `/api/debug/data-models`, collapsed/expanded per entity, and exported together with component feedback
+- embedded data-model review for each entity row, loaded from `/api/debug/data-models`, collapsed by default and expanded per entity, and exported together with component feedback
 - manifest health: missing component/factory/docs/DTO block issues
 
 Demo data comes from `test-data/factories.js` and should match API DTO shape.

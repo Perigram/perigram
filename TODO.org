@@ -781,3 +781,15 @@
     - TODO.org
     Notes:
     - Added per-row review toggle state so the data-model section can be collapsed and expanded without hiding the component preview.
+
+*** Agent Notes
+    [2026-05-16] Move UI lab data-model chevron into the section header
+    Files changed:
+    - pages/test/ui-lab.vue
+    - shared/design-system.spec.js
+    - pages/test/README.md
+    Docs updated:
+    - pages/test/README.md
+    - TODO.org
+    Notes:
+    - Made the review panel collapsed by default and moved the chevron control into the review panel header with an icon-only toggle.
