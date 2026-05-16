@@ -23,5 +23,9 @@ Key fields:
 - Org Admins: Read/Update own organization only
 - Individual Users: No direct access
 
+## API Behavior
+- `GET /api/organizations/:id` returns the serialized organization when found.
+- Missing organizations return 404 instead of attempting to serialize `null`.
+
 ## Related Components
 - [users](../users/README.md) - Users belong to organizations

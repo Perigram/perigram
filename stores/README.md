@@ -11,3 +11,4 @@ Pinia stores for client state and API orchestration.
 ## Conventions
 - Stores use `$fetch` to call Nitro API endpoints.
 - Long-running operations start optimistic UI updates and polling until terminal states.
+- Internal demo pages may pre-seed `entities.registry` with DTO-shaped mock entities so shared trace components render examples without calling authenticated APIs.

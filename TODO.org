@@ -503,6 +503,21 @@
       framework primitive, including entity chrome/layout, status, trace,
       blocks, table, dialog, page, and layout wrappers.
 
+*** Agent Notes
+    [2026-05-16] Fix UI lab log noise and add component feedback
+    Files changed: pages/test/ui-lab.vue, pages/admin/data-model-review.vue,
+      utils/design-system.js, utils/status-engine.js,
+      server/api/organizations/[id].get.js, i18n/locales/en.json,
+      i18n/locales/ru.json, shared/design-system.spec.js
+    Docs updated: pages/test/README.md, pages/admin/README.md,
+      server/features/organizations/README.md, stores/README.md, TODO.org
+    Notes: Removed duplicate Nuxt auto-import exports, changed cassette design
+      trace links to an existing route, seeded UI lab demo lineage entities to
+      avoid authenticated API fetches for mock IDs, returned 404 for missing
+      organizations, added localStorage feedback controls for every UI lab
+      entity/primitive, and added framework-manifest consistency checks to
+      data-model-review.
+
 * TODO Project-wide UI Refactoring [0/4]
     :PROPERTIES:
     :ID:       ui-refactor-v24
