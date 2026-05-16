@@ -52,9 +52,17 @@
             <h2 class="m-0 text-base font-semibold">{{ $t(row.labelKey) }}</h2>
             <small class="text-muted-color">{{ row.entityType }} · {{ row.propName }}</small>
           </div>
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <Tag :value="$t(`uiLab.statusPolicy.${row.status}`)" severity="secondary" />
             <Tag :value="row.trace ? $t('uiLab.tracePolicy.enabled') : $t('uiLab.tracePolicy.hidden')" severity="secondary" />
+            <Button
+              :icon="reviewExpanded(row.key) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+              :label="$t('uiLab.review.toggle')"
+              severity="secondary"
+              text
+              size="small"
+              @click="toggleReview(row.key)"
+            />
           </div>
         </div>
 
@@ -91,8 +99,7 @@
           />
         </div>
 
-        <Panel :header="$t('uiLab.review.title')">
-          <template v-if="row.model">
+        <Panel v-if="reviewExpanded(row.key) && row.model" :header="$t('uiLab.review.title')">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
               <div class="flex flex-col gap-1">
                 <small class="text-muted-color">{{ $t('uiLab.review.collection') }}</small>
@@ -173,10 +180,6 @@
                 </tbody>
               </table>
             </div>
-          </template>
-          <Message v-else severity="info">
-            {{ $t('uiLab.review.noModel') }}
-          </Message>
         </Panel>
       </article>
     </section>
@@ -456,6 +459,7 @@ const feedback = ref(loadFeedback());
 const reviewModels = ref([]);
 const reviewLoading = ref(false);
 const reviewError = ref(null);
+const expandedReviews = ref(new Set(rows.map(row => row.key)));
 
 const activeSection = ref(groups[0]?.id || 'contract');
 const dialogVisible = ref(false);
@@ -536,6 +540,20 @@ function reviewFieldFeedbackFor(row, field) {
     component: row.key,
     field: field.name
   });
+}
+
+function reviewExpanded(key) {
+  return expandedReviews.value.has(key);
+}
+
+function toggleReview(key) {
+  const next = new Set(expandedReviews.value);
+  if (next.has(key)) {
+    next.delete(key);
+  } else {
+    next.add(key);
+  }
+  expandedReviews.value = next;
 }
 
 function loadFeedback() {

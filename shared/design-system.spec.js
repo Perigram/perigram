@@ -178,8 +178,9 @@ describe('Design system manifest', () => {
     expect(source).toContain('loadReviewModels');
     expect(source).toContain('reviewModelForRow');
     expect(source).toContain('reviewFieldFeedbackFor');
+    expect(source).toContain('reviewExpanded');
+    expect(source).toContain('toggleReview');
     expect(source).toContain('uiLab.review.title');
-    expect(source).toContain('uiLab.review.noModel');
     expect(source).toContain('cutkit:ui-lab-feedback:v1');
   });
 
