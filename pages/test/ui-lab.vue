@@ -7,6 +7,8 @@
           <p class="m-0 text-muted-color">{{ $t('uiLab.subtitle') }}</p>
         </div>
         <div class="flex gap-2">
+          <Button icon="pi pi-download" :label="$t('uiLab.feedback.export')" severity="secondary" size="small" @click="exportFeedback" />
+          <Button icon="pi pi-trash" :label="$t('common.reset')" severity="danger" outlined size="small" @click="resetFeedback" />
           <ThemeSwitcher />
           <LanguageSwitcher />
         </div>
@@ -70,8 +72,8 @@
           <Select
             v-model="feedbackFor('entity', row.key).decision"
             :options="feedbackDecisionOptions"
-            option-label="label"
-            option-value="value"
+            optionLabel="label"
+            optionValue="value"
           />
           <Textarea
             v-model="feedbackFor('entity', row.key).note"
@@ -212,8 +214,8 @@
               <Select
                 v-model="feedbackFor('primitive', primitive.key).decision"
                 :options="feedbackDecisionOptions"
-                option-label="label"
-                option-value="value"
+                optionLabel="label"
+                optionValue="value"
               />
               <Textarea
                 v-model="feedbackFor('primitive', primitive.key).note"
@@ -416,6 +418,41 @@ function loadFeedback() {
   } catch {
     return {};
   }
+}
+
+function buildFeedbackMarkdown() {
+  const rows = Object.values(feedback.value)
+    .filter(item => (item.decision && item.decision !== 'unchecked') || item.note);
+
+  const lines = [
+    t('uiLab.feedback.planTitle'),
+    '',
+    `${t('admin.dataModelReview.generated')}: ${new Date().toISOString()}`,
+    '',
+    `| ${t('uiLab.feedback.scope')} | ${t('uiLab.feedback.component')} | ${t('admin.dataModelReview.decision')} | ${t('common.note')} |`,
+    '|---|---|---|---|'
+  ];
+
+  for (const row of rows) {
+    lines.push(`| ${row.scope} | \`${row.key}\` | ${row.decision || 'unchecked'} | ${(row.note || '').replace(/\n/g, ' ')} |`);
+  }
+
+  return lines.join('\n');
+}
+
+function exportFeedback() {
+  const blob = new Blob([buildFeedbackMarkdown()], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'ui-lab-feedback.md';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function resetFeedback() {
+  feedback.value = {};
+  if (import.meta.client) localStorage.removeItem(FEEDBACK_STORAGE_KEY);
 }
 
 function seedDemoTraceEntities() {

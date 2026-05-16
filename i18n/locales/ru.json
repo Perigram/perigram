@@ -838,7 +838,11 @@
       "standardPage": "Стандартная страница"
     },
     "feedback": {
+      "export": "Экспорт отзывов",
       "placeholder": "Подробный отзыв и необходимые исправления...",
+      "planTitle": "# Отзывы UI Lab",
+      "scope": "Область",
+      "component": "Компонент",
       "decisions": {
         "unchecked": "Не проверено",
         "fix": "Нужно исправить",

@@ -838,7 +838,11 @@
       "standardPage": "Standard page"
     },
     "feedback": {
+      "export": "Export Feedback",
       "placeholder": "Detailed feedback and requested fixes...",
+      "planTitle": "# UI Lab Feedback",
+      "scope": "Scope",
+      "component": "Component",
       "decisions": {
         "unchecked": "Unchecked",
         "fix": "Needs fix",
