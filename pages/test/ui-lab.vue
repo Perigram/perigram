@@ -65,6 +65,22 @@
             </div>
           </div>
         </div>
+
+        <div class="grid grid-cols-1 gap-3 border-t border-content-border pt-4 md:grid-cols-[12rem_1fr]">
+          <Select
+            v-model="feedbackFor('entity', row.key).decision"
+            :options="feedbackDecisionOptions"
+            option-label="label"
+            option-value="value"
+          />
+          <Textarea
+            v-model="feedbackFor('entity', row.key).note"
+            :placeholder="$t('uiLab.feedback.placeholder')"
+            rows="2"
+            class="w-full"
+            auto-resize
+          />
+        </div>
       </article>
     </section>
 
@@ -191,6 +207,22 @@
                 <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-inbox" />
               </StandardPage>
             </template>
+
+            <div class="grid grid-cols-1 gap-3 border-t border-content-border pt-4 md:grid-cols-[12rem_1fr]">
+              <Select
+                v-model="feedbackFor('primitive', primitive.key).decision"
+                :options="feedbackDecisionOptions"
+                option-label="label"
+                option-value="value"
+              />
+              <Textarea
+                v-model="feedbackFor('primitive', primitive.key).note"
+                :placeholder="$t('uiLab.feedback.placeholder')"
+                rows="2"
+                class="w-full"
+                auto-resize
+              />
+            </div>
           </div>
         </Panel>
       </div>
@@ -244,13 +276,16 @@
 <script setup>
 definePageMeta({ layout: 'ui-lab-layout' });
 
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
+import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Message from 'primevue/message';
+import Textarea from 'primevue/textarea';
 import ThemeSwitcher from '~/components/ThemeSwitcher.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
@@ -270,21 +305,27 @@ import EntityPage from '~/components/shared/EntityPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import {
-  DESIGN_SYSTEM_GROUPS,
-  DESIGN_SYSTEM_PRIMITIVES,
-  DESIGN_SYSTEM_VARIANTS,
   createDesignSystemDemoRows,
   validateDesignSystemManifest
 } from '~/utils/design-system.js';
 import {
+  DESIGN_SYSTEM_GROUPS,
+  DESIGN_SYSTEM_PRIMITIVES,
+  DESIGN_SYSTEM_VARIANTS
+} from '~/utils/design-system-contract.js';
+import {
+  MOCK_IDS,
   createMockHistory,
   createMockPile,
   createMockQueue,
   createMockSheet
 } from '~/test-data/factories.js';
+import { useEntityStore } from '~/stores/entities';
 
 const groups = DESIGN_SYSTEM_GROUPS;
 const variants = DESIGN_SYSTEM_VARIANTS;
+const FEEDBACK_STORAGE_KEY = 'cutkit:ui-lab-feedback:v1';
+const { t } = useI18n();
 const PRIMITIVE_EXAMPLE_KEYS = [
   'EntityCard',
   'EntityPage',
@@ -310,6 +351,8 @@ const primitiveRows = DESIGN_SYSTEM_PRIMITIVES.map((primitive) => ({
 }));
 const rows = createDesignSystemDemoRows();
 const manifestIssues = validateDesignSystemManifest();
+const entityStore = useEntityStore();
+const feedback = ref(loadFeedback());
 
 const activeSection = ref(groups[0]?.id || 'contract');
 const dialogVisible = ref(false);
@@ -320,6 +363,8 @@ const primitiveEntity = createMockQueue();
 const pileEntity = createMockPile();
 const sheetEntity = createMockSheet();
 const mockHistory = createMockHistory(['DRAFT', 'NESTING', 'READY']);
+
+seedDemoTraceEntities();
 
 const pileFields = [
   { path: 'data.stock.total', i18n: 'piles.stockTotal' },
@@ -332,6 +377,13 @@ const queueFields = [
   { path: 'summary.sheetCount', i18n: 'results.sheets' }
 ];
 
+const feedbackDecisionOptions = computed(() => [
+  { label: t('uiLab.feedback.decisions.unchecked'), value: 'unchecked' },
+  { label: t('uiLab.feedback.decisions.fix'), value: 'fix' },
+  { label: t('uiLab.feedback.decisions.improve'), value: 'improve' },
+  { label: t('uiLab.feedback.decisions.ok'), value: 'ok' }
+]);
+
 const contractRows = computed(() =>
   rows.map((row) => ({
     label: row.key,
@@ -342,4 +394,54 @@ const contractRows = computed(() =>
     docs: row.docs.join(', ')
   }))
 );
+
+function feedbackKey(scope, key) {
+  return `${scope}:${key}`;
+}
+
+function feedbackFor(scope, key) {
+  const id = feedbackKey(scope, key);
+  if (!feedback.value[id]) {
+    feedback.value[id] = { scope, key, decision: 'unchecked', note: '' };
+  }
+  return feedback.value[id];
+}
+
+function loadFeedback() {
+  if (!import.meta.client) return {};
+  const saved = localStorage.getItem(FEEDBACK_STORAGE_KEY);
+  if (!saved) return {};
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return {};
+  }
+}
+
+function seedDemoTraceEntities() {
+  const demoEntities = [
+    { type: 'organization', id: MOCK_IDS.organizationId, name: 'Acme Manufacturing' },
+    { type: 'project', id: MOCK_IDS.projectId, name: 'Downtown Complex', slug: 'downtown-complex' },
+    { type: 'queue', id: MOCK_IDS.queueId, name: 'Morning Production Run' },
+    { type: 'warehouse', id: MOCK_IDS.warehouseId, name: 'Main Logistic Hub' },
+    { type: 'catalog', id: MOCK_IDS.catalogId, name: 'Standard Metals' }
+  ];
+
+  for (const item of demoEntities) {
+    if (!entityStore.registry[item.type]) entityStore.registry[item.type] = {};
+    entityStore.registry[item.type][item.id] = {
+      _id: item.id,
+      id: item.id,
+      identity: { uid: item.id, name: item.name, slug: item.slug },
+      name: item.name,
+      slug: item.slug
+    };
+  }
+}
+
+watch(feedback, value => {
+  if (import.meta.client) {
+    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(value));
+  }
+}, { deep: true });
 </script>

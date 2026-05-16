@@ -23,13 +23,8 @@ import ArtifactCard from '~/components/entities/Artifact/ArtifactCard.vue';
 import * as factories from '~/test-data/factories.js';
 import {
   DESIGN_SYSTEM_ENTITY_CONTRACTS,
-  DESIGN_SYSTEM_GROUPS,
-  DESIGN_SYSTEM_PRIMITIVES,
-  DESIGN_SYSTEM_VARIANTS,
   validateDesignSystemContracts
 } from '~/utils/design-system-contract.js';
-
-export { DESIGN_SYSTEM_GROUPS, DESIGN_SYSTEM_PRIMITIVES, DESIGN_SYSTEM_VARIANTS };
 
 const components = {
   project: ProjectCard,

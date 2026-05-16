@@ -4,14 +4,7 @@ import {
   Identity,
   Status,
   Lineage,
-  Specs,
-  BaseEntity,
-  registerService,
-  getService,
-  defineEntity,
-  getEntityDefinition,
-  listEntityDefinitions,
-  createData
+  Specs
 } from '~/packages/core/src/index.js';
 
 export {
@@ -26,7 +19,7 @@ export {
   getEntityDefinition,
   listEntityDefinitions,
   createData
-};
+} from '~/packages/core/src/index.js';
 
 // Factory helpers for clean service code
 export const createIdentity = (name, slug, serial = '', reference = '') => 

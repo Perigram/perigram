@@ -90,6 +90,13 @@ describe('Design system manifest', () => {
 
     expect(exampleKeys).toEqual(primitiveKeys);
     expect(source).toContain('DESIGN_SYSTEM_PRIMITIVES');
+    expect(source).toContain('cutkit:ui-lab-feedback:v1');
+  });
+
+  it('keeps design-system runtime exports distinct from contract exports', () => {
+    const source = fs.readFileSync(path.join(REPO_ROOT, 'utils/design-system.js'), 'utf8');
+
+    expect(source).not.toMatch(/export\s*\{[^}]*DESIGN_SYSTEM_(GROUPS|PRIMITIVES|VARIANTS)/);
   });
 
   it('uses canonical artifact attachment and data type shape', () => {

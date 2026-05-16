@@ -592,6 +592,15 @@
         "all": "All fields",
         "flagged": "Flagged only",
         "annotated": "Annotated only"
+      },
+      "contract": {
+        "title": "Framework contract consistency",
+        "entities": "Manifest entities",
+        "missingInReview": "Missing in review",
+        "missingInContract": "Missing in contract",
+        "missingReviewItem": "{collection} is in the framework manifest but not in the extracted review data.",
+        "missingContractItem": "{collection} is extracted for review but not declared in the framework manifest.",
+        "ok": "Extracted review collections match the framework manifest."
       }
     }
   },
@@ -827,6 +836,15 @@
       "empty": "Empty state",
       "standardDialog": "Standard dialog",
       "standardPage": "Standard page"
+    },
+    "feedback": {
+      "placeholder": "Detailed feedback and requested fixes...",
+      "decisions": {
+        "unchecked": "Unchecked",
+        "fix": "Needs fix",
+        "improve": "Improve",
+        "ok": "OK"
+      }
     },
     "contract": {
       "title": "Manifest health",

@@ -6,6 +6,33 @@
             <Button icon="pi pi-trash" :label="$t('common.reset')" severity="danger" outlined @click="resetAnnotations" />
         </template>
 
+        <Panel :header="$t('admin.dataModelReview.contract.title')">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div class="flex flex-col gap-1">
+                    <span>{{ $t('admin.dataModelReview.contract.entities') }}</span>
+                    <strong>{{ manifestEntities.length }}</strong>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span>{{ $t('admin.dataModelReview.collections') }}</span>
+                    <strong>{{ models.length }}</strong>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span>{{ $t('admin.dataModelReview.contract.missingInReview') }}</span>
+                    <strong>{{ missingInReview.length }}</strong>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span>{{ $t('admin.dataModelReview.contract.missingInContract') }}</span>
+                    <strong>{{ missingInContract.length }}</strong>
+                </div>
+            </div>
+            <Message v-if="contractIssues.length === 0" severity="success" class="mt-4">
+                {{ $t('admin.dataModelReview.contract.ok') }}
+            </Message>
+            <Message v-for="issue in contractIssues" v-else :key="issue" severity="warn" class="mt-3">
+                {{ issue }}
+            </Message>
+        </Panel>
+
         <div class="grid grid-cols-1 lg:grid-cols-[20rem_1fr] gap-6">
             <Panel :header="$t('admin.dataModelReview.filters')">
                     <div class="flex flex-col gap-4">
@@ -116,6 +143,7 @@ import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import StandardPage from '~/components/shared/StandardPage.vue';
+import frameworkManifest from '~/framework.manifest.json';
 
 definePageMeta({
     layout: 'app'
@@ -131,6 +159,21 @@ const error = ref(null);
 const search = ref('');
 const selectedCollection = ref('all');
 const issueFilter = ref('all');
+
+const manifestEntities = frameworkManifest.entities || [];
+const manifestCollections = computed(() => new Set(manifestEntities.map(entity => entity.collection)));
+const reviewCollections = computed(() => new Set(models.value.map(model => model.collection)));
+const missingInReview = computed(() => manifestEntities
+    .filter(entity => !reviewCollections.value.has(entity.collection))
+    .map(entity => entity.collection));
+const missingInContract = computed(() => models.value
+    .filter(model => !manifestCollections.value.has(model.collection))
+    .map(model => model.collection));
+const contractIssues = computed(() => [
+    ...missingInReview.value.map(collection => t('admin.dataModelReview.contract.missingReviewItem', { collection })),
+    ...missingInContract.value.map(collection => t('admin.dataModelReview.contract.missingContractItem', { collection })),
+    ...(frameworkManifest.validations?.issues || []).map(issue => `${issue.area || 'manifest'}: ${issue.issue}`)
+]);
 
 const decisionOptions = computed(() => [
     { label: t('admin.dataModelReview.decisions.unchecked'), value: 'unchecked' },
