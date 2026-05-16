@@ -752,3 +752,18 @@
     Notes:
     - Added materials, layer standards, pen templates, and tool profiles to the CNC framework entity manifest source.
     - Kept template/auth/audit/preset support collections visible in data-model review but excluded them from missing-manifest warnings.
+
+*** Agent Notes
+    [2026-05-16] Merge data-model review into UI lab component rows
+    Files changed:
+    - pages/test/ui-lab.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    - shared/design-system.spec.js
+    - pages/test/README.md
+    Docs updated:
+    - pages/test/README.md
+    - TODO.org
+    Notes:
+    - Loaded `/api/debug/data-models` directly in UI lab and attached matched model fields to each entity row.
+    - Added per-field review controls and included both component and data-model feedback in the UI lab export.
