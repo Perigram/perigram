@@ -159,6 +159,19 @@ describe('Design system manifest', () => {
     expect(cassetteTemplate.fieldPaths).not.toContain('parameterCount');
   });
 
+  it('keeps data-model review support collections out of manifest gap warnings', () => {
+    const source = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/data-model-review.vue'), 'utf8');
+
+    expect(source).toContain('const SUPPORT_COLLECTIONS = new Set');
+    expect(source).toContain('collection_name');
+    expect(source).toContain('invitations');
+    expect(source).toContain('material_options');
+    expect(source).toContain('sessions');
+    expect(source).toContain('status_events');
+    expect(source).toContain('const contractModels = computed');
+    expect(source).toContain('!SUPPORT_COLLECTIONS.has(model.collection)');
+  });
+
   it('keeps entity cards on shared EntityCard title chrome', () => {
     const offenders = walkFiles(
       path.join(REPO_ROOT, 'components/entities'),

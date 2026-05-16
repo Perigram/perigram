@@ -88,6 +88,12 @@ describe('Framework package contracts', () => {
     });
 
     expect(cncEntities.find(entity => entity.type === 'queue')?.collection).toBe('queues');
+    expect(cncEntities).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'layer_standard', collection: 'layer_standards' }),
+      expect.objectContaining({ type: 'material', collection: 'materials' }),
+      expect.objectContaining({ type: 'pen_template', collection: 'pen_templates' }),
+      expect.objectContaining({ type: 'tool_profile', collection: 'tool_profiles' })
+    ]));
     expect(cncWorkflows.queue.initial).toBe('DRAFT');
     const endpointMap = createEndpointMap(cncFrontendEntities);
     expect(getSingleEndpoint(endpointMap, 'project', 'p-1')).toBe('/api/project/p-1');

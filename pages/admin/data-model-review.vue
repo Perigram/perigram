@@ -150,6 +150,13 @@ definePageMeta({
 });
 
 const STORAGE_KEY = 'cutkit:data-model-review:v1';
+const SUPPORT_COLLECTIONS = new Set([
+    'collection_name',
+    'invitations',
+    'material_options',
+    'sessions',
+    'status_events'
+]);
 const { t } = useI18n();
 
 const models = ref([]);
@@ -162,11 +169,12 @@ const issueFilter = ref('all');
 
 const manifestEntities = frameworkManifest.entities || [];
 const manifestCollections = computed(() => new Set(manifestEntities.map(entity => entity.collection)));
-const reviewCollections = computed(() => new Set(models.value.map(model => model.collection)));
+const contractModels = computed(() => models.value.filter(model => !SUPPORT_COLLECTIONS.has(model.collection)));
+const reviewCollections = computed(() => new Set(contractModels.value.map(model => model.collection)));
 const missingInReview = computed(() => manifestEntities
     .filter(entity => !reviewCollections.value.has(entity.collection))
     .map(entity => entity.collection));
-const missingInContract = computed(() => models.value
+const missingInContract = computed(() => contractModels.value
     .filter(model => !manifestCollections.value.has(model.collection))
     .map(model => model.collection));
 const contractIssues = computed(() => [

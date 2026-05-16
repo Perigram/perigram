@@ -763,6 +763,31 @@
         "attachments",
         "data"
       ],
+      "collection": "layer_standards",
+      "lineage": {},
+      "type": "layer_standard"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "attachments",
+        "data"
+      ],
+      "collection": "materials",
+      "lineage": {},
+      "type": "material"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data"
+      ],
       "collection": "material_piles",
       "lineage": {},
       "type": "material_pile"
@@ -791,6 +816,19 @@
       "collection": "organizations",
       "lineage": {},
       "type": "organization"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data"
+      ],
+      "collection": "pen_templates",
+      "lineage": {},
+      "type": "pen_template"
     },
     {
       "blocks": [
@@ -872,6 +910,19 @@
       "collection": "sheet_designs",
       "lineage": {},
       "type": "sheet_design"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data"
+      ],
+      "collection": "tool_profiles",
+      "lineage": {},
+      "type": "tool_profile"
     },
     {
       "blocks": [
