@@ -25,8 +25,8 @@ export {
 export const createIdentity = (name, slug, serial = '', reference = '') => 
   new Identity(slug || name, name, slug, serial, reference);
 
-export const createStatus = (state, userId, metadata = {}, eventId = null) => 
-  new Status(state, userId, metadata, eventId);
+export const createStatus = (state, userId, metadata = {}, eventId = null, lifecycle = {}) => 
+  new Status(state, userId, metadata, eventId, null, lifecycle);
 
 export const createSpecs = (data) => new Specs(data);
 

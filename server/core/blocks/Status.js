@@ -6,7 +6,7 @@ import { ObjectId } from 'mongodb';
  * (Forced reload comment)
  */
 export class Status {
-  constructor(state, userId, metadata = {}, eventId = null, timestamp = null) {
+  constructor(state, userId, metadata = {}, eventId = null, timestamp = null, lifecycle = {}) {
     if (!state) throw new Error('Status: state is required');
     
     this.state = state;
@@ -14,6 +14,11 @@ export class Status {
     this.timestamp = timestamp ? new Date(timestamp) : new Date();
     this.metadata = metadata || {};
     this.eventId = eventId ? (eventId instanceof ObjectId ? eventId : new ObjectId(eventId)) : null;
+    this.lifecycle = {
+      actors: Array.isArray(lifecycle?.actors) ? lifecycle.actors : [],
+      attachments: lifecycle?.attachments && typeof lifecycle.attachments === 'object' ? lifecycle.attachments : {},
+      data: lifecycle?.data && typeof lifecycle.data === 'object' ? lifecycle.data : {}
+    };
   }
 
   toJSON() {
@@ -22,7 +27,8 @@ export class Status {
       userId: this.userId,
       timestamp: this.timestamp,
       metadata: this.metadata,
-      eventId: this.eventId
+      eventId: this.eventId,
+      lifecycle: this.lifecycle
     };
   }
 }

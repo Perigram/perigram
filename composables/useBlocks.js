@@ -41,6 +41,14 @@ export const useStatus = (entity) => {
   const state = computed(() => statusBlock.value.state || 'UNKNOWN');
   const timestamp = computed(() => statusBlock.value.timestamp ? new Date(statusBlock.value.timestamp) : null);
   const metadata = computed(() => statusBlock.value.metadata || {});
+  const lifecycle = computed(() => {
+    const source = statusBlock.value.lifecycle || {};
+    return {
+      actors: Array.isArray(source.actors) ? source.actors : [],
+      attachments: source.attachments || {},
+      data: source.data || {}
+    };
+  });
   
   const statusColor = computed(() => {
     // Try exact match in mappings
@@ -61,7 +69,7 @@ export const useStatus = (entity) => {
     return colors[s] || 'secondary';
   });
 
-  return { state, timestamp, metadata, statusColor };
+  return { state, timestamp, metadata, lifecycle, statusColor };
 };
 
 export const useLineage = (entity) => {

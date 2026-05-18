@@ -25,31 +25,43 @@ export const cncEntities = [
 export const cncWorkflows = {
   project: {
     initial: 'DRAFT',
-    states: { DRAFT: { canUpdateMeta: true }, ACTIVE: { canUpdateMeta: true }, CLOSED: { isTerminal: true } },
+    states: { DRAFT: { canUpdateMeta: true }, ACTIVE: { canUpdateMeta: true }, CLOSED: { isTerminal: true, canUpdateMeta: false } },
     transitions: [
       { from: 'DRAFT', to: 'ACTIVE', roles: ['SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'EDITOR'] },
       { from: 'ACTIVE', to: 'CLOSED', roles: ['SuperAdmin', 'ContractorAdmin', 'ADMIN'], hooks: [{ handler: 'propagateToChildren', params: { childType: 'queue', childState: 'CLOSED' } }] },
-      { from: 'ACTIVE', to: 'DRAFT', roles: ['SuperAdmin', 'ContractorAdmin', 'ADMIN'] }
+      { from: 'ACTIVE', to: 'DRAFT', roles: ['SuperAdmin', 'ContractorAdmin', 'ADMIN'] },
+      { from: 'DRAFT', to: 'DRAFT', roles: ['SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'EDITOR'] },
+      { from: 'ACTIVE', to: 'ACTIVE', roles: ['SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'EDITOR'] }
     ]
   },
   queue: {
     initial: 'DRAFT',
-    states: { DRAFT: { canUpdateMeta: true }, NESTING: { canUpdateMeta: true }, READY: { canUpdateMeta: true }, CUT: { isTerminal: true }, CLOSED: { isTerminal: true } },
+    states: { DRAFT: { canUpdateMeta: true }, NESTING: { canUpdateMeta: true }, READY: { canUpdateMeta: true }, CUT: { isTerminal: true, canUpdateMeta: false }, CLOSED: { isTerminal: true, canUpdateMeta: false } },
     transitions: [
       { from: 'DRAFT', to: 'NESTING', roles: ['SYSTEM', 'SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'READY', roles: ['SYSTEM', 'SuperAdmin'], hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'READY', to: 'CUT', roles: ['SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }, { handler: 'processPhysicalCut' }] },
-      { from: 'READY', to: 'CLOSED', roles: ['SuperAdmin', 'ContractorAdmin', 'ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] }
+      { from: 'READY', to: 'CLOSED', roles: ['SuperAdmin', 'ContractorAdmin', 'ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'DRAFT', roles: ['SYSTEM', 'SuperAdmin', 'ContractorAdmin', 'ADMIN'], hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'READY', to: 'DRAFT', roles: ['SuperAdmin', 'ContractorAdmin', 'ADMIN'], hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'CLOSED', to: 'DRAFT', roles: ['SuperAdmin', 'ContractorAdmin', 'ADMIN'], hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'DRAFT', to: 'DRAFT', roles: ['SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'EDITOR'] },
+      { from: 'NESTING', to: 'NESTING', roles: ['SYSTEM', 'SuperAdmin'] },
+      { from: 'READY', to: 'READY', roles: ['SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'EDITOR'] }
     ]
   },
   nesting_run: {
     initial: 'NESTING',
-    states: { NESTING: { canUpdateMeta: true }, COMPLETE: { canUpdateMeta: true }, ERROR: { isTerminal: true }, CHOSEN: { isTerminal: true }, REJECTED: { isTerminal: true } },
+    states: { NESTING: { canUpdateMeta: true }, COMPLETE: { canUpdateMeta: true }, ERROR: { isTerminal: true, canUpdateMeta: true }, CHOSEN: { isTerminal: true, canUpdateMeta: false }, REJECTED: { isTerminal: true, canUpdateMeta: false } },
     transitions: [
       { from: 'NESTING', to: 'COMPLETE', roles: ['SYSTEM', 'SuperAdmin'], hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'ERROR', roles: ['SYSTEM', 'SuperAdmin'], hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'COMPLETE', to: 'CHOSEN', roles: ['SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }, { handler: 'createPhysicalUnits' }] },
-      { from: 'COMPLETE', to: 'REJECTED', roles: ['SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] }
+      { from: 'COMPLETE', to: 'REJECTED', roles: ['SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'CHOSEN', to: 'COMPLETE', roles: ['SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'EDITOR'], hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'NESTING', roles: ['SYSTEM', 'SuperAdmin'] },
+      { from: 'COMPLETE', to: 'COMPLETE', roles: ['SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'EDITOR'] },
+      { from: 'ERROR', to: 'ERROR', roles: ['SYSTEM', 'SuperAdmin'] }
     ]
   },
   cassette: {
@@ -59,7 +71,12 @@ export const cncWorkflows = {
   },
   sheet: {
     initial: 'AVAILABLE',
-    states: { AVAILABLE: { canUpdateMeta: true }, 'IN-CUTTING': { canUpdateMeta: true }, MILLED: { canUpdateMeta: true }, SCRAP: { isTerminal: true } },
+    states: {
+      AVAILABLE: { canUpdateMeta: true },
+      'IN-CUTTING': { canUpdateMeta: true },
+      MILLED: { canUpdateMeta: true, canUpdateLifecycle: true, lifecycle: { actors: ['operator'], attachments: { geometry: { multiple: false }, photos: { multiple: true } }, data: true } },
+      SCRAP: { isTerminal: true, canUpdateMeta: true, canUpdateLifecycle: true, lifecycle: { actors: ['operator'], attachments: { photos: { multiple: true } }, data: true } }
+    },
     transitions: [
       { from: 'AVAILABLE', to: 'IN-CUTTING', roles: ['SYSTEM', 'SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'OPERATOR'] },
       { from: 'IN-CUTTING', to: 'MILLED', roles: ['SYSTEM', 'SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'OPERATOR'] },
@@ -69,7 +86,11 @@ export const cncWorkflows = {
   },
   cassette_instance: {
     initial: 'PRODUCED',
-    states: { PRODUCED: {}, MILLED: {}, INSTALLED: {} },
+    states: {
+      PRODUCED: { canUpdateLifecycle: true, lifecycle: { actors: ['engineering', 'operator', 'mounting'], attachments: { geometry: { multiple: false }, photos: { multiple: true } }, data: true } },
+      MILLED: { canUpdateLifecycle: true, lifecycle: { actors: ['engineering', 'operator', 'mounting'], attachments: { geometry: { multiple: false }, photos: { multiple: true } }, data: true } },
+      INSTALLED: { canUpdateLifecycle: true, lifecycle: { actors: ['mounting'], attachments: { geometry: { multiple: false }, photos: { multiple: true } }, data: true } }
+    },
     transitions: [
       { from: 'PRODUCED', to: 'MILLED', roles: ['SYSTEM', 'SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'OPERATOR'], hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'MILLED', to: 'INSTALLED', roles: ['SuperAdmin', 'ContractorAdmin', 'IndividualUser', 'ADMIN', 'OPERATOR'], hooks: [{ handler: 'triggerAggregator' }] }

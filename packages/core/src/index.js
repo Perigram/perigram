@@ -17,13 +17,14 @@ export class Identity {
 }
 
 export class Status {
-  constructor(state, userId = 'SYSTEM', metadata = {}, eventId = null, timestamp = new Date()) {
+  constructor(state, userId = 'SYSTEM', metadata = {}, eventId = null, timestamp = new Date(), lifecycle = {}) {
     if (!state) throw new Error('Status: state is required');
     this.state = state;
     this.userId = userId || 'SYSTEM';
     this.timestamp = timestamp ? new Date(timestamp) : new Date();
     this.metadata = metadata || {};
     this.eventId = eventId;
+    this.lifecycle = normalizeStatusLifecycle(lifecycle);
   }
 
   toJSON() {
@@ -32,9 +33,19 @@ export class Status {
       userId: this.userId,
       timestamp: this.timestamp,
       metadata: this.metadata,
-      eventId: this.eventId
+      eventId: this.eventId,
+      lifecycle: this.lifecycle
     };
   }
+}
+
+export function normalizeStatusLifecycle(lifecycle = {}) {
+  const source = lifecycle && typeof lifecycle === 'object' ? lifecycle : {};
+  return {
+    actors: Array.isArray(source.actors) ? source.actors : [],
+    attachments: source.attachments && typeof source.attachments === 'object' ? source.attachments : {},
+    data: source.data && typeof source.data === 'object' ? source.data : {}
+  };
 }
 
 export class Lineage {
@@ -89,8 +100,8 @@ export class BaseEntity {
       raw.identity?.reference || raw.reference || ''
     );
     this.lineage = new Lineage(raw.lineage || {});
-    this.origin = raw.origin?.state ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId, raw.origin.timestamp) : null;
-    this.status = raw.status?.state ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId, raw.status.timestamp) : null;
+    this.origin = raw.origin?.state ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId, raw.origin.timestamp, raw.origin.lifecycle) : null;
+    this.status = raw.status?.state ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId, raw.status.timestamp, raw.status.lifecycle) : null;
     this.specs = raw.specs ? new Specs(raw.specs) : null;
     this.attachments = raw.attachments || {};
     this.data = raw.data || {};
@@ -105,8 +116,8 @@ export class BaseEntity {
     return this.identity?.name || '';
   }
 
-  applyStatus(state, userId, metadata = {}, eventId = null) {
-    const next = new Status(state, userId, metadata, eventId);
+  applyStatus(state, userId, metadata = {}, eventId = null, lifecycle = {}) {
+    const next = new Status(state, userId, metadata, eventId, null, lifecycle);
     if (!this.origin) this.origin = next;
     this.status = next;
     return this;
@@ -167,7 +178,7 @@ export function clearServices() {
 }
 
 export const createIdentity = (name, slug = '', serial = '', reference = '', uid = slug || name) => new Identity(uid, name, slug, serial, reference);
-export const createStatus = (state, userId = 'SYSTEM', metadata = {}, eventId = null) => new Status(state, userId, metadata, eventId);
+export const createStatus = (state, userId = 'SYSTEM', metadata = {}, eventId = null, lifecycle = {}) => new Status(state, userId, metadata, eventId, null, lifecycle);
 export const createSpecs = (data = {}) => new Specs(data);
 export const createData = (data = {}) => ({ ...data });
 export const inheritLineage = (parent, type, mapId = value => value) => new Lineage(parent?.lineage || {}).add(type, mapId(parent?.identity?.uid || parent?._id));

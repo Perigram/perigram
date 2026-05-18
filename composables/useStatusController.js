@@ -36,15 +36,18 @@ export const useStatusController = () => {
     return map[type] || `/api/${type}/${id}`;
   };
 
-  const transition = async (entityType, targetId, newState, metadata = {}) => {
+  const transition = async (entityType, targetId, newState, context = {}) => {
     isTransitioning.value = true;
     transitionError.value = null;
+    const statusMeta = context && typeof context === 'object' && ('metadata' in context || 'lifecycle' in context)
+      ? context
+      : { metadata: context || {} };
     
     try {
       // Use standard PATCH update endpoint which handles status updates
       const response = await $fetch(getStatusEndpoint(entityType, targetId), {
         method: 'PATCH',
-        body: { status: newState, statusMeta: metadata }
+        body: { status: newState, statusMeta }
       });
       return response;
     } catch (err) {

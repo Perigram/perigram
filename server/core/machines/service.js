@@ -6,7 +6,7 @@ import { hooks } from './hooks.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { createError } from 'h3';
 import { pluralize } from '../../utils/strings.js';
-import { validateTransition } from '~/packages/workflows/src/index.js';
+import { normalizeLifecycle, validateTransition } from '~/packages/workflows/src/index.js';
 
 /**
  * Unified Status Service - v24 Absolute Final
@@ -24,6 +24,7 @@ export const statusService = {
    * @param {Object} metadata - Optional notes/attachments
    */
   async transition(entityType, targetId, targetState, userId, userRole, metadata = {}) {
+    const transitionContext = normalizeTransitionContext(metadata);
     const db = await connectDB();
     const machine = stateMachines[entityType];
     
@@ -47,13 +48,21 @@ export const statusService = {
     }
     
     const currentState = entity.status?.state || machine.initial;
+    const targetLifecycleSchema = machine.states?.[targetState]?.lifecycle;
+    const lifecycleForValidation = targetLifecycleSchema
+      ? mergeLifecycle(entity.status?.lifecycle, transitionContext.lifecycle)
+      : transitionContext.lifecycle;
+    const lifecycleForStatus = targetLifecycleSchema ? lifecycleForValidation : normalizeLifecycle();
     
     // 1. Validate Transition
     const validation = validateTransition({
       workflow: machine,
       currentState,
       targetState,
-      role: userRole
+      role: userRole,
+      actorId: userId,
+      currentStatus: entity.status,
+      lifecycle: lifecycleForValidation
     });
     const transition = validation.transition;
 
@@ -71,10 +80,24 @@ export const statusService = {
         message: `Unauthorized: Role "${userRole}" cannot perform transition ${currentState} -> ${targetState} for ${entityType}. Allowed roles: ${validation.allowedRoles.join(', ')}` 
       });
     }
+
+    if (!validation.ok && (validation.reason === 'actor_denied' || validation.reason === 'capability_denied')) {
+      throw createError({
+        statusCode: 403,
+        message: `Unauthorized lifecycle actor for transition ${currentState} -> ${targetState} for ${entityType}`
+      });
+    }
+
+    if (!validation.ok) {
+      throw createError({
+        statusCode: 400,
+        message: `Invalid lifecycle payload for ${entityType} status ${targetState}: ${validation.reason}`
+      });
+    }
     
     // 3. Create Event Record
     const eventId = new ObjectId();
-    const newStatus = createStatus(targetState, userId, metadata, eventId);
+    const newStatus = createStatus(targetState, userId, transitionContext.metadata, eventId, lifecycleForStatus);
     
     // Ensure we store a plain object in DB, not a class instance
     const statusData = JSON.parse(JSON.stringify(newStatus));
@@ -128,3 +151,34 @@ export const statusService = {
     return newStatus;
   }
 };
+
+function normalizeTransitionContext(input = {}) {
+  if (input && typeof input === 'object' && ('metadata' in input || 'lifecycle' in input)) {
+    return {
+      metadata: input.metadata && typeof input.metadata === 'object' ? input.metadata : {},
+      lifecycle: normalizeLifecycle(input.lifecycle)
+    };
+  }
+
+  return {
+    metadata: input && typeof input === 'object' ? input : {},
+    lifecycle: normalizeLifecycle()
+  };
+}
+
+function mergeLifecycle(current = {}, next = {}) {
+  const currentLifecycle = normalizeLifecycle(current);
+  const nextLifecycle = normalizeLifecycle(next);
+
+  return {
+    actors: nextLifecycle.actors.length > 0 ? nextLifecycle.actors : currentLifecycle.actors,
+    attachments: {
+      ...currentLifecycle.attachments,
+      ...nextLifecycle.attachments
+    },
+    data: {
+      ...currentLifecycle.data,
+      ...nextLifecycle.data
+    }
+  };
+}

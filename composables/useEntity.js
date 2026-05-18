@@ -24,7 +24,7 @@ export const useEntity = (type, identifier = null) => {
 
   // Block helpers — reactive to entity ref
   const { name, slug, serial, reference } = useIdentity(entity);
-  const { state, statusColor, timestamp: statusTime, metadata: statusMeta } = useStatus(entity);
+  const { state, statusColor, timestamp: statusTime, metadata: statusMeta, lifecycle: statusLifecycle } = useStatus(entity);
   const { lineage, getAncestorId } = useLineage(entity);
   const { specs, formattedDimensions, formattedArea } = useSpecs(entity);
 
@@ -136,9 +136,9 @@ export const useEntity = (type, identifier = null) => {
   /**
    * Perform a state machine status transition
    */
-  const changeStatus = async (newState, metadata = {}) => {
+  const changeStatus = async (newState, context = {}) => {
     const id = entity.value?._id || entity.value?.id || identifier;
-    const result = await transition(type, id, newState, metadata);
+    const result = await transition(type, id, newState, context);
     if (result) {
       await fetch(id);
     }
@@ -164,6 +164,7 @@ export const useEntity = (type, identifier = null) => {
     statusColor,
     statusTime,
     statusMeta,
+    statusLifecycle,
     lineage,
     specs,
     formattedDimensions,

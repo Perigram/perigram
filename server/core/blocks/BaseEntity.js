@@ -26,8 +26,8 @@ export class BaseEntity {
     this.lineage = new Lineage(raw.lineage || {});
     
     // 3. Status
-    this.origin = (raw.origin && raw.origin.state) ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId, raw.origin.timestamp) : null;
-    this.status = (raw.status && raw.status.state) ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId, raw.status.timestamp) : null;
+    this.origin = (raw.origin && raw.origin.state) ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId, raw.origin.timestamp, raw.origin.lifecycle) : null;
+    this.status = (raw.status && raw.status.state) ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId, raw.status.timestamp, raw.status.lifecycle) : null;
     
     // 4. Specs (Optional)
     this.specs = raw.specs ? new Specs(raw.specs) : null;
@@ -73,8 +73,8 @@ export class BaseEntity {
   /**
    * Transition to a new status
    */
-  applyStatus(state, userId, metadata = {}, eventId = null) {
-    const s = new Status(state, userId, metadata, eventId);
+  applyStatus(state, userId, metadata = {}, eventId = null, lifecycle = {}) {
+    const s = new Status(state, userId, metadata, eventId, null, lifecycle);
     if (!this.origin) this.origin = s;
     this.status = s;
     return this;
