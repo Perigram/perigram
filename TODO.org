@@ -811,3 +811,28 @@
     - TODO.org
     Notes:
     - Made the review panel collapsed by default and moved the chevron control into the review panel header with an icon-only toggle.
+
+*** Agent Notes
+    [2026-05-18] Enforce strict canonical block DTO contract
+    Files changed:
+    - packages/core/src/index.js
+    - server/core/blocks/BaseEntity.js
+    - server/features/*/model.js and affected services
+    - components/entities/*, components/shared/*, composables/*, stores/*, pages/*
+    - test-data/factories.js
+    - scripts/check-arch.js
+    - framework.manifest.json
+    - focused vitest specs
+    Docs updated:
+    - README.md
+    - packages/core/README.md
+    - server/core/blocks/README.md
+    - server/DATA_MODEL.md
+    - components/shared/README.md
+    - composables/README.md
+    - test-data/README.md
+    - TODO.org
+    Notes:
+    - Removed root DTO aliases and constructor migrations from core/entity models; entity responses now use root _id plus canonical blocks only.
+    - Updated framework UI components and DTO factories to read identity/status/data/specs/attachments/summary paths directly.
+    - Added architecture checks for root alias serialization, legacy raw field reads, and framework UI root-field regressions.

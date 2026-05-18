@@ -2,7 +2,7 @@
 
 **Enterprise Pattern:** Reusable factory functions for consistent test data across the application and design-system demos.
 
-Factories in this directory represent **API DTO shape**, not raw MongoDB documents. They preserve v24 blocks (`identity`, `origin`, `status`, `lineage`, `attachments`, `data`, `summary`) and add only real hoisted DTO aliases emitted by current models/services.
+Factories in this directory represent **API DTO shape**, not raw MongoDB documents. They preserve the strict v24 block contract: root `_id` plus `identity`, `origin`, `status`, `lineage`, `specs`, `attachments`, `data`, and `summary`.
 
 ## Why Factory Functions?
 
@@ -45,8 +45,8 @@ const project = createMockProject();
 ### With Overrides
 ```javascript
 const customProject = createMockProject({
-  name: 'My Custom Project',
-  customer: 'Different Corp'
+  identity: { name: 'My Custom Project' },
+  data: { customer: 'Different Corp' }
 });
 // Merges your overrides with defaults
 ```
@@ -80,8 +80,9 @@ To add a new factory:
 export function createMockYourEntity(overrides = {}) {
   return {
     _id: new ObjectId(),
-    // ... all required fields with realistic defaults
-    createdAt: new Date(),
+    identity: { uid: 'your-entity-1', name: 'Your Entity' },
+    status: { state: 'ACTIVE' },
+    data: {},
     ...overrides // Always spread at the end
   };
 }
@@ -97,5 +98,5 @@ Factories are built from:
 
 This ensures mock data matches what your API actually expects/returns.
 
-When a component needs a new field for display, update the relevant DTO factory and manifest entry together. Do not add flat compatibility fields unless the API actually returns them.
+When a component needs a new field for display, update the relevant DTO factory and manifest entry together. Do not add flat compatibility fields.
 When an entity type has a workflow, the factory `status.state` must be one of that workflow's canonical states; `shared/design-system.spec.js` enforces this for UI lab demos.

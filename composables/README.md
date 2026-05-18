@@ -44,6 +44,12 @@ const result = useEntity(type, identifier?)
 | `list(filters?)` | `async (filters?) => items[]` | Fetch collection (see below) |
 | `items` | `Ref<array>` | Results from last `list()` call |
 
+Entity JSON is strict block DTO data: root `_id` plus canonical blocks only.
+`useEntity` exposes convenience computed refs for `identity`, `status`,
+`lineage`, and `specs`, but it does not rely on root aliases such as
+`entity.id`, `entity.name`, `entity.slug`, `entity.type`, or
+`entity.parameters`.
+
 ### Fetching a single entity
 
 ```js

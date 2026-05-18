@@ -2,6 +2,13 @@
 
 This document is procedurally generated from the actual codebase. It reflects the refactored v24 Standardized architecture using blocks.
 
+Entity DTOs use the strict block contract: root `_id` plus canonical blocks only.
+Identity fields (`name`, `slug`, `serial`, `reference`) live under `identity`;
+feature fields live under `data`, dimensions under `specs`, files under
+`attachments`, and aggregate values under `summary`. Root compatibility aliases
+such as `id`, `name`, `type`, `geometry`, or `parameters` are intentionally not
+part of the contract.
+
 ## Collections
 
 ### artifacts
@@ -40,8 +47,6 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `data.reference` | String | reference field |
-| `data.serial` | String | serial field |
 
 ### cassettes
 *Cassettes - manages cassettes*
@@ -149,7 +154,6 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `data.quantity` | Number | quantity field |
 | `data.serial` | String | serial field |
 | `data.specs` | Array | specs field |
 | `data.stock` | String | stock field |
@@ -233,9 +237,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.job` | String | job field |
-| `data.layoutData` | String | layout data field |
 | `data.queueNumber` | String | queue number field |
-| `data.results` | Array | results field |
 
 ### remnants
 *Remnants - manages remnants*
@@ -369,4 +371,3 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.contactPerson` | String | contact person field |
 | `data.stats` | Array | stats field |
 | `data.type` | String | type field |
-

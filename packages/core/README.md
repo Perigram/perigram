@@ -14,7 +14,13 @@ application import path while extraction continues.
 
 `Status` includes normalized `lifecycle` facts in addition to event-local
 `metadata`. Missing lifecycle data is emitted as
-`{ actors: [], attachments: {}, data: {} }` for backward-compatible DTOs.
+`{ actors: [], attachments: {}, data: {} }`.
+
+`BaseEntity.toJSON()` is strict: it emits root `_id` plus canonical blocks only.
+Entity identity fields stay under `identity`; feature fields stay under `data`,
+`specs`, `attachments`, or `summary`. The core package does not provide root
+aliases such as `id`, `name`, `slug`, `serial`, `type`, or `parameters`, and
+constructors do not migrate legacy root fields.
 
 ## Related
 

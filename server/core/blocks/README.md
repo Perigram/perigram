@@ -34,7 +34,7 @@ Identity { uid, name, slug, serial, reference }
 
 **Rules:**
 - `serial` and `reference` belong **only** in Identity. Do NOT copy them into `data`.
-- `name` and `slug` are always emitted flat by `BaseEntity.toJSON()` (legacy compat). Do not re-declare in subclasses.
+- `name`, `slug`, `serial`, and `reference` are never emitted as root DTO aliases. Read and render them through `identity`.
 
 ---
 
@@ -54,7 +54,7 @@ Status { state, userId, timestamp, metadata, eventId, lifecycle }
 | `eventId` | ObjectId \| null | Reference to `status_events` collection entry |
 | `lifecycle` | object | Current mutable facts owned by this lifecycle state |
 
-`lifecycle` always serializes as `{ actors: [], attachments: {}, data: {} }` for legacy-safe reads. Use it for current lifecycle facts such as assigned actors, state-specific attachment refs, and measured/captured state data. Do not use `metadata` for durable facts that must be queried, diffed, or updated independently.
+`lifecycle` always serializes as `{ actors: [], attachments: {}, data: {} }`. Use it for current lifecycle facts such as assigned actors, state-specific attachment refs, and measured/captured state data. Do not use `metadata` for durable facts that must be queried, diffed, or updated independently.
 
 **Usage:** Created with `createStatus(state, userId, metadata, eventId, lifecycle)` or via `BaseEntity.applyStatus()`.
 
@@ -93,7 +93,7 @@ Root class for all v24 feature models.
 
 ```js
 class BaseEntity {
-  constructor(raw)   // raw = MongoDB document or params object
+  constructor(raw)   // raw = canonical block document
   get id()           // returns this._id.toString()
   applyStatus(state, userId, metadata, eventId)  // transitions status; sets origin on first call
   getAncestor(type)  // async; uses service registry to load parent
@@ -106,7 +106,6 @@ class BaseEntity {
 ```json
 {
   "_id": "<ObjectId>",
-  "id": "<string>",
   "identity": { "uid", "name", "slug", "serial", "reference" },
   "lineage": { "organizationId", "projectId", "queueId", ... },
   "origin":  { "state", "userId", "timestamp", "metadata", "eventId", "lifecycle" },
@@ -114,15 +113,14 @@ class BaseEntity {
   "specs":   { "sheetThickness", "foilThickness", "width", "length", "area" } | null,
   "attachments": {},
   "data": {},
-  "summary": {},
-  "name": "<string>",   // flat alias for identity.name
-  "slug": "<string>"    // flat alias for identity.slug
+  "summary": {}
 }
 ```
 
 **Rules for subclasses:**
-- Call `super.toJSON()` and spread it: `return { ...super.toJSON(), extraField }`
-- Do NOT re-emit `name`, `slug`, `serial`, `reference`, `identity`, `lineage`, `status`, `origin`
+- Call `super.toJSON()` and spread it only when replacing a canonical block, for example to remove private fields from `data`.
+- Do NOT re-emit root aliases such as `id`, `name`, `slug`, `serial`, `reference`, `type`, `geometry`, or `parameters`.
+- Constructors accept canonical blocks only. Do not migrate from root fields or private `params` bags.
 - Feature-specific fields belong in `data` (mutable) or `specs` (physical dimensions)
 - Computed aggregates belong in `summary`
 

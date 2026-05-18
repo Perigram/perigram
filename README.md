@@ -172,6 +172,7 @@ CassetteInstance lifecycle
 - **User IDs** are OAuth string IDs, not MongoDB ObjectIds.
 - **Lineage** is flat and cumulative: `child.lineage = { ...parent.lineage, [parentType]Id: parent._id }`.
 - **Standard Blocks**: Every entity has `identity`, `status`, `origin`, `lineage`. See [server/README.md](./server/README.md).
+- **Canonical DTOs**: Entity responses expose root `_id` plus canonical blocks only (`identity`, `origin`, `status`, `lineage`, `specs`, `attachments`, `data`, `summary`). Do not add flat aliases such as `id`, `name`, `slug`, `serial`, `type`, `geometry`, or `parameters`.
 - **State machines**: All status transitions go through `server/core/machines/`; side-effects registered per-feature.
 - **No cross-module DB access**: Features talk to each other via service calls only.
 - **Serialization**: API endpoints always return `Model.toJSON()`, never raw DB docs.
