@@ -12,6 +12,10 @@ application import path while extraction continues.
 - `registerService()`, `getService()`, `clearServices()`
 - `createIdentity()`, `createStatus()`, `createSpecs()`, `createData()`, `inheritLineage()`, `createAttachment()`
 
+`Status` includes normalized `lifecycle` facts in addition to event-local
+`metadata`. Missing lifecycle data is emitted as
+`{ actors: [], attachments: {}, data: {} }` for backward-compatible DTOs.
+
 ## Related
 
 - [server/core/blocks/README.md](../../server/core/blocks/README.md)

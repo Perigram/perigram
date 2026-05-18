@@ -42,7 +42,7 @@ Identity { uid, name, slug, serial, reference }
 Immutable state snapshot. Used for both `origin` (creation) and `status` (current lifecycle state).
 
 ```
-Status { state, userId, timestamp, metadata, eventId }
+Status { state, userId, timestamp, metadata, eventId, lifecycle }
 ```
 
 | Field | Type | Purpose |
@@ -50,10 +50,13 @@ Status { state, userId, timestamp, metadata, eventId }
 | `state` | string | Machine state key (e.g. `'OPEN'`, `'PROCESSING'`) |
 | `userId` | string | OAuth user ID who caused transition; `'SYSTEM'` for automated |
 | `timestamp` | Date | When this status was recorded |
-| `metadata` | object | Arbitrary context for the transition (notes, reason codes) |
+| `metadata` | object | Event-local transition context (notes, reason codes, job/request ids) |
 | `eventId` | ObjectId \| null | Reference to `status_events` collection entry |
+| `lifecycle` | object | Current mutable facts owned by this lifecycle state |
 
-**Usage:** Created with `createStatus(state, userId, metadata)` or via `BaseEntity.applyStatus()`.
+`lifecycle` always serializes as `{ actors: [], attachments: {}, data: {} }` for legacy-safe reads. Use it for current lifecycle facts such as assigned actors, state-specific attachment refs, and measured/captured state data. Do not use `metadata` for durable facts that must be queried, diffed, or updated independently.
+
+**Usage:** Created with `createStatus(state, userId, metadata, eventId, lifecycle)` or via `BaseEntity.applyStatus()`.
 
 ---
 
@@ -106,8 +109,8 @@ class BaseEntity {
   "id": "<string>",
   "identity": { "uid", "name", "slug", "serial", "reference" },
   "lineage": { "organizationId", "projectId", "queueId", ... },
-  "origin":  { "state", "userId", "timestamp", "metadata", "eventId" },
-  "status":  { "state", "userId", "timestamp", "metadata", "eventId" },
+  "origin":  { "state", "userId", "timestamp", "metadata", "eventId", "lifecycle" },
+  "status":  { "state", "userId", "timestamp", "metadata", "eventId", "lifecycle" },
   "specs":   { "sheetThickness", "foilThickness", "width", "length", "area" } | null,
   "attachments": {},
   "data": {},
@@ -143,7 +146,7 @@ Register on module load. Each service must expose `getById(id)`.
 | Function | Returns | Notes |
 |---|---|---|
 | `createIdentity(name, slug, serial, reference)` | `Identity` | `uid` generated; use when creating new entities |
-| `createStatus(state, userId, metadata, eventId)` | `Status` | `eventId` optional |
+| `createStatus(state, userId, metadata, eventId, lifecycle)` | `Status` | `eventId` and `lifecycle` optional |
 | `createSpecs(rawObject)` | `Specs` | |
 | `createData(object)` | `object` | Shallow copy; documents intent |
 | `inheritLineage(parentEntity, type)` | `Lineage` | Copies parent.lineage + adds `${type}Id` |

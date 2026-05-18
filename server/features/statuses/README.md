@@ -12,10 +12,21 @@ status: {
   state: String,     // e.g., "DRAFT", "ACTIVE", "READY"
   userId: String,    // User who triggered the state change
   timestamp: Date,   // When the change occurred
-  metadata: Object,  // Optional notes, eventId reference, etc.
-  eventId: ObjectId  // Link to status_events record
+  metadata: Object,  // Event-local transition context
+  eventId: ObjectId, // Link to status_events record
+  lifecycle: {
+    actors: Array,       // Current state/capability assignments
+    attachments: Object, // Generic state-owned attachment refs
+    data: Object         // State-owned mutable facts
+  }
 }
 ```
+
+`metadata` is for why/how the transition happened: notes, reason codes, source,
+and request/job ids. Durable current-state facts belong in `lifecycle` so they
+can be validated, audited, and updated without multiplying entity-specific
+fields. When the target state allows lifecycle facts, existing lifecycle values
+carry forward and incoming lifecycle values patch over them.
 
 ### Audit Log: `status_events`
 Every state transition is recorded in the `status_events` collection for full traceability.
@@ -37,6 +48,7 @@ Transitions are governed by declarative machines in `server/core/machines/`.
 
 - **Validation:** Ensures only valid `from` -> `to` transitions are allowed.
 - **Role Guards:** Restricts transitions to specific user roles.
+- **Lifecycle Guards:** Validates lifecycle payloads against state schemas and honors actor/capability assignments when present.
 - **Hooks:** Triggers side-effects (e.g., updating parent summaries or child states).
 
 ## Usage
@@ -57,6 +69,21 @@ await statusService.transition(
   userId, 
   userRole, 
   { note: 'Started production' }
+);
+
+await statusService.transition(
+  'cassette_instance',
+  instance._id,
+  'MILLED',
+  userId,
+  userRole,
+  {
+    metadata: { note: 'Measured after milling' },
+    lifecycle: {
+      attachments: { geometry: { fileId, bucketName: 'uploads' } },
+      data: { measuredWidth: 1200 }
+    }
+  }
 );
 ```
 

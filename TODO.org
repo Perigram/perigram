@@ -5,6 +5,24 @@
   [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
 
 *** Agent Notes
+     [2026-05-18] Expand status lifecycle ownership and domain workflow runtime
+     Files changed: packages/core/src/index.js, packages/workflows/src/index.js,
+       packages/domain-cnc/src/index.js, server/core/blocks/Status.js,
+       server/core/blocks/BaseEntity.js, server/core/blocks/index.js,
+       server/core/machines/definitions.js, server/core/machines/service.js,
+       composables/useBlocks.js, composables/useEntity.js,
+       composables/useStatusController.js, packages/workflows/src/index.spec.js,
+       server/core/machines/service.spec.js
+     Docs updated: server/core/blocks/README.md,
+       server/core/machines/README.md, server/features/statuses/README.md,
+       packages/core/README.md, packages/workflows/README.md,
+       packages/domain-cnc/README.md, composables/README.md
+     Notes: Status now normalizes `lifecycle` alongside event-local
+       `metadata`; workflow validation supports lifecycle schemas and
+       actor/capability guards. Runtime machine definitions now come from
+       `@cutkit/domain-cnc` via the compatibility definitions export.
+
+*** Agent Notes
      [2026-05-14] Fix queue nesting failure for parametric template string IDs
      Files changed: server/features/parametric-cassettes/repository.js,
        server/features/parametric-cassettes/service.js,

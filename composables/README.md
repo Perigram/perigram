@@ -30,6 +30,7 @@ const result = useEntity(type, identifier?)
 | `statusColor` | `ComputedRef<string>` | PrimeVue severity string |
 | `statusTime` | `ComputedRef<Date>` | `entity.status.timestamp` |
 | `statusMeta` | `ComputedRef<object>` | `entity.status.metadata` |
+| `statusLifecycle` | `ComputedRef<object>` | Normalized `entity.status.lifecycle` |
 | `lineage` | `ComputedRef<object>` | Full lineage block |
 | `getAncestorId(type)` | `(type) => string` | `lineage[typeId]` |
 | `specs` | `ComputedRef<object>` | Full specs block |
@@ -39,7 +40,7 @@ const result = useEntity(type, identifier?)
 | `create(data?)` | `async (data) => entity` | POST to create entity |
 | `update(data)` | `async (data) => entity` | PATCH entity |
 | `remove(id?)` | `async () => void` | DELETE entity |
-| `changeStatus(state, meta?)` | `async () => result` | State machine transition |
+| `changeStatus(state, metaOrContext?)` | `async () => result` | State machine transition |
 | `list(filters?)` | `async (filters?) => items[]` | Fetch collection (see below) |
 | `items` | `Ref<array>` | Results from last `list()` call |
 
@@ -109,6 +110,10 @@ Supports both camelCase and snake_case entity type keys for runtime status compo
 ```js
 const { transition, isTransitioning } = useStatusController();
 await transition(type, id, newState, metadata);
+await transition(type, id, newState, {
+  metadata: { note: 'Measured after milling' },
+  lifecycle: { attachments: { geometry: geometryRef } }
+});
 ```
 
 ---
@@ -155,6 +160,10 @@ Used by `<TraceChain>` component.
 const { entity, fetch, name, state, changeStatus } = useEntity('project', slug);
 onMounted(() => fetch());
 const close = () => changeStatus('CLOSED', { note: 'Done' });
+const mill = () => changeStatus('MILLED', {
+  metadata: { note: 'Measured after milling' },
+  lifecycle: { attachments: { geometry: geometryRef } }
+});
 
 // List all queues in a project
 const { items: queues, list, loading } = useEntity('queue');
