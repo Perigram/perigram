@@ -69,8 +69,11 @@ describe('Projects & Multi-tenant Ownership', () => {
       contractor1.permissions
     );
 
-    expect(result.name).toBe('High-Rise Tower');
-    expect(result.id).toMatch(/high-rise-tower-/);
+    const dto = result.toJSON();
+    expect(dto.identity.name).toBe('High-Rise Tower');
+    expect(dto._id).toMatch(/high-rise-tower-/);
+    expect(dto).not.toHaveProperty('id');
+    expect(dto).not.toHaveProperty('name');
     expect(result.lineage.organizationId.toString()).toBe(contractor1.organizationId.toString());
     expect(result.status.state).toBe('DRAFT');
   });
@@ -81,18 +84,18 @@ describe('Projects & Multi-tenant Ownership', () => {
 
     const list1 = await projectService.list(contractor1.userId, contractor1.organizationId, contractor1.role, contractor1.permissions);
     expect(list1).toHaveLength(1);
-    expect(list1[0].name).toBe('Org 1 Proj');
+    expect(list1[0].toJSON().identity.name).toBe('Org 1 Proj');
 
     const list2 = await projectService.list(contractor2.userId, contractor2.organizationId, contractor2.role, contractor2.permissions);
     expect(list2).toHaveLength(1);
-    expect(list2[0].name).toBe('Org 2 Proj');
+    expect(list2[0].toJSON().identity.name).toBe('Org 2 Proj');
   });
 
   it('should deny access to other organization projects', async () => {
     const project = await projectService.create({ name: 'Secret Proj' }, contractor1.userId, contractor1.organizationId, contractor1.role, contractor1.permissions);
 
     await expect(projectService.getBySlug(
-      project.id, 
+      project._id, 
       contractor2.userId, 
       contractor2.organizationId, 
       contractor2.role, 

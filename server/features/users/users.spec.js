@@ -56,10 +56,13 @@ describe('User Management & Auth', () => {
 
     const user = await userService.register(data);
     
-    expect(user.email).toBe('test@example.com');
-    expect(user.role).toBe('ManufacturerAdmin');
-    expect(user.permissions.catalogs).toBe('admin');
-    expect(user.isActive).toBe(true);
+    const dto = user.toJSON();
+    expect(dto.data.email).toBe('test@example.com');
+    expect(dto.data.role).toBe('ManufacturerAdmin');
+    expect(dto.data.permissions.catalogs).toBe('admin');
+    expect(dto.data.isActive).toBe(true);
+    expect(dto).not.toHaveProperty('email');
+    expect(dto).not.toHaveProperty('role');
 
     const raw = await db.collection('users').findOne({ 'data.email': 'test@example.com' });
     expect(raw.data.passwordHash).toBe('hashed_password');
@@ -74,7 +77,7 @@ describe('User Management & Auth', () => {
 
     const result = await userService.login('login@example.com', 'correct_password');
 
-    expect(result.user.email).toBe('login@example.com');
+    expect(result.user.toJSON().data.email).toBe('login@example.com');
     expect(result.sessionId).toBeTruthy();
     expect(result.accessToken).toBeTruthy();
   });
@@ -84,18 +87,20 @@ describe('User Management & Auth', () => {
     const org2 = new ObjectId();
     
     const user = await db.collection('users').insertOne({
-      name: 'Multi-org User',
-      organizationId: org1,
+      identity: { uid: 'multi-org-user', name: 'Multi-org User' },
+      lineage: { organizationId: org1 },
+      data: {
       memberships: [
         { organizationId: org1, role: 'ContractorAdmin', permissions: {} },
         { organizationId: org2, role: 'IndividualUser', permissions: {} }
       ]
+      }
     });
 
     const updatedUser = await userService.switchOrganization(user.insertedId.toString(), org2.toString());
     
-    expect(updatedUser.organizationId.toString()).toBe(org2.toString());
-    expect(updatedUser.role).toBe('IndividualUser');
+    expect(updatedUser.toJSON().lineage.organizationId.toString()).toBe(org2.toString());
+    expect(updatedUser.toJSON().data.role).toBe('IndividualUser');
   });
 
   it('should deny switching to an organization without membership', async () => {
@@ -103,8 +108,9 @@ describe('User Management & Auth', () => {
     const fakeOrg = new ObjectId();
     
     const user = await db.collection('users').insertOne({
-      organizationId: org1,
-      memberships: [{ organizationId: org1 }]
+      identity: { uid: 'single-org-user', name: 'Single-org User' },
+      lineage: { organizationId: org1 },
+      data: { memberships: [{ organizationId: org1 }] }
     });
 
     await expect(userService.switchOrganization(user.insertedId.toString(), fakeOrg.toString()))

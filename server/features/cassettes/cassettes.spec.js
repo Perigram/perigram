@@ -61,8 +61,10 @@ describe('Cassette Management & Ownership', () => {
     const data = { name: 'Standard Unit', type: 'STANDARD' };
     const result = await cassetteService.create(data, user1.userId, user1.organizationId, 'ContractorAdmin', user1.permissions);
 
-    expect(result.name).toBe('Standard Unit');
-    expect(result.type).toBe('STANDARD');
+    expect(result.identity.name).toBe('Standard Unit');
+    expect(result.data.type).toBe('STANDARD');
+    expect(result).not.toHaveProperty('name');
+    expect(result).not.toHaveProperty('type');
     expect(result.lineage.organizationId.toString()).toBe(user1.organizationId.toString());
   });
 
@@ -75,9 +77,9 @@ describe('Cassette Management & Ownership', () => {
     };
     const result = await cassetteService.create(data, user1.userId, user1.organizationId, 'ContractorAdmin', user1.permissions);
 
-    expect(result.type).toBe('PARAMETRIC');
-    expect(result.definition.params.width).toBe(100);
-    expect(result.definition.params.height).toBe(200);
+    expect(result.data.type).toBe('PARAMETRIC');
+    expect(result.data.definition.params.width).toBe(100);
+    expect(result.data.definition.params.height).toBe(200);
   });
 
   it('should deny access to cassettes owned by other users', async () => {
@@ -102,6 +104,6 @@ describe('Cassette Management & Ownership', () => {
       'SuperAdmin', 
       { memberships: [] }
     );
-    expect(result.name).toBe('User 1 Template');
+    expect(result.identity.name).toBe('User 1 Template');
   });
 });

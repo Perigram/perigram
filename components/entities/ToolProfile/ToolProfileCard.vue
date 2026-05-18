@@ -53,5 +53,5 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const diameter = computed(() => props.tool.data?.diameter || props.tool.diameter || null);
+const diameter = computed(() => props.tool.data?.diameter || null);
 </script>

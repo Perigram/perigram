@@ -8,16 +8,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = await connectDB();
-  const user = await db.collection("users").findOne({ id: userId });
+  const user = await db.collection("users").findOne({ _id: userId });
   if (!user) {
     setResponseStatus(401);
     return {};
   }
   return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    avatar: user.avatarUrl || "/api/user/avatar",
-    isAdmin: user.isAdmin || false,
+    id: user._id,
+    name: user.identity?.name,
+    email: user.data?.email,
+    avatar: user.data?.avatarUrl || "/api/user/avatar",
+    isAdmin: user.data?.isAdmin || false,
   };
 });

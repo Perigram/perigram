@@ -1,9 +1,9 @@
 /**
  * v24 DTO factories used by UI lab and lightweight component tests.
  *
- * Factories model API DTOs, not raw MongoDB documents. They keep canonical
- * blocks (`identity`, `origin`, `status`, `lineage`, `attachments`, `data`)
- * and add only the hoisted fields that current model/service DTOs emit.
+ * Factories model API DTOs, not raw MongoDB documents. They keep only
+ * canonical blocks (`identity`, `origin`, `status`, `lineage`, `attachments`,
+ * `data`, `summary`, `specs`) plus root `_id`.
  */
 import { ObjectId } from 'bson';
 
@@ -36,15 +36,13 @@ const createEntity = ({
   specs = null,
   attachments = {},
   data = {},
-  summary = {},
-  hoists = {}
+  summary = {}
 }) => {
   const origin = createStatusBlock(state, 'user-demo', { note: 'Demo entity created' });
   const identity = { uid, name, slug, serial, reference };
 
   return {
     _id: uid,
-    id: uid,
     identity,
     origin,
     status: origin,
@@ -52,10 +50,7 @@ const createEntity = ({
     specs,
     attachments,
     data,
-    summary,
-    name,
-    slug,
-    ...hoists
+    summary
   };
 };
 
@@ -106,8 +101,7 @@ export function createMockQueue(overrides = {}) {
       state: 'DRAFT',
       lineage: { organizationId: MOCK_IDS.organizationId, projectId: MOCK_IDS.projectId },
       data: { job, queueNumber: 'Q-001' },
-      summary: { runCount: 2, sheetCount: 12, totalArea: 45.6 },
-      hoists: { job, queueNumber: 'Q-001' }
+      summary: { runCount: 2, sheetCount: 12, totalArea: 45.6 }
     }),
     ...overrides
   };
@@ -125,8 +119,7 @@ export function createMockNestingRun(overrides = {}) {
         projectId: MOCK_IDS.projectId,
         queueId: MOCK_IDS.queueId
       },
-      data: { results, layoutData: {} },
-      hoists: { results, layoutData: {} }
+      data: { results, layoutData: {} }
     }),
     ...overrides
   };
@@ -142,8 +135,7 @@ export function createMockSheetDesign(overrides = {}) {
       state: 'READY',
       lineage: { queueId: MOCK_IDS.queueId, runId: MOCK_IDS.runId },
       specs: { width: 2000, length: 1000, area: 2, sheetThickness: 4 },
-      data: { geometry },
-      hoists: { geometry }
+      data: { geometry }
     }),
     ...overrides
   };
@@ -170,8 +162,7 @@ export function createMockCassetteTemplate(overrides = {}) {
         organizationId: MOCK_IDS.organizationId,
         userId: 'user-demo'
       },
-      attachments: {},
-      hoists: { type: 'PARAMETRIC', definition, parameters }
+      attachments: {}
     }),
     ...overrides
   };
@@ -187,8 +178,7 @@ export function createMockCassetteDesign(overrides = {}) {
       serial: 'CD-FACADE-01',
       state: 'APPROVED',
       lineage: { projectId: MOCK_IDS.projectId, templateId: MOCK_IDS.cassetteTemplateId },
-      data: { geometry, parameters },
-      hoists: { geometry, parameters }
+      data: { geometry, parameters }
     }),
     ...overrides
   };
@@ -208,8 +198,7 @@ export function createMockCassetteInstance(overrides = {}) {
         runId: MOCK_IDS.runId,
         cassetteDesignId: MOCK_IDS.cassetteDesignId
       },
-      data: { serial: 'INST-0001', reference: 'Panel-A-01' },
-      hoists: { serial: 'INST-0001', reference: 'Panel-A-01' }
+      data: {}
     }),
     ...overrides
   };
@@ -229,8 +218,7 @@ export function createMockSheet(overrides = {}) {
         runId: MOCK_IDS.runId
       },
       specs: { width: 3000, length: 1500, area: 4.5, sheetThickness: 4 },
-      data: { serial: 'SH-2025-001' },
-      hoists: { serial: 'SH-2025-001' }
+      data: {}
     }),
     ...overrides
   };
@@ -251,8 +239,7 @@ export function createMockPile(overrides = {}) {
         catalogId: MOCK_IDS.catalogId
       },
       specs,
-      data: { serial: 'P-101', specs, stock, quantity: stock.total },
-      hoists: { serial: 'P-101', specs, stock }
+      data: { specs, stock, quantity: stock.total }
     }),
     ...overrides
   };
@@ -260,11 +247,8 @@ export function createMockPile(overrides = {}) {
 
 export function createMockBatchPile(overrides = {}) {
   return createMockPile({
-    id: 'batch-pile-demo-001',
     _id: 'batch-pile-demo-001',
     identity: { uid: 'batch-pile-demo-001', name: 'Pile #3', slug: 'pile-3', serial: 'P-003' },
-    name: 'Pile #3',
-    slug: 'pile-3',
     ...overrides
   });
 }
@@ -278,8 +262,7 @@ export function createMockRemnant(overrides = {}) {
       state: 'SCRAP',
       lineage: { warehouseId: MOCK_IDS.warehouseId, sheetId: 'sheet-demo-001' },
       specs: { width: 900, length: 500, area: 0.45, sheetThickness: 4 },
-      data: { serial: 'REM-2025-X1', isReusable: false },
-      hoists: { serial: 'REM-2025-X1', isReusable: false }
+      data: { isReusable: false }
     }),
     ...overrides
   };
@@ -295,8 +278,7 @@ export function createMockCatalog(overrides = {}) {
       state: 'ACTIVE',
       lineage: { organizationId: MOCK_IDS.organizationId },
       data: { material: 'ALUMINUM', pricing, options },
-      summary: { colorCount: 8 },
-      hoists: { material: 'ALUMINUM', pricing, options }
+      summary: { colorCount: 8 }
     }),
     ...overrides
   };
@@ -330,13 +312,6 @@ export function createMockWarehouse(overrides = {}) {
         address: '123 Industrial Way, Tech City',
         contactPerson: 'Warehouse Manager',
         stats: { totalSheets: 120, totalRemnants: 14 }
-      },
-      hoists: {
-        type: 'MAIN',
-        address: '123 Industrial Way, Tech City',
-        contactPerson: 'Warehouse Manager',
-        totalSheets: 120,
-        totalRemnants: 14
       }
     }),
     ...overrides
@@ -350,8 +325,7 @@ export function createMockToolProfile(overrides = {}) {
       name: 'Flat Endmill 4mm',
       state: 'ACTIVE',
       lineage: { userId: 'user-demo' },
-      data: { diameter: 4, angle: 180, kerf: 4, description: 'General cutting tool' },
-      hoists: { diameter: 4, angle: 180, kerf: 4, description: 'General cutting tool' }
+      data: { diameter: 4, angle: 180, kerf: 4, description: 'General cutting tool' }
     }),
     ...overrides
   };
@@ -365,8 +339,7 @@ export function createMockPenTemplate(overrides = {}) {
       name: 'Cutting Pen',
       state: 'ACTIVE',
       lineage: { userId: 'user-demo' },
-      data: { stroke },
-      hoists: { stroke }
+      data: { stroke }
     }),
     ...overrides
   };
@@ -383,12 +356,7 @@ export function createMockLayerStandard(overrides = {}) {
         code: 'FACADE_EXT',
         category: 'MILLING',
         defaultPenId: 'pen-demo-cutting',
-        parameters: []
-      },
-      hoists: {
-        code: 'FACADE_EXT',
-        category: 'MILLING',
-        defaultPenId: 'pen-demo-cutting',
+        parameters: [],
         metadata: { color: '#3b82f6' }
       }
     }),
@@ -408,8 +376,7 @@ export function createMockRequisition(overrides = {}) {
       serial: 'REQ-2025-001',
       state: 'SENT',
       lineage: { organizationId: MOCK_IDS.organizationId, projectId: MOCK_IDS.projectId },
-      data: { items, notes: ['Priority delivery requested.'], requisitionNumber: 'REQ-2025-001', totalPrice: 12500, currency: 'USD' },
-      hoists: { items, requisitionNumber: 'REQ-2025-001', totalPrice: 12500, currency: 'USD' }
+      data: { items, notes: ['Priority delivery requested.'], requisitionNumber: 'REQ-2025-001', totalPrice: 12500, currency: 'USD' }
     }),
     ...overrides
   };
@@ -426,15 +393,9 @@ export function createMockUser(overrides = {}) {
         role: 'ManufacturerAdmin',
         isActive: true,
         permissions: {}
-      },
-      hoists: {
-        email: 'john@example.com',
-        role: 'ManufacturerAdmin',
-        isActive: true,
-        permissions: {}
       }
     }),
-    identity: { uid: 'user-demo', name: 'John Doe', reference: 'john@example.com', avatarUrl: null },
+    identity: { uid: 'user-demo', name: 'John Doe', reference: 'john@example.com' },
     ...overrides
   };
 }
@@ -451,8 +412,7 @@ export function createMockOrganization(overrides = {}) {
         email: 'ops@example.com',
         phone: '+1 555 0100',
         address: 'Industrial District'
-      },
-      hoists: { type: 'FABRICATOR', email: 'ops@example.com', phone: '+1 555 0100' }
+      }
     }),
     ...overrides
   };
@@ -478,7 +438,6 @@ export function createMockArtifact(overrides = {}) {
 export function createMockHistory(statuses = ['DRAFT', 'ACTIVE', 'CLOSED']) {
   return statuses.map((state, index) => ({
     _id: `status-event-${index}`,
-    id: `status-event-${index}`,
     targetId: MOCK_IDS.projectId,
     targetType: 'project',
     fromState: index === 0 ? null : statuses[index - 1],

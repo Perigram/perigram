@@ -55,7 +55,7 @@ export async function getStatusHistory(collection, entityId) {
   const latest = history.length > 0 ? history[0] : null;
   
   return {
-    currentStatus: latest ? (latest.status?.state || latest.status) : 'unknown',
+    currentStatus: latest?.status?.state || 'unknown',
     history: history
   };
 }

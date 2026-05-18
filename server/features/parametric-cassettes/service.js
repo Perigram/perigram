@@ -396,8 +396,8 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
   });
 
   const template = await repository.findTemplateById(cassetteId);
-  const templateName = template.identity?.name || template.name || 'Unnamed';
-  const templateSlug = template.identity?.slug || template.slug || 'unnamed';
+  const templateName = template.identity?.name || 'Unnamed';
+  const templateSlug = template.identity?.slug || 'unnamed';
   
   // ONLY use the largest polygon for nesting to avoid duplicate items
   const nestingPolygons = [polygons[0]];

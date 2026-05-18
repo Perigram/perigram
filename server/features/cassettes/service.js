@@ -163,7 +163,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
 export async function exportDxf(id, dimensions, userId, userOrg, userRole, userPermissions) {
   const template = await getById(id, userId, userOrg, userRole, userPermissions);
   
-  if (template.type === 'PARAMETRIC') {
+  if (template.data?.type === 'PARAMETRIC') {
     const { evaluateTemplate, generateSimpleDxf } = await import('../parametric-cassettes/service.js');
     const { polygons } = await evaluateTemplate(id, dimensions || {});
     return generateSimpleDxf(polygons);

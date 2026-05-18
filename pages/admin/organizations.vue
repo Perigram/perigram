@@ -6,19 +6,19 @@
 
         <TableFrame>
         <DataTable :value="organizations" :loading="loading" stripedRows>
-            <Column field="name" :header="$t('common.name')" sortable>
+            <Column field="identity.name" :header="$t('common.name')" sortable>
                 <template #body="slotProps">
-                    <span>{{ slotProps.data.name }}</span>
+                    <span>{{ slotProps.data.identity?.name }}</span>
                 </template>
             </Column>
-            <Column field="type" :header="$t('queue.status')" sortable>
+            <Column field="data.type" :header="$t('queue.status')" sortable>
                 <template #body="slotProps">
-                    <Tag :value="slotProps.data.type" />
+                    <Tag :value="slotProps.data.data?.type" />
                 </template>
             </Column>
-            <Column field="email" :header="$t('profile.email')">
+            <Column field="data.email" :header="$t('profile.email')">
                 <template #body="slotProps">
-                    <span>{{ slotProps.data.email }}</span>
+                    <span>{{ slotProps.data.data?.email }}</span>
                 </template>
             </Column>
             <Column :header="$t('common.actions.title')" class="text-right">
@@ -116,7 +116,13 @@ const openCreateOrg = () => {
 };
 
 const editOrg = (org) => {
-    form.value = { ...org };
+    form.value = {
+        name: org.identity?.name || '',
+        type: org.data?.type || 'Contractor',
+        email: org.data?.email || '',
+        phone: org.data?.phone || '',
+        address: org.data?.address || ''
+    };
     selectedId.value = org._id;
     editMode.value = true;
     orgDialog.value = true;

@@ -70,7 +70,8 @@ describe('Production Queues & Nesting Status', () => {
     };
     const result = await queueService.create(data, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
 
-    expect(result.name).toBe('Morning Shift Run');
+    expect(result.identity.name).toBe('Morning Shift Run');
+    expect(result).not.toHaveProperty('name');
     expect(result.status.state).toBe('DRAFT');
     expect(result.lineage.projectId).toBe(projectId);
   });

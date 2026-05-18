@@ -25,7 +25,7 @@
                         {{ $t('queue.jobComposition') }}
                     </h3>
                     <TableFrame>
-                    <DataTable :value="queue.job?.items || []" responsiveLayout="scroll">
+                    <DataTable :value="queue.data?.job?.items || []" responsiveLayout="scroll">
                         <Column :header="$t('file.type')">
                             <template #body="{ data }">
                                 <Tag :value="data.type" severity="secondary" />

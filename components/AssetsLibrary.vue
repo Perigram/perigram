@@ -261,7 +261,11 @@ const deletePenConfirm = (pen) => {
 // Tool methods
 const editTool = (tool) => {
   editingTool.value = tool;
-  toolForm.value = JSON.parse(JSON.stringify(tool));
+  toolForm.value = {
+    name: tool.identity?.name || '',
+    diameter: tool.data?.diameter || 3.15,
+    angle: tool.data?.angle || 0
+  };
   showToolDialog.value = true;
 };
 
@@ -286,7 +290,7 @@ const saveTool = async () => {
 
 const deleteToolConfirm = (tool) => {
   confirm.require({
-    message: t('messages.confirmDeleteFile', { name: tool.name }),
+    message: t('messages.confirmDeleteFile', { name: tool.identity?.name || tool._id }),
     header: t('common.confirmation'),
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {

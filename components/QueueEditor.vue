@@ -332,8 +332,8 @@ const confirm = useConfirm();
 const toast = useToast();
 const authStore = useAuthStore();
 
-const queueState = computed(() => props.queue.status?.state || props.queue.state || 'UNKNOWN');
-const queueName = computed(() => props.queue.identity?.name || props.queue.name || props.queue.identity?.slug || props.queue.slug || 'Unnamed');
+const queueState = computed(() => props.queue.status?.state || 'UNKNOWN');
+const queueName = computed(() => props.queue.identity?.name || props.queue.identity?.slug || 'Unnamed');
 
 const queuesStore = useQueuesStore();
 const cassettesStore = useCassettesStore();
@@ -379,21 +379,21 @@ const getCassetteData = (id) => {
 const getCassetteName = (id) => {
     const data = getCassetteData(id);
     if (!data) return 'Unknown';
-    return data.identity?.name || data.name || data.identity?.slug || data.slug || 'Unnamed';
+    return data.identity?.name || data.identity?.slug || 'Unnamed';
 };
 
-const getCassetteType = (data) => data?.type || data?.data?.type || data?.definition?.type || '';
-const getCassetteParameters = (data) => data?.parameters || data?.data?.parameters || data?.definition?.parameters || [];
+const getCassetteType = (data) => data?.data?.type || '';
+const getCassetteParameters = (data) => data?.data?.parameters || [];
 const getEntryCassetteData = (entry) => getCassetteData(entry?.cassetteTemplateId || entry?.id);
 const isParametricEntry = (entry) => {
     const data = getEntryCassetteData(entry);
-    if (data) return !data.geometry && getCassetteParameters(data).length > 0;
+    if (data) return !data.data?.geometry && getCassetteParameters(data).length > 0;
     return entry?.type === 'PARAMETRIC';
 };
 
 const getEntryParameters = (e) => {
     const data = getEntryCassetteData(e);
-    if (!data || !!data.geometry) return []; 
+    if (!data || !!data.data?.geometry) return []; 
     if (getCassetteType(data) === 'PARAMETRIC') return getCassetteParameters(data);
     return [];
 };
@@ -402,7 +402,7 @@ const allAvailableCassettes = computed(() => {
     const items = [...cassettes.value, ...cassetteDesigns.value];
     return items.map(item => ({
         ...item,
-        name: item.identity?.name || item.name || item.identity?.slug || item.slug || 'Unnamed'
+        name: item.identity?.name || item.identity?.slug || 'Unnamed'
     }));
 });
 
@@ -417,12 +417,12 @@ const allParameters = computed(() => {
     return Array.from(params);
 });
 
-const nestingOptions = ref({    materialMode: props.queue.nestingParams?.materialMode || 'VIRTUAL',
-    virtualWidth: props.queue.nestingParams?.virtualWidth || 3000,
-    virtualLength: props.queue.nestingParams?.virtualLength || 1500,
-    warehouseId: props.queue.nestingParams?.warehouseId || null,
-    inventoryItems: props.queue.nestingParams?.inventoryItems || [],
-    toolId: props.queue.nestingParams?.toolId || null,
+const nestingOptions = ref({    materialMode: props.queue.data?.nestingParams?.materialMode || 'VIRTUAL',
+    virtualWidth: props.queue.data?.nestingParams?.virtualWidth || 3000,
+    virtualLength: props.queue.data?.nestingParams?.virtualLength || 1500,
+    warehouseId: props.queue.data?.nestingParams?.warehouseId || null,
+    inventoryItems: props.queue.data?.nestingParams?.inventoryItems || [],
+    toolId: props.queue.data?.nestingParams?.toolId || null,
     requestedArtifacts: props.queue.requestedArtifacts || ['LAYOUT_DXF']
 });
 
@@ -466,7 +466,7 @@ const warehouseShortage = computed(() => {
         if (item) {
             if (type === 'pile') {
                 const pile = warehouses.value.flatMap(w => w.piles || []).find(p => p._id.toString() === id);
-                if (pile) totalAvailable += (pile.stock?.total || 0) - (pile.stock?.used || 0);
+                if (pile) totalAvailable += (pile.data?.stock?.total || 0) - (pile.data?.stock?.used || 0);
             } else if (type === 'sheet') {
                 totalAvailable += 1;
             }
@@ -508,7 +508,7 @@ const loadWarehouseInventory = async () => {
         availableInventory.value = [
             ...piles.map(p => ({ type: 'PILE', uniqueId: `pile_${p._id}`, label: p.identity.name, specs: `${p.specs.width}x${p.specs.length}`, id: p._id })),
             ...sheets.map(s => ({ type: 'SHEET', uniqueId: `sheet_${s._id}`, label: s.identity.serial, specs: `${s.specs.width}x${s.specs.length}`, id: s._id })),
-            ...remnants.map(r => ({ type: 'REMNANT', uniqueId: `remnant_${r._id}`, label: r.identity?.serial || r.serial, specs: r.data?.area ? `${r.data.area}m²` : '-', id: r._id }))
+            ...remnants.map(r => ({ type: 'REMNANT', uniqueId: `remnant_${r._id}`, label: r.identity?.serial, specs: r.data?.area ? `${r.data.area}m²` : '-', id: r._id }))
         ];
     } catch (e) { console.error(e); }
 };
@@ -525,7 +525,7 @@ const loadQueueData = async () => {
     try {
         const data = await queuesStore.getQueue(props.queue._id);
         if (data) {
-            entries.value = (data.job?.items || []).map(item => ({
+            entries.value = (data.data?.job?.items || []).map(item => ({
                 ...item,
                 cassetteTemplateId: item.cassetteTemplateId || item.id,
                 dimensions: item.parameters || item.dimensions || {},
@@ -575,7 +575,7 @@ const syncEntryWithCassette = (entry) => {
     const data = getEntryCassetteData(entry);
     if (!data) return entry;
 
-    const isDesign = !!data.geometry;
+    const isDesign = !!data.data?.geometry;
     const type = (!isDesign && getCassetteParameters(data).length > 0) ? 'PARAMETRIC' : 'STATIC';
     entry.type = type;
 
@@ -593,7 +593,7 @@ const addEntry = async (item = null) => {
     const data = item || getCassetteData(newEntry.value.cassetteTemplateId);
     if (!data) return;
 
-    const isDesign = !!data.geometry;
+    const isDesign = !!data.data?.geometry;
     const type = (!isDesign && getCassetteParameters(data).length > 0) ? 'PARAMETRIC' : 'STATIC';
     
     const entryData = item ? {

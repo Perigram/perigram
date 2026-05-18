@@ -28,7 +28,7 @@ export const useEntity = (type, identifier = null) => {
   const { lineage, getAncestorId } = useLineage(entity);
   const { specs, formattedDimensions, formattedArea } = useSpecs(entity);
 
-  const getSingleEndpoint = (id = identifier || entity.value?._id || entity.value?.id) => {
+  const getSingleEndpoint = (id = identifier || entity.value?._id) => {
     return resolveSingleEndpoint(endpointMap, type, id);
   };
 
@@ -137,7 +137,7 @@ export const useEntity = (type, identifier = null) => {
    * Perform a state machine status transition
    */
   const changeStatus = async (newState, context = {}) => {
-    const id = entity.value?._id || entity.value?.id || identifier;
+    const id = entity.value?._id || identifier;
     const result = await transition(type, id, newState, context);
     if (result) {
       await fetch(id);

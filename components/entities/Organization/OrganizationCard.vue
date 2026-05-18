@@ -21,7 +21,7 @@
             <Avatar :label="avatarLabel" shape="circle" size="large" />
         </template>
         <template #subtitle>
-            <small>{{ organization.data?.type || organization.type || $t('common.default') }}</small>
+            <small>{{ organization.data?.type || $t('common.default') }}</small>
         </template>
         <Divider />
         <div class="flex flex-col gap-2">
@@ -53,7 +53,7 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const avatarLabel = computed(() => (props.organization.name || props.organization.identity?.name || '?').charAt(0));
+const avatarLabel = computed(() => (props.organization.identity?.name || '?').charAt(0));
 
 const ORGANIZATION_FIELDS = [
   { path: 'data.type', i18n: 'organization.type' },

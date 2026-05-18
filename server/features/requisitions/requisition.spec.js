@@ -68,8 +68,7 @@ describe('Requisition Lifecycle', () => {
       _id: colorId,
       identity: { uid: colorId, name: 'Silver' },
       lineage: { catalogId },
-      data: { pricing: { pricePerSqm: 100 } },
-      pricing: { pricePerSqm: 100 }
+      data: { pricing: { pricePerSqm: 100 } }
     });
 
     const data = {
@@ -88,7 +87,8 @@ describe('Requisition Lifecycle', () => {
     
     expect(result).toBeDefined();
     expect(result.status.state).toBe('DRAFT');
-    expect(result.items[0].priceSnapshot).toBe(100);
+    expect(result.data.items[0].priceSnapshot).toBe(100);
+    expect(result).not.toHaveProperty('items');
   });
 
   it('should fail if non-contractor tries to create requisition', async () => {

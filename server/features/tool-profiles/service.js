@@ -11,10 +11,12 @@ function toDTO(tool) {
   if (!tool) return null;
   return {
     _id: tool._id,
-    id: tool._id?.toString(),
-    ...tool,
-    ...tool.data,
-    name: tool.identity?.name || tool.name
+    identity: tool.identity,
+    lineage: tool.lineage || {},
+    origin: tool.origin || null,
+    status: tool.status || null,
+    data: tool.data || {},
+    summary: tool.summary || {}
   };
 }
 
@@ -24,7 +26,7 @@ export async function getById(id, userId = null) {
     throw createError({ statusCode: 404, message: 'Tool profile not found' });
   }
   // Check ownership if not system tool
-  const toolOwnerId = tool.lineage?.userId || tool.ownerId;
+  const toolOwnerId = tool.lineage?.userId;
   if (toolOwnerId && userId && toolOwnerId.toString() !== userId.toString()) {
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
@@ -73,7 +75,7 @@ export async function create(data, userId) {
 export async function update(id, updates, userId) {
   const tool = await repository.findById(id);
   if (!tool) throw createError({ statusCode: 404, message: 'Tool not found' });
-  if (!tool.ownerId) {
+  if (!tool.lineage?.userId) {
     throw createError({ statusCode: 403, message: 'System tools cannot be modified' });
   }
   
@@ -94,7 +96,7 @@ export async function update(id, updates, userId) {
 
 export async function remove(id, userId) {
   const tool = await getById(id, userId);
-  if (!tool.ownerId) {
+  if (!tool.lineage?.userId) {
     throw createError({ statusCode: 403, message: 'System tools cannot be deleted' });
   }
   await repository.deleteById(id);

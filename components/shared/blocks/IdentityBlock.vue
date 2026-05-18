@@ -15,7 +15,7 @@ const props = defineProps({
 });
 
 const { name, slug, serial, reference } = useIdentity(toRef(props, 'entity'));
-const uid = computed(() => props.entity?.identity?.uid || props.entity?.uid || props.entity?.id || props.entity?._id || '');
+const uid = computed(() => props.entity?.identity?.uid || '');
 const primary = computed(() => name.value || slug.value || uid.value || 'Unnamed');
 
 const fieldValueMap = computed(() => ({

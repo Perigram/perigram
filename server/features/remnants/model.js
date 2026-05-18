@@ -10,16 +10,8 @@ export class Remnant extends BaseEntity {
     
     this.data = {
       ...this.data,
-      serial: raw.serial || raw.data?.serial || '',
-      isReusable: raw.isReusable ?? raw.data?.isReusable ?? true
-    };
-  }
-
-  toJSON() {
-    return {
-      ...super.toJSON(),
-      serial: this.data.serial,
-      isReusable: this.data.isReusable
+      serial: raw.data?.serial || '',
+      isReusable: raw.data?.isReusable ?? true
     };
   }
 }

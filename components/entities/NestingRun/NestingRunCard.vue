@@ -24,7 +24,7 @@ const emit = defineEmits(['select', 'choose', 'delete', 'artifact-click', 'conve
 const authStore = useAuthStore();
 
 const canManage = computed(() => authStore.can('queues', 'edit'));
-const state = computed(() => props.run.status?.state || props.run.state || 'UNKNOWN');
+const state = computed(() => props.run.status?.state || 'UNKNOWN');
 const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
 const artifactType = (artifact) => artifact.data?.type || '';
 const RUN_FIELDS = [

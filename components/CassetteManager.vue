@@ -119,7 +119,7 @@ const formatDate = (date) => {
 };
 
 const getCassetteName = (cassette) => {
-    return cassette?.identity?.name || cassette?.name || cassette?.identity?.slug || cassette?.slug || 'Unnamed';
+    return cassette?.identity?.name || cassette?.identity?.slug || 'Unnamed';
 };
 
 const handleDelete = async (cassetteId) => {

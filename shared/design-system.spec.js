@@ -110,8 +110,8 @@ describe('Design system manifest', () => {
   it('uses string cassette template parameters matching the DTO contract', () => {
     const template = factories.createMockCassetteTemplate();
 
-    expect(template.parameters).toEqual(['A', 'B', 'C']);
     expect(template.data.parameters).toEqual(['A', 'B', 'C']);
+    expect(template).not.toHaveProperty('parameters');
   });
 
   it('exports token projections for PrimeVue, Tailwind, and CSS variables', () => {

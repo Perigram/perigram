@@ -43,7 +43,14 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
 
     const user = new User({
       identity: { uid: `user-${new ObjectId().toString().substring(0, 8)}`, name: data.name },
-      params: { email: data.email.toLowerCase(), passwordHash, role, permissions, memberships }
+      data: {
+        email: data.email.toLowerCase(),
+        passwordHash,
+        role,
+        permissions,
+        memberships,
+        isActive: true
+      }
     });
 
     user.applyStatus('ACTIVE', creatorUserId || 'SYSTEM', { note: 'User registered' });

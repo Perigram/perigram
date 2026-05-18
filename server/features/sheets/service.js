@@ -37,7 +37,7 @@ export async function createFromPile(pileId, count, userId, userRole, userPermis
     const sheet = new Sheet({
       identity: { uid: `sheet-${generateRandomString(8)}`, serial, name: `Sheet ${serial}` },
       lineage: baseLineage,
-      params: { serial, specs: pileRaw.data.specs }
+      data: { serial, specs: pileRaw.data.specs || {} }
     });
     
     sheet.applyStatus('AVAILABLE', userId, { note: 'Created from material pile' });
@@ -116,7 +116,7 @@ export async function finishMilling(uid, cassetteInstanceIds = [], remnantIds = 
   const raw = await repository.findById(uid);
   if (!raw) throw createError({ statusCode: 404, message: 'Sheet not found' });
 
-  const currentState = raw.status?.state || raw.status;
+  const currentState = raw.status?.state;
   if (currentState !== 'IN-CUTTING' && currentState !== 'in_cutting') {
     throw createError({ statusCode: 400, message: 'Sheet must be in cutting status' });
   }
@@ -131,7 +131,7 @@ export async function finishMilling(uid, cassetteInstanceIds = [], remnantIds = 
 
   await repository.updateById(uid, sheet);
 
-  const warehouseId = raw.lineage?.warehouseId || raw.warehouseId;
+  const warehouseId = raw.lineage?.warehouseId;
   if (warehouseId) {
     const { updateInventoryCounts } = await import('../warehouses/service.js');
     await updateInventoryCounts(warehouseId, {

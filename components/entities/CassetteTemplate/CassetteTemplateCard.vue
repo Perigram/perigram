@@ -67,9 +67,9 @@ const props = defineProps({
 
 const emit = defineEmits(['create-instance', 'download']);
 
-const templateType = computed(() => props.template.data?.type || props.template.type || props.template.definition?.type || '');
+const templateType = computed(() => props.template.data?.type || '');
 const templateParameters = computed(() => {
-    const raw = props.template.data?.parameters || props.template.parameters || props.template.definition?.parameters || [];
+    const raw = props.template.data?.parameters || [];
     return Array.isArray(raw) ? raw : Object.keys(raw);
 });
 const templateForDisplay = computed(() => ({

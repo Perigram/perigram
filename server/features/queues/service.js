@@ -44,7 +44,10 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const queue = new Queue({
     identity: { uid, name: name || `Queue #${queueNumber}` },
     lineage,
-    params: { job, queueNumber }
+    data: {
+      job: job || { items: [], materialPool: [] },
+      queueNumber
+    }
   });
 
   queue.applyStatus('DRAFT', userId, { note: 'Initial queue creation' });

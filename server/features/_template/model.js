@@ -22,9 +22,6 @@ export class EntityName extends BaseEntity {
    * Standard DTO Serialization
    */
   toJSON() {
-    return {
-      ...super.toJSON(),
-      customField: this.data.customField
-    };
+    return super.toJSON();
   }
 }

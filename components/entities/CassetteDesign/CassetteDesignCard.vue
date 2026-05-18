@@ -47,5 +47,5 @@ const DESIGN_FIELDS = [
   { path: 'data.geometry.dxfId', i18n: 'file.name' }
 ];
 
-const parameterCount = computed(() => Object.keys(props.design.data?.parameters || props.design.parameters || {}).length);
+const parameterCount = computed(() => Object.keys(props.design.data?.parameters || {}).length);
 </script>

@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   });
 
   // Check if the artifact is ready and has a file
-  const artifactState = artifact.status?.state || artifact.status;
+  const artifactState = artifact.status?.state;
   if (artifactState !== 'READY') {
     throw createError({
       statusCode: 400,
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
   setResponseHeaders(event, {
     'Content-Type': mimeType || 'application/octet-stream',
     'Content-Length': file.length,
-    'Content-Disposition': `attachment; filename="${encodeURIComponent(artifact.name)}"`,
+    'Content-Disposition': `attachment; filename="${encodeURIComponent(artifact.identity?.name || artifact._id.toString())}"`,
     'Cache-Control': 'public, max-age=31536000, immutable'
   });
 

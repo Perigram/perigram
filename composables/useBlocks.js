@@ -9,19 +9,19 @@ import { STATUS_MAPPINGS } from '~/utils/status-engine';
 export const useIdentity = (entity) => {
   const name = computed(() => {
     const e = unref(entity);
-    return e?.identity?.name || e?.name || 'Unnamed';
+    return e?.identity?.name || 'Unnamed';
   });
   const slug = computed(() => {
     const e = unref(entity);
-    return e?.identity?.slug || e?.slug || e?.id || '';
+    return e?.identity?.slug || '';
   });
   const serial = computed(() => {
     const e = unref(entity);
-    return e?.identity?.serial || e?.serial || '';
+    return e?.identity?.serial || '';
   });
   const reference = computed(() => {
     const e = unref(entity);
-    return e?.identity?.reference || e?.reference || '';
+    return e?.identity?.reference || '';
   });
   
   return { name, slug, serial, reference };
@@ -34,7 +34,6 @@ export const useStatus = (entity) => {
       const e = unref(entity);
       if (!e) return {};
       if (typeof e === 'string') return { state: e };
-      if (e.state) return e;
       return e.status || {};
   });
 

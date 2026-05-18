@@ -18,17 +18,17 @@
         <div class="flex items-center gap-4">
           <i :class="getArtifactIcon(artifactMimeType(artifact))"></i>
           <div class="flex flex-col">
-            <span>{{ artifact.name }}</span>
+            <span>{{ artifact.identity?.name }}</span>
             <div class="flex items-center gap-2">
                <small>{{ artifactType(artifact).replace('LAYOUT_', '') }}</small>
-               <Tag :value="artifact.status?.state || artifact.status" :severity="getStatusSeverity(artifact.status)" />
+               <Tag :value="artifact.status?.state" :severity="getStatusSeverity(artifact.status)" />
             </div>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
           <Button 
-            v-if="artifact.status?.state === 'READY' || artifact.status === 'READY'"
+            v-if="artifact.status?.state === 'READY'"
             icon="pi pi-download" 
             text
             @click.stop="downloadArtifact(artifact)" 
@@ -44,7 +44,7 @@
     </div>
 
     <!-- Preview Dialog -->
-    <StandardDialog v-model:visible="showPreview" :header="previewArtifactData?.name || $t('artifacts.previewTitle')" size="full" class="h-preview-dialog" :pt="{ content: { class: 'flex-1 flex flex-col overflow-hidden h-full p-0' } }">
+    <StandardDialog v-model:visible="showPreview" :header="previewArtifactData?.identity?.name || $t('artifacts.previewTitle')" size="full" class="h-preview-dialog" :pt="{ content: { class: 'flex-1 flex flex-col overflow-hidden h-full p-0' } }">
         <div class="flex h-full">
             <div v-if="previewLoading" class="flex-1 flex flex-col items-center justify-center gap-4">
                 <ProgressSpinner />
@@ -217,7 +217,7 @@ const getArtifactIcon = (mimeType) => {
 };
 
 const getStatusSeverity = (status) => {
-    const state = status?.state || status;
+    const state = status?.state;
     if (state === 'READY') return 'success';
     if (state === 'FAILED' || state === 'ERROR') return 'danger';
     return 'secondary';

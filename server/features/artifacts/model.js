@@ -16,11 +16,4 @@ export class Artifact extends BaseEntity {
   }
 
   get name() { return this.identity.name || `Artifact ${this.id.substring(0, 8)}`; }
-
-  toJSON() {
-    return {
-      ...super.toJSON(),
-      name: this.name
-    };
-  }
 }

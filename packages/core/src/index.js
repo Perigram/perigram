@@ -94,10 +94,10 @@ export class BaseEntity {
     this._id = raw.identity?.uid || raw._id || null;
     this.identity = new Identity(
       this._id,
-      raw.identity?.name || raw.name || '',
-      raw.identity?.slug || raw.slug || '',
-      raw.identity?.serial || raw.serial || '',
-      raw.identity?.reference || raw.reference || ''
+      raw.identity?.name || '',
+      raw.identity?.slug || '',
+      raw.identity?.serial || '',
+      raw.identity?.reference || ''
     );
     this.lineage = new Lineage(raw.lineage || {});
     this.origin = raw.origin?.state ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId, raw.origin.timestamp, raw.origin.lifecycle) : null;
@@ -134,7 +134,6 @@ export class BaseEntity {
   toJSON() {
     return {
       _id: this._id,
-      id: this.id,
       identity: this.identity.toJSON(),
       lineage: this.lineage.toJSON(),
       origin: this.origin?.toJSON() || null,
@@ -142,11 +141,7 @@ export class BaseEntity {
       specs: this.specs?.toJSON() || null,
       attachments: this.attachments,
       data: this.data,
-      summary: this.summary,
-      name: this.name,
-      slug: this.identity.slug,
-      serial: this.identity.serial,
-      reference: this.identity.reference
+      summary: this.summary
     };
   }
 }

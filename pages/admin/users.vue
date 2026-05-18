@@ -6,19 +6,19 @@
 
         <TableFrame>
         <DataTable :value="users" :loading="loading" stripedRows>
-            <Column field="name" :header="$t('profile.name')" sortable>
+            <Column field="identity.name" :header="$t('profile.name')" sortable>
                 <template #body="slotProps">
-                    <span>{{ slotProps.data.name }}</span>
+                    <span>{{ slotProps.data.identity?.name }}</span>
                 </template>
             </Column>
-            <Column field="email" :header="$t('profile.email')" sortable>
+            <Column field="data.email" :header="$t('profile.email')" sortable>
                 <template #body="slotProps">
-                    <span>{{ slotProps.data.email }}</span>
+                    <span>{{ slotProps.data.data?.email }}</span>
                 </template>
             </Column>
-            <Column field="role" :header="$t('queue.status')" sortable>
+            <Column field="data.role" :header="$t('queue.status')" sortable>
                 <template #body="slotProps">
-                    <Tag :value="$t(`roles.${slotProps.data.role}`)" :severity="getRoleSeverity(slotProps.data.role)" />
+                    <Tag :value="$t(`roles.${slotProps.data.data?.role}`)" :severity="getRoleSeverity(slotProps.data.data?.role)" />
                 </template>
             </Column>
             <Column :header="$t('common.actions.title')" class="text-right">
@@ -41,7 +41,7 @@
         <StandardDialog v-model:visible="permDialog" :header="$t('admin.editPermissions')" size="md">
             <PermissionEditor 
                 v-if="selectedUser" 
-                :permissions="selectedUser.permissions" 
+                :permissions="selectedUser.data?.permissions" 
                 @save="savePermissions" 
             />
         </StandardDialog>

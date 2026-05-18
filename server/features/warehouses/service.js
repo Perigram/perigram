@@ -24,7 +24,12 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const warehouse = new Warehouse({
     identity: { uid: `wh-${new ObjectId().toString().substring(0, 8)}`, name: name || 'New Warehouse' },
     lineage: inheritLineage(organization, 'organization'),
-    params: { type, address, contactPerson }
+    data: {
+      type: type || 'Standard',
+      address: address || '',
+      contactPerson: contactPerson || '',
+      stats: { totalSheets: 0, totalRemnants: 0 }
+    }
   });
 
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, warehouse.lineage, 'warehouses', 'write')) {

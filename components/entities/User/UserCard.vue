@@ -59,8 +59,8 @@ const props = defineProps({
 const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
 
-const avatarUrl = computed(() => props.user.identity?.avatarUrl || props.user.avatarUrl || null);
-const avatarLabel = computed(() => (props.user.name || props.user.identity?.name || '?').charAt(0));
+const avatarUrl = computed(() => props.user.data?.avatarUrl || null);
+const avatarLabel = computed(() => (props.user.identity?.name || '?').charAt(0));
 
 const USER_FIELDS = [
   { path: 'data.email', i18n: 'profile.email' },

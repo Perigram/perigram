@@ -20,7 +20,7 @@ const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
 
 const handleCardClick = () => emit('view', props.catalog);
-const material = computed(() => props.catalog.data?.material || props.catalog.material || '');
+const material = computed(() => props.catalog.data?.material || '');
 
 const CATALOG_FIELDS = [
   { path: 'summary.colorCount', i18n: 'catalog.colorsAvailable' },

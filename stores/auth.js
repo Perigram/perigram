@@ -13,16 +13,16 @@ export const useAuthStore = defineStore('auth', () => {
     const userData = computed(() => user.value);
     const organizationData = computed(() => organization.value);
     const userOrganizations = computed(() => userOrgs.value);
-    const memberships = computed(() => user.value?.memberships || []);
+    const memberships = computed(() => user.value?.memberships || user.value?.data?.memberships || []);
 
     // Roles
     const isSuperAdmin = computed(() => user.value?.role === 'SuperAdmin');
     const isOrgAdmin = computed(() => ['ManufacturerAdmin', 'ContractorAdmin', 'CustomerAdmin'].includes(user.value?.role));
     
     // Org Types
-    const isManufacturer = computed(() => organization.value?.type === 'Manufacturer' || user.value?.role?.includes('Manufacturer'));
-    const isContractor = computed(() => organization.value?.type === 'Contractor' || user.value?.role?.includes('Contractor'));
-    const isCustomer = computed(() => organization.value?.type === 'Customer' || user.value?.role?.includes('Customer'));
+    const isManufacturer = computed(() => organization.value?.data?.type === 'Manufacturer' || user.value?.role?.includes('Manufacturer'));
+    const isContractor = computed(() => organization.value?.data?.type === 'Contractor' || user.value?.role?.includes('Contractor'));
+    const isCustomer = computed(() => organization.value?.data?.type === 'Customer' || user.value?.role?.includes('Customer'));
 
     async function setUser() {
         try {

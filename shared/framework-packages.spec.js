@@ -20,10 +20,12 @@ describe('Framework package contracts', () => {
     expect(getEntityDefinition('test_entity')).toEqual(definition);
     expect(listEntityDefinitions()).toContainEqual(definition);
     expect(entity.toJSON()).toMatchObject({
-      id: 'test-1',
-      name: 'Test Entity',
+      _id: 'test-1',
+      identity: { uid: 'test-1', name: 'Test Entity' },
       lineage: { organizationId: 'org-1' }
     });
+    expect(entity.toJSON()).not.toHaveProperty('id');
+    expect(entity.toJSON()).not.toHaveProperty('name');
   });
 
   it('validates workflow transitions in @cutkit/workflows', async () => {

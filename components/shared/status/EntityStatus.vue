@@ -39,7 +39,7 @@ const toggle = (event) => {
 // Available transitions (to be fetched or derived from a machine registry if available)
 const handleTransition = async (targetState) => {
     try {
-        const id = props.entity.identity?.slug || props.entity.slug || props.entity._id || props.entity.id;
+        const id = props.entity.identity?.slug || props.entity._id;
         await transition(props.entityType, id, targetState);
         emit('transitioned', targetState);
         op.value.hide();

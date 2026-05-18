@@ -9,24 +9,8 @@ export class Project extends BaseEntity {
     
     // Default data structure
     this.data = this.data || {};
-    
-    // Legacy support and migration
-    if (!raw._id && raw.metadata) {
-      this.data.metadata = raw.metadata;
-    } else if (raw._id) {
-      // For existing projects
-      if (!this.data.metadata && raw.metadata) this.data.metadata = raw.metadata;
-    }
   }
 
-  get name() { return this.identity?.name || this.data?.name || ''; }
-  get slug() { return this.identity?.slug || this.id; }
-
-  toJSON() {
-    return {
-      ...super.toJSON(),
-      // Slug falls back to id for projects without an explicit slug
-      slug: this.slug
-    };
-  }
+  get name() { return this.identity?.name || ''; }
+  get slug() { return this.identity?.slug || ''; }
 }

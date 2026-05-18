@@ -24,7 +24,10 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const color = new Color({
     identity: { uid: `col-${new ObjectId().toString().substring(0, 8)}`, name: name || 'New Color' },
     lineage: inheritLineage(catalog, 'catalog'),
-    params: { code, visuals: { hexCode, textureUrl } }
+    data: {
+      code: code || '',
+      visuals: { hexCode: hexCode || '#cccccc', textureUrl: textureUrl || null }
+    }
   });
 
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, color.lineage, 'catalogs', 'write')) {

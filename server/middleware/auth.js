@@ -52,8 +52,8 @@ export default defineEventHandler(async (event) => {
       if (org) {
         authContext.organizationData = {
           _id: org._id.toString(),
-          name: org.identity?.name || org.name || 'Unnamed Organization',
-          type: org.data?.type || org.type || 'Customer'
+          name: org.identity?.name || 'Unnamed Organization',
+          type: org.data?.type || 'Customer'
         };
       }
     }

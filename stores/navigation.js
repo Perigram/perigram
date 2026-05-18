@@ -81,7 +81,7 @@ export const useNavigationStore = defineStore('navigation', () => {
 
         // --- Level 2: Project Context ---
         if (parts[0] === 'project' && parts[1]) {
-            const projectName = currentProject.value?.name || parts[1];
+            const projectName = currentProject.value?.identity?.name || parts[1];
             const projectSlug = parts[1];
 
             nav.push({
@@ -89,7 +89,7 @@ export const useNavigationStore = defineStore('navigation', () => {
                 name: projectName,
                 to: `/project/${projectSlug}/queues`,
                 siblings: Array.isArray(globalStore.projectsList)
-                        ? globalStore.projectsList.map((p) => ({ name: p.name, id: `/project/${p.slug}/queues` }))
+                        ? globalStore.projectsList.map((p) => ({ name: p.identity?.name, id: `/project/${p.identity?.slug}/queues` }))
                         : [],
             });
         }

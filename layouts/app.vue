@@ -148,10 +148,10 @@
         // 1. Current Organization & Context
         if (authStore.organizationData) {
             items.push({
-                label: authStore.organizationData.name,
+                label: authStore.organizationData.identity?.name,
                 items: [
                     {
-                        label: `${t('queue.status')}: ${authStore.organizationData.type}`,
+                        label: `${t('queue.status')}: ${authStore.organizationData.data?.type}`,
                         icon: 'pi pi-info-circle',
                         disabled: true
                     },

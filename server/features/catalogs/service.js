@@ -24,7 +24,11 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const catalog = new Catalog({
     identity: { uid: `cat-${new ObjectId().toString().substring(0, 8)}`, name: name || 'New Catalog' },
     lineage: { organizationId: targetOrgId },
-    params: { material, pricing, options }
+    data: {
+      material: material || 'ALUMINUM',
+      pricing: pricing || { pricePerSqm: 0, currency: 'USD' },
+      options: options || { sheetThicknesses: [], foilThicknesses: [], widths: [], lengths: [] }
+    }
   });
 
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, catalog.lineage, 'catalogs', 'admin')) {

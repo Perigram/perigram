@@ -68,7 +68,7 @@ const props = defineProps({
 const emit = defineEmits(['update-status']);
 const { t } = useI18n();
 
-const sheetState = computed(() => props.sheet.status?.state || props.sheet.state || 'UNKNOWN');
+const sheetState = computed(() => props.sheet.status?.state || 'UNKNOWN');
 const sheetSpecs = computed(() => props.sheet.specs || props.sheet.data?.specs || {});
 const sheetWidth = computed(() => sheetSpecs.value.width || 0);
 const sheetLength = computed(() => sheetSpecs.value.length || 0);

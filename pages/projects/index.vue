@@ -22,14 +22,14 @@
             layout="grid"
             :paginator="filteredProjects.length > 12"
             :rows="12"
-            dataKey="id"
+            dataKey="_id"
             :loading="loading"
         >
             <template #grid="slotProps">
                 <ResponsiveGrid>
                     <ProjectCard
                         v-for="project in slotProps.items"
-                        :key="project.slug"
+                        :key="project._id"
                         :project="project"
                         variant="card"
                         @view="navigateToProject"
@@ -132,14 +132,14 @@
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase()
             filtered = filtered.filter(
-                (p) => p.name?.toLowerCase().includes(query) || p.identity?.name?.toLowerCase().includes(query) || p.identity?.slug?.toLowerCase().includes(query),
+                (p) => p.identity?.name?.toLowerCase().includes(query) || p.identity?.slug?.toLowerCase().includes(query),
             )
         }
 
         // Sort
         filtered.sort((a, b) => {
-            const nameA = a.identity?.name || a.name || ''
-            const nameB = b.identity?.name || b.name || ''
+            const nameA = a.identity?.name || ''
+            const nameB = b.identity?.name || ''
             switch (sortBy.value) {
                 case 'date-desc':
                     return new Date(b.createdAt) - new Date(a.createdAt)
@@ -164,13 +164,13 @@
     })
 
     const navigateToProject = (project) => {
-        const slug = project.identity?.slug || project.slug
+        const slug = project.identity?.slug
         router.push(`/project/${slug}`)
     }
 
     const editProject = (project) => {
         editingProject.value = project
-        newProjectName.value = project.identity?.name || project.name || ''
+        newProjectName.value = project.identity?.name || ''
         showCreateDialog.value = true
     }
 
@@ -184,7 +184,7 @@
         if (!newProjectName.value.trim()) return
         creating.value = true
         try {
-            const slug = editingProject.value.identity?.slug || editingProject.value.slug
+            const slug = editingProject.value.identity?.slug
             const { update } = useEntity('project', slug)
             await update({ name: newProjectName.value.trim() })
             await globalStore.getProjects()
@@ -205,7 +205,7 @@
             const newProject = await create({})
 
             if (newProjectName.value.trim()) {
-                const slug = newProject.slug || newProject.identity?.slug
+                const slug = newProject.identity?.slug
                 const { update: updateNew } = useEntity('project', slug)
                 await updateNew({ name: newProjectName.value.trim() })
             }
@@ -214,7 +214,7 @@
             newProjectName.value = ''
 
             await globalStore.getProjects()
-            const slug = newProject.slug || newProject.identity?.slug
+            const slug = newProject.identity?.slug
             router.push(`/project/${slug}`)
         } catch (error) {
             console.error('Failed to create project:', error)
@@ -227,7 +227,7 @@
     const confirmDeleteProject = async (project) => {
         if (confirm(t('project.confirmDelete'))) {
             try {
-                const slug = project.identity?.slug || project.slug
+                const slug = project.identity?.slug
                 const { remove } = useEntity('project', slug)
                 await remove()
                 await globalStore.getProjects()

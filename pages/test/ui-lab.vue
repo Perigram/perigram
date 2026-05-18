@@ -653,10 +653,7 @@ function seedDemoTraceEntities() {
     if (!entityStore.registry[item.type]) entityStore.registry[item.type] = {};
     entityStore.registry[item.type][item.id] = {
       _id: item.id,
-      id: item.id,
-      identity: { uid: item.id, name: item.name, slug: item.slug },
-      name: item.name,
-      slug: item.slug
+      identity: { uid: item.id, name: item.name, slug: item.slug }
     };
   }
 }

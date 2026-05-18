@@ -18,10 +18,13 @@ registerService('requisition', {
 function toDTO(requisition) {
   if (!requisition) return null;
   return {
-    ...requisition,
-    ...requisition.data,
-    name: requisition.identity?.name,
-    serial: requisition.identity?.serial
+    _id: requisition._id,
+    identity: requisition.identity,
+    lineage: requisition.lineage || {},
+    origin: requisition.origin || null,
+    status: requisition.status || null,
+    data: requisition.data || {},
+    summary: requisition.summary || {}
   };
 }
 
@@ -52,7 +55,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
         sheetThickness: item.sheetThickness,
         foilThickness: item.foilThickness || 0.3
       },
-      priceSnapshot: color.pricing?.pricePerSqm || 0
+      priceSnapshot: color.data?.pricing?.pricePerSqm || 0
     });
   }
   

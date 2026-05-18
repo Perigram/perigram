@@ -34,10 +34,10 @@
         <ResponsiveGrid v-else variant="dense">
             <ProjectCard
                 v-for="project in recentProjects"
-                :key="project.slug"
+                :key="project._id"
                 :project="project"
                 variant="card"
-                @view="openProject(project.identity?.slug || project.slug)"
+                @view="openProject(project.identity?.slug)"
             />
         </ResponsiveGrid>
     </div>

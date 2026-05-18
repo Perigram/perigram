@@ -62,7 +62,9 @@ describe('Catalog Management', () => {
       }
     }, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
 
-    expect(catalog.name).toBe('Standard Aluminum Composite');
+    const dto = catalog.toJSON();
+    expect(dto.identity.name).toBe('Standard Aluminum Composite');
+    expect(dto).not.toHaveProperty('name');
     expect(catalog.data.options.foilThicknesses).toContain(0.3);
     expect(catalog.data.options.sheetThicknesses).toContain(4);
   });

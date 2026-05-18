@@ -25,7 +25,13 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   
   const org = new Organization({
     identity: { uid: `org-${new ObjectId().toString().substring(0, 8)}`, name: data.name || 'New Organization' },
-    params: { type: data.type, email: data.email, phone: data.phone, address: data.address, settings: data.settings }
+    data: {
+      type: data.type || 'Customer',
+      email: data.email || '',
+      phone: data.phone || '',
+      address: data.address || '',
+      settings: data.settings || {}
+    }
   });
 
   org.applyStatus('ACTIVE', userId, { note: 'Organization created' });

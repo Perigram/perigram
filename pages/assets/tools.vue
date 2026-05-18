@@ -18,7 +18,7 @@
     <ResponsiveGrid v-else>
       <div v-for="tool in tools" :key="tool._id" class="flex flex-col gap-2">
         <ToolProfileCard :tool="tool" variant="card" />
-        <div class="flex justify-end gap-2" v-if="tool.ownerId">
+        <div class="flex justify-end gap-2" v-if="tool.lineage?.userId">
             <Button 
               icon="pi pi-pencil" 
               severity="secondary" 
@@ -118,7 +118,11 @@ onMounted(async () => {
 
 const editTool = (tool) => {
   editingTool.value = tool;
-  form.value = JSON.parse(JSON.stringify(tool));
+  form.value = {
+    name: tool.identity?.name || '',
+    diameter: tool.data?.diameter || 3.15,
+    angle: tool.data?.angle || 0
+  };
   showDialog.value = true;
 };
 
@@ -143,7 +147,7 @@ const saveTool = async () => {
 
 const deleteToolConfirm = (tool) => {
   confirm.require({
-    message: t('messages.confirmDeleteFile', { name: tool.name }),
+    message: t('messages.confirmDeleteFile', { name: tool.identity?.name || tool._id }),
     header: t('artifacts.deleteTitle'),
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {

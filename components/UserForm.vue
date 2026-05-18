@@ -47,10 +47,10 @@ const emit = defineEmits(['save', 'cancel']);
 const editMode = computed(() => !!props.user);
 
 const form = ref({
-    name: props.user?.name || '',
-    email: props.user?.email || '',
+    name: props.user?.identity?.name || '',
+    email: props.user?.data?.email || '',
     password: '',
-    role: props.user?.role || 'IndividualUser'
+    role: props.user?.data?.role || 'IndividualUser'
 });
 
 const roles = USER_ROLES;

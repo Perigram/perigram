@@ -32,8 +32,8 @@ const handleCardClick = () => {
   <div class="h-full cursor-pointer" @click="handleCardClick">
     <EntityCard :entity="queue" entity-type="queue" :variant="variant">
         <!-- Queue number prefix in compact + card title -->
-        <template #before-identity v-if="queue.queueNumber">
-            <small>#{{ queue.queueNumber }}</small>
+        <template #before-identity v-if="queue.data?.queueNumber">
+            <small>#{{ queue.data.queueNumber }}</small>
         </template>
 
         <!-- Card body -->

@@ -6,8 +6,8 @@ export const useToolProfilesStore = defineStore('toolProfiles', () => {
     const loading = ref(false);
     const error = ref(null);
 
-    const systemTools = computed(() => tools.value.filter(t => !t.ownerId));
-    const userTools = computed(() => tools.value.filter(t => t.ownerId));
+    const systemTools = computed(() => tools.value.filter(t => !t.lineage?.userId));
+    const userTools = computed(() => tools.value.filter(t => t.lineage?.userId));
 
     async function fetchTools() {
         loading.value = true;

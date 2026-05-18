@@ -75,7 +75,7 @@ const emit = defineEmits(['send', 'approve', 'reject', 'start-fulfillment', 'ful
 
 const authStore = useAuthStore();
 const { t } = useI18n();
-const requisitionState = computed(() => props.requisition.status?.state || props.requisition.state || 'UNKNOWN');
+const requisitionState = computed(() => props.requisition.status?.state || 'UNKNOWN');
 
 const statusActions = computed(() => {
     const actions = [];

@@ -10,7 +10,7 @@ export class SheetDesign extends BaseEntity {
     
     this.data = {
       ...this.data,
-      geometry: raw.geometry || raw.data?.geometry || {
+      geometry: raw.data?.geometry || {
         svgId: null,
         dxfId: null,
         data: null
@@ -19,12 +19,4 @@ export class SheetDesign extends BaseEntity {
   }
 
   get name() { return this.identity.name || `Sheet Design ${this.id.substring(0, 8)}`; }
-
-  toJSON() {
-    return {
-      ...super.toJSON(),
-      name: this.name,
-      geometry: this.data.geometry
-    };
-  }
 }

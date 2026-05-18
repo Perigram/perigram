@@ -15,14 +15,14 @@
                 </div>
             </template>
             <div class="flex flex-col gap-6">
-                <p class="m-0">{{ catalog.identity?.description || catalog.description }}</p>
+                <p class="m-0">{{ catalog.data?.description }}</p>
                 
                 <Divider />
 
                 <div class="flex flex-wrap items-center gap-8">
                     <div class="flex flex-col">
                         <small>{{ $t('catalog.coreMaterial') }}</small>
-                        <Tag :value="catalog.material" severity="secondary" />
+                        <Tag :value="catalog.data?.material" severity="secondary" />
                     </div>
                     
                     <div class="flex flex-col">
@@ -88,7 +88,7 @@ defineEmits(['edit', 'add-sheet-type', 'edit-sheet-type', 'remove-sheet-type']);
 
 const authStore = useAuthStore();
 
-const foilThicknessOptions = computed(() => props.catalog.options?.foilThicknesses || props.catalog.foilThicknessOptions || []);
-const sheetThicknessOptions = computed(() => props.catalog.options?.sheetThicknesses || props.catalog.sheetThicknessOptions || []);
-const widthOptions = computed(() => props.catalog.options?.widths || props.catalog.widthOptions || []);
+const foilThicknessOptions = computed(() => props.catalog.data?.options?.foilThicknesses || []);
+const sheetThicknessOptions = computed(() => props.catalog.data?.options?.sheetThicknesses || []);
+const widthOptions = computed(() => props.catalog.data?.options?.widths || []);
 </script>

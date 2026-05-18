@@ -39,7 +39,14 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const pile = new MaterialPile({
     identity: { uid },
     lineage,
-    params: { serial, specs, quantity }
+    data: {
+      serial,
+      specs: specs || {},
+      stock: {
+        total: quantity || 0,
+        used: 0
+      }
+    }
   });
 
   pile.applyStatus('STOCKED', userId, { note: 'Initial material stocking' });

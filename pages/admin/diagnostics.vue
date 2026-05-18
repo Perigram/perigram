@@ -16,7 +16,7 @@
                     </div>
                     <div class="grid grid-cols-2">
                         <span class="opacity-60">{{ $t('admin.organizationType') }}:</span>
-                        <span>{{ authStore.organizationData?.type || $t('common.notAvailable') }}</span>
+                        <span>{{ authStore.organizationData?.data?.type || $t('common.notAvailable') }}</span>
                     </div>
                 </div>
             </Panel>

@@ -45,8 +45,22 @@ const CAPABILITY_FEATURES = [
   'tool-profiles'
 ];
 const IGNORE = ['_template', 'README.md', 'index.js'];
+const ENTITY_ROOT_ALIAS_FIELDS = ['id', 'name', 'slug', 'serial', 'reference', 'type', 'geometry', 'parameters'];
+const LEGACY_RAW_FIELD_PATTERN = /\braw\.(name|slug|serial|reference|type|geometry|parameters|metadata|organizationId|currentOrganizationId|warehouseId|params)\b/;
+const ROOT_TO_JSON_ALIAS_PATTERN = new RegExp(`\\b(${ENTITY_ROOT_ALIAS_FIELDS.join('|')}):\\s*this\\.`);
 
 console.log('🚀 Starting Architectural Verification...');
+
+const walkDir = (dir) => {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...walkDir(full));
+    else files.push(full);
+  }
+  return files;
+};
 
 const directories = fs.readdirSync(FEATURES_DIR).filter(f => !IGNORE.includes(f) && fs.statSync(path.join(FEATURES_DIR, f)).isDirectory());
 const declared = new Set([...ENTITY_FEATURES, ...CAPABILITY_FEATURES]);
@@ -111,6 +125,14 @@ features.forEach(feature => {
       console.error(`❌ Model imports from deprecated utils/blocks — use server/core/blocks/index.js`);
       errors++;
     }
+    if (ROOT_TO_JSON_ALIAS_PATTERN.test(content)) {
+      console.error(`❌ Model serializes root DTO aliases — keep fields inside canonical blocks`);
+      errors++;
+    }
+    if (LEGACY_RAW_FIELD_PATTERN.test(content)) {
+      console.error(`❌ Model reads legacy root/params fields — constructors must accept canonical blocks only`);
+      errors++;
+    }
   }
 
   // 6. Service must import from core/blocks, not utils/blocks
@@ -138,18 +160,7 @@ features.forEach(feature => {
 
 // 8. API routes must not import repository or model directly from features
 console.log('\nChecking API routes for layer violations...');
-const walkDir = (dir) => {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  const files = [];
-  for (const entry of entries) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) files.push(...walkDir(full));
-    else if (entry.name.endsWith('.js')) files.push(full);
-  }
-  return files;
-};
-
-const apiFiles = walkDir(API_DIR);
+const apiFiles = walkDir(API_DIR).filter(file => file.endsWith('.js'));
 apiFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   const relFile = path.relative('.', file);
@@ -160,6 +171,44 @@ apiFiles.forEach(file => {
   if (/from.*features\/.*\/model/i.test(content)) {
     console.error(`❌ API route [${relFile}] imports model directly — use service layer`);
     errors++;
+  }
+});
+
+console.log('\nChecking canonical block DTO contract...');
+[
+  'server/core/blocks/BaseEntity.js',
+  'packages/core/src/index.js'
+].forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  if (/\n\s+id:\s*this\.id\b/.test(content)) {
+    console.error(`❌ ${file} serializes root id alias — use _id plus identity.uid`);
+    errors++;
+  }
+});
+
+const dtoContractFiles = [
+  ...walkDir('components/entities').filter(file => file.endsWith('.vue')),
+  ...walkDir('components/shared').filter(file => file.endsWith('.vue')),
+  ...walkDir('composables').filter(file => file.endsWith('.js')),
+  ...walkDir('pages/projects').filter(file => file.endsWith('.vue')),
+  ...walkDir('pages/project').filter(file => file.endsWith('.vue')),
+  ...walkDir('pages/test').filter(file => file.endsWith('.vue')),
+  ...walkDir('test-data').filter(file => file.endsWith('.js'))
+];
+
+const frontendLegacyPatterns = [
+  { pattern: /\bentity\.id\b/, message: 'uses entity.id; use _id or identity.uid' },
+  { pattern: /\bprops\.[a-zA-Z0-9_]+\.(name|slug|serial|reference)\b/, message: 'reads identity fields from entity root' },
+  { pattern: /\braw\.status\?\.state\s*\|\|\s*raw\.status\b/, message: 'accepts legacy root status value' }
+];
+
+dtoContractFiles.forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  for (const check of frontendLegacyPatterns) {
+    if (check.pattern.test(content)) {
+      console.error(`❌ ${file} ${check.message}`);
+      errors++;
+    }
   }
 });
 

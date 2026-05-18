@@ -58,7 +58,7 @@ const PILE_FIELDS = [
     { path: 'data.stock.used', i18n: 'piles.stockUsed' }
 ];
 
-const stock = computed(() => props.pile.data?.stock || props.pile.stock || null);
-const sheetThickness = computed(() => props.pile.data?.specs?.sheetThickness || props.pile.specs?.sheetThickness || null);
+const stock = computed(() => props.pile.data?.stock || null);
+const sheetThickness = computed(() => props.pile.data?.specs?.sheetThickness || null);
 const remaining = computed(() => (stock.value?.total || 0) - (stock.value?.used || 0));
 </script>

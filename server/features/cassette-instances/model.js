@@ -9,21 +9,9 @@ export class CassetteInstance extends BaseEntity {
     super(raw);
     
     this.data = {
-      ...this.data,
-      // Physical properties and tracking data
-      serial: raw.serial || raw.identity?.serial || raw.data?.serial || '',
-      reference: raw.reference || raw.identity?.reference || raw.data?.reference || ''
+      ...this.data
     };
   }
 
-  get name() { return this.identity.name || `Instance ${this.data.serial}`; }
-
-  toJSON() {
-    return {
-      ...super.toJSON(),
-      name: this.name,
-      serial: this.data.serial,
-      reference: this.data.reference
-    };
-  }
+  get name() { return this.identity.name || `Instance ${this.identity.serial}`; }
 }

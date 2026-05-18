@@ -47,5 +47,5 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const warehouseType = computed(() => props.warehouse.data?.type || props.warehouse.type || '');
+const warehouseType = computed(() => props.warehouse.data?.type || '');
 </script>

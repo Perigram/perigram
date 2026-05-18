@@ -3,7 +3,7 @@
         <i class="pi pi-clone"></i>
         <div class="flex flex-col">
             <small>{{ $t('piles.pile') }}</small>
-            <span>{{ data.serial || data.identity?.serial || data._id?.toString().slice(-6) }}</span>
+            <span>{{ data.identity?.serial || data._id?.toString().slice(-6) }}</span>
         </div>
         <div class="flex gap-1">
             <Tag v-if="thickness" :value="`${thickness}mm`" severity="secondary" />

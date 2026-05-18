@@ -26,8 +26,8 @@ async function sendEmail(to, subject, htmlBody) {
 
 export async function sendNestFinishEmail(nestingJob) {
   const db = await connectDB();
-  const project = await db.collection('projects').findOne({ slug: nestingJob.projectSlug });
-  const user = await db.collection('users').findOne({ id: nestingJob.ownerId });
+  const project = await db.collection('projects').findOne({ 'identity.slug': nestingJob.projectSlug });
+  const user = await db.collection('users').findOne({ _id: nestingJob.ownerId });
   if (!user || !project) {
     logger.error('User or project not found');
     throw createError({
@@ -36,11 +36,11 @@ export async function sendNestFinishEmail(nestingJob) {
     });
   }
   try {
-    const recipient = user.email;
-    const emailSubject = `Your nesting project ${project.name} is finished`;
+    const recipient = user.data?.email;
+    const emailSubject = `Your nesting project ${project.identity?.name} is finished`;
     const emailBody = `
-      <p>Your nesting project ${project.name} is finished</p>
-      <p>You can view the project <a href="${useRuntimeConfig().public.baseUrl}/project/${project.slug}">here</a></p>
+      <p>Your nesting project ${project.identity?.name} is finished</p>
+      <p>You can view the project <a href="${useRuntimeConfig().public.baseUrl}/project/${project.identity?.slug}">here</a></p>
     `;
 
     await sendEmail(recipient, emailSubject, emailBody);

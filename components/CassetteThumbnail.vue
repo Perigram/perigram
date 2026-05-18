@@ -71,8 +71,8 @@ const props = defineProps({
 const renderingData = ref(null);
 const loading = ref(false);
 
-const cassetteType = (cassette) => cassette?.type || cassette?.data?.type || cassette?.definition?.type || '';
-const cassetteDefinition = (cassette) => cassette?.definition?.data || cassette?.definition || cassette?.data?.definition || {};
+const cassetteType = (cassette) => cassette?.data?.type || '';
+const cassetteDefinition = (cassette) => cassette?.data?.definition || {};
 const cassetteMapping = (cassette) => cassetteDefinition(cassette)?.mapping || {};
 const cassetteGraph = (cassette) => {
   const definition = cassetteDefinition(cassette);
@@ -119,10 +119,10 @@ const updateThumbnail = async () => {
   }
 
   // 1. Handle Designs (Baked/Static Geometry)
-  if (cassette.geometry?.dxfId) {
+  if (cassette.data?.geometry?.dxfId) {
     loading.value = true;
     try {
-      const dxfText = await $fetch(`/api/files/download/${cassette.geometry.dxfId}?bucket=cassettes`);
+      const dxfText = await $fetch(`/api/files/download/${cassette.data.geometry.dxfId}?bucket=cassettes`);
       const data = await generateSvgDataFromText(dxfText, {}, { stroke: { color: 'currentColor', weight: 0.5 } });
       if (data) renderingData.value = data;
     } catch (error) {
@@ -169,8 +169,8 @@ const updateThumbnail = async () => {
     loading.value = true;
     try {
       const design = await $fetch(`/api/cassette-designs/by-template/${cassette._id}`);
-      if (design?.geometry?.dxfId) {
-        const dxfText = await $fetch(`/api/files/download/${design.geometry.dxfId}?bucket=cassettes`);
+      if (design?.data?.geometry?.dxfId) {
+        const dxfText = await $fetch(`/api/files/download/${design.data.geometry.dxfId}?bucket=cassettes`);
         const defaultPen = systemPens.value[0] || { stroke: { color: 'currentColor', weight: 0.5 } };
         const layerToPenMap = buildLayerPenMap(cassetteMapping(cassette), standards.value, pens.value);
         const data = await generateSvgDataFromText(dxfText, layerToPenMap, defaultPen);

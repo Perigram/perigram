@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     
     return { 
       success: true, 
-      userId: user.id || user._id 
+      userId: user._id
     };
   } catch (err) {
     if (err.statusCode) throw err;

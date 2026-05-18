@@ -18,7 +18,7 @@ export const useTraceability = () => {
             chain.push({
                 ...item,
                 data,
-                label: data?.name || data?.requisitionNumber || data?.batchNumber || item.id
+                label: data?.identity?.name || data?.data?.requisitionNumber || data?.data?.batchNumber || item.id
             });
         }
 

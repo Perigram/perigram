@@ -11,7 +11,7 @@
 
     <Accordion v-else :multiple="true" :value="['0']" class="flex flex-col gap-4">
       <AccordionPanel v-for="(queue, index) in queues" :key="queue._id" :value="index.toString()">
-        <AccordionHeader>{{ queue.name || `${$t('queue.title')} ${queue.queueNumber}` }}</AccordionHeader>
+        <AccordionHeader>{{ queue.identity?.name || `${$t('queue.title')} ${queue.data?.queueNumber}` }}</AccordionHeader>
         <AccordionContent>
           <div class="pt-4">
             <ArtifactsTable :batch-id="queue._id" />
@@ -49,7 +49,7 @@ const loadQueues = async () => {
     // Queue listing is project-scoped — access via project sub-resource endpoint
     queues.value = await $fetch(`/api/project/${slug}/queues`);
     // Sort queues by queueNumber descending to show the latest first
-    queues.value.sort((a, b) => b.queueNumber - a.queueNumber);
+    queues.value.sort((a, b) => (b.data?.queueNumber || 0) - (a.data?.queueNumber || 0));
   } catch (error) {
     console.error('Failed to load queues:', error);
   } finally {

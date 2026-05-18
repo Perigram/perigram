@@ -7,11 +7,11 @@
 
     <TableFrame>
     <DataTable :value="users" :loading="loading" stripedRows>
-      <Column field="name" :header="$t('profile.name')" sortable />
-      <Column field="email" :header="$t('profile.email')" sortable />
-      <Column field="role" :header="$t('queue.status')">
+      <Column field="identity.name" :header="$t('profile.name')" sortable />
+      <Column field="data.email" :header="$t('profile.email')" sortable />
+      <Column field="data.role" :header="$t('queue.status')">
         <template #body="{ data }">
-          <Tag :value="$t(`roles.${data.role}`)" severity="info" />
+          <Tag :value="$t(`roles.${data.data?.role}`)" severity="info" />
         </template>
       </Column>
       <Column :header="$t('common.actions.title')" class="text-right">
@@ -126,11 +126,11 @@
     </StandardDialog>
 
     <!-- Permissions Dialog -->
-    <StandardDialog v-model:visible="showPermissionsDialog" :header="`${$t('auth.permissions')}: ${selectedUser?.name}`" size="lg">
+    <StandardDialog v-model:visible="showPermissionsDialog" :header="`${$t('auth.permissions')}: ${selectedUser?.identity?.name}`" size="lg">
         <div class="pt-4">
             <PermissionEditor 
                 v-if="selectedUser" 
-                :permissions="selectedUser.permissions" 
+                :permissions="selectedUser.data?.permissions" 
                 @save="savePermissions" 
             />
         </div>
@@ -211,7 +211,7 @@ const inviteForm = ref({
 });
 
 const roleOptions = computed(() => {
-  const baseType = authStore.organizationData?.type || 'Individual';
+  const baseType = authStore.organizationData?.data?.type || 'Individual';
   return [
     { label: t(`roles.${baseType}Admin`), value: `${baseType}Admin` },
     { label: t('roles.IndividualUser'), value: 'IndividualUser' }
@@ -223,10 +223,10 @@ async function loadUsers() {
   try {
     const allUsers = await usersEntity.list();
     users.value = allUsers.filter(u => 
-        u.memberships?.some(m => m.organizationId.toString() === authStore.userData.organizationId.toString() && m.status === 'active')
+        u.data?.memberships?.some(m => m.organizationId.toString() === authStore.userData.organizationId.toString() && m.status === 'active')
     );
     pendingUsers.value = allUsers.filter(u => 
-        u.memberships?.some(m => m.organizationId.toString() === authStore.userData.organizationId.toString() && m.status === 'pending')
+        u.data?.memberships?.some(m => m.organizationId.toString() === authStore.userData.organizationId.toString() && m.status === 'pending')
     );
     await loadInvitations();
   } catch (error) {
@@ -316,7 +316,7 @@ async function savePermissions(permissions) {
 }
 
 async function confirmDelete(user) {
-    if (confirm(t('auth.removeUserConfirm', { name: user.name }))) {
+    if (confirm(t('auth.removeUserConfirm', { name: user.identity?.name }))) {
         try {
             const { remove } = useEntity('user', user._id);
             await remove();

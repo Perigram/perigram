@@ -74,7 +74,7 @@ const props = defineProps({
 defineEmits(['add-queue']);
 
 const router = useRouter();
-const projectSlug = computed(() => props.project.identity?.slug || props.project.slug || props.project._id || props.project.id || '');
+const projectSlug = computed(() => props.project.identity?.slug || '');
 
 const queues = ref([]);
 const loading = ref(false);

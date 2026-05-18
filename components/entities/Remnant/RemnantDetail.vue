@@ -68,7 +68,7 @@ const props = defineProps({
 
 const { t } = useI18n();
 const { changeStatus } = useEntity('remnant', props.remnant?._id || props.remnant?.id);
-const state = computed(() => props.remnant.status?.state || props.remnant.state || 'UNKNOWN');
+const state = computed(() => props.remnant.status?.state || 'UNKNOWN');
 const specs = computed(() => props.remnant.specs || props.remnant.data?.specs || {});
 const width = computed(() => specs.value.width || 0);
 const length = computed(() => specs.value.length || 0);

@@ -21,7 +21,7 @@ const props = defineProps({
 
 defineEmits(['click']);
 
-const state = computed(() => props.artifact.status?.state || props.artifact.state || 'UNKNOWN');
+const state = computed(() => props.artifact.status?.state || 'UNKNOWN');
 const artifactType = computed(() => props.artifact.data?.type || '');
 
 const icon = computed(() => {

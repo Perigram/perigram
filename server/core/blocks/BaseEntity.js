@@ -15,10 +15,10 @@ export class BaseEntity {
   constructor(raw = {}) {
     // 1. Identify
     this._id = raw.identity?.uid || raw._id || null;
-    const name = raw.identity?.name || raw.name || '';
-    const slug = raw.identity?.slug || raw.slug || '';
-    const serial = raw.identity?.serial || raw.serial || '';
-    const reference = raw.identity?.reference || raw.reference || '';
+    const name = raw.identity?.name || '';
+    const slug = raw.identity?.slug || '';
+    const serial = raw.identity?.serial || '';
+    const reference = raw.identity?.reference || '';
     
     this.identity = new Identity(this._id, name, slug, serial, reference);
     
@@ -53,7 +53,6 @@ export class BaseEntity {
   toJSON() {
     return {
       _id: this._id,
-      id: this.id,
       identity: this.identity.toJSON(),
       lineage: this.lineage.toJSON(),
       origin: this.origin?.toJSON() || null,
@@ -61,12 +60,7 @@ export class BaseEntity {
       specs: this.specs?.toJSON() || null,
       attachments: this.attachments,
       data: this.data,
-      summary: this.summary,
-      // Flat convenience aliases (sourced from entity getter to allow subclass overrides)
-      name: this.name,
-      slug: this.identity.slug,
-      serial: this.identity.serial,
-      reference: this.identity.reference
+      summary: this.summary
     };
   }
 

@@ -3,7 +3,7 @@
     <h1>{{ $t('queue.pageTitle') }}</h1>
     <div v-if="loading">{{ $t('queue.loading') }}</div>
     <div v-else-if="queue">
-      <h2>{{ queue.name }}</h2>
+      <h2>{{ queue.identity?.name }}</h2>
       <pre>{{ queue }}</pre>
     </div>
     <div v-else>

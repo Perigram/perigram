@@ -46,15 +46,15 @@ export default defineEventHandler(async (event) => {
     if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
     
     console.log('Queue loaded:', { 
-      id: queue.id, 
+      id: queue._id, 
       status: queue.status, 
-      itemsCount: queue.job?.items?.length 
+      itemsCount: queue.data?.job?.items?.length 
     });
     
     // Guard against double-submit/race: only one active job per queue.
     const db = await connectDB();
     const existingJob = await db.collection('nesting_jobs').findOne({
-      queueId: toFlexibleId(queue.id),
+      queueId: toFlexibleId(queue._id),
       status: { $in: ['pending', 'processing'] }
     });
 
@@ -62,7 +62,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: 'Queue is already nesting' });
     }
     
-    if (!queue.job?.items || queue.job.items.length === 0) {
+    if (!queue.data?.job?.items || queue.data.job.items.length === 0) {
       throw createError({ statusCode: 400, message: 'Queue has no entries' });
     }
     
@@ -70,12 +70,12 @@ export default defineEventHandler(async (event) => {
     // IMPORTANT: bake/evaluate must run sequentially because the shared
     // nodi-modular WASM engine is not safe for concurrent loadGraph/evaluate.
     const jobFiles = [];
-    for (const entry of queue.job.items) {
+    for (const entry of queue.data.job.items) {
       try {
         if (entry.type === 'PARAMETRIC') {
           const template = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth);
-          console.log(`Baking parametric template: ${template.identity?.name || template.name}`);
-          const bakedCassette = await bakeTemplateInstance(toFlexibleId(template.id), entry.parameters || {}, userId);
+          console.log(`Baking parametric template: ${template.identity?.name}`);
+          const bakedCassette = await bakeTemplateInstance(toFlexibleId(template._id), entry.parameters || {}, userId);
           jobFiles.push({
             cassetteId: bakedCassette._id.toString(),
             count: entry.quantity,
@@ -97,7 +97,7 @@ export default defineEventHandler(async (event) => {
         }
 
         jobFiles.push({
-          cassetteId: item.id || item._id.toString(),
+          cassetteId: item._id.toString(),
           count: entry.quantity,
           dimensions: entry.parameters || {}
         });
@@ -108,7 +108,7 @@ export default defineEventHandler(async (event) => {
     }
   
   // Generate nesting slug
-  const nestingSlug = `queue-${queue.queueNumber ?? queue.id.slice(-6)}-${generateRandomString(6)}`;
+  const nestingSlug = `queue-${queue.data?.queueNumber ?? queue._id.toString().slice(-6)}-${generateRandomString(6)}`;
   
   // Material dimensions and pool from request
   const params = {
@@ -121,7 +121,7 @@ export default defineEventHandler(async (event) => {
   };
   
   // Create nesting run via service
-  const runNumber = await nestingRunsService.getNextRunNumber(queue.id);
+  const runNumber = await nestingRunsService.getNextRunNumber(queue._id);
   const runOrigin = createStatus('NESTING', auth.userId, { note: `Nesting started in ${body.materialMode || 'VIRTUAL'} mode` });
   
   const run = await nestingRunsService.create({
@@ -135,13 +135,13 @@ export default defineEventHandler(async (event) => {
     requestedArtifacts: body.requestedArtifacts || ['LAYOUT_DXF']
   }, auth.userId);
 
-  const runId = toFlexibleId(run.id);
+  const runId = toFlexibleId(run._id);
   
   console.log('Adding nesting job to DB...');
   await db.collection('nesting_jobs').insertOne({
     slug: nestingSlug,
     projectSlug: queue.identity?.slug || '', 
-    queueId: toFlexibleId(queue.id),
+    queueId: toFlexibleId(queue._id),
     runId,
     files: jobFiles, 
     params,
@@ -158,9 +158,9 @@ export default defineEventHandler(async (event) => {
     if (type === 'PDF_PASSPORT') {
         const art = await artifactService.create({
             type,
-            queueId: toFlexibleId(queue.id),
+            queueId: toFlexibleId(queue._id),
             runId,
-            name: `${queue.name} - Technical Passports`,
+            name: `${queue.identity.name} - Technical Passports`,
             status: 'GENERATING',
             metadata: { templateId: body.pdfTemplateId }
         });
@@ -168,9 +168,9 @@ export default defineEventHandler(async (event) => {
     } else if (type === 'LAYOUT_DXF') {
         const art = await artifactService.create({
             type,
-            queueId: toFlexibleId(queue.id),
+            queueId: toFlexibleId(queue._id),
             runId,
-            name: `${queue.name} - LAYOUT_DXF.dxf`,
+            name: `${queue.identity.name} - LAYOUT_DXF.dxf`,
             status: 'GENERATING'
         });
         artifacts.push(art);
