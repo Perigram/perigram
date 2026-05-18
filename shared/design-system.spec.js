@@ -177,6 +177,8 @@ describe('Design system manifest', () => {
 
     expect(source).toContain('loadReviewModels');
     expect(source).toContain('reviewModelForRow');
+    expect(source).toContain('uiLabReviewModelForRow');
+    expect(source).toContain("!field.name.startsWith('lineage.')");
     expect(source).toContain('reviewFieldFeedbackFor');
     expect(source).toContain('reviewExpanded');
     expect(source).toContain('toggleReview');

@@ -477,7 +477,7 @@ const activeGroup = computed(() => groups.find((group) => group.id === activeSec
 const activeRows = computed(() => rows.filter((row) => row.group === activeSection.value));
 const activeRowsWithModels = computed(() => activeRows.value.map((row) => ({
   ...row,
-  model: reviewModelForRow(row)
+  model: uiLabReviewModelForRow(row)
 })));
 
 const primitiveEntity = createMockQueue();
@@ -543,6 +543,16 @@ function reviewModelForRow(row) {
   const collection = ENTITY_COLLECTION_BY_TYPE.get(row.entityType);
   if (!collection) return null;
   return reviewModels.value.find(model => model.collection === collection) || null;
+}
+
+function uiLabReviewModelForRow(row) {
+  const model = reviewModelForRow(row);
+  if (!model) return null;
+  return {
+    ...model,
+    fields: (model.fields || []).filter(field => !field.name.startsWith('lineage.')),
+    issues: (model.issues || []).filter(issue => !issue.field.startsWith('lineage.'))
+  };
 }
 
 function reviewFieldFeedbackFor(row, field) {
