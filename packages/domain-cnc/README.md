@@ -12,6 +12,15 @@ Cutkit CNC domain definitions for the framework extraction. This package is the 
 
 The framework manifest includes CNC primitives that application builders can compose directly, including layer standards, pen templates, tool profiles, and materials. Runtime support collections such as sessions, invitations, audit events, and preset options stay outside this package unless they become first-class app entities.
 
+## Builder Tool
+
+The app exposes `/admin/domain-builder` as a browser-export development tool for
+this package. It loads the current package definitions, lets SuperAdmin users
+edit entities, frontend routes, workflows, lifecycle schemas, hooks, and
+summaries in localStorage, validates the draft, and exports generated JS. The
+tool intentionally does not write source files or introduce an alternate runtime
+format; this package remains the source of truth.
+
 ## Workflow Lifecycle Schemas
 
 `cncWorkflows` owns manufacturing-specific states, transitions, hooks, and

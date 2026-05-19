@@ -848,3 +848,23 @@
     Notes:
     - Kept `/api/debug/data-models` lineage extraction intact for relationship metadata.
     - Filtered `lineage.*` rows out of the UI Lab per-entity review panel so the visible table focuses on canonical blocks and feature data fields.
+
+*** Agent Notes
+    [2026-05-19] Build browser-export Domain CNC builder
+    Files changed:
+    - pages/admin/domain-builder.vue
+    - utils/domain-builder.js
+    - utils/domain-builder.spec.js
+    - layouts/app.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    - shared/design-system.spec.js
+    Docs updated:
+    - pages/admin/README.md
+    - packages/domain-cnc/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Added a SuperAdmin admin page for local browser draft editing of CNC entities, routes, workflows, lifecycle schemas, hooks, and summaries.
+    - Kept persistence export-only: draft JSON and generated `domain-cnc.generated.js`, with no server-side file writes.
+    - Added validation and deterministic source-generation helpers for the existing workflow DSL instead of introducing XState.
