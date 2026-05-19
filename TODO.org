@@ -1066,6 +1066,17 @@
     - Removed the workbench permissions editor entirely; access policy is not edited on this page.
 
 *** Agent Notes
+    [2026-05-19] Move existing UI Lab/data-model paths into workbench
+    Files changed:
+    - pages/admin/workbench.vue
+    Docs updated:
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Replaced fake UI settings with selected-entity component variants from `createDesignSystemDemoRows()`, matching UI Lab.
+    - Fixed data model loading to use `/api/debug/data-models` result `.models`, matching the existing review pages.
+
+*** Agent Notes
     [2026-05-19] Create CutKit Vue design-system Codex skill
     Files changed:
     - /home/isuo/.codex/skills/cutkit-vue-design-system/SKILL.md

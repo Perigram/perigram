@@ -6,10 +6,13 @@ Administrative pages for organization/user management, diagnostics, support, and
 
 `workbench.vue` is the unified authenticated development surface. It lists
 domain entities and edits the selected entity across one set of sections:
-UI display fields, extracted data-model decisions, feedback, workflow/state
-machine draft. The workflow section uses the same Vue Flow graph editor pattern
-as Domain Builder: draggable status nodes, connectable transitions, and a side
-panel for lifecycle state, capabilities, attachments, and hooks.
+UI Lab component variants, extracted data-model decisions, feedback, and
+workflow/state machine draft. The UI section renders rows from the same
+`createDesignSystemDemoRows()` path as `/test/ui-lab`. The data model section
+loads the same `/api/debug/data-models` response shape as Data Model Review.
+The workflow section uses the same Vue Flow graph editor pattern as Domain
+Builder: draggable status nodes, connectable transitions, and a side panel for
+lifecycle state, capabilities, attachments, and hooks.
 
 ## Domain Builder
 
