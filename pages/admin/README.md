@@ -6,9 +6,12 @@ Administrative pages for organization/user management, diagnostics, support, and
 
 `domain-builder.vue` is an authenticated development tool for editing
 `@cutkit/domain-cnc` entity definitions, frontend route metadata, workflow
-definitions, lifecycle schemas, and summary rules in a browser-local draft. The
-page follows the same review-tool pattern as Data Model Review: JSON editors,
-validation output, and browser exports only. It does not write repository files.
+definitions, lifecycle schemas, transition hooks, and summary rules in a
+browser-local draft. Entity/routes/summaries use table controls. Workflows use a
+visual graph: statuses are selectable nodes, transitions are selectable edges,
+and the side panel edits lifecycle flags, actors, attachments, roles,
+capabilities, and hooks. The tool exports draft JSON or generated JS and does
+not write repository files.
 
 ## Data Model Review
 

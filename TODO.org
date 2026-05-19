@@ -922,3 +922,33 @@
     Notes:
     - Kept the normal authenticated route middleware but removed the in-page SuperAdmin-only warning/gate.
     - Domain Builder now behaves like the existing admin review tools for authenticated development access.
+
+*** Agent Notes
+    [2026-05-19] Restore visual Domain Builder editor
+    Files changed:
+    - pages/admin/domain-builder.vue
+    - shared/design-system.spec.js
+    Docs updated:
+    - pages/admin/README.md
+    - packages/domain-cnc/README.md
+    - TODO.org
+    Notes:
+    - Restored the structured entity, route, workflow, transition, summary, and graph editor instead of JSON-only editing.
+    - Kept the normal authenticated route and no server-side file writes.
+
+*** Agent Notes
+    [2026-05-19] Make Domain Builder workflow editing graph-first
+    Files changed:
+    - pages/admin/domain-builder.vue
+    - utils/domain-builder.js
+    - utils/domain-builder.spec.js
+    - shared/design-system.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - pages/admin/README.md
+    - packages/domain-cnc/README.md
+    - TODO.org
+    Notes:
+    - Replaced separate workflow state/transition tables with a selectable graph and side-panel property editors.
+    - Added click-to-create transitions by selecting source and target statuses on the graph.
