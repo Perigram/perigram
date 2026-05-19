@@ -9,11 +9,7 @@
 
     <input ref="fileInput" type="file" accept="application/json" class="hidden" @change="importDraft" />
 
-    <Message v-if="!authStore.isSuperAdmin" severity="warn">
-      {{ $t('admin.domainBuilder.superAdminOnly') }}
-    </Message>
-
-    <div v-else class="flex flex-col gap-6">
+    <div class="flex flex-col gap-6">
       <Panel :header="$t('admin.domainBuilder.status')">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
           <div class="flex flex-col gap-1">
@@ -94,7 +90,6 @@ import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import StandardPage from '~/components/shared/StandardPage.vue';
-import { useAuthStore } from '~/stores/auth';
 import { cncEntities, cncFrontendEntities, cncSummaries, cncWorkflows } from '~/packages/domain-cnc/src/index.js';
 import {
   DOMAIN_BUILDER_STORAGE_KEY,
@@ -109,7 +104,6 @@ definePageMeta({
 });
 
 const { t } = useI18n();
-const authStore = useAuthStore();
 const fileInput = ref(null);
 const dirtyJsonKeys = ref([]);
 

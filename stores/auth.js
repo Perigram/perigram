@@ -24,9 +24,9 @@ export const useAuthStore = defineStore('auth', () => {
     const isContractor = computed(() => organization.value?.data?.type === 'Contractor' || user.value?.role?.includes('Contractor'));
     const isCustomer = computed(() => organization.value?.data?.type === 'Customer' || user.value?.role?.includes('Customer'));
 
-    async function setUser() {
+    async function setUser(fetchOptions = {}) {
         try {
-            const data = await $fetch('/api/auth/me');
+            const data = await $fetch('/api/auth/me', fetchOptions);
             if (data && (Boolean(data.userId) || Boolean(data.id))) {
                 user.value = { ...data, id: data.userId || data.id }; // Normalize ID
                 isUserSet.value = true;
@@ -34,7 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
                 // Fetch organization if linked
                 if (user.value.organizationId) {
                     try {
-                        organization.value = await $fetch(`/api/organizations/${user.value.organizationId}`);
+                        organization.value = await $fetch(`/api/organizations/${user.value.organizationId}`, fetchOptions);
                     } catch (err) {
                         console.error('Failed to fetch organization:', err);
                     }
@@ -42,7 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
                     organization.value = null;
                 }
 
-                await fetchUserOrgs();
+                await fetchUserOrgs(fetchOptions);
             } else {
                 user.value = {};
                 organization.value = null;
@@ -105,9 +105,9 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-    async function fetchUserOrgs() {
+    async function fetchUserOrgs(fetchOptions = {}) {
         try {
-            userOrgs.value = await $fetch('/api/auth/organizations');
+            userOrgs.value = await $fetch('/api/auth/organizations', fetchOptions);
         } catch (err) {
             console.error('Failed to fetch user organizations:', err);
         }

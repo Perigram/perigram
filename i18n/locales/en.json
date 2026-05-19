@@ -610,7 +610,6 @@
       "importDraft": "Import Draft",
       "exportDraft": "Export Draft",
       "exportJs": "Export JS",
-      "superAdminOnly": "This development tool is available only to SuperAdmin users.",
       "status": "Draft status",
       "entities": "Entities",
       "routes": "Routes",

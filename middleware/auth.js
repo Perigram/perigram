@@ -13,7 +13,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // On the server, always try to set the user.
     // On the client, only set the user if they are not already set.
     if (process.server || !userIsSet.value) {
-        await authStore.setUser();
+        const fetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {};
+        await authStore.setUser(fetchOptions);
     }
 
     const isLoggedIn = userIsSet.value;
@@ -28,4 +29,3 @@ export default defineNuxtRouteMiddleware(async (to) => {
         return navigateTo('/');
     }
 });
-
