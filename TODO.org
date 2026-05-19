@@ -881,3 +881,16 @@
     Notes:
     - Moved the Domain Builder page from a single hyphenated page file to an index route directory while preserving `/admin/domain-builder`.
     - Updated the route static test to assert the new page location.
+
+*** Agent Notes
+    [2026-05-19] Simplify Domain Builder to existing admin review pattern
+    Files changed:
+    - pages/admin/domain-builder.vue
+    - pages/admin/domain-builder/index.vue
+    - shared/design-system.spec.js
+    Docs updated:
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Restored the normal single-file admin route used by existing admin pages.
+    - Replaced the table/graph workflow editor with JSON editors, validation, and export panels to match the existing Data Model Review pattern.
