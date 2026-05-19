@@ -118,17 +118,22 @@ export function validateDomainDraft(draft = {}) {
 
 export function buildWorkflowGraph(workflow = {}) {
   const states = Object.keys(workflow.states || {});
-  const columns = Math.max(1, Math.ceil(Math.sqrt(states.length || 1)));
   const nodeWidth = 148;
   const nodeHeight = 44;
-  const gapX = 64;
-  const gapY = 72;
+  const gapX = 112;
+  const gapY = 86;
+  const ranks = rankStates(states, workflow);
+  const rowsByRank = states.reduce((acc, state) => {
+    const rank = ranks.get(state) || 0;
+    acc.set(rank, [...(acc.get(rank) || []), state]);
+    return acc;
+  }, new Map());
   const nodes = states.map((state, index) => {
-    const column = index % columns;
-    const row = Math.floor(index / columns);
+    const rank = ranks.get(state) || 0;
+    const row = (rowsByRank.get(rank) || []).indexOf(state);
     return {
       id: state,
-      x: 24 + column * (nodeWidth + gapX),
+      x: 24 + rank * (nodeWidth + gapX),
       y: 24 + row * (nodeHeight + gapY),
       width: nodeWidth,
       height: nodeHeight,
@@ -139,21 +144,59 @@ export function buildWorkflowGraph(workflow = {}) {
   const byId = new Map(nodes.map(node => [node.id, node]));
   const edges = (workflow.transitions || [])
     .filter(transition => byId.has(transition.from) && byId.has(transition.to))
-    .map((transition, index) => ({
-      id: `${transition.from}-${transition.to}-${index}`,
-      index,
-      from: transition.from,
-      to: transition.to,
-      x1: byId.get(transition.from).x + nodeWidth,
-      y1: byId.get(transition.from).y + nodeHeight / 2,
-      x2: byId.get(transition.to).x,
-      y2: byId.get(transition.to).y + nodeHeight / 2,
-      self: transition.from === transition.to
-    }));
-  const width = Math.max(360, 48 + Math.min(columns, Math.max(states.length, 1)) * nodeWidth + Math.max(columns - 1, 0) * gapX);
-  const height = Math.max(180, 72 + Math.ceil((states.length || 1) / columns) * nodeHeight + Math.max(Math.ceil((states.length || 1) / columns) - 1, 0) * gapY);
+    .map((transition, index, transitions) => {
+      const sameDirectionIndex = transitions
+        .slice(0, index)
+        .filter(item => item.from === transition.from && item.to === transition.to)
+        .length;
+      const reciprocal = transition.from !== transition.to
+        && transitions.some(item => item.from === transition.to && item.to === transition.from);
+
+      return {
+        id: `${transition.from}-${transition.to}-${index}`,
+        index,
+        from: transition.from,
+        to: transition.to,
+        x1: byId.get(transition.from).x + nodeWidth,
+        y1: byId.get(transition.from).y + nodeHeight / 2,
+        x2: byId.get(transition.to).x,
+        y2: byId.get(transition.to).y + nodeHeight / 2,
+        reciprocal,
+        sameDirectionIndex,
+        reverse: (ranks.get(transition.from) || 0) >= (ranks.get(transition.to) || 0),
+        self: transition.from === transition.to
+      };
+    });
+  const columnCount = Math.max(1, ...ranks.values()) + 1;
+  const rowCount = Math.max(1, ...Array.from(rowsByRank.values()).map(rows => rows.length));
+  const width = Math.max(420, 48 + columnCount * nodeWidth + Math.max(columnCount - 1, 0) * gapX);
+  const height = Math.max(220, 72 + rowCount * nodeHeight + Math.max(rowCount - 1, 0) * gapY);
 
   return { nodes, edges, width, height };
+}
+
+function rankStates(states, workflow) {
+  const stateSet = new Set(states);
+  const ranks = new Map();
+  const initial = stateSet.has(workflow.initial) ? workflow.initial : states[0];
+  if (!initial) return ranks;
+
+  ranks.set(initial, 0);
+  const queue = [initial];
+  while (queue.length) {
+    const from = queue.shift();
+    const fromRank = ranks.get(from) || 0;
+    for (const transition of workflow.transitions || []) {
+      if (transition.from !== from || !stateSet.has(transition.to) || transition.from === transition.to || ranks.has(transition.to)) continue;
+      ranks.set(transition.to, fromRank + 1);
+      queue.push(transition.to);
+    }
+  }
+
+  for (const [index, state] of states.entries()) {
+    if (!ranks.has(state)) ranks.set(state, index);
+  }
+  return ranks;
 }
 
 export function generateDomainCncSource(draft = {}) {

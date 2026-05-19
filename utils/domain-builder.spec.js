@@ -61,11 +61,15 @@ describe('domain builder utilities', () => {
     const graph = buildWorkflowGraph({
       initial: 'DRAFT',
       states: { DRAFT: {}, READY: { isTerminal: true } },
-      transitions: [{ from: 'DRAFT', to: 'READY', roles: ['ADMIN'] }]
+      transitions: [
+        { from: 'DRAFT', to: 'READY', roles: ['ADMIN'] },
+        { from: 'READY', to: 'DRAFT', roles: ['ADMIN'] }
+      ]
     });
 
     expect(graph.nodes).toContainEqual(expect.objectContaining({ id: 'DRAFT', initial: true }));
     expect(graph.nodes).toContainEqual(expect.objectContaining({ id: 'READY', terminal: true }));
-    expect(graph.edges).toContainEqual(expect.objectContaining({ index: 0, from: 'DRAFT', to: 'READY' }));
+    expect(graph.edges).toContainEqual(expect.objectContaining({ index: 0, from: 'DRAFT', to: 'READY', reciprocal: true }));
+    expect(graph.edges).toContainEqual(expect.objectContaining({ index: 1, from: 'READY', to: 'DRAFT', reciprocal: true, reverse: true }));
   });
 });

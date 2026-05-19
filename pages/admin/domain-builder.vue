@@ -416,7 +416,8 @@ const workflowEdges = computed(() => workflowGraph.value.edges.map(edge => ({
   source: edge.from,
   target: edge.to,
   label: transitionLabel(currentWorkflow.value.transitions[edge.index]),
-  type: 'smoothstep',
+  type: edge.reciprocal ? 'default' : 'smoothstep',
+  pathOptions: edgePathOptions(edge),
   markerEnd: {
     type: MarkerType.ArrowClosed,
     color: selectedTransitionIndex.value === edge.index ? 'var(--p-primary-color)' : 'var(--p-content-border-color)'
@@ -428,7 +429,7 @@ const workflowEdges = computed(() => workflowGraph.value.edges.map(edge => ({
   labelStyle: {
     color: 'var(--p-text-color)',
     fill: 'var(--p-text-color)',
-    fontSize: '0.75rem',
+    fontSize: '0.625rem',
     fontWeight: '500'
   },
   labelShowBg: true,
@@ -436,8 +437,8 @@ const workflowEdges = computed(() => workflowGraph.value.edges.map(edge => ({
     fill: 'var(--p-content-background)',
     stroke: 'var(--p-content-border-color)'
   },
-  labelBgPadding: [6, 8],
-  labelBgBorderRadius: 6
+  labelBgPadding: [4, 3],
+  labelBgBorderRadius: 4
 })));
 const selectedLifecycleAttachments = computed(() => {
   const attachments = selectedStateDefinition.value.lifecycle?.attachments || {};
@@ -668,17 +669,27 @@ function workflowEdgeStyle(edge) {
   };
 }
 
+function edgePathOptions(edge) {
+  if (edge.reciprocal) {
+    return { curvature: edge.reverse ? 0.55 : 0.2 };
+  }
+  return {
+    offset: 24 + edge.sameDirectionIndex * 18,
+    borderRadius: 12
+  };
+}
+
 function workflowNodePosition(node) {
   return workflowLayouts.value[selectedWorkflowType.value]?.[node.id] || { x: node.x, y: node.y };
 }
 
 function transitionLabel(transition = {}) {
-  const parts = [];
-  if (transition.roles?.length) parts.push(`roles: ${transition.roles.join(', ')}`);
+  const parts = [`${transition.from} -> ${transition.to}`];
+  if (transition.roles?.length) parts.push(`${transition.roles.length} roles`);
   const capabilities = transition.capabilities || transition.requiredCapabilities || [];
-  if (capabilities.length) parts.push(`caps: ${capabilities.join(', ')}`);
-  if (transition.hooks?.length) parts.push(`hooks: ${transition.hooks.map(hook => hook.handler).filter(Boolean).join(', ')}`);
-  return parts.length ? parts.join(' | ') : 'no guards';
+  if (capabilities.length) parts.push(`${capabilities.length} caps`);
+  if (transition.hooks?.length) parts.push(`${transition.hooks.length} hooks`);
+  return parts.join(' / ');
 }
 
 function defaultTransitionRoles() {
