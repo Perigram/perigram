@@ -40,34 +40,38 @@
 
         <Panel :header="$t('admin.workbench.sectionsUi')">
           <div class="flex flex-col gap-4">
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div class="flex flex-col gap-2">
-              <label>{{ $t('admin.workbench.componentKey') }}</label>
-              <InputText :model-value="uiContract?.key || selectedEntity.type" disabled />
-            </div>
-            <div class="flex flex-col gap-2">
-              <label>{{ $t('admin.workbench.statusPolicy') }}</label>
-              <Select v-model="uiDraft.status" :options="statusPolicyOptions" option-label="label" option-value="value" />
-            </div>
-            <div class="flex flex-col gap-2">
-              <label>{{ $t('admin.workbench.tracePolicy') }}</label>
-              <Select v-model="uiDraft.trace" :options="tracePolicyOptions" option-label="label" option-value="value" />
-            </div>
-            <div class="flex flex-col gap-2">
-              <label>{{ $t('admin.workbench.componentPath') }}</label>
-              <InputText :model-value="manifestComponent?.componentPath || ''" disabled />
-            </div>
-          </div>
-
-          <Panel :header="$t('admin.workbench.displayFields')">
-            <div class="flex flex-col gap-2">
-              <div v-for="(field, index) in uiDraft.fieldPaths" :key="`${field}-${index}`" class="grid grid-cols-[1fr_auto] gap-2">
-                <InputText v-model="uiDraft.fieldPaths[index]" />
-                <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="uiDraft.fieldPaths.splice(index, 1)" />
+            <Message v-if="selectedUiRows.length === 0" severity="warn">
+              {{ $t('uiLab.contract.missingComponent') }}
+            </Message>
+            <article v-for="row in selectedUiRows" :key="row.key" class="flex flex-col gap-4">
+              <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h3 class="m-0 text-base font-semibold">{{ $t(row.labelKey) }}</h3>
+                  <small class="text-muted-color">{{ row.entityType }} · {{ row.propName }}</small>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <Tag :value="$t(`uiLab.statusPolicy.${row.status}`)" severity="secondary" size="small" />
+                  <Tag :value="row.trace ? $t('uiLab.tracePolicy.enabled') : $t('uiLab.tracePolicy.hidden')" severity="secondary" size="small" />
+                </div>
               </div>
-              <Button icon="pi pi-plus" :label="$t('common.add')" size="small" @click="uiDraft.fieldPaths.push('data.')" />
-            </div>
-          </Panel>
+
+              <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,26rem)_minmax(0,20rem)_minmax(0,1fr)]">
+                <div class="flex flex-col gap-2">
+                  <small class="text-muted-color">{{ $t('uiLab.variants.card') }}</small>
+                  <component :is="row.component" v-bind="row.props" variant="card" />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <small class="text-muted-color">{{ $t('uiLab.variants.compact') }}</small>
+                  <component :is="row.component" v-bind="row.props" variant="compact" />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <small class="text-muted-color">{{ $t('uiLab.variants.inline') }}</small>
+                  <div class="flex min-h-12 items-center">
+                    <component :is="row.component" v-bind="row.props" variant="inline" />
+                  </div>
+                </div>
+              </div>
+            </article>
           </div>
         </Panel>
 
@@ -96,7 +100,11 @@
                     <Select v-model="dataDecisionFor(field).decision" :options="dataDecisionOptions" option-label="label" option-value="value" />
                   </td>
                   <td class="min-w-56 py-3">
-                    <InputText v-model="dataDecisionFor(field).target" :placeholder="$t('admin.dataModelReview.targetPlaceholder')" />
+                    <InputText
+                      v-if="dataDecisionFor(field).decision === 'rename' || dataDecisionFor(field).decision === 'move'"
+                      v-model="dataDecisionFor(field).target"
+                      :placeholder="$t('admin.dataModelReview.targetPlaceholder')"
+                    />
                   </td>
                 </tr>
               </tbody>
@@ -251,9 +259,8 @@ import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import StandardPage from '~/components/shared/StandardPage.vue';
-import frameworkManifest from '~/framework.manifest.json';
 import { cncEntities, cncWorkflows } from '~/packages/domain-cnc/src/index.js';
-import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
+import { createDesignSystemDemoRows } from '~/utils/design-system.js';
 import { buildWorkflowGraph, parseCommaList, parseJsonObject, stringifyCommaList } from '~/utils/domain-builder.js';
 
 definePageMeta({
@@ -267,7 +274,7 @@ const KNOWN_HOOKS = ['propagateToChildren', 'triggerAggregator', 'processPhysica
 
 const entities = ref(structuredClone(cncEntities));
 const workflows = ref(stripWorkflowRoles(cncWorkflows));
-const ui = ref(createUiDraft());
+const uiRows = createDesignSystemDemoRows();
 const feedback = ref({});
 const dataDecisions = ref({});
 const models = ref([]);
@@ -286,9 +293,7 @@ const visibleEntities = computed(() => {
   return entities.value.filter(entity => `${entity.type} ${entity.collection}`.toLowerCase().includes(term));
 });
 const selectedEntity = computed(() => entities.value.find(entity => entity.type === selectedEntityType.value) || entities.value[0]);
-const uiContract = computed(() => DESIGN_SYSTEM_ENTITY_CONTRACTS.find(entry => entry.entityType === selectedEntity.value?.type));
-const manifestComponent = computed(() => frameworkManifest.designSystem?.components?.find(entry => entry.entityType === selectedEntity.value?.type));
-const uiDraft = computed(() => ui.value[selectedEntity.value.type]);
+const selectedUiRows = computed(() => uiRows.filter(row => row.entityType === selectedEntity.value.type));
 const selectedModel = computed(() => models.value.find(model => normalizeCollection(model.collection) === normalizeCollection(selectedEntity.value.collection)));
 const selectedModelFields = computed(() => selectedModel.value?.fields || []);
 const feedbackDraft = computed(() => {
@@ -367,15 +372,6 @@ const hookOptions = computed(() => uniqueSorted([
   ...(workflowDraft.value.transitions || []).flatMap(transition => (transition.hooks || []).map(hook => hook.handler).filter(Boolean))
 ]).map(value => ({ label: value, value })));
 
-const statusPolicyOptions = [
-  { label: 'interactive', value: 'interactive' },
-  { label: 'readonly', value: 'readonly' },
-  { label: 'hidden', value: 'hidden' }
-];
-const tracePolicyOptions = [
-  { label: 'enabled', value: true },
-  { label: 'hidden', value: false }
-];
 const dataDecisionOptions = ['unchecked', 'keep', 'remove', 'rename', 'move', 'investigate'].map(value => ({ label: value, value }));
 const feedbackDecisionOptions = ['unchecked', 'fix', 'improve', 'ok'].map(value => ({ label: value, value }));
 
@@ -385,7 +381,7 @@ onMounted(() => {
   loadWorkflowLayouts();
 });
 
-watch([ui, workflows, feedback, dataDecisions], saveDraft, { deep: true });
+watch([workflows, feedback, dataDecisions], saveDraft, { deep: true });
 watch(workflowLayouts, saveWorkflowLayouts, { deep: true });
 watch(selectedEntityType, () => {
   selectedState.value = '';
@@ -397,24 +393,14 @@ async function loadModels() {
   modelLoading.value = true;
   modelError.value = '';
   try {
-    models.value = await $fetch('/api/debug/data-models');
+    const result = await $fetch('/api/debug/data-models');
+    if (result?.success === false) throw new Error(result.error || 'Failed to load data models');
+    models.value = Array.isArray(result) ? result : (result?.models || []);
   } catch (error) {
     modelError.value = error?.message || 'Failed to load data models';
   } finally {
     modelLoading.value = false;
   }
-}
-
-function createUiDraft() {
-  return Object.fromEntries(cncEntities.map(entity => {
-    const contract = DESIGN_SYSTEM_ENTITY_CONTRACTS.find(entry => entry.entityType === entity.type);
-    const manifest = frameworkManifest.designSystem?.components?.find(entry => entry.entityType === entity.type);
-    return [entity.type, {
-      status: contract?.status || 'hidden',
-      trace: contract?.trace || false,
-      fieldPaths: structuredClone(manifest?.fieldPaths || [])
-    }];
-  }));
 }
 
 function loadStoredDraft() {
@@ -423,7 +409,6 @@ function loadStoredDraft() {
   if (!saved) return;
   try {
     const parsed = JSON.parse(saved);
-    ui.value = parsed.ui || ui.value;
     workflows.value = parsed.workflows || workflows.value;
     feedback.value = parsed.feedback || {};
     dataDecisions.value = parsed.dataDecisions || {};
@@ -446,7 +431,6 @@ function loadWorkflowLayouts() {
 function saveDraft() {
   if (!import.meta.client) return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    ui: ui.value,
     workflows: workflows.value,
     feedback: feedback.value,
     dataDecisions: dataDecisions.value
@@ -459,7 +443,6 @@ function saveWorkflowLayouts() {
 }
 
 function resetWorkbench() {
-  ui.value = createUiDraft();
   workflows.value = stripWorkflowRoles(cncWorkflows);
   feedback.value = {};
   dataDecisions.value = {};
@@ -727,7 +710,13 @@ function stripWorkflowRoles(source) {
 function downloadDraft() {
   const blob = new Blob([JSON.stringify({
     entities: entities.value,
-    ui: ui.value,
+    uiComponents: selectedUiRows.value.map(row => ({
+      key: row.key,
+      entityType: row.entityType,
+      propName: row.propName,
+      status: row.status,
+      trace: row.trace
+    })),
     dataDecisions: dataDecisions.value,
     feedback: feedback.value,
     workflows: workflows.value
