@@ -207,6 +207,11 @@
                 label: t('roles.SuperAdmin'),
                 items: [
                     {
+                        label: t('admin.workbench.title'),
+                        icon: 'pi pi-wrench',
+                        command: () => router.push('/admin/workbench')
+                    },
+                    {
                         label: t('features.users'),
                         icon: 'pi pi-users',
                         command: () => router.push('/admin/users')

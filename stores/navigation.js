@@ -111,8 +111,12 @@ export const useNavigationStore = defineStore('navigation', () => {
         // --- Level 2: Admin Context ---
         if (parts[0] === 'admin' && parts[1]) {
              const adminTabs = [
+                { id: 'workbench', name: t('admin.workbench.title'), to: '/admin/workbench' },
                 { id: 'organizations', name: t('features.organizations'), to: '/admin/organizations' },
                 { id: 'users', name: t('features.users'), to: '/admin/users' },
+                { id: 'domain-builder', name: t('admin.domainBuilder.title'), to: '/admin/domain-builder' },
+                { id: 'data-model-review', name: t('admin.dataModelReview.title'), to: '/admin/data-model-review' },
+                { id: 'diagnostics', name: t('admin.systemDiagnostics'), to: '/admin/diagnostics' },
                 { id: 'settings', name: t('nav.settings'), to: '/admin/settings' },
              ];
              const currentTab = adminTabs.find(t => t.id === parts[1]);

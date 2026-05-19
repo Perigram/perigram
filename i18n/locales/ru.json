@@ -559,6 +559,33 @@
     "minutesShort": "{count}м",
     "secondsShort": "{count}с",
     "selectChatPrompt": "Выберите чат из списка, чтобы начать общение",
+    "workbench": {
+      "title": "Development Workbench",
+      "subtitle": "Единое рабочее место для данных домена, UI-компонентов, workflow, диагностики и админ-инструментов.",
+      "sections": "Разделы workbench",
+      "openStandalone": "Открыть отдельно",
+      "variantShowcase": "Variant Showcase",
+      "short": {
+        "workflows": "Workflow",
+        "dataModel": "Data Model",
+        "ui": "UI Lab",
+        "variants": "Variants",
+        "diagnostics": "Диагностика",
+        "users": "Пользователи",
+        "organizations": "Организации",
+        "support": "Support"
+      },
+      "tools": {
+        "domainBuilder": "Создание и изменение workflow/state machines сущностей с экспортом domain-cnc source.",
+        "dataModel": "Проверка извлеченных полей сущностей относительно framework manifest и план cleanup контракта.",
+        "uiLab": "Проверка текущих UI-компонентов, shared primitives, DTO contracts и заметок.",
+        "variantShowcase": "Сравнение вариантов entity cards из manifest в одной плотной таблице.",
+        "diagnostics": "Проверка текущего auth context, UI permission matrix и системной диагностики.",
+        "users": "Управление пользователями и permissions.",
+        "organizations": "Управление организациями.",
+        "support": "Просмотр и ответы на support conversations."
+      }
+    },
     "dataModelReview": {
       "title": "Проверка модели данных",
       "subtitle": "Проверьте сгенерированные поля сущностей, отметьте ошибки извлечения и экспортируйте план рефакторинга.",

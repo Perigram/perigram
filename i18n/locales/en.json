@@ -559,6 +559,33 @@
     "minutesShort": "{count}m",
     "secondsShort": "{count}s",
     "selectChatPrompt": "Select a chat from the list to start messaging",
+    "workbench": {
+      "title": "Development Workbench",
+      "subtitle": "Single workspace for domain data, UI components, workflows, diagnostics, and admin tools.",
+      "sections": "Workbench sections",
+      "openStandalone": "Open Standalone",
+      "variantShowcase": "Variant Showcase",
+      "short": {
+        "workflows": "Workflows",
+        "dataModel": "Data Model",
+        "ui": "UI Lab",
+        "variants": "Variants",
+        "diagnostics": "Diagnostics",
+        "users": "Users",
+        "organizations": "Organizations",
+        "support": "Support"
+      },
+      "tools": {
+        "domainBuilder": "Create and modify entity workflow/state machines and export domain-cnc source.",
+        "dataModel": "Review extracted entity fields against the framework manifest and plan contract cleanup.",
+        "uiLab": "Inspect current UI components, shared primitives, DTO contracts, and feedback notes.",
+        "variantShowcase": "Compare manifest entity card variants in one dense table.",
+        "diagnostics": "Inspect current auth context, UI permission matrix, and system diagnostics.",
+        "users": "Manage users and permissions.",
+        "organizations": "Manage organizations.",
+        "support": "Review and respond to support conversations."
+      }
+    },
     "dataModelReview": {
       "title": "Data Model Review",
       "subtitle": "Review generated entity fields, flag bad extraction output, and export a refactoring plan.",
