@@ -9,11 +9,12 @@ Administrative pages for organization/user management, diagnostics, support, and
 definitions, lifecycle schemas, transition hooks, and summary rules in a
 browser-local draft. Entity/routes/summaries use table controls. Workflows use
 Vue Flow core for the graph canvas: statuses are selectable/draggable nodes,
-transitions are selectable edges with guard/hook labels, transitions can be
-created by connecting nodes or using the source/target click flow, and manual
-node positions are stored separately from exported domain data. The side panel
-edits lifecycle flags, actors, attachments, app roles, capabilities, and known
-hook handlers. The tool exports draft JSON or generated JS and does not write
+transitions are selectable edges with compact guard/hook summary labels,
+reciprocal transitions use curved routing, transitions can be created by
+connecting nodes or using the source/target click flow, and manual node
+positions are stored separately from exported domain data. The side panel edits
+lifecycle flags, actors, attachments, app roles, capabilities, and known hook
+handlers. The tool exports draft JSON or generated JS and does not write
 repository files.
 
 ## Data Model Review

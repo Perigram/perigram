@@ -988,3 +988,30 @@
     - Removed the unused `@vue-flow/background` dependency/import that Vite failed to resolve.
     - Persisted manual node positions separately from exported domain data and kept automatic layout as the fallback.
     - Replaced free-text transition roles/hooks with app-role and known-hook selectors.
+
+*** Agent Notes
+    [2026-05-19] Improve Domain Builder transition edge readability
+    Files changed:
+    - pages/admin/domain-builder.vue
+    - utils/domain-builder.js
+    - utils/domain-builder.spec.js
+    Docs updated:
+    - pages/admin/README.md
+    - packages/domain-cnc/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Replaced long transition labels with compact route/guard/hook summaries.
+    - Added reciprocal-transition metadata so opposite transitions can use curved routing instead of overlapping straight paths.
+
+*** Agent Notes
+    [2026-05-19] Create CutKit Vue design-system Codex skill
+    Files changed:
+    - /home/isuo/.codex/skills/cutkit-vue-design-system/SKILL.md
+    - /home/isuo/.codex/skills/cutkit-vue-design-system/agents/openai.yaml
+    - /home/isuo/.codex/skills/cutkit-vue-design-system/references/design-system-contract.md
+    Docs updated:
+    - TODO.org
+    Notes:
+    - Extracted the current Vue v24 entity UI rules, shared primitive ownership, DTO contract, token policy, and verification workflow into an auto-discoverable local Codex skill.
+    - Added a compact reference file for future agents to load only when they need the detailed component/design-system checklist.
