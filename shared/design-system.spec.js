@@ -184,6 +184,7 @@ describe('Design system manifest', () => {
     expect(page).toContain('selectTransition');
     expect(page).toContain('startTransitionDraft');
     expect(page).toContain("from '@vue-flow/core'");
+    expect(page).not.toContain("from '@vue-flow/background'");
     expect(page).toContain('workflowNodes');
     expect(page).toContain('workflowEdges');
     expect(page).toContain("downloadText('domain-cnc.generated.js'");

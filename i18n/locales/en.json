@@ -650,6 +650,7 @@
       "from": "From",
       "to": "To",
       "roles": "Roles",
+      "legacyRole": "legacy",
       "capabilities": "Capabilities",
       "hooks": "Hooks",
       "hookHandler": "Hook handler",

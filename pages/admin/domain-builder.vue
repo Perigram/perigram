@@ -149,11 +149,10 @@
                   :nodes-connectable="true"
                   :default-edge-options="defaultEdgeOptions"
                   @node-click="onWorkflowNodeClick"
+                  @node-drag-stop="onWorkflowNodeDragStop"
                   @edge-click="onWorkflowEdgeClick"
                   @connect="onWorkflowConnect"
-                >
-                  <Background :gap="24" :size="1" color="var(--p-content-border-color)" />
-                </VueFlow>
+                />
               </div>
             </Panel>
           </div>
@@ -221,11 +220,26 @@
                 </div>
                 <div class="flex flex-col gap-2">
                   <label>{{ $t('admin.domainBuilder.roles') }}</label>
-                  <InputText :model-value="stringifyCommaList(selectedTransition.roles)" class="w-full" @update:model-value="value => selectedTransition.roles = parseCommaList(value)" />
+                  <MultiSelect
+                    v-model="selectedTransition.roles"
+                    :options="roleOptions"
+                    option-label="label"
+                    option-value="value"
+                    display="chip"
+                    class="w-full"
+                  />
                 </div>
                 <div class="flex flex-col gap-2">
                   <label>{{ $t('admin.domainBuilder.capabilities') }}</label>
-                  <InputText :model-value="stringifyCommaList(selectedTransition.capabilities || selectedTransition.requiredCapabilities)" class="w-full" @update:model-value="value => updateTransitionCapabilities(selectedTransition, value)" />
+                  <MultiSelect
+                    :model-value="selectedTransition.capabilities || selectedTransition.requiredCapabilities || []"
+                    :options="capabilityOptions"
+                    option-label="label"
+                    option-value="value"
+                    display="chip"
+                    class="w-full"
+                    @update:model-value="value => updateTransitionCapabilities(selectedTransition, value)"
+                  />
                 </div>
                 <Divider />
                 <div class="flex justify-between items-center">
@@ -233,7 +247,7 @@
                   <Button icon="pi pi-plus" :label="$t('common.add')" size="small" @click="addTransitionHook(selectedTransition)" />
                 </div>
                 <div v-for="(hook, index) in selectedTransition.hooks || []" :key="index" class="flex flex-col gap-2 border border-content-border rounded-ui p-3">
-                  <InputText v-model="hook.handler" :placeholder="$t('admin.domainBuilder.hookHandler')" class="w-full" />
+                  <Select v-model="hook.handler" :options="hookOptions" option-label="label" option-value="value" class="w-full" />
                   <Textarea :model-value="JSON.stringify(hook.params || {}, null, 2)" rows="3" class="w-full font-mono text-xs" @update:model-value="value => updateHookParams(hook, value)" />
                   <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" text @click="selectedTransition.hooks.splice(index, 1)" />
                 </div>
@@ -306,7 +320,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Background } from '@vue-flow/background';
 import { MarkerType, Position, VueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -315,11 +328,13 @@ import Checkbox from 'primevue/checkbox';
 import Divider from 'primevue/divider';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
+import MultiSelect from 'primevue/multiselect';
 import Panel from 'primevue/panel';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import StandardPage from '~/components/shared/StandardPage.vue';
+import { USER_ROLES } from '~/constants/roles.constants.js';
 import { cncEntities, cncFrontendEntities, cncSummaries, cncWorkflows } from '~/packages/domain-cnc/src/index.js';
 import {
   DOMAIN_BUILDER_STORAGE_KEY,
@@ -345,6 +360,10 @@ const selectedWorkflowType = ref('project');
 const selectedState = ref('');
 const selectedTransitionIndex = ref(null);
 const transitionDraftFrom = ref('');
+const workflowLayouts = ref({});
+const DOMAIN_BUILDER_LAYOUT_STORAGE_KEY = 'cutkit:domain-builder-layout:v1';
+const KNOWN_HOOKS = ['propagateToChildren', 'triggerAggregator', 'processPhysicalCut', 'createPhysicalUnits'];
+const BASE_CAPABILITIES = ['engineering', 'operator', 'mounting'];
 
 const sourceDraft = () => createDomainDraft({
   entities: cncEntities,
@@ -379,13 +398,13 @@ const selectedTransition = computed(() => {
 });
 const defaultEdgeOptions = {
   type: 'smoothstep',
-  markerEnd: MarkerType.ArrowClosed,
+  markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--p-content-border-color)' },
   interactionWidth: 24
 };
 const workflowNodes = computed(() => workflowGraph.value.nodes.map(node => ({
   id: node.id,
   label: node.id,
-  position: { x: node.x, y: node.y },
+  position: workflowNodePosition(node),
   targetPosition: Position.Left,
   sourcePosition: Position.Right,
   selected: selectedState.value === node.id,
@@ -396,15 +415,19 @@ const workflowEdges = computed(() => workflowGraph.value.edges.map(edge => ({
   id: edge.id,
   source: edge.from,
   target: edge.to,
-  label: `${edge.from} -> ${edge.to}`,
+  label: transitionLabel(currentWorkflow.value.transitions[edge.index]),
   type: 'smoothstep',
-  markerEnd: MarkerType.ArrowClosed,
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+    color: selectedTransitionIndex.value === edge.index ? 'var(--p-primary-color)' : 'var(--p-content-border-color)'
+  },
   interactionWidth: 24,
   selected: selectedTransitionIndex.value === edge.index,
   data: { index: edge.index },
   style: workflowEdgeStyle(edge),
   labelStyle: {
     color: 'var(--p-text-color)',
+    fill: 'var(--p-text-color)',
     fontSize: '0.75rem',
     fontWeight: '500'
   },
@@ -423,6 +446,23 @@ const selectedLifecycleAttachments = computed(() => {
     multiple: Boolean(definition?.multiple)
   }));
 });
+const currentWorkflowRoles = computed(() => uniqueSorted((currentWorkflow.value?.transitions || []).flatMap(transition => transition.roles || [])));
+const roleOptions = computed(() => [
+  ...['SYSTEM', ...USER_ROLES].map(value => ({ label: value, value })),
+  ...currentWorkflowRoles.value
+    .filter(role => role !== 'SYSTEM' && !USER_ROLES.includes(role))
+    .map(value => ({ label: `${value} (${t('admin.domainBuilder.legacyRole')})`, value }))
+]);
+const workflowCapabilities = computed(() => uniqueSorted([
+  ...BASE_CAPABILITIES,
+  ...Object.values(currentWorkflow.value?.states || {}).flatMap(state => state.lifecycle?.actors || []),
+  ...(currentWorkflow.value?.transitions || []).flatMap(transition => transition.capabilities || transition.requiredCapabilities || [])
+]));
+const capabilityOptions = computed(() => workflowCapabilities.value.map(value => ({ label: value, value })));
+const hookOptions = computed(() => uniqueSorted([
+  ...KNOWN_HOOKS,
+  ...(currentWorkflow.value?.transitions || []).flatMap(transition => (transition.hooks || []).map(hook => hook.handler).filter(Boolean))
+]).map(value => ({ label: value, value })));
 
 onMounted(() => {
   if (!import.meta.client) return;
@@ -433,11 +473,24 @@ onMounted(() => {
   } catch {
     draft.value = sourceDraft();
   }
+
+  const savedLayout = localStorage.getItem(DOMAIN_BUILDER_LAYOUT_STORAGE_KEY);
+  if (!savedLayout) return;
+  try {
+    workflowLayouts.value = JSON.parse(savedLayout);
+  } catch {
+    workflowLayouts.value = {};
+  }
 });
 
 watch(draft, (value) => {
   if (!import.meta.client) return;
   localStorage.setItem(DOMAIN_BUILDER_STORAGE_KEY, JSON.stringify(value));
+}, { deep: true });
+
+watch(workflowLayouts, (value) => {
+  if (!import.meta.client) return;
+  localStorage.setItem(DOMAIN_BUILDER_LAYOUT_STORAGE_KEY, JSON.stringify(value));
 }, { deep: true });
 
 watch(selectedWorkflowType, () => {
@@ -448,6 +501,7 @@ watch(selectedWorkflowType, () => {
 
 function resetToSource() {
   draft.value = sourceDraft();
+  workflowLayouts.value = {};
   selectedWorkflowType.value = workflowTypes.value[0] || '';
 }
 
@@ -508,6 +562,7 @@ function addState() {
 function removeState(state) {
   if (!currentWorkflow.value) return;
   delete currentWorkflow.value.states[state];
+  delete workflowLayouts.value[selectedWorkflowType.value]?.[state];
   currentWorkflow.value.transitions = currentWorkflow.value.transitions.filter(transition => transition.from !== state && transition.to !== state);
   if (currentWorkflow.value.initial === state) currentWorkflow.value.initial = stateNames.value[0] || '';
   if (selectedState.value === state) selectedState.value = stateNames.value[0] || '';
@@ -522,14 +577,14 @@ function addTransition() {
   currentWorkflow.value.transitions.push({
     from,
     to,
-    roles: ['SuperAdmin']
+    roles: defaultTransitionRoles()
   });
   selectedTransitionIndex.value = currentWorkflow.value.transitions.length - 1;
   selectedState.value = '';
 }
 
 function updateTransitionCapabilities(transition, value) {
-  const capabilities = parseCommaList(value);
+  const capabilities = Array.isArray(value) ? value : parseCommaList(value);
   delete transition.requiredCapabilities;
   if (capabilities.length) transition.capabilities = capabilities;
   else delete transition.capabilities;
@@ -613,12 +668,29 @@ function workflowEdgeStyle(edge) {
   };
 }
 
+function workflowNodePosition(node) {
+  return workflowLayouts.value[selectedWorkflowType.value]?.[node.id] || { x: node.x, y: node.y };
+}
+
+function transitionLabel(transition = {}) {
+  const parts = [];
+  if (transition.roles?.length) parts.push(`roles: ${transition.roles.join(', ')}`);
+  const capabilities = transition.capabilities || transition.requiredCapabilities || [];
+  if (capabilities.length) parts.push(`caps: ${capabilities.join(', ')}`);
+  if (transition.hooks?.length) parts.push(`hooks: ${transition.hooks.map(hook => hook.handler).filter(Boolean).join(', ')}`);
+  return parts.length ? parts.join(' | ') : 'no guards';
+}
+
+function defaultTransitionRoles() {
+  return ['SuperAdmin'];
+}
+
 function selectState(state) {
   if (transitionDraftFrom.value) {
     currentWorkflow.value.transitions.push({
       from: transitionDraftFrom.value,
       to: state,
-      roles: ['SuperAdmin']
+      roles: defaultTransitionRoles()
     });
     selectedTransitionIndex.value = currentWorkflow.value.transitions.length - 1;
     selectedState.value = '';
@@ -657,6 +729,10 @@ function renameSelectedState(value) {
   }
   if (currentWorkflow.value.initial === previous) currentWorkflow.value.initial = next;
   if (transitionDraftFrom.value === previous) transitionDraftFrom.value = next;
+  if (workflowLayouts.value[selectedWorkflowType.value]?.[previous]) {
+    workflowLayouts.value[selectedWorkflowType.value][next] = workflowLayouts.value[selectedWorkflowType.value][previous];
+    delete workflowLayouts.value[selectedWorkflowType.value][previous];
+  }
   selectedState.value = next;
 }
 
@@ -740,6 +816,14 @@ function onWorkflowNodeClick(event) {
   selectState(event.node.id);
 }
 
+function onWorkflowNodeDragStop(event) {
+  workflowLayouts.value[selectedWorkflowType.value] ||= {};
+  workflowLayouts.value[selectedWorkflowType.value][event.node.id] = {
+    x: Math.round(event.node.position.x),
+    y: Math.round(event.node.position.y)
+  };
+}
+
 function onWorkflowEdgeClick(event) {
   selectTransition(event.edge.data.index);
 }
@@ -749,11 +833,15 @@ function onWorkflowConnect(connection) {
   currentWorkflow.value.transitions.push({
     from: connection.source,
     to: connection.target,
-    roles: ['SuperAdmin']
+    roles: defaultTransitionRoles()
   });
   selectedTransitionIndex.value = currentWorkflow.value.transitions.length - 1;
   selectedState.value = '';
   transitionDraftFrom.value = '';
+}
+
+function uniqueSorted(values) {
+  return Array.from(new Set(values.filter(Boolean))).sort();
 }
 
 function uniqueName(prefix, existing) {

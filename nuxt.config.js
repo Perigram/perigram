@@ -134,7 +134,8 @@ export default defineNuxtConfig({
                 'primevue/tablist',
                 'primevue/tab',
                 'primevue/tabpanels',
-                'primevue/tabpanel'
+                'primevue/tabpanel',
+                '@vue-flow/core'
             ],
             exclude: ['nodi-modular']
         },
@@ -168,5 +169,6 @@ export default defineNuxtConfig({
 
     build: {
         extractCSS: true,
+        transpile: ['@vue-flow/core']
     },
 })

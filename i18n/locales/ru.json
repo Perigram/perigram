@@ -650,6 +650,7 @@
       "from": "Из",
       "to": "В",
       "roles": "Роли",
+      "legacyRole": "legacy",
       "capabilities": "Capabilities",
       "hooks": "Hooks",
       "hookHandler": "Handler hook",
