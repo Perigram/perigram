@@ -4,7 +4,7 @@ Administrative pages for organization/user management, diagnostics, support, and
 
 ## Domain Builder
 
-`domain-builder.vue` is a SuperAdmin-only development tool for editing
+`domain-builder.vue` is an authenticated development tool for editing
 `@cutkit/domain-cnc` entity definitions, frontend route metadata, workflow
 definitions, lifecycle schemas, and summary rules in a browser-local draft. The
 page follows the same review-tool pattern as Data Model Review: JSON editors,

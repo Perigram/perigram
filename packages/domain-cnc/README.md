@@ -15,7 +15,7 @@ The framework manifest includes CNC primitives that application builders can com
 ## Builder Tool
 
 The app exposes `/admin/domain-builder` as a browser-export development tool for
-this package. It loads the current package definitions, lets SuperAdmin users
+this package. It loads the current package definitions, lets authenticated users
 edit entities, frontend routes, workflows, lifecycle schemas, hooks, and
 summaries in localStorage, validates the draft, and exports generated JS. The
 tool intentionally does not write source files or introduce an alternate runtime

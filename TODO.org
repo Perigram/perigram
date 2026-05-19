@@ -894,3 +894,31 @@
     Notes:
     - Restored the normal single-file admin route used by existing admin pages.
     - Replaced the table/graph workflow editor with JSON editors, validation, and export panels to match the existing Data Model Review pattern.
+
+*** Agent Notes
+    [2026-05-19] Preserve auth cookies for direct SSR route loads
+    Files changed:
+    - middleware/auth.js
+    - stores/auth.js
+    - middleware/auth.spec.js
+    Docs updated:
+    - middleware/README.md
+    - stores/README.md
+    - TODO.org
+    Notes:
+    - Forwarded the incoming cookie header from Nuxt route middleware into auth store fetches on server-side page loads.
+    - Prevents direct protected URLs such as `/admin/domain-builder` from being treated as logged out and redirected to `/`.
+
+*** Agent Notes
+    [2026-05-19] Remove SuperAdmin-only gate from Domain Builder
+    Files changed:
+    - pages/admin/domain-builder.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - pages/admin/README.md
+    - packages/domain-cnc/README.md
+    - TODO.org
+    Notes:
+    - Kept the normal authenticated route middleware but removed the in-page SuperAdmin-only warning/gate.
+    - Domain Builder now behaves like the existing admin review tools for authenticated development access.
