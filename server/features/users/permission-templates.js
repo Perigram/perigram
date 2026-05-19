@@ -1,1 +1,1 @@
-export { PERMISSION_TEMPLATES } from '../../../shared/permission-templates.js';
+export { PERMISSION_TEMPLATES } from '~/shared/permission-templates.js';
