@@ -1053,6 +1053,19 @@
     - Workbench permissions now edit drafts from the existing app access model: role permission templates and UI action permissions by feature key.
 
 *** Agent Notes
+    [2026-05-19] Restore graph workflow editor in workbench
+    Files changed:
+    - pages/admin/workbench.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Replaced the workflow table with the Vue Flow graph editor pattern from Domain Builder.
+    - Removed the workbench permissions editor entirely; access policy is not edited on this page.
+
+*** Agent Notes
     [2026-05-19] Create CutKit Vue design-system Codex skill
     Files changed:
     - /home/isuo/.codex/skills/cutkit-vue-design-system/SKILL.md
