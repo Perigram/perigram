@@ -2,6 +2,10 @@
 
 Internal visual verification pages for UI contracts and component variants.
 
+These pages are also available through `/admin/workbench`, which gives the
+development workflow one authenticated surface for data-model review, UI
+component review, and workflow/state-machine editing.
+
 ## UI Lab
 
 `ui-lab.vue` is the design-system demo. It renders entity cards and shared primitives from `utils/design-system.js`, not from a hand-maintained component list.

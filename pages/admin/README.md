@@ -2,6 +2,15 @@
 
 Administrative pages for organization/user management, diagnostics, support, and internal review tools.
 
+## Workbench
+
+`workbench.vue` is the unified authenticated development surface. It lazy-loads
+the existing admin/test tools into one page: Domain Builder for workflows,
+Data Model Review for extracted model cleanup, UI Lab for component/DTO review,
+Variant Showcase for dense card comparison, diagnostics, users, organizations,
+and support. Existing standalone routes remain available and are linked from
+the workbench.
+
 ## Domain Builder
 
 `domain-builder.vue` is an authenticated development tool for editing

@@ -1005,6 +1005,22 @@
     - Added reciprocal-transition metadata so opposite transitions can use curved routing instead of overlapping straight paths.
 
 *** Agent Notes
+    [2026-05-19] Add unified admin development workbench
+    Files changed:
+    - pages/admin/workbench.vue
+    - layouts/app.vue
+    - stores/navigation.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - pages/admin/README.md
+    - pages/test/README.md
+    - TODO.org
+    Notes:
+    - Added `/admin/workbench` as a single authenticated entry point for Domain Builder, Data Model Review, UI Lab, Variant Showcase, diagnostics, users, organizations, and support.
+    - Kept existing standalone routes available and linked from the workbench.
+
+*** Agent Notes
     [2026-05-19] Create CutKit Vue design-system Codex skill
     Files changed:
     - /home/isuo/.codex/skills/cutkit-vue-design-system/SKILL.md
