@@ -578,8 +578,10 @@
       "componentPath": "Путь компонента",
       "displayFields": "Поля отображения",
       "dataFields": "Поля данных",
-      "workflowNoRoles": "Workflow guards используют capabilities и permission model сущности. Списки ролей удалены из черновика workbench.",
-      "permissionsNoWorkflowRoles": "Права сущностей редактируются здесь, а не через SuperAdmin/ManufacturerAdmin роли внутри workflow.",
+      "workflowNoRoles": "Переходы workflow хранят lifecycle data, capabilities и hooks. Access policy редактируется ниже в permission model.",
+      "permissionsNoWorkflowRoles": "Здесь редактируется существующая access model приложения: backend permission templates и видимость UI actions по feature key.",
+      "permissionFeature": "Permission feature",
+      "uiActions": "UI actions",
       "short": {
         "workflows": "Workflow",
         "dataModel": "Data Model",

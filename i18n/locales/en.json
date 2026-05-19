@@ -578,8 +578,10 @@
       "componentPath": "Component path",
       "displayFields": "Display fields",
       "dataFields": "Data fields",
-      "workflowNoRoles": "Workflow guards use capabilities and the entity permission model. Role lists are stripped from this workbench draft.",
-      "permissionsNoWorkflowRoles": "Edit entity permissions here instead of embedding SuperAdmin/ManufacturerAdmin role names inside workflows.",
+      "workflowNoRoles": "Workflow transitions keep lifecycle data, capabilities, and hooks. Access policy is edited in the permission model below.",
+      "permissionsNoWorkflowRoles": "This edits the existing app access model: backend permission templates and UI action visibility by feature key.",
+      "permissionFeature": "Permission feature",
+      "uiActions": "UI actions",
       "short": {
         "workflows": "Workflows",
         "dataModel": "Data Model",
