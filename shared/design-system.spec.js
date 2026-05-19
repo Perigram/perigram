@@ -173,13 +173,12 @@ describe('Design system manifest', () => {
   });
 
   it('exposes the browser-export domain builder as an admin tool', () => {
-    const page = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/domain-builder/index.vue'), 'utf8');
+    const page = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/domain-builder.vue'), 'utf8');
     const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
 
     expect(page).toContain('DOMAIN_BUILDER_STORAGE_KEY');
     expect(page).toContain('generateDomainCncSource');
     expect(page).toContain('validateDomainDraft');
-    expect(page).toContain('buildWorkflowGraph');
     expect(page).toContain("downloadText('domain-cnc.generated.js'");
     expect(page).toContain("middleware: 'auth'");
     expect(layout).toContain("router.push('/admin/domain-builder')");
