@@ -868,3 +868,16 @@
     - Added a SuperAdmin admin page for local browser draft editing of CNC entities, routes, workflows, lifecycle schemas, hooks, and summaries.
     - Kept persistence export-only: draft JSON and generated `domain-cnc.generated.js`, with no server-side file writes.
     - Added validation and deterministic source-generation helpers for the existing workflow DSL instead of introducing XState.
+
+*** Agent Notes
+    [2026-05-19] Make Domain Builder route explicit
+    Files changed:
+    - pages/admin/domain-builder/index.vue
+    - pages/admin/domain-builder.vue
+    - shared/design-system.spec.js
+    Docs updated:
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Moved the Domain Builder page from a single hyphenated page file to an index route directory while preserving `/admin/domain-builder`.
+    - Updated the route static test to assert the new page location.
