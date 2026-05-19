@@ -969,3 +969,22 @@
     Notes:
     - Added Vue Flow dependencies for the Domain Builder graph canvas.
     - Replaced the custom SVG graph with Vue Flow nodes/edges using theme CSS variables and the existing workflow DSL.
+
+*** Agent Notes
+    [2026-05-19] Stabilize Domain Builder workflow graph editing
+    Files changed:
+    - package.json
+    - package-lock.json
+    - nuxt.config.js
+    - pages/admin/domain-builder.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - pages/admin/README.md
+    - packages/domain-cnc/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Removed the unused `@vue-flow/background` dependency/import that Vite failed to resolve.
+    - Persisted manual node positions separately from exported domain data and kept automatic layout as the fallback.
+    - Replaced free-text transition roles/hooks with app-role and known-hook selectors.

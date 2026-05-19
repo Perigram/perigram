@@ -10,7 +10,7 @@ Shared frontend utility modules used by Vue pages/components.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`.
 - `status-engine.js`: Central status severity/icon mapping and entity route/icon registry used by shared status and trace components. It must include every canonical workflow state exposed by `packages/domain-cnc/src/index.js`, including terminal states, so generated entity UI never falls back to unknown badges.
 - `status-actions.js`: Converts workflow definitions into default `EntityStatus` action buttons so cards do not use hardcoded state transitions.
-- `domain-builder.js`: Browser-side helpers for `/admin/domain-builder`. It clones CNC package definitions into a draft, validates entity/workflow/summary consistency, builds Vue Flow node/edge layout data, and generates deterministic `@cutkit/domain-cnc` source for manual export.
+- `domain-builder.js`: Browser-side helpers for `/admin/domain-builder`. It clones CNC package definitions into a draft, validates entity/workflow/summary consistency, builds automatic Vue Flow node/edge layout data used unless the page has browser-local manual node positions, and generates deterministic `@cutkit/domain-cnc` source for manual export.
 
 The design-system contract is the source of truth for UI lab coverage. Add new entity cards there first, then wire the component and DTO factory in `design-system.js` / `test-data/factories.js`.
 
