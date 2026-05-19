@@ -141,12 +141,19 @@ export function buildWorkflowGraph(workflow = {}) {
     .filter(transition => byId.has(transition.from) && byId.has(transition.to))
     .map((transition, index) => ({
       id: `${transition.from}-${transition.to}-${index}`,
+      index,
       from: transition.from,
       to: transition.to,
       x1: byId.get(transition.from).x + nodeWidth,
       y1: byId.get(transition.from).y + nodeHeight / 2,
       x2: byId.get(transition.to).x,
       y2: byId.get(transition.to).y + nodeHeight / 2,
+      labelX: transition.from === transition.to
+        ? byId.get(transition.from).x + nodeWidth + 58
+        : (byId.get(transition.from).x + nodeWidth + byId.get(transition.to).x) / 2,
+      labelY: transition.from === transition.to
+        ? byId.get(transition.from).y + nodeHeight / 2
+        : (byId.get(transition.from).y + nodeHeight / 2 + byId.get(transition.to).y + nodeHeight / 2) / 2,
       self: transition.from === transition.to
     }));
   const width = Math.max(360, 48 + Math.min(columns, Math.max(states.length, 1)) * nodeWidth + Math.max(columns - 1, 0) * gapX);

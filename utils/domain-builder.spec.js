@@ -66,6 +66,6 @@ describe('domain builder utilities', () => {
 
     expect(graph.nodes).toContainEqual(expect.objectContaining({ id: 'DRAFT', initial: true }));
     expect(graph.nodes).toContainEqual(expect.objectContaining({ id: 'READY', terminal: true }));
-    expect(graph.edges).toContainEqual(expect.objectContaining({ from: 'DRAFT', to: 'READY' }));
+    expect(graph.edges).toContainEqual(expect.objectContaining({ index: 0, from: 'DRAFT', to: 'READY' }));
   });
 });

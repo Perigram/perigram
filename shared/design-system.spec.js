@@ -179,6 +179,10 @@ describe('Design system manifest', () => {
     expect(page).toContain('DOMAIN_BUILDER_STORAGE_KEY');
     expect(page).toContain('generateDomainCncSource');
     expect(page).toContain('validateDomainDraft');
+    expect(page).toContain('buildWorkflowGraph');
+    expect(page).toContain('addTransition');
+    expect(page).toContain('selectTransition');
+    expect(page).toContain('startTransitionDraft');
     expect(page).toContain("downloadText('domain-cnc.generated.js'");
     expect(page).toContain("middleware: 'auth'");
     expect(layout).toContain("router.push('/admin/domain-builder')");
