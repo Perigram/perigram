@@ -7,11 +7,12 @@ Administrative pages for organization/user management, diagnostics, support, and
 `domain-builder.vue` is an authenticated development tool for editing
 `@cutkit/domain-cnc` entity definitions, frontend route metadata, workflow
 definitions, lifecycle schemas, transition hooks, and summary rules in a
-browser-local draft. Entity/routes/summaries use table controls. Workflows use a
-visual graph: statuses are selectable nodes, transitions are selectable edges,
-and the side panel edits lifecycle flags, actors, attachments, roles,
-capabilities, and hooks. The tool exports draft JSON or generated JS and does
-not write repository files.
+browser-local draft. Entity/routes/summaries use table controls. Workflows use
+Vue Flow for the graph canvas: statuses are selectable/draggable nodes,
+transitions are selectable edges, transitions can be created by connecting nodes
+or using the source/target click flow, and the side panel edits lifecycle flags,
+actors, attachments, roles, capabilities, and hooks. The tool exports draft JSON
+or generated JS and does not write repository files.
 
 ## Data Model Review
 

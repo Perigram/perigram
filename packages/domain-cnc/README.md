@@ -18,9 +18,10 @@ The app exposes `/admin/domain-builder` as a browser-export development tool for
 this package. It loads the current package definitions, lets authenticated users
 edit entities, frontend routes, workflows, lifecycle schemas, hooks, and
 summaries in localStorage. The workflow editor is graph-first: statuses are
-nodes, transitions are created by selecting source and target nodes, and the
-selected node/edge side panel owns lifecycle, access, and hook properties. The
-tool validates the draft and exports generated JS. The
+Vue Flow nodes, transitions are Vue Flow edges, transitions can be created by
+connecting nodes or selecting source and target statuses, and the selected
+node/edge side panel owns lifecycle, access, and hook properties. The tool
+validates the draft and exports generated JS. The
 tool intentionally does not write source files or introduce an alternate runtime
 format; this package remains the source of truth.
 

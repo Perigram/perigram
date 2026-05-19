@@ -952,3 +952,20 @@
     Notes:
     - Replaced separate workflow state/transition tables with a selectable graph and side-panel property editors.
     - Added click-to-create transitions by selecting source and target statuses on the graph.
+
+*** Agent Notes
+    [2026-05-19] Replace hand-drawn workflow graph with Vue Flow
+    Files changed:
+    - package.json
+    - package-lock.json
+    - pages/admin/domain-builder.vue
+    - shared/design-system.spec.js
+    - utils/domain-builder.js
+    Docs updated:
+    - pages/admin/README.md
+    - packages/domain-cnc/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Added Vue Flow dependencies for the Domain Builder graph canvas.
+    - Replaced the custom SVG graph with Vue Flow nodes/edges using theme CSS variables and the existing workflow DSL.
