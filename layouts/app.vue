@@ -215,6 +215,11 @@
                         label: t('features.organizations'),
                         icon: 'pi pi-building',
                         command: () => router.push('/admin/organizations')
+                    },
+                    {
+                        label: t('admin.domainBuilder.title'),
+                        icon: 'pi pi-sitemap',
+                        command: () => router.push('/admin/domain-builder')
                     }
                 ]
             });
