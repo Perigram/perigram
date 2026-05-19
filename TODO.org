@@ -1021,6 +1021,20 @@
     - Kept existing standalone routes available and linked from the workbench.
 
 *** Agent Notes
+    [2026-05-19] Replace workbench aggregator with entity editor
+    Files changed:
+    - pages/admin/workbench.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - pages/admin/README.md
+    - pages/test/README.md
+    - TODO.org
+    Notes:
+    - Replaced the page-embedding workbench with one entity-centric editor for UI fields, data-model decisions, feedback, workflows, and permissions.
+    - Workbench workflow drafts strip transition role lists and keep permissions in the permissions section instead.
+
+*** Agent Notes
     [2026-05-19] Create CutKit Vue design-system Codex skill
     Files changed:
     - /home/isuo/.codex/skills/cutkit-vue-design-system/SKILL.md

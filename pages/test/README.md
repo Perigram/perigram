@@ -2,9 +2,8 @@
 
 Internal visual verification pages for UI contracts and component variants.
 
-These pages are also available through `/admin/workbench`, which gives the
-development workflow one authenticated surface for data-model review, UI
-component review, and workflow/state-machine editing.
+`/admin/workbench` now owns the consolidated entity-centric development surface.
+These pages remain focused visual demos and compatibility routes.
 
 ## UI Lab
 
