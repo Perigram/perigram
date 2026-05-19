@@ -140,44 +140,21 @@
             </div>
 
             <Panel :header="$t('admin.domainBuilder.graph')">
-              <svg :viewBox="`0 0 ${workflowGraph.width} ${workflowGraph.height}`" class="w-full min-h-[28rem] max-h-[36rem] border border-content-border rounded-ui bg-surface-0">
-                <defs>
-                  <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-                    <path d="M0,0 L0,6 L9,3 z" fill="currentColor" />
-                  </marker>
-                </defs>
-                <g v-for="edge in workflowGraph.edges" :key="edge.id" class="cursor-pointer" @click.stop="selectTransition(edge.index)">
-                  <path
-                    v-if="edge.self"
-                    :d="`M ${edge.x1 - 20} ${edge.y1 - 18} C ${edge.x1 + 42} ${edge.y1 - 60}, ${edge.x1 + 42} ${edge.y1 + 60}, ${edge.x1 - 20} ${edge.y1 + 18}`"
-                    fill="none"
-                    :class="edgeClass(edge)"
-                    stroke-width="2"
-                    marker-end="url(#arrow)"
-                  />
-                  <line
-                    v-else
-                    :x1="edge.x1"
-                    :y1="edge.y1"
-                    :x2="edge.x2"
-                    :y2="edge.y2"
-                    :class="edgeClass(edge)"
-                    stroke-width="2"
-                    marker-end="url(#arrow)"
-                  />
-                  <rect :x="edge.labelX - 54" :y="edge.labelY - 12" width="108" height="24" rx="6" class="fill-surface-0 stroke-content-border" />
-                  <text :x="edge.labelX" :y="edge.labelY + 4" text-anchor="middle" class="fill-current text-[10px] font-mono">
-                    {{ edge.from }} -> {{ edge.to }}
-                  </text>
-                </g>
-                <g v-for="node in workflowGraph.nodes" :key="node.id" class="cursor-pointer" @click.stop="selectState(node.id)">
-                  <rect :x="node.x" :y="node.y" :width="node.width" :height="node.height" rx="8" :class="nodeClass(node)" />
-                  <text :x="node.x + 12" :y="node.y + 27" class="fill-current text-xs font-mono">{{ node.id }}</text>
-                  <text v-if="node.initial" :x="node.x + node.width - 12" :y="node.y + 27" text-anchor="end" class="fill-current text-[10px]">
-                    {{ $t('admin.domainBuilder.initial') }}
-                  </text>
-                </g>
-              </svg>
+              <div class="h-[32rem] w-full overflow-hidden rounded-ui border border-content-border bg-content">
+                <VueFlow
+                  :nodes="workflowNodes"
+                  :edges="workflowEdges"
+                  fit-view-on-init
+                  :nodes-draggable="true"
+                  :nodes-connectable="true"
+                  :default-edge-options="defaultEdgeOptions"
+                  @node-click="onWorkflowNodeClick"
+                  @edge-click="onWorkflowEdgeClick"
+                  @connect="onWorkflowConnect"
+                >
+                  <Background :gap="24" :size="1" color="var(--p-content-border-color)" />
+                </VueFlow>
+              </div>
             </Panel>
           </div>
 
@@ -329,6 +306,10 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Background } from '@vue-flow/background';
+import { MarkerType, Position, VueFlow } from '@vue-flow/core';
+import '@vue-flow/core/dist/style.css';
+import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import Divider from 'primevue/divider';
@@ -396,6 +377,45 @@ const selectedTransition = computed(() => {
   if (!currentWorkflow.value || selectedTransitionIndex.value === null) return null;
   return currentWorkflow.value.transitions[selectedTransitionIndex.value] || null;
 });
+const defaultEdgeOptions = {
+  type: 'smoothstep',
+  markerEnd: MarkerType.ArrowClosed,
+  interactionWidth: 24
+};
+const workflowNodes = computed(() => workflowGraph.value.nodes.map(node => ({
+  id: node.id,
+  label: node.id,
+  position: { x: node.x, y: node.y },
+  targetPosition: Position.Left,
+  sourcePosition: Position.Right,
+  selected: selectedState.value === node.id,
+  data: { label: node.id },
+  style: workflowNodeStyle(node)
+})));
+const workflowEdges = computed(() => workflowGraph.value.edges.map(edge => ({
+  id: edge.id,
+  source: edge.from,
+  target: edge.to,
+  label: `${edge.from} -> ${edge.to}`,
+  type: 'smoothstep',
+  markerEnd: MarkerType.ArrowClosed,
+  interactionWidth: 24,
+  selected: selectedTransitionIndex.value === edge.index,
+  data: { index: edge.index },
+  style: workflowEdgeStyle(edge),
+  labelStyle: {
+    color: 'var(--p-text-color)',
+    fontSize: '0.75rem',
+    fontWeight: '500'
+  },
+  labelShowBg: true,
+  labelBgStyle: {
+    fill: 'var(--p-content-background)',
+    stroke: 'var(--p-content-border-color)'
+  },
+  labelBgPadding: [6, 8],
+  labelBgBorderRadius: 6
+})));
 const selectedLifecycleAttachments = computed(() => {
   const attachments = selectedStateDefinition.value.lifecycle?.attachments || {};
   return Object.entries(attachments).map(([name, definition]) => ({
@@ -554,16 +574,43 @@ function downloadText(fileName, text, type) {
   URL.revokeObjectURL(url);
 }
 
-function nodeClass(node) {
-  if (transitionDraftFrom.value === node.id) return 'fill-primary stroke-primary';
-  if (selectedState.value === node.id) return 'fill-primary-emphasis stroke-primary';
-  if (node.initial) return 'fill-primary stroke-primary';
-  if (node.terminal) return 'fill-surface-200 stroke-content-border';
-  return 'fill-content stroke-content-border';
+function workflowNodeStyle(node) {
+  const selected = selectedState.value === node.id || transitionDraftFrom.value === node.id;
+  const base = {
+    width: `${node.width}px`,
+    minHeight: `${node.height}px`,
+    borderRadius: 'var(--ck-radius-ui)',
+    border: selected ? '2px solid var(--p-primary-color)' : '1px solid var(--p-content-border-color)',
+    boxShadow: selected ? 'var(--ck-shadow-card-hover)' : 'var(--ck-shadow-card)',
+    fontFamily: 'inherit',
+    fontWeight: 600
+  };
+  if (node.initial || transitionDraftFrom.value === node.id) {
+    return {
+      ...base,
+      background: 'var(--p-primary-color)',
+      color: 'var(--p-primary-contrast-color)'
+    };
+  }
+  if (node.terminal) {
+    return {
+      ...base,
+      background: 'var(--ck-subtle-background)',
+      color: 'var(--p-text-color)'
+    };
+  }
+  return {
+    ...base,
+    background: 'var(--p-content-background)',
+    color: 'var(--p-text-color)'
+  };
 }
 
-function edgeClass(edge) {
-  return selectedTransitionIndex.value === edge.index ? 'stroke-primary' : 'stroke-current';
+function workflowEdgeStyle(edge) {
+  return {
+    stroke: selectedTransitionIndex.value === edge.index ? 'var(--p-primary-color)' : 'var(--p-content-border-color)',
+    strokeWidth: selectedTransitionIndex.value === edge.index ? 3 : 2
+  };
 }
 
 function selectState(state) {
@@ -687,6 +734,26 @@ function removeSelectedTransition() {
   if (!currentWorkflow.value || selectedTransitionIndex.value === null) return;
   currentWorkflow.value.transitions.splice(selectedTransitionIndex.value, 1);
   selectedTransitionIndex.value = null;
+}
+
+function onWorkflowNodeClick(event) {
+  selectState(event.node.id);
+}
+
+function onWorkflowEdgeClick(event) {
+  selectTransition(event.edge.data.index);
+}
+
+function onWorkflowConnect(connection) {
+  if (!currentWorkflow.value || !connection.source || !connection.target) return;
+  currentWorkflow.value.transitions.push({
+    from: connection.source,
+    to: connection.target,
+    roles: ['SuperAdmin']
+  });
+  selectedTransitionIndex.value = currentWorkflow.value.transitions.length - 1;
+  selectedState.value = '';
+  transitionDraftFrom.value = '';
 }
 
 function uniqueName(prefix, existing) {

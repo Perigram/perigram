@@ -183,6 +183,9 @@ describe('Design system manifest', () => {
     expect(page).toContain('addTransition');
     expect(page).toContain('selectTransition');
     expect(page).toContain('startTransitionDraft');
+    expect(page).toContain("from '@vue-flow/core'");
+    expect(page).toContain('workflowNodes');
+    expect(page).toContain('workflowEdges');
     expect(page).toContain("downloadText('domain-cnc.generated.js'");
     expect(page).toContain("middleware: 'auth'");
     expect(layout).toContain("router.push('/admin/domain-builder')");
