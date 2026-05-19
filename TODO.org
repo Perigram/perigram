@@ -1035,6 +1035,24 @@
     - Workbench workflow drafts strip transition role lists and keep permissions in the permissions section instead.
 
 *** Agent Notes
+    [2026-05-19] Correct workbench permission editor
+    Files changed:
+    - pages/admin/workbench.vue
+    - shared/permission-templates.js
+    - server/features/users/permission-templates.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - README.md
+    - shared/README.md
+    - server/features/users/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Removed the invented manager/engineer/operator/mounter/viewer matrix from the workbench.
+    - Workbench permissions now edit drafts from the existing app access model: role permission templates and UI action permissions by feature key.
+
+*** Agent Notes
     [2026-05-19] Create CutKit Vue design-system Codex skill
     Files changed:
     - /home/isuo/.codex/skills/cutkit-vue-design-system/SKILL.md

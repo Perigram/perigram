@@ -7,9 +7,10 @@ Administrative pages for organization/user management, diagnostics, support, and
 `workbench.vue` is the unified authenticated development surface. It lists
 domain entities and edits the selected entity across one set of sections:
 UI display fields, extracted data-model decisions, feedback, workflow/state
-machine draft, and entity permissions. Workbench workflow drafts strip
-transition role lists so access is represented by the separate permissions
-model plus lifecycle capabilities.
+machine draft, backend permission templates, and UI action permissions.
+Workbench workflow drafts strip transition role lists so access stays in the
+shared permission model while workflows keep lifecycle state, capabilities, and
+hooks.
 
 ## Domain Builder
 
@@ -37,5 +38,6 @@ Support/runtime collections (`collection_name` from the backend template, invita
 ## Related
 
 - [server utils](../../server/utils/README.md) - data model extractor behavior
+- [shared contracts](../../shared/README.md) - permission templates and UI action matrix
 - [packages](../../packages/README.md) - framework manifest and package contract
 - [test pages](../test/README.md) - UI lab feedback workflow

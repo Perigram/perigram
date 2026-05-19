@@ -186,6 +186,7 @@ CassetteInstance lifecycle
 | Frontend composables | [composables/README.md](./composables/README.md) |
 | Frontend components | [components/README.md](./components/README.md) |
 | Frontend design system | [docs/DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md) |
+| Shared contracts | [shared/README.md](./shared/README.md) |
 | Framework packages | [packages/README.md](./packages/README.md) |
 | Framework manifest | [framework.manifest.json](./framework.manifest.json) |
 | Framework extraction status | [docs/FRAMEWORK_EXTRACTION_STATUS.md](./docs/FRAMEWORK_EXTRACTION_STATUS.md) |

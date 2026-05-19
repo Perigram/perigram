@@ -6,7 +6,7 @@ User authentication and permission management. Built on the v24 BaseEntity archi
 - `model.js`: User entity extending `BaseEntity` with migration logic
 - `repository.js`: Database operations on `users` collection
 - `service.js`: Register, login, session management
-- `permission-templates.js`: Default permissions by role
+- `permission-templates.js`: Re-export of shared default permissions by role
 - API endpoints in `server/api/auth/` and `server/api/users/`
 
 ## Data Structure
@@ -41,6 +41,8 @@ Inherits all `BaseEntity` fields.
 - Global role check (e.g. `SuperAdmin`)
 - Organization context via `user.lineage.organizationId`
 - Per-organization permissions in `memberships`
+- Default role templates live in [shared permission templates](../../../shared/README.md)
+  so browser dev tools and server user creation read the same access contract.
 
 ## Related Components
 - [organizations](../organizations/README.md) - Users belong to organizations via memberships and current lineage context
