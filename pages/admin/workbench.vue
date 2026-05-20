@@ -5,11 +5,11 @@
       <Button icon="pi pi-download" :label="$t('admin.workbench.exportDraft')" @click="downloadDraft" />
     </template>
 
-    <div class="grid grid-cols-1 gap-4 2xl:grid-cols-[18rem_1fr]">
-      <Panel :header="$t('admin.workbench.entities')">
+    <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <Panel :header="$t('admin.workbench.entities')" class="lg:sticky lg:top-4">
         <div class="flex flex-col gap-3">
           <InputText v-model="search" :placeholder="$t('common.search')" class="w-full" />
-          <div class="grid max-h-[calc(100vh-18rem)] grid-cols-1 gap-1 overflow-y-auto pr-1 sm:grid-cols-2 2xl:grid-cols-1">
+          <div class="flex max-h-[calc(100vh-12rem)] flex-col gap-1 overflow-y-auto pr-1">
             <button
               v-for="entity in visibleEntities"
               :key="entity.type"
@@ -20,7 +20,6 @@
             >
               <span class="flex min-w-0 items-center gap-2">
                 <strong class="truncate">{{ entity.type }}</strong>
-                <small class="truncate text-muted-color">{{ entity.collection }}</small>
               </span>
               <Tag :value="entity.blocks?.length || 0" severity="secondary" size="small" />
             </button>
@@ -29,15 +28,6 @@
       </Panel>
 
       <div v-if="selectedEntity" class="flex flex-col gap-4">
-        <Panel>
-          <template #header>
-            <div class="flex w-full flex-col gap-1">
-              <span>{{ selectedEntity.type }}</span>
-              <small class="text-muted-color">{{ selectedEntity.collection }}</small>
-            </div>
-          </template>
-        </Panel>
-
         <Panel :header="$t('admin.workbench.sectionsUi')">
           <div class="flex flex-col gap-4">
             <Message v-if="selectedUiRows.length === 0" severity="warn">
@@ -75,51 +65,7 @@
           </div>
         </Panel>
 
-        <Panel :header="$t('admin.workbench.sectionsData')">
-          <Message v-if="modelError" severity="warn">{{ modelError }}</Message>
-          <Message v-else-if="modelLoading" severity="info">{{ $t('common.loading') }}</Message>
-          <div v-else class="overflow-x-auto">
-            <table class="w-full">
-              <thead>
-                <tr>
-                  <th class="py-2 text-left">{{ $t('admin.dataModelReview.field') }}</th>
-                  <th class="py-2 text-left">{{ $t('common.type') }}</th>
-                  <th class="py-2 text-left">{{ $t('admin.dataModelReview.flags') }}</th>
-                  <th class="py-2 text-left">{{ $t('admin.dataModelReview.decision') }}</th>
-                  <th class="py-2 text-left">{{ $t('admin.dataModelReview.target') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="field in selectedModelFields" :key="field.name" class="border-t border-content-border align-top">
-                  <td class="py-3 pr-3 font-mono">{{ field.name }}</td>
-                  <td class="py-3 pr-3">{{ field.type }}</td>
-                  <td class="py-3 pr-3">
-                    <Tag v-for="issue in field.issues || []" :key="issue" :value="issue" severity="warn" size="small" class="mr-1" />
-                  </td>
-                  <td class="min-w-48 py-3 pr-3">
-                    <Select v-model="dataDecisionFor(field).decision" :options="dataDecisionOptions" option-label="label" option-value="value" />
-                  </td>
-                  <td class="min-w-56 py-3">
-                    <InputText
-                      v-if="dataDecisionFor(field).decision === 'rename' || dataDecisionFor(field).decision === 'move'"
-                      v-model="dataDecisionFor(field).target"
-                      :placeholder="$t('admin.dataModelReview.targetPlaceholder')"
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </Panel>
-
-        <Panel :header="$t('admin.workbench.sectionsFeedback')">
-          <div class="grid grid-cols-1 gap-3 md:grid-cols-[14rem_1fr]">
-            <Select v-model="feedbackDraft.decision" :options="feedbackDecisionOptions" option-label="label" option-value="value" />
-            <Textarea v-model="feedbackDraft.note" rows="5" auto-resize :placeholder="$t('uiLab.feedback.placeholder')" />
-          </div>
-        </Panel>
-
-        <Panel :header="$t('admin.workbench.sectionsWorkflow')">
+        <Panel :header="$t('admin.workbench.sectionsWorkflow')" class="order-2">
           <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_22rem]">
             <div class="flex flex-col gap-4">
               <Message severity="info">{{ $t('admin.workbench.workflowNoRoles') }}</Message>
@@ -240,6 +186,37 @@
             </div>
               </div>
         </Panel>
+
+        <Panel :header="$t('admin.workbench.sectionsData')" class="order-3">
+          <Message v-if="modelError" severity="warn">{{ modelError }}</Message>
+          <Message v-else-if="modelLoading" severity="info">{{ $t('common.loading') }}</Message>
+          <div v-else class="flex flex-col gap-3">
+            <div class="flex flex-wrap gap-2">
+              <Tag :value="selectedModel?.collection || selectedEntity.collection" severity="secondary" size="small" />
+              <Tag :value="`${compactModelFields.length} fields`" severity="secondary" size="small" />
+              <Tag v-if="selectedModel?.issues?.length" :value="`${selectedModel.issues.length} issues`" severity="warn" size="small" />
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <div v-for="field in compactModelFields" :key="field.name" class="flex max-w-full flex-wrap items-center gap-2 rounded-ui border border-content-border bg-content px-2 py-1">
+                <span class="font-mono text-sm">{{ field.name }}</span>
+                <Tag :value="field.type" severity="secondary" size="small" />
+                <Tag v-for="issue in field.issues || []" :key="issue" :value="issue" severity="warn" size="small" />
+                <Select v-model="dataDecisionFor(field).decision" :options="dataDecisionOptions" option-label="label" option-value="value" size="small" />
+                <InputText
+                  v-if="dataDecisionFor(field).decision === 'rename' || dataDecisionFor(field).decision === 'move'"
+                  v-model="dataDecisionFor(field).target"
+                  :placeholder="$t('admin.dataModelReview.targetPlaceholder')"
+                />
+              </div>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel :header="$t('admin.workbench.sectionsFeedback')" class="order-4">
+          <div class="flex flex-col gap-3">
+            <Textarea v-model="feedbackDraft.note" rows="5" auto-resize :placeholder="$t('uiLab.feedback.placeholder')" />
+          </div>
+        </Panel>
       </div>
     </div>
   </StandardPage>
@@ -296,6 +273,7 @@ const selectedEntity = computed(() => entities.value.find(entity => entity.type 
 const selectedUiRows = computed(() => uiRows.filter(row => row.entityType === selectedEntity.value.type));
 const selectedModel = computed(() => models.value.find(model => normalizeCollection(model.collection) === normalizeCollection(selectedEntity.value.collection)));
 const selectedModelFields = computed(() => selectedModel.value?.fields || []);
+const compactModelFields = computed(() => selectedModelFields.value.filter(field => !isObviousModelField(field)));
 const feedbackDraft = computed(() => {
   feedback.value[selectedEntity.value.type] ||= { decision: 'unchecked', note: '' };
   return feedback.value[selectedEntity.value.type];
@@ -373,7 +351,6 @@ const hookOptions = computed(() => uniqueSorted([
 ]).map(value => ({ label: value, value })));
 
 const dataDecisionOptions = ['unchecked', 'keep', 'remove', 'rename', 'move', 'investigate'].map(value => ({ label: value, value }));
-const feedbackDecisionOptions = ['unchecked', 'fix', 'improve', 'ok'].map(value => ({ label: value, value }));
 
 onMounted(() => {
   loadStoredDraft();
@@ -457,6 +434,13 @@ function dataDecisionFor(field) {
   const key = `${selectedEntity.value.type}:${field.name}`;
   dataDecisions.value[key] ||= { decision: 'unchecked', target: '' };
   return dataDecisions.value[key];
+}
+
+function isObviousModelField(field) {
+  const name = field?.name || '';
+  if (!name || name === '_id') return true;
+  if (['identity', 'lineage', 'origin', 'status', 'specs', 'attachments', 'data', 'summary'].includes(name)) return true;
+  return name.startsWith('lineage.') || name.startsWith('origin.') || name.startsWith('identity.');
 }
 
 function addWorkflowState() {
