@@ -41,20 +41,20 @@ describe('Framework package contracts', () => {
     expect(entity.toJSON()).not.toHaveProperty('name');
 
     const operation = defineOperation({
-      id: 'test.run',
+      id: 'runTest',
       input: { entities: [{ name: 'target', type: 'test_entity', required: true }] },
       access: { permissions: [{ feature: 'test_entities', level: 'write' }] }
     });
     const handler = async () => createOperationResult({
-      operationId: 'test.run',
+      operationId: 'runTest',
       entities: [createEntityRef('test_entity', 'test-1')]
     });
-    registerOperationHandler('test.run', handler);
-    expect(getOperationDefinition('test.run')).toEqual(operation);
+    registerOperationHandler('runTest', handler);
+    expect(getOperationDefinition('runTest')).toEqual(operation);
     expect(listOperationDefinitions()).toContainEqual(operation);
-    expect(getOperationHandler('test.run')).toBe(handler);
+    expect(getOperationHandler('runTest')).toBe(handler);
     await expect(handler()).resolves.toMatchObject({
-      operationId: 'test.run',
+      operationId: 'runTest',
       entities: [{ type: 'test_entity', id: 'test-1' }]
     });
     clearOperationHandlers();
@@ -131,8 +131,12 @@ describe('Framework package contracts', () => {
       expect.objectContaining({ type: 'tool_profile', collection: 'tool_profiles' })
     ]));
     expect(cncWorkflows.queue.initial).toBe('DRAFT');
-    expect(cncOperations['nesting.run']).toMatchObject({
+    expect(cncOperations.solveNesting).toMatchObject({
       access: { permissions: expect.arrayContaining([expect.objectContaining({ feature: 'queues', level: 'write' })]) }
+    });
+    expect(cncOperations.generateArtifact).toMatchObject({
+      service: 'artifacts',
+      access: { permissions: [expect.objectContaining({ feature: 'artifacts', level: 'write' })] }
     });
     expect(cncWorkflows.queue.transitions.every(transition => !transition.roles)).toBe(true);
     const endpointMap = createEndpointMap(cncFrontendEntities);
@@ -141,7 +145,8 @@ describe('Framework package contracts', () => {
     await expect(handlers.list_entities()).resolves.toContainEqual(expect.objectContaining({ type: 'project' }));
     await expect(handlers.get_entity_schema({ type: 'queue' })).resolves.toMatchObject({ collection: 'queues' });
     await expect(handlers.list_routes()).resolves.toContainEqual(expect.objectContaining({ type: 'project', single: '/api/project/:id' }));
-    await expect(handlers.list_operations()).resolves.toContainEqual(expect.objectContaining({ id: 'nesting.run' }));
+    await expect(handlers.list_operations()).resolves.toContainEqual(expect.objectContaining({ id: 'solveNesting' }));
+    await expect(handlers.list_operations()).resolves.toContainEqual(expect.objectContaining({ id: 'generateArtifact' }));
     await expect(handlers.list_ui_primitives()).resolves.toContainEqual(expect.objectContaining({ key: 'EntityCard', kind: 'entity-chrome' }));
     await expect(handlers.query_docs({ query: 'workflow' })).resolves.toContainEqual(expect.objectContaining({ path: 'README.md' }));
     await expect(handlers.get_framework_manifest()).resolves.toMatchObject({ schemaVersion: 1, validations: { ok: true } });

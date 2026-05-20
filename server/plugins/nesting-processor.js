@@ -14,6 +14,7 @@ import {
 } from 'mongodb';
 import { createStatus } from '../core/blocks/index.js';
 import { service as artifactService } from '../features/artifacts/index.js';
+import * as sheetDesignsService from '../features/sheet-designs/service.js';
 
 export default defineNitroPlugin(async (nitroApp) => {
   console.log('Nesting Processor Plugin Started');
@@ -189,10 +190,25 @@ async function processNextJob() {
 
     console.log(`Job ${job.slug}: Placed ${totalPlaced} items on ${layoutCount} containers. Utilization: ${totalUtilization}`);
 
+    const nestingRun = await db.collection('nesting_runs').findOne({ _id: job.runId });
+    const sheetDesigns = [];
+    if (nestingRun) {
+      for (const container of resultContainers) {
+        sheetDesigns.push(await sheetDesignsService.createFromRun(nestingRun, {
+          name: `${job.slug} sheet ${container.container_id}`,
+          geometryData: container,
+          specs: {
+            width: container.width,
+            height: container.height
+          }
+        }, 'SYSTEM'));
+      }
+    }
+
     // Update nesting job record
     await db.collection('nesting_jobs').updateOne(
       { _id: job._id },
-      { $set: { placed: totalPlaced, layoutCount: layoutCount, utilization: totalUtilization } }
+      { $set: { placed: totalPlaced, layoutCount: layoutCount, utilization: totalUtilization, sheetDesignIds: sheetDesigns.map(design => design._id) } }
     );
 
     // 4. Generate DXF
@@ -281,7 +297,8 @@ async function processNextJob() {
           status: statusUpdate,
           'data.results.sheetCount': layoutCount,
           'data.results.placedCount': totalPlaced,
-          'data.results.utilization': totalUtilization
+          'data.results.utilization': totalUtilization,
+          'data.sheetDesignIds': sheetDesigns.map(design => design._id)
         } 
       }
     );

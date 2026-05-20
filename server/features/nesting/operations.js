@@ -4,7 +4,6 @@ import { createStatus, inheritLineage } from '../../core/blocks/index.js';
 import '../queues/service.js';
 import * as cassetteService from '../cassettes/service.js';
 import * as cassetteDesignService from '../cassette-designs/service.js';
-import { service as artifactService } from '../artifacts/index.js';
 import { bakeTemplateInstance } from '../parametric-cassettes/service.js';
 import * as nestingRunsService from '../nesting-runs/service.js';
 import * as nestingJobs from './jobs.js';
@@ -13,9 +12,10 @@ import { toFlexibleId } from '../../utils/objectid.js';
 
 const activeQueueNestLocks = new Set();
 
-registerOperationHandler('nesting.run', runNesting);
+registerOperationHandler('solveNesting', solveNesting);
 
-export async function runNesting({ entities, data, auth }) {
+export async function solveNesting({ entities, parameters = {}, data = {}, auth }) {
+  const settings = { ...data, ...parameters };
   const queue = entities.queue;
   const queueId = queue._id?.toString();
 
@@ -36,25 +36,24 @@ export async function runNesting({ entities, data, auth }) {
     const jobFiles = await buildJobFiles(queue, auth);
     const nestingSlug = `queue-${queue.data?.queueNumber ?? queue._id.toString().slice(-6)}-${generateRandomString(6)}`;
     const params = {
-      height: data.virtualLength || data.height || 2440,
-      width: data.virtualWidth || data.width || 1220,
-      space: data.spacing || data.space || 5,
+      height: settings.virtualLength || settings.height || 2440,
+      width: settings.virtualWidth || settings.width || 1220,
+      space: settings.spacing || settings.space || 5,
       sheetCount: 1000,
-      sheet_polygon: data.sheet_polygon || null,
-      inventoryItems: data.inventoryItems || []
+      sheet_polygon: settings.sheet_polygon || null,
+      inventoryItems: settings.inventoryItems || []
     };
 
     const runNumber = await nestingRunsService.getNextRunNumber(queue._id);
-    const runOrigin = createStatus('NESTING', auth.userId, { note: `Nesting started in ${data.materialMode || 'VIRTUAL'} mode` });
+    const runOrigin = createStatus('NESTING', auth.userId, { note: `Nesting started in ${settings.materialMode || 'VIRTUAL'} mode` });
     const run = await nestingRunsService.create({
       identity: { uid: generateRandomString(12) },
       runNumber,
-      materialMode: data.materialMode || 'VIRTUAL',
+      materialMode: settings.materialMode || 'VIRTUAL',
       params,
       origin: runOrigin,
       status: runOrigin,
-      lineage: inheritLineage(queue, 'queue'),
-      requestedArtifacts: data.requestedArtifacts || ['LAYOUT_DXF']
+      lineage: inheritLineage(queue, 'queue')
     }, auth.userId);
     const runId = toFlexibleId(run._id);
 
@@ -70,17 +69,13 @@ export async function runNesting({ entities, data, auth }) {
       ownerId: auth.userId
     });
 
-    const artifacts = await createRequestedArtifacts({ requestedArtifacts: data.requestedArtifacts || ['LAYOUT_DXF'], queue, runId, data });
-
     return {
       entities: [{ type: 'nesting_run', id: runId.toString() }],
-      artifacts: artifacts.map(artifact => ({ type: artifact.data?.type, id: (artifact._id || artifact.id).toString() })),
       jobs: [{ type: 'nesting_job', id: job._id.toString() }],
       data: {
         nestingSlug,
         status: 'NESTING',
-        runId: runId.toString(),
-        artifacts: artifacts.map(artifact => artifact._id || artifact.id)
+        runId: runId.toString()
       }
     };
   } finally {
@@ -119,29 +114,4 @@ async function buildJobFiles(queue, auth) {
     }
   }
   return jobFiles;
-}
-
-async function createRequestedArtifacts({ requestedArtifacts, queue, runId, data }) {
-  const artifacts = [];
-  for (const type of requestedArtifacts) {
-    if (type === 'PDF_PASSPORT') {
-      artifacts.push(await artifactService.create({
-        type,
-        queueId: toFlexibleId(queue._id),
-        runId,
-        name: `${queue.identity.name} - Technical Passports`,
-        status: 'GENERATING',
-        metadata: { templateId: data.pdfTemplateId }
-      }));
-    } else if (type === 'LAYOUT_DXF') {
-      artifacts.push(await artifactService.create({
-        type,
-        queueId: toFlexibleId(queue._id),
-        runId,
-        name: `${queue.identity.name} - LAYOUT_DXF.dxf`,
-        status: 'GENERATING'
-      }));
-    }
-  }
-  return artifacts;
 }

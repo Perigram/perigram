@@ -109,25 +109,81 @@ export const cncWorkflows = {
 };
 
 export const cncOperations = {
-  'nesting.run': {
-    id: 'nesting.run',
-    label: 'Run nesting',
+  solveNesting: {
+    id: 'solveNesting',
+    service: 'nesting',
+    label: 'Solve nesting',
     input: {
       entities: [{ name: 'queue', type: 'queue', required: true }],
-      data: true
+      parameters: [
+        { name: 'materialMode', label: 'Material mode', type: 'enum', options: ['VIRTUAL', 'INVENTORY'], default: 'VIRTUAL' },
+        { name: 'width', label: 'Sheet width', type: 'number', default: 1220, min: 1, unit: 'mm' },
+        { name: 'height', label: 'Sheet height', type: 'number', default: 2440, min: 1, unit: 'mm' },
+        { name: 'spacing', label: 'Spacing', type: 'number', default: 5, min: 0, unit: 'mm' },
+        { name: 'sheet_polygon', label: 'Sheet polygon', type: 'object' },
+        { name: 'inventoryItems', label: 'Inventory items', type: 'array', default: [] },
+        { name: 'toolProfileId', label: 'Tool profile ID', type: 'string' }
+      ]
     },
     output: {
-      entities: ['nesting_run'],
-      artifacts: ['LAYOUT_DXF', 'PDF_PASSPORT'],
+      entities: ['nesting_run', 'sheet_design'],
       jobs: ['nesting_job']
     },
     access: {
       permissions: [
         { feature: 'queues', level: 'write' },
-        { feature: 'nesting_runs', level: 'write' },
+        { feature: 'nesting_runs', level: 'write' }
+      ]
+    }
+  },
+  generateArtifact: {
+    id: 'generateArtifact',
+    service: 'artifacts',
+    label: 'Generate artifact',
+    input: {
+      entities: [
+        { name: 'sheetDesign', type: 'sheet_design' },
+        { name: 'nestingRun', type: 'nesting_run' }
+      ],
+      parameters: [
+        { name: 'type', label: 'Artifact type', type: 'enum', options: ['LAYOUT_DXF', 'PDF_PASSPORT'], required: true },
+        { name: 'pdfTemplateId', label: 'PDF template ID', type: 'string' }
+      ]
+    },
+    output: {
+      artifacts: ['LAYOUT_DXF', 'PDF_PASSPORT']
+    },
+    access: {
+      permissions: [
         { feature: 'artifacts', level: 'write' }
       ]
     }
+  }
+};
+
+export const cncHookContracts = {
+  triggerAggregator: {
+    id: 'triggerAggregator',
+    label: 'Trigger parent summary aggregator',
+    parameters: []
+  },
+  propagateToChildren: {
+    id: 'propagateToChildren',
+    label: 'Propagate status to child entities',
+    parameters: [
+      { name: 'childType', label: 'Child type', type: 'entityType', required: true },
+      { name: 'childState', label: 'Child state', type: 'workflowState', required: true, dependsOn: 'childType' }
+    ]
+  },
+  processPhysicalCut: {
+    id: 'processPhysicalCut',
+    label: 'Process physical cut',
+    parameters: []
+  },
+  createPhysicalUnits: {
+    id: 'createPhysicalUnits',
+    label: 'Create physical units',
+    parameters: []
   }
 };
 

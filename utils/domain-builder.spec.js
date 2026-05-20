@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cncEntities, cncFrontendEntities, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { cncEntities, cncFrontendEntities, cncHookContracts, cncOperations, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
 import {
   buildWorkflowGraph,
   createDomainDraft,
@@ -13,7 +13,9 @@ describe('domain builder utilities', () => {
       entities: cncEntities,
       frontendEntities: cncFrontendEntities,
       workflows: cncWorkflows,
-      summaries: cncSummaries
+      summaries: cncSummaries,
+      operations: cncOperations,
+      hookContracts: cncHookContracts
     });
 
     expect(validateDomainDraft(draft).ok).toBe(true);
@@ -42,6 +44,33 @@ describe('domain builder utilities', () => {
     expect(messages).toContain('queue transition #1 has unknown to state: READY');
   });
 
+  it('validates typed operation parameters and hook params', () => {
+    const draft = createDomainDraft({
+      entities: [{ type: 'queue', collection: 'queues', blocks: ['identity', 'status'] }],
+      frontendEntities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queues' } }],
+      workflows: {
+        queue: {
+          initial: 'DRAFT',
+          states: { DRAFT: {}, CLOSED: {} },
+          transitions: [{ from: 'DRAFT', to: 'CLOSED', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'propagateToChildren', params: { childType: 'queue' } }] }]
+        }
+      },
+      operations: {
+        runQueue: {
+          id: 'runQueue',
+          input: { entities: [{ name: 'queue', type: 'queue', required: true }], parameters: [{ name: 'bad', type: 'invalid' }] },
+          output: { entities: ['queue'] },
+          access: { permissions: [{ feature: 'queues', level: 'write' }] }
+        }
+      },
+      hookContracts: cncHookContracts
+    });
+
+    const messages = validateDomainDraft(draft).issues.map(issue => issue.message);
+    expect(messages).toContain('runQueue parameters field #1 has invalid type: invalid');
+    expect(messages).toContain('queue transition #1 propagateToChildren params missing required field: childState');
+  });
+
   it('generates deterministic domain-cnc source exports', () => {
     const source = generateDomainCncSource({
       entities: [{ type: 'queue', collection: 'queues', blocks: ['identity', 'status'] }],
@@ -53,6 +82,7 @@ describe('domain builder utilities', () => {
     expect(source).toContain('export const cncEntities = [');
     expect(source).toContain('export const cncWorkflows = {');
     expect(source).toContain('export const cncSummaries = [];');
+    expect(source).toContain('export const cncHookContracts = {');
     expect(source).toContain('export const cncFrontendEntities = [');
     expect(source).toContain("type: 'queue'");
   });
