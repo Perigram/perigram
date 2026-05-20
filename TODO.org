@@ -1077,6 +1077,17 @@
     - Fixed data model loading to use `/api/debug/data-models` result `.models`, matching the existing review pages.
 
 *** Agent Notes
+    [2026-05-20] Simplify workbench layout
+    Files changed:
+    - pages/admin/workbench.vue
+    Docs updated:
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Kept entities as a sticky left column and ordered the right side as UI, workflow, compact data model, and feedback.
+    - Replaced the data-model table with field chips and removed the feedback status selector.
+
+*** Agent Notes
     [2026-05-19] Create CutKit Vue design-system Codex skill
     Files changed:
     - /home/isuo/.codex/skills/cutkit-vue-design-system/SKILL.md

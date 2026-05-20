@@ -9,10 +9,12 @@ domain entities and edits the selected entity across one set of sections:
 UI Lab component variants, extracted data-model decisions, feedback, and
 workflow/state machine draft. The UI section renders rows from the same
 `createDesignSystemDemoRows()` path as `/test/ui-lab`. The data model section
-loads the same `/api/debug/data-models` response shape as Data Model Review.
-The workflow section uses the same Vue Flow graph editor pattern as Domain
-Builder: draggable status nodes, connectable transitions, and a side panel for
-lifecycle state, capabilities, attachments, and hooks.
+loads the same `/api/debug/data-models` response shape as Data Model Review and
+shows compact field chips instead of the full review table. The workflow
+section uses the same Vue Flow graph editor pattern as Domain Builder:
+draggable status nodes, connectable transitions, and a side panel for lifecycle
+state, capabilities, attachments, and hooks. Feedback is a plain note for the
+selected entity.
 
 ## Domain Builder
 
