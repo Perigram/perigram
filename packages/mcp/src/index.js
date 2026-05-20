@@ -10,7 +10,7 @@ export function createReadOnlyToolHandlers({
   listDesignTokens = () => ({}),
   listRelationships = () => [],
   listSummaries = () => [],
-  listOperations = () => [],
+  listServiceActions = () => [],
   validateUiContracts = () => ({ ok: true, issues: [] }),
   queryDocs = () => [],
   validateTransition = () => ({ ok: false, reason: 'validator_missing' })
@@ -26,7 +26,7 @@ export function createReadOnlyToolHandlers({
     list_design_tokens: async () => listDesignTokens(),
     list_relationships: async () => listRelationships(),
     list_summaries: async () => listSummaries(),
-    list_operations: async () => listOperations(),
+    list_service_actions: async () => listServiceActions(),
     validate_ui_contracts: async () => validateUiContracts(),
     query_docs: async ({ query }) => queryDocs(query),
     simulate_transition: async ({ type, currentState, targetState, role }) => {

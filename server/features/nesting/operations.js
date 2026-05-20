@@ -1,5 +1,5 @@
 import { createError } from 'h3';
-import { registerOperationHandler } from '../../core/blocks/index.js';
+import { registerServiceActionHandler } from '../../core/blocks/index.js';
 import { createStatus, inheritLineage } from '../../core/blocks/index.js';
 import '../queues/service.js';
 import * as cassetteService from '../cassettes/service.js';
@@ -12,7 +12,7 @@ import { toFlexibleId } from '../../utils/objectid.js';
 
 const activeQueueNestLocks = new Set();
 
-registerOperationHandler('solveNesting', solveNesting);
+registerServiceActionHandler('solveNesting', solveNesting);
 
 export async function solveNesting({ entities, parameters = {}, data = {}, auth }) {
   const settings = { ...data, ...parameters };

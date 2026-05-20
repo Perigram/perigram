@@ -35,13 +35,19 @@ export function summarizeSummaries(summaries = []) {
   }));
 }
 
-export function summarizeOperations(operations = {}) {
-  return Object.entries(operations).map(([id, operation]) => ({
+export function summarizeServiceActions(serviceActions = {}) {
+  return Object.entries(serviceActions).map(([id, action]) => ({
     id,
-    label: operation.label || id,
-    inputs: (operation.input?.entities || []).map(input => input.type),
-    outputs: operation.output?.entities || [],
-    permissions: operation.access?.permissions || []
+    service: action.service,
+    action: action.action,
+    label: action.label || id,
+    inputs: (action.input?.entities || []).map(input => input.type),
+    outputs: action.output?.entities || [],
+    artifacts: action.output?.artifacts || [],
+    jobs: action.output?.jobs || [],
+    events: action.output?.events || [],
+    triggers: action.triggers || [],
+    permissions: action.access?.permissions || []
   }));
 }
 
@@ -143,7 +149,7 @@ export function createFrameworkManifest({
   entities = [],
   frontendEntities = [],
   workflows = {},
-  operations = {},
+  serviceActions = {},
   summaries = [],
   designSystem = {},
   dataModelFields = [],
@@ -161,7 +167,7 @@ export function createFrameworkManifest({
     routes: summarizeRoutes(frontendEntities),
     workflows: summarizeWorkflows(workflowEntries),
     summaries: summarizeSummaries(summaries),
-    operations: summarizeOperations(operations),
+    serviceActions: summarizeServiceActions(serviceActions),
     relationships: summarizeRelationships({ summaries, dataModelFields }),
     designSystem: {
       variants: designSystem.variants || [],
@@ -175,7 +181,7 @@ export function createFrameworkManifest({
       workflows,
       uiComponents,
       uiPrimitives,
-      operations,
+      serviceActions,
       dataModelFields,
       compatibilityAliases
     })
@@ -185,7 +191,7 @@ export function createFrameworkManifest({
 export function validateFrameworkManifest({
   entities = [],
   workflows = {},
-  operations = {},
+  serviceActions = {},
   uiComponents = [],
   uiPrimitives = [],
   dataModelFields = [],
@@ -195,14 +201,14 @@ export function validateFrameworkManifest({
   const uiFieldIssues = validateUiFieldPaths({ components: uiComponents, dataModelFields, compatibilityAliases });
   const statusIssues = validateStatusPolicies({ components: uiComponents, workflows });
   const workflowAccessIssues = validateWorkflowAccess(workflows);
-  const operationIssues = validateOperations(operations);
+  const serviceActionIssues = validateServiceActions(serviceActions);
   const primitiveIssues = validateUiPrimitives(uiPrimitives);
   const issues = [
     ...definitionResult.errors.map(error => ({ area: 'entities', issue: error })),
     ...uiFieldIssues.map(issue => ({ area: 'ui-fields', ...issue })),
     ...statusIssues.map(issue => ({ area: 'status-policy', ...issue })),
     ...workflowAccessIssues.map(issue => ({ area: 'workflow-access', ...issue })),
-    ...operationIssues.map(issue => ({ area: 'operations', ...issue })),
+    ...serviceActionIssues.map(issue => ({ area: 'service-actions', ...issue })),
     ...primitiveIssues.map(issue => ({ area: 'ui-primitives', ...issue }))
   ];
 
@@ -223,11 +229,15 @@ export function validateWorkflowAccess(workflows = {}) {
   }));
 }
 
-export function validateOperations(operations = {}) {
-  return Object.entries(operations).flatMap(([id, operation]) => {
+export function validateServiceActions(serviceActions = {}) {
+  return Object.entries(serviceActions).flatMap(([id, action]) => {
     const issues = [];
-    if (operation.id && operation.id !== id) issues.push({ id, issue: 'operation id mismatch' });
-    if (!Array.isArray(operation.access?.permissions)) issues.push({ id, issue: 'missing access permissions' });
+    if (action.id && action.id !== id) issues.push({ id, issue: 'service action id mismatch' });
+    if (!action.service) issues.push({ id, issue: 'missing service' });
+    if (!action.action) issues.push({ id, issue: 'missing action' });
+    if (!Array.isArray(action.access?.permissions)) issues.push({ id, issue: 'missing access permissions' });
+    if (action.input?.data === true) issues.push({ id, issue: 'legacy input.data contract' });
+    if (action.input?.parameters && !Array.isArray(action.input.parameters)) issues.push({ id, issue: 'service action parameters must be an array' });
     return issues;
   });
 }

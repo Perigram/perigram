@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { assertOperationAccess, hasEntityAccess } from './service.js';
+import { assertServiceActionAccess, hasEntityAccess } from './service.js';
 
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
@@ -31,8 +31,8 @@ describe('access engine', () => {
     })).toBe(false);
   });
 
-  it('checks operation requirements before handler execution', () => {
-    const operation = {
+  it('checks service action requirements before handler execution', () => {
+    const action = {
       access: {
         permissions: [
           { feature: 'queues', level: 'write' },
@@ -41,6 +41,6 @@ describe('access engine', () => {
       }
     };
 
-    expect(() => assertOperationAccess({ operation, entities: { queue: entity }, auth })).toThrow(/artifacts:write/);
+    expect(() => assertServiceActionAccess({ action, entities: { queue: entity }, auth })).toThrow(/artifacts:write/);
   });
 });

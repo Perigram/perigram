@@ -1,18 +1,18 @@
 import { requireAuth } from '~/server/utils/permissions';
-import { listServerOperations } from '~/server/core/operations/service.js';
+import { listServiceActions } from '~/server/core/operations/service.js';
 import '~/server/features/nesting/operations.js';
 import '~/server/features/artifacts/operations.js';
 
 export default defineEventHandler((event) => {
   requireAuth(event);
-  const operations = listServerOperations();
+  const actions = listServiceActions();
   return {
     success: true,
     registry: {
-      source: '@cutkit/domain-cnc:cncOperations',
-      count: operations.length,
-      handlerCount: operations.filter(operation => operation.handlerRegistered).length
+      source: '@cutkit/domain-cnc:cncServiceActions',
+      count: actions.length,
+      handlerCount: actions.filter(action => action.handlerRegistered).length
     },
-    operations
+    operations: actions
   };
 });

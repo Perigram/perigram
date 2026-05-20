@@ -964,44 +964,6 @@
     }
   ],
   "name": "cutkit-framework",
-  "operations": [
-    {
-      "id": "solveNesting",
-      "inputs": [
-        "queue"
-      ],
-      "label": "Solve nesting",
-      "outputs": [
-        "nesting_run",
-        "sheet_design"
-      ],
-      "permissions": [
-        {
-          "feature": "queues",
-          "level": "write"
-        },
-        {
-          "feature": "nesting_runs",
-          "level": "write"
-        }
-      ]
-    },
-    {
-      "id": "generateArtifact",
-      "inputs": [
-        "sheet_design",
-        "nesting_run"
-      ],
-      "label": "Generate artifact",
-      "outputs": [],
-      "permissions": [
-        {
-          "feature": "artifacts",
-          "level": "write"
-        }
-      ]
-    }
-  ],
   "packages": [
     {
       "name": "@cutkit/core"
@@ -1225,6 +1187,77 @@
     }
   ],
   "schemaVersion": 1,
+  "serviceActions": [
+    {
+      "action": "solve",
+      "artifacts": [],
+      "events": [
+        "nesting.solveStarted",
+        "nesting.solveCompleted",
+        "nesting.solveFailed"
+      ],
+      "id": "solveNesting",
+      "inputs": [
+        "queue"
+      ],
+      "jobs": [
+        "nesting_job"
+      ],
+      "label": "Solve nesting",
+      "outputs": [
+        "nesting_run",
+        "sheet_design"
+      ],
+      "permissions": [
+        {
+          "feature": "queues",
+          "level": "write"
+        },
+        {
+          "feature": "nesting_runs",
+          "level": "write"
+        }
+      ],
+      "service": "nesting",
+      "triggers": [
+        {
+          "event": "queue.nestingRequested"
+        }
+      ]
+    },
+    {
+      "action": "generate",
+      "artifacts": [
+        "LAYOUT_DXF",
+        "PDF_PASSPORT"
+      ],
+      "events": [
+        "artifact.generationQueued",
+        "artifact.generationCompleted",
+        "artifact.generationFailed"
+      ],
+      "id": "generateArtifact",
+      "inputs": [
+        "sheet_design",
+        "nesting_run"
+      ],
+      "jobs": [],
+      "label": "Generate artifact",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "artifacts",
+          "level": "write"
+        }
+      ],
+      "service": "artifacts",
+      "triggers": [
+        {
+          "event": "artifact.generationRequested"
+        }
+      ]
+    }
+  ],
   "summaries": [
     {
       "countField": "queueCount",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cncEntities, cncFrontendEntities, cncHookContracts, cncOperations, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { cncEntities, cncFrontendEntities, cncHookContracts, cncServiceActions, cncServiceContracts, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
 import {
   buildWorkflowGraph,
   createDomainDraft,
@@ -14,7 +14,8 @@ describe('domain builder utilities', () => {
       frontendEntities: cncFrontendEntities,
       workflows: cncWorkflows,
       summaries: cncSummaries,
-      operations: cncOperations,
+      serviceContracts: cncServiceContracts,
+      serviceActions: cncServiceActions,
       hookContracts: cncHookContracts
     });
 
@@ -55,9 +56,18 @@ describe('domain builder utilities', () => {
           transitions: [{ from: 'DRAFT', to: 'CLOSED', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'propagateToChildren', params: { childType: 'queue' } }] }]
         }
       },
-      operations: {
+      serviceContracts: {
+        queue: {
+          service: 'queue',
+          actions: ['runQueue'],
+          triggers: []
+        }
+      },
+      serviceActions: {
         runQueue: {
           id: 'runQueue',
+          service: 'queue',
+          action: 'run',
           input: { entities: [{ name: 'queue', type: 'queue', required: true }], parameters: [{ name: 'bad', type: 'invalid' }] },
           output: { entities: ['queue'] },
           access: { permissions: [{ feature: 'queues', level: 'write' }] }
@@ -82,6 +92,8 @@ describe('domain builder utilities', () => {
     expect(source).toContain('export const cncEntities = [');
     expect(source).toContain('export const cncWorkflows = {');
     expect(source).toContain('export const cncSummaries = [];');
+    expect(source).toContain('export const cncServiceContracts = {');
+    expect(source).toContain('export const cncServiceActions = {');
     expect(source).toContain('export const cncHookContracts = {');
     expect(source).toContain('export const cncFrontendEntities = [');
     expect(source).toContain("type: 'queue'");

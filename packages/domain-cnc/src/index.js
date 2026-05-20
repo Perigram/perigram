@@ -108,10 +108,30 @@ export const cncWorkflows = {
   }
 };
 
-export const cncOperations = {
+export const cncServiceContracts = {
+  nesting: {
+    service: 'nesting',
+    label: 'Nesting service',
+    inputs: ['queue', 'sheet', 'remnant', 'tool_profile'],
+    outputs: ['nesting_run', 'sheet_design'],
+    actions: ['solveNesting'],
+    triggers: ['queue.nestingRequested']
+  },
+  artifacts: {
+    service: 'artifacts',
+    label: 'Artifacts service',
+    inputs: ['sheet_design', 'nesting_run', 'cassette_design', 'cassette_instance'],
+    outputs: ['artifact'],
+    actions: ['generateArtifact'],
+    triggers: ['artifact.generationRequested']
+  }
+};
+
+export const cncServiceActions = {
   solveNesting: {
     id: 'solveNesting',
     service: 'nesting',
+    action: 'solve',
     label: 'Solve nesting',
     input: {
       entities: [{ name: 'queue', type: 'queue', required: true }],
@@ -125,9 +145,11 @@ export const cncOperations = {
         { name: 'toolProfileId', label: 'Tool profile ID', type: 'string' }
       ]
     },
+    triggers: [{ event: 'queue.nestingRequested' }],
     output: {
       entities: ['nesting_run', 'sheet_design'],
-      jobs: ['nesting_job']
+      jobs: ['nesting_job'],
+      events: ['nesting.solveStarted', 'nesting.solveCompleted', 'nesting.solveFailed']
     },
     access: {
       permissions: [
@@ -139,6 +161,7 @@ export const cncOperations = {
   generateArtifact: {
     id: 'generateArtifact',
     service: 'artifacts',
+    action: 'generate',
     label: 'Generate artifact',
     input: {
       entities: [
@@ -150,8 +173,10 @@ export const cncOperations = {
         { name: 'pdfTemplateId', label: 'PDF template ID', type: 'string' }
       ]
     },
+    triggers: [{ event: 'artifact.generationRequested' }],
     output: {
-      artifacts: ['LAYOUT_DXF', 'PDF_PASSPORT']
+      artifacts: ['LAYOUT_DXF', 'PDF_PASSPORT'],
+      events: ['artifact.generationQueued', 'artifact.generationCompleted', 'artifact.generationFailed']
     },
     access: {
       permissions: [

@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { designTokens, cssVariableTokens, tailwindThemeExtension } from '../assets/tokens/index.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS, DESIGN_SYSTEM_GROUPS, DESIGN_SYSTEM_PRIMITIVES, DESIGN_SYSTEM_VARIANTS } from '../utils/design-system-contract.js';
-import { cncEntities, cncFrontendEntities, cncOperations, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { cncEntities, cncFrontendEntities, cncServiceActions, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
 import {
   createFrameworkManifest,
   queryDocs,
@@ -92,7 +92,7 @@ const handlers = createReadOnlyToolHandlers({
   listDesignTokens: () => manifest.designSystem.tokens,
   listRelationships: () => manifest.relationships,
   listSummaries: () => manifest.summaries,
-  listOperations: () => manifest.operations,
+  listServiceActions: () => manifest.serviceActions,
   validateUiContracts: () => manifest.validations,
   queryDocs: query => queryDocs(docsCorpus, query),
   validateArchitecture: () => {
@@ -148,8 +148,8 @@ async function main() {
     return;
   }
 
-  if (command === 'list-operations') {
-    print(manifest.operations);
+  if (command === 'list-service-actions') {
+    print(manifest.serviceActions);
     return;
   }
 
@@ -224,7 +224,7 @@ async function main() {
       'list-design-tokens',
       'list-relationships',
       'list-summaries',
-      'list-operations',
+      'list-service-actions',
       'query-docs',
       'manifest',
       'write-manifest',
@@ -242,7 +242,7 @@ function createManifest() {
     frontendEntities: cncFrontendEntities,
     workflows: cncWorkflows,
     summaries: cncSummaries,
-    operations: cncOperations,
+    serviceActions: cncServiceActions,
     designSystem: {
       variants: DESIGN_SYSTEM_VARIANTS,
       groups: DESIGN_SYSTEM_GROUPS,

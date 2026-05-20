@@ -11,13 +11,17 @@ export const CANONICAL_BLOCKS = [
   'summary'
 ];
 
-export function createDomainDraft({ entities = [], frontendEntities = [], workflows = {}, summaries = [], operations = {} } = {}) {
+export const TYPED_FIELD_TYPES = new Set(['string', 'number', 'boolean', 'enum', 'entityId', 'entityType', 'workflowState', 'array', 'object']);
+
+export function createDomainDraft({ entities = [], frontendEntities = [], workflows = {}, summaries = [], serviceContracts = {}, serviceActions = {}, hookContracts = {} } = {}) {
   return deepClone({
     entities,
     frontendEntities,
     workflows,
     summaries,
-    operations
+    serviceContracts,
+    serviceActions,
+    hookContracts
   });
 }
 
@@ -27,7 +31,9 @@ export function validateDomainDraft(draft = {}) {
   const entities = Array.isArray(draft.entities) ? draft.entities : [];
   const frontendEntities = Array.isArray(draft.frontendEntities) ? draft.frontendEntities : [];
   const summaries = Array.isArray(draft.summaries) ? draft.summaries : [];
-  const operations = draft.operations && typeof draft.operations === 'object' ? draft.operations : {};
+  const serviceContracts = draft.serviceContracts && typeof draft.serviceContracts === 'object' ? draft.serviceContracts : {};
+  const serviceActions = draft.serviceActions && typeof draft.serviceActions === 'object' ? draft.serviceActions : {};
+  const hookContracts = draft.hookContracts && typeof draft.hookContracts === 'object' ? draft.hookContracts : {};
   const workflows = draft.workflows && typeof draft.workflows === 'object' ? draft.workflows : {};
   const entityTypes = new Set();
   const collections = new Set();
@@ -80,6 +86,14 @@ export function validateDomainDraft(draft = {}) {
       }
       for (const hook of transition.hooks || []) {
         if (!hook?.handler) issues.push({ area: 'workflows', severity: 'error', message: `${label} has a hook without handler` });
+        else if (!hookContracts[hook.handler]) issues.push({ area: 'workflows', severity: 'error', message: `${label} references unknown hook contract: ${hook.handler}` });
+        else validateSettingsObject({
+          issues,
+          area: 'workflows',
+          label: `${label} ${hook.handler} params`,
+          fields: hookContracts[hook.handler].parameters || [],
+          value: hook.params || {}
+        });
       }
     }
 
@@ -113,17 +127,42 @@ export function validateDomainDraft(draft = {}) {
     }
   }
 
-  for (const [id, operation] of Object.entries(operations)) {
-    if (operation.id && operation.id !== id) issues.push({ area: 'operations', severity: 'error', message: `${id} operation id mismatch: ${operation.id}` });
-    for (const input of operation.input?.entities || []) {
-      if (!entityTypes.has(input.type)) issues.push({ area: 'operations', severity: 'error', message: `${id} input references unknown entity type: ${input.type}` });
+  for (const [service, contract] of Object.entries(serviceContracts)) {
+    if (contract.service && contract.service !== service) issues.push({ area: 'services', severity: 'error', message: `${service} service id mismatch: ${contract.service}` });
+    if (!Array.isArray(contract.actions)) issues.push({ area: 'services', severity: 'error', message: `${service} must define actions` });
+    if (!Array.isArray(contract.triggers)) issues.push({ area: 'services', severity: 'error', message: `${service} must define triggers` });
+  }
+
+  for (const [id, action] of Object.entries(serviceActions)) {
+    if (action.id && action.id !== id) issues.push({ area: 'service-actions', severity: 'error', message: `${id} service action id mismatch: ${action.id}` });
+    if (!action.service) issues.push({ area: 'service-actions', severity: 'error', message: `${id} must define service` });
+    if (!action.action) issues.push({ area: 'service-actions', severity: 'error', message: `${id} must define action` });
+    if (action.service && !serviceContracts[action.service]) issues.push({ area: 'service-actions', severity: 'error', message: `${id} references unknown service: ${action.service}` });
+    for (const input of action.input?.entities || []) {
+      if (!entityTypes.has(input.type)) issues.push({ area: 'service-actions', severity: 'error', message: `${id} input references unknown entity type: ${input.type}` });
     }
-    for (const output of operation.output?.entities || []) {
-      if (!entityTypes.has(output)) issues.push({ area: 'operations', severity: 'error', message: `${id} output references unknown entity type: ${output}` });
+    for (const output of action.output?.entities || []) {
+      if (!entityTypes.has(output)) issues.push({ area: 'service-actions', severity: 'error', message: `${id} output references unknown entity type: ${output}` });
     }
-    if (!Array.isArray(operation.access?.permissions)) {
-      issues.push({ area: 'operations', severity: 'error', message: `${id} must define access.permissions` });
+    if (!Array.isArray(action.access?.permissions)) {
+      issues.push({ area: 'service-actions', severity: 'error', message: `${id} must define access.permissions` });
     }
+    validateFieldDescriptors({
+      issues,
+      area: 'service-actions',
+      label: `${id} parameters`,
+      fields: action.input?.parameters || []
+    });
+  }
+
+  for (const [id, contract] of Object.entries(hookContracts)) {
+    if (contract.id && contract.id !== id) issues.push({ area: 'hooks', severity: 'error', message: `${id} hook id mismatch: ${contract.id}` });
+    validateFieldDescriptors({
+      issues,
+      area: 'hooks',
+      label: `${id} parameters`,
+      fields: contract.parameters || []
+    });
   }
 
   for (const type of entityTypes) {
@@ -229,7 +268,11 @@ export function generateDomainCncSource(draft = {}) {
     '',
     `export const cncSummaries = ${formatExport(normalized.summaries)};`,
     '',
-    `export const cncOperations = ${formatExport(normalized.operations)};`,
+    `export const cncServiceContracts = ${formatExport(normalized.serviceContracts)};`,
+    '',
+    `export const cncServiceActions = ${formatExport(normalized.serviceActions)};`,
+    '',
+    `export const cncHookContracts = ${formatExport(normalized.hookContracts)};`,
     '',
     `export const cncFrontendEntities = ${formatExport(normalized.frontendEntities)};`,
     ''
@@ -268,4 +311,34 @@ function formatExport(value) {
 
 function normalizeCollection(collection) {
   return String(collection || '').replace(/-/g, '_');
+}
+
+function validateFieldDescriptors({ issues, area, label, fields }) {
+  if (!Array.isArray(fields)) {
+    issues.push({ area, severity: 'error', message: `${label} must be an array` });
+    return;
+  }
+  const seen = new Set();
+  for (const [index, field] of fields.entries()) {
+    const fieldLabel = `${label} field #${index + 1}`;
+    if (!field?.name) issues.push({ area, severity: 'error', message: `${fieldLabel} is missing name` });
+    if (field?.name && seen.has(field.name)) issues.push({ area, severity: 'error', message: `${label} has duplicate field: ${field.name}` });
+    if (field?.name) seen.add(field.name);
+    if (!TYPED_FIELD_TYPES.has(field?.type)) issues.push({ area, severity: 'error', message: `${fieldLabel} has invalid type: ${field?.type}` });
+    if (field?.type === 'enum' && !Array.isArray(field.options)) issues.push({ area, severity: 'error', message: `${fieldLabel} enum must define options` });
+  }
+}
+
+function validateSettingsObject({ issues, area, label, fields, value }) {
+  const object = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  validateFieldDescriptors({ issues, area, label, fields });
+  const fieldMap = new Map((fields || []).map(field => [field.name, field]));
+  for (const field of fields || []) {
+    if (field.required && (object[field.name] === undefined || object[field.name] === null || object[field.name] === '')) {
+      issues.push({ area, severity: 'error', message: `${label} missing required field: ${field.name}` });
+    }
+  }
+  for (const key of Object.keys(object)) {
+    if (!fieldMap.has(key)) issues.push({ area, severity: 'error', message: `${label} has unknown field: ${key}` });
+  }
 }

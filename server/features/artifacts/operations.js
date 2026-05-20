@@ -1,9 +1,9 @@
 import { createError } from 'h3';
-import { registerOperationHandler } from '../../core/blocks/index.js';
+import { registerServiceActionHandler } from '../../core/blocks/index.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import * as artifactService from './service.js';
 
-registerOperationHandler('generateArtifact', generateArtifact);
+registerServiceActionHandler('generateArtifact', generateArtifact);
 
 export async function generateArtifact({ entities, parameters = {}, auth }) {
   const source = entities.sheetDesign || entities.nestingRun;

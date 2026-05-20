@@ -1,12 +1,12 @@
 import { requireAuth } from '../../../utils/permissions.js';
-import { executeServerOperation } from '../../../core/operations/service.js';
+import { executeServiceAction } from '../../../core/operations/service.js';
 import '../../../features/nesting/operations.js';
 import '../../../features/artifacts/operations.js';
 
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const body = await readBody(event);
-  const nestingResult = await executeServerOperation('solveNesting', {
+  const nestingResult = await executeServiceAction('solveNesting', {
     entities: { queue: event.context.params.id },
     parameters: body
   }, auth);
@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const artifacts = [];
 
   for (const type of requestedArtifacts) {
-    const result = await executeServerOperation('generateArtifact', {
+    const result = await executeServiceAction('generateArtifact', {
       entities: { nestingRun: nestingResult.data.runId },
       parameters: { type, pdfTemplateId: body.pdfTemplateId }
     }, auth);

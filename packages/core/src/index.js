@@ -1,8 +1,9 @@
 const entityDefinitions = new Map();
 const services = new Map();
 const entityServiceContracts = new Map();
-const operationDefinitions = new Map();
-const operationHandlers = new Map();
+const serviceContracts = new Map();
+const serviceActionDefinitions = new Map();
+const serviceActionHandlers = new Map();
 
 export class Identity {
   constructor(uid = null, name = '', slug = '', serial = '', reference = '') {
@@ -199,38 +200,59 @@ export function registerEntityService(type, service) {
   return service;
 }
 
-export function defineOperation(definition) {
-  if (!definition?.id) throw new Error('Operation definition requires id');
-  operationDefinitions.set(definition.id, Object.freeze({
-    access: { permissions: [], capabilities: [], ...(definition.access || {}) },
-    input: { entities: [], data: {}, ...(definition.input || {}) },
-    output: { entities: [], artifacts: [], jobs: [], transitions: [], ...(definition.output || {}) },
+export function defineServiceContract(definition) {
+  if (!definition?.service) throw new Error('Service contract requires service');
+  serviceContracts.set(definition.service, Object.freeze({
+    actions: [],
+    triggers: [],
     ...definition
   }));
-  return getOperationDefinition(definition.id);
+  return getServiceContract(definition.service);
 }
 
-export function getOperationDefinition(id) {
-  return operationDefinitions.get(id) || null;
+export function getServiceContract(service) {
+  return serviceContracts.get(service) || null;
 }
 
-export function listOperationDefinitions() {
-  return Array.from(operationDefinitions.values());
+export function listServiceContracts() {
+  return Array.from(serviceContracts.values());
 }
 
-export function registerOperationHandler(id, handler) {
-  if (!id) throw new Error('Operation handler id is required');
-  if (typeof handler !== 'function') throw new Error(`Operation handler ${id} must be a function`);
-  operationHandlers.set(id, handler);
+export function defineServiceAction(definition) {
+  if (!definition?.id) throw new Error('Service action requires id');
+  if (!definition?.service) throw new Error(`Service action ${definition.id} requires service`);
+  if (!definition?.action) throw new Error(`Service action ${definition.id} requires action`);
+  serviceActionDefinitions.set(definition.id, Object.freeze({
+    access: { permissions: [], capabilities: [], ...(definition.access || {}) },
+    input: { entities: [], parameters: [], ...(definition.input || {}) },
+    output: { entities: [], artifacts: [], jobs: [], transitions: [], events: [], ...(definition.output || {}) },
+    triggers: [],
+    ...definition
+  }));
+  return getServiceActionDefinition(definition.id);
+}
+
+export function getServiceActionDefinition(id) {
+  return serviceActionDefinitions.get(id) || null;
+}
+
+export function listServiceActionDefinitions() {
+  return Array.from(serviceActionDefinitions.values());
+}
+
+export function registerServiceActionHandler(id, handler) {
+  if (!id) throw new Error('Service action handler id is required');
+  if (typeof handler !== 'function') throw new Error(`Service action handler ${id} must be a function`);
+  serviceActionHandlers.set(id, handler);
   return handler;
 }
 
-export function getOperationHandler(id) {
-  return operationHandlers.get(id) || null;
+export function getServiceActionHandler(id) {
+  return serviceActionHandlers.get(id) || null;
 }
 
-export function clearOperationHandlers() {
-  operationHandlers.clear();
+export function clearServiceActionHandlers() {
+  serviceActionHandlers.clear();
 }
 
 export function createEntityRef(type, id) {
@@ -238,18 +260,19 @@ export function createEntityRef(type, id) {
   return { type, id: id.toString() };
 }
 
-export function createOperationResult({
-  operationId,
+export function createServiceActionResult({
+  actionId,
   ok = true,
   entities = [],
   artifacts = [],
   jobs = [],
   transitions = [],
+  events = [],
   data = {},
   error = null
 } = {}) {
-  if (!operationId) throw new Error('OperationResult requires operationId');
-  return { ok, operationId, entities, artifacts, jobs, transitions, data, error };
+  if (!actionId) throw new Error('ServiceActionResult requires actionId');
+  return { ok, actionId, entities, artifacts, jobs, transitions, events, data, error };
 }
 
 export const createIdentity = (name, slug = '', serial = '', reference = '', uid = slug || name) => new Identity(uid, name, slug, serial, reference);

@@ -11,9 +11,9 @@ export function assertEntityAccess({ entity, entityType, feature = entityType, l
   return true;
 }
 
-export function assertOperationAccess({ operation, entities = {}, auth }) {
+export function assertServiceActionAccess({ action, entities = {}, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
-  const access = operation?.access || {};
+  const access = action?.access || {};
   if (auth.role === 'SYSTEM' && access.system === true) return true;
 
   const entityList = Object.values(entities).filter(Boolean);
