@@ -5,6 +5,35 @@
   [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
 
 *** Agent Notes
+     [2026-05-20] Move processing abstraction to core service actions
+     Files changed: packages/core/src/index.js,
+       packages/domain-cnc/src/index.js, packages/devtools/src/index.js,
+       packages/mcp/src/index.js, server/core/blocks/index.js,
+       server/core/access/service.js, server/core/access/service.spec.js,
+       server/core/operations/service.js,
+       server/core/operations/repository.js,
+       server/features/nesting/operations.js,
+       server/features/artifacts/operations.js,
+       server/api/queue/[id]/nest.post.js,
+       server/api/admin/operations/index.get.js,
+       server/api/admin/operations/[id]/run.post.js,
+       server/api/admin/operations/runs.get.js,
+       scripts/framework-inspect.js, package.json,
+       shared/framework-packages.spec.js, utils/domain-builder.js,
+       utils/domain-builder.spec.js, pages/admin/domain-builder.vue,
+       framework.manifest.json
+     Docs updated: README.md, packages/README.md,
+       packages/core/README.md, packages/domain-cnc/README.md,
+       packages/devtools/README.md, packages/mcp/README.md,
+       server/README.md, server/core/blocks/README.md,
+       server/core/access/README.md, server/core/operations/README.md,
+       server/features/README.md, server/features/nesting/README.md
+     Notes: Core now exposes service contracts and service actions with
+       service/action identity, typed inputs, typed parameters, access,
+       triggers, and result events. Domain CNC declares nesting and artifact
+       service actions; server features only register handlers.
+
+*** Agent Notes
      [2026-05-20] Split queue nesting into solve and artifact operations
      Files changed: packages/domain-cnc/src/index.js,
        server/features/nesting/operations.js,

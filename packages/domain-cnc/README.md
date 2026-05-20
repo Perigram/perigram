@@ -7,7 +7,7 @@ Cutkit CNC domain definitions for the framework extraction. This package is the 
 - Entity definitions for current v24 persisted production, master-data, material, and system entities.
 - Frontend endpoint definitions for the app's `useEntity` type keys.
 - Runtime workflow definitions consumed by `server/core/machines/definitions.js`.
-- Operation definitions and typed hook contracts consumed by the server operation runtime and admin editors.
+- Service contract/action definitions and typed hook contracts consumed by the server runtime and admin editors.
 - Summary definitions replacing hardcoded aggregator rules in a later migration.
 - Summary definitions consumed by the current Mongo aggregator adapter.
 
@@ -49,22 +49,23 @@ Transition access uses `access.permissions` and optional lifecycle
 `capabilities`; workflow definitions do not authorize with application role
 names.
 
-## Operations
+## Services
 
-`cncOperations` declares CNC domain operations without implementation details.
-Operations define typed entity inputs, typed `parameters`, output groups,
-service ownership, and required access permissions. Execution bodies use
-`{ entities, parameters }`.
+`cncServiceContracts` declares CNC processing services without implementation
+details. `cncServiceActions` declares callable work on those services with typed
+entity inputs, typed `parameters`, output groups, triggers, and required access
+permissions. Execution bodies use `{ entities, parameters }`.
 
-`solveNesting` is owned by the nesting service. It accepts a `queue`, material
-source settings, sheet geometry, and optional tool profile, then starts the
-nesting job that produces a `nesting_run` and eventual `sheet_design` records.
+`solveNesting` is action `solve` on the `nesting` service. It accepts a `queue`,
+material source settings, sheet geometry, and optional tool profile, then starts
+the nesting job that produces a `nesting_run` and eventual `sheet_design`
+records. It can be triggered by `queue.nestingRequested`.
 
-`generateArtifact` is owned by the artifacts service. It accepts a source entity
-such as `sheet_design` or `nesting_run` plus an artifact type, then creates a
-generated artifact request such as `LAYOUT_DXF` or `PDF_PASSPORT`. The queue
-nesting endpoint composes these operations instead of using a single operation
-that both solves nesting and creates artifacts.
+`generateArtifact` is action `generate` on the `artifacts` service. It accepts a
+source entity such as `sheet_design` or `nesting_run` plus an artifact type,
+then creates a generated artifact request such as `LAYOUT_DXF` or
+`PDF_PASSPORT`. The queue nesting endpoint composes service actions instead of
+using a single action that both solves nesting and creates artifacts.
 
 `cncHookContracts` declares typed settings for lifecycle transition hooks.
 Transition instances still store `{ handler, params }`, but admin editors and

@@ -53,14 +53,17 @@ Governs entity lifecycles using declarative state machines.
 ### 3.2. Centralized Aggregator
 Maintains parent summaries (counts/sums) automatically using lineage-aware aggregation. Triggered by status transitions.
 
-### 3.3. Access and Operations
+### 3.3. Access and Service Actions
 `server/core/access/` is the single authorization layer for entity services,
-workflow transitions, and operation execution. It evaluates membership
+workflow transitions, and service action execution. It evaluates membership
 permissions against entity lineage.
 
-`server/core/operations/` runs operation definitions from `@cutkit/domain-cnc`.
-Operation handlers are registered by feature modules and run only after the
-access engine approves the declared requirements.
+`server/core/operations/` runs service action definitions from
+`@cutkit/domain-cnc`. Service action handlers are registered by feature modules
+and run only after the access engine approves the declared requirements. Each
+execution is persisted in `service_action_runs` so tooling can show run history
+and failure details. Service action inputs use typed entity references plus
+typed `parameters`.
 
 ## 4. Framework Extraction Boundary
 

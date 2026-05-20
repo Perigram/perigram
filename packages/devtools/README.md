@@ -10,6 +10,7 @@ The app-level CLI entrypoint is `scripts/framework-inspect.js`.
 - `summarizeWorkflows(workflows)`
 - `summarizeRoutes(definitions)`
 - `summarizeSummaries(summaries)`
+- `summarizeServiceActions(serviceActions)`
 - `summarizeRelationships({ summaries, dataModelFields })`
 - `summarizeUiComponents(contracts, componentInventory)`
 - `summarizeUiPrimitives(primitives)`
@@ -27,6 +28,7 @@ The app-level CLI entrypoint is `scripts/framework-inspect.js`.
 npm run framework:list-entities
 npm run framework:list-workflows
 npm run framework:list-routes
+npm run framework:list-service-actions
 npm run framework:list-ui-primitives
 npm run framework:query-docs -- workflow
 npm run framework:manifest

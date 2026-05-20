@@ -14,6 +14,7 @@ Read-only MCP tool handlers for LLM-assisted industrial app planning. This packa
 - `list_design_tokens`
 - `list_relationships`
 - `list_summaries`
+- `list_service_actions`
 - `validate_ui_contracts`
 - `query_docs`
 - `simulate_transition`

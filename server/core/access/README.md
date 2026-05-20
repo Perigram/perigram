@@ -1,15 +1,15 @@
 # COMPONENT: Access Engine
 
-Centralized authorization for entity services, workflow transitions, and operation handlers.
+Centralized authorization for entity services, workflow transitions, and service action handlers.
 
 ## Contract
 
 - `assertEntityAccess()`: Checks one entity against a feature permission level.
-- `assertOperationAccess()`: Checks operation-level permission requirements before a handler runs.
+- `assertServiceActionAccess()`: Checks service action permission requirements before a handler runs.
 - `assertTransitionAccess()`: Checks workflow transition access requirements.
 - `createLineageFilter()`: Builds organization lineage filters from memberships.
 
-Access is derived from membership permissions (`none`, `read`, `write`, `admin`) and entity lineage. Workflow and operation definitions declare required feature permissions; processors and handlers perform domain work after access has already passed.
+Access is derived from membership permissions (`none`, `read`, `write`, `admin`) and entity lineage. Workflow transitions and service action definitions declare required feature permissions; processors and handlers perform domain work after access has already passed.
 
 ## Related
 

@@ -8,7 +8,7 @@ attachment creation and flexible-ID lineage inheritance.
 
 **Import path (always use this, not `server/utils/blocks.js`):**
 ```js
-import { BaseEntity, Identity, Status, Lineage, Specs, registerService, getService,
+import { BaseEntity, Identity, Status, Lineage, Specs, registerEntityService, getService,
          createIdentity, createStatus, createSpecs, createData, inheritLineage, createAttachment
        } from '~/server/core/blocks/index.js';
 ```
@@ -55,6 +55,11 @@ Status { state, userId, timestamp, metadata, eventId, lifecycle }
 | `lifecycle` | object | Current mutable facts owned by this lifecycle state |
 
 `lifecycle` always serializes as `{ actors: [], attachments: {}, data: {} }`. Use it for current lifecycle facts such as assigned actors, state-specific attachment refs, and measured/captured state data. Do not use `metadata` for durable facts that must be queried, diffed, or updated independently.
+
+Current mutable location belongs in `lifecycle.data.location`, not in root data
+or lineage. The frontend status surface supports typed location values such as
+`{ type: 'warehouse', warehouseId }`, `{ type: 'coordinates', coordinates: { x, y, z } }`,
+and `{ type: 'address', address }`.
 
 **Usage:** Created with `createStatus(state, userId, metadata, eventId, lifecycle)` or via `BaseEntity.applyStatus()`.
 
@@ -126,16 +131,19 @@ class BaseEntity {
 
 ---
 
-## Service Registry
+## Service Registries
 
 Enables cross-feature `getAncestor()` lookups without circular imports.
 
 ```js
-registerService('project', projectService);  // in each feature's service.js
+registerEntityService('project', projectService);  // in each feature's service.js
 getService('project')                        // returns the registered service object
 ```
 
 Register on module load. Each service must expose `getById(id)`.
+Entity service contracts, service contracts, service action contracts, and
+service action handlers are also re-exported from `@cutkit/core`; the server
+service action runtime uses them after access checks.
 
 ---
 

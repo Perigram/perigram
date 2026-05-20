@@ -4,13 +4,13 @@ Handles nesting solve orchestration, including job creation and worker communica
 
 ## Core Files
 - `server/api/queue/[id]/nest.post.js`: Endpoint that composes `solveNesting` with artifact generation requests.
-- `operations.js`: Registers the `solveNesting` operation handler.
+- `operations.js`: Registers the `solveNesting` service action handler.
 - `jobs.js`: Mongo helper for `nesting_jobs`.
 - `server/plugins/nesting-processor.js`: Background processor that polls for pending jobs.
 - `server/scripts/generate_nest_dxf.py`: Python script for generating result DXF files.
 
 ## Workflow
-1.  **Operation Execution**: The endpoint calls `executeServerOperation('solveNesting')`. The operation runtime loads the queue, verifies declared access, and then invokes the nesting handler.
+1.  **Service Action Execution**: The endpoint calls `executeServiceAction('solveNesting')`. The service action runtime loads the queue, verifies declared access, and then invokes the nesting handler.
 2.  **Job Creation**: The handler creates a `nesting_job` in MongoDB with status `pending`. It prepares the list of cassettes (standard or baked). The handler also guards against duplicate submissions with an in-process per-queue lock plus DB-level active-job checks.
 3.  **Polling**: `nesting-processor.js` (Nitro plugin) polls for `pending` jobs.
 4.  **Preparation**: The processor fetches cassette geometries (polygons) from the `cassettes` collection.
