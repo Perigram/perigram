@@ -13,7 +13,7 @@ Every feature module in `server/features/[name]/` **must** contain:
 |---|---|
 | `model.js` | Class extending `BaseEntity`. Defines constructor and `toJSON()`. |
 | `repository.js` | Raw MongoDB access only. Uses `toFlexibleId()`. No business logic. |
-| `service.js` | All business logic, permissions, cross-module calls. Calls `registerService()`. |
+| `service.js` | All business logic and cross-module calls. Uses the access engine for authorization and registers with the entity service registry. |
 | `index.js` | **Public API.** Exports `service` namespace only — never `repository` or `model`. |
 
 `node scripts/check-arch.js` enforces this structure for the declared entity
@@ -73,7 +73,7 @@ delete(id, event)
 
 Services are registered in the global service registry on module load:
 ```js
-registerService('project', { getById, list, create, update });
+registerEntityService('project', { getById, list, create, update });
 ```
 
 ---
@@ -102,6 +102,7 @@ registerService('project', { getById, list, create, update });
 ## Design Rules
 
 - **No cross-module DB access**: Services call other services (via `getService()`), never foreign repositories
+- **Access boundary**: Entity services, workflow transitions, and operation handlers use `server/core/access/` for permission decisions.
 - **Blocks import path**: `~/server/core/blocks/index.js` — never `~/server/utils/blocks.js` (deprecated)
 - **toJSON() rules**: spread `super.toJSON()`; do not re-emit `name`, `slug`, `serial`, `reference`
 - **data vs identity**: `serial` and `reference` live in `identity` only; feature-specific state goes in `data`

@@ -13,8 +13,9 @@ server features.
 
 ## Permission Model
 Backend access uses feature keys such as `projects`, `queues`, `cassettes`,
-`warehouses`, `catalogs`, `requisitions`, `materials`, `users`, and
-`organizations` with levels `none`, `read`, `write`, and `admin`.
+`nesting_runs`, `artifacts`, `warehouses`, `catalogs`, `requisitions`,
+`materials`, `users`, and `organizations` with levels `none`, `read`, `write`,
+and `admin`.
 
 UI visibility is a separate action matrix keyed by the same feature names where
 possible. Workflow definitions must not duplicate app role names for access

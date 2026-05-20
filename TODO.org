@@ -1088,6 +1088,37 @@
     - Replaced the data-model table with field chips and removed the feedback status selector.
 
 *** Agent Notes
+    [2026-05-20] Implement operations and access rewrite
+    Files changed:
+    - packages/core/src/index.js
+    - packages/domain-cnc/src/index.js
+    - packages/workflows/src/index.js
+    - server/core/access/service.js
+    - server/core/operations/service.js
+    - server/features/nesting/operations.js
+    - server/features/nesting/jobs.js
+    - server/api/queue/[id]/nest.post.js
+    - pages/admin/domain-builder.vue
+    - pages/admin/workbench.vue
+    - nuxt.config.js
+    Docs updated:
+    - README.md
+    - packages/core/README.md
+    - packages/domain-cnc/README.md
+    - packages/workflows/README.md
+    - server/README.md
+    - server/core/access/README.md
+    - server/core/operations/README.md
+    - server/core/machines/README.md
+    - server/features/nesting/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Added operation definitions/handlers, centralized access checks, and migrated queue nesting to `nesting.run`.
+    - Removed workflow role arrays from CNC definitions and admin workflow editing; transitions now edit access requirements.
+    - Restored real Nuxt `app.head` and `nitro.routeRules` config that had been replaced by placeholder comments.
+
+*** Agent Notes
     [2026-05-19] Create CutKit Vue design-system Codex skill
     Files changed:
     - /home/isuo/.codex/skills/cutkit-vue-design-system/SKILL.md

@@ -7,7 +7,7 @@ The system consists of three main parts: the transition engine, the dynamic hook
 
 ### 1. State Machine Engine
 - **`definitions.js`**: Compatibility export for CNC workflow definitions from `@cutkit/domain-cnc`.
-- **`service.js`**: Orchestrates transitions, performs role/capability validation, updates entity snapshots (`status` block), and logs history to `status_events`.
+- **`service.js`**: Orchestrates transitions, performs lifecycle/capability validation, delegates access checks to `server/core/access/`, updates entity snapshots (`status` block), and logs history to `status_events`.
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and `pluralize()` for collection resolution.
 
 The reusable workflow API is being extracted to
@@ -48,7 +48,7 @@ Synchronizes parent summaries based on child activity using lineage-aware MongoD
 
 ## Data Flow
 1. User/System triggers `statusService.transition(type, id, state, ...)`.
-2. Transition is validated against the domain workflow, role permissions, lifecycle schema, and actor/capability assignments.
+2. Transition is validated against the domain workflow, access requirements, lifecycle schema, and actor/capability assignments.
 3. Entity's `status` block, including `metadata` and `lifecycle`, is updated and a history event is logged.
 4. **Hook Execution**: 
     - Engine looks up hook handler in `hooks.js`.

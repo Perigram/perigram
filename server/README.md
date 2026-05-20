@@ -53,6 +53,15 @@ Governs entity lifecycles using declarative state machines.
 ### 3.2. Centralized Aggregator
 Maintains parent summaries (counts/sums) automatically using lineage-aware aggregation. Triggered by status transitions.
 
+### 3.3. Access and Operations
+`server/core/access/` is the single authorization layer for entity services,
+workflow transitions, and operation execution. It evaluates membership
+permissions against entity lineage.
+
+`server/core/operations/` runs operation definitions from `@cutkit/domain-cnc`.
+Operation handlers are registered by feature modules and run only after the
+access engine approves the declared requirements.
+
 ## 4. Framework Extraction Boundary
 
 Reusable framework concerns are being separated from the CNC domain in private

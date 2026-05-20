@@ -36,6 +36,12 @@ states: {
 }
 ```
 
-`validateTransition()` checks transition roles, declared attachment slots,
+`validateTransition()` checks declared attachment slots,
 actor capability names, optional transition `capabilities`, and current
 `status.lifecycle.actors` assignments that apply to the target state.
+Application role names are not workflow policy. Runtime adapters evaluate
+transition `access.permissions` through their access layer.
+
+Transition objects may also carry UI-only presentation metadata such as
+`display: 'inline' | 'menu' | 'hidden'`. The workflow validator ignores this
+field; frontend adapters use it to place actions in `EntityStatus`.

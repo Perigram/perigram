@@ -7,6 +7,7 @@ Cutkit CNC domain definitions for the framework extraction. This package is the 
 - Entity definitions for current v24 persisted production, master-data, material, and system entities.
 - Frontend endpoint definitions for the app's `useEntity` type keys.
 - Runtime workflow definitions consumed by `server/core/machines/definitions.js`.
+- Operation definitions consumed by the server operation runtime.
 - Summary definitions replacing hardcoded aggregator rules in a later migration.
 - Summary definitions consumed by the current Mongo aggregator adapter.
 
@@ -33,7 +34,28 @@ format; this package remains the source of truth.
 optional lifecycle schemas. Lifecycle schemas describe which current-state facts
 may be stored in `status.lifecycle` for a state, for example generic
 `geometry`/`photos` attachment slots, actor capability assignments, and measured
-state data. Transition-local notes and reasons stay in `status.metadata`.
+state data. Current mutable location is represented as
+`status.lifecycle.data.location` with typed values such as `warehouse`,
+`coordinates`, or `address`; ancestry still belongs in `lineage`, and files
+belong in `attachments`. Transition-local notes and reasons stay in
+`status.metadata`.
+
+Transitions may include `display: 'inline' | 'menu' | 'hidden'` as a frontend
+presentation hint for `EntityStatus`. Primary workflow progressions are inline,
+destructive or lower-priority transitions are menu actions, and self-loop
+metadata transitions are hidden from status action buttons.
+
+Transition access uses `access.permissions` and optional lifecycle
+`capabilities`; workflow definitions do not authorize with application role
+names.
+
+## Operations
+
+`cncOperations` declares CNC domain operations without implementation details.
+The first operation is `nesting.run`, which accepts a `queue`, requires
+`queues:write`, `nesting_runs:write`, and `artifacts:write`, and produces a
+nesting run, nesting job, and generated artifact placeholders. The Nuxt server
+registers the concrete handler and performs access checks before execution.
 
 ## Related
 

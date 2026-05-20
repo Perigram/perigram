@@ -13,21 +13,21 @@ loads the same `/api/debug/data-models` response shape as Data Model Review and
 shows compact field chips instead of the full review table. The workflow
 section uses the same Vue Flow graph editor pattern as Domain Builder:
 draggable status nodes, connectable transitions, and a side panel for lifecycle
-state, capabilities, attachments, and hooks. Feedback is a plain note for the
-selected entity.
+state, access requirements, capabilities, attachments, and hooks. Feedback is a
+plain note for the selected entity.
 
 ## Domain Builder
 
 `domain-builder.vue` is an authenticated development tool for editing
 `@cutkit/domain-cnc` entity definitions, frontend route metadata, workflow
-definitions, lifecycle schemas, transition hooks, and summary rules in a
+definitions, lifecycle schemas, transition access requirements, transition hooks, and summary rules in a
 browser-local draft. Entity/routes/summaries use table controls. Workflows use
 Vue Flow core for the graph canvas: statuses are selectable/draggable nodes,
 transitions are selectable edges with compact guard/hook summary labels,
 reciprocal transitions use curved routing, transitions can be created by
 connecting nodes or using the source/target click flow, and manual node
 positions are stored separately from exported domain data. The side panel edits
-lifecycle flags, actors, attachments, app roles, capabilities, and known hook
+lifecycle flags, actors, attachments, access JSON, capabilities, and known hook
 handlers. The tool exports draft JSON or generated JS and does not write
 repository files.
 
