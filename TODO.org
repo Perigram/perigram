@@ -5,6 +5,27 @@
   [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
 
 *** Agent Notes
+     [2026-05-20] Split queue nesting into solve and artifact operations
+     Files changed: packages/domain-cnc/src/index.js,
+       server/features/nesting/operations.js,
+       server/features/artifacts/operations.js,
+       server/api/queue/[id]/nest.post.js,
+       server/api/admin/operations/index.get.js,
+       server/api/admin/operations/[id]/run.post.js,
+       server/plugins/nesting-processor.js,
+       shared/framework-packages.spec.js, utils/domain-builder.spec.js,
+       framework.manifest.json
+     Docs updated: packages/domain-cnc/README.md,
+       server/core/operations/README.md,
+       server/features/nesting/README.md,
+       server/features/artifacts/README.md
+     Notes: Replaced the monolithic `nesting.run` operation contract with
+       `solveNesting` and `generateArtifact`. Queue nesting now starts the
+       solve job, then creates requested artifact records through the artifact
+       operation. The nesting processor persists worker layouts as
+       `sheet_design` entities before marking the run complete.
+
+*** Agent Notes
      [2026-05-18] Expand status lifecycle ownership and domain workflow runtime
      Files changed: packages/core/src/index.js, packages/workflows/src/index.js,
        packages/domain-cnc/src/index.js, server/core/blocks/Status.js,

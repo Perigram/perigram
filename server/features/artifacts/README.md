@@ -12,7 +12,7 @@ Unified file storage and metadata registry for all generated system outputs (G-C
   - `PDF_PASSPORT` -> `artifacts` (General bucket)
 
 ## Key Workflows
-1. **Generation**: Created by background workers (Nesting, G-Code) with an initial state of `GENERATING`.
+1. **Generation Request**: `operations.js` registers `generateArtifact`, which creates an artifact request from a source entity such as `sheet_design` or `nesting_run`.
 2. **Persistence**: Linked to GridFS via `attachments.primary.fileId`. Status must be transitioned to `READY` for retrieval.
 3. **Traceability**: Indexed by any ID in the lineage (e.g., `lineage.runId`).
 
