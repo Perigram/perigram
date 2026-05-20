@@ -4,7 +4,20 @@ import { spawnSync } from 'node:child_process';
 
 describe('Framework package contracts', () => {
   it('registers entity definitions in @cutkit/core', async () => {
-    const { defineEntity, getEntityDefinition, listEntityDefinitions, BaseEntity } = await import('../packages/core/src/index.js');
+    const {
+      BaseEntity,
+      createEntityRef,
+      createOperationResult,
+      defineEntity,
+      defineOperation,
+      getEntityDefinition,
+      getOperationDefinition,
+      listEntityDefinitions,
+      listOperationDefinitions,
+      registerOperationHandler,
+      getOperationHandler,
+      clearOperationHandlers
+    } = await import('../packages/core/src/index.js');
 
     const definition = defineEntity({
       type: 'test_entity',
@@ -26,6 +39,25 @@ describe('Framework package contracts', () => {
     });
     expect(entity.toJSON()).not.toHaveProperty('id');
     expect(entity.toJSON()).not.toHaveProperty('name');
+
+    const operation = defineOperation({
+      id: 'test.run',
+      input: { entities: [{ name: 'target', type: 'test_entity', required: true }] },
+      access: { permissions: [{ feature: 'test_entities', level: 'write' }] }
+    });
+    const handler = async () => createOperationResult({
+      operationId: 'test.run',
+      entities: [createEntityRef('test_entity', 'test-1')]
+    });
+    registerOperationHandler('test.run', handler);
+    expect(getOperationDefinition('test.run')).toEqual(operation);
+    expect(listOperationDefinitions()).toContainEqual(operation);
+    expect(getOperationHandler('test.run')).toBe(handler);
+    await expect(handler()).resolves.toMatchObject({
+      operationId: 'test.run',
+      entities: [{ type: 'test_entity', id: 'test-1' }]
+    });
+    clearOperationHandlers();
   });
 
   it('validates workflow transitions in @cutkit/workflows', async () => {
@@ -35,19 +67,19 @@ describe('Framework package contracts', () => {
       initial: 'DRAFT',
       states: { DRAFT: { canUpdateMeta: true }, ACTIVE: {}, CLOSED: { isTerminal: true } },
       transitions: [
-        { from: 'DRAFT', to: 'ACTIVE', roles: ['EDITOR'] },
-        { from: 'ACTIVE', to: 'CLOSED', roles: ['ADMIN'] }
+        { from: 'DRAFT', to: 'ACTIVE', access: { permissions: [{ feature: 'test_entities', level: 'write' }] } },
+        { from: 'ACTIVE', to: 'CLOSED', access: { permissions: [{ feature: 'test_entities', level: 'admin' }] } }
       ]
     });
 
     expect(getWorkflow('test_entity')).toEqual(workflow);
-    expect(validateTransition({ workflow, currentState: 'DRAFT', targetState: 'ACTIVE', role: 'EDITOR' }).ok).toBe(true);
-    expect(validateTransition({ workflow, currentState: 'DRAFT', targetState: 'CLOSED', role: 'EDITOR' }).reason).toBe('invalid_transition');
-    expect(validateTransition({ workflow, currentState: 'ACTIVE', targetState: 'CLOSED', role: 'EDITOR' }).reason).toBe('role_denied');
+    expect(validateTransition({ workflow, currentState: 'DRAFT', targetState: 'ACTIVE', role: 'VIEWER' }).ok).toBe(true);
+    expect(validateTransition({ workflow, currentState: 'DRAFT', targetState: 'CLOSED', role: 'VIEWER' }).reason).toBe('invalid_transition');
+    expect(validateTransition({ workflow, currentState: 'ACTIVE', targetState: 'CLOSED', role: 'VIEWER' }).ok).toBe(true);
   });
 
   it('exposes CNC domain definitions and read-only MCP handlers', async () => {
-    const { cncEntities, cncWorkflows, cncFrontendEntities } = await import('../packages/domain-cnc/src/index.js');
+    const { cncEntities, cncWorkflows, cncFrontendEntities, cncOperations } = await import('../packages/domain-cnc/src/index.js');
     const { createEndpointMap, getSingleEndpoint, getListEndpoint } = await import('../packages/vue/src/index.js');
     const { createReadOnlyToolHandlers } = await import('../packages/mcp/src/index.js');
     const { createFrameworkManifest, queryDocs, summarizeRoutes, summarizeSummaries, validateUiPrimitives } = await import('../packages/devtools/src/index.js');
@@ -56,6 +88,7 @@ describe('Framework package contracts', () => {
       entities: cncEntities,
       frontendEntities: cncFrontendEntities,
       workflows: cncWorkflows,
+      operations: cncOperations,
       summaries: [],
       designSystem: {
         contracts: [],
@@ -79,6 +112,7 @@ describe('Framework package contracts', () => {
       getFrameworkManifest: () => manifest,
       listRoutes: () => summarizeRoutes(cncFrontendEntities),
       listSummaries: () => summarizeSummaries([]),
+      listOperations: () => manifest.operations,
       listUiComponents: () => manifest.designSystem.components,
       listUiPrimitives: () => manifest.designSystem.primitives,
       listDesignTokens: () => manifest.designSystem.tokens,
@@ -97,12 +131,17 @@ describe('Framework package contracts', () => {
       expect.objectContaining({ type: 'tool_profile', collection: 'tool_profiles' })
     ]));
     expect(cncWorkflows.queue.initial).toBe('DRAFT');
+    expect(cncOperations['nesting.run']).toMatchObject({
+      access: { permissions: expect.arrayContaining([expect.objectContaining({ feature: 'queues', level: 'write' })]) }
+    });
+    expect(cncWorkflows.queue.transitions.every(transition => !transition.roles)).toBe(true);
     const endpointMap = createEndpointMap(cncFrontendEntities);
     expect(getSingleEndpoint(endpointMap, 'project', 'p-1')).toBe('/api/project/p-1');
     expect(getListEndpoint(endpointMap, 'cassetteInstance', { 'lineage.queueId': 'q-1' })).toBe('/api/cassette-instances?lineage.queueId=q-1');
     await expect(handlers.list_entities()).resolves.toContainEqual(expect.objectContaining({ type: 'project' }));
     await expect(handlers.get_entity_schema({ type: 'queue' })).resolves.toMatchObject({ collection: 'queues' });
     await expect(handlers.list_routes()).resolves.toContainEqual(expect.objectContaining({ type: 'project', single: '/api/project/:id' }));
+    await expect(handlers.list_operations()).resolves.toContainEqual(expect.objectContaining({ id: 'nesting.run' }));
     await expect(handlers.list_ui_primitives()).resolves.toContainEqual(expect.objectContaining({ key: 'EntityCard', kind: 'entity-chrome' }));
     await expect(handlers.query_docs({ query: 'workflow' })).resolves.toContainEqual(expect.objectContaining({ path: 'README.md' }));
     await expect(handlers.get_framework_manifest()).resolves.toMatchObject({ schemaVersion: 1, validations: { ok: true } });
@@ -124,8 +163,7 @@ describe('Framework package contracts', () => {
     expect(committed).toEqual(generated);
     expect(committed.validations).toEqual({ ok: true, issues: [] });
     expect(committed.designSystem.components.find(component => component.key === 'cassetteTemplate')?.fieldPaths).toEqual([
-      'data.parameters.length',
-      'data.type'
+      'data.parameters.length'
     ]);
     expect(committed.designSystem.primitives).toContainEqual(expect.objectContaining({
       key: 'EntityPage',

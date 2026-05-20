@@ -164,6 +164,15 @@
                     </div>
                   </div>
                   <div class="flex flex-col gap-2">
+                    <label>{{ $t('admin.domainBuilder.access') }}</label>
+                    <Textarea
+                      :model-value="JSON.stringify(selectedTransition.access || {}, null, 2)"
+                      rows="4"
+                      class="w-full font-mono text-xs"
+                      @update:model-value="value => updateTransitionAccess(selectedTransition, value)"
+                    />
+                  </div>
+                  <div class="flex flex-col gap-2">
                     <label>{{ $t('admin.domainBuilder.capabilities') }}</label>
                     <InputText :model-value="stringifyCommaList(selectedTransition.capabilities || selectedTransition.requiredCapabilities)" @update:model-value="value => updateTransitionCapabilities(selectedTransition, value)" />
                   </div>
@@ -250,7 +259,7 @@ const WORKFLOW_LAYOUT_STORAGE_KEY = 'cutkit:entity-workbench-layout:v1';
 const KNOWN_HOOKS = ['propagateToChildren', 'triggerAggregator', 'processPhysicalCut', 'createPhysicalUnits'];
 
 const entities = ref(structuredClone(cncEntities));
-const workflows = ref(stripWorkflowRoles(cncWorkflows));
+const workflows = ref(structuredClone(cncWorkflows));
 const uiRows = createDesignSystemDemoRows();
 const feedback = ref({});
 const dataDecisions = ref({});
@@ -420,7 +429,7 @@ function saveWorkflowLayouts() {
 }
 
 function resetWorkbench() {
-  workflows.value = stripWorkflowRoles(cncWorkflows);
+  workflows.value = structuredClone(cncWorkflows);
   feedback.value = {};
   dataDecisions.value = {};
   workflowLayouts.value = {};
@@ -514,6 +523,8 @@ function workflowNodePosition(node) {
 
 function transitionLabel(transition = {}) {
   const parts = [`${transition.from} -> ${transition.to}`];
+  if (transition.access?.permissions?.length) parts.push(`${transition.access.permissions.length} perms`);
+  if (transition.access?.system) parts.push('system');
   const capabilities = transition.capabilities || transition.requiredCapabilities || [];
   if (capabilities.length) parts.push(`${capabilities.length} caps`);
   if (transition.hooks?.length) parts.push(`${transition.hooks.length} hooks`);
@@ -525,7 +536,7 @@ function selectState(state) {
     workflowDraft.value.transitions.push({
       from: transitionDraftFrom.value,
       to: state,
-      capabilities: []
+      access: defaultTransitionAccess()
     });
     selectedTransitionIndex.value = workflowDraft.value.transitions.length - 1;
     selectedState.value = '';
@@ -637,6 +648,14 @@ function updateTransitionCapabilities(transition, value) {
   else delete transition.capabilities;
 }
 
+function updateTransitionAccess(transition, value) {
+  transition.access = parseJsonObject(value, transition.access || defaultTransitionAccess());
+}
+
+function defaultTransitionAccess() {
+  return { permissions: [{ feature: featureForEntity(selectedEntity.value.type), level: 'write' }] };
+}
+
 function addTransitionHook(transition) {
   transition.hooks ||= [];
   transition.hooks.push({ handler: 'triggerAggregator' });
@@ -674,21 +693,11 @@ function onWorkflowConnect(connection) {
   workflowDraft.value.transitions.push({
     from: connection.source,
     to: connection.target,
-    capabilities: []
+    access: defaultTransitionAccess()
   });
   selectedTransitionIndex.value = workflowDraft.value.transitions.length - 1;
   selectedState.value = '';
   transitionDraftFrom.value = '';
-}
-
-function stripWorkflowRoles(source) {
-  return Object.fromEntries(Object.entries(structuredClone(source || {})).map(([type, workflow]) => [
-    type,
-    {
-      ...workflow,
-      transitions: (workflow.transitions || []).map(({ roles, ...transition }) => transition)
-    }
-  ]));
 }
 
 function downloadDraft() {
@@ -729,5 +738,17 @@ function uniqueName(prefix, existing) {
 
 function uniqueSorted(values) {
   return Array.from(new Set(values.filter(Boolean))).sort();
+}
+
+function featureForEntity(type) {
+  const featureMap = {
+    artifact: 'artifacts',
+    material_pile: 'materials',
+    nesting_run: 'nesting_runs',
+    cassette_design: 'cassettes',
+    cassette_instance: 'projects',
+    sheet_design: 'projects'
+  };
+  return featureMap[type] || `${type}s`;
 }
 </script>

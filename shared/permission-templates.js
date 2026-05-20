@@ -2,6 +2,8 @@ export const PERMISSION_TEMPLATES = {
   SuperAdmin: {
     projects: 'admin',
     queues: 'admin',
+    nesting_runs: 'admin',
+    artifacts: 'admin',
     cassettes: 'admin',
     warehouses: 'admin',
     catalogs: 'admin',
@@ -14,6 +16,8 @@ export const PERMISSION_TEMPLATES = {
   ManufacturerAdmin: {
     projects: 'none',
     queues: 'none',
+    nesting_runs: 'none',
+    artifacts: 'none',
     cassettes: 'none',
     warehouses: 'admin',
     catalogs: 'admin',
@@ -26,6 +30,8 @@ export const PERMISSION_TEMPLATES = {
   ContractorAdmin: {
     projects: 'admin',
     queues: 'admin',
+    nesting_runs: 'admin',
+    artifacts: 'admin',
     cassettes: 'admin',
     warehouses: 'admin',
     catalogs: 'read',
@@ -38,6 +44,8 @@ export const PERMISSION_TEMPLATES = {
   CustomerAdmin: {
     projects: 'admin',
     queues: 'read',
+    nesting_runs: 'read',
+    artifacts: 'read',
     cassettes: 'read',
     warehouses: 'none',
     catalogs: 'none',
@@ -50,6 +58,8 @@ export const PERMISSION_TEMPLATES = {
   IndividualUser: {
     projects: 'admin',
     queues: 'admin',
+    nesting_runs: 'admin',
+    artifacts: 'admin',
     cassettes: 'admin',
     warehouses: 'none',
     catalogs: 'none',

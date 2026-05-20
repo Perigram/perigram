@@ -7,6 +7,7 @@ import { toFlexibleId } from '../../utils/objectid.js';
 import { createError } from 'h3';
 import { pluralize } from '../../utils/strings.js';
 import { normalizeLifecycle, validateTransition } from '~/packages/workflows/src/index.js';
+import { assertTransitionAccess } from '../access/service.js';
 
 /**
  * Unified Status Service - v24 Absolute Final
@@ -25,6 +26,7 @@ export const statusService = {
    */
   async transition(entityType, targetId, targetState, userId, userRole, metadata = {}) {
     const transitionContext = normalizeTransitionContext(metadata);
+    const auth = normalizeAuthContext(userId, userRole, transitionContext.metadata);
     const db = await connectDB();
     const machine = stateMachines[entityType];
     
@@ -59,7 +61,7 @@ export const statusService = {
       workflow: machine,
       currentState,
       targetState,
-      role: userRole,
+      role: auth.role,
       actorId: userId,
       currentStatus: entity.status,
       lifecycle: lifecycleForValidation
@@ -73,14 +75,6 @@ export const statusService = {
       });
     }
     
-    // 2. Validate Role (unless SYSTEM action)
-    if (!validation.ok && validation.reason === 'role_denied') {
-      throw createError({ 
-        statusCode: 403, 
-        message: `Unauthorized: Role "${userRole}" cannot perform transition ${currentState} -> ${targetState} for ${entityType}. Allowed roles: ${validation.allowedRoles.join(', ')}` 
-      });
-    }
-
     if (!validation.ok && (validation.reason === 'actor_denied' || validation.reason === 'capability_denied')) {
       throw createError({
         statusCode: 403,
@@ -94,6 +88,8 @@ export const statusService = {
         message: `Invalid lifecycle payload for ${entityType} status ${targetState}: ${validation.reason}`
       });
     }
+
+    assertTransitionAccess({ transition, entity, auth });
     
     // 3. Create Event Record
     const eventId = new ObjectId();
@@ -138,7 +134,7 @@ export const statusService = {
           console.log(`[Status Engine] Executing hook ${hookConfig.handler} for ${entityType} ${targetId}`);
           // Execute hook in background to avoid blocking
           hookFn({ 
-            targetId: flexId, targetType: entityType, toState: targetState, userId, userRole, lineage: entity.lineage 
+            targetId: flexId, targetType: entityType, toState: targetState, userId, userRole: auth.role, lineage: entity.lineage 
           }, hookConfig.params || {}).catch(err => {
             console.error(`[Status Engine] Hook ${hookConfig.handler} failed:`, err.message);
           });
@@ -163,6 +159,17 @@ function normalizeTransitionContext(input = {}) {
   return {
     metadata: input && typeof input === 'object' ? input : {},
     lifecycle: normalizeLifecycle()
+  };
+}
+
+function normalizeAuthContext(userId, userRole, metadata = {}) {
+  if (userRole && typeof userRole === 'object') return userRole;
+  if (metadata.auth && typeof metadata.auth === 'object') return metadata.auth;
+  return {
+    userId,
+    role: userRole || 'SYSTEM',
+    memberships: metadata.memberships || [],
+    permissions: metadata.permissions || {}
   };
 }
 

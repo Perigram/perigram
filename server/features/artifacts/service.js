@@ -4,7 +4,7 @@ import {
   createAttachment,
   createIdentity, 
   createStatus, 
-  registerService 
+  registerEntityService 
 } from '../../core/blocks/index.js';
 import { Artifact } from './model.js';
 import { toFlexibleId } from '../../utils/objectid.js';
@@ -15,7 +15,7 @@ import * as filesService from '../files/service.js';
  * Artifacts Service - v24 Standardized
  */
 
-registerService('artifact', {
+registerEntityService('artifact', {
   getById: (uid) => getById(uid)
 });
 

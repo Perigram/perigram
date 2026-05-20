@@ -219,14 +219,12 @@
                   </div>
                 </div>
                 <div class="flex flex-col gap-2">
-                  <label>{{ $t('admin.domainBuilder.roles') }}</label>
-                  <MultiSelect
-                    v-model="selectedTransition.roles"
-                    :options="roleOptions"
-                    option-label="label"
-                    option-value="value"
-                    display="chip"
-                    class="w-full"
+                  <label>{{ $t('admin.domainBuilder.access') }}</label>
+                  <Textarea
+                    :model-value="JSON.stringify(selectedTransition.access || {}, null, 2)"
+                    rows="4"
+                    class="w-full font-mono text-xs"
+                    @update:model-value="value => updateTransitionAccess(selectedTransition, value)"
                   />
                 </div>
                 <div class="flex flex-col gap-2">
@@ -334,8 +332,7 @@ import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import StandardPage from '~/components/shared/StandardPage.vue';
-import { USER_ROLES } from '~/constants/roles.constants.js';
-import { cncEntities, cncFrontendEntities, cncSummaries, cncWorkflows } from '~/packages/domain-cnc/src/index.js';
+import { cncEntities, cncFrontendEntities, cncOperations, cncSummaries, cncWorkflows } from '~/packages/domain-cnc/src/index.js';
 import {
   DOMAIN_BUILDER_STORAGE_KEY,
   buildWorkflowGraph,
@@ -369,7 +366,8 @@ const sourceDraft = () => createDomainDraft({
   entities: cncEntities,
   frontendEntities: cncFrontendEntities,
   workflows: cncWorkflows,
-  summaries: cncSummaries
+  summaries: cncSummaries,
+  operations: cncOperations
 });
 
 const draft = ref(sourceDraft());
@@ -447,13 +445,6 @@ const selectedLifecycleAttachments = computed(() => {
     multiple: Boolean(definition?.multiple)
   }));
 });
-const currentWorkflowRoles = computed(() => uniqueSorted((currentWorkflow.value?.transitions || []).flatMap(transition => transition.roles || [])));
-const roleOptions = computed(() => [
-  ...['SYSTEM', ...USER_ROLES].map(value => ({ label: value, value })),
-  ...currentWorkflowRoles.value
-    .filter(role => role !== 'SYSTEM' && !USER_ROLES.includes(role))
-    .map(value => ({ label: `${value} (${t('admin.domainBuilder.legacyRole')})`, value }))
-]);
 const workflowCapabilities = computed(() => uniqueSorted([
   ...BASE_CAPABILITIES,
   ...Object.values(currentWorkflow.value?.states || {}).flatMap(state => state.lifecycle?.actors || []),
@@ -578,7 +569,7 @@ function addTransition() {
   currentWorkflow.value.transitions.push({
     from,
     to,
-    roles: defaultTransitionRoles()
+    access: defaultTransitionAccess()
   });
   selectedTransitionIndex.value = currentWorkflow.value.transitions.length - 1;
   selectedState.value = '';
@@ -589,6 +580,10 @@ function updateTransitionCapabilities(transition, value) {
   delete transition.requiredCapabilities;
   if (capabilities.length) transition.capabilities = capabilities;
   else delete transition.capabilities;
+}
+
+function updateTransitionAccess(transition, value) {
+  transition.access = parseJsonObject(value, transition.access || defaultTransitionAccess());
 }
 
 function addSummary() {
@@ -685,15 +680,16 @@ function workflowNodePosition(node) {
 
 function transitionLabel(transition = {}) {
   const parts = [`${transition.from} -> ${transition.to}`];
-  if (transition.roles?.length) parts.push(`${transition.roles.length} roles`);
+  if (transition.access?.permissions?.length) parts.push(`${transition.access.permissions.length} perms`);
+  if (transition.access?.system) parts.push('system');
   const capabilities = transition.capabilities || transition.requiredCapabilities || [];
   if (capabilities.length) parts.push(`${capabilities.length} caps`);
   if (transition.hooks?.length) parts.push(`${transition.hooks.length} hooks`);
   return parts.join(' / ');
 }
 
-function defaultTransitionRoles() {
-  return ['SuperAdmin'];
+function defaultTransitionAccess() {
+  return { permissions: [{ feature: featureForEntity(selectedWorkflowType.value), level: 'write' }] };
 }
 
 function selectState(state) {
@@ -701,7 +697,7 @@ function selectState(state) {
     currentWorkflow.value.transitions.push({
       from: transitionDraftFrom.value,
       to: state,
-      roles: defaultTransitionRoles()
+      access: defaultTransitionAccess()
     });
     selectedTransitionIndex.value = currentWorkflow.value.transitions.length - 1;
     selectedState.value = '';
@@ -844,7 +840,7 @@ function onWorkflowConnect(connection) {
   currentWorkflow.value.transitions.push({
     from: connection.source,
     to: connection.target,
-    roles: defaultTransitionRoles()
+    access: defaultTransitionAccess()
   });
   selectedTransitionIndex.value = currentWorkflow.value.transitions.length - 1;
   selectedState.value = '';
@@ -863,5 +859,17 @@ function uniqueName(prefix, existing) {
     value = `${prefix}_${index}`;
   }
   return value;
+}
+
+function featureForEntity(type) {
+  const featureMap = {
+    artifact: 'artifacts',
+    material_pile: 'materials',
+    nesting_run: 'nesting_runs',
+    cassette_design: 'cassettes',
+    cassette_instance: 'projects',
+    sheet_design: 'projects'
+  };
+  return featureMap[type] || `${type}s`;
 }
 </script>

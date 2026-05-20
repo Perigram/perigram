@@ -1,7 +1,7 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
 import { 
-  registerService, 
+  registerEntityService, 
   createStatus, 
   inheritLineage 
 } from '../../core/blocks/index.js';
@@ -16,7 +16,7 @@ import { NestingRun } from './model.js';
  * Nesting Runs Service - v24 Standardized
  */
 
-registerService('nesting_run', {
+registerEntityService('nesting_run', {
   getById: (uid) => getById(uid),
   hooks: {
     createPhysicalUnits: (ctx, params) => createPhysicalUnits(ctx, params)
@@ -112,7 +112,7 @@ export async function chooseRun(queueId, runId, userId, userOrg, userRole, userP
   await repository.resetChosenRuns(queueId);
 
   // Transition this run to CHOSEN
-  await statusService.transition('nesting_run', runId, 'CHOSEN', userId, userRole, { note: 'Chosen for production' });
+  await statusService.transition('nesting_run', runId, 'CHOSEN', userId, { userId, role: userRole, memberships: userPermissions.memberships }, { note: 'Chosen for production' });
 
   return await getById(runId);
 }

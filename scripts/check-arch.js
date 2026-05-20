@@ -98,8 +98,8 @@ features.forEach(feature => {
   // 2. Check Service for registration
   if (files.includes('service.js')) {
     const content = fs.readFileSync(path.join(dir, 'service.js'), 'utf8');
-    if (!content.includes('registerService')) {
-      console.error(`❌ Service does not call registerService()`);
+    if (!content.includes('registerService') && !content.includes('registerEntityService')) {
+      console.error(`❌ Service does not call registerEntityService()`);
       errors++;
     }
   }

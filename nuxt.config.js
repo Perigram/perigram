@@ -152,14 +152,96 @@ export default defineNuxtConfig({
     },
 
     app: {
-        // ... (keep head configuration as is)
+        head: {
+            htmlAttrs: {
+                lang: 'ru'
+            },
+            title: 'CutKit - CNC Manufacturing Platform',
+            meta: [
+                { charset: 'utf-8' },
+                {
+                    name: 'viewport',
+                    content: 'width=device-width, initial-scale=1'
+                },
+                {
+                    hid: 'description',
+                    name: 'description',
+                    content: 'CutKit manages CNC cassette templates, nesting runs, material inventory, generated artifacts, and production lifecycle tracking.'
+                },
+                {
+                    hid: 'keywords',
+                    name: 'keywords',
+                    content: 'CutKit, CNC, nesting, cassette templates, manufacturing, material inventory'
+                },
+                {
+                    hid: 'robots',
+                    name: 'robots',
+                    content: 'index, follow'
+                },
+                {
+                    hid: 'author',
+                    name: 'author',
+                    content: 'CutKit'
+                }
+            ],
+            link: [
+                {
+                    rel: 'apple-touch-icon',
+                    sizes: '180x180',
+                    href: '/favicon/apple-touch-icon.png'
+                },
+                {
+                    rel: 'icon',
+                    type: 'image/png',
+                    sizes: '32x32',
+                    href: '/favicon/favicon-32x32.png'
+                },
+                {
+                    rel: 'icon',
+                    type: 'image/png',
+                    sizes: '16x16',
+                    href: '/favicon/favicon-16x16.png'
+                },
+                {
+                    rel: 'icon',
+                    type: 'image/x-icon',
+                    href: '/favicon/favicon.ico'
+                }
+            ],
+            script: [
+                {
+                    async: true,
+                    type: 'application/ld+json',
+                    children: JSON.stringify(schemaWebSite)
+                }
+            ]
+        }
     },
 
     nitro: {
         compressPublicAssets: true,
         alias: cutkitAliases,
         routeRules: {
-            // ... (keep routeRules as is)
+            '/icons/**': {
+                headers: {
+                    'cache-control': 'public,max-age=31536000,s-maxage=31536000,immutable'
+                }
+            },
+            '/fonts/**': {
+                headers: {
+                    'cache-control': 'public,max-age=31536000,s-maxage=31536000,immutable'
+                }
+            },
+            '/_nuxt/**': {
+                headers: {
+                    'cache-control': 'public,max-age=31536000,immutable'
+                }
+            },
+            '/**': {
+                headers: {
+                    'cache-control': 'public,max-age=0,s-maxage=86400,stale-while-revalidate'
+                }
+            }
         },
     },
 

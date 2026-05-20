@@ -11,12 +11,13 @@ export const CANONICAL_BLOCKS = [
   'summary'
 ];
 
-export function createDomainDraft({ entities = [], frontendEntities = [], workflows = {}, summaries = [] } = {}) {
+export function createDomainDraft({ entities = [], frontendEntities = [], workflows = {}, summaries = [], operations = {} } = {}) {
   return deepClone({
     entities,
     frontendEntities,
     workflows,
-    summaries
+    summaries,
+    operations
   });
 }
 
@@ -26,6 +27,7 @@ export function validateDomainDraft(draft = {}) {
   const entities = Array.isArray(draft.entities) ? draft.entities : [];
   const frontendEntities = Array.isArray(draft.frontendEntities) ? draft.frontendEntities : [];
   const summaries = Array.isArray(draft.summaries) ? draft.summaries : [];
+  const operations = draft.operations && typeof draft.operations === 'object' ? draft.operations : {};
   const workflows = draft.workflows && typeof draft.workflows === 'object' ? draft.workflows : {};
   const entityTypes = new Set();
   const collections = new Set();
@@ -67,8 +69,14 @@ export function validateDomainDraft(draft = {}) {
       const label = `${type} transition #${index + 1}`;
       if (!stateSet.has(transition.from)) issues.push({ area: 'workflows', severity: 'error', message: `${label} has unknown from state: ${transition.from}` });
       if (!stateSet.has(transition.to)) issues.push({ area: 'workflows', severity: 'error', message: `${label} has unknown to state: ${transition.to}` });
-      if (!Array.isArray(transition.roles) || transition.roles.length === 0) {
-        issues.push({ area: 'workflows', severity: 'error', message: `${label} must define at least one role` });
+      if (transition.roles) {
+        issues.push({ area: 'workflows', severity: 'error', message: `${label} uses legacy roles; use access.permissions` });
+      }
+      if (!transition.access?.system && !Array.isArray(transition.access?.permissions)) {
+        issues.push({ area: 'workflows', severity: 'error', message: `${label} must define access.permissions or access.system` });
+      }
+      if (transition.display && !['inline', 'menu', 'hidden'].includes(transition.display)) {
+        issues.push({ area: 'workflows', severity: 'error', message: `${label} has invalid display: ${transition.display}` });
       }
       for (const hook of transition.hooks || []) {
         if (!hook?.handler) issues.push({ area: 'workflows', severity: 'error', message: `${label} has a hook without handler` });
@@ -102,6 +110,19 @@ export function validateDomainDraft(draft = {}) {
     if (!summary.countField) issues.push({ area: 'summaries', severity: 'error', message: `${label} is missing countField` });
     if (summary.sumFields && (typeof summary.sumFields !== 'object' || Array.isArray(summary.sumFields))) {
       issues.push({ area: 'summaries', severity: 'error', message: `${label} sumFields must be an object` });
+    }
+  }
+
+  for (const [id, operation] of Object.entries(operations)) {
+    if (operation.id && operation.id !== id) issues.push({ area: 'operations', severity: 'error', message: `${id} operation id mismatch: ${operation.id}` });
+    for (const input of operation.input?.entities || []) {
+      if (!entityTypes.has(input.type)) issues.push({ area: 'operations', severity: 'error', message: `${id} input references unknown entity type: ${input.type}` });
+    }
+    for (const output of operation.output?.entities || []) {
+      if (!entityTypes.has(output)) issues.push({ area: 'operations', severity: 'error', message: `${id} output references unknown entity type: ${output}` });
+    }
+    if (!Array.isArray(operation.access?.permissions)) {
+      issues.push({ area: 'operations', severity: 'error', message: `${id} must define access.permissions` });
     }
   }
 
@@ -207,6 +228,8 @@ export function generateDomainCncSource(draft = {}) {
     `export const cncWorkflows = ${formatExport(normalized.workflows)};`,
     '',
     `export const cncSummaries = ${formatExport(normalized.summaries)};`,
+    '',
+    `export const cncOperations = ${formatExport(normalized.operations)};`,
     '',
     `export const cncFrontendEntities = ${formatExport(normalized.frontendEntities)};`,
     ''

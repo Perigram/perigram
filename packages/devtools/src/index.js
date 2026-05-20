@@ -35,6 +35,16 @@ export function summarizeSummaries(summaries = []) {
   }));
 }
 
+export function summarizeOperations(operations = {}) {
+  return Object.entries(operations).map(([id, operation]) => ({
+    id,
+    label: operation.label || id,
+    inputs: (operation.input?.entities || []).map(input => input.type),
+    outputs: operation.output?.entities || [],
+    permissions: operation.access?.permissions || []
+  }));
+}
+
 export function summarizeRelationships({ summaries = [], dataModelFields = [] } = {}) {
   const summaryRelationships = summaries.map(summary => ({
     source: summary.parentType,
@@ -133,6 +143,7 @@ export function createFrameworkManifest({
   entities = [],
   frontendEntities = [],
   workflows = {},
+  operations = {},
   summaries = [],
   designSystem = {},
   dataModelFields = [],
@@ -150,6 +161,7 @@ export function createFrameworkManifest({
     routes: summarizeRoutes(frontendEntities),
     workflows: summarizeWorkflows(workflowEntries),
     summaries: summarizeSummaries(summaries),
+    operations: summarizeOperations(operations),
     relationships: summarizeRelationships({ summaries, dataModelFields }),
     designSystem: {
       variants: designSystem.variants || [],
@@ -163,6 +175,7 @@ export function createFrameworkManifest({
       workflows,
       uiComponents,
       uiPrimitives,
+      operations,
       dataModelFields,
       compatibilityAliases
     })
@@ -172,6 +185,7 @@ export function createFrameworkManifest({
 export function validateFrameworkManifest({
   entities = [],
   workflows = {},
+  operations = {},
   uiComponents = [],
   uiPrimitives = [],
   dataModelFields = [],
@@ -180,11 +194,15 @@ export function validateFrameworkManifest({
   const definitionResult = validateDefinitionSet(entities);
   const uiFieldIssues = validateUiFieldPaths({ components: uiComponents, dataModelFields, compatibilityAliases });
   const statusIssues = validateStatusPolicies({ components: uiComponents, workflows });
+  const workflowAccessIssues = validateWorkflowAccess(workflows);
+  const operationIssues = validateOperations(operations);
   const primitiveIssues = validateUiPrimitives(uiPrimitives);
   const issues = [
     ...definitionResult.errors.map(error => ({ area: 'entities', issue: error })),
     ...uiFieldIssues.map(issue => ({ area: 'ui-fields', ...issue })),
     ...statusIssues.map(issue => ({ area: 'status-policy', ...issue })),
+    ...workflowAccessIssues.map(issue => ({ area: 'workflow-access', ...issue })),
+    ...operationIssues.map(issue => ({ area: 'operations', ...issue })),
     ...primitiveIssues.map(issue => ({ area: 'ui-primitives', ...issue }))
   ];
 
@@ -192,6 +210,26 @@ export function validateFrameworkManifest({
     ok: issues.length === 0,
     issues
   };
+}
+
+export function validateWorkflowAccess(workflows = {}) {
+  return Object.entries(workflows).flatMap(([type, workflow]) => (workflow.transitions || []).flatMap((transition, index) => {
+    const issues = [];
+    if (transition.roles) issues.push({ type, index, issue: 'legacy roles are not allowed' });
+    if (!transition.access?.system && !Array.isArray(transition.access?.permissions)) {
+      issues.push({ type, index, issue: 'missing access permissions' });
+    }
+    return issues;
+  }));
+}
+
+export function validateOperations(operations = {}) {
+  return Object.entries(operations).flatMap(([id, operation]) => {
+    const issues = [];
+    if (operation.id && operation.id !== id) issues.push({ id, issue: 'operation id mismatch' });
+    if (!Array.isArray(operation.access?.permissions)) issues.push({ id, issue: 'missing access permissions' });
+    return issues;
+  });
 }
 
 export function queryDocs(corpus = [], query = '') {

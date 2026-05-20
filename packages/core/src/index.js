@@ -1,5 +1,8 @@
 const entityDefinitions = new Map();
 const services = new Map();
+const entityServiceContracts = new Map();
+const operationDefinitions = new Map();
+const operationHandlers = new Map();
 
 export class Identity {
   constructor(uid = null, name = '', slug = '', serial = '', reference = '') {
@@ -170,6 +173,83 @@ export function getService(type) {
 
 export function clearServices() {
   services.clear();
+}
+
+export function defineEntityServiceContract(definition) {
+  if (!definition?.type) throw new Error('Entity service contract requires type');
+  entityServiceContracts.set(definition.type, Object.freeze({
+    operations: ['getById', 'list', 'create', 'update', 'remove', 'transition'],
+    ...definition
+  }));
+  return getEntityServiceContract(definition.type);
+}
+
+export function getEntityServiceContract(type) {
+  return entityServiceContracts.get(type) || null;
+}
+
+export function listEntityServiceContracts() {
+  return Array.from(entityServiceContracts.values());
+}
+
+export function registerEntityService(type, service) {
+  if (!type) throw new Error('Entity service type is required');
+  if (!service?.getById) throw new Error(`Entity service ${type} requires getById`);
+  services.set(type, service);
+  return service;
+}
+
+export function defineOperation(definition) {
+  if (!definition?.id) throw new Error('Operation definition requires id');
+  operationDefinitions.set(definition.id, Object.freeze({
+    access: { permissions: [], capabilities: [], ...(definition.access || {}) },
+    input: { entities: [], data: {}, ...(definition.input || {}) },
+    output: { entities: [], artifacts: [], jobs: [], transitions: [], ...(definition.output || {}) },
+    ...definition
+  }));
+  return getOperationDefinition(definition.id);
+}
+
+export function getOperationDefinition(id) {
+  return operationDefinitions.get(id) || null;
+}
+
+export function listOperationDefinitions() {
+  return Array.from(operationDefinitions.values());
+}
+
+export function registerOperationHandler(id, handler) {
+  if (!id) throw new Error('Operation handler id is required');
+  if (typeof handler !== 'function') throw new Error(`Operation handler ${id} must be a function`);
+  operationHandlers.set(id, handler);
+  return handler;
+}
+
+export function getOperationHandler(id) {
+  return operationHandlers.get(id) || null;
+}
+
+export function clearOperationHandlers() {
+  operationHandlers.clear();
+}
+
+export function createEntityRef(type, id) {
+  if (!type || !id) throw new Error('EntityRef requires type and id');
+  return { type, id: id.toString() };
+}
+
+export function createOperationResult({
+  operationId,
+  ok = true,
+  entities = [],
+  artifacts = [],
+  jobs = [],
+  transitions = [],
+  data = {},
+  error = null
+} = {}) {
+  if (!operationId) throw new Error('OperationResult requires operationId');
+  return { ok, operationId, entities, artifacts, jobs, transitions, data, error };
 }
 
 export const createIdentity = (name, slug = '', serial = '', reference = '', uid = slug || name) => new Identity(uid, name, slug, serial, reference);

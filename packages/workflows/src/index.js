@@ -29,10 +29,6 @@ export function validateTransition({ workflow, currentState, currentStatus = nul
   );
 
   if (!transition && !selfLoop) return { ok: false, reason: 'invalid_transition', from, to: targetState };
-  if (transition && role !== 'SYSTEM' && !transition.roles?.includes(role)) {
-    return { ok: false, reason: 'role_denied', from, to: targetState, allowedRoles: transition.roles || [] };
-  }
-
   const lifecycleValidation = validateLifecyclePayload(stateDefinition.lifecycle, lifecycle);
   if (!lifecycleValidation.ok) return { ...lifecycleValidation, from, to: targetState };
 

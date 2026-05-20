@@ -20,18 +20,18 @@ const workflow = {
     DONE: {}
   },
   transitions: [
-    { from: 'DRAFT', to: 'REVIEW', roles: ['EDITOR'] },
-    { from: 'REVIEW', to: 'DONE', roles: ['EDITOR'], capabilities: ['mounting'] }
+    { from: 'DRAFT', to: 'REVIEW', access: { permissions: [{ feature: 'test_entities', level: 'write' }] } },
+    { from: 'REVIEW', to: 'DONE', access: { permissions: [{ feature: 'test_entities', level: 'write' }] }, capabilities: ['mounting'] }
   ]
 };
 
 describe('workflow transition validation', () => {
-  it('keeps role-only transitions compatible', () => {
+  it('accepts declared transitions without app role policy', () => {
     const result = validateTransition({
       workflow,
       currentState: 'DRAFT',
       targetState: 'REVIEW',
-      role: 'EDITOR'
+      role: 'VIEWER'
     });
 
     expect(result.ok).toBe(true);
