@@ -15,8 +15,10 @@ Props: `project` (Object, required), `variant` (String, default `'card'`).
 Emits: `view`, `edit`, `delete`.
 
 - Delegates chrome (TraceChain, IdentityBlock, EntityStatus) to `EntityCard`.
-- Card body: `DataBlock` with `summary.queueCount` — populated by the centralized aggregator (`server/core/machines/aggregator.js`) when queues are created.
-- Footer: edit/delete `Button`s gated by `authStore.can('projects', 'edit|delete')`.
+- Card header: optional `data.thumbnailUrl` image when a project DTO provides one.
+- Card body: `DataBlock` with `summary.queueCount` — populated by the centralized aggregator (`server/core/machines/aggregator.js`) when queues are created — plus optional `data.address` text.
+- Footer: edit `Button` gated by `authStore.can('projects', 'edit')`.
+- Delete is passed to `EntityCard` as a `statusActions` menu action so destructive commands stay in the shared status/action surface.
 
 ## ProjectDetail
 

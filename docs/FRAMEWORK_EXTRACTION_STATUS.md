@@ -10,10 +10,10 @@ Current execution status for separating the Cutkit industrial workflow model int
 | Framework workspace | Done | Private workspace packages exist under `packages/*`. Runtime imports remain stable through app wrappers. |
 | Core entity kernel | Done | `server/core/blocks/index.js` now wraps `@cutkit/core` while preserving server-specific ID behavior. |
 | Workflow kernel | Done | Runtime status transitions delegate validation to `@cutkit/workflows`. |
-| CNC domain pack | Done | Entity, workflow, summary, and frontend route metadata live in `@cutkit/domain-cnc`. |
-| Frontend adapter | Done | `composables/useEntity.js` builds endpoint metadata through `@cutkit/vue`. |
+| CNC domain pack | Done | Entity, workflow, operation, process, artifact, summary, and frontend metadata live in `@cutkit/domain-cnc`. |
+| Frontend adapter | Done | `composables/useEntity.js` builds endpoint metadata through `@cutkit/vue`; the adapter also exposes domain UI surfaces and artifact preview metadata. |
 | Summary adapter | Done | Machine aggregation derives summary rules from `cncSummaries`. |
-| UI/design-system framework contract | Done | `framework.manifest.json` snapshots UI components, status policies, field paths, and token projections. |
+| UI/design-system framework contract | Done | `framework.manifest.json` snapshots operations, processes, artifact types, UI components, status policies, field paths, and token projections. |
 | Read-only devtools/MCP | In progress | CLI and MCP-style handlers expose entities, workflows, routes, docs lookup, UI components, relationships, summaries, manifest data, transition simulation, and validation. |
 | Write-capable app builder | Not started | Intentionally blocked until read-only inspection contracts are stable. |
 | External package publishing | Not started | Packages are private workspace packages; no separate repo or registry publish exists yet. |
@@ -40,7 +40,7 @@ flowchart LR
   StatusService[server/core/machines/service.js]
   Aggregator[server/core/machines/aggregator.js]
   UseEntity[composables/useEntity.js]
-  DesignSystem[utils/design-system-contract.js]
+  DesignSystem[domain-cnc cncDesignSystem]
   Tokens[assets/tokens/index.js]
   Manifest[framework.manifest.json]
   InspectCLI[scripts/framework-inspect.js]
@@ -78,7 +78,7 @@ flowchart LR
 flowchart LR
   EntityCards[components/entities/*/*Card.vue]
   SharedUI[components/shared primitives]
-  Contract[utils/design-system-contract.js]
+  Contract[domain-cnc cncDesignSystem]
   Factories[test-data/factories.js]
   DataModel[server/DATA_MODEL.md]
   Tokens[assets/tokens/index.js]

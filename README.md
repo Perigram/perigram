@@ -53,7 +53,9 @@ If you hit "JS heap out of memory": `export NODE_OPTIONS="--max-old-space-size=4
 **Framework extraction:** The reusable industrial workflow kernel is being
 extracted in-place as private npm workspace packages under
 [`packages/`](./packages/README.md). Current runtime imports remain stable while
-the packages mature behind compatibility wrappers.
+the packages mature behind compatibility wrappers. See
+[System Architecture](./docs/SYSTEM_ARCHITECTURE.md) for the current
+domain/core/server/frontend/worker graph.
 
 ---
 
@@ -66,7 +68,7 @@ the packages mature behind compatibility wrappers.
 | **Technologies** | Python, ezdxf, pymongo |
 | **Source** | `workers/fileprocessing/` (core logic shared with cassette-processing) |
 | **Entry point** | `workers/fileprocessing/main.py` |
-| **Communication** | MongoDB polling — no inbound HTTP |
+| **Communication** | MongoDB polling for payloads; `/api/processes/*` for process lifecycle |
 
 **Job contract (MongoDB `user_dxf_files` collection):**
 
@@ -93,7 +95,7 @@ See [workers/fileprocessing/README.md](./workers/fileprocessing/README.md).
 | **Technologies** | Python, ezdxf, pymongo |
 | **Source** | `workers/cassette-processing/` (imports from `workers/fileprocessing/` for DXF utilities) |
 | **Entry point** | `workers/cassette-processing/main.py` |
-| **Communication** | MongoDB polling — no inbound HTTP |
+| **Communication** | MongoDB polling for payloads; `/api/processes/*` for process lifecycle |
 
 **Job contract (MongoDB `cassettes` collection):**
 
@@ -147,8 +149,8 @@ Primary datastore for all entities, job queues, and file metadata. GridFS stores
 
 ```
 User uploads DXF
-  → cutkit-app stores to GridFS, creates user_dxf_files doc with status=pending
-  → file-processing-worker polls, extracts geometry, writes SVG back to GridFS
+  → cutkit-app stores to GridFS, enqueues dxf.parseUpload, creates user_dxf_files doc with status=pending
+  → file-processing-worker polls payload, extracts geometry, writes SVG back to GridFS, reports process lifecycle through API
 
 User creates Queue + starts Nesting Run
   → cutkit-app collects cassette polygons from DB
@@ -174,7 +176,7 @@ CassetteInstance lifecycle
 - **Standard Blocks**: Every entity has `identity`, `status`, `origin`, `lineage`. See [server/README.md](./server/README.md).
 - **Canonical DTOs**: Entity responses expose root `_id` plus canonical blocks only (`identity`, `origin`, `status`, `lineage`, `specs`, `attachments`, `data`, `summary`). Do not add flat aliases such as `id`, `name`, `slug`, `serial`, `type`, `geometry`, or `parameters`.
 - **State machines**: All status transitions go through `server/core/machines/`; side-effects registered per-feature.
-- **Access and service actions**: Entity services, workflow transitions, and service action handlers use `server/core/access/`; CNC service contracts/actions are declared in `@cutkit/domain-cnc` and executed by `server/core/operations/`.
+- **Access, operations, and processes**: Entity services, workflow transitions, and service action handlers use `server/core/access/`; CNC domain contracts are declared in `@cutkit/domain-cnc`, bound into the explicit app registry in `server/runtime/cutkit-registry.js`, and executed by generic `server/core/operations/` / `server/core/processes/` runtimes.
 - **No cross-module DB access**: Features talk to each other via service calls only.
 - **Serialization**: API endpoints always return `Model.toJSON()`, never raw DB docs.
 

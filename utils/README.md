@@ -4,13 +4,21 @@ Shared frontend utility modules used by Vue pages/components.
 
 ## Design System Contract
 
-- `design-system-contract.js`: UI contract metadata for entity demos. Defines entity keys, card prop names, status/trace policy, factory names, variants, groups, and docs links without importing Vue components.
-  It also declares shared design-system primitives (`EntityCard`, `EntityPage`, blocks, status, trace, and layout wrappers) for framework manifests and MCP discovery.
+- `design-system-contract.js`: Compatibility exports and validation for the CNC design-system contract now owned by `@cutkit/domain-cnc`. It does not import Vue components.
 - `design-system.js`: Runtime binding that attaches Vue card components and DTO factories to the contract. Used by `/test/ui-lab`.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`.
-- `status-engine.js`: Central status severity/icon mapping and entity route/icon registry used by shared status and trace components. It must include every canonical workflow state exposed by `packages/domain-cnc/src/index.js`, including terminal states, so generated entity UI never falls back to unknown badges.
-- `status-actions.js`: Converts workflow definitions into default `EntityStatus` action buttons so cards do not use hardcoded state transitions.
+- `status-engine.js`: Compatibility status severity/icon mapping and entity route/icon registry used by shared status and trace components. New source-of-truth UI, artifact, and route metadata belongs in `@cutkit/domain-cnc` and is adapted by `@cutkit/vue`.
+- `status-actions.js`: Converts workflow definitions into default `EntityStatus` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows.
+- `status-location.js`: Normalizes typed current location facts from `status.lifecycle.data.location` for status surfaces. Supported UI types are `warehouse`, `coordinates`, and `address`.
 - `domain-builder.js`: Browser-side helpers for `/admin/domain-builder`. It clones CNC package definitions into a draft, validates entity/workflow/summary consistency, builds automatic Vue Flow node/edge layout data with reciprocal-transition metadata used unless the page has browser-local manual node positions, and generates deterministic `@cutkit/domain-cnc` source for manual export.
+- `workflow-compiler.js`: Shared workbench/domain-builder compiler wrapper for live workflow drafts. It validates draft machines, exposes state options for typed forms, and derives permission summaries used by fixture scenarios and workbench test access.
+
+## Utility Protocol
+
+Keep utilities pure: they should not call `$fetch`, mutate Pinia stores, or own
+component state. Cross-entity generated data belongs in `test-data/scenarios.js`;
+stateful workbench flows belong in stores/composables; backend writes belong in
+server feature services and repositories.
 
 The design-system contract is the source of truth for UI lab coverage. Add new entity cards there first, then wire the component and DTO factory in `design-system.js` / `test-data/factories.js`.
 

@@ -10,14 +10,14 @@ Internal npm workspace packages used to extract the reusable industrial workflow
 | `@cutkit/workflows` | Declarative workflow registry and transition validation |
 | `@cutkit/mongo` | Mongo-oriented repository, event-store, and summary adapter helpers |
 | `@cutkit/nitro` | Route metadata helpers for app/API adapters |
-| `@cutkit/vue` | Frontend entity route registry helpers |
+| `@cutkit/vue` | Frontend route, surface, and artifact metadata helpers |
 | `@cutkit/devtools` | Architecture/data-model inspection helpers |
 | `@cutkit/mcp` | Read-only MCP tool handlers for schema/workflow/docs inspection |
-| `@cutkit/domain-cnc` | Cutkit CNC entity, workflow, summary, service contract, and service action definitions |
+| `@cutkit/domain-cnc` | Cutkit CNC entity, workflow, operation, process, artifact, UI, and summary definitions |
 
 Current extraction status, module boundaries, runtime relationships, and Mermaid diagrams are maintained in [docs/FRAMEWORK_EXTRACTION_STATUS.md](../docs/FRAMEWORK_EXTRACTION_STATUS.md).
 
-The committed [framework.manifest.json](../framework.manifest.json) is the read-only contract for LLM/RAG/MCP inspection. It combines package metadata, entity definitions, workflows, routes, summaries, inferred relationships, entity component contracts, shared design-system primitives, and token projections.
+The committed [framework.manifest.json](../framework.manifest.json) is the read-only contract for LLM/RAG/MCP inspection. It combines package metadata, entity definitions, workflows, routes, operations, processes, artifact types, summaries, inferred relationships, entity component contracts, shared design-system primitives, and token projections.
 
 ## Extraction Rule
 

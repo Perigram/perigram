@@ -58,12 +58,23 @@ Maintains parent summaries (counts/sums) automatically using lineage-aware aggre
 workflow transitions, and service action execution. It evaluates membership
 permissions against entity lineage.
 
-`server/core/operations/` runs service action definitions from
-`@cutkit/domain-cnc`. Service action handlers are registered by feature modules
-and run only after the access engine approves the declared requirements. Each
-execution is persisted in `service_action_runs` so tooling can show run history
-and failure details. Service action inputs use typed entity references plus
-typed `parameters`.
+`server/core/operations/` runs service action definitions from registered
+domain adapters. `server/adapters/cnc-domain.js` registers `@cutkit/domain-cnc`
+definitions and binds CNC feature handlers; the generic operations runtime stays
+domain-agnostic. Each execution is persisted in `service_action_runs` so tooling
+can show run history and failure details. Service action inputs use typed entity
+references plus typed `parameters`.
+
+`server/core/processes/` is the async domain process queue backed by
+`process_runs`. It owns enqueue, claim, heartbeat, retry, cancel, complete, and
+failure transitions for worker-backed processes such as DXF parsing, cassette
+template baking, nesting solves, and artifact generation. Workers report
+lifecycle through `/api/processes/*`; only the process repository writes the
+collection directly.
+
+`server/runtime/` builds the explicit app registry that connects domain
+contracts to feature services, operation handlers, process definitions, and hook
+handlers.
 
 ## 4. Framework Extraction Boundary
 
@@ -72,10 +83,10 @@ workspace packages:
 
 | Package | Backend concern |
 |---|---|
-| `@cutkit/core` | Blocks, entity registry, serialization helpers |
+| `@cutkit/core` | Blocks, entity registry, domain/process/artifact contracts |
 | `@cutkit/workflows` | Lifecycle definitions and transition validation |
 | `@cutkit/mongo` | Mongo repository, event-store, and summary adapters |
-| `@cutkit/domain-cnc` | CNC entity/workflow/summary definitions |
+| `@cutkit/domain-cnc` | CNC entity/workflow/process/artifact/UI definitions |
 | `@cutkit/devtools` | Architecture and data-model inspection helpers |
 | `@cutkit/mcp` | Read-only schema/workflow/doc tool handlers |
 
@@ -89,6 +100,7 @@ tests and wrapped through the existing import paths.
 
 ## Related
 - [server/core/blocks/index.js](./core/blocks/index.js) (Block Definitions)
+- [server/core/processes/README.md](./core/processes/README.md) (Process Runtime)
 - [server/features/_template/README.md](./features/_template/README.md) (Golden Path Reference)
 - [server/core/machines/README.md](./core/machines/README.md) (Status Engine Docs)
 - [packages/README.md](../packages/README.md) (Framework package extraction)

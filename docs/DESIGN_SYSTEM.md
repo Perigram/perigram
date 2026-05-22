@@ -8,7 +8,10 @@ CutKit uses PrimeVue 4, Tailwind utilities, and a small app token layer. The des
 - `assets/presets/re_l.js` is the PrimeVue preset and consumes component token overrides.
 - `tailwind.config.js` exposes semantic Tailwind aliases backed by PrimeVue `--p-*` and CutKit `--ck-*` variables.
 - `assets/css/main.css` declares runtime `--ck-*` variables and only global layout helpers.
-- `utils/design-system-contract.js` defines the entity card/demo contract.
+- `packages/domain-cnc/src/index.js` defines the CNC entity card/demo contract
+  without importing Vue.
+- `utils/design-system-contract.js` re-exports that contract for existing UI
+  lab callers and provides validation.
 - `/test/ui-lab` renders directly from that contract and `test-data/factories.js`.
 
 ## Token Policy
@@ -27,6 +30,31 @@ Entity cards support `variant="inline"`, `variant="compact"`, and `variant="card
 
 Card content is part of the contract, not filler. The title area owns identity and status, the body uses `SpecsBlock`/`DataBlock` for concise operational facts, and the footer owns actions. Prefer canonical DTO paths (`data.*`, `identity.*`, `lineage.*`, `attachments.*`, `summary.*`) and use flat aliases only as compatibility fallbacks where current services still emit them.
 
+`cassette`, `cassetteTemplate`, `cassetteDesign`, and `cassetteInstance` are
+separate card contracts. `cassette` covers the base `cassettes` collection,
+while template/design/instance cards cover their own production surfaces.
+
+`material`, `materialPile`, and `batchPile` are intentionally different card
+contracts. `material` covers the base material record, while `materialPile` and
+`batchPile` are different UI surfaces over the same backend `material_pile`
+entity type. `materialPile` is the general warehouse/manual stock surface;
+`batchPile` is a requisition-sourced received pile surface and must expose batch
+context such as `lineage.requisitionId`, receipt serial, specs, and stock.
+
+`EntityStatus` owns lifecycle actions and current lifecycle context for entity
+types with real `cncWorkflows` definitions. Non-workflow cards hide status
+chrome by default instead of inventing local states. Workflow transitions may
+declare `display: 'inline' | 'menu' | 'hidden'`; self-loop metadata transitions
+are hidden by default, primary forward actions are inline only on expanded/full
+status surfaces, and card/inline status surfaces use an ellipsis menu to avoid
+multiple badge-like controls in title rows. The status popover includes overflow
+actions, current `status.lifecycle.data.location`, status metadata, and compact
+status history without section headings or empty placeholder copy. Last-update
+timestamps are part of the status timeline; when persisted events are not
+available, `StatusHistory` renders the entity's current `status`/`origin` as the
+first event. Status rows wrap deliberately in tight cards, while badges keep
+stable minimum width.
+
 Shared ownership:
 
 - `EntityCard` owns card chrome and is the only non-legacy direct owner of PrimeVue `Card`.
@@ -35,6 +63,11 @@ Shared ownership:
 - `StandardPage` owns page shell width and spacing.
 - `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, and `TableFrame` own repeated page-level layout patterns.
 - `IdentityBlock`, `EntityStatus`, `StatusBadge`, `TraceChain`, `SpecsBlock`, and `DataBlock` own v24 block visualization.
+- `StatusLocation` renders typed mutable location facts from `status.lifecycle.data.location` so cards do not hardcode warehouse ids or coordinate text as static fields.
+- `GeometryPreview` renders token-backed DXF/layer/polygon previews from `data.geometry.preview` so design cards show geometry instead of file-name fields.
+- `TypedSettingsForm` renders simple typed contract fields for admin operation
+  parameters and lifecycle hook settings; do not use raw JSON editors for those
+  contracts when a field descriptor exists.
 
 Feature pages/components should compose these primitives with PrimeVue form/table controls and semantic layout classes. They should not import `primevue/card`, `primevue/dialog`, or `useBlocks` directly.
 
@@ -51,6 +84,8 @@ Required v24 blocks:
 - `attachments`
 - `data`
 - `summary`
+
+Mutable current-state facts belong under `status.lifecycle`. Location is typed as `status.lifecycle.data.location`, with `warehouse`, `coordinates`, and `address` UI support. Use `lineage` for ancestry and `attachments` for files; do not duplicate those as decorative card body fields.
 
 Hoisted aliases are allowed only when current model/service DTOs emit them.
 

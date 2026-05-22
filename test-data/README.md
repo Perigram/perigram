@@ -93,10 +93,38 @@ export function createMockYourEntity(overrides = {}) {
 Factories are built from:
 - v24 block contract in `server/core/blocks/README.md`
 - API DTO shapes emitted by feature models/services
-- Entity design-system manifest in `utils/design-system-contract.js`
+- Entity design-system manifest in `@cutkit/domain-cnc` through the
+  compatibility exports in `utils/design-system-contract.js`
 - Workflow state definitions in `packages/domain-cnc/src/index.js`
 
 This ensures mock data matches what your API actually expects/returns.
+Factory modules use relative imports for shared repo contracts because they are
+loaded by Nuxt pages, Vitest, and plain Node workbench helpers.
 
 When a component needs a new field for display, update the relevant DTO factory and manifest entry together. Do not add flat compatibility fields.
 When an entity type has a workflow, the factory `status.state` must be one of that workflow's canonical states; `shared/design-system.spec.js` enforces this for UI lab demos.
+UI Lab/admin access examples use the same permission template and active
+membership shape as the access model. `createMockUser()` includes role,
+organization membership, and permissions so permission editors do not render a
+fake role-only user contract.
+Current mutable location examples belong in `status.lifecycle.data.location`, not in root `data` or `lineage`. Use typed shapes such as `warehouse`, `coordinates`, or `address` so `EntityStatus` can render the same location contract used by real DTOs.
+Geometry previews for design/remnant cards belong under `data.geometry.preview` with layer paths or polygon points. Do not add UI-only filename fields when the card needs a visual preview.
+`createMockPile()` represents a general/manual warehouse material pile. `createMockBatchPile()` represents a requisition-sourced pile and must include `lineage.requisitionId` so UI Lab keeps `materialPile` and `batchPile` visually distinct even though both use the `material_pile` backend entity type.
+
+## Workbench Context
+
+`workbench-context.js` is the admin workbench source of truth for generated
+and runtime dev data. It stores entities as a type/id map, refs, relationships,
+compiled workflows, access defaults, and typed service-action input bindings in
+one context. Operation outputs are upserted back into that same context before
+they are rendered, so the UI does not create placeholder entity cards.
+
+`scenarios.js` still composes factory DTOs into the base coherent CNC graph.
+The context helper projects that graph to a scenario shape only when the seed
+endpoint needs collection arrays for persistence. Scenario generation owns
+cross-entity consistency; individual factories remain low-level DTO
+constructors and should not grow random/default entity methods.
+
+Scenario statuses are derived from the compiled workflow draft passed by the
+workbench. This keeps generated test data aligned with the status machine being
+edited instead of static factory defaults.

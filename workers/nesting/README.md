@@ -5,7 +5,9 @@ The Nesting Worker is a Python-based HTTP service responsible for executing the 
 ## Core Files
 - `worker_service.py`: FastAPI application entry point.
 - `core/nesting_input_builder.py`: Prepares geometry and parameters for the nesting engine.
-- `main.py`: (Deprecated) Old polling entry point.
+- `main.py`: Compatibility polling entry point for `nesting_jobs`; reports
+  linked process lifecycle through `/api/processes/*` when `processRunId` is
+  present.
 
 ## Nesting Engine
 The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesting library written in Rust.

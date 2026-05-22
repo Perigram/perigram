@@ -19,6 +19,11 @@ Polls MongoDB for pending DXF upload jobs, extracts geometry and metadata, gener
 
 **MongoDB collection polled:** `user_dxf_files`
 
+Each new project DXF upload also enqueues a linked `process_runs` record with
+`processId: "dxf.parseUpload"`. `main.py` keeps the legacy
+`processingStatus` field for polling but reports worker progress to the app
+process API for the linked process run.
+
 **Job lifecycle:**
 
 | `processingStatus` | Meaning |
@@ -40,6 +45,8 @@ Polls MongoDB for pending DXF upload jobs, extracts geometry and metadata, gener
 |---|---|
 | `MONGO_URI` | MongoDB connection string |
 | `WORKER_TAG` | `""` (normal) or `"1k_entity_count"` (large files) |
+| `CUTKIT_API_URL` | App base URL for `/api/processes/*` callbacks |
+| `WORKER_TOKEN` | Optional shared worker token sent as `x-worker-token` |
 
 Both instances run from the same Docker image (`file-processing-worker`). Two replicas are deployed per mode via Docker Stack.
 

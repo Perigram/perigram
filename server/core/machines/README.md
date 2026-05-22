@@ -6,16 +6,15 @@ Centralized logic for governing entity lifecycles, enforcing business rules, and
 The system consists of three main parts: the transition engine, the dynamic hook registry, and the centralized aggregator.
 
 ### 1. State Machine Engine
-- **`definitions.js`**: Compatibility export for CNC workflow definitions from `@cutkit/domain-cnc`.
+- **`definitions.js`**: Compatibility export that resolves workflow definitions from the active app registry.
 - **`service.js`**: Orchestrates transitions, performs lifecycle/capability validation, delegates access checks to `server/core/access/`, updates entity snapshots (`status` block), and logs history to `status_events`.
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and `pluralize()` for collection resolution.
 
 The reusable workflow API is being extracted to
 [`@cutkit/workflows`](../../../packages/workflows/README.md). The current
 `service.js` is the runtime adapter and delegates transition validation to the
-package while using CNC definitions from
-[`@cutkit/domain-cnc`](../../../packages/domain-cnc/README.md), the app's
-existing event log, and hook dispatch.
+package while using registered domain definitions, the app's existing event log,
+and hook dispatch.
 
 `metadata` is transition-local context. Current lifecycle facts belong in
 `status.lifecycle`, which is validated against each state's optional lifecycle
@@ -37,13 +36,17 @@ lifecycle schema do not retain lifecycle facts.
 Acts as a decoupled dispatcher for side-effects. To prevent architectural leaks, manufacturing-specific logic is NOT implemented in the core engine.
 - **Global Hooks (`hooks.js`)**: System-wide primitives (e.g., `propagateToChildren`, `triggerAggregator`).
 - **Feature Hooks**: Feature services register their own hooks via `registerService` (e.g., `processPhysicalCut` in Queue service).
-- **Resolution**: The Engine first checks `hooks.js`, then falls back to the Feature Service for the entity type.
+- **Resolution**: The engine reads hook handlers from the active app registry, then falls back to feature-service hooks for transitional compatibility.
+- **Typed Settings**: Hook handler ids and parameter fields are declared in
+  the registered domain hook contracts. The engine validates required and
+  unknown hook parameters before executing side effects, and admin editors render
+  typed controls instead of raw params JSON.
 
 ### 3. Centralized Aggregator (`aggregator.js`)
 Synchronizes parent summaries based on child activity using lineage-aware MongoDB aggregation pipelines.
 - **Trigger**: Called by the `triggerAggregator` hook whenever an entity changes state.
 - **Standardization**: Uses `pluralize()` to resolve target and parent collections.
-- **Domain Rules**: Summary rules are loaded from `@cutkit/domain-cnc`; the
+- **Domain Rules**: Summary rules are loaded from the active app registry; the
   aggregator remains the Mongo runtime adapter.
 
 ## Data Flow

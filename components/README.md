@@ -20,6 +20,8 @@ All entity-related components MUST use these patterns:
 | Identity display (default: name/slug) | `<IdentityBlock :entity="..." variant="..." />` |
 | Status display + transitions/actions | `<EntityStatus :entity="..." entity-type="..." :actions="..." />` |
 | Read-only status display | `<StatusBadge :entity="..." />` |
+| Current lifecycle location | `status.lifecycle.data.location` rendered by `<EntityStatus>` |
+| Geometry preview | `<GeometryPreview :entity="..." />` reading `data.geometry.preview` |
 | Structured key/value data (specs, parameters, tool dims) | `<DataBlock :entity="..." :fields="ENTITY_FIELDS" />` |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StatusHistory :entity="..." entity-type="..." />` |
@@ -31,15 +33,26 @@ All entity-related components MUST use these patterns:
 | Loading/empty/error surfaces | `<StateBlock>` |
 | Data table frame | `<TableFrame><DataTable ... /></TableFrame>` |
 | Dialog container | `<StandardDialog>` |
+| Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
 
-When a card needs custom lifecycle commands, pass them to `EntityCard` through `:status-actions` so the shared title/status layout remains the single owner of status placement.
+When a card needs custom lifecycle commands, pass them to `EntityCard` through `:status-actions` so the shared title/status layout remains the single owner of status placement. Destructive delete/remove commands belong in these status actions with `display: 'menu'`; edit/configuration commands stay in card footers or page action slots.
+Interactive status belongs only to entity types with real `cncWorkflows`
+definitions. Cards for DTOs without workflows should set `:show-status="false"`
+or use a read-only badge only when the data model requires it; do not invent
+component-local lifecycle states.
 Entity-specific card components should use `before-identity`, `subtitle`, body, and footer slots; do not override `#title`, because that bypasses standardized identity/status layout.
+Entity-specific cards should render a single `EntityCard :variant="variant"`.
+Inline/compact/card branching inside entity cards is a smell unless the entity
+has a genuinely different structural surface. The default slot is the canonical
+body and is reused by `EntityCard` for both full cards and inline/compact
+expansion.
 Entity detail components should use `EntityPage` for trace, identity, status, and page actions instead of rebuilding header rows locally.
 
 ## Design System Manifest
 
-`utils/design-system-contract.js` defines the frontend design-system contract for entity demos:
+`@cutkit/domain-cnc` defines the CNC design-system contract for entity demos:
 entity key, component prop name, variants, status policy, trace policy, factory name, and docs links.
+`utils/design-system-contract.js` is a compatibility export with validation, and
 `utils/design-system.js` attaches Vue components and factories to that contract.
 
 `pages/test/ui-lab.vue` renders from this manifest. When adding or renaming an entity card, update the manifest and its DTO factory instead of hand-editing UI lab sections.
@@ -66,10 +79,26 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
 
 - Prefer canonical DTO blocks for entity data: `identity.*`, `status.*`, `lineage.*`, `attachments.*`, `data.*`, `summary.*`. Hoisted aliases may be used only as defensive fallbacks when a current API response still emits them.
 - Entity cards should present an operational summary, not decorative placeholders: identity/status in the title, concise specs/data in the body, and actions in the footer.
+- Pages and workbench/demo surfaces must not add behavior wrappers around
+  entity components to simulate missing component behavior. If inline/compact
+  variants need expansion, relation detection, commands, or other interaction,
+  implement that contract in the entity component or a shared entity primitive
+  and let pages render the component normally.
+- Entity cards may consume an injected `entityContext` in development surfaces
+  to render related entities from the same generated graph. Prefer explicit
+  props in production pages; use context only as a fallback for workbench/demo
+  relationship detection.
+- Mutable current location belongs in `status.lifecycle.data.location`, not in a static display-only card field. Supported UI location types are `warehouse`, `coordinates`, and `address`; warehouse locations render as entity links.
+- `cassette`, `cassetteTemplate`, `cassetteDesign`, and `cassetteInstance`
+  are separate UI surfaces and must not be collapsed into one card contract.
+- `material`, `materialPile`, and `batchPile` are separate UI surfaces:
+  material cards describe the base material record, material pile cards
+  summarize general/manual warehouse stock, and batch pile cards show
+  requisition-sourced receipt context from `lineage.requisitionId`.
 - Never hardcode values or make assumptions about data structure — check `server/DATA_MODEL.md` first.
 - For cassette templates and queue entries, derive parametric vs static display from the cassette DTO itself (`parameters` presence and template data), not only from saved queue item flags.
 - For standard CRUD and status operations, use `useEntity` — no direct `$fetch` calls.
-- Direct `$fetch` is reserved for custom workflows that are not represented by `useEntity`: uploads/downloads, invitations, permissions, support chat, payments, debug endpoints, and project-scoped subresources.
+- Direct `$fetch` is reserved for custom workflows that are not represented by `useEntity`: declared domain operations, uploads/downloads, invitations, permissions, support chat, payments, debug endpoints, and project-scoped subresources.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`.
 
 ## Localization

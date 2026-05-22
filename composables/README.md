@@ -68,9 +68,9 @@ onMounted(() => list({ 'lineage.projectId': projectId }));
 
 ### Endpoint map
 
-Endpoint metadata is supplied by the internal framework packages
-`@cutkit/domain-cnc` and `@cutkit/vue`; `useEntity` remains the app-facing
-compatibility composable.
+Endpoint metadata is supplied by the injected CutKit domain UI adapter from
+`plugins/cutkit-domain.js`; `useEntity` remains the app-facing compatibility
+composable and does not import the CNC domain package directly.
 
 | Type key | Single endpoint | List / create endpoint |
 |---|---|---|

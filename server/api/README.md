@@ -4,9 +4,15 @@ This directory contains the Nitro server API routes for the Nuxt application. En
 
 ## Structure
 Routes are grouped into sub-directories corresponding to features:
-- `artifacts/`: CRUD and streaming for generated files.
+- `artifacts/`: Metadata, deletion, and streaming for generated files.
 - `batch/`: Detailed batch operations.
 - `cassettes/`: Upload and management of templates.
+- `operations/`: Authenticated execution route for declared domain service
+  actions such as `saveCassetteTemplate`.
+- `processes/`: Worker process queue protocol for claim, heartbeat, complete,
+  fail, and cancel.
+- `admin/processes/`: Authenticated process definition and run listing for
+  `process_runs`.
 - `project/`: Main project orchestration and nesting triggers.
 - `user/`: Profile and credit management.
 

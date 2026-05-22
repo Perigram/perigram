@@ -18,6 +18,10 @@ Polls MongoDB for cassette template documents pending DXF baking. Given a parame
 
 **MongoDB collection polled:** `cassettes`
 
+When a cassette document includes `processRunId`, `main.py` keeps the legacy
+polling lifecycle on the cassette document and reports the declared
+`cassette.bakeTemplate` process lifecycle through the app process API.
+
 **Job lifecycle:**
 
 | `processingStatus` | Meaning |
@@ -41,6 +45,8 @@ COPY workers/cassette-processing .
 | Env var | Purpose |
 |---|---|
 | `MONGO_URI` | MongoDB connection string |
+| `CUTKIT_API_URL` | App base URL for `/api/processes/*` callbacks |
+| `WORKER_TOKEN` | Optional shared worker token sent as `x-worker-token` |
 
 Deployed as part of the `file-processing-worker` Docker image (shared image, different entrypoint/command).
 

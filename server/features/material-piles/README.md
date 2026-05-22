@@ -5,7 +5,7 @@ The "Source of Truth" for physical material inventory. Replaces the legacy multi
 ## v24 Architecture
 - **Specs Source**: The only document storing the primary physical DNA (`sheetThickness`, `foilThickness`, `flexion`).
 - **Inventory Tracking**: Uses `stock: { total, used }` to manage availability.
-- **Lineage**: Inherits ancestry from `Warehouse`, `Catalog`, `Color`, and `Requisition`.
+- **Lineage**: Inherits ancestry from `Warehouse`, `Catalog`, `Color`, and optional `Requisition`. A requisition id marks a received batch pile; manual warehouse piles can omit it.
 
 ## Key Logic
 - `allocate()`: Atomically increments `used` stock and triggers state change to `DEPLETED` when finished.
@@ -19,11 +19,13 @@ The "Source of Truth" for physical material inventory. Replaces the legacy multi
   identity: { name, serial },
   origin: StatusBlock,
   status: StatusBlock,
-  lineage: { organizationId, warehouseId, catalogId, colorId },
+  lineage: { organizationId, warehouseId, catalogId, colorId, requisitionId? },
   specs: { sheetThickness, foilThickness, width, height },
   stock: { total, used }
 }
 ```
+
+Frontend UI Lab keeps two card contracts over this entity type: `materialPile` for general/manual warehouse stock and `batchPile` for requisition-sourced received piles.
 
 ## Related Components
 - [Catalogs](../catalogs/README.md) - Definitive material options.

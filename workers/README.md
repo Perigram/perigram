@@ -1,6 +1,8 @@
 # CONTAINER: Workers
 
-Three independent processing services. Two use MongoDB polling; one is a stateless HTTP service.
+Three independent processing services. Two still use MongoDB polling for legacy
+payload queues; process lifecycle is reported through the app process API. One
+is a stateless HTTP service.
 
 ## Worker List
 
@@ -18,10 +20,19 @@ Three independent processing services. Two use MongoDB polling; one is a statele
 - The app then writes the nesting result to MongoDB itself.
 
 ### File & Cassette Processing Workers (MongoDB polling)
-1. **App** creates/updates a document in `user_dxf_files` or `cassettes` with `processingStatus: "pending"`.
-2. **Worker** finds a pending document (atomic findAndModify), locks it to `"processing"`.
-3. Worker fetches binary files from GridFS, processes, and writes outputs back to GridFS.
-4. Worker sets `processingStatus` to `"completed"` or `"error"`.
+1. **App** enqueues a `process_runs` record for the declared CNC process and
+   stores its id on the compatibility document.
+2. **App** creates/updates a document in `user_dxf_files`, `cassettes`, or
+   `nesting_jobs` with the legacy pending marker.
+3. **Worker** finds a pending document (atomic findAndModify), locks it to the
+   legacy processing state, and reports the linked process run through
+   `/api/processes/:id/*`.
+4. Worker fetches binary files from GridFS, processes, writes outputs back to
+   GridFS, and reports completion or failure through the process API.
+
+`process_runs` from `server/core/processes/` is the canonical process queue.
+Legacy polling collections remain compatibility payload queues for existing
+workers; workers must not write `process_runs` directly.
 
 ## Local Development & Troubleshooting
 ### Run Workers Locally (Compose)

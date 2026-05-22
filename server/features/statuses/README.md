@@ -28,6 +28,13 @@ can be validated, audited, and updated without multiplying entity-specific
 fields. When the target state allows lifecycle facts, existing lifecycle values
 carry forward and incoming lifecycle values patch over them.
 
+Current mutable location is a lifecycle fact. Store it as
+`status.lifecycle.data.location` with a typed payload, for example
+`{ type: 'warehouse', warehouseId }`, `{ type: 'coordinates', coordinates: { x, y, z } }`,
+or `{ type: 'address', address }`. Do not store current location as static
+card-only data; use `lineage` only for ancestry and `attachments` only for file
+references.
+
 ### Audit Log: `status_events`
 Every state transition is recorded in the `status_events` collection for full traceability.
 

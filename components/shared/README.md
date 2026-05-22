@@ -87,15 +87,43 @@ Interactive status component for display + state-machine transitions. Status-cha
 
 Props: `:entity`, `entity-type`, `variant` (`inline` | `compact` | `full`), `:actions` (optional custom action set), `:expanded` (optional override).
 Rendering guard: component renders only when `props.entity` is present.
-Behavior: component auto-expands when custom `actions` are provided; otherwise inline mode uses badge + popover.
+Behavior: component auto-expands when custom `actions` are provided; otherwise inline mode uses badge + popover. The popover is compact UI, not a labeled detail page: it renders action controls, current location, notes, and the status timeline without section headings or empty placeholder copy.
 
-**Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the `status` policy in `utils/design-system-contract.js` to decide whether a card shows `EntityStatus`, hides it, or renders read-only status.
-Default transition actions are derived from workflow definitions through `utils/status-actions.js`; card components should only pass custom actions for domain-specific commands such as choosing a completed nesting run.
+**Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@cutkit/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `EntityStatus`, hides it, or renders read-only status.
+Interactive status is enabled only for entity types that have a real workflow in
+`cncWorkflows`; non-workflow entities hide status chrome in cards unless a
+read-only `StatusBadge` is explicitly required. Default transition actions are
+derived from workflow definitions through `utils/status-actions.js`; card
+components should only pass custom actions for domain-specific commands such as
+choosing a completed nesting run.
+`EntityStatus` can also receive a `workflows` prop or consume a provided
+`statusWorkflows` value. This is used only by development surfaces such as the
+admin workbench so live draft machines can drive previews without replacing the
+committed `@cutkit/domain-cnc` runtime workflow source.
 
 ### `StatusHistory.vue`
 Fetches and displays the audit log (`status_events`) for any entity.
 
-Props: `:entity`, `entity-type`.
+Props: `:entity`, `entity-type`, `target-id`, `mock-events`, `compact`.
+When the persisted audit log is not available yet, it renders the entity's
+current `status`/`origin` as the first timeline event instead of displaying an
+empty-history placeholder. Last-update timestamps belong in this timeline, not
+as a separate status section.
+
+### `StatusLocation.vue`
+Renders the current mutable lifecycle location from `status.lifecycle.data.location`.
+
+Supported location shapes:
+- `{ type: 'warehouse', warehouseId, label? }` — renders a warehouse `TraceLink`.
+- `{ type: 'coordinates', coordinates: { x, y, z } }` or `{ lat, lng }` — renders a compact coordinate string.
+- `{ type: 'address', address }` — renders the address text.
+
+Use status lifecycle location for "where the entity is now"; static ancestry remains in `lineage`, and files remain in `attachments`.
+
+### `GeometryPreview.vue`
+Token-backed SVG preview for design and remnant geometry. Reads `entity.data.geometry.preview` first and falls back to `entity.data.geometry.data` / `entity.data.geometry.points`.
+
+Use this for DXF-derived layer previews and polygon remnants instead of displaying file ids, queue ids, or static filename fields in entity cards.
 
 ---
 
@@ -103,6 +131,9 @@ Props: `:entity`, `entity-type`.
 
 - **`TraceLink.vue`**: Atomic, icon-aware link to any system entity. Props: `type`, `id`.
 - **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` — never pass raw ancestry arrays. Resolves names async via `useEntityStore`; cached per session.
+  Development surfaces can provide `entityContext`; `TraceChain` prefers those
+  in-memory entities for labels before calling authenticated APIs, so fixture
+  lineage does not create protected API errors.
 
 ---
 
@@ -111,11 +142,32 @@ Props: `:entity`, `entity-type`.
 - **`ActionToolbar.vue`**: Responsive title/subtitle/actions row for pages, sections, and tab panels. Use instead of ad hoc `flex justify-between` header markup.
 - **`ResponsiveGrid.vue`**: Token-backed responsive grid for cards and repeated item surfaces. Variants: `cards` (default), `dense`, `wide`.
 - **`StateBlock.vue`**: Standard loading/empty/error state block with icon, message, optional description, and action slot.
-- **`TableFrame.vue`**: Standard bordered/elevated frame around PrimeVue `DataTable` surfaces.
+- **`TableFrame.vue`**: Standard bordered/elevated frame around PrimeVue `DataTable` surfaces; owns the token-backed DataTable header-cell background override.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
+- **`TypedSettingsForm.vue`**: Contract-driven form for simple typed field
+  descriptors (`string`, `number`, `boolean`, `enum`, `entityId`,
+  `entityType`, `workflowState`, `array`, `object`). Used by admin operation
+  parameters and lifecycle hook settings so those surfaces do not fall back to
+  raw JSON editors.
+- **`EntityRefInput.vue`**: Typed entity reference selector used by
+  `TypedSettingsForm` for `entityId` fields. It prefers workbench/scenario
+  entity options and falls back to a manual id input only when no typed options
+  are available.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
 - **`EntityPage.vue`**: Root layout for all entity detail views. Features a flexible header with trace, identity, status, an `actions` slot, an `info` slot for summary data, optional `sidebar`, and `statusActions` for custom lifecycle commands.
 - **`EntityCard.vue`**: Shared entity card chrome built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`). Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and `statusActions` for passing entity-specific state-machine actions into the shared status block without rebuilding the title row. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot.
+
+`EntityStatus` action objects support `display: 'inline' | 'menu' | 'hidden'`. Workflow transitions default to inline actions, self-loop metadata transitions are hidden, and lower-priority/destructive actions should use menu placement. Inline/card status surfaces default to the current badge plus an ellipsis popover so card titles do not show multiple badge-like controls; expanded/full status surfaces show up to two inline actions by default and put overflow actions, current location, metadata, and compact status history in the popover. Entity card title/status rows and status menus are allowed to wrap, with the badge kept `min-w-fit`, so compact containers do not squeeze badges into broken multi-line fragments.
+
+`EntityCard` owns inline and compact expansion. Inline and compact variants open
+the shared entity popover on click/keyboard activation. Entity-specific card
+components should render one `EntityCard :variant="variant"` and pass their
+canonical body once through the default slot. `EntityCard` reuses that same
+body for full card content and for inline/compact expansion; do not duplicate
+card-only bodies into per-variant `expanded` slots.
+The entity popover shows status as the normal inline status control only;
+expanded/full status history and actions remain owned by clicking the status
+control itself.
 
 Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
 
@@ -124,7 +176,7 @@ Shared wrappers also own token-backed visual chrome. When a wrapper needs a new 
 ## Demo Contract
 
 The design-system demo is contract-driven:
-- `utils/design-system-contract.js` contains entity UI policy and expected card prop names.
+- `@cutkit/domain-cnc` contains entity UI policy and expected card prop names; `utils/design-system-contract.js` re-exports it for compatibility.
 - `utils/design-system.js` binds the contract to actual Vue components and DTO factories.
 - `test-data/factories.js` provides DTO-shaped examples with v24 blocks preserved.
 

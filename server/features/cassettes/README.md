@@ -5,6 +5,7 @@ Manages cassette templates (Standard and Parametric) using standardized v24 arch
 ## Core Files
 - `repository.js`: Database operations on `cassettes` collection.
 - `service.js`: Template management and permission handling.
+- `operations.js`: Domain operation handler for `saveCassetteTemplate`.
 
 ## Data Structure (v24)
 
@@ -28,6 +29,9 @@ Templates in the `cassettes` collection do NOT store DXF files or physical track
 - **Standard**: `data.definition.mapping` contains layer mapping; baked geometry lives in `cassette_designs`.
 
 ### Update Operations
+- **`saveCassetteTemplate`**: Domain operation used by `CassetteDesigner`.
+  Creates a new template or updates the selected template through the service
+  layer.
 - **`updateLayerMapping`**: Updates the mapping between DXF layers and production tools/standards.
 - **`updateParameters`**: Updates the list of configurable parameters for the template.
 

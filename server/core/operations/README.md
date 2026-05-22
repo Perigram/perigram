@@ -14,11 +14,21 @@ normalized service action result fields (`entities`, `artifacts`, `jobs`,
 `transitions`, `events`, `data`). Handlers do domain work only; permission
 decisions belong in the access engine.
 
-Service contracts and service action definitions come from `@cutkit/domain-cnc`
-(`cncServiceContracts`, `cncServiceActions`) and are registered at service load
-time. Tooling lists action definitions through `listServiceActions()`. Each
-listed definition includes its `service`, `action`, source, triggers, access
-requirements, and whether a server handler is currently registered.
+Service contracts and service action definitions come from the explicit app
+registry built by `server/runtime/cutkit-registry.js`. The CNC adapter binds
+domain contracts and feature handlers into that registry. The generic runtime
+does not import domain packages or feature modules directly. Tooling lists action
+definitions through `listServiceActions()`. Each listed definition includes its
+`service`, `action`, source, triggers, access requirements, and whether a server
+handler is currently registered.
+
+Domain adapters bind into a passed registry. Runtime code should consume
+`getCutkitRegistry()` instead of relying on module-local side effects.
+
+The admin operation registry route also includes declared process definitions
+from the registered domain. These entries are contract-visible in Workbench but
+are not executed by `executeServiceAction()`; process execution is owned by the
+process runtime and worker adapters.
 
 Action parameters are typed by simple field descriptors on
 `action.input.parameters`. The runtime applies defaults, validates required
@@ -47,7 +57,16 @@ The admin endpoints expose definitions, run history, and execution:
 - `GET /api/admin/operations/runs`
 - `POST /api/admin/operations/:id/run`
 
+Application clients can execute registered service actions through:
+
+- `POST /api/operations/:id/run`
+
+That generic route is used by `CassetteDesigner` for
+`saveCassetteTemplate`, so designer saves pass through the domain operation
+contract instead of calling cassette CRUD directly.
+
 ## Related
 
 - [Access engine](../access/README.md)
+- [Process runtime](../processes/README.md)
 - [Nesting feature](../../features/nesting/README.md)
