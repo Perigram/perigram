@@ -2,13 +2,6 @@
 
 This document is procedurally generated from the actual codebase. It reflects the refactored v24 Standardized architecture using blocks.
 
-Entity DTOs use the strict block contract: root `_id` plus canonical blocks only.
-Identity fields (`name`, `slug`, `serial`, `reference`) live under `identity`;
-feature fields live under `data`, dimensions under `specs`, files under
-`attachments`, and aggregate values under `summary`. Root compatibility aliases
-such as `id`, `name`, `type`, `geometry`, or `parameters` are intentionally not
-part of the contract.
-
 ## Collections
 
 ### artifacts
@@ -371,3 +364,4 @@ part of the contract.
 | `data.contactPerson` | String | contact person field |
 | `data.stats` | Array | stats field |
 | `data.type` | String | type field |
+

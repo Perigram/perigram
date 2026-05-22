@@ -1,4 +1,60 @@
 {
+  "artifactTypes": [
+    {
+      "bucket": "userDxf",
+      "key": "DXF_SOURCE",
+      "mimeType": "application/dxf",
+      "preview": {
+        "kind": "download"
+      },
+      "type": "DXF_SOURCE"
+    },
+    {
+      "bucket": "userDxfFilesSvg",
+      "key": "SVG_PREVIEW",
+      "mimeType": "image/svg+xml",
+      "preview": {
+        "kind": "svg"
+      },
+      "type": "SVG_PREVIEW"
+    },
+    {
+      "bucket": "cassettes",
+      "key": "CASSETTE_DXF",
+      "mimeType": "application/dxf",
+      "preview": {
+        "kind": "download"
+      },
+      "type": "CASSETTE_DXF"
+    },
+    {
+      "bucket": "nestDxf",
+      "key": "LAYOUT_DXF",
+      "mimeType": "application/dxf",
+      "preview": {
+        "kind": "dxf"
+      },
+      "type": "LAYOUT_DXF"
+    },
+    {
+      "bucket": "nestSvg",
+      "key": "LAYOUT_SVG",
+      "mimeType": "image/svg+xml",
+      "preview": {
+        "kind": "svg"
+      },
+      "type": "LAYOUT_SVG"
+    },
+    {
+      "bucket": "artifacts",
+      "key": "PDF_PASSPORT",
+      "mimeType": "application/pdf",
+      "preview": {
+        "kind": "pdf"
+      },
+      "type": "PDF_PASSPORT"
+    }
+  ],
   "designSystem": {
     "components": [
       {
@@ -71,6 +127,21 @@
         "trace": true
       },
       {
+        "componentPath": null,
+        "docs": [
+          "components/entities/Cassette/README.md",
+          "server/features/cassettes/README.md"
+        ],
+        "entityType": "cassette",
+        "fieldPaths": [],
+        "group": "production",
+        "key": "cassette",
+        "labelKey": "entities.cassette",
+        "propName": "cassette",
+        "status": "interactive",
+        "trace": true
+      },
+      {
         "componentPath": "components/entities/CassetteDesign/CassetteDesignCard.vue",
         "docs": [
           "server/features/cassette-designs/README.md"
@@ -136,6 +207,21 @@
         "propName": "requisition",
         "status": "interactive",
         "trace": true
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "components/entities/Material/README.md",
+          "server/DATA_MODEL.md"
+        ],
+        "entityType": "material",
+        "fieldPaths": [],
+        "group": "material",
+        "key": "material",
+        "labelKey": "entities.material",
+        "propName": "material",
+        "status": "hidden",
+        "trace": false
       },
       {
         "componentPath": "components/entities/MaterialPile/PileCard.vue",
@@ -990,6 +1076,104 @@
       "name": "@cutkit/domain-cnc"
     }
   ],
+  "processes": [
+    {
+      "artifacts": [
+        "DXF_SOURCE",
+        "SVG_PREVIEW"
+      ],
+      "events": [],
+      "executor": {
+        "target": "file-processing",
+        "type": "worker"
+      },
+      "id": "dxf.parseUpload",
+      "inputs": [
+        "artifact"
+      ],
+      "jobs": [],
+      "key": "dxfParseUpload",
+      "label": "Parse uploaded DXF",
+      "outputs": [],
+      "service": "files"
+    },
+    {
+      "artifacts": [
+        "CASSETTE_DXF"
+      ],
+      "events": [],
+      "executor": {
+        "target": "cassette-processing",
+        "type": "worker"
+      },
+      "id": "cassette.bakeTemplate",
+      "inputs": [
+        "cassette"
+      ],
+      "jobs": [],
+      "key": "cassetteBakeTemplate",
+      "label": "Bake cassette template",
+      "outputs": [
+        "cassette_design"
+      ],
+      "service": "cassettes"
+    },
+    {
+      "artifacts": [
+        "LAYOUT_DXF",
+        "LAYOUT_SVG"
+      ],
+      "events": [
+        "nesting.solveStarted",
+        "nesting.solveCompleted",
+        "nesting.solveFailed"
+      ],
+      "executor": {
+        "endpoint": "/nest",
+        "target": "nesting-worker",
+        "type": "http"
+      },
+      "id": "nesting.solve",
+      "inputs": [
+        "queue"
+      ],
+      "jobs": [
+        "process_run"
+      ],
+      "key": "nestingSolve",
+      "label": "Solve nesting",
+      "outputs": [
+        "nesting_run",
+        "sheet_design"
+      ],
+      "service": "nesting"
+    },
+    {
+      "artifacts": [
+        "LAYOUT_DXF",
+        "PDF_PASSPORT"
+      ],
+      "events": [
+        "artifact.generationQueued",
+        "artifact.generationCompleted",
+        "artifact.generationFailed"
+      ],
+      "executor": {
+        "target": "artifacts",
+        "type": "server"
+      },
+      "id": "artifact.generate",
+      "inputs": [
+        "sheet_design",
+        "nesting_run"
+      ],
+      "jobs": [],
+      "key": "artifactGenerate",
+      "label": "Generate artifact",
+      "outputs": [],
+      "service": "artifacts"
+    }
+  ],
   "relationships": [
     {
       "kind": "lineage",
@@ -1146,7 +1330,7 @@
     {
       "collection": "artifacts",
       "list": "/api/artifacts",
-      "single": "/api/artifacts/:id",
+      "single": "/api/artifacts/:id/metadata",
       "type": "artifact"
     },
     {
@@ -1189,6 +1373,34 @@
   "schemaVersion": 1,
   "serviceActions": [
     {
+      "action": "saveTemplate",
+      "artifacts": [],
+      "events": [
+        "cassette.templateSaved"
+      ],
+      "id": "saveCassetteTemplate",
+      "inputs": [
+        "cassette"
+      ],
+      "jobs": [],
+      "label": "Save cassette template",
+      "outputs": [
+        "cassette"
+      ],
+      "permissions": [
+        {
+          "feature": "cassettes",
+          "level": "write"
+        }
+      ],
+      "service": "cassettes",
+      "triggers": [
+        {
+          "event": "cassette.templateSaved"
+        }
+      ]
+    },
+    {
       "action": "solve",
       "artifacts": [],
       "events": [
@@ -1201,7 +1413,7 @@
         "queue"
       ],
       "jobs": [
-        "nesting_job"
+        "process_run"
       ],
       "label": "Solve nesting",
       "outputs": [
