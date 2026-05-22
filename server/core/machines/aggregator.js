@@ -1,28 +1,15 @@
 import { connectDB } from '../../db/mongo.js';
-import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { pluralize } from '../../utils/strings.js';
-import { cncSummaries } from '~/packages/domain-cnc/src/index.js';
+import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 
 /**
  * Centralized Aggregation Engine - v24 Expanded
  */
 
-const AGGREGATION_MAP = Object.fromEntries(cncSummaries.map(summary => [
-  summary.entityType,
-  {
-    parentType: summary.parentType,
-    parentIdKey: summary.parentIdKey,
-    fields: {
-      count: summary.countField,
-      sum: summary.sumFields
-    }
-  }
-]));
-
 export const aggregator = {
   async syncParentSummary(entityType, lineage) {
-    const config = AGGREGATION_MAP[entityType];
+    const config = getAggregationMap()[entityType];
     if (!config) return;
 
     const parentId = lineage[config.parentIdKey];
@@ -65,3 +52,18 @@ export const aggregator = {
     }
   }
 };
+
+function getAggregationMap() {
+  const summaries = getCutkitRegistry().getDomain('cnc')?.summaries || [];
+  return Object.fromEntries(summaries.map(summary => [
+    summary.entityType,
+    {
+      parentType: summary.parentType,
+      parentIdKey: summary.parentIdKey,
+      fields: {
+        count: summary.countField,
+        sum: summary.sumFields
+      }
+    }
+  ]));
+}

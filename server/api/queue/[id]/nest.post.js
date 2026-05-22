@@ -1,7 +1,6 @@
 import { requireAuth } from '../../../utils/permissions.js';
+import '../../../adapters/cnc-domain.js';
 import { executeServiceAction } from '../../../core/operations/service.js';
-import '../../../features/nesting/operations.js';
-import '../../../features/artifacts/operations.js';
 
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);

@@ -13,15 +13,25 @@ export function getWorkflowStatusActions({
 
   return (workflow.transitions || [])
     .filter(transition => transition.from === state)
+    .filter(transition => resolveActionDisplay(transition) !== 'hidden')
     .map(transition => {
       const mapping = mappings[transition.to] || mappings[String(transition.to).toLowerCase()] || {};
       return {
         label: translateStatusLabel(transition.to, mapping.label, t),
         to: transition.to,
         severity: mapping.severity || 'secondary',
-        icon: mapping.icon || 'pi pi-arrow-right'
+        icon: mapping.icon || 'pi pi-arrow-right',
+        display: resolveActionDisplay(transition)
       };
     });
+}
+
+export function resolveActionDisplay(transition = {}) {
+  if (transition.display === false || transition.displayBtn === false) return 'hidden';
+  if (transition.display === 'hidden' || transition.display === 'menu' || transition.display === 'inline') return transition.display;
+  if (transition.displayBtn === true) return 'inline';
+  if (transition.from && transition.from === transition.to) return 'hidden';
+  return 'inline';
 }
 
 function translateStatusLabel(state, labelKey, t) {

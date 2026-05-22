@@ -51,6 +51,31 @@ export function summarizeServiceActions(serviceActions = {}) {
   }));
 }
 
+export function summarizeProcesses(processes = {}) {
+  return Object.entries(processes).map(([key, process]) => ({
+    key,
+    id: process.id,
+    service: process.service,
+    label: process.label || process.id,
+    executor: process.executor || null,
+    inputs: (process.input?.entities || []).map(input => input.type),
+    outputs: process.output?.entities || [],
+    artifacts: process.output?.artifacts || [],
+    jobs: process.output?.jobs || [],
+    events: process.output?.events || []
+  }));
+}
+
+export function summarizeArtifactTypes(artifactTypes = {}) {
+  return Object.entries(artifactTypes).map(([key, artifact]) => ({
+    key,
+    type: artifact.type || key,
+    bucket: artifact.bucket || null,
+    mimeType: artifact.mimeType || null,
+    preview: artifact.preview || { kind: 'download' }
+  }));
+}
+
 export function summarizeRelationships({ summaries = [], dataModelFields = [] } = {}) {
   const summaryRelationships = summaries.map(summary => ({
     source: summary.parentType,
@@ -150,6 +175,8 @@ export function createFrameworkManifest({
   frontendEntities = [],
   workflows = {},
   serviceActions = {},
+  processes = {},
+  artifactTypes = {},
   summaries = [],
   designSystem = {},
   dataModelFields = [],
@@ -168,6 +195,8 @@ export function createFrameworkManifest({
     workflows: summarizeWorkflows(workflowEntries),
     summaries: summarizeSummaries(summaries),
     serviceActions: summarizeServiceActions(serviceActions),
+    processes: summarizeProcesses(processes),
+    artifactTypes: summarizeArtifactTypes(artifactTypes),
     relationships: summarizeRelationships({ summaries, dataModelFields }),
     designSystem: {
       variants: designSystem.variants || [],
@@ -182,6 +211,8 @@ export function createFrameworkManifest({
       uiComponents,
       uiPrimitives,
       serviceActions,
+      processes,
+      artifactTypes,
       dataModelFields,
       compatibilityAliases
     })
@@ -192,6 +223,8 @@ export function validateFrameworkManifest({
   entities = [],
   workflows = {},
   serviceActions = {},
+  processes = {},
+  artifactTypes = {},
   uiComponents = [],
   uiPrimitives = [],
   dataModelFields = [],
@@ -202,6 +235,8 @@ export function validateFrameworkManifest({
   const statusIssues = validateStatusPolicies({ components: uiComponents, workflows });
   const workflowAccessIssues = validateWorkflowAccess(workflows);
   const serviceActionIssues = validateServiceActions(serviceActions);
+  const processIssues = validateProcesses(processes);
+  const artifactTypeIssues = validateArtifactTypes(artifactTypes);
   const primitiveIssues = validateUiPrimitives(uiPrimitives);
   const issues = [
     ...definitionResult.errors.map(error => ({ area: 'entities', issue: error })),
@@ -209,6 +244,8 @@ export function validateFrameworkManifest({
     ...statusIssues.map(issue => ({ area: 'status-policy', ...issue })),
     ...workflowAccessIssues.map(issue => ({ area: 'workflow-access', ...issue })),
     ...serviceActionIssues.map(issue => ({ area: 'service-actions', ...issue })),
+    ...processIssues.map(issue => ({ area: 'processes', ...issue })),
+    ...artifactTypeIssues.map(issue => ({ area: 'artifact-types', ...issue })),
     ...primitiveIssues.map(issue => ({ area: 'ui-primitives', ...issue }))
   ];
 
@@ -238,6 +275,28 @@ export function validateServiceActions(serviceActions = {}) {
     if (!Array.isArray(action.access?.permissions)) issues.push({ id, issue: 'missing access permissions' });
     if (action.input?.data === true) issues.push({ id, issue: 'legacy input.data contract' });
     if (action.input?.parameters && !Array.isArray(action.input.parameters)) issues.push({ id, issue: 'service action parameters must be an array' });
+    return issues;
+  });
+}
+
+export function validateProcesses(processes = {}) {
+  return Object.entries(processes).flatMap(([key, process]) => {
+    const issues = [];
+    if (!process.id) issues.push({ key, issue: 'missing process id' });
+    if (!process.service) issues.push({ key, issue: 'missing service' });
+    if (!process.executor?.type) issues.push({ key, issue: 'missing executor type' });
+    if (process.input?.parameters && !Array.isArray(process.input.parameters)) issues.push({ key, issue: 'process parameters must be an array' });
+    return issues;
+  });
+}
+
+export function validateArtifactTypes(artifactTypes = {}) {
+  return Object.entries(artifactTypes).flatMap(([key, artifact]) => {
+    const issues = [];
+    if (!artifact.type) issues.push({ key, issue: 'missing artifact type' });
+    if (!artifact.bucket) issues.push({ key, issue: 'missing bucket' });
+    if (!artifact.mimeType) issues.push({ key, issue: 'missing mime type' });
+    if (!artifact.preview?.kind) issues.push({ key, issue: 'missing preview kind' });
     return issues;
   });
 }

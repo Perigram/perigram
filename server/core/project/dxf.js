@@ -1,7 +1,9 @@
 import { createError, readMultipartFormData } from "h3";
+import { ObjectId } from "mongodb";
 
 import { connectDB, getUserDxfBucket } from "~~/server/db/mongo";
 import { generateRandomString } from "~~/server/utils/strings";
+import { enqueueProcess } from "~~/server/core/processes/service.js";
 
 import standardSlugify from "standard-slugify";
 
@@ -39,8 +41,10 @@ export async function saveFilesToProject(event, projectSlug, userId) {
     dxfs.push(dxfRecord);
 
     const file_record = {
+      _id: new ObjectId(),
       slug: file_slug,
       name: userFileName,
+      processRunId: new ObjectId(),
       processingStatus: "pending",
       projectSlug: projectSlug,
       ownerId: userId,
@@ -62,5 +66,12 @@ export async function saveFilesToProject(event, projectSlug, userId) {
 
   const db = await connectDB();
 
+  for (const fileRecord of file_records) {
+    const processRun = await enqueueProcess("dxf.parseUpload", {
+      entities: { upload: fileRecord._id.toString() },
+      parameters: { workerTag: fileRecord.worker_tag }
+    }, { userId }, { idempotencyKey: `dxf:${fileRecord._id.toString()}` });
+    fileRecord.processRunId = processRun._id;
+  }
   await db.collection("user_dxf_files").insertMany(file_records);
 }

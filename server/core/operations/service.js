@@ -3,25 +3,26 @@ import {
   createServiceActionResult,
   defineServiceAction,
   defineServiceContract,
-  getServiceActionDefinition,
-  getServiceActionHandler,
-  getService,
-  listServiceActionDefinitions
+  defineDomain
 } from '../blocks/index.js';
 import { assertServiceActionAccess } from '../access/service.js';
-import { cncServiceActions, cncServiceContracts } from '@cutkit/domain-cnc';
+import { getCutkitRegistry } from '../../runtime/cutkit-registry.js';
 import * as serviceActionRunsRepository from './repository.js';
 
-for (const contract of Object.values(cncServiceContracts)) {
-  defineServiceContract(contract);
-}
-
-for (const action of Object.values(cncServiceActions)) {
-  defineServiceAction(action);
+export function registerOperationDomain(domain) {
+  if (domain?.id) return defineDomain(domain);
+  for (const contract of Object.values(domain?.services || domain?.serviceContracts || {})) {
+    defineServiceContract(contract);
+  }
+  for (const action of Object.values(domain?.operations || domain?.serviceActions || {})) {
+    defineServiceAction(action);
+  }
+  return domain;
 }
 
 export async function executeServiceAction(actionId, input = {}, auth) {
-  const action = getServiceActionDefinition(actionId);
+  const registry = getCutkitRegistry();
+  const action = registry.getServiceActionDefinition(actionId);
   if (!action) throw createError({ statusCode: 400, message: `Unknown service action: ${actionId}` });
   const normalizedInput = normalizeServiceActionInput(input);
   const parameters = validateServiceActionParameters(action, normalizedInput.parameters);
@@ -41,7 +42,7 @@ export async function executeServiceAction(actionId, input = {}, auth) {
     const entities = await loadServiceActionEntities(action, normalizedInput.entities || {});
     assertServiceActionAccess({ action, entities, auth });
 
-    const handler = getServiceActionHandler(actionId);
+    const handler = registry.getServiceActionHandler(actionId);
     if (!handler) throw createError({ statusCode: 500, message: `Service action handler not registered: ${actionId}` });
 
     const result = createServiceActionResult({
@@ -76,13 +77,14 @@ export async function executeServiceAction(actionId, input = {}, auth) {
 }
 
 export function listServiceActions() {
-  return listServiceActionDefinitions().map(action => ({
+  const registry = getCutkitRegistry();
+  return registry.listServiceActionDefinitions().map(action => ({
     id: action.id,
     service: action.service,
     action: action.action,
     label: action.label || action.id,
-    source: action.source || '@cutkit/domain-cnc:cncServiceActions',
-    handlerRegistered: Boolean(getServiceActionHandler(action.id)),
+    source: action.source || 'registered-domain',
+    handlerRegistered: Boolean(registry.getServiceActionHandler(action.id)),
     input: action.input || {},
     output: action.output || {},
     triggers: action.triggers || [],
@@ -95,13 +97,14 @@ export async function listServiceActionRuns(filter = {}) {
 }
 
 async function loadServiceActionEntities(action, refs) {
+  const registry = getCutkitRegistry();
   const loaded = {};
   for (const input of action.input?.entities || []) {
     const id = refs[input.name] || refs[input.type];
     if (!id && input.required) throw createError({ statusCode: 400, message: `Service action ${action.id} requires ${input.name}` });
     if (!id) continue;
 
-    const service = getService(input.type);
+    const service = registry.getService(input.type);
     if (!service?.getById) throw createError({ statusCode: 500, message: `Entity service missing for ${input.type}` });
     const entity = await service.getById(id);
     if (!entity) throw createError({ statusCode: 404, message: `${input.type} not found` });

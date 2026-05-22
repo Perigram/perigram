@@ -38,7 +38,7 @@
 
         <div class="pt-6 border-t flex justify-end gap-3">
             <Button :label="$t('common.cancel')" text severity="secondary" @click="reset" />
-            <Button :label="$t('common.save')" icon="pi pi-shield" @click="emit('save', localPermissions.value)" />
+            <Button :label="$t('common.save')" icon="pi pi-shield" @click="emit('save', localPermissions)" />
         </div>
     </div>
 </template>

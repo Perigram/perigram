@@ -5,7 +5,6 @@ import {
   createStatus, 
   inheritLineage, 
   createData, 
-  createIdentity, 
   createAttachment,
   registerService 
 } from '../../core/blocks/index.js';
@@ -30,14 +29,21 @@ function toDTO(design) {
 export async function createFromRun(run, data, userId) {
   // 1. Lineage Inheritance
   const lineage = inheritLineage(run, 'run');
+  const uid = `sheet-design-${new ObjectId().toString().slice(-8)}`;
 
   const origin = createStatus('READY', userId || 'SYSTEM', { note: 'Sheet design generated from nesting run' });
 
   const designData = {
-    identity: createIdentity(data.name || `Sheet Design for Run ${run._id}`),
+    identity: {
+      uid,
+      name: data.name || `Sheet Design for Run ${run._id}`,
+      slug: uid,
+      serial: data.serial || uid.toUpperCase()
+    },
     origin,
     status: origin,
     lineage,
+    specs: data.specs || {},
     data: createData({
       geometry: {
         data: data.geometryData || null

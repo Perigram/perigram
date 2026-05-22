@@ -31,6 +31,10 @@
     "search": "Поиск",
     "filter": "Фильтр",
     "details": "Подробности",
+    "more": "Еще",
+    "id": "ID",
+    "code": "Код",
+    "label": "Метка",
     "name": "Имя",
     "default": "По умолчанию",
     "description": "Описание",
@@ -68,6 +72,8 @@
     "notAvailable": "Н/Д",
     "traceability": "Трассируемость",
     "statusAndActions": "Статус и действия",
+    "location": "Местоположение",
+    "coordinates": "Координаты",
     "lastUpdated": "Последнее обновление",
     "note": "Примечание",
     "history": "История"
@@ -148,7 +154,8 @@
     "available": "Доступно",
     "nesting": "Раскрой",
     "generating": "Генерируется",
-    "scrap": "Списано"
+    "scrap": "Списано",
+    "noHistory": "Истории пока нет."
   },
   "dashboard": {
     "welcome": "Добро пожаловать в CutKit",
@@ -571,6 +578,9 @@
       "sectionsData": "Data Model",
       "sectionsFeedback": "Feedback",
       "sectionsWorkflow": "Workflow",
+      "sectionsContext": "Контекст",
+      "sectionsOperations": "Операции",
+      "sectionsProcesses": "Процессы",
       "componentKey": "Ключ компонента",
       "statusPolicy": "Status policy",
       "tracePolicy": "Trace policy",
@@ -598,6 +608,52 @@
         "organizations": "Управление организациями.",
         "support": "Просмотр и ответы на support conversations."
       }
+    },
+    "operations": {
+      "operation": "Операция",
+      "noOperations": "Операции не объявлены.",
+      "registry": "Реестр",
+      "definitions": "definitions",
+      "handlers": "handlers",
+      "handler": "handler",
+      "noHandler": "no handler",
+      "contract": "Контракт",
+      "inputEntities": "Входные сущности",
+      "parameters": "Параметры",
+      "debugOutput": "Debug output",
+      "access": "Доступ",
+      "none": "Нет",
+      "options": "Опции",
+      "output": "Выход",
+      "entities": "Сущности",
+      "artifacts": "Артефакты",
+      "feature": "Feature",
+      "jobs": "Задачи",
+      "transitions": "Переходы",
+      "input": "Вход",
+      "run": "Запустить операцию",
+      "fixtures": "Fixture scenario",
+      "seeded": "Засеяно",
+      "notSeeded": "Не засеяно",
+      "rebuildScenario": "Пересобрать scenario",
+      "seedScenario": "Создать dev data",
+      "testAccess": "Тестовый доступ",
+      "overrideAccess": "Переопределить доступ для этого запуска",
+      "required": "Требуется",
+      "noAccessRequirements": "У этого действия нет требований доступа.",
+      "lastOutput": "Последний вывод",
+      "noOutput": "Вывода пока нет.",
+      "missingOutputRefs": "Выходные ссылки не загружены в контекст workbench:",
+      "result": "Результат"
+    },
+    "processes": {
+      "contract": "Контракт процесса",
+      "runs": "Запуски",
+      "noProcesses": "Процессы не объявлены.",
+      "noRuns": "Запусков процессов пока нет.",
+      "attempts": "Попытки",
+      "worker": "Worker",
+      "lease": "Lease"
     },
     "dataModelReview": {
       "title": "Проверка модели данных",
@@ -655,6 +711,7 @@
       "routes": "Маршруты",
       "workflows": "Workflow",
       "summaries": "Сводки",
+      "operations": "Операции",
       "validation": "Проверка",
       "collection": "Коллекция",
       "blocks": "Блоки",
@@ -663,6 +720,8 @@
       "listRoute": "Маршрут списка",
       "addWorkflow": "Добавить workflow",
       "removeWorkflow": "Удалить workflow",
+      "addOperation": "Добавить операцию",
+      "addParameter": "Добавить параметр",
       "addState": "Добавить статус",
       "removeState": "Удалить статус",
       "addTransition": "Добавить переход",
@@ -704,6 +763,7 @@
       "tabs": {
         "entities": "Сущности",
         "workflows": "Workflow",
+        "operations": "Операции",
         "summaries": "Сводки",
         "validation": "Проверка",
         "export": "Экспорт"
@@ -831,7 +891,8 @@
     "noPiles": "Партии материалов не найдены",
     "receiptId": "ID квитанции",
     "stockTotal": "Всего",
-    "stockUsed": "Использовано"
+    "stockUsed": "Использовано",
+    "remaining": "Остаток"
   },
   "remnants": {
     "title": "Остатки",
@@ -996,10 +1057,12 @@
     "queue": "Очередь",
     "nestingRun": "Запуск раскроя",
     "sheetDesign": "Дизайн листа",
+    "cassette": "Кассета",
     "cassetteDesign": "Дизайн кассеты",
     "cassetteTemplate": "Шаблон кассеты",
     "cassetteInstance": "Экземпляр кассеты",
     "requisition": "Заявка",
+    "material": "Материал",
     "materialPile": "Стопка материала",
     "batchPile": "Стопка партии",
     "sheet": "Физический лист",
@@ -1334,5 +1397,8 @@
     "cuttingLength": "Длина реза",
     "estimatedTime": "Расчетное время",
     "instances": "Экземпляры"
+  },
+  "nestingRun": {
+    "sheetDesigns": "Дизайны листов"
   }
 }

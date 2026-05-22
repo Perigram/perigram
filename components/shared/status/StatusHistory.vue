@@ -14,7 +14,8 @@ const props = defineProps({
   entity: { type: Object, default: null },
   entityType: { type: String, required: true },
   targetId: { type: String, default: null },
-  mockEvents: { type: Array, default: null }
+  mockEvents: { type: Array, default: null },
+  compact: { type: Boolean, default: false }
 });
 
 const resolvedTargetId = computed(
@@ -22,6 +23,19 @@ const resolvedTargetId = computed(
 );
 
 const { events, isLoading, fetchHistory } = useStatusHistory(props.entityType, resolvedTargetId.value);
+const displayEvents = computed(() => {
+  if (events.value.length) return events.value;
+  return fallbackEvents.value;
+});
+const fallbackEvents = computed(() => {
+  const status = props.entity?.status || props.entity?.origin;
+  if (!status?.state) return [];
+  return [{
+    toState: status.state,
+    timestamp: status.timestamp || status.createdAt || props.entity?.updatedAt || props.entity?.createdAt || new Date(),
+    status
+  }];
+});
 
 onMounted(() => {
   if (props.mockEvents) {
@@ -42,16 +56,16 @@ const formatTime = (ts) => {
 
 <template>
   <div>
-    <div v-if="isLoading" class="flex justify-center p-10">
+    <div v-if="isLoading" class="flex justify-center" :class="compact ? 'p-3' : 'p-10'">
       <ProgressSpinner />
     </div>
     
-    <Timeline v-else :value="events" class="customized-timeline">
+    <Timeline v-else-if="displayEvents.length" :value="displayEvents" class="customized-timeline" :class="{ 'compact-timeline': compact }">
       <template #opposite="slotProps">
         <small>{{ formatTime(slotProps.item.timestamp) }}</small>
       </template>
       <template #content="slotProps">
-        <div class="flex flex-col gap-2 mb-8">
+        <div class="flex flex-col gap-2" :class="compact ? 'mb-3' : 'mb-8'">
             <div class="flex items-center justify-between">
               <StatusBadge :state="slotProps.item.toState" />
               <small>{{ slotProps.item.status?.userId }}</small>
@@ -63,10 +77,6 @@ const formatTime = (ts) => {
         </div>
       </template>
     </Timeline>
-    
-    <div v-if="!isLoading && events.length === 0" class="text-center p-10 italic">
-      No history recorded yet.
-    </div>
   </div>
 </template>
 
@@ -76,5 +86,10 @@ const formatTime = (ts) => {
     min-width: 140px;
     text-align: right;
     padding-right: 1.5rem;
+}
+
+.compact-timeline :deep(.p-timeline-event-opposite) {
+    min-width: 84px;
+    padding-right: 0.75rem;
 }
 </style>

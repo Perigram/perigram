@@ -5,8 +5,8 @@
       :key="row.label"
       class="flex items-center justify-between gap-4 border-b border-content-border pb-2 last:border-b-0 last:pb-0"
     >
-      <small class="text-muted-color">{{ row.label }}</small>
-      <span class="font-medium text-right">{{ row.display }}</span>
+      <small class="min-w-0 text-muted-color">{{ row.label }}</small>
+      <span class="min-w-0 break-words text-right font-medium">{{ row.display }}</span>
     </div>
   </div>
 </template>

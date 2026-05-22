@@ -1,26 +1,15 @@
 <template>
   <div>
-    <template v-if="variant === 'inline'">
-      <IdentityBlock :entity="design" variant="inline" icon="pi pi-clone" />
-    </template>
-
-    <template v-else-if="variant === 'compact'">
-      <EntityCard :entity="design" entity-type="cassette_design" variant="compact" :show-trace="false" :show-status="false">
-        <template #subtitle>
-          <Badge v-if="parameterCount" :value="parameterCount" severity="secondary" size="small" />
-        </template>
-      </EntityCard>
-    </template>
-
-    <template v-else>
-      <EntityCard :entity="design" entity-type="cassette_design" variant="card" :show-trace="false" :show-status="false">
-        <template #subtitle>
-          <Badge v-if="parameterCount" :value="parameterCount" severity="secondary" size="small" />
-        </template>
-        <Divider />
+    <EntityCard :entity="design" entity-type="cassette_design" :variant="variant" :show-trace="false" :show-status="false">
+      <template #subtitle>
+        <Badge v-if="parameterCount" :value="parameterCount" severity="secondary" size="small" />
+      </template>
+      <Divider />
+      <div class="grid grid-cols-1 gap-4">
+        <CassetteThumbnail :cassette="design" />
         <DataBlock :entity="design" :fields="DESIGN_FIELDS" />
-      </EntityCard>
-    </template>
+      </div>
+    </EntityCard>
   </div>
 </template>
 
@@ -34,7 +23,7 @@ import Badge from 'primevue/badge';
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 
 const props = defineProps({
   design: { type: Object, required: true },
@@ -43,8 +32,7 @@ const props = defineProps({
 
 const DESIGN_FIELDS = [
   { path: 'data.parameters.A', i18n: 'cassette.rootDim', suffix: ' mm' },
-  { path: 'data.parameters.C', i18n: 'cassette.faceDepth', suffix: ' mm' },
-  { path: 'data.geometry.dxfId', i18n: 'file.name' }
+  { path: 'data.parameters.C', i18n: 'cassette.faceDepth', suffix: ' mm' }
 ];
 
 const parameterCount = computed(() => Object.keys(props.design.data?.parameters || {}).length);

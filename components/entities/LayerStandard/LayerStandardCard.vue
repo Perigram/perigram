@@ -1,59 +1,39 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <template v-if="variant === 'inline'">
-      <Chip>
-        <i class="pi pi-palette" />
-        <IdentityBlock :entity="standard" variant="compact" />
-      </Chip>
-    </template>
-
-    <template v-else-if="variant === 'compact'">
-      <EntityCard :entity="standard" entity-type="layer_standard" variant="compact" :show-trace="false" :show-status="false">
-        <template #before-identity>
-            <i class="pi pi-palette"></i>
-        </template>
-        <template #subtitle>
-            <Badge v-if="category" :value="category" severity="secondary" size="small" />
-        </template>
-      </EntityCard>
-    </template>
-
-    <template v-else-if="variant === 'card'">
-      <EntityCard :entity="standard" entity-type="layer_standard" variant="card" :show-trace="false" :show-status="false">
-        <template #before-identity>
-            <i class="pi pi-palette"></i>
-        </template>
-        <template #subtitle>
-            <Badge v-if="category" :value="category" severity="secondary" size="small" />
-        </template>
-        <Divider />
-        <div class="flex flex-col gap-2">
-            <div class="flex items-center justify-between gap-2">
-                <small class="text-muted-color">{{ standardCode || $t('layerStandard.defaultPen') }}</small>
-                <Badge v-if="standard.data?.orgPenId" value="overridden" severity="warn" size="small" />
-            </div>
-            <PenTemplateCard v-if="activePen" :pen="activePen" variant="inline" />
-            <p v-else class="italic opacity-50">{{ $t('layerStandard.noDefaultPen') }}</p>
+    <EntityCard :entity="standard" entity-type="layer_standard" :variant="variant" :show-trace="false" :show-status="false">
+      <template #before-identity>
+        <i class="pi pi-palette"></i>
+      </template>
+      <template #subtitle>
+        <Badge v-if="category" :value="category" severity="secondary" size="small" />
+      </template>
+      <Divider />
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-2">
+          <small class="text-muted-color">{{ standardCode || $t('layerStandard.defaultPen') }}</small>
+          <Badge v-if="standard.data?.orgPenId" value="overridden" severity="warn" size="small" />
         </div>
-        <template #footer>
-            <div v-if="canEdit" class="flex justify-end gap-2" @click.stop>
-                <Button
-                    v-if="standard.data?.orgPenId"
-                    icon="pi pi-refresh"
-                    :label="$t('common.revert')"
-                    text size="small" severity="secondary"
-                    @click="$emit('revert', standard)"
-                />
-                <Button
-                    icon="pi pi-pencil"
-                    :label="$t('layerStandard.setPen')"
-                    text size="small"
-                    @click="$emit('set-pen', standard)"
-                />
-            </div>
-        </template>
-      </EntityCard>
-    </template>
+        <PenTemplateCard v-if="activePen" :pen="activePen" variant="inline" />
+        <p v-else class="italic opacity-50">{{ $t('layerStandard.noDefaultPen') }}</p>
+      </div>
+      <template #footer>
+        <div v-if="canEdit" class="flex justify-end gap-2" @click.stop>
+          <Button
+            v-if="standard.data?.orgPenId"
+            icon="pi pi-refresh"
+            :label="$t('common.revert')"
+            text size="small" severity="secondary"
+            @click="$emit('revert', standard)"
+          />
+          <Button
+            icon="pi pi-pencil"
+            :label="$t('layerStandard.setPen')"
+            text size="small"
+            @click="$emit('set-pen', standard)"
+          />
+        </div>
+      </template>
+    </EntityCard>
   </div>
 </template>
 
@@ -63,12 +43,10 @@
  */
 import { computed } from 'vue';
 import Badge from 'primevue/badge';
-import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useAuthStore } from '~/stores/auth';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 

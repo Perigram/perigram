@@ -2,8 +2,19 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { designTokens, cssVariableTokens, tailwindThemeExtension } from '../assets/tokens/index.js';
-import { DESIGN_SYSTEM_ENTITY_CONTRACTS, DESIGN_SYSTEM_GROUPS, DESIGN_SYSTEM_PRIMITIVES, DESIGN_SYSTEM_VARIANTS } from '../utils/design-system-contract.js';
-import { cncEntities, cncFrontendEntities, cncServiceActions, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import {
+  cncArtifactTypes,
+  cncDesignSystemEntityContracts,
+  cncDesignSystemGroups,
+  cncDesignSystemPrimitives,
+  cncDesignSystemVariants,
+  cncEntities,
+  cncFrontendEntities,
+  cncOperations,
+  cncProcesses,
+  cncSummaries,
+  cncWorkflows
+} from '../packages/domain-cnc/src/index.js';
 import {
   createFrameworkManifest,
   queryDocs,
@@ -242,12 +253,14 @@ function createManifest() {
     frontendEntities: cncFrontendEntities,
     workflows: cncWorkflows,
     summaries: cncSummaries,
-    serviceActions: cncServiceActions,
+    serviceActions: cncOperations,
+    processes: cncProcesses,
+    artifactTypes: cncArtifactTypes,
     designSystem: {
-      variants: DESIGN_SYSTEM_VARIANTS,
-      groups: DESIGN_SYSTEM_GROUPS,
-      primitives: DESIGN_SYSTEM_PRIMITIVES,
-      contracts: DESIGN_SYSTEM_ENTITY_CONTRACTS,
+      variants: cncDesignSystemVariants,
+      groups: cncDesignSystemGroups,
+      primitives: cncDesignSystemPrimitives,
+      contracts: cncDesignSystemEntityContracts,
       componentInventory,
       tokens: {
         designTokens,

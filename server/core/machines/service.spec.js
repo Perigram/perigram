@@ -17,6 +17,13 @@ vi.mock('h3', () => ({
 
 import { statusService } from './service.js';
 
+const transitionAuth = {
+  userId: 'operator-1',
+  role: 'ContractorAdmin',
+  memberships: [{ organizationId: 'org-1', permissions: { projects: 'write' } }],
+  permissions: { projects: 'write' }
+};
+
 describe('status service lifecycle payloads', () => {
   let con;
   let mongoServer;
@@ -51,7 +58,7 @@ describe('status service lifecycle payloads', () => {
       status: { state: 'PRODUCED', userId: 'creator', timestamp: new Date(), metadata: {} }
     });
 
-    await statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', 'OPERATOR', {
+    await statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', transitionAuth, {
       metadata: { note: 'Measured after milling' },
       lifecycle: {
         actors: [{ userId: 'mounter-1', capability: 'mounting', states: ['INSTALLED'] }],
@@ -87,7 +94,7 @@ describe('status service lifecycle payloads', () => {
       status: { state: 'PRODUCED', userId: 'creator', timestamp: new Date(), metadata: {} }
     });
 
-    await statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', 'OPERATOR', {
+    await statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', transitionAuth, {
       note: 'Legacy call shape'
     });
 
@@ -117,7 +124,7 @@ describe('status service lifecycle payloads', () => {
       }
     });
 
-    await statusService.transition('cassette_instance', id, 'INSTALLED', 'mounter-1', 'OPERATOR', {
+    await statusService.transition('cassette_instance', id, 'INSTALLED', 'mounter-1', { ...transitionAuth, userId: 'mounter-1' }, {
       note: 'Mounted'
     });
 

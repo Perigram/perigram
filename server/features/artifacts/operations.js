@@ -1,9 +1,7 @@
 import { createError } from 'h3';
-import { registerServiceActionHandler } from '../../core/blocks/index.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import * as artifactService from './service.js';
-
-registerServiceActionHandler('generateArtifact', generateArtifact);
+import * as nestingJobs from '../nesting/jobs.js';
 
 export async function generateArtifact({ entities, parameters = {}, auth }) {
   const source = entities.sheetDesign || entities.nestingRun;
@@ -18,11 +16,14 @@ export async function generateArtifact({ entities, parameters = {}, auth }) {
   };
 
   if (type === 'LAYOUT_DXF') {
+    const existingDxf = entities.nestingRun ? await findGeneratedRunDxf(sourceId) : null;
     const artifact = await artifactService.create({
       type,
       lineage,
       name: `${source.identity?.name || 'Source'} - LAYOUT_DXF.dxf`,
-      status: 'GENERATING'
+      status: existingDxf ? 'READY' : 'GENERATING',
+      fileId: existingDxf?.fileId,
+      mimeType: existingDxf ? 'application/dxf' : undefined
     }, auth.userId);
 
     return toOperationArtifactResult(artifact);
@@ -41,6 +42,13 @@ export async function generateArtifact({ entities, parameters = {}, auth }) {
   }
 
   throw createError({ statusCode: 400, message: `Unsupported artifact type: ${type}` });
+}
+
+async function findGeneratedRunDxf(runId) {
+  const job = await nestingJobs.findLatestByRun(runId);
+  const fileId = job?.dxf_file_ids?.[0];
+  if (!fileId || job.status !== 'done') return null;
+  return { fileId };
 }
 
 function toOperationArtifactResult(artifact) {

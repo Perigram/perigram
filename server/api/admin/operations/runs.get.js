@@ -1,5 +1,6 @@
 import { getQuery } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
+import '~/server/adapters/cnc-domain.js';
 import { listServiceActionRuns } from '~/server/core/operations/service.js';
 
 export default defineEventHandler(async (event) => {

@@ -2,10 +2,12 @@ import ProjectCard from '~/components/entities/Project/ProjectCard.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';
 import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
 import SheetDesignCard from '~/components/entities/SheetDesign/SheetDesignCard.vue';
+import CassetteCard from '~/components/entities/Cassette/CassetteCard.vue';
 import CassetteDesignCard from '~/components/entities/CassetteDesign/CassetteDesignCard.vue';
 import CassetteTemplateCard from '~/components/entities/CassetteTemplate/CassetteTemplateCard.vue';
 import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
 import RequisitionCard from '~/components/entities/Requisition/RequisitionCard.vue';
+import MaterialCard from '~/components/entities/Material/MaterialCard.vue';
 import PileCard from '~/components/entities/MaterialPile/PileCard.vue';
 import BatchPileCard from '~/components/entities/BatchPile/BatchPileCard.vue';
 import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
@@ -31,10 +33,12 @@ const components = {
   queue: QueueCard,
   nestingRun: NestingRunCard,
   sheetDesign: SheetDesignCard,
+  cassette: CassetteCard,
   cassetteDesign: CassetteDesignCard,
   cassetteTemplate: CassetteTemplateCard,
   cassetteInstance: CassetteInstanceCard,
   requisition: RequisitionCard,
+  material: MaterialCard,
   materialPile: PileCard,
   batchPile: BatchPileCard,
   sheet: SheetCard,

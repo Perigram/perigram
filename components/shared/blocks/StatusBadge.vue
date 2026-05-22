@@ -25,7 +25,7 @@ const config = computed(() => {
 <template>
   <Tag 
     :severity="config.severity" 
-    class="status-badge"
+    class="status-badge max-w-full"
     :icon="config.icon"
   >
     <template v-if="!iconOnly">

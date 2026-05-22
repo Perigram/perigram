@@ -13,14 +13,18 @@ export const CANONICAL_BLOCKS = [
 
 export const TYPED_FIELD_TYPES = new Set(['string', 'number', 'boolean', 'enum', 'entityId', 'entityType', 'workflowState', 'array', 'object']);
 
-export function createDomainDraft({ entities = [], frontendEntities = [], workflows = {}, summaries = [], serviceContracts = {}, serviceActions = {}, hookContracts = {} } = {}) {
+export function createDomainDraft({ entities = [], frontendEntities = [], workflows = {}, summaries = [], serviceContracts = {}, operations = null, serviceActions = null, hookContracts = {} } = {}) {
+  const normalizedOperations = operations && typeof operations === 'object'
+    ? operations
+    : (serviceActions && typeof serviceActions === 'object' ? serviceActions : {});
   return deepClone({
     entities,
     frontendEntities,
     workflows,
     summaries,
     serviceContracts,
-    serviceActions,
+    operations: normalizedOperations,
+    serviceActions: normalizedOperations,
     hookContracts
   });
 }
@@ -32,7 +36,9 @@ export function validateDomainDraft(draft = {}) {
   const frontendEntities = Array.isArray(draft.frontendEntities) ? draft.frontendEntities : [];
   const summaries = Array.isArray(draft.summaries) ? draft.summaries : [];
   const serviceContracts = draft.serviceContracts && typeof draft.serviceContracts === 'object' ? draft.serviceContracts : {};
-  const serviceActions = draft.serviceActions && typeof draft.serviceActions === 'object' ? draft.serviceActions : {};
+  const operations = draft.operations && typeof draft.operations === 'object'
+    ? draft.operations
+    : (draft.serviceActions && typeof draft.serviceActions === 'object' ? draft.serviceActions : {});
   const hookContracts = draft.hookContracts && typeof draft.hookContracts === 'object' ? draft.hookContracts : {};
   const workflows = draft.workflows && typeof draft.workflows === 'object' ? draft.workflows : {};
   const entityTypes = new Set();
@@ -133,7 +139,7 @@ export function validateDomainDraft(draft = {}) {
     if (!Array.isArray(contract.triggers)) issues.push({ area: 'services', severity: 'error', message: `${service} must define triggers` });
   }
 
-  for (const [id, action] of Object.entries(serviceActions)) {
+  for (const [id, action] of Object.entries(operations)) {
     if (action.id && action.id !== id) issues.push({ area: 'service-actions', severity: 'error', message: `${id} service action id mismatch: ${action.id}` });
     if (!action.service) issues.push({ area: 'service-actions', severity: 'error', message: `${id} must define service` });
     if (!action.action) issues.push({ area: 'service-actions', severity: 'error', message: `${id} must define action` });
@@ -270,7 +276,9 @@ export function generateDomainCncSource(draft = {}) {
     '',
     `export const cncServiceContracts = ${formatExport(normalized.serviceContracts)};`,
     '',
-    `export const cncServiceActions = ${formatExport(normalized.serviceActions)};`,
+    `export const cncOperations = ${formatExport(normalized.operations)};`,
+    '',
+    `export const cncServiceActions = cncOperations;`,
     '',
     `export const cncHookContracts = ${formatExport(normalized.hookContracts)};`,
     '',
@@ -326,6 +334,7 @@ function validateFieldDescriptors({ issues, area, label, fields }) {
     if (field?.name) seen.add(field.name);
     if (!TYPED_FIELD_TYPES.has(field?.type)) issues.push({ area, severity: 'error', message: `${fieldLabel} has invalid type: ${field?.type}` });
     if (field?.type === 'enum' && !Array.isArray(field.options)) issues.push({ area, severity: 'error', message: `${fieldLabel} enum must define options` });
+    if (field?.display && !['default', 'debug', 'hidden'].includes(field.display)) issues.push({ area, severity: 'error', message: `${fieldLabel} has invalid display: ${field.display}` });
   }
 }
 

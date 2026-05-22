@@ -8,6 +8,7 @@ import { createError } from 'h3';
 import { pluralize } from '../../utils/strings.js';
 import { normalizeLifecycle, validateTransition } from '~/packages/workflows/src/index.js';
 import { assertTransitionAccess } from '../access/service.js';
+import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 
 /**
  * Unified Status Service - v24 Absolute Final
@@ -28,6 +29,7 @@ export const statusService = {
     const transitionContext = normalizeTransitionContext(metadata);
     const auth = normalizeAuthContext(userId, userRole, transitionContext.metadata);
     const db = await connectDB();
+    const registry = getCutkitRegistry();
     const machine = stateMachines[entityType];
     
     if (!machine) {
@@ -89,6 +91,7 @@ export const statusService = {
       });
     }
 
+    for (const hookConfig of transition?.hooks || []) validateHookParams(hookConfig);
     assertTransitionAccess({ transition, entity, auth });
     
     // 3. Create Event Record
@@ -119,8 +122,8 @@ export const statusService = {
     // 5. Trigger Hooks
     if (transition?.hooks) {
       for (const hookConfig of transition.hooks) {
-        // 1. Check built-in global hooks
-        let hookFn = hooks[hookConfig.handler];
+        validateHookParams(hookConfig);
+        let hookFn = registry.getHookHandler(hookConfig.handler) || hooks[hookConfig.handler];
         
         // 2. Dynamic Fallback: Check the specific Feature Service for this entity
         if (!hookFn) {
@@ -188,4 +191,22 @@ function mergeLifecycle(current = {}, next = {}) {
       ...nextLifecycle.data
     }
   };
+}
+
+function validateHookParams(hookConfig = {}) {
+  const domain = getCutkitRegistry().getDomain('cnc');
+  const contract = domain?.hooks?.[hookConfig.handler];
+  if (!contract) throw createError({ statusCode: 500, message: `Hook contract missing for ${hookConfig.handler}` });
+
+  const params = hookConfig.params || {};
+  const fields = contract.parameters || [];
+  const names = new Set(fields.map(field => field.name));
+  for (const field of fields) {
+    if (field.required && (params[field.name] === undefined || params[field.name] === null || params[field.name] === '')) {
+      throw createError({ statusCode: 500, message: `Hook ${hookConfig.handler} requires parameter ${field.name}` });
+    }
+  }
+  for (const key of Object.keys(params)) {
+    if (!names.has(key)) throw createError({ statusCode: 500, message: `Hook ${hookConfig.handler} has unknown parameter ${key}` });
+  }
 }

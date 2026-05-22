@@ -31,6 +31,10 @@
     "search": "Search",
     "filter": "Filter",
     "details": "Details",
+    "more": "More",
+    "id": "ID",
+    "code": "Code",
+    "label": "Label",
     "name": "Name",
     "default": "Default",
     "description": "Description",
@@ -68,6 +72,8 @@
     "notAvailable": "N/A",
     "traceability": "Traceability",
     "statusAndActions": "Status & Actions",
+    "location": "Location",
+    "coordinates": "Coordinates",
     "lastUpdated": "Last Updated",
     "note": "Note",
     "history": "History"
@@ -148,7 +154,8 @@
     "available": "Available",
     "nesting": "Nesting",
     "generating": "Generating",
-    "scrap": "Scrap"
+    "scrap": "Scrap",
+    "noHistory": "No history recorded yet."
   },
   "dashboard": {
     "welcome": "Welcome to CutKit",
@@ -571,6 +578,9 @@
       "sectionsData": "Data Model",
       "sectionsFeedback": "Feedback",
       "sectionsWorkflow": "Workflow",
+      "sectionsContext": "Context",
+      "sectionsOperations": "Operations",
+      "sectionsProcesses": "Processes",
       "componentKey": "Component key",
       "statusPolicy": "Status policy",
       "tracePolicy": "Trace policy",
@@ -598,6 +608,52 @@
         "organizations": "Manage organizations.",
         "support": "Review and respond to support conversations."
       }
+    },
+    "operations": {
+      "operation": "Operation",
+      "noOperations": "No operations declared.",
+      "registry": "Registry",
+      "definitions": "definitions",
+      "handlers": "handlers",
+      "handler": "handler",
+      "noHandler": "no handler",
+      "contract": "Contract",
+      "inputEntities": "Input entities",
+      "parameters": "Parameters",
+      "debugOutput": "Debug output",
+      "access": "Access",
+      "none": "None",
+      "options": "Options",
+      "output": "Output",
+      "entities": "Entities",
+      "artifacts": "Artifacts",
+      "feature": "Feature",
+      "jobs": "Jobs",
+      "transitions": "Transitions",
+      "input": "Input",
+      "run": "Run operation",
+      "fixtures": "Fixture scenario",
+      "seeded": "Seeded",
+      "notSeeded": "Not seeded",
+      "rebuildScenario": "Rebuild scenario",
+      "seedScenario": "Seed dev data",
+      "testAccess": "Test access",
+      "overrideAccess": "Override access for this run",
+      "required": "Required",
+      "noAccessRequirements": "This action has no access requirements.",
+      "lastOutput": "Last output",
+      "noOutput": "No output yet.",
+      "missingOutputRefs": "Output refs are not loaded in the workbench context:",
+      "result": "Result"
+    },
+    "processes": {
+      "contract": "Process contract",
+      "runs": "Runs",
+      "noProcesses": "No processes declared.",
+      "noRuns": "No process runs yet.",
+      "attempts": "Attempts",
+      "worker": "Worker",
+      "lease": "Lease"
     },
     "dataModelReview": {
       "title": "Data Model Review",
@@ -655,6 +711,7 @@
       "routes": "Routes",
       "workflows": "Workflows",
       "summaries": "Summaries",
+      "operations": "Operations",
       "validation": "Validation",
       "collection": "Collection",
       "blocks": "Blocks",
@@ -663,6 +720,8 @@
       "listRoute": "List route",
       "addWorkflow": "Add workflow",
       "removeWorkflow": "Remove workflow",
+      "addOperation": "Add operation",
+      "addParameter": "Add parameter",
       "addState": "Add status",
       "removeState": "Remove status",
       "addTransition": "Add transition",
@@ -704,6 +763,7 @@
       "tabs": {
         "entities": "Entities",
         "workflows": "Workflows",
+        "operations": "Operations",
         "summaries": "Summaries",
         "validation": "Validation",
         "export": "Export"
@@ -831,7 +891,8 @@
     "noPiles": "No material piles found",
     "receiptId": "Receipt ID",
     "stockTotal": "Total Stock",
-    "stockUsed": "Used"
+    "stockUsed": "Used",
+    "remaining": "Remaining"
   },
   "remnants": {
     "title": "Remnants",
@@ -996,10 +1057,12 @@
     "queue": "Queue",
     "nestingRun": "Nesting Run",
     "sheetDesign": "Sheet Design",
+    "cassette": "Cassette",
     "cassetteDesign": "Cassette Design",
     "cassetteTemplate": "Cassette Template",
     "cassetteInstance": "Cassette Instance",
     "requisition": "Requisition",
+    "material": "Material",
     "materialPile": "Material Pile",
     "batchPile": "Batch Pile",
     "sheet": "Physical Sheet",
@@ -1334,5 +1397,8 @@
     "cuttingLength": "Cutting Length",
     "estimatedTime": "Estimated Time",
     "instances": "Instances"
+  },
+  "nestingRun": {
+    "sheetDesigns": "Sheet designs"
   }
 }

@@ -1,44 +1,50 @@
 <template>
     <!-- Inline: pill chip with popup -->
     <template v-if="variant === 'inline'">
-        <div class="inline-flex items-center gap-2 cursor-pointer" @click="togglePopup">
+        <div class="inline-flex items-center gap-2 cursor-pointer" role="button" tabindex="0" @click="togglePopup" @keydown="onToggleKeydown">
             <IdentityBlock :entity="entity" variant="inline" :icon="entityConfig.icon" />
             <slot name="inline-extra" />
         </div>
         
         <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
-            <div class="flex flex-col gap-4 p-4 min-w-[var(--ck-entity-popover-min-width)]">
-                <template v-if="showTrace">
-                    <div class="flex flex-col gap-1">
-                        <small class="text-muted-color">{{ $t('common.traceability') }}</small>
-                        <TraceChain :entity="entity" />
-                    </div>
-                </template>
-                <template v-if="showStatus">
-                    <Divider v-if="showTrace" class="m-0" />
-                    <div class="flex flex-col gap-1">
-                        <small class="text-muted-color">{{ $t('common.statusAndActions') }}</small>
-                        <EntityStatus 
-                            :entity="entity" 
-                            :entity-type="entityType" 
-                            variant="full" 
+            <div class="w-[min(34rem,calc(100vw-3rem))]">
+                <div class="flex flex-col gap-4 p-4">
+                    <TraceChain v-if="showTrace" :entity="entity" />
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <IdentityBlock :entity="entity" />
+                        <EntityStatus
+                            v-if="showStatus"
+                            :entity="entity"
+                            :entity-type="entityType"
+                            variant="inline"
                             :actions="statusActions"
                             @transitioned="$emit('refresh')"
                         />
                     </div>
-                </template>
+                    <Divider v-if="$slots.expanded || $slots.default" class="m-0" />
+                    <slot name="expanded">
+                        <slot />
+                    </slot>
+                    <slot name="footer" />
+                </div>
             </div>
         </Popover>
     </template>
 
     <!-- Compact: identity + status in a card row -->
     <template v-else-if="variant === 'compact'">
-        <Card class="h-full border border-content-border [box-shadow:var(--ck-shadow-card)] hover:[box-shadow:var(--ck-shadow-card-hover)] transition-shadow duration-normal">
+        <Card
+            class="h-full cursor-pointer border border-content-border [box-shadow:var(--ck-shadow-card)] hover:[box-shadow:var(--ck-shadow-card-hover)] transition-shadow duration-normal"
+            role="button"
+            tabindex="0"
+            @click="togglePopup"
+            @keydown="onToggleKeydown"
+        >
             <template #content>
             <template v-if="$slots.header">
                 <slot name="header" />
             </template>
-            <div class="flex items-start justify-between gap-3 min-w-0" :class="{ 'mt-2': $slots.header }">
+            <div class="flex flex-wrap items-start justify-between gap-3 min-w-0" :class="{ 'mt-2': $slots.header }">
                 <div class="flex items-center gap-2 min-w-0 flex-1">
                     <template v-if="$slots.title">
                         <slot name="title" />
@@ -48,7 +54,7 @@
                         <IdentityBlock :entity="entity" variant="compact" />
                     </template>
                 </div>
-                <div v-if="showStatus" class="shrink-0">
+                <div v-if="showStatus" class="min-w-fit max-w-full shrink-0" @click.stop>
                     <EntityStatus :entity="entity" :entity-type="entityType" variant="inline" :actions="statusActions" />
                 </div>
             </div>
@@ -60,6 +66,29 @@
             <slot name="compact-content" />
             </template>
         </Card>
+        <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
+            <div class="w-[min(34rem,calc(100vw-3rem))]">
+                <div class="flex flex-col gap-4 p-4">
+                    <TraceChain v-if="showTrace" :entity="entity" />
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <IdentityBlock :entity="entity" />
+                        <EntityStatus
+                            v-if="showStatus"
+                            :entity="entity"
+                            :entity-type="entityType"
+                            variant="inline"
+                            :actions="statusActions"
+                            @transitioned="$emit('refresh')"
+                        />
+                    </div>
+                    <Divider v-if="$slots.expanded || $slots.default" class="m-0" />
+                    <slot name="expanded">
+                        <slot />
+                    </slot>
+                    <slot name="footer" />
+                </div>
+            </div>
+        </Popover>
     </template>
 
     <!-- Card: full chrome — tracechain / identity+status / body / footer -->
@@ -74,12 +103,12 @@
                 </template>
                 <template v-else>
                     <TraceChain v-if="showTrace" :entity="entity" />
-                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 min-w-0">
+                    <div class="flex flex-col sm:flex-row sm:flex-wrap sm:justify-between sm:items-start gap-3 min-w-0">
                         <div class="flex flex-col min-w-0 flex-1">
                             <slot name="before-identity" />
                             <IdentityBlock :entity="entity" />
                         </div>
-                        <div v-if="showStatus" class="shrink-0 self-start">
+                        <div v-if="showStatus" class="min-w-fit max-w-full shrink-0 self-start">
                             <EntityStatus :entity="entity" :entity-type="entityType" variant="inline" :actions="statusActions" />
                         </div>
                     </div>
@@ -143,4 +172,10 @@ const op = ref();
 const togglePopup = (event) => {
     op.value.toggle(event);
 };
+const onToggleKeydown = (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    togglePopup(event);
+};
+
 </script>

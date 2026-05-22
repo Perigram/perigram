@@ -1,10 +1,7 @@
 import { ref, computed } from 'vue';
 import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 import { useStatusController } from './useStatusController';
-import { createEndpointMap, getSingleEndpoint as resolveSingleEndpoint, getListEndpoint as resolveListEndpoint } from '~/packages/vue/src/index.js';
-import { cncFrontendEntities } from '~/packages/domain-cnc/src/index.js';
-
-const endpointMap = createEndpointMap(cncFrontendEntities);
+import { useCutkitDomainUi } from './useCutkitDomainUi';
 
 /**
  * Unified Entity Composable - v24 Standardized
@@ -15,6 +12,7 @@ const endpointMap = createEndpointMap(cncFrontendEntities);
  * @param {string} [identifier] - UID, ID, or slug for single-entity operations
  */
 export const useEntity = (type, identifier = null) => {
+  const domainUi = useCutkitDomainUi();
   const entity = ref(null);
   const items = ref([]);
   const loading = ref(false);
@@ -29,11 +27,11 @@ export const useEntity = (type, identifier = null) => {
   const { specs, formattedDimensions, formattedArea } = useSpecs(entity);
 
   const getSingleEndpoint = (id = identifier || entity.value?._id) => {
-    return resolveSingleEndpoint(endpointMap, type, id);
+    return domainUi.getSingleEndpoint(type, id);
   };
 
   const getListEndpoint = (filters = {}) => {
-    return resolveListEndpoint(endpointMap, type, filters);
+    return domainUi.getListEndpoint(type, filters);
   };
 
   /**
@@ -80,10 +78,10 @@ export const useEntity = (type, identifier = null) => {
   /**
    * Update entity data (PATCH)
    */
-  const update = async (updates) => {
+  const update = async (updates, id = identifier || entity.value?._id) => {
     loading.value = true;
     try {
-      const data = await $fetch(getSingleEndpoint(), {
+      const data = await $fetch(getSingleEndpoint(id), {
         method: 'PATCH',
         body: updates
       });
@@ -104,7 +102,7 @@ export const useEntity = (type, identifier = null) => {
     loading.value = true;
       error.value = null;
     try {
-      const url = resolveListEndpoint(endpointMap, type);
+      const url = domainUi.getListEndpoint(type);
       const result = await $fetch(url, { method: 'POST', body: data });
       entity.value = result;
       return result;

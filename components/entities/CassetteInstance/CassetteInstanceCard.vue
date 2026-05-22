@@ -1,25 +1,15 @@
 <template>
   <div>
-    <template v-if="variant === 'inline'">
-      <IdentityBlock :entity="instance" variant="inline" icon="pi pi-box" />
-    </template>
-
-    <template v-else-if="variant === 'compact'">
-      <EntityCard :entity="instance" entity-type="cassette_instance" variant="compact" :show-trace="false" />
-    </template>
-
-    <template v-else-if="variant === 'card'">
-      <EntityCard :entity="instance" entity-type="cassette_instance" variant="card" :show-trace="false">
-        <Divider />
-        <div class="flex flex-col gap-3">
-            <DataBlock :entity="instance" :fields="INSTANCE_FIELDS" />
-            <div v-if="designId" class="flex justify-between items-center gap-4">
-                <small>{{ $t('cassette.design') }}</small>
-                <TraceLink type="cassetteDesign" :id="designId" />
-            </div>
+    <EntityCard :entity="instance" entity-type="cassette_instance" :variant="variant" :show-trace="false">
+      <Divider />
+      <div class="flex flex-col gap-3">
+        <DataBlock :entity="instance" :fields="INSTANCE_FIELDS" />
+        <div v-if="designId" class="flex justify-between items-center gap-4">
+          <small>{{ $t('cassette.design') }}</small>
+          <TraceLink type="cassetteDesign" :id="designId" />
         </div>
-      </EntityCard>
-    </template>
+      </div>
+    </EntityCard>
   </div>
 </template>
 
@@ -29,7 +19,6 @@
  */
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';

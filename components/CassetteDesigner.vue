@@ -228,7 +228,6 @@
     import Divider from 'primevue/divider'
     import Tag from 'primevue/tag'
     import { useToast } from 'primevue/usetoast'
-    import { useCassettesStore } from '~/stores/cassettes'
     import StandardDialog from '~/components/shared/StandardDialog.vue'
 
     const { t } = useI18n()
@@ -240,7 +239,6 @@
     })
 
     const toast = useToast()
-    const cassettesStore = useCassettesStore()
     const emit = defineEmits(['saved'])
 
     const DEFAULT_CASSETTE_GRAPH = {
@@ -489,17 +487,16 @@
     const save = async () => {
         try {
             const body = {
-                name: cassetteName.value,
-                type: 'PARAMETRIC',
-                data: JSON.parse(JSON.stringify(cassetteData)),
-                parameters: Object.keys(cassetteData.params)
+                entities: props.initialData?._id ? { cassette: props.initialData._id } : {},
+                parameters: {
+                    name: cassetteName.value,
+                    type: 'PARAMETRIC',
+                    definition: JSON.parse(JSON.stringify(cassetteData)),
+                    parameters: Object.keys(cassetteData.params)
+                }
             }
 
-            if (props.initialData?._id) {
-                await cassettesStore.updateCassette(props.initialData._id, body)
-            } else {
-                await cassettesStore.createCassette(body)
-            }
+            await $fetch('/api/operations/saveCassetteTemplate/run', { method: 'POST', body })
             
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.messages.saveSuccess'), life: 3000 })
             emit('saved')

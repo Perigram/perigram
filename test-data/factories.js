@@ -6,16 +6,22 @@
  * `data`, `summary`, `specs`) plus root `_id`.
  */
 import { ObjectId } from 'bson';
+import { PERMISSION_TEMPLATES } from '../shared/permission-templates.js';
 
 const now = () => new Date();
 const id = (prefix) => `${prefix}-${new ObjectId().toString().slice(-8)}`;
 
-const createStatusBlock = (state = 'DRAFT', userId = 'user-demo', metadata = {}) => ({
+const createStatusBlock = (state = 'DRAFT', userId = 'user-demo', metadata = {}, lifecycle = {}) => ({
   state,
   userId,
   timestamp: now(),
   metadata,
-  eventId: new ObjectId()
+  eventId: new ObjectId(),
+  lifecycle: {
+    actors: Array.isArray(lifecycle.actors) ? lifecycle.actors : [],
+    attachments: lifecycle.attachments || {},
+    data: lifecycle.data || {}
+  }
 });
 
 const createAttachmentEntry = (type, fileId, name, metadata = {}) => ({
@@ -36,9 +42,10 @@ const createEntity = ({
   specs = null,
   attachments = {},
   data = {},
-  summary = {}
+  summary = {},
+  lifecycle = {}
 }) => {
-  const origin = createStatusBlock(state, 'user-demo', { note: 'Demo entity created' });
+  const origin = createStatusBlock(state, 'user-demo', { note: 'Demo entity created' }, lifecycle);
   const identity = { uid, name, slug, serial, reference };
 
   return {
@@ -56,6 +63,7 @@ const createEntity = ({
 
 export const MOCK_IDS = {
   organizationId: 'org-demo-acme',
+  manufacturerId: 'org-demo-maker',
   warehouseId: 'wh-demo-main',
   projectId: 'project-demo-downtown',
   queueId: 'queue-demo-morning',
@@ -74,6 +82,10 @@ export function createMockProject(overrides = {}) {
       slug: 'downtown-complex',
       state: 'DRAFT',
       lineage: { organizationId: MOCK_IDS.organizationId },
+      data: {
+        address: '42 Riverfront Ave',
+        thumbnailUrl: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 600 240%22%3E%3Crect width=%22600%22 height=%22240%22 fill=%22%23f4f4f5%22/%3E%3Cpath d=%22M40 190h520M80 190V80h120v110M230 190V45h150v145M410 190V105h90v85%22 fill=%22none%22 stroke=%22%230f766e%22 stroke-width=%2212%22/%3E%3C/svg%3E'
+      },
       summary: { queueCount: 3, totalArea: 150.5 }
     }),
     ...overrides
@@ -126,7 +138,17 @@ export function createMockNestingRun(overrides = {}) {
 }
 
 export function createMockSheetDesign(overrides = {}) {
-  const geometry = { svgId: 'svg-sheet-demo', dxfId: 'dxf-sheet-demo', data: null };
+  const geometry = {
+    svgId: 'svg-sheet-demo',
+    dxfId: 'dxf-sheet-demo',
+    preview: {
+      viewBox: '0 0 200 100',
+      layers: [
+        { name: 'sheet', color: 'currentColor', weight: 2, paths: ['M8 8 H192 V92 H8 Z'] },
+        { name: 'cassettes', color: 'var(--p-primary-color)', weight: 1.5, paths: ['M20 20 H80 V55 H20 Z', 'M96 20 H150 V72 H96 Z'] }
+      ]
+    }
+  };
   return {
     ...createEntity({
       uid: MOCK_IDS.sheetDesignId,
@@ -136,6 +158,36 @@ export function createMockSheetDesign(overrides = {}) {
       lineage: { queueId: MOCK_IDS.queueId, runId: MOCK_IDS.runId },
       specs: { width: 2000, length: 1000, area: 2, sheetThickness: 4 },
       data: { geometry }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockCassette(overrides = {}) {
+  const geometry = {
+    preview: {
+      viewBox: '0 0 160 90',
+      layers: [
+        { name: 'outline', color: 'currentColor', weight: 2, paths: ['M12 12 H148 V78 H12 Z'] },
+        { name: 'folds', color: 'var(--p-primary-color)', weight: 1.5, paths: ['M38 12 V78', 'M122 12 V78'] }
+      ]
+    }
+  };
+
+  return {
+    ...createEntity({
+      uid: 'cassette-demo-001',
+      name: 'Cassette Type A',
+      slug: 'cassette-type-a',
+      state: 'ACTIVE',
+      lineage: { organizationId: MOCK_IDS.organizationId, templateId: MOCK_IDS.cassetteTemplateId },
+      data: {
+        type: 'PARAMETRIC',
+        parameters: ['A', 'B', 'C'],
+        geometry,
+        organizationId: MOCK_IDS.organizationId,
+        userId: 'user-demo'
+      }
     }),
     ...overrides
   };
@@ -198,7 +250,12 @@ export function createMockCassetteInstance(overrides = {}) {
         runId: MOCK_IDS.runId,
         cassetteDesignId: MOCK_IDS.cassetteDesignId
       },
-      data: {}
+      data: {},
+      lifecycle: {
+        data: {
+          location: { type: 'warehouse', warehouseId: MOCK_IDS.warehouseId, label: 'Main Logistic Hub' }
+        }
+      }
     }),
     ...overrides
   };
@@ -218,7 +275,28 @@ export function createMockSheet(overrides = {}) {
         runId: MOCK_IDS.runId
       },
       specs: { width: 3000, length: 1500, area: 4.5, sheetThickness: 4 },
-      data: {}
+      data: {},
+      lifecycle: {
+        data: {
+          location: { type: 'warehouse', warehouseId: MOCK_IDS.warehouseId, label: 'Main Logistic Hub' }
+        }
+      }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockMaterial(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: 'material-demo-aluminum',
+      name: 'Aluminum Composite Panel',
+      slug: 'aluminum-composite-panel',
+      state: 'ACTIVE',
+      data: {
+        code: 'ACP',
+        description: 'Aluminum composite panel material'
+      }
     }),
     ...overrides
   };
@@ -239,18 +317,33 @@ export function createMockPile(overrides = {}) {
         catalogId: MOCK_IDS.catalogId
       },
       specs,
-      data: { specs, stock, quantity: stock.total }
+      data: { serial: 'MAN-P-101', material: 'ALUMINUM', specs, stock, quantity: stock.total }
     }),
     ...overrides
   };
 }
 
 export function createMockBatchPile(overrides = {}) {
-  return createMockPile({
-    _id: 'batch-pile-demo-001',
-    identity: { uid: 'batch-pile-demo-001', name: 'Pile #3', slug: 'pile-3', serial: 'P-003' },
+  const stock = { total: 50, used: 8 };
+  const specs = { sheetThickness: 4, foilThickness: 0.5, width: 1500, length: 3000, area: 4.5 };
+  return {
+    ...createEntity({
+      uid: 'batch-pile-demo-001',
+      name: 'Batch Pile REQ-2025-001 / P-003',
+      slug: 'batch-pile-req-2025-001-p-003',
+      serial: 'P-003',
+      state: 'IN_STOCK',
+      lineage: {
+        organizationId: MOCK_IDS.organizationId,
+        warehouseId: MOCK_IDS.warehouseId,
+        catalogId: MOCK_IDS.catalogId,
+        requisitionId: 'requisition-demo-001'
+      },
+      specs,
+      data: { serial: 'REQ-2025-001-P-003', specs, stock, quantity: stock.total }
+    }),
     ...overrides
-  });
+  };
 }
 
 export function createMockRemnant(overrides = {}) {
@@ -262,7 +355,20 @@ export function createMockRemnant(overrides = {}) {
       state: 'SCRAP',
       lineage: { warehouseId: MOCK_IDS.warehouseId, sheetId: 'sheet-demo-001' },
       specs: { width: 900, length: 500, area: 0.45, sheetThickness: 4 },
-      data: { isReusable: false }
+      data: {
+        isReusable: false,
+        geometry: {
+          preview: {
+            viewBox: '0 0 120 80',
+            points: [[10, 10], [110, 16], [96, 70], [22, 58]]
+          }
+        }
+      },
+      lifecycle: {
+        data: {
+          location: { type: 'coordinates', coordinates: { x: 12, y: 4, z: 1 } }
+        }
+      }
     }),
     ...overrides
   };
@@ -276,7 +382,7 @@ export function createMockCatalog(overrides = {}) {
       uid: MOCK_IDS.catalogId,
       name: 'Standard Metals',
       state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId },
+      lineage: { organizationId: MOCK_IDS.organizationId, manufacturerId: MOCK_IDS.manufacturerId },
       data: { material: 'ALUMINUM', pricing, options },
       summary: { colorCount: 8 }
     }),
@@ -383,16 +489,27 @@ export function createMockRequisition(overrides = {}) {
 }
 
 export function createMockUser(overrides = {}) {
+  const role = 'ContractorAdmin';
+  const permissions = PERMISSION_TEMPLATES[role];
+  const memberships = [{
+    organizationId: MOCK_IDS.organizationId,
+    role,
+    permissions,
+    status: 'active'
+  }];
+
   return {
     ...createEntity({
       uid: 'user-demo',
       name: 'John Doe',
       state: 'ACTIVE',
+      lineage: { organizationId: MOCK_IDS.organizationId },
       data: {
         email: 'john@example.com',
-        role: 'ManufacturerAdmin',
         isActive: true,
-        permissions: {}
+        role,
+        permissions,
+        memberships
       }
     }),
     identity: { uid: 'user-demo', name: 'John Doe', reference: 'john@example.com' },

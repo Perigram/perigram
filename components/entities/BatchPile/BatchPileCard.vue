@@ -1,41 +1,26 @@
 <template>
   <div>
-    <!-- Inline -->
-    <template v-if="variant === 'inline'">
-      <IdentityBlock :entity="pile" variant="inline" icon="pi pi-clone" />
-    </template>
-
-    <!-- Compact -->
-    <template v-else-if="variant === 'compact'">
-      <EntityCard :entity="pile" entity-type="material_pile" variant="compact" class="card-interactive" :show-trace="false">
-        <template #before-identity>
-          <i class="pi pi-clone"></i>
-        </template>
-        <template #subtitle>
-          <div class="flex items-center gap-2">
-            <Tag v-if="sheetThickness" :value="`${sheetThickness}mm`" severity="secondary" size="small" />
-            <small v-if="stock">{{ remaining }} / {{ stock.total }}</small>
-          </div>
-        </template>
-      </EntityCard>
-    </template>
-
-    <!-- Card -->
-    <template v-else>
-      <EntityCard :entity="pile" entity-type="material_pile" variant="card" class="card-interactive" :show-trace="false">
-        <template #before-identity>
-          <i class="pi pi-clone"></i>
-        </template>
-        <template #subtitle>
-          <div class="flex items-center gap-2">
-            <Tag v-if="sheetThickness" :value="`${sheetThickness}mm`" severity="secondary" size="small" />
-            <small v-if="stock">{{ remaining }} / {{ stock.total }}</small>
-          </div>
-        </template>
-        <Divider />
-        <DataBlock :entity="pile" :fields="PILE_FIELDS" />
-      </EntityCard>
-    </template>
+    <EntityCard :entity="pile" entity-type="material_pile" :variant="variant" class="card-interactive" :show-status="false">
+      <template #before-identity>
+        <i class="pi pi-box"></i>
+      </template>
+      <template #subtitle>
+        <div class="flex flex-wrap items-center gap-2">
+          <Tag v-if="serial" :value="serial" severity="secondary" size="small" />
+          <small v-if="stock">{{ remaining }} / {{ stock.total }}</small>
+        </div>
+      </template>
+      <Divider />
+      <div class="flex flex-col gap-4">
+        <BatchPileSummary :pile="pile" />
+        <SpecsBlock :entity="pile" />
+        <DataBlock :entity="pile" :fields="BATCH_PILE_FIELDS" />
+        <div v-if="requisitionId" class="flex flex-col gap-1 text-sm">
+          <small class="text-muted-color">{{ $t('entities.requisition') }}</small>
+          <TraceLink type="requisition" :id="requisitionId" />
+        </div>
+      </div>
+    </EntityCard>
   </div>
 </template>
 
@@ -44,21 +29,24 @@ import { computed } from 'vue';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import TraceLink from '~/components/shared/links/TraceLink.vue';
+import BatchPileSummary from '~/components/entities/BatchPile/BatchPileSummary.vue';
+
+const BATCH_PILE_FIELDS = [
+  { path: 'data.serial', i18n: 'piles.receiptId' },
+  { path: 'data.stock.total', i18n: 'piles.stockTotal' },
+  { path: 'data.stock.used', i18n: 'piles.stockUsed' }
+];
 
 const props = defineProps({
     pile: { type: Object, required: true },
     variant: { type: String, default: 'card' }
 });
 
-const PILE_FIELDS = [
-    { path: 'data.specs.sheetThickness', i18n: 'catalog.sheetThickness', suffix: ' mm' },
-    { path: 'data.stock.total', i18n: 'piles.stockTotal' },
-    { path: 'data.stock.used', i18n: 'piles.stockUsed' }
-];
-
 const stock = computed(() => props.pile.data?.stock || null);
-const sheetThickness = computed(() => props.pile.data?.specs?.sheetThickness || null);
+const serial = computed(() => props.pile.data?.serial || props.pile.identity?.serial || '');
 const remaining = computed(() => (stock.value?.total || 0) - (stock.value?.used || 0));
+const requisitionId = computed(() => props.pile.lineage?.requisitionId || null);
 </script>

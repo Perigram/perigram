@@ -1,9 +1,227 @@
-const entityDefinitions = new Map();
-const services = new Map();
-const entityServiceContracts = new Map();
-const serviceContracts = new Map();
-const serviceActionDefinitions = new Map();
-const serviceActionHandlers = new Map();
+export function createCutkitRegistry({ id = 'default' } = {}) {
+  const entityDefinitions = new Map();
+  const services = new Map();
+  const entityServiceContracts = new Map();
+  const serviceContracts = new Map();
+  const serviceActionDefinitions = new Map();
+  const serviceActionHandlers = new Map();
+  const processDefinitions = new Map();
+  const processExecutors = new Map();
+  const hookHandlers = new Map();
+  const domains = new Map();
+  const artifactTypeDefinitions = new Map();
+
+  const registry = {
+    id,
+
+    defineEntity(definition) {
+      if (!definition?.type) throw new Error('Entity definition requires type');
+      entityDefinitions.set(definition.type, Object.freeze({ ...definition }));
+      return registry.getEntityDefinition(definition.type);
+    },
+
+    defineDomain(domain) {
+      if (!domain?.id) throw new Error('Domain requires id');
+      domains.set(domain.id, Object.freeze({ ...domain }));
+
+      for (const entity of domain.entities || []) registry.defineEntity(entity);
+      for (const contract of Object.values(domain.services || {})) registry.defineServiceContract(contract);
+      for (const action of Object.values(domain.operations || domain.serviceActions || {})) registry.defineServiceAction(action);
+      for (const process of Object.values(domain.processes || {})) registry.defineProcess(process);
+      for (const artifactType of Object.values(domain.artifacts || domain.artifactTypes || {})) registry.defineArtifactType(artifactType);
+
+      return registry.getDomain(domain.id);
+    },
+
+    getDomain(id) {
+      return domains.get(id) || null;
+    },
+
+    listDomains() {
+      return Array.from(domains.values());
+    },
+
+    getEntityDefinition(type) {
+      return entityDefinitions.get(type) || null;
+    },
+
+    listEntityDefinitions() {
+      return Array.from(entityDefinitions.values());
+    },
+
+    registerService(type, service) {
+      services.set(type, service);
+      return service;
+    },
+
+    registerEntityService(type, service) {
+      if (!type) throw new Error('Entity service type is required');
+      if (!service?.getById) throw new Error(`Entity service ${type} requires getById`);
+      services.set(type, service);
+      return service;
+    },
+
+    getService(type) {
+      return services.get(type) || null;
+    },
+
+    listServices() {
+      return Array.from(services.entries()).map(([type, service]) => ({ type, service }));
+    },
+
+    clearServices() {
+      services.clear();
+    },
+
+    defineEntityServiceContract(definition) {
+      if (!definition?.type) throw new Error('Entity service contract requires type');
+      entityServiceContracts.set(definition.type, Object.freeze({
+        operations: ['getById', 'list', 'create', 'update', 'remove', 'transition'],
+        ...definition
+      }));
+      return registry.getEntityServiceContract(definition.type);
+    },
+
+    getEntityServiceContract(type) {
+      return entityServiceContracts.get(type) || null;
+    },
+
+    listEntityServiceContracts() {
+      return Array.from(entityServiceContracts.values());
+    },
+
+    defineServiceContract(definition) {
+      if (!definition?.service) throw new Error('Service contract requires service');
+      serviceContracts.set(definition.service, Object.freeze({
+        actions: [],
+        triggers: [],
+        ...definition
+      }));
+      return registry.getServiceContract(definition.service);
+    },
+
+    getServiceContract(service) {
+      return serviceContracts.get(service) || null;
+    },
+
+    listServiceContracts() {
+      return Array.from(serviceContracts.values());
+    },
+
+    defineServiceAction(definition) {
+      if (!definition?.id) throw new Error('Service action requires id');
+      if (!definition?.service) throw new Error(`Service action ${definition.id} requires service`);
+      if (!definition?.action) throw new Error(`Service action ${definition.id} requires action`);
+      serviceActionDefinitions.set(definition.id, Object.freeze({
+        access: { permissions: [], capabilities: [], ...(definition.access || {}) },
+        input: { entities: [], parameters: [], ...(definition.input || {}) },
+        output: { entities: [], artifacts: [], jobs: [], transitions: [], events: [], ...(definition.output || {}) },
+        triggers: [],
+        ...definition
+      }));
+      return registry.getServiceActionDefinition(definition.id);
+    },
+
+    getServiceActionDefinition(id) {
+      return serviceActionDefinitions.get(id) || null;
+    },
+
+    listServiceActionDefinitions() {
+      return Array.from(serviceActionDefinitions.values());
+    },
+
+    defineProcess(definition) {
+      if (!definition?.id) throw new Error('Process definition requires id');
+      if (!definition?.service) throw new Error(`Process ${definition.id} requires service`);
+      processDefinitions.set(definition.id, Object.freeze({
+        input: { entities: [], parameters: [], ...(definition.input || {}) },
+        output: { entities: [], artifacts: [], jobs: [], events: [], data: [], ...(definition.output || {}) },
+        status: {
+          queued: 'QUEUED',
+          running: 'RUNNING',
+          retryWait: 'RETRY_WAIT',
+          succeeded: 'SUCCEEDED',
+          failed: 'FAILED',
+          cancelled: 'CANCELLED',
+          ...(definition.status || {})
+        },
+        retry: { maxAttempts: 3, backoffMs: 30000, ...(definition.retry || {}) },
+        ...definition
+      }));
+      return registry.getProcessDefinition(definition.id);
+    },
+
+    getProcessDefinition(id) {
+      return processDefinitions.get(id) || null;
+    },
+
+    listProcessDefinitions() {
+      return Array.from(processDefinitions.values());
+    },
+
+    registerProcessExecutor(id, executor) {
+      if (!id) throw new Error('Process executor id is required');
+      if (typeof executor !== 'function') throw new Error(`Process executor ${id} must be a function`);
+      processExecutors.set(id, executor);
+      return executor;
+    },
+
+    getProcessExecutor(id) {
+      return processExecutors.get(id) || null;
+    },
+
+    defineArtifactType(definition) {
+      if (!definition?.type) throw new Error('Artifact type definition requires type');
+      artifactTypeDefinitions.set(definition.type, Object.freeze({
+        preview: { kind: 'download', ...(definition.preview || {}) },
+        ...definition
+      }));
+      return registry.getArtifactTypeDefinition(definition.type);
+    },
+
+    getArtifactTypeDefinition(type) {
+      return artifactTypeDefinitions.get(type) || null;
+    },
+
+    listArtifactTypeDefinitions() {
+      return Array.from(artifactTypeDefinitions.values());
+    },
+
+    registerServiceActionHandler(id, handler) {
+      if (!id) throw new Error('Service action handler id is required');
+      if (typeof handler !== 'function') throw new Error(`Service action handler ${id} must be a function`);
+      serviceActionHandlers.set(id, handler);
+      return handler;
+    },
+
+    getServiceActionHandler(id) {
+      return serviceActionHandlers.get(id) || null;
+    },
+
+    clearServiceActionHandlers() {
+      serviceActionHandlers.clear();
+    },
+
+    registerHookHandler(id, handler) {
+      if (!id) throw new Error('Hook handler id is required');
+      if (typeof handler !== 'function') throw new Error(`Hook handler ${id} must be a function`);
+      hookHandlers.set(id, handler);
+      return handler;
+    },
+
+    getHookHandler(id) {
+      return hookHandlers.get(id) || null;
+    },
+
+    listHookHandlers() {
+      return Array.from(hookHandlers.entries()).map(([hookId, handler]) => ({ hookId, handler }));
+    }
+  };
+
+  return registry;
+}
+
+const defaultRegistry = createCutkitRegistry({ id: 'default-compat' });
 
 export class Identity {
   constructor(uid = null, name = '', slug = '', serial = '', reference = '') {
@@ -151,108 +369,139 @@ export class BaseEntity {
 }
 
 export function defineEntity(definition) {
-  if (!definition?.type) throw new Error('Entity definition requires type');
-  entityDefinitions.set(definition.type, Object.freeze({ ...definition }));
-  return getEntityDefinition(definition.type);
+  return defaultRegistry.defineEntity(definition);
+}
+
+export function defineDomain(domain) {
+  return defaultRegistry.defineDomain(domain);
+}
+
+export function getDomain(id) {
+  return defaultRegistry.getDomain(id);
+}
+
+export function listDomains() {
+  return defaultRegistry.listDomains();
 }
 
 export function getEntityDefinition(type) {
-  return entityDefinitions.get(type) || null;
+  return defaultRegistry.getEntityDefinition(type);
 }
 
 export function listEntityDefinitions() {
-  return Array.from(entityDefinitions.values());
+  return defaultRegistry.listEntityDefinitions();
 }
 
 export function registerService(type, service) {
-  services.set(type, service);
+  return defaultRegistry.registerService(type, service);
 }
 
 export function getService(type) {
-  return services.get(type) || null;
+  return defaultRegistry.getService(type);
+}
+
+export function listServices() {
+  return defaultRegistry.listServices();
 }
 
 export function clearServices() {
-  services.clear();
+  defaultRegistry.clearServices();
 }
 
 export function defineEntityServiceContract(definition) {
-  if (!definition?.type) throw new Error('Entity service contract requires type');
-  entityServiceContracts.set(definition.type, Object.freeze({
-    operations: ['getById', 'list', 'create', 'update', 'remove', 'transition'],
-    ...definition
-  }));
-  return getEntityServiceContract(definition.type);
+  return defaultRegistry.defineEntityServiceContract(definition);
 }
 
 export function getEntityServiceContract(type) {
-  return entityServiceContracts.get(type) || null;
+  return defaultRegistry.getEntityServiceContract(type);
 }
 
 export function listEntityServiceContracts() {
-  return Array.from(entityServiceContracts.values());
+  return defaultRegistry.listEntityServiceContracts();
 }
 
 export function registerEntityService(type, service) {
-  if (!type) throw new Error('Entity service type is required');
-  if (!service?.getById) throw new Error(`Entity service ${type} requires getById`);
-  services.set(type, service);
-  return service;
+  return defaultRegistry.registerEntityService(type, service);
 }
 
 export function defineServiceContract(definition) {
-  if (!definition?.service) throw new Error('Service contract requires service');
-  serviceContracts.set(definition.service, Object.freeze({
-    actions: [],
-    triggers: [],
-    ...definition
-  }));
-  return getServiceContract(definition.service);
+  return defaultRegistry.defineServiceContract(definition);
 }
 
 export function getServiceContract(service) {
-  return serviceContracts.get(service) || null;
+  return defaultRegistry.getServiceContract(service);
 }
 
 export function listServiceContracts() {
-  return Array.from(serviceContracts.values());
+  return defaultRegistry.listServiceContracts();
 }
 
 export function defineServiceAction(definition) {
-  if (!definition?.id) throw new Error('Service action requires id');
-  if (!definition?.service) throw new Error(`Service action ${definition.id} requires service`);
-  if (!definition?.action) throw new Error(`Service action ${definition.id} requires action`);
-  serviceActionDefinitions.set(definition.id, Object.freeze({
-    access: { permissions: [], capabilities: [], ...(definition.access || {}) },
-    input: { entities: [], parameters: [], ...(definition.input || {}) },
-    output: { entities: [], artifacts: [], jobs: [], transitions: [], events: [], ...(definition.output || {}) },
-    triggers: [],
-    ...definition
-  }));
-  return getServiceActionDefinition(definition.id);
+  return defaultRegistry.defineServiceAction(definition);
 }
 
 export function getServiceActionDefinition(id) {
-  return serviceActionDefinitions.get(id) || null;
+  return defaultRegistry.getServiceActionDefinition(id);
 }
 
 export function listServiceActionDefinitions() {
-  return Array.from(serviceActionDefinitions.values());
+  return defaultRegistry.listServiceActionDefinitions();
+}
+
+export function defineProcess(definition) {
+  return defaultRegistry.defineProcess(definition);
+}
+
+export function getProcessDefinition(id) {
+  return defaultRegistry.getProcessDefinition(id);
+}
+
+export function listProcessDefinitions() {
+  return defaultRegistry.listProcessDefinitions();
+}
+
+export function registerProcessExecutor(id, executor) {
+  return defaultRegistry.registerProcessExecutor(id, executor);
+}
+
+export function getProcessExecutor(id) {
+  return defaultRegistry.getProcessExecutor(id);
+}
+
+export function defineArtifactType(definition) {
+  return defaultRegistry.defineArtifactType(definition);
+}
+
+export function getArtifactTypeDefinition(type) {
+  return defaultRegistry.getArtifactTypeDefinition(type);
+}
+
+export function listArtifactTypeDefinitions() {
+  return defaultRegistry.listArtifactTypeDefinitions();
 }
 
 export function registerServiceActionHandler(id, handler) {
-  if (!id) throw new Error('Service action handler id is required');
-  if (typeof handler !== 'function') throw new Error(`Service action handler ${id} must be a function`);
-  serviceActionHandlers.set(id, handler);
-  return handler;
+  return defaultRegistry.registerServiceActionHandler(id, handler);
 }
 
 export function getServiceActionHandler(id) {
-  return serviceActionHandlers.get(id) || null;
+  return defaultRegistry.getServiceActionHandler(id);
 }
 
 export function clearServiceActionHandlers() {
-  serviceActionHandlers.clear();
+  defaultRegistry.clearServiceActionHandlers();
+}
+
+export function registerHookHandler(id, handler) {
+  return defaultRegistry.registerHookHandler(id, handler);
+}
+
+export function getHookHandler(id) {
+  return defaultRegistry.getHookHandler(id);
+}
+
+export function listHookHandlers() {
+  return defaultRegistry.listHookHandlers();
 }
 
 export function createEntityRef(type, id) {
@@ -273,6 +522,20 @@ export function createServiceActionResult({
 } = {}) {
   if (!actionId) throw new Error('ServiceActionResult requires actionId');
   return { ok, actionId, entities, artifacts, jobs, transitions, events, data, error };
+}
+
+export function createProcessResult({
+  processId,
+  ok = true,
+  entities = [],
+  artifacts = [],
+  jobs = [],
+  events = [],
+  data = {},
+  error = null
+} = {}) {
+  if (!processId) throw new Error('ProcessResult requires processId');
+  return { ok, processId, entities, artifacts, jobs, events, data, error };
 }
 
 export const createIdentity = (name, slug = '', serial = '', reference = '', uid = slug || name) => new Identity(uid, name, slug, serial, reference);

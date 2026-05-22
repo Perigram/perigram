@@ -1,18 +1,17 @@
 import { createError } from 'h3';
-import { registerServiceActionHandler } from '../../core/blocks/index.js';
 import { createStatus, inheritLineage } from '../../core/blocks/index.js';
 import '../queues/service.js';
 import * as cassetteService from '../cassettes/service.js';
 import * as cassetteDesignService from '../cassette-designs/service.js';
 import { bakeTemplateInstance } from '../parametric-cassettes/service.js';
 import * as nestingRunsService from '../nesting-runs/service.js';
+import * as sheetDesignsService from '../sheet-designs/service.js';
 import * as nestingJobs from './jobs.js';
+import { createProcessRun } from '../../core/processes/service.js';
 import { generateRandomString } from '../../utils/strings.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 
 const activeQueueNestLocks = new Set();
-
-registerServiceActionHandler('solveNesting', solveNesting);
 
 export async function solveNesting({ entities, parameters = {}, data = {}, auth }) {
   const settings = { ...data, ...parameters };
@@ -45,9 +44,10 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
     };
 
     const runNumber = await nestingRunsService.getNextRunNumber(queue._id);
+    const runUid = generateRandomString(12);
     const runOrigin = createStatus('NESTING', auth.userId, { note: `Nesting started in ${settings.materialMode || 'VIRTUAL'} mode` });
     const run = await nestingRunsService.create({
-      identity: { uid: generateRandomString(12) },
+      identity: { uid: runUid, name: `Nesting run ${runNumber}`, serial: `RUN-${runNumber}` },
       runNumber,
       materialMode: settings.materialMode || 'VIRTUAL',
       params,
@@ -57,11 +57,31 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
     }, auth.userId);
     const runId = toFlexibleId(run._id);
 
+    const sheetDesign = await sheetDesignsService.createFromRun(run, {
+      name: `${queue.identity?.name || 'Queue'} sheet design`,
+      specs: { width: params.width, length: params.height, area: (params.width * params.height) / 1000000 },
+      geometryData: {
+        viewBox: `0 0 ${params.width} ${params.height}`,
+        layers: [
+          { name: 'sheet', color: 'currentColor', weight: 2, paths: [`M0 0 H${params.width} V${params.height} H0 Z`] },
+          { name: 'nesting', color: 'var(--p-primary-color)', weight: 1.5, paths: ['M80 80 H520 V360 H80 Z', 'M620 80 H1040 V420 H620 Z'] }
+        ]
+      }
+    }, auth.userId);
+    const processRun = await createProcessRun('nesting.solve', {
+      entities: {
+        queue: queue._id?.toString(),
+        nestingRun: runId.toString(),
+        sheetDesign: sheetDesign._id.toString()
+      },
+      parameters: params
+    }, auth);
     const job = await nestingJobs.create({
       slug: nestingSlug,
       projectSlug: queue.identity?.slug || '',
       queueId: toFlexibleId(queue._id),
       runId,
+      processRunId: toFlexibleId(processRun._id),
       files: jobFiles,
       params,
       status: 'pending',
@@ -70,12 +90,20 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
     });
 
     return {
-      entities: [{ type: 'nesting_run', id: runId.toString() }],
-      jobs: [{ type: 'nesting_job', id: job._id.toString() }],
+      entities: [
+        { type: 'nesting_run', id: runId.toString() },
+        { type: 'sheet_design', id: sheetDesign._id.toString() }
+      ],
+      jobs: [
+        { type: 'process_run', id: processRun._id.toString() },
+        { type: 'nesting_job', id: job._id.toString(), compatibility: true }
+      ],
       data: {
         nestingSlug,
         status: 'NESTING',
-        runId: runId.toString()
+        processRunId: processRun._id.toString(),
+        runId: runId.toString(),
+        sheetDesignId: sheetDesign._id.toString()
       }
     };
   } finally {

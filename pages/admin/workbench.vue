@@ -5,30 +5,281 @@
       <Button icon="pi pi-download" :label="$t('admin.workbench.exportDraft')" @click="downloadDraft" />
     </template>
 
-    <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
-      <Panel :header="$t('admin.workbench.entities')" class="lg:sticky lg:top-4">
-        <div class="flex flex-col gap-3">
-          <InputText v-model="search" :placeholder="$t('common.search')" class="w-full" />
-          <div class="flex max-h-[calc(100vh-12rem)] flex-col gap-1 overflow-y-auto pr-1">
-            <button
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-row flex-nowrap items-center gap-2 overflow-x-auto">
+        <Button
+          v-for="tab in globalWorkbenchTabs"
+          :key="tab.value"
+          :label="$t(tab.labelKey)"
+          :severity="activeWorkbenchSection === tab.value ? 'primary' : 'secondary'"
+          size="small"
+          @click="activeWorkbenchSection = tab.value"
+        />
+      </div>
+
+      <div v-if="activeWorkbenchSection === 'operations'" class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+        <Panel :header="$t('admin.workbench.sectionsOperations')" class="lg:sticky lg:top-4">
+          <div class="flex flex-col gap-3">
+            <Message v-if="operationsError" severity="warn">{{ operationsError }}</Message>
+            <InputText v-model="operationSearch" :placeholder="$t('common.search')" class="w-full" />
+            <div class="flex flex-col gap-2">
+              <label>{{ $t('admin.operations.operation') }}</label>
+              <button
+                v-for="operation in visibleOperations"
+                :key="operation.id"
+                type="button"
+                class="flex min-w-0 flex-col gap-2 rounded-ui border border-content-border bg-content px-3 py-2 text-left"
+                :class="selectedOperationId === operation.id ? 'border-primary' : ''"
+                @click="selectedOperationId = operation.id"
+              >
+                <span class="flex min-w-0 flex-col">
+                  <strong class="truncate">{{ operation.label || operation.id }}</strong>
+                  <small class="text-muted-color">{{ operation.id }}</small>
+                </span>
+                <span class="flex flex-wrap gap-1">
+                  <Tag
+                    v-for="input in operation.input?.entities || []"
+                    :key="input.name"
+                    :value="input.type"
+                    severity="secondary"
+                    size="small"
+                  />
+                  <Tag :value="operation.handlerRegistered ? $t('admin.operations.handler') : $t('admin.operations.noHandler')" :severity="operation.handlerRegistered ? 'success' : 'warn'" size="small" />
+                </span>
+              </button>
+            </div>
+            <Message v-if="!operationsLoading && operationOptions.length === 0" severity="info">
+              {{ $t('admin.operations.noOperations') }}
+            </Message>
+          </div>
+        </Panel>
+
+        <div class="flex min-w-0 flex-col gap-4">
+          <Panel v-if="selectedOperation" :header="$t('admin.operations.input')">
+            <div class="flex flex-col gap-3">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <div class="flex min-w-0 flex-col">
+                  <strong>{{ selectedOperation.label }}</strong>
+                  <small class="text-muted-color">{{ selectedOperation.id }}</small>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <Tag :value="selectedOperation.handlerRegistered ? $t('admin.operations.handler') : $t('admin.operations.noHandler')" :severity="selectedOperation.handlerRegistered ? 'success' : 'warn'" size="small" />
+                </div>
+              </div>
+              <TypedSettingsForm
+                v-model="operationEntities"
+                :fields="operationEntityFields"
+                :context="typedSettingsContext"
+              />
+              <TypedSettingsForm
+                v-model="operationParameters"
+                :fields="visibleOperationParameterFields"
+                :context="typedSettingsContext"
+              />
+                <div v-if="operationInputPreviews.length" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <component
+                  :is="preview.component"
+                  v-for="preview in operationInputPreviews"
+                  :key="preview.key"
+                  v-bind="preview.props"
+                  variant="compact"
+                />
+              </div>
+            </div>
+            <Button
+              class="mt-3"
+              icon="pi pi-play"
+              :label="$t('admin.operations.run')"
+              :loading="operationRunning"
+              :disabled="!selectedOperation || !selectedOperation.runnable"
+              @click="runSelectedOperation"
+            />
+          </Panel>
+
+          <Panel :header="$t('admin.operations.lastOutput')">
+            <div class="flex min-w-0 flex-col gap-3">
+              <div class="flex items-center justify-between gap-3">
+                <strong>{{ $t('admin.operations.lastOutput') }}</strong>
+                <Button icon="pi pi-refresh" text rounded size="small" :aria-label="$t('common.update')" :loading="operationRunsLoading" @click="loadOperationRuns" />
+              </div>
+              <div class="flex min-h-48 flex-col gap-3 rounded-ui border border-content-border bg-content p-3">
+                <div v-if="lastOperationRun" class="flex flex-wrap items-center gap-2">
+                  <Tag :value="lastOperationRun.status" :severity="operationRunSeverity(lastOperationRun.status)" size="small" />
+                  <small class="text-muted-color">{{ formatDateTime(lastOperationRun.finishedAt || lastOperationRun.createdAt) }}</small>
+                </div>
+                <div v-if="operationOutputPreviews.length" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  <component
+                    :is="preview.component"
+                    v-for="preview in operationOutputPreviews"
+                    :key="preview.key"
+                    v-bind="preview.props"
+                    variant="compact"
+                  />
+                </div>
+                <Message v-if="operationMissingOutputRefs.length" severity="warn">
+                  {{ $t('admin.operations.missingOutputRefs') }} {{ operationMissingOutputRefs.join(', ') }}
+                </Message>
+                <Panel v-if="lastOperationRun" :header="$t('admin.operations.debugOutput')">
+                  <pre class="m-0 max-h-[28rem] overflow-auto whitespace-pre-wrap break-words font-mono text-xs">{{ operationRunOutput(lastOperationRun) }}</pre>
+                </Panel>
+                <Message v-if="!lastOperationRun" severity="info">{{ $t('admin.operations.noOutput') }}</Message>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel :header="$t('admin.processes.related')">
+            <div class="flex min-w-0 flex-col gap-3">
+              <div class="flex items-center justify-between gap-3">
+                <strong>{{ $t('admin.processes.related') }}</strong>
+                <Button icon="pi pi-refresh" text rounded size="small" :aria-label="$t('common.update')" :loading="processesLoading" @click="loadProcesses" />
+              </div>
+              <div v-if="selectedOperationProcessDefinitions.length" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <article
+                  v-for="process in selectedOperationProcessDefinitions"
+                  :key="process.id"
+                  class="flex min-w-0 flex-col gap-2 rounded-ui border border-content-border bg-content p-3"
+                >
+                  <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div class="flex min-w-0 flex-col">
+                      <strong class="truncate">{{ process.label || process.id }}</strong>
+                      <small class="text-muted-color">{{ process.id }}</small>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <Tag :value="process.service" severity="secondary" size="small" />
+                      <Tag :value="process.executor?.type || 'server'" severity="info" size="small" />
+                      <Tag v-if="process.executor?.target" :value="process.executor.target" severity="secondary" size="small" />
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap gap-1">
+                    <Tag
+                      v-for="item in processOutputTags(process)"
+                      :key="item"
+                      :value="item"
+                      severity="secondary"
+                      size="small"
+                    />
+                  </div>
+                </article>
+              </div>
+              <Message v-else severity="info">{{ $t('admin.processes.noRelated') }}</Message>
+              <div class="flex flex-col gap-2">
+                <article
+                  v-for="run in selectedOperationProcessRuns"
+                  :key="run._id"
+                  class="flex min-w-0 flex-col gap-2 rounded-ui border border-content-border bg-content p-3"
+                >
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex min-w-0 flex-col">
+                      <strong class="truncate">{{ run.processId }}</strong>
+                      <small class="text-muted-color">{{ run._id }}</small>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <Tag :value="run.status" :severity="processRunSeverity(run.status)" size="small" />
+                      <Tag :value="`${$t('admin.processes.attempts')}: ${run.attempts || 0}/${run.maxAttempts || 0}`" severity="secondary" size="small" />
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
+                    <small class="text-muted-color">{{ $t('admin.processes.worker') }}: {{ run.workerId || run.lockedBy || 'SYSTEM' }}</small>
+                    <small class="text-muted-color">{{ $t('admin.processes.lease') }}: {{ formatDateTime(run.leaseExpiresAt) || 'N/A' }}</small>
+                    <small class="text-muted-color">{{ $t('common.created') }}: {{ formatDateTime(run.createdAt) }}</small>
+                  </div>
+                  <pre class="m-0 max-h-52 overflow-auto whitespace-pre-wrap break-words font-mono text-xs">{{ processRunDebug(run) }}</pre>
+                </article>
+                <Message v-if="selectedOperationProcessDefinitions.length && selectedOperationProcessRuns.length === 0" severity="info">
+                  {{ $t('admin.processes.noRuns') }}
+                </Message>
+              </div>
+            </div>
+          </Panel>
+        </div>
+      </div>
+
+      <div v-else-if="activeWorkbenchSection === 'context'" class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)]">
+        <Panel :header="$t('admin.operations.fixtures')">
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <Tag :value="fixtureStore.context.label" severity="secondary" size="small" />
+              <Tag :value="fixtureStore.seeded ? $t('admin.operations.seeded') : $t('admin.operations.notSeeded')" :severity="fixtureStore.seeded ? 'success' : 'warn'" size="small" />
+            </div>
+            <Message v-if="fixtureStore.error" severity="warn">{{ fixtureStore.error }}</Message>
+            <Message v-else-if="workflowCompileIssues.length" severity="warn">
+              {{ workflowCompileIssues.join(' ') }}
+            </Message>
+            <div class="flex flex-wrap gap-2">
+              <Button icon="pi pi-refresh" :label="$t('admin.operations.rebuildScenario')" severity="secondary" size="small" @click="rebuildFixtureScenario" />
+              <Button icon="pi pi-database" :label="$t('admin.operations.seedScenario')" :loading="fixtureStore.loading" size="small" :disabled="workflowCompileIssues.length > 0" @click="seedFixtureScenario" />
+            </div>
+            <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <component
+                :is="preview.component"
+                v-for="preview in scenarioEntityPreviews"
+                :key="preview.key"
+                v-bind="preview.props"
+                variant="card"
+              />
+            </div>
+          </div>
+        </Panel>
+
+        <Panel :header="$t('admin.operations.testAccess')">
+          <div class="flex flex-col gap-3">
+            <label class="flex items-center gap-2">
+              <Checkbox v-model="workbenchTestAccess.enabled" binary />
+              <span>{{ $t('admin.operations.overrideAccess') }}</span>
+            </label>
+            <div v-if="workbenchTestAccess.enabled" class="grid grid-cols-1 gap-3">
+              <div v-for="field in workbenchAccessFields" :key="field.name" class="flex min-w-0 flex-col gap-1">
+                <label>{{ field.label }}</label>
+                <Select
+                  :model-value="workbenchTestAccess.permissions[field.name]"
+                  :options="accessLevelOptions"
+                  option-label="label"
+                  option-value="value"
+                  class="w-full"
+                  @update:model-value="value => setWorkbenchAccessLevel(field.name, value)"
+                />
+              </div>
+            </div>
+          </div>
+        </Panel>
+      </div>
+
+      <div v-else class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+        <Panel :header="$t('admin.workbench.entities')" class="lg:sticky lg:top-4">
+          <div class="flex flex-col gap-3">
+            <InputText v-model="search" :placeholder="$t('common.search')" class="w-full" />
+            <div class="flex max-h-[calc(100vh-12rem)] flex-col gap-1 overflow-y-auto pr-1">
+              <button
               v-for="entity in visibleEntities"
-              :key="entity.type"
+              :key="entity.key"
               type="button"
               class="flex min-w-0 items-center justify-between gap-2 rounded-ui border border-content-border bg-content px-2 py-2 text-left"
-              :class="selectedEntityType === entity.type ? 'border-primary' : ''"
-              @click="selectedEntityType = entity.type"
+              :class="selectedEntityKey === entity.key ? 'border-primary' : ''"
+              @click="selectedEntityKey = entity.key"
             >
-              <span class="flex min-w-0 items-center gap-2">
-                <strong class="truncate">{{ entity.type }}</strong>
+              <span class="flex min-w-0 flex-col">
+                <strong class="truncate">{{ $t(entity.labelKey) }}</strong>
+                <small class="truncate text-muted-color">{{ entity.entityType }}</small>
               </span>
-              <Tag :value="entity.blocks?.length || 0" severity="secondary" size="small" />
+              <Tag :value="entity.backend?.blocks?.length || 0" severity="secondary" size="small" />
             </button>
+            </div>
           </div>
-        </div>
-      </Panel>
+        </Panel>
 
-      <div v-if="selectedEntity" class="flex flex-col gap-4">
-        <Panel :header="$t('admin.workbench.sectionsUi')">
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-wrap gap-2">
+            <Button
+              v-for="tab in entityWorkbenchTabs"
+              :key="tab.value"
+              :label="$t(tab.labelKey)"
+              :severity="activeEntityTab === tab.value ? 'primary' : 'secondary'"
+              size="small"
+              @click="activeEntityTab = tab.value"
+            />
+          </div>
+
+          <Panel v-if="activeEntityTab === 'ui'" :header="$t('admin.workbench.sectionsUi')">
           <div class="flex flex-col gap-4">
             <Message v-if="selectedUiRows.length === 0" severity="warn">
               {{ $t('uiLab.contract.missingComponent') }}
@@ -65,7 +316,7 @@
           </div>
         </Panel>
 
-        <Panel :header="$t('admin.workbench.sectionsWorkflow')" class="order-2">
+          <Panel v-else-if="activeEntityTab === 'workflow'" :header="$t('admin.workbench.sectionsWorkflow')" class="order-2">
           <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_22rem]">
             <div class="flex flex-col gap-4">
               <Message severity="info">{{ $t('admin.workbench.workflowNoRoles') }}</Message>
@@ -181,8 +432,19 @@
                     <Button icon="pi pi-plus" :label="$t('common.add')" size="small" @click="addTransitionHook(selectedTransition)" />
                   </div>
                   <div v-for="(hook, index) in selectedTransition.hooks || []" :key="index" class="flex flex-col gap-2 rounded-ui border border-content-border p-3">
-                    <Select v-model="hook.handler" :options="hookOptions" option-label="label" option-value="value" class="w-full" />
-                    <Textarea :model-value="JSON.stringify(hook.params || {}, null, 2)" rows="3" class="w-full font-mono text-xs" @update:model-value="value => updateHookParams(hook, value)" />
+                    <Select
+                      :model-value="hook.handler"
+                      :options="hookOptions"
+                      option-label="label"
+                      option-value="value"
+                      class="w-full"
+                      @update:model-value="value => updateHookHandler(hook, value)"
+                    />
+                    <TypedSettingsForm
+                      v-model="hook.params"
+                      :fields="hookParameterFields(hook.handler)"
+                      :context="typedSettingsContext"
+                    />
                     <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" text @click="selectedTransition.hooks.splice(index, 1)" />
                   </div>
                   <Button icon="pi pi-trash" :label="$t('admin.domainBuilder.removeTransition')" severity="danger" outlined @click="removeSelectedTransition" />
@@ -196,7 +458,7 @@
               </div>
         </Panel>
 
-        <Panel :header="$t('admin.workbench.sectionsData')" class="order-3">
+          <Panel v-else-if="activeEntityTab === 'data'" :header="$t('admin.workbench.sectionsData')" class="order-4">
           <Message v-if="modelError" severity="warn">{{ modelError }}</Message>
           <Message v-else-if="modelLoading" severity="info">{{ $t('common.loading') }}</Message>
           <div v-else class="flex flex-col gap-3">
@@ -221,18 +483,19 @@
           </div>
         </Panel>
 
-        <Panel :header="$t('admin.workbench.sectionsFeedback')" class="order-4">
+          <Panel v-else :header="$t('admin.workbench.sectionsFeedback')" class="order-5">
           <div class="flex flex-col gap-3">
             <Textarea v-model="feedbackDraft.note" rows="5" auto-resize :placeholder="$t('uiLab.feedback.placeholder')" />
           </div>
         </Panel>
+        </div>
       </div>
     </div>
   </StandardPage>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue';
 import { MarkerType, Position, VueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -245,21 +508,27 @@ import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import StandardPage from '~/components/shared/StandardPage.vue';
-import { cncEntities, cncWorkflows } from '~/packages/domain-cnc/src/index.js';
-import { createDesignSystemDemoRows } from '~/utils/design-system.js';
+import TypedSettingsForm from '~/components/shared/TypedSettingsForm.vue';
+import { cncEntities, cncHookContracts, cncWorkflows } from '~/packages/domain-cnc/src/index.js';
+import { DESIGN_SYSTEM_ENTITIES, createDesignSystemDemoRows } from '~/utils/design-system.js';
 import { buildWorkflowGraph, parseCommaList, parseJsonObject, stringifyCommaList } from '~/utils/domain-builder.js';
+import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
+import { useWorkbenchFixturesStore } from '~/stores/workbenchFixtures.js';
 
 definePageMeta({
   layout: 'app',
   middleware: 'auth'
 });
 
+const { t } = useI18n();
+const fixtureStore = useWorkbenchFixturesStore();
 const STORAGE_KEY = 'cutkit:entity-workbench:v1';
 const WORKFLOW_LAYOUT_STORAGE_KEY = 'cutkit:entity-workbench-layout:v1';
-const KNOWN_HOOKS = ['propagateToChildren', 'triggerAggregator', 'processPhysicalCut', 'createPhysicalUnits'];
 
 const entities = ref(structuredClone(cncEntities));
 const workflows = ref(structuredClone(cncWorkflows));
+const activeWorkbenchSection = ref('entities');
+const activeEntityTab = ref('ui');
 const uiRows = createDesignSystemDemoRows();
 const feedback = ref({});
 const dataDecisions = ref({});
@@ -267,25 +536,53 @@ const models = ref([]);
 const modelLoading = ref(false);
 const modelError = ref('');
 const search = ref('');
-const selectedEntityType = ref(entities.value[0]?.type || '');
+const selectedEntityKey = ref('');
 const selectedState = ref('');
 const selectedTransitionIndex = ref(null);
 const transitionDraftFrom = ref('');
 const workflowLayouts = ref({});
+const operations = ref([]);
+const operationRuns = ref([]);
+const operationsLoading = ref(false);
+const operationRunsLoading = ref(false);
+const operationRunning = ref(false);
+const operationsError = ref('');
+const operationsRegistry = ref({});
+const operationSearch = ref('');
+const selectedOperationId = ref('');
+const operationEntities = ref({});
+const operationParameters = ref({});
+const processDefinitions = ref([]);
+const processRuns = ref([]);
+const processesLoading = ref(false);
+const processesError = ref('');
+const workbenchTestAccess = ref({ enabled: true, userId: '', organizationId: '', permissions: {} });
+let operationRunPoll = null;
+let processRunPoll = null;
 
 const visibleEntities = computed(() => {
   const term = search.value.trim().toLowerCase();
-  if (!term) return entities.value;
-  return entities.value.filter(entity => `${entity.type} ${entity.collection}`.toLowerCase().includes(term));
+  if (!term) return workbenchEntities.value;
+  return workbenchEntities.value.filter(entity => `${entity.key} ${entity.entityType} ${entity.collection} ${t(entity.labelKey)}`.toLowerCase().includes(term));
 });
-const selectedEntity = computed(() => entities.value.find(entity => entity.type === selectedEntityType.value) || entities.value[0]);
-const selectedUiRows = computed(() => uiRows.filter(row => row.entityType === selectedEntity.value.type));
+const workbenchEntities = computed(() => uiRows.map(row => ({
+  ...row,
+  backend: entities.value.find(entity => entity.type === row.entityType),
+  collection: entities.value.find(entity => entity.type === row.entityType)?.collection || row.entityType
+})));
+const selectedEntityRow = computed(() => {
+  if (!selectedEntityKey.value) selectedEntityKey.value = workbenchEntities.value[0]?.key || '';
+  return workbenchEntities.value.find(entity => entity.key === selectedEntityKey.value) || workbenchEntities.value[0];
+});
+const selectedEntity = computed(() => selectedEntityRow.value?.backend || entities.value.find(entity => entity.type === selectedEntityRow.value?.entityType) || entities.value[0]);
+const selectedUiRows = computed(() => uiRows.filter(row => row.key === selectedEntityRow.value?.key));
 const selectedModel = computed(() => models.value.find(model => normalizeCollection(model.collection) === normalizeCollection(selectedEntity.value.collection)));
 const selectedModelFields = computed(() => selectedModel.value?.fields || []);
 const compactModelFields = computed(() => selectedModelFields.value.filter(field => !isObviousModelField(field)));
 const feedbackDraft = computed(() => {
-  feedback.value[selectedEntity.value.type] ||= { decision: 'unchecked', note: '' };
-  return feedback.value[selectedEntity.value.type];
+  const key = selectedEntityRow.value?.key || selectedEntity.value.type;
+  feedback.value[key] ||= { decision: 'unchecked', note: '' };
+  return feedback.value[key];
 });
 const workflowDraft = computed(() => {
   workflows.value[selectedEntity.value.type] ||= { initial: 'DRAFT', states: { DRAFT: { canUpdateMeta: true } }, transitions: [] };
@@ -303,6 +600,10 @@ const selectedTransition = computed(() => {
   if (selectedTransitionIndex.value === null) return null;
   return workflowDraft.value.transitions[selectedTransitionIndex.value] || null;
 });
+const workflowCompile = computed(() => compileWorkflowDraft({ entities: entities.value, workflows: workflows.value }));
+const workflowCompileIssues = computed(() => workflowCompile.value.issues.map(issue => issue.message));
+provide('statusWorkflows', computed(() => workflowCompile.value.machines));
+provide('entityContext', computed(() => fixtureStore.context));
 const defaultEdgeOptions = {
   type: 'smoothstep',
   markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--p-content-border-color)' },
@@ -354,26 +655,126 @@ const selectedLifecycleAttachments = computed(() => {
     multiple: Boolean(definition?.multiple)
   }));
 });
+const globalWorkbenchTabs = [
+  { value: 'entities', labelKey: 'admin.workbench.entities' },
+  { value: 'context', labelKey: 'admin.workbench.sectionsContext' },
+  { value: 'operations', labelKey: 'admin.workbench.sectionsOperations' }
+];
+const entityWorkbenchTabs = [
+  { value: 'ui', labelKey: 'admin.workbench.sectionsUi' },
+  { value: 'workflow', labelKey: 'admin.workbench.sectionsWorkflow' },
+  { value: 'data', labelKey: 'admin.workbench.sectionsData' },
+  { value: 'feedback', labelKey: 'admin.workbench.sectionsFeedback' }
+];
 const hookOptions = computed(() => uniqueSorted([
-  ...KNOWN_HOOKS,
+  ...Object.keys(cncHookContracts),
   ...(workflowDraft.value.transitions || []).flatMap(transition => (transition.hooks || []).map(hook => hook.handler).filter(Boolean))
 ]).map(value => ({ label: value, value })));
+const visibleOperations = computed(() => {
+  const term = operationSearch.value.trim().toLowerCase();
+  const runnableOperations = operations.value.filter(operation => operation.kind !== 'process' && operation.runnable !== false);
+  if (!term) return runnableOperations;
+  return runnableOperations.filter(operation => JSON.stringify({
+    id: operation.id,
+    label: operation.label,
+    input: operation.input,
+    output: operation.output,
+    access: operation.access
+}).toLowerCase().includes(term));
+});
+const operationOptions = computed(() => visibleOperations.value.map(operation => ({
+  label: operation.label || operation.id,
+  value: operation.id
+})));
+const selectedOperation = computed(() => visibleOperations.value.find(operation => operation.id === selectedOperationId.value) || null);
+const selectedOperationProcessDefinitions = computed(() => {
+  const ids = operationRelatedProcessIds(selectedOperation.value);
+  return processDefinitions.value.filter(process => ids.has(process.id));
+});
+const selectedOperationProcessRuns = computed(() => {
+  const ids = operationRelatedProcessIds(selectedOperation.value);
+  const runIds = new Set((lastOperationRun.value?.result?.jobs || [])
+    .filter(job => job.type === 'process_run' && job.id)
+    .map(job => job.id?.toString()));
+  return processRuns.value.filter(run => ids.has(run.processId) || runIds.has(run._id?.toString()));
+});
+const entityRenderers = computed(() => Object.fromEntries(DESIGN_SYSTEM_ENTITIES.map(entry => [entry.entityType, entry])));
+const operationEntityFields = computed(() => (selectedOperation.value?.input?.entities || []).map(input => ({
+  name: input.name,
+  label: `${input.name}:${input.type}`,
+  type: 'entityId',
+  entityType: input.type,
+  required: Boolean(input.required)
+})));
+const visibleOperationParameterFields = computed(() => (selectedOperation.value?.input?.parameters || [])
+  .filter(field => field.display !== 'debug' && field.display !== 'hidden'));
+const workbenchAccessFields = computed(() => Object.keys({
+  ...(fixtureStore.access.permissions || {}),
+  ...(workbenchTestAccess.value.permissions || {})
+}).sort().map(feature => ({ name: feature, label: feature })));
+const lastOperationRun = computed(() => operationRuns.value[0] || null);
+const operationInputPreviews = computed(() => operationEntityFields.value
+  .map(field => previewForEntityRef(field.entityType, operationEntities.value[field.name], `input:${field.name}`))
+  .filter(Boolean));
+const operationOutputPreviews = computed(() => {
+  const result = lastOperationRun.value?.result;
+  if (!result) return [];
+  return [
+    ...(result.entities || []).map(item => previewForEntityRef(item.type, item.id, `entity:${item.type}:${item.id}`)),
+    ...(result.artifacts || []).map(item => previewForArtifactOutput(item))
+  ].filter(Boolean);
+});
+const operationMissingOutputRefs = computed(() => {
+  const result = lastOperationRun.value?.result;
+  if (!result) return [];
+  return [
+    ...(result.entities || []).map(item => ({ type: item.type, id: item.id })),
+    ...(result.artifacts || []).map(item => ({ type: 'artifact', id: item.id }))
+  ]
+    .filter(item => item.type && item.id && !findScenarioEntity(item.type, item.id))
+    .map(item => `${item.type}:${item.id}`);
+});
+const scenarioEntityPreviews = computed(() => [
+  previewForEntityRef('project', fixtureStore.refs.project, 'scenario:project'),
+  previewForEntityRef('queue', fixtureStore.refs.queue, 'scenario:queue'),
+  previewForEntityRef('cassette', fixtureStore.refs.cassetteTemplate, 'scenario:cassette'),
+  previewForEntityRef('sheet_design', fixtureStore.refs.sheetDesign, 'scenario:sheet-design')
+].filter(Boolean));
+const typedSettingsContext = computed(() => ({
+  entityTypes: entities.value.map(entity => entity.type),
+  workflowStates: workflowCompile.value.states,
+  entityOptions: fixtureStore.entityOptions
+}));
 
 const dataDecisionOptions = ['unchecked', 'keep', 'remove', 'rename', 'move', 'investigate'].map(value => ({ label: value, value }));
+const accessLevelOptions = ['none', 'read', 'write', 'admin'].map(value => ({ label: value, value }));
 
 onMounted(() => {
   loadStoredDraft();
   loadModels();
   loadWorkflowLayouts();
+  rebuildFixtureScenario();
+  loadOperations();
+  loadOperationRuns();
+  loadProcesses();
+  if (import.meta.client) operationRunPoll = window.setInterval(loadOperationRuns, 5000);
+  if (import.meta.client) processRunPoll = window.setInterval(loadProcesses, 5000);
+});
+
+onUnmounted(() => {
+  if (operationRunPoll) window.clearInterval(operationRunPoll);
+  if (processRunPoll) window.clearInterval(processRunPoll);
 });
 
 watch([workflows, feedback, dataDecisions], saveDraft, { deep: true });
 watch(workflowLayouts, saveWorkflowLayouts, { deep: true });
-watch(selectedEntityType, () => {
+watch(selectedEntityKey, () => {
   selectedState.value = '';
   selectedTransitionIndex.value = null;
   transitionDraftFrom.value = '';
 });
+
+watch(selectedOperationId, syncOperationInput);
 
 async function loadModels() {
   modelLoading.value = true;
@@ -387,6 +788,292 @@ async function loadModels() {
   } finally {
     modelLoading.value = false;
   }
+}
+
+async function loadOperations() {
+  operationsLoading.value = true;
+  operationsError.value = '';
+  try {
+    const result = await $fetch('/api/admin/operations');
+    operations.value = (result.operations || []).filter(operation => operation.kind !== 'process');
+    operationsRegistry.value = result.registry || {};
+    rebuildFixtureScenario();
+    ensureSelectedOperation();
+    syncOperationInput();
+  } catch (error) {
+    operationsError.value = error?.data?.message || error?.message || 'Failed to load operations';
+  } finally {
+    operationsLoading.value = false;
+  }
+}
+
+async function loadProcesses() {
+  processesLoading.value = true;
+  processesError.value = '';
+  try {
+    const result = await $fetch('/api/admin/processes', {
+      query: {
+        limit: 25
+      }
+    });
+    processDefinitions.value = result.definitions || [];
+    processRuns.value = result.runs || [];
+  } catch (error) {
+    processesError.value = error?.data?.message || error?.message || 'Failed to load processes';
+  } finally {
+    processesLoading.value = false;
+  }
+}
+
+async function loadOperationRuns() {
+  if (!selectedOperationId.value || selectedOperation.value?.kind === 'process') {
+    operationRuns.value = [];
+    return;
+  }
+  operationRunsLoading.value = true;
+  try {
+    const result = await $fetch('/api/admin/operations/runs', {
+      query: { actionId: selectedOperationId.value, limit: 1 }
+    });
+    operationRuns.value = result.runs || [];
+    await hydrateOperationRunOutput(operationRuns.value[0]);
+  } catch (error) {
+    operationsError.value = error?.data?.message || error?.message || 'Failed to load operation runs';
+  } finally {
+    operationRunsLoading.value = false;
+  }
+}
+
+async function hydrateOperationRunOutput(run) {
+  const refs = [
+    ...(run?.result?.entities || []),
+    ...(run?.result?.artifacts || []).map(item => ({ type: 'artifact', id: item.id, artifactType: item.type }))
+  ].filter(item => item.type && item.id);
+  const hydrated = [];
+  for (const ref of refs) {
+    const entity = await fetchOperationEntity(ref).catch(() => null);
+    if (entity) hydrated.push({ type: ref.type, entity });
+  }
+  if (hydrated.length) fixtureStore.upsertEntities(hydrated);
+}
+
+async function fetchOperationEntity(ref) {
+  const path = operationEntityPath(ref.type, ref.id);
+  if (!path) return null;
+  const entity = await $fetch(path);
+  return entity && typeof entity === 'object' ? entity : null;
+}
+
+function operationEntityPath(type, id) {
+  const paths = {
+    nesting_run: `/api/nesting-runs/${id}`,
+    sheet_design: `/api/sheet-designs/${id}`,
+    artifact: `/api/artifacts/${id}/metadata`
+  };
+  return paths[type] || null;
+}
+
+async function runSelectedOperation() {
+  if (!selectedOperation.value || !selectedOperation.value.runnable) return;
+  operationRunning.value = true;
+  operationsError.value = '';
+  try {
+    await $fetch(`/api/admin/operations/${selectedOperation.value.id}/run`, {
+      method: 'POST',
+      body: {
+        entities: operationEntities.value,
+        parameters: operationParameters.value,
+        testAccess: workbenchTestAccess.value
+      }
+    });
+    await loadOperationRuns();
+  } catch (error) {
+    operationsError.value = error?.data?.message || error?.message || 'Failed to run operation';
+    await loadOperationRuns();
+  } finally {
+    operationRunning.value = false;
+  }
+}
+
+function rebuildFixtureScenario() {
+  fixtureStore.rebuild({
+    workflows: workflows.value,
+    entities: entities.value,
+    serviceActions: operations.value
+  });
+  applyScenarioDefaults();
+}
+
+async function seedFixtureScenario() {
+  await fixtureStore.seed({
+    workflows: workflows.value,
+    entities: entities.value,
+    serviceActions: operations.value
+  });
+  applyScenarioDefaults();
+}
+
+function syncOperationInput() {
+  ensureSelectedOperation();
+  if (!selectedOperation.value) {
+    operationEntities.value = {};
+    operationParameters.value = {};
+    operationRuns.value = [];
+    return;
+  }
+  const entitiesInput = {};
+  for (const input of selectedOperation.value.input?.entities || []) {
+    entitiesInput[input.name] = '';
+  }
+  operationEntities.value = entitiesInput;
+  operationParameters.value = defaultSettingsFor(selectedOperation.value.input?.parameters || []);
+  applyScenarioDefaults();
+  loadOperationRuns();
+}
+
+function applyScenarioDefaults() {
+  syncWorkbenchAccessDefaults();
+  if (!selectedOperation.value) return;
+  const defaults = fixtureStore.defaultsForAction(selectedOperation.value.id);
+  operationEntities.value = {
+    ...operationEntities.value,
+    ...(defaults.entities || {})
+  };
+  operationParameters.value = {
+    ...operationParameters.value,
+    ...(defaults.parameters || {})
+  };
+}
+
+function syncWorkbenchAccessDefaults() {
+  workbenchTestAccess.value = {
+    ...workbenchTestAccess.value,
+    userId: fixtureStore.access.userId || workbenchTestAccess.value.userId,
+    organizationId: fixtureStore.access.organizationId || workbenchTestAccess.value.organizationId,
+    permissions: {
+      ...(fixtureStore.access.permissions || {}),
+      ...(workbenchTestAccess.value.permissions || {})
+    }
+  };
+}
+
+function setWorkbenchAccessLevel(feature, level) {
+  workbenchTestAccess.value = {
+    ...workbenchTestAccess.value,
+    permissions: {
+      ...(workbenchTestAccess.value.permissions || {}),
+      [feature]: level
+    }
+  };
+}
+
+function ensureSelectedOperation() {
+  if (visibleOperations.value.some(operation => operation.id === selectedOperationId.value)) return;
+  selectedOperationId.value = visibleOperations.value[0]?.id || '';
+}
+
+function operationRunSeverity(status) {
+  if (status === 'SUCCEEDED') return 'success';
+  if (status === 'FAILED') return 'danger';
+  if (status === 'RUNNING') return 'warn';
+  return 'secondary';
+}
+
+function processRunSeverity(status) {
+  if (status === 'SUCCEEDED') return 'success';
+  if (status === 'FAILED' || status === 'CANCELLED') return 'danger';
+  if (status === 'RUNNING') return 'warn';
+  if (status === 'RETRY_WAIT') return 'info';
+  return 'secondary';
+}
+
+function processOutputTags(process) {
+  const output = process?.output || {};
+  return [
+    ...(output.entities || []).map(item => `entity:${item}`),
+    ...(output.artifacts || []).map(item => `artifact:${item}`),
+    ...(output.jobs || []).map(item => `job:${item}`),
+    ...(output.events || []).map(item => `event:${item}`),
+    ...(output.data || []).map(item => `data:${item}`)
+  ];
+}
+
+function operationRelatedProcessIds(operation) {
+  if (!operation) return new Set();
+  const explicit = operation.output?.processes || [];
+  const inferred = processDefinitions.value
+    .filter(process => process.service === operation.service)
+    .filter(process => process.id === `${operation.service}.${operation.action}` || process.id.endsWith(`.${operation.action}`))
+    .map(process => process.id);
+  const runIds = processRuns.value
+    .filter(run => run.service === operation.service)
+    .filter(run => run.processId === `${operation.service}.${operation.action}` || run.processId?.endsWith(`.${operation.action}`))
+    .map(run => run.processId);
+  return new Set([...explicit, ...inferred, ...runIds]);
+}
+
+function processRunDebug(run) {
+  return JSON.stringify({
+    input: run.input,
+    output: run.output,
+    error: run.error,
+    executor: run.executor,
+    auth: run.auth
+  }, null, 2);
+}
+
+function operationRunSummary(run) {
+  if (run.error?.message) return run.error.message;
+  if (run.result?.entities?.length) return run.result.entities.map(item => `${item.type}:${item.id}`).join(', ');
+  if (run.result?.jobs?.length) return run.result.jobs.map(item => `${item.type}:${item.id}`).join(', ');
+  return run.status;
+}
+
+function operationRunOutput(run) {
+  if (run.error) return JSON.stringify(run.error, null, 2);
+  if (run.result) return JSON.stringify(run.result, null, 2);
+  return operationRunSummary(run);
+}
+
+function previewForEntityRef(entityType, id, key) {
+  if (!entityType || !id) return null;
+  const renderer = entityRenderers.value[entityType];
+  if (!renderer?.component) return null;
+  const entity = findScenarioEntity(entityType, id);
+  if (!entity) return null;
+  return {
+    key,
+    component: renderer.component,
+    props: { [renderer.propName]: entity }
+  };
+}
+
+function previewForArtifactOutput(item) {
+  const renderer = entityRenderers.value.artifact;
+  if (!renderer?.component || !item?.id) return null;
+  const entity = findScenarioEntity('artifact', item.id);
+  if (!entity) return null;
+  return {
+    key: `artifact:${item.type}:${item.id}`,
+    component: renderer.component,
+    props: { [renderer.propName]: entity }
+  };
+}
+
+function findScenarioEntity(entityType, id) {
+  const options = fixtureStore.entityOptions[entityType] || [];
+  return options.find(option => option.value?.toString() === id?.toString())?.entity || null;
+}
+
+function defaultSettingsFor(fields) {
+  return Object.fromEntries((fields || [])
+    .filter(field => field.default !== undefined)
+    .map(field => [field.name, field.default]));
+}
+
+function formatDateTime(value) {
+  if (!value) return '';
+  return new Date(value).toLocaleString();
 }
 
 function loadStoredDraft() {
@@ -440,7 +1127,7 @@ function resetWorkbench() {
 }
 
 function dataDecisionFor(field) {
-  const key = `${selectedEntity.value.type}:${field.name}`;
+  const key = `${selectedEntityRow.value?.key || selectedEntity.value.type}:${field.name}`;
   dataDecisions.value[key] ||= { decision: 'unchecked', target: '' };
   return dataDecisions.value[key];
 }
@@ -658,12 +1345,16 @@ function defaultTransitionAccess() {
 
 function addTransitionHook(transition) {
   transition.hooks ||= [];
-  transition.hooks.push({ handler: 'triggerAggregator' });
+  transition.hooks.push({ handler: hookOptions.value[0]?.value || 'triggerAggregator', params: {} });
 }
 
-function updateHookParams(hook, value) {
-  hook.params = parseJsonObject(value, hook.params || {});
-  if (Object.keys(hook.params).length === 0) delete hook.params;
+function updateHookHandler(hook, value) {
+  hook.handler = value;
+  hook.params = {};
+}
+
+function hookParameterFields(handler) {
+  return cncHookContracts[handler]?.parameters || [];
 }
 
 function removeSelectedTransition() {

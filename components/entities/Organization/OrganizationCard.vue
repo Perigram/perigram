@@ -1,38 +1,21 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <template v-if="variant === 'inline'">
-      <Chip>
-        <Avatar :label="avatarLabel" shape="circle" size="small" />
-        <IdentityBlock :entity="organization" variant="compact" />
-      </Chip>
-    </template>
-
-    <template v-else-if="variant === 'compact'">
-      <EntityCard :entity="organization" entity-type="organization" variant="compact" :show-trace="false" :show-status="false">
-        <template #before-identity>
-            <Avatar :label="avatarLabel" shape="circle" />
-        </template>
-      </EntityCard>
-    </template>
-
-    <template v-else-if="variant === 'card'">
-      <EntityCard :entity="organization" entity-type="organization" variant="card" :show-trace="false" :show-status="false">
-        <template #before-identity>
-            <Avatar :label="avatarLabel" shape="circle" size="large" />
-        </template>
-        <template #subtitle>
-            <small>{{ organization.data?.type || $t('common.default') }}</small>
-        </template>
-        <Divider />
-        <div class="flex flex-col gap-2">
-            <DataBlock :entity="organization" :fields="ORGANIZATION_FIELDS" />
-            <div v-if="createdAt" class="flex justify-between items-center">
-                <small>{{ $t('common.created') }}</small>
-                <span>{{ createdAt }}</span>
-            </div>
+    <EntityCard :entity="organization" entity-type="organization" :variant="variant" :show-trace="false" :show-status="false">
+      <template #before-identity>
+        <Avatar :label="avatarLabel" shape="circle" size="large" />
+      </template>
+      <template #subtitle>
+        <small>{{ organization.data?.type || $t('common.default') }}</small>
+      </template>
+      <Divider />
+      <div class="flex flex-col gap-2">
+        <DataBlock :entity="organization" :fields="ORGANIZATION_FIELDS" />
+        <div v-if="createdAt" class="flex justify-between items-center">
+          <small>{{ $t('common.created') }}</small>
+          <span>{{ createdAt }}</span>
         </div>
-      </EntityCard>
-    </template>
+      </div>
+    </EntityCard>
   </div>
 </template>
 
@@ -43,10 +26,8 @@
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Avatar from 'primevue/avatar';
-import Chip from 'primevue/chip';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 
 const props = defineProps({
   organization: { type: Object, required: true },

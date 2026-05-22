@@ -77,7 +77,7 @@ export async function markReadyByRun(runId, type, fileId, mimeType, name = '') {
   };
 
   const artifact = await repository.findOne(filter);
-  if (!artifact) throw createError({ statusCode: 404, message: 'Artifact placeholder not found' });
+  if (!artifact) return null;
 
   const status = createStatus('READY', 'SYSTEM', { note: 'File generated' });
   await repository.updateById(artifact._id, {

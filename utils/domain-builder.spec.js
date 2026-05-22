@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cncEntities, cncFrontendEntities, cncHookContracts, cncServiceActions, cncServiceContracts, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { cncEntities, cncFrontendEntities, cncHookContracts, cncOperations, cncServiceContracts, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
 import {
   buildWorkflowGraph,
   createDomainDraft,
@@ -15,7 +15,7 @@ describe('domain builder utilities', () => {
       workflows: cncWorkflows,
       summaries: cncSummaries,
       serviceContracts: cncServiceContracts,
-      serviceActions: cncServiceActions,
+      operations: cncOperations,
       hookContracts: cncHookContracts
     });
 
@@ -63,7 +63,7 @@ describe('domain builder utilities', () => {
           triggers: []
         }
       },
-      serviceActions: {
+      operations: {
         runQueue: {
           id: 'runQueue',
           service: 'queue',
@@ -93,7 +93,8 @@ describe('domain builder utilities', () => {
     expect(source).toContain('export const cncWorkflows = {');
     expect(source).toContain('export const cncSummaries = [];');
     expect(source).toContain('export const cncServiceContracts = {');
-    expect(source).toContain('export const cncServiceActions = {');
+    expect(source).toContain('export const cncOperations = {');
+    expect(source).toContain('export const cncServiceActions = cncOperations;');
     expect(source).toContain('export const cncHookContracts = {');
     expect(source).toContain('export const cncFrontendEntities = [');
     expect(source).toContain("type: 'queue'");

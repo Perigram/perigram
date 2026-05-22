@@ -131,6 +131,7 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { generateSvgData } from '~/utils/dxfParser';
+import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 
 const props = defineProps({
   batchId: { type: String, required: false },
@@ -147,6 +148,7 @@ const confirm = useConfirm();
 const toast = useToast();
 const { artifacts: storeArtifacts, loading } = storeToRefs(artifactsStore);
 const artifacts = computed(() => props.artifacts || storeArtifacts.value);
+const domainUi = useCutkitDomainUi();
 
 const showPreview = ref(false);
 const previewArtifactData = ref(null);
@@ -155,7 +157,7 @@ const previewError = ref(null);
 const svgData = ref(null);
 const visibleLayers = ref([]);
 const transform = ref({ x: 0, y: 0, scale: 1 });
-const isPdf = computed(() => artifactMimeType(previewArtifactData.value).includes('pdf') || artifactType(previewArtifactData.value) === 'PDF_PASSPORT');
+const isPdf = computed(() => artifactPreviewKind(previewArtifactData.value) === 'pdf');
 
 const filteredLayers = computed(() => {
     if (!svgData.value) return [];
@@ -208,7 +210,9 @@ const stopPan = () => {
 };
 
 const artifactType = (artifact) => artifact?.data?.type || '';
-const artifactMimeType = (artifact) => artifact?.attachments?.primary?.metadata?.mimeType || '';
+const artifactDefinition = (artifact) => domainUi.getArtifactType(artifactType(artifact));
+const artifactPreviewKind = (artifact) => domainUi.getArtifactPreview(artifactType(artifact)).kind;
+const artifactMimeType = (artifact) => artifact?.attachments?.primary?.metadata?.mimeType || artifactDefinition(artifact)?.mimeType || '';
 
 const getArtifactIcon = (mimeType) => {
     if (mimeType.includes('pdf')) return 'pi pi-file-pdf';
@@ -225,7 +229,7 @@ const getStatusSeverity = (status) => {
 
 const downloadArtifact = (artifact) => {
     if (!artifact?._id) return;
-    window.location.href = `/api/artifacts/${artifact._id}`;
+    window.location.href = domainUi.getDownloadEndpoint('artifact', artifact._id);
 };
 
 const previewArtifact = async (artifact) => {
@@ -236,10 +240,10 @@ const previewArtifact = async (artifact) => {
     svgData.value = null;
     resetTransform();
 
-    const type = artifactType(artifact);
-    if (type === 'LAYOUT_DXF' || type === 'DXF') {
+    const previewKind = artifactPreviewKind(artifact);
+    if (previewKind === 'dxf') {
         try {
-            const response = await fetch(`/api/artifacts/${artifact._id}`);
+            const response = await fetch(domainUi.getDownloadEndpoint('artifact', artifact._id));
             if (!response.ok) throw new Error(t('artifacts.fetchContentFailed'));
             const dxfText = await response.text();
             

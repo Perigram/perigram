@@ -3,3 +3,9 @@
     <slot />
   </div>
 </template>
+
+<style scoped>
+:deep(.p-datatable-header-cell) {
+  background: var(--p-surface-50);
+}
+</style>

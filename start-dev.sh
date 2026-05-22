@@ -30,8 +30,8 @@ tmux new-window -t "$SESSION_NAME" -n "vi" -c "$ROOT_DIR"
 tmux send-keys -t "$SESSION_NAME:1" "vi ." C-m
 
 # Window 2: AI / CLI tools
-tmux new-window -t "$SESSION_NAME" -n "gemini" -c "$ROOT_DIR"
-tmux send-keys -t "$SESSION_NAME:2" "gemini" C-m
+tmux new-window -t "$SESSION_NAME" -n "AI" -c "$ROOT_DIR"
+tmux send-keys -t "$SESSION_NAME:2" "codex" C-m
 
 # Attach to the tmux session
 tmux attach -t "$SESSION_NAME"

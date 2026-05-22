@@ -1,12 +1,24 @@
 <template>
-    <div class="inline-flex items-center gap-3 p-2 border rounded">
-        <i class="pi pi-clone"></i>
-        <div class="flex flex-col">
-            <small>{{ $t('piles.pile') }}</small>
-            <span>{{ data.identity?.serial || data._id?.toString().slice(-6) }}</span>
+    <div class="flex flex-col gap-3 rounded-ui border border-content-border bg-subtle p-3">
+        <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <i class="pi pi-box"></i>
+                <div class="flex flex-col">
+                    <small class="text-muted-color">{{ $t('entities.batchPile') }}</small>
+                    <span class="font-medium">{{ serial }}</span>
+                </div>
+            </div>
+            <Tag v-if="thickness" :value="`${thickness} mm`" severity="secondary" size="small" />
         </div>
-        <div class="flex gap-1">
-            <Tag v-if="thickness" :value="`${thickness}mm`" severity="secondary" />
+        <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="flex flex-col">
+                <small class="text-muted-color">{{ $t('piles.stockTotal') }}</small>
+                <span class="font-medium">{{ stock.total ?? $t('common.notAvailable') }}</span>
+            </div>
+            <div class="flex flex-col">
+                <small class="text-muted-color">{{ $t('piles.remaining') }}</small>
+                <span class="font-medium">{{ remaining }}</span>
+            </div>
         </div>
     </div>
 </template>
@@ -16,8 +28,12 @@ import { computed } from 'vue';
 import Tag from 'primevue/tag';
 
 const props = defineProps({
-    data: { type: Object, required: true }
+    pile: { type: Object, required: true }
 });
 
-const thickness = computed(() => props.data.specs?.thickness || props.data.data?.specs?.thickness);
+const specs = computed(() => props.pile.specs || props.pile.data?.specs || {});
+const stock = computed(() => props.pile.data?.stock || {});
+const serial = computed(() => props.pile.data?.serial || props.pile.identity?.serial || props.pile._id?.toString().slice(-6));
+const thickness = computed(() => specs.value.sheetThickness || specs.value.thickness);
+const remaining = computed(() => Math.max((stock.value.total || 0) - (stock.value.used || 0), 0));
 </script>

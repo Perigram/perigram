@@ -4,10 +4,10 @@
  */
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
-import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import { computed } from 'vue';
+import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 
 const props = defineProps({
   remnant: { type: Object, required: true },
@@ -19,15 +19,14 @@ const isReusable = computed(() => props.remnant.data?.isReusable ?? props.remnan
 
 <template>
   <div class="h-full">
-    <EntityCard :entity="remnant" entity-type="remnant" :variant="variant">
+    <EntityCard :entity="remnant" entity-type="remnant" :variant="variant" :show-status="false">
       <template #compact-content>
         <SpecsBlock :entity="remnant" variant="compact" />
       </template>
       <template v-if="variant === 'card'">
-        <div class="flex items-center justify-between gap-2">
-          <StatusBadge :entity="remnant" />
-          <Tag :value="isReusable ? $t('common.reusable') : $t('common.waste')" :severity="isReusable ? 'success' : 'secondary'" size="small" />
-        </div>
+        <GeometryPreview :entity="remnant" />
+        <Divider />
+        <Tag :value="isReusable ? $t('common.reusable') : $t('common.waste')" :severity="isReusable ? 'success' : 'secondary'" size="small" />
         <Divider />
         <SpecsBlock :entity="remnant" />
       </template>

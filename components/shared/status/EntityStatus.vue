@@ -4,12 +4,14 @@
  * Mandatory component for managing entity states and transitions.
  * Integrates display (StatusBadge) and logic (useStatusController).
  */
-import { ref, computed, toRef } from 'vue';
+import { ref, computed, inject, toRef, unref } from 'vue';
 import Popover from 'primevue/popover';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
+import StatusHistory from '~/components/shared/status/StatusHistory.vue';
+import StatusLocation from '~/components/shared/status/StatusLocation.vue';
 import { useStatus } from '~/composables/useBlocks';
 import { useStatusController } from '~/composables/useStatusController';
 import { getWorkflowStatusActions } from '~/utils/status-actions.js';
@@ -21,19 +23,21 @@ const props = defineProps({
   showActions: { type: Boolean, default: true },
   actions: { type: Array, default: () => [] }, // preferred action API
   manualActions: { type: Array, default: () => [] }, // backward compatibility
-  expanded: { type: Boolean, default: null } // auto-expands when actions are provided
+  expanded: { type: Boolean, default: null }, // auto-expands only for full status surfaces
+  maxInlineActions: { type: Number, default: null },
+  showHistory: { type: Boolean, default: true },
+  workflows: { type: Object, default: null }
 });
 
 const emit = defineEmits(['transitioned']);
 const { t } = useI18n();
-const { state, timestamp, metadata } = useStatus(toRef(props, 'entity'));
+const { state } = useStatus(toRef(props, 'entity'));
 const { transition, isTransitioning } = useStatusController();
 const op = ref();
+const providedWorkflows = inject('statusWorkflows', null);
 
 const toggle = (event) => {
-    if (!isExpanded.value && (hasActions.value || timestamp.value || metadata.value?.note)) {
-        op.value.toggle(event);
-    }
+    op.value?.toggle(event);
 };
 
 // Available transitions (to be fetched or derived from a machine registry if available)
@@ -58,20 +62,38 @@ const defaultTransitions = computed(() => {
     return getWorkflowStatusActions({
         entityType: props.entityType,
         state: state.value,
+        workflows: props.workflows || unref(providedWorkflows) || undefined,
         t
     });
 });
 
 const effectiveActions = computed(() => {
     if (!props.showActions) return [];
-    return customActions.value.length > 0 ? customActions.value : defaultTransitions.value;
+    const customKeys = new Set(customActions.value.map(action => action.to || action.label));
+    return [
+        ...customActions.value,
+        ...defaultTransitions.value.filter(action => !customKeys.has(action.to || action.label))
+    ]
+      .filter(action => action?.display !== false && action?.display !== 'hidden');
 });
 
-const hasCustomActions = computed(() => customActions.value.length > 0);
 const hasActions = computed(() => effectiveActions.value.length > 0);
+const inlineActionLimit = computed(() => {
+    if (typeof props.maxInlineActions === 'number') return props.maxInlineActions;
+    return isExpanded.value ? 2 : 0;
+});
+const inlineActions = computed(() => effectiveActions.value
+    .filter(action => (action.display || 'inline') === 'inline')
+    .slice(0, inlineActionLimit.value));
+const overflowActions = computed(() => [
+    ...effectiveActions.value.filter(action => (action.display || 'inline') === 'menu'),
+    ...effectiveActions.value.filter(action => (action.display || 'inline') === 'inline').slice(inlineActionLimit.value)
+]);
+const hasLocation = computed(() => Boolean(props.entity?.status?.lifecycle?.data?.location));
+const hasOverflowContent = computed(() => overflowActions.value.length > 0 || hasLocation.value || props.showHistory);
 const isExpanded = computed(() => {
     if (typeof props.expanded === 'boolean') return props.expanded;
-    return props.variant === 'full' || hasCustomActions.value;
+    return props.variant === 'full';
 });
 
 const runAction = async (action) => {
@@ -80,7 +102,7 @@ const runAction = async (action) => {
     if (typeof action.command === 'function') {
         await action.command();
         emit('transitioned', action.to || action.label || null);
-        if (!isExpanded.value) op.value?.hide?.();
+        op.value?.hide?.();
         return;
     }
 
@@ -91,42 +113,61 @@ const runAction = async (action) => {
 </script>
 
 <template>
-  <div v-if="props.entity" class="entity-status min-w-0">
+  <div v-if="props.entity" class="entity-status min-w-0 max-w-full">
     <template v-if="!isExpanded">
-      <StatusBadge :state="state" class="cursor-pointer" @click="toggle" />
+      <div class="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-1.5">
+        <StatusBadge :state="state" class="cursor-pointer shrink-0 max-w-full" @click="toggle" />
+        <Button
+          v-for="action in inlineActions"
+          :key="action.to || action.label"
+          :label="action.label"
+          :icon="action.icon"
+          :severity="action.severity || 'secondary'"
+          :disabled="isTransitioning"
+          size="small"
+          text
+          class="shrink-0"
+          @click.stop="runAction(action)"
+        />
+        <Button
+          v-if="hasOverflowContent"
+          icon="pi pi-ellipsis-h"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="$t('common.more')"
+          @click.stop="toggle"
+        />
+      </div>
 
       <Popover ref="op">
-          <div class="flex flex-col gap-4 min-w-48 max-w-80">
-              <div v-if="hasActions" class="flex flex-col gap-2">
-                  <small>{{ $t('common.actions.title') }}</small>
-                  <div class="flex flex-col gap-1">
-                      <Button
-                          v-for="action in effectiveActions"
-                          :key="action.to || action.label"
-                          :label="action.label"
-                          :icon="action.icon"
-                          :severity="action.severity || 'secondary'"
-                          :disabled="isTransitioning"
-                          size="small"
-                          text
-                          class="justify-start"
-                          @click="runAction(action)"
-                      />
-                  </div>
+          <div class="flex flex-col gap-4 min-w-72 max-w-96">
+              <div v-if="overflowActions.length" class="flex flex-col gap-2">
+                  <Button
+                      v-for="action in overflowActions"
+                      :key="action.to || action.label"
+                      :label="action.label"
+                      :icon="action.icon"
+                      :severity="action.severity || 'secondary'"
+                      :disabled="isTransitioning"
+                      size="small"
+                      text
+                      class="justify-start whitespace-normal text-left"
+                      @click.stop="runAction(action)"
+                  />
               </div>
 
-              <Divider v-if="hasActions && (timestamp || metadata?.note)" />
+              <Divider v-if="overflowActions.length && (hasLocation || showHistory)" />
 
-              <div v-if="timestamp || metadata?.note" class="flex flex-col gap-3">
-                  <div v-if="timestamp" class="flex flex-col">
-                      <small>{{ $t('common.lastUpdated') }}</small>
-                      <span>{{ timestamp.toLocaleString() }}</span>
-                  </div>
-                  <div v-if="metadata?.note" class="flex flex-col">
-                      <small>{{ $t('common.note') }}</small>
-                      <span class="italic">"{{ metadata.note }}"</span>
-                  </div>
+              <div v-if="hasLocation" class="flex flex-col gap-3">
+                  <StatusLocation :entity="entity" />
               </div>
+
+              <template v-if="showHistory">
+                <Divider v-if="hasLocation" />
+                <StatusHistory :entity="entity" :entity-type="entityType" compact />
+              </template>
 
               <slot name="extra"></slot>
           </div>
@@ -135,30 +176,53 @@ const runAction = async (action) => {
 
     <template v-else>
         <div class="flex flex-col gap-2 min-w-0">
-            <div class="flex items-center gap-2 min-w-0">
-                <StatusBadge :state="state" />
-                <div v-if="timestamp" class="flex items-center gap-2 text-xs text-muted-color min-w-0">
-                    <span class="truncate">{{ timestamp.toLocaleDateString() }}</span>
-                    <span class="truncate">{{ timestamp.toLocaleTimeString() }}</span>
-                </div>
+            <div class="flex flex-wrap items-center gap-2 min-w-0">
+                <StatusBadge :state="state" class="max-w-full" />
             </div>
 
-            <div v-if="metadata?.note" class="text-xs italic text-muted-color truncate" :title="metadata.note">
-                "{{ metadata.note }}"
-            </div>
+            <StatusLocation v-if="hasLocation" :entity="entity" />
+
+            <StatusHistory v-if="showHistory" :entity="entity" :entity-type="entityType" compact />
 
             <div v-if="hasActions" class="flex flex-wrap gap-2">
                 <Button
-                    v-for="action in effectiveActions"
+                    v-for="action in inlineActions"
                     :key="action.to || action.label"
                     :label="action.label"
                     :icon="action.icon"
                     :severity="action.severity || 'secondary'"
                     :disabled="isTransitioning"
                     size="small"
-                    @click="runAction(action)"
+                    @click.stop="runAction(action)"
+                />
+                <Button
+                    v-if="overflowActions.length"
+                    icon="pi pi-ellipsis-h"
+                    text
+                    rounded
+                    size="small"
+                    severity="secondary"
+                    :aria-label="$t('common.more')"
+                    @click.stop="toggle"
                 />
             </div>
+
+            <Popover ref="op">
+                <div class="flex flex-col gap-2 min-w-56">
+                    <Button
+                        v-for="action in overflowActions"
+                        :key="action.to || action.label"
+                        :label="action.label"
+                        :icon="action.icon"
+                        :severity="action.severity || 'secondary'"
+                        :disabled="isTransitioning"
+                        size="small"
+                        text
+                        class="justify-start whitespace-normal text-left"
+                        @click.stop="runAction(action)"
+                    />
+                </div>
+            </Popover>
 
             <slot name="extra"></slot>
         </div>

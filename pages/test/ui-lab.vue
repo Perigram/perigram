@@ -257,8 +257,16 @@
             <EntityStatus :entity="primitiveEntity" entity-type="queue" variant="full" :show-actions="false" />
             </template>
 
+            <template v-else-if="primitive.key === 'StatusLocation'">
+              <StatusLocation :entity="sheetEntity" />
+            </template>
+
             <template v-else-if="primitive.key === 'StatusHistory'">
               <StatusHistory entity-type="queue" :entity="primitiveEntity" :mock-events="mockHistory" />
+            </template>
+
+            <template v-else-if="primitive.key === 'GeometryPreview'">
+              <GeometryPreview :entity="sheetDesignEntity" />
             </template>
 
             <template v-else-if="primitive.key === 'TraceLink'">
@@ -402,12 +410,14 @@ import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
 import frameworkManifest from '~/framework.manifest.json';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import StatusLocation from '~/components/shared/status/StatusLocation.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -430,7 +440,8 @@ import {
   createMockHistory,
   createMockPile,
   createMockQueue,
-  createMockSheet
+  createMockSheet,
+  createMockSheetDesign
 } from '~/test-data/factories.js';
 import { useEntityStore } from '~/stores/entities';
 
@@ -447,7 +458,9 @@ const PRIMITIVE_EXAMPLE_KEYS = [
   'SpecsBlock',
   'StatusBadge',
   'EntityStatus',
+  'StatusLocation',
   'StatusHistory',
+  'GeometryPreview',
   'TraceLink',
   'TraceChain',
   'ActionToolbar',
@@ -483,6 +496,7 @@ const activeRowsWithModels = computed(() => activeRows.value.map((row) => ({
 const primitiveEntity = createMockQueue();
 const pileEntity = createMockPile();
 const sheetEntity = createMockSheet();
+const sheetDesignEntity = createMockSheetDesign();
 const mockHistory = createMockHistory(['DRAFT', 'NESTING', 'READY']);
 
 seedDemoTraceEntities();

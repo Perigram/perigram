@@ -17,6 +17,7 @@ import {
 import { cncWorkflows } from '../packages/domain-cnc/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { STATUS_MAPPINGS } from '../utils/status-engine.js';
+import { getWorkflowStatusActions } from '../utils/status-actions.js';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 
@@ -109,9 +110,59 @@ describe('Design system manifest', () => {
 
   it('uses string cassette template parameters matching the DTO contract', () => {
     const template = factories.createMockCassetteTemplate();
+    const cassette = factories.createMockCassette();
 
     expect(template.data.parameters).toEqual(['A', 'B', 'C']);
+    expect(cassette.data.parameters).toEqual(['A', 'B', 'C']);
+    expect(cassette.data.type).toBe('PARAMETRIC');
     expect(template).not.toHaveProperty('parameters');
+  });
+
+  it('keeps material pile and batch pile demo DTOs distinct', () => {
+    const material = factories.createMockMaterial();
+    const materialPile = factories.createMockPile();
+    const batchPile = factories.createMockBatchPile();
+
+    expect(material.data.code).toBe('ACP');
+    expect(materialPile.lineage.requisitionId).toBeUndefined();
+    expect(batchPile.lineage.requisitionId).toBeTruthy();
+    expect(batchPile.data.serial).toBeTruthy();
+    expect(batchPile.data.stock.total).toBeGreaterThan(batchPile.data.stock.used);
+  });
+
+  it('uses real workflow definitions as the only interactive status source', () => {
+    for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {
+      if (entry.status === 'interactive') {
+        expect(cncWorkflows[entry.entityType], `${entry.key} is interactive without a workflow`).toBeTruthy();
+      } else if (!cncWorkflows[entry.entityType]) {
+        expect(entry.status, `${entry.key} without workflow must not be interactive`).not.toBe('interactive');
+      }
+    }
+  });
+
+  it('allows status actions to use a live workflow override', () => {
+    const actions = getWorkflowStatusActions({
+      entityType: 'queue',
+      state: 'DRAFT',
+      workflows: {
+        queue: {
+          initial: 'DRAFT',
+          states: { DRAFT: {}, READY_FOR_TEST: {} },
+          transitions: [{ from: 'DRAFT', to: 'READY_FOR_TEST' }]
+        }
+      }
+    });
+
+    expect(actions.map(action => action.to)).toEqual(['READY_FOR_TEST']);
+  });
+
+  it('gives the UI lab test user a real access model', () => {
+    const user = factories.createMockUser();
+
+    expect(user.data.role).toBeTruthy();
+    expect(user.data.permissions.projects).toBeTruthy();
+    expect(user.data.memberships?.[0]?.organizationId).toBeTruthy();
+    expect(user.data.memberships?.[0]?.permissions).toEqual(user.data.permissions);
   });
 
   it('exports token projections for PrimeVue, Tailwind, and CSS variables', () => {
@@ -154,7 +205,7 @@ describe('Design system manifest', () => {
     const cassetteTemplate = manifest.designSystem.components.find(component => component.key === 'cassetteTemplate');
 
     expect(manifest.validations).toEqual({ ok: true, issues: [] });
-    expect(cassetteTemplate.fieldPaths).toEqual(['data.parameters.length', 'data.type']);
+    expect(cassetteTemplate.fieldPaths).toEqual(['data.parameters.length']);
     expect(cassetteTemplate.fieldPaths).not.toContain('type');
     expect(cassetteTemplate.fieldPaths).not.toContain('parameterCount');
   });
@@ -187,9 +238,60 @@ describe('Design system manifest', () => {
     expect(page).not.toContain("from '@vue-flow/background'");
     expect(page).toContain('workflowNodes');
     expect(page).toContain('workflowEdges');
+    expect(page).not.toContain("tabs = ['entities', 'workflows', 'operations'");
     expect(page).toContain("downloadText('domain-cnc.generated.js'");
     expect(page).toContain("middleware: 'auth'");
     expect(layout).toContain("router.push('/admin/domain-builder')");
+  });
+
+  it('exposes service action definitions and runs in the admin workbench', () => {
+    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
+    const service = fs.readFileSync(path.join(REPO_ROOT, 'server/core/operations/service.js'), 'utf8');
+    const adapter = fs.readFileSync(path.join(REPO_ROOT, 'server/adapters/cnc-domain.js'), 'utf8');
+
+    expect(workbench).toContain('sectionsOperations');
+    expect(workbench).toContain('activeWorkbenchSection');
+    expect(workbench).toContain('activeEntityTab');
+    expect(workbench).toContain('globalWorkbenchTabs');
+    expect(workbench).toContain('entityWorkbenchTabs');
+    expect(workbench).toContain("value: 'entities'");
+    expect(workbench).toContain("value: 'context'");
+    expect(workbench).toContain("value: 'operations'");
+    expect(workbench).toContain("const entityWorkbenchTabs = [");
+    expect(workbench).toContain('/api/admin/operations');
+    expect(workbench).toContain('/api/admin/operations/runs');
+    expect(workbench).toContain('/api/admin/processes');
+    expect(workbench).toContain('runSelectedOperation');
+    expect(workbench).toContain("operation.kind !== 'process'");
+    expect(workbench).toContain('selectedOperationProcessDefinitions');
+    expect(workbench).toContain('selectedOperationProcessRuns');
+    expect(workbench).toContain('operationRelatedProcessIds');
+    expect(workbench).toContain('!selectedOperation.runnable');
+    expect(workbench).toContain('visibleOperations');
+    expect(workbench).toContain('operationSearch');
+    expect(workbench).toContain('operationsRegistry');
+    expect(workbench).toContain('handlerRegistered');
+    expect(workbench).not.toContain("admin.operations.registry");
+    expect(workbench).not.toContain('input.type === selectedEntity.value?.type');
+    expect(workbench).toContain('noOperations');
+    expect(workbench).toContain('operationEntityFields');
+    expect(workbench).toContain("type: 'entityId'");
+    expect(workbench).toContain('lastOperationRun');
+    expect(workbench).toContain('TypedSettingsForm');
+    expect(workbench).toContain('cncHookContracts');
+    expect(workbench).toContain('parameters: operationParameters.value');
+    expect(workbench).not.toContain("from 'primevue/datatable'");
+    expect(workbench).not.toContain('TableFrame');
+    expect(service).toContain('serviceActionRunsRepository.create');
+    expect(service).toContain('handlerRegistered');
+    expect(service).not.toContain("features/nesting/operations.js");
+    expect(service).not.toContain("features/artifacts/operations.js");
+    expect(adapter).toContain("features/nesting/operations.js");
+    expect(adapter).toContain("features/artifacts/operations.js");
+    expect(adapter).toContain('cncDomain');
+    expect(fs.readFileSync(path.join(REPO_ROOT, 'server/api/admin/operations/index.get.js'), 'utf8')).toContain('listProcessDefinitions');
+    expect(service).toContain("status: 'SUCCEEDED'");
+    expect(service).toContain("status: 'FAILED'");
   });
 
   it('merges data-model review fields into UI lab entity rows', () => {
@@ -239,9 +341,50 @@ describe('Design system manifest', () => {
       to: 'READY'
     }));
     expect(getWorkflowStatusActions({ entityType: 'sheet', state: 'AVAILABLE', t: key => key })).toEqual(expect.arrayContaining([
-      expect.objectContaining({ to: 'IN-CUTTING' }),
-      expect.objectContaining({ to: 'SCRAP' })
+      expect.objectContaining({ to: 'IN-CUTTING', display: 'inline' }),
+      expect.objectContaining({ to: 'SCRAP', display: 'menu' })
     ]));
+    expect(getWorkflowStatusActions({ entityType: 'project', state: 'DRAFT', t: key => key })).not.toContainEqual(expect.objectContaining({
+      to: 'DRAFT'
+    }));
+  });
+
+  it('keeps status popovers free of placeholder copy and duplicate last-updated sections', () => {
+    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/EntityStatus.vue'), 'utf8');
+    const statusHistory = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/StatusHistory.vue'), 'utf8');
+
+    expect(entityStatus).not.toContain("common.actions.title");
+    expect(entityStatus).not.toContain("common.lastUpdated");
+    expect(entityStatus).not.toContain("common.history");
+    expect(entityStatus).not.toContain("metadata?.note");
+    expect(entityStatus).toContain("v-if=\"hasLocation\"");
+    expect(statusHistory).not.toContain("status.noHistory");
+    expect(statusHistory).toContain('fallbackEvents');
+    expect(statusHistory).toContain('displayEvents');
+  });
+
+  it('normalizes typed status lifecycle locations for status surfaces', async () => {
+    const { normalizeStatusLocation } = await import('../utils/status-location.js');
+
+    expect(normalizeStatusLocation({
+      status: {
+        lifecycle: {
+          data: {
+            location: { type: 'warehouse', warehouseId: 'wh-1', label: 'Main' }
+          }
+        }
+      }
+    })).toEqual({ type: 'warehouse', id: 'wh-1', label: 'Main' });
+
+    expect(normalizeStatusLocation({
+      status: {
+        lifecycle: {
+          data: {
+            location: { type: 'coordinates', coordinates: { x: 10, y: 20 } }
+          }
+        }
+      }
+    })).toEqual({ type: 'coordinates', label: 'x: 10, y: 20' });
   });
 
   it('keeps factory demo states and badge mappings aligned with workflow definitions', () => {

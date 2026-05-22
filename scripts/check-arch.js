@@ -212,6 +212,37 @@ dtoContractFiles.forEach(file => {
   }
 });
 
+console.log('\nChecking golden architecture boundaries...');
+const jsFiles = [
+  ...walkDir('server').filter(file => file.endsWith('.js')),
+  ...walkDir('components').filter(file => file.endsWith('.vue')),
+  ...walkDir('composables').filter(file => file.endsWith('.js')),
+  ...walkDir('workers').filter(file => file.endsWith('.py'))
+];
+
+jsFiles.forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  const relFile = path.relative('.', file);
+
+  if (relFile.startsWith('server/core/') && !relFile.endsWith('README.md') && /(@cutkit\/domain-cnc|packages\/domain-cnc)/.test(content)) {
+    console.error(`❌ ${relFile} imports CNC domain directly — use server/runtime/cutkit-registry.js`);
+    errors++;
+  }
+
+  if (relFile !== 'server/core/processes/repository.js' && /db\.collection\((['"])process_runs\1\)|process_runs\s*=\s*db\[(['"])process_runs\2\]/.test(content)) {
+    console.error(`❌ ${relFile} touches process_runs directly — use server/core/processes/service.js`);
+    errors++;
+  }
+
+  if (
+    (relFile.startsWith('components/shared/') || relFile === 'composables/useEntity.js' || relFile === 'components/ArtifactsTable.vue') &&
+    /(@cutkit\/domain-cnc|packages\/domain-cnc)/.test(content)
+  ) {
+    console.error(`❌ ${relFile} imports CNC domain directly — consume the injected domain UI adapter`);
+    errors++;
+  }
+});
+
 console.log('\n--- Verification Summary ---');
 if (errors === 0) {
   console.log('✅ All features comply with v24 Golden Path.');

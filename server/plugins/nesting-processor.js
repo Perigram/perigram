@@ -13,6 +13,7 @@ import {
   GridFSBucket
 } from 'mongodb';
 import { createStatus } from '../core/blocks/index.js';
+import * as processRunsService from '../core/processes/service.js';
 import { service as artifactService } from '../features/artifacts/index.js';
 import * as sheetDesignsService from '../features/sheet-designs/service.js';
 
@@ -51,6 +52,9 @@ async function processNextJob() {
   if (!job) return;
 
   console.log(`Processing nesting job: ${job.slug}`);
+  if (job.processRunId) {
+    await processRunsService.startProcessRun(job.processRunId, 'nesting-processor');
+  }
 
   try {
     // 1. Prepare Input for Worker
@@ -285,7 +289,14 @@ async function processNextJob() {
     // Finalize Job and Queue
     await db.collection('nesting_jobs').updateOne(
       { _id: job._id },
-      { $set: { status: 'done', dxf_files: (generatedFiles || []).map(f => f.filename), finishedAt: new Date() } }
+      {
+        $set: {
+          status: 'done',
+          dxf_files: (generatedFiles || []).map(f => f.filename),
+          dxf_file_ids: fileIds.map(fileId => fileId.toString()),
+          finishedAt: new Date()
+        }
+      }
     );
     
     // Update Nesting Run Status to COMPLETE
@@ -305,7 +316,10 @@ async function processNextJob() {
 
     // Update artifacts status
     if (fileIds.length > 0) {
-        await artifactService.markReadyByRun(job.runId, 'LAYOUT_DXF', fileIds[0], 'application/dxf');
+        const artifact = await artifactService.markReadyByRun(job.runId, 'LAYOUT_DXF', fileIds[0], 'application/dxf');
+        if (!artifact) {
+          console.warn(`No LAYOUT_DXF artifact request found for nesting run ${job.runId}; keeping generated DXF on job ${job.slug}.`);
+        }
     }
     
     // Mark other placeholders as FAILED for now if not implemented
@@ -314,6 +328,22 @@ async function processNextJob() {
         { "lineage.runId": job.runId, status: { $ne: 'READY' }, "status.state": { $ne: 'READY' } },
         { $set: { status: failStatus, updatedAt: new Date() } }
     );
+
+    if (job.processRunId) {
+      await processRunsService.completeProcessRun(job.processRunId, {
+        entities: [
+          { type: 'nesting_run', id: job.runId?.toString() },
+          ...sheetDesigns.map(design => ({ type: 'sheet_design', id: design._id.toString() }))
+        ],
+        artifacts: fileIds.map(fileId => ({ type: 'LAYOUT_DXF', id: fileId.toString() })),
+        data: {
+          nestingSlug: job.slug,
+          placedCount: totalPlaced,
+          sheetCount: layoutCount,
+          utilization: totalUtilization
+        }
+      });
+    }
 
     console.log(`Job ${job.slug} completed successfully. Placed ${totalPlaced} items on ${layoutCount} sheets.`);
   } catch (error) {
@@ -336,6 +366,9 @@ async function processNextJob() {
             { "lineage.runId": job.runId },
             { $set: { status: artifactErrorStatus, error: error.message } }
         );
+    }
+    if (job.processRunId) {
+      await processRunsService.failProcessRun(job.processRunId, error);
     }
   }
 }

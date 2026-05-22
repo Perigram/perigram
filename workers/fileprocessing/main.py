@@ -4,6 +4,8 @@ import traceback
 import threading
 import signal
 import sys
+import json
+import urllib.request
 from datetime import datetime, timedelta
 from utils.logger import setup_logger
 from utils.mongo import db, _client
@@ -53,6 +55,32 @@ except Exception as e:
     raise e
 
 user_dxf_files = db["user_dxf_files"]
+PROCESS_API_URL = os.environ.get("CUTKIT_API_URL", "http://app:3000").rstrip("/")
+WORKER_TOKEN = os.environ.get("WORKER_TOKEN", "")
+
+def mark_process_run(process_run_id, status, output=None, error=None):
+    if not process_run_id:
+        return
+    endpoint = {
+        "RUNNING": "heartbeat",
+        "SUCCEEDED": "complete",
+        "FAILED": "fail",
+        "QUEUED": "cancel"
+    }.get(status)
+    if not endpoint:
+        return
+    payload = {"result": output or {}, "message": str(error) if error else None, "reason": "Worker released job"}
+    data = json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        f"{PROCESS_API_URL}/api/processes/{process_run_id}/{endpoint}",
+        data=data,
+        headers={"Content-Type": "application/json", "x-worker-token": WORKER_TOKEN},
+        method="POST"
+    )
+    try:
+        urllib.request.urlopen(request, timeout=5).read()
+    except Exception as e:
+        logger.error(f"Failed to update process run {process_run_id}: {e}")
 
 def keep_alive_worker():
     global current_doc_id
@@ -92,6 +120,7 @@ while not shutdown_requested:
     current_doc_id = doc["_id"]
     
     try:
+        mark_process_run(doc.get("processRunId"), "RUNNING")
         user_dxf_files.update_one(
             {"_id": current_doc_id },
             {"$set": {"update_ts": datetime.now()}}
@@ -103,11 +132,16 @@ while not shutdown_requested:
                 {"_id": current_doc_id},
                 {"$set": {"processingStatus": "completed"}}
             )
+            mark_process_run(doc.get("processRunId"), "SUCCEEDED", {
+                "processId": "dxf.parseUpload",
+                "data": {"fileId": str(current_doc_id), "status": "completed"}
+            })
         else:
             user_dxf_files.update_one(
                 {"_id": current_doc_id},
                 {"$set": {"processingStatus": "pending"}}
             )
+            mark_process_run(doc.get("processRunId"), "QUEUED")
             
     except Exception as e:
         logger.error("Error in project processing", extra={"error": str(e), "traceback": traceback.format_exc()})
@@ -116,5 +150,6 @@ while not shutdown_requested:
             {"$set": {"processingStatus": "error",
                       "processingError": str(e)}}
         )
+        mark_process_run(doc.get("processRunId"), "FAILED", error=e)
     finally:
         current_doc_id = None

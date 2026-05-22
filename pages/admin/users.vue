@@ -18,7 +18,28 @@
             </Column>
             <Column field="data.role" :header="$t('queue.status')" sortable>
                 <template #body="slotProps">
-                    <Tag :value="$t(`roles.${slotProps.data.data?.role}`)" :severity="getRoleSeverity(slotProps.data.data?.role)" />
+                    <Tag :value="$t(`roles.${slotProps.data.data?.role}`)" :severity="getRoleSeverity(slotProps.data.data?.role)" size="small" />
+                </template>
+            </Column>
+            <Column :header="$t('admin.workbench.entities')">
+                <template #body="slotProps">
+                    <div class="flex flex-col gap-1">
+                        <small class="text-muted-color">{{ activeMembership(slotProps.data)?.organizationId || $t('common.notAvailable') }}</small>
+                        <span>{{ activeMembership(slotProps.data)?.role || slotProps.data.data?.role }}</span>
+                    </div>
+                </template>
+            </Column>
+            <Column :header="$t('auth.permissions')">
+                <template #body="slotProps">
+                    <div class="flex flex-wrap gap-1">
+                        <Tag
+                            v-for="item in permissionSummary(slotProps.data).slice(0, 4)"
+                            :key="item"
+                            :value="item"
+                            severity="secondary"
+                            size="small"
+                        />
+                    </div>
                 </template>
             </Column>
             <Column :header="$t('common.actions.title')" class="text-right">
@@ -39,11 +60,21 @@
 
         <!-- Permissions Dialog -->
         <StandardDialog v-model:visible="permDialog" :header="$t('admin.editPermissions')" size="md">
-            <PermissionEditor 
-                v-if="selectedUser" 
-                :permissions="selectedUser.data?.permissions" 
-                @save="savePermissions" 
-            />
+            <div v-if="selectedUser" class="flex flex-col gap-4">
+                <div class="flex flex-wrap gap-2">
+                    <Tag :value="selectedUser.data?.role" severity="secondary" size="small" />
+                    <Tag
+                        v-if="activeMembership(selectedUser)?.organizationId"
+                        :value="activeMembership(selectedUser).organizationId"
+                        severity="info"
+                        size="small"
+                    />
+                </div>
+                <PermissionEditor
+                    :permissions="activeMembership(selectedUser)?.permissions || selectedUser.data?.permissions"
+                    @save="savePermissions"
+                />
+            </div>
         </StandardDialog>
     </StandardPage>
 </template>
@@ -97,6 +128,18 @@ const getRoleSeverity = (role) => {
         case 'CustomerAdmin': return 'info';
         default: return 'secondary';
     }
+};
+
+const activeMembership = (user) => {
+    const memberships = user?.data?.memberships || [];
+    return memberships.find(item => item.status === 'active') || memberships[0] || null;
+};
+
+const permissionSummary = (user) => {
+    const permissions = activeMembership(user)?.permissions || user?.data?.permissions || {};
+    return Object.entries(permissions)
+        .filter(([, level]) => level && level !== 'none')
+        .map(([feature, level]) => `${feature}:${level}`);
 };
 
 const openCreateUser = () => {

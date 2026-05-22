@@ -62,7 +62,7 @@ export const useEntityStore = defineStore('entities', () => {
     /**
      * Fetch an entity and store it in the registry.
      */
-    async function fetchEntity(type, id, force = false) {
+    async function fetchEntity(type, id, force = false, options = {}) {
         if (!type || !id) return null;
         if (!force && registry.value[type][id]) return registry.value[type][id];
 
@@ -85,7 +85,9 @@ export const useEntityStore = defineStore('entities', () => {
             registry.value[type][id] = data;
             return data;
         } catch (err) {
-            console.error(`Failed to fetch ${type} with id ${id}:`, err);
+            if (!options.silent) {
+                console.error(`Failed to fetch ${type} with id ${id}:`, err);
+            }
             error.value = err.message;
             return null;
         } finally {
