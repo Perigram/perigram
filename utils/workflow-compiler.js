@@ -3,8 +3,9 @@ import { validateTransition } from '../packages/workflows/src/index.js';
 import { validateDomainDraft } from './domain-builder.js';
 
 export function compileWorkflowDraft({ entities = cncEntities, workflows = {}, hookContracts = cncHookContracts } = {}) {
+  const entityDefinitions = Array.isArray(entities) && entities.length > 0 ? entities : cncEntities;
   const draft = {
-    entities,
+    entities: entityDefinitions,
     workflows,
     hookContracts,
     frontendEntities: [],

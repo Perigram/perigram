@@ -114,4 +114,21 @@ describe('domain builder utilities', () => {
     expect(graph.edges).toContainEqual(expect.objectContaining({ index: 0, from: 'DRAFT', to: 'READY', reciprocal: true }));
     expect(graph.edges).toContainEqual(expect.objectContaining({ index: 1, from: 'READY', to: 'DRAFT', reciprocal: true, reverse: true }));
   });
+
+  it('compiles workflows with committed entity definitions when the caller has not loaded entities yet', async () => {
+    const { compileWorkflowDraft } = await import('./workflow-compiler.js');
+    const compiled = compileWorkflowDraft({
+      entities: [],
+      workflows: {
+        queue: {
+          initial: 'DRAFT',
+          states: { DRAFT: { canUpdateMeta: true } },
+          transitions: []
+        }
+      },
+      hookContracts: cncHookContracts
+    });
+
+    expect(compiled.issues.map(issue => issue.message)).not.toContain('Workflow references unknown entity type: queue');
+  });
 });
