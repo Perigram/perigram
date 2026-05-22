@@ -131,4 +131,21 @@ describe('domain builder utilities', () => {
 
     expect(compiled.issues.map(issue => issue.message)).not.toContain('Workflow references unknown entity type: queue');
   });
+
+  it('compiles workflows with committed hook contracts when the caller has not loaded hooks yet', async () => {
+    const { compileWorkflowDraft } = await import('./workflow-compiler.js');
+    const compiled = compileWorkflowDraft({
+      entities: [{ type: 'queue', collection: 'queues', blocks: ['identity', 'status'] }],
+      workflows: {
+        queue: {
+          initial: 'DRAFT',
+          states: { DRAFT: { canUpdateMeta: true }, READY: {} },
+          transitions: [{ from: 'DRAFT', to: 'READY', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] }]
+        }
+      },
+      hookContracts: {}
+    });
+
+    expect(compiled.issues.map(issue => issue.message)).not.toContain('queue transition #1 references unknown hook contract: triggerAggregator');
+  });
 });

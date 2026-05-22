@@ -4,10 +4,11 @@ import { validateDomainDraft } from './domain-builder.js';
 
 export function compileWorkflowDraft({ entities = cncEntities, workflows = {}, hookContracts = cncHookContracts } = {}) {
   const entityDefinitions = Array.isArray(entities) && entities.length > 0 ? entities : cncEntities;
+  const hookDefinitions = hookContracts && Object.keys(hookContracts).length > 0 ? hookContracts : cncHookContracts;
   const draft = {
     entities: entityDefinitions,
     workflows,
-    hookContracts,
+    hookContracts: hookDefinitions,
     frontendEntities: [],
     summaries: [],
     serviceContracts: {},
