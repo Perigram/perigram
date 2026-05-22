@@ -12,18 +12,18 @@ export function createEndpointMap(definitions = []) {
 export function createDomainUiAdapter(domain = {}) {
   const endpointMap = createEndpointMap(domain.ui?.endpoints || []);
   const surfaceMap = Object.fromEntries((domain.ui?.surfaces || []).map(surface => [surface.key || surface.entityType, surface]));
-  const artifactTypeMap = domain.artifactTypes || domain.artifacts || {};
+  const attachmentKindMap = domain.attachmentKinds || {};
 
   return {
     endpointMap,
     surfaceMap,
-    artifactTypeMap,
+    attachmentKindMap,
     getSingleEndpoint: (type, id) => getSingleEndpoint(endpointMap, type, id),
     getListEndpoint: (type, filters) => getListEndpoint(endpointMap, type, filters),
     getSurface: type => surfaceMap[type] || null,
     getIcon: type => surfaceMap[type]?.icon || 'pi pi-box',
-    getArtifactType: type => artifactTypeMap[type] || null,
-    getArtifactPreview: type => artifactTypeMap[type]?.preview || { kind: 'download' },
+    getAttachmentKind: kind => attachmentKindMap[kind] || null,
+    getAttachmentPreview: kind => attachmentKindMap[kind]?.preview || { mode: 'download' },
     getDownloadEndpoint: (type, id) => endpointMap[type]?.download?.(id) || getSingleEndpoint(endpointMap, type, id)
   };
 }

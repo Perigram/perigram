@@ -35,44 +35,44 @@ export function summarizeSummaries(summaries = []) {
   }));
 }
 
-export function summarizeServiceActions(serviceActions = {}) {
-  return Object.entries(serviceActions).map(([id, action]) => ({
+export function summarizeCommands(commands = {}) {
+  return Object.entries(commands).map(([id, action]) => ({
     id,
     service: action.service,
     action: action.action,
     label: action.label || id,
     inputs: (action.input?.entities || []).map(input => input.type),
     outputs: action.output?.entities || [],
-    artifacts: action.output?.artifacts || [],
-    jobs: action.output?.jobs || [],
+    attachments: action.output?.attachments || [],
+    tasks: action.output?.tasks || [],
     events: action.output?.events || [],
     triggers: action.triggers || [],
     permissions: action.access?.permissions || []
   }));
 }
 
-export function summarizeProcesses(processes = {}) {
-  return Object.entries(processes).map(([key, process]) => ({
+export function summarizeTasks(tasks = {}) {
+  return Object.entries(tasks).map(([key, task]) => ({
     key,
-    id: process.id,
-    service: process.service,
-    label: process.label || process.id,
-    executor: process.executor || null,
-    inputs: (process.input?.entities || []).map(input => input.type),
-    outputs: process.output?.entities || [],
-    artifacts: process.output?.artifacts || [],
-    jobs: process.output?.jobs || [],
-    events: process.output?.events || []
+    id: task.id,
+    service: task.service,
+    label: task.label || task.id,
+    executor: task.executor || null,
+    inputs: (task.input?.entities || []).map(input => input.type),
+    outputs: task.output?.entities || [],
+    attachments: task.output?.attachments || [],
+    tasks: task.output?.tasks || [],
+    events: task.output?.events || []
   }));
 }
 
-export function summarizeArtifactTypes(artifactTypes = {}) {
-  return Object.entries(artifactTypes).map(([key, artifact]) => ({
+export function summarizeAttachmentKinds(attachmentKinds = {}) {
+  return Object.entries(attachmentKinds).map(([key, attachment]) => ({
     key,
-    type: artifact.type || key,
-    bucket: artifact.bucket || null,
-    mimeType: artifact.mimeType || null,
-    preview: artifact.preview || { kind: 'download' }
+    kind: attachment.kind || key,
+    bucket: attachment.bucket || null,
+    mimeType: attachment.mimeType || null,
+    preview: attachment.preview || { mode: 'download' }
   }));
 }
 
@@ -174,9 +174,9 @@ export function createFrameworkManifest({
   entities = [],
   frontendEntities = [],
   workflows = {},
-  serviceActions = {},
-  processes = {},
-  artifactTypes = {},
+  commands = {},
+  tasks = {},
+  attachmentKinds = {},
   summaries = [],
   designSystem = {},
   dataModelFields = [],
@@ -194,9 +194,9 @@ export function createFrameworkManifest({
     routes: summarizeRoutes(frontendEntities),
     workflows: summarizeWorkflows(workflowEntries),
     summaries: summarizeSummaries(summaries),
-    serviceActions: summarizeServiceActions(serviceActions),
-    processes: summarizeProcesses(processes),
-    artifactTypes: summarizeArtifactTypes(artifactTypes),
+    commands: summarizeCommands(commands),
+    tasks: summarizeTasks(tasks),
+    attachmentKinds: summarizeAttachmentKinds(attachmentKinds),
     relationships: summarizeRelationships({ summaries, dataModelFields }),
     designSystem: {
       variants: designSystem.variants || [],
@@ -210,9 +210,9 @@ export function createFrameworkManifest({
       workflows,
       uiComponents,
       uiPrimitives,
-      serviceActions,
-      processes,
-      artifactTypes,
+      commands,
+      tasks,
+      attachmentKinds,
       dataModelFields,
       compatibilityAliases
     })
@@ -222,9 +222,9 @@ export function createFrameworkManifest({
 export function validateFrameworkManifest({
   entities = [],
   workflows = {},
-  serviceActions = {},
-  processes = {},
-  artifactTypes = {},
+  commands = {},
+  tasks = {},
+  attachmentKinds = {},
   uiComponents = [],
   uiPrimitives = [],
   dataModelFields = [],
@@ -234,18 +234,18 @@ export function validateFrameworkManifest({
   const uiFieldIssues = validateUiFieldPaths({ components: uiComponents, dataModelFields, compatibilityAliases });
   const statusIssues = validateStatusPolicies({ components: uiComponents, workflows });
   const workflowAccessIssues = validateWorkflowAccess(workflows);
-  const serviceActionIssues = validateServiceActions(serviceActions);
-  const processIssues = validateProcesses(processes);
-  const artifactTypeIssues = validateArtifactTypes(artifactTypes);
+  const commandIssues = validateCommands(commands);
+  const  taskIssues = validateTasks(tasks);
+  const attachmentKindIssues = validateAttachmentKinds(attachmentKinds);
   const primitiveIssues = validateUiPrimitives(uiPrimitives);
   const issues = [
     ...definitionResult.errors.map(error => ({ area: 'entities', issue: error })),
     ...uiFieldIssues.map(issue => ({ area: 'ui-fields', ...issue })),
     ...statusIssues.map(issue => ({ area: 'status-policy', ...issue })),
     ...workflowAccessIssues.map(issue => ({ area: 'workflow-access', ...issue })),
-    ...serviceActionIssues.map(issue => ({ area: 'service-actions', ...issue })),
-    ...processIssues.map(issue => ({ area: 'processes', ...issue })),
-    ...artifactTypeIssues.map(issue => ({ area: 'artifact-types', ...issue })),
+    ...commandIssues.map(issue => ({ area: 'commands', ...issue })),
+    ... taskIssues.map(issue => ({ area: 'tasks', ...issue })),
+    ...attachmentKindIssues.map(issue => ({ area: 'attachment-kinds', ...issue })),
     ...primitiveIssues.map(issue => ({ area: 'ui-primitives', ...issue }))
   ];
 
@@ -266,37 +266,37 @@ export function validateWorkflowAccess(workflows = {}) {
   }));
 }
 
-export function validateServiceActions(serviceActions = {}) {
-  return Object.entries(serviceActions).flatMap(([id, action]) => {
+export function validateCommands(commands = {}) {
+  return Object.entries(commands).flatMap(([id, action]) => {
     const issues = [];
-    if (action.id && action.id !== id) issues.push({ id, issue: 'service action id mismatch' });
+    if (action.id && action.id !== id) issues.push({ id, issue: 'command id mismatch' });
     if (!action.service) issues.push({ id, issue: 'missing service' });
     if (!action.action) issues.push({ id, issue: 'missing action' });
     if (!Array.isArray(action.access?.permissions)) issues.push({ id, issue: 'missing access permissions' });
     if (action.input?.data === true) issues.push({ id, issue: 'legacy input.data contract' });
-    if (action.input?.parameters && !Array.isArray(action.input.parameters)) issues.push({ id, issue: 'service action parameters must be an array' });
+    if (action.input?.parameters && !Array.isArray(action.input.parameters)) issues.push({ id, issue: 'command parameters must be an array' });
     return issues;
   });
 }
 
-export function validateProcesses(processes = {}) {
-  return Object.entries(processes).flatMap(([key, process]) => {
+export function validateTasks(tasks = {}) {
+  return Object.entries(tasks).flatMap(([key, task]) => {
     const issues = [];
-    if (!process.id) issues.push({ key, issue: 'missing process id' });
-    if (!process.service) issues.push({ key, issue: 'missing service' });
-    if (!process.executor?.type) issues.push({ key, issue: 'missing executor type' });
-    if (process.input?.parameters && !Array.isArray(process.input.parameters)) issues.push({ key, issue: 'process parameters must be an array' });
+    if (!task.id) issues.push({ key, issue: 'missing task id' });
+    if (!task.service) issues.push({ key, issue: 'missing service' });
+    if (!task.executor?.type) issues.push({ key, issue: 'missing executor type' });
+    if (task.input?.parameters && !Array.isArray(task.input.parameters)) issues.push({ key, issue: 'task parameters must be an array' });
     return issues;
   });
 }
 
-export function validateArtifactTypes(artifactTypes = {}) {
-  return Object.entries(artifactTypes).flatMap(([key, artifact]) => {
+export function validateAttachmentKinds(attachmentKinds = {}) {
+  return Object.entries(attachmentKinds).flatMap(([key, artifact]) => {
     const issues = [];
-    if (!artifact.type) issues.push({ key, issue: 'missing artifact type' });
+    if (!artifact.kind) issues.push({ key, issue: 'missing attachment kind' });
     if (!artifact.bucket) issues.push({ key, issue: 'missing bucket' });
     if (!artifact.mimeType) issues.push({ key, issue: 'missing mime type' });
-    if (!artifact.preview?.kind) issues.push({ key, issue: 'missing preview kind' });
+    if (!artifact.preview?.mode) issues.push({ key, issue: 'missing preview kind' });
     return issues;
   });
 }

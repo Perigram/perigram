@@ -4,16 +4,13 @@ import * as colorRepository from '../colors/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { ObjectId } from 'mongodb';
-import { createIdentity, createStatus, inheritLineage, createData, registerService } from '~/server/core/blocks/index.js';
+import { createIdentity, createStatus, inheritLineage, createData } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service';
 
 /**
  * Requisitions Service - v24 Standardized
  */
 
-registerService('requisition', {
-  getById: (id) => getById(id)
-});
 
 function toDTO(requisition) {
   if (!requisition) return null;
@@ -140,7 +137,13 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
 export async function transition(id, targetState, metadata, userId, userOrg, userRole, userPermissions) {
     const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
-    return await statusService.transition('requisition', requisition._id, targetState, userId, userRole, metadata);
+    return await statusService.transition('requisition', requisition._id, targetState, userId, {
+        userId,
+        organizationId: userOrg,
+        role: userRole,
+        memberships: userPermissions?.memberships || [],
+        permissions: userPermissions?.permissions || {}
+    }, metadata);
 }
 
 export async function send(id, userId, userOrg, userRole, userPermissions) {

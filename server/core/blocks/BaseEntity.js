@@ -3,10 +3,6 @@ import { Status } from './Status.js';
 import { Lineage } from './Lineage.js';
 import { Specs } from './Specs.js';
 
-const registry = {};
-export const registerService = (type, service) => { registry[type] = service; };
-export const getService = (type) => registry[type];
-
 /**
  * Base Entity - v24 Standardized
  * The root of all v24 entities.
@@ -74,14 +70,4 @@ export class BaseEntity {
     return this;
   }
 
-  /**
-   * Helper to find ancestor using the registry
-   */
-  async getAncestor(type) {
-    const uid = this.lineage[`${type}Id` || `${type}Uid` || type];
-    if (!uid) return null;
-    const service = registry[type];
-    if (!service) return null;
-    return await service.getById(uid);
-  }
 }

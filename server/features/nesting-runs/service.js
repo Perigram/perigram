@@ -1,7 +1,6 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
 import { 
-  registerEntityService, 
   createStatus, 
   inheritLineage 
 } from '../../core/blocks/index.js';
@@ -16,12 +15,6 @@ import { NestingRun } from './model.js';
  * Nesting Runs Service - v24 Standardized
  */
 
-registerEntityService('nesting_run', {
-  getById: (uid) => getById(uid),
-  hooks: {
-    createPhysicalUnits: (ctx, params) => createPhysicalUnits(ctx, params)
-  }
-});
 
 export async function create(runData, userId) {
   const run = new NestingRun(runData);

@@ -1,12 +1,11 @@
 import * as repository from './repository.js';
 import * as nestingRunsRepository from '../nesting-runs/repository.js';
 import { createError } from 'h3';
-import { 
-  createStatus, 
-  inheritLineage, 
-  createData, 
-  createAttachment,
-  registerService 
+import {
+  createStatus,
+  inheritLineage,
+  createData,
+  createAttachment
 } from '../../core/blocks/index.js';
 import { statusService } from '../../core/machines/service.js';
 import { mapLineageQuery } from '../../utils/query.js';
@@ -17,9 +16,6 @@ import { SheetDesign } from './model.js';
  * Sheet Designs Service - v24 Standardized
  */
 
-registerService('sheet_design', {
-  getById: (uid) => getById(uid)
-});
 
 function toDTO(design) {
   if (!design) return null;

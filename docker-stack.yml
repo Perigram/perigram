@@ -14,6 +14,8 @@ services:
       - NUXT_PUBLIC_GITHUB_CLIENT_ID=${NUXT_PUBLIC_GITHUB_CLIENT_ID}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
       - NUXT_RESEND_TOKEN=${RESEND_TOKEN}
+      - WORKER_TOKEN=${WORKER_TOKEN}
+      - NESTING_WORKER_URL=http://nesting-worker:8000/nest
     secrets:
       - source: cutkit_stripe_secret_key
         target: stripe_secret_key
@@ -47,6 +49,10 @@ services:
     image: ghcr.io/1suo/file-processing-worker:${GIT_COMMIT_HASH:-latest}
     environment:
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
+      - MONGO_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
+      - CUTKIT_API_URL=http://app:3000
+      - WORKER_TOKEN=${WORKER_TOKEN}
+      - WORKER_ID=file-processing-normal
       - WORKER_TAG=normal
       - MAX_ENTITY_LIMIT=999
     deploy:
@@ -60,6 +66,10 @@ services:
     image: ghcr.io/1suo/file-processing-worker:${GIT_COMMIT_HASH:-latest}
     environment:
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
+      - MONGO_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
+      - CUTKIT_API_URL=http://app:3000
+      - WORKER_TOKEN=${WORKER_TOKEN}
+      - WORKER_ID=file-processing-1k-entity-count
       - WORKER_TAG=1k_entity_count
       - MAX_ENTITY_LIMIT=999999
     deploy:
@@ -73,6 +83,21 @@ services:
     image: ghcr.io/1suo/nesting-worker:${GIT_COMMIT_HASH:-latest}
     environment:
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
+    deploy:
+      replicas: ${WORKERS_REPLICAS}
+      update_config:
+        order: start-first
+    networks:
+      - cutkit-network
+
+  cassette-processing-worker:
+    image: ghcr.io/1suo/cassette-processing-worker:${GIT_COMMIT_HASH:-latest}
+    environment:
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
+      - MONGO_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
+      - CUTKIT_API_URL=http://app:3000
+      - WORKER_TOKEN=${WORKER_TOKEN}
+      - WORKER_ID=cassette-processing
     deploy:
       replicas: ${WORKERS_REPLICAS}
       update_config:

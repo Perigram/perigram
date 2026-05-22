@@ -3,7 +3,7 @@ import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { generateRandomString } from '../../utils/strings.js';
 import standardSlugify from 'standard-slugify';
-import { createStatus, registerService } from '~/server/core/blocks/index.js';
+import { createStatus } from '~/server/core/blocks/index.js';
 import { Project } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
@@ -13,13 +13,8 @@ import { toFlexibleId } from '../../utils/objectid.js';
  * Projects Service - v24 Absolute Final
  */
 
-registerService('project', {
-  getById: (uid) => getById(uid)
-});
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
-  console.log('[PROJECT] Create request:', { userId, userOrg, userRole, hasMemberships: !!userPermissions?.memberships });
-
   if (userRole !== 'SuperAdmin' && !userOrg) {
     throw createError({ 
       statusCode: 400, 

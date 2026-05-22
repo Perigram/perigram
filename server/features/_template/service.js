@@ -1,7 +1,6 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
 import { 
-  registerService, 
   createIdentity, 
   createStatus, 
   inheritLineage 
@@ -15,12 +14,6 @@ import { EntityName } from './model.js';
  */
 
 // Central Registration for Side-Effects
-registerService('feature_name', {
-  getById: (uid) => getById(uid),
-  hooks: {
-    onSomethingHappened: (ctx, params) => handleSideEffect(ctx, params)
-  }
-});
 
 /**
  * Standard Get by ID

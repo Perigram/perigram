@@ -2,12 +2,11 @@ import * as repository from './repository.js';
 import * as queuesRepository from '../queues/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
-import { 
-  createIdentity, 
-  createStatus, 
-  inheritLineage, 
-  createData,
-  registerService 
+import {
+  createIdentity,
+  createStatus,
+  inheritLineage,
+  createData
 } from '../../core/blocks/index.js';
 import { statusService } from '../../core/machines/service.js';
 import { mapLineageQuery } from '../../utils/query.js';
@@ -19,9 +18,6 @@ import { CassetteDesign } from './model.js';
  * Cassette Designs Service - v24 Standardized
  */
 
-registerService('cassette_design', {
-  getById: (uid) => getById(uid)
-});
 
 function toDTO(design) {
   if (!design) return null;
@@ -66,13 +62,13 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
 export async function getById(id, userId, userRole, userPermissions) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
-  
+
   const design = new CassetteDesign(raw);
-  
+
   if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
-  
+
   return design.toJSON();
 }
 
@@ -89,7 +85,7 @@ export async function getByTemplateId(templateId, userId, userOrg, userRole, use
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
-  
+
   const processedFilter = { ...filter };
   if (processedFilter.queueId) {
     processedFilter['lineage.queueId'] = toFlexibleId(processedFilter.queueId);
@@ -109,7 +105,7 @@ export async function update(id, updates, userId, userRole, userPermissions) {
   const raw = await repository.findById(toFlexibleId(id));
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   const design = new CassetteDesign(raw);
-  
+
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
@@ -120,7 +116,7 @@ export async function update(id, updates, userId, userRole, userPermissions) {
   }
 
   const { identity, origin, status, lineage, data: updatesData, ...clean } = updates;
-  
+
   if (updates.name) design.identity.name = updates.name;
 
   const designData = {
@@ -138,10 +134,10 @@ export async function remove(id, userId, userRole, userPermissions) {
   const raw = await repository.findById(toFlexibleId(id));
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   const design = new CassetteDesign(raw);
-  
+
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
-  
+
   return await repository.deleteById(id);
 }

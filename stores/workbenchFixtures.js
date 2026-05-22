@@ -20,20 +20,20 @@ export const useWorkbenchFixturesStore = defineStore('workbenchFixtures', () => 
   const entityOptions = computed(() => contextEntityOptions(context.value));
   const refs = computed(() => context.value.refs || {});
   const access = computed(() => context.value.access || {});
-  const serviceActionDefaults = computed(() => context.value.operationBindings || {});
+  const commandDefaults = computed(() => context.value.commandBindings || {});
 
-  function rebuild({ workflows, entities, serviceActions } = {}) {
+  function rebuild({ workflows, entities, commands } = {}) {
     context.value = createWorkbenchContext({
       workflows,
       entities,
-      serviceActions
+      commands
     });
     error.value = context.value.workflows?.ok ? '' : context.value.workflows?.issues?.map(issue => issue.message).join('\n');
     return context.value.workflows;
   }
 
-  async function seed({ workflows, entities, serviceActions } = {}) {
-    const compiled = rebuild({ workflows, entities, serviceActions });
+  async function seed({ workflows, entities, commands } = {}) {
+    const compiled = rebuild({ workflows, entities, commands });
     if (!compiled.ok) return { ok: false, issues: compiled.issues };
 
     loading.value = true;
@@ -58,7 +58,7 @@ export const useWorkbenchFixturesStore = defineStore('workbenchFixtures', () => 
   }
 
   function defaultsForAction(actionId) {
-    return serviceActionDefaults.value[actionId] || { entities: {}, parameters: {} };
+    return commandDefaults.value[actionId] || { entities: {}, parameters: {} };
   }
 
   function upsertEntities(entities = []) {
@@ -79,7 +79,7 @@ export const useWorkbenchFixturesStore = defineStore('workbenchFixtures', () => 
     entityOptions,
     refs,
     access,
-    serviceActionDefaults,
+    commandDefaults,
     rebuild,
     seed,
     defaultsForAction,

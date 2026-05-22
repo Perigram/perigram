@@ -3,20 +3,15 @@ import * as sessionsRepository from '../sessions/repository.js';
 import { hashPassword, verifyPassword, generateSession, generateAccessToken } from '../../utils/auth-helpers.js';
 import { createError } from 'h3';
 import { PERMISSION_TEMPLATES } from './permission-templates.js';
-import { registerService } from '~/server/core/blocks/index.js';
 import { User } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 
 /**
  * Users Service - v24 Absolute Final
  */
 
-registerService('user', {
-  getById: (uid) => getById(uid)
-});
 
 export async function register(data, creatorUserId, userOrg, creatorRole, creatorPermissions) {
   if (!data.email || !data.password || !data.name) {
@@ -135,17 +130,10 @@ export async function confirmMembership(userId, organizationId, action, updaterU
   const userRaw = await usersRepository.findById(userId);
   if (!userRaw) throw createError({ statusCode: 404, message: 'User not found' });
 
-  const db = await connectDB();
   if (action === 'approve') {
-    await db.collection('users').updateOne(
-      { _id: toFlexibleId(userId), "data.memberships.organizationId": organizationId },
-      { $set: { "data.memberships.$.status": 'active' } }
-    );
+    await usersRepository.setMembershipStatus(userId, organizationId, 'active');
   } else {
-    await db.collection('users').updateOne(
-      { _id: toFlexibleId(userId) },
-      { $pull: { "data.memberships": { organizationId: organizationId } } }
-    );
+    await usersRepository.removeMembership(userId, organizationId);
   }
   return { success: true };
 }
@@ -162,17 +150,10 @@ export async function updatePermissions(userId, newPermissions, deleterId, userO
     throw createError({ statusCode: 403, message: 'Forbidden' });
   }
 
-  const db = await connectDB();
   if (userOrg && isInSameOrg) {
-    await db.collection('users').updateOne(
-      { _id: toFlexibleId(userId), "data.memberships.organizationId": userOrg },
-      { $set: { "data.memberships.$.permissions": newPermissions, "data.permissions": newPermissions } }
-    );
+    await usersRepository.updateMembershipPermissions(userId, userOrg, newPermissions);
   } else if (isSuperAdmin) {
-    await db.collection('users').updateOne(
-        { _id: toFlexibleId(userId) },
-        { $set: { "data.permissions": newPermissions } }
-    );
+    await usersRepository.updateGlobalPermissions(userId, newPermissions);
   }
 
   return { success: true };
@@ -219,11 +200,7 @@ export async function remove(uid, deleterId, userOrg, deleterRole, userPermissio
     await usersRepository.deleteById(uid);
     await sessionsRepository.deleteByUserId(uid);
   } else {
-    const db = await connectDB();
-    await db.collection('users').updateOne(
-      { _id: toFlexibleId(uid) },
-      { $pull: { "data.memberships": { organizationId: userOrg } } }
-    );
+    await usersRepository.removeMembership(uid, userOrg);
   }
 
   return { success: true };

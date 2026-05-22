@@ -210,8 +210,8 @@ const stopPan = () => {
 };
 
 const artifactType = (artifact) => artifact?.data?.type || '';
-const artifactDefinition = (artifact) => domainUi.getArtifactType(artifactType(artifact));
-const artifactPreviewKind = (artifact) => domainUi.getArtifactPreview(artifactType(artifact)).kind;
+const artifactDefinition = (artifact) => domainUi.getAttachmentKind(artifactType(artifact));
+const artifactPreviewKind = (artifact) => domainUi.getAttachmentPreview(artifactType(artifact)).kind;
 const artifactMimeType = (artifact) => artifact?.attachments?.primary?.metadata?.mimeType || artifactDefinition(artifact)?.mimeType || '';
 
 const getArtifactIcon = (mimeType) => {

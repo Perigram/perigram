@@ -1,18 +1,18 @@
 import { getQuery } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
-import { listProcessDefinitions, listProcessRuns } from '~/server/core/processes/service.js';
+import { listTaskDefinitions, listTaskRuns } from '~/server/core/tasks/service.js';
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);
   const query = getQuery(event);
-  const runs = await listProcessRuns({
-    processId: query.processId,
+  const runs = await listTaskRuns({
+    taskId: query.taskId,
     status: query.status,
     limit: query.limit
   });
   return {
     success: true,
-    definitions: listProcessDefinitions(),
+    definitions: listTaskDefinitions(),
     runs
   };
 });

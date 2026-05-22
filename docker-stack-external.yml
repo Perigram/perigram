@@ -4,6 +4,9 @@ services:
     image: ghcr.io/1suo/file-processing-worker:latest
     environment:
       - MONGO_URI=mongodb://mongo:27017/cutkit_dev
+      - CUTKIT_API_URL=${CUTKIT_API_URL:-http://host.docker.internal:3000}
+      - WORKER_TOKEN=${WORKER_TOKEN}
+      - WORKER_ID=file-processing-normal
       - WORKER_TAG=normal
       - MAX_ENTITY_LIMIT=999
     deploy:
@@ -17,6 +20,18 @@ services:
       - "8000:8000"
     environment:
       - MONGO_URI=mongodb://mongo:27017/cutkit_dev
+    deploy:
+      replicas: 1
+      update_config:
+        order: start-first
+
+  cassette-processing-worker:
+    image: ghcr.io/1suo/cassette-processing-worker:latest
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
+      - CUTKIT_API_URL=${CUTKIT_API_URL:-http://host.docker.internal:3000}
+      - WORKER_TOKEN=${WORKER_TOKEN}
+      - WORKER_ID=cassette-processing
     deploy:
       replicas: 1
       update_config:

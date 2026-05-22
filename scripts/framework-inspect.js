@@ -3,15 +3,15 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { designTokens, cssVariableTokens, tailwindThemeExtension } from '../assets/tokens/index.js';
 import {
-  cncArtifactTypes,
+  cncAttachmentKinds,
   cncDesignSystemEntityContracts,
   cncDesignSystemGroups,
   cncDesignSystemPrimitives,
   cncDesignSystemVariants,
   cncEntities,
   cncFrontendEntities,
-  cncOperations,
-  cncProcesses,
+  cncCommands,
+  cncTasks,
   cncSummaries,
   cncWorkflows
 } from '../packages/domain-cnc/src/index.js';
@@ -26,7 +26,7 @@ import {
 import { createReadOnlyToolHandlers } from '../packages/mcp/src/index.js';
 import { validateTransition } from '../packages/workflows/src/index.js';
 
-const command = process.argv[2] || 'help';
+const command =  process.argv[2] || 'help';
 const MANIFEST_PATH = 'framework.manifest.json';
 const PACKAGE_NAMES = [
   '@cutkit/core',
@@ -103,11 +103,11 @@ const handlers = createReadOnlyToolHandlers({
   listDesignTokens: () => manifest.designSystem.tokens,
   listRelationships: () => manifest.relationships,
   listSummaries: () => manifest.summaries,
-  listServiceActions: () => manifest.serviceActions,
+  listCommands: () => manifest.commands,
   validateUiContracts: () => manifest.validations,
   queryDocs: query => queryDocs(docsCorpus, query),
   validateArchitecture: () => {
-    const result = spawnSync(process.execPath, ['scripts/check-arch.js'], { encoding: 'utf8' });
+    const result = spawnSync( process.execPath, ['scripts/check-arch.js'], { encoding: 'utf8' });
     return {
       ok: result.status === 0,
       status: result.status,
@@ -159,8 +159,8 @@ async function main() {
     return;
   }
 
-  if (command === 'list-service-actions') {
-    print(manifest.serviceActions);
+  if (command === 'list-commands') {
+    print(manifest.commands);
     return;
   }
 
@@ -180,12 +180,12 @@ async function main() {
     const actual = existsSync(MANIFEST_PATH) ? readFileSync(MANIFEST_PATH, 'utf8') : null;
     const ok = actual === expected;
     print({ ok, path: MANIFEST_PATH, validations: manifest.validations });
-    process.exitCode = ok && manifest.validations.ok ? 0 : 1;
+     process.exitCode = ok && manifest.validations.ok ? 0 : 1;
     return;
   }
 
   if (command === 'query-docs') {
-    const query = process.argv.slice(3).join(' ') || 'framework';
+    const query =  process.argv.slice(3).join(' ') || 'framework';
     print(queryDocs(docsCorpus, query));
     return;
   }
@@ -200,7 +200,7 @@ async function main() {
       architecture: { ok: architectureResult.ok, status: architectureResult.status },
       ui: uiResult
     });
-    process.exitCode = definitionResult.ok && architectureResult.ok && uiResult.ok ? 0 : 1;
+     process.exitCode = definitionResult.ok && architectureResult.ok && uiResult.ok ? 0 : 1;
     return;
   }
 
@@ -235,7 +235,7 @@ async function main() {
       'list-design-tokens',
       'list-relationships',
       'list-summaries',
-      'list-service-actions',
+      'list-commands',
       'query-docs',
       'manifest',
       'write-manifest',
@@ -253,9 +253,9 @@ function createManifest() {
     frontendEntities: cncFrontendEntities,
     workflows: cncWorkflows,
     summaries: cncSummaries,
-    serviceActions: cncOperations,
-    processes: cncProcesses,
-    artifactTypes: cncArtifactTypes,
+    commands: cncCommands,
+    tasks: cncTasks,
+    attachmentKinds: cncAttachmentKinds,
     designSystem: {
       variants: cncDesignSystemVariants,
       groups: cncDesignSystemGroups,
@@ -343,10 +343,10 @@ function sortKeys(value) {
 }
 
 function print(value) {
-  process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
 }
 
 main().catch(error => {
   console.error(error);
-  process.exitCode = 1;
+   process.exitCode = 1;
 });

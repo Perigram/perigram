@@ -15,7 +15,7 @@ export async function create(data) {
 
 export async function findByCode(code) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ code, isActive: true });
+  return await db.collection(COLLECTION).findOne({ code: code.toUpperCase(), isActive: true });
 }
 
 export async function markAsUsed(id) {
@@ -23,6 +23,14 @@ export async function markAsUsed(id) {
   await db.collection(COLLECTION).updateOne(
     { _id: new ObjectId(id) },
     { $set: { isActive: false, usedAt: new Date() } }
+  );
+}
+
+export async function accept(id, userId) {
+  const db = await connectDB();
+  await db.collection(COLLECTION).updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { isActive: false, usedAt: new Date(), usedBy: userId, status: 'accepted' } }
   );
 }
 

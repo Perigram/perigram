@@ -1,58 +1,159 @@
 {
-  "artifactTypes": [
+  "attachmentKinds": [
     {
       "bucket": "userDxf",
       "key": "DXF_SOURCE",
+      "kind": "DXF_SOURCE",
       "mimeType": "application/dxf",
       "preview": {
-        "kind": "download"
-      },
-      "type": "DXF_SOURCE"
+        "mode": "download"
+      }
     },
     {
       "bucket": "userDxfFilesSvg",
       "key": "SVG_PREVIEW",
+      "kind": "SVG_PREVIEW",
       "mimeType": "image/svg+xml",
       "preview": {
-        "kind": "svg"
-      },
-      "type": "SVG_PREVIEW"
+        "mode": "svg"
+      }
     },
     {
       "bucket": "cassettes",
       "key": "CASSETTE_DXF",
+      "kind": "CASSETTE_DXF",
       "mimeType": "application/dxf",
       "preview": {
-        "kind": "download"
-      },
-      "type": "CASSETTE_DXF"
+        "mode": "download"
+      }
     },
     {
       "bucket": "nestDxf",
       "key": "LAYOUT_DXF",
+      "kind": "LAYOUT_DXF",
       "mimeType": "application/dxf",
       "preview": {
-        "kind": "dxf"
-      },
-      "type": "LAYOUT_DXF"
+        "mode": "dxf"
+      }
     },
     {
       "bucket": "nestSvg",
       "key": "LAYOUT_SVG",
+      "kind": "LAYOUT_SVG",
       "mimeType": "image/svg+xml",
       "preview": {
-        "kind": "svg"
-      },
-      "type": "LAYOUT_SVG"
+        "mode": "svg"
+      }
     },
     {
       "bucket": "artifacts",
       "key": "PDF_PASSPORT",
+      "kind": "PDF_PASSPORT",
       "mimeType": "application/pdf",
       "preview": {
-        "kind": "pdf"
-      },
-      "type": "PDF_PASSPORT"
+        "mode": "pdf"
+      }
+    }
+  ],
+  "commands": [
+    {
+      "action": "saveTemplate",
+      "attachments": [],
+      "events": [
+        "cassette.templateSaved"
+      ],
+      "id": "saveCassetteTemplate",
+      "inputs": [
+        "cassette"
+      ],
+      "label": "Save cassette template",
+      "outputs": [
+        "cassette"
+      ],
+      "permissions": [
+        {
+          "feature": "cassettes",
+          "level": "write"
+        }
+      ],
+      "service": "cassettes",
+      "tasks": [
+        "cassette.bakeTemplate"
+      ],
+      "triggers": [
+        {
+          "event": "cassette.templateSaved"
+        }
+      ]
+    },
+    {
+      "action": "solve",
+      "attachments": [],
+      "events": [
+        "nesting.solveStarted",
+        "nesting.solveCompleted",
+        "nesting.solveFailed"
+      ],
+      "id": "solveNesting",
+      "inputs": [
+        "queue"
+      ],
+      "label": "Solve nesting",
+      "outputs": [
+        "nesting_run",
+        "sheet_design"
+      ],
+      "permissions": [
+        {
+          "feature": "queues",
+          "level": "write"
+        },
+        {
+          "feature": "nesting_runs",
+          "level": "write"
+        }
+      ],
+      "service": "nesting",
+      "tasks": [
+        "nesting.solve"
+      ],
+      "triggers": [
+        {
+          "event": "queue.nestingRequested"
+        }
+      ]
+    },
+    {
+      "action": "generate",
+      "attachments": [
+        "LAYOUT_DXF",
+        "PDF_PASSPORT"
+      ],
+      "events": [
+        "attachment.generationQueued",
+        "attachment.generationCompleted",
+        "attachment.generationFailed"
+      ],
+      "id": "generateAttachment",
+      "inputs": [
+        "sheet_design",
+        "nesting_run"
+      ],
+      "label": "Generate attachment",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "artifacts",
+          "level": "write"
+        }
+      ],
+      "service": "artifacts",
+      "tasks": [],
+      "triggers": [
+        {
+          "event": "attachment.generationRequested"
+        }
+      ]
     }
   ],
   "designSystem": {
@@ -1076,104 +1177,6 @@
       "name": "@cutkit/domain-cnc"
     }
   ],
-  "processes": [
-    {
-      "artifacts": [
-        "DXF_SOURCE",
-        "SVG_PREVIEW"
-      ],
-      "events": [],
-      "executor": {
-        "target": "file-processing",
-        "type": "worker"
-      },
-      "id": "dxf.parseUpload",
-      "inputs": [
-        "artifact"
-      ],
-      "jobs": [],
-      "key": "dxfParseUpload",
-      "label": "Parse uploaded DXF",
-      "outputs": [],
-      "service": "files"
-    },
-    {
-      "artifacts": [
-        "CASSETTE_DXF"
-      ],
-      "events": [],
-      "executor": {
-        "target": "cassette-processing",
-        "type": "worker"
-      },
-      "id": "cassette.bakeTemplate",
-      "inputs": [
-        "cassette"
-      ],
-      "jobs": [],
-      "key": "cassetteBakeTemplate",
-      "label": "Bake cassette template",
-      "outputs": [
-        "cassette_design"
-      ],
-      "service": "cassettes"
-    },
-    {
-      "artifacts": [
-        "LAYOUT_DXF",
-        "LAYOUT_SVG"
-      ],
-      "events": [
-        "nesting.solveStarted",
-        "nesting.solveCompleted",
-        "nesting.solveFailed"
-      ],
-      "executor": {
-        "endpoint": "/nest",
-        "target": "nesting-worker",
-        "type": "http"
-      },
-      "id": "nesting.solve",
-      "inputs": [
-        "queue"
-      ],
-      "jobs": [
-        "process_run"
-      ],
-      "key": "nestingSolve",
-      "label": "Solve nesting",
-      "outputs": [
-        "nesting_run",
-        "sheet_design"
-      ],
-      "service": "nesting"
-    },
-    {
-      "artifacts": [
-        "LAYOUT_DXF",
-        "PDF_PASSPORT"
-      ],
-      "events": [
-        "artifact.generationQueued",
-        "artifact.generationCompleted",
-        "artifact.generationFailed"
-      ],
-      "executor": {
-        "target": "artifacts",
-        "type": "server"
-      },
-      "id": "artifact.generate",
-      "inputs": [
-        "sheet_design",
-        "nesting_run"
-      ],
-      "jobs": [],
-      "key": "artifactGenerate",
-      "label": "Generate artifact",
-      "outputs": [],
-      "service": "artifacts"
-    }
-  ],
   "relationships": [
     {
       "kind": "lineage",
@@ -1371,105 +1374,6 @@
     }
   ],
   "schemaVersion": 1,
-  "serviceActions": [
-    {
-      "action": "saveTemplate",
-      "artifacts": [],
-      "events": [
-        "cassette.templateSaved"
-      ],
-      "id": "saveCassetteTemplate",
-      "inputs": [
-        "cassette"
-      ],
-      "jobs": [],
-      "label": "Save cassette template",
-      "outputs": [
-        "cassette"
-      ],
-      "permissions": [
-        {
-          "feature": "cassettes",
-          "level": "write"
-        }
-      ],
-      "service": "cassettes",
-      "triggers": [
-        {
-          "event": "cassette.templateSaved"
-        }
-      ]
-    },
-    {
-      "action": "solve",
-      "artifacts": [],
-      "events": [
-        "nesting.solveStarted",
-        "nesting.solveCompleted",
-        "nesting.solveFailed"
-      ],
-      "id": "solveNesting",
-      "inputs": [
-        "queue"
-      ],
-      "jobs": [
-        "process_run"
-      ],
-      "label": "Solve nesting",
-      "outputs": [
-        "nesting_run",
-        "sheet_design"
-      ],
-      "permissions": [
-        {
-          "feature": "queues",
-          "level": "write"
-        },
-        {
-          "feature": "nesting_runs",
-          "level": "write"
-        }
-      ],
-      "service": "nesting",
-      "triggers": [
-        {
-          "event": "queue.nestingRequested"
-        }
-      ]
-    },
-    {
-      "action": "generate",
-      "artifacts": [
-        "LAYOUT_DXF",
-        "PDF_PASSPORT"
-      ],
-      "events": [
-        "artifact.generationQueued",
-        "artifact.generationCompleted",
-        "artifact.generationFailed"
-      ],
-      "id": "generateArtifact",
-      "inputs": [
-        "sheet_design",
-        "nesting_run"
-      ],
-      "jobs": [],
-      "label": "Generate artifact",
-      "outputs": [],
-      "permissions": [
-        {
-          "feature": "artifacts",
-          "level": "write"
-        }
-      ],
-      "service": "artifacts",
-      "triggers": [
-        {
-          "event": "artifact.generationRequested"
-        }
-      ]
-    }
-  ],
   "summaries": [
     {
       "countField": "queueCount",
@@ -1507,6 +1411,104 @@
       "parentIdKey": "catalogId",
       "parentType": "catalog",
       "sumFields": {}
+    }
+  ],
+  "tasks": [
+    {
+      "attachments": [
+        "DXF_SOURCE",
+        "SVG_PREVIEW"
+      ],
+      "events": [],
+      "executor": {
+        "type": "worker",
+        "workerType": "file-processing"
+      },
+      "id": "dxf.parseUpload",
+      "inputs": [
+        "artifact"
+      ],
+      "key": "dxfParseUpload",
+      "label": "Parse uploaded DXF",
+      "outputs": [],
+      "service": "files",
+      "tasks": []
+    },
+    {
+      "attachments": [
+        "CASSETTE_DXF"
+      ],
+      "events": [],
+      "executor": {
+        "type": "worker",
+        "workerType": "cassette-processing"
+      },
+      "id": "cassette.bakeTemplate",
+      "inputs": [
+        "cassette"
+      ],
+      "key": "cassetteBakeTemplate",
+      "label": "Bake cassette template",
+      "outputs": [
+        "cassette_design"
+      ],
+      "service": "cassettes",
+      "tasks": []
+    },
+    {
+      "attachments": [
+        "LAYOUT_DXF",
+        "LAYOUT_SVG"
+      ],
+      "events": [
+        "nesting.solveStarted",
+        "nesting.solveCompleted",
+        "nesting.solveFailed"
+      ],
+      "executor": {
+        "endpoint": "/nest",
+        "target": "nesting-worker",
+        "type": "http"
+      },
+      "id": "nesting.solve",
+      "inputs": [
+        "queue"
+      ],
+      "key": "nestingSolve",
+      "label": "Solve nesting",
+      "outputs": [
+        "nesting_run",
+        "sheet_design"
+      ],
+      "service": "nesting",
+      "tasks": [
+        "nesting.solve"
+      ]
+    },
+    {
+      "attachments": [
+        "LAYOUT_DXF",
+        "PDF_PASSPORT"
+      ],
+      "events": [
+        "attachment.generationQueued",
+        "attachment.generationCompleted",
+        "attachment.generationFailed"
+      ],
+      "executor": {
+        "target": "artifacts",
+        "type": "server"
+      },
+      "id": "attachment.generate",
+      "inputs": [
+        "sheet_design",
+        "nesting_run"
+      ],
+      "key": "attachmentGenerate",
+      "label": "Generate attachment",
+      "outputs": [],
+      "service": "artifacts",
+      "tasks": []
     }
   ],
   "validations": {

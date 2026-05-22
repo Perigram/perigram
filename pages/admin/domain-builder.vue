@@ -332,7 +332,7 @@ import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import StandardPage from '~/components/shared/StandardPage.vue';
-import { cncEntities, cncFrontendEntities, cncOperations, cncServiceContracts, cncSummaries, cncWorkflows } from '~/packages/domain-cnc/src/index.js';
+import { cncEntities, cncFrontendEntities, cncCommands, cncServiceContracts, cncSummaries, cncWorkflows } from '~/packages/domain-cnc/src/index.js';
 import {
   DOMAIN_BUILDER_STORAGE_KEY,
   buildWorkflowGraph,
@@ -368,7 +368,7 @@ const sourceDraft = () => createDomainDraft({
   workflows: cncWorkflows,
   summaries: cncSummaries,
   serviceContracts: cncServiceContracts,
-  operations: cncOperations
+  commands: cncCommands
 });
 
 const draft = ref(sourceDraft());

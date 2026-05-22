@@ -59,6 +59,46 @@ export async function updateLastLogin(id) {
     );
 }
 
+export async function setMembershipStatus(userId, organizationId, status) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).updateOne(
+    { _id: toFlexibleId(userId), 'data.memberships.organizationId': toFlexibleId(organizationId) },
+    { $set: { 'data.memberships.$.status': status } }
+  );
+}
+
+export async function removeMembership(userId, organizationId) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).updateOne(
+    { _id: toFlexibleId(userId) },
+    { $pull: { 'data.memberships': { organizationId: toFlexibleId(organizationId) } } }
+  );
+}
+
+export async function addMembership(userId, membership) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).updateOne(
+    { _id: toFlexibleId(userId) },
+    { $push: { 'data.memberships': membership } }
+  );
+}
+
+export async function updateMembershipPermissions(userId, organizationId, permissions) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).updateOne(
+    { _id: toFlexibleId(userId), 'data.memberships.organizationId': toFlexibleId(organizationId) },
+    { $set: { 'data.memberships.$.permissions': permissions, 'data.permissions': permissions } }
+  );
+}
+
+export async function updateGlobalPermissions(userId, permissions) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).updateOne(
+    { _id: toFlexibleId(userId) },
+    { $set: { 'data.permissions': permissions } }
+  );
+}
+
 export async function deleteById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });

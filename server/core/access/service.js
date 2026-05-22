@@ -11,7 +11,7 @@ export function assertEntityAccess({ entity, entityType, feature = entityType, l
   return true;
 }
 
-export function assertServiceActionAccess({ action, entities = {}, auth }) {
+export function assertCommandAccess({ command, action = command, entities = {}, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
   const access = action?.access || {};
   if (auth.role === 'SYSTEM' && access.system === true) return true;
@@ -50,6 +50,7 @@ export function assertTransitionAccess({ transition, entity, auth }) {
 }
 
 export function createLineageFilter(auth) {
+  if (auth?.role === 'SuperAdmin') return {};
   const orgIds = (auth?.memberships || [])
     .map(membership => membership.organizationId ? toFlexibleId(membership.organizationId) : null)
     .filter(Boolean);
@@ -58,6 +59,7 @@ export function createLineageFilter(auth) {
 
 export function hasEntityAccess({ entity, feature, level = 'read', auth }) {
   if (!auth || !feature) return false;
+  if (auth.role === 'SuperAdmin') return true;
   const requiredIndex = LEVELS.indexOf(level);
   if (requiredIndex === -1) return false;
 

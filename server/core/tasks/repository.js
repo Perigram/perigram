@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb';
 import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 
-const COLLECTION = 'process_runs';
+const COLLECTION = 'task_runs';
 
 export async function create(doc) {
   const db = await connectDB();
@@ -25,19 +25,28 @@ export async function findById(id) {
   return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) });
 }
 
-export async function findByIdempotencyKey(processId, idempotencyKey) {
+export async function findByIdempotencyKey(taskId, idempotencyKey) {
   if (!idempotencyKey) return null;
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ processId, idempotencyKey });
+  return await db.collection(COLLECTION).findOne({ taskId, idempotencyKey });
 }
 
-export async function claimNext({ processId, workerId, claimToken, leaseExpiresAt, now = new Date() }) {
+export async function claimNext({ taskId, workerType, workerId, claimToken, leaseExpiresAt, now = new Date() }) {
   const db = await connectDB();
   const query = {
-    status: { $in: ['QUEUED', 'RETRY_WAIT'] },
-    $or: [{ runAfter: { $exists: false } }, { runAfter: { $lte: now } }]
+    $or: [
+      {
+        status: { $in: ['QUEUED', 'RETRY_WAIT'] },
+        $or: [{ runAfter: { $exists: false } }, { runAfter: { $lte: now } }]
+      },
+      {
+        status: 'RUNNING',
+        leaseExpiresAt: { $lte: now }
+      }
+    ]
   };
-  if (processId) query.processId = processId;
+  if (taskId) query.taskId = taskId;
+  if (workerType) query.workerType = workerType;
 
   return await db.collection(COLLECTION).findOneAndUpdate(
     query,

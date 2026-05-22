@@ -3,7 +3,7 @@ import { ObjectId } from "mongodb";
 
 import { connectDB, getUserDxfBucket } from "~~/server/db/mongo";
 import { generateRandomString } from "~~/server/utils/strings";
-import { enqueueProcess } from "~~/server/core/processes/service.js";
+import { enqueueTask } from "~~/server/core/tasks/service.js";
 
 import standardSlugify from "standard-slugify";
 
@@ -67,11 +67,11 @@ export async function saveFilesToProject(event, projectSlug, userId) {
   const db = await connectDB();
 
   for (const fileRecord of file_records) {
-    const processRun = await enqueueProcess("dxf.parseUpload", {
+    const taskRun = await enqueueTask("dxf.parseUpload", {
       entities: { upload: fileRecord._id.toString() },
       parameters: { workerTag: fileRecord.worker_tag }
     }, { userId }, { idempotencyKey: `dxf:${fileRecord._id.toString()}` });
-    fileRecord.processRunId = processRun._id;
+    fileRecord.taskRunId = taskRun._id;
   }
   await db.collection("user_dxf_files").insertMany(file_records);
 }

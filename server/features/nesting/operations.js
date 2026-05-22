@@ -7,7 +7,7 @@ import { bakeTemplateInstance } from '../parametric-cassettes/service.js';
 import * as nestingRunsService from '../nesting-runs/service.js';
 import * as sheetDesignsService from '../sheet-designs/service.js';
 import * as nestingJobs from './jobs.js';
-import { createProcessRun } from '../../core/processes/service.js';
+import { createTaskRun } from '../../core/tasks/service.js';
 import { generateRandomString } from '../../utils/strings.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 
@@ -68,7 +68,7 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
         ]
       }
     }, auth.userId);
-    const processRun = await createProcessRun('nesting.solve', {
+    const taskRun = await createTaskRun('nesting.solve', {
       entities: {
         queue: queue._id?.toString(),
         nestingRun: runId.toString(),
@@ -81,7 +81,7 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
       projectSlug: queue.identity?.slug || '',
       queueId: toFlexibleId(queue._id),
       runId,
-      processRunId: toFlexibleId(processRun._id),
+      taskRunId: toFlexibleId(taskRun._id),
       files: jobFiles,
       params,
       status: 'pending',
@@ -95,13 +95,13 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
         { type: 'sheet_design', id: sheetDesign._id.toString() }
       ],
       jobs: [
-        { type: 'process_run', id: processRun._id.toString() },
+        { type: 'task_run', id: taskRun._id.toString() },
         { type: 'nesting_job', id: job._id.toString(), compatibility: true }
       ],
       data: {
         nestingSlug,
         status: 'NESTING',
-        processRunId: processRun._id.toString(),
+        taskRunId: taskRun._id.toString(),
         runId: runId.toString(),
         sheetDesignId: sheetDesign._id.toString()
       }

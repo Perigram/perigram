@@ -28,8 +28,8 @@ describe('CNC fixture scenarios', () => {
 
   it('derives action defaults and access from the same scenario context', () => {
     const scenario = createCncFixtureScenario();
-    expect(scenario.manifests.serviceActionDefaults.solveNesting.entities.queue).toBe(scenario.refs.queue);
-    expect(scenario.manifests.serviceActionDefaults.generateArtifact.entities.sheetDesign).toBe(scenario.refs.sheetDesign);
+    expect(scenario.manifests.commandDefaults.solveNesting.entities.queue).toBe(scenario.refs.queue);
+    expect(scenario.manifests.commandDefaults.generateAttachment.entities.sheetDesign).toBe(scenario.refs.sheetDesign);
     expect(scenario.access.permissions.queues).toBe('admin');
     expect(scenario.access.permissions.artifacts).toBe('admin');
     expect(scenario.access.permissions.cassettes).toBe('admin');
@@ -42,10 +42,10 @@ describe('CNC fixture scenarios', () => {
 
     expect(queue?._id).toBe(context.refs.queue);
     expect(scenario.entities.queue[0]._id).toBe(context.refs.queue);
-    expect(scenario.manifests.serviceActionDefaults.solveNesting.entities.queue).toBe(context.refs.queue);
+    expect(scenario.manifests.commandDefaults.solveNesting.entities.queue).toBe(context.refs.queue);
   });
 
-  it('adds operation outputs to the same context instead of a separate runtime source', () => {
+  it('adds command outputs to the same context instead of a separate runtime source', () => {
     const context = createWorkbenchContext();
     const next = upsertContextEntities(context, [{
       type: 'sheet_design',

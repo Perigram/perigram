@@ -496,7 +496,7 @@
                 }
             }
 
-            await $fetch('/api/operations/saveCassetteTemplate/run', { method: 'POST', body })
+            await $fetch('/api/commands/saveCassetteTemplate/run', { method: 'POST', body })
             
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.messages.saveSuccess'), life: 3000 })
             emit('saved')

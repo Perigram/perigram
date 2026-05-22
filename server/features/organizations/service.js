@@ -2,21 +2,15 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import { hasPermission } from '../../utils/auth-helpers.js';
 import { getLineageFilter } from '../../utils/permissions.js';
-import { registerService } from '~/server/core/blocks/index.js';
 import { Organization } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
-import { connectDB } from '../../db/mongo.js';
 import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
-import { toFlexibleId } from '../../utils/objectid.js';
 
 /**
  * Organizations Service - v24 Absolute Final
  */
 
-registerService('organization', {
-  getById: (uid) => getById(uid)
-});
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   if (!hasPermission({ permissions: userPermissions.permissions, role: userRole }, 'organizations', 'write')) {
@@ -38,8 +32,6 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
   const createdRaw = await repository.create(org);
   
-  // Restore Membership Creation
-  const db = await connectDB();
   const orgRole = `${data.type}Admin`;
   const orgPermissions = PERMISSION_TEMPLATES[orgRole] || PERMISSION_TEMPLATES['IndividualUser'];
   
@@ -50,17 +42,11 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     status: 'active'
   };
 
-  await db.collection('users').updateOne(
-    { _id: toFlexibleId(userId) },
-    { 
-      $push: { "data.memberships": membership },
-      $set: {
-        "lineage.organizationId": createdRaw._id,
-        "data.role": orgRole,
-        "data.permissions": orgPermissions
-      }
-    }
-  );
+  await repository.addUserMembership(userId, membership, {
+    role: orgRole,
+    permissions: orgPermissions,
+    organizationId: createdRaw._id
+  });
 
   return new Organization(createdRaw);
 }

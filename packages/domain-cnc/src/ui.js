@@ -1,0 +1,132 @@
+import { cncFrontendEntities } from './summaries.js';
+import { cncWorkflows } from './workflows.js';
+
+export const cncStatusUi = {
+  DRAFT: { label: 'status.draft', severity: 'info', icon: 'pi pi-pencil' },
+  NESTING: { label: 'status.nesting', severity: 'warn', icon: 'pi pi-cog' },
+  READY: { label: 'status.ready', severity: 'success', icon: 'pi pi-check' },
+  CUT: { label: 'status.cut', severity: 'success', icon: 'pi pi-scissors' },
+  CLOSED: { label: 'status.closed', severity: 'secondary', icon: 'pi pi-lock' },
+  ARCHIVED: { label: 'status.archived', severity: 'secondary', icon: 'pi pi-archive' },
+  COMPLETE: { label: 'status.complete', severity: 'success', icon: 'pi pi-check-circle' },
+  ERROR: { label: 'status.error', severity: 'danger', icon: 'pi pi-times-circle' },
+  CHOSEN: { label: 'status.chosen', severity: 'success', icon: 'pi pi-star' },
+  ACTIVE: { label: 'status.active', severity: 'success', icon: 'pi pi-check-circle' },
+  AVAILABLE: { label: 'status.available', severity: 'success', icon: 'pi pi-box' },
+  'IN-CUTTING': { label: 'status.inCutting', severity: 'warn', icon: 'pi pi-scissors' },
+  MILLED: { label: 'status.milled', severity: 'success', icon: 'pi pi-check-square' },
+  SENT: { label: 'status.sent', severity: 'info', icon: 'pi pi-send' },
+  APPROVED: { label: 'status.approved', severity: 'success', icon: 'pi pi-check-circle' },
+  FULFILLED: { label: 'status.fulfilled', severity: 'success', icon: 'pi pi-box' },
+  REJECTED: { label: 'status.rejected', severity: 'danger', icon: 'pi pi-times-circle' },
+  PRODUCED: { label: 'status.produced', severity: 'info', icon: 'pi pi-box' },
+  INSTALLED: { label: 'status.installed', severity: 'success', icon: 'pi pi-check' },
+  GENERATING: { label: 'status.generating', severity: 'warn', icon: 'pi pi-spin pi-cog' },
+  FAILED: { label: 'status.error', severity: 'danger', icon: 'pi pi-times-circle' },
+  SCRAP: { label: 'status.scrap', severity: 'danger', icon: 'pi pi-trash' }
+};
+
+export const cncDesignSystemVariants = ['card', 'compact', 'inline'];
+
+export const cncDesignSystemGroups = [
+  { id: 'production', labelKey: 'uiLab.groups.production' },
+  { id: 'material', labelKey: 'uiLab.groups.material' },
+  { id: 'master', labelKey: 'uiLab.groups.master' },
+  { id: 'system', labelKey: 'uiLab.groups.system' }
+];
+
+export const cncDesignSystemPrimitives = [
+  { key: 'EntityCard', kind: 'entity-chrome', componentPath: 'components/shared/EntityCard.vue', purpose: 'Standard entity card chrome with identity, optional trace, optional status, content, and footer slots.', docs: ['components/shared/README.md'] },
+  { key: 'EntityPage', kind: 'entity-layout', componentPath: 'components/shared/EntityPage.vue', purpose: 'Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots.', docs: ['components/shared/README.md'] },
+  { key: 'IdentityBlock', kind: 'block', componentPath: 'components/shared/blocks/IdentityBlock.vue', purpose: 'Canonical identity rendering for names, slugs, serials, references, and inline trace labels.', docs: ['components/shared/README.md'] },
+  { key: 'DataBlock', kind: 'block', componentPath: 'components/shared/blocks/DataBlock.vue', purpose: 'Canonical label/value rows for generated entity data fields.', docs: ['components/shared/README.md', 'utils/README.md'] },
+  { key: 'SpecsBlock', kind: 'block', componentPath: 'components/shared/blocks/SpecsBlock.vue', purpose: 'Canonical width, length, area, and thickness display for entities with specs.', docs: ['components/shared/README.md'] },
+  { key: 'StatusBadge', kind: 'status', componentPath: 'components/shared/blocks/StatusBadge.vue', purpose: 'Read-only status tag using the shared status mapping.', docs: ['components/shared/README.md', 'utils/README.md'] },
+  { key: 'EntityStatus', kind: 'status', componentPath: 'components/shared/status/EntityStatus.vue', purpose: 'Interactive status display and workflow-derived transition actions.', docs: ['components/shared/README.md', 'utils/README.md'] },
+  { key: 'StatusLocation', kind: 'status', componentPath: 'components/shared/status/StatusLocation.vue', purpose: 'Typed current lifecycle location rendering from status.lifecycle.data.location.', docs: ['components/shared/README.md', 'docs/DESIGN_SYSTEM.md'] },
+  { key: 'StatusHistory', kind: 'status', componentPath: 'components/shared/status/StatusHistory.vue', purpose: 'Status audit timeline for entity lifecycle events.', docs: ['components/shared/README.md'] },
+  { key: 'GeometryPreview', kind: 'block', componentPath: 'components/shared/GeometryPreview.vue', purpose: 'Token-backed SVG preview for DXF layers and polygon geometry stored in data.geometry.preview.', docs: ['components/shared/README.md', 'docs/DESIGN_SYSTEM.md'] },
+  { key: 'TraceLink', kind: 'trace', componentPath: 'components/shared/links/TraceLink.vue', purpose: 'Single related-entity link used inside rows, status locations, and custom relation fields; TraceChain is for full ancestry.', docs: ['components/shared/README.md'] },
+  { key: 'TraceChain', kind: 'trace', componentPath: 'components/shared/links/TraceChain.vue', purpose: 'Canonical lineage breadcrumb chain for entity ancestry.', docs: ['components/shared/README.md'] },
+  { key: 'ActionToolbar', kind: 'layout', componentPath: 'components/shared/ActionToolbar.vue', purpose: 'Shared section/header action row used by hubs, tabs, and list pages instead of ad hoc header flex markup.', docs: ['components/shared/README.md'] },
+  { key: 'ResponsiveGrid', kind: 'layout', componentPath: 'components/shared/ResponsiveGrid.vue', purpose: 'Token-backed responsive repeated-item grid.', docs: ['components/shared/README.md'] },
+  { key: 'StateBlock', kind: 'layout', componentPath: 'components/shared/StateBlock.vue', purpose: 'Standard loading, empty, and error states.', docs: ['components/shared/README.md'] },
+  { key: 'TableFrame', kind: 'layout', componentPath: 'components/shared/TableFrame.vue', purpose: 'Standard token-backed frame for PrimeVue DataTable surfaces, including table header background.', docs: ['components/shared/README.md'] },
+  { key: 'StandardDialog', kind: 'layout', componentPath: 'components/shared/StandardDialog.vue', purpose: 'Standard modal shell with footer and responsive sizing.', docs: ['components/shared/README.md'] },
+  { key: 'StandardPage', kind: 'layout', componentPath: 'components/shared/StandardPage.vue', purpose: 'Standard page shell with header and breadcrumbs.', docs: ['components/shared/README.md'] }
+];
+
+const workflowStatus = (entityType) => cncWorkflows[entityType] ? 'interactive' : 'hidden';
+
+export const cncDesignSystemEntityContracts = [
+  ['project', 'project', 'production', 'entities.project', 'project', 'createMockProject', workflowStatus('project'), true, ['components/entities/Project/README.md', 'server/features/projects/README.md']],
+  ['queue', 'queue', 'production', 'entities.queue', 'queue', 'createMockQueue', workflowStatus('queue'), true, ['server/features/queues/README.md']],
+  ['nestingRun', 'nesting_run', 'production', 'entities.nestingRun', 'run', 'createMockNestingRun', workflowStatus('nesting_run'), true, ['server/features/nesting-runs/README.md']],
+  ['sheetDesign', 'sheet_design', 'production', 'entities.sheetDesign', 'design', 'createMockSheetDesign', workflowStatus('sheet_design'), true, ['server/features/sheet-designs/README.md']],
+  ['cassette', 'cassette', 'production', 'entities.cassette', 'cassette', 'createMockCassette', workflowStatus('cassette'), true, ['components/entities/Cassette/README.md', 'server/features/cassettes/README.md']],
+  ['cassetteDesign', 'cassette_design', 'production', 'entities.cassetteDesign', 'design', 'createMockCassetteDesign', 'hidden', true, ['server/features/cassette-designs/README.md']],
+  ['cassetteTemplate', 'cassette_template', 'production', 'entities.cassetteTemplate', 'template', 'createMockCassetteTemplate', 'hidden', true, ['server/features/cassettes/README.md']],
+  ['cassetteInstance', 'cassette_instance', 'production', 'entities.cassetteInstance', 'instance', 'createMockCassetteInstance', workflowStatus('cassette_instance'), true, ['server/features/cassette-instances/README.md']],
+  ['requisition', 'requisition', 'production', 'entities.requisition', 'requisition', 'createMockRequisition', workflowStatus('requisition'), true, ['server/features/requisitions/README.md']],
+  ['material', 'material', 'material', 'entities.material', 'material', 'createMockMaterial', 'hidden', false, ['components/entities/Material/README.md', 'server/DATA_MODEL.md']],
+  ['materialPile', 'material_pile', 'material', 'entities.materialPile', 'pile', 'createMockPile', workflowStatus('material_pile'), true, ['components/entities/MaterialPile/README.md', 'server/features/material-piles/README.md']],
+  ['batchPile', 'material_pile', 'material', 'entities.batchPile', 'pile', 'createMockBatchPile', workflowStatus('material_pile'), true, ['components/entities/BatchPile/README.md', 'server/features/material-piles/README.md']],
+  ['sheet', 'sheet', 'material', 'entities.sheet', 'sheet', 'createMockSheet', workflowStatus('sheet'), true, ['server/features/sheets/README.md']],
+  ['remnant', 'remnant', 'material', 'entities.remnant', 'remnant', 'createMockRemnant', workflowStatus('remnant'), true, ['server/features/remnants/README.md']],
+  ['catalog', 'catalog', 'master', 'entities.catalog', 'catalog', 'createMockCatalog', 'hidden', true, ['server/features/catalogs/README.md']],
+  ['color', 'color', 'master', 'entities.color', 'color', 'createMockColor', 'hidden', true, ['server/features/colors/README.md']],
+  ['warehouse', 'warehouse', 'master', 'entities.warehouse', 'warehouse', 'createMockWarehouse', workflowStatus('warehouse'), true, ['server/features/warehouses/README.md']],
+  ['toolProfile', 'tool_profile', 'master', 'entities.toolProfile', 'tool', 'createMockToolProfile', 'hidden', false, ['server/features/tool-profiles/README.md']],
+  ['penTemplate', 'pen_template', 'master', 'entities.penTemplate', 'pen', 'createMockPenTemplate', 'hidden', false, ['server/features/pen-templates/README.md']],
+  ['layerStandard', 'layer_standard', 'master', 'entities.layerStandard', 'standard', 'createMockLayerStandard', 'hidden', false, ['server/features/layer-standards/README.md']],
+  ['user', 'user', 'system', 'entities.user', 'user', 'createMockUser', workflowStatus('user'), false, ['server/features/users/README.md']],
+  ['organization', 'organization', 'system', 'entities.organization', 'organization', 'createMockOrganization', 'hidden', false, ['server/features/organizations/README.md']],
+  ['artifact', 'artifact', 'system', 'entities.artifact', 'artifact', 'createMockArtifact', workflowStatus('artifact'), true, ['server/features/artifacts/README.md']]
+].map(([key, entityType, group, labelKey, propName, factoryName, status, trace, docs]) => ({
+  key,
+  entityType,
+  group,
+  labelKey,
+  propName,
+  factoryName,
+  status,
+  trace,
+  docs
+}));
+
+export const cncDesignSystem = {
+  variants: cncDesignSystemVariants,
+  groups: cncDesignSystemGroups,
+  primitives: cncDesignSystemPrimitives,
+  contracts: cncDesignSystemEntityContracts
+};
+
+export const cncUiSurfaces = cncFrontendEntities.map(definition => ({
+  key: definition.type,
+  entityType: definition.collection?.replace(/-/g, '_').replace(/s$/, '') || definition.type,
+  routes: definition.routes,
+  icon: iconForType(definition.type),
+  display: {
+    status: cncWorkflows[definition.type] || cncWorkflows[definition.collection?.replace(/-/g, '_').replace(/s$/, '')] ? 'interactive' : 'hidden',
+    trace: !['material', 'tool_profile', 'pen_template', 'organization'].includes(definition.type),
+    title: 'identity.name'
+  }
+}));
+
+function iconForType(type) {
+  const icons = {
+    project: 'pi pi-folder',
+    queue: 'pi pi-list',
+    nestingRun: 'pi pi-list-check',
+    sheetDesign: 'pi pi-map',
+    cassette: 'pi pi-box',
+    cassetteDesign: 'pi pi-pencil',
+    cassetteTemplate: 'pi pi-palette',
+    cassetteInstance: 'pi pi-box',
+    artifact: 'pi pi-file',
+    warehouse: 'pi pi-building',
+    user: 'pi pi-user',
+    organization: 'pi pi-building'
+  };
+  return icons[type] || 'pi pi-box';
+}

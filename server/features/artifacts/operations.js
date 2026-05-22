@@ -1,13 +1,13 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
-import * as artifactService from './service.js';
+import * as attachmentService from './service.js';
 import * as nestingJobs from '../nesting/jobs.js';
 
-export async function generateArtifact({ entities, parameters = {}, auth }) {
+export async function generateAttachment({ entities, parameters = {}, auth }) {
   const source = entities.sheetDesign || entities.nestingRun;
-  if (!source) throw createError({ statusCode: 400, message: 'Artifact source entity is required' });
+  if (!source) throw createError({ statusCode: 400, message: 'Attachment source entity is required' });
 
-  const type = parameters.type;
+  const kind = parameters.kind || parameters.type;
   const sourceId = toFlexibleId(source._id);
   const lineage = {
     ...(source.lineage || {}),
@@ -15,10 +15,10 @@ export async function generateArtifact({ entities, parameters = {}, auth }) {
     ...(entities.nestingRun ? { runId: sourceId } : {})
   };
 
-  if (type === 'LAYOUT_DXF') {
+  if (kind === 'LAYOUT_DXF') {
     const existingDxf = entities.nestingRun ? await findGeneratedRunDxf(sourceId) : null;
-    const artifact = await artifactService.create({
-      type,
+    const attachment = await attachmentService.create({
+      type: kind,
       lineage,
       name: `${source.identity?.name || 'Source'} - LAYOUT_DXF.dxf`,
       status: existingDxf ? 'READY' : 'GENERATING',
@@ -26,22 +26,22 @@ export async function generateArtifact({ entities, parameters = {}, auth }) {
       mimeType: existingDxf ? 'application/dxf' : undefined
     }, auth.userId);
 
-    return toOperationArtifactResult(artifact);
+    return toCommandAttachmentResult(attachment);
   }
 
-  if (type === 'PDF_PASSPORT') {
-    const artifact = await artifactService.create({
-      type,
+  if (kind === 'PDF_PASSPORT') {
+    const attachment = await attachmentService.create({
+      type: kind,
       lineage,
       name: `${source.identity?.name || 'Source'} - Technical Passports`,
       status: 'GENERATING',
       metadata: { templateId: parameters.pdfTemplateId }
     }, auth.userId);
 
-    return toOperationArtifactResult(artifact);
+    return toCommandAttachmentResult(attachment);
   }
 
-  throw createError({ statusCode: 400, message: `Unsupported artifact type: ${type}` });
+  throw createError({ statusCode: 400, message: `Unsupported attachment kind: ${kind}` });
 }
 
 async function findGeneratedRunDxf(runId) {
@@ -51,13 +51,13 @@ async function findGeneratedRunDxf(runId) {
   return { fileId };
 }
 
-function toOperationArtifactResult(artifact) {
+function toCommandAttachmentResult(attachment) {
   return {
-    artifacts: [{ type: artifact.data?.type, id: (artifact._id || artifact.id).toString() }],
+    attachments: [{ kind: attachment.data?.type, id: (attachment._id || attachment.id).toString() }],
     data: {
-      artifactId: (artifact._id || artifact.id).toString(),
-      type: artifact.data?.type,
-      status: artifact.status?.state || 'GENERATING'
+      attachmentId: (attachment._id || attachment.id).toString(),
+      kind: attachment.data?.type,
+      status: attachment.status?.state || 'GENERATING'
     }
   };
 }

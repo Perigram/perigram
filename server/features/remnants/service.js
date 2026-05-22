@@ -3,7 +3,7 @@ import * as warehouseService from '../warehouses/service.js';
 import * as sheetsRepository from '../sheets/repository.js'; 
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createIdentity, createStatus, inheritLineage, createData, createAttachment, registerService } from '~/server/core/blocks/index.js';
+import { createIdentity, createStatus, inheritLineage, createData, createAttachment } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
@@ -12,9 +12,6 @@ import { ObjectId } from 'mongodb';
  * Remnants Service - v24 Standardized
  */
 
-registerService('remnant', {
-  getById: (id) => getById(id)
-});
 
 function toDTO(remnant) {
   if (!remnant) return null;

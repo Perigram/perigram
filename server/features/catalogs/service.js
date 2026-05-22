@@ -1,7 +1,6 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { registerService } from '~/server/core/blocks/index.js';
 import { Catalog } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
@@ -11,9 +10,6 @@ import { ObjectId } from 'mongodb';
  * Catalogs Service - v24 Absolute Final
  */
 
-registerService('catalog', {
-  getById: (uid) => getById(uid)
-});
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { name, material, pricing, options, manufacturerId } = data;

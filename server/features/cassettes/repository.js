@@ -27,6 +27,11 @@ export async function find(filter = {}, options = {}) {
     .toArray();
 }
 
+export async function findDesignByTemplateId(templateId) {
+  const db = await connectDB();
+  return await db.collection('cassette_designs').findOne({ 'lineage.templateId': toFlexibleId(templateId) });
+}
+
 export async function updateById(id, updates) {
   const db = await connectDB();
   const { _id, ...clean } = updates;

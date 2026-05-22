@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import * as catalogService from '../catalogs/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission } from '~/server/utils/permissions';
-import { inheritLineage, registerService } from '~/server/core/blocks/index.js';
+import { inheritLineage } from '~/server/core/blocks/index.js';
 import { Color } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
@@ -12,9 +12,6 @@ import { ObjectId } from 'mongodb';
  * Colors Service - v24 Absolute Final
  */
 
-registerService('color', {
-  getById: (uid) => getById(uid)
-});
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { catalogId, name, code, hexCode, textureUrl } = data;

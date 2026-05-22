@@ -22,12 +22,12 @@ import {
   createMockUser,
   createMockWarehouse
 } from './factories.js';
-import { cncOperations, cncWorkflows } from '../packages/domain-cnc/src/index.js';
-import { collectServiceActionAccess, collectWorkflowAccess, workflowInitialState } from '../utils/workflow-compiler.js';
+import { cncCommands, cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { collectCommandAccess, collectWorkflowAccess, workflowInitialState } from '../utils/workflow-compiler.js';
 
 export const CNC_DEMO_SCENARIO_ID = 'cnc-demo-production';
 
-export function createCncFixtureScenario({ workflows = cncWorkflows, serviceActions = cncOperations } = {}) {
+export function createCncFixtureScenario({ workflows = cncWorkflows, commands = cncCommands } = {}) {
   const status = (entityType, fallback) => workflowInitialState(workflows, entityType, fallback);
   const refs = {
     organization: MOCK_IDS.organizationId,
@@ -157,9 +157,9 @@ export function createCncFixtureScenario({ workflows = cncWorkflows, serviceActi
 
   applyWorkflowStatuses(scenario, workflows, status);
   scenario.relationships = buildRelationships(scenario);
-  scenario.access = buildScenarioAccess({ scenario, workflows, serviceActions });
+  scenario.access = buildScenarioAccess({ scenario, workflows, commands });
   scenario.manifests = {
-    serviceActionDefaults: buildServiceActionDefaults(refs),
+    commandDefaults: buildCommandDefaults(refs),
     entityOptions: buildEntityOptions(scenario.entities)
   };
   scenario.validation = validateCncFixtureScenario(scenario, workflows);
@@ -208,10 +208,10 @@ function buildRelationships(scenario) {
     .map(([key, value]) => ({ from: `${type}:${entity._id}`, key, to: value }))));
 }
 
-function buildScenarioAccess({ scenario, workflows, serviceActions }) {
+function buildScenarioAccess({ scenario, workflows, commands }) {
   const permissions = {
     ...collectWorkflowAccess(workflows),
-    ...collectServiceActionAccess(Object.values(serviceActions || {})),
+    ...collectCommandAccess(Object.values(commands || {})),
     cassettes: 'admin',
     materials: 'admin',
     projects: 'admin',
@@ -227,15 +227,15 @@ function buildScenarioAccess({ scenario, workflows, serviceActions }) {
   };
 }
 
-function buildServiceActionDefaults(refs) {
+function buildCommandDefaults(refs) {
   return {
     solveNesting: {
       entities: { queue: refs.queue },
       parameters: { materialMode: 'VIRTUAL', width: 1220, height: 2440, spacing: 5, inventoryItems: [], toolProfileId: refs.toolProfile }
     },
-    generateArtifact: {
+    generateAttachment: {
       entities: { sheetDesign: refs.sheetDesign, nestingRun: refs.nestingRun },
-      parameters: { type: 'LAYOUT_DXF' }
+      parameters: { kind: 'LAYOUT_DXF' }
     }
   };
 }

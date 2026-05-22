@@ -10,7 +10,7 @@ export function compileWorkflowDraft({ entities = cncEntities, workflows = {}, h
     frontendEntities: [],
     summaries: [],
     serviceContracts: {},
-    serviceActions: {}
+    commands: {}
   };
   const validation = validateDomainDraft(draft);
   const machineIssues = [];
@@ -67,7 +67,7 @@ export function collectWorkflowAccess(workflows = {}) {
   return permissions;
 }
 
-export function collectServiceActionAccess(actions = []) {
+export function collectCommandAccess(actions = []) {
   const permissions = {};
   for (const action of actions || []) {
     for (const requirement of action.access?.permissions || []) {

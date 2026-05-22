@@ -1,7 +1,7 @@
 import { stateMachines } from './definitions.js';
 import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
-import { createStatus, getService } from '../../core/blocks/index.js';
+import { createStatus } from '../../core/blocks/index.js';
 import { hooks } from './hooks.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { createError } from 'h3';
@@ -127,7 +127,7 @@ export const statusService = {
         
         // 2. Dynamic Fallback: Check the specific Feature Service for this entity
         if (!hookFn) {
-          const service = getService(entityType);
+          const service = registry.getEntityService(entityType);
           if (service && service.hooks && service.hooks[hookConfig.handler]) {
             hookFn = service.hooks[hookConfig.handler];
           }

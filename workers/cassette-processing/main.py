@@ -9,7 +9,7 @@ import urllib.request
 from datetime import datetime
 from utils.logger import setup_logger
 from utils.mongo import db, _client
-from pymongo import ReturnDocument
+from bson import ObjectId
 from core.process import process_cassette
 
 logger = setup_logger("cassette_processing_worker")
@@ -30,12 +30,7 @@ def signal_handler(signum, frame):
     
     if current_doc_id:
         try:
-            logger.info(f"Resetting current job {current_doc_id} to pending status")
-            cassettes.update_one(
-                {"_id": current_doc_id},
-                {"$set": {"processingStatus": "pending"}}
-            )
-            logger.info(f"Successfully reset job {current_doc_id} to pending")
+            logger.info(f"Shutdown while processing cassette {current_doc_id}")
         except Exception as e:
             logger.error(f"Failed to reset job {current_doc_id}: {e}")
     else:
@@ -58,8 +53,8 @@ cassettes = db["cassettes"]
 PROCESS_API_URL = os.environ.get("CUTKIT_API_URL", "http://app:3000").rstrip("/")
 WORKER_TOKEN = os.environ.get("WORKER_TOKEN", "")
 
-def mark_process_run(process_run_id, status, output=None, error=None):
-    if not process_run_id:
+def mark_task_run(task_run_id, status, output=None, error=None):
+    if not task_run_id:
         return
     endpoint = {
         "RUNNING": "heartbeat",
@@ -68,10 +63,11 @@ def mark_process_run(process_run_id, status, output=None, error=None):
     }.get(status)
     if not endpoint:
         return
-    payload = {"result": output or {}, "message": str(error) if error else None}
+    result = output or {}
+    payload = {"result": result, "claimToken": result.get("claimToken"), "message": str(error) if error else None}
     data = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
-        f"{PROCESS_API_URL}/api/processes/{process_run_id}/{endpoint}",
+        f"{PROCESS_API_URL}/api/tasks/{task_run_id}/{endpoint}",
         data=data,
         headers={"Content-Type": "application/json", "x-worker-token": WORKER_TOKEN},
         method="POST"
@@ -79,7 +75,27 @@ def mark_process_run(process_run_id, status, output=None, error=None):
     try:
         urllib.request.urlopen(request, timeout=5).read()
     except Exception as e:
-        logger.error(f"Failed to update process run {process_run_id}: {e}")
+        logger.error(f"Failed to update task run {task_run_id}: {e}")
+
+def claim_task():
+    payload = {
+        "taskId": "cassette.bakeTemplate",
+        "workerType": "cassette-processing",
+        "workerId": os.environ.get("WORKER_ID", "cassette-processing"),
+        "leaseMs": 60000
+    }
+    request = urllib.request.Request(
+        f"{PROCESS_API_URL}/api/tasks/claim",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "x-worker-token": WORKER_TOKEN},
+        method="POST"
+    )
+    try:
+        data = urllib.request.urlopen(request, timeout=5).read()
+        return json.loads(data.decode("utf-8")).get("run")
+    except Exception as e:
+        logger.error(f"Failed to claim task: {e}")
+        return None
 
 def keep_alive_worker():
     global current_doc_id
@@ -103,21 +119,22 @@ keepalive_thread.start()
 logger.info("Cassette processing worker started")
 
 while not shutdown_requested:
-    logger.info("Worker trying to find new cassettes to process")
-    doc = cassettes.find_one_and_update(
-        {"processingStatus": "pending"},
-        {"$set": {"processingStatus": "processing"}},
-        return_document=ReturnDocument.AFTER
-    )
-    
-    if doc is None:
+    logger.info("Worker trying to claim cassette task")
+    task_run = claim_task()
+    if not task_run:
         time.sleep(5)
+        continue
+    cassette_id = task_run.get("input", {}).get("entities", {}).get("cassette")
+    doc = cassettes.find_one({"_id": ObjectId(cassette_id) if ObjectId.is_valid(str(cassette_id)) else cassette_id})
+    if doc is None:
+        mark_task_run(task_run.get("_id"), "FAILED", {"claimToken": task_run.get("claimToken")}, error=Exception("Cassette not found"))
         continue
     
     current_doc_id = doc["_id"]
     
     try:
-        mark_process_run(doc.get("processRunId"), "RUNNING")
+        claim_token = task_run.get("claimToken")
+        mark_task_run(task_run.get("_id"), "RUNNING", {"claimToken": claim_token})
         cassettes.update_one(
             {"_id": current_doc_id },
             {"$set": {"update_ts": datetime.now()}}
@@ -129,12 +146,12 @@ while not shutdown_requested:
         cassettes.update_one(
             {"_id": current_doc_id},
             {"$set": {
-                "processingStatus": "done",
                 "update_ts": datetime.now()
             }}
         )
-        mark_process_run(doc.get("processRunId"), "SUCCEEDED", {
-            "processId": "cassette.bakeTemplate",
+        mark_task_run(task_run.get("_id"), "SUCCEEDED", {
+            "taskId": "cassette.bakeTemplate",
+            "claimToken": claim_token,
             "entities": [{"type": "cassette", "id": str(current_doc_id)}],
             "data": {"status": "done"}
         })
@@ -146,11 +163,10 @@ while not shutdown_requested:
         cassettes.update_one(
             {"_id": current_doc_id},
             {"$set": {
-                "processingStatus": "error",
                 "error": str(e),
                 "update_ts": datetime.now()
             }}
         )
-        mark_process_run(doc.get("processRunId"), "FAILED", error=e)
+        mark_task_run(task_run.get("_id"), "FAILED", {"claimToken": claim_token}, error=e)
     finally:
         current_doc_id = None

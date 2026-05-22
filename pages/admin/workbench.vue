@@ -17,69 +17,69 @@
         />
       </div>
 
-      <div v-if="activeWorkbenchSection === 'operations'" class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <Panel :header="$t('admin.workbench.sectionsOperations')" class="lg:sticky lg:top-4">
+      <div v-if="activeWorkbenchSection === 'commands'" class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+        <Panel :header="$t('admin.workbench.sectionsCommands')" class="lg:sticky lg:top-4">
           <div class="flex flex-col gap-3">
-            <Message v-if="operationsError" severity="warn">{{ operationsError }}</Message>
-            <InputText v-model="operationSearch" :placeholder="$t('common.search')" class="w-full" />
+            <Message v-if="commandsError" severity="warn">{{ commandsError }}</Message>
+            <InputText v-model="commandSearch" :placeholder="$t('common.search')" class="w-full" />
             <div class="flex flex-col gap-2">
-              <label>{{ $t('admin.operations.operation') }}</label>
+              <label>{{ $t('admin.commands.command') }}</label>
               <button
-                v-for="operation in visibleOperations"
-                :key="operation.id"
+                v-for="command in visibleCommands"
+                :key="command.id"
                 type="button"
                 class="flex min-w-0 flex-col gap-2 rounded-ui border border-content-border bg-content px-3 py-2 text-left"
-                :class="selectedOperationId === operation.id ? 'border-primary' : ''"
-                @click="selectedOperationId = operation.id"
+                :class="selectedCommandId === command.id ? 'border-primary' : ''"
+                @click="selectedCommandId = command.id"
               >
                 <span class="flex min-w-0 flex-col">
-                  <strong class="truncate">{{ operation.label || operation.id }}</strong>
-                  <small class="text-muted-color">{{ operation.id }}</small>
+                  <strong class="truncate">{{ command.label || command.id }}</strong>
+                  <small class="text-muted-color">{{ command.id }}</small>
                 </span>
                 <span class="flex flex-wrap gap-1">
                   <Tag
-                    v-for="input in operation.input?.entities || []"
+                    v-for="input in command.input?.entities || []"
                     :key="input.name"
                     :value="input.type"
                     severity="secondary"
                     size="small"
                   />
-                  <Tag :value="operation.handlerRegistered ? $t('admin.operations.handler') : $t('admin.operations.noHandler')" :severity="operation.handlerRegistered ? 'success' : 'warn'" size="small" />
+                  <Tag :value="command.handlerRegistered ? $t('admin.commands.handler') : $t('admin.commands.noHandler')" :severity="command.handlerRegistered ? 'success' : 'warn'" size="small" />
                 </span>
               </button>
             </div>
-            <Message v-if="!operationsLoading && operationOptions.length === 0" severity="info">
-              {{ $t('admin.operations.noOperations') }}
+            <Message v-if="!commandsLoading && commandOptions.length === 0" severity="info">
+              {{ $t('admin.commands.noCommands') }}
             </Message>
           </div>
         </Panel>
 
         <div class="flex min-w-0 flex-col gap-4">
-          <Panel v-if="selectedOperation" :header="$t('admin.operations.input')">
+          <Panel v-if="selectedCommand" :header="$t('admin.commands.input')">
             <div class="flex flex-col gap-3">
               <div class="flex flex-wrap items-start justify-between gap-2">
                 <div class="flex min-w-0 flex-col">
-                  <strong>{{ selectedOperation.label }}</strong>
-                  <small class="text-muted-color">{{ selectedOperation.id }}</small>
+                  <strong>{{ selectedCommand.label }}</strong>
+                  <small class="text-muted-color">{{ selectedCommand.id }}</small>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                  <Tag :value="selectedOperation.handlerRegistered ? $t('admin.operations.handler') : $t('admin.operations.noHandler')" :severity="selectedOperation.handlerRegistered ? 'success' : 'warn'" size="small" />
+                  <Tag :value="selectedCommand.handlerRegistered ? $t('admin.commands.handler') : $t('admin.commands.noHandler')" :severity="selectedCommand.handlerRegistered ? 'success' : 'warn'" size="small" />
                 </div>
               </div>
               <TypedSettingsForm
-                v-model="operationEntities"
-                :fields="operationEntityFields"
+                v-model="commandEntities"
+                :fields="commandEntityFields"
                 :context="typedSettingsContext"
               />
               <TypedSettingsForm
-                v-model="operationParameters"
-                :fields="visibleOperationParameterFields"
+                v-model="commandParameters"
+                :fields="visibleCommandParameterFields"
                 :context="typedSettingsContext"
               />
-                <div v-if="operationInputPreviews.length" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <div v-if="commandInputPreviews.length" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
                 <component
                   :is="preview.component"
-                  v-for="preview in operationInputPreviews"
+                  v-for="preview in commandInputPreviews"
                   :key="preview.key"
                   v-bind="preview.props"
                   variant="compact"
@@ -89,70 +89,70 @@
             <Button
               class="mt-3"
               icon="pi pi-play"
-              :label="$t('admin.operations.run')"
-              :loading="operationRunning"
-              :disabled="!selectedOperation || !selectedOperation.runnable"
-              @click="runSelectedOperation"
+              :label="$t('admin.commands.run')"
+              :loading="commandRunning"
+              :disabled="!selectedCommand || !selectedCommand.runnable"
+              @click="runSelectedCommand"
             />
           </Panel>
 
-          <Panel :header="$t('admin.operations.lastOutput')">
+          <Panel :header="$t('admin.commands.lastOutput')">
             <div class="flex min-w-0 flex-col gap-3">
               <div class="flex items-center justify-between gap-3">
-                <strong>{{ $t('admin.operations.lastOutput') }}</strong>
-                <Button icon="pi pi-refresh" text rounded size="small" :aria-label="$t('common.update')" :loading="operationRunsLoading" @click="loadOperationRuns" />
+                <strong>{{ $t('admin.commands.lastOutput') }}</strong>
+                <Button icon="pi pi-refresh" text rounded size="small" :aria-label="$t('common.update')" :loading="commandRunsLoading" @click="loadCommandRuns" />
               </div>
               <div class="flex min-h-48 flex-col gap-3 rounded-ui border border-content-border bg-content p-3">
-                <div v-if="lastOperationRun" class="flex flex-wrap items-center gap-2">
-                  <Tag :value="lastOperationRun.status" :severity="operationRunSeverity(lastOperationRun.status)" size="small" />
-                  <small class="text-muted-color">{{ formatDateTime(lastOperationRun.finishedAt || lastOperationRun.createdAt) }}</small>
+                <div v-if="lastCommandRun" class="flex flex-wrap items-center gap-2">
+                  <Tag :value="lastCommandRun.status" :severity="commandRunSeverity(lastCommandRun.status)" size="small" />
+                  <small class="text-muted-color">{{ formatDateTime(lastCommandRun.finishedAt || lastCommandRun.createdAt) }}</small>
                 </div>
-                <div v-if="operationOutputPreviews.length" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <div v-if="commandOutputPreviews.length" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
                   <component
                     :is="preview.component"
-                    v-for="preview in operationOutputPreviews"
+                    v-for="preview in commandOutputPreviews"
                     :key="preview.key"
                     v-bind="preview.props"
                     variant="compact"
                   />
                 </div>
-                <Message v-if="operationMissingOutputRefs.length" severity="warn">
-                  {{ $t('admin.operations.missingOutputRefs') }} {{ operationMissingOutputRefs.join(', ') }}
+                <Message v-if="commandMissingOutputRefs.length" severity="warn">
+                  {{ $t('admin.commands.missingOutputRefs') }} {{ commandMissingOutputRefs.join(', ') }}
                 </Message>
-                <Panel v-if="lastOperationRun" :header="$t('admin.operations.debugOutput')">
-                  <pre class="m-0 max-h-[28rem] overflow-auto whitespace-pre-wrap break-words font-mono text-xs">{{ operationRunOutput(lastOperationRun) }}</pre>
+                <Panel v-if="lastCommandRun" :header="$t('admin.commands.debugOutput')">
+                  <pre class="m-0 max-h-[28rem] overflow-auto whitespace-pre-wrap break-words font-mono text-xs">{{ commandRunOutput(lastCommandRun) }}</pre>
                 </Panel>
-                <Message v-if="!lastOperationRun" severity="info">{{ $t('admin.operations.noOutput') }}</Message>
+                <Message v-if="!lastCommandRun" severity="info">{{ $t('admin.commands.noOutput') }}</Message>
               </div>
             </div>
           </Panel>
 
-          <Panel :header="$t('admin.processes.related')">
+          <Panel :header="$t('admin.tasks.related')">
             <div class="flex min-w-0 flex-col gap-3">
               <div class="flex items-center justify-between gap-3">
-                <strong>{{ $t('admin.processes.related') }}</strong>
-                <Button icon="pi pi-refresh" text rounded size="small" :aria-label="$t('common.update')" :loading="processesLoading" @click="loadProcesses" />
+                <strong>{{ $t('admin.tasks.related') }}</strong>
+                <Button icon="pi pi-refresh" text rounded size="small" :aria-label="$t('common.update')" :loading="tasksLoading" @click="loadTasks" />
               </div>
-              <div v-if="selectedOperationProcessDefinitions.length" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              <div v-if="selectedCommandTaskDefinitions.length" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
                 <article
-                  v-for="process in selectedOperationProcessDefinitions"
-                  :key="process.id"
+                  v-for="task in selectedCommandTaskDefinitions"
+                  :key="task.id"
                   class="flex min-w-0 flex-col gap-2 rounded-ui border border-content-border bg-content p-3"
                 >
                   <div class="flex flex-wrap items-start justify-between gap-2">
                     <div class="flex min-w-0 flex-col">
-                      <strong class="truncate">{{ process.label || process.id }}</strong>
-                      <small class="text-muted-color">{{ process.id }}</small>
+                      <strong class="truncate">{{ task.label || task.id }}</strong>
+                      <small class="text-muted-color">{{ task.id }}</small>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                      <Tag :value="process.service" severity="secondary" size="small" />
-                      <Tag :value="process.executor?.type || 'server'" severity="info" size="small" />
-                      <Tag v-if="process.executor?.target" :value="process.executor.target" severity="secondary" size="small" />
+                      <Tag :value="task.service" severity="secondary" size="small" />
+                      <Tag :value="task.executor?.type || 'server'" severity="info" size="small" />
+                      <Tag v-if="task.executor?.target" :value="task.executor.target" severity="secondary" size="small" />
                     </div>
                   </div>
                   <div class="flex flex-wrap gap-1">
                     <Tag
-                      v-for="item in processOutputTags(process)"
+                      v-for="item in taskOutputTags(task)"
                       :key="item"
                       :value="item"
                       severity="secondary"
@@ -161,32 +161,32 @@
                   </div>
                 </article>
               </div>
-              <Message v-else severity="info">{{ $t('admin.processes.noRelated') }}</Message>
+              <Message v-else severity="info">{{ $t('admin.tasks.noRelated') }}</Message>
               <div class="flex flex-col gap-2">
                 <article
-                  v-for="run in selectedOperationProcessRuns"
+                  v-for="run in selectedCommandTaskRuns"
                   :key="run._id"
                   class="flex min-w-0 flex-col gap-2 rounded-ui border border-content-border bg-content p-3"
                 >
                   <div class="flex flex-wrap items-center justify-between gap-2">
                     <div class="flex min-w-0 flex-col">
-                      <strong class="truncate">{{ run.processId }}</strong>
+                      <strong class="truncate">{{ run.taskId }}</strong>
                       <small class="text-muted-color">{{ run._id }}</small>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                      <Tag :value="run.status" :severity="processRunSeverity(run.status)" size="small" />
-                      <Tag :value="`${$t('admin.processes.attempts')}: ${run.attempts || 0}/${run.maxAttempts || 0}`" severity="secondary" size="small" />
+                      <Tag :value="run.status" :severity="taskRunSeverity(run.status)" size="small" />
+                      <Tag :value="`${$t('admin.tasks.attempts')}: ${run.attempts || 0}/${run.maxAttempts || 0}`" severity="secondary" size="small" />
                     </div>
                   </div>
                   <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
-                    <small class="text-muted-color">{{ $t('admin.processes.worker') }}: {{ run.workerId || run.lockedBy || 'SYSTEM' }}</small>
-                    <small class="text-muted-color">{{ $t('admin.processes.lease') }}: {{ formatDateTime(run.leaseExpiresAt) || 'N/A' }}</small>
+                    <small class="text-muted-color">{{ $t('admin.tasks.worker') }}: {{ run.workerId || run.lockedBy || 'SYSTEM' }}</small>
+                    <small class="text-muted-color">{{ $t('admin.tasks.lease') }}: {{ formatDateTime(run.leaseExpiresAt) || 'N/A' }}</small>
                     <small class="text-muted-color">{{ $t('common.created') }}: {{ formatDateTime(run.createdAt) }}</small>
                   </div>
-                  <pre class="m-0 max-h-52 overflow-auto whitespace-pre-wrap break-words font-mono text-xs">{{ processRunDebug(run) }}</pre>
+                  <pre class="m-0 max-h-52 overflow-auto whitespace-pre-wrap break-words font-mono text-xs">{{ taskRunDebug(run) }}</pre>
                 </article>
-                <Message v-if="selectedOperationProcessDefinitions.length && selectedOperationProcessRuns.length === 0" severity="info">
-                  {{ $t('admin.processes.noRuns') }}
+                <Message v-if="selectedCommandTaskDefinitions.length && selectedCommandTaskRuns.length === 0" severity="info">
+                  {{ $t('admin.tasks.noRuns') }}
                 </Message>
               </div>
             </div>
@@ -195,19 +195,19 @@
       </div>
 
       <div v-else-if="activeWorkbenchSection === 'context'" class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)]">
-        <Panel :header="$t('admin.operations.fixtures')">
+        <Panel :header="$t('admin.commands.fixtures')">
           <div class="flex flex-col gap-4">
             <div class="flex flex-wrap items-center gap-2">
               <Tag :value="fixtureStore.context.label" severity="secondary" size="small" />
-              <Tag :value="fixtureStore.seeded ? $t('admin.operations.seeded') : $t('admin.operations.notSeeded')" :severity="fixtureStore.seeded ? 'success' : 'warn'" size="small" />
+              <Tag :value="fixtureStore.seeded ? $t('admin.commands.seeded') : $t('admin.commands.notSeeded')" :severity="fixtureStore.seeded ? 'success' : 'warn'" size="small" />
             </div>
             <Message v-if="fixtureStore.error" severity="warn">{{ fixtureStore.error }}</Message>
             <Message v-else-if="workflowCompileIssues.length" severity="warn">
               {{ workflowCompileIssues.join(' ') }}
             </Message>
             <div class="flex flex-wrap gap-2">
-              <Button icon="pi pi-refresh" :label="$t('admin.operations.rebuildScenario')" severity="secondary" size="small" @click="rebuildFixtureScenario" />
-              <Button icon="pi pi-database" :label="$t('admin.operations.seedScenario')" :loading="fixtureStore.loading" size="small" :disabled="workflowCompileIssues.length > 0" @click="seedFixtureScenario" />
+              <Button icon="pi pi-refresh" :label="$t('admin.commands.rebuildScenario')" severity="secondary" size="small" @click="rebuildFixtureScenario" />
+              <Button icon="pi pi-database" :label="$t('admin.commands.seedScenario')" :loading="fixtureStore.loading" size="small" :disabled="workflowCompileIssues.length > 0" @click="seedFixtureScenario" />
             </div>
             <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
               <component
@@ -221,11 +221,11 @@
           </div>
         </Panel>
 
-        <Panel :header="$t('admin.operations.testAccess')">
+        <Panel :header="$t('admin.commands.testAccess')">
           <div class="flex flex-col gap-3">
             <label class="flex items-center gap-2">
               <Checkbox v-model="workbenchTestAccess.enabled" binary />
-              <span>{{ $t('admin.operations.overrideAccess') }}</span>
+              <span>{{ $t('admin.commands.overrideAccess') }}</span>
             </label>
             <div v-if="workbenchTestAccess.enabled" class="grid grid-cols-1 gap-3">
               <div v-for="field in workbenchAccessFields" :key="field.name" class="flex min-w-0 flex-col gap-1">
@@ -509,7 +509,6 @@ import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import TypedSettingsForm from '~/components/shared/TypedSettingsForm.vue';
-import { cncEntities, cncHookContracts, cncWorkflows } from '~/packages/domain-cnc/src/index.js';
 import { DESIGN_SYSTEM_ENTITIES, createDesignSystemDemoRows } from '~/utils/design-system.js';
 import { buildWorkflowGraph, parseCommaList, parseJsonObject, stringifyCommaList } from '~/utils/domain-builder.js';
 import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
@@ -525,8 +524,12 @@ const fixtureStore = useWorkbenchFixturesStore();
 const STORAGE_KEY = 'cutkit:entity-workbench:v1';
 const WORKFLOW_LAYOUT_STORAGE_KEY = 'cutkit:entity-workbench-layout:v1';
 
-const entities = ref(structuredClone(cncEntities));
-const workflows = ref(structuredClone(cncWorkflows));
+const domainLoading = ref(false);
+const domainError = ref('');
+const sourceDomain = ref({ entities: [], workflows: {}, hooks: {} });
+const entities = ref([]);
+const workflows = ref({});
+const hookContracts = ref({});
 const activeWorkbenchSection = ref('entities');
 const activeEntityTab = ref('ui');
 const uiRows = createDesignSystemDemoRows();
@@ -541,24 +544,24 @@ const selectedState = ref('');
 const selectedTransitionIndex = ref(null);
 const transitionDraftFrom = ref('');
 const workflowLayouts = ref({});
-const operations = ref([]);
-const operationRuns = ref([]);
-const operationsLoading = ref(false);
-const operationRunsLoading = ref(false);
-const operationRunning = ref(false);
-const operationsError = ref('');
-const operationsRegistry = ref({});
-const operationSearch = ref('');
-const selectedOperationId = ref('');
-const operationEntities = ref({});
-const operationParameters = ref({});
-const processDefinitions = ref([]);
-const processRuns = ref([]);
-const processesLoading = ref(false);
-const processesError = ref('');
+const commands = ref([]);
+const commandRuns = ref([]);
+const commandsLoading = ref(false);
+const commandRunsLoading = ref(false);
+const commandRunning = ref(false);
+const commandsError = ref('');
+const commandsRegistry = ref({});
+const commandSearch = ref('');
+const selectedCommandId = ref('');
+const commandEntities = ref({});
+const commandParameters = ref({});
+const taskDefinitions = ref([]);
+const taskRuns = ref([]);
+const tasksLoading = ref(false);
+const tasksError = ref('');
 const workbenchTestAccess = ref({ enabled: true, userId: '', organizationId: '', permissions: {} });
-let operationRunPoll = null;
-let processRunPoll = null;
+let commandRunPoll = null;
+let taskRunPoll = null;
 
 const visibleEntities = computed(() => {
   const term = search.value.trim().toLowerCase();
@@ -574,7 +577,9 @@ const selectedEntityRow = computed(() => {
   if (!selectedEntityKey.value) selectedEntityKey.value = workbenchEntities.value[0]?.key || '';
   return workbenchEntities.value.find(entity => entity.key === selectedEntityKey.value) || workbenchEntities.value[0];
 });
-const selectedEntity = computed(() => selectedEntityRow.value?.backend || entities.value.find(entity => entity.type === selectedEntityRow.value?.entityType) || entities.value[0]);
+const selectedEntity = computed(() => selectedEntityRow.value?.backend
+  || entities.value.find(entity => entity.type === selectedEntityRow.value?.entityType)
+  || { type: selectedEntityRow.value?.entityType || 'entity', collection: selectedEntityRow.value?.collection || 'entities' });
 const selectedUiRows = computed(() => uiRows.filter(row => row.key === selectedEntityRow.value?.key));
 const selectedModel = computed(() => models.value.find(model => normalizeCollection(model.collection) === normalizeCollection(selectedEntity.value.collection)));
 const selectedModelFields = computed(() => selectedModel.value?.fields || []);
@@ -600,7 +605,11 @@ const selectedTransition = computed(() => {
   if (selectedTransitionIndex.value === null) return null;
   return workflowDraft.value.transitions[selectedTransitionIndex.value] || null;
 });
-const workflowCompile = computed(() => compileWorkflowDraft({ entities: entities.value, workflows: workflows.value }));
+const workflowCompile = computed(() => compileWorkflowDraft({
+  entities: entities.value,
+  workflows: workflows.value,
+  hookContracts: hookContracts.value
+}));
 const workflowCompileIssues = computed(() => workflowCompile.value.issues.map(issue => issue.message));
 provide('statusWorkflows', computed(() => workflowCompile.value.machines));
 provide('entityContext', computed(() => fixtureStore.context));
@@ -658,7 +667,7 @@ const selectedLifecycleAttachments = computed(() => {
 const globalWorkbenchTabs = [
   { value: 'entities', labelKey: 'admin.workbench.entities' },
   { value: 'context', labelKey: 'admin.workbench.sectionsContext' },
-  { value: 'operations', labelKey: 'admin.workbench.sectionsOperations' }
+  { value: 'commands', labelKey: 'admin.workbench.sectionsCommands' }
 ];
 const entityWorkbenchTabs = [
   { value: 'ui', labelKey: 'admin.workbench.sectionsUi' },
@@ -667,69 +676,69 @@ const entityWorkbenchTabs = [
   { value: 'feedback', labelKey: 'admin.workbench.sectionsFeedback' }
 ];
 const hookOptions = computed(() => uniqueSorted([
-  ...Object.keys(cncHookContracts),
+  ...Object.keys(hookContracts.value),
   ...(workflowDraft.value.transitions || []).flatMap(transition => (transition.hooks || []).map(hook => hook.handler).filter(Boolean))
 ]).map(value => ({ label: value, value })));
-const visibleOperations = computed(() => {
-  const term = operationSearch.value.trim().toLowerCase();
-  const runnableOperations = operations.value.filter(operation => operation.kind !== 'process' && operation.runnable !== false);
-  if (!term) return runnableOperations;
-  return runnableOperations.filter(operation => JSON.stringify({
-    id: operation.id,
-    label: operation.label,
-    input: operation.input,
-    output: operation.output,
-    access: operation.access
+const visibleCommands = computed(() => {
+  const term = commandSearch.value.trim().toLowerCase();
+  const runnableCommands = commands.value.filter(command => command.kind !== 'task' && command.runnable !== false);
+  if (!term) return runnableCommands;
+  return runnableCommands.filter(command => JSON.stringify({
+    id: command.id,
+    label: command.label,
+    input: command.input,
+    output: command.output,
+    access: command.access
 }).toLowerCase().includes(term));
 });
-const operationOptions = computed(() => visibleOperations.value.map(operation => ({
-  label: operation.label || operation.id,
-  value: operation.id
+const commandOptions = computed(() => visibleCommands.value.map(command => ({
+  label: command.label || command.id,
+  value: command.id
 })));
-const selectedOperation = computed(() => visibleOperations.value.find(operation => operation.id === selectedOperationId.value) || null);
-const selectedOperationProcessDefinitions = computed(() => {
-  const ids = operationRelatedProcessIds(selectedOperation.value);
-  return processDefinitions.value.filter(process => ids.has(process.id));
+const selectedCommand = computed(() => visibleCommands.value.find(command => command.id === selectedCommandId.value) || null);
+const selectedCommandTaskDefinitions = computed(() => {
+  const ids = commandRelatedTaskIds(selectedCommand.value);
+  return taskDefinitions.value.filter(task => ids.has(task.id));
 });
-const selectedOperationProcessRuns = computed(() => {
-  const ids = operationRelatedProcessIds(selectedOperation.value);
-  const runIds = new Set((lastOperationRun.value?.result?.jobs || [])
-    .filter(job => job.type === 'process_run' && job.id)
+const selectedCommandTaskRuns = computed(() => {
+  const ids = commandRelatedTaskIds(selectedCommand.value);
+  const runIds = new Set((lastCommandRun.value?.result?.tasks || [])
+    .filter(job => job.type === 'task_run' && job.id)
     .map(job => job.id?.toString()));
-  return processRuns.value.filter(run => ids.has(run.processId) || runIds.has(run._id?.toString()));
+  return taskRuns.value.filter(run => ids.has(run.taskId) || runIds.has(run._id?.toString()));
 });
 const entityRenderers = computed(() => Object.fromEntries(DESIGN_SYSTEM_ENTITIES.map(entry => [entry.entityType, entry])));
-const operationEntityFields = computed(() => (selectedOperation.value?.input?.entities || []).map(input => ({
+const commandEntityFields = computed(() => (selectedCommand.value?.input?.entities || []).map(input => ({
   name: input.name,
   label: `${input.name}:${input.type}`,
   type: 'entityId',
   entityType: input.type,
   required: Boolean(input.required)
 })));
-const visibleOperationParameterFields = computed(() => (selectedOperation.value?.input?.parameters || [])
+const visibleCommandParameterFields = computed(() => (selectedCommand.value?.input?.parameters || [])
   .filter(field => field.display !== 'debug' && field.display !== 'hidden'));
 const workbenchAccessFields = computed(() => Object.keys({
   ...(fixtureStore.access.permissions || {}),
   ...(workbenchTestAccess.value.permissions || {})
 }).sort().map(feature => ({ name: feature, label: feature })));
-const lastOperationRun = computed(() => operationRuns.value[0] || null);
-const operationInputPreviews = computed(() => operationEntityFields.value
-  .map(field => previewForEntityRef(field.entityType, operationEntities.value[field.name], `input:${field.name}`))
+const lastCommandRun = computed(() => commandRuns.value[0] || null);
+const commandInputPreviews = computed(() => commandEntityFields.value
+  .map(field => previewForEntityRef(field.entityType, commandEntities.value[field.name], `input:${field.name}`))
   .filter(Boolean));
-const operationOutputPreviews = computed(() => {
-  const result = lastOperationRun.value?.result;
+const commandOutputPreviews = computed(() => {
+  const result = lastCommandRun.value?.result;
   if (!result) return [];
   return [
     ...(result.entities || []).map(item => previewForEntityRef(item.type, item.id, `entity:${item.type}:${item.id}`)),
-    ...(result.artifacts || []).map(item => previewForArtifactOutput(item))
+    ...(result.attachments || []).map(item => previewForArtifactOutput(item))
   ].filter(Boolean);
 });
-const operationMissingOutputRefs = computed(() => {
-  const result = lastOperationRun.value?.result;
+const commandMissingOutputRefs = computed(() => {
+  const result = lastCommandRun.value?.result;
   if (!result) return [];
   return [
     ...(result.entities || []).map(item => ({ type: item.type, id: item.id })),
-    ...(result.artifacts || []).map(item => ({ type: 'artifact', id: item.id }))
+    ...(result.attachments || []).map(item => ({ type: 'artifact', id: item.id }))
   ]
     .filter(item => item.type && item.id && !findScenarioEntity(item.type, item.id))
     .map(item => `${item.type}:${item.id}`);
@@ -749,21 +758,22 @@ const typedSettingsContext = computed(() => ({
 const dataDecisionOptions = ['unchecked', 'keep', 'remove', 'rename', 'move', 'investigate'].map(value => ({ label: value, value }));
 const accessLevelOptions = ['none', 'read', 'write', 'admin'].map(value => ({ label: value, value }));
 
-onMounted(() => {
+onMounted(async () => {
+  await loadDomain();
   loadStoredDraft();
   loadModels();
   loadWorkflowLayouts();
   rebuildFixtureScenario();
-  loadOperations();
-  loadOperationRuns();
-  loadProcesses();
-  if (import.meta.client) operationRunPoll = window.setInterval(loadOperationRuns, 5000);
-  if (import.meta.client) processRunPoll = window.setInterval(loadProcesses, 5000);
+  loadCommands();
+  loadCommandRuns();
+  loadTasks();
+  if (import.meta.client) commandRunPoll = window.setInterval(loadCommandRuns, 5000);
+  if (import.meta.client) taskRunPoll = window.setInterval(loadTasks, 5000);
 });
 
 onUnmounted(() => {
-  if (operationRunPoll) window.clearInterval(operationRunPoll);
-  if (processRunPoll) window.clearInterval(processRunPoll);
+  if (commandRunPoll) window.clearInterval(commandRunPoll);
+  if (taskRunPoll) window.clearInterval(taskRunPoll);
 });
 
 watch([workflows, feedback, dataDecisions], saveDraft, { deep: true });
@@ -774,7 +784,28 @@ watch(selectedEntityKey, () => {
   transitionDraftFrom.value = '';
 });
 
-watch(selectedOperationId, syncOperationInput);
+watch(selectedCommandId, syncCommandInput);
+
+async function loadDomain() {
+  domainLoading.value = true;
+  domainError.value = '';
+  try {
+    const result = await $fetch('/api/admin/domain');
+    if (result?.success === false) throw new Error(result.error || 'Failed to load domain');
+    sourceDomain.value = {
+      entities: result.entities || result.domain?.entities || [],
+      workflows: result.workflows || result.domain?.workflows || {},
+      hooks: result.hooks || result.domain?.hooks || {}
+    };
+    entities.value = structuredClone(sourceDomain.value.entities);
+    workflows.value = structuredClone(sourceDomain.value.workflows);
+    hookContracts.value = structuredClone(sourceDomain.value.hooks);
+  } catch (error) {
+    domainError.value = error?.data?.message || error?.message || 'Failed to load domain';
+  } finally {
+    domainLoading.value = false;
+  }
+}
 
 async function loadModels() {
   modelLoading.value = true;
@@ -790,81 +821,81 @@ async function loadModels() {
   }
 }
 
-async function loadOperations() {
-  operationsLoading.value = true;
-  operationsError.value = '';
+async function loadCommands() {
+  commandsLoading.value = true;
+  commandsError.value = '';
   try {
-    const result = await $fetch('/api/admin/operations');
-    operations.value = (result.operations || []).filter(operation => operation.kind !== 'process');
-    operationsRegistry.value = result.registry || {};
+    const result = await $fetch('/api/admin/commands');
+    commands.value = (result.commands || []).filter(command => command.kind !== 'task');
+    commandsRegistry.value = result.registry || {};
     rebuildFixtureScenario();
-    ensureSelectedOperation();
-    syncOperationInput();
+    ensureSelectedCommand();
+    syncCommandInput();
   } catch (error) {
-    operationsError.value = error?.data?.message || error?.message || 'Failed to load operations';
+    commandsError.value = error?.data?.message || error?.message || 'Failed to load commands';
   } finally {
-    operationsLoading.value = false;
+    commandsLoading.value = false;
   }
 }
 
-async function loadProcesses() {
-  processesLoading.value = true;
-  processesError.value = '';
+async function loadTasks() {
+  tasksLoading.value = true;
+  tasksError.value = '';
   try {
-    const result = await $fetch('/api/admin/processes', {
+    const result = await $fetch('/api/admin/tasks', {
       query: {
         limit: 25
       }
     });
-    processDefinitions.value = result.definitions || [];
-    processRuns.value = result.runs || [];
+    taskDefinitions.value = result.definitions || [];
+    taskRuns.value = result.runs || [];
   } catch (error) {
-    processesError.value = error?.data?.message || error?.message || 'Failed to load processes';
+    tasksError.value = error?.data?.message || error?.message || 'Failed to load tasks';
   } finally {
-    processesLoading.value = false;
+    tasksLoading.value = false;
   }
 }
 
-async function loadOperationRuns() {
-  if (!selectedOperationId.value || selectedOperation.value?.kind === 'process') {
-    operationRuns.value = [];
+async function loadCommandRuns() {
+  if (!selectedCommandId.value || selectedCommand.value?.kind === 'task') {
+    commandRuns.value = [];
     return;
   }
-  operationRunsLoading.value = true;
+  commandRunsLoading.value = true;
   try {
-    const result = await $fetch('/api/admin/operations/runs', {
-      query: { actionId: selectedOperationId.value, limit: 1 }
+    const result = await $fetch('/api/admin/commands/runs', {
+      query: { commandId: selectedCommandId.value, limit: 1 }
     });
-    operationRuns.value = result.runs || [];
-    await hydrateOperationRunOutput(operationRuns.value[0]);
+    commandRuns.value = result.runs || [];
+    await hydrateCommandRunOutput(commandRuns.value[0]);
   } catch (error) {
-    operationsError.value = error?.data?.message || error?.message || 'Failed to load operation runs';
+    commandsError.value = error?.data?.message || error?.message || 'Failed to load command runs';
   } finally {
-    operationRunsLoading.value = false;
+    commandRunsLoading.value = false;
   }
 }
 
-async function hydrateOperationRunOutput(run) {
+async function hydrateCommandRunOutput(run) {
   const refs = [
     ...(run?.result?.entities || []),
-    ...(run?.result?.artifacts || []).map(item => ({ type: 'artifact', id: item.id, artifactType: item.type }))
+    ...(run?.result?.attachments || []).map(item => ({ type: 'artifact', id: item.id, artifactKind: item.kind }))
   ].filter(item => item.type && item.id);
   const hydrated = [];
   for (const ref of refs) {
-    const entity = await fetchOperationEntity(ref).catch(() => null);
+    const entity = await fetchCommandEntity(ref).catch(() => null);
     if (entity) hydrated.push({ type: ref.type, entity });
   }
   if (hydrated.length) fixtureStore.upsertEntities(hydrated);
 }
 
-async function fetchOperationEntity(ref) {
-  const path = operationEntityPath(ref.type, ref.id);
+async function fetchCommandEntity(ref) {
+  const path = commandEntityPath(ref.type, ref.id);
   if (!path) return null;
   const entity = await $fetch(path);
   return entity && typeof entity === 'object' ? entity : null;
 }
 
-function operationEntityPath(type, id) {
+function commandEntityPath(type, id) {
   const paths = {
     nesting_run: `/api/nesting-runs/${id}`,
     sheet_design: `/api/sheet-designs/${id}`,
@@ -873,25 +904,25 @@ function operationEntityPath(type, id) {
   return paths[type] || null;
 }
 
-async function runSelectedOperation() {
-  if (!selectedOperation.value || !selectedOperation.value.runnable) return;
-  operationRunning.value = true;
-  operationsError.value = '';
+async function runSelectedCommand() {
+  if (!selectedCommand.value || !selectedCommand.value.runnable) return;
+  commandRunning.value = true;
+  commandsError.value = '';
   try {
-    await $fetch(`/api/admin/operations/${selectedOperation.value.id}/run`, {
+    await $fetch(`/api/admin/commands/${selectedCommand.value.id}/run`, {
       method: 'POST',
       body: {
-        entities: operationEntities.value,
-        parameters: operationParameters.value,
+        entities: commandEntities.value,
+        parameters: commandParameters.value,
         testAccess: workbenchTestAccess.value
       }
     });
-    await loadOperationRuns();
+    await loadCommandRuns();
   } catch (error) {
-    operationsError.value = error?.data?.message || error?.message || 'Failed to run operation';
-    await loadOperationRuns();
+    commandsError.value = error?.data?.message || error?.message || 'Failed to run command';
+    await loadCommandRuns();
   } finally {
-    operationRunning.value = false;
+    commandRunning.value = false;
   }
 }
 
@@ -899,7 +930,7 @@ function rebuildFixtureScenario() {
   fixtureStore.rebuild({
     workflows: workflows.value,
     entities: entities.value,
-    serviceActions: operations.value
+    commands: commands.value
   });
   applyScenarioDefaults();
 }
@@ -908,39 +939,39 @@ async function seedFixtureScenario() {
   await fixtureStore.seed({
     workflows: workflows.value,
     entities: entities.value,
-    serviceActions: operations.value
+    commands: commands.value
   });
   applyScenarioDefaults();
 }
 
-function syncOperationInput() {
-  ensureSelectedOperation();
-  if (!selectedOperation.value) {
-    operationEntities.value = {};
-    operationParameters.value = {};
-    operationRuns.value = [];
+function syncCommandInput() {
+  ensureSelectedCommand();
+  if (!selectedCommand.value) {
+    commandEntities.value = {};
+    commandParameters.value = {};
+    commandRuns.value = [];
     return;
   }
   const entitiesInput = {};
-  for (const input of selectedOperation.value.input?.entities || []) {
+  for (const input of selectedCommand.value.input?.entities || []) {
     entitiesInput[input.name] = '';
   }
-  operationEntities.value = entitiesInput;
-  operationParameters.value = defaultSettingsFor(selectedOperation.value.input?.parameters || []);
+  commandEntities.value = entitiesInput;
+  commandParameters.value = defaultSettingsFor(selectedCommand.value.input?.parameters || []);
   applyScenarioDefaults();
-  loadOperationRuns();
+  loadCommandRuns();
 }
 
 function applyScenarioDefaults() {
   syncWorkbenchAccessDefaults();
-  if (!selectedOperation.value) return;
-  const defaults = fixtureStore.defaultsForAction(selectedOperation.value.id);
-  operationEntities.value = {
-    ...operationEntities.value,
+  if (!selectedCommand.value) return;
+  const defaults = fixtureStore.defaultsForAction(selectedCommand.value.id);
+  commandEntities.value = {
+    ...commandEntities.value,
     ...(defaults.entities || {})
   };
-  operationParameters.value = {
-    ...operationParameters.value,
+  commandParameters.value = {
+    ...commandParameters.value,
     ...(defaults.parameters || {})
   };
 }
@@ -967,19 +998,19 @@ function setWorkbenchAccessLevel(feature, level) {
   };
 }
 
-function ensureSelectedOperation() {
-  if (visibleOperations.value.some(operation => operation.id === selectedOperationId.value)) return;
-  selectedOperationId.value = visibleOperations.value[0]?.id || '';
+function ensureSelectedCommand() {
+  if (visibleCommands.value.some(command => command.id === selectedCommandId.value)) return;
+  selectedCommandId.value = visibleCommands.value[0]?.id || '';
 }
 
-function operationRunSeverity(status) {
+function commandRunSeverity(status) {
   if (status === 'SUCCEEDED') return 'success';
   if (status === 'FAILED') return 'danger';
   if (status === 'RUNNING') return 'warn';
   return 'secondary';
 }
 
-function processRunSeverity(status) {
+function taskRunSeverity(status) {
   if (status === 'SUCCEEDED') return 'success';
   if (status === 'FAILED' || status === 'CANCELLED') return 'danger';
   if (status === 'RUNNING') return 'warn';
@@ -987,32 +1018,32 @@ function processRunSeverity(status) {
   return 'secondary';
 }
 
-function processOutputTags(process) {
-  const output = process?.output || {};
+function taskOutputTags(task) {
+  const output = task?.output || {};
   return [
     ...(output.entities || []).map(item => `entity:${item}`),
-    ...(output.artifacts || []).map(item => `artifact:${item}`),
-    ...(output.jobs || []).map(item => `job:${item}`),
+    ...(output.attachments || []).map(item => `attachment:${item}`),
+    ...(output.tasks || []).map(item => `task:${item}`),
     ...(output.events || []).map(item => `event:${item}`),
     ...(output.data || []).map(item => `data:${item}`)
   ];
 }
 
-function operationRelatedProcessIds(operation) {
-  if (!operation) return new Set();
-  const explicit = operation.output?.processes || [];
-  const inferred = processDefinitions.value
-    .filter(process => process.service === operation.service)
-    .filter(process => process.id === `${operation.service}.${operation.action}` || process.id.endsWith(`.${operation.action}`))
-    .map(process => process.id);
-  const runIds = processRuns.value
-    .filter(run => run.service === operation.service)
-    .filter(run => run.processId === `${operation.service}.${operation.action}` || run.processId?.endsWith(`.${operation.action}`))
-    .map(run => run.processId);
+function commandRelatedTaskIds(command) {
+  if (!command) return new Set();
+  const explicit = command.output?.tasks || [];
+  const inferred = taskDefinitions.value
+    .filter(task => task.service === command.service)
+    .filter(task => task.id === `${command.service}.${command.action}` || task.id.endsWith(`.${command.action}`))
+    .map(task => task.id);
+  const runIds = taskRuns.value
+    .filter(run => run.service === command.service)
+    .filter(run => run.taskId === `${command.service}.${command.action}` || run.taskId?.endsWith(`.${command.action}`))
+    .map(run => run.taskId);
   return new Set([...explicit, ...inferred, ...runIds]);
 }
 
-function processRunDebug(run) {
+function taskRunDebug(run) {
   return JSON.stringify({
     input: run.input,
     output: run.output,
@@ -1022,17 +1053,17 @@ function processRunDebug(run) {
   }, null, 2);
 }
 
-function operationRunSummary(run) {
+function commandRunSummary(run) {
   if (run.error?.message) return run.error.message;
   if (run.result?.entities?.length) return run.result.entities.map(item => `${item.type}:${item.id}`).join(', ');
-  if (run.result?.jobs?.length) return run.result.jobs.map(item => `${item.type}:${item.id}`).join(', ');
+  if (run.result?.tasks?.length) return run.result.tasks.map(item => `${item.type}:${item.id}`).join(', ');
   return run.status;
 }
 
-function operationRunOutput(run) {
+function commandRunOutput(run) {
   if (run.error) return JSON.stringify(run.error, null, 2);
   if (run.result) return JSON.stringify(run.result, null, 2);
-  return operationRunSummary(run);
+  return commandRunSummary(run);
 }
 
 function previewForEntityRef(entityType, id, key) {
@@ -1054,7 +1085,7 @@ function previewForArtifactOutput(item) {
   const entity = findScenarioEntity('artifact', item.id);
   if (!entity) return null;
   return {
-    key: `artifact:${item.type}:${item.id}`,
+    key: `attachment:${item.kind || item.type}:${item.id}`,
     component: renderer.component,
     props: { [renderer.propName]: entity }
   };
@@ -1116,7 +1147,9 @@ function saveWorkflowLayouts() {
 }
 
 function resetWorkbench() {
-  workflows.value = structuredClone(cncWorkflows);
+  entities.value = structuredClone(sourceDomain.value.entities || []);
+  workflows.value = structuredClone(sourceDomain.value.workflows || {});
+  hookContracts.value = structuredClone(sourceDomain.value.hooks || {});
   feedback.value = {};
   dataDecisions.value = {};
   workflowLayouts.value = {};
@@ -1354,7 +1387,7 @@ function updateHookHandler(hook, value) {
 }
 
 function hookParameterFields(handler) {
-  return cncHookContracts[handler]?.parameters || [];
+  return hookContracts.value[handler]?.parameters || [];
 }
 
 function removeSelectedTransition() {

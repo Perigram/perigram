@@ -95,11 +95,15 @@ features.forEach(feature => {
     }
   });
 
-  // 2. Check Service for registration
+  // 2. Services must not self-register through hidden global registries.
   if (files.includes('service.js')) {
     const content = fs.readFileSync(path.join(dir, 'service.js'), 'utf8');
-    if (!content.includes('registerService') && !content.includes('registerEntityService')) {
-      console.error(`❌ Service does not call registerEntityService()`);
+    if (/register(Service|EntityService)\s*\(/.test(content)) {
+      console.error(`❌ Service self-registers — use server/runtime/app-registry.js composition`);
+      errors++;
+    }
+    if (/db\.collection\s*\(/.test(content)) {
+      console.error(`❌ Service uses raw db.collection — move data access to repository/adapter`);
       errors++;
     }
   }
@@ -229,8 +233,13 @@ jsFiles.forEach(file => {
     errors++;
   }
 
-  if (relFile !== 'server/core/processes/repository.js' && /db\.collection\((['"])process_runs\1\)|process_runs\s*=\s*db\[(['"])process_runs\2\]/.test(content)) {
-    console.error(`❌ ${relFile} touches process_runs directly — use server/core/processes/service.js`);
+  if (relFile !== 'server/core/tasks/repository.js' && /db\.collection\((['"])task_runs\1\)|task_runs\s*=\s*db\[(['"])task_runs\2\]/.test(content)) {
+    console.error(`❌ ${relFile} touches task_runs directly — use server/core/tasks/service.js`);
+    errors++;
+  }
+
+  if (/(serviceAction|service_action|process_runs|service_action_runs|defineProcess|listProcessDefinitions|executeServiceAction|\/api\/processes|\/api\/operations)/.test(content)) {
+    console.error(`❌ ${relFile} uses retired operation/process/service-action vocabulary`);
     errors++;
   }
 

@@ -1,27 +1,26 @@
 import { requireAuth } from '../../../utils/permissions.js';
-import '../../../adapters/cnc-domain.js';
-import { executeServiceAction } from '../../../core/operations/service.js';
+import { executeCommand } from '../../../core/commands/service.js';
 
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const body = await readBody(event);
-  const nestingResult = await executeServiceAction('solveNesting', {
+  const nestingResult = await executeCommand('solveNesting', {
     entities: { queue: event.context.params.id },
     parameters: body
   }, auth);
-  const requestedArtifacts = body.requestedArtifacts || ['LAYOUT_DXF'];
-  const artifacts = [];
+  const requestedAttachments = body.requestedAttachments || body.requestedArtifacts || ['LAYOUT_DXF'];
+  const attachments = [];
 
-  for (const type of requestedArtifacts) {
-    const result = await executeServiceAction('generateArtifact', {
+  for (const kind of requestedAttachments) {
+    const result = await executeCommand('generateAttachment', {
       entities: { nestingRun: nestingResult.data.runId },
-      parameters: { type, pdfTemplateId: body.pdfTemplateId }
+      parameters: { kind, pdfTemplateId: body.pdfTemplateId }
     }, auth);
-    artifacts.push(result.data.artifactId);
+    attachments.push(result.data.attachmentId);
   }
 
   return {
     ...nestingResult.data,
-    artifacts
+    attachments
   };
 });

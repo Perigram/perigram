@@ -13,18 +13,15 @@ export const CANONICAL_BLOCKS = [
 
 export const TYPED_FIELD_TYPES = new Set(['string', 'number', 'boolean', 'enum', 'entityId', 'entityType', 'workflowState', 'array', 'object']);
 
-export function createDomainDraft({ entities = [], frontendEntities = [], workflows = {}, summaries = [], serviceContracts = {}, operations = null, serviceActions = null, hookContracts = {} } = {}) {
-  const normalizedOperations = operations && typeof operations === 'object'
-    ? operations
-    : (serviceActions && typeof serviceActions === 'object' ? serviceActions : {});
+export function createDomainDraft({ entities = [], frontendEntities = [], workflows = {}, summaries = [], serviceContracts = {}, commands = {}, hookContracts = {} } = {}) {
+  const normalizedCommands = commands && typeof commands === 'object' ? commands : {};
   return deepClone({
     entities,
     frontendEntities,
     workflows,
     summaries,
     serviceContracts,
-    operations: normalizedOperations,
-    serviceActions: normalizedOperations,
+    commands: normalizedCommands,
     hookContracts
   });
 }
@@ -36,9 +33,7 @@ export function validateDomainDraft(draft = {}) {
   const frontendEntities = Array.isArray(draft.frontendEntities) ? draft.frontendEntities : [];
   const summaries = Array.isArray(draft.summaries) ? draft.summaries : [];
   const serviceContracts = draft.serviceContracts && typeof draft.serviceContracts === 'object' ? draft.serviceContracts : {};
-  const operations = draft.operations && typeof draft.operations === 'object'
-    ? draft.operations
-    : (draft.serviceActions && typeof draft.serviceActions === 'object' ? draft.serviceActions : {});
+  const commands = draft.commands && typeof draft.commands === 'object' ? draft.commands : {};
   const hookContracts = draft.hookContracts && typeof draft.hookContracts === 'object' ? draft.hookContracts : {};
   const workflows = draft.workflows && typeof draft.workflows === 'object' ? draft.workflows : {};
   const entityTypes = new Set();
@@ -139,23 +134,23 @@ export function validateDomainDraft(draft = {}) {
     if (!Array.isArray(contract.triggers)) issues.push({ area: 'services', severity: 'error', message: `${service} must define triggers` });
   }
 
-  for (const [id, action] of Object.entries(operations)) {
-    if (action.id && action.id !== id) issues.push({ area: 'service-actions', severity: 'error', message: `${id} service action id mismatch: ${action.id}` });
-    if (!action.service) issues.push({ area: 'service-actions', severity: 'error', message: `${id} must define service` });
-    if (!action.action) issues.push({ area: 'service-actions', severity: 'error', message: `${id} must define action` });
-    if (action.service && !serviceContracts[action.service]) issues.push({ area: 'service-actions', severity: 'error', message: `${id} references unknown service: ${action.service}` });
+  for (const [id, action] of Object.entries(commands)) {
+    if (action.id && action.id !== id) issues.push({ area: 'commands', severity: 'error', message: `${id} command id mismatch: ${action.id}` });
+    if (!action.service) issues.push({ area: 'commands', severity: 'error', message: `${id} must define service` });
+    if (!action.action) issues.push({ area: 'commands', severity: 'error', message: `${id} must define action` });
+    if (action.service && !serviceContracts[action.service]) issues.push({ area: 'commands', severity: 'error', message: `${id} references unknown service: ${action.service}` });
     for (const input of action.input?.entities || []) {
-      if (!entityTypes.has(input.type)) issues.push({ area: 'service-actions', severity: 'error', message: `${id} input references unknown entity type: ${input.type}` });
+      if (!entityTypes.has(input.type)) issues.push({ area: 'commands', severity: 'error', message: `${id} input references unknown entity type: ${input.type}` });
     }
     for (const output of action.output?.entities || []) {
-      if (!entityTypes.has(output)) issues.push({ area: 'service-actions', severity: 'error', message: `${id} output references unknown entity type: ${output}` });
+      if (!entityTypes.has(output)) issues.push({ area: 'commands', severity: 'error', message: `${id} output references unknown entity type: ${output}` });
     }
     if (!Array.isArray(action.access?.permissions)) {
-      issues.push({ area: 'service-actions', severity: 'error', message: `${id} must define access.permissions` });
+      issues.push({ area: 'commands', severity: 'error', message: `${id} must define access.permissions` });
     }
     validateFieldDescriptors({
       issues,
-      area: 'service-actions',
+      area: 'commands',
       label: `${id} parameters`,
       fields: action.input?.parameters || []
     });
@@ -276,9 +271,7 @@ export function generateDomainCncSource(draft = {}) {
     '',
     `export const cncServiceContracts = ${formatExport(normalized.serviceContracts)};`,
     '',
-    `export const cncOperations = ${formatExport(normalized.operations)};`,
-    '',
-    `export const cncServiceActions = cncOperations;`,
+    `export const cncCommands = ${formatExport(normalized.commands)};`,
     '',
     `export const cncHookContracts = ${formatExport(normalized.hookContracts)};`,
     '',

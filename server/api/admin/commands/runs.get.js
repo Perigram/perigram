@@ -1,13 +1,12 @@
 import { getQuery } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
-import '~/server/adapters/cnc-domain.js';
-import { listServiceActionRuns } from '~/server/core/operations/service.js';
+import { listCommandRuns } from '~/server/core/commands/service.js';
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);
   const query = getQuery(event);
-  const runs = await listServiceActionRuns({
-    actionId: query.actionId,
+  const runs = await listCommandRuns({
+    commandId: query.commandId,
     limit: query.limit
   });
   return {

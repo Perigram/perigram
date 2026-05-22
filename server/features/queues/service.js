@@ -2,25 +2,18 @@ import * as repository from './repository.js';
 import * as projectsService from '../projects/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
-import { inheritLineage, registerEntityService } from '~/server/core/blocks/index.js';
+import { inheritLineage } from '~/server/core/blocks/index.js';
 import { Queue } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
 import { generateRandomString } from '../../utils/strings.js';
 import { ObjectId } from 'mongodb';
-import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 
 /**
  * Queues Service - v24 Absolute Final
  */
 
-registerEntityService('queue', {
-  getById: (uid) => getById(uid),
-  hooks: {
-    processPhysicalCut: (ctx, params) => processPhysicalCut(ctx, params)
-  }
-});
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { projectId, name, job } = data;
@@ -123,11 +116,7 @@ export async function markCut(queueId, userId, userOrg, userRole, userPermission
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  const db = await connectDB();
-  const chosenRun = await db.collection('nesting_runs').findOne({
-    'lineage.queueId': queueId,
-    'status.state': 'CHOSEN'
-  });
+  const chosenRun = await repository.findChosenNestingRun(queueId);
   
   if (!chosenRun) throw createError({ statusCode: 400, message: 'No run chosen' });
 

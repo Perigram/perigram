@@ -1,14 +1,14 @@
-import { cncOperations, cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { cncCommands, cncWorkflows } from '../packages/domain-cnc/src/index.js';
 import { compileWorkflowDraft } from '../utils/workflow-compiler.js';
 import { createCncFixtureScenario, validateCncFixtureScenario } from './scenarios.js';
 
 export const WORKBENCH_CONTEXT_ID = 'cnc-workbench-context';
 
-export function createWorkbenchContext({ workflows = cncWorkflows, entities = [], serviceActions = cncOperations } = {}) {
+export function createWorkbenchContext({ workflows = cncWorkflows, entities = [], commands = cncCommands } = {}) {
   const compiled = compileWorkflowDraft({ entities, workflows });
   const scenario = createCncFixtureScenario({
     workflows: compiled.machines,
-    serviceActions
+    commands
   });
   const context = normalizeWorkbenchContext({
     id: WORKBENCH_CONTEXT_ID,
@@ -17,7 +17,7 @@ export function createWorkbenchContext({ workflows = cncWorkflows, entities = []
     entities: scenario.entities,
     refs: scenario.refs,
     access: scenario.access,
-    operationBindings: scenario.manifests?.serviceActionDefaults || {},
+    commandBindings: scenario.manifests?.commandDefaults || {},
     relationships: scenario.relationships || [],
     validation: validateCncFixtureScenario(scenario, compiled.machines)
   });
@@ -34,7 +34,7 @@ export function normalizeWorkbenchContext(context = {}) {
     entities,
     refs: context.refs || buildRefsFromEntities(entities),
     access: normalizeAccess(context.access),
-    operationBindings: context.operationBindings || manifests.serviceActionDefaults || {},
+    commandBindings: context.commandBindings || manifests.commandDefaults || {},
     relationships: context.relationships || buildRelationships(entities),
     validation: context.validation || validateContextEntities(entities),
     persisted: Boolean(context.persisted)
@@ -51,7 +51,7 @@ export function contextToScenario(context = {}) {
     relationships: normalized.relationships,
     access: normalized.access,
     manifests: {
-      serviceActionDefaults: normalized.operationBindings,
+      commandDefaults: normalized.commandBindings,
       entityOptions: contextEntityOptions(normalized)
     },
     validation: normalized.validation

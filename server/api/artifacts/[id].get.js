@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Get the correct bucket based on artifact type
+  // Get the correct bucket based on attachment kind.
   let bucket;
   if (artifactType === 'LAYOUT_SVG') {
     bucket = await getSvgResultBucket();
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   } else {
     throw createError({
       statusCode: 400,
-      message: `Unsupported artifact type: ${artifactType}`,
+      message: `Unsupported attachment kind: ${artifactType}`,
     });
   }
   

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cncEntities, cncFrontendEntities, cncHookContracts, cncOperations, cncServiceContracts, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { cncEntities, cncFrontendEntities, cncHookContracts, cncCommands, cncServiceContracts, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
 import {
   buildWorkflowGraph,
   createDomainDraft,
@@ -15,7 +15,7 @@ describe('domain builder utilities', () => {
       workflows: cncWorkflows,
       summaries: cncSummaries,
       serviceContracts: cncServiceContracts,
-      operations: cncOperations,
+      commands: cncCommands,
       hookContracts: cncHookContracts
     });
 
@@ -45,7 +45,7 @@ describe('domain builder utilities', () => {
     expect(messages).toContain('queue transition #1 has unknown to state: READY');
   });
 
-  it('validates typed operation parameters and hook params', () => {
+  it('validates typed command parameters and hook params', () => {
     const draft = createDomainDraft({
       entities: [{ type: 'queue', collection: 'queues', blocks: ['identity', 'status'] }],
       frontendEntities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queues' } }],
@@ -63,7 +63,7 @@ describe('domain builder utilities', () => {
           triggers: []
         }
       },
-      operations: {
+      commands: {
         runQueue: {
           id: 'runQueue',
           service: 'queue',
@@ -93,8 +93,7 @@ describe('domain builder utilities', () => {
     expect(source).toContain('export const cncWorkflows = {');
     expect(source).toContain('export const cncSummaries = [];');
     expect(source).toContain('export const cncServiceContracts = {');
-    expect(source).toContain('export const cncOperations = {');
-    expect(source).toContain('export const cncServiceActions = cncOperations;');
+    expect(source).toContain('export const cncCommands = {');
     expect(source).toContain('export const cncHookContracts = {');
     expect(source).toContain('export const cncFrontendEntities = [');
     expect(source).toContain("type: 'queue'");

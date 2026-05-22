@@ -1,0 +1,152 @@
+import { createError } from 'h3';
+import { createCommandResult } from '../blocks/index.js';
+import { assertCommandAccess } from '../access/service.js';
+import { getAppRegistry } from '../../runtime/app-registry.js';
+import * as commandRunsRepository from './repository.js';
+
+export async function executeCommand(commandId, input = {}, auth = {}) {
+  const registry = getAppRegistry();
+  const command = registry.getCommandDefinition(commandId);
+  if (!command) throw createError({ statusCode: 400, message: `Unknown command: ${commandId}` });
+  const normalizedInput = normalizeCommandInput(input);
+  const parameters = validateCommandParameters(command, normalizedInput.parameters);
+
+  const run = await commandRunsRepository.create({
+    commandId,
+    service: command.service,
+    action: command.action,
+    status: 'RUNNING',
+    input: sanitizeCommandInput({ ...normalizedInput, parameters }),
+    entityRefs: normalizedInput.entities || {},
+    auth: sanitizeAuth(auth),
+    startedAt: new Date()
+  });
+
+  try {
+    const entities = await loadCommandEntities(registry, command, normalizedInput.entities || {});
+    assertCommandAccess({ command, entities, auth });
+
+    const handler = registry.getCommandHandler(commandId);
+    if (!handler) throw createError({ statusCode: 500, message: `Command handler not registered: ${commandId}` });
+
+    const result = createCommandResult({
+      commandId,
+      ...(await handler({
+        command,
+        entities,
+        parameters,
+        data: parameters,
+        auth
+      }) || {})
+    });
+
+    await commandRunsRepository.updateById(run._id, {
+      status: 'SUCCEEDED',
+      result,
+      finishedAt: new Date()
+    });
+
+    return result;
+  } catch (error) {
+    await commandRunsRepository.updateById(run._id, {
+      status: 'FAILED',
+      error: {
+        message: error.message,
+        statusCode: error.statusCode || error.status || 500
+      },
+      finishedAt: new Date()
+    });
+    throw error;
+  }
+}
+
+export function listCommands() {
+  const registry = getAppRegistry();
+  return registry.listCommandDefinitions().map(command => ({
+    id: command.id,
+    service: command.service,
+    action: command.action,
+    label: command.label || command.id,
+    source: command.source || 'registered-domain',
+    handlerRegistered: Boolean(registry.getCommandHandler(command.id)),
+    input: command.input || {},
+    output: command.output || {},
+    triggers: command.triggers || [],
+    access: command.access || {}
+  }));
+}
+
+export async function listCommandRuns(filter = {}) {
+  return commandRunsRepository.list(filter);
+}
+
+async function loadCommandEntities(registry, command, refs) {
+  const loaded = {};
+  for (const input of command.input?.entities || []) {
+    const id = refs[input.name] || refs[input.type];
+    if (!id && input.required) throw createError({ statusCode: 400, message: `Command ${command.id} requires ${input.name}` });
+    if (!id) continue;
+
+    const service = registry.getEntityService(input.type);
+    if (!service?.getById) throw createError({ statusCode: 500, message: `Entity service missing for ${input.type}` });
+    const entity = await service.getById(id);
+    if (!entity) throw createError({ statusCode: 404, message: `${input.type} not found` });
+    loaded[input.name] = entity;
+  }
+  return loaded;
+}
+
+function sanitizeCommandInput(input = {}) {
+  return {
+    entities: input.entities || {},
+    parameters: input.parameters || {}
+  };
+}
+
+function sanitizeAuth(auth = {}) {
+  return {
+    userId: auth.userId,
+    organizationId: auth.organizationId,
+    role: auth.role
+  };
+}
+
+function normalizeCommandInput(input = {}) {
+  return {
+    entities: input.entities || {},
+    parameters: input.parameters || input.data || {}
+  };
+}
+
+function validateCommandParameters(command, parameters = {}) {
+  const fields = command.input?.parameters || [];
+  const result = {};
+  for (const field of fields) {
+    const value = parameters[field.name] ?? field.default;
+    if (field.required && (value === undefined || value === null || value === '')) {
+      throw createError({ statusCode: 400, message: `Command ${command.id} requires parameter ${field.name}` });
+    }
+    if (value === undefined || value === null || value === '') continue;
+    result[field.name] = coerceParameterValue(command, field, value);
+  }
+  return result;
+}
+
+function coerceParameterValue(command, field, value) {
+  if (field.type === 'number') {
+    const number = Number(value);
+    if (!Number.isFinite(number)) throw createError({ statusCode: 400, message: `Command ${command.id} parameter ${field.name} must be a number` });
+    if (field.min !== undefined && number < field.min) throw createError({ statusCode: 400, message: `Command ${command.id} parameter ${field.name} is below minimum` });
+    if (field.max !== undefined && number > field.max) throw createError({ statusCode: 400, message: `Command ${command.id} parameter ${field.name} is above maximum` });
+    return number;
+  }
+  if (field.type === 'boolean') return value === true || value === 'true';
+  if (field.type === 'enum') {
+    const allowed = (field.options || []).map(option => typeof option === 'object' ? option.value : option);
+    if (!allowed.includes(value)) throw createError({ statusCode: 400, message: `Command ${command.id} parameter ${field.name} has invalid option` });
+    return value;
+  }
+  if (field.type === 'array' && !Array.isArray(value)) throw createError({ statusCode: 400, message: `Command ${command.id} parameter ${field.name} must be an array` });
+  if (field.type === 'object' && (typeof value !== 'object' || Array.isArray(value))) throw createError({ statusCode: 400, message: `Command ${command.id} parameter ${field.name} must be an object` });
+  return value;
+}

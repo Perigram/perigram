@@ -1,10 +1,9 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { 
+import {
   createAttachment,
-  createIdentity, 
-  createStatus, 
-  registerEntityService 
+  createIdentity,
+  createStatus
 } from '../../core/blocks/index.js';
 import { Artifact } from './model.js';
 import { toFlexibleId } from '../../utils/objectid.js';
@@ -15,9 +14,6 @@ import * as filesService from '../files/service.js';
  * Artifacts Service - v24 Standardized
  */
 
-registerEntityService('artifact', {
-  getById: (uid) => getById(uid)
-});
 
 export async function create(data, userId) {
   const origin = createStatus(data.status || 'READY', userId || 'SYSTEM', { note: 'Artifact record created' });
@@ -54,7 +50,7 @@ export async function list(filter = {}) {
   // Normalize IDs in filters
   if (filter['lineage.queueId']) filter['lineage.queueId'] = toFlexibleId(filter['lineage.queueId']);
   if (filter['lineage.runId']) filter['lineage.runId'] = toFlexibleId(filter['lineage.runId']);
-  
+
   const raws = await repository.find(filter);
   return raws.map(raw => new Artifact(raw).toJSON());
 }

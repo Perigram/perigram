@@ -38,6 +38,15 @@ export async function getNextQueueNumber(projectId) {
   return await db.collection(COLLECTION).countDocuments({ 'lineage.projectId': toFlexibleId(projectId) }) + 1;
 }
 
+export async function findChosenNestingRun(queueId) {
+  const db = await connectDB();
+  const flexibleId = toFlexibleId(queueId);
+  return await db.collection('nesting_runs').findOne({
+    'lineage.queueId': { $in: [flexibleId, queueId?.toString()] },
+    'status.state': 'CHOSEN'
+  });
+}
+
 export async function deleteById(uid) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(uid) });

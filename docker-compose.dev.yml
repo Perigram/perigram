@@ -1,6 +1,5 @@
 # docker-compose.dev.yml
 # For local development with hot reload
-version: "3.8"
 
 services:
   app:
@@ -16,6 +15,8 @@ services:
     environment:
       - MONGODB_URI=mongodb://mongo:27017/cutkit_dev
       - NODE_ENV=development
+      - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
+      - NESTING_WORKER_URL=http://nesting-worker:8000/nest
     depends_on:
       - mongo
     networks:
@@ -36,11 +37,18 @@ services:
 
   user-file-processing-worker:
     image: ghcr.io/1suo/file-processing-worker:latest
+    build:
+      context: .
+      dockerfile: workers/fileprocessing/Dockerfile
     environment:
       - MONGO_URI=mongodb://mongo:27017/cutkit_dev
+      - CUTKIT_API_URL=http://app:3000
+      - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
+      - WORKER_ID=file-processing-normal
       - WORKER_TAG=normal
       - MAX_ENTITY_LIMIT=999
     depends_on:
+      - app
       - mongo
     networks:
       - cutkit-network
@@ -48,11 +56,27 @@ services:
 
   nesting-worker:
     build:
-      context: ./workers/nesting
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: workers/nesting/Dockerfile
     environment:
       - MONGO_URI=mongodb://mongo:27017/cutkit_dev
     depends_on:
+      - mongo
+    networks:
+      - cutkit-network
+    restart: unless-stopped
+
+  cassette-processing-worker:
+    build:
+      context: .
+      dockerfile: workers/cassette-processing/Dockerfile
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
+      - CUTKIT_API_URL=http://app:3000
+      - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
+      - WORKER_ID=cassette-processing
+    depends_on:
+      - app
       - mongo
     networks:
       - cutkit-network

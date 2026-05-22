@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import * as organizationsService from '../organizations/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { inheritLineage, registerService } from '~/server/core/blocks/index.js';
+import { inheritLineage } from '~/server/core/blocks/index.js';
 import { Warehouse } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
@@ -12,9 +12,6 @@ import { ObjectId } from 'mongodb';
  * Warehouses Service - v24 Absolute Final
  */
 
-registerService('warehouse', {
-  getById: (uid) => getById(uid)
-});
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { name, organizationId, type, address, contactPerson } = data;

@@ -1,12 +1,11 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
-import { 
-  createIdentity, 
-  createStatus, 
-  inheritLineage, 
-  createData,
-  registerService 
+import {
+  createIdentity,
+  createStatus,
+  inheritLineage,
+  createData
 } from '../../core/blocks/index.js';
 import { statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
@@ -18,9 +17,6 @@ import { ObjectId } from 'mongodb';
  * Cassette Instances Service - v24 Standardized
  */
 
-registerService('cassette_instance', {
-  getById: (uid) => getById(uid)
-});
 
 export async function createFromSheet(sheet, designs, userId, userRole, userPermissions) {
   // 1. Permission Check
@@ -35,7 +31,7 @@ export async function createFromSheet(sheet, designs, userId, userRole, userPerm
   for (const designEntry of designs) {
     // designEntry: { designId, instanceNumber, reference }
     const origin = createStatus('NESTED', userId, { note: 'Instantiated from cut sheet' });
-    
+
     // Merge lineages: digital from design + physical from sheet
     const instanceLineage = {
       ...baseLineage,
@@ -84,13 +80,13 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
   if (!raw) {
     throw createError({ statusCode: 404, message: 'Cassette instance not found' });
   }
-  
+
   const instance = new CassetteInstance(raw);
-  
+
   if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, instance.lineage, 'projects', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
-  
+
   return instance.toJSON();
 }
 
@@ -98,7 +94,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette instance not found' });
   const instance = new CassetteInstance(raw);
-  
+
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, instance.lineage, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
@@ -110,7 +106,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   }
 
   const { identity, origin, status, lineage, data: updatesData, ...clean } = updates;
-  
+
   // Identity updates
   if (updates.serial) instance.identity.serial = updates.serial;
   if (updates.reference) instance.identity.reference = updates.reference;
@@ -133,10 +129,10 @@ export async function updateStatus(id, state, note, user) {
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const instance = await getById(id, userId, userOrg, userRole, userPermissions);
-  
+
   if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, instance.lineage, 'projects', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
-  
+
   return await repository.deleteById(id);
 }

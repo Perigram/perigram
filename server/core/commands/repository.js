@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb';
 import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 
-const COLLECTION = 'service_action_runs';
+const COLLECTION = 'command_runs';
 
 export async function create(run) {
   const db = await connectDB();
@@ -30,9 +30,9 @@ export async function findById(id) {
   return db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) });
 }
 
-export async function list({ actionId, limit = 50 } = {}) {
+export async function list({ commandId, limit = 50 } = {}) {
   const db = await connectDB();
-  const filter = actionId ? { actionId } : {};
+  const filter = commandId ? { commandId } : {};
   return db.collection(COLLECTION)
     .find(filter)
     .sort({ createdAt: -1 })

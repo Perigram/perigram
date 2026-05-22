@@ -35,8 +35,7 @@ export async function generateInvitation(organizationId, role, creatorUser) {
 }
 
 export async function getByToken(token) {
-  const db = await (await import('~/server/db/mongo')).connectDB();
-  const invitation = await db.collection('invitations').findOne({ token, isActive: true });
+  const invitation = await repository.findByToken(token);
   if (!invitation) throw createError({ statusCode: 404, message: 'Invitation not found or expired' });
   return invitation;
 }
@@ -47,8 +46,7 @@ export async function joinByToken(token, user) {
 }
 
 export async function joinByCode(code, user) {
-  const db = await (await import('~/server/db/mongo')).connectDB();
-  const invitation = await db.collection('invitations').findOne({ code: code.toUpperCase(), isActive: true });
+  const invitation = await repository.findByCode(code);
   if (!invitation) throw createError({ statusCode: 404, message: 'Invitation not found or expired' });
   return await processJoin(invitation, user);
 }
@@ -62,7 +60,7 @@ async function processJoin(invitation, user) {
 
   // Check if user is already a member
   const freshUser = await usersRepository.findById(user.userId);
-  const alreadyMember = freshUser.memberships?.some(m => m.organizationId.toString() === invitation.organizationId.toString());
+  const alreadyMember = freshUser.data?.memberships?.some(m => m.organizationId.toString() === invitation.organizationId.toString());
   
   if (alreadyMember) {
     throw createError({ statusCode: 409, message: 'You already have a relationship with this organization' });
@@ -79,17 +77,10 @@ async function processJoin(invitation, user) {
     status: 'pending'
   };
 
-  const db = await (await import('~/server/db/mongo')).connectDB();
-  await db.collection('users').updateOne(
-    { _id: new ObjectId(user.userId) },
-    { $push: { memberships: newMembership } }
-  );
+  await usersRepository.addMembership(user.userId, newMembership);
 
   // Invalidate invitation (one-time link)
-  await db.collection('invitations').updateOne(
-    { _id: invitation._id },
-    { $set: { isActive: false, usedAt: new Date(), usedBy: user.userId, status: 'accepted' } }
-  );
+  await repository.accept(invitation._id, user.userId);
 
   await addStatus('invitations', invitation._id.toString(), 'accepted', user.userId, 'Invitation accepted');
   

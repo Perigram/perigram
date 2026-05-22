@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import * as materialPilesRepository from '../material-piles/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createStatus, inheritLineage, registerService } from '~/server/core/blocks/index.js';
+import { createStatus, inheritLineage } from '~/server/core/blocks/index.js';
 import { Sheet } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';
@@ -12,9 +12,6 @@ import { mapLineageQuery } from '~/server/utils/query';
  * Sheets Service - v24 Absolute Final
  */
 
-registerService('sheet', {
-  getById: (uid) => getById(uid)
-});
 
 export async function createFromPile(pileId, count, userId, userRole, userPermissions) {
   const pileRaw = await materialPilesRepository.findById(pileId);

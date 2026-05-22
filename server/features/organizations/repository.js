@@ -38,6 +38,22 @@ export async function deleteById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });
 }
+
+export async function addUserMembership(userId, membership, { role, permissions, organizationId }) {
+  const db = await connectDB();
+  return await db.collection('users').updateOne(
+    { _id: toFlexibleId(userId) },
+    {
+      $push: { 'data.memberships': membership },
+      $set: {
+        'lineage.organizationId': organizationId,
+        'data.role': role,
+        'data.permissions': permissions
+      }
+    }
+  );
+}
+
 export async function findByIds(ids) {
   const db = await connectDB();
   const flexibleIds = ids.map(id => toFlexibleId(id));
