@@ -1992,3 +1992,15 @@
     - Moved entity service and handler binding to explicit server runtime registration.
     - Made Workbench API-driven through `/api/admin/domain`, `/api/admin/commands`, and `/api/admin/tasks`.
     - Updated docker workflows so workers and app share `WORKER_TOKEN` and task API URLs.
+
+*** Agent Notes
+    [2026-05-22] Prevent transient workflow validation errors before entities load
+    Files changed:
+    - utils/workflow-compiler.js
+    - utils/domain-builder.spec.js
+    Docs updated:
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - `compileWorkflowDraft()` now falls back to committed CNC entity definitions when a caller passes an empty entity list.
+    - Added regression coverage for the `Workflow references unknown entity type: queue` failure mode.

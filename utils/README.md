@@ -11,7 +11,7 @@ Shared frontend utility modules used by Vue pages/components.
 - `status-actions.js`: Converts workflow definitions into default `EntityStatus` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows.
 - `status-location.js`: Normalizes typed current location facts from `status.lifecycle.data.location` for status surfaces. Supported UI types are `warehouse`, `coordinates`, and `address`.
 - `domain-builder.js`: Browser-side helpers for `/admin/domain-builder`. It clones CNC package definitions into a draft, validates entity/workflow/summary consistency, builds automatic Vue Flow node/edge layout data with reciprocal-transition metadata used unless the page has browser-local manual node positions, and generates deterministic `@cutkit/domain-cnc` source for manual export.
-- `workflow-compiler.js`: Shared workbench/domain-builder compiler wrapper for live workflow drafts. It validates draft machines, exposes state options for typed forms, and derives permission summaries used by fixture scenarios and workbench test access.
+- `workflow-compiler.js`: Shared workbench/domain-builder compiler wrapper for live workflow drafts. It validates draft machines, exposes state options for typed forms, and derives permission summaries used by fixture scenarios and workbench test access. If a caller has not loaded entity definitions yet, it falls back to committed CNC entities so workflow validation does not report every known workflow as an unknown entity.
 
 ## Utility Protocol
 
