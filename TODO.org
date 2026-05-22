@@ -2004,3 +2004,15 @@
     Notes:
     - `compileWorkflowDraft()` now falls back to committed CNC entity definitions when a caller passes an empty entity list.
     - Added regression coverage for the `Workflow references unknown entity type: queue` failure mode.
+
+*** Agent Notes
+    [2026-05-22] Prevent transient workflow hook contract validation errors
+    Files changed:
+    - utils/workflow-compiler.js
+    - utils/domain-builder.spec.js
+    Docs updated:
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - `compileWorkflowDraft()` now falls back to committed CNC hook contracts when a caller passes an empty hook contract map.
+    - Added regression coverage for `references unknown hook contract: triggerAggregator`.
