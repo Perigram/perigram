@@ -115,8 +115,8 @@ Geometry previews for design/remnant cards belong under `data.geometry.preview` 
 
 `workbench-context.js` is the admin workbench source of truth for generated
 and runtime dev data. It stores entities as a type/id map, refs, relationships,
-compiled workflows, access defaults, and typed service-action input bindings in
-one context. Operation outputs are upserted back into that same context before
+compiled workflows, access defaults, and typed command input bindings in
+one context. Command outputs are upserted back into that same context before
 they are rendered, so the UI does not create placeholder entity cards.
 
 `scenarios.js` still composes factory DTOs into the base coherent CNC graph.

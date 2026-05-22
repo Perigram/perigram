@@ -1951,3 +1951,44 @@
     Notes:
     - Updated the architecture graph and contract notes so Workbench presents processes as related context inside selected operations.
     - Added an operation/process sequence diagram showing operation execution, process enqueue, worker lifecycle, and Workbench inspection.
+
+*** Agent Notes
+    [2026-05-22] Full architecture terminology rework to commands and tasks
+    Files changed:
+    - packages/core/src/index.js
+    - packages/domain-cnc/src/*.js
+    - server/runtime/app-registry.js
+    - server/core/commands/*
+    - server/core/tasks/*
+    - server/api/commands/*
+    - server/api/tasks/*
+    - server/api/admin/domain/index.get.js
+    - pages/admin/workbench.vue
+    - workers/fileprocessing/main.py
+    - workers/cassette-processing/main.py
+    - docker-compose.dev.yml
+    - docker-compose.local.yml
+    - docker-stack.yml
+    - docker-stack-external.yml
+    Docs updated:
+    - README.md
+    - docs/SYSTEM_ARCHITECTURE.md
+    - packages/core/README.md
+    - packages/domain-cnc/README.md
+    - packages/vue/README.md
+    - packages/devtools/README.md
+    - server/README.md
+    - server/api/README.md
+    - server/runtime/README.md
+    - server/core/commands/README.md
+    - server/core/tasks/README.md
+    - workers/README.md
+    - workers/fileprocessing/README.md
+    - workers/cassette-processing/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Replaced ambiguous operation/process/service-action vocabulary with command/task/attachment-kind contracts.
+    - Moved entity service and handler binding to explicit server runtime registration.
+    - Made Workbench API-driven through `/api/admin/domain`, `/api/admin/commands`, and `/api/admin/tasks`.
+    - Updated docker workflows so workers and app share `WORKER_TOKEN` and task API URLs.

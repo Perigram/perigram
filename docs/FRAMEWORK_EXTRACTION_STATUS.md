@@ -10,10 +10,10 @@ Current execution status for separating the Cutkit industrial workflow model int
 | Framework workspace | Done | Private workspace packages exist under `packages/*`. Runtime imports remain stable through app wrappers. |
 | Core entity kernel | Done | `server/core/blocks/index.js` now wraps `@cutkit/core` while preserving server-specific ID behavior. |
 | Workflow kernel | Done | Runtime status transitions delegate validation to `@cutkit/workflows`. |
-| CNC domain pack | Done | Entity, workflow, operation, process, artifact, summary, and frontend metadata live in `@cutkit/domain-cnc`. |
-| Frontend adapter | Done | `composables/useEntity.js` builds endpoint metadata through `@cutkit/vue`; the adapter also exposes domain UI surfaces and artifact preview metadata. |
+| CNC domain pack | Done | Entity, workflow, command, task, attachment-kind, summary, and frontend metadata live in `@cutkit/domain-cnc`. |
+| Frontend adapter | Done | `composables/useEntity.js` builds endpoint metadata through `@cutkit/vue`; the adapter also exposes domain UI surfaces and attachment preview metadata. |
 | Summary adapter | Done | Machine aggregation derives summary rules from `cncSummaries`. |
-| UI/design-system framework contract | Done | `framework.manifest.json` snapshots operations, processes, artifact types, UI components, status policies, field paths, and token projections. |
+| UI/design-system framework contract | Done | `framework.manifest.json` snapshots commands, tasks, attachment kinds, UI components, status policies, field paths, and token projections. |
 | Read-only devtools/MCP | In progress | CLI and MCP-style handlers expose entities, workflows, routes, docs lookup, UI components, relationships, summaries, manifest data, transition simulation, and validation. |
 | Write-capable app builder | Not started | Intentionally blocked until read-only inspection contracts are stable. |
 | External package publishing | Not started | Packages are private workspace packages; no separate repo or registry publish exists yet. |

@@ -1,54 +1,49 @@
 # COMPONENT: @cutkit/core
 
-Reusable entity kernel for industrial apps. This package owns block DTOs,
-explicit app registries, entity service contracts, service action contracts,
-process contracts, artifact type contracts, and aggregate domain registration.
-It does not depend on MongoDB, Nuxt, Vue, or CNC-specific concepts.
+Framework-neutral contract kernel. It owns canonical entity block DTOs, isolated
+registries, domain definition helpers, and normalized result helpers. It must not
+import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
 
-`server/core/blocks/index.js` now wraps this package to preserve the existing
-application import path while extraction continues.
+## Public Contract
 
-## Public API
+- DTOs: `BaseEntity`, `Identity`, `Status`, `Lineage`, `Specs`
+- Registry: `createRegistry()` and `createCutkitRegistry()`
+- Definitions: `defineDomain`, `defineEntity`, `defineWorkflow`,
+  `defineCommand`, `defineTask`, `defineHook`, `defineAttachmentKind`
+- Runtime bindings: `registerEntityService`, `registerCommandHandler`,
+  `registerTaskExecutor`, `registerHookHandler`, `registerAdapter`
+- Result refs: `createEntityRef`, `createAttachmentRef`,
+  `createCommandResult`, `createTaskResult`
+- Block helpers: `createIdentity`, `createStatus`, `createSpecs`,
+  `createData`, `inheritLineage`, `createAttachment`
 
-- `BaseEntity`, `Identity`, `Status`, `Lineage`, `Specs`
-- `createCutkitRegistry()`
-- `defineEntity()`, `getEntityDefinition()`, `listEntityDefinitions()`
-- `defineDomain()`, `getDomain()`, `listDomains()`
-- `defineEntityServiceContract()`, `registerEntityService()`, `getService()`, `clearServices()`
-- `defineServiceContract()`, `getServiceContract()`, `listServiceContracts()`
-- `defineServiceAction()`, `getServiceActionDefinition()`, `listServiceActionDefinitions()`
-- `defineProcess()`, `getProcessDefinition()`, `listProcessDefinitions()`
-- `defineArtifactType()`, `getArtifactTypeDefinition()`, `listArtifactTypeDefinitions()`
-- `registerServiceActionHandler()`, `getServiceActionHandler()`, `clearServiceActionHandlers()`
-- `createEntityRef()`, `createServiceActionResult()`, `createProcessResult()`
-- `createIdentity()`, `createStatus()`, `createSpecs()`, `createData()`, `inheritLineage()`, `createAttachment()`
+## Vocabulary
 
-Service contracts describe processing services available to a domain package.
-Service actions describe callable units of work on those services: typed entity
-inputs, typed `parameters`, access requirements, triggers, and outputs
-(`entities`, `artifacts`, `jobs`, `transitions`, `events`, and scalar `data`).
-Process definitions describe asynchronous work that may be executed by server
-adapters, HTTP workers, or polling workers. Artifact type definitions describe
-generated files without binding to GridFS or HTTP streaming implementation.
-`createCutkitRegistry()` creates an isolated registry for a running app or test.
-The legacy `define*`, `register*`, `get*`, and `list*` exports delegate to a
-default compatibility registry, but server runtime code should use an explicit
-registry from `server/runtime/cutkit-registry.js`.
+| Term | Definition |
+|---|---|
+| Entity | Persisted business object described by canonical blocks. |
+| Command | Synchronous business intent and access boundary. It validates entity refs and permissions, invokes one registered handler, and records `command_runs`. |
+| Task | Async execution boundary for worker/server work. It is queued in `task_runs`, claimed by a worker or executor, and completed with a normalized task result. |
+| Workflow | Entity lifecycle machine: states, transitions, access requirements, hooks, and lifecycle data policy. |
+| Hook | Transition side-effect contract plus app-registered handler. |
+| AttachmentKind | File/blob content contract: kind, bucket, MIME type, preview mode. |
+| Adapter | Application binding that connects pure domain definitions to infrastructure. |
 
-Core stores definitions and handler registrations only; application adapters own
-authorization, persistence, worker execution, and file generation.
+Commands and tasks are intentionally separate: a command expresses user/system
+intent, while a task is retryable asynchronous execution. A command may enqueue
+zero or more tasks.
 
-`Status` includes normalized `lifecycle` facts in addition to event-local
-`metadata`. Missing lifecycle data is emitted as
-`{ actors: [], attachments: {}, data: {} }`.
+## Boundaries
+
+Core stores definitions and handler references only. Authorization, persistence,
+HTTP routes, MongoDB repositories, worker protocols, and file IO belong to app
+runtime packages and server modules.
 
 `BaseEntity.toJSON()` is strict: it emits root `_id` plus canonical blocks only.
-Entity identity fields stay under `identity`; feature fields stay under `data`,
-`specs`, `attachments`, or `summary`. The core package does not provide root
-aliases such as `id`, `name`, `slug`, `serial`, `type`, or `parameters`, and
-constructors do not migrate legacy root fields.
+Identity fields stay under `identity`; feature-specific data stays under
+`data`, `specs`, `attachments`, or `summary`.
 
 ## Related
 
-- [server/core/blocks/README.md](../../server/core/blocks/README.md)
+- [server/core/blocks](../../server/core/blocks/README.md)
 - [@cutkit/domain-cnc](../domain-cnc/README.md)

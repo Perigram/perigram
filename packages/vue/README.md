@@ -1,6 +1,6 @@
 # COMPONENT: @cutkit/vue
 
-Frontend adapter helpers for framework entity route, surface, and artifact
+Frontend adapter helpers for framework entity route, surface, and attachment
 preview metadata. Existing app composables remain the runtime source until this
 package is covered by tests.
 
@@ -14,6 +14,6 @@ from `@cutkit/domain-cnc`.
 - `getSingleEndpoint(endpointMap, type, id)`
 - `getListEndpoint(endpointMap, type, filters)`
 
-`createDomainUiAdapter()` also exposes artifact type lookup, artifact preview
+`createDomainUiAdapter()` also exposes attachment kind lookup, preview
 policy, and download endpoint resolution so components do not infer preview
 behavior from MIME strings alone.

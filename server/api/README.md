@@ -7,12 +7,14 @@ Routes are grouped into sub-directories corresponding to features:
 - `artifacts/`: Metadata, deletion, and streaming for generated files.
 - `batch/`: Detailed batch operations.
 - `cassettes/`: Upload and management of templates.
-- `operations/`: Authenticated execution route for declared domain service
-  actions such as `saveCassetteTemplate`.
-- `processes/`: Worker process queue protocol for claim, heartbeat, complete,
+- `commands/`: Authenticated execution route for declared domain commands such
+  as `saveCassetteTemplate`.
+- `tasks/`: Worker task queue protocol for claim, heartbeat, complete,
   fail, and cancel.
-- `admin/processes/`: Authenticated process definition and run listing for
-  `process_runs`.
+- `admin/commands/`: Authenticated command definition and run listing for
+  `command_runs`.
+- `admin/tasks/`: Authenticated task definition and run listing for
+  `task_runs`.
 - `project/`: Main project orchestration and nesting triggers.
 - `user/`: Profile and credit management.
 

@@ -6,18 +6,18 @@ Internal npm workspace packages used to extract the reusable industrial workflow
 
 | Package | Role |
 |---|---|
-| `@cutkit/core` | Entity blocks, entity registry, serialization helpers, entity service contracts, and service action contracts |
+| `@cutkit/core` | Entity blocks, explicit registries, command/task/hook/attachment contracts |
 | `@cutkit/workflows` | Declarative workflow registry and transition validation |
 | `@cutkit/mongo` | Mongo-oriented repository, event-store, and summary adapter helpers |
 | `@cutkit/nitro` | Route metadata helpers for app/API adapters |
-| `@cutkit/vue` | Frontend route, surface, and artifact metadata helpers |
+| `@cutkit/vue` | Frontend route, surface, and attachment metadata helpers |
 | `@cutkit/devtools` | Architecture/data-model inspection helpers |
 | `@cutkit/mcp` | Read-only MCP tool handlers for schema/workflow/docs inspection |
-| `@cutkit/domain-cnc` | Cutkit CNC entity, workflow, operation, process, artifact, UI, and summary definitions |
+| `@cutkit/domain-cnc` | CutKit CNC entity, workflow, command, task, attachment-kind, UI, and summary definitions |
 
 Current extraction status, module boundaries, runtime relationships, and Mermaid diagrams are maintained in [docs/FRAMEWORK_EXTRACTION_STATUS.md](../docs/FRAMEWORK_EXTRACTION_STATUS.md).
 
-The committed [framework.manifest.json](../framework.manifest.json) is the read-only contract for LLM/RAG/MCP inspection. It combines package metadata, entity definitions, workflows, routes, operations, processes, artifact types, summaries, inferred relationships, entity component contracts, shared design-system primitives, and token projections.
+The committed [framework.manifest.json](../framework.manifest.json) is the read-only contract for LLM/RAG/MCP inspection. It combines package metadata, entity definitions, workflows, routes, commands, tasks, attachment kinds, summaries, inferred relationships, entity component contracts, shared design-system primitives, and token projections.
 
 ## Extraction Rule
 

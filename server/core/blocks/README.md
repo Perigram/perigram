@@ -131,19 +131,19 @@ class BaseEntity {
 
 ---
 
-## Service Registries
+## App Registry
 
-Enables cross-feature `getAncestor()` lookups without circular imports.
+Entity service lookup is bound explicitly in `server/runtime/app-registry.js`.
+Features do not self-register on module load.
 
 ```js
-registerEntityService('project', projectService);  // in each feature's service.js
-getService('project')                        // returns the registered service object
+const registry = getAppRegistry();
+registry.getEntityService('project');
 ```
 
-Register on module load. Each service must expose `getById(id)`.
-Entity service contracts, service contracts, service action contracts, and
-service action handlers are also re-exported from `@cutkit/core`; the server
-service action runtime uses them after access checks.
+Entity, workflow, command, task, hook, and attachment-kind contracts are
+re-exported from `@cutkit/core`; server command/task runtimes consume them after
+access checks.
 
 ---
 

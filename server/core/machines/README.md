@@ -32,10 +32,10 @@ When a target state declares a lifecycle schema, existing lifecycle facts carry
 forward and incoming lifecycle fields patch over them. States without a
 lifecycle schema do not retain lifecycle facts.
 
-### 2. Dynamic Hook Registry (`hooks.js` & Feature Registry)
+### 2. Dynamic Hook Registry (`hooks.js` & App Registry)
 Acts as a decoupled dispatcher for side-effects. To prevent architectural leaks, manufacturing-specific logic is NOT implemented in the core engine.
 - **Global Hooks (`hooks.js`)**: System-wide primitives (e.g., `propagateToChildren`, `triggerAggregator`).
-- **Feature Hooks**: Feature services register their own hooks via `registerService` (e.g., `processPhysicalCut` in Queue service).
+- **Feature Hooks**: Feature hook handlers are bound explicitly in `server/runtime/app-registry.js`.
 - **Resolution**: The engine reads hook handlers from the active app registry, then falls back to feature-service hooks for transitional compatibility.
 - **Typed Settings**: Hook handler ids and parameter fields are declared in
   the registered domain hook contracts. The engine validates required and

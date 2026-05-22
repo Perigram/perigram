@@ -1,19 +1,26 @@
 # COMPONENT: Server Runtime Registry
 
-Builds the explicit CutKit app registry used by backend runtimes.
+Builds the explicit application registry used by backend runtimes.
 
-`cutkit-registry.js` creates one `createCutkitRegistry()` instance for the Nuxt
-server process, binds `@cutkit/domain-cnc` through `server/adapters/cnc-domain.js`,
-and copies registered feature services from the compatibility service registry.
+`app-registry.js` creates one `createRegistry()` instance, defines
+`@cutkit/domain-cnc`, registers entity services, command handlers, and workflow
+hook handlers. Backend runtimes consume this registry instead of importing
+domain packages or feature modules directly.
 
-Consumers should call `getCutkitRegistry()` instead of importing domain packages
-or relying on endpoint-local registration side effects. The registry is the
-source for operation definitions, process definitions, entity services, hook
-handlers, artifact types, workflows, and domain summaries.
+`cutkit-registry.js` is a compatibility re-export for older imports; new code
+should call `getAppRegistry()`.
+
+## Registered Bindings
+
+- Entity services for canonical feature modules.
+- Command handlers: `saveCassetteTemplate`, `solveNesting`,
+  `generateAttachment`.
+- Workflow hook handlers from `server/core/machines/hooks.js`.
+- Domain definitions: entities, workflows, commands, tasks, hooks,
+  attachment kinds, summaries, and UI metadata.
 
 ## Related
 
 - [Core package](../../packages/core/README.md)
-- [CNC domain adapter](../adapters/cnc-domain.js)
-- [Operations runtime](../core/operations/README.md)
-- [Process queue runtime](../core/processes/README.md)
+- [Commands](../core/commands/README.md)
+- [Tasks](../core/tasks/README.md)
