@@ -44,12 +44,18 @@ const hoveredEdge = ref(null);
 
 const isDesigner = computed(() => props.mode === 'designer');
 const isViewer = computed(() => props.mode === 'viewer' || isDesigner.value);
+const showGrid = computed(() => isViewer.value);
 const hasLayers = computed(() => Array.isArray(drawing.value?.layers) && drawing.value.layers.length > 0);
 const visibleDrawingLayers = computed(() => {
   if (!hasLayers.value) return [];
   return drawing.value.layers.filter(layer => visibleLayers.value.includes(layer.name));
 });
 const viewBoxValue = computed(() => `${viewBox.value.x} ${viewBox.value.y} ${viewBox.value.width} ${viewBox.value.height}`);
+const displayStrokeWidth = (weight, fallback = 1.5) => {
+  const numericWeight = Number(weight);
+  if (!Number.isFinite(numericWeight) || numericWeight <= 0) return fallback;
+  return Math.max(1, Math.min(numericWeight * 2, 4));
+};
 
 const parseViewBox = (value) => {
   const parts = String(value || '0 0 100 100').split(/\s+/).map(Number);
@@ -267,17 +273,27 @@ onBeforeUnmount(() => {
           @mouseleave="handleMouseUp"
           @wheel="handleWheel"
         >
-          <defs v-if="isDesigner">
+          <defs v-if="showGrid">
             <pattern id="drawing-canvas-grid" width="100" height="100" patternUnits="userSpaceOnUse">
               <path d="M 100 0 L 0 0 0 100" fill="none" stroke="currentColor" class="opacity-10" />
             </pattern>
           </defs>
-          <rect v-if="isDesigner" :x="viewBox.x" :y="viewBox.y" :width="viewBox.width" :height="viewBox.height" fill="url(#drawing-canvas-grid)" />
+          <rect v-if="showGrid" :x="viewBox.x" :y="viewBox.y" :width="viewBox.width" :height="viewBox.height" fill="url(#drawing-canvas-grid)" />
 
-          <g v-for="layer in visibleDrawingLayers" :key="layer.name" :stroke="layer.color" :stroke-width="layer.weight" :stroke-dasharray="layer.dasharray" fill="none">
+          <g
+            v-for="layer in visibleDrawingLayers"
+            :key="layer.name"
+            :stroke="layer.color"
+            :stroke-width="displayStrokeWidth(layer.weight)"
+            :stroke-dasharray="layer.dasharray"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            vector-effect="non-scaling-stroke"
+          >
             <template v-for="(path, pathIndex) in layer.paths" :key="`${layer.name}-${pathIndex}`">
               <g v-if="isRawSvg(path)" v-html="path" />
-              <path v-else :d="path" />
+              <path v-else :d="path" vector-effect="non-scaling-stroke" />
             </template>
           </g>
 
@@ -297,8 +313,10 @@ onBeforeUnmount(() => {
               :d="drawing.path"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              :stroke-width="displayStrokeWidth(1)"
+              stroke-linecap="round"
               stroke-linejoin="round"
+              vector-effect="non-scaling-stroke"
             />
           </template>
 
