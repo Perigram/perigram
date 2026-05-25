@@ -2096,3 +2096,13 @@
     - TODO.org
     Notes:
     - Replaced the Nuxt-only `~/shared/permission-templates.js` import with a relative import so server/runtime code can load DTO factories under plain Node ESM in production containers.
+
+*** Agent Notes
+    [2026-05-25] Restore DXF artifact preview mode detection
+    Files changed:
+    - components/ArtifactsTable.vue
+    Docs updated:
+    - TODO.org
+    Notes:
+    - Fixed artifact preview routing to read `getAttachmentPreview(...).mode` from the domain UI contract instead of the non-existent `kind` property.
+    - DXF and SVG artifact previews now pass their download endpoint into `DrawingCanvas` with the matching `dxf-url` / `svg-url` source type.
