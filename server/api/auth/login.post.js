@@ -1,6 +1,14 @@
 import { defineEventHandler, readBody, setCookie, createError } from 'h3';
 import * as usersService from '../../features/users/service.js';
 
+function shouldUseSecureSessionCookie() {
+  if (process.env.SESSION_COOKIE_SECURE !== undefined) {
+    return process.env.SESSION_COOKIE_SECURE === 'true';
+  }
+
+  return process.env.NODE_ENV === 'production';
+}
+
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   if (!body?.email || !body?.password) {
@@ -14,7 +22,7 @@ export default defineEventHandler(async (event) => {
     
     setCookie(event, 'sessionId', result.sessionId, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: shouldUseSecureSessionCookie(),
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60
     });

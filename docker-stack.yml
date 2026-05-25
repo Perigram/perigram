@@ -9,7 +9,9 @@ services:
     ports:
       - 7100:3000
     environment:
-      - NUXT_PUBLIC_BASE_URL=https://cutkit-demo-production.up.railway.app/
+      - BASE_URL=${BASE_URL:-http://192.168.0.67:7100}
+      - NUXT_PUBLIC_BASE_URL=${NUXT_PUBLIC_BASE_URL:-http://192.168.0.67:7100}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
       - NUXT_PUBLIC_GOOGLE_CLIENT_ID=${NUXT_PUBLIC_GOOGLE_CLIENT_ID}
       - NUXT_PUBLIC_GITHUB_CLIENT_ID=${NUXT_PUBLIC_GITHUB_CLIENT_ID}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/cutkit_dev}
