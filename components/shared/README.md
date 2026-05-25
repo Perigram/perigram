@@ -121,7 +121,7 @@ Supported location shapes:
 Use status lifecycle location for "where the entity is now"; static ancestry remains in `lineage`, and files remain in `attachments`.
 
 ### `DrawingCanvas.vue`
-Shared SVG canvas for layer-aware drawing surfaces. It accepts normalized geometry previews, DXF text/URLs, SVG URLs, and parametric cassette graphs; owns layer visibility, viewer pan/zoom, cassette designer edge actions, and layer-to-pen resolution through `utils/drawingPreview.js`.
+Shared SVG canvas for layer-aware drawing surfaces. It accepts normalized geometry previews, DXF text/URLs, SVG URLs, and parametric cassette graphs; owns layer visibility, viewer pan/zoom, cassette designer edge actions, shared viewer grid/stroke presentation, and layer-to-pen resolution through `utils/drawingPreview.js`.
 
 Layer colors resolve in this order: explicit DXF layer mapping, standard-code fallback from the layer name, then the default pen. Use it for artifact previews, cassette thumbnails, mapping previews, and designer canvases instead of duplicating SVG render logic in feature components.
 

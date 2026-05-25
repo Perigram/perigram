@@ -2106,3 +2106,14 @@
     Notes:
     - Fixed artifact preview routing to read `getAttachmentPreview(...).mode` from the domain UI contract instead of the non-existent `kind` property.
     - DXF and SVG artifact previews now pass their download endpoint into `DrawingCanvas` with the matching `dxf-url` / `svg-url` source type.
+
+*** Agent Notes
+    [2026-05-25] Unify shared drawing canvas presentation
+    Files changed:
+    - components/shared/DrawingCanvas.vue
+    Docs updated:
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - Moved DXF viewer and cassette designer presentation into shared canvas-level rules: viewer grid, rounded line joins/caps, normalized stroke width, and non-scaling strokes.
+    - Kept mode-specific behavior only for interaction: designer edge picking and viewer layer/sidebar controls.
