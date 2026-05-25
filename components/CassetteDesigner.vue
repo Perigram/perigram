@@ -178,7 +178,8 @@
 
     const DEFAULT_CASSETTE_GRAPH = {
         params: { A: 600, B: 600 },
-        extrusions: []
+        extrusions: [],
+        layers: {}
     }
 
     const isDesignerGraph = (value) => {
@@ -200,10 +201,14 @@
         const extrusions = Array.isArray(graph.extrusions)
             ? graph.extrusions
             : DEFAULT_CASSETTE_GRAPH.extrusions
+        const layers = graph.layers && typeof graph.layers === 'object'
+            ? graph.layers
+            : (graph.layerRoles && typeof graph.layerRoles === 'object' ? graph.layerRoles : DEFAULT_CASSETTE_GRAPH.layers)
 
         return {
             params: { ...DEFAULT_CASSETTE_GRAPH.params, ...params },
-            extrusions: extrusions.map(ext => ({ ...ext }))
+            extrusions: extrusions.map(ext => ({ ...ext })),
+            layers: { ...layers }
         }
     }
 
@@ -215,6 +220,7 @@
     const cassetteData = reactive({
         params: initialGraph.params,
         extrusions: initialGraph.extrusions,
+        layers: initialGraph.layers,
     })
 
     const showAddParamDialog = ref(false)
@@ -225,6 +231,7 @@
         cassetteName.value = initialData?.name || t('cassette.newCassette')
         cassetteData.params = graph.params
         cassetteData.extrusions = graph.extrusions
+        cassetteData.layers = graph.layers
     }
 
     watch(() => props.initialData, hydrateFromInitialData)
@@ -241,7 +248,8 @@
     const availableParams = computed(() => Object.keys(cassetteData.params))
     const canvasSource = computed(() => ({
         params: { ...cassetteData.params },
-        extrusions: cassetteData.extrusions.map(ext => ({ ...ext }))
+        extrusions: cassetteData.extrusions.map(ext => ({ ...ext })),
+        layers: { ...cassetteData.layers }
     }))
 
     watch(canvasSource, () => {

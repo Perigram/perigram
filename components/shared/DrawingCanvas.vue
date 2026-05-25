@@ -82,7 +82,7 @@ const fetchText = async (url) => {
 
 const resolveDrawing = async () => {
   if (!props.source) return null;
-  const usesLayerContract = ['dxf-text', 'dxf-url'].includes(props.sourceType) || Object.keys(props.layerMapping).length > 0;
+  const usesLayerContract = ['dxf-text', 'dxf-url', 'parametric-cassette'].includes(props.sourceType) || Object.keys(props.layerMapping).length > 0;
   if (usesLayerContract) await loadStores();
 
   const penOptions = {
@@ -103,12 +103,28 @@ const resolveDrawing = async () => {
   }
 
   if (props.sourceType === 'svg-url') {
-    return { viewBox: '0 0 100 100', layers: [], imageUrl: props.source };
+    return {
+      viewBox: '0 0 100 100',
+      layers: [{
+        name: 'image',
+        paths: [{
+          kind: 'image',
+          href: props.source,
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100
+        }]
+      }]
+    };
   }
 
   if (props.sourceType === 'parametric-cassette') {
     const result = await renderCassetteToSVG(props.source);
-    return normalizeCassetteDrawing(result, props.source?.params || {});
+    return applyLayerPens(normalizeCassetteDrawing(result, {
+      params: props.source?.params || {},
+      layers: props.source?.layers || props.source?.layerRoles || {}
+    }), penOptions);
   }
 
   return null;
@@ -148,6 +164,24 @@ watch(visibleLayers, (layers) => {
 });
 
 const isRawSvg = (path) => typeof path === 'string' && path.trim().startsWith('<');
+const pathKind = (path) => typeof path === 'object' && path?.kind ? path.kind : 'path';
+const pathD = (path) => typeof path === 'string' ? path : path?.d;
+const pathFill = (path, layer) => {
+  if (typeof path === 'string') return 'none';
+  if (path?.fill === 'layer') return layer.color;
+  return path?.fill || 'none';
+};
+const pathStroke = (path, layer) => {
+  if (typeof path === 'string') return null;
+  if (path?.stroke === 'none') return 'none';
+  if (path?.stroke === 'layer') return layer.color;
+  return path?.stroke || null;
+};
+const pathOpacity = (path) => {
+  if (typeof path === 'string') return null;
+  if (path.extrusionIndex === props.highlightedExtrusionIndex) return path.highlightedOpacity || path.opacity || null;
+  return path.opacity || null;
+};
 
 const getPointFromEvent = (event) => {
   if (!svgElement.value) return null;
@@ -292,33 +326,26 @@ onBeforeUnmount(() => {
             vector-effect="non-scaling-stroke"
           >
             <template v-for="(path, pathIndex) in layer.paths" :key="`${layer.name}-${pathIndex}`">
-              <g v-if="isRawSvg(path)" v-html="path" />
-              <path v-else :d="path" vector-effect="non-scaling-stroke" />
+              <image
+                v-if="pathKind(path) === 'image'"
+                :href="path.href"
+                :x="path.x ?? 0"
+                :y="path.y ?? 0"
+                :width="path.width ?? 100"
+                :height="path.height ?? 100"
+                preserveAspectRatio="xMidYMid meet"
+              />
+              <g v-else-if="isRawSvg(path)" v-html="path" />
+              <path
+                v-else
+                :d="pathD(path)"
+                :fill="pathFill(path, layer)"
+                :stroke="pathStroke(path, layer)"
+                :opacity="pathOpacity(path)"
+                vector-effect="non-scaling-stroke"
+              />
             </template>
           </g>
-
-          <image v-if="drawing.imageUrl" :href="drawing.imageUrl" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet" />
-
-          <template v-if="drawing.allCurves">
-            <path
-              v-for="(curve, index) in drawing.allCurves.filter(curve => curve.isExtrusion)"
-              :key="`extrusion-${index}`"
-              :d="curve.path"
-              fill="currentColor"
-              :class="highlightedExtrusionIndex === index ? 'opacity-20' : 'opacity-5'"
-              style="pointer-events: none"
-            />
-            <path
-              v-if="drawing.path"
-              :d="drawing.path"
-              fill="none"
-              stroke="currentColor"
-              :stroke-width="displayStrokeWidth(1)"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              vector-effect="non-scaling-stroke"
-            />
-          </template>
 
           <g v-if="isDesigner">
             <g v-for="(edge, index) in drawing.designerEdges || []" :key="`edge-${index}`">

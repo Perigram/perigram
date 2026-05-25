@@ -18,14 +18,16 @@ export const resolveStandardPen = (standard, pens = [], fallbackPen = DEFAULT_DR
 
 export const resolveLayerPen = ({
   layerName,
+  standardCode,
   layerMapping = {},
   standards = [],
   pens = [],
   defaultPen = DEFAULT_DRAWING_PEN
 } = {}) => {
   const mappedCode = layerMapping[layerName];
-  const mappedStandard = mappedCode
-    ? standards.find(standard => standard.code === mappedCode)
+  const targetCode = mappedCode || standardCode;
+  const mappedStandard = targetCode
+    ? standards.find(standard => standard.code === targetCode)
     : null;
   if (mappedStandard) return resolveStandardPen(mappedStandard, pens, defaultPen);
 
@@ -40,7 +42,7 @@ export const applyLayerPens = (drawing, options = {}) => {
   return {
     ...drawing,
     layers: drawing.layers.map(layer => {
-      const pen = resolveLayerPen({ layerName: layer.name, ...options });
+      const pen = resolveLayerPen({ layerName: layer.name, standardCode: layer.standardCode, ...options });
       return {
         ...layer,
         color: pen.stroke?.color || layer.color || 'currentColor',
@@ -49,6 +51,32 @@ export const applyLayerPens = (drawing, options = {}) => {
       };
     })
   };
+};
+
+const normalizeLayerDescriptor = (descriptor, fallbackName = 'geometry') => {
+  if (!descriptor) return { name: fallbackName };
+  if (typeof descriptor === 'string') {
+    return { name: descriptor, standardCode: descriptor };
+  }
+
+  const standardCode = descriptor.standardCode || descriptor.code || null;
+  return {
+    ...descriptor,
+    name: descriptor.name || descriptor.layerName || standardCode || fallbackName,
+    standardCode,
+    role: descriptor.role || fallbackName
+  };
+};
+
+const mergeLayerPaths = (layers, descriptor, paths) => {
+  if (!paths.length) return;
+  const key = descriptor.name || descriptor.standardCode || descriptor.role || 'geometry';
+  const existing = layers.find(layer => (layer.name || layer.standardCode || layer.role) === key);
+  if (existing) {
+    existing.paths.push(...paths);
+    return;
+  }
+  layers.push({ ...descriptor, paths: [...paths] });
 };
 
 export const normalizeGeometryDrawing = (source, options = {}) => {
@@ -62,6 +90,8 @@ export const normalizeGeometryDrawing = (source, options = {}) => {
       viewBox: preview.viewBox || '0 0 100 60',
       layers: layers.map(layer => ({
         name: layer.name || 'geometry',
+        standardCode: layer.standardCode || layer.code || null,
+        role: layer.role || null,
         color: layer.color || 'currentColor',
         weight: layer.weight || 1,
         dasharray: layer.dasharray || 'none',
@@ -130,12 +160,36 @@ export const extractDesignerEdges = (vertices = [], params = {}) => {
 
 export const normalizeCassetteDrawing = (result, params = {}) => {
   if (!result) return null;
+  const options = params.params || params.layers ? params : { params };
+  const layerDescriptors = options.layers || {};
+  const edgeParams = options.params || {};
+
+  const extrusionPaths = (result.allCurves || [])
+    .map((curve, index) => ({ curve, index }))
+    .filter(({ curve }) => curve.isExtrusion)
+    .map(({ curve, index }) => ({
+      d: curve.path,
+      fill: 'layer',
+      stroke: 'none',
+      opacity: 0.06,
+      highlightedOpacity: 0.22,
+      extrusionIndex: index
+    }));
+
+  const boundaryPaths = result.path ? [{
+    d: result.path,
+    fill: 'none',
+    stroke: 'layer'
+  }] : [];
+
+  const layers = [];
+  mergeLayerPaths(layers, normalizeLayerDescriptor(layerDescriptors.face), extrusionPaths);
+  mergeLayerPaths(layers, normalizeLayerDescriptor(layerDescriptors.boundary), boundaryPaths);
+
   return {
     viewBox: result.viewBox || '0 0 100 100',
-    layers: [],
-    path: result.path || '',
+    layers,
     vertices: result.vertices || [],
-    allCurves: result.allCurves || [],
-    designerEdges: extractDesignerEdges(result.vertices || [], params)
+    designerEdges: extractDesignerEdges(result.vertices || [], edgeParams)
   };
 };

@@ -48,7 +48,8 @@ const cassetteGraph = (cassette) => {
   const definition = cassetteDefinition(cassette);
   return {
     params: definition?.params || {},
-    extrusions: Array.isArray(definition?.extrusions) ? definition.extrusions : []
+    extrusions: Array.isArray(definition?.extrusions) ? definition.extrusions : [],
+    layers: definition?.layers || definition?.layerRoles || {}
   };
 };
 
@@ -71,7 +72,8 @@ const setParametricSource = (graph) => {
       ...graph.params,
       ...(props.dimensions || {})
     },
-    extrusions: graph.extrusions
+    extrusions: graph.extrusions,
+    layers: graph.layers || {}
   };
   canvasSourceType.value = 'parametric-cassette';
   canvasLayerMapping.value = {};
