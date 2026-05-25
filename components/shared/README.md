@@ -127,11 +127,13 @@ All drawing sources normalize to the same layer contract before rendering: `{ vi
 
 Layer colors resolve in this order: explicit source layer mapping, caller-provided `standardCode`, standard-code fallback from the layer name, then the default pen. Use this component for artifact previews, cassette thumbnails, mapping previews, and designer canvases instead of duplicating SVG render logic in feature components.
 
-The optional viewer layer panel is part of the shared canvas surface and uses
-PrimeVue controls for its visible UI: `Toolbar` for title/actions, `ScrollPanel`
-for the layer list, `Checkbox` for layer visibility, `Tag` for counts, and
-`Button` for icon actions. Raw elements are limited to layout and the passive
-color swatch where PrimeVue has no direct equivalent.
+The optional viewer layer panel is part of the shared canvas surface but must
+render CutKit concepts through existing CutKit system components. Source DXF
+layer names use `IdentityBlock`; mapped layer standards use `LayerStandardCard`;
+resolved pens/colors use `PenTemplateCard`. Inline color dots, hand-rolled
+layer rows, or custom key/value renderers are not allowed for these entity
+concepts. PrimeVue controls are limited to non-entity interaction chrome such as
+visibility checkboxes, show/hide buttons, scroll containment, and count tags.
 
 Current drawing display owners:
 

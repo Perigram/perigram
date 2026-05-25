@@ -2201,3 +2201,17 @@
     - Replaced the ad hoc DXF layer panel container with PrimeVue `Toolbar`, `ScrollPanel`, `Tag`, `Button`, and `Checkbox` composition.
     - Added localized tooltips for show-all and hide-all layer actions.
     - Kept raw markup only for structural layout and the passive color swatch.
+
+*** Agent Notes
+    [2026-05-25] Render drawing layer panel with CutKit entity components
+    Files changed:
+    - components/shared/DrawingCanvas.vue
+    - utils/drawingPreview.js
+    - utils/drawingPreview.spec.js
+    Docs updated:
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - Corrected the layer panel architecture so source layers use `IdentityBlock`, mapped layer standards use `LayerStandardCard`, and resolved pens/colors use `PenTemplateCard`.
+    - Added `standardId` and `penId` metadata to normalized drawing layers so UI surfaces can render actual entity components instead of inline color/name displays.
+    - Kept PrimeVue usage limited to non-entity controls such as visibility checkboxes, show/hide buttons, scroll containment, and count tags.
