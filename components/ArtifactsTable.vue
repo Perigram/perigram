@@ -116,7 +116,7 @@ const previewLoading = ref(false);
 const previewError = ref(null);
 const drawingSource = ref(null);
 const drawingSourceType = ref('dxf-url');
-const isPdf = computed(() => artifactPreviewKind(previewArtifactData.value) === 'pdf');
+const isPdf = computed(() => artifactPreviewMode(previewArtifactData.value) === 'pdf');
 
 onMounted(async () => {
   if (props.batchId && !props.artifacts) {
@@ -126,7 +126,7 @@ onMounted(async () => {
 
 const artifactType = (artifact) => artifact?.data?.type || '';
 const artifactDefinition = (artifact) => domainUi.getAttachmentKind(artifactType(artifact));
-const artifactPreviewKind = (artifact) => domainUi.getAttachmentPreview(artifactType(artifact)).kind;
+const artifactPreviewMode = (artifact) => domainUi.getAttachmentPreview(artifactType(artifact)).mode;
 const artifactMimeType = (artifact) => artifact?.attachments?.primary?.metadata?.mimeType || artifactDefinition(artifact)?.mimeType || '';
 
 const getArtifactIcon = (mimeType) => {
@@ -154,10 +154,10 @@ const previewArtifact = async (artifact) => {
     drawingSource.value = null;
     previewLoading.value = false;
 
-    const previewKind = artifactPreviewKind(artifact);
-    if (previewKind === 'dxf' || previewKind === 'svg') {
+    const previewMode = artifactPreviewMode(artifact);
+    if (previewMode === 'dxf' || previewMode === 'svg') {
         drawingSource.value = domainUi.getDownloadEndpoint('artifact', artifact._id);
-        drawingSourceType.value = `${previewKind}-url`;
+        drawingSourceType.value = `${previewMode}-url`;
     }
 };
 
