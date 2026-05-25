@@ -2026,3 +2026,13 @@
     - TODO.org
     Notes:
     - Switched the shared permission template import to the Nuxt root alias so Nitro can resolve UI Lab factory dependencies after SSR bundling.
+
+*** Agent Notes
+    [2026-05-25] Fix nesting worker Docker build paths
+    Files changed:
+    - workers/nesting/Dockerfile
+    Docs updated:
+    - workers/nesting/README.md
+    - TODO.org
+    Notes:
+    - Aligned the Dockerfile with the project-root build context used by `build-images.sh`, including the jagua-rs submodule, requirements file, and runtime worker source paths.

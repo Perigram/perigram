@@ -58,3 +58,7 @@ docker run --rm -it nesting-worker:local
 # With host network (for local MongoDB)
 docker run --network host -it -v "$(pwd):/app" -w /app nesting-worker:local bash
 ```
+
+The Dockerfile expects the project root as build context so it can copy
+`workers/nesting/requirements.txt`, the worker source, and the
+`workers/nesting/jagua-rs` submodule into the image.
