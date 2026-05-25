@@ -2086,3 +2086,13 @@
     - Added `DrawingCanvas` as the shared layer-aware canvas for geometry previews, DXF/SVG artifact previews, cassette thumbnails, mapping previews, and cassette designer interactions.
     - Moved layer pen resolution into `utils/drawingPreview.js` with explicit mapping, standard-code fallback, and default-pen fallback.
     - Replaced duplicate feature-level SVG canvas logic while keeping compatibility wrappers for existing card components.
+
+*** Agent Notes
+    [2026-05-25] Fix factory imports for production Node runtime
+    Files changed:
+    - test-data/factories.js
+    Docs updated:
+    - test-data/README.md
+    - TODO.org
+    Notes:
+    - Replaced the Nuxt-only `~/shared/permission-templates.js` import with a relative import so server/runtime code can load DTO factories under plain Node ESM in production containers.
