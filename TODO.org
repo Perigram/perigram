@@ -2136,3 +2136,17 @@
     - Replaced cassette-specific draw branches with the shared `{ viewBox, layers }` drawing contract.
     - Removed generic hardcoded production layer codes; parametric cassette previews now use caller-provided layer metadata when present and otherwise fall back to a neutral geometry layer.
     - Added unit coverage for cassette normalization and layer pen precedence.
+
+*** Agent Notes
+    [2026-05-25] Quiet unauthenticated app shell protected fetches
+    Files changed:
+    - stores/auth.js
+    - stores/navigation.js
+    - layouts/app.vue
+    Docs updated:
+    - stores/README.md
+    - TODO.org
+    Notes:
+    - Guarded project context loading until auth is initialized.
+    - Treat expected 401 responses from protected app-shell context fetches as normal unauthenticated state instead of logging errors.
+    - Avoid duplicate organization fetches when `setUser()` has already populated auth-derived organization state.

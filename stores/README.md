@@ -12,6 +12,10 @@ Pinia stores for client state and API orchestration.
 - Stores use `$fetch` to call Nitro API endpoints.
 - `auth.js` accepts optional `$fetch` options in `setUser()` and
   `fetchUserOrgs()` so route middleware can forward SSR request cookies during
-  direct page loads.
+  direct page loads. Expected 401 responses clear protected auth-derived state
+  without logging errors, because unauthenticated app shell renders are normal.
+- `navigation.js` owns project breadcrumb context and only fetches protected
+  project context after auth is set; unauthenticated or expired-session 401s
+  clear `currentProject` quietly.
 - Long-running operations start optimistic UI updates and polling until terminal states.
 - Internal demo pages may pre-seed `entities.registry` with DTO-shaped mock entities so shared trace components render examples without calling authenticated APIs.
