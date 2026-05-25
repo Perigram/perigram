@@ -2117,3 +2117,22 @@
     Notes:
     - Moved DXF viewer and cassette designer presentation into shared canvas-level rules: viewer grid, rounded line joins/caps, normalized stroke width, and non-scaling strokes.
     - Kept mode-specific behavior only for interaction: designer edge picking and viewer layer/sidebar controls.
+
+*** Agent Notes
+    [2026-05-25] Audit and repair centralized drawing contract
+    Files changed:
+    - components/shared/DrawingCanvas.vue
+    - utils/drawingPreview.js
+    - utils/drawingPreview.spec.js
+    - components/CassetteDesigner.vue
+    - components/CassetteThumbnail.vue
+    Docs updated:
+    - components/shared/README.md
+    - docs/DESIGN_SYSTEM.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Audited active drawing display surfaces; component-level SVG drawing is now owned by `DrawingCanvas`.
+    - Replaced cassette-specific draw branches with the shared `{ viewBox, layers }` drawing contract.
+    - Removed generic hardcoded production layer codes; parametric cassette previews now use caller-provided layer metadata when present and otherwise fall back to a neutral geometry layer.
+    - Added unit coverage for cassette normalization and layer pen precedence.

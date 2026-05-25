@@ -123,7 +123,22 @@ Use status lifecycle location for "where the entity is now"; static ancestry rem
 ### `DrawingCanvas.vue`
 Shared SVG canvas for layer-aware drawing surfaces. It accepts normalized geometry previews, DXF text/URLs, SVG URLs, and parametric cassette graphs; owns layer visibility, viewer pan/zoom, cassette designer edge actions, shared viewer grid/stroke presentation, and layer-to-pen resolution through `utils/drawingPreview.js`.
 
-Layer colors resolve in this order: explicit DXF layer mapping, standard-code fallback from the layer name, then the default pen. Use it for artifact previews, cassette thumbnails, mapping previews, and designer canvases instead of duplicating SVG render logic in feature components.
+All drawing sources normalize to the same layer contract before rendering: `{ viewBox, layers: [{ name, standardCode?, paths }] }`. DXF layers keep their source layer names and optional mapping. Parametric cassette previews render through the same layer list and may provide caller-owned `layers.face` / `layers.boundary` metadata; if no layer metadata exists, they render as a neutral `geometry` layer instead of guessing production standards. Designer edge handles are overlays, not drawing layers.
+
+Layer colors resolve in this order: explicit source layer mapping, caller-provided `standardCode`, standard-code fallback from the layer name, then the default pen. Use this component for artifact previews, cassette thumbnails, mapping previews, and designer canvases instead of duplicating SVG render logic in feature components.
+
+Current drawing display owners:
+
+| Surface | Source type |
+|---|---|
+| `GeometryPreview.vue` | `geometry-preview` |
+| `CassetteThumbnail.vue` | `dxf-url` or `parametric-cassette` |
+| `CassetteEditorDialog.vue` | `dxf-text` |
+| `ArtifactsTable.vue` | `dxf-url` / `svg-url` |
+| `CassetteDesigner.vue` | `parametric-cassette` with designer overlays |
+| `/test/ui-lab` | `geometry-preview` demo |
+
+New drawing previews should add a source normalizer for `DrawingCanvas`, not a feature-local `<svg>`.
 
 ### `GeometryPreview.vue`
 Entity-card wrapper around `DrawingCanvas` for design and remnant geometry. Reads `entity.data.geometry.preview` first and falls back to `entity.data.geometry.data` / `entity.data.geometry.points`.
