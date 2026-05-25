@@ -2061,3 +2061,28 @@
     Notes:
     - Replaced direct browser `crypto.randomUUID()` calls with local helpers that fall back to `crypto.getRandomValues` and timestamp/random IDs.
     - Kept cassette graph generation usable in production browser bundles served over plain HTTP.
+
+*** Agent Notes
+    [2026-05-25] Centralize drawing canvas previews
+    Files changed:
+    - components/shared/DrawingCanvas.vue
+    - utils/drawingPreview.js
+    - components/shared/GeometryPreview.vue
+    - components/CassetteThumbnail.vue
+    - components/ArtifactsTable.vue
+    - components/CassetteEditorDialog.vue
+    - components/CassetteDesigner.vue
+    - packages/domain-cnc/src/ui.js
+    - pages/test/ui-lab.vue
+    - framework.manifest.json
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - utils/README.md
+    - docs/DESIGN_SYSTEM.md
+    - pages/test/README.md
+    - TODO.org
+    Notes:
+    - Added `DrawingCanvas` as the shared layer-aware canvas for geometry previews, DXF/SVG artifact previews, cassette thumbnails, mapping previews, and cassette designer interactions.
+    - Moved layer pen resolution into `utils/drawingPreview.js` with explicit mapping, standard-code fallback, and default-pen fallback.
+    - Replaced duplicate feature-level SVG canvas logic while keeping compatibility wrappers for existing card components.

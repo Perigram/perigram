@@ -21,7 +21,7 @@ All entity-related components MUST use these patterns:
 | Status display + transitions/actions | `<EntityStatus :entity="..." entity-type="..." :actions="..." />` |
 | Read-only status display | `<StatusBadge :entity="..." />` |
 | Current lifecycle location | `status.lifecycle.data.location` rendered by `<EntityStatus>` |
-| Geometry preview | `<GeometryPreview :entity="..." />` reading `data.geometry.preview` |
+| Drawing and geometry preview | `<DrawingCanvas ... />` for layer-aware DXF/SVG/cassette canvas work; `<GeometryPreview :entity="..." />` as the entity-card wrapper |
 | Structured key/value data (specs, parameters, tool dims) | `<DataBlock :entity="..." :fields="ENTITY_FIELDS" />` |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StatusHistory :entity="..." entity-type="..." />` |
