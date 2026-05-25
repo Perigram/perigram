@@ -78,6 +78,10 @@
     "note": "Note",
     "history": "History"
   },
+  "drawing": {
+    "showAllLayers": "Show all layers",
+    "hideAllLayers": "Hide all layers"
+  },
   "footer": {
     "termsAndConditions": "Terms and Conditions",
     "blog": "Blog",

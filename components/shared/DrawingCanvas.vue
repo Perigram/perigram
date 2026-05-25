@@ -4,6 +4,9 @@ import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import ProgressSpinner from 'primevue/progressspinner';
+import ScrollPanel from 'primevue/scrollpanel';
+import Tag from 'primevue/tag';
+import Toolbar from 'primevue/toolbar';
 import { generateSvgData } from '~/utils/dxfParser';
 import { renderCassetteToSVG } from '~/utils/cassetteRenderer';
 import {
@@ -46,6 +49,9 @@ const isDesigner = computed(() => props.mode === 'designer');
 const isViewer = computed(() => props.mode === 'viewer' || isDesigner.value);
 const showGrid = computed(() => isViewer.value);
 const hasLayers = computed(() => Array.isArray(drawing.value?.layers) && drawing.value.layers.length > 0);
+const layerNames = computed(() => drawing.value?.layers?.map(layer => layer.name) || []);
+const allLayersVisible = computed(() => hasLayers.value && layerNames.value.every(name => visibleLayers.value.includes(name)));
+const visibleLayerSummary = computed(() => `${visibleLayers.value.length}/${layerNames.value.length}`);
 const visibleDrawingLayers = computed(() => {
   if (!hasLayers.value) return [];
   return drawing.value.layers.filter(layer => visibleLayers.value.includes(layer.name));
@@ -219,6 +225,14 @@ const zoomOut = () => zoomAt(null, 1.25);
 const resetView = () => {
   viewBox.value = parseViewBox(drawing.value?.viewBox);
 };
+const showAllLayers = () => {
+  visibleLayers.value = [...layerNames.value];
+};
+const hideAllLayers = () => {
+  visibleLayers.value = [];
+};
+const layerInputId = (layer) => `drawing-layer-${String(layer.name).replace(/[^A-Za-z0-9_-]/g, '-')}`;
+const layerPathCount = (layer) => Array.isArray(layer.paths) ? layer.paths.length : 0;
 
 const handleMouseDown = (event) => {
   if (!isViewer.value || event.button !== 0 || (isDesigner.value && !event.shiftKey)) return;
@@ -284,15 +298,58 @@ onBeforeUnmount(() => {
     </div>
 
     <template v-else>
-      <div v-if="showLayerPanel && hasLayers" class="w-64 shrink-0 overflow-y-auto border-r border-content-border p-4">
-        <div class="flex flex-col gap-2">
-          <div v-for="layer in drawing.layers" :key="layer.name" class="flex items-center gap-2">
-            <Checkbox v-model="visibleLayers" :value="layer.name" :inputId="`drawing-layer-${layer.name}`" size="small" />
-            <label :for="`drawing-layer-${layer.name}`" class="min-w-0 flex-1 truncate">{{ layer.name }}</label>
-            <span class="h-3 w-3 rounded-full" :style="{ backgroundColor: layer.color }" />
+      <aside v-if="showLayerPanel && hasLayers" class="flex w-72 shrink-0 flex-col border-r border-content-border">
+        <Toolbar class="rounded-none border-0 border-b border-content-border bg-transparent px-3 py-2">
+          <template #start>
+            <div class="flex min-w-0 items-center gap-2">
+              <i class="pi pi-list text-muted-color" aria-hidden="true" />
+              <span class="truncate font-medium">{{ $t('common.layers') }}</span>
+              <Tag :value="visibleLayerSummary" severity="secondary" size="small" />
+            </div>
+          </template>
+          <template #end>
+            <div class="flex items-center gap-1">
+              <Button
+                icon="pi pi-eye"
+                text
+                rounded
+                size="small"
+                severity="secondary"
+                :aria-label="$t('drawing.showAllLayers')"
+                :disabled="allLayersVisible"
+                v-tooltip.top="$t('drawing.showAllLayers')"
+                @click="showAllLayers"
+              />
+              <Button
+                icon="pi pi-eye-slash"
+                text
+                rounded
+                size="small"
+                severity="secondary"
+                :aria-label="$t('drawing.hideAllLayers')"
+                :disabled="visibleLayers.length === 0"
+                v-tooltip.top="$t('drawing.hideAllLayers')"
+                @click="hideAllLayers"
+              />
+            </div>
+          </template>
+        </Toolbar>
+
+        <ScrollPanel class="min-h-0 flex-1">
+          <div class="flex flex-col">
+            <div
+              v-for="layer in drawing.layers"
+              :key="layer.name"
+              class="flex items-center gap-2 border-b border-content-border px-3 py-2 last:border-b-0"
+            >
+              <Checkbox v-model="visibleLayers" :value="layer.name" :inputId="layerInputId(layer)" size="small" />
+              <label :for="layerInputId(layer)" class="min-w-0 flex-1 truncate">{{ layer.name }}</label>
+              <Tag v-if="layerPathCount(layer)" :value="layerPathCount(layer)" severity="secondary" size="small" />
+              <span class="h-3 w-3 shrink-0 rounded-full" :style="{ backgroundColor: layer.color }" aria-hidden="true" />
+            </div>
           </div>
-        </div>
-      </div>
+        </ScrollPanel>
+      </aside>
 
       <div class="relative min-w-0 flex-1 overflow-hidden">
         <svg

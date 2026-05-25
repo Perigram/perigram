@@ -78,6 +78,10 @@
     "note": "Примечание",
     "history": "История"
   },
+  "drawing": {
+    "showAllLayers": "Показать все слои",
+    "hideAllLayers": "Скрыть все слои"
+  },
   "footer": {
     "termsAndConditions": "Условия и положения",
     "blog": "Блог",
