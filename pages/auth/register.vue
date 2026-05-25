@@ -28,7 +28,7 @@
                     <Select 
                         id="org"
                         v-model="form.organizationId" 
-                        :options="organizations" 
+                        :options="organizationOptions"
                         optionLabel="name" 
                         optionValue="_id" 
                         :placeholder="$t('auth.organization')"
@@ -88,6 +88,7 @@ import Button from 'primevue/button';
 import Select from 'primevue/select';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { useEntity } from '~/composables/useEntity';
+import { namedSelectOptions } from '~/utils/selectOptions';
 
 definePageMeta({
     layout: 'empty'
@@ -117,6 +118,7 @@ const orgTypeOptions = computed(() => ([
     { label: t('auth.orgTypes.contractor'), value: 'Contractor' },
     { label: t('auth.orgTypes.customer'), value: 'Customer' }
 ]));
+const organizationOptions = computed(() => namedSelectOptions(organizations.value, t('auth.organization')));
 
 onMounted(async () => {
     loadingOrgs.value = true;

@@ -11,7 +11,7 @@
                         <small>{{ $t('warehouse.activeWarehouse') }}</small>
                     <Select 
                         v-model="selectedWarehouseId" 
-                        :options="warehouses" 
+                        :options="warehouseOptions"
                         optionLabel="name" 
                         optionValue="id" 
                         class="border-none p-0 shadow-none"
@@ -60,6 +60,7 @@ import WarehouseDetail from '~/components/entities/Warehouse/WarehouseDetail.vue
 import PilesTab from './PilesTab.vue';
 import SheetsTab from './SheetsTab.vue';
 import RemnantsTab from './RemnantsTab.vue';
+import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions';
 
 const authStore = useAuthStore();
 const warehouses = ref([]);
@@ -68,14 +69,19 @@ const inventory = ref({ piles: [], sheets: [], remnants: [] });
 const warehouseStats = ref({});
 const loading = ref(false);
 
-const selectedWarehouse = computed(() => warehouses.value.find(w => w._id === selectedWarehouseId.value));
+const warehouseOptions = computed(() => warehouses.value.map(warehouse => ({
+    ...warehouse,
+    id: entitySelectValue(warehouse),
+    name: entitySelectLabel(warehouse, 'Warehouse')
+})));
+const selectedWarehouse = computed(() => warehouses.value.find(w => entitySelectValue(w) === selectedWarehouseId.value));
 
 const loadWarehouses = async () => {
     loading.value = true;
     try {
         warehouses.value = await $fetch('/api/warehouses');
         if (warehouses.value.length > 0 && !selectedWarehouseId.value) {
-            selectedWarehouseId.value = warehouses.value[0]._id;
+            selectedWarehouseId.value = entitySelectValue(warehouses.value[0]);
         }
     } catch (e) { console.error(e); }
     finally { loading.value = false; }

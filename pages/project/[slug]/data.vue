@@ -157,7 +157,7 @@
                     <label>{{ $t('projectData.selectFromGlobalLibrary') }}</label>
                     <Select 
                         v-model="selectedGlobalMaterialId" 
-                        :options="globalMaterials" 
+                        :options="globalMaterialOptions"
                         optionLabel="name"
                         optionValue="_id"
                         class="w-full"
@@ -253,7 +253,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
@@ -275,6 +275,7 @@ import ConfirmDialog from 'primevue/confirmdialog';
 
 import { useEntity } from '~/composables/useEntity';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { namedSelectOptions } from '~/utils/selectOptions';
 
 definePageMeta({
     layout: 'app',
@@ -295,6 +296,7 @@ const cutLogs = ref([]);
 const globalMaterials = ref([]);
 const loading = ref(false);
 const saving = ref(false);
+const globalMaterialOptions = computed(() => namedSelectOptions(globalMaterials.value, t('common.name')));
 
 const showAddMaterialDialog = ref(false);
 const showCreateMaterialDialog = ref(false);

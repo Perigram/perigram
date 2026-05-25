@@ -19,7 +19,7 @@
       <div class="flex flex-col gap-4 pt-2">
         <Select
           v-model="selectedPenId"
-          :options="pens || []"
+          :options="penOptions"
           option-label="name"
           option-value="_id"
           :placeholder="$t('layerStandard.selectPen')"
@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { storeToRefs } from 'pinia';
@@ -46,6 +46,7 @@ import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import { namedSelectOptions } from '~/utils/selectOptions';
 
 definePageMeta({
   layout: 'app',
@@ -61,6 +62,7 @@ const { pens } = storeToRefs(penTemplatesStore);
 const dialogVisible = ref(false);
 const selectedPenId = ref(null);
 const activeStandard = ref(null);
+const penOptions = computed(() => namedSelectOptions(pens.value, 'Pen'));
 
 function openPenDialog(std) {
   activeStandard.value = std;

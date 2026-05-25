@@ -8,7 +8,7 @@
                         <Select
                             v-if="queues?.length > 0"
                             :modelValue="queue._id"
-                            :options="queues"
+                            :options="queueOptions"
                             option-label="name"
                             option-value="_id"
                             class="border-none bg-transparent p-0 shadow-none"
@@ -66,7 +66,7 @@
                                     </div>
                                     <div class="flex flex-col gap-1">
                                         <label>{{ $t('nesting.productionTool') }}</label>
-                                        <Select v-model="nestingOptions.toolId" :options="tools" optionLabel="name" optionValue="_id" :placeholder="$t('nesting.selectTool')" class="w-full" />
+                                        <Select v-model="nestingOptions.toolId" :options="toolOptions" optionLabel="name" optionValue="_id" :placeholder="$t('nesting.selectTool')" class="w-full" />
                                     </div>
                                 </div>
 
@@ -88,7 +88,7 @@
                                         <div class="grid grid-cols-2 gap-4">
                                             <div class="flex flex-col gap-1">
                                                 <label>{{ $t('nesting.selectWarehouse') }}</label>
-                                                <Select v-model="nestingOptions.warehouseId" :options="warehouses" optionLabel="name" optionValue="_id" @change="loadWarehouseInventory" />
+                                                <Select v-model="nestingOptions.warehouseId" :options="warehouseOptions" optionLabel="name" optionValue="_id" @change="loadWarehouseInventory" />
                                             </div>
                                             <div class="flex flex-col gap-1">
                                                 <label>{{ $t('nesting.customUpload') }}</label>
@@ -319,6 +319,7 @@ import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue'
 import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
+import { namedSelectOptions } from '~/utils/selectOptions';
 
 const props = defineProps({
     queue: { type: Object, required: true },
@@ -362,6 +363,9 @@ const viewMode = ref('grid');
 const selectedRunId = ref(null);
 const instances = ref([]);
 const artifactsTableRef = ref(null);
+const queueOptions = computed(() => namedSelectOptions(props.queues, 'Unnamed'));
+const toolOptions = computed(() => namedSelectOptions(tools.value, 'Unnamed'));
+const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, 'Unnamed'));
 
 const newEntry = ref({
     cassetteTemplateId: null,
@@ -400,10 +404,7 @@ const getEntryParameters = (e) => {
 
 const allAvailableCassettes = computed(() => {
     const items = [...cassettes.value, ...cassetteDesigns.value];
-    return items.map(item => ({
-        ...item,
-        name: item.identity?.name || item.identity?.slug || 'Unnamed'
-    }));
+    return namedSelectOptions(items, 'Unnamed');
 });
 
 const allParameters = computed(() => {

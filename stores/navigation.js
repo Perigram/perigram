@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useAuthStore } from './auth';
 import { useGlobalStore } from './global';
 import { useI18n } from 'vue-i18n';
+import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions';
 
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
@@ -11,6 +12,21 @@ export const useNavigationStore = defineStore('navigation', () => {
 
     // Store-managed state for project context
     const currentProject = ref(null);
+
+    const siblingOption = (name, id) => ({
+        name: entitySelectLabel({ name }, id),
+        id
+    });
+
+    const projectSiblingOption = (project) => {
+        const slug = entitySelectLabel({ name: project?.identity?.slug || project?.slug }, entitySelectValue(project));
+        if (!slug) return null;
+
+        return {
+            name: entitySelectLabel(project, slug),
+            id: `/project/${slug}/queues`
+        };
+    };
 
     async function fetchProjectContext(slug, fetchOptions = {}) {
         if (!slug || slug === 'undefined' || !authStore.userIsSet) {
@@ -79,13 +95,13 @@ export const useNavigationStore = defineStore('navigation', () => {
             nav.push({
                 name: currentHub.name,
                 to: currentHub.to,
-                siblings: hubs.value.map((s) => ({ name: s.name, id: s.to })),
+                siblings: hubs.value.map((s) => siblingOption(s.name, s.to)),
             });
         }
 
         // --- Level 2: Project Context ---
         if (parts[0] === 'project' && parts[1]) {
-            const projectName = currentProject.value?.identity?.name || parts[1];
+            const projectName = entitySelectLabel(currentProject.value, parts[1]);
             const projectSlug = parts[1];
 
             nav.push({
@@ -93,7 +109,7 @@ export const useNavigationStore = defineStore('navigation', () => {
                 name: projectName,
                 to: `/project/${projectSlug}/queues`,
                 siblings: Array.isArray(globalStore.projectsList)
-                        ? globalStore.projectsList.map((p) => ({ name: p.identity?.name, id: `/project/${p.identity?.slug}/queues` }))
+                        ? globalStore.projectsList.map(projectSiblingOption).filter(Boolean)
                         : [],
             });
         }
@@ -107,7 +123,7 @@ export const useNavigationStore = defineStore('navigation', () => {
                 nav.push({
                     name: currentAssetTab.name,
                     to: currentAssetTab.to,
-                    siblings: assetSiblings.value.map((t) => ({ ...t, id: t.to })),
+                    siblings: assetSiblings.value.map((t) => siblingOption(t.name, t.to)),
                 });
             }
         }
@@ -128,7 +144,7 @@ export const useNavigationStore = defineStore('navigation', () => {
                  nav.push({
                      name: currentTab.name,
                      to: currentTab.to,
-                     siblings: adminTabs.map(t => ({ name: t.name, id: t.to }))
+                     siblings: adminTabs.map(t => siblingOption(t.name, t.to))
                  });
              }
         }

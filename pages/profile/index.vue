@@ -200,6 +200,7 @@ import { useToast } from 'primevue/usetoast';
 import BuyCreditsDialog from '~/components/BuyCreditsDialog.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { useEntity } from '~/composables/useEntity';
+import { selectOptionText } from '~/utils/selectOptions';
 
 definePageMeta({
     layout: "app",
@@ -254,8 +255,8 @@ const createOrganization = async () => {
 const currentLocale = ref(locale.value);
 const availableLocales = computed(() => {
     return locales.value.map(l => ({
-        code: l.code || l,
-        name: l.name || l.toUpperCase()
+        code: selectOptionText(l?.code, l),
+        name: selectOptionText(l?.name, selectOptionText(l?.code, l).toUpperCase())
     }));
 });
 
