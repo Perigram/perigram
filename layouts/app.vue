@@ -111,18 +111,12 @@
     const authStore = useAuthStore()
     const navStore = useNavigationStore()
     const globalStore = useGlobalStore()
+    const ssrFetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {}
 
-    // Sync user organizations when user is set
-    watch(() => authStore.userIsSet, async (isSet) => {
-        if (isSet && authStore.userOrganizations.length === 0) {
-            await authStore.fetchUserOrgs()
-        }
-    }, { immediate: true })
-
-    // Sync project context when route changes
+    // Sync protected project context with SSR cookies when route changes.
     watch([() => route.params.slug, () => authStore.userIsSet], async ([newSlug, isSet]) => {
         if (isSet) {
-            await navStore.fetchProjectContext(newSlug)
+            await navStore.fetchProjectContext(newSlug, ssrFetchOptions)
         } else {
             navStore.currentProject = null
         }
@@ -284,9 +278,6 @@
         if (authStore.userIsSet) {
             if (globalStore.projectsList.length === 0) {
                 await globalStore.getProjects()
-            }
-            if (authStore.userOrganizations.length === 0) {
-                await authStore.fetchUserOrgs()
             }
         }
     })

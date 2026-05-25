@@ -12,13 +12,13 @@ export const useNavigationStore = defineStore('navigation', () => {
     // Store-managed state for project context
     const currentProject = ref(null);
 
-    async function fetchProjectContext(slug) {
+    async function fetchProjectContext(slug, fetchOptions = {}) {
         if (!slug || slug === 'undefined' || !authStore.userIsSet) {
             currentProject.value = null;
             return;
         }
         try {
-            currentProject.value = await $fetch(`/api/project/${slug}`);
+            currentProject.value = await $fetch(`/api/project/${slug}`, fetchOptions);
         } catch (e) {
             if (e.status === 401) {
                 currentProject.value = null;

@@ -106,11 +106,20 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function fetchUserOrgs(fetchOptions = {}) {
+        if (!isUserSet.value) {
+            userOrgs.value = [];
+            return [];
+        }
+
         try {
             userOrgs.value = await $fetch('/api/auth/organizations', fetchOptions);
+            return userOrgs.value;
         } catch (err) {
             if (err.status === 401) {
+                user.value = {};
+                organization.value = null;
                 userOrgs.value = [];
+                isUserSet.value = false;
                 return [];
             }
             console.error('Failed to fetch user organizations:', err);
