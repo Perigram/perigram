@@ -2150,3 +2150,17 @@
     - Guarded project context loading until auth is initialized.
     - Treat expected 401 responses from protected app-shell context fetches as normal unauthenticated state instead of logging errors.
     - Avoid duplicate organization fetches when `setUser()` has already populated auth-derived organization state.
+
+*** Agent Notes
+    [2026-05-25] Forward SSR cookies for app-shell project context
+    Files changed:
+    - layouts/app.vue
+    - stores/auth.js
+    - stores/navigation.js
+    Docs updated:
+    - stores/README.md
+    - TODO.org
+    Notes:
+    - Corrected the app-shell protected fetch flow: middleware hydrates auth with SSR cookies, and project context now receives those same request headers instead of making a cookie-less SSR request.
+    - Removed duplicate organization fetches from the layout because `setUser()` already owns auth-derived organization hydration.
+    - Stale-session 401s clear auth/project state; valid SSR sessions should no longer emit false 401s from app-shell context fetches.
