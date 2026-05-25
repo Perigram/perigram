@@ -98,8 +98,9 @@ Factories are built from:
 - Workflow state definitions in `packages/domain-cnc/src/index.js`
 
 This ensures mock data matches what your API actually expects/returns.
-Factory modules use relative imports for shared repo contracts because they are
-loaded by Nuxt pages, Vitest, and plain Node workbench helpers.
+Factory modules use the Nuxt root alias for shared repo contracts when those
+factories are imported by pages, because Nitro bundles page dependencies into
+generated server chunks during production builds.
 
 When a component needs a new field for display, update the relevant DTO factory and manifest entry together. Do not add flat compatibility fields.
 When an entity type has a workflow, the factory `status.state` must be one of that workflow's canonical states; `shared/design-system.spec.js` enforces this for UI lab demos.

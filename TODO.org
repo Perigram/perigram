@@ -2016,3 +2016,13 @@
     Notes:
     - `compileWorkflowDraft()` now falls back to committed CNC hook contracts when a caller passes an empty hook contract map.
     - Added regression coverage for `references unknown hook contract: triggerAggregator`.
+
+*** Agent Notes
+    [2026-05-25] Fix UI Lab factory import for production Docker build
+    Files changed:
+    - test-data/factories.js
+    Docs updated:
+    - test-data/README.md
+    - TODO.org
+    Notes:
+    - Switched the shared permission template import to the Nuxt root alias so Nitro can resolve UI Lab factory dependencies after SSR bundling.
