@@ -13,13 +13,17 @@ export const useNavigationStore = defineStore('navigation', () => {
     const currentProject = ref(null);
 
     async function fetchProjectContext(slug) {
-        if (!slug || slug === 'undefined') {
+        if (!slug || slug === 'undefined' || !authStore.userIsSet) {
             currentProject.value = null;
             return;
         }
         try {
             currentProject.value = await $fetch(`/api/project/${slug}`);
         } catch (e) {
+            if (e.status === 401) {
+                currentProject.value = null;
+                return;
+            }
             console.error('Failed to fetch project context:', e);
         }
     }

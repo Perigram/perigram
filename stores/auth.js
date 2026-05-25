@@ -109,7 +109,12 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             userOrgs.value = await $fetch('/api/auth/organizations', fetchOptions);
         } catch (err) {
+            if (err.status === 401) {
+                userOrgs.value = [];
+                return [];
+            }
             console.error('Failed to fetch user organizations:', err);
+            return [];
         }
     }
 

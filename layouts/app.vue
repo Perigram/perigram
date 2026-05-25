@@ -114,14 +114,18 @@
 
     // Sync user organizations when user is set
     watch(() => authStore.userIsSet, async (isSet) => {
-        if (isSet) {
+        if (isSet && authStore.userOrganizations.length === 0) {
             await authStore.fetchUserOrgs()
         }
     }, { immediate: true })
 
     // Sync project context when route changes
-    watch(() => route.params.slug, async (newSlug) => {
-        await navStore.fetchProjectContext(newSlug)
+    watch([() => route.params.slug, () => authStore.userIsSet], async ([newSlug, isSet]) => {
+        if (isSet) {
+            await navStore.fetchProjectContext(newSlug)
+        } else {
+            navStore.currentProject = null
+        }
     }, { immediate: true })
 
     // Fetch projects list once for breadcrumb siblings
@@ -281,7 +285,9 @@
             if (globalStore.projectsList.length === 0) {
                 await globalStore.getProjects()
             }
-            await authStore.fetchUserOrgs()
+            if (authStore.userOrganizations.length === 0) {
+                await authStore.fetchUserOrgs()
+            }
         }
     })
 </script>
