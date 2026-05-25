@@ -49,8 +49,8 @@ describe('drawing preview contract', () => {
     }, {
       layerMapping: { 'source-layer': 'MAPPED_STD' },
       standards: [
-        { code: 'BOUNDARY_STD', defaultPenId: 'boundary-pen' },
-        { code: 'MAPPED_STD', defaultPenId: 'mapped-pen' }
+        { _id: 'boundary-standard', code: 'BOUNDARY_STD', defaultPenId: 'boundary-pen' },
+        { _id: 'mapped-standard', code: 'MAPPED_STD', defaultPenId: 'mapped-pen' }
       ],
       pens: [
         { _id: 'boundary-pen', stroke: { color: '#111111', weight: 1, pattern: 'SOLID' } },
@@ -61,5 +61,8 @@ describe('drawing preview contract', () => {
     expect(drawing.layers[0].color).toBe('#ff0000');
     expect(drawing.layers[0].weight).toBe(2);
     expect(drawing.layers[0].dasharray).toBe('5,5');
+    expect(drawing.layers[0].standardCode).toBe('MAPPED_STD');
+    expect(drawing.layers[0].standardId).toBe('mapped-standard');
+    expect(drawing.layers[0].penId).toBe('mapped-pen');
   });
 });

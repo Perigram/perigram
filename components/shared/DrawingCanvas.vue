@@ -6,7 +6,6 @@ import Checkbox from 'primevue/checkbox';
 import ProgressSpinner from 'primevue/progressspinner';
 import ScrollPanel from 'primevue/scrollpanel';
 import Tag from 'primevue/tag';
-import Toolbar from 'primevue/toolbar';
 import { generateSvgData } from '~/utils/dxfParser';
 import { renderCassetteToSVG } from '~/utils/cassetteRenderer';
 import {
@@ -17,6 +16,10 @@ import {
 } from '~/utils/drawingPreview';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
+import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 
 const props = defineProps({
   source: { type: [Object, String], default: null },
@@ -52,6 +55,32 @@ const hasLayers = computed(() => Array.isArray(drawing.value?.layers) && drawing
 const layerNames = computed(() => drawing.value?.layers?.map(layer => layer.name) || []);
 const allLayersVisible = computed(() => hasLayers.value && layerNames.value.every(name => visibleLayers.value.includes(name)));
 const visibleLayerSummary = computed(() => `${visibleLayers.value.length}/${layerNames.value.length}`);
+const sameEntityId = (left, right) => left?.toString?.() === right?.toString?.();
+const standardCode = (standard) => standard?.data?.code || standard?.code || null;
+const sourceLayerEntity = (layer) => ({
+  _id: `drawing-layer-${layer.name}`,
+  identity: {
+    uid: layer.name,
+    name: layer.name,
+    slug: layer.standardCode || ''
+  },
+  data: {}
+});
+const layerPanelRows = computed(() => (drawing.value?.layers || []).map(layer => {
+  const standard = standards.value.find(item => (
+    sameEntityId(item._id, layer.standardId) ||
+    (layer.standardCode && standardCode(item) === layer.standardCode)
+  )) || null;
+  const pen = pens.value.find(item => sameEntityId(item._id, layer.penId)) || null;
+
+  return {
+    key: layer.name,
+    layer,
+    sourceEntity: sourceLayerEntity(layer),
+    standard,
+    pen
+  };
+}));
 const visibleDrawingLayers = computed(() => {
   if (!hasLayers.value) return [];
   return drawing.value.layers.filter(layer => visibleLayers.value.includes(layer.name));
@@ -232,7 +261,6 @@ const hideAllLayers = () => {
   visibleLayers.value = [];
 };
 const layerInputId = (layer) => `drawing-layer-${String(layer.name).replace(/[^A-Za-z0-9_-]/g, '-')}`;
-const layerPathCount = (layer) => Array.isArray(layer.paths) ? layer.paths.length : 0;
 
 const handleMouseDown = (event) => {
   if (!isViewer.value || event.button !== 0 || (isDesigner.value && !event.shiftKey)) return;
@@ -299,53 +327,59 @@ onBeforeUnmount(() => {
 
     <template v-else>
       <aside v-if="showLayerPanel && hasLayers" class="flex w-72 shrink-0 flex-col border-r border-content-border">
-        <Toolbar class="rounded-none border-0 border-b border-content-border bg-transparent px-3 py-2">
-          <template #start>
-            <div class="flex min-w-0 items-center gap-2">
-              <i class="pi pi-list text-muted-color" aria-hidden="true" />
-              <span class="truncate font-medium">{{ $t('common.layers') }}</span>
-              <Tag :value="visibleLayerSummary" severity="secondary" size="small" />
-            </div>
-          </template>
-          <template #end>
-            <div class="flex items-center gap-1">
-              <Button
-                icon="pi pi-eye"
-                text
-                rounded
-                size="small"
-                severity="secondary"
-                :aria-label="$t('drawing.showAllLayers')"
-                :disabled="allLayersVisible"
-                v-tooltip.top="$t('drawing.showAllLayers')"
-                @click="showAllLayers"
-              />
-              <Button
-                icon="pi pi-eye-slash"
-                text
-                rounded
-                size="small"
-                severity="secondary"
-                :aria-label="$t('drawing.hideAllLayers')"
-                :disabled="visibleLayers.length === 0"
-                v-tooltip.top="$t('drawing.hideAllLayers')"
-                @click="hideAllLayers"
-              />
-            </div>
-          </template>
-        </Toolbar>
+        <div class="border-b border-content-border p-3">
+          <ActionToolbar :title="$t('common.layers')" :level="3">
+            <template #title>
+              <div class="flex min-w-0 items-center gap-2">
+                <i class="pi pi-list text-muted-color" aria-hidden="true" />
+                <span class="truncate">{{ $t('common.layers') }}</span>
+                <Tag :value="visibleLayerSummary" severity="secondary" size="small" />
+              </div>
+            </template>
+            <template #actions>
+              <div class="flex items-center gap-1">
+                <Button
+                  icon="pi pi-eye"
+                  text
+                  rounded
+                  size="small"
+                  severity="secondary"
+                  :aria-label="$t('drawing.showAllLayers')"
+                  :disabled="allLayersVisible"
+                  v-tooltip.top="$t('drawing.showAllLayers')"
+                  @click="showAllLayers"
+                />
+                <Button
+                  icon="pi pi-eye-slash"
+                  text
+                  rounded
+                  size="small"
+                  severity="secondary"
+                  :aria-label="$t('drawing.hideAllLayers')"
+                  :disabled="visibleLayers.length === 0"
+                  v-tooltip.top="$t('drawing.hideAllLayers')"
+                  @click="hideAllLayers"
+                />
+              </div>
+            </template>
+          </ActionToolbar>
+        </div>
 
         <ScrollPanel class="min-h-0 flex-1">
           <div class="flex flex-col">
             <div
-              v-for="layer in drawing.layers"
-              :key="layer.name"
-              class="flex items-center gap-2 border-b border-content-border px-3 py-2 last:border-b-0"
+              v-for="row in layerPanelRows"
+              :key="row.key"
+              class="flex items-start gap-3 border-b border-content-border px-3 py-3 last:border-b-0"
             >
-              <Checkbox v-model="visibleLayers" :value="layer.name" :inputId="layerInputId(layer)" size="small" />
-              <label :for="layerInputId(layer)" class="min-w-0 flex-1 truncate">{{ layer.name }}</label>
-              <Tag v-if="layerPathCount(layer)" :value="layerPathCount(layer)" severity="secondary" size="small" />
-              <span class="h-3 w-3 shrink-0 rounded-full" :style="{ backgroundColor: layer.color }" aria-hidden="true" />
+              <Checkbox v-model="visibleLayers" :value="row.layer.name" :inputId="layerInputId(row.layer)" size="small" class="mt-1" />
+              <div class="flex min-w-0 flex-1 flex-col gap-2">
+                <label :for="layerInputId(row.layer)" class="min-w-0">
+                  <IdentityBlock :entity="row.sourceEntity" variant="compact" :fields="row.layer.standardCode ? ['slug'] : []" />
+                </label>
+                <LayerStandardCard v-if="row.standard" :standard="row.standard" variant="inline" />
+                <PenTemplateCard v-if="row.pen" :pen="row.pen" variant="inline" />
+              </div>
             </div>
           </div>
         </ScrollPanel>

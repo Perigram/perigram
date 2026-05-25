@@ -9,32 +9,41 @@ export const strokeDasharray = (pattern = 'SOLID') => {
 };
 
 const sameId = (left, right) => left?.toString?.() === right?.toString?.();
+const standardCode = (standard) => standard?.data?.code || standard?.code || null;
+const standardPenId = (standard) => (
+  standard?.data?.orgPenId ||
+  standard?.orgPenId ||
+  standard?.data?.defaultPenId ||
+  standard?.defaultPenId ||
+  null
+);
 
 export const resolveStandardPen = (standard, pens = [], fallbackPen = DEFAULT_DRAWING_PEN) => {
   if (!standard) return fallbackPen;
-  const penId = standard.orgPenId || standard.defaultPenId;
+  const penId = standardPenId(standard);
   return pens.find(pen => sameId(pen._id, penId)) || fallbackPen;
 };
 
-export const resolveLayerPen = ({
+export const resolveLayerStandard = ({
   layerName,
-  standardCode,
+  standardCode: sourceStandardCode,
   layerMapping = {},
-  standards = [],
-  pens = [],
-  defaultPen = DEFAULT_DRAWING_PEN
+  standards = []
 } = {}) => {
   const mappedCode = layerMapping[layerName];
-  const targetCode = mappedCode || standardCode;
+  const targetCode = mappedCode || sourceStandardCode;
   const mappedStandard = targetCode
-    ? standards.find(standard => standard.code === targetCode)
+    ? standards.find(standard => standardCode(standard) === targetCode)
     : null;
-  if (mappedStandard) return resolveStandardPen(mappedStandard, pens, defaultPen);
+  if (mappedStandard) return mappedStandard;
 
-  const namedStandard = standards.find(standard => standard.code === layerName);
-  if (namedStandard) return resolveStandardPen(namedStandard, pens, defaultPen);
+  return standards.find(standard => standardCode(standard) === layerName) || null;
+};
 
-  return defaultPen;
+export const resolveLayerPen = (options = {}) => {
+  const standard = resolveLayerStandard(options);
+  if (standard) return resolveStandardPen(standard, options.pens, options.defaultPen);
+  return options.defaultPen || DEFAULT_DRAWING_PEN;
 };
 
 export const applyLayerPens = (drawing, options = {}) => {
@@ -42,9 +51,13 @@ export const applyLayerPens = (drawing, options = {}) => {
   return {
     ...drawing,
     layers: drawing.layers.map(layer => {
-      const pen = resolveLayerPen({ layerName: layer.name, standardCode: layer.standardCode, ...options });
+      const standard = resolveLayerStandard({ layerName: layer.name, standardCode: layer.standardCode, ...options });
+      const pen = standard ? resolveStandardPen(standard, options.pens, options.defaultPen) : (options.defaultPen || DEFAULT_DRAWING_PEN);
       return {
         ...layer,
+        standardCode: standardCode(standard) || layer.standardCode || null,
+        standardId: standard?._id || null,
+        penId: pen?._id || null,
         color: pen.stroke?.color || layer.color || 'currentColor',
         weight: pen.stroke?.weight || layer.weight || 0.5,
         dasharray: strokeDasharray(pen.stroke?.pattern) || layer.dasharray || 'none'
