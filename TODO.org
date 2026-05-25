@@ -2164,3 +2164,26 @@
     - Corrected the app-shell protected fetch flow: middleware hydrates auth with SSR cookies, and project context now receives those same request headers instead of making a cookie-less SSR request.
     - Removed duplicate organization fetches from the layout because `setUser()` already owns auth-derived organization hydration.
     - Stale-session 401s clear auth/project state; valid SSR sessions should no longer emit false 401s from app-shell context fetches.
+
+*** Agent Notes
+    [2026-05-25] Normalize Select option labels for canonical DTOs
+    Files changed:
+    - utils/selectOptions.js
+    - utils/selectOptions.spec.js
+    - stores/navigation.js
+    - components/QueueEditor.vue
+    - components/hubs/WarehouseHub.vue
+    - components/LanguageSwitcher.vue
+    - pages/assets/layer-standards.vue
+    - pages/auth/register.vue
+    - pages/profile/index.vue
+    - pages/project/[slug]/data.vue
+    Docs updated:
+    - components/README.md
+    - stores/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Added shared Select option helpers so PrimeVue `optionLabel="name"` controls receive string labels even when APIs return v24 DTOs with `identity.name`.
+    - Normalized queue, tool, warehouse, project breadcrumb, organization, pen, material, and locale selector options at the component/store boundary.
+    - Added unit coverage for DTO label fallback and empty text handling.

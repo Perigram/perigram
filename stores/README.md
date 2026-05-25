@@ -16,6 +16,7 @@ Pinia stores for client state and API orchestration.
   not re-fetch organizations after a successful auth hydration.
 - `navigation.js` owns project breadcrumb context. SSR callers must pass request
   headers through `fetchProjectContext(slug, fetchOptions)` so protected project
-  lookups use the same session cookie as auth middleware.
+  lookups use the same session cookie as auth middleware. Breadcrumb sibling
+  options normalize canonical DTO labels before passing them to PrimeVue Select.
 - Long-running operations start optimistic UI updates and polling until terminal states.
 - Internal demo pages may pre-seed `entities.registry` with DTO-shaped mock entities so shared trace components render examples without calling authenticated APIs.

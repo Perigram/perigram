@@ -100,6 +100,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
 - For standard CRUD and status operations, use `useEntity` — no direct `$fetch` calls.
 - Direct `$fetch` is reserved for custom workflows that are not represented by `useEntity`: declared domain operations, uploads/downloads, invitations, permissions, support chat, payments, debug endpoints, and project-scoped subresources.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`.
+- PrimeVue `<Select>` options that use `optionLabel="name"` must receive
+  option arrays normalized through `utils/selectOptions.js` when the source data
+  is a canonical DTO. Do not pass raw entities that only expose
+  `identity.name`; PrimeVue expects the resolved label to be a string.
 
 ## Localization
 
