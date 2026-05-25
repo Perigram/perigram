@@ -2187,3 +2187,17 @@
     - Added shared Select option helpers so PrimeVue `optionLabel="name"` controls receive string labels even when APIs return v24 DTOs with `identity.name`.
     - Normalized queue, tool, warehouse, project breadcrumb, organization, pen, material, and locale selector options at the component/store boundary.
     - Added unit coverage for DTO label fallback and empty text handling.
+
+*** Agent Notes
+    [2026-05-25] Use PrimeVue controls for drawing layer panel
+    Files changed:
+    - components/shared/DrawingCanvas.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - Replaced the ad hoc DXF layer panel container with PrimeVue `Toolbar`, `ScrollPanel`, `Tag`, `Button`, and `Checkbox` composition.
+    - Added localized tooltips for show-all and hide-all layer actions.
+    - Kept raw markup only for structural layout and the passive color swatch.
