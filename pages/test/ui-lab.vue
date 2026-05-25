@@ -269,6 +269,10 @@
               <GeometryPreview :entity="sheetDesignEntity" />
             </template>
 
+            <template v-else-if="primitive.key === 'DrawingCanvas'">
+              <DrawingCanvas :source="sheetDesignEntity" source-type="geometry-preview" mode="card" />
+            </template>
+
             <template v-else-if="primitive.key === 'TraceLink'">
               <TraceLink type="project" :id="primitiveEntity.lineage.projectId" label="Downtown Complex" slug="downtown-complex" />
             </template>
@@ -418,6 +422,7 @@ import TraceLink from '~/components/shared/links/TraceLink.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
+import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -460,6 +465,7 @@ const PRIMITIVE_EXAMPLE_KEYS = [
   'EntityStatus',
   'StatusLocation',
   'StatusHistory',
+  'DrawingCanvas',
   'GeometryPreview',
   'TraceLink',
   'TraceChain',

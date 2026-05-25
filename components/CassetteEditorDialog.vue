@@ -46,17 +46,14 @@
 
       <!-- Layer Mapping Section -->
       <div v-if="showMappingSection && !isUploading" class="flex flex-col gap-6">
-        <div class="flex-1 h-48 border rounded-xl flex items-center justify-center relative overflow-hidden">
-          <svg 
-            v-if="renderingData" 
-            xmlns="http://www.w3.org/2000/svg" 
-            :viewBox="renderingData.viewBox" 
-            class="w-full h-full p-4"
-          >
-            <g v-for="layer in renderingData.layers" :key="layer.name" :stroke="layer.color" :stroke-width="layer.weight * 5" fill="none" stroke-linecap="round" stroke-linejoin="round" :stroke-dasharray="layer.dasharray">
-              <g v-html="layer.paths.join('')"></g>
-            </g>
-          </svg>
+        <div class="h-48">
+          <DrawingCanvas
+            v-if="dxfFile"
+            :source="dxfFile"
+            source-type="dxf-text"
+            :layer-mapping="layerMappings"
+            mode="card"
+          />
           <div v-else class="flex flex-col items-center gap-3 opacity-60">
             <div class="w-12 h-12 border rounded-full flex items-center justify-center">
               <i class="pi pi-image"></i>
@@ -132,7 +129,6 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCassettesStore } from '~/stores/cassettes';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
-import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { storeToRefs } from 'pinia';
 import InputChips from 'primevue/inputchips';
 import Select from 'primevue/select';
@@ -142,6 +138,7 @@ import InputText from 'primevue/inputtext';
 import FileUpload from 'primevue/fileupload';
 import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 
 const props = defineProps({
   modelValue: {
@@ -169,25 +166,19 @@ const errorMessage = ref('');
 const cassette = ref(null);
 const detectedLayers = ref([]);
 const layerMappings = ref({});
-const renderingData = ref(null);
 const dxfFile = ref(null);
 const parameters = ref(['A', 'B', 'C', 'D', 'E', 'F', 'horizontal_seam_width']);
 
 const cassettesStore = useCassettesStore();
 const layerStandardsStore = useLayerStandardsStore();
-const penTemplatesStore = usePenTemplatesStore();
 
 const { standards } = storeToRefs(layerStandardsStore);
-const { pens, systemPens } = storeToRefs(penTemplatesStore);
 
 // Fetch layer standards and pens when dialog opens
 watch(isOpen, async (newValue) => {
   if (newValue && standards.value.length === 0) {
     try {
-      await Promise.all([
-        layerStandardsStore.fetchStandards(),
-        penTemplatesStore.fetchPens()
-      ]);
+      await layerStandardsStore.fetchStandards();
     } catch (error) {
       console.error('Failed to fetch templates:', error);
     }
@@ -260,36 +251,16 @@ const handleFileSelect = async (event) => {
         }
       });
       
-      await updatePreview();
     } catch (error) {
       errorMessage.value = error.message || 'Failed to parse DXF file';
       console.error('DXF parsing failed:', error);
       selectedFile.value = null;
       detectedLayers.value = [];
-      renderingData.value = null;
     } finally {
       isUploading.value = false;
     }
   }
 };
-
-const updatePreview = async () => {
-  if (!dxfFile.value) return;
-  
-  try {
-    const { generateSvgData, buildLayerPenMap } = await import('~/utils/dxfParser');
-    const defaultPen = systemPens.value[0] || { stroke: { color: '#000000', weight: 0.5, pattern: 'SOLID' } };
-    const layerToPenMap = buildLayerPenMap(layerMappings.value, standards.value, pens.value);
-    const data = await generateSvgData(dxfFile.value, layerToPenMap, defaultPen);
-    renderingData.value = data;
-  } catch (error) {
-    console.error('Failed to update preview:', error);
-  }
-};
-
-watch(layerMappings, () => {
-  updatePreview();
-}, { deep: true });
 
 const handleUpload = async () => {
   if (!selectedFile.value || !name.value.trim()) return;
@@ -344,7 +315,6 @@ const resetForm = () => {
   cassette.value = null;
   layerMappings.value = {};
   detectedLayers.value = [];
-  renderingData.value = null;
 };
 
 defineExpose({

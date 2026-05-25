@@ -644,6 +644,16 @@
         "purpose": "Status audit timeline for entity lifecycle events."
       },
       {
+        "componentPath": "components/shared/DrawingCanvas.vue",
+        "docs": [
+          "components/shared/README.md",
+          "utils/README.md"
+        ],
+        "key": "DrawingCanvas",
+        "kind": "block",
+        "purpose": "Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions."
+      },
+      {
         "componentPath": "components/shared/GeometryPreview.vue",
         "docs": [
           "components/shared/README.md",
