@@ -132,6 +132,15 @@ Extraction output includes `source` and `issues` fields so `/admin/data-model-re
 
 The admin review page compares extracted collections against the committed framework manifest after excluding support/runtime collections. This keeps audit/auth/template data visible for cleanup without requiring those collections to become public framework entities.
 
+## cassetteGraphBuilder.js
+
+Builds Nodi graph JSON for parametric cassette rendering. Although it lives under
+`server/utils`, `utils/cassetteRenderer.js` imports it into the browser bundle,
+so it must avoid Node-only APIs and browser APIs that require secure contexts.
+Graph ID generation falls back from `crypto.randomUUID` to
+`crypto.getRandomValues`, then to a timestamp/random string for plain HTTP LAN
+usage.
+
 ## Related
 
 - [server/features/README.md](../features/README.md) — Service layer patterns

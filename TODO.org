@@ -2048,3 +2048,16 @@
     Notes:
     - Added `SESSION_COOKIE_SECURE` override so the production image can serve login over plain HTTP on the local network.
     - Updated the Swarm stack defaults to advertise the LAN app URL instead of the Railway URL.
+
+*** Agent Notes
+    [2026-05-25] Fix cassette designer UUID generation on LAN HTTP
+    Files changed:
+    - server/utils/cassetteGraphBuilder.js
+    - utils/cassette.js
+    Docs updated:
+    - server/utils/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Replaced direct browser `crypto.randomUUID()` calls with local helpers that fall back to `crypto.getRandomValues` and timestamp/random IDs.
+    - Kept cassette graph generation usable in production browser bundles served over plain HTTP.
