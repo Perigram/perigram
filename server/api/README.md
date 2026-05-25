@@ -29,6 +29,10 @@ Responsibilities:
 - Fetches user from the database.
 - Attaches session info: `event.context.auth = { userId, isAdmin }`.
 
+`auth/login.post.js` sets the `sessionId` cookie after password login. The cookie
+is secure in production by default, but `SESSION_COOKIE_SECURE=false` can be set
+for plain HTTP LAN deployments so browsers keep the session cookie.
+
 ## Example Handler
 ```javascript
 export default defineEventHandler(async (event) => {
