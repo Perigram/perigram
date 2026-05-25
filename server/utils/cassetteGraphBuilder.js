@@ -1,6 +1,21 @@
 const RECT_SUBGRAPH_ID = 'd8963104-a40a-4faf-9762-4dc76607da7d'
 const GROW_SUBGRAPH_ID = '65f3238f-d937-45ce-bbee-494fc860ba3b'
 
+function createGraphId() {
+    const cryptoApi = globalThis.crypto
+    if (cryptoApi?.randomUUID) return cryptoApi.randomUUID()
+
+    if (cryptoApi?.getRandomValues) {
+        const bytes = cryptoApi.getRandomValues(new Uint8Array(16))
+        bytes[6] = (bytes[6] & 0x0f) | 0x40
+        bytes[8] = (bytes[8] & 0x3f) | 0x80
+        const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0'))
+        return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10).join('')}`
+    }
+
+    return `graph-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+}
+
 export function buildNodiGraph(cassetteData, templateGraph) {
     const graph = {
         nodes: {},
@@ -12,7 +27,7 @@ export function buildNodiGraph(cassetteData, templateGraph) {
         graph.sub_graphs[sgId].instances = []
     }
 
-    const genId = () => crypto.randomUUID()
+    const genId = () => createGraphId()
 
     // 1. Create Parameters (Number nodes)
     const paramOutIds = {}
