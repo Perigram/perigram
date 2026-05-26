@@ -21,6 +21,7 @@ Pinia stores for client state and API orchestration.
 - `workbenchFixtures.js` owns the admin workbench fixture context. Manual
   entities and command/task outputs are upserted into the same context used for
   typed entity options; seeding preserves that context instead of regenerating
-  fixtures and dropping manual entries.
+  fixtures and dropping manual entries. Preview status transitions update this
+  context locally so draft/manual entities do not call the persisted status API.
 - Long-running operations start optimistic UI updates and polling until terminal states.
 - Internal demo pages may pre-seed `entities.registry` with DTO-shaped mock entities so shared trace components render examples without calling authenticated APIs.

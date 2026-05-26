@@ -37,6 +37,9 @@ in-memory `nesting_run` and `sheet_design` previews when the task finishes.
 The page provides edited workflows as `statusWorkflows` so nested entity cards
 render against the local draft, while execution still goes through server
 runtime APIs.
+Entity status controls in fixture previews use a local `statusTransitionHandler`
+to update the in-memory workbench context, avoiding server transition calls for
+entities that have not been persisted.
 
 Workbench command runs can submit a per-run `testAccess` object with custom
 `userId`, `organizationId`, `role`, memberships, permission grants, and

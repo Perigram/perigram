@@ -120,7 +120,9 @@ Geometry previews for design/remnant cards belong under `data.geometry.preview` 
 and runtime dev data. It stores entities as a type/id map, refs, relationships,
 compiled workflows, access defaults, and typed command input bindings in
 one context. Command outputs are upserted back into that same context before
-they are rendered, so the UI does not create placeholder entity cards.
+they are rendered, so the UI does not create placeholder entity cards. Local
+preview status transitions patch entity `status` blocks inside this same
+context rather than calling persisted APIs for draft fixtures.
 `workbench-manual-entities.js` owns the typed manual entity creation rules used
 by the workbench. It creates minimal DTOs from v24 blocks instead of copying
 factory demo payloads: lineage references are declared as `entityId` fields,

@@ -102,6 +102,10 @@ run.
 `statusWorkflows` value. This is used only by development surfaces such as the
 admin workbench so live draft machines can drive previews without replacing the
 committed `@cutkit/domain-cnc` runtime workflow source.
+Development surfaces that provide local workflows can also provide
+`statusTransitionHandler`; when present, `EntityStatus` applies transitions
+through that handler instead of posting in-memory fixture ids to the server
+status API.
 
 ### `StatusHistory.vue`
 Fetches and displays the audit log (`status_events`) for any entity.

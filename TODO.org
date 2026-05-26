@@ -5,6 +5,19 @@
   [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
 
 *** Agent Notes
+     [2026-05-26] Keep workbench preview status transitions local
+     Files changed: components/shared/status/EntityStatus.vue,
+       pages/admin/workbench.vue, stores/workbenchFixtures.js,
+       test-data/workbench-context.js, test-data/scenarios.spec.js,
+       shared/design-system.spec.js
+     Docs updated: components/shared/README.md, pages/admin/README.md,
+       stores/README.md, test-data/README.md
+     Notes: EntityStatus now supports an injected statusTransitionHandler for
+       development surfaces with local workflow drafts. The admin workbench
+       provides that handler and patches fixture DTO status blocks in memory,
+       preventing unpersisted manual/scenario entities from posting to
+       POST /api/status/transition and receiving 404s.
+
      [2026-05-26] Keep manual entity type options populated
      Files changed: pages/admin/workbench.vue, shared/design-system.spec.js
      Docs updated: pages/admin/README.md
