@@ -214,12 +214,21 @@
                 <div class="flex min-w-0 flex-col gap-1">
                   <label>{{ $t('admin.workbench.manualEntity') }}</label>
                   <Select
-                    v-model="manualEntityType"
+                    :model-value="manualEntityType"
                     :options="manualEntityTypeOptions"
                     option-label="label"
                     option-value="value"
+                    :placeholder="$t('admin.workbench.manualEntity')"
                     class="w-full"
-                  />
+                    @update:model-value="selectManualEntityType"
+                  >
+                    <template #option="{ option }">
+                      <div class="flex min-w-0 flex-col">
+                        <span class="truncate">{{ option.label }}</span>
+                        <small class="truncate text-muted-color">{{ option.value }}</small>
+                      </div>
+                    </template>
+                  </Select>
                 </div>
                 <Button
                   v-if="manualEntityType !== 'cassette'"
@@ -1018,6 +1027,10 @@ function resetManualEntityDraft() {
   manualEntityDraft.value = defaultManualEntityDraft(manualEntityType.value);
 }
 
+function selectManualEntityType(type) {
+  manualEntityType.value = type;
+}
+
 function createManualEntity() {
   if (manualEntityType.value === 'cassette') return;
   const entity = buildManualEntity(manualEntityType.value, manualEntityDraft.value);
@@ -1066,7 +1079,8 @@ function manualFieldsForEntity(type) {
 function buildManualEntity(type, draft = {}) {
   return buildManualWorkbenchEntity(type, draft, {
     context: fixtureStore.context,
-    workflowCompile: workflowCompile.value
+    workflowCompile: workflowCompile.value,
+    entityDefinition: entities.value.find(entity => entity.type === type)
   });
 }
 

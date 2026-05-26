@@ -73,11 +73,14 @@ describe('CNC fixture scenarios', () => {
       context,
       workflowCompile: context.workflows
     });
+    const projectFields = manualFieldsForEntity('project', context.workflows).map(field => field.name);
 
     expect(queueFields.find(field => field.name === 'projectId')?.type).toBe('entityId');
     expect(queueFields.find(field => field.name === 'cassetteId')?.entityType).toBe('cassette');
+    expect(projectFields).not.toContain('address');
     expect(queue.lineage.projectId).toBe(context.refs.project);
     expect(queue.data.job.items[0].id).toBe(context.refs.cassetteTemplate);
+    expect(queue.data.queueNumber).toBeUndefined();
   });
 
   it('stores manual cassette designer output in the cassette context bucket', () => {
