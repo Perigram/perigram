@@ -1,8 +1,9 @@
 # CONTAINER: Workers
 
-Worker services execute retryable `task_runs` declared by `@cutkit/domain-cnc`.
-The app owns task persistence and exposes the worker protocol under
-`/api/tasks/*`; workers authenticate with `x-worker-token`.
+Worker services and app-side executors execute retryable `task_runs` declared by
+`@cutkit/domain-cnc`. The app owns task persistence and exposes the worker
+protocol under `/api/tasks/*`; polling workers authenticate with
+`x-worker-token`.
 
 ## Services
 
@@ -15,11 +16,15 @@ The app owns task persistence and exposes the worker protocol under
 ## Protocol
 
 1. App enqueues a `task_runs` record through `server/core/tasks`.
-2. Worker calls `POST /api/tasks/claim` with `taskId`, `workerType`,
+2. Polling workers call `POST /api/tasks/claim` with `taskId`, `workerType`,
    `workerId`, and `x-worker-token`.
-3. Worker sends heartbeat/complete/fail calls with the claim token returned by
-   the claim response.
+3. Polling workers send heartbeat/complete/fail calls with the claim token
+   returned by the claim response.
 4. App records the normalized task output in `task_runs`.
+
+The nesting service is different: it is a pure HTTP solver. The app-side
+`nesting.solve` executor claims the task internally and calls
+`workers/nesting/worker_service.py` through `NESTING_WORKER_URL`.
 
 `WORKER_TOKEN` must be set on the app and workers. Local compose files default
 to `cutkit-dev-worker`; production stacks expect `WORKER_TOKEN` from the

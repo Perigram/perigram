@@ -2253,3 +2253,25 @@
     Notes:
     - Added role preset materialization for persisted user records so legacy copied permissions gain newly introduced granular feature keys such as `nesting_runs` and `artifacts`.
     - Preserved explicit custom grants, including `none`, and left workbench/testAccess authorization independent from role-name expansion.
+
+*** Agent Notes
+    [2026-05-26] Dispatch nesting HTTP task executor
+    Files changed:
+    - server/core/tasks/service.js
+    - server/core/tasks/service.spec.js
+    - server/plugins/task-executors.js
+    - server/runtime/app-registry.js
+    - server/features/nesting/operations.js
+    - server/features/nesting/operations.spec.js
+    - server/features/nesting/jobs.js
+    Docs updated:
+    - server/core/tasks/README.md
+    - server/features/nesting/README.md
+    - server/runtime/README.md
+    - workers/README.md
+    - TODO.org
+    Notes:
+    - Added registered app-side task executor dispatch so `nesting.solve` task runs are claimed by the app and sent to the FastAPI nesting worker instead of remaining queued.
+    - The nesting executor now builds worker payloads from polygon parts or dimension fallback rectangles, updates `task_runs` and `nesting_jobs`, and transitions runs out of `NESTING`.
+    - Non-retryable executor errors with 4xx status codes now fail task runs directly instead of cycling through `RETRY_WAIT`.
+    - Compatibility nesting jobs now store the parent project slug for notification/statistics consumers.

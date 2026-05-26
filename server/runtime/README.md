@@ -21,6 +21,8 @@ should call `getAppRegistry()`.
   `@cutkit/domain-cnc`.
 - Command handlers: `saveCassetteTemplate`, `solveNesting`,
   `generateAttachment`.
+- Task executors: `nesting.solve`, which bridges queued task runs to the
+  FastAPI nesting worker.
 - Workflow hook handlers from `server/core/machines/hooks.js` and explicitly
   registered feature hook handlers such as queue physical-cut processing.
 - Domain definitions: entities, workflows, commands, tasks, hooks,
