@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
+import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
 import {
   contextEntityOptions,
   contextToScenario,
@@ -33,7 +34,12 @@ export const useWorkbenchFixturesStore = defineStore('workbenchFixtures', () => 
   }
 
   async function seed({ workflows, entities, commands } = {}) {
-    const compiled = rebuild({ workflows, entities, commands });
+    const compiled = compileWorkflowDraft({ entities, workflows });
+    context.value = normalizeWorkbenchContext({
+      ...context.value,
+      workflows: compiled
+    });
+    error.value = compiled.ok ? '' : compiled.issues?.map(issue => issue.message).join('\n');
     if (!compiled.ok) return { ok: false, issues: compiled.issues };
 
     loading.value = true;

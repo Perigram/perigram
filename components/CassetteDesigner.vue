@@ -170,6 +170,10 @@
         initialData: {
             type: Object,
             default: null
+        },
+        persist: {
+            type: Boolean,
+            default: true
         }
     })
 
@@ -360,10 +364,16 @@
                 }
             }
 
+            if (!props.persist) {
+                toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.messages.saveSuccess'), life: 3000 })
+                emit('saved', body)
+                return
+            }
+
             await $fetch('/api/commands/saveCassetteTemplate/run', { method: 'POST', body })
             
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.messages.saveSuccess'), life: 3000 })
-            emit('saved')
+            emit('saved', body)
         } catch (e) {
             toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassette.errors.saveFailed'), life: 3000 })
         }

@@ -3,6 +3,7 @@ import { cncWorkflows } from '~/packages/domain-cnc/src/index.js';
 import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
 import { createCncFixtureScenario, validateCncFixtureScenario } from './scenarios.js';
 import { contextToScenario, createWorkbenchContext, findContextEntity, upsertContextEntities } from './workbench-context.js';
+import { buildManualWorkbenchEntity, defaultManualEntityDraft, manualEntityContextType, manualFieldsForEntity } from './workbench-manual-entities.js';
 
 describe('CNC fixture scenarios', () => {
   it('creates an interlinked scenario with workflow-backed statuses', () => {
@@ -58,5 +59,40 @@ describe('CNC fixture scenarios', () => {
 
     expect(findContextEntity(next, 'sheet_design', 'sheet-design-generated-001')?.identity.name).toBe('Generated sheet design');
     expect(contextToScenario(next).entities.sheet_design.some(entity => entity._id === 'sheet-design-generated-001')).toBe(true);
+  });
+
+  it('creates manual workbench entities with typed lineage references', () => {
+    const context = createWorkbenchContext();
+    const queueFields = manualFieldsForEntity('queue', context.workflows);
+    const draft = defaultManualEntityDraft('queue', {
+      context,
+      workflowCompile: context.workflows,
+      label: 'Queue'
+    });
+    const queue = buildManualWorkbenchEntity('queue', draft, {
+      context,
+      workflowCompile: context.workflows
+    });
+
+    expect(queueFields.find(field => field.name === 'projectId')?.type).toBe('entityId');
+    expect(queueFields.find(field => field.name === 'cassetteId')?.entityType).toBe('cassette');
+    expect(queue.lineage.projectId).toBe(context.refs.project);
+    expect(queue.data.job.items[0].id).toBe(context.refs.cassetteTemplate);
+  });
+
+  it('stores manual cassette designer output in the cassette context bucket', () => {
+    const context = createWorkbenchContext();
+    const cassette = buildManualWorkbenchEntity('cassette', {
+      name: 'Manual template',
+      definition: { params: { A: 700, B: 400 }, extrusions: [] },
+      parameters: ['A', 'B']
+    }, {
+      context,
+      workflowCompile: context.workflows
+    });
+    const next = upsertContextEntities(context, [{ type: manualEntityContextType('cassette'), entity: cassette }]);
+
+    expect(findContextEntity(next, 'cassette', cassette._id)?.data.definition.params.A).toBe(700);
+    expect(contextToScenario(next).entities.cassette.some(entity => entity._id === cassette._id)).toBe(true);
   });
 });
