@@ -67,10 +67,6 @@ export function defaultManualEntityDraft(type, { context = {}, workflowCompile =
   for (const field of fields) {
     if (field.name === 'name') draft.name = `${label} ${sequence}`;
     else if (field.name === 'state') draft.state = field.default;
-    else if (field.type === 'entityId') {
-      const value = firstEntityOptionValue(context, field.entityType);
-      if (value) draft[field.name] = value;
-    }
   }
   return draft;
 }
@@ -145,13 +141,14 @@ function manualDataFor(type, draft, context) {
     };
   }
   if (type === 'queue') {
-    const cassetteId = draft.cassetteId || firstEntityOptionValue(context, 'cassette');
+    const cassetteId = draft.cassetteId;
+    const quantity = Number(draft.quantity);
     return {
       job: {
-        items: cassetteId ? [{
+        items: cassetteId && Number.isFinite(quantity) && quantity > 0 ? [{
           id: cassetteId,
           type: 'PARAMETRIC',
-          quantity: Number(draft.quantity || 1),
+          quantity,
           parameters: parametersForCassette(context, cassetteId)
         }] : [],
         materialPool: draft.materialPileId ? [{ type: 'PILE', id: draft.materialPileId }] : []

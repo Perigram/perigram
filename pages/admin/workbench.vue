@@ -222,6 +222,10 @@
                     class="w-full"
                     @update:model-value="selectManualEntityType"
                   >
+                    <template #value="{ value, placeholder }">
+                      <span v-if="value" class="truncate">{{ manualEntityTypeLabel(value) }}</span>
+                      <span v-else>{{ placeholder }}</span>
+                    </template>
                     <template #option="{ option }">
                       <div class="flex min-w-0 flex-col">
                         <span class="truncate">{{ option.label }}</span>
@@ -235,6 +239,7 @@
                   icon="pi pi-plus"
                   :label="$t('admin.workbench.createManualEntity')"
                   size="small"
+                  :disabled="!canCreateManualEntity"
                   @click="createManualEntity"
                 />
               </div>
@@ -819,6 +824,12 @@ const manualEntityTypeOptions = computed(() => entities.value
   .map(entity => ({ label: entityLabelForType(entity.type), value: entity.type }))
   .sort((a, b) => a.label.localeCompare(b.label)));
 const manualEntityFields = computed(() => manualFieldsForEntity(manualEntityType.value));
+const canCreateManualEntity = computed(() => manualEntityType.value !== 'cassette' && manualEntityFields.value.every(field => {
+  if (!field.required) return true;
+  const value = manualEntityDraft.value?.[field.name];
+  if (field.type === 'number') return Number.isFinite(Number(value)) && Number(value) >= Number(field.min ?? 0);
+  return value !== '' && value !== null && value !== undefined;
+}));
 const manualEntityPreviews = computed(() => manualEntityRefs.value
   .map(ref => previewForEntityRef(ref.previewType || ref.type, ref.id, `manual:${ref.type}:${ref.id}`))
   .filter(Boolean));
@@ -1033,6 +1044,7 @@ function selectManualEntityType(type) {
 
 function createManualEntity() {
   if (manualEntityType.value === 'cassette') return;
+  if (!canCreateManualEntity.value) return;
   const entity = buildManualEntity(manualEntityType.value, manualEntityDraft.value);
   if (!entity) return;
   upsertManualEntity(manualEntityType.value, entity);
@@ -1608,6 +1620,10 @@ function entityLabelForType(type) {
   const row = DESIGN_SYSTEM_ENTITIES.find(entry => entry.entityType === type)
     || DESIGN_SYSTEM_ENTITIES.find(entry => manualEntityContextType(entry.entityType) === type);
   return row?.labelKey ? t(row.labelKey) : type;
+}
+
+function manualEntityTypeLabel(type) {
+  return manualEntityTypeOptions.value.find(option => option.value === type)?.label || entityLabelForType(type);
 }
 
 function manualFieldLabel(name) {

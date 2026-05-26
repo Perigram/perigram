@@ -49,8 +49,8 @@
         class="w-full"
         @update:model-value="value => updateField(field, value)"
       />
-      <small v-if="field.unit || field.help || field.entityType" class="text-muted-color">
-        {{ [field.unit, field.help, field.entityType && `entity:${field.entityType}`].filter(Boolean).join(' · ') }}
+      <small v-if="fieldHelpParts(field).length" class="text-muted-color">
+        {{ fieldHelpParts(field).join(' · ') }}
       </small>
     </div>
   </div>
@@ -107,5 +107,13 @@ function optionsFor(field) {
   return (field.options || []).map(option => typeof option === 'object'
     ? { label: option.label || option.value, value: option.value }
     : { label: option, value: option });
+}
+
+function fieldHelpParts(field) {
+  return [
+    field.unit,
+    field.help,
+    field.type === 'entityId' && field.entityType ? `entity:${field.entityType}` : null
+  ].filter(Boolean);
 }
 </script>

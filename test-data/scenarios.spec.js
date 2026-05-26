@@ -69,17 +69,30 @@ describe('CNC fixture scenarios', () => {
       workflowCompile: context.workflows,
       label: 'Queue'
     });
-    const queue = buildManualWorkbenchEntity('queue', draft, {
+    const queue = buildManualWorkbenchEntity('queue', {
+      ...draft,
+      organizationId: context.refs.organization,
+      projectId: context.refs.project,
+      cassetteId: context.refs.cassetteTemplate,
+      quantity: 2
+    }, {
       context,
       workflowCompile: context.workflows
     });
     const projectFields = manualFieldsForEntity('project', context.workflows).map(field => field.name);
+    const projectDraft = defaultManualEntityDraft('project', {
+      context,
+      workflowCompile: context.workflows,
+      label: 'Project'
+    });
 
     expect(queueFields.find(field => field.name === 'projectId')?.type).toBe('entityId');
     expect(queueFields.find(field => field.name === 'cassetteId')?.entityType).toBe('cassette');
     expect(projectFields).not.toContain('address');
+    expect(projectDraft.organizationId).toBeUndefined();
     expect(queue.lineage.projectId).toBe(context.refs.project);
     expect(queue.data.job.items[0].id).toBe(context.refs.cassetteTemplate);
+    expect(queue.data.job.items[0].quantity).toBe(2);
     expect(queue.data.queueNumber).toBeUndefined();
   });
 

@@ -329,6 +329,20 @@ describe('Design system manifest', () => {
     expect(queueEditor).not.toContain('@artifact-click');
   });
 
+  it('keeps manual workbench forms explicit about type and lineage choices', () => {
+    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
+    const manualEntities = fs.readFileSync(path.join(REPO_ROOT, 'test-data/workbench-manual-entities.js'), 'utf8');
+    const typedSettingsForm = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/TypedSettingsForm.vue'), 'utf8');
+
+    expect(workbench).toContain('manualEntityTypeLabel');
+    expect(workbench).toContain('canCreateManualEntity');
+    expect(workbench).toContain(':disabled="!canCreateManualEntity"');
+    expect(manualEntities).not.toContain("if (field.type === 'entityId')");
+    expect(manualEntities).not.toContain('draft[field.name] = value');
+    expect(typedSettingsForm).toContain("field.type === 'entityId'");
+    expect(typedSettingsForm).not.toContain('field.entityType && `entity:${field.entityType}`');
+  });
+
   it('keeps entity details on shared EntityPage header chrome', () => {
     const offenders = walkFiles(
       path.join(REPO_ROOT, 'components/entities'),
