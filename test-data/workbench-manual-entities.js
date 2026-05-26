@@ -158,10 +158,6 @@ function manualDataFor(type, draft, context) {
   return {};
 }
 
-function firstEntityOptionValue(context, type) {
-  return entityOptions(context, type)[0]?.value || '';
-}
-
 function parametersForCassette(context, id) {
   const cassette = entityOptions(context, 'cassette').find(option => option.value?.toString() === id?.toString())?.entity;
   const params = cassette?.data?.definition?.params || {};
