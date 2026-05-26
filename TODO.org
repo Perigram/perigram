@@ -2279,3 +2279,24 @@
     - Compatibility nesting jobs now store the parent project slug for notification/statistics consumers.
     - Failed or cancelled task runs behind active compatibility jobs are now marked stale so they do not permanently block new queue nesting requests.
     - Nesting statistics now accept the current worker result layout shape as well as the legacy `sheets` shape.
+
+*** Agent Notes
+    [2026-05-26] Add manual workbench entity creation
+    Files changed:
+    - components/CassetteDesigner.vue
+    - pages/admin/workbench.vue
+    - stores/workbenchFixtures.js
+    - test-data/workbench-manual-entities.js
+    - test-data/scenarios.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - stores/README.md
+    - test-data/README.md
+    - TODO.org
+    Notes:
+    - Added local-save mode to `CassetteDesigner` so workbench cassette templates are created through the designer without calling the API.
+    - Added typed manual workbench entity creation rules with entity reference selectors for lineage/dependency fields.
+    - Workbench command output hydration now includes related task-run outputs so completed nesting runs can show generated sheet designs.

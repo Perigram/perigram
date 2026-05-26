@@ -17,6 +17,16 @@ Sections:
 - Commands: typed command inputs, latest command run output, related task
   definitions/runs, and entity/attachment previews.
 
+The Context section can add manual entities to the same fixture graph. Cassette
+templates are created through `CassetteDesigner` in local-save mode; other
+entity types use typed forms with `entityId` selectors for lineage/dependency
+fields. Manual entries immediately become options for command inputs and can be
+included when seeding the dev fixture context.
+
+Command output hydration includes both the synchronous command result and
+related task-run outputs. Async nesting completion therefore updates the
+in-memory `nesting_run` and `sheet_design` previews when the task finishes.
+
 The page provides edited workflows as `statusWorkflows` so nested entity cards
 render against the local draft, while execution still goes through server
 runtime APIs.

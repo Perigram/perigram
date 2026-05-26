@@ -97,6 +97,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   requisition-sourced receipt context from `lineage.requisitionId`.
 - Never hardcode values or make assumptions about data structure — check `server/DATA_MODEL.md` first.
 - For cassette templates and queue entries, derive parametric vs static display from the cassette DTO itself (`parameters` presence and template data), not only from saved queue item flags.
+- `CassetteDesigner` persists through the cassette-template command by default.
+  Development surfaces such as the admin workbench can pass `:persist="false"`
+  to receive the typed save payload locally and upsert it into an in-memory
+  fixture context instead of calling the API.
 - For standard CRUD and status operations, use `useEntity` — no direct `$fetch` calls.
 - Direct `$fetch` is reserved for custom workflows that are not represented by `useEntity`: declared domain operations, uploads/downloads, invitations, permissions, support chat, payments, debug endpoints, and project-scoped subresources.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`.

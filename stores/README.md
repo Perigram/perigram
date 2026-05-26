@@ -18,5 +18,9 @@ Pinia stores for client state and API orchestration.
   headers through `fetchProjectContext(slug, fetchOptions)` so protected project
   lookups use the same session cookie as auth middleware. Breadcrumb sibling
   options normalize canonical DTO labels before passing them to PrimeVue Select.
+- `workbenchFixtures.js` owns the admin workbench fixture context. Manual
+  entities and command/task outputs are upserted into the same context used for
+  typed entity options; seeding preserves that context instead of regenerating
+  fixtures and dropping manual entries.
 - Long-running operations start optimistic UI updates and polling until terminal states.
 - Internal demo pages may pre-seed `entities.registry` with DTO-shaped mock entities so shared trace components render examples without calling authenticated APIs.
