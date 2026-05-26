@@ -1484,10 +1484,7 @@
       "tasks": []
     },
     {
-      "attachments": [
-        "LAYOUT_DXF",
-        "LAYOUT_SVG"
-      ],
+      "attachments": [],
       "events": [
         "nesting.solveStarted",
         "nesting.solveCompleted",

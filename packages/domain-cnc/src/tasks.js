@@ -42,7 +42,6 @@ export const cncTasks = {
     input: cncCommands.solveNesting.input,
     output: {
       entities: ['nesting_run', 'sheet_design'],
-      attachments: ['LAYOUT_DXF', 'LAYOUT_SVG'],
       tasks: ['nesting.solve'],
       events: ['nesting.solveStarted', 'nesting.solveCompleted', 'nesting.solveFailed']
     }

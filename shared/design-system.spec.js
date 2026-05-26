@@ -318,6 +318,17 @@ describe('Design system manifest', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('keeps nesting runs focused on sheet design outputs', () => {
+    const nestingRunCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/NestingRun/NestingRunCard.vue'), 'utf8');
+    const queueEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/QueueEditor.vue'), 'utf8');
+
+    expect(nestingRunCard).toContain('SheetDesignCard');
+    expect(nestingRunCard).not.toContain('ArtifactCard');
+    expect(nestingRunCard).not.toContain('relatedArtifacts');
+    expect(queueEditor).not.toContain('getRunArtifacts');
+    expect(queueEditor).not.toContain('@artifact-click');
+  });
+
   it('keeps entity details on shared EntityPage header chrome', () => {
     const offenders = walkFiles(
       path.join(REPO_ROOT, 'components/entities'),

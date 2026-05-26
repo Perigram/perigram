@@ -40,11 +40,9 @@
                             :run="run"
                             :active="run._id.toString() === selectedRunId"
                             :is-chosen="run.status?.state === 'CHOSEN'"
-                            :artifacts="getRunArtifacts(run._id)"
                             @select="selectedRunId = $event.toString()"
                             @choose="chooseRunHandler"
                             @delete="deleteRunHandler"
-                            @artifact-click="onArtifactClick"
                             @convert-to-physical="handleConvertToPhysical"
                             @create-requisition="handleCreateRequisition"
                         />
@@ -275,21 +273,18 @@
 
         <CassetteEditorDialog v-model:modelValue="showUploadDialog" @saved="onCassetteUploaded" ref="uploadDialogRef" />
 
-        <ArtifactsTable ref="artifactsTableRef" :batch-id="queue._id" class="hidden" />
-
         <ConfirmDialog />
     </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
 import { useCassettesStore } from '~/stores/cassettes';
 import { useToolProfilesStore } from '~/stores/toolProfiles';
-import { useArtifactsStore } from '~/stores/artifacts';
 import { useQueuesStore } from '~/stores/queues';
 import { storeToRefs } from 'pinia';
 import Panel from 'primevue/panel';
@@ -314,7 +309,6 @@ import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
-import ArtifactsTable from './ArtifactsTable.vue';
 import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
 import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
@@ -338,18 +332,10 @@ const queueName = computed(() => props.queue.identity?.name || props.queue.ident
 
 const queuesStore = useQueuesStore();
 const cassettesStore = useCassettesStore();
-const artifactsStore = useArtifactsStore();
 const toolProfilesStore = useToolProfilesStore();
 
 const entries = ref([]);
-const { artifacts } = storeToRefs(artifactsStore);
-const { runs, nestingCompleted } = storeToRefs(queuesStore);
-
-watch(nestingCompleted, (queueId) => {
-    if (queueId && queueId === props.queue._id) {
-        artifactsStore.fetchArtifacts(props.queue._id);
-    }
-});
+const { runs } = storeToRefs(queuesStore);
 const nestingInProgress = ref(false);
 const showAddDialog = ref(false);
 const showUploadDialog = ref(false);
@@ -362,7 +348,6 @@ const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
 const selectedRunId = ref(null);
 const instances = ref([]);
-const artifactsTableRef = ref(null);
 const queueOptions = computed(() => namedSelectOptions(props.queues, 'Unnamed'));
 const toolOptions = computed(() => namedSelectOptions(tools.value, 'Unnamed'));
 const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, 'Unnamed'));
@@ -543,8 +528,7 @@ onMounted(async () => {
         cassettesStore.fetchCassettes(),
         $fetch('/api/cassette-designs'),
         $fetch(`/api/project/${props.projectSlug}`),
-        $fetch('/api/warehouses'),
-        artifactsStore.fetchArtifacts(props.queue._id)
+        $fetch('/api/warehouses')
     ]);
     cassettes.value = cassetteResult || [];
     cassetteDesigns.value = designResult || [];
@@ -555,11 +539,6 @@ onMounted(async () => {
     loadQueueData();
 });
 
-const getRunArtifacts = (runId) => {
-    const idStr = runId?.toString();
-    if (!idStr) return [];
-    return artifacts.value?.filter(a => a.lineage?.runId?.toString() === idStr) || [];
-};
 const formatDate = (d) => new Date(d).toLocaleString();
 
 const onNewCassetteChange = () => {
@@ -714,11 +693,6 @@ const handleCreateRequisition = async (runId) => {
             }
         }
     });
-};
-
-const onArtifactClick = (a) => {
-    selectedRunId.value = a.lineage.runId;
-    nextTick(() => { if (artifactsTableRef.value) artifactsTableRef.value.previewArtifact(a); });
 };
 
 const confirmDelete = (entry) => {

@@ -6,7 +6,6 @@ import { computed, inject, unref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Divider from 'primevue/divider';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import ArtifactCard from '../Artifact/ArtifactCard.vue';
 import SheetDesignCard from '../SheetDesign/SheetDesignCard.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import { useAuthStore } from '~/stores/auth';
@@ -16,11 +15,10 @@ const props = defineProps({
   variant: { type: String, default: 'card' },
   active: { type: Boolean, default: false },
   isChosen: { type: Boolean, default: false },
-  artifacts: { type: Array, default: () => [] },
   sheetDesigns: { type: Array, default: () => [] }
 });
 
-const emit = defineEmits(['select', 'choose', 'delete', 'artifact-click', 'convert-to-physical', 'create-requisition']);
+const emit = defineEmits(['select', 'choose', 'delete', 'convert-to-physical', 'create-requisition']);
 
 const authStore = useAuthStore();
 const { t } = useI18n();
@@ -29,15 +27,10 @@ const entityContext = inject('entityContext', null);
 const canManage = computed(() => authStore.can('queues', 'edit'));
 const state = computed(() => props.run.status?.state || 'UNKNOWN');
 const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
-const artifactType = (artifact) => artifact.data?.type || '';
 const relatedSheetDesigns = computed(() => uniqueById([
     ...props.sheetDesigns,
     ...contextEntities('sheet_design').filter(design => design.lineage?.runId?.toString() === props.run._id?.toString()),
     ...contextEntities('sheet_design').filter(design => (props.run.data?.sheetDesignIds || []).map(String).includes(design._id?.toString()))
-]));
-const relatedArtifacts = computed(() => uniqueById([
-    ...props.artifacts,
-    ...contextEntities('artifact').filter(artifact => artifact.lineage?.runId?.toString() === props.run._id?.toString())
 ]));
 const RUN_FIELDS = [
     { path: 'data.results.sheetCount', i18n: 'results.sheets' },
@@ -83,15 +76,6 @@ function uniqueById(items) {
                 variant="inline"
               />
             </div>
-          </div>
-          <div class="flex flex-wrap gap-1">
-            <ArtifactCard 
-              v-for="artifact in [...relatedArtifacts].sort((a,b) => (artifactType(a) === 'LAYOUT_DXF' ? -1 : 1))" 
-              :key="artifact._id" 
-              :artifact="artifact" 
-              variant="inline"
-              @click="$emit('artifact-click', artifact)"
-            />
           </div>
         </div>
         <div v-else-if="state === 'NESTING'" class="flex justify-center p-2">

@@ -202,6 +202,8 @@ describe('Framework package contracts', () => {
     expect(cncDomain.ui.designSystem).toBe(cncDesignSystem);
     expect(cncDesignSystemEntityContracts).toContainEqual(expect.objectContaining({ key: 'cassette', entityType: 'cassette' }));
     expect(cncTasks.nestingSolve).toMatchObject({ id: 'nesting.solve', service: 'nesting' });
+    expect(cncTasks.nestingSolve.output.entities).toEqual(['nesting_run', 'sheet_design']);
+    expect(cncTasks.nestingSolve.output).not.toHaveProperty('attachments');
     expect(cncAttachmentKinds.LAYOUT_DXF).toMatchObject({ bucket: 'nestDxf', preview: { mode: 'dxf' } });
     const endpointMap = createEndpointMap(cncFrontendEntities);
     const domainUi = createDomainUiAdapter(cncDomain);
