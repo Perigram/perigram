@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { cncWorkflows } from '~/packages/domain-cnc/src/index.js';
 import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
 import { createCncFixtureScenario, validateCncFixtureScenario } from './scenarios.js';
-import { contextToScenario, createWorkbenchContext, findContextEntity, upsertContextEntities } from './workbench-context.js';
+import { contextToScenario, createWorkbenchContext, findContextEntity, transitionContextEntityStatus, upsertContextEntities } from './workbench-context.js';
 import { buildManualWorkbenchEntity, defaultManualEntityDraft, manualEntityContextType, manualFieldsForEntity } from './workbench-manual-entities.js';
 
 describe('CNC fixture scenarios', () => {
@@ -59,6 +59,19 @@ describe('CNC fixture scenarios', () => {
 
     expect(findContextEntity(next, 'sheet_design', 'sheet-design-generated-001')?.identity.name).toBe('Generated sheet design');
     expect(contextToScenario(next).entities.sheet_design.some(entity => entity._id === 'sheet-design-generated-001')).toBe(true);
+  });
+
+  it('updates workbench entity statuses inside the fixture context', () => {
+    const context = createWorkbenchContext();
+    const next = transitionContextEntityStatus(context, {
+      type: 'project',
+      id: context.refs.project,
+      state: 'ACTIVE',
+      userId: context.access.userId
+    });
+
+    expect(findContextEntity(next, 'project', context.refs.project)?.status.state).toBe('ACTIVE');
+    expect(next.persisted).toBe(false);
   });
 
   it('creates manual workbench entities with typed lineage references', () => {

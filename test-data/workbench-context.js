@@ -73,6 +73,26 @@ export function upsertContextEntities(context, entries = []) {
   return next;
 }
 
+export function transitionContextEntityStatus(context, { type, id, state, userId = 'SYSTEM', metadata = {}, lifecycle = null } = {}) {
+  const next = normalizeWorkbenchContext(context);
+  const entity = type && id ? next.entities?.[type]?.[id.toString()] : null;
+  if (!entity || !state) return next;
+
+  const status = {
+    ...(entity.status || {}),
+    state,
+    userId,
+    timestamp: new Date().toISOString(),
+    metadata,
+    eventId: `workbench-status-${Date.now().toString(36)}`,
+    lifecycle: lifecycle || entity.status?.lifecycle || { actors: [], attachments: {}, data: {} }
+  };
+  if (!entity.origin) entity.origin = status;
+  entity.status = status;
+  next.persisted = false;
+  return next;
+}
+
 export function contextEntityOptions(context = {}) {
   const normalized = normalizeWorkbenchContext(context);
   return Object.fromEntries(Object.entries(normalized.entities).map(([type, byId]) => [type, Object.values(byId).map(entity => ({

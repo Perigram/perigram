@@ -681,6 +681,7 @@ const workflowCompile = computed(() => compileWorkflowDraft({
 }));
 const workflowCompileIssues = computed(() => workflowCompile.value.issues.map(issue => issue.message));
 provide('statusWorkflows', computed(() => workflowCompile.value.machines));
+provide('statusTransitionHandler', handleWorkbenchStatusTransition);
 provide('entityContext', computed(() => fixtureStore.context));
 const defaultEdgeOptions = {
   type: 'smoothstep',
@@ -1081,6 +1082,14 @@ function upsertManualEntity(type, entity, previewType = manualEntityPreviewType(
     { type: previewType, id: entity._id },
     ...manualEntityRefs.value
   ]);
+}
+
+async function handleWorkbenchStatusTransition({ entityType, targetId, targetState }) {
+  const entity = fixtureStore.transitionEntityStatus(manualEntityContextType(entityType), targetId, targetState, {
+    userId: workbenchTestAccess.value.userId || fixtureStore.access.userId || 'workbench-user',
+    metadata: { note: 'Workbench preview transition' }
+  });
+  return { entity, status: entity?.status || null, actions: [] };
 }
 
 function defaultManualEntityDraft(type) {

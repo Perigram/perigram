@@ -7,6 +7,7 @@ import {
   createWorkbenchContext,
   findContextEntity,
   normalizeWorkbenchContext,
+  transitionContextEntityStatus,
   upsertContextEntities
 } from '~/test-data/workbench-context.js';
 
@@ -71,6 +72,11 @@ export const useWorkbenchFixturesStore = defineStore('workbenchFixtures', () => 
     context.value = upsertContextEntities(context.value, entities);
   }
 
+  function transitionEntityStatus(type, id, state, options = {}) {
+    context.value = transitionContextEntityStatus(context.value, { type, id, state, ...options });
+    return findContextEntity(context.value, type, id);
+  }
+
   function entity(type, id) {
     return findContextEntity(context.value, type, id);
   }
@@ -90,6 +96,7 @@ export const useWorkbenchFixturesStore = defineStore('workbenchFixtures', () => 
     seed,
     defaultsForAction,
     upsertEntities,
+    transitionEntityStatus,
     entity
   };
 });

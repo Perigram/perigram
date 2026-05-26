@@ -156,6 +156,18 @@ describe('Design system manifest', () => {
     expect(actions.map(action => action.to)).toEqual(['READY_FOR_TEST']);
   });
 
+  it('keeps local workflow preview transitions out of the server status API', () => {
+    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/EntityStatus.vue'), 'utf8');
+    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
+    const store = fs.readFileSync(path.join(REPO_ROOT, 'stores/workbenchFixtures.js'), 'utf8');
+
+    expect(entityStatus).toContain("inject('statusTransitionHandler'");
+    expect(entityStatus).toContain('useLocalTransition');
+    expect(workbench).toContain("provide('statusTransitionHandler'");
+    expect(workbench).toContain('handleWorkbenchStatusTransition');
+    expect(store).toContain('transitionEntityStatus');
+  });
+
   it('gives the UI lab test user a real access model', () => {
     const user = factories.createMockUser();
 

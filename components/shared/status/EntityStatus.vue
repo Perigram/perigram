@@ -36,6 +36,7 @@ const { transition, fetchActions, isTransitioning } = useStatusController();
 const op = ref();
 const serverActions = ref([]);
 const providedWorkflows = inject('statusWorkflows', null);
+const localTransitionHandler = inject('statusTransitionHandler', null);
 
 const toggle = (event) => {
     op.value?.toggle(event);
@@ -44,11 +45,19 @@ const toggle = (event) => {
 const entityId = computed(() => props.entity?._id || props.entity?.identity?.uid || props.entity?.identity?.slug);
 const localWorkflows = computed(() => props.workflows || unref(providedWorkflows) || null);
 const useServerActions = computed(() => props.showActions && !localWorkflows.value);
+const useLocalTransition = computed(() => Boolean(localWorkflows.value && localTransitionHandler));
 
 // Available transitions (to be fetched or derived from a machine registry if available)
 const handleTransition = async (targetState) => {
     try {
-        const result = await transition(props.entityType, entityId.value, targetState);
+        const result = useLocalTransition.value
+            ? await localTransitionHandler({
+                entityType: props.entityType,
+                targetId: entityId.value,
+                targetState,
+                entity: props.entity
+            })
+            : await transition(props.entityType, entityId.value, targetState);
         emit('transitioned', targetState, result);
         await refreshServerActions();
         op.value?.hide?.();
