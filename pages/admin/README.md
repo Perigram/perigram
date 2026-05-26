@@ -20,8 +20,10 @@ Sections:
 The Context section can add manual entities to the same fixture graph. Cassette
 templates are created through `CassetteDesigner` in local-save mode; other
 entity types use typed forms with `entityId` selectors for lineage/dependency
-fields. Manual entries immediately become options for command inputs and can be
-included when seeding the dev fixture context. The manual creator builds
+fields. The type selector is built from loaded domain definitions with a
+design-system contract fallback so it remains usable during slow or failed
+domain loads. Manual entries immediately become options for command inputs and
+can be included when seeding the dev fixture context. The manual creator builds
 minimal v24 DTO blocks and does not copy demo factory data payloads; queue
 creation is the exception that asks for a cassette template and quantity so
 nesting commands have job items. Required lineage/dependency references are not

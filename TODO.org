@@ -5,6 +5,14 @@
   [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
 
 *** Agent Notes
+     [2026-05-26] Keep manual entity type options populated
+     Files changed: pages/admin/workbench.vue, shared/design-system.spec.js
+     Docs updated: pages/admin/README.md
+     Notes: Manual creation now builds type options from loaded backend domain
+       definitions plus design-system entity contracts as a fallback, so the
+       selector stays populated even if `/api/admin/domain` has not supplied
+       entities yet.
+
      [2026-05-26] Make manual workbench creation require explicit refs
      Files changed: pages/admin/workbench.vue,
        test-data/workbench-manual-entities.js, test-data/scenarios.spec.js,
