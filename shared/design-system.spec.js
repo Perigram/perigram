@@ -335,6 +335,8 @@ describe('Design system manifest', () => {
     const typedSettingsForm = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/TypedSettingsForm.vue'), 'utf8');
 
     expect(workbench).toContain('manualEntityTypeLabel');
+    expect(workbench).toContain('manualEntityDefinitions');
+    expect(workbench).toContain('DESIGN_SYSTEM_ENTITIES');
     expect(workbench).toContain('canCreateManualEntity');
     expect(workbench).toContain(':disabled="!canCreateManualEntity"');
     expect(manualEntities).not.toContain("if (field.type === 'entityId')");

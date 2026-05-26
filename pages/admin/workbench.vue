@@ -816,11 +816,21 @@ const scenarioEntityPreviews = computed(() => [
   previewForEntityRef('sheet_design', fixtureStore.refs.sheetDesign, 'scenario:sheet-design')
 ].filter(Boolean));
 const typedSettingsContext = computed(() => ({
-  entityTypes: entities.value.map(entity => entity.type),
+  entityTypes: manualEntityDefinitions.value.map(entity => entity.type),
   workflowStates: workflowCompile.value.states,
   entityOptions: fixtureStore.entityOptions
 }));
-const manualEntityTypeOptions = computed(() => entities.value
+const manualEntityDefinitions = computed(() => {
+  const byType = new Map((entities.value || [])
+    .filter(entity => entity?.type)
+    .map(entity => [entity.type, entity]));
+  for (const entry of DESIGN_SYSTEM_ENTITIES) {
+    const type = manualEntityContextType(entry.entityType);
+    if (type && !byType.has(type)) byType.set(type, { type });
+  }
+  return Array.from(byType.values());
+});
+const manualEntityTypeOptions = computed(() => manualEntityDefinitions.value
   .map(entity => ({ label: entityLabelForType(entity.type), value: entity.type }))
   .sort((a, b) => a.label.localeCompare(b.label)));
 const manualEntityFields = computed(() => manualFieldsForEntity(manualEntityType.value));
@@ -1092,7 +1102,7 @@ function buildManualEntity(type, draft = {}) {
   return buildManualWorkbenchEntity(type, draft, {
     context: fixtureStore.context,
     workflowCompile: workflowCompile.value,
-    entityDefinition: entities.value.find(entity => entity.type === type)
+    entityDefinition: manualEntityDefinitionFor(type)
   });
 }
 
@@ -1624,6 +1634,10 @@ function entityLabelForType(type) {
 
 function manualEntityTypeLabel(type) {
   return manualEntityTypeOptions.value.find(option => option.value === type)?.label || entityLabelForType(type);
+}
+
+function manualEntityDefinitionFor(type) {
+  return manualEntityDefinitions.value.find(entity => entity.type === type) || {};
 }
 
 function manualFieldLabel(name) {
