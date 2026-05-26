@@ -43,6 +43,9 @@ Inherits all `BaseEntity` fields.
 - Per-organization permissions in `memberships`
 - Default role templates live in [shared permission templates](../../../shared/README.md)
   so browser dev tools and server user creation read the same access contract.
+- `User` materializes missing permission keys from the stored role preset when
+  loading legacy records. Existing feature values are preserved, so an explicit
+  custom `none` continues to deny access.
 
 ## Related Components
 - [organizations](../organizations/README.md) - Users belong to organizations via memberships and current lineage context

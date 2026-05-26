@@ -2238,3 +2238,18 @@
     - Corrected the layer panel architecture so source layers use `IdentityBlock`, mapped layer standards use `LayerStandardCard`, and resolved pens/colors use `PenTemplateCard`.
     - Added `standardId` and `penId` metadata to normalized drawing layers so UI surfaces can render actual entity components instead of inline color/name displays.
     - Kept PrimeVue usage limited to non-entity controls such as visibility checkboxes, show/hide buttons, scroll containment, and count tags.
+
+*** Agent Notes
+    [2026-05-26] Materialize legacy role permission grants
+    Files changed:
+    - shared/permission-templates.js
+    - server/features/users/model.js
+    - server/features/users/permission-templates.js
+    - server/features/users/users.spec.js
+    Docs updated:
+    - shared/README.md
+    - server/features/users/README.md
+    - TODO.org
+    Notes:
+    - Added role preset materialization for persisted user records so legacy copied permissions gain newly introduced granular feature keys such as `nesting_runs` and `artifacts`.
+    - Preserved explicit custom grants, including `none`, and left workbench/testAccess authorization independent from role-name expansion.

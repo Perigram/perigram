@@ -7,8 +7,9 @@ server features.
 - `access-control.js`: Shared permission grant evaluator for feature levels,
   UI actions, entity lineage scopes, and workflow-transition scopes.
 - `permission-templates.js`: Role presets that expand into copied membership
-  permission grants. Runtime checks should consume the decomposed grants, not
-  branch on verbal role names.
+  permission grants, plus `materializeRolePermissions()` for filling missing
+  preset keys on legacy user records. Runtime checks should consume the
+  decomposed grants, not branch on verbal role names.
 - `ui-permissions.js`: Compatibility UI resolver backed by the same grant
   evaluator as the server access engine.
 - `*.spec.js`: Contract tests for shared framework and permission behavior.
@@ -41,7 +42,10 @@ exercise production access code.
 
 Workflow definitions must not duplicate app role names for access policy; they
 should declare feature permission requirements, lifecycle capabilities, and
-hooks. Verbal roles such as `ContractorAdmin` are presets only.
+hooks. Verbal roles such as `ContractorAdmin` are presets only. Persisted user
+records may be materialized from their preset to add newly introduced feature
+keys, but explicit custom values such as `none` are preserved and workbench
+`testAccess` grants are not expanded from role names.
 
 ## Related
 - [users feature](../server/features/users/README.md) - Stores role,
