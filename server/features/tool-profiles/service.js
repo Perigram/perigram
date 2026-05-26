@@ -3,21 +3,13 @@
  */
 
 import * as repository from './repository.js';
-import { ObjectId } from 'mongodb';
 import { createIdentity, createStatus, createData } from '../../core/blocks/index.js';
 import { createError } from 'h3';
+import { ToolProfile } from './model.js';
 
 function toDTO(tool) {
   if (!tool) return null;
-  return {
-    _id: tool._id,
-    identity: tool.identity,
-    lineage: tool.lineage || {},
-    origin: tool.origin || null,
-    status: tool.status || null,
-    data: tool.data || {},
-    summary: tool.summary || {}
-  };
+  return new ToolProfile(tool).toJSON();
 }
 
 export async function getById(id, userId = null) {

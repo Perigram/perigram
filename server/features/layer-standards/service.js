@@ -2,6 +2,7 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import { createIdentity, createData, createStatus } from '../../core/blocks/index.js';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { LayerStandard } from './model.js';
 
 /**
  * Layer Standards Service - v24 Standardized
@@ -9,11 +10,7 @@ import { toFlexibleId } from '../../utils/objectid.js';
 
 function toDTO(standard) {
   if (!standard) return null;
-  return {
-    ...standard,
-    ...standard.data,
-    name: standard.identity?.name
-  };
+  return new LayerStandard(standard).toJSON();
 }
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {

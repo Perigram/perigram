@@ -4,7 +4,7 @@ import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { createStatus, inheritLineage } from '~/server/core/blocks/index.js';
 import { Sheet } from './model.js';
-import { statusService } from '~/server/core/machines/service';
+import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';
 import { mapLineageQuery } from '~/server/utils/query';
 
@@ -77,7 +77,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   }
 
   if (updates.status) {
-    await statusService.transition('sheet', sheet._id, updates.status, userId, userRole, updates.statusMeta || {});
+    await statusService.transition('sheet', sheet._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
     return await getById(uid);
   }
 

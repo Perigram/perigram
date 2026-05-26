@@ -4,7 +4,7 @@
  * Mandatory component for managing entity states and transitions.
  * Integrates display (StatusBadge) and logic (useStatusController).
  */
-import { ref, computed, inject, toRef, unref } from 'vue';
+import { ref, computed, inject, toRef, unref, watch } from 'vue';
 import Popover from 'primevue/popover';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
@@ -14,7 +14,7 @@ import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import StatusLocation from '~/components/shared/status/StatusLocation.vue';
 import { useStatus } from '~/composables/useBlocks';
 import { useStatusController } from '~/composables/useStatusController';
-import { getWorkflowStatusActions } from '~/utils/status-actions.js';
+import { createStatusAction, getWorkflowStatusActions } from '~/utils/status-actions.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -32,25 +32,49 @@ const props = defineProps({
 const emit = defineEmits(['transitioned']);
 const { t } = useI18n();
 const { state } = useStatus(toRef(props, 'entity'));
-const { transition, isTransitioning } = useStatusController();
+const { transition, fetchActions, isTransitioning } = useStatusController();
 const op = ref();
+const serverActions = ref([]);
 const providedWorkflows = inject('statusWorkflows', null);
 
 const toggle = (event) => {
     op.value?.toggle(event);
 };
 
+const entityId = computed(() => props.entity?._id || props.entity?.identity?.uid || props.entity?.identity?.slug);
+const localWorkflows = computed(() => props.workflows || unref(providedWorkflows) || null);
+const useServerActions = computed(() => props.showActions && !localWorkflows.value);
+
 // Available transitions (to be fetched or derived from a machine registry if available)
 const handleTransition = async (targetState) => {
     try {
-        const id = props.entity.identity?.slug || props.entity._id;
-        await transition(props.entityType, id, targetState);
-        emit('transitioned', targetState);
-        op.value.hide();
+        const result = await transition(props.entityType, entityId.value, targetState);
+        emit('transitioned', targetState, result);
+        await refreshServerActions();
+        op.value?.hide?.();
     } catch (e) {
         console.error('Transition failed', e);
     }
 };
+
+const refreshServerActions = async () => {
+    if (!useServerActions.value || !entityId.value) {
+        serverActions.value = [];
+        return;
+    }
+
+    try {
+        serverActions.value = await fetchActions(props.entityType, entityId.value);
+    } catch {
+        serverActions.value = [];
+    }
+};
+
+watch(
+    [() => props.entityType, entityId, state, useServerActions],
+    () => refreshServerActions(),
+    { immediate: true }
+);
 
 const customActions = computed(() => {
     if (Array.isArray(props.actions) && props.actions.length > 0) return props.actions;
@@ -59,10 +83,14 @@ const customActions = computed(() => {
 });
 
 const defaultTransitions = computed(() => {
+    if (useServerActions.value) {
+        return serverActions.value.map(action => createStatusAction(action, undefined, t));
+    }
+
     return getWorkflowStatusActions({
         entityType: props.entityType,
         state: state.value,
-        workflows: props.workflows || unref(providedWorkflows) || undefined,
+        workflows: localWorkflows.value || undefined,
         t
     });
 });

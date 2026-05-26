@@ -4,7 +4,7 @@
 
 import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
-import { toObjectId } from '../../utils/objectid.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 const COLLECTION = 'materials';
 
@@ -22,7 +22,7 @@ export async function find(query = {}, options = {}) {
 
 export async function findById(id) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ _id: toObjectId(id) });
+  return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) });
 }
 
 export async function findByCode(code) {
@@ -45,7 +45,7 @@ export async function updateById(id, updates) {
   const db = await connectDB();
   const { _id, ...clean } = updates;
   const result = await db.collection(COLLECTION).updateOne(
-    { _id: toObjectId(id) },
+    { _id: toFlexibleId(id) },
     { $set: clean }
   );
   return result.modifiedCount > 0;
@@ -53,6 +53,6 @@ export async function updateById(id, updates) {
 
 export async function deleteById(id) {
   const db = await connectDB();
-  const result = await db.collection(COLLECTION).deleteOne({ _id: toObjectId(id) });
+  const result = await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });
   return result.deletedCount > 0;
 }

@@ -8,7 +8,7 @@ import {
   inheritLineage,
   createData
 } from '../../core/blocks/index.js';
-import { statusService } from '../../core/machines/service.js';
+import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { mapLineageQuery } from '../../utils/query.js';
 import standardSlugify from 'standard-slugify';
 import { generateRandomString } from '../../utils/strings.js';
@@ -186,7 +186,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   }
 
   if (updates.status && typeof updates.status === 'string') {
-    await statusService.transition('cassette', cassette._id, updates.status, userId, userRole, updates.statusMeta || {});
+    await statusService.transition('cassette', cassette._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
     delete updates.status;
   }
 

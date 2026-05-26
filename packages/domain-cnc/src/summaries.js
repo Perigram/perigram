@@ -15,6 +15,8 @@ export const cncFrontendEntities = [
   { type: 'pile', collection: 'material-piles', routes: { single: '/api/material-piles/:id', list: '/api/material-piles' } },
   { type: 'sheet', collection: 'sheets', routes: { single: '/api/sheets/:id', list: '/api/sheets' } },
   { type: 'remnant', collection: 'remnants', routes: { single: '/api/remnants/:id', list: '/api/remnants' } },
+  { type: 'cassette', collection: 'cassettes', routes: { single: '/api/cassettes/:id', list: '/api/cassettes' } },
+  { type: 'cassetteTemplate', collection: 'cassettes', routes: { single: '/api/cassettes/:id', list: '/api/cassettes' } },
   { type: 'cassetteInstance', collection: 'cassette-instances', routes: { single: '/api/cassette-instances/:id', list: '/api/cassette-instances' } },
   { type: 'cassetteDesign', collection: 'cassette-designs', routes: { single: '/api/cassette-designs/:id', list: '/api/cassette-designs' } },
   { type: 'sheetDesign', collection: 'sheet-designs', routes: { single: '/api/sheet-designs/:id', list: '/api/sheet-designs' } },
@@ -26,4 +28,3 @@ export const cncFrontendEntities = [
   { type: 'organization', collection: 'organizations', routes: { single: '/api/organizations/:id', list: '/api/organizations' } },
   { type: 'nestingRun', collection: 'nesting-runs', routes: { single: '/api/nesting-runs/:id', list: '/api/nesting-runs' } }
 ];
-

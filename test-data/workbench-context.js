@@ -103,8 +103,10 @@ function normalizeAccess(access = {}) {
   return {
     userId: access.userId || 'user-demo',
     organizationId: access.organizationId || 'org-demo-acme',
+    role: access.role || 'WorkbenchUser',
     permissions,
-    memberships: access.memberships || [{ organizationId: access.organizationId || 'org-demo-acme', permissions, status: 'active' }]
+    memberships: access.memberships || [{ organizationId: access.organizationId || 'org-demo-acme', permissions, status: 'active' }],
+    restrictedTo: access.restrictedTo || null
   };
 }
 

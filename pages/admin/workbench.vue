@@ -981,6 +981,9 @@ function syncWorkbenchAccessDefaults() {
     ...workbenchTestAccess.value,
     userId: fixtureStore.access.userId || workbenchTestAccess.value.userId,
     organizationId: fixtureStore.access.organizationId || workbenchTestAccess.value.organizationId,
+    role: fixtureStore.access.role || workbenchTestAccess.value.role,
+    restrictedTo: fixtureStore.access.restrictedTo || workbenchTestAccess.value.restrictedTo,
+    memberships: fixtureStore.access.memberships || workbenchTestAccess.value.memberships,
     permissions: {
       ...(fixtureStore.access.permissions || {}),
       ...(workbenchTestAccess.value.permissions || {})

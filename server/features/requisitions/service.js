@@ -5,7 +5,7 @@ import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { ObjectId } from 'mongodb';
 import { createIdentity, createStatus, inheritLineage, createData } from '~/server/core/blocks/index.js';
-import { statusService } from '~/server/core/machines/service';
+import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 
 /**
  * Requisitions Service - v24 Standardized
@@ -116,7 +116,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
     }
 
     if (updates.status) {
-        await statusService.transition('requisition', requisition._id, updates.status, userId, userRole, updates.statusMeta || {});
+        await statusService.transition('requisition', requisition._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
         delete updates.status;
     }
 
@@ -137,13 +137,11 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
 export async function transition(id, targetState, metadata, userId, userOrg, userRole, userPermissions) {
     const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
-    return await statusService.transition('requisition', requisition._id, targetState, userId, {
-        userId,
+    return await statusService.transition('requisition', requisition._id, targetState, userId, createTransitionAuth(userId, userRole, {
         organizationId: userOrg,
-        role: userRole,
         memberships: userPermissions?.memberships || [],
         permissions: userPermissions?.permissions || {}
-    }, metadata);
+    }), metadata);
 }
 
 export async function send(id, userId, userOrg, userRole, userPermissions) {

@@ -4,45 +4,24 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { cncEntities } from '../packages/domain-cnc/src/entities.js';
 
 const FEATURES_DIR = './server/features';
 const API_DIR = './server/api';
-const ENTITY_FEATURES = [
-  'artifacts',
-  'cassette-designs',
-  'cassette-instances',
-  'cassettes',
-  'catalogs',
-  'colors',
-  'material-piles',
-  'nesting-runs',
-  'organizations',
-  'projects',
-  'queues',
-  'remnants',
-  'requisitions',
-  'sheet-designs',
-  'sheets',
-  'users',
-  'warehouses'
-];
+const ENTITY_FEATURES = cncEntities.map(entity => entityTypeToFeature(entity.type));
 const CAPABILITY_FEATURES = [
   'files',
   'invitations',
-  'layer-standards',
   'material-options',
-  'materials',
   'nesting',
   'notification',
   'parametric-cassettes',
   'payment',
-  'pen-templates',
   'results',
   'sessions',
   'statuses',
   'support',
-  'system-settings',
-  'tool-profiles'
+  'system-settings'
 ];
 const IGNORE = ['_template', 'README.md', 'index.js'];
 const ENTITY_ROOT_ALIAS_FIELDS = ['id', 'name', 'slug', 'serial', 'reference', 'type', 'geometry', 'parameters'];
@@ -65,6 +44,7 @@ const walkDir = (dir) => {
 const directories = fs.readdirSync(FEATURES_DIR).filter(f => !IGNORE.includes(f) && fs.statSync(path.join(FEATURES_DIR, f)).isDirectory());
 const declared = new Set([...ENTITY_FEATURES, ...CAPABILITY_FEATURES]);
 const features = ENTITY_FEATURES;
+const appRegistry = fs.readFileSync('server/runtime/app-registry.js', 'utf8');
 
 let errors = 0;
 
@@ -159,6 +139,13 @@ features.forEach(feature => {
       console.error(`❌ index.js exports model — only service may be exported from index.js`);
       errors++;
     }
+  }
+});
+
+cncEntities.forEach(entity => {
+  if (!new RegExp(`\\b${entity.type}\\s*:`).test(appRegistry)) {
+    console.error(`❌ Entity [${entity.type}] is not registered in server/runtime/app-registry.js`);
+    errors++;
   }
 });
 
@@ -259,4 +246,8 @@ if (errors === 0) {
 } else {
   console.error(`❌ Found ${errors} architectural violations.`);
   process.exit(1);
+}
+
+function entityTypeToFeature(type) {
+  return `${type.replace(/_/g, '-')}s`;
 }

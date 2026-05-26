@@ -7,7 +7,7 @@ import {
   createData,
   createAttachment
 } from '../../core/blocks/index.js';
-import { statusService } from '../../core/machines/service.js';
+import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { mapLineageQuery } from '../../utils/query.js';
 import { ObjectId } from 'mongodb';
 import { SheetDesign } from './model.js';
@@ -69,5 +69,5 @@ export async function list(filter = {}) {
 }
 
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
-  return await statusService.transition('sheet_design', id, newState, userId, userRole, metadata);
+  return await statusService.transition('sheet_design', id, newState, userId, createTransitionAuth(userId, userRole), metadata);
 }

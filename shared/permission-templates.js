@@ -15,14 +15,18 @@ export const PERMISSION_TEMPLATES = {
 
   ManufacturerAdmin: {
     projects: 'none',
-    queues: 'none',
+    queues: { level: 'read', actions: { view: true, edit: false } },
     nesting_runs: 'none',
     artifacts: 'none',
     cassettes: 'none',
     warehouses: 'admin',
     catalogs: 'admin',
-    requisitions: 'admin',
+    requisitions: {
+      level: 'admin',
+      actions: { create: false, edit: false, delete: false, view: true, approve: true, reject: true, fulfill: true }
+    },
     materials: 'admin',
+    layer_standards: { level: 'write', actions: { setPen: true } },
     users: 'admin',
     organizations: 'write'
   },
@@ -34,9 +38,10 @@ export const PERMISSION_TEMPLATES = {
     artifacts: 'admin',
     cassettes: 'admin',
     warehouses: 'admin',
-    catalogs: 'read',
+    catalogs: { level: 'read', actions: { view: true, view_all: true, create: false, edit: false, delete: false } },
     requisitions: 'admin',
     materials: 'admin',
+    layer_standards: { level: 'write', actions: { setPen: true } },
     users: 'admin',
     organizations: 'write'
   },
@@ -51,6 +56,7 @@ export const PERMISSION_TEMPLATES = {
     catalogs: 'none',
     requisitions: 'read',
     materials: 'read',
+    layer_standards: 'none',
     users: 'admin',
     organizations: 'write'
   },
@@ -65,6 +71,7 @@ export const PERMISSION_TEMPLATES = {
     catalogs: 'none',
     requisitions: 'none',
     materials: 'none',
+    layer_standards: { level: 'write', actions: { setPen: true } },
     users: 'none',
     organizations: 'write'
   }

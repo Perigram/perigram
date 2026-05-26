@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { Catalog } from './model.js';
-import { statusService } from '~/server/core/machines/service';
+import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
 
@@ -62,7 +62,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   }
 
   if (updates.status) {
-    await statusService.transition('catalog', catalog._id, updates.status, userId, userRole, updates.statusMeta || {});
+    await statusService.transition('catalog', catalog._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
     return await getById(uid);
   }
 

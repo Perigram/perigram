@@ -4,7 +4,7 @@ import * as sheetsRepository from '../sheets/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { createIdentity, createStatus, inheritLineage, createData, createAttachment } from '~/server/core/blocks/index.js';
-import { statusService } from '~/server/core/machines/service';
+import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
 
@@ -114,7 +114,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   }
 
   if (updates.status) {
-    await statusService.transition('remnant', remnant._id, updates.status, userId, userRole, updates.statusMeta || {});
+    await statusService.transition('remnant', remnant._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
     delete updates.status;
   }
 

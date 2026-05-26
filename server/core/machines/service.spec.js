@@ -43,8 +43,51 @@ describe('status service lifecycle payloads', () => {
 
   beforeEach(async () => {
     await db.collection('cassette_instances').deleteMany({});
+    await db.collection('cassettes').deleteMany({});
     await db.collection('projects').deleteMany({});
     await db.collection('status_events').deleteMany({});
+  });
+
+  it('uses full auth context and registry collection metadata for cassette transitions', async () => {
+    await db.collection('cassettes').insertOne({
+      _id: 'cassette-1',
+      identity: { uid: 'cassette-1', name: 'Template' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE', userId: 'creator', timestamp: new Date(), metadata: {} }
+    });
+
+    await statusService.transition('cassetteTemplate', 'cassette-1', 'ARCHIVED', 'admin-1', {
+      userId: 'admin-1',
+      role: 'ContractorAdmin',
+      memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }]
+    });
+
+    const entity = await db.collection('cassettes').findOne({ _id: 'cassette-1' });
+    expect(entity.status.state).toBe('ARCHIVED');
+    expect(entity.status.userId).toBe('admin-1');
+  });
+
+  it('returns only server-authorized actions for the current user', async () => {
+    await db.collection('cassettes').insertOne({
+      _id: 'cassette-2',
+      identity: { uid: 'cassette-2', name: 'Template' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE', userId: 'creator', timestamp: new Date(), metadata: {} }
+    });
+
+    const allowed = await statusService.getActions('cassette', 'cassette-2', {
+      userId: 'admin-1',
+      role: 'ContractorAdmin',
+      memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }]
+    });
+    const denied = await statusService.getActions('cassette', 'cassette-2', {
+      userId: 'viewer-1',
+      role: 'ContractorUser',
+      memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'read' } }]
+    });
+
+    expect(allowed.actions.map(action => action.to)).toEqual(['ARCHIVED']);
+    expect(denied.actions).toEqual([]);
   });
 
   it('writes metadata and lifecycle to the entity snapshot and status event', async () => {

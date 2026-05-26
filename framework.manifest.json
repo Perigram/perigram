@@ -228,13 +228,16 @@
         "trace": true
       },
       {
-        "componentPath": null,
+        "componentPath": "components/entities/Cassette/CassetteCard.vue",
         "docs": [
           "components/entities/Cassette/README.md",
           "server/features/cassettes/README.md"
         ],
         "entityType": "cassette",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "data.parameters.length",
+          "data.type"
+        ],
         "group": "production",
         "key": "cassette",
         "labelKey": "entities.cassette",
@@ -310,13 +313,16 @@
         "trace": true
       },
       {
-        "componentPath": null,
+        "componentPath": "components/entities/Material/MaterialCard.vue",
         "docs": [
           "components/entities/Material/README.md",
           "server/DATA_MODEL.md"
         ],
         "entityType": "material",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "data.code",
+          "data.description"
+        ],
         "group": "material",
         "key": "material",
         "labelKey": "entities.material",
@@ -1321,6 +1327,18 @@
       "list": "/api/remnants",
       "single": "/api/remnants/:id",
       "type": "remnant"
+    },
+    {
+      "collection": "cassettes",
+      "list": "/api/cassettes",
+      "single": "/api/cassettes/:id",
+      "type": "cassette"
+    },
+    {
+      "collection": "cassettes",
+      "list": "/api/cassettes",
+      "single": "/api/cassettes/:id",
+      "type": "cassetteTemplate"
     },
     {
       "collection": "cassette-instances",

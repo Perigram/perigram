@@ -1,11 +1,10 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
-
-const LEVELS = ['none', 'read', 'write', 'admin'];
+import { hasPermissionGrant } from '~/shared/access-control.js';
 
 export function assertEntityAccess({ entity, entityType, feature = entityType, level = 'read', auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
-  if (!hasEntityAccess({ entity, feature, level, auth })) {
+  if (!hasEntityAccess({ entity, feature, level, auth, entityType })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return true;
@@ -23,7 +22,8 @@ export function assertCommandAccess({ command, action = command, entities = {}, 
       entity: lineageEntity,
       feature: requirement.feature,
       level: requirement.level || 'read',
-      auth
+      auth,
+      entityType: requirement.entityType
     })) {
       throw createError({ statusCode: 403, message: `Permission denied for ${requirement.feature}:${requirement.level || 'read'}` });
     }
@@ -41,7 +41,9 @@ export function assertTransitionAccess({ transition, entity, auth }) {
       entity,
       feature: requirement.feature,
       level: requirement.level || 'read',
-      auth
+      auth,
+      entityType: requirement.entityType,
+      transition
     })) {
       throw createError({ statusCode: 403, message: `Permission denied for ${requirement.feature}:${requirement.level || 'read'}` });
     }
@@ -57,17 +59,14 @@ export function createLineageFilter(auth) {
   return orgIds.length ? { 'lineage.organizationId': { $in: orgIds } } : { 'lineage.organizationId': { $in: [] } };
 }
 
-export function hasEntityAccess({ entity, feature, level = 'read', auth }) {
+export function hasEntityAccess({ entity, feature, level = 'read', auth, entityType = null, transition = null }) {
   if (!auth || !feature) return false;
   if (auth.role === 'SuperAdmin') return true;
-  const requiredIndex = LEVELS.indexOf(level);
-  if (requiredIndex === -1) return false;
 
   const orgId = entity?.lineage?.organizationId?.toString();
   const membership = orgId
     ? (auth.memberships || []).find(item => item.organizationId?.toString() === orgId)
     : (auth.memberships || [])[0];
   const permissions = membership?.permissions || auth.permissions || {};
-  const actualIndex = LEVELS.indexOf(permissions[feature] || 'none');
-  return actualIndex >= requiredIndex;
+  return hasPermissionGrant({ permissions, feature, level, entity, entityType, transition });
 }

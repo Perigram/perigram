@@ -137,7 +137,9 @@ export const useEntity = (type, identifier = null) => {
   const changeStatus = async (newState, context = {}) => {
     const id = entity.value?._id || identifier;
     const result = await transition(type, id, newState, context);
-    if (result) {
+    if (result?.entity) {
+      entity.value = result.entity;
+    } else if (result) {
       await fetch(id);
     }
     return result;

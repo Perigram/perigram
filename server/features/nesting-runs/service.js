@@ -4,7 +4,7 @@ import {
   createStatus, 
   inheritLineage 
 } from '../../core/blocks/index.js';
-import { statusService } from '../../core/machines/service.js';
+import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
 import { ObjectId } from 'mongodb';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
@@ -65,7 +65,7 @@ export async function getById(uid) {
 }
 
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
-  return await statusService.transition('nesting_run', id, newState, userId, userRole, metadata);
+  return await statusService.transition('nesting_run', id, newState, userId, createTransitionAuth(userId, userRole), metadata);
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
@@ -105,7 +105,7 @@ export async function chooseRun(queueId, runId, userId, userOrg, userRole, userP
   await repository.resetChosenRuns(queueId);
 
   // Transition this run to CHOSEN
-  await statusService.transition('nesting_run', runId, 'CHOSEN', userId, { userId, role: userRole, memberships: userPermissions.memberships }, { note: 'Chosen for production' });
+  await statusService.transition('nesting_run', runId, 'CHOSEN', userId, createTransitionAuth(userId, userRole, userPermissions), { note: 'Chosen for production' });
 
   return await getById(runId);
 }

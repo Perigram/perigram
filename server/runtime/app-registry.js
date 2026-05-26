@@ -8,15 +8,19 @@ import * as cassetteInstancesService from '~/server/features/cassette-instances/
 import * as cassettesService from '~/server/features/cassettes/service.js';
 import * as catalogsService from '~/server/features/catalogs/service.js';
 import * as colorsService from '~/server/features/colors/service.js';
+import * as layerStandardsService from '~/server/features/layer-standards/service.js';
+import * as materialsService from '~/server/features/materials/service.js';
 import * as materialPilesService from '~/server/features/material-piles/service.js';
 import * as nestingRunsService from '~/server/features/nesting-runs/service.js';
 import * as organizationsService from '~/server/features/organizations/service.js';
+import * as penTemplatesService from '~/server/features/pen-templates/service.js';
 import * as projectsService from '~/server/features/projects/service.js';
 import * as queuesService from '~/server/features/queues/service.js';
 import * as remnantsService from '~/server/features/remnants/service.js';
 import * as requisitionsService from '~/server/features/requisitions/service.js';
 import * as sheetDesignsService from '~/server/features/sheet-designs/service.js';
 import * as sheetsService from '~/server/features/sheets/service.js';
+import * as toolProfilesService from '~/server/features/tool-profiles/service.js';
 import * as usersService from '~/server/features/users/service.js';
 import * as warehousesService from '~/server/features/warehouses/service.js';
 
@@ -38,7 +42,7 @@ export function getAppRegistry() {
   for (const [id, handler] of Object.entries(commandHandlers)) {
     registry.registerCommandHandler(id, handler);
   }
-  for (const [id, handler] of Object.entries(hooks)) {
+  for (const [id, handler] of Object.entries({ ...hooks, ...featureHookHandlers })) {
     registry.registerHookHandler(id, handler);
   }
 
@@ -61,15 +65,19 @@ const entityServices = {
   cassette: cassettesService,
   catalog: catalogsService,
   color: colorsService,
+  layer_standard: layerStandardsService,
+  material: materialsService,
   material_pile: materialPilesService,
   nesting_run: nestingRunsService,
   organization: organizationsService,
+  pen_template: penTemplatesService,
   project: projectsService,
   queue: queuesService,
   remnant: remnantsService,
   requisition: requisitionsService,
   sheet_design: sheetDesignsService,
   sheet: sheetsService,
+  tool_profile: toolProfilesService,
   user: usersService,
   warehouse: warehousesService
 };
@@ -78,4 +86,9 @@ const commandHandlers = {
   saveCassetteTemplate,
   solveNesting,
   generateAttachment
+};
+
+const featureHookHandlers = {
+  createPhysicalUnits: (...args) => nestingRunsService.createPhysicalUnits(...args),
+  processPhysicalCut: (...args) => queuesService.processPhysicalCut(...args)
 };

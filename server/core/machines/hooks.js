@@ -1,9 +1,8 @@
 import { connectDB } from '../../db/mongo.js';
-import { ObjectId } from 'mongodb';
-import { statusService } from './service.js';
+import { createTransitionAuth, statusService } from './service.js';
 import { aggregator } from './aggregator.js';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { pluralize } from '../../utils/strings.js';
+import { getEntityCollection } from '~/server/runtime/entities.js';
 
 /**
  * Global Status Hook Registry - v24 Standardized
@@ -16,9 +15,10 @@ export const hooks = {
   /**
    * Propagate status to all children of an entity
    */
-  async propagateToChildren({ targetId, targetType, userId, userRole }, { childType, childState }) {
+  async propagateToChildren({ targetId, targetType, userId, userRole, auth }, { childType, childState }) {
     const db = await connectDB();
-    const collection = pluralize(childType);
+    const collection = getEntityCollection(childType);
+    if (!collection) return;
     
     const lineageKey = `lineage.${targetType}Id`;
     const flexId = toFlexibleId(targetId);
@@ -27,7 +27,7 @@ export const hooks = {
     
     for (const child of children) {
       try {
-        await statusService.transition(childType, child._id, childState, userId, userRole, {
+        await statusService.transition(childType, child._id, childState, userId, createTransitionAuth(userId, auth || userRole), {
           reason: `Automatic propagation from parent ${targetType}`
         });
       } catch (err) {

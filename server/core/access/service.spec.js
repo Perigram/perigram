@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { assertCommandAccess, hasEntityAccess } from './service.js';
+import { assertCommandAccess, assertTransitionAccess, hasEntityAccess } from './service.js';
 
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
@@ -42,5 +42,50 @@ describe('access engine', () => {
     };
 
     expect(() => assertCommandAccess({ command, entities: { queue: entity }, auth })).toThrow(/artifacts:write/);
+  });
+
+  it('supports project-scoped permission grants', () => {
+    const scopedEntity = { lineage: { organizationId: 'org-1', projectId: 'project-a' } };
+    const scopedAuth = {
+      userId: 'u2',
+      memberships: [{
+        organizationId: 'org-1',
+        permissions: {
+          queues: [{ level: 'write', scope: { projectId: 'project-a' } }]
+        }
+      }]
+    };
+
+    expect(hasEntityAccess({ entity: scopedEntity, feature: 'queues', level: 'write', auth: scopedAuth })).toBe(true);
+    expect(hasEntityAccess({
+      entity: { lineage: { organizationId: 'org-1', projectId: 'project-b' } },
+      feature: 'queues',
+      level: 'write',
+      auth: scopedAuth
+    })).toBe(false);
+  });
+
+  it('supports transition-scoped grants', () => {
+    const transition = { from: 'PRODUCED', to: 'MILLED', access: { permissions: [{ feature: 'projects', level: 'write' }] } };
+    const scopedAuth = {
+      userId: 'operator-1',
+      memberships: [{
+        organizationId: 'org-1',
+        permissions: {
+          projects: [{ level: 'write', scope: { projectId: 'project-a' }, transitions: ['PRODUCED->MILLED'] }]
+        }
+      }]
+    };
+
+    expect(() => assertTransitionAccess({
+      transition,
+      entity: { lineage: { organizationId: 'org-1', projectId: 'project-a' } },
+      auth: scopedAuth
+    })).not.toThrow();
+    expect(() => assertTransitionAccess({
+      transition: { ...transition, to: 'INSTALLED' },
+      entity: { lineage: { organizationId: 'org-1', projectId: 'project-a' } },
+      auth: scopedAuth
+    })).toThrow(/projects:write/);
   });
 });

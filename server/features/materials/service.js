@@ -5,15 +5,11 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
 import { createIdentity, createStatus, createData } from '~/server/core/blocks/index.js';
+import { Material } from './model.js';
 
 function toDTO(material) {
   if (!material) return null;
-  return {
-    ...material,
-    ...material.data,
-    name: material.identity?.name,
-    code: material.identity?.code
-  };
+  return new Material(material).toJSON();
 }
 
 export async function list(options = {}) {

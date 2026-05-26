@@ -77,12 +77,23 @@ const myPermissions = computed(() => {
     const matrix = UI_PERMISSIONS[role] || {};
     const result = {};
     
-    for (const [feature, actions] of Object.entries(matrix)) {
+    for (const [feature, grants] of Object.entries(matrix)) {
         result[feature] = {};
-        for (const [action, value] of Object.entries(actions)) {
+        for (const action of diagnosticActions(grants)) {
             result[feature][action] = resolveUiPermission(role, feature, action);
         }
     }
     return result;
 });
+
+function diagnosticActions(grants) {
+    const actionSet = new Set(['view', 'create', 'edit', 'delete']);
+    const list = Array.isArray(grants) ? grants : [grants];
+    for (const grant of list) {
+        if (grant?.actions) {
+            Object.keys(grant.actions).forEach(action => actionSet.add(action));
+        }
+    }
+    return [...actionSet];
+}
 </script>

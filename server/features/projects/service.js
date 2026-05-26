@@ -5,7 +5,7 @@ import { generateRandomString } from '../../utils/strings.js';
 import standardSlugify from 'standard-slugify';
 import { createStatus } from '~/server/core/blocks/index.js';
 import { Project } from './model.js';
-import { statusService } from '../../core/machines/service.js';
+import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 
@@ -76,7 +76,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   const project = await getBySlug(uid, userId, userOrg, userRole, userPermissions);
   
   if (updates.status) {
-    await statusService.transition('project', project._id, updates.status, userId, userRole, updates.statusMeta || {});
+    await statusService.transition('project', project._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
     return await getById(uid);
   }
 

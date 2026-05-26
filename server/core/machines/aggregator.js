@@ -1,7 +1,7 @@
 import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { pluralize } from '../../utils/strings.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
+import { getEntityCollection } from '~/server/runtime/entities.js';
 
 /**
  * Centralized Aggregation Engine - v24 Expanded
@@ -17,8 +17,9 @@ export const aggregator = {
 
     const db = await connectDB();
     
-    const targetCollection = pluralize(entityType);
-    const parentCollection = pluralize(config.parentType);
+    const targetCollection = getEntityCollection(entityType);
+    const parentCollection = getEntityCollection(config.parentType);
+    if (!targetCollection || !parentCollection) return;
     const flexParentId = toFlexibleId(parentId);
 
     // 1. Run Aggregation

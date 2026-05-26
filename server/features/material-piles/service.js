@@ -3,7 +3,7 @@ import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { createStatus } from '~/server/core/blocks/index.js';
 import { MaterialPile } from './model.js';
-import { statusService } from '~/server/core/machines/service';
+import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';
 import { toObjectId, isValidObjectId } from '~/server/utils/objectid';
 
@@ -74,7 +74,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   }
 
   if (updates.status) {
-    await statusService.transition('material_pile', pile._id, updates.status, userId, userRole, updates.statusMeta || {});
+    await statusService.transition('material_pile', pile._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
     return await getById(uid);
   }
 
@@ -100,7 +100,7 @@ export async function updateStatus(id, state, note, user, additionalData = {}) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  return await statusService.transition('material_pile', pile._id, state, user.userId, user.role, { note, ...additionalData });
+  return await statusService.transition('material_pile', pile._id, state, user.userId, createTransitionAuth(user.userId, user), { note, ...additionalData });
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {

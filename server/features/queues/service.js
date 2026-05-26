@@ -4,7 +4,7 @@ import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { inheritLineage } from '~/server/core/blocks/index.js';
 import { Queue } from './model.js';
-import { statusService } from '../../core/machines/service.js';
+import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
 import { generateRandomString } from '../../utils/strings.js';
 import { ObjectId } from 'mongodb';
@@ -80,7 +80,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   }
   
   if (updates.status) {
-    await statusService.transition('queue', queue._id, updates.status, userId, { userId, role: userRole, memberships: userPermissions.memberships }, updates.statusMeta || {});
+    await statusService.transition('queue', queue._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
     return await getById(uid);
   }
 
@@ -120,7 +120,7 @@ export async function markCut(queueId, userId, userOrg, userRole, userPermission
   
   if (!chosenRun) throw createError({ statusCode: 400, message: 'No run chosen' });
 
-  await statusService.transition('queue', queueId, 'CUT', userId, { userId, role: userRole, memberships: userPermissions.memberships }, { note: 'Marked as CUT' });
+  await statusService.transition('queue', queueId, 'CUT', userId, createTransitionAuth(userId, userRole, userPermissions), { note: 'Marked as CUT' });
   
   return await getById(queueId);
 }
@@ -134,7 +134,7 @@ export async function resetToDraft(queueId, userId, userOrg, userRole, userPermi
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  await statusService.transition('queue', queueId, 'DRAFT', userId, { userId, role: userRole, memberships: userPermissions.memberships }, { note: 'Reset to DRAFT' });
+  await statusService.transition('queue', queueId, 'DRAFT', userId, createTransitionAuth(userId, userRole, userPermissions), { note: 'Reset to DRAFT' });
   
   return await getById(queueId);
 }

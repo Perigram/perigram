@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { API_ROUTES } from '~/composables/apiRoutes';
 import { resolveUiPermission } from '~/shared/ui-permissions';
+import { hasPermissionGrant } from '~/shared/access-control';
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref({});
@@ -14,6 +15,13 @@ export const useAuthStore = defineStore('auth', () => {
     const organizationData = computed(() => organization.value);
     const userOrganizations = computed(() => userOrgs.value);
     const memberships = computed(() => user.value?.memberships || user.value?.data?.memberships || []);
+    const activePermissions = computed(() => {
+        const activeOrgId = user.value?.organizationId || organization.value?._id;
+        const activeMembership = activeOrgId
+            ? memberships.value.find(membership => membership.organizationId?.toString() === activeOrgId.toString())
+            : memberships.value[0];
+        return activeMembership?.permissions || user.value?.permissions || user.value?.data?.permissions || {};
+    });
 
     // Roles
     const isSuperAdmin = computed(() => user.value?.role === 'SuperAdmin');
@@ -141,20 +149,20 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     function hasPermission(entity, level) {
-        if (!user.value?.permissions) return false;
-        const userLevel = user.value.permissions[entity] || 'none';
-        const levels = ['none', 'read', 'write', 'admin'];
-        return levels.indexOf(userLevel) >= levels.indexOf(level);
+        if (user.value?.role === 'SuperAdmin') return true;
+        return hasPermissionGrant({ permissions: activePermissions.value, feature: entity, level });
     }
 
     /**
      * Checks if the current user has permission for a specific UI action.
      * Uses the centralized UI Permission Matrix.
      */
-    function can(feature, action) {
-        // Fallback to role from user object if organization not fully loaded
+    function can(feature, action, context = {}) {
         const role = user.value?.role || 'IndividualUser';
-        return resolveUiPermission(role, feature, action);
+        return resolveUiPermission(role, feature, action, {
+            ...context,
+            permissions: context.permissions || activePermissions.value
+        });
     }
 
     return {
@@ -167,6 +175,7 @@ export const useAuthStore = defineStore('auth', () => {
         organizationData,
         userOrganizations,
         memberships,
+        activePermissions,
         isSuperAdmin,
         isOrgAdmin,
         isManufacturer,

@@ -8,7 +8,7 @@ import {
   inheritLineage,
   createData
 } from '../../core/blocks/index.js';
-import { statusService } from '../../core/machines/service.js';
+import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { mapLineageQuery } from '../../utils/query.js';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
@@ -111,7 +111,7 @@ export async function update(id, updates, userId, userRole, userPermissions) {
   }
 
   if (updates.status) {
-    await statusService.transition('cassette_design', design._id, updates.status, userId, userRole, updates.statusMeta || {});
+    await statusService.transition('cassette_design', design._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
     delete updates.status;
   }
 

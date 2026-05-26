@@ -7,7 +7,7 @@ import {
   inheritLineage,
   createData
 } from '../../core/blocks/index.js';
-import { statusService } from '../../core/machines/service.js';
+import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
 import { CassetteInstance } from './model.js';
 import { toFlexibleId } from '../../utils/objectid.js';
@@ -101,7 +101,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
   // Status updates must go through statusService
   if (updates.status) {
-    await statusService.transition('cassette_instance', instance._id, updates.status, userId, userRole, updates.statusMeta || {});
+    await statusService.transition('cassette_instance', instance._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
     delete updates.status;
   }
 
@@ -124,7 +124,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
 export async function updateStatus(id, state, note, user) {
   const instance = await getById(id, user.userId, user.organizationId, user.role, user);
-  return await statusService.transition('cassette_instance', instance._id || instance.id, state, user.userId, user.role, { note });
+  return await statusService.transition('cassette_instance', instance._id || instance.id, state, user.userId, createTransitionAuth(user.userId, user), { note });
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
