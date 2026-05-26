@@ -8,6 +8,7 @@ const { mockedConnectDB } = vi.hoisted(() => ({
 vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
 
 import * as userService from './service';
+import { User } from './model';
 
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
@@ -101,6 +102,29 @@ describe('User Management & Auth', () => {
     
     expect(updatedUser.toJSON().lineage.organizationId.toString()).toBe(org2.toString());
     expect(updatedUser.toJSON().data.role).toBe('IndividualUser');
+  });
+
+  it('materializes missing role preset permissions without overriding explicit custom grants', () => {
+    const orgId = new ObjectId();
+    const user = new User({
+      _id: 'user-legacy',
+      identity: { uid: 'user-legacy', name: 'Legacy User' },
+      data: {
+        role: 'ContractorAdmin',
+        permissions: { queues: 'admin' },
+        memberships: [{
+          organizationId: orgId,
+          role: 'ContractorAdmin',
+          permissions: { queues: 'admin', artifacts: 'none' }
+        }]
+      }
+    });
+
+    expect(user.permissions.queues).toBe('admin');
+    expect(user.permissions.nesting_runs).toBe('admin');
+    expect(user.permissions.artifacts).toBe('admin');
+    expect(user.memberships[0].permissions.nesting_runs).toBe('admin');
+    expect(user.memberships[0].permissions.artifacts).toBe('none');
   });
 
   it('should deny switching to an organization without membership', async () => {

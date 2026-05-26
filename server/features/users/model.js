@@ -1,5 +1,5 @@
 import { BaseEntity } from '~/server/core/blocks/index.js';
-import { PERMISSION_TEMPLATES } from './permission-templates.js';
+import { materializeRolePermissions } from './permission-templates.js';
 
 /**
  * User Entity - v24 Absolute Final
@@ -11,8 +11,11 @@ export class User extends BaseEntity {
     this.data = this.data || {};
     if (raw._id) {
       this.data.role = this.data.role || 'IndividualUser';
-      this.data.permissions = this.data.permissions || PERMISSION_TEMPLATES[this.data.role];
-      this.data.memberships = this.data.memberships || [];
+      this.data.permissions = materializeRolePermissions(this.data.role, this.data.permissions);
+      this.data.memberships = (this.data.memberships || []).map(membership => ({
+        ...membership,
+        permissions: materializeRolePermissions(membership.role || this.data.role, membership.permissions)
+      }));
       this.data.isActive = raw.data?.isActive !== undefined ? raw.data.isActive : true;
     }
   }
