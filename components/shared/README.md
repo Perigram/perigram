@@ -178,7 +178,8 @@ Use this for DXF-derived layer previews and polygon remnants instead of displayi
   descriptors (`string`, `number`, `boolean`, `enum`, `entityId`,
   `entityType`, `workflowState`, `array`, `object`). Used by admin operation
   parameters and lifecycle hook settings so those surfaces do not fall back to
-  raw JSON editors.
+  raw JSON editors. Entity type helper text is shown only for `entityId`
+  selectors, not workflow-state selectors.
 - **`EntityRefInput.vue`**: Typed entity reference selector used by
   `TypedSettingsForm` for `entityId` fields. It prefers workbench/scenario
   entity options and falls back to a manual id input only when no typed options

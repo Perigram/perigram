@@ -24,7 +24,9 @@ fields. Manual entries immediately become options for command inputs and can be
 included when seeding the dev fixture context. The manual creator builds
 minimal v24 DTO blocks and does not copy demo factory data payloads; queue
 creation is the exception that asks for a cassette template and quantity so
-nesting commands have job items.
+nesting commands have job items. Required lineage/dependency references are not
+auto-selected from the fixture graph; the create action stays disabled until
+the operator chooses them explicitly.
 
 Command output hydration includes both the synchronous command result and
 related task-run outputs. Async nesting completion therefore updates the

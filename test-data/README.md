@@ -126,7 +126,8 @@ by the workbench. It creates minimal DTOs from v24 blocks instead of copying
 factory demo payloads: lineage references are declared as `entityId` fields,
 queues get only the typed cassette/quantity inputs needed for nesting, and
 cassette designer output is stored in the backend `cassette` bucket while
-previewing through the cassette-template UI surface.
+previewing through the cassette-template UI surface. Default manual drafts only
+fill name and workflow state; entity references must be selected explicitly.
 
 `scenarios.js` still composes factory DTOs into the base coherent CNC graph.
 The context helper projects that graph to a scenario shape only when the seed
