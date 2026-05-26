@@ -13,11 +13,11 @@ Every feature module in `server/features/[name]/` **must** contain:
 |---|---|
 | `model.js` | Class extending `BaseEntity`. Defines constructor and `toJSON()`. |
 | `repository.js` | Raw MongoDB access only. Uses `toFlexibleId()`. No business logic. |
-| `service.js` | All business logic and cross-module calls. Uses the access engine for authorization and registers with the entity service registry. |
+| `service.js` | All business logic and cross-module calls. Uses the access engine for authorization. |
 | `index.js` | **Public API.** Exports `service` namespace only — never `repository` or `model`. |
 
-`node scripts/check-arch.js` enforces this structure for the declared entity
-feature set. Run before every commit.
+`node scripts/check-arch.js` derives the entity feature set from
+`@cutkit/domain-cnc` persisted entity definitions. Run before every commit.
 
 ### Entity vs Capability Modules
 
@@ -27,8 +27,8 @@ Support capabilities are documented and classified, but do not need empty
 
 | Kind | Modules |
 |---|---|
-| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `material-piles`, `nesting-runs`, `organizations`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `users`, `warehouses` |
-| Capability modules | `files`, `invitations`, `layer-standards`, `material-options`, `materials`, `nesting`, `notification`, `parametric-cassettes`, `payment`, `pen-templates`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `tool-profiles` |
+| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `layer-standards`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
+| Capability modules | `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `payment`, `results`, `sessions`, `statuses`, `support`, `system-settings` |
 
 ---
 
@@ -71,10 +71,8 @@ update(id, params, event)
 delete(id, event)
 ```
 
-Services are registered in the global service registry on module load:
-```js
-registerEntityService('project', { getById, list, create, update });
-```
+Services are registered explicitly in `server/runtime/app-registry.js`; feature
+services must not self-register through hidden globals.
 
 ---
 
@@ -85,7 +83,9 @@ registerEntityService('project', { getById, list, create, update });
 | `projects` | Root production container | `organizationId` |
 | `queues` | Nesting job / batch | `organizationId`, `projectId` |
 | `sheets` | Physical sheet or digital design | `organizationId`, `projectId`, `queueId` |
+| `materials` | Base material catalog record | — |
 | `material-piles` | Inventory batch | `organizationId`, `warehouseId` |
+| `layer-standards` | Drawing layer contract | `organizationId` when overridden or scoped |
 | `cassette-designs` | Master CAD template | `organizationId` |
 | `cassette-instances` | Manufactured part (digital twin) | `organizationId`, `projectId`, `queueId`, `cassetteDesignId` |
 | `nesting-runs` | Nesting engine output | `organizationId`, `projectId`, `queueId` |
@@ -96,6 +96,8 @@ registerEntityService('project', { getById, list, create, update });
 | `users` | User accounts | `organizationId` (via memberships) |
 | `warehouses` | Material storage locations | `organizationId` |
 | `catalogs` | Material specifications | `organizationId` |
+| `pen-templates` | Drawing pen/stroke template | `organizationId` or `userId` |
+| `tool-profiles` | Milling tool parameters | `organizationId` or `userId` |
 
 ---
 

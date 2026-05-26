@@ -8,7 +8,7 @@ This directory serves as the canonical implementation of the **v24 Absolute Fina
 | :--- | :--- |
 | `model.js` | Defines the Entity class (extends `BaseEntity`). Handles data mapping and `toJSON`. |
 | `repository.js` | Pure MongoDB operations. Uses `toFlexibleId`. Returns raw documents. |
-| `service.js` | Business logic and orchestration. Uses the access engine and registers with the entity service registry. |
+| `service.js` | Business logic and orchestration. Uses the access engine. |
 | `index.js` | Exports the service and relevant types. |
 
 ## The Golden Rules
@@ -17,21 +17,21 @@ This directory serves as the canonical implementation of the **v24 Absolute Fina
 2.  **Flexible IDs**: Always use `toFlexibleId()` in Repositories to support both string UIDs and ObjectIds.
 3.  **Standard Blocks**: Every entity must have `identity`, `status`, `origin`, and `lineage` blocks.
 4.  **Serialized Outputs**: Services must return `Model.toJSON()` results, never raw DB documents.
-5.  **Central Registry**: Every service must call `registerEntityService()` during initialization to enable cross-module side-effects.
+5.  **Central Registry**: `server/runtime/app-registry.js` explicitly registers every entity service.
 6.  **Explicit Side-Effects**: Use the `hooks` object in the service to define side-effects triggered by the Status Engine.
 
 ## Boilerplate Snippets
 
 ### Service Registration
-```javascript
-import { registerEntityService } from '../../core/blocks/index.js';
 
-registerEntityService('feature_name', {
-  getById: (id) => getById(id),
-  hooks: {
-    onStatusChange: (ctx, params) => handleStatusChange(ctx, params)
-  }
-});
+Add the feature service to `server/runtime/app-registry.js`:
+
+```javascript
+import * as featureService from '~/server/features/feature-name/service.js';
+
+const entityServices = {
+  feature_name: featureService
+};
 ```
 
 ### Flexible Repository Query

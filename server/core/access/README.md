@@ -9,9 +9,28 @@ Centralized authorization for entity services, workflow transitions, and command
 - `assertTransitionAccess()`: Checks workflow transition access requirements.
 - `createLineageFilter()`: Builds organization lineage filters from memberships.
 
-Access is derived from membership permissions (`none`, `read`, `write`, `admin`) and entity lineage. Workflow transitions and command definitions declare required feature permissions; processors and handlers perform domain work after access has already passed.
+Access is derived from membership permission grants and entity lineage.
+Legacy grants are simple levels (`queues: 'write'`). Granular grants can scope a
+level to lineage ids, entity ids, UI actions, or workflow transitions:
+
+```js
+{
+  queues: [{ level: 'write', scope: { projectId: 'project-a' } }],
+  projects: [{ level: 'write', transitions: ['PRODUCED->MILLED'] }]
+}
+```
+
+Workflow transitions and command definitions declare required feature
+permissions; the engine evaluates those requirements against the current entity
+and transition. Processors and handlers perform domain work after access has
+already passed.
+
+Role names are not authorization primitives. User records store copied
+membership permissions produced from role templates, and test surfaces such as
+the admin workbench can submit custom permission grants for a single run.
 
 ## Related
 
 - [State machine engine](../machines/README.md)
 - [Server features](../../features/README.md)
+- [Shared contracts](../../../shared/README.md)

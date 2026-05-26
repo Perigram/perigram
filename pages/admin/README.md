@@ -21,6 +21,12 @@ The page provides edited workflows as `statusWorkflows` so nested entity cards
 render against the local draft, while execution still goes through server
 runtime APIs.
 
+Workbench command runs can submit a per-run `testAccess` object with custom
+`userId`, `organizationId`, `role`, memberships, permission grants, and
+`restrictedTo` data. The server preserves that object shape and evaluates it
+through the same access engine as production requests, so fixture ownership and
+scoped access experiments do not need role-name branches.
+
 ## Domain Builder
 
 `domain-builder.vue` is a browser-local editor for CNC domain source drafts. It

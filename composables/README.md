@@ -81,6 +81,7 @@ composable and does not import the CNC domain package directly.
 | `pile` / `batch` | `/api/material-piles/:id` | `/api/material-piles` |
 | `sheet` | `/api/sheets/:id` | `/api/sheets` |
 | `remnant` | `/api/remnants/:id` | `/api/remnants` |
+| `cassette` / `cassetteTemplate` | `/api/cassettes/:id` | `/api/cassettes` |
 | `cassetteInstance` | `/api/cassette-instances/:id` | `/api/cassette-instances` |
 | `cassetteDesign` | `/api/cassette-designs/:id` | `/api/cassette-designs` |
 | `sheetDesign` | `/api/sheet-designs/:id` | `/api/sheet-designs` |
@@ -111,10 +112,14 @@ Exception: `useStatus` may be used in entity cards for a `v-if` conditional (not
 ## useStatusController
 
 Direct bridge to the State Machine Engine. Used internally by `useEntity.changeStatus()`.
-Supports both camelCase and snake_case entity type keys for runtime status components.
+All standard workflow transitions go through `POST /api/status/transition`.
+Interactive status controls load server-authorized actions from
+`GET /api/status/actions`, so frontend components do not duplicate transition
+permission checks.
 
 ```js
-const { transition, isTransitioning } = useStatusController();
+const { transition, fetchActions, isTransitioning } = useStatusController();
+const actions = await fetchActions(type, id);
 await transition(type, id, newState, metadata);
 await transition(type, id, newState, {
   metadata: { note: 'Measured after milling' },

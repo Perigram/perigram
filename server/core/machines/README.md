@@ -8,7 +8,8 @@ The system consists of three main parts: the transition engine, the dynamic hook
 ### 1. State Machine Engine
 - **`definitions.js`**: Compatibility export that resolves workflow definitions from the active app registry.
 - **`service.js`**: Orchestrates transitions, performs lifecycle/capability validation, delegates access checks to `server/core/access/`, updates entity snapshots (`status` block), and logs history to `status_events`.
-- **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and `pluralize()` for collection resolution.
+- **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and
+  resolves collections through the runtime/domain entity registry.
 
 The reusable workflow API is being extracted to
 [`@cutkit/workflows`](../../../packages/workflows/README.md). The current
@@ -45,12 +46,25 @@ Acts as a decoupled dispatcher for side-effects. To prevent architectural leaks,
 ### 3. Centralized Aggregator (`aggregator.js`)
 Synchronizes parent summaries based on child activity using lineage-aware MongoDB aggregation pipelines.
 - **Trigger**: Called by the `triggerAggregator` hook whenever an entity changes state.
-- **Standardization**: Uses `pluralize()` to resolve target and parent collections.
+- **Standardization**: Uses runtime entity metadata to resolve target and parent collections.
 - **Domain Rules**: Summary rules are loaded from the active app registry; the
   aggregator remains the Mongo runtime adapter.
 
+### 4. HTTP Status API
+
+Interactive UI status changes use the canonical status endpoints:
+
+| Endpoint | Responsibility |
+|---|---|
+| `GET /api/status/actions?entityType=<type>&id=<id>` | Returns transitions authorized for the current user and entity. |
+| `POST /api/status/transition` | Executes a transition with full auth context and returns the updated entity, status, and refreshed actions. |
+
+Entity-specific PATCH routes must not be the primary status API for standard
+workflow transitions.
+
 ## Data Flow
-1. User/System triggers `statusService.transition(type, id, state, ...)`.
+1. User/System triggers `statusService.transition(type, id, state, ...)` or
+   `POST /api/status/transition`.
 2. Transition is validated against the domain workflow, access requirements, lifecycle schema, and actor/capability assignments.
 3. Entity's `status` block, including `metadata` and `lifecycle`, is updated and a history event is logged.
 4. **Hook Execution**: 
@@ -62,5 +76,5 @@ Synchronizes parent summaries based on child activity using lineage-aware MongoD
 ## Related
 - [server/core/blocks/](../core/blocks/) (Standard Block classes)
 - [server/utils/objectid.js](../utils/objectid.js) (Flexible ID handling)
-- [server/utils/strings.js](../utils/strings.js) (Pluralization helper)
+- [server/runtime/README.md](../../runtime/README.md) (Entity registry helpers)
 - [packages/workflows/README.md](../../../packages/workflows/README.md) (Framework workflow package)

@@ -92,10 +92,12 @@ Behavior: component auto-expands when custom `actions` are provided; otherwise i
 **Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@cutkit/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `EntityStatus`, hides it, or renders read-only status.
 Interactive status is enabled only for entity types that have a real workflow in
 `cncWorkflows`; non-workflow entities hide status chrome in cards unless a
-read-only `StatusBadge` is explicitly required. Default transition actions are
-derived from workflow definitions through `utils/status-actions.js`; card
-components should only pass custom actions for domain-specific commands such as
-choosing a completed nesting run.
+read-only `StatusBadge` is explicitly required. Live app transition actions are
+loaded from the canonical status API so access filtering stays server-side.
+Development surfaces with custom workflow drafts derive actions from workflow
+definitions through `utils/status-actions.js`. Card components should only pass
+custom actions for domain-specific commands such as choosing a completed nesting
+run.
 `EntityStatus` can also receive a `workflows` prop or consume a provided
 `statusWorkflows` value. This is used only by development surfaces such as the
 admin workbench so live draft machines can drive previews without replacing the
