@@ -6,7 +6,8 @@ Generic asynchronous queue backed by `task_runs`.
 
 - Enqueues declared task definitions with normalized `input.entities` and
   `input.parameters`.
-- Supports claim, heartbeat, complete, fail, retry, cancel, and list operations.
+- Supports claim, heartbeat, complete, fail, retry, cancel, lookup, and list
+  operations.
 - Uses claim tokens and lease expiry so workers cannot complete runs they do not
   own.
 - Applies retry state (`RETRY_WAIT`) before terminal failure when attempts remain;

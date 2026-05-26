@@ -2264,6 +2264,8 @@
     - server/features/nesting/operations.js
     - server/features/nesting/operations.spec.js
     - server/features/nesting/jobs.js
+    - server/features/nesting/statistics.js
+    - server/features/nesting/statistics.spec.js
     Docs updated:
     - server/core/tasks/README.md
     - server/features/nesting/README.md
@@ -2275,3 +2277,5 @@
     - The nesting executor now builds worker payloads from polygon parts or dimension fallback rectangles, updates `task_runs` and `nesting_jobs`, and transitions runs out of `NESTING`.
     - Non-retryable executor errors with 4xx status codes now fail task runs directly instead of cycling through `RETRY_WAIT`.
     - Compatibility nesting jobs now store the parent project slug for notification/statistics consumers.
+    - Failed or cancelled task runs behind active compatibility jobs are now marked stale so they do not permanently block new queue nesting requests.
+    - Nesting statistics now accept the current worker result layout shape as well as the legacy `sheets` shape.

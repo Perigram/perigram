@@ -14,6 +14,11 @@ Command handler and compatibility job metadata for queue nesting.
   job, and transitions the `nesting_run` to `COMPLETE` or final-attempt `ERROR`.
 - Compatibility `nesting_jobs.projectSlug` is resolved from the parent project,
   not the queue, so notification/statistics plugins can find the project.
+- Before rejecting a queue as already nesting, the handler checks the active
+  compatibility job's `taskRunId`; jobs whose task is `FAILED` or `CANCELLED`
+  are marked `error` and no longer block a new nesting request.
+- `statistics.js` supports both legacy `nesting_jobs.sheets` payloads and the
+  current worker result shape stored at `nesting_jobs.result.solution.layouts`.
 - `jobs.js` owns Mongo access for `nesting_jobs`.
 
 The long-running execution contract is the `nesting.solve` task. The HTTP
