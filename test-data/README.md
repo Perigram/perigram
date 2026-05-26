@@ -122,10 +122,11 @@ compiled workflows, access defaults, and typed command input bindings in
 one context. Command outputs are upserted back into that same context before
 they are rendered, so the UI does not create placeholder entity cards.
 `workbench-manual-entities.js` owns the typed manual entity creation rules used
-by the workbench: lineage references are declared as `entityId` fields, queue
-items select cassette templates from the same context, and cassette designer
-output is stored in the backend `cassette` bucket while previewing through the
-cassette-template UI surface.
+by the workbench. It creates minimal DTOs from v24 blocks instead of copying
+factory demo payloads: lineage references are declared as `entityId` fields,
+queues get only the typed cassette/quantity inputs needed for nesting, and
+cassette designer output is stored in the backend `cassette` bucket while
+previewing through the cassette-template UI surface.
 
 `scenarios.js` still composes factory DTOs into the base coherent CNC graph.
 The context helper projects that graph to a scenario shape only when the seed

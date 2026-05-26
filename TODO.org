@@ -5,6 +5,17 @@
   [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
 
 *** Agent Notes
+     [2026-05-26] Fix manual workbench entity creation defaults
+     Files changed: pages/admin/workbench.vue,
+       test-data/workbench-manual-entities.js, test-data/scenarios.spec.js,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: pages/admin/README.md, test-data/README.md
+     Notes: Manual entity type selection now uses an explicit PrimeVue Select
+       update path. Manual entities are built as minimal v24 DTOs instead of
+       copying demo factory payloads; non-queue entities expose only name,
+       workflow state, and typed lineage refs, while queues keep only the
+       cassette/quantity/material-pile inputs required for nesting.
+
      [2026-05-26] Architecture recovery: status API, registry entities, and granular access
      Files changed: server/core/machines/service.js,
        server/core/access/service.js, server/runtime/entities.js,
