@@ -23,6 +23,11 @@ Commands are the access/business intent boundary. Tasks are retryable async
 execution. Attachments are persisted entity-linked file records; attachment
 kinds declare how a file should be stored and previewed.
 
+The `solveNesting` command and `nesting.solve` task produce `nesting_run` and
+`sheet_design` entities only. DXF/SVG/PDF files are requested later through the
+artifacts service and `AttachmentKind` contracts, not as primary nesting-run
+outputs.
+
 `artifact` remains the current persisted entity type for generated file records.
 File behavior is declared by `AttachmentKind`.
 

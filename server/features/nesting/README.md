@@ -8,6 +8,8 @@ Command handler and compatibility job metadata for queue nesting.
 - The handler validates queue state, creates a `nesting_run`, creates an initial
   `sheet_design`, enqueues `nesting.solve`, and writes a linked
   compatibility `nesting_jobs` record.
+- Nesting output is entity-only: `nesting_run` plus `sheet_design`. Generated
+  files are requested separately through artifact/attachment commands.
 - The registered `nesting.solve` task executor builds the FastAPI payload from
   cassette polygon parts or dimension fallback rectangles, calls
   `NESTING_WORKER_URL`, completes/fails the task run, updates the compatibility

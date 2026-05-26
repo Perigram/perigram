@@ -8,7 +8,7 @@ This directory contains Vue components used in the Cutkit-Demo application.
 - **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).
 - **Standard Components:** Create reusable components for common UI patterns (cards, modals, forms, tables) and use them consistently across the app. See [components/shared/README.md](./shared/README.md) for the full list.
 - **Use Variants:** Components should support different visual variants (`inline`, `compact`, `card`) to ensure flexibility in different contexts.
-- **Child Components:** When a component needs to display child entities, it must use the child entity's dedicated card component (e.g. NestingRunCard uses ArtifactCard for its artifacts).
+- **Child Components:** When a component needs to display child entities, it must use the child entity's dedicated card component (e.g. NestingRunCard uses SheetDesignCard for resulting sheet designs).
 - **Smart Components:** Sub-components should use permissions to conditionally render actions (edit, delete, view) based on user roles.
 
 ## v24 Standardized Patterns

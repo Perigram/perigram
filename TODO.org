@@ -5,6 +5,20 @@
   [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
 
 *** Agent Notes
+     [2026-05-26] Keep nesting run output focused on sheet designs
+     Files changed: components/entities/NestingRun/NestingRunCard.vue,
+       components/QueueEditor.vue, packages/domain-cnc/src/tasks.js,
+       shared/design-system.spec.js, shared/framework-packages.spec.js,
+       framework.manifest.json
+     Docs updated: components/entities/NestingRun/README.md,
+       components/README.md, packages/domain-cnc/README.md,
+       server/features/nesting/README.md
+     Notes: Queue run cards no longer fetch or pass artifact refs into the
+       nesting-run card. NestingRunCard renders run metrics and related
+       sheet_design entities only; generated files remain owned by
+       artifact/attachment surfaces, and the nesting task contract no longer
+       advertises file attachments as solve outputs.
+
      [2026-05-26] Fix manual workbench entity creation defaults
      Files changed: pages/admin/workbench.vue,
        test-data/workbench-manual-entities.js, test-data/scenarios.spec.js,
