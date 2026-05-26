@@ -152,6 +152,10 @@ export async function retryTaskRun(id) {
   });
 }
 
+export async function getTaskRunById(id) {
+  return await repository.findById(id);
+}
+
 export async function listTaskRuns(filter = {}) {
   return await repository.list(filter);
 }

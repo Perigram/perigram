@@ -10,7 +10,7 @@ import * as nestingRunsService from '../nesting-runs/service.js';
 import * as sheetDesignsService from '../sheet-designs/service.js';
 import * as nestingJobs from './jobs.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
-import { createTaskRun } from '../../core/tasks/service.js';
+import { createTaskRun, getTaskRunById } from '../../core/tasks/service.js';
 import { generateRandomString } from '../../utils/strings.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 
@@ -28,6 +28,7 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
 
   try {
     if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
+    await clearStaleActiveNestingJob(queue._id);
     if (await nestingJobs.findActiveByQueue(queue._id) || queue.status?.state === 'NESTING') {
       throw createError({ statusCode: 400, message: 'Queue is already nesting' });
     }
@@ -320,6 +321,19 @@ async function callNestingWorker(request) {
     throw createError({ statusCode: 502, message: `Nesting worker failed: ${body || response.statusText}` });
   }
   return await response.json();
+}
+
+async function clearStaleActiveNestingJob(queueId) {
+  const job = await nestingJobs.findActiveByQueue(queueId);
+  if (!job?.taskRunId) return;
+  const taskRun = await getTaskRunById(job.taskRunId);
+  if (!taskRun || ['FAILED', 'CANCELLED'].includes(taskRun.status)) {
+    await nestingJobs.updateById(job._id, {
+      status: 'error',
+      finishedAt: new Date(),
+      error: job.error || { message: 'Nesting task is no longer active' }
+    });
+  }
 }
 
 async function markRunError(runId, taskRunId, auth, error) {
