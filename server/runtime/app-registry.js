@@ -25,29 +25,39 @@ import * as usersService from '~/server/features/users/service.js';
 import * as warehousesService from '~/server/features/warehouses/service.js';
 
 import { saveCassetteTemplate } from '~/server/features/cassettes/operations.js';
-import { solveNesting } from '~/server/features/nesting/operations.js';
+import { executeNestingSolveTask, solveNesting } from '~/server/features/nesting/operations.js';
 import { generateAttachment } from '~/server/features/artifacts/operations.js';
 
 let appRegistry = null;
 
 export function getAppRegistry() {
-  if (appRegistry) return appRegistry;
+  if (appRegistry) {
+    registerAppBindings(appRegistry);
+    return appRegistry;
+  }
 
   const registry = createRegistry({ id: 'cutkit-app' });
   registry.defineDomain(cncDomain);
 
+  registerAppBindings(registry);
+
+  appRegistry = registry;
+  return appRegistry;
+}
+
+function registerAppBindings(registry) {
   for (const [type, service] of Object.entries(entityServices)) {
     registry.registerEntityService(type, service);
   }
   for (const [id, handler] of Object.entries(commandHandlers)) {
     registry.registerCommandHandler(id, handler);
   }
+  for (const [id, executor] of Object.entries(taskExecutors)) {
+    registry.registerTaskExecutor(id, executor);
+  }
   for (const [id, handler] of Object.entries({ ...hooks, ...featureHookHandlers })) {
     registry.registerHookHandler(id, handler);
   }
-
-  appRegistry = registry;
-  return appRegistry;
 }
 
 export const getCutkitRegistry = getAppRegistry;
@@ -86,6 +96,10 @@ const commandHandlers = {
   saveCassetteTemplate,
   solveNesting,
   generateAttachment
+};
+
+const taskExecutors = {
+  'nesting.solve': executeNestingSolveTask
 };
 
 const featureHookHandlers = {
