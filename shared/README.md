@@ -3,6 +3,10 @@
 Cross-runtime JavaScript contracts used by both browser-facing Nuxt code and
 server features.
 
+Nuxt-consumed modules in this directory should import other shared contracts
+through the `~/shared/...` alias so SSR build output does not retain fragile
+relative paths.
+
 ## Core Files
 - `access-control.js`: Shared permission grant evaluator for feature levels,
   UI actions, entity lineage scopes, and workflow-transition scopes.
