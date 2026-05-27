@@ -1,7 +1,7 @@
 import { createError } from 'h3';
 import { randomUUID } from 'node:crypto';
 import { hasEntityAccess } from '../../core/access/service.js';
-import { createDomainDraft, validateDomainDraft } from '../../../utils/domain-builder.js';
+import { createDomainDraft, validateDomainDraft } from '~/utils/domain-builder.js';
 import {
   cncAttachmentKinds,
   cncCommands,
@@ -13,8 +13,8 @@ import {
   cncSummaries,
   cncTasks,
   cncWorkflows
-} from '../../../packages/domain-cnc/src/index.js';
-import { createFrameworkManifest, queryDocs } from '../../../packages/devtools/src/index.js';
+} from '~/packages/domain-cnc/src/index.js';
+import { createFrameworkManifest, queryDocs } from '~/packages/devtools/src/index.js';
 import * as repository from './repository.js';
 import { buildConfigBotKnowledge } from './indexer.js';
 import { askOllama, getOllamaConfig } from './ollama.js';
