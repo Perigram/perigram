@@ -20,9 +20,13 @@ script explicitly installs its own resolver.
 
 `check-arch.js` is the mandatory backend architecture check. It validates
 server feature structure against `server/features/_template/README.md`, keeps
-repositories/services/API routes on their assigned layers, and rejects Nuxt
+repositories/services/API routes on their assigned layers, rejects Nuxt
 root-alias imports inside portable runtime modules under `shared/`,
-`test-data/`, and `packages/`.
+`test-data/`, and `packages/`, and rejects parent-relative cross-root imports
+from `shared/` and non-spec `test-data/` modules. Cross-root portable imports
+should use the package imports declared in `package.json` (`#shared/...`,
+`#packages/...`, `#utils/...`) so direct Node loaders and Nuxt/Nitro SSR builds
+resolve the same graph.
 
 ## Related
 

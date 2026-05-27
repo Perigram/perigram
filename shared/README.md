@@ -5,9 +5,9 @@ server features.
 
 Modules in this directory are portable runtime contracts. They must not import
 other repo files through Nuxt-only `~/` or `~~/` aliases because server scripts,
-workers, and direct Node imports do not own that resolver. Use relative imports
-inside `shared/`; Nuxt code may still import shared modules through its root
-alias at the call site.
+workers, and direct Node imports do not own that resolver. Use repository
+package imports such as `#shared/...` for shared contracts; Nuxt code may still
+import shared modules through its root alias at the call site.
 
 ## Core Files
 - `access-control.js`: Shared permission grant evaluator for feature levels,
@@ -20,7 +20,8 @@ alias at the call site.
 - `*.spec.js`: Contract tests for shared framework and permission behavior.
 
 `scripts/check-arch.js` enforces the no-Nuxt-root-alias rule for portable
-runtime modules under `shared/`, `test-data/`, and `packages/`.
+runtime modules under `shared/`, `test-data/`, and `packages/`, and rejects
+parent-relative cross-root imports from `shared/` and `test-data/`.
 
 ## Permission Model
 Access uses feature keys such as `projects`, `queues`, `cassettes`,

@@ -92,6 +92,19 @@
        directories (`shared/`, `test-data/`, `packages/`) so this class of
        resolver breakage fails architecture verification.
 
+     [2026-05-27] Make portable imports work in Node and Nitro SSR
+     Files changed: package.json, nuxt.config.js, vitest.config.js,
+       shared/ui-permissions.js, test-data/factories.js,
+       test-data/scenarios.js, test-data/workbench-context.js,
+       scripts/check-arch.js
+     Docs updated: shared/README.md, test-data/README.md, scripts/README.md,
+       TODO.org
+     Notes: Replaced cross-root relative imports in shared/test-data runtime
+       modules with repository package imports (`#shared`, `#packages`,
+       `#utils`) that are declared for Node and mirrored into Nuxt/Vite/Vitest.
+       `check-arch` now rejects parent-relative cross-root imports from
+       portable runtime modules so SSR-generated chunk paths cannot break them.
+
      [2026-05-27] Add ConfigBot generated package preview tab
      Files changed: components/config-bot/ConfigBotGeneratedPreview.vue,
        components/config-bot/ConfigBotDraftPreview.vue,

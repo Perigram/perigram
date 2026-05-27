@@ -6,8 +6,9 @@ Factories in this directory represent **API DTO shape**, not raw MongoDB documen
 
 Factories can be imported by Nuxt UI code and by server/runtime modules that
 run under direct Node loaders. Runtime modules in this directory must use
-relative imports internally; Nuxt UI code may import the factories themselves
-through `~/test-data/...` at the call site.
+repository package imports such as `#shared/...`, `#packages/...`, and
+`#utils/...` for cross-root contracts; Nuxt UI code may import the factories
+themselves through `~/test-data/...` at the call site.
 
 ## Why Factory Functions?
 
@@ -105,7 +106,9 @@ Factories are built from:
 This ensures mock data matches what your API actually expects/returns.
 Factory modules avoid Nuxt root aliases internally so direct Node imports,
 server scripts, and Nitro-generated chunks resolve the same dependency graph.
-`scripts/check-arch.js` enforces this for non-spec files in `test-data/`.
+They also avoid parent-relative cross-root imports because Nitro may move
+modules into generated chunks during SSR builds. `scripts/check-arch.js`
+enforces this for non-spec files in `test-data/`.
 
 When a component needs a new field for display, update the relevant DTO factory and manifest entry together. Do not add flat compatibility fields.
 When an entity type has a workflow, the factory `status.state` must be one of that workflow's canonical states; `shared/design-system.spec.js` enforces this for UI lab demos.
