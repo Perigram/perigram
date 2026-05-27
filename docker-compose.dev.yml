@@ -12,6 +12,7 @@ services:
     volumes:
       - .:/src
       - /src/node_modules
+      - ${CONFIG_BOT_CORTEX_HOST_PATH:-/home/isuo/Documents/cutkit-cortex}:/opt/cutkit-cortex:ro
     environment:
       - MONGODB_URI=mongodb://mongo:27017/cutkit_dev
       - NODE_ENV=development
@@ -20,7 +21,7 @@ services:
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       - CONFIG_BOT_CHAT_MODEL=${CONFIG_BOT_CHAT_MODEL:-qwen3:4b}
       - CONFIG_BOT_EMBED_MODEL=${CONFIG_BOT_EMBED_MODEL:-bge-m3}
-      - CONFIG_BOT_CORTEX_PATH=${CONFIG_BOT_CORTEX_PATH:-/home/isuo/Documents/cutkit-cortex}
+      - CONFIG_BOT_CORTEX_PATH=${CONFIG_BOT_CORTEX_PATH:-/opt/cutkit-cortex}
     depends_on:
       - mongo
     networks:

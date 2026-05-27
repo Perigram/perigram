@@ -40,7 +40,7 @@ const SKIP_DIRS = new Set([
 
 export async function buildConfigBotKnowledge({
   rootDir = process.cwd(),
-  cortexPath = process.env.CONFIG_BOT_CORTEX_PATH || '/home/isuo/Documents/cutkit-cortex'
+  cortexPath = process.env.CONFIG_BOT_CORTEX_PATH || ''
 } = {}) {
   const chunks = [];
   chunks.push(...await loadAppDocs(rootDir));
