@@ -13,11 +13,19 @@ const cutkitAliases = {
     '@cutkit/mcp': resolveRoot('./packages/mcp/src/index.js'),
     '@cutkit/domain-cnc': resolveRoot('./packages/domain-cnc/src/index.js')
 }
+const portableAliases = {
+    '#shared': resolveRoot('./shared'),
+    '#packages': resolveRoot('./packages'),
+    '#utils': resolveRoot('./utils')
+}
 
 export default defineNuxtConfig({
     compatibilityDate: '2025-07-15',
 
-    alias: cutkitAliases,
+    alias: {
+        ...cutkitAliases,
+        ...portableAliases
+    },
 
     devtools: { enabled: true },
 
@@ -76,7 +84,10 @@ export default defineNuxtConfig({
 
     vite: {
         resolve: {
-            alias: cutkitAliases
+            alias: {
+                ...cutkitAliases,
+                ...portableAliases
+            }
         },
         css: {
             preprocessorOptions: {

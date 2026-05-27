@@ -6,7 +6,7 @@
  * `data`, `summary`, `specs`) plus root `_id`.
  */
 import { ObjectId } from 'bson';
-import { PERMISSION_TEMPLATES } from '../shared/permission-templates.js';
+import { PERMISSION_TEMPLATES } from '#shared/permission-templates.js';
 
 const now = () => new Date();
 const id = (prefix) => `${prefix}-${new ObjectId().toString().slice(-8)}`;

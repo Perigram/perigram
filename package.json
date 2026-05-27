@@ -2,6 +2,11 @@
   "name": "cutkit-demo",
   "private": false,
   "type": "module",
+  "imports": {
+    "#shared/*": "./shared/*",
+    "#packages/*": "./packages/*",
+    "#utils/*": "./utils/*"
+  },
   "workspaces": [
     "packages/*"
   ],

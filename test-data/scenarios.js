@@ -22,8 +22,8 @@ import {
   createMockUser,
   createMockWarehouse
 } from './factories.js';
-import { cncCommands, cncWorkflows } from '../packages/domain-cnc/src/index.js';
-import { collectCommandAccess, collectWorkflowAccess, workflowInitialState } from '../utils/workflow-compiler.js';
+import { cncCommands, cncWorkflows } from '#packages/domain-cnc/src/index.js';
+import { collectCommandAccess, collectWorkflowAccess, workflowInitialState } from '#utils/workflow-compiler.js';
 
 export const CNC_DEMO_SCENARIO_ID = 'cnc-demo-production';
 

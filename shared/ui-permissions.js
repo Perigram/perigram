@@ -1,5 +1,5 @@
-import { PERMISSION_TEMPLATES } from './permission-templates.js';
-import { actionToLevel, hasPermissionGrant } from './access-control.js';
+import { PERMISSION_TEMPLATES } from '#shared/permission-templates.js';
+import { actionToLevel, hasPermissionGrant } from '#shared/access-control.js';
 
 /**
  * Role names are presets only. UI visibility resolves against decomposed

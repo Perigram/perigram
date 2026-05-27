@@ -1,5 +1,5 @@
-import { cncCommands, cncWorkflows } from '../packages/domain-cnc/src/index.js';
-import { compileWorkflowDraft } from '../utils/workflow-compiler.js';
+import { cncCommands, cncWorkflows } from '#packages/domain-cnc/src/index.js';
+import { compileWorkflowDraft } from '#utils/workflow-compiler.js';
 import { createCncFixtureScenario, validateCncFixtureScenario } from './scenarios.js';
 
 export const WORKBENCH_CONTEXT_ID = 'cnc-workbench-context';
