@@ -54,8 +54,9 @@ production entity collections.
 ## Knowledge Sources
 
 `indexer.js` reads the app README set plus selected cutkit-cortex notes from
-`CONFIG_BOT_CORTEX_PATH` (default:
-`/home/isuo/Documents/cutkit-cortex`). Ollama is optional and controlled by:
+`CONFIG_BOT_CORTEX_PATH` when that environment variable is set. Container
+deployments mount the host cortex repo read-only at `/opt/cutkit-cortex`.
+Ollama is optional and controlled by:
 
 - `OLLAMA_BASE_URL`
 - `CONFIG_BOT_CHAT_MODEL`

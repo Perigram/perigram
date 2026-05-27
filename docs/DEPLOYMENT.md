@@ -72,7 +72,10 @@ Relevant app environment variables:
   `http://host.docker.internal:11434` in `docker-compose.dev.yml`.
 - `CONFIG_BOT_CHAT_MODEL` - default `qwen3:4b`.
 - `CONFIG_BOT_EMBED_MODEL` - default `bge-m3` for future embedding work.
-- `CONFIG_BOT_CORTEX_PATH` - path to cutkit-cortex notes used during reindex.
+- `CONFIG_BOT_CORTEX_PATH` - container path to cutkit-cortex notes used during
+  reindex, default `/opt/cutkit-cortex`.
+- `CONFIG_BOT_CORTEX_HOST_PATH` - host path mounted read-only into the app
+  container, default `/home/cutkit/Documents/cutkit-cortex` in the Swarm stack.
 
 After deployment, open `/admin/config-bot` as a user with `config_bot: admin`
 and run Reindex before asking documentation questions. Draft generation works

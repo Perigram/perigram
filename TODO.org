@@ -43,7 +43,9 @@
        LAN host 192.168.0.67 has Ollama 0.24.0 with `qwen3:4b` and `bge-m3`
        installed, served by enabled user unit `cutkit-ollama.service`; boot
        persistence still requires user linger or a system service because sudo
-       is interactive on that host.
+       is interactive on that host. Swarm config mounts
+       `/home/cutkit/Documents/cutkit-cortex` into the app at
+       `/opt/cutkit-cortex` for ConfigBot reindex.
 
      [2026-05-27] Audit and enforce frontend localization keys
      Files changed: i18n/locales/en.json, i18n/locales/ru.json,
