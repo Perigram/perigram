@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 describe('Framework package contracts', () => {
@@ -209,6 +209,7 @@ describe('Framework package contracts', () => {
     const domainUi = createDomainUiAdapter(cncDomain);
     expect(getSingleEndpoint(endpointMap, 'project', 'p-1')).toBe('/api/project/p-1');
     expect(getListEndpoint(endpointMap, 'cassetteInstance', { 'lineage.queueId': 'q-1' })).toBe('/api/cassette-instances?lineage.queueId=q-1');
+    expect(existsSync('server/api/cassette-instances/index.get.js')).toBe(true);
     expect(domainUi.getSingleEndpoint('project', 'p-1')).toBe('/api/project/p-1');
     expect(domainUi.getAttachmentPreview('LAYOUT_DXF')).toEqual({ mode: 'dxf' });
     expect(domainUi.getDownloadEndpoint('artifact', 'a-1')).toBe('/api/artifacts/a-1');
