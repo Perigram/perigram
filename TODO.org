@@ -5,6 +5,17 @@
   [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
 
 *** Agent Notes
+     [2026-05-27] Add cassette instance list route for queue editor
+     Files changed: server/api/cassette-instances/index.get.js,
+       shared/framework-packages.spec.js
+     Docs updated: server/features/cassette-instances/README.md,
+       server/api/README.md
+     Notes: The framework metadata and QueueEditor already declared
+       `/api/cassette-instances` as the list endpoint. Added the missing Nitro
+       route and mapped `lineage.queueId` queries to the existing
+       cassette-instance `listByQueue` service so queue-scoped instance loads
+       no longer fall through to a 404.
+
      [2026-05-26] Keep workbench preview status transitions local
      Files changed: components/shared/status/EntityStatus.vue,
        pages/admin/workbench.vue, stores/workbenchFixtures.js,
