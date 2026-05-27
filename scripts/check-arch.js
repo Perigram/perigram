@@ -28,6 +28,7 @@ const IGNORE = ['_template', 'README.md', 'index.js'];
 const ENTITY_ROOT_ALIAS_FIELDS = ['id', 'name', 'slug', 'serial', 'reference', 'type', 'geometry', 'parameters'];
 const LEGACY_RAW_FIELD_PATTERN = /\braw\.(name|slug|serial|reference|type|geometry|parameters|metadata|organizationId|currentOrganizationId|warehouseId|params)\b/;
 const ROOT_TO_JSON_ALIAS_PATTERN = new RegExp(`\\b(${ENTITY_ROOT_ALIAS_FIELDS.join('|')}):\\s*this\\.`);
+const NUXT_ROOT_ALIAS_IMPORT_PATTERN = /(?:from\s+['"]~{1,2}\/|import\s*\(\s*['"]~{1,2}\/|require\s*\(\s*['"]~{1,2}\/)/;
 
 console.log('🚀 Starting Architectural Verification...');
 
@@ -205,6 +206,20 @@ dtoContractFiles.forEach(file => {
 });
 
 console.log('\nChecking golden architecture boundaries...');
+const portableRuntimeFiles = [
+  ...walkDir('shared').filter(file => /\.(js|ts|mjs|cjs)$/.test(file)),
+  ...walkDir('test-data').filter(file => /\.(js|ts|mjs|cjs)$/.test(file) && !file.endsWith('.spec.js')),
+  ...walkDir('packages').filter(file => /\.(js|ts|mjs|cjs)$/.test(file) && !file.endsWith('.spec.js'))
+];
+portableRuntimeFiles.forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  const relFile = path.relative('.', file);
+  if (NUXT_ROOT_ALIAS_IMPORT_PATTERN.test(content)) {
+    console.error(`❌ ${relFile} uses Nuxt root alias in a portable runtime module — use package names or relative imports`);
+    errors++;
+  }
+});
+
 const jsFiles = [
   ...walkDir('server').filter(file => file.endsWith('.js')),
   ...walkDir('components').filter(file => file.endsWith('.vue')),
