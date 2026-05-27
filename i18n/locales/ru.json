@@ -805,9 +805,21 @@
       "noCitationsDescription": "Запустите переиндексацию или задайте вопрос, совпадающий с документацией приложения.",
       "answer": "Ответ",
       "tabs": {
+        "preview": "Предпросмотр",
         "summary": "Сводка",
         "files": "Файлы",
         "domain": "Домен"
+      },
+      "preview": {
+        "title": "Предпросмотр",
+        "components": "Созданные компоненты",
+        "component": "Компонент",
+        "componentCount": "Компонентов: {count}",
+        "draftComponent": "Черновик компонента",
+        "noComponents": "Компоненты не выбраны",
+        "workflows": "Созданные workflow",
+        "transitionCount": "Переходов: {count}",
+        "noWorkflows": "Workflow не выбраны"
       },
       "errors": {
         "loadDomainFailed": "Не удалось загрузить сущности домена",

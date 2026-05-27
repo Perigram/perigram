@@ -26,7 +26,11 @@
         />
       </div>
 
-      <Panel v-if="activeTab === 'summary'" :header="$t('admin.configBot.packageSummary')">
+      <Panel v-if="activeTab === 'preview'" :header="$t('admin.configBot.preview.title')">
+        <ConfigBotGeneratedPreview :draft-package="draftPackage" />
+      </Panel>
+
+      <Panel v-else-if="activeTab === 'summary'" :header="$t('admin.configBot.packageSummary')">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div class="flex flex-col gap-1">
             <span>{{ $t('admin.configBot.target') }}</span>
@@ -83,6 +87,7 @@ import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
+import ConfigBotGeneratedPreview from '~/components/config-bot/ConfigBotGeneratedPreview.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 
@@ -90,6 +95,6 @@ defineProps({
   draftPackage: { type: Object, default: null }
 });
 
-const tabs = ['summary', 'files', 'domain'];
-const activeTab = ref('summary');
+const tabs = ['preview', 'summary', 'files', 'domain'];
+const activeTab = ref('preview');
 </script>

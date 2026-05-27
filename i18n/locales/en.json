@@ -805,9 +805,21 @@
       "noCitationsDescription": "Run reindex or ask a question that matches app documentation.",
       "answer": "Answer",
       "tabs": {
+        "preview": "Preview",
         "summary": "Summary",
         "files": "Files",
         "domain": "Domain"
+      },
+      "preview": {
+        "title": "Preview",
+        "components": "Generated components",
+        "component": "Component",
+        "componentCount": "{count} components",
+        "draftComponent": "Draft component",
+        "noComponents": "No components selected",
+        "workflows": "Generated workflows",
+        "transitionCount": "{count} transitions",
+        "noWorkflows": "No workflows selected"
       },
       "errors": {
         "loadDomainFailed": "Failed to load domain entities",
