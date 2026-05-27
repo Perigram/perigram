@@ -8,11 +8,10 @@ import { actionToLevel, hasPermissionGrant } from '~/shared/access-control.js';
  */
 export const UI_PERMISSIONS = PERMISSION_TEMPLATES;
 
-export function resolveUiPermission(role, feature, action, context = {}) {
+export function resolveUiPermission(_role, feature, action, context = {}) {
   if (!feature || !action) return false;
-  if (role === 'SuperAdmin') return true;
 
-  const permissions = context.permissions || PERMISSION_TEMPLATES[role] || {};
+  const permissions = context.permissions || {};
   return hasPermissionGrant({
     permissions,
     feature,

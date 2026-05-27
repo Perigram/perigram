@@ -55,7 +55,6 @@ describe('Material Batch & Sheet Allocation', () => {
     userId: 'user1',
     organizationId: new ObjectId(),
     organizationData: { type: 'Manufacturer' },
-    role: 'ManufacturerAdmin',
     permissions: null
   };
 
@@ -81,7 +80,7 @@ describe('Material Batch & Sheet Allocation', () => {
       quantity: 10
     };
 
-    const result = await batchService.create(data, mockManufacturer.userId, mockManufacturer.organizationId, mockManufacturer.role, mockManufacturer.permissions);
+    const result = await batchService.create(data, mockManufacturer.userId, mockManufacturer.organizationId, null, mockManufacturer.permissions);
     
     expect(result).toBeDefined();
     expect(result.status.state).toBe('STOCKED');

@@ -11,7 +11,7 @@
                         <span class="font-mono">{{ authStore.userData?.id }}</span>
                     </div>
                     <div class="grid grid-cols-2">
-                        <span class="opacity-60">{{ $t('billing.role') }}:</span>
+                        <span class="opacity-60">{{ $t('auth.accessPreset') }}:</span>
                         <span class="font-bold text-primary">{{ authStore.userData?.role }}</span>
                     </div>
                     <div class="grid grid-cols-2">
@@ -70,17 +70,15 @@ definePageMeta({
 const authStore = useAuthStore();
 
 const myPermissions = computed(() => {
-    const role = authStore.userData?.role;
-    if (!role) return {};
-    
-    // Flatten the matrix for this role to show what they have
-    const matrix = UI_PERMISSIONS[role] || {};
+    const matrix = authStore.activePermissions || {};
     const result = {};
     
     for (const [feature, grants] of Object.entries(matrix)) {
         result[feature] = {};
         for (const action of diagnosticActions(grants)) {
-            result[feature][action] = resolveUiPermission(role, feature, action);
+            result[feature][action] = resolveUiPermission(null, feature, action, {
+                permissions: matrix
+            });
         }
     }
     return result;

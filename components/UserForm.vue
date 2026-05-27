@@ -13,11 +13,11 @@
             <Password v-model="form.password" :feedback="false" toggleMask />
         </div>
         <div class="flex flex-col gap-2">
-            <label>{{ $t('billing.role') }}</label>
+            <label>{{ $t('auth.accessPreset') }}</label>
             <Select 
                 v-model="form.role" 
                 :options="roles" 
-                :placeholder="$t('auth.selectRole')" 
+                :placeholder="$t('auth.selectAccessPreset')" 
             />
         </div>
         <div class="flex justify-end gap-2 mt-4">

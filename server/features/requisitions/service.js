@@ -3,6 +3,7 @@ import * as catalogRepository from '../catalogs/repository.js';
 import * as colorRepository from '../colors/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
+import { hasPermissionGrant } from '~/shared/access-control.js';
 import { ObjectId } from 'mongodb';
 import { createIdentity, createStatus, inheritLineage, createData } from '~/server/core/blocks/index.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
@@ -26,10 +27,6 @@ function toDTO(requisition) {
 }
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
-  if (userRole?.includes('Manufacturer')) {
-    throw createError({ statusCode: 403, message: 'Only contractors can create requisitions' });
-  }
-
   if (!data.manufacturerId || !data.items || data.items.length === 0) {
     throw createError({ statusCode: 400, message: 'ManufacturerId and items required' });
   }
@@ -75,7 +72,15 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   };
 
   // Verify permissions
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, requisitionData.lineage, 'requisitions', 'write')) {
+  if (!hasPermissionGrant({
+    permissions: permissionsForOrganization(userPermissions, userOrg),
+    feature: 'requisitions',
+    action: 'create',
+    entity: { lineage: requisitionData.lineage }
+  })) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, requisitionData.lineage, 'requisitions', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -83,8 +88,13 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   return toDTO(requisition);
 }
 
+function permissionsForOrganization(auth = {}, organizationId) {
+  const membership = (auth.memberships || []).find(item => item.organizationId?.toString() === organizationId?.toString());
+  return membership?.permissions || auth.permissions || {};
+}
+
 export async function list(userId, userOrg, userRole, userPermissions) {
-  const filter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
+  const filter = getLineageFilter({ memberships: userPermissions.memberships });
   // Add specific filter to see either as contractor (organizationId) or manufacturer (manufacturerId)
   const orgId = new ObjectId(userOrg);
   filter.$or = [
@@ -100,7 +110,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
   const requisition = await repository.findById(id);
   if (!requisition) throw createError({ statusCode: 404, message: 'Requisition not found' });
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, requisition.lineage, 'requisitions', 'read')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, requisition.lineage, 'requisitions', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -111,7 +121,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
     const requisition = await repository.findById(id);
     if (!requisition) throw createError({ statusCode: 404, message: 'Requisition not found' });
     
-    if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, requisition.lineage, 'requisitions', 'write')) {
+    if (!hasLineagePermission({ memberships: userPermissions.memberships }, requisition.lineage, 'requisitions', 'write')) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
     }
 
@@ -171,7 +181,7 @@ export async function cancel(id, userId, userOrg, userRole, userPermissions) {
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
     const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
-    if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, requisition.lineage, 'requisitions', 'admin')) {
+    if (!hasLineagePermission({ memberships: userPermissions.memberships }, requisition.lineage, 'requisitions', 'admin')) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
     }
     return await repository.deleteById(id);

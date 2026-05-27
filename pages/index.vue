@@ -21,7 +21,7 @@ onMounted(async () => {
   }
 
   if (userIsSet.value) {
-    if (authStore.isSuperAdmin) {
+    if (authStore.hasPermission('organizations', 'admin')) {
       router.push('/admin/organizations');
     } else if (authStore.isManufacturer) {
       router.push('/warehouses');

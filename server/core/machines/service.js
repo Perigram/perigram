@@ -217,9 +217,11 @@ export function createTransitionAuth(userId, userRoleOrAuth, userPermissions = {
     };
   }
 
+  const system = userRoleOrAuth === 'SYSTEM' || userPermissions?.system === true || (!userId && !userRoleOrAuth);
   return {
     userId,
-    role: userRoleOrAuth || userPermissions?.role || 'SYSTEM',
+    system,
+    role: system ? 'SYSTEM' : userRoleOrAuth || userPermissions?.role || null,
     organizationId: userPermissions?.organizationId,
     memberships: userPermissions?.memberships || [],
     permissions: userPermissions?.permissions || {}

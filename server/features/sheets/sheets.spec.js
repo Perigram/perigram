@@ -45,8 +45,7 @@ describe('Sheet Lifecycle & Milling', () => {
 
   const mockUser = {
     userId: 'user1',
-    organizationId: new ObjectId(),
-    role: 'ContractorAdmin'
+    organizationId: new ObjectId()
   };
 
   it('should complete milling and update warehouse stock', async () => {

@@ -44,7 +44,6 @@ describe('Requisition Lifecycle', () => {
     userId: 'user1',
     organizationId: new ObjectId(),
     organizationData: { type: 'Contractor' },
-    role: 'ContractorAdmin',
     permissions: null
   };
 
@@ -83,7 +82,7 @@ describe('Requisition Lifecycle', () => {
       }]
     };
 
-    const result = await requisitionService.create(data, mockContractor.userId, mockContractor.organizationId, mockContractor.role, mockContractor.permissions);
+    const result = await requisitionService.create(data, mockContractor.userId, mockContractor.organizationId, null, mockContractor.permissions);
     
     expect(result).toBeDefined();
     expect(result.status.state).toBe('DRAFT');
@@ -91,9 +90,45 @@ describe('Requisition Lifecycle', () => {
     expect(result).not.toHaveProperty('items');
   });
 
-  it('should fail if non-contractor tries to create requisition', async () => {
-    await expect(requisitionService.create({}, mockContractor.userId, mockContractor.organizationId, 'ManufacturerAdmin', mockContractor.permissions))
-      .rejects.toThrow('Only contractors can create requisitions');
+  it('should fail if requisition creation action is denied', async () => {
+    const catalogId = new ObjectId();
+    const colorId = new ObjectId();
+
+    await db.collection('catalogs').insertOne({
+      _id: catalogId,
+      identity: { uid: catalogId, name: 'Test Catalog' },
+      data: { material: 'Aluminum' }
+    });
+
+    await db.collection('colors').insertOne({
+      _id: colorId,
+      identity: { uid: colorId, name: 'Silver' },
+      lineage: { catalogId },
+      data: { pricing: { pricePerSqm: 100 } }
+    });
+
+    const deniedPermissions = {
+      memberships: [{
+        organizationId: mockContractor.organizationId,
+        permissions: {
+          requisitions: { level: 'admin', actions: { create: false } },
+          materials: 'admin'
+        }
+      }]
+    };
+
+    await expect(requisitionService.create({
+      manufacturerId: mockManufacturerId.toString(),
+      items: [{
+        catalogId: catalogId.toString(),
+        colorId: colorId.toString(),
+        sheetThickness: 3,
+        width: 1000,
+        length: 1000,
+        quantity: 5
+      }]
+    }, mockContractor.userId, mockContractor.organizationId, null, deniedPermissions))
+      .rejects.toThrow('Permission denied');
   });
 
   it('should progress status from draft to sent', async () => {
@@ -106,7 +141,7 @@ describe('Requisition Lifecycle', () => {
       data: { items: [] }
     });
 
-    const result = await requisitionService.send(reqId.toString(), mockContractor.userId, mockContractor.organizationId, mockContractor.role, mockContractor.permissions);
+    const result = await requisitionService.send(reqId.toString(), mockContractor.userId, mockContractor.organizationId, null, mockContractor.permissions);
     expect(result.state).toBe('SENT');
   });
 });

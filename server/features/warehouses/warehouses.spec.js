@@ -46,7 +46,6 @@ describe('Warehouse & Inventory Counting', () => {
   const mockUser = {
     userId: 'user1',
     organizationId: new ObjectId(),
-    role: 'ContractorAdmin',
     permissions: null
   };
 
@@ -68,7 +67,7 @@ describe('Warehouse & Inventory Counting', () => {
     const warehouse = await warehouseService.create({
       name: 'South Warehouse',
       organizationId: mockUser.organizationId.toString()
-    }, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
+    }, mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
 
     const warehouseId = warehouse._id.toString();
 
@@ -92,11 +91,11 @@ describe('Warehouse & Inventory Counting', () => {
     const warehouse = await warehouseService.create({
       name: 'Busy Warehouse',
       organizationId: mockUser.organizationId.toString()
-    }, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
+    }, mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
     
     await warehouseService.updateInventoryCounts(warehouse._id.toString(), { totalSheets: 1 });
 
-    await expect(warehouseService.remove(warehouse._id.toString(), mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions))
+    await expect(warehouseService.remove(warehouse._id.toString(), mockUser.userId, mockUser.organizationId, null, mockUser.permissions))
       .rejects.toThrow(/Cannot delete warehouse with inventory/);
   });
 });

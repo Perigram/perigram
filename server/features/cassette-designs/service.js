@@ -29,7 +29,7 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
   if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
 
   // 1. Permission Check
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, queue.lineage, 'projects', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue.lineage, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -65,7 +65,7 @@ export async function getById(id, userId, userRole, userPermissions) {
 
   const design = new CassetteDesign(raw);
 
-  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'read')) {
+  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships }, design.lineage, 'projects', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -73,18 +73,17 @@ export async function getById(id, userId, userRole, userPermissions) {
 }
 
 export async function getByTemplateId(templateId, userId, userOrg, userRole, userPermissions) {
-  const filter = { 'lineage.templateId': toFlexibleId(templateId) };
-  if (userRole !== 'SuperAdmin') {
-    const targetOrgId = userOrg || userId;
-    filter['lineage.organizationId'] = toFlexibleId(targetOrgId);
-  }
+  const filter = {
+    ...getLineageFilter({ memberships: userPermissions.memberships }),
+    'lineage.templateId': toFlexibleId(templateId)
+  };
 
   const designs = await repository.find(filter);
   return toDTO(designs[0]) || null;
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
+  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships });
 
   const processedFilter = { ...filter };
   if (processedFilter.queueId) {
@@ -106,7 +105,7 @@ export async function update(id, updates, userId, userRole, userPermissions) {
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   const design = new CassetteDesign(raw);
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, design.lineage, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -135,7 +134,7 @@ export async function remove(id, userId, userRole, userPermissions) {
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   const design = new CassetteDesign(raw);
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, design.lineage, 'projects', 'admin')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, design.lineage, 'projects', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 

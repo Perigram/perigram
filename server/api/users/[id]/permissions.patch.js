@@ -9,11 +9,5 @@ export default defineEventHandler(async (event) => {
   const userId = event.context.params.id;
   const { permissions } = await readBody(event);
   
-  return await usersService.updatePermissions(
-    userId, 
-    permissions, 
-    auth.userId, 
-    auth.role, 
-    auth.organizationId
-  );
+  return await usersService.updatePermissions(userId, permissions, auth);
 });

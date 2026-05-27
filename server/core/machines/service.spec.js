@@ -19,7 +19,6 @@ import { statusService } from './service.js';
 
 const transitionAuth = {
   userId: 'operator-1',
-  role: 'ContractorAdmin',
   memberships: [{ organizationId: 'org-1', permissions: { projects: 'write' } }],
   permissions: { projects: 'write' }
 };
@@ -58,7 +57,6 @@ describe('status service lifecycle payloads', () => {
 
     await statusService.transition('cassetteTemplate', 'cassette-1', 'ARCHIVED', 'admin-1', {
       userId: 'admin-1',
-      role: 'ContractorAdmin',
       memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }]
     });
 
@@ -77,12 +75,10 @@ describe('status service lifecycle payloads', () => {
 
     const allowed = await statusService.getActions('cassette', 'cassette-2', {
       userId: 'admin-1',
-      role: 'ContractorAdmin',
       memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }]
     });
     const denied = await statusService.getActions('cassette', 'cassette-2', {
       userId: 'viewer-1',
-      role: 'ContractorUser',
       memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'read' } }]
     });
 

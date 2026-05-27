@@ -1,12 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assertConfigBotAccess,
   createConfigBotDraftPackage,
   createConfigBotManifest,
   selectEntitiesForPrompt
 } from './service.js';
 
 describe('ConfigBot draft generation', () => {
-  it('selects entities from the prompt and context without role-name branching', () => {
+  it('authorizes with explicit config_bot grants only', () => {
+    expect(() => assertConfigBotAccess({
+      userId: 'config-admin',
+      permissions: { config_bot: 'admin' }
+    })).not.toThrow();
+
+    expect(() => assertConfigBotAccess({
+      userId: 'user-admin',
+      permissions: { users: 'admin' }
+    })).toThrow(/ConfigBot access denied/);
+  });
+
+  it('selects entities from the prompt and context without preset-name branching', () => {
     const manifest = createConfigBotManifest();
     const entities = selectEntitiesForPrompt('Create a queue nesting run review page', manifest, {
       entityType: 'sheet_design'

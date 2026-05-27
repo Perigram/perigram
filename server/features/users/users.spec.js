@@ -92,7 +92,7 @@ describe('User Management & Auth', () => {
       lineage: { organizationId: org1 },
       data: {
       memberships: [
-        { organizationId: org1, role: 'ContractorAdmin', permissions: {} },
+        { organizationId: org1, role: 'IndividualUser', permissions: {} },
         { organizationId: org2, role: 'IndividualUser', permissions: {} }
       ]
       }
@@ -104,26 +104,26 @@ describe('User Management & Auth', () => {
     expect(updatedUser.toJSON().data.role).toBe('IndividualUser');
   });
 
-  it('materializes missing role preset permissions without overriding explicit custom grants', () => {
+  it('does not expand preset labels into permissions when loading users', () => {
     const orgId = new ObjectId();
     const user = new User({
       _id: 'user-legacy',
       identity: { uid: 'user-legacy', name: 'Legacy User' },
       data: {
-        role: 'ContractorAdmin',
+        role: 'IndividualUser',
         permissions: { queues: 'admin' },
         memberships: [{
           organizationId: orgId,
-          role: 'ContractorAdmin',
+          role: 'IndividualUser',
           permissions: { queues: 'admin', artifacts: 'none' }
         }]
       }
     });
 
     expect(user.permissions.queues).toBe('admin');
-    expect(user.permissions.nesting_runs).toBe('admin');
-    expect(user.permissions.artifacts).toBe('admin');
-    expect(user.memberships[0].permissions.nesting_runs).toBe('admin');
+    expect(user.permissions.nesting_runs).toBeUndefined();
+    expect(user.permissions.artifacts).toBeUndefined();
+    expect(user.memberships[0].permissions.nesting_runs).toBeUndefined();
     expect(user.memberships[0].permissions.artifacts).toBe('none');
   });
 

@@ -27,7 +27,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     }
   });
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, color.lineage, 'catalogs', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, color.lineage, 'catalogs', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -54,7 +54,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   if (!raw) throw createError({ statusCode: 404, message: 'Color not found' });
   const color = new Color(raw);
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, color.lineage, 'catalogs', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, color.lineage, 'catalogs', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -69,7 +69,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   const color = await getById(uid);
   if (!color) throw createError({ statusCode: 404, message: 'Color not found' });
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, color.lineage, 'catalogs', 'admin')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, color.lineage, 'catalogs', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return await repository.deleteById(uid);

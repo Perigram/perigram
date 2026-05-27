@@ -1,19 +1,4 @@
 export const PERMISSION_TEMPLATES = {
-  SuperAdmin: {
-    projects: 'admin',
-    queues: 'admin',
-    nesting_runs: 'admin',
-    artifacts: 'admin',
-    cassettes: 'admin',
-    warehouses: 'admin',
-    catalogs: 'admin',
-    requisitions: 'admin',
-    materials: 'admin',
-    users: 'admin',
-    organizations: 'admin',
-    config_bot: 'admin'
-  },
-
   ManufacturerAdmin: {
     projects: 'none',
     queues: { level: 'read', actions: { view: true, edit: false } },

@@ -13,7 +13,7 @@ export function assertEntityAccess({ entity, entityType, feature = entityType, l
 export function assertCommandAccess({ command, action = command, entities = {}, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
   const access = action?.access || {};
-  if (auth.role === 'SYSTEM' && access.system === true) return true;
+  if (isSystemAuth(auth) && access.system === true) return true;
 
   const entityList = Object.values(entities).filter(Boolean);
   const lineageEntity = entityList.find(entity => entity?.lineage) || entityList[0];
@@ -34,7 +34,7 @@ export function assertCommandAccess({ command, action = command, entities = {}, 
 export function assertTransitionAccess({ transition, entity, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
   const access = transition?.access || {};
-  if (auth.role === 'SYSTEM' && access.system === true) return true;
+  if (isSystemAuth(auth) && access.system === true) return true;
 
   for (const requirement of access.permissions || []) {
     if (!hasEntityAccess({
@@ -52,7 +52,6 @@ export function assertTransitionAccess({ transition, entity, auth }) {
 }
 
 export function createLineageFilter(auth) {
-  if (auth?.role === 'SuperAdmin') return {};
   const orgIds = (auth?.memberships || [])
     .map(membership => membership.organizationId ? toFlexibleId(membership.organizationId) : null)
     .filter(Boolean);
@@ -61,7 +60,6 @@ export function createLineageFilter(auth) {
 
 export function hasEntityAccess({ entity, feature, level = 'read', auth, entityType = null, transition = null }) {
   if (!auth || !feature) return false;
-  if (auth.role === 'SuperAdmin') return true;
 
   const orgId = entity?.lineage?.organizationId?.toString();
   const membership = orgId
@@ -69,4 +67,8 @@ export function hasEntityAccess({ entity, feature, level = 'read', auth, entityT
     : (auth.memberships || [])[0];
   const permissions = membership?.permissions || auth.permissions || {};
   return hasPermissionGrant({ permissions, feature, level, entity, entityType, transition });
+}
+
+function isSystemAuth(auth = {}) {
+  return auth.system === true || auth.userId === 'SYSTEM';
 }

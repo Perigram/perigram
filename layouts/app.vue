@@ -152,11 +152,6 @@
                         label: `${t('queue.status')}: ${authStore.organizationData.data?.type}`,
                         icon: 'pi pi-info-circle',
                         disabled: true
-                    },
-                    {
-                        label: `Role: ${authStore.userData.role}`,
-                        icon: 'pi pi-shield',
-                        disabled: true
                     }
                 ]
             });
@@ -199,37 +194,48 @@
             ]
         });
 
-        // 4. Admin sections (if SuperAdmin)
-        if (authStore.isSuperAdmin) {
+        // 4. Admin sections
+        const adminItems = [];
+        if (authStore.hasPermission('workbench', 'admin')) {
+            adminItems.push({
+                label: t('admin.workbench.title'),
+                icon: 'pi pi-wrench',
+                command: () => router.push('/admin/workbench')
+            });
+        }
+        if (authStore.hasPermission('users', 'admin')) {
+            adminItems.push({
+                label: t('features.users'),
+                icon: 'pi pi-users',
+                command: () => router.push('/admin/users')
+            });
+        }
+        if (authStore.hasPermission('organizations', 'admin')) {
+            adminItems.push({
+                label: t('features.organizations'),
+                icon: 'pi pi-building',
+                command: () => router.push('/admin/organizations')
+            });
+        }
+        if (authStore.hasPermission('domain_builder', 'admin')) {
+            adminItems.push({
+                label: t('admin.domainBuilder.title'),
+                icon: 'pi pi-sitemap',
+                command: () => router.push('/admin/domain-builder')
+            });
+        }
+        if (authStore.hasPermission('config_bot', 'admin')) {
+            adminItems.push({
+                label: t('admin.configBot.title'),
+                icon: 'pi pi-sparkles',
+                command: () => router.push('/admin/config-bot')
+            });
+        }
+
+        if (adminItems.length > 0) {
             items.push({
-                label: t('roles.SuperAdmin'),
-                items: [
-                    {
-                        label: t('admin.workbench.title'),
-                        icon: 'pi pi-wrench',
-                        command: () => router.push('/admin/workbench')
-                    },
-                    {
-                        label: t('features.users'),
-                        icon: 'pi pi-users',
-                        command: () => router.push('/admin/users')
-                    },
-                    {
-                        label: t('features.organizations'),
-                        icon: 'pi pi-building',
-                        command: () => router.push('/admin/organizations')
-                    },
-                    {
-                        label: t('admin.domainBuilder.title'),
-                        icon: 'pi pi-sitemap',
-                        command: () => router.push('/admin/domain-builder')
-                    },
-                    {
-                        label: t('admin.configBot.title'),
-                        icon: 'pi pi-sparkles',
-                        command: () => router.push('/admin/config-bot')
-                    }
-                ]
+                label: t('nav.admin'),
+                items: adminItems
             });
         }
 

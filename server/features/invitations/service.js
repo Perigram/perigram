@@ -4,15 +4,20 @@ import * as organizationsRepository from '../organizations/repository.js';
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import crypto from 'node:crypto';
-import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
+import { materializeRolePermissions } from '../users/permission-templates.js';
+import { hasEntityAccess } from '../../core/access/service.js';
 import { addStatus, initializeStatus } from '~/server/features/statuses/service';
 
 export async function generateInvitation(organizationId, role, creatorUser) {
   const org = await organizationsRepository.findById(organizationId);
   if (!org) throw createError({ statusCode: 404, message: 'Organization not found' });
 
-  // Only org admins can generate invitations
-  if (creatorUser.role !== 'SuperAdmin' && creatorUser.organizationId.toString() !== organizationId.toString()) {
+  if (!hasEntityAccess({
+    entity: { lineage: { organizationId } },
+    feature: 'users',
+    level: 'write',
+    auth: creatorUser
+  })) {
     throw createError({ statusCode: 403, message: 'Forbidden' });
   }
 
@@ -67,7 +72,7 @@ async function processJoin(invitation, user) {
   }
 
   const role = invitation.role;
-  const permissions = PERMISSION_TEMPLATES[role] || PERMISSION_TEMPLATES.IndividualUser;
+  const permissions = materializeRolePermissions(role);
 
   // Add membership as PENDING
   const newMembership = {

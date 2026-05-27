@@ -59,7 +59,7 @@ describe('Cassette Management & Ownership', () => {
 
   it('should create a standard cassette', async () => {
     const data = { name: 'Standard Unit', type: 'STANDARD' };
-    const result = await cassetteService.create(data, user1.userId, user1.organizationId, 'ContractorAdmin', user1.permissions);
+    const result = await cassetteService.create(data, user1.userId, user1.organizationId, null, user1.permissions);
 
     expect(result.identity.name).toBe('Standard Unit');
     expect(result.data.type).toBe('STANDARD');
@@ -75,7 +75,7 @@ describe('Cassette Management & Ownership', () => {
         params: { width: 100, height: 200 }
       }
     };
-    const result = await cassetteService.create(data, user1.userId, user1.organizationId, 'ContractorAdmin', user1.permissions);
+    const result = await cassetteService.create(data, user1.userId, user1.organizationId, null, user1.permissions);
 
     expect(result.data.type).toBe('PARAMETRIC');
     expect(result.data.definition.params.width).toBe(100);
@@ -83,27 +83,26 @@ describe('Cassette Management & Ownership', () => {
   });
 
   it('should deny access to cassettes owned by other users', async () => {
-    const cassette = await cassetteService.create({ name: 'Private Template' }, user1.userId, user1.organizationId, 'ContractorAdmin', user1.permissions);
+    const cassette = await cassetteService.create({ name: 'Private Template' }, user1.userId, user1.organizationId, null, user1.permissions);
 
     await expect(cassetteService.getById(
       cassette._id.toString(), 
       user2.userId, 
       user2.organizationId, 
-      'ContractorAdmin', 
+      null, 
       user2.permissions
     )).rejects.toThrow(/Permission denied/);
   });
 
-  it('should allow SuperAdmin to access any cassette', async () => {
-    const cassette = await cassetteService.create({ name: 'User 1 Template' }, user1.userId, user1.organizationId, 'ContractorAdmin', user1.permissions);
+  it('should deny unscoped access without matching membership', async () => {
+    const cassette = await cassetteService.create({ name: 'User 1 Template' }, user1.userId, user1.organizationId, null, user1.permissions);
 
-    const result = await cassetteService.getById(
+    await expect(cassetteService.getById(
       cassette._id.toString(), 
-      'admin-id', 
+      'observer-id', 
       null, 
-      'SuperAdmin', 
+      null, 
       { memberships: [] }
-    );
-    expect(result.identity.name).toBe('User 1 Template');
+    )).rejects.toThrow(/Permission denied/);
   });
 });

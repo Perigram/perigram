@@ -46,7 +46,6 @@ describe('Production Queues & Nesting Status', () => {
   const mockUser = {
     userId: 'user1',
     organizationId: new ObjectId(),
-    role: 'ContractorAdmin',
     permissions: null
   };
 
@@ -68,7 +67,7 @@ describe('Production Queues & Nesting Status', () => {
       projectId,
       job: { items: [{ entryId: 'E1', cassetteTemplateId: new ObjectId().toString(), quantity: 10 }] }
     };
-    const result = await queueService.create(data, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
+    const result = await queueService.create(data, mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
 
     expect(result.identity.name).toBe('Morning Shift Run');
     expect(result).not.toHaveProperty('name');
@@ -85,7 +84,7 @@ describe('Production Queues & Nesting Status', () => {
       status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} }
     });
 
-    await expect(queueService.markCut(queueId.toString(), mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions))
+    await expect(queueService.markCut(queueId.toString(), mockUser.userId, mockUser.organizationId, null, mockUser.permissions))
       .rejects.toThrow(/No run chosen/);
 
     await db.collection('nesting_runs').insertOne({
@@ -94,7 +93,7 @@ describe('Production Queues & Nesting Status', () => {
       status: { state: 'CHOSEN' }
     });
 
-    const result = await queueService.markCut(queueId.toString(), mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
+    const result = await queueService.markCut(queueId.toString(), mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
     expect(result.status.state).toBe('CUT');
   });
 });

@@ -36,7 +36,7 @@ export async function getById(uid, userId, userRole, userPermissions) {
  * Standard List
  */
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
+  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships });
   const finalFilter = { ...lineageFilter, ...filter };
   
   const raws = await repository.find(finalFilter);

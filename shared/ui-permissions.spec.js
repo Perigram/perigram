@@ -1,54 +1,59 @@
 import { describe, it, expect } from 'vitest';
+import { PERMISSION_TEMPLATES } from './permission-templates.js';
 import { resolveUiPermission } from './ui-permissions.js';
 
 describe('UI Permission Matrix', () => {
-    describe('ManufacturerAdmin', () => {
-        const role = 'ManufacturerAdmin';
+    describe('manufacturer preset grants', () => {
+        const permissions = PERMISSION_TEMPLATES.ManufacturerAdmin;
 
         it('should be able to manage own catalogs', () => {
-            expect(resolveUiPermission(role, 'catalogs', 'create')).toBe(true);
-            expect(resolveUiPermission(role, 'catalogs', 'edit')).toBe(true);
+            expect(resolveUiPermission(null, 'catalogs', 'create', { permissions })).toBe(true);
+            expect(resolveUiPermission(null, 'catalogs', 'edit', { permissions })).toBe(true);
         });
 
         it('should NOT be able to create requisitions (Contractor job)', () => {
-            expect(resolveUiPermission(role, 'requisitions', 'create')).toBe(false);
+            expect(resolveUiPermission(null, 'requisitions', 'create', { permissions })).toBe(false);
         });
 
         it('should be able to fulfill requisitions', () => {
-            expect(resolveUiPermission(role, 'requisitions', 'fulfill')).toBe(true);
+            expect(resolveUiPermission(null, 'requisitions', 'fulfill', { permissions })).toBe(true);
         });
 
         it('should be able to view contractor warehouses (for shipping)', () => {
-            expect(resolveUiPermission(role, 'warehouses', 'view_contractors')).toBe(true);
+            expect(resolveUiPermission(null, 'warehouses', 'view_contractors', { permissions })).toBe(true);
         });
     });
 
-    describe('ContractorAdmin', () => {
-        const role = 'ContractorAdmin';
+    describe('contractor preset grants', () => {
+        const permissions = PERMISSION_TEMPLATES.ContractorAdmin;
 
         it('should be able to create requisitions', () => {
-            expect(resolveUiPermission(role, 'requisitions', 'create')).toBe(true);
+            expect(resolveUiPermission(null, 'requisitions', 'create', { permissions })).toBe(true);
         });
 
         it('should be able to view all catalogs (to buy)', () => {
-            expect(resolveUiPermission(role, 'catalogs', 'view_all')).toBe(true);
+            expect(resolveUiPermission(null, 'catalogs', 'view_all', { permissions })).toBe(true);
         });
 
         it('should NOT be able to create catalogs', () => {
-            expect(resolveUiPermission(role, 'catalogs', 'create')).toBe(false);
+            expect(resolveUiPermission(null, 'catalogs', 'create', { permissions })).toBe(false);
         });
     });
 
-    describe('SuperAdmin', () => {
-        it('should have access to everything', () => {
-            expect(resolveUiPermission('SuperAdmin', 'catalogs', 'create')).toBe(true);
-            expect(resolveUiPermission('SuperAdmin', 'anything', 'random')).toBe(true);
+    describe('explicit grants', () => {
+        it('should allow access from decomposed permissions without a role bypass', () => {
+            expect(resolveUiPermission(null, 'config_bot', 'admin', {
+                permissions: { config_bot: 'admin' }
+            })).toBe(true);
+            expect(resolveUiPermission(null, 'anything', 'random', {
+                permissions: { config_bot: 'admin' }
+            })).toBe(false);
         });
     });
 
-    describe('Unknown Role', () => {
+    describe('missing grants', () => {
         it('should deny everything', () => {
-            expect(resolveUiPermission('Hacker', 'catalogs', 'create')).toBe(false);
+            expect(resolveUiPermission(null, 'catalogs', 'create', { permissions: {} })).toBe(false);
             expect(resolveUiPermission(null, 'catalogs', 'create')).toBe(false);
         });
     });

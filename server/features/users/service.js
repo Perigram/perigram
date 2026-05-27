@@ -2,11 +2,12 @@ import * as usersRepository from './repository.js';
 import * as sessionsRepository from '../sessions/repository.js';
 import { hashPassword, verifyPassword, generateSession, generateAccessToken } from '../../utils/auth-helpers.js';
 import { createError } from 'h3';
-import { PERMISSION_TEMPLATES } from './permission-templates.js';
+import { materializeRolePermissions } from './permission-templates.js';
 import { User } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { ObjectId } from 'mongodb';
+import { hasEntityAccess } from '../../core/access/service.js';
 
 /**
  * Users Service - v24 Absolute Final
@@ -24,7 +25,7 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
     
     const passwordHash = await hashPassword(data.password);
     const role = data.role || 'IndividualUser';
-    const permissions = PERMISSION_TEMPLATES[role] || PERMISSION_TEMPLATES['IndividualUser'];
+    const permissions = materializeRolePermissions(role, data.permissions);
     
     const memberships = [];
     if (data.organizationId) {
@@ -123,7 +124,7 @@ export async function switchOrganization(userId, organizationId) {
 }
 
 export async function confirmMembership(userId, organizationId, action, updaterUser) {
-  if (updaterUser.role !== 'SuperAdmin' && updaterUser.organizationId?.toString() !== organizationId.toString()) {
+  if (!canManageUsersInOrganization(updaterUser, organizationId)) {
     throw createError({ statusCode: 403, message: 'Forbidden' });
   }
 
@@ -138,29 +139,27 @@ export async function confirmMembership(userId, organizationId, action, updaterU
   return { success: true };
 }
 
-export async function updatePermissions(userId, newPermissions, deleterId, userOrg, deleterRole, userPermissions) {
+export async function updatePermissions(userId, newPermissions, updaterAuth = {}) {
   const userRaw = await usersRepository.findById(userId);
   if (!userRaw) throw createError({ statusCode: 404, message: 'User not found' });
 
-  const isSuperAdmin = deleterRole === 'SuperAdmin';
-  const isInSameOrg = userRaw.data.memberships?.some(m => m.organizationId.toString() === userOrg?.toString());
-  const isAdminOfOrg = deleterRole.endsWith('Admin') && isInSameOrg;
+  const targetOrgId = getActiveOrganizationId(updaterAuth);
+  const isInSameOrg = targetOrgId && userRaw.data.memberships?.some(m => m.organizationId.toString() === targetOrgId.toString());
 
-  if (!isSuperAdmin && !isAdminOfOrg) {
+  if (!targetOrgId || !isInSameOrg || !canManageUsersInOrganization(updaterAuth, targetOrgId)) {
     throw createError({ statusCode: 403, message: 'Forbidden' });
   }
 
-  if (userOrg && isInSameOrg) {
-    await usersRepository.updateMembershipPermissions(userId, userOrg, newPermissions);
-  } else if (isSuperAdmin) {
-    await usersRepository.updateGlobalPermissions(userId, newPermissions);
-  }
-
+  await usersRepository.updateMembershipPermissions(userId, targetOrgId, newPermissions);
   return { success: true };
 }
 
 export async function list(userId, userOrg, userRole, userPermissions) {
-  const filter = userRole === 'SuperAdmin' ? {} : { "data.memberships.organizationId": toFlexibleId(userOrg) };
+  const auth = normalizeAuthFromArgs(userId, userOrg, userRole, userPermissions);
+  const orgIds = (auth.memberships || [])
+    .map(membership => membership.organizationId ? toFlexibleId(membership.organizationId) : null)
+    .filter(Boolean);
+  const filter = { "data.memberships.organizationId": { $in: orgIds } };
   const raws = await usersRepository.find(filter);
   return raws.map(raw => new User(raw));
 }
@@ -184,24 +183,39 @@ export async function update(uid, updates, userId, userRole) {
   return new User(updatedRaw);
 }
 
-export async function remove(uid, deleterId, userOrg, deleterRole, userPermissions) {
+export async function remove(uid, deleterAuth = {}) {
   const userRaw = await usersRepository.findById(uid);
   if (!userRaw) throw createError({ statusCode: 404, message: 'User not found' });
 
-  const isSuperAdmin = deleterRole === 'SuperAdmin';
-  const isInSameOrg = userOrg && userRaw.data.memberships?.some(m => m.organizationId.toString() === userOrg.toString());
-  const isAdminOfOrg = deleterRole.endsWith('Admin') && isInSameOrg;
+  const targetOrgId = getActiveOrganizationId(deleterAuth);
+  const isInSameOrg = targetOrgId && userRaw.data.memberships?.some(m => m.organizationId.toString() === targetOrgId.toString());
 
-  if (!isSuperAdmin && !isAdminOfOrg) {
+  if (!targetOrgId || !isInSameOrg || !canManageUsersInOrganization(deleterAuth, targetOrgId)) {
     throw createError({ statusCode: 403, message: 'Forbidden' });
   }
 
-  if (isSuperAdmin) {
-    await usersRepository.deleteById(uid);
-    await sessionsRepository.deleteByUserId(uid);
-  } else {
-    await usersRepository.removeMembership(uid, userOrg);
-  }
-
+  await usersRepository.removeMembership(uid, targetOrgId);
   return { success: true };
+}
+
+function getActiveOrganizationId(auth = {}) {
+  return auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+}
+
+function canManageUsersInOrganization(auth = {}, organizationId) {
+  return hasEntityAccess({
+    entity: { lineage: { organizationId } },
+    feature: 'users',
+    level: 'admin',
+    auth
+  });
+}
+
+function normalizeAuthFromArgs(userId, organizationId, role, auth = {}) {
+  return {
+    ...auth,
+    userId: auth.userId || userId,
+    organizationId: auth.organizationId || organizationId,
+    memberships: auth.memberships || []
+  };
 }

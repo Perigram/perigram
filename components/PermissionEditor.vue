@@ -73,17 +73,27 @@ const entities = computed(() => [
     { key: 'requisitions',  label: t('features.requisitions') },
     { key: 'materials',     label: t('features.materials') },
     { key: 'users',         label: t('features.users') },
-    { key: 'organizations', label: t('features.organizations') }
+    { key: 'organizations', label: t('features.organizations') },
+    { key: 'workbench',     label: t('admin.workbench.title') },
+    { key: 'domain_builder', label: t('admin.domainBuilder.title') },
+    { key: 'config_bot',    label: t('features.configBot') }
 ]);
 
-const localPermissions = ref({ ...props.permissions });
+const buildLocalPermissions = (permissions = {}) => ({
+    ...permissions,
+    ...Object.fromEntries(
+        entities.value.map(feature => [feature.key, permissions?.[feature.key] || 'none'])
+    )
+});
+
+const localPermissions = ref(buildLocalPermissions(props.permissions));
 
 watch(() => props.permissions, (newVal) => {
-    localPermissions.value = { ...newVal };
+    localPermissions.value = buildLocalPermissions(newVal);
 }, { deep: true });
 
 const reset = () => {
-    localPermissions.value = { ...props.permissions };
+    localPermissions.value = buildLocalPermissions(props.permissions);
 };
 
 const getIcon = (key) => {
@@ -96,7 +106,10 @@ const getIcon = (key) => {
         requisitions:  'pi pi-shopping-cart',
         materials:     'pi pi-box',
         users:         'pi pi-users',
-        organizations: 'pi pi-globe'
+        organizations: 'pi pi-globe',
+        workbench:     'pi pi-wrench',
+        domain_builder: 'pi pi-sitemap',
+        config_bot:    'pi pi-sparkles'
     };
     return iconMap[key] || 'pi pi-circle';
 };

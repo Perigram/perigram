@@ -50,7 +50,7 @@ export async function createFromPile(pileId, count, userId, userRole, userPermis
 }
 
 export async function allocateFromPile(pileId, count, user) {
-  const userPermissions = { memberships: user.memberships, role: user.role };
+  const userPermissions = { memberships: user.memberships };
   return await createFromPile(pileId, count, user.userId, user.role, userPermissions);
 }
 

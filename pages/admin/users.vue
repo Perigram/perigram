@@ -16,7 +16,7 @@
                     <span>{{ slotProps.data.data?.email }}</span>
                 </template>
             </Column>
-            <Column field="data.role" :header="$t('queue.status')" sortable>
+            <Column field="data.role" :header="$t('auth.accessPreset')" sortable>
                 <template #body="slotProps">
                     <Tag :value="$t(`roles.${slotProps.data.data?.role}`)" :severity="getRoleSeverity(slotProps.data.data?.role)" size="small" />
                 </template>
@@ -25,7 +25,7 @@
                 <template #body="slotProps">
                     <div class="flex flex-col gap-1">
                         <small class="text-muted-color">{{ activeMembership(slotProps.data)?.organizationId || $t('common.notAvailable') }}</small>
-                        <span>{{ activeMembership(slotProps.data)?.role || slotProps.data.data?.role }}</span>
+                        <span>{{ $t(`roles.${activeMembership(slotProps.data)?.role || slotProps.data.data?.role}`) }}</span>
                     </div>
                 </template>
             </Column>
@@ -122,7 +122,6 @@ const loadUsers = async () => {
 
 const getRoleSeverity = (role) => {
     switch (role) {
-        case 'SuperAdmin': return 'danger';
         case 'ManufacturerAdmin': return 'warning';
         case 'ContractorAdmin': return 'success';
         case 'CustomerAdmin': return 'info';
@@ -139,7 +138,7 @@ const permissionSummary = (user) => {
     const permissions = activeMembership(user)?.permissions || user?.data?.permissions || {};
     return Object.entries(permissions)
         .filter(([, level]) => level && level !== 'none')
-        .map(([feature, level]) => `${feature}:${level}`);
+        .map(([feature, level]) => `${feature}:${typeof level === 'string' ? level : level.level || 'custom'}`);
 };
 
 const openCreateUser = () => {

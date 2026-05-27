@@ -20,7 +20,7 @@ import { ObjectId } from 'mongodb';
 
 export async function createFromSheet(sheet, designs, userId, userRole, userPermissions) {
   // 1. Permission Check
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, sheet.lineage, 'projects', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, sheet.lineage, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -61,14 +61,14 @@ export async function createFromSheet(sheet, designs, userId, userRole, userPerm
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, options = {}) {
-  const filter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
+  const filter = getLineageFilter({ memberships: userPermissions.memberships });
   const raws = await repository.find(filter);
   return raws.map(raw => new CassetteInstance(raw).toJSON());
 }
 
 export async function listByQueue(queueId, userId, userOrg, userRole, userPermissions) {
   const filter = {
-    ...getLineageFilter({ memberships: userPermissions.memberships, role: userRole }),
+    ...getLineageFilter({ memberships: userPermissions.memberships }),
     'lineage.queueId': toFlexibleId(queueId)
   };
   const raws = await repository.find(filter);
@@ -83,7 +83,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
 
   const instance = new CassetteInstance(raw);
 
-  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, instance.lineage, 'projects', 'read')) {
+  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships }, instance.lineage, 'projects', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -95,7 +95,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette instance not found' });
   const instance = new CassetteInstance(raw);
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, instance.lineage, 'projects', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, instance.lineage, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -130,7 +130,7 @@ export async function updateStatus(id, state, note, user) {
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const instance = await getById(id, userId, userOrg, userRole, userPermissions);
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, instance.lineage, 'projects', 'admin')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, instance.lineage, 'projects', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 

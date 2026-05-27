@@ -14,7 +14,8 @@ export const ACTION_LEVELS = {
   delete: 'admin',
   approve: 'admin',
   reject: 'admin',
-  fulfill: 'admin'
+  fulfill: 'admin',
+  admin: 'admin'
 };
 
 export function actionToLevel(action, fallback = 'read') {

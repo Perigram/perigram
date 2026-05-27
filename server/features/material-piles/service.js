@@ -95,7 +95,7 @@ export async function updateStatus(id, state, note, user, additionalData = {}) {
   const pile = await getById(id);
   if (!pile) throw createError({ statusCode: 404, message: 'Material pile not found' });
   
-  const userPermissions = { memberships: user.memberships, role: user.role };
+  const userPermissions = { memberships: user.memberships };
   if (!hasLineagePermission(userPermissions, pile.lineage, 'materials', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }

@@ -918,6 +918,8 @@
     "createAccount": "Create your account",
     "organization": "Organization",
     "createOrg": "Create Organization",
+    "accessPreset": "Access preset",
+    "selectAccessPreset": "Select access preset",
     "selectRole": "Select role",
     "inviteMember": "Invite Member",
     "invitationLink": "Invitation Link",
@@ -978,7 +980,6 @@
     "loginFailed": "Login failed"
   },
   "roles": {
-    "SuperAdmin": "System Administrator",
     "ManufacturerAdmin": "Manufacturer Admin",
     "ContractorAdmin": "Contractor Admin",
     "CustomerAdmin": "Customer Admin",
@@ -999,6 +1000,7 @@
     "remnants": "Remnants",
     "users": "Team Members",
     "organizations": "Organizations",
+    "configBot": "ConfigBot",
     "billingStatus": "Billing Status"
   },
   "piles": {

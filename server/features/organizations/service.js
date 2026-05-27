@@ -13,7 +13,7 @@ import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
 
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
-  if (!hasPermission({ permissions: userPermissions.permissions, role: userRole }, 'organizations', 'write')) {
+  if (!hasPermission({ permissions: userPermissions.permissions }, 'organizations', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -58,7 +58,7 @@ export async function getById(uid) {
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const finalFilter = { ...filter, ...getLineageFilter({ memberships: userPermissions.memberships, role: userRole }) };
+  const finalFilter = { ...filter, ...getLineageFilter({ memberships: userPermissions.memberships }) };
   const raws = await repository.find(finalFilter);
   return raws.map(raw => new Organization(raw));
 }
@@ -68,7 +68,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   if (!raw) throw createError({ statusCode: 404, message: 'Organization not found' });
   const org = new Organization(raw);
   
-  if (!hasPermission({ permissions: userPermissions.permissions, role: userRole }, 'organizations', 'write')) {
+  if (!hasPermission({ permissions: userPermissions.permissions }, 'organizations', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -81,7 +81,9 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 }
 
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
-  if (userRole !== 'SuperAdmin') throw createError({ statusCode: 403, message: 'Only SuperAdmin can delete' });
+  if (!hasPermission({ permissions: userPermissions.permissions }, 'organizations', 'admin')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
   return await repository.deleteById(uid);
 }
 

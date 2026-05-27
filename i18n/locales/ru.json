@@ -918,6 +918,8 @@
     "createAccount": "Создать учетную запись",
     "organization": "Организация",
     "createOrg": "Создать организацию",
+    "accessPreset": "Пресет доступа",
+    "selectAccessPreset": "Выберите пресет доступа",
     "selectRole": "Выберите роль",
     "inviteMember": "Пригласить участника",
     "invitationLink": "Ссылка на приглашение",
@@ -978,7 +980,6 @@
     "loginFailed": "Не удалось войти"
   },
   "roles": {
-    "SuperAdmin": "Администратор системы",
     "ManufacturerAdmin": "Админ производителя",
     "ContractorAdmin": "Админ подрядчика",
     "CustomerAdmin": "Админ заказчика",
@@ -999,6 +1000,7 @@
     "remnants": "Остатки",
     "users": "Участники команды",
     "organizations": "Организации",
+    "configBot": "ConfigBot",
     "billingStatus": "Статус оплаты"
   },
   "piles": {

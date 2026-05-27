@@ -23,14 +23,13 @@ export const useAuthStore = defineStore('auth', () => {
         return activeMembership?.permissions || user.value?.permissions || user.value?.data?.permissions || {};
     });
 
-    // Roles
-    const isSuperAdmin = computed(() => user.value?.role === 'SuperAdmin');
-    const isOrgAdmin = computed(() => ['ManufacturerAdmin', 'ContractorAdmin', 'CustomerAdmin'].includes(user.value?.role));
+    const isOrgAdmin = computed(() => hasPermission('organizations', 'write') || hasPermission('users', 'admin'));
+    const canManagePlatform = computed(() => hasPermission('organizations', 'admin') || hasPermission('users', 'admin') || hasPermission('workbench', 'admin') || hasPermission('domain_builder', 'admin') || hasPermission('config_bot', 'admin'));
     
     // Org Types
-    const isManufacturer = computed(() => organization.value?.data?.type === 'Manufacturer' || user.value?.role?.includes('Manufacturer'));
-    const isContractor = computed(() => organization.value?.data?.type === 'Contractor' || user.value?.role?.includes('Contractor'));
-    const isCustomer = computed(() => organization.value?.data?.type === 'Customer' || user.value?.role?.includes('Customer'));
+    const isManufacturer = computed(() => organization.value?.data?.type === 'Manufacturer');
+    const isContractor = computed(() => organization.value?.data?.type === 'Contractor');
+    const isCustomer = computed(() => organization.value?.data?.type === 'Customer');
 
     async function setUser(fetchOptions = {}) {
         try {
@@ -149,7 +148,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     function hasPermission(entity, level) {
-        if (user.value?.role === 'SuperAdmin') return true;
         return hasPermissionGrant({ permissions: activePermissions.value, feature: entity, level });
     }
 
@@ -158,8 +156,7 @@ export const useAuthStore = defineStore('auth', () => {
      * Uses the centralized UI Permission Matrix.
      */
     function can(feature, action, context = {}) {
-        const role = user.value?.role || 'IndividualUser';
-        return resolveUiPermission(role, feature, action, {
+        return resolveUiPermission(null, feature, action, {
             ...context,
             permissions: context.permissions || activePermissions.value
         });
@@ -176,8 +173,8 @@ export const useAuthStore = defineStore('auth', () => {
         userOrganizations,
         memberships,
         activePermissions,
-        isSuperAdmin,
         isOrgAdmin,
+        canManagePlatform,
         isManufacturer,
         isContractor,
         isCustomer,
