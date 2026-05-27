@@ -92,6 +92,17 @@
        directories (`shared/`, `test-data/`, `packages/`) so this class of
        resolver breakage fails architecture verification.
 
+     [2026-05-27] Add ConfigBot generated package preview tab
+     Files changed: components/config-bot/ConfigBotGeneratedPreview.vue,
+       components/config-bot/ConfigBotDraftPreview.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/config-bot/README.md, pages/admin/README.md,
+       TODO.org
+     Notes: Added a non-executing visual preview for draft packages that
+       renders the generated route, selected lego components, and workflow
+       state summaries from package metadata. The preview does not compile
+       generated Vue source and keeps ConfigBot v0.1 export-only.
+
      [2026-05-27] Audit and enforce frontend localization keys
      Files changed: i18n/locales/en.json, i18n/locales/ru.json,
        shared/localization.spec.js, components/CassetteEditorDialog.vue,

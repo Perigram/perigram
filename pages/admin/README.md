@@ -66,6 +66,9 @@ ConfigBot packages target admin micro-app pages/workflows. They are export-only:
 the page has no apply action and the backend returns virtual files rather than
 writing repository files. Access is controlled by the `config_bot: admin`
 permission grant through the backend access engine.
+The draft viewer includes a metadata-rendered preview tab for the generated page
+shell, selected lego components, and workflow summaries alongside the virtual
+file and domain JSON tabs.
 
 ## Data Model Review
 
