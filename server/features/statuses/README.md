@@ -54,7 +54,7 @@ Every state transition is recorded in the `status_events` collection for full tr
 Transitions are governed by declarative machines in `server/core/machines/`.
 
 - **Validation:** Ensures only valid `from` -> `to` transitions are allowed.
-- **Role Guards:** Restricts transitions to specific user roles.
+- **Access Guards:** Restricts transitions through explicit feature permissions and lifecycle actor/capability assignments.
 - **Lifecycle Guards:** Validates lifecycle payloads against state schemas and honors actor/capability assignments when present.
 - **Hooks:** Triggers side-effects (e.g., updating parent summaries or child states).
 

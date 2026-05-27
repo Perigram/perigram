@@ -1,12 +1,12 @@
 # Dynamic & Composable UI Implementation Plan
 
-This plan outlines the transition from a unified Contractor-centric UI to a dynamic, atomic feature-based system that adapts to user roles (SuperAdmin, Manufacturer, Contractor, Customer) and organization types.
+This plan outlines the transition from a unified contractor-centric UI to a dynamic, atomic feature-based system that adapts to granular permissions and organization types.
 
 ## 🎨 Core UI Principles
 - **PrimeVue First:** Rely 100% on PrimeVue 4 components and the `Re_L` preset styling.
 - **Zero Custom CSS:** Use Tailwind utility classes only when strictly necessary for layout. Avoid custom SCSS/CSS blocks in components.
 - **Dynamic Composition:** UI elements (Tabs, Nav links, Buttons) are rendered based on `hasPermission` or `orgType` checks.
-- **Localization:** All new labels, roles, and feature names must be localized in `i18n/locales/*.json`.
+- **Localization:** All new labels, access presets, and feature names must be localized in `i18n/locales/*.json`.
 
 ---
 
@@ -16,7 +16,7 @@ This plan outlines the transition from a unified Contractor-centric UI to a dyna
 - [ ] **Enhance `useAuthStore` (`stores/auth.js`):**
     - Add `organization` state and fetch it in `setUser()`.
     - Implement `hasPermission(entity, level)` logic.
-    - Add computed flags: `isSuperAdmin`, `isManufacturer`, `isContractor`, `isCustomer`, `isOrgAdmin`.
+    - Add computed flags based on organization type and explicit permission grants.
 - [ ] **Localization (`i18n/locales/`):**
     - Add `roles.*` and `features.*` namespaces to `en.json` and `ru.json`.
 - [ ] **Documentation:** Update `stores/README.md` to reflect state changes.
@@ -34,19 +34,19 @@ This plan outlines the transition from a unified Contractor-centric UI to a dyna
 - [ ] **Polymorphic Requisitions (`components/materials/RequisitionsTab.vue`):**
     - Adapt table columns and actions for Manufacturer (Supply side) vs Contractor (Demand side).
 - [ ] **Project Views:**
-    - Add read-only guards for `Customer` role in project pages.
+    - Add read-only guards from explicit permission grants in project pages.
 
 ### Phase 4: Org & User Management [ ]
 - [ ] **Team Management (`pages/organization/users.vue`):**
-    - New page for OrgAdmins to invite users and manage roles within their organization.
+    - New page for organization administrators to invite users and manage access presets within their organization.
 - [ ] **Permission Editor:**
     - Ensure `PermissionEditor.vue` is integrated into the user management flow.
-- [ ] **SuperAdmin Views:**
+- [ ] **Admin Views:**
     - Refactor `admin/organizations.vue` and `admin/users.vue` to use dynamic feature sets.
 
 ### Phase 5: Routing & Guards [ ]
 - [ ] **Middleware Guard (`middleware/auth.js`):**
-    - Implement route-level feature/role validation.
+    - Implement route-level feature permission validation.
 - [ ] **Final Polish:**
     - Ensure all components use PrimeVue default styling and `Re_L` design tokens.
 

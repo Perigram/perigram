@@ -23,8 +23,8 @@ Few user types need to be added. User creation needs to be implemented. Users ca
 - Role Assignment: Allow organization admins to assign roles and permissions to individual users within their organization.
 - User Management: Provide interfaces for admins to manage users, including adding, removing, and updating user information and roles.
 - Profile Management: Allow users to view and update their profile information, including changing passwords and managing personal settings.
-- Access Control: Implement access control mechanisms to restrict or allow access to features based on user roles and permissions.
-- Users can have assotiations with each other. For example, user A from organization X can be linked to user B from organization Y as a project collaborator. This association allows them to work together on shared projects, with permissions defined by their respective roles within their organizations. Contractor user sees all catalogs from manufacturer users for composing requisitions. 
+- Access Control: Implement access control mechanisms to restrict or allow access to features based on explicit permission grants.
+- Users can have assotiations with each other. For example, user A from organization X can be linked to user B from organization Y as a project collaborator. This association allows them to work together on shared projects, with permissions defined by copied grants within their organizations. Contractor user sees all catalogs from manufacturer users for composing requisitions. 
 
 # Data Model Development Specification
 
@@ -142,4 +142,3 @@ Following list outlines few essential relationships and is not exhaustive:
 - **Inventory Updates**: The warehouse inventory is updated in real-time as batches are received, sheets are cut, and remnants are utilized.
 - **Status Changes**: All status changes for batches, sheets, cassettes, and remnants are logged with timestamps and responsible persons, and with links to related documents (requests, invoices, drawings).
 - **Integration with Accounting Systems**: Data should be structured to facilitate integration with external accounting systems (e.g., 1C) for financial tracking and reporting.    
-

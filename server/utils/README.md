@@ -11,7 +11,7 @@ Every API route has `event.context.auth` populated by the auth middleware after 
 ```js
 {
   userId: string,         // OAuth user ID (string, NOT ObjectId)
-  role: string,           // 'SuperAdmin' | 'Admin' | 'User' | 'Viewer'
+  role: string,           // Optional preset label, not an authorization primitive
   memberships: [          // Array of organization memberships
     {
       organizationId: ObjectId,
@@ -50,7 +50,7 @@ Checks if user has the required access level for an entity based on its `lineage
 // level: 'read' | 'write' | 'admin'
 if (!hasLineagePermission(user, entity.lineage, 'queues', 'write')) { ... }
 ```
-SuperAdmin bypasses all checks. Levels are ordered: `none < read < write < admin`.
+Levels are ordered: `none < read < write < admin`.
 
 ### `requireLineagePermission(event, lineage, entityType, level)` → `authContext`
 Combines requireAuth + hasLineagePermission. Throws 401/403. Returns user.
@@ -68,23 +68,16 @@ Returns a MongoDB filter for multi-tenant scoping. Plug into repository queries.
 const filter = { ...getLineageFilter(user), status: 'OPEN' };
 const results = await repository.findAll(filter);
 ```
-SuperAdmin gets `{}` (no filter). Regular users get `{ 'lineage.organizationId': { $in: [...orgIds] } }`.
+Users without memberships get an empty `$in` filter; users with memberships get
+`{ 'lineage.organizationId': { $in: [...orgIds] } }`.
 
 ### `requirePermission(event, entity, level)` → `authContext`
-Uses `hasPermission()` from auth-helpers (global role-based, not lineage-based). Use for system-level resources without lineage.
+Uses `hasPermission()` from auth-helpers against explicit `user.permissions`.
+Use for system-level resources without lineage.
 
 ### `checkEntityAccess(user, entity, entityOrgId)` → `boolean`
 Legacy organization-level compatibility helper. New v24 services should use
 `hasLineagePermission()` / `requireLineagePermission()` instead.
-
-### `requireRole(event, ...roles)` → `void`
-Throws 403 if user's role not in allowed list. For admin-only routes.
-
-```js
-requireRole(event, 'SuperAdmin', 'Admin');
-```
-
----
 
 ## auth-helpers.js
 
@@ -95,7 +88,8 @@ Argon2 password hashing.
 JWT signing/verification (15min expiry). Tokens carry only `userId` — permissions fetched fresh from DB on each request.
 
 ### `hasPermission(user, entity, requiredLevel)` → `boolean`
-Role-based check using `user.permissions[entity]`. Different from lineage-based — use for non-entity system resources.
+Checks explicit `user.permissions[entity]`. Different from lineage-based — use
+for non-entity system resources.
 
 ### `canAccessEntity(user, entityType, entityId)` → `boolean`
 Checks `user.restrictedTo` whitelist. Returns `true` if no restrictions.
@@ -108,7 +102,7 @@ Checks `user.restrictedTo` whitelist. Returns `true` if no restrictions.
 |---|---|
 | Any entity with a lineage block | `requireLineagePermission` |
 | List query — scope to user's orgs | `getLineageFilter` |
-| Admin/SuperAdmin only route | `requireRole` |
+| Admin capability route | `requirePermission` or a feature-level access check |
 | Auth check only, permission later | `requireAuth` |
 | Non-entity resource (system settings) | `requirePermission` / `hasPermission` |
 | Password login flow | `hashPassword` / `verifyPassword` |

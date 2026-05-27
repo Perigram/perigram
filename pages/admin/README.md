@@ -42,10 +42,11 @@ to update the in-memory workbench context, avoiding server transition calls for
 entities that have not been persisted.
 
 Workbench command runs can submit a per-run `testAccess` object with custom
-`userId`, `organizationId`, `role`, memberships, permission grants, and
-`restrictedTo` data. The server preserves that object shape and evaluates it
-through the same access engine as production requests, so fixture ownership and
-scoped access experiments do not need role-name branches.
+`userId`, `organizationId`, optional preset label, memberships, permission
+grants, and `restrictedTo` data. The server preserves that object shape and
+evaluates explicit grants through the same access engine as production
+requests, so fixture ownership and scoped access experiments do not need
+preset-name branches.
 
 ## Domain Builder
 

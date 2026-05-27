@@ -19,9 +19,10 @@ Key fields:
 - Repository lookups use `toFlexibleId()` for `findById`, `updateById`, `deleteById`, and `findByIds` so auth middleware can resolve `user.organizationId` without assuming ObjectId format.
 
 ## Access Control
-- SuperAdmin: Full CRUD on all organizations
-- Org Admins: Read/Update own organization only
-- Individual Users: No direct access
+- Organization access is grant-based through `organizations` permissions.
+- `write` can create/update organization records.
+- `admin` can delete organization records.
+- List queries are scoped by membership lineage.
 
 ## API Behavior
 - `GET /api/organizations/:id` returns the serialized organization when found.

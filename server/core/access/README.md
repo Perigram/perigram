@@ -25,8 +25,8 @@ permissions; the engine evaluates those requirements against the current entity
 and transition. Processors and handlers perform domain work after access has
 already passed.
 
-Role names are not authorization primitives. User records store copied
-membership permissions produced from role templates, and test surfaces such as
+Preset labels are not authorization primitives. User records store copied
+membership permissions produced from access presets, and test surfaces such as
 the admin workbench can submit custom permission grants for a single run.
 
 ## Related

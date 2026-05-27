@@ -10,10 +10,9 @@ relative paths.
 ## Core Files
 - `access-control.js`: Shared permission grant evaluator for feature levels,
   UI actions, entity lineage scopes, and workflow-transition scopes.
-- `permission-templates.js`: Role presets that expand into copied membership
-  permission grants, plus `materializeRolePermissions()` for filling missing
-  preset keys on legacy user records. Runtime checks should consume the
-  decomposed grants, not branch on verbal role names.
+- `permission-templates.js`: Access presets that expand into copied membership
+  permission grants when a preset is assigned. Runtime checks consume the
+  decomposed grants and do not branch on verbal preset labels.
 - `ui-permissions.js`: Compatibility UI resolver backed by the same grant
   evaluator as the server access engine.
 - `*.spec.js`: Contract tests for shared framework and permission behavior.
@@ -44,15 +43,15 @@ Scopes are matched against entity lineage (`organizationId`, `projectId`,
 same permission object shape, so fixture ownership and per-run access overrides
 exercise production access code.
 
-Workflow definitions must not duplicate app role names for access policy; they
+Workflow definitions must not duplicate app preset names for access policy; they
 should declare feature permission requirements, lifecycle capabilities, and
-hooks. Verbal roles such as `ContractorAdmin` are presets only. Persisted user
-records may be materialized from their preset to add newly introduced feature
-keys, but explicit custom values such as `none` are preserved and workbench
-`testAccess` grants are not expanded from role names.
+hooks. Verbal labels such as `ContractorAdmin` are presets only. Persisted user
+records must already carry copied permission grants; loading a user does not
+expand grants from the preset label. Workbench `testAccess` grants use the same
+explicit permission shape.
 
 ## Related
-- [users feature](../server/features/users/README.md) - Stores role,
+- [users feature](../server/features/users/README.md) - Stores preset label,
   membership, and copied permission data on user records.
 - [admin pages](../pages/admin/README.md) - Workbench editor for permission
   template drafts and UI action visibility drafts.

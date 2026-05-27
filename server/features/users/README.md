@@ -3,10 +3,10 @@
 User authentication and permission management. Built on the v24 BaseEntity architecture.
 
 ## Core Files
-- `model.js`: User entity extending `BaseEntity` with migration logic
+- `model.js`: User entity extending `BaseEntity`; exposes stored copied grants without preset expansion
 - `repository.js`: Database operations on `users` collection
 - `service.js`: Register, login, session management
-- `permission-templates.js`: Re-export of shared default permissions by role
+- `permission-templates.js`: Re-export of shared access preset templates
 - API endpoints in `server/api/auth/` and `server/api/users/`
 
 ## Data Structure
@@ -20,9 +20,11 @@ Inherits all `BaseEntity` fields.
 **Data Block:**
 - `email`: User's email (lowercase)
 - `passwordHash`: Argon2id hash
-- `role`: SuperAdmin, ManufacturerAdmin, ContractorAdmin, CustomerAdmin, IndividualUser
+- `role`: Legacy field name for the access preset label, for example
+  ManufacturerAdmin, ContractorAdmin, CustomerAdmin, or IndividualUser. Runtime
+  authorization must use copied permission grants, not this label.
 - `permissions`: Per-entity access levels (none/read/write/admin)
-- `memberships`: Array of organization memberships `{ organizationId, role, permissions, status }`
+- `memberships`: Array of organization memberships `{ organizationId, role, permissions, status }`; `role` is a preset label only
 - `isActive`: Boolean flag
 
 ## Authentication Flow
@@ -38,14 +40,13 @@ Inherits all `BaseEntity` fields.
 - Existing users without `data.passwordHash` cannot log in until their password is reset or the account is recreated.
 
 ## Permission System
-- Global role check (e.g. `SuperAdmin`)
 - Organization context via `user.lineage.organizationId`
 - Per-organization permissions in `memberships`
-- Default role templates live in [shared permission templates](../../../shared/README.md)
-  so browser dev tools and server user creation read the same access contract.
-- `User` materializes missing permission keys from the stored role preset when
-  loading legacy records. Existing feature values are preserved, so an explicit
-  custom `none` continues to deny access.
+- Default access presets live in [shared permission templates](../../../shared/README.md)
+  so browser dev tools and server user creation read the same grant contract.
+- Presets are materialized when registering users or accepting invitations.
+  `User` model reads do not expand permissions from `data.role`; persisted
+  memberships must carry the explicit grant object used by authorization.
 
 ## Related Components
 - [organizations](../organizations/README.md) - Users belong to organizations via memberships and current lineage context

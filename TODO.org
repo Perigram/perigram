@@ -37,8 +37,8 @@
        v24 entity. It creates validated draft packages from domain-cnc and
        design-system metadata, stores sessions/knowledge chunks through its
        repository, exposes generate/chat/reindex routes, and registers
-       command-runtime handlers. Access uses `config_bot: admin`; role names
-       remain only permission presets. v0.1 exports virtual files only and has
+       command-runtime handlers. Access uses `config_bot: admin`; verbal
+       labels remain only permission presets. v0.1 exports virtual files only and has
        no apply/write path. Ollama is optional through deployment env vars.
        LAN host 192.168.0.67 has Ollama 0.24.0 with `qwen3:4b` and `bge-m3`
        installed, served by enabled user unit `cutkit-ollama.service`; boot
@@ -51,6 +51,28 @@
        deployed local Swarm image `cutkit-app:configbot-v0.1`; app health is
        OK, ConfigBot routes are present behind auth, and the running container
        sees Ollama plus the cortex mount.
+
+     [2026-05-27] Remove named-role authorization from ConfigBot/admin access
+     Files changed: server/core/access/service.js,
+       server/core/machines/service.js, server/features/users/model.js,
+       server/features/users/service.js, server/features/invitations/service.js,
+       server/features/organizations/service.js,
+       server/features/config-bot/config-bot.spec.js,
+       server/features/*/*.spec.js, shared/access-control.js,
+       shared/ui-permissions.js, stores/auth.js, layouts/app.vue,
+       pages/admin/users.vue, pages/admin/diagnostics.vue,
+       components/PermissionEditor.vue, components/UserForm.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: shared/README.md, server/features/users/README.md,
+       server/utils/README.md, server/features/statuses/README.md,
+       server/features/config-bot/README.md, server/core/access/README.md,
+       pages/admin/README.md, components/README.md, TODO.org
+     Notes: Removed platform-role and preset-name bypass behavior from access checks,
+       UI visibility, admin navigation, and user permission mutation. Preset
+       labels now seed copied grants only when assigning/registering/inviting;
+       loaded users and workbench/testAccess checks use explicit grants.
+       ConfigBot requires `config_bot: admin`, and admin menu items are gated
+       by each feature grant instead of one platform-level role.
 
      [2026-05-27] Audit and enforce frontend localization keys
      Files changed: i18n/locales/en.json, i18n/locales/ru.json,
@@ -1233,7 +1255,7 @@
     - utils/README.md
     - TODO.org
     Notes:
-    - Added a SuperAdmin admin page for local browser draft editing of CNC entities, routes, workflows, lifecycle schemas, hooks, and summaries.
+    - Added an admin page for local browser draft editing of CNC entities, routes, workflows, lifecycle schemas, hooks, and summaries.
     - Kept persistence export-only: draft JSON and generated `domain-cnc.generated.js`, with no server-side file writes.
     - Added validation and deterministic source-generation helpers for the existing workflow DSL instead of introducing XState.
 
@@ -1278,7 +1300,7 @@
     - Prevents direct protected URLs such as `/admin/domain-builder` from being treated as logged out and redirected to `/`.
 
 *** Agent Notes
-    [2026-05-19] Remove SuperAdmin-only gate from Domain Builder
+    [2026-05-19] Remove role-only gate from Domain Builder
     Files changed:
     - pages/admin/domain-builder.vue
     - i18n/locales/en.json
@@ -1288,7 +1310,7 @@
     - packages/domain-cnc/README.md
     - TODO.org
     Notes:
-    - Kept the normal authenticated route middleware but removed the in-page SuperAdmin-only warning/gate.
+    - Kept the normal authenticated route middleware but removed the in-page role-only warning/gate.
     - Domain Builder now behaves like the existing admin review tools for authenticated development access.
 
 *** Agent Notes
@@ -2375,7 +2397,7 @@
     - Kept PrimeVue usage limited to non-entity controls such as visibility checkboxes, show/hide buttons, scroll containment, and count tags.
 
 *** Agent Notes
-    [2026-05-26] Materialize legacy role permission grants
+    [2026-05-26] Materialize legacy access-preset permission grants
     Files changed:
     - shared/permission-templates.js
     - server/features/users/model.js
@@ -2386,8 +2408,8 @@
     - server/features/users/README.md
     - TODO.org
     Notes:
-    - Added role preset materialization for persisted user records so legacy copied permissions gain newly introduced granular feature keys such as `nesting_runs` and `artifacts`.
-    - Preserved explicit custom grants, including `none`, and left workbench/testAccess authorization independent from role-name expansion.
+    - Added preset materialization for persisted user records so legacy copied permissions gain newly introduced granular feature keys such as `nesting_runs` and `artifacts`; this read-time expansion was removed on 2026-05-27 so persisted users must now carry explicit grants.
+    - Preserved explicit custom grants, including `none`, and left workbench/testAccess authorization independent from preset-name expansion.
 
 *** Agent Notes
     [2026-05-26] Dispatch nesting HTTP task executor

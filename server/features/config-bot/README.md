@@ -34,9 +34,8 @@ Domain commands in `@cutkit/domain-cnc`:
 ## Access
 
 Access is checked through the granular access engine with
-`config_bot: admin`. `SuperAdmin` still passes through the engine's existing
-global bypass; other users need an explicit `config_bot` grant in their copied
-permission set. The module does not branch on verbal role names.
+`config_bot: admin`. Users need an explicit `config_bot` grant in their copied
+permission set. The module does not branch on verbal preset labels.
 
 ## Draft Package Contract
 
