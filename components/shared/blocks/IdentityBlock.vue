@@ -5,6 +5,7 @@
  */
 import Chip from 'primevue/chip';
 import { computed, toRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
@@ -15,8 +16,9 @@ const props = defineProps({
 });
 
 const { name, slug, serial, reference } = useIdentity(toRef(props, 'entity'));
+const { t } = useI18n();
 const uid = computed(() => props.entity?.identity?.uid || '');
-const primary = computed(() => name.value || slug.value || uid.value || 'Unnamed');
+const primary = computed(() => name.value || slug.value || uid.value || t('common.unnamed'));
 
 const fieldValueMap = computed(() => ({
   uid: uid.value,

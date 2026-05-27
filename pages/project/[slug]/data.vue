@@ -187,7 +187,7 @@
             <div class="grid grid-cols-1 gap-4 py-4">
                 <div class="flex flex-col gap-1">
                     <label>{{ $t('common.name') }}</label>
-                    <InputText v-model="newGlobalMaterial.name" placeholder="e.g. Alucobond" />
+                    <InputText v-model="newGlobalMaterial.name" :placeholder="$t('projectData.placeholders.materialName')" />
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="flex flex-col gap-1">

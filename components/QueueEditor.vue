@@ -328,7 +328,7 @@ const toast = useToast();
 const authStore = useAuthStore();
 
 const queueState = computed(() => props.queue.status?.state || 'UNKNOWN');
-const queueName = computed(() => props.queue.identity?.name || props.queue.identity?.slug || 'Unnamed');
+const queueName = computed(() => props.queue.identity?.name || props.queue.identity?.slug || t('common.unnamed'));
 
 const queuesStore = useQueuesStore();
 const cassettesStore = useCassettesStore();
@@ -348,9 +348,9 @@ const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
 const selectedRunId = ref(null);
 const instances = ref([]);
-const queueOptions = computed(() => namedSelectOptions(props.queues, 'Unnamed'));
-const toolOptions = computed(() => namedSelectOptions(tools.value, 'Unnamed'));
-const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, 'Unnamed'));
+const queueOptions = computed(() => namedSelectOptions(props.queues, t('common.unnamed')));
+const toolOptions = computed(() => namedSelectOptions(tools.value, t('common.unnamed')));
+const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, t('common.unnamed')));
 
 const newEntry = ref({
     cassetteTemplateId: null,
@@ -367,8 +367,8 @@ const getCassetteData = (id) => {
 
 const getCassetteName = (id) => {
     const data = getCassetteData(id);
-    if (!data) return 'Unknown';
-    return data.identity?.name || data.identity?.slug || 'Unnamed';
+    if (!data) return t('common.unknown');
+    return data.identity?.name || data.identity?.slug || t('common.unnamed');
 };
 
 const getCassetteType = (data) => data?.data?.type || '';
@@ -389,7 +389,7 @@ const getEntryParameters = (e) => {
 
 const allAvailableCassettes = computed(() => {
     const items = [...cassettes.value, ...cassetteDesigns.value];
-    return namedSelectOptions(items, 'Unnamed');
+    return namedSelectOptions(items, t('common.unnamed'));
 });
 
 const allParameters = computed(() => {

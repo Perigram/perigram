@@ -179,8 +179,8 @@
                     </div>
                   </div>
                   <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
-                    <small class="text-muted-color">{{ $t('admin.tasks.worker') }}: {{ run.workerId || run.lockedBy || 'SYSTEM' }}</small>
-                    <small class="text-muted-color">{{ $t('admin.tasks.lease') }}: {{ formatDateTime(run.leaseExpiresAt) || 'N/A' }}</small>
+                    <small class="text-muted-color">{{ $t('admin.tasks.worker') }}: {{ run.workerId || run.lockedBy || $t('admin.tasks.systemWorker') }}</small>
+                    <small class="text-muted-color">{{ $t('admin.tasks.lease') }}: {{ formatDateTime(run.leaseExpiresAt) || $t('common.notAvailable') }}</small>
                     <small class="text-muted-color">{{ $t('common.created') }}: {{ formatDateTime(run.createdAt) }}</small>
                   </div>
                   <pre class="m-0 max-h-52 overflow-auto whitespace-pre-wrap break-words font-mono text-xs">{{ taskRunDebug(run) }}</pre>
@@ -883,7 +883,7 @@ async function loadDomain() {
   domainError.value = '';
   try {
     const result = await $fetch('/api/admin/domain');
-    if (result?.success === false) throw new Error(result.error || 'Failed to load domain');
+    if (result?.success === false) throw new Error(result.error || t('admin.workbench.errors.loadDomainFailed'));
     sourceDomain.value = {
       entities: result.entities || result.domain?.entities || [],
       workflows: result.workflows || result.domain?.workflows || {},
@@ -893,7 +893,7 @@ async function loadDomain() {
     workflows.value = structuredClone(sourceDomain.value.workflows);
     hookContracts.value = structuredClone(sourceDomain.value.hooks);
   } catch (error) {
-    domainError.value = error?.data?.message || error?.message || 'Failed to load domain';
+    domainError.value = error?.data?.message || error?.message || t('admin.workbench.errors.loadDomainFailed');
   } finally {
     domainLoading.value = false;
   }
@@ -904,10 +904,10 @@ async function loadModels() {
   modelError.value = '';
   try {
     const result = await $fetch('/api/debug/data-models');
-    if (result?.success === false) throw new Error(result.error || 'Failed to load data models');
+    if (result?.success === false) throw new Error(result.error || t('admin.workbench.errors.loadDataModelsFailed'));
     models.value = Array.isArray(result) ? result : (result?.models || []);
   } catch (error) {
-    modelError.value = error?.message || 'Failed to load data models';
+    modelError.value = error?.message || t('admin.workbench.errors.loadDataModelsFailed');
   } finally {
     modelLoading.value = false;
   }
@@ -924,7 +924,7 @@ async function loadCommands() {
     ensureSelectedCommand();
     syncCommandInput();
   } catch (error) {
-    commandsError.value = error?.data?.message || error?.message || 'Failed to load commands';
+    commandsError.value = error?.data?.message || error?.message || t('admin.workbench.errors.loadCommandsFailed');
   } finally {
     commandsLoading.value = false;
   }
@@ -943,7 +943,7 @@ async function loadTasks() {
     taskRuns.value = result.runs || [];
     await hydrateTaskRunOutputs(taskRuns.value);
   } catch (error) {
-    tasksError.value = error?.data?.message || error?.message || 'Failed to load tasks';
+    tasksError.value = error?.data?.message || error?.message || t('admin.workbench.errors.loadTasksFailed');
   } finally {
     tasksLoading.value = false;
   }
@@ -962,7 +962,7 @@ async function loadCommandRuns() {
     commandRuns.value = result.runs || [];
     await hydrateCommandRunOutput(commandRuns.value[0]);
   } catch (error) {
-    commandsError.value = error?.data?.message || error?.message || 'Failed to load command runs';
+    commandsError.value = error?.data?.message || error?.message || t('admin.workbench.errors.loadCommandRunsFailed');
   } finally {
     commandRunsLoading.value = false;
   }
@@ -1018,7 +1018,7 @@ async function runSelectedCommand() {
     });
     await loadCommandRuns();
   } catch (error) {
-    commandsError.value = error?.data?.message || error?.message || 'Failed to run command';
+    commandsError.value = error?.data?.message || error?.message || t('admin.workbench.errors.runCommandFailed');
     await loadCommandRuns();
   } finally {
     commandRunning.value = false;

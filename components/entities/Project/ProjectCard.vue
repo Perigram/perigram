@@ -49,7 +49,7 @@ const statusActions = computed(() => {
       <template v-if="variant === 'card'">
         <Divider />
         <div v-if="project.data?.address" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('catalog.address') }}</small>
+          <small class="text-muted-color">{{ $t('project.address') }}</small>
           <span class="font-medium text-right">{{ project.data.address }}</span>
         </div>
         <DataBlock :entity="project" :fields="PROJECT_SUMMARY_FIELDS" />

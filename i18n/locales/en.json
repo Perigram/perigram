@@ -69,7 +69,11 @@
     "warning": "Warning",
     "comingSoon": "Coming Soon",
     "unknown": "Unknown",
+    "unnamed": "Unnamed",
+    "user": "User",
     "notAvailable": "N/A",
+    "componentError": "Component Error",
+    "tryAgain": "Try Again",
     "traceability": "Traceability",
     "statusAndActions": "Status & Actions",
     "location": "Location",
@@ -182,6 +186,7 @@
     "title": "Project",
     "create": "Create Project",
     "name": "Project Name",
+    "address": "Address",
     "status": "Status",
     "openProjects": "Open projects",
     "openResults": "Open results",
@@ -308,6 +313,9 @@
     "initialValue": "Initial Value",
     "errors": {
       "nameRequired": "Name cannot be empty",
+      "loadFailed": "Failed to load cassette",
+      "parseDxfFailed": "Failed to parse DXF file",
+      "uploadFailed": "Upload failed",
       "renameFailed": "Failed to rename cassette",
       "saveFailed": "Failed to save template"
     },
@@ -390,6 +398,7 @@
     "createGlobalMaterial": "Create Global Material",
     "createAndAdd": "Create & Add",
     "placeholders": {
+      "materialName": "e.g., Alucobond",
       "code": "e.g., ACP-01",
       "color": "e.g., Silver"
     },
@@ -574,6 +583,7 @@
       "title": "Development Workbench",
       "subtitle": "Single workspace for domain data, UI components, workflows, diagnostics, and admin tools.",
       "sections": "Workbench sections",
+      "sectionsCommands": "Commands",
       "openStandalone": "Open Standalone",
       "exportDraft": "Export Draft",
       "entities": "Entities",
@@ -594,6 +604,14 @@
       "displayFields": "Display fields",
       "dataFields": "Data fields",
       "workflowNoRoles": "Workflow transitions keep lifecycle data, capabilities, attachments, and hooks. Access policy is not edited in this workbench.",
+      "errors": {
+        "loadDomainFailed": "Failed to load domain",
+        "loadDataModelsFailed": "Failed to load data models",
+        "loadCommandsFailed": "Failed to load commands",
+        "loadTasksFailed": "Failed to load tasks",
+        "loadCommandRunsFailed": "Failed to load command runs",
+        "runCommandFailed": "Failed to run command"
+      },
       "manualFields": {
         "name": "Name",
         "state": "Status",
@@ -634,6 +652,34 @@
         "organizations": "Manage organizations.",
         "support": "Review and respond to support conversations."
       }
+    },
+    "commands": {
+      "command": "Command",
+      "handler": "Handler",
+      "noHandler": "No handler",
+      "noCommands": "No commands declared.",
+      "input": "Input",
+      "run": "Run command",
+      "lastOutput": "Last output",
+      "missingOutputRefs": "Output refs are not loaded in the workbench context:",
+      "debugOutput": "Debug output",
+      "noOutput": "No output yet.",
+      "fixtures": "Fixture scenario",
+      "seeded": "Seeded",
+      "notSeeded": "Not seeded",
+      "rebuildScenario": "Rebuild scenario",
+      "seedScenario": "Seed dev data",
+      "testAccess": "Test access",
+      "overrideAccess": "Override access for this run"
+    },
+    "tasks": {
+      "related": "Related tasks",
+      "noRelated": "No related tasks declared.",
+      "attempts": "Attempts",
+      "worker": "Worker",
+      "lease": "Lease",
+      "noRuns": "No task runs yet.",
+      "systemWorker": "System"
     },
     "operations": {
       "operation": "Operation",
@@ -694,6 +740,7 @@
       "issueCount": "{count} flags",
       "field": "Field",
       "source": "Source",
+      "standardSource": "Standard",
       "flags": "Flags",
       "decision": "Decision",
       "target": "Target",
@@ -891,6 +938,7 @@
     "ManufacturerAdmin": "Manufacturer Admin",
     "ContractorAdmin": "Contractor Admin",
     "CustomerAdmin": "Customer Admin",
+    "IndividualAdmin": "Individual Admin",
     "IndividualUser": "User"
   },
   "features": {
@@ -990,7 +1038,10 @@
   },
   "uiLab": {
     "title": "Design System Lab",
+    "shellTitle": "CutKit UI Lab",
     "subtitle": "Manifest-driven demo of entity cards, shared primitives, DTO contracts, and theme behavior.",
+    "testMode": "Test Mode",
+    "testUser": "Test User",
     "groups": {
       "production": "Production",
       "material": "Material",
@@ -1068,7 +1119,8 @@
       "status": "Status",
       "trace": "Trace",
       "docs": "Docs",
-      "ok": "Manifest contract is complete."
+      "ok": "Manifest contract is complete.",
+      "missingComponent": "No component is registered for this entity contract."
     },
     "statusHistory": "Status History",
     "traceabilityChain": "Traceability (Lineage Chain)",

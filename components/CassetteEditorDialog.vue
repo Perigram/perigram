@@ -220,7 +220,7 @@ watch(() => props.cassetteId, async (newId) => {
         layerMappings.value = { ...mapping };
       }
     } catch (error) {
-      errorMessage.value = 'Failed to load cassette';
+      errorMessage.value = t('cassette.errors.loadFailed');
       console.error('Failed to load cassette:', error);
     }
   } else {
@@ -252,7 +252,7 @@ const handleFileSelect = async (event) => {
       });
       
     } catch (error) {
-      errorMessage.value = error.message || 'Failed to parse DXF file';
+      errorMessage.value = error.message || t('cassette.errors.parseDxfFailed');
       console.error('DXF parsing failed:', error);
       selectedFile.value = null;
       detectedLayers.value = [];
@@ -292,7 +292,7 @@ const handleUpload = async () => {
     isOpen.value = false;
     resetForm();
   } catch (error) {
-    errorMessage.value = error.data?.message || 'Upload failed';
+    errorMessage.value = error.data?.message || t('cassette.errors.uploadFailed');
     console.error('Upload failed:', error);
   } finally {
     isUploading.value = false;

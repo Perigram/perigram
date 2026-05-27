@@ -69,7 +69,11 @@
     "warning": "Предупреждение",
     "comingSoon": "Скоро",
     "unknown": "Неизвестно",
+    "unnamed": "Без названия",
+    "user": "Пользователь",
     "notAvailable": "Н/Д",
+    "componentError": "Ошибка компонента",
+    "tryAgain": "Повторить",
     "traceability": "Трассируемость",
     "statusAndActions": "Статус и действия",
     "location": "Местоположение",
@@ -182,6 +186,7 @@
     "title": "Проект",
     "create": "Создать проект",
     "name": "Название проекта",
+    "address": "Адрес",
     "status": "Статус",
     "openProjects": "Открыть проекты",
     "openResults": "Открыть результаты",
@@ -308,6 +313,9 @@
     "initialValue": "Начальное значение",
     "errors": {
       "nameRequired": "Имя не может быть пустым",
+      "loadFailed": "Не удалось загрузить кассету",
+      "parseDxfFailed": "Не удалось разобрать DXF файл",
+      "uploadFailed": "Не удалось загрузить файл",
       "renameFailed": "Не удалось переименовать кассету",
       "saveFailed": "Не удалось сохранить шаблон"
     },
@@ -390,6 +398,7 @@
     "createGlobalMaterial": "Создать глобальный материал",
     "createAndAdd": "Создать и добавить",
     "placeholders": {
+      "materialName": "напр., Alucobond",
       "code": "напр., ACP-01",
       "color": "напр., Серебро"
     },
@@ -574,6 +583,7 @@
       "title": "Development Workbench",
       "subtitle": "Единое рабочее место для данных домена, UI-компонентов, workflow, диагностики и админ-инструментов.",
       "sections": "Разделы workbench",
+      "sectionsCommands": "Команды",
       "openStandalone": "Открыть отдельно",
       "exportDraft": "Экспорт черновика",
       "entities": "Сущности",
@@ -594,6 +604,14 @@
       "displayFields": "Поля отображения",
       "dataFields": "Поля данных",
       "workflowNoRoles": "Переходы workflow хранят lifecycle data, capabilities, attachments и hooks. Access policy в этом workbench не редактируется.",
+      "errors": {
+        "loadDomainFailed": "Не удалось загрузить домен",
+        "loadDataModelsFailed": "Не удалось загрузить модели данных",
+        "loadCommandsFailed": "Не удалось загрузить команды",
+        "loadTasksFailed": "Не удалось загрузить задачи",
+        "loadCommandRunsFailed": "Не удалось загрузить запуски команд",
+        "runCommandFailed": "Не удалось запустить команду"
+      },
       "manualFields": {
         "name": "Название",
         "state": "Статус",
@@ -634,6 +652,34 @@
         "organizations": "Управление организациями.",
         "support": "Просмотр и ответы на support conversations."
       }
+    },
+    "commands": {
+      "command": "Команда",
+      "handler": "Handler",
+      "noHandler": "Нет handler",
+      "noCommands": "Команды не объявлены.",
+      "input": "Вход",
+      "run": "Запустить команду",
+      "lastOutput": "Последний вывод",
+      "missingOutputRefs": "Выходные ссылки не загружены в контекст workbench:",
+      "debugOutput": "Debug output",
+      "noOutput": "Вывода пока нет.",
+      "fixtures": "Fixture scenario",
+      "seeded": "Засеяно",
+      "notSeeded": "Не засеяно",
+      "rebuildScenario": "Пересобрать scenario",
+      "seedScenario": "Создать dev data",
+      "testAccess": "Тестовый доступ",
+      "overrideAccess": "Переопределить доступ для этого запуска"
+    },
+    "tasks": {
+      "related": "Связанные задачи",
+      "noRelated": "Связанные задачи не объявлены.",
+      "attempts": "Попытки",
+      "worker": "Worker",
+      "lease": "Lease",
+      "noRuns": "Запусков задач пока нет.",
+      "systemWorker": "Система"
     },
     "operations": {
       "operation": "Операция",
@@ -694,6 +740,7 @@
       "issueCount": "{count} флагов",
       "field": "Поле",
       "source": "Источник",
+      "standardSource": "Стандарт",
       "flags": "Флаги",
       "decision": "Решение",
       "target": "Цель",
@@ -891,6 +938,7 @@
     "ManufacturerAdmin": "Админ производителя",
     "ContractorAdmin": "Админ подрядчика",
     "CustomerAdmin": "Админ заказчика",
+    "IndividualAdmin": "Админ индивидуальной организации",
     "IndividualUser": "Пользователь"
   },
   "features": {
@@ -990,7 +1038,10 @@
   },
   "uiLab": {
     "title": "Лаборатория дизайн-системы",
+    "shellTitle": "CutKit UI Lab",
     "subtitle": "Демо сущностей, общих блоков, DTO-контрактов и темы на основе манифеста.",
+    "testMode": "Тестовый режим",
+    "testUser": "Тестовый пользователь",
     "groups": {
       "production": "Производство",
       "material": "Материалы",
@@ -1068,7 +1119,8 @@
       "status": "Статус",
       "trace": "Трассировка",
       "docs": "Документация",
-      "ok": "Контракт манифеста полный."
+      "ok": "Контракт манифеста полный.",
+      "missingComponent": "Для этого контракта сущности не зарегистрирован компонент."
     },
     "statusHistory": "История статусов",
     "traceabilityChain": "Трассируемость (цепочка происхождения)",

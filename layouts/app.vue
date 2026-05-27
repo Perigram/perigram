@@ -181,7 +181,7 @@
 
         // 3. User Actions
         items.push({
-            label: authStore.userData.name || 'User',
+            label: authStore.userData.name || t('common.user'),
             items: [
                 {
                     label: t('nav.profile'),

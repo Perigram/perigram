@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-8">
-    <ActionToolbar :title="$t('features.catalogs')" :subtitle="$t('catalog.subtitle') || 'Manage your material types and finish colors.'">
+    <ActionToolbar :title="$t('features.catalogs')" :subtitle="$t('catalog.subtitle')">
       <template #actions>
         <Button v-if="authStore.isManufacturer" :label="$t('common.create')" icon="pi pi-plus" @click="openCreateDialog" />
       </template>
