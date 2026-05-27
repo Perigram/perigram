@@ -4,7 +4,10 @@
 
 Factories in this directory represent **API DTO shape**, not raw MongoDB documents. They preserve the strict v24 block contract: root `_id` plus `identity`, `origin`, `status`, `lineage`, `specs`, `attachments`, `data`, and `summary`.
 
-Factories can be imported by Nuxt UI code and by server/runtime modules that run under plain Node ESM in production containers. Keep internal imports relative instead of Nuxt-only aliases such as `~/`.
+Factories can be imported by Nuxt UI code and by server/runtime modules that
+run under the project toolchain. Use the Nuxt root alias for imports into
+shared repo contracts so production SSR bundles do not retain fragile generated
+relative paths.
 
 ## Why Factory Functions?
 

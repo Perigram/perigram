@@ -46,8 +46,8 @@
        is interactive on that host. Swarm config mounts
        `/home/cutkit/Documents/cutkit-cortex` into the app at
        `/opt/cutkit-cortex` for ConfigBot reindex. Production Docker build
-       also exposed and fixed a Nuxt SSR relative-import issue in
-       `shared/ui-permissions.js`.
+       also exposed and fixed Nuxt SSR relative-import issues in
+       `shared/ui-permissions.js` and `test-data/factories.js`.
 
      [2026-05-27] Audit and enforce frontend localization keys
      Files changed: i18n/locales/en.json, i18n/locales/ru.json,
