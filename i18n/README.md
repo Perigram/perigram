@@ -12,6 +12,13 @@ Vue I18n locale dictionaries for shared UI, entity labels, workflow/status label
 Status labels under `status.*` are consumed by `utils/status-engine.js` and workflow-derived actions in `utils/status-actions.js`.
 When adding a workflow state in `packages/domain-cnc/src/index.js`, add the matching status mapping and locale keys in both locale files in the same change.
 
+## Audit Coverage
+
+`shared/localization.spec.js` verifies that locale files have matching key
+sets, every static `$t(...)` / `t(...)` key used by frontend source exists in
+all locales, and known dynamic key families such as `roles.*`,
+`auth.membership.*`, `cassette.*`, and `uiLab.statusPolicy.*` are covered.
+
 ## Related
 
 - [utils](../utils/README.md) - status mapping and workflow action helpers

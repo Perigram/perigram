@@ -113,6 +113,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
 
 - User-visible labels, headings, dialog headers, toast summaries/details, placeholders, and accessible labels must use `$t(...)` in templates or `t(...)` from `useI18n()` in script.
 - Keep `i18n/locales/en.json` and `i18n/locales/ru.json` structurally aligned whenever adding keys.
+- Run `npx vitest run shared/localization.spec.js` after adding frontend copy or translation keys; it catches locale key drift and missing static translation keys.
 - Brand names such as `CutKit` remain literal and are not localized.
 
 ## Sizing
