@@ -17,6 +17,9 @@ returns draft packages from `service.js`.
 | `operations.js` | Command-runtime handlers for declared domain commands. |
 | `index.js` | Public service export. |
 
+`service.js` imports repo-root utilities and package sources through the Nuxt
+root alias (`~/...`) so Nitro dev and production builds resolve the same files.
+
 ## API And Commands
 
 HTTP routes:

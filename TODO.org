@@ -74,6 +74,13 @@
        ConfigBot requires `config_bot: admin`, and admin menu items are gated
        by each feature grant instead of one platform-level role.
 
+     [2026-05-27] Stabilize ConfigBot imports for Nuxt dev
+     Files changed: server/features/config-bot/service.js
+     Docs updated: server/features/config-bot/README.md, TODO.org
+     Notes: Replaced repo-relative imports to `utils/domain-builder.js` and
+       package sources with Nuxt root-alias imports so local Nuxt dev resolves
+       the same modules as production Nitro.
+
      [2026-05-27] Audit and enforce frontend localization keys
      Files changed: i18n/locales/en.json, i18n/locales/ru.json,
        shared/localization.spec.js, components/CassetteEditorDialog.vue,
