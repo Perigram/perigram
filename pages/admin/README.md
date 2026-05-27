@@ -54,6 +54,18 @@ loads package definitions, edits entities/routes/workflows/summaries/commands
 and hook contracts, validates the draft, and exports generated JS. It does not
 write repository files.
 
+## ConfigBot
+
+`config-bot.vue` is the v0.1 admin interface for generating draft packages from
+the existing domain-cnc and Vue component catalog. It calls
+`/api/config-bot/generate`, `/api/config-bot/chat`, and
+`/api/admin/config-bot/reindex`.
+
+ConfigBot packages target admin micro-app pages/workflows. They are export-only:
+the page has no apply action and the backend returns virtual files rather than
+writing repository files. Access is controlled by the `config_bot: admin`
+permission grant through the backend access engine.
+
 ## Data Model Review
 
 `data-model-review.vue` compares extracted Mongo collection fields with the

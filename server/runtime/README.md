@@ -20,7 +20,8 @@ should call `getAppRegistry()`.
 - Entity services for every persisted domain entity declared in
   `@cutkit/domain-cnc`.
 - Command handlers: `saveCassetteTemplate`, `solveNesting`,
-  `generateAttachment`.
+  `generateAttachment`, `generateConfigBotDraft`,
+  `reindexConfigBotKnowledge`.
 - Task executors: `nesting.solve`, which bridges queued task runs to the
   FastAPI nesting worker.
 - Workflow hook handlers from `server/core/machines/hooks.js` and explicitly

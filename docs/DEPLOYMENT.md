@@ -46,6 +46,45 @@ For production on your own server.
     docker stack deploy -c docker-stack.yml cutkit
     ```
 
+## ConfigBot And Local Models
+
+ConfigBot v0.1 uses deterministic draft generation from the committed
+domain-cnc/framework catalog. If Ollama is available, chat answers can also use
+a local model.
+
+Recommended model setup on the LAN server:
+
+```bash
+ollama pull qwen3:4b
+ollama pull bge-m3
+```
+
+Current `192.168.0.67` setup uses a user-local Ollama binary at
+`/home/cutkit/.local/bin/ollama` and an enabled user systemd service named
+`cutkit-ollama.service` listening on `0.0.0.0:11434`. The service is active for
+the `cutkit` user session; host-level boot persistence still requires enabling
+user linger or installing a system service with sudo.
+
+Relevant app environment variables:
+
+- `OLLAMA_BASE_URL` - Ollama endpoint, defaulted to
+  `http://192.168.0.67:11434` in the Swarm stack and
+  `http://host.docker.internal:11434` in `docker-compose.dev.yml`.
+- `CONFIG_BOT_CHAT_MODEL` - default `qwen3:4b`.
+- `CONFIG_BOT_EMBED_MODEL` - default `bge-m3` for future embedding work.
+- `CONFIG_BOT_CORTEX_PATH` - path to cutkit-cortex notes used during reindex.
+
+After deployment, open `/admin/config-bot` as a user with `config_bot: admin`
+and run Reindex before asking documentation questions. Draft generation works
+without Ollama; repository writes are intentionally disabled in v0.1.
+
+Deployment preflight:
+
+```bash
+ssh cutkit@192.168.0.67 'hostname && ollama list'
+curl http://192.168.0.67:11434/api/tags
+```
+
 ## 🛠 Troubleshooting
 
 *   **Memory Issues**: If you see "JS heap out of memory", set `NODE_OPTIONS="--max-old-space-size=4096"`.

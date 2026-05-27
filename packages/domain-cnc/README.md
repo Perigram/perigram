@@ -8,7 +8,8 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
 - `entities.js` - CNC entity definitions.
 - `workflows.js` - entity lifecycle machines and transition hooks.
 - `commands.js` - business intent contracts: `saveCassetteTemplate`,
-  `solveNesting`, `generateAttachment`.
+  `solveNesting`, `generateAttachment`, `generateConfigBotDraft`,
+  `reindexConfigBotKnowledge`.
 - `tasks.js` - async task contracts: DXF parsing, cassette baking, nesting
   solve, attachment generation.
 - `attachment-kinds.js` - file/blob kinds, buckets, MIME types, preview modes.
@@ -27,6 +28,10 @@ The `solveNesting` command and `nesting.solve` task produce `nesting_run` and
 `sheet_design` entities only. DXF/SVG/PDF files are requested later through the
 artifacts service and `AttachmentKind` contracts, not as primary nesting-run
 outputs.
+
+`generateConfigBotDraft` and `reindexConfigBotKnowledge` are admin capability
+commands. They require `config_bot: admin`, produce command `data`, and do not
+write generated Vue/domain files to the repository.
 
 `artifact` remains the current persisted entity type for generated file records.
 File behavior is declared by `AttachmentKind`.

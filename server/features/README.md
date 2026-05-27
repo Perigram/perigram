@@ -28,7 +28,7 @@ Support capabilities are documented and classified, but do not need empty
 | Kind | Modules |
 |---|---|
 | Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `layer-standards`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
-| Capability modules | `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `payment`, `results`, `sessions`, `statuses`, `support`, `system-settings` |
+| Capability modules | `config-bot`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `payment`, `results`, `sessions`, `statuses`, `support`, `system-settings` |
 
 ---
 
@@ -116,4 +116,5 @@ services must not self-register through hidden globals.
 - [server/core/machines/README.md](../core/machines/README.md) — Lifecycle engine
 - [server/utils/README.md](../utils/README.md) — Permissions API
 - [server/features/_template/README.md](./_template/README.md) — Golden Path template
+- [server/features/config-bot/README.md](./config-bot/README.md) — draft package generator capability
 - [packages/domain-cnc/README.md](../../packages/domain-cnc/README.md) — CNC entity/workflow definition pack

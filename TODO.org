@@ -5,6 +5,46 @@
   [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
 
 *** Agent Notes
+     [2026-05-27] Implement ConfigBot v0.1 draft package generator
+     Files changed: server/features/config-bot/service.js,
+       server/features/config-bot/repository.js,
+       server/features/config-bot/indexer.js,
+       server/features/config-bot/ollama.js,
+       server/features/config-bot/operations.js,
+       server/features/config-bot/index.js,
+       server/api/config-bot/generate.post.js,
+       server/api/config-bot/chat.post.js,
+       server/api/config-bot/sessions/[id].get.js,
+       server/api/admin/config-bot/reindex.post.js,
+       packages/domain-cnc/src/commands.js,
+       server/runtime/app-registry.js,
+       shared/permission-templates.js,
+       components/config-bot/ConfigBotDraftPreview.vue,
+       components/config-bot/ConfigBotValidationPanel.vue,
+       components/config-bot/ConfigBotCitationList.vue,
+       pages/admin/config-bot.vue, stores/navigation.js, layouts/app.vue,
+       i18n/locales/en.json, i18n/locales/ru.json,
+       docker-compose.dev.yml, docker-stack.yml,
+       scripts/check-arch.js, framework.manifest.json,
+       server/features/config-bot/config-bot.spec.js,
+       shared/framework-packages.spec.js, shared/design-system.spec.js
+     Docs updated: server/features/config-bot/README.md,
+       components/config-bot/README.md, server/features/README.md,
+       server/api/README.md, server/runtime/README.md,
+       packages/domain-cnc/README.md, pages/admin/README.md,
+       docs/DEPLOYMENT.md, TODO.org
+     Notes: ConfigBot is implemented as an admin capability module, not a fake
+       v24 entity. It creates validated draft packages from domain-cnc and
+       design-system metadata, stores sessions/knowledge chunks through its
+       repository, exposes generate/chat/reindex routes, and registers
+       command-runtime handlers. Access uses `config_bot: admin`; role names
+       remain only permission presets. v0.1 exports virtual files only and has
+       no apply/write path. Ollama is optional through deployment env vars.
+       LAN host 192.168.0.67 has Ollama 0.24.0 with `qwen3:4b` and `bge-m3`
+       installed, served by enabled user unit `cutkit-ollama.service`; boot
+       persistence still requires user linger or a system service because sudo
+       is interactive on that host.
+
      [2026-05-27] Audit and enforce frontend localization keys
      Files changed: i18n/locales/en.json, i18n/locales/ru.json,
        shared/localization.spec.js, components/CassetteEditorDialog.vue,

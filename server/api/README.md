@@ -14,6 +14,9 @@ Routes are grouped into sub-directories corresponding to features:
   fail, and cancel.
 - `admin/commands/`: Authenticated command definition and run listing for
   `command_runs`.
+- `config-bot/`: Admin draft generation, chat, and session routes for
+  ConfigBot v0.1.
+- `admin/config-bot/`: Admin knowledge reindex route for ConfigBot.
 - `admin/tasks/`: Authenticated task definition and run listing for
   `task_runs`.
 - `project/`: Main project orchestration and nesting triggers.
