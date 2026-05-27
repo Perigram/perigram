@@ -108,3 +108,4 @@ and workers; compose files use `cutkit-dev-worker` for local development.
 | Core package | [packages/core/README.md](./packages/core/README.md) |
 | Workers | [workers/README.md](./workers/README.md) |
 | Admin workbench | [pages/admin/README.md](./pages/admin/README.md) |
+| Scripts and guardrails | [scripts/README.md](./scripts/README.md) |

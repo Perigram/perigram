@@ -81,6 +81,17 @@
        package sources with Nuxt root-alias imports so local Nuxt dev resolves
        the same modules as production Nitro.
 
+     [2026-05-27] Guard portable runtime modules against Nuxt aliases
+     Files changed: shared/ui-permissions.js, test-data/factories.js,
+       scripts/check-arch.js
+     Docs updated: shared/README.md, test-data/README.md, scripts/README.md,
+       README.md, TODO.org
+     Notes: Replaced Nuxt-root imports inside shared/test-data runtime modules
+       with relative imports so direct Node loaders do not try to resolve a
+       literal `~` package. Added a `check-arch` guard for portable runtime
+       directories (`shared/`, `test-data/`, `packages/`) so this class of
+       resolver breakage fails architecture verification.
+
      [2026-05-27] Audit and enforce frontend localization keys
      Files changed: i18n/locales/en.json, i18n/locales/ru.json,
        shared/localization.spec.js, components/CassetteEditorDialog.vue,

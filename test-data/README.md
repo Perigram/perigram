@@ -5,9 +5,9 @@
 Factories in this directory represent **API DTO shape**, not raw MongoDB documents. They preserve the strict v24 block contract: root `_id` plus `identity`, `origin`, `status`, `lineage`, `specs`, `attachments`, `data`, and `summary`.
 
 Factories can be imported by Nuxt UI code and by server/runtime modules that
-run under the project toolchain. Use the Nuxt root alias for imports into
-shared repo contracts so production SSR bundles do not retain fragile generated
-relative paths.
+run under direct Node loaders. Runtime modules in this directory must use
+relative imports internally; Nuxt UI code may import the factories themselves
+through `~/test-data/...` at the call site.
 
 ## Why Factory Functions?
 
@@ -103,9 +103,9 @@ Factories are built from:
 - Workflow state definitions in `packages/domain-cnc/src/index.js`
 
 This ensures mock data matches what your API actually expects/returns.
-Factory modules use the Nuxt root alias for shared repo contracts when those
-factories are imported by pages, because Nitro bundles page dependencies into
-generated server chunks during production builds.
+Factory modules avoid Nuxt root aliases internally so direct Node imports,
+server scripts, and Nitro-generated chunks resolve the same dependency graph.
+`scripts/check-arch.js` enforces this for non-spec files in `test-data/`.
 
 When a component needs a new field for display, update the relevant DTO factory and manifest entry together. Do not add flat compatibility fields.
 When an entity type has a workflow, the factory `status.state` must be one of that workflow's canonical states; `shared/design-system.spec.js` enforces this for UI lab demos.
