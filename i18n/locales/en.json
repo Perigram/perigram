@@ -772,6 +772,50 @@
         "ok": "Extracted review collections match the framework manifest."
       }
     },
+    "configBot": {
+      "title": "ConfigBot",
+      "subtitle": "Draft admin micro-app pages and workflows from the domain-cnc and Vue component catalog.",
+      "reindex": "Reindex",
+      "exportPackage": "Export Package",
+      "request": "Request",
+      "primaryEntity": "Primary entity",
+      "entityPlaceholder": "Select an entity type",
+      "prompt": "Prompt",
+      "promptPlaceholder": "Describe the admin page, workflow, or entity operation to draft.",
+      "generate": "Generate Draft",
+      "ask": "Ask",
+      "noApply": "ConfigBot v0.1 exports draft packages only. Repository writes stay disabled.",
+      "emptyDraft": "No draft package yet",
+      "emptyDraftDescription": "Describe the admin workflow to generate a package preview.",
+      "needsReview": "Needs review",
+      "packageSummary": "Package summary",
+      "target": "Target",
+      "route": "Route",
+      "version": "Version",
+      "entities": "Entities",
+      "components": "Components",
+      "files": "Files",
+      "domainDraft": "Domain draft",
+      "validation": "Validation",
+      "noValidation": "No validation yet",
+      "noValidationDescription": "Generate a draft to see package checks.",
+      "overall": "Overall",
+      "citations": "Sources",
+      "noCitations": "No sources",
+      "noCitationsDescription": "Run reindex or ask a question that matches app documentation.",
+      "answer": "Answer",
+      "tabs": {
+        "summary": "Summary",
+        "files": "Files",
+        "domain": "Domain"
+      },
+      "errors": {
+        "loadDomainFailed": "Failed to load domain entities",
+        "generateFailed": "Failed to generate draft",
+        "chatFailed": "Failed to ask ConfigBot",
+        "reindexFailed": "Failed to reindex ConfigBot knowledge"
+      }
+    },
     "domainBuilder": {
       "title": "Domain Builder",
       "subtitle": "Edit CNC entity and workflow definitions in a local browser draft, validate them, and export package source.",

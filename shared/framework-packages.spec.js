@@ -197,6 +197,15 @@ describe('Framework package contracts', () => {
       action: 'generate',
       access: { permissions: [expect.objectContaining({ feature: 'artifacts', level: 'write' })] }
     });
+    expect(cncCommands.generateConfigBotDraft).toMatchObject({
+      service: 'configBot',
+      action: 'generateDraft',
+      access: { permissions: [expect.objectContaining({ feature: 'config_bot', level: 'admin' })] }
+    });
+    expect(cncCommands.reindexConfigBotKnowledge).toMatchObject({
+      service: 'configBot',
+      action: 'reindexKnowledge'
+    });
     expect(cncWorkflows.queue.transitions.every(transition => !transition.roles)).toBe(true);
     expect(cncDomain).toMatchObject({ id: 'cnc', commands: cncCommands, tasks: cncTasks, attachmentKinds: cncAttachmentKinds });
     expect(cncDomain.ui.designSystem).toBe(cncDesignSystem);
@@ -219,6 +228,7 @@ describe('Framework package contracts', () => {
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'solveNesting' }));
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'saveCassetteTemplate' }));
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'generateAttachment' }));
+    await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'generateConfigBotDraft' }));
     await expect(handlers.list_ui_primitives()).resolves.toContainEqual(expect.objectContaining({ key: 'EntityCard', kind: 'entity-chrome' }));
     await expect(handlers.query_docs({ query: 'workflow' })).resolves.toContainEqual(expect.objectContaining({ path: 'README.md' }));
     await expect(handlers.get_framework_manifest()).resolves.toMatchObject({ schemaVersion: 1, validations: { ok: true } });
@@ -238,6 +248,7 @@ describe('Framework package contracts', () => {
     const composition = readFileSync('server/runtime/app-registry.js', 'utf8');
     expect(composition).toContain('cncDomain');
     expect(composition).toContain('saveCassetteTemplate');
+    expect(composition).toContain('generateConfigBotDraft');
   });
 
   it('keeps the committed framework manifest synchronized with source metadata', () => {

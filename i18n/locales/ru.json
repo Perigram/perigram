@@ -772,6 +772,50 @@
         "ok": "Извлеченные коллекции соответствуют манифесту фреймворка."
       }
     },
+    "configBot": {
+      "title": "ConfigBot",
+      "subtitle": "Черновики админских micro-app страниц и workflow из каталога domain-cnc и Vue-компонентов.",
+      "reindex": "Переиндексировать",
+      "exportPackage": "Экспорт пакета",
+      "request": "Запрос",
+      "primaryEntity": "Основная сущность",
+      "entityPlaceholder": "Выберите тип сущности",
+      "prompt": "Промпт",
+      "promptPlaceholder": "Опишите админскую страницу, workflow или операцию сущности для черновика.",
+      "generate": "Создать черновик",
+      "ask": "Спросить",
+      "noApply": "ConfigBot v0.1 экспортирует только черновики пакетов. Запись в репозиторий отключена.",
+      "emptyDraft": "Черновика пакета пока нет",
+      "emptyDraftDescription": "Опишите админский workflow, чтобы создать предпросмотр пакета.",
+      "needsReview": "Нужна проверка",
+      "packageSummary": "Сводка пакета",
+      "target": "Цель",
+      "route": "Маршрут",
+      "version": "Версия",
+      "entities": "Сущности",
+      "components": "Компоненты",
+      "files": "Файлы",
+      "domainDraft": "Черновик домена",
+      "validation": "Проверка",
+      "noValidation": "Проверки пока нет",
+      "noValidationDescription": "Создайте черновик, чтобы увидеть проверки пакета.",
+      "overall": "Итог",
+      "citations": "Источники",
+      "noCitations": "Источников нет",
+      "noCitationsDescription": "Запустите переиндексацию или задайте вопрос, совпадающий с документацией приложения.",
+      "answer": "Ответ",
+      "tabs": {
+        "summary": "Сводка",
+        "files": "Файлы",
+        "domain": "Домен"
+      },
+      "errors": {
+        "loadDomainFailed": "Не удалось загрузить сущности домена",
+        "generateFailed": "Не удалось создать черновик",
+        "chatFailed": "Не удалось спросить ConfigBot",
+        "reindexFailed": "Не удалось переиндексировать знания ConfigBot"
+      }
+    },
     "domainBuilder": {
       "title": "Конструктор домена",
       "subtitle": "Редактируйте CNC-сущности и workflow в локальном черновике браузера, проверяйте их и экспортируйте исходник пакета.",

@@ -22,6 +22,14 @@ export const cncServiceContracts = {
     outputs: ['cassette', 'cassette_design'],
     actions: ['saveCassetteTemplate'],
     triggers: ['cassette.templateSaved']
+  },
+  configBot: {
+    service: 'configBot',
+    label: 'ConfigBot draft generator',
+    inputs: [],
+    outputs: [],
+    actions: ['generateConfigBotDraft', 'reindexConfigBotKnowledge'],
+    triggers: []
   }
 };
 
@@ -103,6 +111,45 @@ export const cncCommands = {
     access: {
       permissions: [
         { feature: 'artifacts', level: 'write' }
+      ]
+    }
+  },
+  generateConfigBotDraft: {
+    id: 'generateConfigBotDraft',
+    service: 'configBot',
+    action: 'generateDraft',
+    label: 'Generate ConfigBot draft',
+    input: {
+      parameters: [
+        { name: 'prompt', label: 'Prompt', type: 'string', required: true },
+        { name: 'context', label: 'Context', type: 'object', default: {} }
+      ]
+    },
+    triggers: [],
+    output: {
+      events: ['configBot.draftGenerated']
+    },
+    access: {
+      permissions: [
+        { feature: 'config_bot', level: 'admin' }
+      ]
+    }
+  },
+  reindexConfigBotKnowledge: {
+    id: 'reindexConfigBotKnowledge',
+    service: 'configBot',
+    action: 'reindexKnowledge',
+    label: 'Reindex ConfigBot knowledge',
+    input: {
+      parameters: []
+    },
+    triggers: [],
+    output: {
+      events: ['configBot.knowledgeReindexed']
+    },
+    access: {
+      permissions: [
+        { feature: 'config_bot', level: 'admin' }
       ]
     }
   }

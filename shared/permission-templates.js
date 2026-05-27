@@ -10,7 +10,8 @@ export const PERMISSION_TEMPLATES = {
     requisitions: 'admin',
     materials: 'admin',
     users: 'admin',
-    organizations: 'admin'
+    organizations: 'admin',
+    config_bot: 'admin'
   },
 
   ManufacturerAdmin: {

@@ -154,6 +154,46 @@
           "event": "attachment.generationRequested"
         }
       ]
+    },
+    {
+      "action": "generateDraft",
+      "attachments": [],
+      "events": [
+        "configBot.draftGenerated"
+      ],
+      "id": "generateConfigBotDraft",
+      "inputs": [],
+      "label": "Generate ConfigBot draft",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "config_bot",
+          "level": "admin"
+        }
+      ],
+      "service": "configBot",
+      "tasks": [],
+      "triggers": []
+    },
+    {
+      "action": "reindexKnowledge",
+      "attachments": [],
+      "events": [
+        "configBot.knowledgeReindexed"
+      ],
+      "id": "reindexConfigBotKnowledge",
+      "inputs": [],
+      "label": "Reindex ConfigBot knowledge",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "config_bot",
+          "level": "admin"
+        }
+      ],
+      "service": "configBot",
+      "tasks": [],
+      "triggers": []
     }
   ],
   "designSystem": {

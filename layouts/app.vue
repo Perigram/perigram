@@ -223,6 +223,11 @@
                         label: t('admin.domainBuilder.title'),
                         icon: 'pi pi-sitemap',
                         command: () => router.push('/admin/domain-builder')
+                    },
+                    {
+                        label: t('admin.configBot.title'),
+                        icon: 'pi pi-sparkles',
+                        command: () => router.push('/admin/config-bot')
                     }
                 ]
             });

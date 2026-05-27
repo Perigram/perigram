@@ -134,6 +134,7 @@ export const useNavigationStore = defineStore('navigation', () => {
                 { id: 'workbench', name: t('admin.workbench.title'), to: '/admin/workbench' },
                 { id: 'organizations', name: t('features.organizations'), to: '/admin/organizations' },
                 { id: 'users', name: t('features.users'), to: '/admin/users' },
+                { id: 'config-bot', name: t('admin.configBot.title'), to: '/admin/config-bot' },
                 { id: 'domain-builder', name: t('admin.domainBuilder.title'), to: '/admin/domain-builder' },
                 { id: 'data-model-review', name: t('admin.dataModelReview.title'), to: '/admin/data-model-review' },
                 { id: 'diagnostics', name: t('admin.systemDiagnostics'), to: '/admin/diagnostics' },

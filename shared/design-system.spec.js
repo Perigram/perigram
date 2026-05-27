@@ -256,6 +256,23 @@ describe('Design system manifest', () => {
     expect(layout).toContain("router.push('/admin/domain-builder')");
   });
 
+  it('exposes ConfigBot as a draft-only admin tool', () => {
+    const page = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/config-bot.vue'), 'utf8');
+    const preview = fs.readFileSync(path.join(REPO_ROOT, 'components/config-bot/ConfigBotDraftPreview.vue'), 'utf8');
+    const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
+    const navigation = fs.readFileSync(path.join(REPO_ROOT, 'stores/navigation.js'), 'utf8');
+
+    expect(page).toContain('/api/config-bot/generate');
+    expect(page).toContain('/api/config-bot/chat');
+    expect(page).toContain('/api/admin/config-bot/reindex');
+    expect(page).toContain("writes: 'draft-only'");
+    expect(page).not.toContain('applyPackage');
+    expect(preview).toContain('ActionToolbar');
+    expect(preview).toContain('StateBlock');
+    expect(layout).toContain("router.push('/admin/config-bot')");
+    expect(navigation).toContain("to: '/admin/config-bot'");
+  });
+
   it('exposes command definitions and runs in the admin workbench', () => {
     const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
     const service = fs.readFileSync(path.join(REPO_ROOT, 'server/core/commands/service.js'), 'utf8');

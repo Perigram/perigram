@@ -18,6 +18,10 @@ services:
       - NUXT_RESEND_TOKEN=${RESEND_TOKEN}
       - WORKER_TOKEN=${WORKER_TOKEN}
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://192.168.0.67:11434}
+      - CONFIG_BOT_CHAT_MODEL=${CONFIG_BOT_CHAT_MODEL:-qwen3:4b}
+      - CONFIG_BOT_EMBED_MODEL=${CONFIG_BOT_EMBED_MODEL:-bge-m3}
+      - CONFIG_BOT_CORTEX_PATH=${CONFIG_BOT_CORTEX_PATH:-/home/isuo/Documents/cutkit-cortex}
     secrets:
       - source: cutkit_stripe_secret_key
         target: stripe_secret_key

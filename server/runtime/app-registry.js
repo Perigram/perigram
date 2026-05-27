@@ -27,6 +27,7 @@ import * as warehousesService from '~/server/features/warehouses/service.js';
 import { saveCassetteTemplate } from '~/server/features/cassettes/operations.js';
 import { executeNestingSolveTask, solveNesting } from '~/server/features/nesting/operations.js';
 import { generateAttachment } from '~/server/features/artifacts/operations.js';
+import { generateConfigBotDraft, reindexConfigBotKnowledge } from '~/server/features/config-bot/operations.js';
 
 let appRegistry = null;
 
@@ -95,7 +96,9 @@ const entityServices = {
 const commandHandlers = {
   saveCassetteTemplate,
   solveNesting,
-  generateAttachment
+  generateAttachment,
+  generateConfigBotDraft,
+  reindexConfigBotKnowledge
 };
 
 const taskExecutors = {
