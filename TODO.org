@@ -5,6 +5,17 @@
   [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
 
 *** Agent Notes
+     [2026-06-01] Add simplified cassette schema Mermaid overview
+     Files changed: docs/specs/cassette-schema.md, docs/specs/README.md,
+       README.md, TODO.org
+     Docs updated: docs/specs/cassette-schema.md, docs/specs/README.md,
+       README.md, TODO.org
+     Notes: Added a compact flowchart describing the cassette document format,
+       including meta, params, recursive root/node children, attach blocks, and
+       cuts. Created the local specs README and linked it from the root
+       documentation map so the schema specs directory is discoverable.
+
+*** Agent Notes
      [2026-05-27] Implement ConfigBot v0.1 draft package generator
      Files changed: server/features/config-bot/service.js,
        server/features/config-bot/repository.js,

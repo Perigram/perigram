@@ -1,5 +1,33 @@
 ## Cassette JSON Specification v1.0
 
+### Format Overview
+
+```mermaid
+flowchart TD
+  Document["Cassette document<br/>id, meta, params, root"]
+  Meta["meta<br/>units, thickness, bendRadius"]
+  Params["params<br/>named expression values"]
+  Root["root node<br/>kind=face, depth, children?"]
+  Node["node<br/>id, kind, depth<br/>attach*, cuts?, children?"]
+  Attach["attach<br/>bendAngle, bendRadius?, offsets?"]
+  Cuts["cuts[]<br/>corner, width, height, x?, y?<br/>children?"]
+  Children["children<br/>north/east/south/west -> node|null"]
+
+  Document --> Meta
+  Document --> Params
+  Document --> Root
+  Root --> Children
+  Children --> Node
+  Node --> Attach
+  Node --> Cuts
+  Node --> Children
+  Cuts --> Children
+```
+
+`attach*` is required on every non-root node and absent on the root. `children`
+is an edge-keyed recursive map; omit an edge or set it to `null` when no child is
+present.
+
 ### Document Structure
 
 ```jsonc

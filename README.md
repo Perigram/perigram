@@ -109,3 +109,4 @@ and workers; compose files use `cutkit-dev-worker` for local development.
 | Workers | [workers/README.md](./workers/README.md) |
 | Admin workbench | [pages/admin/README.md](./pages/admin/README.md) |
 | Scripts and guardrails | [scripts/README.md](./scripts/README.md) |
+| Schema specs | [docs/specs/README.md](./docs/specs/README.md) |
