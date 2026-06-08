@@ -75,7 +75,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     ].filter(a => authStore.hasPermission(a.entity, 'read')));
 
     // Master breadcrumb generator
-    const resolveBreadcrumbs = (path) => {
+    const resolveBreadcrumbs = (path, query = {}) => {
         const parts = path.split('/').filter((p) => p);
         const nav = [];
 
@@ -129,9 +129,9 @@ export const useNavigationStore = defineStore('navigation', () => {
         }
 
         // --- Level 2: Admin Context ---
-        if (parts[0] === 'admin' && parts[1]) {
+        if (parts[0] === 'admin') {
              const adminTabs = [
-                { id: 'workbench', name: t('admin.workbench.title'), to: '/admin/workbench' },
+                { id: 'workbench', name: t('admin.workbench.title'), to: '/admin' },
                 { id: 'organizations', name: t('features.organizations'), to: '/admin/organizations' },
                 { id: 'users', name: t('features.users'), to: '/admin/users' },
                 { id: 'config-bot', name: t('admin.configBot.title'), to: '/admin/config-bot' },
@@ -140,12 +140,28 @@ export const useNavigationStore = defineStore('navigation', () => {
                 { id: 'diagnostics', name: t('admin.systemDiagnostics'), to: '/admin/diagnostics' },
                 { id: 'settings', name: t('nav.settings'), to: '/admin/settings' },
              ];
-             const currentTab = adminTabs.find(t => t.id === parts[1]);
+             const currentTabId = parts[1] || 'workbench';
+             const currentTab = adminTabs.find(t => t.id === currentTabId);
              if (currentTab) {
                  nav.push({
                      name: currentTab.name,
                      to: currentTab.to,
                      siblings: adminTabs.map(t => siblingOption(t.name, t.to))
+                 });
+             }
+             if (currentTab?.id === 'workbench') {
+                 const section = Array.isArray(query.section) ? query.section[0] : query.section;
+                 const workbenchSections = [
+                    { id: 'designer', name: t('admin.workbench.sectionsDesigner'), to: '/admin?section=designer' },
+                    { id: 'entities', name: t('admin.workbench.entities'), to: '/admin?section=entities' },
+                    { id: 'context', name: t('admin.workbench.sectionsContext'), to: '/admin?section=context' },
+                    { id: 'commands', name: t('admin.workbench.sectionsCommands'), to: '/admin?section=commands' },
+                 ];
+                 const currentSection = workbenchSections.find(item => item.id === section) || workbenchSections[0];
+                 nav.push({
+                    name: currentSection.name,
+                    to: currentSection.to,
+                    siblings: workbenchSections.map(item => siblingOption(item.name, item.to))
                  });
              }
         }

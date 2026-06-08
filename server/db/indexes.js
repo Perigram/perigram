@@ -12,7 +12,7 @@ import { connectDB } from './mongo.js';
 const INDEXES = {
   // Layer Standards Collection
   layer_standards: [
-    { keys: { 'config.code': 1 }, options: { unique: true, name: 'code_unique' } },
+    { keys: { 'data.code': 1 }, options: { unique: true, name: 'code_unique' } },
     { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } }
   ],
 

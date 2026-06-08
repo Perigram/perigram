@@ -22,6 +22,9 @@ let wasmInitialized = false;
 let baseTemplateGraph = null;
 let evaluationChain = Promise.resolve();
 
+const OCCS_CASSETTE_FACE_LAYER = 'contour.cassette_face';
+const OCCS_FLAT_PATTERN_LAYER = 'contour.flat_pattern.face_and_returns';
+
 async function runWithEvaluationLock(task) {
   const run = evaluationChain.then(() => task());
   evaluationChain = run.catch(() => {});
@@ -86,7 +89,7 @@ async function getEngine() {
 /**
  * Robust AC1015 DXF Generator for polygons
  */
-export function generateSimpleDxf(polygons, nestingLayer = '1_3_UNFOLD_BOUNDARY', internalLayer = '1_1_FACE') {
+export function generateSimpleDxf(polygons, nestingLayer = OCCS_FLAT_PATTERN_LAYER, internalLayer = OCCS_CASSETTE_FACE_LAYER) {
   let lines = [];
 
   const add = (code, value) => {
@@ -299,9 +302,13 @@ export async function evaluateTemplate(cassetteId, dimensions) {
     const template = await repository.findTemplateById(cassetteId);
     if (!template) throw new Error('Template not found');
 
-    const engine = await getEngine();
-    
     const definitionData = template.data?.definition || template.definition?.data || template.definition || {};
+    if (definitionData.occs) {
+      const { evaluateOccsCassetteTemplate } = await import('#utils/occs/evaluate.js');
+      return await evaluateOccsCassetteTemplate(definitionData, dimensions);
+    }
+
+    const engine = await getEngine();
     const mergedParams = { ...(definitionData.params || {}), ...dimensions };
 
     // Keep backend evaluation behavior aligned with frontend renderer:
@@ -373,11 +380,18 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
   const existing = await repository.findExistingBakedInstance(cassetteId, dimensions);
   if (existing) return existing;
 
-  const { polygons, dimensions: evalDims } = await evaluateTemplate(cassetteId, dimensions);
+  const {
+    polygons,
+    dimensions: evalDims,
+    nestingPolygons: evaluatedNestingPolygons,
+    layerData: evaluatedLayerData,
+    annotations: evaluatedAnnotations,
+    dimensionEntities: evaluatedDimensionEntities
+  } = await evaluateTemplate(cassetteId, dimensions);
   
   // Default layers from standards
-  const nestingLayer = '1_3_UNFOLD_BOUNDARY';
-  const internalLayer = '1_1_FACE';
+  const nestingLayer = OCCS_FLAT_PATTERN_LAYER;
+  const internalLayer = OCCS_CASSETTE_FACE_LAYER;
   
   const dxfContent = generateSimpleDxf(polygons, nestingLayer, internalLayer);
   
@@ -400,10 +414,10 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
   const templateSlug = template.identity?.slug || 'unnamed';
   
   // ONLY use the largest polygon for nesting to avoid duplicate items
-  const nestingPolygons = [polygons[0]];
+  const nestingPolygons = evaluatedNestingPolygons?.length ? evaluatedNestingPolygons : [polygons[0]];
   
   // Store all polygons with their target layers in layerData for artifacts generation
-  const layerData = polygons.map((p, idx) => ({
+  const layerData = evaluatedLayerData || polygons.map((p, idx) => ({
     layer: idx === 0 ? nestingLayer : internalLayer,
     coordinates: p.coordinates,
     handles: [(256 + idx).toString(16).toUpperCase()]
@@ -426,7 +440,10 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
         handles: [(256 + i).toString(16).toUpperCase()]
       })),
       layerData: layerData,
-      dimensions: evalDims
+      dimensions: evalDims,
+      annotations: evaluatedAnnotations || {
+        dimensions: evaluatedDimensionEntities || []
+      }
     })
   };
 

@@ -146,7 +146,9 @@ export default defineNuxtConfig({
                 'primevue/tab',
                 'primevue/tabpanels',
                 'primevue/tabpanel',
-                '@vue-flow/core'
+                '@vue-flow/core',
+                'three',
+                'three/examples/jsm/controls/OrbitControls.js'
             ],
             exclude: ['nodi-modular']
         },
@@ -231,7 +233,10 @@ export default defineNuxtConfig({
 
     nitro: {
         compressPublicAssets: true,
-        alias: cutkitAliases,
+        alias: {
+            ...cutkitAliases,
+            ...portableAliases
+        },
         routeRules: {
             '/icons/**': {
                 headers: {

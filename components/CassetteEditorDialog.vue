@@ -191,11 +191,14 @@ const layerStandards = computed(() => {
     return [];
   }
   
-  const options = standards.value.map(standard => ({
-    label: standard.i18n?.ru?.nameTemplate || standard.code,
-    value: standard.code,
-    category: standard.category
-  }));
+  const options = standards.value.map(standard => {
+    const data = standard.data || standard;
+    return {
+      label: data.i18n?.ru?.nameTemplate || data.code,
+      value: data.code,
+      category: data.category
+    };
+  });
   
   options.push({ label: t('common.doNotUse'), value: null, category: null });
   

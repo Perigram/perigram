@@ -24,11 +24,14 @@ import {
 } from './factories.js';
 import { cncCommands, cncWorkflows } from '#packages/domain-cnc/src/index.js';
 import { collectCommandAccess, collectWorkflowAccess, workflowInitialState } from '#utils/workflow-compiler.js';
+import { occsQueueParameters } from '#utils/occs/parameters.js';
+import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
 
 export const CNC_DEMO_SCENARIO_ID = 'cnc-demo-production';
 
 export function createCncFixtureScenario({ workflows = cncWorkflows, commands = cncCommands } = {}) {
   const status = (entityType, fallback) => workflowInitialState(workflows, entityType, fallback);
+  const cassetteTemplateDefinition = createDefaultOccsCassetteTemplateDefinition();
   const refs = {
     organization: MOCK_IDS.organizationId,
     manufacturer: MOCK_IDS.manufacturerId,
@@ -100,11 +103,8 @@ export function createCncFixtureScenario({ workflows = cncWorkflows, commands = 
         origin: undefined,
         data: {
           type: 'PARAMETRIC',
-          definition: {
-            params: { A: 1200, B: 400, C: 35 },
-            extrusions: [{ edge: 0, param: 'C' }]
-          },
-          parameters: ['A', 'B', 'C'],
+          definition: cassetteTemplateDefinition,
+          parameters: Object.keys(cassetteTemplateDefinition.parameters || {}),
           organizationId: refs.organization,
           userId: refs.user
         }
@@ -114,7 +114,7 @@ export function createCncFixtureScenario({ workflows = cncWorkflows, commands = 
         origin: undefined,
         lineage: { organizationId: refs.organization, projectId: refs.project, templateId: refs.cassetteTemplate },
         data: {
-          parameters: { A: 1200, B: 400, C: 35 },
+          parameters: occsQueueParameters(cassetteTemplateDefinition),
           geometry: {
             dxfId: 'dxf-cassette-design-demo',
             preview: {
@@ -133,7 +133,7 @@ export function createCncFixtureScenario({ workflows = cncWorkflows, commands = 
         data: {
           queueNumber: 'Q-001',
           job: {
-            items: [{ id: refs.cassetteTemplate, type: 'PARAMETRIC', quantity: 10, parameters: { A: 1200, B: 400, C: 35 } }],
+            items: [{ id: refs.cassetteTemplate, type: 'PARAMETRIC', quantity: 10, parameters: occsQueueParameters(cassetteTemplateDefinition) }],
             materialPool: [{ type: 'PILE', id: refs.materialPile }]
           }
         }

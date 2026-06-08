@@ -5,7 +5,7 @@ import {
   Status,
   Lineage,
   Specs
-} from '~/packages/core/src/index.js';
+} from '#packages/core/src/index.js';
 
 export {
   Identity,
@@ -19,39 +19,8 @@ export {
   createCommandResult,
   createEntityRef,
   createTaskResult,
-  defineAttachmentKind,
-  defineCommand,
-  defineDomain,
-  defineEntity,
-  defineHook,
-  defineTask,
-  defineWorkflow,
-  getAttachmentKindDefinition,
-  getCommandDefinition,
-  getCommandHandler,
-  getDomain,
-  getEntityDefinition,
-  getEntityService,
-  getHookDefinition,
-  getHookHandler,
-  getTaskDefinition,
-  getTaskExecutor,
-  getWorkflowDefinition,
-  listAttachmentKindDefinitions,
-  listCommandDefinitions,
-  listDomains,
-  listEntityDefinitions,
-  listHookDefinitions,
-  listHookHandlers,
-  listTaskDefinitions,
-  listWorkflowDefinitions,
-  registerAdapter,
-  registerCommandHandler,
-  registerEntityService,
-  registerHookHandler,
-  registerTaskExecutor,
   createData
-} from '~/packages/core/src/index.js';
+} from '#packages/core/src/index.js';
 
 // Factory helpers for clean service code
 export const createIdentity = (name, slug, serial = '', reference = '') => 

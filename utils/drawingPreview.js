@@ -46,6 +46,8 @@ export const resolveLayerPen = (options = {}) => {
   return options.defaultPen || DEFAULT_DRAWING_PEN;
 };
 
+const penStroke = (pen) => pen?.data?.stroke || pen?.stroke || {};
+
 export const applyLayerPens = (drawing, options = {}) => {
   if (!drawing?.layers) return drawing;
   return {
@@ -53,14 +55,15 @@ export const applyLayerPens = (drawing, options = {}) => {
     layers: drawing.layers.map(layer => {
       const standard = resolveLayerStandard({ layerName: layer.name, standardCode: layer.standardCode, ...options });
       const pen = standard ? resolveStandardPen(standard, options.pens, options.defaultPen) : (options.defaultPen || DEFAULT_DRAWING_PEN);
+      const stroke = penStroke(pen);
       return {
         ...layer,
         standardCode: standardCode(standard) || layer.standardCode || null,
         standardId: standard?._id || null,
         penId: pen?._id || null,
-        color: pen.stroke?.color || layer.color || 'currentColor',
-        weight: pen.stroke?.weight || layer.weight || 0.5,
-        dasharray: strokeDasharray(pen.stroke?.pattern) || layer.dasharray || 'none'
+        color: stroke.color || layer.color || 'currentColor',
+        weight: stroke.weight || layer.weight || 0.5,
+        dasharray: strokeDasharray(stroke.pattern) || layer.dasharray || 'none'
       };
     })
   };
@@ -101,6 +104,10 @@ export const normalizeGeometryDrawing = (source, options = {}) => {
   if (layers.length > 0) {
     return applyLayerPens({
       viewBox: preview.viewBox || '0 0 100 60',
+      vertices: preview.vertices || [],
+      designerFaces: preview.designerFaces || [],
+      designerFoldEdges: preview.designerFoldEdges || [],
+      designerEdges: preview.designerEdges || [],
       layers: layers.map(layer => ({
         name: layer.name || 'geometry',
         standardCode: layer.standardCode || layer.code || null,

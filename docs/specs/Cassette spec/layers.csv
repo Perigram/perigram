@@ -1,0 +1,23 @@
+id,group,kind,purpose,production,allowedGeometry,toolOffset,ruAlias,dxfLayer,description
+contour.prefix,contour,group,layer_group_prefix,false,,,1_0_Контуры________________Префикс,1_0_Контуры________________Префикс,Prefix/group layer for contour-related geometry. Not normally used for entities.
+contour.cassette_face,contour,reference,visible_cassette_face_contour,false,polygon;path,,1_1_Лицо_Кассеты,1_1_Лицо_Кассеты,Contour of the cassette face/visible face in façade view.
+contour.flat_pattern.face_and_returns,contour,reference,flat_pattern_face_and_returns_contour,false,polygon;path,,1_2_Развертка кассеты_Лицо+подгибы,1_2_Развертка кассеты_Лицо+подгибы,"Contour of the cassette flat pattern, including face and folded returns."
+contour.flat_pattern.offset_envelope,contour,reference,flat_pattern_offset_envelope,false,polygon;path,outside:toolOffset,1_3_Габарит развертки_  + Ǿ фрезы,1_3_Габарит развертки_  + Ǿ фрезы,Offset/envelope contour of the flat pattern. Concrete tool allowance is resolved in design/export data.
+contour.material_sheet,contour,reference,material_sheet_boundary,false,polygon,,1_4_Лист материала_Цвет_№ партии,1_4_Лист материала_Цвет_№ партии,"Boundary of the source material sheet, usually with color and batch metadata."
+contour.nesting_field,contour,reference,nesting_batch_field_boundary,false,polygon,,1_5_Поле партии раскроя_№,1_5_Поле партии раскроя_№,Boundary or field of a cutting/nesting batch.
+cut.prefix,cut,group,layer_group_prefix,false,,,2_0_Обрезка_____________Ǿ  Фрезы,2_0_Обрезка_____________Ǿ  Фрезы,Prefix/group layer for through-cut geometry. Not normally used for entities.
+cut.outer,cut,production,outer_through_cut,true,polygon;path;circle,outside:toolOffset,"2_1_Обрезь_3,15","2_1_Обрезь_3,15",Outer through-cut contour. CAD aliases may include shop-specific tool diameter text.
+cut.inner,cut,production,inner_through_cut,true,polygon;path;circle,inside:toolOffset,,CUT_INNER,Inner through-cut contour for openings and cutouts.
+cut.hole,cut,production,through_cut_hole,true,circle;polygon,inside:toolOffset,2_2_Отверстие_5,2_2_Отверстие_5,Through-cut hole. Hole diameter belongs to entity geometry or exact design parameters.
+fold.prefix,fold,group,layer_group_prefix,false,,,3_0_Загиб______________↓ Угол Фрезы,3_0_Загиб______________↓ Угол Фрезы,"Prefix/group layer for fold, routing, and engraving operations. Not normally used for entities."
+fold.route,fold,production,fold_routing,true,path,centerline:0,3_1_Фрезеровка_90,3_1_Фрезеровка_90,Routing/V-groove layer for a fold. Fold angle belongs to fold.angle or exact design data.
+fold.engrave,fold,production,engraving_or_marking_line,true,path;text;polygon,,3_2_Гравировка _,3_2_Гравировка _,Engraving/marking layer.
+fold.reserved,fold,reserved,reserved_future_fold_operation,false,path;polygon;circle;text,,3_3__,3_3__,Reserved layer slot for future fold/routing operation.
+code.prefix,code,group,layer_group_prefix,false,,,4_0_Кодификатор_____________Префикс,4_0_Кодификатор_____________Префикс,Prefix/group layer for text codes and production identifiers. Not normally used for entities.
+code.cassette_mark,code,annotation,cassette_identifier_mark,true,text;path;polygon,,4_1_Марка_Кассета,4_1_Марка_Кассета,Cassette mark/identifier for production and installation.
+code.batch_number,code,annotation,cutting_batch_number,true,text,,4_2_№  партии_раскроя,4_2_№  партии_раскроя,Cutting/nesting batch number.
+code.paint_direction,code,annotation,paint_or_grain_direction,true,path;text;polygon,,4_3_Направление_Покраски,4_3_Направление_Покраски,"Paint, grain, or coating direction mark."
+dimension.prefix,dimension,group,layer_group_prefix,false,,,5_0_Размеры_______________Префикс,5_0_Размеры_______________Префикс,Prefix/group layer for dimensions. Not normally used for entities.
+dimension.cassette,dimension,annotation,cassette_dimension_annotation,false,dimension;text;path,,5_1_Размер_Кассета,5_1_Размер_Кассета,Dimensions of the finished cassette.
+dimension.material_sheet,dimension,annotation,material_sheet_dimension_annotation,false,dimension;text;path,,5_2_Размер_Лист,5_2_Размер_Лист,Dimensions of the material sheet.
+dimension.envelope,dimension,annotation,overall_envelope_dimension_annotation,false,dimension;text;path,,5_3_Размер_Габарит,5_3_Размер_Габарит,Overall envelope dimensions.

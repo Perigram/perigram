@@ -1,23 +1,24 @@
 <template>
-  <StandardPage :title="$t('admin.workbench.title')" :subtitle="$t('admin.workbench.subtitle')">
-    <template #actions>
-      <Button icon="pi pi-refresh" :label="$t('common.reset')" severity="secondary" @click="resetWorkbench" />
-      <Button icon="pi pi-download" :label="$t('admin.workbench.exportDraft')" @click="downloadDraft" />
-    </template>
-
+  <div class="flex w-full flex-col gap-4 p-4 md:p-6">
     <div class="flex flex-col gap-4">
-      <div class="flex flex-row flex-nowrap items-center gap-2 overflow-x-auto">
-        <Button
-          v-for="tab in globalWorkbenchTabs"
-          :key="tab.value"
-          :label="$t(tab.labelKey)"
-          :severity="activeWorkbenchSection === tab.value ? 'primary' : 'secondary'"
-          size="small"
-          @click="activeWorkbenchSection = tab.value"
-        />
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <div class="flex items-center gap-2">
+          <Button icon="pi pi-refresh" :label="$t('common.reset')" severity="secondary" size="small" @click="resetWorkbench" />
+          <Button icon="pi pi-download" :label="$t('admin.workbench.exportDraft')" size="small" @click="downloadDraft" />
+        </div>
       </div>
 
-      <div v-if="activeWorkbenchSection === 'commands'" class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <section v-if="activeWorkbenchSection === 'designer'">
+        <CassetteDesignerV2
+          :template="selectedCassetteTemplate"
+          :template-options="cassetteTemplateOptions"
+          :persisted-template-ids="persistedCassetteTemplateIds"
+          @load-template="loadCassetteTemplate"
+          @save-template="saveCassetteTemplate"
+        />
+      </section>
+
+      <div v-else-if="activeWorkbenchSection === 'commands'" class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <Panel :header="$t('admin.workbench.sectionsCommands')" class="lg:sticky lg:top-4">
           <div class="flex flex-col gap-3">
             <Message v-if="commandsError" severity="warn">{{ commandsError }}</Message>
@@ -548,7 +549,7 @@
         </div>
       </div>
     </div>
-  </StandardPage>
+  </div>
 </template>
 
 <script setup>
@@ -564,12 +565,13 @@ import Panel from 'primevue/panel';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
-import StandardPage from '~/components/shared/StandardPage.vue';
 import TypedSettingsForm from '~/components/shared/TypedSettingsForm.vue';
 import CassetteDesigner from '~/components/CassetteDesigner.vue';
+import CassetteDesignerV2 from '~/components/CassetteDesignerV2.vue';
 import { DESIGN_SYSTEM_ENTITIES, createDesignSystemDemoRows } from '~/utils/design-system.js';
 import { buildWorkflowGraph, parseCommaList, parseJsonObject, stringifyCommaList } from '~/utils/domain-builder.js';
 import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
+import { occsParameterNames, occsQueueParameters } from '~/utils/occs/parameters.js';
 import { useWorkbenchFixturesStore } from '~/stores/workbenchFixtures.js';
 import {
   buildManualWorkbenchEntity,
@@ -585,9 +587,18 @@ definePageMeta({
 });
 
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
 const fixtureStore = useWorkbenchFixturesStore();
 const STORAGE_KEY = 'cutkit:entity-workbench:v1';
 const WORKFLOW_LAYOUT_STORAGE_KEY = 'cutkit:entity-workbench-layout:v1';
+const globalWorkbenchTabs = [
+  { value: 'designer', labelKey: 'admin.workbench.sectionsDesigner' },
+  { value: 'entities', labelKey: 'admin.workbench.sectionsEntities' },
+  { value: 'context', labelKey: 'admin.workbench.sectionsContext' },
+  { value: 'commands', labelKey: 'admin.workbench.sectionsCommands' }
+];
+const WORKBENCH_SECTION_VALUES = globalWorkbenchTabs.map(tab => tab.value);
 
 const domainLoading = ref(false);
 const domainError = ref('');
@@ -595,7 +606,7 @@ const sourceDomain = ref({ entities: [], workflows: {}, hooks: {} });
 const entities = ref([]);
 const workflows = ref({});
 const hookContracts = ref({});
-const activeWorkbenchSection = ref('entities');
+const activeWorkbenchSection = ref(normalizeWorkbenchSection(route.query.section));
 const activeEntityTab = ref('ui');
 const uiRows = createDesignSystemDemoRows();
 const feedback = ref({});
@@ -629,6 +640,8 @@ const manualEntityType = ref('project');
 const manualEntityDraft = ref({});
 const manualEntityRefs = ref([]);
 const manualCassetteDesignerKey = ref(0);
+const selectedCassetteTemplateId = ref('');
+const persistedCassetteTemplateIds = ref([]);
 let commandRunPoll = null;
 let taskRunPoll = null;
 
@@ -734,11 +747,6 @@ const selectedLifecycleAttachments = computed(() => {
     multiple: Boolean(definition?.multiple)
   }));
 });
-const globalWorkbenchTabs = [
-  { value: 'entities', labelKey: 'admin.workbench.entities' },
-  { value: 'context', labelKey: 'admin.workbench.sectionsContext' },
-  { value: 'commands', labelKey: 'admin.workbench.sectionsCommands' }
-];
 const entityWorkbenchTabs = [
   { value: 'ui', labelKey: 'admin.workbench.sectionsUi' },
   { value: 'workflow', labelKey: 'admin.workbench.sectionsWorkflow' },
@@ -816,6 +824,15 @@ const scenarioEntityPreviews = computed(() => [
   previewForEntityRef('cassette', fixtureStore.refs.cassetteTemplate, 'scenario:cassette'),
   previewForEntityRef('sheet_design', fixtureStore.refs.sheetDesign, 'scenario:sheet-design')
 ].filter(Boolean));
+const cassetteTemplateOptions = computed(() => (fixtureStore.entityOptions.cassette || []).map(option => ({
+  label: option.label,
+  value: option.value
+})));
+const selectedCassetteTemplate = computed(() => (
+  findScenarioEntity('cassette', selectedCassetteTemplateId.value) ||
+  findScenarioEntity('cassette', fixtureStore.refs.cassetteTemplate) ||
+  null
+));
 const typedSettingsContext = computed(() => ({
   entityTypes: manualEntityDefinitions.value.map(entity => entity.type),
   workflowStates: workflowCompile.value.states,
@@ -853,9 +870,9 @@ onMounted(async () => {
   loadStoredDraft();
   loadModels();
   loadWorkflowLayouts();
-  rebuildFixtureScenario();
-  resetManualEntityDraft();
-  loadCommands();
+  await rebuildFixtureScenario({ loadPersistedCassettes: false });
+  await loadCommands();
+  await loadPersistedCassetteTemplates();
   loadCommandRuns();
   loadTasks();
   if (import.meta.client) commandRunPoll = window.setInterval(loadCommandRuns, 5000);
@@ -869,6 +886,24 @@ onUnmounted(() => {
 
 watch([workflows, feedback, dataDecisions], saveDraft, { deep: true });
 watch(workflowLayouts, saveWorkflowLayouts, { deep: true });
+watch(() => route.query.section, (section) => {
+  const normalized = normalizeWorkbenchSection(section);
+  activeWorkbenchSection.value = normalized;
+  const raw = Array.isArray(section) ? section[0] : section;
+  if (raw && raw !== normalized) {
+    router.replace({ path: route.path, query: { ...route.query, section: normalized } });
+  }
+}, { immediate: true });
+watch(() => fixtureStore.refs.cassetteTemplate, (id) => {
+  if (!selectedCassetteTemplateId.value || !findScenarioEntity('cassette', selectedCassetteTemplateId.value)) {
+    selectedCassetteTemplateId.value = id || cassetteTemplateOptions.value[0]?.value || '';
+  }
+}, { immediate: true });
+watch(cassetteTemplateOptions, (options) => {
+  if (!options.some(option => option.value?.toString() === selectedCassetteTemplateId.value?.toString())) {
+    selectedCassetteTemplateId.value = fixtureStore.refs.cassetteTemplate || options[0]?.value || '';
+  }
+});
 watch(selectedEntityKey, () => {
   selectedState.value = '';
   selectedTransitionIndex.value = null;
@@ -877,6 +912,182 @@ watch(selectedEntityKey, () => {
 
 watch(selectedCommandId, syncCommandInput);
 watch(manualEntityType, resetManualEntityDraft);
+
+function normalizeWorkbenchSection(value) {
+  const section = Array.isArray(value) ? value[0] : value;
+  return WORKBENCH_SECTION_VALUES.includes(section) ? section : 'designer';
+}
+
+function loadCassetteTemplate(id) {
+  if (!id) return;
+  selectedCassetteTemplateId.value = id;
+  const entity = findScenarioEntity('cassette', id);
+  if (!entity) return;
+  setWorkbenchRefs({ cassetteTemplate: entity._id });
+  syncNestingQueueCassette(entity);
+  applyScenarioDefaults();
+}
+
+async function saveCassetteTemplate(payload = {}) {
+  const definition = payload.definition || payload.occs || {};
+  const name = String(payload.name || selectedCassetteTemplate.value?.identity?.name || t('cassette.newCassette')).trim() || t('cassette.newCassette');
+  const resultCassetteId = payload.commandResult?.data?.cassetteId ||
+    payload.commandResult?.entities?.find(entity => entity.type === 'cassette')?.id ||
+    '';
+  const persistedId = payload.savedEntity?._id || resultCassetteId;
+  const lookupId = persistedId || payload.id || '';
+  const savedEntity = payload.savedEntity
+    ? clonePlain(payload.savedEntity)
+    : await fetchPersistedCassetteTemplate(lookupId).catch(() => null);
+  const existing = savedEntity || (payload.id ? findScenarioEntity('cassette', payload.id) : selectedCassetteTemplate.value);
+  const entity = savedEntity || buildCassetteV2TemplateEntity({ ...payload, definition, name }, existing);
+  if (!entity) return;
+
+  rememberPersistedCassetteTemplateIds([savedEntity?._id || persistedId].filter(Boolean));
+  fixtureStore.upsertEntities([{ type: 'cassette', entity }]);
+  selectedCassetteTemplateId.value = entity._id;
+  setWorkbenchRefs({ cassetteTemplate: entity._id });
+  syncNestingQueueCassette(entity);
+  manualEntityRefs.value = uniqueOutputRefs([
+    { type: 'cassette_template', id: entity._id },
+    ...manualEntityRefs.value
+  ]);
+  applyScenarioDefaults();
+}
+
+async function loadPersistedCassetteTemplates(options = {}) {
+  const preferredTemplateId = options.preferredTemplateId || selectedCassetteTemplateId.value;
+  const templates = await fetchPersistedCassetteTemplates().catch(() => []);
+  if (!templates.length) return;
+
+  rememberPersistedCassetteTemplateIds(templates.map(template => template._id));
+  fixtureStore.upsertEntities(templates.map(entity => ({ type: 'cassette', entity })));
+
+  const selectedEntity = preferredTemplateId ? findScenarioEntity('cassette', preferredTemplateId) : null;
+  if (selectedEntity) {
+    loadCassetteTemplate(selectedEntity._id);
+  }
+}
+
+async function fetchPersistedCassetteTemplates() {
+  const result = await $fetch('/api/cassettes');
+  const cassettes = Array.isArray(result) ? result : (result?.items || result?.data || []);
+  return cassettes.filter(entity => entity?._id && entity.data?.type === 'PARAMETRIC');
+}
+
+async function fetchPersistedCassetteTemplate(id) {
+  if (!id) return null;
+  const entity = await $fetch(`/api/cassettes/${encodeURIComponent(id)}`);
+  return entity && entity.data?.type === 'PARAMETRIC' ? entity : null;
+}
+
+function rememberPersistedCassetteTemplateIds(ids = []) {
+  const next = new Set(persistedCassetteTemplateIds.value.map(id => id?.toString()).filter(Boolean));
+  for (const id of ids) {
+    if (id) next.add(id.toString());
+  }
+  persistedCassetteTemplateIds.value = Array.from(next);
+}
+
+function buildCassetteV2TemplateEntity(payload = {}, existing = null) {
+  const definition = clonePlain(payload.definition || {});
+  const parameterNames = Array.isArray(payload.parameters)
+    ? payload.parameters
+    : occsParameterNames(definition);
+  if (!existing) {
+    const entity = buildManualEntity('cassette', {
+      name: payload.name,
+      definition,
+      parameters: parameterNames
+    });
+    if (payload.id && entity) {
+      entity._id = payload.id;
+      entity.identity = {
+        ...(entity.identity || {}),
+        uid: payload.id,
+        serial: String(payload.id).toUpperCase()
+      };
+    }
+    return entity;
+  }
+
+  const entity = clonePlain(existing);
+  const uid = entity.identity?.uid || entity._id;
+  entity.identity = {
+    ...(entity.identity || {}),
+    uid,
+    name: payload.name,
+    slug: slugifyWorkbenchValue(payload.name),
+    serial: entity.identity?.serial || String(uid).toUpperCase()
+  };
+  entity.lineage = {
+    ...(entity.lineage || {}),
+    organizationId: entity.lineage?.organizationId || fixtureStore.access.organizationId
+  };
+  entity.attachments ||= {};
+  entity.data = {
+    ...(entity.data || {}),
+    type: 'PARAMETRIC',
+    definition,
+    parameters: parameterNames,
+    organizationId: fixtureStore.access.organizationId,
+    userId: fixtureStore.access.userId
+  };
+  return entity;
+}
+
+function syncNestingQueueCassette(cassette) {
+  const queue = findScenarioEntity('queue', fixtureStore.refs.queue);
+  if (!queue || !cassette?._id) return;
+  const nextQueue = clonePlain(queue);
+  const currentJob = nextQueue.data?.job || {};
+  const currentItems = Array.isArray(currentJob.items) ? currentJob.items : [];
+  const currentItem = currentItems[0] || {};
+  nextQueue.data = {
+    ...(nextQueue.data || {}),
+    job: {
+      ...currentJob,
+      items: [
+        {
+          ...currentItem,
+          id: cassette._id,
+          type: cassette.data?.type || currentItem.type || 'PARAMETRIC',
+          quantity: Number(currentItem.quantity) > 0 ? Number(currentItem.quantity) : 10,
+          parameters: cassetteParametersForQueue(cassette)
+        },
+        ...currentItems.slice(1)
+      ]
+    }
+  };
+  fixtureStore.upsertEntities([{ type: 'queue', entity: nextQueue }]);
+}
+
+function setWorkbenchRefs(patch = {}) {
+  fixtureStore.context = {
+    ...fixtureStore.context,
+    refs: {
+      ...(fixtureStore.context.refs || {}),
+      ...patch
+    },
+    persisted: false
+  };
+}
+
+function cassetteParametersForQueue(cassette = {}) {
+  return occsQueueParameters(cassette.data?.definition || {});
+}
+
+function clonePlain(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function slugifyWorkbenchValue(value) {
+  return String(value || 'entity')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'entity';
+}
 
 async function loadDomain() {
   domainLoading.value = true;
@@ -920,7 +1131,7 @@ async function loadCommands() {
     const result = await $fetch('/api/admin/commands');
     commands.value = (result.commands || []).filter(command => command.kind !== 'task');
     commandsRegistry.value = result.registry || {};
-    rebuildFixtureScenario();
+    await rebuildFixtureScenario({ loadPersistedCassettes: false });
     ensureSelectedCommand();
     syncCommandInput();
   } catch (error) {
@@ -1025,7 +1236,8 @@ async function runSelectedCommand() {
   }
 }
 
-function rebuildFixtureScenario() {
+async function rebuildFixtureScenario(options = {}) {
+  const previousTemplateId = selectedCassetteTemplateId.value;
   fixtureStore.rebuild({
     workflows: workflows.value,
     entities: entities.value,
@@ -1034,6 +1246,9 @@ function rebuildFixtureScenario() {
   manualEntityRefs.value = [];
   applyScenarioDefaults();
   resetManualEntityDraft();
+  if (options?.loadPersistedCassettes !== false) {
+    await loadPersistedCassetteTemplates({ preferredTemplateId: previousTemplateId });
+  }
 }
 
 async function seedFixtureScenario() {
@@ -1065,7 +1280,7 @@ function createManualEntity() {
 function createManualCassetteTemplate(payload = {}) {
   const params = payload.parameters || {};
   const definition = params.definition || {};
-  const parameterNames = Array.isArray(params.parameters) ? params.parameters : Object.keys(definition.params || {});
+  const parameterNames = Array.isArray(params.parameters) ? params.parameters : occsParameterNames(definition);
   const entity = buildManualEntity('cassette', {
     name: params.name || t('cassette.newCassette'),
     definition,
@@ -1073,6 +1288,10 @@ function createManualCassetteTemplate(payload = {}) {
   });
   if (!entity) return;
   upsertManualEntity('cassette', entity, 'cassette_template');
+  selectedCassetteTemplateId.value = entity._id;
+  setWorkbenchRefs({ cassetteTemplate: entity._id });
+  syncNestingQueueCassette(entity);
+  applyScenarioDefaults();
   manualCassetteDesignerKey.value += 1;
 }
 

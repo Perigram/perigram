@@ -13,13 +13,29 @@ function toDTO(standard) {
   return new LayerStandard(standard).toJSON();
 }
 
-export async function create(data, userId, userOrg, userRole, userPermissions) {
-  const { code, category, name, i18n, parameters, defaultPenId } = data;
-
+function buildLayerStandardDocument(data, userId, userOrg) {
+  const {
+    code,
+    category,
+    name,
+    i18n,
+    parameters,
+    defaultPenId,
+    group,
+    kind,
+    purpose,
+    production,
+    allowedGeometry,
+    aliases,
+    defaultExport,
+    parameterSchema,
+    description,
+    source
+  } = data;
   const lineage = userOrg ? { organizationId: toFlexibleId(userOrg) } : {};
   const origin = createStatus('ACTIVE', userId || 'SYSTEM', { note: 'Layer standard created' });
 
-  const standardData = {
+  return {
     identity: createIdentity(name || code),
     origin,
     status: origin,
@@ -29,9 +45,23 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
       category,
       defaultPenId: defaultPenId ? toFlexibleId(defaultPenId) : null,
       i18n: i18n || { en: { nameTemplate: name }, ru: { nameTemplate: name } },
-      parameters: parameters || []
+      parameters: parameters || [],
+      group: group || null,
+      kind: kind || null,
+      purpose: purpose || null,
+      production: Boolean(production),
+      allowedGeometry: allowedGeometry || [],
+      aliases: aliases || [],
+      defaultExport: defaultExport || {},
+      parameterSchema: parameterSchema || {},
+      description: description || '',
+      source: source || null
     })
   };
+}
+
+export async function create(data, userId, userOrg, userRole, userPermissions) {
+  const standardData = buildLayerStandardDocument(data, userId, userOrg);
 
   const created = await repository.create(standardData);
   return toDTO(created);
@@ -55,6 +85,11 @@ export async function seed(standards = []) {
   for (const standard of standards) {
     const existing = await repository.findByCode(standard.code);
     if (existing) {
+      const next = buildLayerStandardDocument(standard, 'SYSTEM');
+      await repository.updateById(existing._id, {
+        identity: next.identity,
+        data: next.data
+      });
       created[standard.code] = existing._id;
       continue;
     }

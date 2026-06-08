@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-84 -484 968 568" data-occs-id="curved-polygon-face-design" data-occs-document-type="design">
+  <title>OCCS cassette flat pattern</title>
+  <desc>Generated from OCCS geometry by tools/occs-toolkit.mjs</desc>
+  <g id="occs-contour-flat_pattern-face_and_returns" data-layer="contour.flat_pattern.face_and_returns">
+    <path data-occs-face="main" d="M 0 0 L 800 0 L 800 -400 C 520 -480 280 -480 0 -400 L 0 0 Z" style="fill:#e0f2fe;stroke:#0f172a;stroke-width:1.4" />
+  </g>
+  <g id="occs-fold-engrave" data-layer="fold.engrave">
+    <path data-occs-id="engrave_curve" data-layer="fold.engrave" data-target="main" class="occs-fold-engrave" d="M 100 -100 C 200 -250 600 -250 700 -100" style="fill:none;stroke:#2563eb;stroke-width:1.2;stroke-dasharray:8 4" />
+  </g>
+</svg>

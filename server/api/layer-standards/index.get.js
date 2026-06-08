@@ -14,8 +14,15 @@ export default defineEventHandler(async (event) => {
   const orgOverrides = await service.getOverridesForOrg(organizationId);
   const overrideMap = Object.fromEntries(orgOverrides.map(o => [o.standardId.toString(), o.penId.toString()]));
 
-  return standards.map(s => ({
-    ...s,
-    orgPenId: overrideMap[s._id?.toString()] || null
-  }));
+  return standards.map(s => {
+    const orgPenId = overrideMap[s._id?.toString()] || null;
+    return {
+      ...s,
+      orgPenId,
+      data: {
+        ...(s.data || {}),
+        orgPenId
+      }
+    };
+  });
 });

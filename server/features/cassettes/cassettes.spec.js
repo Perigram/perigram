@@ -82,6 +82,34 @@ describe('Cassette Management & Ownership', () => {
     expect(result.data.definition.params.height).toBe(200);
   });
 
+  it('should update an OCCS cassette definition under the canonical definition field', async () => {
+    const cassette = await cassetteService.create({
+      name: 'OCCS Template',
+      definition: {
+        occs: '0.4-draft',
+        documentType: 'template',
+        parameters: { A: '500' }
+      },
+      parameters: ['A']
+    }, user1.userId, user1.organizationId, null, user1.permissions);
+
+    const updated = await cassetteService.update(cassette._id.toString(), {
+      name: 'OCCS Template Updated',
+      definition: {
+        occs: '0.4-draft',
+        documentType: 'template',
+        parameters: { A: '700', B: '300' }
+      },
+      parameters: ['A', 'B']
+    }, user1.userId, user1.organizationId, null, user1.permissions);
+
+    expect(updated.identity.name).toBe('OCCS Template Updated');
+    expect(updated.data.definition.occs).toBe('0.4-draft');
+    expect(updated.data.definition.parameters).toEqual({ A: '700', B: '300' });
+    expect(updated.data.parameters).toEqual(['A', 'B']);
+    expect(updated.data.occs).toBeUndefined();
+  });
+
   it('should deny access to cassettes owned by other users', async () => {
     const cassette = await cassetteService.create({ name: 'Private Template' }, user1.userId, user1.organizationId, null, user1.permissions);
 

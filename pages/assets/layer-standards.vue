@@ -66,7 +66,7 @@ const penOptions = computed(() => namedSelectOptions(pens.value, 'Pen'));
 
 function openPenDialog(std) {
   activeStandard.value = std;
-  selectedPenId.value = std.orgPenId || std.defaultPenId || null;
+  selectedPenId.value = std.data?.orgPenId || std.orgPenId || std.data?.defaultPenId || std.defaultPenId || null;
   dialogVisible.value = true;
 }
 

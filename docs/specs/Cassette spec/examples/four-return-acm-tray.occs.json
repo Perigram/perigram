@@ -1,0 +1,257 @@
+{
+  "occs": "0.4-draft",
+  "documentType": "template",
+  "id": "four-return-acm-tray",
+  "units": "mm",
+  "parameters": {
+    "A": "1200",
+    "B": "600",
+    "R": "35",
+    "T": "4",
+    "BR": "2",
+    "HOLE_D": "5"
+  },
+  "definitions": {
+    "workpieces": [
+      {
+        "id": "tray_def",
+        "type": "sheet",
+        "role": "cassette_tray",
+        "material": "ACM_4",
+        "thickness": "T",
+        "faces": [
+          {
+            "id": "main",
+            "role": "main",
+            "shape": {
+              "type": "trapezoid",
+              "baseLength": "A",
+              "height": "B"
+            }
+          },
+          {
+            "id": "top_return",
+            "role": "return_flange",
+            "shape": {
+              "type": "trapezoid",
+              "baseLength": "inherit",
+              "height": "R"
+            }
+          },
+          {
+            "id": "right_return",
+            "role": "return_flange",
+            "shape": {
+              "type": "trapezoid",
+              "baseLength": "inherit",
+              "height": "R"
+            }
+          },
+          {
+            "id": "bottom_return",
+            "role": "return_flange",
+            "shape": {
+              "type": "trapezoid",
+              "baseLength": "inherit",
+              "height": "R"
+            }
+          },
+          {
+            "id": "left_return",
+            "role": "return_flange",
+            "shape": {
+              "type": "trapezoid",
+              "baseLength": "inherit",
+              "height": "R"
+            }
+          }
+        ],
+        "folds": [
+          {
+            "id": "fold_top",
+            "from": "main.E2",
+            "to": "top_return.E0",
+            "angle": "90deg",
+            "radius": "BR",
+            "method": "routed",
+            "layer": "fold.route"
+          },
+          {
+            "id": "fold_right",
+            "from": "main.E1",
+            "to": "right_return.E0",
+            "angle": "90deg",
+            "radius": "BR",
+            "method": "routed",
+            "layer": "fold.route"
+          },
+          {
+            "id": "fold_bottom",
+            "from": "main.E0",
+            "to": "bottom_return.E0",
+            "angle": "90deg",
+            "radius": "BR",
+            "method": "routed",
+            "layer": "fold.route"
+          },
+          {
+            "id": "fold_left",
+            "from": "main.E3",
+            "to": "left_return.E0",
+            "angle": "90deg",
+            "radius": "BR",
+            "method": "routed",
+            "layer": "fold.route"
+          }
+        ],
+        "entities": [
+          {
+            "id": "hole_top_left",
+            "layer": "cut.hole",
+            "target": "top_return",
+            "placement": {
+              "origin": [
+                "A * 0.25",
+                "R / 2"
+              ],
+              "rotation": "0deg",
+              "anchor": "center"
+            },
+            "geometry": {
+              "type": "circle",
+              "diameter": "HOLE_D"
+            }
+          },
+          {
+            "id": "hole_top_right",
+            "layer": "cut.hole",
+            "target": "top_return",
+            "placement": {
+              "origin": [
+                "A * 0.75",
+                "R / 2"
+              ],
+              "rotation": "0deg",
+              "anchor": "center"
+            },
+            "geometry": {
+              "type": "circle",
+              "diameter": "HOLE_D"
+            }
+          },
+          {
+            "id": "paint_direction_arrow",
+            "layer": "code.paint_direction",
+            "target": "main",
+            "placement": {
+              "origin": [
+                "A / 2",
+                "B / 2"
+              ],
+              "rotation": "0deg",
+              "anchor": "center"
+            },
+            "geometry": {
+              "type": "path",
+              "closed": false,
+              "start": [
+                "-100",
+                "0"
+              ],
+              "segments": [
+                {
+                  "type": "line",
+                  "to": [
+                    "100",
+                    "0"
+                  ]
+                },
+                {
+                  "type": "line",
+                  "to": [
+                    "80",
+                    "10"
+                  ]
+                },
+                {
+                  "type": "line",
+                  "to": [
+                    "100",
+                    "0"
+                  ]
+                },
+                {
+                  "type": "line",
+                  "to": [
+                    "80",
+                    "-10"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "cassette_mark",
+            "layer": "code.cassette_mark",
+            "target": "main",
+            "placement": {
+              "origin": [
+                "20",
+                "20"
+              ],
+              "rotation": "0deg",
+              "anchor": "bottom_left"
+            },
+            "geometry": {
+              "type": "text",
+              "text": "ACM-C-001",
+              "height": "14"
+            }
+          },
+          {
+            "id": "cassette_dimension_A",
+            "layer": "dimension.cassette",
+            "target": "main",
+            "geometry": {
+              "type": "dimension",
+              "dimensionType": "linear",
+              "from": [
+                "0",
+                "0"
+              ],
+              "to": [
+                "A",
+                "0"
+              ],
+              "offset": "-40",
+              "text": "A"
+            }
+          }
+        ]
+      }
+    ],
+    "libraryParts": []
+  },
+  "cassette": {
+    "occurrences": [
+      {
+        "id": "tray",
+        "ref": "tray_def",
+        "placement": {
+          "relativeTo": "world",
+          "origin": [
+            "0",
+            "0",
+            "0"
+          ],
+          "rotation": [
+            "0deg",
+            "0deg",
+            "0deg"
+          ]
+        }
+      }
+    ],
+    "joints": []
+  }
+}

@@ -1,0 +1,1054 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/occs/schemas/occs.schema.json",
+  "title": "OCCS Core Document v0.4-draft",
+  "type": "object",
+  "required": [
+    "occs",
+    "documentType",
+    "id",
+    "units",
+    "definitions",
+    "cassette"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "occs": {
+      "type": "string",
+      "pattern": "^0\\.4([-+.A-Za-z0-9]*)?$"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "documentType": {
+      "type": "string",
+      "enum": [
+        "template",
+        "design"
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "units": {
+      "type": "string",
+      "enum": [
+        "mm",
+        "cm",
+        "m",
+        "in"
+      ]
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": {
+        "description": "Number or OCCS expression string.",
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "minLength": 1
+          }
+        ]
+      }
+    },
+    "layers": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/layer"
+      }
+    },
+    "definitions": {
+      "$ref": "#/$defs/definitions"
+    },
+    "cassette": {
+      "$ref": "#/$defs/cassette"
+    },
+    "derivedFrom": {
+      "$ref": "#/$defs/derivedFrom"
+    },
+    "extensions": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_.:-]*$"
+    },
+    "expr": {
+      "description": "Number or OCCS expression string.",
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "minLength": 1
+        }
+      ]
+    },
+    "angle": {
+      "description": "Angle as number in degrees or string expression with optional deg suffix.",
+      "oneOf": [
+        {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        {
+          "type": "string",
+          "minLength": 1
+        }
+      ]
+    },
+    "vec2": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "description": "Number or OCCS expression string.",
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "minLength": 1
+          }
+        ]
+      }
+    },
+    "vec3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "description": "Number or OCCS expression string.",
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "minLength": 1
+          }
+        ]
+      }
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "derivedFrom": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "templateId": {
+          "type": "string"
+        },
+        "templateVersion": {
+          "type": "string"
+        },
+        "templateHash": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/expr"
+          }
+        }
+      }
+    },
+    "toolOffset": {
+      "type": "object",
+      "required": [
+        "mode"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "centerline",
+            "inside",
+            "outside",
+            "left",
+            "right",
+            "auto"
+          ]
+        },
+        "value": {
+          "$ref": "#/$defs/expr"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "template",
+            "design",
+            "machine",
+            "exporter",
+            "imported"
+          ]
+        }
+      }
+    },
+    "definitions": {
+      "type": "object",
+      "required": [
+        "workpieces"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "workpieces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/workpiece"
+          }
+        },
+        "libraryParts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/libraryPart"
+          }
+        }
+      }
+    },
+    "workpiece": {
+      "type": "object",
+      "required": [
+        "id",
+        "type"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "sheet",
+            "profile",
+            "solid",
+            "hardware"
+          ]
+        },
+        "role": {
+          "type": "string"
+        },
+        "material": {
+          "type": "string"
+        },
+        "thickness": {
+          "$ref": "#/$defs/expr"
+        },
+        "manufacturing": {
+          "type": "object"
+        },
+        "faces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/face"
+          }
+        },
+        "folds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fold"
+          }
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entity"
+          }
+        },
+        "profile": {
+          "type": "object"
+        },
+        "solid": {
+          "type": "object"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/expr"
+          }
+        },
+        "extensions": {
+          "type": "object"
+        }
+      }
+    },
+    "libraryPart": {
+      "type": "object",
+      "required": [
+        "id",
+        "type"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/expr"
+          }
+        },
+        "geometry": {
+          "$ref": "#/$defs/entityGeometry"
+        },
+        "extensions": {
+          "type": "object"
+        }
+      }
+    },
+    "face": {
+      "type": "object",
+      "required": [
+        "id",
+        "role",
+        "shape"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "role": {
+          "type": "string"
+        },
+        "shape": {
+          "$ref": "#/$defs/faceShape"
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "extensions": {
+          "type": "object"
+        }
+      }
+    },
+    "faceShape": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/trapezoid"
+        },
+        {
+          "$ref": "#/$defs/polygon"
+        }
+      ]
+    },
+    "trapezoid": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "trapezoid"
+        },
+        "baseLength": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/expr"
+            },
+            {
+              "const": "inherit"
+            }
+          ]
+        },
+        "baseStartOffset": {
+          "$ref": "#/$defs/expr"
+        },
+        "baseEndOffset": {
+          "$ref": "#/$defs/expr"
+        },
+        "height": {
+          "$ref": "#/$defs/expr"
+        },
+        "topStartOffset": {
+          "$ref": "#/$defs/expr"
+        },
+        "topEndOffset": {
+          "$ref": "#/$defs/expr"
+        },
+        "p2Height": {
+          "$ref": "#/$defs/expr"
+        },
+        "p3Height": {
+          "$ref": "#/$defs/expr"
+        },
+        "holes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/closedGeometry"
+          }
+        }
+      }
+    },
+    "polygon": {
+      "type": "object",
+      "required": [
+        "type",
+        "vertices"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "polygon"
+        },
+        "vertices": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "$ref": "#/$defs/vec2"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edgeSegment"
+          }
+        },
+        "holes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/closedGeometry"
+          }
+        }
+      }
+    },
+    "closedGeometry": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/polygon"
+        },
+        {
+          "$ref": "#/$defs/circle"
+        }
+      ]
+    },
+    "edgeSegment": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "line",
+            "arc",
+            "quadraticBezier",
+            "cubicBezier",
+            "spline"
+          ]
+        },
+        "radius": {
+          "$ref": "#/$defs/expr"
+        },
+        "center": {
+          "$ref": "#/$defs/vec2"
+        },
+        "sweep": {
+          "type": "string",
+          "enum": [
+            "cw",
+            "ccw"
+          ]
+        },
+        "largeArc": {
+          "type": "boolean"
+        },
+        "c1": {
+          "$ref": "#/$defs/vec2"
+        },
+        "c2": {
+          "$ref": "#/$defs/vec2"
+        },
+        "control": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/vec2"
+          }
+        },
+        "degree": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "knots": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "weights": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "path": {
+      "type": "object",
+      "required": [
+        "type",
+        "start",
+        "segments"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "path"
+        },
+        "closed": {
+          "type": "boolean"
+        },
+        "start": {
+          "$ref": "#/$defs/vec2"
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pathSegment"
+          }
+        }
+      }
+    },
+    "pathSegment": {
+      "type": "object",
+      "required": [
+        "type",
+        "to"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "line",
+            "arc",
+            "quadraticBezier",
+            "cubicBezier",
+            "spline"
+          ]
+        },
+        "to": {
+          "$ref": "#/$defs/vec2"
+        },
+        "radius": {
+          "$ref": "#/$defs/expr"
+        },
+        "center": {
+          "$ref": "#/$defs/vec2"
+        },
+        "sweep": {
+          "type": "string",
+          "enum": [
+            "cw",
+            "ccw"
+          ]
+        },
+        "largeArc": {
+          "type": "boolean"
+        },
+        "c1": {
+          "$ref": "#/$defs/vec2"
+        },
+        "c2": {
+          "$ref": "#/$defs/vec2"
+        },
+        "control": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/vec2"
+          }
+        },
+        "degree": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "knots": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "weights": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "circle": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "circle"
+        },
+        "diameter": {
+          "$ref": "#/$defs/expr"
+        },
+        "radius": {
+          "$ref": "#/$defs/expr"
+        },
+        "center": {
+          "$ref": "#/$defs/vec2"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "diameter"
+          ]
+        },
+        {
+          "required": [
+            "radius"
+          ]
+        }
+      ]
+    },
+    "textGeometry": {
+      "type": "object",
+      "required": [
+        "type",
+        "text"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "const": "text"
+        },
+        "text": {
+          "type": "string"
+        },
+        "height": {
+          "$ref": "#/$defs/expr"
+        },
+        "font": {
+          "type": "string"
+        },
+        "align": {
+          "type": "string",
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "valign": {
+          "type": "string",
+          "enum": [
+            "top",
+            "middle",
+            "baseline",
+            "bottom"
+          ]
+        }
+      }
+    },
+    "pointGeometry": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "point"
+        },
+        "point": {
+          "$ref": "#/$defs/vec2"
+        }
+      }
+    },
+    "dimensionGeometry": {
+      "type": "object",
+      "required": [
+        "type",
+        "from",
+        "to"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "const": "dimension"
+        },
+        "from": {
+          "$ref": "#/$defs/vec2"
+        },
+        "to": {
+          "$ref": "#/$defs/vec2"
+        },
+        "offset": {
+          "$ref": "#/$defs/expr"
+        },
+        "text": {
+          "type": "string"
+        },
+        "dimensionType": {
+          "type": "string",
+          "enum": [
+            "linear",
+            "aligned",
+            "angular",
+            "radial",
+            "diameter"
+          ]
+        }
+      }
+    },
+    "entityGeometry": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/polygon"
+        },
+        {
+          "$ref": "#/$defs/circle"
+        },
+        {
+          "$ref": "#/$defs/path"
+        },
+        {
+          "$ref": "#/$defs/textGeometry"
+        },
+        {
+          "$ref": "#/$defs/pointGeometry"
+        },
+        {
+          "$ref": "#/$defs/dimensionGeometry"
+        }
+      ]
+    },
+    "fold": {
+      "type": "object",
+      "required": [
+        "id",
+        "from",
+        "to",
+        "angle"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "from": {
+          "$ref": "#/$defs/reference"
+        },
+        "to": {
+          "$ref": "#/$defs/reference"
+        },
+        "angle": {
+          "$ref": "#/$defs/angle"
+        },
+        "radius": {
+          "$ref": "#/$defs/expr"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "routed",
+            "brake",
+            "roll_formed",
+            "hemmed",
+            "crimped",
+            "manual",
+            "unknown"
+          ]
+        },
+        "layer": {
+          "type": "string"
+        },
+        "extensions": {
+          "type": "object"
+        }
+      }
+    },
+    "entity": {
+      "type": "object",
+      "required": [
+        "id",
+        "layer",
+        "target",
+        "geometry"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "layer": {
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/reference"
+        },
+        "placement": {
+          "$ref": "#/$defs/placement"
+        },
+        "toolOffset": {
+          "$ref": "#/$defs/toolOffset"
+        },
+        "geometry": {
+          "$ref": "#/$defs/entityGeometry"
+        },
+        "extensions": {
+          "type": "object"
+        }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "relativeTo": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "origin": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/vec2"
+            },
+            {
+              "$ref": "#/$defs/vec3"
+            }
+          ]
+        },
+        "rotation": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/angle"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/angle"
+              },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          ]
+        },
+        "anchor": {
+          "type": "string",
+          "enum": [
+            "origin",
+            "center",
+            "start",
+            "end",
+            "top_left",
+            "top_right",
+            "bottom_left",
+            "bottom_right",
+            "custom"
+          ]
+        },
+        "startOffset": {
+          "$ref": "#/$defs/expr"
+        },
+        "endOffset": {
+          "$ref": "#/$defs/expr"
+        },
+        "normalOffset": {
+          "$ref": "#/$defs/expr"
+        },
+        "mirror": {
+          "type": "boolean"
+        },
+        "transform": {
+          "type": "object"
+        },
+        "matrix": {
+          "type": "array",
+          "minItems": 16,
+          "maxItems": 16,
+          "items": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "cassette": {
+      "type": "object",
+      "required": [
+        "occurrences"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "occurrences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/occurrence"
+          }
+        },
+        "joints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/joint"
+          }
+        },
+        "extensions": {
+          "type": "object"
+        }
+      }
+    },
+    "occurrence": {
+      "type": "object",
+      "required": [
+        "id",
+        "ref"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "ref": {
+          "$ref": "#/$defs/reference"
+        },
+        "quantity": {
+          "$ref": "#/$defs/expr"
+        },
+        "placement": {
+          "$ref": "#/$defs/placement"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/expr"
+          }
+        },
+        "extensions": {
+          "type": "object"
+        }
+      }
+    },
+    "joint": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "source",
+        "target"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "mechanical",
+            "adhesive",
+            "weld",
+            "interlock",
+            "hook_on",
+            "sealed",
+            "gasketed",
+            "other"
+          ]
+        },
+        "method": {
+          "type": "string"
+        },
+        "source": {
+          "type": "object"
+        },
+        "target": {
+          "type": "object"
+        },
+        "placement": {
+          "$ref": "#/$defs/placement"
+        },
+        "fastenerPattern": {
+          "type": "object"
+        },
+        "contactRegion": {
+          "$ref": "#/$defs/entityGeometry"
+        },
+        "extensions": {
+          "type": "object"
+        }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "required": [
+        "purpose"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "purpose": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "production": {
+          "type": "boolean"
+        },
+        "allowedGeometry": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "defaultExport": {
+          "type": "object"
+        },
+        "parameters": {
+          "type": "object"
+        },
+        "toolOffset": {
+          "$ref": "#/$defs/toolOffset"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

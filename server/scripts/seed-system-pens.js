@@ -8,11 +8,83 @@ dotenv.config();
 import { service } from '../features/pen-templates/index.js';
 import { connectDB } from '../db/mongo.js';
 
-const SYSTEM_PENS = [
+export const SYSTEM_PENS = [
+  {
+    name: "OCCS Contour Blue 0.35mm",
+    stroke: {
+      color: "#2563EB",
+      weight: 0.35,
+      pattern: "SOLID"
+    }
+  },
+  {
+    name: "OCCS Flat Pattern Cyan 0.4mm",
+    stroke: {
+      color: "#0891B2",
+      weight: 0.4,
+      pattern: "SOLID"
+    }
+  },
+  {
+    name: "OCCS Cut Red 0.6mm",
+    stroke: {
+      color: "#DC2626",
+      weight: 0.6,
+      pattern: "SOLID"
+    }
+  },
+  {
+    name: "OCCS Cut Orange 0.45mm",
+    stroke: {
+      color: "#F97316",
+      weight: 0.45,
+      pattern: "SOLID"
+    }
+  },
+  {
+    name: "OCCS Fold Amber Dashed 0.35mm",
+    stroke: {
+      color: "#D97706",
+      weight: 0.35,
+      pattern: "DASHED"
+    }
+  },
+  {
+    name: "OCCS Engrave Indigo Dotted 0.25mm",
+    stroke: {
+      color: "#4F46E5",
+      weight: 0.25,
+      pattern: "DOTTED"
+    }
+  },
+  {
+    name: "OCCS Code Green 0.35mm",
+    stroke: {
+      color: "#16A34A",
+      weight: 0.35,
+      pattern: "SOLID"
+    }
+  },
+  {
+    name: "OCCS Dimension Violet Dotted 0.25mm",
+    stroke: {
+      color: "#7C3AED",
+      weight: 0.25,
+      pattern: "DOTTED"
+    }
+  },
+  {
+    name: "OCCS Envelope Slate Dashed 0.25mm",
+    stroke: {
+      color: "#64748B",
+      weight: 0.25,
+      pattern: "DASHED"
+    }
+  },
   {
     name: "Black Solid 0.35mm",
     stroke: {
-      color: "#000000",
+      color: "#111827",
       weight: 0.35,
       pattern: "SOLID"
     }
@@ -20,7 +92,7 @@ const SYSTEM_PENS = [
   {
     name: "Red Solid 0.5mm",
     stroke: {
-      color: "#FF0000",
+      color: "#DC2626",
       weight: 0.5,
       pattern: "SOLID"
     }
@@ -28,7 +100,7 @@ const SYSTEM_PENS = [
   {
     name: "Blue Dashed 0.25mm",
     stroke: {
-      color: "#0000FF",
+      color: "#2563EB",
       weight: 0.25,
       pattern: "DASHED"
     }
@@ -36,7 +108,7 @@ const SYSTEM_PENS = [
   {
     name: "Green Solid 0.7mm",
     stroke: {
-      color: "#00FF00",
+      color: "#16A34A",
       weight: 0.7,
       pattern: "SOLID"
     }
@@ -44,31 +116,55 @@ const SYSTEM_PENS = [
   {
     name: "Gray Dotted 0.25mm",
     stroke: {
-      color: "#808080",
+      color: "#64748B",
       weight: 0.25,
       pattern: "DOTTED"
     }
   }
 ];
 
+async function upsertSystemPen(db, penData) {
+  const existing = await db.collection('pen_templates').findOne({
+    'identity.name': penData.name,
+    'lineage.userId': null
+  });
+  if (!existing) {
+    await service.create(penData, null);
+    return 'created';
+  }
+
+  await db.collection('pen_templates').updateOne(
+    { _id: existing._id },
+    {
+      $set: {
+        'data.stroke': penData.stroke,
+        'status.timestamp': new Date()
+      }
+    }
+  );
+  return 'updated';
+}
+
 async function main() {
   console.log('🖊️  Seeding system pens...\n');
   
   try {
-    await connectDB();
+    const db = await connectDB();
     
     let created = 0;
+    let updated = 0;
     for (const penData of SYSTEM_PENS) {
       try {
-        await service.create(penData, null);
-        console.log(`  ✅ ${penData.name}`);
-        created++;
+        const result = await upsertSystemPen(db, penData);
+        if (result === 'created') created++;
+        if (result === 'updated') updated++;
+        console.log(`  ✅ ${penData.name} (${result})`);
       } catch (error) {
         console.log(`  ⚠️  ${penData.name}: ${error.message}`);
       }
     }
     
-    console.log(`\n✨ Created ${created}/${SYSTEM_PENS.length} system pens`);
+    console.log(`\n✨ Seeded ${SYSTEM_PENS.length} system pens (${created} created, ${updated} updated)`);
     
   } catch (error) {
     console.error('\n❌ Seeding failed:', error.message);

@@ -1,0 +1,115 @@
+{
+  "occs": "0.4-draft",
+  "documentType": "template",
+  "id": "simple-tray",
+  "units": "mm",
+  "parameters": {
+    "A": "1200",
+    "B": "600",
+    "R": "35",
+    "T": "4",
+    "BR": "2"
+  },
+  "definitions": {
+    "workpieces": [
+      {
+        "id": "tray_def",
+        "type": "sheet",
+        "role": "cassette_tray",
+        "material": "ACM_4",
+        "thickness": "T",
+        "faces": [
+          {
+            "id": "main",
+            "role": "main",
+            "shape": {
+              "type": "trapezoid",
+              "baseLength": "A",
+              "height": "B"
+            }
+          },
+          {
+            "id": "top_return",
+            "role": "return_flange",
+            "shape": {
+              "type": "trapezoid",
+              "baseLength": "inherit",
+              "height": "R"
+            }
+          }
+        ],
+        "folds": [
+          {
+            "id": "fold_top",
+            "from": "main.E2",
+            "to": "top_return.E0",
+            "angle": "90deg",
+            "radius": "BR",
+            "method": "routed",
+            "layer": "fold.route"
+          }
+        ],
+        "entities": [
+          {
+            "id": "hole_top_mid",
+            "layer": "cut.hole",
+            "target": "top_return",
+            "placement": {
+              "origin": [
+                "A / 2",
+                "R / 2"
+              ],
+              "rotation": "0deg",
+              "anchor": "center"
+            },
+            "geometry": {
+              "type": "circle",
+              "diameter": "5"
+            }
+          },
+          {
+            "id": "cassette_mark",
+            "layer": "code.cassette_mark",
+            "target": "main",
+            "placement": {
+              "origin": [
+                "20",
+                "20"
+              ],
+              "rotation": "0deg",
+              "anchor": "bottom_left"
+            },
+            "geometry": {
+              "type": "text",
+              "text": "C-001",
+              "height": "12"
+            }
+          }
+        ]
+      }
+    ],
+    "libraryParts": []
+  },
+  "cassette": {
+    "occurrences": [
+      {
+        "id": "tray",
+        "ref": "tray_def",
+        "placement": {
+          "relativeTo": "world",
+          "origin": [
+            "0",
+            "0",
+            "0"
+          ],
+          "rotation": [
+            "0deg",
+            "0deg",
+            "0deg"
+          ]
+        }
+      }
+    ],
+    "joints": []
+  }
+}

@@ -1,13 +1,15 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
+const ownerId = (pen) => pen?.lineage?.userId || pen?.ownerId || null;
+
 export const usePenTemplatesStore = defineStore('penTemplates', () => {
     const pens = ref([]);
     const loading = ref(false);
     const error = ref(null);
 
-    const systemPens = computed(() => pens.value.filter(p => !p.ownerId));
-    const userPens = computed(() => pens.value.filter(p => p.ownerId));
+    const systemPens = computed(() => pens.value.filter(p => !ownerId(p)));
+    const userPens = computed(() => pens.value.filter(p => ownerId(p)));
 
     async function fetchPens() {
         loading.value = true;

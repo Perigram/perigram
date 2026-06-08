@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-177.52 -664.52 1309.04 842.04" data-occs-id="random-cassette-20260604-design" data-occs-document-type="design">
+  <title>OCCS cassette flat pattern</title>
+  <desc>Generated from OCCS geometry by tools/occs-toolkit.mjs</desc>
+  <g id="occs-contour-flat_pattern-face_and_returns" data-layer="contour.flat_pattern.face_and_returns">
+    <path data-occs-face="main" d="M 0 0 L 954 0 L 954 -557 L 0 -557 Z" style="fill:#e0f2fe;stroke:#0f172a;stroke-width:1.4" />
+    <path data-occs-face="left_return" d="M 0 -557 L 0 0 L -70 -10 L -70 -550 Z" style="fill:#f8fafc;stroke:#0f172a;stroke-width:1.4" />
+    <path data-occs-face="bottom_return" d="M 0 0 L 954 0 L 949 70 L 10 70 Z" style="fill:#f8fafc;stroke:#0f172a;stroke-width:1.4" />
+    <path data-occs-face="right_return" d="M 954 0 L 954 -557 L 1024 -545 L 1024 -6 Z" style="fill:#f8fafc;stroke:#0f172a;stroke-width:1.4" />
+  </g>
+  <g id="occs-fold-route" data-layer="fold.route">
+    <path data-occs-fold="fold_right" class="occs-fold-route" d="M 954 0 L 954 -557" style="fill:none;stroke:#2563eb;stroke-width:1.2;stroke-dasharray:8 4" />
+    <path data-occs-fold="fold_bottom" class="occs-fold-route" d="M 0 0 L 954 0" style="fill:none;stroke:#2563eb;stroke-width:1.2;stroke-dasharray:8 4" />
+    <path data-occs-fold="fold_left" class="occs-fold-route" d="M 0 -557 L 0 0" style="fill:none;stroke:#2563eb;stroke-width:1.2;stroke-dasharray:8 4" />
+  </g>
+  <g id="occs-cut-hole" data-layer="cut.hole">
+    <circle data-occs-id="hole_right_mid" data-layer="cut.hole" data-target="right_return" class="occs-cut-hole" data-tool-offset-mode="inside" data-tool-offset-value="1.5" cx="989" cy="-278.5" r="2.5" style="fill:none;stroke:#dc2626;stroke-width:1.8" />
+    <circle data-occs-id="hole_bottom_mid" data-layer="cut.hole" data-target="bottom_return" class="occs-cut-hole" data-tool-offset-mode="inside" data-tool-offset-value="1.5" cx="477" cy="35" r="2.5" style="fill:none;stroke:#dc2626;stroke-width:1.8" />
+  </g>
+  <g id="occs-code-paint_direction" data-layer="code.paint_direction">
+    <path data-occs-id="paint_direction" data-layer="code.paint_direction" data-target="main" class="occs-code-paint_direction" d="M 397 -278.5 L 557 -278.5 L 532 -290.5 L 557 -278.5 L 532 -266.5" style="fill:none;stroke:#059669;stroke-width:1.2" />
+  </g>
+  <g id="occs-code-cassette_mark" data-layer="code.cassette_mark">
+    <text data-occs-id="cassette_mark" data-layer="code.cassette_mark" data-target="main" class="occs-code-cassette_mark" x="20" y="-20" font-size="16" fill="#059669">RND-20260604</text>
+  </g>
+</svg>

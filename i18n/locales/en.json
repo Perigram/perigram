@@ -311,6 +311,111 @@
     "addCustomParameter": "Add Custom Parameter",
     "parameterName": "Parameter Name",
     "initialValue": "Initial Value",
+    "v2": {
+      "face": "Face",
+      "parameters": "Parameters",
+      "preview": "Layout preview",
+      "loadTemplate": "Load template",
+      "workpieces": "Workpieces",
+      "workpieceGraph": "Workpiece graph",
+      "topology": "Topology",
+      "selectedWorkpiece": "Selected workpiece",
+      "attachment": "Attachment",
+      "noAttachment": "Root workpieces have no attachment. Use a workpiece + button to create a related workpiece.",
+      "addWorkpiece": "Add workpiece",
+      "addRelatedWorkpiece": "Add related workpiece",
+      "deleteWorkpiece": "Delete workpiece",
+      "foldedPreview": "Folded 3D preview",
+      "selectedFoldedPreview": "Selected 3D",
+      "cassetteFoldedPreview": "Cassette 3D",
+      "showWholeCassette": "Show whole cassette",
+      "resetOrbit": "Reset 3D view",
+      "occsDraft": "OCCS Draft",
+      "globalParameters": "Global parameters",
+      "renderFailed": "Failed to render trapezoid graph.",
+      "previewHeld": "Drawing is held at the last valid preview. Fix the expression to update it.",
+      "addFace": "Add trapezoid",
+      "deleteFace": "Delete face",
+      "rootFace": "Root trapezoid",
+      "previewModes": {
+        "workpiece": "Workpiece",
+        "layout": "Flat layout",
+        "assembly": "Assembly"
+      },
+      "attachmentFields": {
+        "targetWorkpiece": "Target workpiece",
+        "targetFace": "Target face",
+        "sourceFace": "Source face",
+        "targetSnap": "Target snap",
+        "sourceSnap": "Source snap",
+        "side": "Side",
+        "offsetX": "Offset X",
+        "offsetY": "Offset Y",
+        "rotation": "Rotation",
+        "jointType": "Joint type",
+        "method": "Method"
+      },
+      "snapPoints": {
+        "center": "Center",
+        "origin": "Origin",
+        "top_left": "Top left",
+        "top_right": "Top right",
+        "bottom_left": "Bottom left",
+        "bottom_right": "Bottom right"
+      },
+      "sides": {
+        "front": "Front",
+        "back": "Back"
+      },
+      "jointTypes": {
+        "mechanical": "Mechanical",
+        "adhesive": "Adhesive",
+        "weld": "Weld",
+        "interlock": "Interlock",
+        "hook_on": "Hook-on",
+        "sealed": "Sealed",
+        "gasketed": "Gasketed",
+        "other": "Other"
+      },
+      "expression": {
+        "label": "Expression",
+        "guideTitle": "Expression help",
+        "guide": "Type numbers, cassette parameters, + - * /, parentheses, and sin(30), cos(60), tan(45). Trig uses degrees.",
+        "angleGuide": "Angle fields may use a deg suffix, for example 90deg.",
+        "angleAlias": "Fold angle from parent",
+        "trigTooltip": "{name}() uses degrees",
+        "groups": {
+          "parameters": "Params",
+          "context": "Context",
+          "operators": "Ops",
+          "trig": "Trig"
+        },
+        "empty": "Expression is empty",
+        "invalid": "Invalid expression: {error}"
+      },
+      "anchors": {
+        "start": "Start",
+        "end": "End"
+      },
+      "offsetLabels": {
+        "baseStart": "P0 base offset from {anchor}",
+        "baseEnd": "P1 base offset from {anchor}",
+        "topStart": "Top offset at P0 side",
+        "topEnd": "Top offset at P1 side"
+      },
+      "fields": {
+        "defaultLength": "Base length",
+        "height": "Height",
+        "parentEdgeIndex": "Parent edge index",
+        "baseStartOffset": "Base start offset",
+        "baseEndOffset": "Base end offset",
+        "topStartOffset": "Top start offset",
+        "topEndOffset": "Top end offset",
+        "startAnchor": "Start anchor",
+        "endAnchor": "End anchor",
+        "foldAngle": "Fold angle"
+      }
+    },
     "errors": {
       "nameRequired": "Name cannot be empty",
       "loadFailed": "Failed to load cassette",
@@ -583,6 +688,7 @@
       "title": "Development Workbench",
       "subtitle": "Single workspace for domain data, UI components, workflows, diagnostics, and admin tools.",
       "sections": "Workbench sections",
+      "sectionsDesigner": "Designer",
       "sectionsCommands": "Commands",
       "openStandalone": "Open Standalone",
       "exportDraft": "Export Draft",
@@ -894,6 +1000,7 @@
         "workflows": "Workflows",
         "operations": "Operations",
         "summaries": "Summaries",
+        "cassetteV2": "Cassette v2",
         "validation": "Validation",
         "export": "Export"
       }

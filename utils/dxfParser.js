@@ -10,11 +10,19 @@ import DxfParser from 'dxf-parser';
  */
 export function buildLayerPenMap(mapping = {}, standards = [], pens = []) {
     const result = {};
-    for (const [layerName, standardCode] of Object.entries(mapping)) {
-        if (!standardCode) continue;
-        const standard = standards.find(s => s.code === standardCode);
+    const codeForStandard = (standard) => standard?.data?.code || standard?.code || null;
+    const standardPenId = (standard) => (
+        standard?.data?.orgPenId ||
+        standard?.orgPenId ||
+        standard?.data?.defaultPenId ||
+        standard?.defaultPenId ||
+        null
+    );
+    for (const [layerName, targetCode] of Object.entries(mapping)) {
+        if (!targetCode) continue;
+        const standard = standards.find(s => codeForStandard(s) === targetCode);
         if (!standard) continue;
-        const penId = standard.orgPenId || standard.defaultPenId;
+        const penId = standardPenId(standard);
         if (!penId) continue;
         const pen = pens.find(p => p._id?.toString() === penId.toString());
         if (pen) result[layerName] = pen;
@@ -136,15 +144,18 @@ export async function generateSvgData(source, layerMapping = {}, defaultPen = nu
       if (pattern === 'DOTTED') return '1,3';
       return 'none';
     };
+
+    const penStroke = (pen) => pen?.data?.stroke || pen?.stroke || {};
     
     dxf.entities.forEach(entity => {
       if (!layers[entity.layer]) {
         const pen = layerMapping[entity.layer] || defaultPenSettings;
+        const stroke = penStroke(pen);
         layers[entity.layer] = {
           name: entity.layer,
-          color: pen.stroke?.color || 'currentColor',
-          weight: pen.stroke?.weight || 0.5,
-          dasharray: getStrokeDasharray(pen.stroke?.pattern || 'SOLID'),
+          color: stroke.color || 'currentColor',
+          weight: stroke.weight || 0.5,
+          dasharray: getStrokeDasharray(stroke.pattern || 'SOLID'),
           paths: []
         };
       }

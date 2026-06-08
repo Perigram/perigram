@@ -8,6 +8,7 @@ import ScrollPanel from 'primevue/scrollpanel';
 import Tag from 'primevue/tag';
 import { generateSvgData } from '~/utils/dxfParser';
 import { renderCassetteToSVG } from '~/utils/cassetteRenderer';
+import { renderCassetteV2TreeToDrawing } from '~/utils/cassetteV2Renderer';
 import {
   DEFAULT_DRAWING_PEN,
   applyLayerPens,
@@ -27,11 +28,13 @@ const props = defineProps({
   mode: { type: String, default: 'card' },
   layerMapping: { type: Object, default: () => ({}) },
   showLayerPanel: { type: Boolean, default: false },
+  selectedDesignerFaceId: { type: String, default: null },
+  visibleLayerNames: { type: Array, default: null },
   defaultPen: { type: Object, default: () => DEFAULT_DRAWING_PEN },
   highlightedExtrusionIndex: { type: Number, default: null }
 });
 
-const emit = defineEmits(['ready', 'error', 'layer-toggle', 'designer-action']);
+const emit = defineEmits(['ready', 'error', 'layer-toggle', 'designer-action', 'designer-face-select', 'designer-fold-select']);
 
 const standardsStore = useLayerStandardsStore();
 const pensStore = usePenTemplatesStore();
@@ -47,14 +50,28 @@ const viewBox = ref({ x: 0, y: 0, width: 100, height: 100 });
 const isPanning = ref(false);
 const panStart = ref({ x: 0, y: 0 });
 const hoveredEdge = ref(null);
+const hoveredFoldEdge = ref(null);
+const hoveredFaceId = ref(null);
 
 const isDesigner = computed(() => props.mode === 'designer');
 const isViewer = computed(() => props.mode === 'viewer' || isDesigner.value);
 const showGrid = computed(() => isViewer.value);
 const hasLayers = computed(() => Array.isArray(drawing.value?.layers) && drawing.value.layers.length > 0);
 const layerNames = computed(() => drawing.value?.layers?.map(layer => layer.name) || []);
-const allLayersVisible = computed(() => hasLayers.value && layerNames.value.every(name => visibleLayers.value.includes(name)));
-const visibleLayerSummary = computed(() => `${visibleLayers.value.length}/${layerNames.value.length}`);
+const isLayerVisibilityControlled = computed(() => Array.isArray(props.visibleLayerNames));
+const visibleLayerSelection = computed({
+  get: () => isLayerVisibilityControlled.value ? props.visibleLayerNames : visibleLayers.value,
+  set: (layers) => {
+    const nextLayers = Array.isArray(layers) ? layers : [];
+    if (isLayerVisibilityControlled.value) {
+      emit('layer-toggle', nextLayers);
+      return;
+    }
+    visibleLayers.value = nextLayers;
+  }
+});
+const allLayersVisible = computed(() => hasLayers.value && layerNames.value.every(name => visibleLayerSelection.value.includes(name)));
+const visibleLayerSummary = computed(() => `${visibleLayerSelection.value.length}/${layerNames.value.length}`);
 const sameEntityId = (left, right) => left?.toString?.() === right?.toString?.();
 const standardCode = (standard) => standard?.data?.code || standard?.code || null;
 const sourceLayerEntity = (layer) => ({
@@ -83,7 +100,7 @@ const layerPanelRows = computed(() => (drawing.value?.layers || []).map(layer =>
 }));
 const visibleDrawingLayers = computed(() => {
   if (!hasLayers.value) return [];
-  return drawing.value.layers.filter(layer => visibleLayers.value.includes(layer.name));
+  return drawing.value.layers.filter(layer => visibleLayerSelection.value.includes(layer.name));
 });
 const viewBoxValue = computed(() => `${viewBox.value.x} ${viewBox.value.y} ${viewBox.value.width} ${viewBox.value.height}`);
 const displayStrokeWidth = (weight, fallback = 1.5) => {
@@ -115,9 +132,28 @@ const fetchText = async (url) => {
   return response.text();
 };
 
+const sourceLayers = (source) => {
+  const geometry = source?.data?.geometry || source?.geometry || source || {};
+  const preview = geometry.preview || geometry.data || geometry;
+  return Array.isArray(preview.layers) ? preview.layers : [];
+};
+
+const sourceHasStandardCodes = (source) => (
+  sourceLayers(source).some(layer => (
+    layer.standardCode ||
+    layer.code ||
+    (typeof layer.name === 'string' && layer.name.includes('.'))
+  ))
+);
+
 const resolveDrawing = async () => {
   if (!props.source) return null;
-  const usesLayerContract = ['dxf-text', 'dxf-url', 'parametric-cassette'].includes(props.sourceType) || Object.keys(props.layerMapping).length > 0;
+  const usesLayerContract = (
+    ['dxf-text', 'dxf-url', 'parametric-cassette'].includes(props.sourceType) ||
+    props.sourceType === 'occs-cassette' ||
+    Object.keys(props.layerMapping).length > 0 ||
+    (props.sourceType === 'geometry-preview' && sourceHasStandardCodes(props.source))
+  );
   if (usesLayerContract) await loadStores();
 
   const penOptions = {
@@ -162,6 +198,12 @@ const resolveDrawing = async () => {
     }), penOptions);
   }
 
+  if (props.sourceType === 'occs-cassette') {
+    const graphTree = props.source?.extensions?.cutkit?.graphTree || props.source?.graphTree || null;
+    if (!graphTree) return null;
+    return applyLayerPens(await renderCassetteV2TreeToDrawing(graphTree), penOptions);
+  }
+
   return null;
 };
 
@@ -175,7 +217,9 @@ const refresh = async () => {
     const nextDrawing = await resolveDrawing();
     if (token !== resolveToken) return;
     drawing.value = nextDrawing;
-    visibleLayers.value = nextDrawing?.layers?.map(layer => layer.name) || [];
+    if (!isLayerVisibilityControlled.value) {
+      visibleLayers.value = nextDrawing?.layers?.map(layer => layer.name) || [];
+    }
     viewBox.value = parseViewBox(nextDrawing?.viewBox);
     emit('ready', nextDrawing);
   } catch (err) {
@@ -255,10 +299,10 @@ const resetView = () => {
   viewBox.value = parseViewBox(drawing.value?.viewBox);
 };
 const showAllLayers = () => {
-  visibleLayers.value = [...layerNames.value];
+  visibleLayerSelection.value = [...layerNames.value];
 };
 const hideAllLayers = () => {
-  visibleLayers.value = [];
+  visibleLayerSelection.value = [];
 };
 const layerInputId = (layer) => `drawing-layer-${String(layer.name).replace(/[^A-Za-z0-9_-]/g, '-')}`;
 
@@ -281,6 +325,13 @@ const handleMouseUp = () => {
   isPanning.value = false;
 };
 
+const handleCanvasMouseLeave = () => {
+  handleMouseUp();
+  hoveredEdge.value = null;
+  hoveredFoldEdge.value = null;
+  hoveredFaceId.value = null;
+};
+
 const clampMenuPoint = (x, y) => {
   if (!process.client) return { x, y };
   const padding = 100;
@@ -290,22 +341,64 @@ const clampMenuPoint = (x, y) => {
   };
 };
 
-const requestDesignerAction = async (edgeIndex, edge) => {
+const requestDesignerAction = async (edgeIndex, edge, event = null) => {
   await nextTick();
-  if (!svgElement.value) return;
-  const point = svgElement.value.createSVGPoint();
-  point.x = edge.midX;
-  point.y = edge.midY;
-  const screenPoint = point.matrixTransform(svgElement.value.getScreenCTM());
-  const clamped = clampMenuPoint(screenPoint.x, screenPoint.y);
+  const resolvedEdgeIndex = edge?.edgeIndex ?? edgeIndex;
+  let clamped = event
+    ? clampMenuPoint(event.clientX, event.clientY)
+    : clampMenuPoint(edge.midX, edge.midY);
+
+  try {
+    const matrix = svgElement.value?.getScreenCTM?.();
+    if (svgElement.value && matrix) {
+      const point = svgElement.value.createSVGPoint();
+      point.x = edge.midX;
+      point.y = edge.midY;
+      const screenPoint = point.matrixTransform(matrix);
+      clamped = clampMenuPoint(screenPoint.x, screenPoint.y);
+    }
+  } catch {
+    // Pointer event coordinates are sufficient for designer action placement.
+  }
+
   emit('designer-action', {
     type: 'add-geometry',
-    edgeIndex,
-    edge,
+    edgeIndex: resolvedEdgeIndex,
+    edge: { ...edge, edgeIndex: resolvedEdgeIndex },
     screenX: clamped.x,
     screenY: clamped.y
   });
 };
+
+const requestDesignerFaceSelect = (face) => {
+  emit('designer-face-select', {
+    type: 'select-face',
+    face
+  });
+};
+
+const requestDesignerFoldSelect = (fold) => {
+  emit('designer-fold-select', {
+    type: 'select-fold',
+    fold
+  });
+};
+
+const isDesignerFaceActive = (face) => (
+  face?.nodeId === hoveredFaceId.value ||
+  face?.nodeId === props.selectedDesignerFaceId
+);
+
+const designerFaceOpacity = (face) => {
+  if (face?.nodeId === hoveredFaceId.value) return 0.12;
+  if (face?.nodeId === props.selectedDesignerFaceId) return 0.08;
+  return 0.001;
+};
+
+const isDesignerFoldActive = (fold, index) => (
+  hoveredFoldEdge.value === index ||
+  fold?.foldNodeId === props.selectedDesignerFaceId
+);
 
 onBeforeUnmount(() => {
   resolveToken += 1;
@@ -356,7 +449,7 @@ onBeforeUnmount(() => {
                   size="small"
                   severity="secondary"
                   :aria-label="$t('drawing.hideAllLayers')"
-                  :disabled="visibleLayers.length === 0"
+                  :disabled="visibleLayerSelection.length === 0"
                   v-tooltip.top="$t('drawing.hideAllLayers')"
                   @click="hideAllLayers"
                 />
@@ -372,7 +465,7 @@ onBeforeUnmount(() => {
               :key="row.key"
               class="flex items-start gap-3 border-b border-content-border px-3 py-3 last:border-b-0"
             >
-              <Checkbox v-model="visibleLayers" :value="row.layer.name" :inputId="layerInputId(row.layer)" size="small" class="mt-1" />
+              <Checkbox v-model="visibleLayerSelection" :value="row.layer.name" :inputId="layerInputId(row.layer)" size="small" class="mt-1" />
               <div class="flex min-w-0 flex-1 flex-col gap-2">
                 <label :for="layerInputId(row.layer)" class="min-w-0">
                   <IdentityBlock :entity="row.sourceEntity" variant="compact" :fields="row.layer.standardCode ? ['slug'] : []" />
@@ -395,7 +488,7 @@ onBeforeUnmount(() => {
           @mousedown="handleMouseDown"
           @mousemove="handleMouseMove"
           @mouseup="handleMouseUp"
-          @mouseleave="handleMouseUp"
+          @mouseleave="handleCanvasMouseLeave"
           @wheel="handleWheel"
         >
           <defs v-if="showGrid">
@@ -427,6 +520,20 @@ onBeforeUnmount(() => {
                 preserveAspectRatio="xMidYMid meet"
               />
               <g v-else-if="isRawSvg(path)" v-html="path" />
+              <text
+                v-else-if="pathKind(path) === 'text'"
+                :x="path.x ?? 0"
+                :y="path.y ?? 0"
+                :fill="pathFill(path, layer)"
+                :font-size="path.fontSize || 12"
+                :text-anchor="path.textAnchor || 'middle'"
+                :dominant-baseline="path.dominantBaseline || 'middle'"
+                :transform="path.transform || null"
+                stroke="none"
+                class="select-none"
+              >
+                {{ path.text }}
+              </text>
               <path
                 v-else
                 :d="pathD(path)"
@@ -439,24 +546,78 @@ onBeforeUnmount(() => {
           </g>
 
           <g v-if="isDesigner">
+            <path
+              v-for="face in drawing.designerFaces || []"
+              :key="`face-hit-${face.nodeId}`"
+              :d="face.d"
+              fill="currentColor"
+              :opacity="designerFaceOpacity(face)"
+              :stroke="isDesignerFaceActive(face) ? 'currentColor' : 'none'"
+              :stroke-width="isDesignerFaceActive(face) ? displayStrokeWidth(1) : null"
+              pointer-events="fill"
+              vector-effect="non-scaling-stroke"
+              class="cursor-pointer"
+              @mouseenter="hoveredFaceId = face.nodeId"
+              @mouseleave="hoveredFaceId = null"
+              @click.stop.prevent="requestDesignerFaceSelect(face)"
+            />
+            <g v-for="(fold, index) in drawing.designerFoldEdges || []" :key="`fold-edge-${index}`">
+              <line
+                :x1="fold.x1"
+                :y1="fold.y1"
+                :x2="fold.x2"
+                :y2="fold.y2"
+                stroke="currentColor"
+                opacity="0.001"
+                stroke-width="22"
+                stroke-linecap="round"
+                pointer-events="stroke"
+                class="cursor-pointer"
+                @mouseenter="hoveredFoldEdge = index"
+                @mouseleave="hoveredFoldEdge = null"
+                @click.stop.prevent="requestDesignerFoldSelect(fold)"
+              />
+              <g
+                v-if="isDesignerFoldActive(fold, index)"
+                :transform="`translate(${fold.midX}, ${fold.midY})`"
+                class="cursor-pointer select-none"
+                @mouseenter="hoveredFoldEdge = index"
+                @mouseleave="hoveredFoldEdge = null"
+                @click.stop.prevent="requestDesignerFoldSelect(fold)"
+              >
+                <rect :x="-28" :y="-10" :width="56" :height="20" rx="10" fill="currentColor" class="opacity-85" />
+                <text text-anchor="middle" dominant-baseline="middle" class="fill-muted-color text-xs">
+                  {{ fold.label || fold.angle }}
+                </text>
+              </g>
+            </g>
             <g v-for="(edge, index) in drawing.designerEdges || []" :key="`edge-${index}`">
               <line
                 :x1="edge.x1"
                 :y1="edge.y1"
                 :x2="edge.x2"
                 :y2="edge.y2"
-                stroke="transparent"
+                stroke="currentColor"
+                opacity="0.001"
                 stroke-width="20"
                 stroke-linecap="round"
+                pointer-events="stroke"
                 class="cursor-pointer"
                 @mouseenter="hoveredEdge = index"
                 @mouseleave="hoveredEdge = null"
-                @click.stop="requestDesignerAction(index, edge)"
+                @click.stop.prevent="requestDesignerAction(edge.edgeIndex ?? index, edge, $event)"
               />
-              <g :transform="`translate(${edge.midX}, ${edge.midY})`" class="pointer-events-none select-none">
-                <rect :x="-34" :y="-10" :width="68" :height="20" rx="10" fill="currentColor" :class="hoveredEdge === index ? 'opacity-90' : 'opacity-70'" />
+              <g
+                v-if="hoveredEdge === index"
+                :transform="`translate(${edge.midX}, ${edge.midY})`"
+                class="cursor-pointer select-none"
+                @mouseenter="hoveredEdge = index"
+                @mouseleave="hoveredEdge = null"
+                @click.stop.prevent="requestDesignerAction(edge.edgeIndex ?? index, edge, $event)"
+              >
+                <rect :x="-10" :y="-10" :width="20" :height="20" rx="10" fill="currentColor" class="opacity-90" />
                 <text text-anchor="middle" dominant-baseline="middle" class="fill-muted-color text-xs">
-                  {{ edge.label }}
+                  +
                 </text>
               </g>
             </g>

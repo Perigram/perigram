@@ -1,3 +1,5 @@
+import { occsParameterNames, occsQueueParameters } from '#utils/occs/parameters.js';
+
 const LINEAGE_FIELDS = {
   artifact: ['organizationId', 'queueId', 'runId', 'sheetDesignId'],
   cassette: ['organizationId'],
@@ -135,7 +137,7 @@ function manualDataFor(type, draft, context) {
     return {
       type: 'PARAMETRIC',
       definition,
-      parameters: draft.parameters || Object.keys(definition.params || {}),
+      parameters: draft.parameters || occsParameterNames(definition),
       organizationId: context.access?.organizationId,
       userId: context.access?.userId
     };
@@ -160,8 +162,7 @@ function manualDataFor(type, draft, context) {
 
 function parametersForCassette(context, id) {
   const cassette = entityOptions(context, 'cassette').find(option => option.value?.toString() === id?.toString())?.entity;
-  const params = cassette?.data?.definition?.params || {};
-  return Object.fromEntries(Object.entries(params).map(([key, value]) => [key, Number(value) || value]));
+  return occsQueueParameters(cassette?.data?.definition || {});
 }
 
 function entityOptions(context, type) {

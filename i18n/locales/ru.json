@@ -311,6 +311,111 @@
     "addCustomParameter": "Добавить параметр",
     "parameterName": "Имя параметра",
     "initialValue": "Начальное значение",
+    "v2": {
+      "face": "Грань",
+      "parameters": "Параметры",
+      "preview": "Предпросмотр раскладки",
+      "loadTemplate": "Загрузить шаблон",
+      "workpieces": "Заготовки",
+      "workpieceGraph": "Граф заготовок",
+      "topology": "Топология",
+      "selectedWorkpiece": "Выбранная заготовка",
+      "attachment": "Привязка",
+      "noAttachment": "У корневой заготовки нет привязки. Используйте + на заготовке, чтобы создать связанную заготовку.",
+      "addWorkpiece": "Добавить заготовку",
+      "addRelatedWorkpiece": "Добавить связанную заготовку",
+      "deleteWorkpiece": "Удалить заготовку",
+      "foldedPreview": "Предпросмотр 3D гибки",
+      "selectedFoldedPreview": "Выбранная 3D",
+      "cassetteFoldedPreview": "Кассета 3D",
+      "showWholeCassette": "Показать всю кассету",
+      "resetOrbit": "Сбросить 3D вид",
+      "occsDraft": "Черновик OCCS",
+      "globalParameters": "Глобальные параметры",
+      "renderFailed": "Не удалось отрисовать граф трапеции.",
+      "previewHeld": "Чертёж удержан на последнем корректном предпросмотре. Исправьте выражение, чтобы обновить его.",
+      "addFace": "Добавить трапецию",
+      "deleteFace": "Удалить грань",
+      "rootFace": "Корневая трапеция",
+      "previewModes": {
+        "workpiece": "Заготовка",
+        "layout": "Плоская раскладка",
+        "assembly": "Сборка"
+      },
+      "attachmentFields": {
+        "targetWorkpiece": "Целевая заготовка",
+        "targetFace": "Целевая грань",
+        "sourceFace": "Исходная грань",
+        "targetSnap": "Привязка цели",
+        "sourceSnap": "Привязка источника",
+        "side": "Сторона",
+        "offsetX": "Смещение X",
+        "offsetY": "Смещение Y",
+        "rotation": "Поворот",
+        "jointType": "Тип соединения",
+        "method": "Метод"
+      },
+      "snapPoints": {
+        "center": "Центр",
+        "origin": "Начало координат",
+        "top_left": "Сверху слева",
+        "top_right": "Сверху справа",
+        "bottom_left": "Снизу слева",
+        "bottom_right": "Снизу справа"
+      },
+      "sides": {
+        "front": "Лицевая",
+        "back": "Тыльная"
+      },
+      "jointTypes": {
+        "mechanical": "Механическое",
+        "adhesive": "Клеевое",
+        "weld": "Сварка",
+        "interlock": "Зацеп",
+        "hook_on": "Навесное",
+        "sealed": "Герметичное",
+        "gasketed": "С уплотнителем",
+        "other": "Другое"
+      },
+      "expression": {
+        "label": "Выражение",
+        "guideTitle": "Справка по выражению",
+        "guide": "Введите числа, параметры кассеты, + - * /, скобки и sin(30), cos(60), tan(45). Тригонометрия использует градусы.",
+        "angleGuide": "В полях угла можно использовать суффикс deg, например 90deg.",
+        "angleAlias": "Угол гиба от родителя",
+        "trigTooltip": "{name}() использует градусы",
+        "groups": {
+          "parameters": "Парам.",
+          "context": "Контекст",
+          "operators": "Опер.",
+          "trig": "Триг."
+        },
+        "empty": "Выражение пустое",
+        "invalid": "Некорректное выражение: {error}"
+      },
+      "anchors": {
+        "start": "Начало",
+        "end": "Конец"
+      },
+      "offsetLabels": {
+        "baseStart": "P0: смещение основания от {anchor}",
+        "baseEnd": "P1: смещение основания от {anchor}",
+        "topStart": "Смещение верха со стороны P0",
+        "topEnd": "Смещение верха со стороны P1"
+      },
+      "fields": {
+        "defaultLength": "Длина основания",
+        "height": "Высота",
+        "parentEdgeIndex": "Индекс ребра родителя",
+        "baseStartOffset": "Смещение начала основания",
+        "baseEndOffset": "Смещение конца основания",
+        "topStartOffset": "Смещение начала верха",
+        "topEndOffset": "Смещение конца верха",
+        "startAnchor": "Начальная привязка",
+        "endAnchor": "Конечная привязка",
+        "foldAngle": "Угол гиба"
+      }
+    },
     "errors": {
       "nameRequired": "Имя не может быть пустым",
       "loadFailed": "Не удалось загрузить кассету",
@@ -583,6 +688,7 @@
       "title": "Development Workbench",
       "subtitle": "Единое рабочее место для данных домена, UI-компонентов, workflow, диагностики и админ-инструментов.",
       "sections": "Разделы workbench",
+      "sectionsDesigner": "Дизайнер",
       "sectionsCommands": "Команды",
       "openStandalone": "Открыть отдельно",
       "exportDraft": "Экспорт черновика",
@@ -894,6 +1000,7 @@
         "workflows": "Workflow",
         "operations": "Операции",
         "summaries": "Сводки",
+        "cassetteV2": "Кассета v2",
         "validation": "Проверка",
         "export": "Экспорт"
       }

@@ -43,6 +43,7 @@ let lastRenderKey = '';
 
 const cassetteType = (cassette) => cassette?.data?.type || '';
 const cassetteDefinition = (cassette) => cassette?.data?.definition || {};
+const isOccsCassetteDefinition = (definition) => Boolean(definition?.occs && definition?.documentType);
 const cassetteMapping = (cassette) => cassetteDefinition(cassette)?.mapping || {};
 const cassetteGraph = (cassette) => {
   const definition = cassetteDefinition(cassette);
@@ -79,10 +80,22 @@ const setParametricSource = (graph) => {
   canvasLayerMapping.value = {};
 };
 
+const setOccsSource = (definition) => {
+  canvasSource.value = definition;
+  canvasSourceType.value = 'occs-cassette';
+  canvasLayerMapping.value = {};
+};
+
 const updateThumbnail = async () => {
   if (!isVisible.value) return;
 
-  const currentKey = JSON.stringify([props.cassetteId, props.cassette?._id, props.cassette?.updatedAt, props.dimensions]);
+  const currentKey = JSON.stringify([
+    props.cassetteId,
+    props.cassette?._id,
+    props.cassette?.updatedAt,
+    props.cassette?.data?.definition,
+    props.dimensions
+  ]);
   if (currentKey === lastRenderKey && canvasSource.value) return;
   lastRenderKey = currentKey;
 
@@ -99,6 +112,12 @@ const updateThumbnail = async () => {
     }
 
     const type = cassetteType(cassette);
+    const definition = cassetteDefinition(cassette);
+    if (isOccsCassetteDefinition(definition)) {
+      setOccsSource(definition);
+      return;
+    }
+
     const graph = cassetteGraph(cassette);
     if (type === 'PARAMETRIC' || graph.extrusions.length > 0 || Object.keys(graph.params).length > 0) {
       setParametricSource(graph);

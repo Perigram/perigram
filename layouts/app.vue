@@ -131,7 +131,7 @@
 
     // --- Breadcrumb Navigation ---
     const breadcrumbs = computed(() => {
-        return navStore.resolveBreadcrumbs(route.path)
+        return navStore.resolveBreadcrumbs(route.path, route.query)
     })
 
     // --- User Menu ---
@@ -200,7 +200,7 @@
             adminItems.push({
                 label: t('admin.workbench.title'),
                 icon: 'pi pi-wrench',
-                command: () => router.push('/admin/workbench')
+                command: () => router.push('/admin')
             });
         }
         if (authStore.hasPermission('users', 'admin')) {
