@@ -2,13 +2,14 @@
 
 Canonical class library for all v24 entities. Every feature model extends `BaseEntity` and composes these blocks.
 
-Implementation source is `@cutkit/core`; this directory is the application
-compatibility import path and owns server-specific helpers such as ObjectId
-attachment creation and flexible-ID lineage inheritance.
+Implementation source is `@cutkit/core` through the `#packages/core/src/index.js`
+package import alias; this directory is the application compatibility import
+path and owns server-specific helpers such as ObjectId attachment creation and
+flexible-ID lineage inheritance.
 
 **Import path (always use this, not `server/utils/blocks.js`):**
 ```js
-import { BaseEntity, Identity, Status, Lineage, Specs, registerEntityService, getService,
+import { BaseEntity, Identity, Status, Lineage, Specs,
          createIdentity, createStatus, createSpecs, createData, inheritLineage, createAttachment
        } from '~/server/core/blocks/index.js';
 ```
@@ -141,9 +142,9 @@ const registry = getAppRegistry();
 registry.getEntityService('project');
 ```
 
-Entity, workflow, command, task, hook, and attachment-kind contracts are
-re-exported from `@cutkit/core`; server command/task runtimes consume them after
-access checks.
+Entity, workflow, command, task, hook, and attachment-kind contracts are defined
+through a `createRegistry()` instance from `@cutkit/core`; server command/task
+runtimes consume those registry definitions after access checks.
 
 ---
 

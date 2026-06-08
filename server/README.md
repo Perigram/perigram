@@ -34,6 +34,10 @@ registry definitions from `@cutkit/domain-cnc`.
 
 Workers must use `/api/tasks/*` and must never write `task_runs` directly.
 
+Server modules that need shared root utilities should import them through
+configured aliases such as `#utils/...`, not relative paths that climb out of
+`server/`. Nitro dev chunks resolve those aliases through `nuxt.config.js`.
+
 ## Required Checks
 
 ```bash

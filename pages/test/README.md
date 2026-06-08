@@ -2,7 +2,7 @@
 
 Internal visual verification pages for UI contracts and component variants.
 
-`/admin/workbench` now owns the consolidated entity-centric development surface.
+`/admin` now owns the consolidated entity-centric development surface.
 These pages remain focused visual demos and compatibility routes.
 
 ## UI Lab

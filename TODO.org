@@ -1134,6 +1134,684 @@
   Baked cassette should include all the layers using layer standard. Only the one layer should be used in nesting, that in marked as nesting layer in standard. Artifacts created during nesting should use transform data for placing other layers data back to nested cassettes. Of course, everything should be done procedurally without hardcoding layer names etc.
 
 *** Agent Notes
+    [2026-06-07] Generate OCCS cassette dimension annotations by default
+    Files changed:
+    - utils/occs/layers.js
+    - utils/occs/dimensions.js
+    - utils/occs/drawing.js
+    - utils/occs/templates.js
+    - utils/occs/evaluate.js
+    - utils/cassetteV2Renderer.js
+    - components/shared/DrawingCanvas.vue
+    - server/features/parametric-cassettes/service.js
+    Docs updated:
+    - utils/occs/README.md
+    - utils/README.md
+    - components/shared/README.md
+    - components/README.md
+    - pages/admin/README.md
+    - server/features/parametric-cassettes/README.md
+    - TODO.org
+    Notes:
+    - Added canonical `dimension.cassette` OCCS helpers that generate template entities with expression labels and evaluated design annotations with measured numeric values.
+    - Cassette Designer v2 OCCS output now writes default face dimensions into `definitions.workpieces[].entities`, and DrawingCanvas renders dimension text primitives on the semantic layer.
+    - OCCS template evaluation keeps the existing numeric parameter map while adding `annotations.dimensions` and dimension entries in `layerData`; baked parametric cassette records persist those annotations.
+
+*** Agent Notes
+    [2026-06-07] Load persisted Cassette Designer v2 templates into workbench dropdown
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - pages/admin/workbench.vue
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - server/features/cassettes/README.md
+    - TODO.org
+    Notes:
+    - Workbench now fetches persisted `PARAMETRIC` cassettes from `/api/cassettes` on load/rebuild and upserts them into the same fixture context that feeds the designer template dropdown.
+    - Cassette Designer v2 now receives a persisted template id list, so saving a generated fixture template creates a DB cassette while saving a loaded DB template updates it.
+    - Saved command result ids are re-fetched and mirrored into the queue-backed fixture context, keeping the selected template available for the nesting test command.
+
+*** Agent Notes
+    [2026-06-07] Fix Nitro alias resolution for OCCS utility imports
+    Files changed:
+    - nuxt.config.js
+    - server/features/cassettes/operations.js
+    - server/features/parametric-cassettes/service.js
+    Docs updated:
+    - server/README.md
+    - TODO.org
+    Notes:
+    - Server-side OCCS imports now use `#utils/...` instead of relative paths that Nitro dev rewrote to `/utils/...`.
+    - Nitro alias config now includes the same portable root aliases as Nuxt/Vite so generated server chunks can resolve shared utilities.
+
+*** Agent Notes
+    [2026-06-07] Persist Cassette Designer v2 saves to the cassettes collection
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - pages/admin/workbench.vue
+    - server/features/cassettes/operations.js
+    - server/features/cassettes/cassettes.spec.js
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - server/features/cassettes/README.md
+    - TODO.org
+    Notes:
+    - Cassette Designer v2 now saves through the `saveCassetteTemplate` command by default and emits the saved cassette DTO after reloading it from `/api/cassettes/:id`.
+    - The workbench mirrors the saved DB cassette into its fixture context and rewrites the active queue item with canonical OCCS parameters.
+    - The cassette save command now passes `definition` explicitly so OCCS documents stay under `data.definition` during updates.
+
+*** Agent Notes
+    [2026-06-07] Route cassette v2 previews and fixture saves through OCCS helpers
+    Files changed:
+    - utils/occs/*
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Clipper.js
+    - components/shared/DrawingCanvas.vue
+    - components/CassetteThumbnail.vue
+    - pages/admin/workbench.vue
+    - test-data/scenarios.js
+    - test-data/workbench-manual-entities.js
+    - server/features/parametric-cassettes/service.js
+    Docs updated:
+    - utils/README.md
+    - utils/occs/README.md
+    - components/README.md
+    - components/shared/README.md
+    - pages/admin/README.md
+    - test-data/README.md
+    - server/features/parametric-cassettes/README.md
+    - TODO.org
+    Notes:
+    - Added canonical OCCS helpers for semantic layers, parameters, expressions, production layout, DrawingCanvas conversion, folded-preview payloads, default fixture templates, and graph-tree template evaluation.
+    - Cassette Designer v2 preview now delegates production layers and folded payload construction to OCCS helpers while keeping graph-tree editing as editor state.
+    - Workbench cassette template saving and manual queue creation now derive queue parameters through the same OCCS helper, and the base fixture cassette is an OCCS template.
+    - Backend parametric baking now handles OCCS graph-tree templates without Nodi and produces `cut.outer` nesting polygons for the existing nesting command path.
+
+*** Agent Notes
+    [2026-06-07] Preserve parent-edge face offsets in Cassette Designer v2 folded preview
+    Files changed:
+    - utils/cassetteV2FoldedPreview.js
+    - utils/cassetteV2FoldedPreview.spec.js
+    - utils/README.md
+    - TODO.org
+    Docs updated:
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Folded 3D placement now derives the child hinge origin from the child edge's evaluated flat 2D point on the parent edge.
+    - Added a regression test for a child face attached to only part of the parent edge via base offsets.
+
+*** Agent Notes
+    [2026-06-07] Stop Cassette Designer v2 template reloads from clobbering edits
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - TODO.org
+    Notes:
+    - The template watcher now applies saved template data only when the selected template id changes.
+    - Fixture updates after save no longer reset the local cassette name or graph draft.
+
+*** Agent Notes
+    [2026-06-07] Add Workbench navigation sections and Cassette Designer v2 template save/load
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - pages/admin/workbench.vue
+    - layouts/app.vue
+    - stores/navigation.js
+    - test-data/workbench-manual-entities.js
+    - test-data/scenarios.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    - pages/admin/README.md
+    - components/README.md
+    - stores/README.md
+    - test-data/README.md
+    - TODO.org
+    Docs updated:
+    - pages/admin/README.md
+    - components/README.md
+    - stores/README.md
+    - test-data/README.md
+    - TODO.org
+    Notes:
+    - Workbench sections now come from `/admin?section=...` and are exposed in the app breadcrumb navigation.
+    - Cassette Designer v2 edits the template name in its header, loads saved workbench cassette templates, and emits OCCS v2 definitions with graph-tree extensions on save.
+    - Saving/selecting a v2 template updates the fixture `cassetteTemplate` ref and the active queue item so `solveNesting` receives it through the existing queue input.
+
+*** Agent Notes
+    [2026-06-07] Fix Cassette Designer v2 Three.js orbit drag capture
+    Files changed:
+    - components/CassetteFoldedPreview.vue
+    - components/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - TODO.org
+    Notes:
+    - Removed old SVG-era pointer and mouse stop handlers from the folded preview shell.
+    - OrbitControls can now receive document-level pointermove and pointerup events during drag.
+
+*** Agent Notes
+    [2026-06-07] Render Cassette Designer v2 folded preview with Three.js
+    Files changed:
+    - package.json
+    - package-lock.json
+    - components/CassetteFoldedPreview.vue
+    - components/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Added `three` and replaced the folded preview's SVG polygon projection with a WebGL scene.
+    - Folded faces now render as double-sided mesh materials with real depth testing, lights, outline edges, and OrbitControls.
+    - Workpiece selection now uses Three.js raycasting instead of SVG polygon clicks.
+
+*** Agent Notes
+    [2026-06-07] Fix Cassette Designer v2 folded preview face painting
+    Files changed:
+    - components/CassetteFoldedPreview.vue
+    - components/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Removed translucent face fills from the folded SVG preview to avoid overlap/material artifacts.
+    - Added deterministic double-sided face shading from projected face normals.
+    - Stabilized polygon painter ordering with depth tie-breakers.
+
+*** Agent Notes
+    [2026-06-07] Align Cassette Designer v2 3D workpieces from folded face attachments
+    Files changed:
+    - utils/cassetteV2FoldedPreview.js
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2FoldedPreview.spec.js
+    - utils/cassetteV2Renderer.spec.js
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Folded 3D preview now applies workpiece joints after each sheet is folded locally.
+    - Source and target face snap points are resolved on folded faces, with offsets applied in the target face basis.
+    - Assembly-mode renderer output now sends local face loops plus joint data to the 3D preview instead of reusing flat 2D assembly curves for folding.
+
+*** Agent Notes
+    [2026-06-07] Fix Cassette Designer v2 workpiece attachment and folded preview
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2FoldedPreview.js
+    - utils/cassetteV2Renderer.spec.js
+    - utils/cassetteV2FoldedPreview.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Removed the unrequested 2D preview mode buttons from the designer side panel.
+    - Workpiece joints now store and edit the selected source face along with the target face and snap points.
+    - Folded 3D preview starts a fold traversal from each disconnected workpiece root, so every workpiece folds before the cassette assembly is shown.
+
+*** Agent Notes
+    [2026-06-06] Move Cassette Designer v2 into admin workbench
+    Files changed:
+    - pages/admin/index.vue
+    - pages/admin/workbench.vue
+    - pages/admin/domain-builder.vue
+    - components/CassetteDesignerV2.vue
+    - components/shared/DrawingCanvas.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - layouts/app.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    - components/README.md
+    - components/shared/README.md
+    - pages/admin/README.md
+    - pages/test/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - pages/admin/README.md
+    - pages/test/README.md
+    - TODO.org
+    Notes:
+    - `/admin` now renders the workbench, and the admin nav opens `/admin`.
+    - Workbench gained a top-level Designer tab for `CassetteDesignerV2`; domain-builder no longer owns the cassette v2 tab.
+    - Cassette Designer v2 now has side-panel tabs for parameters, layers, and OCCS; face selection comes from canvas face clicks, labels can be hidden, and both sides of folded edges are excluded from add-face click targets.
+    - Removed the workbench page header and moved reset/export actions into the section tabs row; the designer side panel now stays beside the canvas instead of stacking above it.
+
+*** Agent Notes
+    [2026-06-06] Replace Cassette Designer v2 edge labels with hover actions and fold angle editing
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/shared/DrawingCanvas.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - utils/drawingPreview.js
+    - utils/drawingPreview.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    - components/README.md
+    - components/shared/README.md
+    - utils/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - utils/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Removed the edge label toggle from the Designer v2 layers tab.
+    - Free edge handles now show only a `+` chip on hover.
+    - Fold edges now emit a separate select event, show their fold angle, and select the child face so its angle can be edited in the parameters tab.
+
+*** Agent Notes
+    [2026-06-06] Add OCCS-style parameter expressions to Cassette Designer v2
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - components/README.md
+    - utils/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - utils/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Cassette Designer v2 now keeps global OCCS-style parameters on the graph tree and stores face shape sockets as expression strings.
+    - Added a strict arithmetic resolver for numbers, identifiers, `+ - * /`, parentheses, and unary minus.
+    - OCCS output preserves expressions, while Nodi graph inputs receive resolved numeric values from the current parameter scope.
+
+*** Agent Notes
+    [2026-06-06] Restore Cassette Designer v2 face selection overlay
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/shared/DrawingCanvas.vue
+    - utils/drawingPreview.js
+    - utils/drawingPreview.spec.js
+    - components/README.md
+    - components/shared/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - `normalizeGeometryDrawing` now preserves `designerFaces` from layered previews, so the canvas receives face hit paths.
+    - `DrawingCanvas` adds hover fill and selected-face highlighting for designer face overlays.
+    - `CassetteDesignerV2` passes the active face id into the canvas.
+
+*** Agent Notes
+    [2026-06-06] Keep Cassette Designer v2 controls in one panel and persist layer visibility
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/shared/DrawingCanvas.vue
+    - components/README.md
+    - components/shared/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Cassette Designer v2 now renders layer visibility, label toggle, parameters, and OCCS JSON inside the same side-panel tab system.
+    - The v2 canvas uses controlled `visibleLayerNames`, so `DrawingCanvas` no longer opens its internal layer panel there.
+    - Hidden layer names are tracked by the designer and reused when the preview regenerates after face additions.
+
+*** Agent Notes
+    [2026-06-08] Seed distinctive OCCS layer pens and keep template dimension labels symbolic
+    Files changed:
+    - server/scripts/seed-system-pens.js
+    - server/scripts/occs-layer-standards.js
+    - server/scripts/assign-default-pens.js
+    - server/scripts/occs-layer-standards.spec.js
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - server/scripts/README.md
+    - server/features/layer-standards/README.md
+    - server/features/pen-templates/README.md
+    - TODO.org
+    Docs updated:
+    - server/scripts/README.md
+    - server/features/layer-standards/README.md
+    - server/features/pen-templates/README.md
+    - TODO.org
+    Notes:
+    - Added OCCS-specific system pens, made pen seeding update stale system strokes by name, and mapped canonical OCCS layer codes to distinctive default pens.
+    - Re-seeded local MongoDB through `MONGODB_URI=mongodb://localhost:27017/cutkit_dev`: 14 system pens seeded, 22 OCCS layer standards upserted, and designer-critical layer codes resolve to non-white pen colors.
+    - The fallback cassette v2 template renderer now passes expression labels into generated `dimension.cassette` annotations so root dimensions display `A` and `B` instead of default numeric values.
+
+*** Agent Notes
+    [2026-06-08] Fix OCCS layer default pen ids for frontend DTO matching
+    Files changed:
+    - server/scripts/occs-layer-standards.js
+    - server/scripts/seed-layer-standards.js
+    - server/scripts/assign-default-pens.js
+    - server/scripts/occs-layer-standards.spec.js
+    - server/scripts/README.md
+    - server/features/layer-standards/README.md
+    - TODO.org
+    Docs updated:
+    - server/scripts/README.md
+    - server/features/layer-standards/README.md
+    - TODO.org
+    Notes:
+    - Fixed the white-line designer preview root cause: layer standards were seeded with raw Mongo pen `_id` values while `/api/templates/pens` exposes v24 pen DTO `_id` from `identity.uid`.
+    - Layer-standard seeding and the repair helper now write pen DTO ids, so `DrawingCanvas` and `LayerStandardCard` can match `standard.data.defaultPenId` against the pen store.
+    - Re-ran local layer-standard seeding and verified API data resolves `cut.outer`, `fold.route`, and `dimension.cassette` to their colored pens.
+
+*** Agent Notes
+    [2026-06-06] Add Cassette Designer v2 layer panel toggle
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Cassette Designer v2 now opens the shared `DrawingCanvas` layer panel by default and provides a compact layers icon toggle.
+    - The panel uses the existing v2 layer `standardCode` values to resolve seeded layer standards and pen templates through the shared drawing pipeline.
+
+*** Agent Notes
+    [2026-06-06] Derive Cassette Designer v2 workpiece cut and fold layers with Clipper2
+    Files changed:
+    - package.json
+    - package-lock.json
+    - utils/cassetteV2Clipper.js
+    - utils/cassetteV2Clipper.spec.js
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - public/vendor/clipper2/clipper2z.js
+    - public/vendor/clipper2/clipper2z.wasm
+    - public/vendor/clipper2/README.md
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Added `clipper2-wasm` and a real Clipper2 layout step for Cassette Designer v2.
+    - Vendored the package ESM/WASM runtime under `public/vendor/clipper2` and loaded it with a Vite-ignored runtime import so browser import analysis does not need to resolve package paths.
+    - Nodi still evaluates every face boundary; Clipper2 unions those evaluated polygons into `cut.outer`, then derives `fold.route` from original face edges not covered by the union boundary.
+    - The preview face-fill layer now also uses the Clipper2 union so the designer displays one united workpiece instead of separate face fills.
+    - Added focused coverage for adjacent full-edge faces and partially covered edges.
+
+*** Agent Notes
+    [2026-06-05] Map Cassette Designer v2 preview entities to layer standards
+    Files changed:
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - components/README.md
+    - utils/README.md
+    - TODO.org
+    Docs updated:
+    - components/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Matched v2 preview face, boundary, and fold-route geometry to OCCS layer-standard codes instead of hardcoded colors.
+    - Folded parent edges now render as a real `fold.route` layer while remaining unavailable as click targets.
+
+*** Agent Notes
+    [2026-06-05] Fix core blocks package import for Nuxt dev output
+    Files changed:
+    - server/core/blocks/index.js
+    - server/core/blocks/README.md
+    - TODO.org
+    Docs updated:
+    - server/core/blocks/README.md
+    - TODO.org
+    Notes:
+    - Replaced the relative package import with `#packages/core/src/index.js` so the core-blocks compatibility module resolves from both plain Node scripts and Nuxt generated dev output.
+
+*** Agent Notes
+    [2026-06-05] Make OCCS layer standards source of truth
+    Files changed:
+    - server/scripts/occs-layer-standards.js
+    - server/scripts/occs-layer-standards.spec.js
+    - server/scripts/seed-layer-standards.js
+    - scripts/seed-layer-standards.js
+    - server/scripts/assign-default-pens.js
+    - server/features/layer-standards/service.js
+    - server/features/layer-standards/model.js
+    - server/features/pen-templates/model.js
+    - server/features/tool-profiles/model.js
+    - server/core/blocks/index.js
+    - server/db/indexes.js
+    - server/api/layer-standards/index.get.js
+    - stores/layerStandards.js
+    - stores/penTemplates.js
+    - components/shared/DrawingCanvas.vue
+    - components/CassetteEditorDialog.vue
+    - pages/assets/layer-standards.vue
+    - utils/drawingPreview.js
+    - utils/drawingPreview.spec.js
+    - utils/dxfParser.js
+    - utils/dxfParser.spec.js
+    - server/features/parametric-cassettes/service.js
+    Docs updated:
+    - server/features/layer-standards/README.md
+    - server/features/pen-templates/README.md
+    - server/core/blocks/README.md
+    - server/scripts/README.md
+    - server/features/parametric-cassettes/README.md
+    - components/shared/README.md
+    - stores/README.md
+    - utils/README.md
+    - docs/specs/data-schema.md
+    - TODO.org
+    Notes:
+    - Mapped OCCS `docs/specs/Cassette spec/layers.json` into v24 layer-standard seed records and made the seed upsert by `data.code`.
+    - Moved layer standard and pen consumers to canonical DTO fields while keeping root-field fallbacks for migration compatibility.
+    - Geometry previews with OCCS layer codes now load standards/pens before normalization, and parametric cassette DXF defaults use OCCS layer codes instead of legacy seed codes.
+
+*** Agent Notes
+    [2026-06-05] Switch Cassette Designer v2 live preview to per-face Nodi evaluation
+    Files changed: utils/cassetteV2Renderer.js,
+      utils/cassetteV2Renderer.spec.js, components/README.md,
+      pages/admin/README.md, utils/README.md,
+      docs/specs/nodi-operation-contract.md,
+      docs/specs/nodi-occs-graph-checklist.md
+    Docs updated: components/README.md, pages/admin/README.md,
+      utils/README.md, docs/specs/nodi-operation-contract.md,
+      docs/specs/nodi-occs-graph-checklist.md
+    Notes: Replaced the live v2 preview path that re-evaluated one composed
+      graph with cached per-face Nodi evaluation. Child faces now receive
+      cached parent `out.boundary` vertices through an adapter Nodi `Polyline`
+      input, so the designer still renders Nodi-owned geometry instead of
+      hand-built trapezoid points. Duplicate edge clicks now reuse the existing
+      child face while folded-edge overlays catch up.
+
+*** Agent Notes
+    [2026-06-05] Coalesce Cassette Designer v2 preview renders
+    Files changed: components/CassetteDesignerV2.vue,
+      utils/cassetteV2Renderer.js
+    Docs updated: components/README.md, utils/README.md
+    Notes: Reduced v2 editor lag by debouncing tree preview rendering in the
+      component, removing the deep tree watcher, snapshotting tree state before
+      preview evaluation, and skipping stale queued Nodi tree renders before
+      they compose/load/evaluate a graph.
+
+*** Agent Notes
+    [2026-06-05] Make Cassette Designer v2 edge actions add faces directly
+    Files changed: components/CassetteDesignerV2.vue,
+      components/shared/DrawingCanvas.vue
+    Docs updated: components/README.md, pages/admin/README.md
+    Notes: Removed the Cassette v2 floating add-confirm menu from the edge
+      action path. `DrawingCanvas` now emits designer actions even when SVG
+      screen-coordinate conversion is unavailable, using pointer coordinates as
+      fallback, and Cassette v2 immediately creates/selects the child face from
+      the emitted source `edgeIndex`.
+
+*** Agent Notes
+    [2026-06-05] Restore Cassette Designer v2 edge click add action
+    Files changed: components/shared/DrawingCanvas.vue
+    Docs updated: components/shared/README.md
+    Notes: Made designer edge labels clickable and changed the transparent
+      edge hit stroke to a near-transparent stroke so SVG hit testing remains
+      active. Designer actions now emit the source edge's `edgeIndex` instead
+      of the overlay array index, which keeps add actions correct after folded
+      edges are filtered out.
+
+*** Agent Notes
+    [2026-06-05] Wire Cassette Designer v2 root graph input after test node removal
+    Files changed: utils/cassetteV2Renderer.js,
+      utils/cassetteV2Renderer.spec.js
+    Docs updated: utils/README.md
+    Notes: Updated graph composition for `face.trapezoid` exports without
+      authoring-only test nodes. The root face now wires its `parentPolygon`
+      input to the graph's root base `Line` output, while child faces still
+      wire parent `out.boundary` to child `parentPolygon`. Renamed the browser
+      compatibility helper to make clear that numeric Nodi hints are stripped,
+      not geometry-normalized.
+
+*** Agent Notes
+    [2026-06-05] Normalize Nodi hint codes for Cassette Designer v2 preview
+    Files changed: utils/cassetteV2Renderer.js,
+      utils/cassetteV2Renderer.spec.js
+    Docs updated: utils/README.md
+    Notes: Fixed the browser `loadGraph()` failure for exported Nodi graphs
+      that store parameter `hint` values as numeric bitflags. The v2 renderer
+      now normalizes numeric hints while cloning/composing graphs, keeping the
+      user-authored graph file unchanged and preserving Nodi-owned geometry.
+
+*** Agent Notes
+    [2026-06-05] Move Cassette Designer v2 preview geometry to Nodi composition
+    Files changed: components/CassetteDesignerV2.vue,
+      utils/cassetteV2Renderer.js, utils/cassetteV2Renderer.spec.js,
+      docs/specs/nodi-operation-contract.md,
+      docs/specs/nodi-occs-graph-checklist.md
+    Docs updated: components/README.md, pages/admin/README.md,
+      utils/README.md, docs/specs/nodi-operation-contract.md,
+      docs/specs/nodi-occs-graph-checklist.md
+    Notes: Changed the v2 adoption layer so designer state remains topology and
+      parameter data only. Preview now composes cloned `face.trapezoid` Nodi
+      graphs, wires parent `out.boundary` to child `parentPolygon`, evaluates
+      one composed graph, and derives clickable edges from evaluated CCW
+      boundaries instead of synthetic trapezoid normals.
+
+*** Agent Notes
+    [2026-06-05] Add Cassette Designer v2 trapezoid prototype
+    Files changed: components/CassetteDesignerV2.vue,
+      pages/admin/domain-builder.vue, utils/cassetteV2Renderer.js,
+      utils/cassetteV2Renderer.spec.js, utils/drawingPreview.js,
+      utils/drawingPreview.spec.js, i18n/locales/en.json,
+      i18n/locales/ru.json, package.json, package-lock.json
+    Docs updated: pages/admin/README.md, components/README.md,
+      utils/README.md
+    Notes: Added an admin/domain-builder Cassette v2 tab that starts with one
+      root `face.trapezoid`, adds child trapezoids by clicking canvas edges,
+      keeps cassette state as a recursive graph tree, lists active-face
+      parameters in a compact inspector, previews the tree through the shared
+      drawing contract, and displays an OCCS v0.4-draft template payload with
+      faces and folds. Updated `nodi-modular` to 0.0.41 so the numeric-hint
+      Nodi export can still be loaded for operation checks.
+
+*** Agent Notes
+    [2026-06-05] Clarify Nodi socket contract
+    Files changed: docs/specs/nodi-operation-contract.md,
+      docs/specs/nodi-operation-manifest.schema.json,
+      docs/specs/nodi-occs-graph-checklist.md, TODO.org
+    Docs updated: docs/specs/nodi-operation-contract.md,
+      docs/specs/nodi-operation-manifest.schema.json,
+      docs/specs/nodi-occs-graph-checklist.md
+    Notes: Updated the Nodi operation contract so explicit `startAnchor` and
+      `endAnchor` graph sockets are first-class inputs, not internal details.
+      Manifest sockets now record both CutKit semantic type and concrete Nodi
+      `access`/`hint` metadata, with optional numeric `hintCode`, so direct
+      graph-to-graph wiring can validate Nodi-native socket compatibility.
+
+*** Agent Notes
+    [2026-06-05] Formalize Nodi3d operation contract
+    Files changed: docs/specs/nodi-operation-contract.md,
+      docs/specs/nodi-operation-manifest.schema.json,
+      docs/specs/nodi-occs-graph-checklist.md, docs/specs/README.md,
+      TODO.org
+    Docs updated: docs/specs/nodi-operation-contract.md,
+      docs/specs/nodi-operation-manifest.schema.json,
+      docs/specs/nodi-occs-graph-checklist.md, docs/specs/README.md
+    Notes: Promoted the agreed Nodi3d workflow fixes into a formal
+      CutKit-to-Nodi contract: root and edge-attached faces are placement
+      modes of one logical shape operation, root faces use a synthetic base
+      edge, polygon parents resolve to the same base-edge input, trapezoid
+      anchors use `start`/`end`, wrapper graphs keep the same logical
+      operation, and face graphs must expose stable edge outputs for recursive
+      child placement.
+
+*** Agent Notes
+    [2026-06-05] Shorten Nodi3d OCCS graph checklist
+    Files changed: docs/specs/nodi-occs-graph-checklist.md, TODO.org
+    Docs updated: docs/specs/nodi-occs-graph-checklist.md
+    Notes: Replaced the long graph checklist with a compact build sheet that
+      treats root and edge-attached faces as one logical shape contract with
+      placement modes, uses simpler `start`/`end` point anchors, and gives a
+      smaller first-slice graph list for practical Nodi3d work.
+
+*** Agent Notes
+    [2026-06-05] Add Nodi3d OCCS graph checklist
+    Files changed: docs/specs/nodi-occs-graph-checklist.md,
+      docs/specs/README.md, TODO.org
+    Docs updated: docs/specs/nodi-occs-graph-checklist.md,
+      docs/specs/README.md
+    Notes: Captured the Nodi3d graph creation workflow as a checklist with
+      explicit operation IDs, input/output sockets, socket type vocabulary,
+      recursive composition rules, point-offset trapezoid decision notes, and
+      first build order for OCCS cassette flat-pattern support.
+
+*** Agent Notes
+    [2026-06-05] Document cassette designer migration to OCCS
+    Files changed: docs/specs/cassette-occs-migration-plan.md,
+      docs/specs/README.md, TODO.org
+    Docs updated: docs/specs/cassette-occs-migration-plan.md,
+      docs/specs/README.md
+    Notes: Compared the OCCS v0.4 draft package against the live
+      `CassetteDesigner` graph, shared drawing canvas, Nodi graph builder,
+      cassette save command, thumbnail renderer, and parametric bake/export
+      service. Documented a compatibility-first migration path that keeps
+      cassette template storage stable while adding OCCS validation, rendering,
+      editor state, backend materialization, semantic layers, and old graph
+      conversion.
+
+*** Agent Notes
     [2026-05-14] Used Vue Surface Design-System Rewrite
     Files changed:
     - components/AdminSupportChat.vue, components/AdminSupportChatList.vue, components/ArtifactsTable.vue, components/AssetsLibrary.vue, components/BuyCreditsDialog.vue, components/CassetteDesigner.vue, components/CassetteManager.vue, components/PartLibrary.vue, components/PermissionEditor.vue, components/ProjectStatistics.vue, components/QueueEditor.vue
@@ -2510,3 +3188,228 @@
     - Added local-save mode to `CassetteDesigner` so workbench cassette templates are created through the designer without calling the API.
     - Added typed manual workbench entity creation rules with entity reference selectors for lineage/dependency fields.
     - Workbench command output hydration now includes related task-run outputs so completed nesting runs can show generated sheet designs.
+
+*** Agent Notes
+    [2026-06-06] Add Cassette Designer v2 expression editor chips
+    Files changed:
+    - components/CassetteExpressionEditor.vue
+    - components/CassetteDesignerV2.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - docs/specs/Cassette spec/SPEC.md
+    - TODO.org
+    Notes:
+    - Replaced v2 expression text inputs with a lightweight text-backed editor that validates expressions, highlights recognized tokens inline, and inserts grouped cassette parameter, operator, trig, and child `foldAngle` chips.
+    - Extended cassette v2 expression evaluation with degree-based `sin()`, `cos()`, `tan()`, angle-field `deg` suffix handling, and child face `foldAngle` context for Nodi input resolution.
+    - Kept the designer drawing on the last successful preview when an expression draft cannot be evaluated, with a panel warning until the next successful render.
+    - Scoped highlighted-editor selection restoration to the focused editor only so sibling parameter fields cannot steal the cursor during invalid expression edits.
+    - Moved expression chips into one focused insert panel that appears only under the active expression editor instead of repeating under every parameter field.
+    - Kept expression editors single-line with an overlay chip panel and changed offset labels to point/side wording derived from active anchors.
+
+*** Agent Notes
+    [2026-06-06] Fix Cassette Designer v2 Clipper overlap handling
+    Files changed:
+    - utils/cassetteV2Clipper.js
+    - utils/cassetteV2Clipper.spec.js
+    Docs updated:
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Kept the Clipper layout helper as the combined curve-union plus fold-remnant pass.
+    - Normalized closed input curve winding before union so overlapping regions with opposite source orientation do not cancel or split.
+    - Split fold remnant segments at intersections before joining them, keeping the internal curve output connected where possible.
+
+*** Agent Notes
+    [2026-06-06] Add Cassette Designer v2 folded preview thumbnail
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/CassetteFoldedPreview.vue
+    - utils/cassetteV2FoldedPreview.js
+    - utils/cassetteV2FoldedPreview.spec.js
+    - utils/cassetteV2Renderer.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Added a top-right folded sheet thumbnail inside the v2 designer canvas.
+    - The thumbnail consumes evaluated 2D face loops and OCCS fold topology from the renderer, then projects recursively folded 3D face points into a compact SVG preview.
+    - Added local orbit controls for the thumbnail: drag rotates yaw/pitch, wheel zooms, and the reset button restores the default folded view.
+    - Raised the thumbnail above 2D canvas overlays, stopped pointer propagation inside it, and sorted face polygons by current orbit depth for consistent double-sided SVG rendering.
+
+*** Agent Notes
+    [2026-06-07] Stabilize Cassette Designer v2 folded preview layout
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/CassetteFoldedPreview.vue
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Changed the v2 designer root from a growing minimum-height grid to a fixed viewport-height work area with internal overflow.
+    - Kept the folded preview overlay mounted with an empty placeholder if projection data is delayed or temporarily missing.
+    - Mounted the preview through a dedicated absolute wrapper so the component root's relative positioning cannot push it below the full-height canvas.
+    - Added pointer-event stopping on the preview shell and CSS-variable fallbacks for SVG face fills/strokes so the overlay remains visible above canvas hit targets.
+
+*** Agent Notes
+    [2026-06-07] Replace Cassette Designer v2 live trapezoid preview with pure geometry
+    Files changed:
+    - utils/cassetteV2Trapezoid.js
+    - utils/cassetteV2Trapezoid.spec.js
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Added a pure OCCS trapezoid geometry helper for local point resolution and parent-edge placement.
+    - Changed v2 defaults to `B = 400`, zero offsets, root height `B`, and child height `R`.
+    - Switched live v2 drawing to pure trapezoid curves, leaving Nodi graph composition helpers only for compatibility/export/debug checks.
+    - Removed unused Nodi runtime initialization and browser `$fetch` from the v2 renderer.
+
+*** Agent Notes
+    [2026-06-07] Reverse child shared edges in Cassette Designer v2 trapezoid geometry
+    Files changed:
+    - utils/cassetteV2Trapezoid.js
+    - utils/cassetteV2Trapezoid.spec.js
+    - utils/cassetteV2Renderer.spec.js
+    Docs updated:
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Child trapezoid placement now reverses the selected parent edge before resolving child `E0`.
+    - This keeps the shared fold edge opposite between parent and child polygons, preserving CCW face loops and stable attachment indices.
+
+*** Agent Notes
+    [2026-06-07] Preserve child attachment edge in Cassette Designer v2 folded preview
+    Files changed:
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - utils/cassetteV2FoldedPreview.spec.js
+    Docs updated:
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - OCCS fold `to` now uses the child node's `attachEdge` instead of hardcoded `E0`.
+    - Folded-preview payload now emits `childEdgeIndex` from `attachEdge`, plus `childAttachEdge`, so 3D placement uses the same child attachment edge as topology.
+
+*** Agent Notes
+    [2026-06-07] Add actual workpiece creation to Cassette Designer v2
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Added a canvas mini-graph workpiece list with `+` actions for creating/selecting workpieces.
+    - `addCassetteV2Workpiece()` creates a new workpiece root face, `definitions.workpieces[]` entry, and cassette occurrence instead of adding a folded child face.
+    - OCCS export now groups faces and folds by `workpieceId`; same-sheet edge clicks remain folds inside one workpiece, while separate workpieces are represented through occurrences and placement.
+
+*** Agent Notes
+    [2026-06-07] Add Cassette Designer v2 workpiece topology UX
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Replaced the flat workpiece list with a node/edge mini-graph where nodes are workpieces and edges are OCCS joints.
+    - Added a topology side-panel tab for editing target workpiece, target face, target/source snap points, offsets, rotation, side, joint type, and method.
+    - Added preview modes for selected-workpiece flat editing, all-workpiece flat layout, and attachment-driven assembly placement.
+    - Workpiece additions now create an editable face-relative joint and OCCS occurrence placement together.
+
+*** Agent Notes
+    [2026-06-07] Switch Cassette Designer v2 workpiece topology to face snapping
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Workpiece joints now use face-relative OCCS placement with target/source snap points, X/Y offsets, target side, and rotation.
+    - Removed workpiece attachment edge controls; edge clicks remain scoped to folds inside one workpiece.
+    - Simplified the mini-graph to compact circular workpiece nodes and clickable relation lines.
+    - Selected-workpiece preview now falls back to an empty drawing if no curves are produced, avoiding a stale loading state.
+
+*** Agent Notes
+    [2026-06-07] Make Cassette Designer v2 workpieces deletable
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Added non-root workpiece deletion that removes the selected workpiece subtree, its face nodes, and related OCCS joints.
+    - Replaced the circular overlay graph with a compact indented workpiece list with select, add-child, and delete controls.
+    - Root workpiece deletion is disabled so the designer always has a valid base workpiece.
+
+*** Agent Notes
+    [2026-06-07] Show selected and full cassette 3D previews in Cassette Designer v2
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/CassetteFoldedPreview.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - The 3D overlay now renders two folded-preview panels: selected workpiece and full cassette assembly.
+    - The selected and cassette 3D payloads are rendered independently from the active 2D canvas preview mode.
+
+*** Agent Notes
+    [2026-06-07] Use one interactive cassette 3D preview window
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/CassetteFoldedPreview.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2FoldedPreview.js
+    - utils/cassetteV2Renderer.spec.js
+    - utils/cassetteV2FoldedPreview.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Collapsed the two 3D panels into one cassette assembly preview window.
+    - Folded-preview faces now carry `workpieceId`, allowing deterministic varied hues and workpiece-level selection.
+    - Clicking a workpiece in 3D selects it in the designer and isolates it; the back button clears isolation and returns to the whole cassette.

@@ -109,6 +109,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
+| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
 
 ### layer_standards
 *Layer-standards - manages layer standards*
@@ -120,11 +121,21 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
+| `data.aliases` | Array | aliases field |
+| `data.allowedGeometry` | String | allowed geometry field |
 | `data.category` | String | category field |
 | `data.code` | String | code field |
+| `data.defaultExport` | String | default export field |
 | `data.defaultPenId` | String | default pen id field |
+| `data.description` | String | description field |
+| `data.group` | String | group field |
 | `data.i18n` | String | i18n field |
+| `data.kind` | String | kind field |
 | `data.parameters` | Array | parameters field |
+| `data.parameterSchema` | String | parameter schema field |
+| `data.production` | String | production field |
+| `data.purpose` | String | purpose field |
+| `data.source` | String | source field |
 
 ### material_options
 *Material-options - manages material options*
@@ -349,6 +360,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.passwordHash` | String | password hash field |
 | `data.permissions` | Array | permissions field |
 | `data.role` | String | role field |
+| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
 
 ### warehouses
 *Warehouses - manages warehouses*

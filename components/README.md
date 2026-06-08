@@ -101,6 +101,77 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   Development surfaces such as the admin workbench can pass `:persist="false"`
   to receive the typed save payload locally and upsert it into an in-memory
   fixture context instead of calling the API.
+- `CassetteDesignerV2` is the top-level cassette designer section in the admin
+  workbench. Its header edits the cassette template name, loads existing
+  workbench cassette templates from parent-provided options, receives
+  `persistedTemplateIds` from the parent to distinguish DB templates from
+  generated fixture templates, persists saves through `saveCassetteTemplate` by
+  default, and emits a save payload with the saved cassette DTO plus the OCCS v2 definition and
+  `extensions.cutkit.graphTree` so the workbench can mirror and reload the exact
+  graph tree. Template data is applied only when the selected template id
+  changes; saving or updating the fixture context must not overwrite the
+  in-progress name/graph draft. It starts from one root
+  `face.trapezoid`, adds child trapezoids
+  immediately when users click unoccupied canvas edges, stores the result as a
+  recursive graph tree with a top-level OCCS-style parameter scope (`A`, `B`,
+  `R`, ...), and keeps actual OCCS workpieces as separate graph roots. The
+  canvas overlay renders workpieces as a compact indented topology list;
+  each row `+` action creates a new `definitions.workpieces[]` entry,
+  matching cassette occurrence, root face, and face-relative joint instead of
+  another fold child on the current sheet. Non-root rows can be deleted, which
+  removes that workpiece subtree, its faces, and related OCCS joints. The
+  topology side-panel tab edits that attachment's target workpiece, target
+  face, source face, target/source snap points, face offsets, rotation, side,
+  joint type, and method. The 2D canvas stays in selected-workpiece flat
+  editing mode for face operations, while the top-right 3D overlay is a single
+  cassette assembly window: workpieces render in deterministic varied hues,
+  source/target face attachment snaps are applied after sheet folding, clicking
+  a workpiece selects it in the designer and isolates it in 3D, and the back
+  button returns to the whole cassette view. The designer selects faces from hoverable canvas face
+  clicks, resolves
+  `face.trapezoid` boundaries through a pure OCCS trapezoid geometry helper
+  from cached parent edge vertices, and displays an OCCS v0.4-draft template
+  with per-workpiece faces, folds, occurrences, and joints. Face shape
+  sockets store arithmetic expression strings such as `A + 10` or
+  `B + (R / 2 - 1)`. `CassetteExpressionEditor` keeps those fields text-backed
+  while validating them, highlighting recognized tokens inline, offering
+  one grouped cassette-parameter/operator/trig chip panel under the active
+  expression, a tooltip usage guide, and a child-face `∠ foldAngle` context
+  chip. The editor stays single-line with horizontal overflow, and the chip
+  panel is positioned as an overlay so active fields do not resize the
+  parameter list. Highlight refresh restores cursor selection only for the
+  focused editor so sibling parameter fields cannot steal focus during invalid
+  draft edits. Offset fields display point/side labels derived from active
+  anchors while preserving the stored OCCS socket keys. The renderer preserves
+  those strings in OCCS and resolves numeric values only for preview geometry.
+  Free edge handles show a `+` only on hover; folded edges show their fold angle
+  and select the child face for angle editing on click. Its side panel
+  stays beside the canvas and is the only v2 control surface for parameters,
+  layer visibility, and OCCS JSON. Layer visibility is controlled by the
+  designer, so hidden layer names persist when the preview regenerates after
+  face additions. Invalid expression drafts do not clear or redraw the canvas;
+  the designer keeps the last successful preview until the tree evaluates
+  again. Designer preview layers are built by canonical `utils/occs/` helpers
+  and carry OCCS layer-standard codes for the united workpiece fill, derived
+  `cut.outer` workpiece outlines, derived `fold.route` paths, and generated
+  `dimension.cassette` annotation entities so `DrawingCanvas` resolves colors
+  from layer standards and pen templates. Template dimensions display expression
+  labels such as `A`, `B`, and `R`; evaluated/baked designs store measured
+  numeric annotation values.
+  The canvas also hosts a top-right
+  `CassetteFoldedPreview` thumbnail that projects the evaluated 2D face loops
+  through OCCS fold topology for a compact folded 3D view with drag orbit,
+  wheel zoom, and reset controls. The thumbnail sits above the 2D canvas hit
+  overlays, keeps its panel mounted with an empty state while projection data
+  is unavailable, stops pointer events inside its panel, and renders the folded
+  faces through a Three.js WebGL scene with real depth testing, double-sided
+  materials, outline edges, lights, and raycast workpiece selection. The
+  preview panel must not stop document-level pointer movement, because
+  OrbitControls registers drag continuation on `ownerDocument`. The designer
+  root uses a fixed viewport-height work area with
+  internal side-panel/canvas overflow instead of growing below the window.
+  Edges already represented by either side of a fold are not clickable. It does
+  not replace the persisted cassette-template designer.
 - For standard CRUD and status operations, use `useEntity` — no direct `$fetch` calls.
 - Direct `$fetch` is reserved for custom workflows that are not represented by `useEntity`: declared domain operations, uploads/downloads, invitations, permissions, support chat, payments, debug endpoints, and project-scoped subresources.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`.

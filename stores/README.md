@@ -4,6 +4,12 @@ Pinia stores for client state and API orchestration.
 
 ## Core Stores
 - `entities.js`: Universal entity registry and cache for all system entity types. `fetchEntity(type, id, force?, options?)` fetches from the appropriate API endpoint and caches in `registry[type][id]`; `options.silent` suppresses expected protected lookup errors. Used by TraceChain for lineage name resolution. Supports: organization, project, queue, warehouse, requisition, batch, cassetteInstance, and others.
+- `layerStandards.js`: Loads the canonical layer-standard catalogue. Lookups use
+  `standard.data.code` / `standard.data.category` with root-field fallbacks only
+  for migration compatibility, and pen overrides update `data.orgPenId`.
+- `penTemplates.js`: Loads system and user pen DTOs. System/user grouping is
+  based on `pen.lineage.userId`; stroke rendering data lives under
+  `pen.data.stroke`.
 - `batches.js`: Batch list/current batch, nesting actions, status polling.
 - `artifacts.js`: Batch artifacts fetching and cache.
 - `cassettes.js`, `toolProfiles.js`, etc.: Related feature stores.
@@ -18,6 +24,8 @@ Pinia stores for client state and API orchestration.
   headers through `fetchProjectContext(slug, fetchOptions)` so protected project
   lookups use the same session cookie as auth middleware. Breadcrumb sibling
   options normalize canonical DTO labels before passing them to PrimeVue Select.
+  Admin workbench breadcrumbs also receive route query so `/admin?section=...`
+  can expose Designer/Entities/Context/Commands as navigation siblings.
 - `workbenchFixtures.js` owns the admin workbench fixture context. Manual
   entities and command/task outputs are upserted into the same context used for
   typed entity options; seeding preserves that context instead of regenerating

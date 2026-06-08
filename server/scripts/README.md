@@ -11,19 +11,37 @@ node server/scripts/seed-all.js
 
 **Individual seeds:**
 ```bash
-node server/scripts/seed-layer-standards.js  # 7 parametric layer templates
-node server/scripts/seed-system-pens.js      # 5 default pens
+node server/scripts/seed-layer-standards.js  # OCCS layer standards from docs/specs/Cassette spec/layers.json
+node server/scripts/seed-system-pens.js      # OCCS/default system pens
 node server/scripts/seed-system-tools.js     # 6 common tools
 ```
 
 ## What Gets Created
 
-### Layer Standards (7)
-- Parametric templates with `nameTemplate` + `parameters`
-- Examples: `"Обрезь_{diameter}"`, `"Фрезеровка_{angle}"`
-- Used for generating actual layer names at runtime
+### Layer Standards
+- Seeded from [docs/specs/Cassette spec/layers.json](../../docs/specs/Cassette%20spec/layers.json)
+- Stored as v24 DTO records with canonical fields under `data.*`
+- Preserve OCCS metadata such as `group`, `kind`, `purpose`, `allowedGeometry`,
+  `defaultExport`, `parameterSchema`, and registry `source`
+- Resolve canonical `defaultPenId` values from layer-code defaults in
+  `server/scripts/occs-layer-standards.js`; run system pens before layer
+  standards so those names exist in MongoDB
+- Store the frontend pen DTO id (`identity.uid` when present), not the raw
+  Mongo `_id`, because DrawingCanvas and layer-standard cards match against the
+  `/api/templates/pens` DTO `_id`
+- Known legacy seed codes such as `1_1_FACE` and raw root-code records from the
+  old root script are removed when the OCCS seed runs
 
-### System Pens (5)
+### System Pens
+- OCCS Contour Blue 0.35mm
+- OCCS Flat Pattern Cyan 0.4mm
+- OCCS Cut Red 0.6mm
+- OCCS Cut Orange 0.45mm
+- OCCS Fold Amber Dashed 0.35mm
+- OCCS Engrave Indigo Dotted 0.25mm
+- OCCS Code Green 0.35mm
+- OCCS Dimension Violet Dotted 0.25mm
+- OCCS Envelope Slate Dashed 0.25mm
 - Black Solid 0.35mm
 - Red Solid 0.5mm
 - Blue Dashed 0.25mm
@@ -40,7 +58,7 @@ node server/scripts/seed-system-tools.js     # 6 common tools
 
 ## System Data Characteristics
 
-- **Read-Only:** System data has `ownerId = null`
+- **Read-Only:** System data has no user owner (`lineage.userId = null`)
 - **Cannot be Modified:** Users cannot edit or delete system templates
 - **Can be Copied:** Users can create custom templates based on system ones
 
@@ -51,8 +69,8 @@ To reset system data:
 ```bash
 # In MongoDB shell
 use cutkit;
-db.layer_standards.deleteMany({ownerId: null});
-db.pen_templates.deleteMany({ownerId: null});
+db.layer_standards.deleteMany({ "lineage.userId": null });
+db.pen_templates.deleteMany({ "lineage.userId": null });
 db.tool_profiles.deleteMany({ownerId: null});
 
 # Then re-run seed script
@@ -61,20 +79,25 @@ node server/scripts/seed-all.js
 
 ## Script Behavior
 
-- **Idempotent:** Scripts check for existing data
-- **Error Handling:** Continues on duplicate errors
-- **Summary Output:** Shows created/skipped counts
+- **Idempotent:** Layer standards upsert by `data.code`; system pens upsert by
+  system name and update stale stroke data
+- **Error Handling:** Continues on per-record errors where possible
+- **Summary Output:** Shows created/updated/skipped counts
 - **Exit Codes:** 0 = success, 1 = failure
 
 ## Development
 
 Add new system data by editing:
-- `server/scripts/seed-layer-standards.js`
+- `docs/specs/Cassette spec/layers.json` for layer standards
 - `server/scripts/seed-system-pens.js`
 - `server/scripts/seed-system-tools.js`
 
-All scripts follow same pattern:
-1. Import service + connectDB
-2. Define DATA array
-3. Loop and call `service.create(data, null)` (null = system)
-4. Report results
+Layer standard seed flow:
+1. `server/scripts/occs-layer-standards.js` loads the OCCS registry.
+2. `server/scripts/seed-layer-standards.js` resolves default pen names to pen ids.
+3. `layer-standards.service.seed()` upserts records by `data.code`.
+4. The script removes known legacy seed records and reports the resulting catalogue.
+
+Use `server/scripts/assign-default-pens.js` only as a repair helper for
+standards missing `data.defaultPenId`; it uses the same OCCS code/group pen
+mapping instead of round-robin assignment.

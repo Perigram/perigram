@@ -127,11 +127,11 @@ Supported location shapes:
 Use status lifecycle location for "where the entity is now"; static ancestry remains in `lineage`, and files remain in `attachments`.
 
 ### `DrawingCanvas.vue`
-Shared SVG canvas for layer-aware drawing surfaces. It accepts normalized geometry previews, DXF text/URLs, SVG URLs, and parametric cassette graphs; owns layer visibility, viewer pan/zoom, cassette designer edge actions, shared viewer grid/stroke presentation, and layer-to-pen resolution through `utils/drawingPreview.js`.
+Shared SVG canvas for layer-aware drawing surfaces. It accepts normalized geometry previews, DXF text/URLs, SVG URLs, legacy parametric cassette graphs, and OCCS cassette definitions with CutKit graph-tree extensions; owns layer visibility by default, viewer pan/zoom, cassette designer edge actions, shared viewer grid/stroke presentation, and layer-to-pen resolution through `utils/drawingPreview.js`.
 
-All drawing sources normalize to the same layer contract before rendering: `{ viewBox, layers: [{ name, standardCode?, paths }] }`. DXF layers keep their source layer names and optional mapping. Parametric cassette previews render through the same layer list and may provide caller-owned `layers.face` / `layers.boundary` metadata; if no layer metadata exists, they render as a neutral `geometry` layer instead of guessing production standards. Designer edge handles are overlays, not drawing layers.
+All drawing sources normalize to the same layer contract before rendering: `{ viewBox, layers: [{ name, standardCode?, paths }] }`. DXF layers keep their source layer names and optional mapping. Parametric cassette previews render through the same layer list and may provide caller-owned `layers.face` / `layers.boundary` metadata; if no layer metadata exists, they render as a neutral `geometry` layer instead of guessing production standards. Layer paths may be SVG paths, images, raw SVG snippets, or text primitives; text primitives are used for CAD-style dimension labels on semantic annotation layers such as `dimension.cassette`. Designer edge, fold-edge, and face-select hit overlays are overlays, not drawing layers. Free edge handles emit the edge's source `edgeIndex` and show only a `+` chip on hover. Fold edge handles emit `designer-fold-select`, show the fold angle on hover or active selection, and let caller-owned panels edit fold metadata. Designer face overlays emit `designer-face-select`, show hover feedback, and highlight `selectedDesignerFaceId`.
 
-Layer colors resolve in this order: explicit source layer mapping, caller-provided `standardCode`, standard-code fallback from the layer name, then the default pen. Use this component for artifact previews, cassette thumbnails, mapping previews, and designer canvases instead of duplicating SVG render logic in feature components.
+Layer colors resolve in this order: explicit source layer mapping, caller-provided `standardCode`, standard-code fallback from the layer name, then the default pen. Geometry previews that provide `standardCode`, `code`, or an OCCS dot-code layer name load layer standards and pen templates before normalization. Standard and pen data are read from canonical v24 DTO fields (`standard.data.code`, `standard.data.defaultPenId`, `standard.data.orgPenId`, `pen.data.stroke`) with flat fallbacks only for migration compatibility. Use this component for artifact previews, cassette thumbnails, mapping previews, and designer canvases instead of duplicating SVG render logic in feature components.
 
 The optional viewer layer panel is part of the shared canvas surface but must
 render CutKit concepts through existing CutKit system components. Source DXF
@@ -140,13 +140,17 @@ resolved pens/colors use `PenTemplateCard`. Inline color dots, hand-rolled
 layer rows, or custom key/value renderers are not allowed for these entity
 concepts. PrimeVue controls are limited to non-entity interaction chrome such as
 visibility checkboxes, show/hide buttons, scroll containment, and count tags.
+Surfaces that need their own panel, such as `CassetteDesignerV2`, pass
+`visibleLayerNames` and handle `layer-toggle`; in that controlled mode
+`DrawingCanvas` renders only the selected layer names and does not reset
+visibility during drawing refresh.
 
 Current drawing display owners:
 
 | Surface | Source type |
 |---|---|
 | `GeometryPreview.vue` | `geometry-preview` |
-| `CassetteThumbnail.vue` | `dxf-url` or `parametric-cassette` |
+| `CassetteThumbnail.vue` | `dxf-url`, `parametric-cassette`, or `occs-cassette` |
 | `CassetteEditorDialog.vue` | `dxf-text` |
 | `ArtifactsTable.vue` | `dxf-url` / `svg-url` |
 | `CassetteDesigner.vue` | `parametric-cassette` with designer overlays |

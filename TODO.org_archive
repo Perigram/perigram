@@ -194,3 +194,679 @@
      - Integrated `nodi-modular` WASM on the server to handle full parametric geometry (A, B, and all extrusions).
      - Added instant DXF export endpoint for parametric templates using the same evaluation engine.
      - Followed Service-Repository pattern and added JSDoc documentation.
+* DONE Entity System Refactor & Documentation
+  :PROPERTIES:
+  :ID: entity-system-refactor
+  :ARCHIVE_TIME: 2026-06-02 Tue 13:39
+  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_CATEGORY: TODO
+  :ARCHIVE_TODO: DONE
+  :END:
+  [2026-06-15] Full entity subsystem cleanup, formalization, and documentation.
+
+*** Agent Notes
+     [2026-06-01] Add simplified cassette schema Mermaid overview
+     Files changed: docs/specs/cassette-schema.md, docs/specs/README.md,
+       README.md, TODO.org
+     Docs updated: docs/specs/cassette-schema.md, docs/specs/README.md,
+       README.md, TODO.org
+     Notes: Added a compact flowchart describing the cassette document format,
+       including meta, params, recursive root/node children, attach blocks, and
+       cuts. Created the local specs README and linked it from the root
+       documentation map so the schema specs directory is discoverable.
+
+*** Agent Notes
+     [2026-05-27] Implement ConfigBot v0.1 draft package generator
+     Files changed: server/features/config-bot/service.js,
+       server/features/config-bot/repository.js,
+       server/features/config-bot/indexer.js,
+       server/features/config-bot/ollama.js,
+       server/features/config-bot/operations.js,
+       server/features/config-bot/index.js,
+       server/api/config-bot/generate.post.js,
+       server/api/config-bot/chat.post.js,
+       server/api/config-bot/sessions/[id].get.js,
+       server/api/admin/config-bot/reindex.post.js,
+       packages/domain-cnc/src/commands.js,
+       server/runtime/app-registry.js,
+       shared/permission-templates.js,
+       components/config-bot/ConfigBotDraftPreview.vue,
+       components/config-bot/ConfigBotValidationPanel.vue,
+       components/config-bot/ConfigBotCitationList.vue,
+       pages/admin/config-bot.vue, stores/navigation.js, layouts/app.vue,
+       i18n/locales/en.json, i18n/locales/ru.json,
+       docker-compose.dev.yml, docker-stack.yml,
+       scripts/check-arch.js, framework.manifest.json,
+       server/features/config-bot/config-bot.spec.js,
+       shared/framework-packages.spec.js, shared/design-system.spec.js
+     Docs updated: server/features/config-bot/README.md,
+       components/config-bot/README.md, server/features/README.md,
+       server/api/README.md, server/runtime/README.md,
+       packages/domain-cnc/README.md, pages/admin/README.md,
+       docs/DEPLOYMENT.md, TODO.org
+     Notes: ConfigBot is implemented as an admin capability module, not a fake
+       v24 entity. It creates validated draft packages from domain-cnc and
+       design-system metadata, stores sessions/knowledge chunks through its
+       repository, exposes generate/chat/reindex routes, and registers
+       command-runtime handlers. Access uses `config_bot: admin`; verbal
+       labels remain only permission presets. v0.1 exports virtual files only and has
+       no apply/write path. Ollama is optional through deployment env vars.
+       LAN host 192.168.0.67 has Ollama 0.24.0 with `qwen3:4b` and `bge-m3`
+       installed, served by enabled user unit `cutkit-ollama.service`; boot
+       persistence still requires user linger or a system service because sudo
+       is interactive on that host. Swarm config mounts
+       `/home/cutkit/Documents/cutkit-cortex` into the app at
+       `/opt/cutkit-cortex` for ConfigBot reindex. Production Docker build
+       also exposed and fixed Nuxt SSR relative-import issues in
+       `shared/ui-permissions.js` and `test-data/factories.js`. Built and
+       deployed local Swarm image `cutkit-app:configbot-v0.1`; app health is
+       OK, ConfigBot routes are present behind auth, and the running container
+       sees Ollama plus the cortex mount.
+
+     [2026-05-27] Remove named-role authorization from ConfigBot/admin access
+     Files changed: server/core/access/service.js,
+       server/core/machines/service.js, server/features/users/model.js,
+       server/features/users/service.js, server/features/invitations/service.js,
+       server/features/organizations/service.js,
+       server/features/config-bot/config-bot.spec.js,
+       server/features/*/*.spec.js, shared/access-control.js,
+       shared/ui-permissions.js, stores/auth.js, layouts/app.vue,
+       pages/admin/users.vue, pages/admin/diagnostics.vue,
+       components/PermissionEditor.vue, components/UserForm.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: shared/README.md, server/features/users/README.md,
+       server/utils/README.md, server/features/statuses/README.md,
+       server/features/config-bot/README.md, server/core/access/README.md,
+       pages/admin/README.md, components/README.md, TODO.org
+     Notes: Removed platform-role and preset-name bypass behavior from access checks,
+       UI visibility, admin navigation, and user permission mutation. Preset
+       labels now seed copied grants only when assigning/registering/inviting;
+       loaded users and workbench/testAccess checks use explicit grants.
+       ConfigBot requires `config_bot: admin`, and admin menu items are gated
+       by each feature grant instead of one platform-level role.
+
+     [2026-05-27] Stabilize ConfigBot imports for Nuxt dev
+     Files changed: server/features/config-bot/service.js
+     Docs updated: server/features/config-bot/README.md, TODO.org
+     Notes: Replaced repo-relative imports to `utils/domain-builder.js` and
+       package sources with Nuxt root-alias imports so local Nuxt dev resolves
+       the same modules as production Nitro.
+
+     [2026-05-27] Guard portable runtime modules against Nuxt aliases
+     Files changed: shared/ui-permissions.js, test-data/factories.js,
+       scripts/check-arch.js
+     Docs updated: shared/README.md, test-data/README.md, scripts/README.md,
+       README.md, TODO.org
+     Notes: Replaced Nuxt-root imports inside shared/test-data runtime modules
+       with relative imports so direct Node loaders do not try to resolve a
+       literal `~` package. Added a `check-arch` guard for portable runtime
+       directories (`shared/`, `test-data/`, `packages/`) so this class of
+       resolver breakage fails architecture verification.
+
+     [2026-05-27] Make portable imports work in Node and Nitro SSR
+     Files changed: package.json, nuxt.config.js, vitest.config.js,
+       shared/ui-permissions.js, test-data/factories.js,
+       test-data/scenarios.js, test-data/workbench-context.js,
+       scripts/check-arch.js
+     Docs updated: shared/README.md, test-data/README.md, scripts/README.md,
+       TODO.org
+     Notes: Replaced cross-root relative imports in shared/test-data runtime
+       modules with repository package imports (`#shared`, `#packages`,
+       `#utils`) that are declared for Node and mirrored into Nuxt/Vite/Vitest.
+       `check-arch` now rejects parent-relative cross-root imports from
+       portable runtime modules so SSR-generated chunk paths cannot break them.
+
+     [2026-05-27] Add ConfigBot generated package preview tab
+     Files changed: components/config-bot/ConfigBotGeneratedPreview.vue,
+       components/config-bot/ConfigBotDraftPreview.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/config-bot/README.md, pages/admin/README.md,
+       TODO.org
+     Notes: Added a non-executing visual preview for draft packages that
+       renders the generated route, selected lego components, and workflow
+       state summaries from package metadata. The preview does not compile
+       generated Vue source and keeps ConfigBot v0.1 export-only.
+
+     [2026-05-27] Audit and enforce frontend localization keys
+     Files changed: i18n/locales/en.json, i18n/locales/ru.json,
+       shared/localization.spec.js, components/CassetteEditorDialog.vue,
+       components/CassetteManager.vue, components/QueueEditor.vue,
+       components/entities/Project/ProjectCard.vue,
+       components/hubs/CatalogsTab.vue, components/hubs/RequisitionsTab.vue,
+       components/shared/ErrorBoundary.vue,
+       components/shared/blocks/IdentityBlock.vue, layouts/app.vue,
+       layouts/ui-lab-layout.vue, pages/admin/data-model-review.vue,
+       pages/admin/workbench.vue, pages/project/[slug]/data.vue
+     Docs updated: i18n/README.md, components/README.md
+     Notes: Audited frontend translation usage across components, pages,
+       layouts, stores, composables, and utils. Locale dictionaries now stay
+       structurally aligned, all static `$t`/`t` keys resolve in both locales,
+       and known dynamic key families have explicit coverage in
+       shared/localization.spec.js. High-confidence hardcoded UI fallbacks were
+       moved to locale keys; remaining literal scan hits are brand names,
+       separators, code paths, initials, and fixture labels.
+
+     [2026-05-27] Add cassette instance list route for queue editor
+     Files changed: server/api/cassette-instances/index.get.js,
+       shared/framework-packages.spec.js
+     Docs updated: server/features/cassette-instances/README.md,
+       server/api/README.md
+     Notes: The framework metadata and QueueEditor already declared
+       `/api/cassette-instances` as the list endpoint. Added the missing Nitro
+       route and mapped `lineage.queueId` queries to the existing
+       cassette-instance `listByQueue` service so queue-scoped instance loads
+       no longer fall through to a 404.
+
+     [2026-05-26] Keep workbench preview status transitions local
+     Files changed: components/shared/status/EntityStatus.vue,
+       pages/admin/workbench.vue, stores/workbenchFixtures.js,
+       test-data/workbench-context.js, test-data/scenarios.spec.js,
+       shared/design-system.spec.js
+     Docs updated: components/shared/README.md, pages/admin/README.md,
+       stores/README.md, test-data/README.md
+     Notes: EntityStatus now supports an injected statusTransitionHandler for
+       development surfaces with local workflow drafts. The admin workbench
+       provides that handler and patches fixture DTO status blocks in memory,
+       preventing unpersisted manual/scenario entities from posting to
+       POST /api/status/transition and receiving 404s.
+
+     [2026-05-26] Keep manual entity type options populated
+     Files changed: pages/admin/workbench.vue, shared/design-system.spec.js
+     Docs updated: pages/admin/README.md
+     Notes: Manual creation now builds type options from loaded backend domain
+       definitions plus design-system entity contracts as a fallback, so the
+       selector stays populated even if `/api/admin/domain` has not supplied
+       entities yet.
+
+     [2026-05-26] Make manual workbench creation require explicit refs
+     Files changed: pages/admin/workbench.vue,
+       test-data/workbench-manual-entities.js, test-data/scenarios.spec.js,
+       components/shared/TypedSettingsForm.vue, shared/design-system.spec.js
+     Docs updated: pages/admin/README.md, test-data/README.md,
+       components/shared/README.md
+     Notes: Manual entity type selection now renders the selected type label
+       explicitly. Default manual drafts no longer preselect entityId lineage
+       refs from the fixture graph, and the create button is disabled until
+       required typed refs/values are chosen. TypedSettingsForm no longer shows
+       `entity:*` helper text for workflow-state fields.
+
+     [2026-05-26] Keep nesting run output focused on sheet designs
+     Files changed: components/entities/NestingRun/NestingRunCard.vue,
+       components/QueueEditor.vue, packages/domain-cnc/src/tasks.js,
+       shared/design-system.spec.js, shared/framework-packages.spec.js,
+       framework.manifest.json
+     Docs updated: components/entities/NestingRun/README.md,
+       components/README.md, packages/domain-cnc/README.md,
+       server/features/nesting/README.md
+     Notes: Queue run cards no longer fetch or pass artifact refs into the
+       nesting-run card. NestingRunCard renders run metrics and related
+       sheet_design entities only; generated files remain owned by
+       artifact/attachment surfaces, and the nesting task contract no longer
+       advertises file attachments as solve outputs.
+
+     [2026-05-26] Fix manual workbench entity creation defaults
+     Files changed: pages/admin/workbench.vue,
+       test-data/workbench-manual-entities.js, test-data/scenarios.spec.js,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: pages/admin/README.md, test-data/README.md
+     Notes: Manual entity type selection now uses an explicit PrimeVue Select
+       update path. Manual entities are built as minimal v24 DTOs instead of
+       copying demo factory payloads; non-queue entities expose only name,
+       workflow state, and typed lineage refs, while queues keep only the
+       cassette/quantity/material-pile inputs required for nesting.
+
+     [2026-05-26] Architecture recovery: status API, registry entities, and granular access
+     Files changed: server/core/machines/service.js,
+       server/core/access/service.js, server/runtime/entities.js,
+       server/runtime/app-registry.js, scripts/check-arch.js,
+       server/api/status/actions.get.js, server/api/status/transition.post.js,
+       components/shared/status/EntityStatus.vue,
+       composables/useStatusController.js, composables/useEntity.js,
+       shared/access-control.js, shared/permission-templates.js,
+       shared/ui-permissions.js, stores/auth.js,
+       server/features/*/service.js, server/features/*/repository.js,
+       server/features/{materials,layer-standards,pen-templates,tool-profiles}/model.js,
+       framework.manifest.json
+     Docs updated: shared/README.md, server/core/access/README.md,
+       server/core/machines/README.md, server/runtime/README.md,
+       server/features/README.md, components/shared/README.md,
+       composables/README.md, packages/vue/README.md, pages/admin/README.md
+     Notes: `check-arch` now derives persisted entities from domain metadata.
+       Status transitions use canonical status endpoints with full auth context
+       and server-authorized actions. Access grants now support legacy levels
+       plus lineage, entity, action, and transition scopes; verbal roles remain
+       presets that expand into copied permission grants. Workbench test access
+       preserves custom ownership and grant data for command runs.
+
+     [2026-05-21] Centralize entity variant expansion on EntityCard contract
+     Files changed: components/shared/EntityCard.vue,
+       components/entities/Artifact/ArtifactCard.vue,
+       components/entities/BatchPile/BatchPileCard.vue,
+       components/entities/Cassette/CassetteCard.vue,
+       components/entities/CassetteDesign/CassetteDesignCard.vue,
+       components/entities/CassetteInstance/CassetteInstanceCard.vue,
+       components/entities/CassetteTemplate/CassetteTemplateCard.vue,
+       components/entities/Catalog/CatalogCard.vue,
+       components/entities/Color/ColorCard.vue,
+       components/entities/LayerStandard/LayerStandardCard.vue,
+       components/entities/Material/MaterialCard.vue,
+       components/entities/NestingRun/NestingRunCard.vue,
+       components/entities/Organization/OrganizationCard.vue,
+       components/entities/PenTemplate/PenTemplateCard.vue,
+       components/entities/SheetDesign/SheetDesignCard.vue,
+       components/entities/ToolProfile/ToolProfileCard.vue,
+       components/entities/User/UserCard.vue,
+       components/entities/Warehouse/WarehouseCard.vue
+     Docs updated: components/README.md, components/shared/README.md
+     Notes: Entity components now render one EntityCard with `:variant`.
+       Entity-specific body content is passed once through the default slot and
+       EntityCard reuses it for card rendering and inline/compact expansion.
+       Removed per-variant body duplication and raw inline chip/IdentityBlock
+       bypasses from entity card components.
+
+*** Agent Notes
+     [2026-05-21] Keep status expansion scoped to status control
+     Files changed: components/shared/EntityCard.vue
+     Docs updated: components/shared/README.md
+     Notes: EntityCard inline/compact component expansion now renders status
+       as the normal inline control. Full status expansion remains triggered
+       by clicking EntityStatus itself, not by clicking the surrounding entity
+       component.
+
+*** Agent Notes
+     [2026-05-21] Move inline and compact expansion into EntityCard
+     Files changed: components/shared/EntityCard.vue,
+       components/entities/SheetDesign/SheetDesignCard.vue,
+       components/entities/NestingRun/NestingRunCard.vue,
+       components/shared/ExpandableEntityComponent.vue
+     Docs updated: components/shared/README.md,
+       components/entities/SheetDesign/README.md,
+       components/entities/NestingRun/README.md
+     Notes: Removed the separate expansion wrapper component. `EntityCard`
+       now owns click/keyboard expansion for inline and compact variants via
+       the shared popover, and entity components can provide full body content
+       through the `expanded` slot. SheetDesignCard uses this path for both
+       inline and compact variants.
+
+*** Agent Notes
+     [2026-05-21] Revert workbench-level entity expansion wrappers
+     Files changed: pages/admin/workbench.vue
+     Docs updated: pages/admin/README.md, components/README.md
+     Notes: Removed page-level ExpandableEntityComponent usage from workbench
+       operation and entity previews. Entity component behavior must be owned
+       by entity components or shared entity primitives, not patched from
+       workbench/demo pages.
+
+*** Agent Notes
+     [2026-05-21] Add generic expandable inline and compact entity wrapper
+     Files changed: components/shared/ExpandableEntityComponent.vue,
+       pages/admin/workbench.vue,
+       components/entities/NestingRun/NestingRunCard.vue
+     Docs updated: components/shared/README.md,
+       components/entities/NestingRun/README.md
+     Notes: Inline/compact entity component instances can now be wrapped with
+       ExpandableEntityComponent, which opens the same component as a full
+       card popover. Workbench compact operation previews and nesting run
+       sheet-design relations use the generic wrapper instead of card-specific
+       popup logic.
+
+*** Agent Notes
+     [2026-05-21] Expand related sheet designs from nesting run chips
+     Files changed: components/entities/NestingRun/NestingRunCard.vue
+     Docs updated: components/entities/NestingRun/README.md
+     Notes: Related sheet designs now render as inline components inside the
+       nesting run and open the full SheetDesignCard in a popover on click,
+       avoiding nested card chrome while keeping the detailed component
+       accessible.
+
+*** Agent Notes
+     [2026-05-21] Detect related components in workbench entity context
+     Files changed: pages/admin/workbench.vue,
+       components/entities/NestingRun/NestingRunCard.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/entities/NestingRun/README.md,
+       components/README.md, pages/admin/README.md
+     Notes: Workbench now provides its generated entity graph as
+       `entityContext`. NestingRunCard detects related sheet designs and
+       artifacts from that context by lineage, so test data previews show the
+       sheet design component under the nesting run.
+
+*** Agent Notes
+     [2026-05-21] Make nesting DXF artifact finalization non-fatal
+     Files changed: server/features/nesting/jobs.js,
+       server/plugins/nesting-processor.js,
+       server/features/artifacts/service.js,
+       server/features/artifacts/operations.js
+     Docs updated: server/features/artifacts/README.md,
+       server/features/nesting/README.md
+     Notes: Nesting jobs now store generated DXF file ids and do not fail when
+       no artifact request exists. `generateArtifact` for completed nesting
+       runs attaches the existing DXF as a READY artifact; pending runs still
+       create a GENERATING request for the processor to mark ready.
+
+*** Agent Notes
+     [2026-05-21] Expand workbench context test data previews
+     Files changed: pages/admin/workbench.vue
+     Docs updated: pages/admin/README.md
+     Notes: The Context/test data tab now renders generated fixture entities
+       with full card variants so component content and status controls are
+       visible. Operation input/output previews remain compact.
+
+*** Agent Notes
+     [2026-05-21] Wire workbench status previews to live workflow drafts
+     Files changed: components/shared/status/EntityStatus.vue,
+       pages/admin/workbench.vue, shared/design-system.spec.js
+     Docs updated: components/shared/README.md, pages/admin/README.md,
+       utils/README.md
+     Notes: EntityStatus still defaults to committed domain-cnc workflows in
+       normal app pages, but can now consume a `workflows` prop or injected
+       `statusWorkflows`. Workbench provides the compiled draft machines so
+       entity previews reflect edited state machines immediately.
+
+*** Agent Notes
+     [2026-05-21] Fix test-data factory import outside Nuxt alias resolution
+     Files changed: test-data/factories.js
+     Docs updated: test-data/README.md
+     Notes: Replaced the `~` alias import for permission templates with a
+       relative shared contract import so factories load in plain Node
+       workbench/test-data contexts as well as Nuxt.
+
+*** Agent Notes
+     [2026-05-21] Refactor workbench test data toward a single context
+     Files changed: test-data/workbench-context.js,
+       test-data/scenarios.spec.js, stores/workbenchFixtures.js,
+       pages/admin/workbench.vue, server/core/workbench-fixtures/service.js,
+       server/api/workbench/fixtures/seed.post.js,
+       server/features/sheet-designs/service.js,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: test-data/README.md, pages/admin/README.md,
+       server/core/workbench-fixtures/README.md
+     Notes: Workbench fixture, seeded, and runtime output entities now flow
+       through one WorkbenchContext. The seed API returns a normalized
+       persisted context, operation outputs hydrate into that context, and
+       missing refs are reported instead of rendered as fake preview entities.
+
+*** Agent Notes
+     [2026-05-20] Add service action test access controls
+     Files changed: pages/admin/workbench.vue,
+       server/api/admin/operations/[id]/run.post.js,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: pages/admin/README.md
+     Notes: Workbench service action runs can now opt into per-run test
+       permission levels for the selected action's required access features.
+       The dev run endpoint still requires a real session, but access checks
+       can use the submitted test permission matrix for that run.
+
+*** Agent Notes
+     [2026-05-20] Move processing abstraction to core service actions
+     Files changed: packages/core/src/index.js,
+       packages/domain-cnc/src/index.js, packages/devtools/src/index.js,
+       packages/mcp/src/index.js, server/core/blocks/index.js,
+       server/core/access/service.js, server/core/access/service.spec.js,
+       server/core/operations/service.js,
+       server/core/operations/repository.js,
+       server/features/nesting/operations.js,
+       server/features/artifacts/operations.js,
+       server/api/queue/[id]/nest.post.js,
+       server/api/admin/operations/index.get.js,
+       server/api/admin/operations/[id]/run.post.js,
+       server/api/admin/operations/runs.get.js,
+       scripts/framework-inspect.js, package.json,
+       shared/framework-packages.spec.js, utils/domain-builder.js,
+       utils/domain-builder.spec.js, pages/admin/domain-builder.vue,
+       framework.manifest.json
+     Docs updated: README.md, packages/README.md,
+       packages/core/README.md, packages/domain-cnc/README.md,
+       packages/devtools/README.md, packages/mcp/README.md,
+       server/README.md, server/core/blocks/README.md,
+       server/core/access/README.md, server/core/operations/README.md,
+       server/features/README.md, server/features/nesting/README.md
+     Notes: Core now exposes service contracts and service actions with
+       service/action identity, typed inputs, typed parameters, access,
+       triggers, and result events. Domain CNC declares nesting and artifact
+       service actions; server features only register handlers.
+
+*** Agent Notes
+     [2026-05-20] Split queue nesting into solve and artifact operations
+     Files changed: packages/domain-cnc/src/index.js,
+       server/features/nesting/operations.js,
+       server/features/artifacts/operations.js,
+       server/api/queue/[id]/nest.post.js,
+       server/api/admin/operations/index.get.js,
+       server/api/admin/operations/[id]/run.post.js,
+       server/plugins/nesting-processor.js,
+       shared/framework-packages.spec.js, utils/domain-builder.spec.js,
+       framework.manifest.json
+     Docs updated: packages/domain-cnc/README.md,
+       server/core/operations/README.md,
+       server/features/nesting/README.md,
+       server/features/artifacts/README.md
+     Notes: Replaced the monolithic `nesting.run` operation contract with
+       `solveNesting` and `generateArtifact`. Queue nesting now starts the
+       solve job, then creates requested artifact records through the artifact
+       operation. The nesting processor persists worker layouts as
+       `sheet_design` entities before marking the run complete.
+
+*** Agent Notes
+     [2026-05-18] Expand status lifecycle ownership and domain workflow runtime
+     Files changed: packages/core/src/index.js, packages/workflows/src/index.js,
+       packages/domain-cnc/src/index.js, server/core/blocks/Status.js,
+       server/core/blocks/BaseEntity.js, server/core/blocks/index.js,
+       server/core/machines/definitions.js, server/core/machines/service.js,
+       composables/useBlocks.js, composables/useEntity.js,
+       composables/useStatusController.js, packages/workflows/src/index.spec.js,
+       server/core/machines/service.spec.js
+     Docs updated: server/core/blocks/README.md,
+       server/core/machines/README.md, server/features/statuses/README.md,
+       packages/core/README.md, packages/workflows/README.md,
+       packages/domain-cnc/README.md, composables/README.md
+     Notes: Status now normalizes `lifecycle` alongside event-local
+       `metadata`; workflow validation supports lifecycle schemas and
+       actor/capability guards. Runtime machine definitions now come from
+       `@cutkit/domain-cnc` via the compatibility definitions export.
+
+*** Agent Notes
+     [2026-05-14] Fix queue nesting failure for parametric template string IDs
+     Files changed: server/features/parametric-cassettes/repository.js,
+       server/features/parametric-cassettes/service.js,
+       server/api/queue/[id]/nest.post.js
+     Docs updated: server/features/parametric-cassettes/README.md (COMPONENT level)
+     Notes: Replaced hard ObjectId conversion with toFlexibleId in template
+       lookup, dedupe lookup, and baked lineage write so parametric nesting
+       works with string cassette IDs such as `g-ynl6th`. Queue item
+       preparation was also switched from parallel Promise.all to sequential
+       processing to avoid WASM engine re-entrancy panics during bake.
+
+*** Agent Notes
+     [2026-05-14] Fix cassette template preview and parameter display
+     Files changed: components/CassetteThumbnail.vue,
+       components/entities/CassetteTemplate/CassetteTemplateCard.vue,
+       components/QueueEditor.vue, components/CassetteEditorDialog.vue,
+       server/features/cassettes/model.js, server/features/cassettes/service.js,
+       server/features/cassettes/model.spec.js,
+       server/features/parametric-cassettes/service.js
+     Docs updated: server/features/cassettes/README.md (COMPONENT level),
+       components/README.md (COMPONENT level)
+     Notes: Aligned frontend consumers and parametric evaluation with the
+       v24 cassette DTO shape (`type`, `definition`, `parameters`). Existing
+       direct `data.params` / `data.extrusions` graphs are normalized into
+       `definition`, and cassette updates now persist edited designer graphs
+       under `data.definition`. Queue entries derive parametric/static display
+       from the selected cassette template so previously saved `STATIC` job
+       items self-heal when the template is parametric.
+
+*** Agent Notes
+     [2026-05-14] Standardize artifact file references on attachments block
+     Files changed: server/features/artifacts/model.js,
+       server/features/artifacts/service.js, server/features/artifacts/repository.js,
+       server/features/files/service.js, server/api/artifacts/[id].get.js,
+       server/api/queue/[id]/nest.post.js, server/plugins/nesting-processor.js,
+       workers/nesting/core/main.py, server/db/indexes.js,
+       server/features/results/resultcontroller.js,
+       components/ArtifactsTable.vue, components/entities/Artifact/ArtifactCard.vue,
+       components/entities/NestingRun/NestingRunCard.vue
+     Docs updated: server/features/artifacts/README.md (COMPONENT level),
+       server/DATA_MODEL.md (generated schema summary)
+     Notes: Artifacts now use `data.type` plus `attachments.primary`
+       for the GridFS file pointer. Fixed processor placeholder updates to
+       query `data.type`/`lineage.runId` and fixed artifact deletion to
+       remove the linked GridFS file.
+
+*** Agent Notes
+     [2026-05-14] Fix layer standards endpoint and seed helpers
+     Files changed: server/features/layer-standards/repository.js,
+       server/features/layer-standards/service.js,
+       server/features/pen-templates/service.js,
+       server/features/tool-profiles/service.js,
+       server/scripts/seed-all.js
+     Docs updated: server/features/layer-standards/README.md (COMPONENT level),
+       server/features/pen-templates/README.md (COMPONENT level),
+       server/features/tool-profiles/README.md (COMPONENT level)
+     Notes: Replaced raw ObjectId usage with toFlexibleId() for string organization
+       UIDs, restored getCount()/seed() used by server/scripts/seed-layer-standards.js,
+       fixed standalone seed imports, and reordered system pens before layer standards
+       so defaultPenId references can resolve.
+
+*** Agent Notes
+     [2026-05-14] Fix cassette designer initial data hydration for v24 and legacy shapes
+     Files changed: components/CassetteDesigner.vue
+     Docs updated: server/features/cassettes/README.md (COMPONENT level)
+     Notes: Added a normalizer for designer graph input so missing `data.extrusions`
+       no longer throws; accepts `definition.data`, hoisted `definition`,
+       `data.definition`, and legacy direct `data.params` / `data.extrusions`;
+       also rehydrates when the dialog reuses the mounted designer for another cassette.
+
+*** Agent Notes
+     [2026-05-14] Add data model review interface and extractor quality flags
+     Files changed: server/utils/extract-data-models.js, pages/admin/data-model-review.vue,
+       i18n/locales/en.json, i18n/locales/ru.json, server/DATA_MODEL.md
+     Docs updated: server/utils/README.md (CODE level)
+     Notes: Replaced brittle comma/comment extraction with top-level object parsing,
+       added source/issues metadata for generated fields, and added an admin review page
+       that stores annotations in localStorage and exports a Markdown refactoring plan.
+
+*** Agent Notes
+     [2026-05-14] Fix organization repository mixed-ID lookups used by auth middleware
+     Files changed: server/features/organizations/repository.js
+     Docs updated: server/features/organizations/README.md (COMPONENT level)
+     Notes: Replaced raw ObjectId construction in organization repository lookups with
+       toFlexibleId() so string UIDs like org-xxxxxxxx do not crash session auth.
+
+*** Agent Notes
+     [2026-05-14] Fix auth registration persistence so login can verify passwords
+     Files changed: server/features/users/repository.js, server/features/users/users.spec.js
+     Docs updated: server/features/users/README.md (COMPONENT level)
+     Notes: User.toJSON() intentionally strips passwordHash for API responses; repository.create()
+       now restores the model's data.passwordHash before insert, and tests cover register -> login.
+
+*** Agent Notes
+     [2026-05-14] Establish manifest-driven frontend design system demo
+     Files changed: utils/design-system-contract.js, utils/design-system.js,
+       test-data/factories.js, pages/test/ui-lab.vue, shared/design-system.spec.js,
+       components/entities/Color/ColorCard.vue, components/entities/User/UserCard.vue,
+       components/entities/Organization/OrganizationCard.vue,
+       components/entities/PenTemplate/PenTemplateCard.vue,
+       components/entities/LayerStandard/LayerStandardCard.vue, pages/assets/tools.vue,
+       utils/status-engine.js, i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: docs/DESIGN_SYSTEM.md, components/README.md,
+       components/shared/README.md, test-data/README.md, utils/README.md,
+       pages/test/README.md, server/features/sheet-designs/README.md, README.md
+     Notes: UI lab now renders entity cards and shared primitives from a
+       design-system manifest. DTO factories now preserve v24 blocks and only
+       include real API hoists. Added a focused Vitest contract check for
+       manifest completeness, factory DTO shape, artifact attachments, and
+       cassette template parameter shape.
+
+*** Agent Notes
+     [2026-05-14] Refactor entity card information hierarchy
+     Files changed: components/shared/EntityCard.vue,
+       components/shared/blocks/DataBlock.vue, components/shared/blocks/SpecsBlock.vue,
+       components/entities/*/*Card.vue, i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/README.md (COMPONENT level),
+       docs/DESIGN_SYSTEM.md
+     Notes: Reworked used entity cards to show identity/status in titles,
+       canonical DTO-backed specs/data in card bodies, and actions in footers.
+       Replaced decorative-only card bodies and weak flat-field reads with
+       `DataBlock`/`SpecsBlock` summaries using `data.*`, `identity.*`,
+       `lineage.*`, `attachments.*`, and `summary.*` paths where available.
+
+*** Agent Notes
+     [2026-05-15] Apply modern centralized design-system styling
+     Files changed: assets/tokens/index.js, assets/presets/re_l.js,
+       assets/css/main.css, components/shared/EntityCard.vue,
+       layouts/ui-lab-layout.vue, pages/test/ui-lab.vue
+     Docs updated: docs/DESIGN_SYSTEM.md, components/README.md
+     Notes: Added PrimeVue semantic tokens for teal primary actions,
+       zinc-neutral surfaces, visible focus rings, compact radii, and shared
+       elevation. Projected the same decisions through Tailwind aliases and
+       CSS variables so shared wrappers and UI lab use app-wide token classes.
+
+*** Agent Notes
+     [2026-05-15] Wire modern tokens into product app shell
+     Files changed: layouts/app.vue, layouts/ui-lab-layout.vue,
+       pages/test/ui-lab.vue, components/shared/EntityCard.vue
+     Docs updated: docs/DESIGN_SYSTEM.md, components/README.md
+     Notes: Product pages use `layouts/app.vue`, so app shell background,
+       header chrome, max width, support button elevation, and entity card
+       shadows now consume `--ck-*` CSS variables directly. This provides a
+       visible product-app verification path independent of Tailwind config
+       alias reloads.
+
+*** Agent Notes
+     [2026-05-15] Add shared layout primitives and adopt repeated surfaces
+     Files changed: components/shared/ActionToolbar.vue,
+       components/shared/ResponsiveGrid.vue, components/shared/StateBlock.vue,
+       components/shared/TableFrame.vue, components/shared/StandardPage.vue,
+       components/hubs/*.vue, components/CassetteManager.vue,
+       components/RecentProjects.vue, components/entities/Queue/QueueDetail.vue,
+       pages/projects/index.vue, pages/admin/*.vue, pages/organization/users.vue,
+       pages/assets/*.vue, pages/project/[slug]/artifacts.vue,
+       pages/project/[slug]/queues.vue, pages/catalog/index.vue,
+       pages/requisitions/index.vue, pages/warehouses/index.vue,
+       pages/test/ui-lab.vue, i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/README.md, components/shared/README.md,
+       docs/DESIGN_SYSTEM.md
+     Notes: Added the missing page-level presentation layer for responsive
+       action headers, card grids, loading/empty/error states, and data table
+       frames. Replaced repeated ad hoc markup in used list, hub, admin, asset,
+       queue, and UI lab surfaces with those primitives.
+
+*** Agent Notes
+     [2026-03-15] Frontend API contract compliance — replace raw $fetch with useEntity
+     Files changed: composables/useEntity.js, stores/global.js, pages/projects/index.vue,
+       pages/project/[slug]/data.vue, pages/project/[slug]/artifacts.vue,
+       components/entities/Project/ProjectDetail.vue, server/api/project/index.get.js
+     Docs updated: composables/README.md (COMPONENT level)
+     Notes:
+       - useEntity: added create() (POST to list endpoint) and remove() (DELETE to single endpoint)
+       - useEntity: fixed project list endpoint from /api/projects (wrong) to /api/project
+       - useEntity: added material type to endpoint map
+       - useEntity: list() now handles data.projects response shape
+       - server/api/project/index.get.js: added queue count aggregation (parity with me.get.js)
+       - stores/global.js: getProjects() now uses useEntity('project').list() instead of $fetch
+       - Queue listing for a project goes through the project-scoped sub-resource endpoint
+         (/api/project/:slug/queues) — no generic /api/queues list exists server-side
+       - ProjectDetail.vue: was calling non-existent /api/queues endpoint; fixed to use slug-based route
+
+*** Agent Notes
+     [2026-06-15] Entity system refactor: docs → block enforcement → service isolation → frontend
+     Files changed (code): scripts/check-arch.js, server/core/blocks/BaseEntity.js,
+       server/api/auth/organizations.get.js, server/api/layer-standards/*.js,
+       server/api/organizations/*/invitations.get.js, server/features/**/model.js,
+       server/features/**/service.js, server/features/**/index.js (15 new),
+       server/features/organizations/repository.js, composables/useEntity.js
+     Files deleted: composables/useEntityList.js
+     Docs updated: server/core/blocks/README.md (new, COMPONENT), server/features/README.md,
+       server/utils/README.md, composables/README.md
+     Notes:
+       - All 24 deprecated utils/blocks.js imports replaced with core/blocks/index.js
+       - utils/blocks.js bridge still exists but is now unreferenced; delete in future if safe
+       - BaseEntity.toJSON() now emits serial/reference as flat aliases (from identity block)
+       - Redundant name/slug/serial/reference removed from all model.toJSON() overrides
+       - Entities with serial in data (cassette-instances, material-piles, remnants, sheets)
+         still override flat serial from data — data.serial migration is a future task
+       - check-arch.js now detects: deprecated block imports, repo exports in index.js,
+         API routes importing repo/model directly (58 pre-existing violations remain,
+         mostly in non-v24 features: nesting, notification, payment, statuses, etc.)
+       - useEntityList merged into useEntity.list(filters); single endpoint map
+       - Service layer now properly isolated: 6 API route violations fixed

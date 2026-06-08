@@ -15,7 +15,9 @@ Manages cassette templates (Standard and Parametric) using standardized v24 arch
 - **`lineage`**: `{ organizationId }`
 - **`data.type`**: `PARAMETRIC` | `STANDARD`
 - **`data.definition`**:
-    - Parametric templates store the designer graph `{ params, extrusions }`.
+    - Parametric templates store either the legacy designer graph
+      `{ params, extrusions }` or an OCCS v2 template document with
+      `extensions.cutkit.graphTree`.
     - Standard uploaded templates store layer mapping data such as `{ mapping }`.
 - **`data.parameters`**: Array<String> of configurable variable names.
 
@@ -25,13 +27,17 @@ Manages cassette templates (Standard and Parametric) using standardized v24 arch
 
 ### Digital Intent vs. Baked Geometry
 Templates in the `cassettes` collection do NOT store DXF files or physical tracking data. They serve as the source for `cassette_designs`.
-- **Parametric**: `data.definition` contains the editable designer graph.
+- **Parametric**: `data.definition` contains the editable legacy designer graph
+  or an OCCS v2 template document.
 - **Standard**: `data.definition.mapping` contains layer mapping; baked geometry lives in `cassette_designs`.
 
 ### Update Operations
-- **`saveCassetteTemplate`**: Domain operation used by `CassetteDesigner`.
-  Creates a new template or updates the selected template through the service
-  layer.
+- **`saveCassetteTemplate`**: Domain operation used by `CassetteDesigner` and
+  `CassetteDesignerV2`. Creates a new template or updates the selected template
+  through the service layer while preserving OCCS documents under
+  `data.definition`. Callers should pass `entities.cassette` only for templates
+  already loaded from the database; generated fixture/demo ids should be saved
+  without an entity ref so the operation creates a real cassette row.
 - **`updateLayerMapping`**: Updates the mapping between DXF layers and production tools/standards.
 - **`updateParameters`**: Updates the list of configurable parameters for the template.
 
