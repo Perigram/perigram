@@ -1,0 +1,4 @@
+interface:
+  display_name: "CutKit Project Workflow"
+  short_description: "Repo workflow and documentation guardrails"
+  default_prompt: "Use $cutkit-project-workflow to follow CutKit Demo repository workflow."

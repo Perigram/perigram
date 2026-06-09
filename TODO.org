@@ -1,3 +1,25 @@
+* WAITING Repo-local Codex Skills
+  :PROPERTIES:
+  :ID: repo-local-codex-skills
+  :END:
+
+*** Agent Notes
+     [2026-06-09] Add repo-local workflow and OCCS skills
+     Files changed: .codex/README.md,
+       .codex/skills/cutkit-project-workflow/SKILL.md,
+       .codex/skills/cutkit-project-workflow/agents/openai.yaml,
+       .codex/skills/cutkit-backend-v24/SKILL.md,
+       .codex/skills/cutkit-backend-v24/agents/openai.yaml,
+       .codex/skills/occs-compliance/SKILL.md,
+       .codex/skills/occs-compliance/agents/openai.yaml,
+       README.md, TODO.org
+     Docs updated: .codex/README.md (COMPONENT level), README.md (SYSTEM level),
+       TODO.org
+     Notes: Added concise repo-local skills for project workflow, backend v24
+       Golden Path work, and OCCS compliance. The skills link to canonical repo
+       docs instead of duplicating specs, and keep AGENTS.md as the mandatory
+       project rule source.
+
 * DONE Entity System Refactor & Documentation
   :PROPERTIES:
   :ID: entity-system-refactor
