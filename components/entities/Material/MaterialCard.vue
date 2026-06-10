@@ -7,6 +7,11 @@
       <template #subtitle>
         <Tag v-if="material.data?.code" :value="material.data.code" severity="secondary" size="small" />
       </template>
+      <template #compact-content>
+        <p v-if="material.data?.description" class="mt-3 mb-0 text-sm text-muted-color">
+          {{ material.data.description }}
+        </p>
+      </template>
       <Divider />
       <DataBlock :entity="material" :fields="FIELDS" />
     </EntityCard>

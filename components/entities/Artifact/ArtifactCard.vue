@@ -3,7 +3,10 @@
  * Artifact View Component - v24 Standardized
  */
 import { computed } from 'vue';
+import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import TraceLink from '~/components/shared/links/TraceLink.vue';
 
 const props = defineProps({
   artifact: { type: Object, required: true },
@@ -13,6 +16,9 @@ const props = defineProps({
 defineEmits(['click']);
 
 const artifactType = computed(() => props.artifact.data?.type || '');
+const primaryAttachment = computed(() => props.artifact.attachments?.primary || null);
+const queueId = computed(() => props.artifact.lineage?.queueId || null);
+const runId = computed(() => props.artifact.lineage?.runId || null);
 
 const icon = computed(() => {
   const type = artifactType.value;
@@ -22,6 +28,10 @@ const icon = computed(() => {
 });
 
 const typeLabel = computed(() => artifactType.value.replace('LAYOUT_', '') || 'FILE');
+const ARTIFACT_FIELDS = [
+  { path: 'data.type', i18n: 'file.type' },
+  { path: 'attachments.primary.name', i18n: 'file.name' }
+];
 </script>
 
 <template>
@@ -31,8 +41,23 @@ const typeLabel = computed(() => artifactType.value.replace('LAYOUT_', '') || 'F
         <i :class="['pi', icon]"></i>
       </template>
       <template #subtitle>
-        <span>{{ typeLabel }}</span>
+        <div class="flex flex-wrap gap-2">
+          <span>{{ typeLabel }}</span>
+          <small v-if="primaryAttachment?.metadata?.bucket">{{ primaryAttachment.metadata.bucket }}</small>
+        </div>
       </template>
+      <Divider />
+      <div class="flex flex-col gap-3">
+        <DataBlock :entity="artifact" :fields="ARTIFACT_FIELDS" />
+        <div v-if="queueId" class="flex items-center justify-between gap-4">
+          <small class="text-muted-color">{{ $t('entities.queue') }}</small>
+          <TraceLink type="queue" :id="queueId" />
+        </div>
+        <div v-if="runId" class="flex items-center justify-between gap-4">
+          <small class="text-muted-color">{{ $t('entities.nestingRun') }}</small>
+          <TraceLink type="nesting_run" :id="runId" />
+        </div>
+      </div>
     </EntityCard>
   </div>
 </template>

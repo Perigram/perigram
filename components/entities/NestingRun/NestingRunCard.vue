@@ -5,6 +5,7 @@
 import { computed, inject, unref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Divider from 'primevue/divider';
+import Tag from 'primevue/tag';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import SheetDesignCard from '../SheetDesign/SheetDesignCard.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
@@ -27,6 +28,7 @@ const entityContext = inject('entityContext', null);
 const canManage = computed(() => authStore.can('queues', 'edit'));
 const state = computed(() => props.run.status?.state || 'UNKNOWN');
 const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
+const results = computed(() => props.run.data?.results || {});
 const relatedSheetDesigns = computed(() => uniqueById([
     ...props.sheetDesigns,
     ...contextEntities('sheet_design').filter(design => design.lineage?.runId?.toString() === props.run._id?.toString()),
@@ -62,6 +64,21 @@ function uniqueById(items) {
 <template>
   <div class="h-full cursor-pointer" @click="$emit('select', run._id)">
     <EntityCard :entity="run" entity-type="nesting_run" :variant="variant" :show-trace="false" :status-actions="statusActions">
+      <template #before-identity>
+        <i class="pi pi-list-check"></i>
+      </template>
+      <template #subtitle>
+        <div class="flex flex-wrap gap-2">
+          <Tag v-if="results.efficiency" :value="`${results.efficiency}%`" severity="success" size="small" />
+          <Tag v-if="results.sheetCount" :value="`${results.sheetCount} ${$t('results.sheets')}`" severity="secondary" size="small" />
+          <Tag v-if="isChosen || state === 'CHOSEN'" :value="$t('status.chosen')" severity="success" size="small" />
+        </div>
+      </template>
+      <template #compact-content>
+        <div v-if="relatedSheetDesigns.length" class="mt-3 text-sm text-muted-color">
+          {{ relatedSheetDesigns.length }} {{ $t('nestingRun.sheetDesigns') }}
+        </div>
+      </template>
       <Divider />
       <div class="flex flex-col gap-4">
         <div v-if="isComplete" class="flex flex-col gap-2">

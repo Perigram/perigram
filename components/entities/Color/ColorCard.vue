@@ -10,6 +10,11 @@
       <template #subtitle>
         <small>{{ color.data?.code || color.identity?.serial || hexCode || '—' }}</small>
       </template>
+      <template #compact-content>
+        <div v-if="catalogId" class="mt-3 text-sm">
+          <TraceLink type="catalog" :id="catalogId" />
+        </div>
+      </template>
       <Divider />
       <div class="flex justify-between items-center gap-4">
         <small class="text-muted-color">{{ $t('catalog.colorCode') }}</small>
@@ -18,6 +23,10 @@
       <div class="flex justify-between items-center gap-4 mt-2">
         <small class="text-muted-color">{{ $t('assets.color') }}</small>
         <span class="font-mono">{{ hexCode || '—' }}</span>
+      </div>
+      <div v-if="catalogId" class="flex justify-between items-center gap-4 mt-2">
+        <small class="text-muted-color">{{ $t('entities.catalog') }}</small>
+        <TraceLink type="catalog" :id="catalogId" />
       </div>
     </EntityCard>
   </div>
@@ -30,6 +39,7 @@
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import TraceLink from '~/components/shared/links/TraceLink.vue';
 
 const props = defineProps({
   color: { type: Object, required: true },
@@ -37,5 +47,6 @@ const props = defineProps({
 });
 
 const hexCode = computed(() => props.color.data?.visuals?.hexCode || null);
+const catalogId = computed(() => props.color.lineage?.catalogId || null);
 const swatchStyle = computed(() => (hexCode.value ? { backgroundColor: hexCode.value } : undefined));
 </script>

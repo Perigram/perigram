@@ -10,6 +10,9 @@
           <small v-if="stock">{{ remaining }} / {{ stock.total }}</small>
         </div>
       </template>
+      <template #compact-content>
+        <BatchPileSummary :pile="pile" />
+      </template>
       <Divider />
       <div class="flex flex-col gap-4">
         <BatchPileSummary :pile="pile" />

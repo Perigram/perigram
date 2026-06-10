@@ -7,8 +7,11 @@
         </div>
       </template>
       <template #subtitle>
-        <Tag v-if="isSystemPen" :value="$t('assets.system')" severity="info" size="small" />
-        <Tag v-else-if="strokeWeight" :value="`${strokeWeight}px`" severity="secondary" size="small" />
+        <div class="flex flex-wrap gap-2">
+          <Tag v-if="isSystemPen" :value="$t('assets.system')" severity="info" size="small" />
+          <Tag v-if="strokeWeight" :value="`${strokeWeight}px`" severity="secondary" size="small" />
+          <Tag v-if="strokePattern" :value="strokePattern" severity="secondary" size="small" />
+        </div>
       </template>
       <Divider />
       <DataBlock :entity="pen" :fields="FIELDS" />
@@ -42,9 +45,10 @@ const props = defineProps({
 
 const strokeColor = computed(() => props.pen.data?.stroke?.color || props.pen.stroke?.color || 'var(--p-content-border-color)');
 const strokeWeight = computed(() => props.pen.data?.stroke?.weight || props.pen.stroke?.weight || null);
+const strokePattern = computed(() => props.pen.data?.stroke?.pattern || props.pen.stroke?.pattern || '');
 const isSystemPen = computed(() => !props.pen.lineage?.userId && !props.pen.ownerId);
 const lineStyle = computed(() => ({
   borderTop: `${strokeWeight.value || 2}px solid ${strokeColor.value}`,
-  borderStyle: props.pen.data?.stroke?.pattern === 'DASHED' ? 'dashed' : 'solid'
+  borderStyle: strokePattern.value === 'DASHED' ? 'dashed' : 'solid'
 }));
 </script>

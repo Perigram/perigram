@@ -5,7 +5,13 @@
         <Avatar :label="avatarLabel" shape="circle" size="large" />
       </template>
       <template #subtitle>
-        <small>{{ organization.data?.type || $t('common.default') }}</small>
+        <div class="flex flex-wrap gap-2">
+          <Tag :value="organization.data?.type || $t('common.default')" severity="secondary" size="small" />
+          <Tag v-if="organization.identity?.slug" :value="organization.identity.slug" severity="info" size="small" />
+        </div>
+      </template>
+      <template #compact-content>
+        <div v-if="organization.data?.email" class="mt-3 text-sm text-muted-color">{{ organization.data.email }}</div>
       </template>
       <Divider />
       <div class="flex flex-col gap-2">
@@ -26,6 +32,7 @@
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Avatar from 'primevue/avatar';
+import Tag from 'primevue/tag';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 

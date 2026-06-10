@@ -21,6 +21,8 @@ const authStore = useAuthStore();
 
 const handleCardClick = () => emit('view', props.catalog);
 const material = computed(() => props.catalog.data?.material || '');
+const sheetOptionCount = computed(() => props.catalog.data?.options?.sheetThicknesses?.length || 0);
+const foilOptionCount = computed(() => props.catalog.data?.options?.foilThicknesses?.length || 0);
 
 const CATALOG_FIELDS = [
   { path: 'summary.colorCount', i18n: 'catalog.colorsAvailable' },
@@ -38,7 +40,16 @@ const CATALOG_FIELDS = [
         <i class="pi pi-book"></i>
       </template>
       <template #subtitle>
-        <Tag v-if="material" :value="material" severity="secondary" size="small" />
+        <div class="flex flex-wrap gap-2">
+          <Tag v-if="material" :value="material" severity="secondary" size="small" />
+          <Tag v-if="catalog.summary?.colorCount" :value="`${catalog.summary.colorCount} ${$t('catalog.colorsAvailable')}`" severity="info" size="small" />
+        </div>
+      </template>
+      <template #compact-content>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <Tag v-if="sheetOptionCount" :value="`${sheetOptionCount} ${$t('catalog.sheetOptions')}`" severity="secondary" size="small" />
+          <Tag v-if="foilOptionCount" :value="`${foilOptionCount} ${$t('catalog.foilOptions')}`" severity="secondary" size="small" />
+        </div>
       </template>
       <Divider />
       <div v-if="catalog.lineage?.manufacturerId" class="flex items-center justify-between gap-4">

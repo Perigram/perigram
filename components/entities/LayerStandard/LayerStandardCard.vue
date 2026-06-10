@@ -5,7 +5,15 @@
         <i class="pi pi-palette"></i>
       </template>
       <template #subtitle>
-        <Badge v-if="category" :value="category" severity="secondary" size="small" />
+        <div class="flex flex-wrap gap-2">
+          <Badge v-if="category" :value="category" severity="secondary" size="small" />
+          <Badge v-if="standardCode" :value="standardCode" severity="info" size="small" />
+        </div>
+      </template>
+      <template #compact-content>
+        <div v-if="activePen" class="mt-3">
+          <PenTemplateCard :pen="activePen" variant="inline" />
+        </div>
       </template>
       <Divider />
       <div class="flex flex-col gap-2">

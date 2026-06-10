@@ -5,7 +5,16 @@
         <i class="pi pi-clone"></i>
       </template>
       <template #subtitle>
-        <Tag v-if="cassetteType" :value="cassetteType" severity="secondary" size="small" />
+        <div class="flex flex-wrap gap-2">
+          <Tag v-if="cassetteType" :value="cassetteType" severity="secondary" size="small" />
+          <Tag v-if="documentType" :value="documentType" severity="info" size="small" />
+          <Tag v-if="occsVersion" :value="occsVersion" severity="secondary" size="small" />
+        </div>
+      </template>
+      <template #compact-content>
+        <div v-if="parameterNames.length" class="mt-3 flex flex-wrap gap-2">
+          <Tag v-for="param in parameterNames.slice(0, 4)" :key="param" :value="param" severity="secondary" size="small" />
+        </div>
       </template>
       <Divider />
       <div class="grid grid-cols-1 gap-4">
@@ -35,13 +44,18 @@ const props = defineProps({
 });
 
 const cassetteType = computed(() => props.cassette.data?.type || '');
+const definition = computed(() => props.cassette.data?.definition || {});
+const documentType = computed(() => definition.value.documentType || '');
+const occsVersion = computed(() => definition.value.occs || '');
+const parameterNames = computed(() => {
+  const raw = props.cassette.data?.parameters || definition.value.parameters || [];
+  return Array.isArray(raw) ? raw : Object.keys(raw);
+});
 const cassetteForDisplay = computed(() => ({
   ...props.cassette,
   data: {
     ...(props.cassette.data || {}),
-    parameters: Array.isArray(props.cassette.data?.parameters)
-      ? props.cassette.data.parameters
-      : Object.keys(props.cassette.data?.parameters || {})
+    parameters: parameterNames.value
   }
 }));
 </script>

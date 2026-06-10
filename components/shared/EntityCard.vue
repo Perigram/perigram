@@ -21,7 +21,6 @@
                             @transitioned="$emit('refresh')"
                         />
                     </div>
-                    <Divider v-if="$slots.expanded || $slots.default" class="m-0" />
                     <slot name="expanded">
                         <slot />
                     </slot>
@@ -81,7 +80,6 @@
                             @transitioned="$emit('refresh')"
                         />
                     </div>
-                    <Divider v-if="$slots.expanded || $slots.default" class="m-0" />
                     <slot name="expanded">
                         <slot />
                     </slot>
@@ -152,7 +150,6 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import Card from 'primevue/card';
 import Popover from 'primevue/popover';
-import Divider from 'primevue/divider';
 import { ENTITY_UI } from '~/utils/status-engine';
 
 const props = defineProps({

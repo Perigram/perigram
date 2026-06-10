@@ -325,8 +325,7 @@
         ],
         "entityType": "cassette_instance",
         "fieldPaths": [
-          "identity.reference",
-          "lineage.queueId"
+          "identity.reference"
         ],
         "group": "production",
         "key": "cassetteInstance",
@@ -576,7 +575,10 @@
           "server/features/artifacts/README.md"
         ],
         "entityType": "artifact",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "attachments.primary.name",
+          "data.type"
+        ],
         "group": "system",
         "key": "artifact",
         "labelKey": "entities.artifact",
@@ -1249,6 +1251,12 @@
     {
       "kind": "lineage",
       "source": "organization",
+      "target": "invitation",
+      "via": "lineage.organizationId"
+    },
+    {
+      "kind": "lineage",
+      "source": "organization",
       "target": "project",
       "via": "lineage.organizationId"
     },
@@ -1256,6 +1264,12 @@
       "kind": "lineage",
       "source": "organization",
       "target": "requisition",
+      "via": "lineage.organizationId"
+    },
+    {
+      "kind": "lineage",
+      "source": "organization",
+      "target": "user",
       "via": "lineage.organizationId"
     },
     {
