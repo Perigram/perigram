@@ -52,6 +52,23 @@
        Inline and compact popovers now reuse those bodies without an extra
        EntityCard divider.
 
+* WAITING Domain Builder Contract Component Redesign
+  :PROPERTIES:
+  :ID: domain-builder-contract-component-redesign
+  :END:
+
+*** Agent Notes
+     [2026-06-10] Redesign core domain-builder contract components
+     Files changed: pages/admin/domain-builder.vue
+     Docs updated: pages/admin/README.md (COMPONENT level), TODO.org
+     Notes: Replaced generic table presentations for domain draft components
+       with data-type-specific contract surfaces: entity schema cards with block
+       chips and related workflow/route/summary counts, endpoint route cards,
+       workflow state-machine selector summaries, aggregation summary cards,
+       validation issue cards, and export source metrics. The browser-local
+       domain builder still validates and exports package source without writing
+       repository files.
+
 * DONE Entity System Refactor & Documentation
   :PROPERTIES:
   :ID: entity-system-refactor

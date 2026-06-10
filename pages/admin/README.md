@@ -100,7 +100,12 @@ preset-name branches.
 `domain-builder.vue` is a browser-local editor for CNC domain source drafts. It
 loads package definitions, edits entities/routes/workflows/summaries/commands
 and hook contracts, validates the draft, and exports generated JS. It does not
-write repository files.
+write repository files. Entity definitions render as schema contracts with
+block chips and related workflow/route/summary counts; frontend routes render
+as endpoint pairs; workflows render as state-machine selectors plus the graph
+and selected state/transition inspectors; summaries render as parent-to-child
+aggregation contracts with count and sum-field rollups; validation and export
+surfaces render issue/source contract outputs instead of generic tables.
 
 ## ConfigBot
 
