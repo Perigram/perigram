@@ -192,6 +192,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
 PrimeVue Button, Tag, Badge do not inherit font-size from containers. Always add `size="small"` to these elements inside compact and inline variant contexts.
 
 ## Related
+- [components/entities/README.md](./entities/README.md) — manifest-backed entity card contracts
 - [components/shared/README.md](./shared/README.md) — shared block components, layout containers
 - [composables/README.md](../composables/README.md) — useEntity, useBlocks
 - [server/DATA_MODEL.md](../server/DATA_MODEL.md) — entity data shapes

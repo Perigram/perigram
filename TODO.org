@@ -20,6 +20,38 @@
        docs instead of duplicating specs, and keep AGENTS.md as the mandatory
        project rule source.
 
+*** Agent Notes
+     [2026-06-09] Add repo-local Vue design-system skill
+     Files changed: .codex/README.md,
+       .codex/skills/cutkit-vue-design-system/SKILL.md,
+       .codex/skills/cutkit-vue-design-system/agents/openai.yaml,
+       .codex/skills/cutkit-vue-design-system/references/design-system-contract.md,
+       TODO.org
+     Docs updated: .codex/README.md (COMPONENT level), TODO.org
+     Notes: Moved the CutKit Vue design-system workflow into repo-local Codex
+       assets so UI work can load the same project-specific card, primitive,
+       token, i18n, UI lab, and validation guidance without relying on a global
+       skill copy.
+
+* WAITING Domain Entity Card Contract Redesign
+  :PROPERTIES:
+  :ID: domain-entity-card-contract-redesign
+  :END:
+
+*** Agent Notes
+     [2026-06-09] Differentiate manifest-backed entity cards by contract data
+     Files changed: components/entities/*/*Card.vue,
+       components/shared/EntityCard.vue, framework.manifest.json
+     Docs updated: components/entities/README.md (COMPONENT level),
+       components/README.md, TODO.org
+     Notes: Reworked manifest-backed entity cards to keep shared EntityCard
+       chrome while making each body reflect its contract: production flow,
+       geometry/previews, cassette template/design snapshots, physical
+       tracking, inventory stock, procurement, catalogs, swatches, warehouse
+       counts, tool/pen/layer semantics, users, organizations, and artifacts.
+       Inline and compact popovers now reuse those bodies without an extra
+       EntityCard divider.
+
 * DONE Entity System Refactor & Documentation
   :PROPERTIES:
   :ID: entity-system-refactor

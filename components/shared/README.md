@@ -204,6 +204,8 @@ components should render one `EntityCard :variant="variant"` and pass their
 canonical body once through the default slot. `EntityCard` reuses that same
 body for full card content and for inline/compact expansion; do not duplicate
 card-only bodies into per-variant `expanded` slots.
+Entity-specific bodies own their own internal separators; inline/compact
+popovers do not inject an extra divider before the reused body.
 The entity popover shows status as the normal inline status control only;
 expanded/full status history and actions remain owned by clicking the status
 control itself.
