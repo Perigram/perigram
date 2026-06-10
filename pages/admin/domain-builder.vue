@@ -12,25 +12,19 @@
     <div class="flex flex-col gap-6">
       <Panel :header="$t('admin.domainBuilder.status')">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
-          <div class="flex flex-col gap-1">
-            <span>{{ $t('admin.domainBuilder.entities') }}</span>
-            <strong>{{ draft.entities.length }}</strong>
-          </div>
-          <div class="flex flex-col gap-1">
-            <span>{{ $t('admin.domainBuilder.routes') }}</span>
-            <strong>{{ draft.frontendEntities.length }}</strong>
-          </div>
-          <div class="flex flex-col gap-1">
-            <span>{{ $t('admin.domainBuilder.workflows') }}</span>
-            <strong>{{ workflowTypes.length }}</strong>
-          </div>
-          <div class="flex flex-col gap-1">
-            <span>{{ $t('admin.domainBuilder.summaries') }}</span>
-            <strong>{{ draft.summaries.length }}</strong>
-          </div>
-          <div class="flex flex-col gap-1">
-            <span>{{ $t('admin.domainBuilder.validation') }}</span>
-            <Tag :severity="validation.ok ? 'success' : 'danger'" :value="validation.ok ? $t('common.success') : validation.issues.length" />
+          <div
+            v-for="metric in draftMetrics"
+            :key="metric.key"
+            class="rounded-ui border border-content-border bg-subtle p-3"
+          >
+            <div class="flex items-center gap-2 text-muted-color">
+              <i :class="metric.icon"></i>
+              <small>{{ metric.label }}</small>
+            </div>
+            <div class="mt-2 flex items-end justify-between gap-3">
+              <strong class="text-2xl leading-none">{{ metric.value }}</strong>
+              <Tag v-if="metric.tag" :severity="metric.severity" :value="metric.tag" size="small" />
+            </div>
           </div>
         </div>
       </Panel>
@@ -47,63 +41,109 @@
       </div>
 
       <Panel v-if="activeTab === 'entities'" :header="$t('admin.domainBuilder.tabs.entities')">
-        <div class="flex justify-end mb-3">
+        <div class="mb-4 flex justify-end">
           <Button icon="pi pi-plus" :label="$t('common.add')" size="small" @click="addEntity" />
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead>
-              <tr>
-                <th class="text-left py-2">{{ $t('common.type') }}</th>
-                <th class="text-left py-2">{{ $t('admin.domainBuilder.collection') }}</th>
-                <th class="text-left py-2">{{ $t('admin.domainBuilder.blocks') }}</th>
-                <th class="text-left py-2">{{ $t('common.actions.title') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(entity, index) in draft.entities" :key="`${entity.type}-${index}`" class="border-t border-content-border">
-                <td class="py-2 pr-3 min-w-48"><InputText v-model="entity.type" class="w-full" /></td>
-                <td class="py-2 pr-3 min-w-56"><InputText v-model="entity.collection" class="w-full" /></td>
-                <td class="py-2 pr-3 min-w-96">
-                  <InputText :model-value="stringifyCommaList(entity.blocks)" class="w-full" @update:model-value="value => entity.blocks = parseCommaList(value)" />
-                </td>
-                <td class="py-2">
-                  <Button icon="pi pi-trash" severity="danger" text rounded @click="removeEntity(index)" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div
+            v-for="(entity, index) in draft.entities"
+            :key="`${entity.type}-${index}`"
+            class="rounded-ui border border-content-border p-4"
+          >
+            <div class="mb-4 flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <small class="text-muted-color">{{ $t('common.type') }}</small>
+                <InputText v-model="entity.type" class="mt-1 w-full font-mono" />
+              </div>
+              <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="removeEntity(index)" />
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+              <div class="flex flex-col gap-2">
+                <label>{{ $t('admin.domainBuilder.collection') }}</label>
+                <InputText v-model="entity.collection" class="w-full font-mono" />
+              </div>
+              <div class="flex flex-col gap-2">
+                <label>{{ $t('admin.domainBuilder.blocks') }}</label>
+                <InputText :model-value="stringifyCommaList(entity.blocks)" class="w-full font-mono" @update:model-value="value => entity.blocks = parseCommaList(value)" />
+              </div>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-2">
+              <Tag
+                v-for="block in entity.blocks || []"
+                :key="block"
+                :value="block"
+                :severity="blockSeverity(block)"
+                size="small"
+              />
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div class="rounded-ui border border-content-border bg-subtle p-3">
+                <small class="text-muted-color">{{ $t('admin.domainBuilder.workflows') }}</small>
+                <div class="mt-1 font-semibold">{{ workflowStateCount(entity.type) }}</div>
+                <small class="text-muted-color">{{ $t('admin.domainBuilder.states') }}</small>
+              </div>
+              <div class="rounded-ui border border-content-border bg-subtle p-3">
+                <small class="text-muted-color">{{ $t('admin.domainBuilder.routes') }}</small>
+                <div class="mt-1 font-semibold">{{ routeForEntity(entity) ? 2 : 0 }}</div>
+                <small class="text-muted-color">{{ routeForEntity(entity)?.collection || entity.collection }}</small>
+              </div>
+              <div class="rounded-ui border border-content-border bg-subtle p-3">
+                <small class="text-muted-color">{{ $t('admin.domainBuilder.summaries') }}</small>
+                <div class="mt-1 font-semibold">{{ summariesForEntity(entity.type).length }}</div>
+                <small class="text-muted-color">{{ $t('admin.domainBuilder.countField') }}</small>
+              </div>
+            </div>
+          </div>
         </div>
 
         <Divider />
 
-        <div class="flex justify-between items-center mb-3">
+        <div class="mb-3 flex items-center justify-between">
           <h3 class="m-0 text-base font-semibold">{{ $t('admin.domainBuilder.frontendRoutes') }}</h3>
           <Button icon="pi pi-plus" :label="$t('common.add')" size="small" @click="addFrontendEntity" />
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead>
-              <tr>
-                <th class="text-left py-2">{{ $t('common.type') }}</th>
-                <th class="text-left py-2">{{ $t('admin.domainBuilder.collection') }}</th>
-                <th class="text-left py-2">{{ $t('admin.domainBuilder.singleRoute') }}</th>
-                <th class="text-left py-2">{{ $t('admin.domainBuilder.listRoute') }}</th>
-                <th class="text-left py-2">{{ $t('common.actions.title') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(route, index) in draft.frontendEntities" :key="`${route.type}-${index}`" class="border-t border-content-border">
-                <td class="py-2 pr-3 min-w-40"><InputText v-model="route.type" class="w-full" /></td>
-                <td class="py-2 pr-3 min-w-48"><InputText v-model="route.collection" class="w-full" /></td>
-                <td class="py-2 pr-3 min-w-56"><InputText v-model="route.routes.single" class="w-full" /></td>
-                <td class="py-2 pr-3 min-w-56"><InputText v-model="route.routes.list" class="w-full" /></td>
-                <td class="py-2">
-                  <Button icon="pi pi-trash" severity="danger" text rounded @click="draft.frontendEntities.splice(index, 1)" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div
+            v-for="(route, index) in draft.frontendEntities"
+            :key="`${route.type}-${index}`"
+            class="rounded-ui border border-content-border p-4"
+          >
+            <div class="mb-4 flex items-start justify-between gap-3">
+              <div class="grid min-w-0 flex-1 grid-cols-1 gap-3 md:grid-cols-2">
+                <div class="flex flex-col gap-2">
+                  <label>{{ $t('common.type') }}</label>
+                  <InputText v-model="route.type" class="w-full font-mono" />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label>{{ $t('admin.domainBuilder.collection') }}</label>
+                  <InputText v-model="route.collection" class="w-full font-mono" />
+                </div>
+              </div>
+              <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="draft.frontendEntities.splice(index, 1)" />
+            </div>
+
+            <div class="grid grid-cols-1 gap-3">
+              <div class="rounded-ui border border-content-border bg-subtle p-3">
+                <div class="mb-2 flex items-center gap-2">
+                  <Tag value="GET" severity="success" size="small" />
+                  <small class="text-muted-color">{{ $t('admin.domainBuilder.singleRoute') }}</small>
+                </div>
+                <InputText v-model="route.routes.single" class="w-full font-mono" />
+              </div>
+              <div class="rounded-ui border border-content-border bg-subtle p-3">
+                <div class="mb-2 flex items-center gap-2">
+                  <Tag value="GET" severity="info" size="small" />
+                  <small class="text-muted-color">{{ $t('admin.domainBuilder.listRoute') }}</small>
+                </div>
+                <InputText v-model="route.routes.list" class="w-full font-mono" />
+              </div>
+            </div>
+          </div>
         </div>
       </Panel>
 
@@ -111,6 +151,19 @@
         <div class="grid grid-cols-1 gap-4 xl:grid-cols-[18rem_1fr_22rem]">
           <div class="flex flex-col gap-3">
             <Select v-model="selectedWorkflowType" :options="workflowOptions" option-label="label" option-value="value" class="w-full" />
+            <div class="flex flex-col gap-2">
+              <Button
+                v-for="workflow in workflowSummaries"
+                :key="workflow.type"
+                :label="workflow.type"
+                :severity="selectedWorkflowType === workflow.type ? 'primary' : 'secondary'"
+                :badge="String(workflow.states)"
+                badge-severity="secondary"
+                text
+                class="justify-start"
+                @click="selectedWorkflowType = workflow.type"
+              />
+            </div>
             <Button icon="pi pi-plus" :label="$t('admin.domainBuilder.addWorkflow')" @click="addWorkflow" />
             <Button icon="pi pi-trash" :label="$t('admin.domainBuilder.removeWorkflow')" severity="danger" outlined :disabled="!selectedWorkflowType" @click="removeWorkflow" />
             <Divider />
@@ -129,6 +182,14 @@
 
           <div v-if="currentWorkflow" class="flex flex-col gap-4">
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div class="rounded-ui border border-content-border bg-subtle p-3">
+                <small class="text-muted-color">{{ $t('admin.domainBuilder.states') }}</small>
+                <div class="mt-1 text-xl font-semibold">{{ stateNames.length }}</div>
+              </div>
+              <div class="rounded-ui border border-content-border bg-subtle p-3">
+                <small class="text-muted-color">{{ $t('admin.domainBuilder.transitions') }}</small>
+                <div class="mt-1 text-xl font-semibold">{{ currentWorkflow.transitions?.length || 0 }}</div>
+              </div>
               <div class="flex flex-col gap-2">
                 <label>{{ $t('admin.domainBuilder.initialState') }}</label>
                 <Select v-model="currentWorkflow.initial" :options="stateOptions" option-label="label" option-value="value" />
@@ -261,51 +322,96 @@
       </Panel>
 
       <Panel v-else-if="activeTab === 'summaries'" :header="$t('admin.domainBuilder.tabs.summaries')">
-        <div class="flex justify-end mb-3">
+        <div class="mb-4 flex justify-end">
           <Button icon="pi pi-plus" :label="$t('common.add')" size="small" @click="addSummary" />
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead>
-              <tr>
-                <th class="text-left py-2">{{ $t('admin.domainBuilder.entityType') }}</th>
-                <th class="text-left py-2">{{ $t('admin.domainBuilder.parentType') }}</th>
-                <th class="text-left py-2">{{ $t('admin.domainBuilder.parentIdKey') }}</th>
-                <th class="text-left py-2">{{ $t('admin.domainBuilder.countField') }}</th>
-                <th class="text-left py-2">{{ $t('admin.domainBuilder.sumFieldsJson') }}</th>
-                <th class="text-left py-2">{{ $t('common.actions.title') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(summary, index) in draft.summaries" :key="index" class="border-t border-content-border align-top">
-                <td class="py-2 pr-3 min-w-44"><InputText v-model="summary.entityType" class="w-full" /></td>
-                <td class="py-2 pr-3 min-w-44"><InputText v-model="summary.parentType" class="w-full" /></td>
-                <td class="py-2 pr-3 min-w-44"><InputText v-model="summary.parentIdKey" class="w-full" /></td>
-                <td class="py-2 pr-3 min-w-44"><InputText v-model="summary.countField" class="w-full" /></td>
-                <td class="py-2 pr-3 min-w-80">
-                  <Textarea :model-value="JSON.stringify(summary.sumFields || {}, null, 2)" rows="4" class="w-full font-mono text-xs" @update:model-value="value => summary.sumFields = parseJsonObject(value, {})" />
-                </td>
-                <td class="py-2"><Button icon="pi pi-trash" severity="danger" text rounded @click="draft.summaries.splice(index, 1)" /></td>
-              </tr>
-            </tbody>
-          </table>
+
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div
+            v-for="(summary, index) in draft.summaries"
+            :key="index"
+            class="rounded-ui border border-content-border p-4"
+          >
+            <div class="mb-4 flex items-start justify-between gap-3">
+              <div class="flex min-w-0 flex-wrap items-center gap-2">
+                <Tag :value="summary.parentType || $t('admin.domainBuilder.parentType')" severity="secondary" size="small" />
+                <i class="pi pi-arrow-right text-muted-color"></i>
+                <Tag :value="summary.entityType || $t('admin.domainBuilder.entityType')" severity="info" size="small" />
+              </div>
+              <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="draft.summaries.splice(index, 1)" />
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div class="flex flex-col gap-2">
+                <label>{{ $t('admin.domainBuilder.entityType') }}</label>
+                <InputText v-model="summary.entityType" class="w-full font-mono" />
+              </div>
+              <div class="flex flex-col gap-2">
+                <label>{{ $t('admin.domainBuilder.parentType') }}</label>
+                <InputText v-model="summary.parentType" class="w-full font-mono" />
+              </div>
+              <div class="flex flex-col gap-2">
+                <label>{{ $t('admin.domainBuilder.parentIdKey') }}</label>
+                <InputText v-model="summary.parentIdKey" class="w-full font-mono" />
+              </div>
+              <div class="flex flex-col gap-2">
+                <label>{{ $t('admin.domainBuilder.countField') }}</label>
+                <InputText v-model="summary.countField" class="w-full font-mono" />
+              </div>
+            </div>
+
+            <div class="mt-4 rounded-ui border border-content-border bg-subtle p-3">
+              <div class="mb-2 flex items-center justify-between gap-3">
+                <small class="text-muted-color">{{ $t('admin.domainBuilder.sumFieldsJson') }}</small>
+                <Tag :value="summarySumEntries(summary).length" severity="secondary" size="small" />
+              </div>
+              <div v-if="summarySumEntries(summary).length" class="mb-3 flex flex-wrap gap-2">
+                <Tag
+                  v-for="[target, source] in summarySumEntries(summary)"
+                  :key="target"
+                  :value="`${target} <- ${source}`"
+                  severity="secondary"
+                  size="small"
+                />
+              </div>
+              <Textarea :model-value="JSON.stringify(summary.sumFields || {}, null, 2)" rows="4" class="w-full font-mono text-xs" @update:model-value="value => summary.sumFields = parseJsonObject(value, {})" />
+            </div>
+          </div>
         </div>
       </Panel>
 
       <Panel v-else-if="activeTab === 'validation'" :header="$t('admin.domainBuilder.tabs.validation')">
-        <Message v-if="validation.ok" severity="success">{{ $t('admin.domainBuilder.valid') }}</Message>
-        <div v-else class="flex flex-col gap-2">
-          <Message v-for="issue in validation.issues" :key="issue.message" severity="error">
-            <span class="font-mono">{{ issue.area }}</span>: {{ issue.message }}
-          </Message>
+        <Message v-if="validation.ok" severity="success" class="mb-4">{{ $t('admin.domainBuilder.valid') }}</Message>
+        <div v-else class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <div
+            v-for="issue in validation.issues"
+            :key="issue.message"
+            class="rounded-ui border border-content-border p-3"
+          >
+            <Tag :value="issue.area" severity="danger" size="small" />
+            <p class="mb-0 mt-2">{{ issue.message }}</p>
+          </div>
         </div>
         <Divider v-if="validation.warnings.length" />
-        <Message v-for="warning in validation.warnings" :key="warning.message" severity="warn">
-          <span class="font-mono">{{ warning.area }}</span>: {{ warning.message }}
-        </Message>
+        <div v-if="validation.warnings.length" class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <div
+            v-for="warning in validation.warnings"
+            :key="warning.message"
+            class="rounded-ui border border-content-border p-3"
+          >
+            <Tag :value="warning.area" severity="warn" size="small" />
+            <p class="mb-0 mt-2">{{ warning.message }}</p>
+          </div>
+        </div>
       </Panel>
 
       <Panel v-else :header="$t('admin.domainBuilder.tabs.export')">
+        <div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+          <div v-for="metric in exportMetrics" :key="metric.key" class="rounded-ui border border-content-border bg-subtle p-3">
+            <small class="text-muted-color">{{ metric.label }}</small>
+            <div class="mt-1 text-xl font-semibold">{{ metric.value }}</div>
+          </div>
+        </div>
         <Message v-if="!validation.ok" severity="warn" class="mb-4">
           {{ $t('admin.domainBuilder.exportBlocked') }}
         </Message>
@@ -374,17 +480,65 @@ const sourceDraft = () => createDomainDraft({
 const draft = ref(sourceDraft());
 
 const workflowTypes = computed(() => Object.keys(draft.value.workflows || {}).sort());
+const draftMetrics = computed(() => [
+  {
+    key: 'entities',
+    label: t('admin.domainBuilder.entities'),
+    value: draft.value.entities.length,
+    icon: 'pi pi-database'
+  },
+  {
+    key: 'routes',
+    label: t('admin.domainBuilder.routes'),
+    value: draft.value.frontendEntities.length,
+    icon: 'pi pi-link'
+  },
+  {
+    key: 'workflows',
+    label: t('admin.domainBuilder.workflows'),
+    value: workflowTypes.value.length,
+    icon: 'pi pi-sitemap'
+  },
+  {
+    key: 'summaries',
+    label: t('admin.domainBuilder.summaries'),
+    value: draft.value.summaries.length,
+    icon: 'pi pi-chart-bar'
+  },
+  {
+    key: 'validation',
+    label: t('admin.domainBuilder.validation'),
+    value: validation.value.ok ? t('common.success') : validation.value.issues.length,
+    icon: validation.value.ok ? 'pi pi-check-circle' : 'pi pi-exclamation-triangle',
+    severity: validation.value.ok ? 'success' : 'danger',
+    tag: validation.value.ok ? '' : t('common.error')
+  }
+]);
 const workflowOptions = computed(() => [
   ...workflowTypes.value.map(type => ({ label: type, value: type })),
   ...draft.value.entities
     .filter(entity => !draft.value.workflows?.[entity.type])
     .map(entity => ({ label: `${entity.type} (${t('common.create')})`, value: entity.type }))
 ]);
+const workflowSummaries = computed(() => workflowTypes.value.map(type => {
+  const workflow = draft.value.workflows[type] || {};
+  return {
+    type,
+    states: Object.keys(workflow.states || {}).length,
+    transitions: workflow.transitions?.length || 0
+  };
+}));
 const currentWorkflow = computed(() => draft.value.workflows?.[selectedWorkflowType.value] || null);
 const stateNames = computed(() => Object.keys(currentWorkflow.value?.states || {}));
 const stateOptions = computed(() => stateNames.value.map(state => ({ label: state, value: state })));
 const validation = computed(() => validateDomainDraft(draft.value));
 const generatedSource = computed(() => generateDomainCncSource(draft.value));
+const exportMetrics = computed(() => [
+  { key: 'entities', label: t('admin.domainBuilder.entities'), value: draft.value.entities.length },
+  { key: 'workflows', label: t('admin.domainBuilder.workflows'), value: workflowTypes.value.length },
+  { key: 'summaries', label: t('admin.domainBuilder.summaries'), value: draft.value.summaries.length },
+  { key: 'validation', label: t('admin.domainBuilder.validation'), value: validation.value.ok ? t('common.success') : validation.value.issues.length }
+]);
 const workflowGraph = computed(() => buildWorkflowGraph(currentWorkflow.value || {}));
 const selectedStateDefinition = computed(() => {
   if (!currentWorkflow.value || !selectedState.value) return {};
@@ -522,6 +676,30 @@ function addFrontendEntity() {
     collection: entity.collection,
     routes: { single: `/api/${entity.collection}/:id`, list: `/api/${entity.collection}` }
   });
+}
+
+function routeForEntity(entity) {
+  return draft.value.frontendEntities.find(route => route.type === entity.type || route.collection === entity.collection) || null;
+}
+
+function summariesForEntity(type) {
+  return draft.value.summaries.filter(summary => summary.entityType === type || summary.parentType === type);
+}
+
+function workflowStateCount(type) {
+  return Object.keys(draft.value.workflows?.[type]?.states || {}).length;
+}
+
+function summarySumEntries(summary) {
+  return Object.entries(summary.sumFields || {});
+}
+
+function blockSeverity(block) {
+  if (block === 'identity') return 'info';
+  if (block === 'status') return 'success';
+  if (block === 'lineage') return 'warn';
+  if (block === 'attachments') return 'secondary';
+  return 'secondary';
 }
 
 function addWorkflow() {
