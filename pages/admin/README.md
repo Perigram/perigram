@@ -37,6 +37,9 @@ the operator chooses them explicitly.
 Command output hydration includes both the synchronous command result and
 related task-run outputs. Async nesting completion therefore updates the
 in-memory `nesting_run` and `sheet_design` previews when the task finishes.
+Artifact output cards open the same attachment-kind-aware preview dialog used by
+artifact surfaces, so DXF/SVG outputs render through `DrawingCanvas` and
+download-only/PDF outputs keep a direct download path.
 
 The page provides edited workflows as `statusWorkflows` so nested entity cards
 render against the local draft, while execution still goes through server

@@ -36,6 +36,14 @@ All entity-related components MUST use these patterns:
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
 
 When a card needs custom lifecycle commands, pass them to `EntityCard` through `:status-actions` so the shared title/status layout remains the single owner of status placement. Destructive delete/remove commands belong in these status actions with `display: 'menu'`; edit/configuration commands stay in card footers or page action slots.
+Geometry-capable entity cards should render the visual source, not tags that
+state a file type or preview flag. Use `GeometryPreview` for entities with
+`data.geometry.preview`/points and `CassetteThumbnail` for cassette DTOs because
+it resolves DXF, stored geometry previews, OCCS definitions, and legacy
+parametric definitions in the correct order.
+Parent-level card click handlers must ignore nested interactive targets through
+`utils/interactive-target.js` so embedded statuses, links, artifacts, geometry
+previews, and nested inline cards remain clickable.
 Interactive status belongs only to entity types with real `cncWorkflows`
 definitions. Cards for DTOs without workflows should set `:show-status="false"`
 or use a read-only badge only when the data model requires it; do not invent

@@ -10,6 +10,10 @@ Shared frontend utility modules used by Vue pages/components.
 - `status-engine.js`: Compatibility status severity/icon mapping and entity route/icon registry used by shared status and trace components. New source-of-truth UI, artifact, and route metadata belongs in `@cutkit/domain-cnc` and is adapted by `@cutkit/vue`.
 - `status-actions.js`: Converts workflow definitions into default `EntityStatus` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows.
 - `status-location.js`: Normalizes typed current location facts from `status.lifecycle.data.location` for status surfaces. Supported UI types are `warehouse`, `coordinates`, and `address`.
+- `interactive-target.js`: Shared DOM guard for entity cards that have parent
+  click/select actions. It detects nested links, buttons, form controls, status
+  controls, geometry previews, and nested inline/compact entity cards so parent
+  clicks do not steal embedded preview/status interactions.
 - `selectOptions.js`: Pure helpers for PrimeVue Select option arrays. Use it to
   normalize canonical DTOs (`identity.name`, `identity.slug`, `_id`) into flat
   string `name`/id values before passing them to `optionLabel="name"` controls.

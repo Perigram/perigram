@@ -9,6 +9,8 @@
   shared entity popover on click or keyboard activation.
 - The expanded inline/compact body reuses the same operational content as the
   card variant: `GeometryPreview` plus `SpecsBlock`.
+- Geometry presence is represented by the preview itself; the card does not add
+  `Preview` or `DXF` tags that duplicate implementation details.
 - Sheet designs hide status controls because the current UI contract treats
   them as generated design outputs rather than direct lifecycle action targets.
 

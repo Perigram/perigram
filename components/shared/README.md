@@ -52,8 +52,8 @@ Standardized display for entity dimensional specs (width, length, area, sheetThi
 
 | `variant` | Renders as |
 |---|---|
-| `default` | Labeled grid rows |
-| `compact` | Single inline text: `"W × L mm (thickness)"` |
+| `default` | Dimension-first grid with the main width/length span separated from area and thickness metrics |
+| `compact` | Inline dimensions, thickness, foil, and area facts for embedded card rows |
 
 Props: `:entity` (required), `variant`.
 
@@ -70,10 +70,11 @@ const FIELDS = [
 <DataBlock :entity="tool" :fields="FIELDS" />
 ```
 
-Props: `:entity` (required), `:fields` (required — inline array of field descriptors).
+Props: `:entity` (required), `:fields` (required — inline array of field descriptors), `variant` (`default` definition grid or `compact` inline facts).
 
 **Field schema:** `{ path, i18n, suffix?, prefix? }` — `path` is dot-notation into entity object, `i18n` is the translation key for the label. Rows with null/undefined values are hidden automatically.
 Values are formatted through `utils/data-display.js`: scalar arrays render as comma-separated text, arrays of objects render as counts, objects render only when they expose a stable identifier (`name`, `label`, `code`, `serial`, `reference`, `uid`, or `_id`), and non-displayable nested objects are hidden.
+Default layout renders a semantic `<dl>` grid for card bodies; compact layout renders inline facts for popovers, relation rows, and tight embedded surfaces.
 
 ### `StatusBadge.vue`
 Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.
@@ -159,7 +160,7 @@ Current drawing display owners:
 New drawing previews should add a source normalizer for `DrawingCanvas`, not a feature-local `<svg>`.
 
 ### `GeometryPreview.vue`
-Entity-card wrapper around `DrawingCanvas` for design and remnant geometry. Reads `entity.data.geometry.preview` first and falls back to `entity.data.geometry.data` / `entity.data.geometry.points`.
+Entity-card wrapper around `DrawingCanvas` for design and remnant geometry. Reads `entity.data.geometry.preview` first and falls back to `entity.data.geometry.data` / `entity.data.geometry.points`. It marks the preview as an interactive card child so parent card click handlers do not steal pan/preview clicks.
 
 Use this for DXF-derived layer previews and polygon remnants instead of displaying file ids, queue ids, or static filename fields in entity cards.
 
@@ -209,6 +210,12 @@ popovers do not inject an extra divider before the reused body.
 The entity popover shows status as the normal inline status control only;
 expanded/full status history and actions remain owned by clicking the status
 control itself.
+Nested interactive children such as `EntityStatus`, `TraceLink`,
+`GeometryPreview`, `CassetteThumbnail`, buttons, and nested inline entity cards
+mark themselves as card-interactive targets. Parent card click handlers must use
+`utils/interactive-target.js` before emitting view/select actions. Cards whose
+primary action is a custom preview, such as `ArtifactCard`, can pass
+`expandable="false"` to `EntityCard` and own the click action themselves.
 
 Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
 

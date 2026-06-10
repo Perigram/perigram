@@ -69,6 +69,47 @@
        domain builder still validates and exports package source without writing
        repository files.
 
+* WAITING Entity Contract UI Correction
+  :PROPERTIES:
+  :ID: entity-contract-ui-correction
+  :END:
+
+*** Agent Notes
+     [2026-06-10] Correct geometry previews, embedded interactions, and slop fields
+     Files changed: components/shared/EntityCard.vue,
+       components/shared/status/EntityStatus.vue,
+       components/shared/GeometryPreview.vue,
+       components/shared/links/TraceLink.vue,
+       components/shared/blocks/DataBlock.vue,
+       components/shared/blocks/SpecsBlock.vue,
+       components/CassetteThumbnail.vue,
+       components/entities/Cassette/CassetteCard.vue,
+       components/entities/CassetteTemplate/CassetteTemplateCard.vue,
+       components/entities/CassetteDesign/CassetteDesignCard.vue,
+       components/entities/CassetteInstance/CassetteInstanceCard.vue,
+       components/entities/Artifact/ArtifactCard.vue,
+       components/entities/SheetDesign/SheetDesignCard.vue,
+       components/entities/NestingRun/NestingRunCard.vue,
+       components/entities/Queue/QueueCard.vue,
+       components/entities/Project/ProjectCard.vue,
+       components/entities/MaterialPile/PileCard.vue,
+       components/entities/Catalog/CatalogCard.vue,
+       components/entities/Requisition/RequisitionCard.vue,
+       pages/admin/workbench.vue, utils/interactive-target.js,
+       framework.manifest.json, shared/design-system.spec.js,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/README.md, components/shared/README.md,
+       components/entities/Cassette/README.md,
+       components/entities/SheetDesign/README.md,
+       pages/admin/README.md, utils/README.md, TODO.org
+     Notes: Removed implementation-detail chips from cassette and geometry
+       cards (`type`, OCCS/document version, DXF/preview badges, repeated
+       parameter chips), routed cassette cards through `CassetteThumbnail` with
+       DXF/stored-geometry/OCCS/parametric source resolution, made artifact
+       output cards open a DrawingCanvas-backed preview dialog, isolated nested
+       status/link/preview clicks from parent card selection, and redesigned
+       default SpecsBlock/DataBlock layouts around dimensional and fact data.
+
 * DONE Entity System Refactor & Documentation
   :PROPERTIES:
   :ID: entity-system-refactor
