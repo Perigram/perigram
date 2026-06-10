@@ -13,38 +13,58 @@ const props = defineProps({
   variant: { type: String, default: 'card' } // inline, compact, card
 });
 
-defineEmits(['click']);
+const emit = defineEmits(['click']);
 
 const artifactType = computed(() => props.artifact.data?.type || '');
-const primaryAttachment = computed(() => props.artifact.attachments?.primary || null);
 const queueId = computed(() => props.artifact.lineage?.queueId || null);
 const runId = computed(() => props.artifact.lineage?.runId || null);
 
 const icon = computed(() => {
   const type = artifactType.value;
-  if (type === 'LAYOUT_DXF') return 'pi-file-pdf';
+  if (type.includes('DXF')) return 'pi-map';
+  if (type.includes('SVG')) return 'pi-image';
+  if (type.includes('PDF')) return 'pi-file-pdf';
   if (type === 'NESTING_REPORT') return 'pi-chart-bar';
   return 'pi-file';
 });
 
-const typeLabel = computed(() => artifactType.value.replace('LAYOUT_', '') || 'FILE');
 const ARTIFACT_FIELDS = [
   { path: 'data.type', i18n: 'file.type' },
   { path: 'attachments.primary.name', i18n: 'file.name' }
 ];
+
+const isChildControl = (event) => {
+  const target = event?.target;
+  const currentTarget = event?.currentTarget;
+  if (!target?.closest || !currentTarget) return false;
+  const control = target.closest('a[href], button, input, select, textarea, [contenteditable="true"], [role="link"]');
+  return Boolean(control && control !== currentTarget);
+};
+
+const emitPreview = (event) => {
+  if (isChildControl(event)) return;
+  emit('click', props.artifact);
+};
+
+const onPreviewKeydown = (event) => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  emitPreview(event);
+};
 </script>
 
 <template>
-  <div class="cursor-pointer" @click="$emit('click', artifact)">
-    <EntityCard :entity="artifact" entity-type="artifact" :variant="variant" :show-trace="false" :show-status="false">
+  <div
+    class="cursor-pointer"
+    role="button"
+    tabindex="0"
+    data-entity-card-interactive="true"
+    @click.stop="emitPreview"
+    @keydown="onPreviewKeydown"
+  >
+    <EntityCard :entity="artifact" entity-type="artifact" :variant="variant" :show-trace="false" :show-status="false" :expandable="false">
       <template #before-identity>
         <i :class="['pi', icon]"></i>
-      </template>
-      <template #subtitle>
-        <div class="flex flex-wrap gap-2">
-          <span>{{ typeLabel }}</span>
-          <small v-if="primaryAttachment?.metadata?.bucket">{{ primaryAttachment.metadata.bucket }}</small>
-        </div>
       </template>
       <Divider />
       <div class="flex flex-col gap-3">

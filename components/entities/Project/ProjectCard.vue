@@ -10,6 +10,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const PROJECT_SUMMARY_FIELDS = [
     { path: 'summary.queueCount', i18n: 'project.queues' },
@@ -25,7 +26,8 @@ const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
 const { t } = useI18n();
 
-const handleCardClick = () => {
+const handleCardClick = (event) => {
+    if (isInteractiveEventTarget(event)) return;
     emit('view', props.project);
 };
 

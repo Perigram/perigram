@@ -1434,6 +1434,7 @@
     "generatingPreview": "Generating preview...",
     "previewFailed": "Failed to generate preview",
     "previewTitle": "Artifact Preview",
+    "previewUnavailable": "Preview unavailable",
     "loadingPreview": "Loading preview...",
     "pdfPreviewUnavailable": "PDF Preview not available",
     "downloadFilePrompt": "Please download the file.",

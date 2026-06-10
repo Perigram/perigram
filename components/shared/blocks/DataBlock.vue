@@ -1,14 +1,27 @@
 <template>
-  <div class="grid grid-cols-1 gap-2">
+  <dl
+    v-if="visibleRows.length"
+    class="m-0"
+    :class="variant === 'compact' ? 'flex flex-wrap gap-x-4 gap-y-1 text-sm' : 'grid grid-cols-1 gap-3 sm:grid-cols-2'"
+  >
     <div
       v-for="row in visibleRows"
       :key="row.label"
-      class="flex items-center justify-between gap-4 border-b border-content-border pb-2 last:border-b-0 last:pb-0"
+      :class="variant === 'compact'
+        ? 'inline-flex min-w-0 items-baseline gap-1.5'
+        : 'min-w-0 rounded-ui border border-content-border bg-content px-3 py-2'"
     >
-      <small class="min-w-0 text-muted-color">{{ row.label }}</small>
-      <span class="min-w-0 break-words text-right font-medium">{{ row.display }}</span>
+      <dt class="min-w-0 text-xs text-muted-color">
+        {{ row.label }}
+      </dt>
+      <dd
+        class="m-0 min-w-0 break-words font-medium"
+        :class="variant === 'compact' ? '' : 'mt-1'"
+      >
+        {{ row.display }}
+      </dd>
     </div>
-  </div>
+  </dl>
 </template>
 
 <script setup>
@@ -30,7 +43,8 @@ import { decorateDataValue, resolveDataPath } from '~/utils/data-display.js';
 
 const props = defineProps({
     entity: { type: Object, required: true },
-    fields: { type: Array, required: true }
+    fields: { type: Array, required: true },
+    variant: { type: String, default: 'default' }
 });
 
 const { t } = useI18n();

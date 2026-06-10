@@ -7,9 +7,11 @@ defineProps({
 </script>
 
 <template>
-  <DrawingCanvas
-    :source="entity"
-    source-type="geometry-preview"
-    mode="card"
-  />
+  <div data-entity-card-interactive="true" @click.stop>
+    <DrawingCanvas
+      :source="entity"
+      source-type="geometry-preview"
+      mode="card"
+    />
+  </div>
 </template>

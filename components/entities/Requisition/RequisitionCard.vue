@@ -11,6 +11,7 @@ import { useAuthStore } from '~/stores/auth';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const REQUISITION_FIELDS = [
     { path: 'data.items.length', i18n: 'requisition.items' },
@@ -26,7 +27,8 @@ const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
 const { t } = useI18n();
 
-const handleCardClick = () => {
+const handleCardClick = (event) => {
+    if (isInteractiveEventTarget(event)) return;
     emit('view', props.requisition);
 };
 

@@ -2,6 +2,8 @@
     <NuxtLink 
         :to="route" 
         class="inline-flex items-center gap-2 p-1 "
+        data-entity-card-interactive="true"
+        @click.stop
     >
         <i :class="config.icon"></i>
         <span>

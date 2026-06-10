@@ -214,9 +214,12 @@ describe('Design system manifest', () => {
 
   it('keeps framework manifest UI fields tied to canonical DTO paths', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'framework.manifest.json'), 'utf8'));
+    const cassette = manifest.designSystem.components.find(component => component.key === 'cassette');
     const cassetteTemplate = manifest.designSystem.components.find(component => component.key === 'cassetteTemplate');
 
     expect(manifest.validations).toEqual({ ok: true, issues: [] });
+    expect(cassette.fieldPaths).toEqual(['data.parameters.length']);
+    expect(cassette.fieldPaths).not.toContain('data.type');
     expect(cassetteTemplate.fieldPaths).toEqual(['data.parameters.length']);
     expect(cassetteTemplate.fieldPaths).not.toContain('type');
     expect(cassetteTemplate.fieldPaths).not.toContain('parameterCount');
@@ -345,6 +348,22 @@ describe('Design system manifest', () => {
       .map((file) => path.relative(REPO_ROOT, file));
 
     expect(offenders).toEqual([]);
+  });
+
+  it('keeps embedded previews and statuses from conflicting with parent card clicks', () => {
+    const entityCard = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityCard.vue'), 'utf8');
+    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/EntityStatus.vue'), 'utf8');
+    const artifactCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Artifact/ArtifactCard.vue'), 'utf8');
+    const cassetteCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Cassette/CassetteCard.vue'), 'utf8');
+    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
+
+    expect(entityCard).toContain('isInteractiveEventTarget');
+    expect(entityCard).toContain('expandable');
+    expect(entityStatus).toContain('data-entity-card-interactive="true"');
+    expect(artifactCard).toContain(':expandable="false"');
+    expect(workbench).toContain('listeners: { click: previewArtifactOutput }');
+    expect(cassetteCard).toContain('CassetteThumbnail');
+    expect(cassetteCard).not.toContain("path: 'data.type'");
   });
 
   it('keeps nesting runs focused on sheet design outputs', () => {

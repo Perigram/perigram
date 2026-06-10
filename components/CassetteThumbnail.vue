@@ -1,5 +1,5 @@
 <template>
-  <div ref="container" class="h-full w-full">
+  <div ref="container" class="h-full w-full" data-entity-card-interactive="true" @click.stop>
     <DrawingCanvas
       v-if="canvasSource"
       :source="canvasSource"
@@ -67,6 +67,12 @@ const setDxfSource = (dxfId, mapping = {}) => {
   canvasLayerMapping.value = mapping;
 };
 
+const setGeometrySource = (cassette) => {
+  canvasSource.value = cassette;
+  canvasSourceType.value = 'geometry-preview';
+  canvasLayerMapping.value = {};
+};
+
 const setParametricSource = (graph) => {
   canvasSource.value = {
     params: {
@@ -94,6 +100,7 @@ const updateThumbnail = async () => {
     props.cassette?._id,
     props.cassette?.updatedAt,
     props.cassette?.data?.definition,
+    props.cassette?.data?.geometry,
     props.dimensions
   ]);
   if (currentKey === lastRenderKey && canvasSource.value) return;
@@ -108,6 +115,11 @@ const updateThumbnail = async () => {
 
     if (cassette.data?.geometry?.dxfId) {
       setDxfSource(cassette.data.geometry.dxfId, cassetteMapping(cassette));
+      return;
+    }
+
+    if (cassette.data?.geometry?.preview || cassette.data?.geometry?.data || cassette.data?.geometry?.points) {
+      setGeometrySource(cassette);
       return;
     }
 

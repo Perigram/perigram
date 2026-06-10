@@ -10,6 +10,7 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
 import { useAuthStore } from '~/stores/auth';
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const props = defineProps({
   catalog: { type: Object, required: true },
@@ -19,7 +20,10 @@ const props = defineProps({
 const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
 
-const handleCardClick = () => emit('view', props.catalog);
+const handleCardClick = (event) => {
+  if (isInteractiveEventTarget(event)) return;
+  emit('view', props.catalog);
+};
 const material = computed(() => props.catalog.data?.material || '');
 const sheetOptionCount = computed(() => props.catalog.data?.options?.sheetThicknesses?.length || 0);
 const foilOptionCount = computed(() => props.catalog.data?.options?.foilThicknesses?.length || 0);

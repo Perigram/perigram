@@ -11,6 +11,7 @@ import MaterialSummary from '~/components/entities/MaterialPile/MaterialSummary.
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
 import { useAuthStore } from '~/stores/auth';
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const props = defineProps({
   pile: { type: Object, required: true },
@@ -20,7 +21,8 @@ const props = defineProps({
 const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
 
-const handleCardClick = () => {
+const handleCardClick = (event) => {
+    if (isInteractiveEventTarget(event)) return;
     emit('view', props.pile);
 };
 

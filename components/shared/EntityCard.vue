@@ -1,7 +1,15 @@
 <template>
     <!-- Inline: pill chip with popup -->
     <template v-if="variant === 'inline'">
-        <div class="inline-flex items-center gap-2 cursor-pointer" role="button" tabindex="0" @click="togglePopup" @keydown="onToggleKeydown">
+        <div
+            class="inline-flex items-center gap-2"
+            :class="{ 'cursor-pointer': expandable }"
+            :role="expandable ? 'button' : undefined"
+            :tabindex="expandable ? 0 : undefined"
+            data-entity-card-interactive="true"
+            @click="togglePopup"
+            @keydown="onToggleKeydown"
+        >
             <IdentityBlock :entity="entity" variant="inline" :icon="entityConfig.icon" />
             <slot name="inline-extra" />
         </div>
@@ -33,9 +41,11 @@
     <!-- Compact: identity + status in a card row -->
     <template v-else-if="variant === 'compact'">
         <Card
-            class="h-full cursor-pointer border border-content-border [box-shadow:var(--ck-shadow-card)] hover:[box-shadow:var(--ck-shadow-card-hover)] transition-shadow duration-normal"
-            role="button"
-            tabindex="0"
+            class="h-full border border-content-border [box-shadow:var(--ck-shadow-card)] hover:[box-shadow:var(--ck-shadow-card-hover)] transition-shadow duration-normal"
+            :class="{ 'cursor-pointer': expandable }"
+            :role="expandable ? 'button' : undefined"
+            :tabindex="expandable ? 0 : undefined"
+            data-entity-card-interactive="true"
             @click="togglePopup"
             @keydown="onToggleKeydown"
         >
@@ -106,7 +116,7 @@
                             <slot name="before-identity" />
                             <IdentityBlock :entity="entity" />
                         </div>
-                        <div v-if="showStatus" class="min-w-fit max-w-full shrink-0 self-start">
+                        <div v-if="showStatus" class="min-w-fit max-w-full shrink-0 self-start" @click.stop>
                             <EntityStatus :entity="entity" :entity-type="entityType" variant="inline" :actions="statusActions" />
                         </div>
                     </div>
@@ -151,6 +161,7 @@ import TraceChain from '~/components/shared/links/TraceChain.vue';
 import Card from 'primevue/card';
 import Popover from 'primevue/popover';
 import { ENTITY_UI } from '~/utils/status-engine';
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const props = defineProps({
     entity: { type: Object, required: true },
@@ -158,6 +169,7 @@ const props = defineProps({
     variant: { type: String, default: 'card' },
     showStatus: { type: Boolean, default: true },
     showTrace: { type: Boolean, default: true },
+    expandable: { type: Boolean, default: true },
     statusActions: { type: Array, default: () => [] }
 });
 
@@ -167,9 +179,11 @@ const entityConfig = computed(() => ENTITY_UI[props.entityType] || { icon: 'pi p
 
 const op = ref();
 const togglePopup = (event) => {
+    if (!props.expandable || isInteractiveEventTarget(event)) return;
     op.value.toggle(event);
 };
 const onToggleKeydown = (event) => {
+    if (!props.expandable || isInteractiveEventTarget(event)) return;
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
     togglePopup(event);

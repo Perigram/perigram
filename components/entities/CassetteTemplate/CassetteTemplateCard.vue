@@ -4,25 +4,10 @@
       <template #before-identity>
         <i class="pi pi-clone"></i>
       </template>
-      <template #subtitle>
-        <div class="flex flex-wrap gap-2">
-          <Tag :value="templateType" severity="secondary" size="small" />
-          <Tag v-if="documentType" :value="documentType" severity="info" size="small" />
-          <Tag v-if="occsVersion" :value="occsVersion" severity="secondary" size="small" />
-        </div>
-      </template>
-      <template #compact-content>
-        <div v-if="templateParameters.length" class="mt-3 flex flex-wrap gap-2">
-          <Tag v-for="param in templateParameters.slice(0, 4)" :key="param" :value="param" severity="secondary" size="small" />
-        </div>
-      </template>
       <Divider />
       <div class="grid grid-cols-1 gap-4">
         <CassetteThumbnail :cassette="template" />
         <DataBlock :entity="templateForDisplay" :fields="TEMPLATE_FIELDS" />
-      </div>
-      <div v-if="templateParameters.length" class="flex flex-wrap gap-2 mt-4">
-        <Tag v-for="param in templateParameters" :key="param" :value="param" severity="secondary" size="small" />
       </div>
       <template #footer>
         <div class="flex gap-2">
@@ -39,7 +24,6 @@
  * Cassette Template View Component - v24 Standardized
  */
 import Divider from 'primevue/divider';
-import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import { computed } from 'vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
@@ -58,9 +42,6 @@ const props = defineProps({
 const emit = defineEmits(['create-instance', 'download']);
 
 const definition = computed(() => props.template.data?.definition || {});
-const templateType = computed(() => props.template.data?.type || 'PARAMETRIC');
-const documentType = computed(() => definition.value.documentType || '');
-const occsVersion = computed(() => definition.value.occs || '');
 const templateParameters = computed(() => {
     const raw = props.template.data?.parameters || definition.value.parameters || [];
     return Array.isArray(raw) ? raw : Object.keys(raw);

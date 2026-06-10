@@ -10,6 +10,7 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import SheetDesignCard from '../SheetDesign/SheetDesignCard.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import { useAuthStore } from '~/stores/auth';
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const props = defineProps({
   run: { type: Object, required: true },
@@ -59,10 +60,15 @@ function contextEntities(type) {
 function uniqueById(items) {
     return Array.from(new Map(items.filter(item => item?._id).map(item => [item._id.toString(), item])).values());
 }
+
+function selectRun(event) {
+    if (isInteractiveEventTarget(event)) return;
+    emit('select', props.run._id);
+}
 </script>
 
 <template>
-  <div class="h-full cursor-pointer" @click="$emit('select', run._id)">
+  <div class="h-full cursor-pointer" @click="selectRun">
     <EntityCard :entity="run" entity-type="nesting_run" :variant="variant" :show-trace="false" :status-actions="statusActions">
       <template #before-identity>
         <i class="pi pi-list-check"></i>

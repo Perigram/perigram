@@ -10,6 +10,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const props = defineProps({
   queue: { type: Object, required: true },
@@ -26,7 +27,8 @@ const queueSummaryFields = computed(() => [
     { path: 'summary.totalArea', i18n: 'common.area', suffix: ' m²' }
 ]);
 
-const handleCardClick = () => {
+const handleCardClick = (event) => {
+    if (isInteractiveEventTarget(event)) return;
     emit('view', props.queue);
 };
 

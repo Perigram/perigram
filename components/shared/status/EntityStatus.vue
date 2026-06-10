@@ -150,10 +150,15 @@ const runAction = async (action) => {
 </script>
 
 <template>
-  <div v-if="props.entity" class="entity-status min-w-0 max-w-full">
+  <div
+    v-if="props.entity"
+    class="entity-status min-w-0 max-w-full"
+    data-entity-card-interactive="true"
+    @click.stop
+  >
     <template v-if="!isExpanded">
       <div class="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-1.5">
-        <StatusBadge :state="state" class="cursor-pointer shrink-0 max-w-full" @click="toggle" />
+        <StatusBadge :state="state" class="cursor-pointer shrink-0 max-w-full" @click.stop="toggle" />
         <Button
           v-for="action in inlineActions"
           :key="action.to || action.label"

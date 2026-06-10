@@ -1434,6 +1434,7 @@
     "generatingPreview": "Генерация предпросмотра...",
     "previewFailed": "Не удалось сгенерировать предпросмотр",
     "previewTitle": "Предпросмотр артефакта",
+    "previewUnavailable": "Предпросмотр недоступен",
     "loadingPreview": "Загрузка предпросмотра...",
     "pdfPreviewUnavailable": "Предпросмотр PDF недоступен",
     "downloadFilePrompt": "Пожалуйста, скачайте файл.",

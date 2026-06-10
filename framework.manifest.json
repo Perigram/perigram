@@ -275,8 +275,7 @@
         ],
         "entityType": "cassette",
         "fieldPaths": [
-          "data.parameters.length",
-          "data.type"
+          "data.parameters.length"
         ],
         "group": "production",
         "key": "cassette",

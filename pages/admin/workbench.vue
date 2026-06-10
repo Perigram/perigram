@@ -83,6 +83,7 @@
                   v-for="preview in commandInputPreviews"
                   :key="preview.key"
                   v-bind="preview.props"
+                  v-on="preview.listeners || {}"
                   variant="compact"
                 />
               </div>
@@ -114,6 +115,7 @@
                     v-for="preview in commandOutputPreviews"
                     :key="preview.key"
                     v-bind="preview.props"
+                    v-on="preview.listeners || {}"
                     variant="compact"
                   />
                 </div>
@@ -263,6 +265,7 @@
                   v-for="preview in manualEntityPreviews"
                   :key="preview.key"
                   v-bind="preview.props"
+                  v-on="preview.listeners || {}"
                   variant="compact"
                 />
               </div>
@@ -273,6 +276,7 @@
                 v-for="preview in scenarioEntityPreviews"
                 :key="preview.key"
                 v-bind="preview.props"
+                v-on="preview.listeners || {}"
                 variant="card"
               />
             </div>
@@ -549,6 +553,37 @@
         </div>
       </div>
     </div>
+
+    <StandardDialog
+      v-model:visible="artifactPreviewVisible"
+      :header="artifactPreviewEntity?.identity?.name || $t('artifacts.previewTitle')"
+      size="full"
+      class="h-preview-dialog"
+      :pt="{ content: { class: 'flex-1 flex flex-col overflow-hidden h-full p-0' } }"
+    >
+      <div class="flex h-full">
+        <div v-if="artifactPreviewError" class="flex flex-1 flex-col items-center justify-center gap-4">
+          <i class="pi pi-exclamation-circle text-4xl"></i>
+          <p>{{ artifactPreviewError }}</p>
+        </div>
+        <DrawingCanvas
+          v-else-if="artifactPreviewDrawingSource"
+          :source="artifactPreviewDrawingSource"
+          :source-type="artifactPreviewSourceType"
+          mode="viewer"
+          show-layer-panel
+          @error="handleArtifactPreviewError"
+        />
+        <div v-else class="flex flex-1 flex-col items-center justify-center gap-6">
+          <i :class="artifactPreviewMode === 'pdf' ? 'pi pi-file-pdf text-6xl opacity-20' : 'pi pi-file text-6xl opacity-20'"></i>
+          <div class="text-center">
+            <p>{{ artifactPreviewMode === 'pdf' ? $t('artifacts.pdfPreviewUnavailable') : $t('artifacts.previewUnavailable') }}</p>
+            <small>{{ $t('artifacts.downloadFilePrompt') }}</small>
+          </div>
+          <Button :label="$t('common.download')" icon="pi pi-download" @click="downloadArtifactPreview" />
+        </div>
+      </div>
+    </StandardDialog>
   </div>
 </template>
 
@@ -566,8 +601,11 @@ import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import TypedSettingsForm from '~/components/shared/TypedSettingsForm.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
+import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import CassetteDesigner from '~/components/CassetteDesigner.vue';
 import CassetteDesignerV2 from '~/components/CassetteDesignerV2.vue';
+import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { DESIGN_SYSTEM_ENTITIES, createDesignSystemDemoRows } from '~/utils/design-system.js';
 import { buildWorkflowGraph, parseCommaList, parseJsonObject, stringifyCommaList } from '~/utils/domain-builder.js';
 import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
@@ -590,6 +628,7 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const fixtureStore = useWorkbenchFixturesStore();
+const domainUi = useCutkitDomainUi();
 const STORAGE_KEY = 'cutkit:entity-workbench:v1';
 const WORKFLOW_LAYOUT_STORAGE_KEY = 'cutkit:entity-workbench-layout:v1';
 const globalWorkbenchTabs = [
@@ -625,6 +664,9 @@ const commandRuns = ref([]);
 const commandsLoading = ref(false);
 const commandRunsLoading = ref(false);
 const commandRunning = ref(false);
+const artifactPreviewVisible = ref(false);
+const artifactPreviewEntity = ref(null);
+const artifactPreviewError = ref('');
 const commandsError = ref('');
 const commandsRegistry = ref({});
 const commandSearch = ref('');
@@ -812,6 +854,14 @@ const commandOutputPreviews = computed(() => commandOutputRefs.value
     ? previewForArtifactOutput(item)
     : previewForEntityRef(item.type, item.id, `entity:${item.type}:${item.id}`))
   .filter(Boolean));
+const artifactPreviewKind = computed(() => artifactPreviewEntity.value?.data?.type || '');
+const artifactPreviewMode = computed(() => domainUi.getAttachmentPreview(artifactPreviewKind.value).mode);
+const artifactPreviewDrawingSource = computed(() => {
+  if (!artifactPreviewEntity.value?._id) return null;
+  if (artifactPreviewMode.value !== 'dxf' && artifactPreviewMode.value !== 'svg') return null;
+  return domainUi.getDownloadEndpoint('artifact', artifactPreviewEntity.value._id);
+});
+const artifactPreviewSourceType = computed(() => `${artifactPreviewMode.value}-url`);
 const commandMissingOutputRefs = computed(() => {
   if (!commandOutputRefs.value.length) return [];
   return commandOutputRefs.value
@@ -1480,8 +1530,24 @@ function previewForArtifactOutput(item) {
   return {
     key: `attachment:${item.kind || item.type}:${item.id}`,
     component: renderer.component,
-    props: { [renderer.propName]: entity }
+    props: { [renderer.propName]: entity },
+    listeners: { click: previewArtifactOutput }
   };
+}
+
+function previewArtifactOutput(artifact) {
+  artifactPreviewEntity.value = artifact;
+  artifactPreviewError.value = '';
+  artifactPreviewVisible.value = true;
+}
+
+function downloadArtifactPreview() {
+  if (!artifactPreviewEntity.value?._id) return;
+  window.location.href = domainUi.getDownloadEndpoint('artifact', artifactPreviewEntity.value._id);
+}
+
+function handleArtifactPreviewError(error) {
+  artifactPreviewError.value = t('artifacts.loadDxfPreviewFailed', { message: error.message });
 }
 
 function outputRefsFromResult(result) {

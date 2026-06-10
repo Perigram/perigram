@@ -4,12 +4,6 @@
       <template #before-identity>
         <i class="pi pi-qrcode"></i>
       </template>
-      <template #subtitle>
-        <div class="flex flex-wrap gap-2">
-          <Tag v-if="reference" :value="reference" severity="secondary" size="small" />
-          <Tag v-if="serial" :value="serial" severity="info" size="small" />
-        </div>
-      </template>
       <template #compact-content>
         <div v-if="designId || queueId" class="mt-3 flex flex-wrap gap-2 text-sm">
           <TraceLink v-if="designId" type="cassetteDesign" :id="designId" />
@@ -38,7 +32,6 @@
  */
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
-import Tag from 'primevue/tag';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
@@ -50,8 +43,6 @@ const props = defineProps({
 
 const designId = computed(() => props.instance.lineage?.cassetteDesignId || props.instance.lineage?.designId || null);
 const queueId = computed(() => props.instance.lineage?.queueId || null);
-const reference = computed(() => props.instance.identity?.reference || '');
-const serial = computed(() => props.instance.identity?.serial || '');
 
 const INSTANCE_FIELDS = [
   { path: 'identity.reference', i18n: 'common.reference' }
