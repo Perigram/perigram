@@ -4955,3 +4955,19 @@
     - The center lane now contains queue settings and cassette content only.
     - The runs lane uses a run selector and expands only the active run with
       related sheet-design previews.
+
+*** Agent Notes
+    [2026-06-12] Fix queue selector card behavior
+    Files changed:
+    - components/QueueEditor.vue
+    - components/entities/Queue/QueueCard.vue
+    Docs updated:
+    - components/README.md
+    - components/entities/Queue/README.md
+    - TODO.org
+    Notes:
+    - Left queue lane now shows the active queue as a detailed `QueueCard`.
+    - Compact selector cards disable `EntityCard` expansion so clicking selects
+      the queue instead of opening a popover.
+    - Cassette entries in the center lane use the wide grid variant for larger
+      queue-entry cards.

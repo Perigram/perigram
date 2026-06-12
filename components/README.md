@@ -159,10 +159,11 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   id, type, quantity, and parameters. Delete actions must use `_key`; nesting
   payload saves must persist `id` without leaking the UI key.
 - `QueueEditor` is a production workspace: desktop layout uses a left queue
-  lane rendered with `QueueCard`, a center lane for nesting settings and
-  cassette entries, and a right runs lane. Queue status/actions live on the
-  active queue card; the center lane starts with queue content. The runs lane
-  receives queue-level sheet designs once, selects one active run, and lets
+  lane rendered with a detailed active `QueueCard` plus non-expanding compact
+  queue selector cards, a center lane for nesting settings and wide cassette
+  entry cards, and a right runs lane. Queue status/actions live on the active
+  queue card; the center lane starts with queue content. The runs lane receives
+  queue-level sheet designs once, selects one active run, and lets
   `NestingRunCard` filter designs by run before rendering preview tiles.
 - In warehouse material mode, `QueueEditor` loads selected warehouse piles,
   sheets, and remnants, filters unavailable piles, blocks mixed sheet sizes for
