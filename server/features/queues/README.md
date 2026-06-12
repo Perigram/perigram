@@ -4,6 +4,9 @@ Defines a specific nesting job, bridging the digital production intent with phys
 
 ## v24 Architecture
 - **Job Definition**: Combines `items` (designs to cut) with a `materialPool` (available piles/sheets).
+- **Nesting Settings**: Stores queue-local nesting configuration in
+  `data.nestingSettings`; each `nesting_run` stores the immutable execution
+  snapshot under `data.params`.
 - **Inheritance**: Inherits lineage from the parent `Project`.
 - **Status**: Governed by `QueueMachine` (`DRAFT -> NESTING -> READY -> CLOSED`).
 
@@ -19,6 +22,9 @@ Defines a specific nesting job, bridging the digital production intent with phys
    a `NESTING` queue to `DRAFT`. In warehouse mode, selected stock
    dimensions/counts define the worker sheet size and sheet count; mixed sheet
    sizes are rejected for the current one-bin worker contract.
+   The queue nesting API derives command parameters from saved
+   `data.nestingSettings` plus `data.job.materialPool`; callers only send
+   optional setting updates or attachment requests.
 4. **Run Acceptance / Production Output**: When a completed nesting run is
    chosen for production, the parent queue must be awaiting selection
    (`NESTING`) or already `READY` for an idempotent same-run response, and it
@@ -51,6 +57,16 @@ Defines a specific nesting job, bridging the digital production intent with phys
   job: {
     items: Array<{ designId, quantity, parameters }>,
     materialPool: Array<{ type, id, label, specs, dimensions, available, sheetPolygon? }>
+  },
+  nestingSettings: {
+    materialMode: 'VIRTUAL' | 'WAREHOUSE',
+    virtualWidth: number,
+    virtualLength: number,
+    spacing: number,
+    warehouseId?: string,
+    inventoryItems: string[],
+    toolProfileId?: string,
+    requestedArtifacts: string[]
   },
   materialConsumption?: {
     runId,

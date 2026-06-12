@@ -275,6 +275,21 @@
        `CassetteDesignerV2`; the legacy designer remains only in dev/test
        fixture surfaces.
 
+*** Agent Notes
+     [2026-06-12] Bound queue workspace scrolling and move nesting settings to queues
+     Files changed: layouts/app.vue, pages/project/[slug].vue,
+       components/QueueEditor.vue, stores/queues.js,
+       server/api/queue/[id]/nest.post.js, server/features/queues/service.js,
+       server/features/queues/queues.spec.js
+     Docs updated: components/README.md, pages/project/README.md,
+       server/features/queues/README.md, server/features/nesting/README.md,
+       server/DATA_MODEL.md, TODO.org
+     Notes: The `/project/:slug/queues` route now uses the app layout's bounded
+       workspace frame so document scroll is disabled for the queue workspace
+       and scrolling stays inside lanes/panels. Queue nesting settings now persist
+       as `queue.data.nestingSettings`; the nest API builds command parameters
+       from saved queue settings and `queue.data.job.materialPool`.
+
 * WAITING E2E Workflow Test Harness
   :PROPERTIES:
   :ID: e2e-workflow-test-harness

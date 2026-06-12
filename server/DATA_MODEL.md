@@ -61,6 +61,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.organizationId` | String | organization id field |
 | `data.parameters` | Array | parameters field |
 | `data.revisions` | Array | revisions field |
+| `data.templateId` | String | template id field |
 | `data.type` | String | type field |
 | `data.userId` | String | user id field |
 
@@ -122,6 +123,22 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.scope` | String | scope field |
 | `data.snapshot` | String | snapshot field |
 | `data.sourceStatus` | Array | source status field |
+
+### geometry_captures
+*Geometry-captures - manages geometry captures*
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | Object | Standard Identity Block (uid, name) |
+| `origin` | Object | Standard Origin Block (creation state) |
+| `status` | Object | Standard Status Block (current state) |
+| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `attachments` | Object | Standard Attachments Block (files) |
+| `data.calibration` | String | calibration field |
+| `data.extraction` | String | extraction field |
+| `data.geometry` | String | geometry field |
+| `data.mode` | String | mode field |
+| `data.output` | String | output field |
 
 ### invitations
 *Invitations - manages invitations*
@@ -267,8 +284,20 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `data.job` | String | job field |
+| `data.job` | Object | Queue job definition with `items` and resolved `materialPool` |
+| `data.job.items` | Array | Cassette/design entries with quantity and exact parameters |
+| `data.job.materialPool` | Array | Resolved selected physical/virtual sources for nesting |
+| `data.nestingSettings` | Object | Queue-local editable nesting settings used to start new runs |
+| `data.nestingSettings.materialMode` | String | `VIRTUAL` or `WAREHOUSE` material source mode |
+| `data.nestingSettings.virtualWidth` | Number | Virtual sheet width in millimeters |
+| `data.nestingSettings.virtualLength` | Number | Virtual sheet length in millimeters |
+| `data.nestingSettings.spacing` | Number | Nesting spacing in millimeters |
+| `data.nestingSettings.warehouseId` | ObjectId \| string | Selected warehouse for warehouse material mode |
+| `data.nestingSettings.inventoryItems` | Array | Selected inventory source keys in the queue editor |
+| `data.nestingSettings.toolProfileId` | ObjectId \| string | Selected tool profile for nesting/export context |
+| `data.nestingSettings.requestedArtifacts` | Array | Attachment kinds requested after nesting |
 | `data.materialSource` | String | material source field |
+| `data.nestingSettings` | Array | nesting settings field |
 | `data.queueId` | String | queue id field |
 | `data.queueNumber` | String | queue number field |
 | `data.runId` | String | run id field |
@@ -417,4 +446,3 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.contactPerson` | String | contact person field |
 | `data.stats` | Array | stats field |
 | `data.type` | String | type field |
-

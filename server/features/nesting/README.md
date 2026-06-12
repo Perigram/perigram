@@ -35,19 +35,20 @@ Command handler and compatibility job metadata for queue nesting.
 - `statistics.js` supports both legacy `nesting_jobs.sheets` payloads and the
   current worker result shape stored at `nesting_jobs.result.solution.layouts`.
 - `jobs.js` owns Mongo access for `nesting_jobs`.
+- Queue-local settings live on `queue.data.nestingSettings`. The queue nesting
+  API builds the `solveNesting` command parameters from those settings and
+  `queue.data.job.materialPool`; a `nesting_run` then stores the immutable
+  worker snapshot under `data.params`.
 - Warehouse-mode runs resolve sheet size and sheet count from
   `queue.data.job.materialPool`. The FastAPI worker still receives only its
   strict `{ width, height, space, sheetCount, sheet_polygon }` params, while the
   nesting run/job keep `materialPool` context for downstream sheet-design and
   inventory UI. Mixed stock sizes or stock entries without dimensions are
-  rejected before task creation. The command may also receive a normalized
-  `materialPool` directly from QueueEditor; an empty or omitted command
-  material pool falls back to the saved queue material pool instead of
-  overriding it. Remnant stock sources may carry `sheetPolygon`/`geometryData`;
-  `resolveNestingContext()` forwards that polygon as FastAPI `sheet_polygon`
-  using `{ outer, inner }` shape data when holes exist. Remnant holes are
-  container holes in jagua-rs, i.e. fixed non-placeable material zones, not fake
-  movable nesting items.
+  rejected before task creation. Remnant stock sources may carry
+  `sheetPolygon`/`geometryData`; `resolveNestingContext()` forwards that polygon
+  as FastAPI `sheet_polygon` using `{ outer, inner }` shape data when holes
+  exist. Remnant holes are container holes in jagua-rs, i.e. fixed
+  non-placeable material zones, not fake movable nesting items.
 
 `buildJobFiles()` is exported for focused coverage of the handoff from queue
 items to worker files. Parametric queue entries must load the cassette template,

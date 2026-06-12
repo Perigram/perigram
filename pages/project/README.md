@@ -6,13 +6,14 @@ Routes under `pages/project/` render the authenticated project workspace.
 
 - `[slug].vue`: Parent project shell. Loads the project via `useEntity('project')`,
   keeps route content inside `StandardPage`, and lets the app navigation store
-  resolve the project-level route context.
+  resolve the project-level route context. The queues route disables
+  `StandardPage` gap/overflow so the app layout can provide the bounded
+  workspace frame.
 - `[slug]/queues.vue`: Active queue editor for creating queue entries, selecting
   warehouse stock, running nesting, and opening generated runs. The route
   delegates workspace actions to `QueueEditor`; it does not render a separate
-  top action bar. The parent project shell marks this route as a full-height
-  workspace, and the route fills that bounded area instead of using viewport
-  height calculations.
+  top action bar. The app layout gives this route a viewport-bounded frame, and
+  the route fills that area so scrolling stays inside workspace lanes/panels.
 - `[slug]/sheet-designs.vue`: Project-level list of generated sheet designs for
   selected production runs. It resolves project queues, reads
   `queue.data.materialConsumption.runId`, loads sheet designs by queue, and
