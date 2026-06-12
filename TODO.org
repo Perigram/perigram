@@ -4892,3 +4892,17 @@
       `utils/occs/layers.js`.
     - Verified OCCS layer exports directly and reran architecture plus focused
       OCCS/parametric cassette tests.
+
+*** Agent Notes
+    [2026-06-12] Move project workspace navigation into page header nav
+    Files changed:
+    - components/shared/StandardPage.vue
+    - pages/project/[slug].vue
+    Docs updated:
+    - components/shared/README.md
+    - pages/project/README.md
+    - TODO.org
+    Notes:
+    - Added a dedicated `StandardPage` `nav` slot for page-header navigation.
+    - Replaced project workspace tab action buttons with a PrimeVue `Menubar`
+      rendered in the page header navigation slot.
