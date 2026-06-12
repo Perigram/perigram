@@ -41,6 +41,20 @@ Every template save resolves an `entity_revision` with `scope: "geometry"` from
 the current pointer under `data.revisions.geometry`; the immutable source
 snapshot lives in `entity_revisions`.
 
+### Template-to-Design Creation
+`POST /api/cassettes/:id/designs` calls `createDesignFromTemplate()` and creates
+or returns a `cassette_design` for the selected template.
+- Parametric templates are evaluated with the supplied concrete parameter map,
+  generate a DXF into the `cassettes` GridFS bucket, and create a design with
+  `data.polygonParts`, `data.layerData`, `data.geometry.dxfId`, and
+  `data.derivedFrom` pointing to the source geometry revision.
+- Standard uploaded templates already create their initial base design during
+  upload. The route returns that existing design when available instead of
+  duplicating the uploaded DXF.
+
+`GET /api/cassettes/:id/export` remains a template-level DXF export. For saved
+design assets, use the cassette-design export endpoint.
+
 ### DXF Upload
 `upload()` requires one mapped DXF layer to resolve to `cut.outer`. The service
 extracts closed polygons from that layer into the created cassette design

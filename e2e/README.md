@@ -40,6 +40,9 @@ blocked by unrelated shell noise.
 - `queue-workflow.spec.js`: project/queue creation opens the queue editor and
   `/api/queue/:id/nest` accepts `WAREHOUSE` material-pool command input before
   returning the expected business validation error for an empty queue.
+- `entity-actions.spec.js`: verifies user clicks on entity action buttons send
+  the expected command/API requests for sheet-design DXF generation and
+  cassette-template-to-design creation.
 
 The queue nesting regression intentionally stops before the worker-backed
 solve. Full nesting tests need explicit fixture cassette geometry and a running
@@ -56,6 +59,9 @@ worker stack; keep those in a separate spec so smoke tests stay cheap.
 5. For a regression, assert the exact boundary that failed. Example: if command
    validation rejected `WAREHOUSE`, test for the next expected business error
    instead of forcing a full nesting solve.
+6. Entity action buttons that trigger commands, creates, exports, or status
+   transitions should get focused click coverage before they are treated as
+   working UI.
 
 ## Environment
 

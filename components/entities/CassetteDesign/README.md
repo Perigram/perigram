@@ -22,6 +22,9 @@ parametric/OCCS definitions.
   the browser console.
 - Exact source geometry revision is loaded from `data.derivedFrom.revisionId`
   and rendered as a compact `EntityInlineRef` when present.
+- The footer DXF action downloads from
+  `/api/cassette-designs/:id/export`, so saved designs can serve their own
+  stored or regenerated DXF independently of their source template.
 
 ## Related
 

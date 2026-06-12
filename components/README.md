@@ -71,6 +71,10 @@ Entity detail components should use `EntityPage` for trace, identity, status, an
 Single-field rename/edit actions should use `NameEditPopover` near the relevant
 identity or action cluster; reserve `StandardDialog` for creation flows,
 destructive confirmation, or forms with multiple fields.
+Entity action buttons that trigger backend commands, entity creation, exports,
+or status transitions must have an explicit handler and focused Playwright
+coverage for the click-to-request boundary. A visible PrimeVue `Button` without
+an effect is considered broken UI, not a placeholder.
 
 ## Design System Manifest
 

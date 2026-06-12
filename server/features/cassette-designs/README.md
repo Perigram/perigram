@@ -37,6 +37,10 @@ Aligned with `@PROPOSED_DATA_MODEL.md` Section 5:
   ObjectId/string id. Entity UI uses this canonical endpoint through
   `useEntity('cassetteDesign')`; cards must not fetch cassette designs through
   template or cassette fallback routes.
+- `GET /api/cassette-designs/:id/export` downloads the design DXF. The service
+  streams `data.geometry.dxfId` from the `cassettes` GridFS bucket when present
+  and can regenerate a DXF from stored `layerData` / `polygonParts` when a file
+  reference is missing.
 - `GET /api/cassette-designs/by-template/:id` remains a convenience lookup for
   standard templates that need their initial design.
 

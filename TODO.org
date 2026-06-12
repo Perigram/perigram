@@ -4848,3 +4848,34 @@
     - Fallback bin metadata and summary area calculations now use the polygon
       shape area instead of rectangular width times height when `sheet_polygon`
       is present.
+
+*** Agent Notes
+    [2026-06-12] Wire entity DXF and cassette design actions
+    Files changed:
+    - components/CassetteManager.vue
+    - components/entities/CassetteDesign/CassetteDesignCard.vue
+    - components/entities/CassetteTemplate/CassetteTemplateCard.vue
+    - components/entities/SheetDesign/SheetDesignDetail.vue
+    - e2e/entity-actions.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    - server/api/cassette-designs/[id]/export.get.js
+    - server/api/cassettes/[id]/designs.post.js
+    - server/features/cassette-designs/service.js
+    - server/features/cassettes/service.js
+    Docs updated:
+    - components/README.md
+    - components/entities/CassetteDesign/README.md
+    - components/entities/CassetteTemplate/README.md
+    - components/entities/SheetDesign/README.md
+    - e2e/README.md
+    - server/features/cassette-designs/README.md
+    - server/features/cassettes/README.md
+    - TODO.org
+    Notes:
+    - Sheet design DXF action now triggers `generateAttachment` with
+      `LAYOUT_DXF`.
+    - Cassette templates can create a concrete cassette design with stored DXF,
+      geometry layers, and source revision provenance.
+    - Cassette designs expose their own DXF export endpoint and card action.
+    - Added Playwright click-to-request coverage for the broken action class.

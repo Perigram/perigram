@@ -18,7 +18,9 @@ and rendered through the `cassetteTemplate` design-system contract.
 - Shows `data.revisions.geometry.currentId` through `EntityInlineRef` when the
   backend current-geometry revision pointer exists.
 - Create/download actions remain footer actions and do not replace entity
-  relation rows.
+  relation rows. The create action emits `create-design` because templates are
+  digital sources for `cassette_designs`; it must not be wired as a cassette
+  instance creation action.
 
 ## Related
 
