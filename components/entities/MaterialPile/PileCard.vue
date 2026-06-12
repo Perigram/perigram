@@ -4,7 +4,6 @@
  */
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
-import Tag from 'primevue/tag';
 import { computed, ref, watch } from 'vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import MaterialSummary from '~/components/entities/MaterialPile/MaterialSummary.vue';
@@ -27,11 +26,8 @@ const handleCardClick = (event) => {
     emit('view', props.pile);
 };
 
-const stock = computed(() => props.pile.data?.stock || {});
-const remaining = computed(() => Math.max((stock.value.total || 0) - (stock.value.used || 0), 0));
 const warehouseId = computed(() => props.pile.lineage?.warehouseId || null);
 const catalogId = computed(() => props.pile.lineage?.catalogId || null);
-const serial = computed(() => props.pile.identity?.serial || props.pile.data?.serial || '');
 const warehouse = ref(null);
 const catalog = ref(null);
 const warehouseEntity = useEntity('warehouse');
@@ -57,12 +53,6 @@ watch(catalogId, async (id) => {
     <EntityCard :entity="pile" entity-type="material_pile" :variant="variant">
       <template #before-identity>
         <i class="pi pi-database"></i>
-      </template>
-      <template #subtitle v-if="variant !== 'card'">
-        <div class="flex flex-wrap gap-2">
-          <Tag v-if="stock.total" :value="`${remaining} / ${stock.total}`" severity="success" size="small" />
-          <Tag v-if="serial" :value="serial" severity="secondary" size="small" />
-        </div>
       </template>
       <template #compact-content>
         <MaterialSummary :pile="pile" />

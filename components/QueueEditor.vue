@@ -52,7 +52,19 @@
                     />
                 </div>
 
-                <ScrollablePanel :header="$t('nesting.settings')" class="shrink-0" :scroll-content="false">
+                <ScrollablePanel class="shrink-0" :scroll-content="false">
+                    <template #header>
+                        <div class="min-w-0 overflow-x-auto">
+                            <SelectButton
+                                v-model="materialSourceSelection"
+                                :options="materialSourceOptions"
+                                optionLabel="label"
+                                optionValue="value"
+                                :aria-label="$t('nesting.materialSourcing')"
+                                size="small"
+                            />
+                        </div>
+                    </template>
                     <template #actions>
                         <Button
                             v-if="queueState === 'DRAFT'"
@@ -69,14 +81,6 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="flex flex-col gap-4">
                                 <div>
-                                    <SelectButton
-                                        v-model="nestingOptions.materialMode"
-                                        :options="['VIRTUAL', 'WAREHOUSE']"
-                                        :aria-label="$t('nesting.materialSourcing')"
-                                        size="small"
-                                    />
-                                </div>
-                                <div>
                                     <Select
                                         v-model="nestingOptions.toolId"
                                         :options="toolOptions"
@@ -90,21 +94,40 @@
 
                             <div class="flex flex-col gap-4">
                                 <!-- Virtual Mode -->
-                                <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="grid grid-cols-2 gap-4">
-                                    <InputNumber v-model="nestingOptions.virtualWidth" :min="100" :placeholder="$t('nesting.width')" />
-                                    <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" />
+                                <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="flex flex-col gap-3">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <InputNumber v-model="nestingOptions.virtualWidth" :min="100" :placeholder="$t('nesting.width')" />
+                                        <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" />
+                                    </div>
+                                    <div class="rounded-panel border border-content-border bg-content p-3">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div class="flex min-w-0 items-center gap-2">
+                                                <i class="pi pi-file"></i>
+                                                <span class="truncate font-medium">{{ $t('nesting.virtualSheet') }}</span>
+                                            </div>
+                                            <span>{{ virtualSheetLabel }}</span>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- Warehouse Mode -->
                                 <div v-else class="flex flex-col gap-4">
-                                    <div class="grid grid-cols-2 gap-4">
+                                    <div class="flex gap-2">
                                         <Select
-                                            v-model="nestingOptions.warehouseId"
-                                            :options="warehouseOptions"
-                                            optionLabel="name"
-                                            optionValue="_id"
-                                            :placeholder="$t('nesting.selectWarehouse')"
-                                            @change="loadWarehouseInventory"
+                                            v-model="selectedInventoryToAdd"
+                                            :options="unselectedInventoryOptions"
+                                            optionLabel="label"
+                                            optionValue="uniqueId"
+                                            :placeholder="$t('nesting.selectInventory')"
+                                            class="min-w-0 flex-1"
+                                            size="small"
+                                        />
+                                        <Button
+                                            icon="pi pi-plus"
+                                            size="small"
+                                            :aria-label="$t('common.add')"
+                                            :disabled="!selectedInventoryToAdd"
+                                            @click="addSelectedInventoryItem"
                                         />
                                         <FileUpload
                                             mode="basic"
@@ -118,18 +141,11 @@
                                     </div>
 
                                     <div v-if="nestingOptions.warehouseId" class="flex flex-col gap-2">
-                                        <div class="flex gap-3 overflow-x-auto pb-1">
+                                        <div v-if="selectedInventory.length" class="grid grid-cols-1 gap-3 md:grid-cols-2">
                                             <div
-                                                v-for="item in availableInventory"
+                                                v-for="item in selectedInventory"
                                                 :key="item.uniqueId"
-                                                role="button"
-                                                tabindex="0"
-                                                :aria-pressed="isInventorySelected(item.uniqueId)"
-                                                class="relative w-72 shrink-0 rounded-panel transition-opacity"
-                                                :class="isInventorySelected(item.uniqueId) ? 'bg-subtle' : 'opacity-80 hover:opacity-100'"
-                                                @click.capture.stop="toggleInventoryItem(item.uniqueId)"
-                                                @keydown.enter.prevent="toggleInventoryItem(item.uniqueId)"
-                                                @keydown.space.prevent="toggleInventoryItem(item.uniqueId)"
+                                                class="relative min-w-0"
                                             >
                                                 <component
                                                     v-if="inventoryCardComponent(item)"
@@ -144,20 +160,23 @@
                                                     </div>
                                                     <small class="text-muted-color">{{ item.specs }}</small>
                                                 </div>
-                                                <i
-                                                    v-if="isInventorySelected(item.uniqueId)"
-                                                    class="pi pi-check absolute right-2 top-2 rounded-full bg-primary p-1 text-primary-contrast"
-                                                ></i>
+                                                <Button
+                                                    icon="pi pi-times"
+                                                    rounded
+                                                    text
+                                                    severity="danger"
+                                                    size="small"
+                                                    class="absolute right-2 top-2"
+                                                    :aria-label="$t('common.delete')"
+                                                    @click.stop="removeInventoryItem(item.uniqueId)"
+                                                />
                                             </div>
                                         </div>
-                                        <small v-if="availableInventory.length === 0" class="text-muted-color">
+                                        <small v-else class="text-muted-color">
                                             {{ $t('nesting.selectInventory') }}
                                         </small>
                                         <Message v-if="selectedStockSizeConflict" severity="error">
                                             {{ $t('nesting.mixedStockSize') }}
-                                        </Message>
-                                        <Message v-else-if="selectedStockSummary" severity="info">
-                                            {{ selectedStockSummary }}
                                         </Message>
                                     </div>
                                 </div>
@@ -377,6 +396,7 @@ const cassetteDesigns = ref([]);
 const sheetDesigns = ref([]);
 const warehouses = ref([]);
 const availableInventory = ref([]);
+const selectedInventoryToAdd = ref(null);
 const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
 const selectedRunId = ref(null);
@@ -386,6 +406,33 @@ const queueList = computed(() => [...props.queues].reverse());
 const toolOptions = computed(() => namedSelectOptions(tools.value, t('common.unnamed')));
 const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, t('common.unnamed')));
 const isSelectedQueue = (item = {}) => item._id?.toString() === props.queue._id?.toString();
+const materialSourceOptions = computed(() => [
+    { label: t('nesting.virtualMode'), value: 'VIRTUAL' },
+    ...warehouseOptions.value.map(warehouse => ({
+        label: warehouse.name,
+        value: `WAREHOUSE:${warehouse._id}`
+    }))
+]);
+const materialSourceSelection = computed({
+    get() {
+        if (nestingOptions.value.materialMode === 'WAREHOUSE' && nestingOptions.value.warehouseId) {
+            return `WAREHOUSE:${nestingOptions.value.warehouseId}`;
+        }
+        return 'VIRTUAL';
+    },
+    set(value) {
+        selectedInventoryToAdd.value = null;
+        if (value === 'VIRTUAL') {
+            nestingOptions.value.materialMode = 'VIRTUAL';
+            return;
+        }
+        const warehouseId = value?.replace('WAREHOUSE:', '');
+        if (!warehouseId) return;
+        nestingOptions.value.materialMode = 'WAREHOUSE';
+        nestingOptions.value.warehouseId = warehouseId;
+        loadWarehouseInventory();
+    }
+});
 
 const formatInventorySpecs = (entity = {}) => {
     const specs = entity.specs || entity.data?.specs || {};
@@ -473,12 +520,14 @@ const selectedMaterialPool = computed(() => (
 ));
 const selectedStockSizeKeys = computed(() => Array.from(new Set(selectedMaterialPool.value.map(stockSizeKey).filter(Boolean))));
 const selectedStockSizeConflict = computed(() => selectedStockSizeKeys.value.length > 1);
-const selectedStockSummary = computed(() => {
-    if (!selectedMaterialPool.value.length || selectedStockSizeConflict.value) return '';
-    const available = selectedMaterialPool.value.reduce((sum, item) => sum + (item.available || 1), 0);
-    const size = selectedStockSizeKeys.value[0] || t('common.notAvailable');
-    return t('nesting.selectedStockSummary', { count: available, size });
+const selectedInventory = computed(() => nestingOptions.value.inventoryItems
+    .map(uniqueId => availableInventory.value.find(item => item.uniqueId === uniqueId))
+    .filter(Boolean));
+const unselectedInventoryOptions = computed(() => {
+    const selectedIds = new Set(nestingOptions.value.inventoryItems);
+    return availableInventory.value.filter(item => !selectedIds.has(item.uniqueId));
 });
+const virtualSheetLabel = computed(() => `${nestingOptions.value.virtualWidth || 0} x ${nestingOptions.value.virtualLength || 0} mm`);
 const inventoryCardComponent = (item = {}) => ({
     PILE: MaterialPileCard,
     SHEET: SheetCard,
@@ -490,14 +539,15 @@ const inventoryCardProps = (item = {}) => {
     if (item.type === 'REMNANT') return { remnant: item.entity };
     return {};
 };
-const isInventorySelected = (uniqueId) => nestingOptions.value.inventoryItems.includes(uniqueId);
-const toggleInventoryItem = (uniqueId) => {
-    const items = nestingOptions.value.inventoryItems;
-    if (items.includes(uniqueId)) {
-        nestingOptions.value.inventoryItems = items.filter(item => item !== uniqueId);
-        return;
+const addSelectedInventoryItem = () => {
+    if (!selectedInventoryToAdd.value) return;
+    if (!nestingOptions.value.inventoryItems.includes(selectedInventoryToAdd.value)) {
+        nestingOptions.value.inventoryItems = [...nestingOptions.value.inventoryItems, selectedInventoryToAdd.value];
     }
-    nestingOptions.value.inventoryItems = [...items, uniqueId];
+    selectedInventoryToAdd.value = null;
+};
+const removeInventoryItem = (uniqueId) => {
+    nestingOptions.value.inventoryItems = nestingOptions.value.inventoryItems.filter(item => item !== uniqueId);
 };
 
 const newEntry = ref({
@@ -698,6 +748,7 @@ const loadWarehouseInventory = async () => {
         ];
         const availableIds = new Set(availableInventory.value.map(item => item.uniqueId));
         nestingOptions.value.inventoryItems = nestingOptions.value.inventoryItems.filter(id => availableIds.has(id));
+        if (!availableIds.has(selectedInventoryToAdd.value)) selectedInventoryToAdd.value = null;
     } catch (e) { console.error(e); }
 };
 
