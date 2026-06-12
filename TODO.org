@@ -119,6 +119,26 @@
        multiple deterministic OpenCV candidates per preset, ranks them, returns
        diagnostics, and retries task claiming while the app warms up.
 
+     [2026-06-12] Add optional SAM2 and GroundingDINO capture providers
+     Files changed: workers/geometry-capture/main.py,
+       workers/geometry-capture/model_providers.py,
+       workers/geometry-capture/Dockerfile,
+       workers/geometry-capture/requirements-ml.txt,
+       docker-compose.dev.yml, docker-compose.local.yml,
+       server/features/geometry-captures/service.js,
+       components/entities/GeometryCapture/GeometryCaptureDetail.vue,
+       pages/geometry-captures/index.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: workers/geometry-capture/README.md,
+       components/entities/GeometryCapture/README.md, workers/README.md,
+       TODO.org
+     Notes: Added model-backed detector presets for both remnant and facade
+       captures. SAM2 automatic masks can propose outer geometry, while
+       GroundingDINO+SAM2 uses text-prompted boxes for facade/window or
+       remnant/hole masks before the existing polygon cleanup/scaling path.
+       Model dependencies are opt-in through `GEOMETRY_CAPTURE_ML=1`; missing
+       model providers fall back to OpenCV and emit revision diagnostics.
+
 * WAITING Core Project Route Workflow Fixes
   :PROPERTIES:
   :ID: core-project-route-workflow-fixes

@@ -18,6 +18,9 @@ Entity card and detail surfaces for `geometry_capture` records.
 - Expects `data.revisions[]` and `data.activeRevisionId` when recalculation is
   available. The detail surface can queue a new preset-based recalculation and
   reactivate older successful revisions.
+- Preset options include OpenCV, SAM2 automatic mask, and GroundingDINO+SAM2
+  variants for both remnant and facade captures. Model-backed presets may fall
+  back to OpenCV when the worker image is not built with model dependencies.
 - Confirmation is not a generic status button. It calls the capture confirm API
   because remnant confirmation creates a `remnant` entity while facade
   confirmation only accepts a draft vector capture.
