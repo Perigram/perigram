@@ -8,7 +8,7 @@ import Divider from 'primevue/divider';
 import { computed } from 'vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
@@ -58,9 +58,9 @@ const CATALOG_FIELDS = [
       <Divider />
       <div v-if="catalog.lineage?.manufacturerId" class="flex items-center justify-between gap-4">
         <small class="text-muted-color">{{ $t('requisition.manufacturer') }}</small>
-        <TraceLink type="organization" :id="catalog.lineage.manufacturerId" />
+        <EntityInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
       </div>
-      <DataBlock :entity="catalog" :fields="CATALOG_FIELDS" />
+      <DataBlock entity-type="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
       <template #footer>
         <div class="flex justify-end gap-2" @click.stop>
           <Button v-if="authStore.can('catalogs', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="$emit('edit', catalog)" />

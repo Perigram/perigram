@@ -1,5 +1,6 @@
 import { defineEventHandler, readBody, getQuery } from 'h3';
 import { requireAuth } from '../../utils/permissions';
+import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-redaction.js';
 import * as catalogService from '../../features/catalogs/service';
 
 export default defineEventHandler(async (event) => {
@@ -7,12 +8,14 @@ export default defineEventHandler(async (event) => {
   
   if (event.req.method === 'GET') {
     const query = getQuery(event);
-    return await catalogService.list(auth.userId, auth.organizationId, auth.role, auth, query);
+    const catalogs = await catalogService.list(auth.userId, auth.organizationId, auth.role, auth, query);
+    return serializeManyForAccess('catalog', catalogs, auth);
   }
   
   if (event.req.method === 'POST') {
     const body = await readBody(event);
-    return await catalogService.create(body, auth.userId, auth.organizationId, auth.role, auth);
+    const catalog = await catalogService.create(body, auth.userId, auth.organizationId, auth.role, auth);
+    return serializeForAccess('catalog', catalog, auth);
   }
   
   return { error: 'Method not allowed' };

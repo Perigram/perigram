@@ -13,7 +13,7 @@
         </p>
       </template>
       <Divider />
-      <DataBlock :entity="material" :fields="FIELDS" />
+      <DataBlock entity-type="material" :entity="material" :fields="FIELDS" />
     </EntityCard>
   </div>
 </template>

@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="warehouse" entity-type="warehouse" :variant="variant" class="card-interactive" :show-trace="false" :show-status="false">
+    <EntityCard :entity="warehouse" entity-type="warehouse" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-building"></i>
       </template>
@@ -17,7 +17,7 @@
         </div>
       </template>
       <Divider />
-      <DataBlock :entity="warehouse" :fields="FIELDS" />
+      <DataBlock entity-type="warehouse" :entity="warehouse" :fields="FIELDS" />
     </EntityCard>
   </div>
 </template>

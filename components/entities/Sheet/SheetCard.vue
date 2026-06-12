@@ -2,12 +2,13 @@
 /**
  * SheetCard - v24 Standardized
  */
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import { useEntity } from '~/composables/useEntity';
 
 const props = defineProps({
   sheet: { type: Object, required: true },
@@ -18,6 +19,33 @@ const warehouseId = computed(() => props.sheet.lineage?.warehouseId || null);
 const pileId = computed(() => props.sheet.lineage?.pileId || null);
 const runId = computed(() => props.sheet.lineage?.runId || null);
 const thickness = computed(() => props.sheet.specs?.sheetThickness || props.sheet.data?.specs?.sheetThickness || null);
+const warehouse = ref(null);
+const pile = ref(null);
+const run = ref(null);
+const warehouseEntity = useEntity('warehouse');
+const pileEntity = useEntity('materialPile');
+const runEntity = useEntity('nestingRun');
+
+watch(warehouseId, async (id) => {
+  warehouse.value = null;
+  const normalizedId = id?.toString?.() || id;
+  if (!normalizedId) return;
+  warehouse.value = await warehouseEntity.fetch(normalizedId).catch(() => null);
+}, { immediate: true });
+
+watch(pileId, async (id) => {
+  pile.value = null;
+  const normalizedId = id?.toString?.() || id;
+  if (!normalizedId) return;
+  pile.value = await pileEntity.fetch(normalizedId).catch(() => null);
+}, { immediate: true });
+
+watch(runId, async (id) => {
+  run.value = null;
+  const normalizedId = id?.toString?.() || id;
+  if (!normalizedId) return;
+  run.value = await runEntity.fetch(normalizedId).catch(() => null);
+}, { immediate: true });
 </script>
 
 <template>
@@ -33,22 +61,22 @@ const thickness = computed(() => props.sheet.specs?.sheetThickness || props.shee
         </div>
       </template>
       <template #compact-content>
-        <SpecsBlock :entity="sheet" variant="compact" />
+        <SpecsBlock entity-type="sheet" :entity="sheet" variant="compact" />
       </template>
       <div class="flex flex-col gap-3">
         <Divider />
-        <SpecsBlock :entity="sheet" />
-        <div v-if="warehouseId" class="flex items-center justify-between gap-4">
+        <SpecsBlock entity-type="sheet" :entity="sheet" />
+        <div v-if="warehouse" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
-          <TraceLink type="warehouse" :id="warehouseId" />
+          <EntityInlineRef type="warehouse" :entity="warehouse" />
         </div>
-        <div v-if="pileId" class="flex items-center justify-between gap-4">
+        <div v-if="pile" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.materialPile') }}</small>
-          <TraceLink type="material_pile" :id="pileId" />
+          <EntityInlineRef type="materialPile" :entity="pile" />
         </div>
-        <div v-if="runId" class="flex items-center justify-between gap-4">
+        <div v-if="run" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.nestingRun') }}</small>
-          <TraceLink type="nesting_run" :id="runId" />
+          <EntityInlineRef type="nestingRun" :entity="run" />
         </div>
       </div>
     </EntityCard>

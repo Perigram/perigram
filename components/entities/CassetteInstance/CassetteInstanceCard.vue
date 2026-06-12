@@ -5,21 +5,30 @@
         <i class="pi pi-qrcode"></i>
       </template>
       <template #compact-content>
-        <div v-if="designId || queueId" class="mt-3 flex flex-wrap gap-2 text-sm">
-          <TraceLink v-if="designId" type="cassetteDesign" :id="designId" />
-          <TraceLink v-if="queueId" type="queue" :id="queueId" />
+        <div class="mt-3 flex flex-col gap-3">
+          <CassetteThumbnail v-if="designIdValue" :cassette="design" :cassette-id="designIdValue" />
+          <div v-if="design || template || queueId" class="flex flex-wrap gap-2 text-sm">
+            <EntityInlineRef v-if="design" type="cassetteDesign" :entity="design" />
+            <EntityInlineRef v-if="template" type="cassetteTemplate" :entity="template" />
+            <EntityInlineRef v-if="queue" type="queue" :entity="queue" />
+          </div>
         </div>
       </template>
-      <Divider />
       <div class="flex flex-col gap-3">
-        <DataBlock :entity="instance" :fields="INSTANCE_FIELDS" />
-        <div v-if="designId" class="flex justify-between items-center gap-4">
+        <CassetteThumbnail v-if="designIdValue" :cassette="design" :cassette-id="designIdValue" />
+        <Divider />
+        <DataBlock entity-type="cassetteInstance" :entity="instance" :fields="INSTANCE_FIELDS" />
+        <div v-if="design" class="flex justify-between items-center gap-4">
           <small>{{ $t('cassette.design') }}</small>
-          <TraceLink type="cassetteDesign" :id="designId" />
+          <EntityInlineRef type="cassetteDesign" :entity="design" />
         </div>
-        <div v-if="queueId" class="flex justify-between items-center gap-4">
+        <div v-if="template" class="flex justify-between items-center gap-4">
+          <small>{{ $t('entities.cassetteTemplate') }}</small>
+          <EntityInlineRef type="cassetteTemplate" :entity="template" />
+        </div>
+        <div v-if="queue" class="flex justify-between items-center gap-4">
           <small>{{ $t('entities.queue') }}</small>
-          <TraceLink type="queue" :id="queueId" />
+          <EntityInlineRef type="queue" :entity="queue" />
         </div>
       </div>
     </EntityCard>
@@ -30,11 +39,13 @@
 /**
  * Cassette Instance View Component - v24 Standardized
  */
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Divider from 'primevue/divider';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import { useEntity } from '~/composables/useEntity';
 
 const props = defineProps({
   instance: { type: Object, required: true },
@@ -42,7 +53,35 @@ const props = defineProps({
 });
 
 const designId = computed(() => props.instance.lineage?.cassetteDesignId || props.instance.lineage?.designId || null);
+const designIdValue = computed(() => designId.value?.toString?.() || designId.value || '');
 const queueId = computed(() => props.instance.lineage?.queueId || null);
+const design = ref(null);
+const template = ref(null);
+const queue = ref(null);
+const designEntity = useEntity('cassetteDesign');
+const templateEntity = useEntity('cassetteTemplate');
+const queueEntity = useEntity('queue');
+
+watch(designId, async (id) => {
+  design.value = null;
+  template.value = null;
+  const normalizedId = id?.toString?.() || id;
+  if (!normalizedId) return;
+  const loadedDesign = await designEntity.fetch(normalizedId, { silent: true }).catch(() => null);
+  design.value = loadedDesign;
+  const templateId = loadedDesign?.lineage?.templateId || loadedDesign?.data?.templateId || null;
+  const normalizedTemplateId = templateId?.toString?.() || templateId;
+  if (normalizedTemplateId) {
+    template.value = await templateEntity.fetch(normalizedTemplateId, { silent: true }).catch(() => null);
+  }
+}, { immediate: true });
+
+watch(queueId, async (id) => {
+  queue.value = null;
+  const normalizedId = id?.toString?.() || id;
+  if (!normalizedId) return;
+  queue.value = await queueEntity.fetch(normalizedId, { silent: true }).catch(() => null);
+}, { immediate: true });
 
 const INSTANCE_FIELDS = [
   { path: 'identity.reference', i18n: 'common.reference' }

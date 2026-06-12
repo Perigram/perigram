@@ -1,5 +1,6 @@
 import * as queuesService from '../../../features/queues/service.js';
 import { requireAuth } from '../../../utils/permissions.js';
+import { serializeManyForAccess } from '../../../utils/entity-redaction.js';
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);
@@ -9,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const runId = query.runId;
   
-  return await queuesService.getArtifacts(
+  const artifacts = await queuesService.getArtifacts(
     id, 
     auth.userId,
     auth.organizationId,
@@ -17,4 +18,5 @@ export default defineEventHandler(async (event) => {
     auth,
     runId
   );
+  return serializeManyForAccess('artifact', artifacts, auth);
 });

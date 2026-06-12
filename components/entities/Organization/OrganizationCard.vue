@@ -15,7 +15,7 @@
       </template>
       <Divider />
       <div class="flex flex-col gap-2">
-        <DataBlock :entity="organization" :fields="ORGANIZATION_FIELDS" />
+        <DataBlock entity-type="organization" :entity="organization" :fields="ORGANIZATION_FIELDS" />
         <div v-if="createdAt" class="flex justify-between items-center">
           <small>{{ $t('common.created') }}</small>
           <span>{{ createdAt }}</span>

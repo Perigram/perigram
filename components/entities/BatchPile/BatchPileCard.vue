@@ -1,6 +1,6 @@
 <template>
   <div>
-    <EntityCard :entity="pile" entity-type="material_pile" :variant="variant" class="card-interactive" :show-status="false">
+    <EntityCard :entity="pile" entity-type="material_pile" :variant="variant" :show-status="false">
       <template #before-identity>
         <i class="pi pi-box"></i>
       </template>
@@ -16,11 +16,11 @@
       <Divider />
       <div class="flex flex-col gap-4">
         <BatchPileSummary :pile="pile" />
-        <SpecsBlock :entity="pile" />
-        <DataBlock :entity="pile" :fields="BATCH_PILE_FIELDS" />
+        <SpecsBlock entity-type="batchPile" :entity="pile" />
+        <DataBlock entity-type="batchPile" :entity="pile" :fields="BATCH_PILE_FIELDS" />
         <div v-if="requisitionId" class="flex flex-col gap-1 text-sm">
           <small class="text-muted-color">{{ $t('entities.requisition') }}</small>
-          <TraceLink type="requisition" :id="requisitionId" />
+          <EntityInlineRef type="requisition" :id="requisitionId" />
         </div>
       </div>
     </EntityCard>
@@ -34,7 +34,7 @@ import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import BatchPileSummary from '~/components/entities/BatchPile/BatchPileSummary.vue';
 
 const BATCH_PILE_FIELDS = [

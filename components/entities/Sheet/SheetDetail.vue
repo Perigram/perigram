@@ -1,7 +1,7 @@
 <template>
     <EntityPage :entity="sheet" entity-type="sheet" :status-actions="statusActions">
         <template #actions>
-            <Button icon="pi pi-qrcode" text />
+            <Button icon="pi pi-qrcode" text :aria-label="$t('common.printTag')" />
         </template>
 
         <Panel>
@@ -22,12 +22,12 @@
 
                 <!-- Physical Specs -->
                 <div class="lg:col-span-3">
-                    <SpecsBlock :entity="sheet" />
+                    <SpecsBlock entity-type="sheet" :entity="sheet" />
                 </div>
             </div>
         </Panel>
 
-        <div class="grid-details">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
             <div class="lg:col-span-3">
                  <Fieldset :legend="$t('sheets.physicalRepresentation')">
                     <div class="aspect-[16/9] border rounded flex items-center justify-center relative overflow-hidden">
@@ -43,6 +43,26 @@
             </div>
 
             <div class="flex flex-col gap-8">
+                <Panel
+                  v-if="warehouseId || pileId || runId"
+                  :header="$t('common.source')"
+                >
+                    <div class="flex flex-col gap-3">
+                        <div v-if="warehouseId" class="flex items-center justify-between gap-4">
+                            <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
+                            <EntityInlineRef type="warehouse" :id="warehouseId" />
+                        </div>
+                        <div v-if="pileId" class="flex items-center justify-between gap-4">
+                            <small class="text-muted-color">{{ $t('entities.materialPile') }}</small>
+                            <EntityInlineRef type="materialPile" :id="pileId" />
+                        </div>
+                        <div v-if="runId" class="flex items-center justify-between gap-4">
+                            <small class="text-muted-color">{{ $t('entities.nestingRun') }}</small>
+                            <EntityInlineRef type="nestingRun" :id="runId" />
+                        </div>
+                    </div>
+                </Panel>
+
                 <Panel :header="$t('common.history')">
                     <StatusHistory :entity="sheet" entity-type="sheet" />
                 </Panel>
@@ -60,6 +80,7 @@ import Button from 'primevue/button';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 
 const props = defineProps({
     sheet: { type: Object, required: true }
@@ -72,6 +93,9 @@ const sheetState = computed(() => props.sheet.status?.state || 'UNKNOWN');
 const sheetSpecs = computed(() => props.sheet.specs || props.sheet.data?.specs || {});
 const sheetWidth = computed(() => sheetSpecs.value.width || 0);
 const sheetLength = computed(() => sheetSpecs.value.length || 0);
+const warehouseId = computed(() => props.sheet.lineage?.warehouseId || null);
+const pileId = computed(() => props.sheet.lineage?.pileId || props.sheet.lineage?.materialPileId || null);
+const runId = computed(() => props.sheet.lineage?.runId || props.sheet.lineage?.nestingRunId || null);
 
 const statusActions = computed(() => {
     const actions = [];

@@ -20,7 +20,7 @@ const props = defineProps({
   sheetDesigns: { type: Array, default: () => [] }
 });
 
-const emit = defineEmits(['select', 'choose', 'delete', 'convert-to-physical', 'create-requisition']);
+const emit = defineEmits(['select', 'choose', 'delete', 'convert-to-physical']);
 
 const authStore = useAuthStore();
 const { t } = useI18n();
@@ -30,10 +30,11 @@ const canManage = computed(() => authStore.can('queues', 'edit'));
 const state = computed(() => props.run.status?.state || 'UNKNOWN');
 const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
 const results = computed(() => props.run.data?.results || {});
+const runId = computed(() => props.run._id?.toString());
+const runSheetDesignIds = computed(() => (props.run.data?.sheetDesignIds || []).map(String));
 const relatedSheetDesigns = computed(() => uniqueById([
-    ...props.sheetDesigns,
-    ...contextEntities('sheet_design').filter(design => design.lineage?.runId?.toString() === props.run._id?.toString()),
-    ...contextEntities('sheet_design').filter(design => (props.run.data?.sheetDesignIds || []).map(String).includes(design._id?.toString()))
+    ...props.sheetDesigns.filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value)),
+    ...contextEntities('sheet_design').filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value))
 ]));
 const RUN_FIELDS = [
     { path: 'data.results.sheetCount', i18n: 'results.sheets' },
@@ -59,6 +60,12 @@ function contextEntities(type) {
 
 function uniqueById(items) {
     return Array.from(new Map(items.filter(item => item?._id).map(item => [item._id.toString(), item])).values());
+}
+
+function isRunSheetDesign(design, runId, runSheetDesignIds = []) {
+    const designId = design?._id?.toString();
+    return design?.lineage?.runId?.toString() === runId ||
+        (designId && runSheetDesignIds.includes(designId));
 }
 
 function selectRun(event) {
@@ -88,7 +95,7 @@ function selectRun(event) {
       <Divider />
       <div class="flex flex-col gap-4">
         <div v-if="isComplete" class="flex flex-col gap-2">
-          <DataBlock :entity="run" :fields="RUN_FIELDS" />
+          <DataBlock entity-type="nestingRun" :entity="run" :fields="RUN_FIELDS" />
           <div v-if="relatedSheetDesigns.length" class="flex flex-col gap-2">
             <small class="text-muted-color">{{ $t('nestingRun.sheetDesigns') }}</small>
             <div class="flex flex-wrap gap-2">

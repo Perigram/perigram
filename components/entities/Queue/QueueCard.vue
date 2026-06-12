@@ -34,7 +34,18 @@ const handleCardClick = (event) => {
 
 const jobItems = computed(() => props.queue.data?.job?.items || []);
 const materialPool = computed(() => props.queue.data?.job?.materialPool || []);
+const materialConsumption = computed(() => props.queue.data?.materialConsumption?.sources || []);
 const totalQuantity = computed(() => jobItems.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0));
+const materialPoolSheetCount = computed(() => materialPool.value.reduce((sum, item) => sum + Number(item.available || item.availableCount || item.quantity || item.count || 1), 0));
+const consumedSheetCount = computed(() => materialConsumption.value.reduce((sum, item) => sum + Number(item.count || 0), 0));
+const materialPoolSizes = computed(() => Array.from(new Set(materialPool.value.map(item => {
+    const dimensions = item.dimensions || item.specsData || {};
+    const width = Number(dimensions.width || 0);
+    const length = Number(dimensions.length || dimensions.height || 0);
+    if (width > 0 && length > 0) return `${width}x${length}`;
+    const match = String(item.specs || '').match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
+    return match ? `${match[1]}x${match[2]}` : '';
+}).filter(Boolean))));
 
 const statusActions = computed(() => {
     if (!authStore.can('queues', 'delete')) return [];
@@ -59,6 +70,8 @@ const statusActions = computed(() => {
             <div class="flex flex-wrap gap-2">
                 <Tag :value="`${jobItems.length} ${$t('queue.jobItems')}`" severity="secondary" size="small" />
                 <Tag v-if="totalQuantity" :value="`${totalQuantity} ${$t('common.units')}`" severity="info" size="small" />
+                <Tag v-if="materialPoolSheetCount" :value="`${materialPoolSheetCount} ${$t('results.sheets')}`" severity="success" size="small" />
+                <Tag v-if="consumedSheetCount" :value="`${consumedSheetCount} ${$t('queue.consumed')}`" severity="warn" size="small" />
             </div>
         </template>
         <template #compact-content>
@@ -70,10 +83,13 @@ const statusActions = computed(() => {
 
         <div class="flex flex-col gap-3">
             <Divider />
-            <DataBlock :entity="queue" :fields="queueSummaryFields" />
+            <DataBlock entity-type="queue" :entity="queue" :fields="queueSummaryFields" />
             <div v-if="materialPool.length" class="flex items-center justify-between gap-4">
                 <small class="text-muted-color">{{ $t('nesting.inventorySources') }}</small>
-                <span class="font-medium">{{ materialPool.length }}</span>
+                <span class="font-medium text-right">
+                    {{ materialPool.length }}
+                    <template v-if="materialPoolSizes.length"> · {{ materialPoolSizes.join(', ') }}</template>
+                </span>
             </div>
         </div>
 

@@ -6,6 +6,11 @@ export { cncHookContracts } from './hooks.js';
 export { cncSummaries, cncFrontendEntities } from './summaries.js';
 export { cncAttachmentKinds } from './attachment-kinds.js';
 export {
+  cncEntityFieldAccess,
+  getEntityFieldAccessPolicy,
+  normalizeFieldAccessEntityType
+} from './field-access.js';
+export {
   cncStatusUi,
   cncDesignSystemVariants,
   cncDesignSystemGroups,
@@ -22,6 +27,7 @@ import { cncTasks } from './tasks.js';
 import { cncHookContracts } from './hooks.js';
 import { cncFrontendEntities, cncSummaries } from './summaries.js';
 import { cncAttachmentKinds } from './attachment-kinds.js';
+import { cncEntityFieldAccess } from './field-access.js';
 import { cncDesignSystem, cncStatusUi, cncUiSurfaces } from './ui.js';
 
 export const cncDomain = {
@@ -35,6 +41,7 @@ export const cncDomain = {
   hooks: cncHookContracts,
   summaries: cncSummaries,
   attachmentKinds: cncAttachmentKinds,
+  fieldAccess: cncEntityFieldAccess,
   designSystem: cncDesignSystem,
   uiSurfaces: cncUiSurfaces,
   ui: {

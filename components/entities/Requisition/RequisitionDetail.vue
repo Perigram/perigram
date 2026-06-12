@@ -1,7 +1,7 @@
 <template>
     <EntityPage :entity="requisition" entity-type="requisition" :status-actions="statusActions">
 
-        <div class="grid-details">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
             <div class="lg:col-span-3 flex flex-col gap-8">
                 <!-- Items List -->
                 <div class="flex flex-col gap-4">
@@ -11,7 +11,7 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Panel v-for="(item, idx) in requisition.items" :key="idx" class="card-interactive">
+                        <Panel v-for="(item, idx) in requisition.items" :key="idx">
                             <template #header>
                                 <div class="flex justify-between items-center">
                                     <div class="flex items-center gap-2">
@@ -22,7 +22,7 @@
                                 </div>
                             </template>
                             <Divider />
-                            <SpecsBlock :entity="item" />
+                            <SpecsBlock entity-type="requisition" :entity="item" :access-entity="requisition" />
                             <Divider />
                             <div class="flex justify-between items-center">
                                 <div class="flex flex-col">

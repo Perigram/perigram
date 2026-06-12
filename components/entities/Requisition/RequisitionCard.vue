@@ -10,7 +10,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const REQUISITION_FIELDS = [
@@ -65,19 +65,19 @@ const statusActions = computed(() => {
       </template>
       <div class="flex flex-col gap-3">
         <Divider />
-        <DataBlock :entity="requisition" :fields="REQUISITION_FIELDS" />
+        <DataBlock entity-type="requisition" :entity="requisition" :fields="REQUISITION_FIELDS" />
         <div v-if="manufacturerId" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('requisition.manufacturer') }}</small>
-          <TraceLink type="organization" :id="manufacturerId" />
+          <EntityInlineRef type="organization" :id="manufacturerId" />
         </div>
         <div v-if="projectId" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('common.project') }}</small>
-          <TraceLink type="project" :id="projectId" />
+          <EntityInlineRef type="project" :id="projectId" />
         </div>
       </div>
       <template #footer v-if="variant === 'card'">
         <div class="flex justify-end gap-2" @click.stop>
-            <Button v-if="authStore.can('requisitions', 'edit')" icon="pi pi-pencil" text rounded size="small" @click="emit('edit', requisition)" />
+            <Button v-if="authStore.can('requisitions', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="emit('edit', requisition)" />
         </div>
       </template>
     </EntityCard>

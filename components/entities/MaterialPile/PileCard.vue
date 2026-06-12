@@ -5,12 +5,13 @@
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import MaterialSummary from '~/components/entities/MaterialPile/MaterialSummary.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { useAuthStore } from '~/stores/auth';
+import { useEntity } from '~/composables/useEntity';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const props = defineProps({
@@ -30,18 +31,37 @@ const stock = computed(() => props.pile.data?.stock || {});
 const remaining = computed(() => Math.max((stock.value.total || 0) - (stock.value.used || 0), 0));
 const warehouseId = computed(() => props.pile.lineage?.warehouseId || null);
 const catalogId = computed(() => props.pile.lineage?.catalogId || null);
+const serial = computed(() => props.pile.identity?.serial || props.pile.data?.serial || '');
+const warehouse = ref(null);
+const catalog = ref(null);
+const warehouseEntity = useEntity('warehouse');
+const catalogEntity = useEntity('catalog');
+
+watch(warehouseId, async (id) => {
+  warehouse.value = null;
+  const normalizedId = id?.toString?.() || id;
+  if (!normalizedId) return;
+  warehouse.value = await warehouseEntity.fetch(normalizedId).catch(() => null);
+}, { immediate: true });
+
+watch(catalogId, async (id) => {
+  catalog.value = null;
+  const normalizedId = id?.toString?.() || id;
+  if (!normalizedId) return;
+  catalog.value = await catalogEntity.fetch(normalizedId).catch(() => null);
+}, { immediate: true });
 </script>
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <EntityCard :entity="pile" entity-type="material_pile" :variant="variant" :show-status="false">
+    <EntityCard :entity="pile" entity-type="material_pile" :variant="variant">
       <template #before-identity>
         <i class="pi pi-database"></i>
       </template>
       <template #subtitle>
         <div class="flex flex-wrap gap-2">
           <Tag v-if="stock.total" :value="`${remaining} / ${stock.total}`" severity="success" size="small" />
-          <Tag v-if="pile.identity?.serial" :value="pile.identity.serial" severity="secondary" size="small" />
+          <Tag v-if="serial" :value="serial" severity="secondary" size="small" />
         </div>
       </template>
       <template #compact-content>
@@ -50,20 +70,21 @@ const catalogId = computed(() => props.pile.lineage?.catalogId || null);
       <div class="flex flex-col gap-3">
         <Divider />
         <MaterialSummary :pile="pile" />
-        <SpecsBlock :entity="pile" />
-        <div v-if="warehouseId" class="flex items-center justify-between gap-4">
+        <SpecsBlock entity-type="materialPile" :entity="pile" />
+        <div v-if="warehouse" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
-          <TraceLink type="warehouse" :id="warehouseId" />
+          <EntityInlineRef type="warehouse" :entity="warehouse" />
         </div>
-        <div v-if="catalogId" class="flex items-center justify-between gap-4">
+        <div v-if="catalog" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.catalog') }}</small>
-          <TraceLink type="catalog" :id="catalogId" />
+          <EntityInlineRef type="catalog" :entity="catalog" />
         </div>
       </div>
       <template #footer v-if="variant === 'card'">
         <div class="flex justify-end gap-2" @click.stop>
-            <Button v-if="authStore.can('materials', 'edit')" icon="pi pi-pencil" text rounded size="small" @click="emit('edit', pile)" />
-            <Button v-if="authStore.can('materials', 'read')" icon="pi pi-search" text rounded size="small" @click="emit('view', pile)" />
+            <Button v-if="authStore.can('materials', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="emit('edit', pile)" />
+            <Button v-if="authStore.can('materials', 'read')" icon="pi pi-search" text rounded size="small" :aria-label="$t('common.open')" @click="emit('view', pile)" />
+            <Button v-if="authStore.can('materials', 'delete')" icon="pi pi-trash" text rounded severity="danger" size="small" :aria-label="$t('common.delete')" @click="emit('delete', pile)" />
         </div>
       </template>
     </EntityCard>

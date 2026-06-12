@@ -7,12 +7,16 @@
       <Divider />
       <div class="grid grid-cols-1 gap-4">
         <CassetteThumbnail :cassette="template" />
-        <DataBlock :entity="templateForDisplay" :fields="TEMPLATE_FIELDS" />
+        <DataBlock entity-type="cassetteTemplate" :entity="templateForDisplay" :fields="TEMPLATE_FIELDS" />
+        <div v-if="geometryRevisionId" class="flex items-center justify-between gap-4">
+          <small class="text-muted-color">{{ $t('revision.currentGeometry') }}</small>
+          <EntityInlineRef type="entityRevision" :id="geometryRevisionId" />
+        </div>
       </div>
       <template #footer>
         <div class="flex gap-2">
           <Button :label="$t('cassetteInstance.create')" icon="pi pi-plus" text size="small" class="flex-1" @click="emit('create-instance', template)" />
-          <Button icon="pi pi-download" text size="small" @click="emit('download', template)" />
+          <Button icon="pi pi-download" text size="small" :aria-label="$t('common.download')" @click="emit('download', template)" />
         </div>
       </template>
     </EntityCard>
@@ -29,6 +33,7 @@ import { computed } from 'vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 
 const TEMPLATE_FIELDS = [
     { path: 'data.parameters.length', i18n: 'cassette.parametersTitle' }
@@ -46,6 +51,7 @@ const templateParameters = computed(() => {
     const raw = props.template.data?.parameters || definition.value.parameters || [];
     return Array.isArray(raw) ? raw : Object.keys(raw);
 });
+const geometryRevisionId = computed(() => props.template.data?.revisions?.geometry?.currentId || null);
 const templateForDisplay = computed(() => ({
     ...props.template,
     data: {

@@ -6,7 +6,7 @@ import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 
 const props = defineProps({
   artifact: { type: Object, required: true },
@@ -68,14 +68,14 @@ const onPreviewKeydown = (event) => {
       </template>
       <Divider />
       <div class="flex flex-col gap-3">
-        <DataBlock :entity="artifact" :fields="ARTIFACT_FIELDS" />
+        <DataBlock entity-type="artifact" :entity="artifact" :fields="ARTIFACT_FIELDS" />
         <div v-if="queueId" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.queue') }}</small>
-          <TraceLink type="queue" :id="queueId" />
+          <EntityInlineRef type="queue" :id="queueId" />
         </div>
         <div v-if="runId" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.nestingRun') }}</small>
-          <TraceLink type="nesting_run" :id="runId" />
+          <EntityInlineRef type="nestingRun" :id="runId" />
         </div>
       </div>
     </EntityCard>

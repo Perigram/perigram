@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="tool" entity-type="tool_profile" :variant="variant" class="card-interactive" :show-trace="false" :show-status="false">
+    <EntityCard :entity="tool" entity-type="tool_profile" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-wrench"></i>
       </template>
@@ -14,7 +14,7 @@
         <div v-if="angle" class="mt-3 text-sm text-muted-color">{{ $t('toolProfile.angle') }}: {{ angle }}°</div>
       </template>
       <Divider />
-      <DataBlock :entity="tool" :fields="FIELDS" />
+      <DataBlock entity-type="toolProfile" :entity="tool" :fields="FIELDS" />
     </EntityCard>
   </div>
 </template>

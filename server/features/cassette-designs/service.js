@@ -1,5 +1,6 @@
 import * as repository from './repository.js';
 import * as queuesRepository from '../queues/repository.js';
+import * as entityRevisionsService from '../entity-revisions/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import {
@@ -13,15 +14,30 @@ import { mapLineageQuery } from '../../utils/query.js';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { CassetteDesign } from './model.js';
+import { generateRandomString } from '../../utils/strings.js';
+import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-redaction.js';
 
 /**
  * Cassette Designs Service - v24 Standardized
  */
 
 
-function toDTO(design) {
+function toDTO(design, userPermissions = null) {
   if (!design) return null;
-  return new CassetteDesign(design).toJSON();
+  return serializeForAccess('cassetteDesign', new CassetteDesign(design), userPermissions);
+}
+
+function hasCassetteDesignPermission(userPermissions, lineage, level) {
+  const user = { memberships: userPermissions?.memberships || [] };
+  return hasLineagePermission(user, lineage, 'cassettes', level) ||
+    hasLineagePermission(user, lineage, 'projects', level);
+}
+
+async function derivedFromTemplate(templateId, parameters = {}, explicitDerivedFrom = null) {
+  if (explicitDerivedFrom) return explicitDerivedFrom;
+  if (!templateId) return null;
+  const revision = await entityRevisionsService.getCurrentForEntity('cassette', templateId, 'geometry');
+  return revision ? entityRevisionsService.derivedFromRevision(revision, parameters) : null;
 }
 
 export async function createFromQueue(queueId, data, userId, userRole, userPermissions) {
@@ -51,7 +67,35 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
         data: data.geometryData || null,
         dxfId: data.dxfId ? toFlexibleId(data.dxfId) : null
       },
-      parameters: data.parameters || {}
+      parameters: data.parameters || {},
+      derivedFrom: await derivedFromTemplate(data.templateId, data.parameters || {}, data.derivedFrom)
+    })
+  };
+
+  const created = await repository.create(designData);
+  return toDTO(created, userPermissions);
+}
+
+export async function createFromTemplateUpload(data, userId) {
+  const origin = createStatus('ACTIVE', userId, { note: 'Initial design from upload' });
+  const slug = data.slug || `cassette-design-${generateRandomString(10)}`;
+  const designData = {
+    identity: createIdentity(data.name || 'Cassette Design', slug),
+    origin,
+    status: origin,
+    lineage: {
+      ...(data.lineage || {}),
+      templateId: toFlexibleId(data.templateId)
+    },
+    data: createData({
+      polygonParts: data.polygonParts || [],
+      layerData: data.layerData || [],
+      geometry: {
+        data: data.geometryData || null,
+        dxfId: data.dxfId ? toFlexibleId(data.dxfId) : null
+      },
+      parameters: data.parameters || {},
+      derivedFrom: await derivedFromTemplate(data.templateId, data.parameters || {}, data.derivedFrom)
     })
   };
 
@@ -65,11 +109,11 @@ export async function getById(id, userId, userRole, userPermissions) {
 
   const design = new CassetteDesign(raw);
 
-  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships }, design.lineage, 'projects', 'read')) {
+  if (userPermissions && !hasCassetteDesignPermission(userPermissions, design.lineage, 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  return design.toJSON();
+  return serializeForAccess('cassetteDesign', design, userPermissions);
 }
 
 export async function getByTemplateId(templateId, userId, userOrg, userRole, userPermissions) {
@@ -79,7 +123,7 @@ export async function getByTemplateId(templateId, userId, userOrg, userRole, use
   };
 
   const designs = await repository.find(filter);
-  return toDTO(designs[0]) || null;
+  return toDTO(designs[0], userPermissions) || null;
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
@@ -97,7 +141,7 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
 
   const finalFilter = { ...lineageFilter, ...processedFilter };
   const designs = await repository.find(finalFilter);
-  return designs.map(toDTO);
+  return serializeManyForAccess('cassetteDesign', designs.map(design => new CassetteDesign(design)), userPermissions);
 }
 
 export async function update(id, updates, userId, userRole, userPermissions) {
@@ -105,7 +149,7 @@ export async function update(id, updates, userId, userRole, userPermissions) {
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   const design = new CassetteDesign(raw);
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, design.lineage, 'projects', 'write')) {
+  if (!hasCassetteDesignPermission(userPermissions, design.lineage, 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -126,7 +170,7 @@ export async function update(id, updates, userId, userRole, userPermissions) {
 
   await repository.updateById(id, { identity: design.identity, data: designData });
   const updatedRaw = await repository.findById(id);
-  return toDTO(updatedRaw);
+  return toDTO(updatedRaw, userPermissions);
 }
 
 export async function remove(id, userId, userRole, userPermissions) {
@@ -134,7 +178,7 @@ export async function remove(id, userId, userRole, userPermissions) {
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   const design = new CassetteDesign(raw);
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, design.lineage, 'projects', 'admin')) {
+  if (!hasCassetteDesignPermission(userPermissions, design.lineage, 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 

@@ -30,7 +30,7 @@
  *
  * Usage:
  *   import { PEN_TEMPLATE_FIELDS } from '~/constants/entityFields'
- *   <DataBlock :entity="pen" :fields="PEN_TEMPLATE_FIELDS" />
+ *   <DataBlock entity-type="penTemplate" :entity="pen" :fields="PEN_TEMPLATE_FIELDS" />
  *
  * Fields schema: Array of { path, i18n, suffix?, prefix? }
  * - path: dot-notation path into entity (e.g. 'stroke.color')
@@ -39,18 +39,30 @@
  */
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useAuthStore } from '~/stores/auth';
+import { filterEntityFields } from '~/shared/entity-field-access.js';
 import { decorateDataValue, resolveDataPath } from '~/utils/data-display.js';
 
 const props = defineProps({
+    entityType: { type: String, required: true },
     entity: { type: Object, required: true },
+    accessEntity: { type: Object, default: null },
     fields: { type: Array, required: true },
     variant: { type: String, default: 'default' }
 });
 
 const { t } = useI18n();
+const authStore = useAuthStore();
+
+const policyFields = computed(() => filterEntityFields({
+    fields: props.fields,
+    permissions: authStore.activePermissions,
+    entity: props.accessEntity || props.entity,
+    entityType: props.entityType
+}));
 
 const visibleRows = computed(() =>
-    props.fields
+    policyFields.value
         .map(field => {
             const raw = resolveDataPath(props.entity, field.path);
             const display = decorateDataValue(raw, {

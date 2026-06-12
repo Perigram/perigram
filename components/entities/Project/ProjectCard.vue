@@ -2,7 +2,6 @@
 /**
  * ProjectCard - v24 Standardized
  */
-import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import { computed } from 'vue';
@@ -10,6 +9,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import NameEditPopover from '~/components/shared/NameEditPopover.vue';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const PROJECT_SUMMARY_FIELDS = [
@@ -19,10 +19,11 @@ const PROJECT_SUMMARY_FIELDS = [
 
 const props = defineProps({
   project: { type: Object, required: true },
-  variant: { type: String, default: 'card' }
+  variant: { type: String, default: 'card' },
+  renaming: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['view', 'edit', 'delete']);
+const emit = defineEmits(['view', 'rename', 'delete']);
 const authStore = useAuthStore();
 const { t } = useI18n();
 
@@ -70,19 +71,19 @@ const statusActions = computed(() => {
           <small class="text-muted-color">{{ $t('project.address') }}</small>
           <span class="font-medium text-right">{{ project.data.address }}</span>
         </div>
-        <DataBlock :entity="project" :fields="PROJECT_SUMMARY_FIELDS" />
+        <DataBlock entity-type="project" :entity="project" :fields="PROJECT_SUMMARY_FIELDS" />
       </div>
 
       <template #footer v-if="variant === 'card'">
         <div class="flex justify-end gap-2" @click.stop>
-          <Button
+          <NameEditPopover
             v-if="authStore.can('projects', 'edit')"
-            icon="pi pi-pencil"
-            text
-            rounded
-            size="small"
-            :aria-label="$t('common.edit')"
-            @click="$emit('edit', project)"
+            :model-value="project.identity?.name || ''"
+            :label="$t('project.name')"
+            :placeholder="$t('projects.enterName')"
+            :saving="renaming"
+            :aria-label="$t('project.rename')"
+            @save="(name, close) => $emit('rename', project, name, close)"
           />
         </div>
       </template>

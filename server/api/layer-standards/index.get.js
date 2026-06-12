@@ -4,17 +4,20 @@
  */
 
 import { service } from '~/server/features/layer-standards';
+import { requireAuth } from '~/server/utils/permissions.js';
+import { serializeManyForAccess } from '~/server/utils/entity-redaction.js';
 
 export default defineEventHandler(async (event) => {
-  const organizationId = event.context.auth?.organizationId || null;
+  const auth = requireAuth(event);
+  const organizationId = auth.organizationId || null;
   const standards = await service.getAll();
 
-  if (!organizationId) return standards;
+  if (!organizationId) return serializeManyForAccess('layerStandard', standards, auth);
 
   const orgOverrides = await service.getOverridesForOrg(organizationId);
   const overrideMap = Object.fromEntries(orgOverrides.map(o => [o.standardId.toString(), o.penId.toString()]));
 
-  return standards.map(s => {
+  const mergedStandards = standards.map(s => {
     const orgPenId = overrideMap[s._id?.toString()] || null;
     return {
       ...s,
@@ -25,4 +28,5 @@ export default defineEventHandler(async (event) => {
       }
     };
   });
+  return serializeManyForAccess('layerStandard', mergedStandards, auth);
 });

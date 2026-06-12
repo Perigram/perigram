@@ -7,7 +7,11 @@
       <Divider />
       <div class="grid grid-cols-1 gap-4">
         <CassetteThumbnail :cassette="cassette" />
-        <DataBlock :entity="cassetteForDisplay" :fields="FIELDS" />
+        <DataBlock entity-type="cassette" :entity="cassetteForDisplay" :fields="FIELDS" />
+        <div v-if="geometryRevisionId" class="flex items-center justify-between gap-4">
+          <small class="text-muted-color">{{ $t('revision.currentGeometry') }}</small>
+          <EntityInlineRef type="entityRevision" :id="geometryRevisionId" />
+        </div>
       </div>
     </EntityCard>
   </div>
@@ -19,6 +23,7 @@ import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 
 const FIELDS = [
   { path: 'data.parameters.length', i18n: 'cassette.parametersTitle' }
@@ -34,6 +39,7 @@ const parameterNames = computed(() => {
   const raw = props.cassette.data?.parameters || definition.value.parameters || [];
   return Array.isArray(raw) ? raw : Object.keys(raw);
 });
+const geometryRevisionId = computed(() => props.cassette.data?.revisions?.geometry?.currentId || null);
 const cassetteForDisplay = computed(() => ({
   ...props.cassette,
   data: {

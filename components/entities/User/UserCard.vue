@@ -1,6 +1,6 @@
 <template>
-  <div v-if="user" :class="[`variant-${variant}`]">
-    <EntityCard :entity="user" entity-type="user" :variant="variant" @click="handleCardClick" class="cursor-pointer" :show-trace="false" :show-status="false">
+  <div v-if="user" :class="[`variant-${variant}`]" class="cursor-pointer" @click="handleCardClick">
+    <EntityCard :entity="user" entity-type="user" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <Avatar :image="avatarUrl" :label="!avatarUrl ? avatarLabel : null" shape="circle" size="xlarge" />
       </template>
@@ -14,11 +14,11 @@
         <div v-if="email" class="mt-3 text-sm text-muted-color">{{ email }}</div>
       </template>
       <Divider />
-      <DataBlock :entity="user" :fields="USER_FIELDS" />
+      <DataBlock entity-type="user" :entity="user" :fields="USER_FIELDS" />
       <template #footer>
         <Divider />
         <div class="flex justify-center gap-2" @click.stop>
-          <Button v-if="authStore.can('users', 'edit')" icon="pi pi-pencil" text size="small" @click="$emit('edit', user)" />
+          <Button v-if="authStore.can('users', 'edit')" icon="pi pi-pencil" text size="small" :aria-label="$t('common.edit')" @click="$emit('edit', user)" />
         </div>
       </template>
     </EntityCard>
@@ -37,6 +37,7 @@ import { computed } from 'vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { useAuthStore } from '~/stores/auth';
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -57,7 +58,8 @@ const USER_FIELDS = [
   { path: 'identity.reference', i18n: 'common.reference' }
 ];
 
-const handleCardClick = () => {
+const handleCardClick = (event) => {
+    if (isInteractiveEventTarget(event)) return;
     emit('view', props.user);
 };
 
