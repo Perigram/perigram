@@ -418,6 +418,52 @@ export function createMockRemnant(overrides = {}) {
   };
 }
 
+export function createMockGeometryCapture(overrides = {}) {
+  const geometry = {
+    polygon: {
+      outer: [[0, 0], [1200, 0], [1180, 680], [80, 720], [0, 0]],
+      inner: [[[420, 180], [680, 180], [680, 360], [420, 360], [420, 180]]]
+    },
+    preview: {
+      viewBox: '-50 -50 1300 820',
+      layers: [
+        { name: 'capture.outer', standardCode: 'cut.outer', paths: ['M0 0 L1200 0 L1180 680 L80 720 Z'] },
+        { name: 'capture.holes', standardCode: 'cut.inner', paths: ['M420 180 L680 180 L680 360 L420 360 Z'] }
+      ]
+    }
+  };
+  return {
+    ...createEntity({
+      uid: 'geometry-capture-demo-001',
+      name: 'Captured remnant draft',
+      state: 'READY',
+      lineage: {
+        organizationId: MOCK_IDS.organizationId,
+        warehouseId: MOCK_IDS.warehouseId
+      },
+      specs: { width: 1200, height: 720, area: 0.8172 },
+      attachments: {
+        primary: createAttachmentEntry('CAPTURE_PHOTO', 'capture-photo-demo-001', 'remnant-photo.jpg', {
+          bucketName: 'capturePhotos',
+          mimeType: 'image/jpeg'
+        })
+      },
+      data: {
+        mode: 'REMNANT',
+        calibration: { mode: 'knownDimension', knownWidth: 1200 },
+        geometry,
+        extraction: {
+          status: 'READY',
+          confidence: 0.82,
+          diagnostics: ['outer_vertices:4', 'holes:1', 'scale_mode:knownDimension']
+        },
+        output: null
+      }
+    }),
+    ...overrides
+  };
+}
+
 export function createMockCatalog(overrides = {}) {
   const pricing = { pricePerSqm: 45, currency: 'USD' };
   const options = { sheetThicknesses: [3, 4, 6], foilThicknesses: [0.3, 0.5] };

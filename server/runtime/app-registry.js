@@ -9,6 +9,7 @@ import * as cassettesService from '~/server/features/cassettes/service.js';
 import * as catalogsService from '~/server/features/catalogs/service.js';
 import * as colorsService from '~/server/features/colors/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
+import * as geometryCapturesService from '~/server/features/geometry-captures/service.js';
 import * as layerStandardsService from '~/server/features/layer-standards/service.js';
 import * as materialsService from '~/server/features/materials/service.js';
 import * as materialPilesService from '~/server/features/material-piles/service.js';
@@ -78,6 +79,7 @@ const entityServices = {
   catalog: catalogsService,
   color: colorsService,
   entity_revision: entityRevisionsService,
+  geometry_capture: geometryCapturesService,
   layer_standard: layerStandardsService,
   material: materialsService,
   material_pile: materialPilesService,

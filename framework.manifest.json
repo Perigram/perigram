@@ -28,6 +28,15 @@
       }
     },
     {
+      "bucket": "capturePhotos",
+      "key": "CAPTURE_PHOTO",
+      "kind": "CAPTURE_PHOTO",
+      "mimeType": "image/*",
+      "preview": {
+        "mode": "image"
+      }
+    },
+    {
       "bucket": "nestDxf",
       "key": "LAYOUT_DXF",
       "kind": "LAYOUT_DXF",
@@ -470,6 +479,21 @@
         "labelKey": "entities.entityRevision",
         "propName": "revision",
         "status": "hidden",
+        "trace": true
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "components/entities/GeometryCapture/README.md",
+          "server/features/geometry-captures/README.md"
+        ],
+        "entityType": "geometry_capture",
+        "fieldPaths": [],
+        "group": "production",
+        "key": "geometryCapture",
+        "labelKey": "entities.geometryCapture",
+        "propName": "capture",
+        "status": "interactive",
         "trace": true
       },
       {
@@ -1038,6 +1062,20 @@
         "origin",
         "status",
         "attachments",
+        "data",
+        "specs"
+      ],
+      "collection": "geometry_captures",
+      "lineage": {},
+      "type": "geometry_capture"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
         "data"
       ],
       "collection": "layer_standards",
@@ -1446,6 +1484,12 @@
       "type": "entityRevision"
     },
     {
+      "collection": "geometry-captures",
+      "list": "/api/geometry-captures",
+      "single": "/api/geometry-captures/:id",
+      "type": "geometryCapture"
+    },
+    {
       "collection": "warehouses",
       "list": "/api/warehouses",
       "single": "/api/warehouses/:id",
@@ -1603,6 +1647,25 @@
       "outputs": [],
       "service": "artifacts",
       "tasks": []
+    },
+    {
+      "attachments": [],
+      "events": [],
+      "executor": {
+        "type": "worker",
+        "workerType": "geometry-capture"
+      },
+      "id": "vision.extractGeometry",
+      "inputs": [
+        "geometry_capture"
+      ],
+      "key": "visionExtractGeometry",
+      "label": "Extract geometry from capture photo",
+      "outputs": [
+        "geometry_capture"
+      ],
+      "service": "geometry-captures",
+      "tasks": []
     }
   ],
   "validations": {
@@ -1671,6 +1734,18 @@
       ],
       "transitionCount": 3,
       "type": "material_pile"
+    },
+    {
+      "initial": "DRAFT",
+      "states": [
+        "DRAFT",
+        "PROCESSING",
+        "READY",
+        "COMPLETE",
+        "FAILED"
+      ],
+      "transitionCount": 8,
+      "type": "geometry_capture"
     },
     {
       "initial": "AVAILABLE",

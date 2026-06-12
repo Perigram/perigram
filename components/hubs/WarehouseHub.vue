@@ -4,6 +4,15 @@
       <template #actions>
         <div class="flex flex-wrap gap-2">
           <Button
+            v-if="selectedWarehouse && authStore.can('materials', 'write')"
+            icon="pi pi-camera"
+            :label="$t('geometryCapture.newCapture')"
+            severity="secondary"
+            outlined
+            size="small"
+            @click="openRemnantCapture"
+          />
+          <Button
             v-if="selectedWarehouse && authStore.can('warehouses', 'edit')"
             icon="pi pi-pencil"
             :label="$t('warehouse.editFacility')"
@@ -223,6 +232,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
@@ -252,6 +262,7 @@ const authStore = useAuthStore();
 const toast = useToast();
 const confirm = useConfirm();
 const { t } = useI18n();
+const router = useRouter();
 const warehouseEntity = useEntity('warehouse');
 const pileEntity = useEntity('pile');
 const sheetEntity = useEntity('sheet');
@@ -326,6 +337,11 @@ const canSavePile = computed(() => (
   pileForm.value.width > 0 &&
   pileForm.value.length > 0
 ));
+
+const openRemnantCapture = () => {
+  if (!selectedWarehouseId.value) return;
+  router.push({ path: '/geometry-captures', query: { mode: 'REMNANT', warehouseId: selectedWarehouseId.value } });
+};
 
 const loadWarehouses = async () => {
   loading.value = true;

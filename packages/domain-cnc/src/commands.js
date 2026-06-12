@@ -30,6 +30,14 @@ export const cncServiceContracts = {
     outputs: [],
     actions: ['generateConfigBotDraft', 'reindexConfigBotKnowledge'],
     triggers: []
+  },
+  geometryCapture: {
+    service: 'geometry-captures',
+    label: 'Geometry capture vision service',
+    inputs: ['geometry_capture'],
+    outputs: ['geometry_capture', 'remnant'],
+    actions: [],
+    triggers: ['geometryCapture.photoUploaded']
   }
 };
 

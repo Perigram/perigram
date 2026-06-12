@@ -33,6 +33,8 @@ export const ENTITY_UI = {
     layer_standard: { icon: 'pi pi-sitemap', route: (id) => `/assets/layer-standards` },
     entityRevision: { icon: 'pi pi-code-branch', route: (id) => `/admin/workbench` },
     entity_revision: { icon: 'pi pi-code-branch', route: (id) => `/admin/workbench` },
+    geometryCapture: { icon: 'pi pi-camera', route: (id) => `/geometry-captures` },
+    geometry_capture: { icon: 'pi pi-camera', route: (id) => `/geometry-captures` },
     user: { icon: 'pi pi-user', route: (id) => `/admin/users` },
     organization: { icon: 'pi pi-building', route: (id) => `/admin/organizations` },
     artifact: { icon: 'pi pi-file', route: (id) => `/api/artifacts/${id}` }
@@ -86,6 +88,8 @@ export const STATUS_MAPPINGS = {
     PRODUCED: { label: 'status.produced', severity: 'info', icon: 'pi pi-box' },
     INSTALLED: { label: 'status.installed', severity: 'success', icon: 'pi pi-check' },
     GENERATING: { label: 'status.generating', severity: 'warn', icon: 'pi pi-spin pi-cog' },
+    PROCESSING: { label: 'status.processing', severity: 'warn', icon: 'pi pi-spin pi-cog' },
+    FAILED: { label: 'status.error', severity: 'danger', icon: 'pi pi-times-circle' },
     SCRAP: { label: 'status.scrap', severity: 'danger', icon: 'pi pi-trash' },
 
     // Cassette Instance

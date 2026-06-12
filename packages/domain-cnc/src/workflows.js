@@ -72,6 +72,26 @@ export const cncWorkflows = {
       { from: 'DEPLETED', to: 'DEPLETED', access: { permissions: [{ feature: 'materials', level: 'write' }] } }
     ]
   },
+  geometry_capture: {
+    initial: 'DRAFT',
+    states: {
+      DRAFT: { canUpdateMeta: true },
+      PROCESSING: { canUpdateMeta: true },
+      READY: { canUpdateMeta: true },
+      COMPLETE: { isTerminal: true, canUpdateMeta: true },
+      FAILED: { canUpdateMeta: true }
+    },
+    transitions: [
+      { from: 'DRAFT', to: 'PROCESSING', access: { system: true } },
+      { from: 'PROCESSING', to: 'READY', access: { system: true } },
+      { from: 'PROCESSING', to: 'FAILED', access: { system: true } },
+      { from: 'FAILED', to: 'PROCESSING', access: { system: true } },
+      { from: 'READY', to: 'COMPLETE', access: { system: true } },
+      { from: 'READY', to: 'DRAFT', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
+      { from: 'DRAFT', to: 'DRAFT', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
+      { from: 'READY', to: 'READY', access: { permissions: [{ feature: 'materials', level: 'write' }] } }
+    ]
+  },
   remnant: {
     initial: 'AVAILABLE',
     states: {

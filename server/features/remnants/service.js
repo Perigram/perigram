@@ -65,6 +65,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
         data: data.geometryData || null
       },
       attachment: data.geometryDxf ? createAttachment('DXF', data.geometryDxf, `Remnant ${remnantNumber} DXF`) : null,
+      source: data.source || null,
       specs: {
         area: data.area || 0,
         width: data.width || 0,

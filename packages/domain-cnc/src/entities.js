@@ -6,6 +6,7 @@ export const cncEntities = [
   { type: 'catalog', collection: 'catalogs', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'] },
   { type: 'color', collection: 'colors', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'entity_revision', collection: 'entity_revisions', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
+  { type: 'geometry_capture', collection: 'geometry_captures', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'specs'] },
   { type: 'layer_standard', collection: 'layer_standards', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'material', collection: 'materials', blocks: ['identity', 'origin', 'status', 'attachments', 'data'] },
   { type: 'material_pile', collection: 'material_piles', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },

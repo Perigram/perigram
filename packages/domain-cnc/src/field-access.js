@@ -134,6 +134,12 @@ export const cncEntityFieldAccess = {
     write: [],
     admin: ['data.*', 'attachments.*']
   },
+  geometryCapture: {
+    feature: 'materials',
+    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.mode', 'data.calibration.*', 'data.geometry.*', 'data.extraction.*', 'data.output.*', 'attachments.primary.*'],
+    write: ['data.*', 'specs.*', 'attachments.*'],
+    admin: ['data.*', 'specs.*', 'attachments.*']
+  },
   toolProfile: {
     feature: 'materials',
     read: [...COMMON_READ_FIELDS, 'data.diameter', 'data.kerf', 'data.angle'],
@@ -163,6 +169,7 @@ const ENTITY_ALIASES = {
   material_pile: 'materialPile',
   batch_pile: 'batchPile',
   entity_revision: 'entityRevision',
+  geometry_capture: 'geometryCapture',
   tool_profile: 'toolProfile',
   pen_template: 'penTemplate',
   layer_standard: 'layerStandard'

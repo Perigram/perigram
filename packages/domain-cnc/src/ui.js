@@ -25,6 +25,7 @@ export const cncStatusUi = {
   PRODUCED: { label: 'status.produced', severity: 'info', icon: 'pi pi-box' },
   INSTALLED: { label: 'status.installed', severity: 'success', icon: 'pi pi-check' },
   GENERATING: { label: 'status.generating', severity: 'warn', icon: 'pi pi-spin pi-cog' },
+  PROCESSING: { label: 'status.processing', severity: 'warn', icon: 'pi pi-spin pi-cog' },
   FAILED: { label: 'status.error', severity: 'danger', icon: 'pi pi-times-circle' },
   SCRAP: { label: 'status.scrap', severity: 'danger', icon: 'pi pi-trash' }
 };
@@ -80,6 +81,7 @@ export const cncDesignSystemEntityContracts = [
   ['catalog', 'catalog', 'master', 'entities.catalog', 'catalog', 'createMockCatalog', 'hidden', true, ['server/features/catalogs/README.md']],
   ['color', 'color', 'master', 'entities.color', 'color', 'createMockColor', 'hidden', true, ['server/features/colors/README.md']],
   ['entityRevision', 'entity_revision', 'system', 'entities.entityRevision', 'revision', 'createMockEntityRevision', 'hidden', true, ['components/entities/EntityRevision/README.md', 'server/features/entity-revisions/README.md']],
+  ['geometryCapture', 'geometry_capture', 'production', 'entities.geometryCapture', 'capture', 'createMockGeometryCapture', workflowStatus('geometry_capture'), true, ['components/entities/GeometryCapture/README.md', 'server/features/geometry-captures/README.md']],
   ['warehouse', 'warehouse', 'master', 'entities.warehouse', 'warehouse', 'createMockWarehouse', workflowStatus('warehouse'), true, ['server/features/warehouses/README.md']],
   ['toolProfile', 'tool_profile', 'master', 'entities.toolProfile', 'tool', 'createMockToolProfile', 'hidden', false, ['server/features/tool-profiles/README.md']],
   ['penTemplate', 'pen_template', 'master', 'entities.penTemplate', 'pen', 'createMockPenTemplate', 'hidden', false, ['server/features/pen-templates/README.md']],
@@ -129,6 +131,7 @@ function iconForType(type) {
     cassetteTemplate: 'pi pi-palette',
     cassetteInstance: 'pi pi-box',
     artifact: 'pi pi-file',
+    geometryCapture: 'pi pi-camera',
     warehouse: 'pi pi-building',
     user: 'pi pi-user',
     organization: 'pi pi-building'

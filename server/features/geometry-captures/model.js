@@ -1,0 +1,19 @@
+import { BaseEntity } from '../../core/blocks/index.js';
+
+/**
+ * GeometryCapture Entity
+ * Photo-derived draft geometry for remnant and facade capture workflows.
+ */
+export class GeometryCapture extends BaseEntity {
+  constructor(raw = {}) {
+    super(raw);
+    this.data = {
+      mode: raw.data?.mode || 'REMNANT',
+      calibration: raw.data?.calibration || {},
+      geometry: raw.data?.geometry || null,
+      extraction: raw.data?.extraction || {},
+      output: raw.data?.output || null,
+      ...(this.data || {})
+    };
+  }
+}
