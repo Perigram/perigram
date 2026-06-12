@@ -56,6 +56,7 @@ commands.
 | `cutkit-app` | `server/`, `pages/`, `components/`, `composables/` | Nuxt UI, Nitro API, command/task runtimes, feature services. |
 | `file-processing-worker` | `workers/fileprocessing/` | Claims `dxf.parseUpload`, processes uploaded DXF files. |
 | `cassette-processing-worker` | `workers/cassette-processing/` | Claims `cassette.bakeTemplate`, bakes cassette geometry. |
+| `geometry-capture-worker` | `workers/geometry-capture/` | Claims `vision.extractGeometry`, extracts draft polygons from capture photos. |
 | `nesting-worker` | `workers/nesting/` | FastAPI HTTP solver for nesting geometry. |
 | `mongo` | Docker image | MongoDB documents and GridFS files. |
 

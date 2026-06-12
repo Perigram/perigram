@@ -23,7 +23,8 @@ should call `getAppRegistry()`.
   `generateAttachment`, `generateConfigBotDraft`,
   `reindexConfigBotKnowledge`.
 - Task executors: `nesting.solve`, which bridges queued task runs to the
-  FastAPI nesting worker.
+  FastAPI nesting worker. Polling workers claim other task definitions such as
+  `vision.extractGeometry` through the worker protocol.
 - Workflow hook handlers from `server/core/machines/hooks.js` and explicitly
   registered feature hook handlers such as queue physical-cut processing.
 - Domain definitions: entities, workflows, commands, tasks, hooks,

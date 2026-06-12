@@ -11,7 +11,7 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
   `solveNesting`, `generateAttachment`, `generateConfigBotDraft`,
   `reindexConfigBotKnowledge`.
 - `tasks.js` - async task contracts: DXF parsing, cassette baking, nesting
-  solve, attachment generation.
+  solve, attachment generation, and geometry capture extraction.
 - `attachment-kinds.js` - file/blob kinds, buckets, MIME types, preview modes.
 - `hooks.js` - typed transition hook parameter contracts.
 - `summaries.js` - aggregate summary contracts and frontend route metadata.
@@ -39,6 +39,11 @@ Material pile and remnant workflows are also declared here: material piles use
 `STOCKED -> DEPLETED`, while remnants use `AVAILABLE -> USED`. `ui.js` contains
 matching status labels/icons so live cards and framework/UI-lab previews use the
 same lifecycle vocabulary.
+
+`geometry_capture` is the generic photo-to-vector bridge for remnant capture and
+facade draft capture. It queues `vision.extractGeometry`, stores polygon
+geometry with hole rings, and keeps facade output draft-only until facade domain
+entities are introduced.
 
 `generateConfigBotDraft` and `reindexConfigBotKnowledge` are admin capability
 commands. They require `config_bot: admin`, produce command `data`, and do not

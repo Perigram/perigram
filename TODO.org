@@ -63,6 +63,40 @@
        transition from UI action derivation so design-system validation remains
        green.
 
+* WAITING Geometry Capture MVP
+  :PROPERTIES:
+  :ID: geometry-capture-mvp
+  :END:
+
+*** Agent Notes
+     [2026-06-12] Add OpenCV-backed geometry capture MVP
+     Files changed: packages/domain-cnc/src/entities.js,
+       packages/domain-cnc/src/workflows.js, packages/domain-cnc/src/tasks.js,
+       packages/domain-cnc/src/attachment-kinds.js,
+       packages/domain-cnc/src/field-access.js,
+       packages/domain-cnc/src/ui.js, packages/domain-cnc/src/summaries.js,
+       packages/domain-cnc/src/commands.js,
+       server/features/geometry-captures/*,
+       server/api/geometry-captures/*, server/runtime/app-registry.js,
+       server/features/remnants/service.js,
+       workers/geometry-capture/*, components/entities/GeometryCapture/*,
+       pages/geometry-captures/index.vue, components/hubs/WarehouseHub.vue,
+       utils/design-system.js, test-data/factories.js,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: README.md, packages/domain-cnc/README.md,
+       server/features/README.md, server/features/geometry-captures/README.md,
+       server/api/README.md, server/runtime/README.md, workers/README.md,
+       workers/geometry-capture/README.md, components/README.md,
+       components/entities/GeometryCapture/README.md, pages/README.md,
+       TODO.org
+     Notes: Added `geometry_capture` as the generic entity bridge for
+       remnant photo capture and facade draft capture. Creation stores the
+       original photo, queues `vision.extractGeometry`, and the new
+       OpenCV polling worker extracts outer and hole polygons before posting
+       reviewed geometry back to the app. Confirmation creates real remnant
+       inventory for remnant mode and keeps facade mode as draft geometry until
+       facade domain entities exist.
+
 * WAITING Core Project Route Workflow Fixes
   :PROPERTIES:
   :ID: core-project-route-workflow-fixes
