@@ -1,6 +1,6 @@
 <template>
     <NuxtPage v-if="isEntityDetailRoute" />
-    <StandardPage v-else-if="project">
+    <StandardPage v-else-if="project" :class="{ 'h-full min-h-0': isQueueWorkspaceRoute }">
         <NuxtPage />
     </StandardPage>
 </template>
@@ -25,6 +25,7 @@
         route.path.includes(`/project/${slug}/queue/`) ||
         route.path.includes(`/project/${slug}/sheet-design/`)
     )
+    const isQueueWorkspaceRoute = computed(() => route.path.replace(/\/$/, '') === `/project/${slug}/queues`)
 
     onMounted(async () => {
         await loadProject()

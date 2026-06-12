@@ -54,13 +54,23 @@
 
                 <ScrollablePanel class="shrink-0" :scroll-content="false">
                     <template #header>
-                        <div class="min-w-0 overflow-x-auto">
+                        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                             <SelectButton
                                 v-model="materialSourceSelection"
                                 :options="materialSourceOptions"
                                 optionLabel="label"
                                 optionValue="value"
                                 :aria-label="$t('nesting.materialSourcing')"
+                                size="small"
+                                class="min-w-0"
+                            />
+                            <Select
+                                v-model="nestingOptions.toolId"
+                                :options="toolOptions"
+                                optionLabel="name"
+                                optionValue="_id"
+                                :placeholder="$t('nesting.selectTool')"
+                                class="min-w-48 flex-1"
                                 size="small"
                             />
                         </div>
@@ -78,107 +88,94 @@
                         />
                     </template>
                     <div class="flex flex-col gap-6" v-if="queueState === 'DRAFT'">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="flex flex-col gap-4">
-                                <div>
-                                    <Select
-                                        v-model="nestingOptions.toolId"
-                                        :options="toolOptions"
-                                        optionLabel="name"
-                                        optionValue="_id"
-                                        :placeholder="$t('nesting.selectTool')"
-                                        class="w-full"
-                                    />
+                        <div class="flex flex-col gap-4">
+                            <!-- Virtual Mode -->
+                            <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="flex flex-col gap-3">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <InputNumber v-model="nestingOptions.virtualWidth" :min="100" :placeholder="$t('nesting.width')" />
+                                    <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" />
+                                </div>
+                                <div class="rounded-panel border border-content-border bg-content p-3">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <div class="flex min-w-0 items-center gap-2">
+                                            <i class="pi pi-file"></i>
+                                            <span class="truncate font-medium">{{ $t('nesting.virtualSheet') }}</span>
+                                        </div>
+                                        <span>{{ virtualSheetLabel }}</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="flex flex-col gap-4">
-                                <!-- Virtual Mode -->
-                                <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="flex flex-col gap-3">
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <InputNumber v-model="nestingOptions.virtualWidth" :min="100" :placeholder="$t('nesting.width')" />
-                                        <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" />
-                                    </div>
-                                    <div class="rounded-panel border border-content-border bg-content p-3">
-                                        <div class="flex items-center justify-between gap-3">
-                                            <div class="flex min-w-0 items-center gap-2">
-                                                <i class="pi pi-file"></i>
-                                                <span class="truncate font-medium">{{ $t('nesting.virtualSheet') }}</span>
+                            <!-- Warehouse Mode -->
+                            <div v-else class="flex flex-col gap-4">
+                                <div class="flex flex-col gap-2 sm:flex-row">
+                                    <Select
+                                        :model-value="null"
+                                        :options="unselectedInventoryOptions"
+                                        optionLabel="label"
+                                        optionValue="uniqueId"
+                                        :placeholder="$t('nesting.selectInventory')"
+                                        class="min-w-0 flex-1"
+                                        size="small"
+                                        @update:model-value="addInventoryItem"
+                                    >
+                                        <template #option="{ option }">
+                                            <div class="flex min-w-0 flex-col">
+                                                <span class="truncate">{{ option.label }}</span>
+                                                <small class="text-muted-color">{{ inventoryOptionMeta(option) }}</small>
                                             </div>
-                                            <span>{{ virtualSheetLabel }}</span>
-                                        </div>
-                                    </div>
+                                        </template>
+                                    </Select>
+                                    <FileUpload
+                                        mode="basic"
+                                        name="file"
+                                        url="/api/files/upload"
+                                        accept=".dxf"
+                                        :auto="true"
+                                        @upload="onCustomSheetUpload"
+                                        :chooseLabel="$t('nesting.customUpload')"
+                                        text
+                                    />
                                 </div>
 
-                                <!-- Warehouse Mode -->
-                                <div v-else class="flex flex-col gap-4">
-                                    <div class="flex gap-2">
-                                        <Select
-                                            v-model="selectedInventoryToAdd"
-                                            :options="unselectedInventoryOptions"
-                                            optionLabel="label"
-                                            optionValue="uniqueId"
-                                            :placeholder="$t('nesting.selectInventory')"
-                                            class="min-w-0 flex-1"
-                                            size="small"
-                                        />
-                                        <Button
-                                            icon="pi pi-plus"
-                                            size="small"
-                                            :aria-label="$t('common.add')"
-                                            :disabled="!selectedInventoryToAdd"
-                                            @click="addSelectedInventoryItem"
-                                        />
-                                        <FileUpload
-                                            mode="basic"
-                                            name="file"
-                                            url="/api/files/upload"
-                                            accept=".dxf"
-                                            :auto="true"
-                                            @upload="onCustomSheetUpload"
-                                            :chooseLabel="$t('nesting.customUpload')"
-                                        />
-                                    </div>
-
-                                    <div v-if="nestingOptions.warehouseId" class="flex flex-col gap-2">
-                                        <div v-if="selectedInventory.length" class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                            <div
-                                                v-for="item in selectedInventory"
-                                                :key="item.uniqueId"
-                                                class="relative min-w-0"
-                                            >
-                                                <component
-                                                    v-if="inventoryCardComponent(item)"
-                                                    :is="inventoryCardComponent(item)"
-                                                    v-bind="inventoryCardProps(item)"
-                                                    variant="compact"
-                                                />
-                                                <div v-else class="rounded-panel border border-content-border bg-content p-3">
-                                                    <div class="flex items-center gap-2">
-                                                        <i class="pi pi-file"></i>
-                                                        <span class="truncate font-medium">{{ item.label }}</span>
-                                                    </div>
-                                                    <small class="text-muted-color">{{ item.specs }}</small>
+                                <div v-if="nestingOptions.warehouseId" class="flex flex-col gap-2">
+                                    <div v-if="selectedInventory.length" class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <div
+                                            v-for="item in selectedInventory"
+                                            :key="item.uniqueId"
+                                            class="relative min-w-0"
+                                        >
+                                            <component
+                                                v-if="inventoryCardComponent(item)"
+                                                :is="inventoryCardComponent(item)"
+                                                v-bind="inventoryCardProps(item)"
+                                                variant="compact"
+                                            />
+                                            <div v-else class="rounded-panel border border-content-border bg-content p-3">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="pi pi-file"></i>
+                                                    <span class="truncate font-medium">{{ item.label }}</span>
                                                 </div>
-                                                <Button
-                                                    icon="pi pi-times"
-                                                    rounded
-                                                    text
-                                                    severity="danger"
-                                                    size="small"
-                                                    class="absolute right-2 top-2"
-                                                    :aria-label="$t('common.delete')"
-                                                    @click.stop="removeInventoryItem(item.uniqueId)"
-                                                />
+                                                <small class="text-muted-color">{{ item.specs }}</small>
                                             </div>
+                                            <Button
+                                                icon="pi pi-times"
+                                                rounded
+                                                text
+                                                severity="danger"
+                                                size="small"
+                                                class="absolute right-2 top-2"
+                                                :aria-label="$t('common.delete')"
+                                                @click.stop="removeInventoryItem(item.uniqueId)"
+                                            />
                                         </div>
-                                        <small v-else class="text-muted-color">
-                                            {{ $t('nesting.selectInventory') }}
-                                        </small>
-                                        <Message v-if="selectedStockSizeConflict" severity="error">
-                                            {{ $t('nesting.mixedStockSize') }}
-                                        </Message>
                                     </div>
+                                    <small v-else class="text-muted-color">
+                                        {{ $t('nesting.selectInventory') }}
+                                    </small>
+                                    <Message v-if="selectedStockSizeConflict" severity="error">
+                                        {{ $t('nesting.mixedStockSize') }}
+                                    </Message>
                                 </div>
                             </div>
                         </div>
@@ -396,7 +393,6 @@ const cassetteDesigns = ref([]);
 const sheetDesigns = ref([]);
 const warehouses = ref([]);
 const availableInventory = ref([]);
-const selectedInventoryToAdd = ref(null);
 const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
 const selectedRunId = ref(null);
@@ -421,7 +417,6 @@ const materialSourceSelection = computed({
         return 'VIRTUAL';
     },
     set(value) {
-        selectedInventoryToAdd.value = null;
         if (value === 'VIRTUAL') {
             nestingOptions.value.materialMode = 'VIRTUAL';
             return;
@@ -539,12 +534,21 @@ const inventoryCardProps = (item = {}) => {
     if (item.type === 'REMNANT') return { remnant: item.entity };
     return {};
 };
-const addSelectedInventoryItem = () => {
-    if (!selectedInventoryToAdd.value) return;
-    if (!nestingOptions.value.inventoryItems.includes(selectedInventoryToAdd.value)) {
-        nestingOptions.value.inventoryItems = [...nestingOptions.value.inventoryItems, selectedInventoryToAdd.value];
+const inventoryOptionMeta = (item = {}) => [inventoryTypeLabel(item.type), item.specs]
+    .filter(Boolean)
+    .join(' · ');
+const inventoryTypeLabel = (type) => ({
+    PILE: t('entities.materialPile'),
+    SHEET: t('entities.sheet'),
+    REMNANT: t('entities.remnant'),
+    CUSTOM: t('nesting.custom')
+}[type] || type || '');
+const addInventoryItem = (value) => {
+    const uniqueId = typeof value === 'object' ? value?.uniqueId : value;
+    if (!uniqueId) return;
+    if (!nestingOptions.value.inventoryItems.includes(uniqueId)) {
+        nestingOptions.value.inventoryItems = [...nestingOptions.value.inventoryItems, uniqueId];
     }
-    selectedInventoryToAdd.value = null;
 };
 const removeInventoryItem = (uniqueId) => {
     nestingOptions.value.inventoryItems = nestingOptions.value.inventoryItems.filter(item => item !== uniqueId);
@@ -748,7 +752,6 @@ const loadWarehouseInventory = async () => {
         ];
         const availableIds = new Set(availableInventory.value.map(item => item.uniqueId));
         nestingOptions.value.inventoryItems = nestingOptions.value.inventoryItems.filter(id => availableIds.has(id));
-        if (!availableIds.has(selectedInventoryToAdd.value)) selectedInventoryToAdd.value = null;
     } catch (e) { console.error(e); }
 };
 

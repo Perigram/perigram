@@ -72,7 +72,7 @@
             </nav>
         </header>
 
-        <main class="flex-1 max-w-[var(--ck-page-max-width)] w-full mx-auto p-4 md:p-6 lg:p-8">
+        <main class="flex min-h-0 w-full max-w-[var(--ck-page-max-width)] flex-1 flex-col mx-auto p-4 md:p-6 lg:p-8">
             <slot />
         </main>
 
