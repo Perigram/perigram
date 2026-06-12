@@ -1,6 +1,6 @@
 <template>
-    <div class="flex min-h-0 min-w-0 flex-col">
-        <div class="grid min-h-0 min-w-0 flex-1 gap-4 xl:h-[calc(100dvh-10rem)] xl:grid-cols-12">
+    <div class="flex h-full min-h-0 min-w-0 flex-col">
+        <div class="grid h-full min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-12">
             <aside v-if="queues?.length > 0" class="hidden min-h-0 min-w-0 xl:col-span-3 xl:flex xl:flex-col xl:gap-3">
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>
@@ -11,16 +11,16 @@
                         @click="$emit('create-queue')"
                     />
                 </div>
-                <QueueCard
-                    :queue="queue"
-                    variant="card"
-                    :status-actions="queueStatusActions"
-                    :show-delete="false"
-                    :show-footer-actions="false"
-                    :expandable="false"
-                    @view="$emit('select-queue', queue._id)"
-                />
                 <div class="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+                    <QueueCard
+                        :queue="queue"
+                        variant="card"
+                        :status-actions="queueStatusActions"
+                        :show-delete="false"
+                        :show-footer-actions="false"
+                        :expandable="false"
+                        @view="$emit('select-queue', queue._id)"
+                    />
                     <QueueCard
                         v-for="option in selectorQueueOptions"
                         :key="option._id"

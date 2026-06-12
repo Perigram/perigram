@@ -55,23 +55,6 @@
                     <StatusHistory :entity="queue" entity-type="queue" />
                 </Panel>
 
-                <Panel :header="$t('nesting.inventorySources')">
-                    <div v-if="materialPool.length" class="flex flex-col gap-3">
-                        <div
-                            v-for="item in materialPool"
-                            :key="`${item.type}-${item.id}`"
-                            class="flex items-center justify-between gap-3"
-                        >
-                            <div class="flex min-w-0 flex-col">
-                                <span class="truncate">{{ item.label || item.id }}</span>
-                                <small class="text-muted-color">{{ item.specs || $t('common.notAvailable') }}</small>
-                            </div>
-                            <Tag :value="item.available || 1" size="small" />
-                        </div>
-                    </div>
-                    <div v-else class="text-muted-color">{{ $t('common.notAvailable') }}</div>
-                </Panel>
-
                 <Panel v-if="materialConsumption.length" :header="$t('queue.materialConsumption')">
                     <div class="flex flex-col gap-3">
                         <div
@@ -79,7 +62,7 @@
                             :key="`${item.type}-${item.id}`"
                             class="flex items-center justify-between gap-3"
                         >
-                            <EntityInlineRef v-if="item.type === 'PILE'" type="materialPile" :id="item.id" />
+                            <EntityInlineRef v-if="item.entityType" :type="item.entityType" :id="item.id" />
                             <span v-else>{{ item.id }}</span>
                             <Tag :value="item.count" severity="warn" size="small" />
                         </div>
@@ -118,8 +101,18 @@ const props = defineProps({
 
 const emit = defineEmits(['run-nesting']);
 const { t } = useI18n();
-const materialPool = computed(() => props.queue.data?.job?.materialPool || []);
-const materialConsumption = computed(() => props.queue.data?.materialConsumption?.sources || []);
+const materialConsumption = computed(() => (props.queue.data?.materialConsumption?.sources || [])
+    .map(source => ({
+        ...source,
+        entityType: materialSourceEntityType(source)
+    })));
+
+function materialSourceEntityType(source = {}) {
+    if (source.type === 'PILE') return 'materialPile';
+    if (source.type === 'SHEET') return 'sheet';
+    if (source.type === 'REMNANT') return 'remnant';
+    return null;
+}
 
 const queueStatusActions = computed(() => {
     if (props.queue.status?.state !== 'DRAFT') return [];

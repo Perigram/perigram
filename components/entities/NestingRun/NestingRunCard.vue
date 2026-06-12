@@ -9,6 +9,7 @@ import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import SheetDesignCard from '../SheetDesign/SheetDesignCard.vue';
@@ -38,6 +39,13 @@ const state = computed(() => props.run.status?.state || 'UNKNOWN');
 const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
 const results = computed(() => props.run.data?.results || {});
 const runId = computed(() => props.run._id?.toString());
+const materialSources = computed(() => (props.run.data?.materialPool || [])
+    .map(source => ({
+        ...source,
+        entityType: materialSourceEntityType(source),
+        count: Number(source.available || source.availableCount || source.quantity || source.count || 1)
+    }))
+    .filter(source => source.entityType && source.id));
 const projectSlug = computed(() => route.params.slug || props.run.lineage?.projectSlug || null);
 const runSheetDesignIds = computed(() => (props.run.data?.sheetDesignIds || []).map(String));
 const relatedSheetDesigns = computed(() => uniqueById([
@@ -76,6 +84,13 @@ function isRunSheetDesign(design, runId, runSheetDesignIds = []) {
         (designId && runSheetDesignIds.includes(designId));
 }
 
+function materialSourceEntityType(source = {}) {
+    if (source.type === 'PILE') return 'materialPile';
+    if (source.type === 'SHEET') return 'sheet';
+    if (source.type === 'REMNANT') return 'remnant';
+    return null;
+}
+
 function selectRun(event) {
     if (isInteractiveEventTarget(event)) return;
     emit('select', props.run._id);
@@ -88,7 +103,7 @@ function openSheetDesign(design) {
 </script>
 
 <template>
-  <div class="h-full cursor-pointer" @click="selectRun">
+  <div class="cursor-pointer" @click="selectRun">
     <EntityCard :entity="run" entity-type="nesting_run" :variant="variant" :show-trace="false" :status-actions="statusActions">
       <template #before-identity>
         <i class="pi pi-list-check"></i>
@@ -109,48 +124,61 @@ function openSheetDesign(design) {
       <div class="flex flex-col gap-4">
         <div v-if="isComplete" class="flex flex-col gap-2">
           <DataBlock entity-type="nestingRun" :entity="run" :fields="RUN_FIELDS" />
-          <div v-if="relatedSheetDesigns.length" class="flex flex-col gap-2">
-            <small class="text-muted-color">{{ $t('nestingRun.sheetDesigns') }}</small>
+        </div>
+        <div v-if="materialSources.length" class="flex flex-col gap-2">
+          <small class="text-muted-color">{{ $t('nesting.inventorySources') }}</small>
+          <div class="flex flex-col gap-2">
             <div
-              v-if="showSheetDesignPreviews"
-              class="grid grid-cols-1 gap-2"
+              v-for="source in materialSources"
+              :key="`${source.type}-${source.id}`"
+              class="flex min-w-0 items-center justify-between gap-2"
             >
-              <div
-                v-for="design in relatedSheetDesigns"
-                :key="design._id"
-                class="min-w-0 rounded-ui border border-content-border bg-content p-2 text-left"
-              >
-                <GeometryPreview :entity="design" />
-                <div class="mt-2 flex min-w-0 items-center justify-between gap-2">
-                  <IdentityBlock :entity="design" variant="compact" />
-                  <div class="flex shrink-0 items-center gap-1">
-                    <Tag
-                      v-if="design.summary?.placedCount"
-                      :value="design.summary.placedCount"
-                      severity="secondary"
-                      size="small"
-                    />
-                    <Button
-                      v-if="projectSlug"
-                      icon="pi pi-external-link"
-                      text
-                      rounded
-                      size="small"
-                      :aria-label="$t('common.open')"
-                      @click.stop="openSheetDesign(design)"
-                    />
-                  </div>
+              <EntityInlineRef :type="source.entityType" :id="source.id" />
+              <Tag v-if="source.count" :value="source.count" severity="secondary" size="small" />
+            </div>
+          </div>
+        </div>
+        <div v-if="isComplete && relatedSheetDesigns.length" class="flex flex-col gap-2">
+          <small class="text-muted-color">{{ $t('nestingRun.sheetDesigns') }}</small>
+          <div
+            v-if="showSheetDesignPreviews"
+            class="grid grid-cols-1 gap-2"
+          >
+            <div
+              v-for="design in relatedSheetDesigns"
+              :key="design._id"
+              class="min-w-0 rounded-ui border border-content-border bg-content p-2 text-left"
+            >
+              <GeometryPreview :entity="design" />
+              <div class="mt-2 flex min-w-0 items-center justify-between gap-2">
+                <IdentityBlock :entity="design" variant="compact" />
+                <div class="flex shrink-0 items-center gap-1">
+                  <Tag
+                    v-if="design.summary?.placedCount"
+                    :value="design.summary.placedCount"
+                    severity="secondary"
+                    size="small"
+                  />
+                  <Button
+                    v-if="projectSlug"
+                    icon="pi pi-external-link"
+                    text
+                    rounded
+                    size="small"
+                    :aria-label="$t('common.open')"
+                    @click.stop="openSheetDesign(design)"
+                  />
                 </div>
               </div>
             </div>
-            <div v-else class="flex flex-wrap gap-2">
-              <SheetDesignCard
-                v-for="design in relatedSheetDesigns"
-                :key="design._id"
-                :design="design"
-                variant="inline"
-              />
-            </div>
+          </div>
+          <div v-else class="flex flex-wrap gap-2">
+            <SheetDesignCard
+              v-for="design in relatedSheetDesigns"
+              :key="design._id"
+              :design="design"
+              variant="inline"
+            />
           </div>
         </div>
         <div v-else-if="state === 'NESTING'" class="flex justify-center p-2">

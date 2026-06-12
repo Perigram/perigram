@@ -1,7 +1,7 @@
 <template>
-    <div class="min-h-0 py-4">
+    <div class="h-[calc(100dvh-8rem)] min-h-0 overflow-hidden py-4">
         <!-- Current queue editor -->
-        <div v-if="currentQueue" class="animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div v-if="currentQueue" class="h-full min-h-0 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <QueueEditor
                 :queue="currentQueue"
                 :queues="queues"
