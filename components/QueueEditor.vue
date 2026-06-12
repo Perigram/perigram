@@ -139,11 +139,11 @@
                                 </div>
 
                                 <div v-if="nestingOptions.warehouseId" class="flex flex-col gap-2">
-                                    <div v-if="selectedInventory.length" class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                    <div v-if="selectedInventory.length" class="flex min-w-0 gap-3 overflow-x-auto pb-1">
                                         <div
                                             v-for="item in selectedInventory"
                                             :key="item.uniqueId"
-                                            class="relative min-w-0"
+                                            class="relative min-w-72 flex-[0_0_18rem] sm:flex-[0_0_20rem]"
                                         >
                                             <component
                                                 v-if="inventoryCardComponent(item)"
