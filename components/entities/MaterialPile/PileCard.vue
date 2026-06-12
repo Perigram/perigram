@@ -26,19 +26,9 @@ const handleCardClick = (event) => {
     emit('view', props.pile);
 };
 
-const warehouseId = computed(() => props.pile.lineage?.warehouseId || null);
 const catalogId = computed(() => props.pile.lineage?.catalogId || null);
-const warehouse = ref(null);
 const catalog = ref(null);
-const warehouseEntity = useEntity('warehouse');
 const catalogEntity = useEntity('catalog');
-
-watch(warehouseId, async (id) => {
-  warehouse.value = null;
-  const normalizedId = id?.toString?.() || id;
-  if (!normalizedId) return;
-  warehouse.value = await warehouseEntity.fetch(normalizedId).catch(() => null);
-}, { immediate: true });
 
 watch(catalogId, async (id) => {
   catalog.value = null;
@@ -61,10 +51,6 @@ watch(catalogId, async (id) => {
         <Divider />
         <MaterialSummary :pile="pile" />
         <SpecsBlock entity-type="materialPile" :entity="pile" />
-        <div v-if="warehouse" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
-          <EntityInlineRef type="warehouse" :entity="warehouse" />
-        </div>
         <div v-if="catalog" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.catalog') }}</small>
           <EntityInlineRef type="catalog" :entity="catalog" />

@@ -4,7 +4,6 @@
  */
 import { computed, ref, watch } from 'vue';
 import Divider from 'primevue/divider';
-import Tag from 'primevue/tag';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
@@ -15,23 +14,12 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const warehouseId = computed(() => props.sheet.lineage?.warehouseId || null);
 const pileId = computed(() => props.sheet.lineage?.pileId || null);
 const runId = computed(() => props.sheet.lineage?.runId || null);
-const thickness = computed(() => props.sheet.specs?.sheetThickness || props.sheet.data?.specs?.sheetThickness || null);
-const warehouse = ref(null);
 const pile = ref(null);
 const run = ref(null);
-const warehouseEntity = useEntity('warehouse');
 const pileEntity = useEntity('materialPile');
 const runEntity = useEntity('nestingRun');
-
-watch(warehouseId, async (id) => {
-  warehouse.value = null;
-  const normalizedId = id?.toString?.() || id;
-  if (!normalizedId) return;
-  warehouse.value = await warehouseEntity.fetch(normalizedId).catch(() => null);
-}, { immediate: true });
 
 watch(pileId, async (id) => {
   pile.value = null;
@@ -54,22 +42,12 @@ watch(runId, async (id) => {
       <template #before-identity>
         <i class="pi pi-file"></i>
       </template>
-      <template #subtitle v-if="variant !== 'card'">
-        <div class="flex flex-wrap gap-2">
-          <Tag v-if="thickness" :value="`${thickness} mm`" severity="secondary" size="small" />
-          <Tag v-if="warehouseId" :value="$t('entities.warehouse')" severity="info" size="small" />
-        </div>
-      </template>
       <template #compact-content>
         <SpecsBlock entity-type="sheet" :entity="sheet" variant="compact" />
       </template>
       <div class="flex flex-col gap-3">
         <Divider />
         <SpecsBlock entity-type="sheet" :entity="sheet" />
-        <div v-if="warehouse" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
-          <EntityInlineRef type="warehouse" :entity="warehouse" />
-        </div>
         <div v-if="pile" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.materialPile') }}</small>
           <EntityInlineRef type="materialPile" :entity="pile" />

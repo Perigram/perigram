@@ -16,24 +16,14 @@ const props = defineProps({
 });
 
 const sheetId = computed(() => props.remnant.lineage?.sheetId || null);
-const warehouseId = computed(() => props.remnant.lineage?.warehouseId || null);
 const sheet = ref(null);
-const warehouse = ref(null);
 const sheetEntity = useEntity('sheet');
-const warehouseEntity = useEntity('warehouse');
 
 watch(sheetId, async (id) => {
   sheet.value = null;
   const normalizedId = id?.toString?.() || id;
   if (!normalizedId) return;
   sheet.value = await sheetEntity.fetch(normalizedId).catch(() => null);
-}, { immediate: true });
-
-watch(warehouseId, async (id) => {
-  warehouse.value = null;
-  const normalizedId = id?.toString?.() || id;
-  if (!normalizedId) return;
-  warehouse.value = await warehouseEntity.fetch(normalizedId).catch(() => null);
 }, { immediate: true });
 </script>
 
@@ -56,10 +46,6 @@ watch(warehouseId, async (id) => {
         <div v-if="sheet" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('results.sheet') }}</small>
           <EntityInlineRef type="sheet" :entity="sheet" />
-        </div>
-        <div v-if="warehouse" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
-          <EntityInlineRef type="warehouse" :entity="warehouse" />
         </div>
       </div>
     </EntityCard>
