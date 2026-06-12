@@ -33,6 +33,235 @@
        token, i18n, UI lab, and validation guidance without relying on a global
        skill copy.
 
+* WAITING Marketing Animation Landing Surface
+  :PROPERTIES:
+  :ID: marketing-animation-landing-surface
+  :END:
+
+*** Agent Notes
+     [2026-06-11] Add cassette workflow marketing animation
+     Files changed: components/marketing/CassetteMarketingAnimation.vue,
+       pages/admin/marketing-animations.vue, pages/index.vue,
+       stores/navigation.js, test-data/factories.js,
+       packages/domain-cnc/src/workflows.js,
+       framework.manifest.json,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: README.md, components/marketing/README.md,
+       components/README.md, pages/README.md, pages/admin/README.md,
+       stores/README.md, test-data/README.md,
+       packages/domain-cnc/README.md, TODO.org
+     Notes: Added a reusable SVG/CSS cassette workflow animation with
+       reduced-motion support, exposed it in an authenticated admin preview
+       route and admin breadcrumb switcher, and embedded it in the anonymous
+       landing page while preserving authenticated workspace redirects.
+       Reworked the marketing visual to use the renderer-derived four-return
+       flange cassette flat pattern (`face_1`, `return_flange`, `cut.outer`,
+       `fold.route`, `code.cassette_mark`) plus nested sheet copies and a
+       folded tray/cassette preview instead of generic block shapes.
+       Also aligned material pile and remnant UI-lab factory statuses with the
+       current domain workflows and hid the system-only queue DRAFT-to-READY
+       transition from UI action derivation so design-system validation remains
+       green.
+
+* WAITING Core Project Route Workflow Fixes
+  :PROPERTIES:
+  :ID: core-project-route-workflow-fixes
+  :END:
+
+*** Agent Notes
+     [2026-06-10] Fix project-to-sheet-design workflow review findings
+     Files changed: pages/projects/index.vue, pages/project/[slug].vue,
+       pages/project/[slug]/data.vue,
+       pages/project/[slug]/queue/[queueId].vue,
+       pages/project/[slug]/sheet-design/[sheetDesignId].vue,
+       components/QueueEditor.vue,
+       components/entities/SheetDesign/SheetDesignCard.vue,
+       components/entities/SheetDesign/SheetDesignDetail.vue,
+       server/api/project/index.get.js,
+       server/api/nesting-runs/[id].get.js,
+       server/api/sheet-designs/index.get.js,
+       server/api/sheet-designs/[id].get.js,
+       server/features/queues/service.js,
+       server/features/nesting-runs/service.js,
+       server/features/nesting/operations.js,
+       server/features/sheet-designs/repository.js,
+       server/features/sheet-designs/service.js,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: server/features/nesting/README.md,
+       server/features/sheet-designs/README.md,
+       components/entities/SheetDesign/README.md,
+       components/entities/NestingRun/README.md, TODO.org
+     Notes: Secured ID-based read APIs with lineage checks, made sheet designs
+       update from nesting worker results and render in the queue flow, fixed
+       canonical project creation/data persistence, exposed artifacts and sheet
+       design detail navigation, replaced the raw queue debug route, and cleaned
+       concrete icon-button/delete confirmation accessibility issues.
+
+*** Agent Notes
+     [2026-06-10] Fix queue nesting permission trap
+     Files changed: packages/domain-cnc/src/commands.js,
+       server/api/queue/[id]/nest.post.js, components/QueueEditor.vue,
+       server/features/nesting/README.md, TODO.org
+     Docs updated: server/features/nesting/README.md, TODO.org
+     Notes: Queue nesting now requires `queues:write` only. The nest API no
+       longer generates layout attachments by default, so users do not need
+       `artifacts:write` just to create a `nesting_run` and `sheet_design`.
+
+*** Agent Notes
+     [2026-06-10] Verify parametric cassette nesting handoff
+     Files changed: server/features/nesting/operations.js,
+       server/features/nesting/operations.spec.js,
+       server/features/nesting/README.md, TODO.org
+     Docs updated: server/features/nesting/README.md, TODO.org
+     Notes: Added focused coverage proving PARAMETRIC queue entries load the
+       cassette template, call `bakeTemplateInstance()` with queue parameters,
+       and send the baked cassette ID plus baked polygon coordinates to the
+       nesting worker payload.
+
+*** Agent Notes
+     [2026-06-10] Bake OCCS sheet workpieces separately for nesting
+     Files changed: utils/occs/evaluate.js, utils/occs/evaluate.spec.js,
+       server/features/parametric-cassettes/service.js,
+       server/features/nesting/operations.spec.js,
+       utils/occs/README.md,
+       server/features/parametric-cassettes/README.md,
+       server/features/nesting/README.md, TODO.org
+     Docs updated: utils/occs/README.md,
+       server/features/parametric-cassettes/README.md,
+       server/features/nesting/README.md, TODO.org
+     Notes: OCCS graph-tree evaluation now runs the production cut/fold pass per
+       `sheet` workpiece in local workpiece space, persists workpiece metadata
+       on baked polygon parts, and keeps each sheet as a separate worker item
+       sharing the same baked cassette/template reference.
+
+*** Agent Notes
+     [2026-06-10] Prevent OCCS template nesting rectangle fallback
+     Files changed: components/QueueEditor.vue,
+       server/features/nesting/operations.js,
+       server/features/nesting/operations.spec.js,
+       server/features/parametric-cassettes/service.js,
+       server/features/parametric-cassettes/service.spec.js,
+       components/README.md,
+       server/features/nesting/README.md,
+       server/features/parametric-cassettes/README.md, TODO.org
+     Docs updated: components/README.md, server/features/nesting/README.md,
+       server/features/parametric-cassettes/README.md, TODO.org
+     Notes: Queue item `type` is no longer trusted as the source of truth for
+       parametric baking; fetched cassette templates are baked when their data
+       is parametric/OCCS. OCCS baked-cache reuse now requires workpiece
+       metadata and `cut.outer` layer data so old rectangle/flat-pattern bakes
+       are ignored after the template structure changes. QueueEditor now falls
+       back to OCCS definition parameters when the cassette DTO parameter array
+       is missing or stale.
+
+*** Agent Notes
+     [2026-06-10] Fix nesting run sheet-design display and preview projection
+     Files changed: components/entities/NestingRun/NestingRunCard.vue,
+       server/features/sheet-designs/service.js,
+       server/features/sheet-designs/service.spec.js,
+       components/entities/NestingRun/README.md,
+       server/features/sheet-designs/README.md, TODO.org
+     Docs updated: components/entities/NestingRun/README.md,
+       server/features/sheet-designs/README.md, TODO.org
+     Notes: Docker logs and Mongo inspection showed the nesting worker receives
+       two workpiece items and returns real polygons, but sheet previews rendered
+       only rectangles because preview projection ignored the worker's
+       `result.items[].shape.data` plus `placed_items[].transformation` schema.
+       `NestingRunCard` also filtered neither explicit queue-loaded sheet
+       designs nor context designs, so every run displayed every sheet design in
+       the queue. The card now filters by `lineage.runId`/`sheetDesignIds`, and
+       sheet preview projection joins placed items back to their source shapes.
+
+*** Agent Notes
+     [2026-06-10] Make generated sheet-design previews readable
+     Files changed: server/features/sheet-designs/service.js,
+       server/features/nesting/operations.js,
+       server/features/nesting/operations.spec.js,
+       stores/queues.js, components/QueueEditor.vue,
+       utils/drawingPreview.js, utils/drawingPreview.spec.js,
+       components/shared/DrawingCanvas.vue,
+       server/features/nesting/README.md,
+       server/features/sheet-designs/README.md,
+       components/shared/README.md, stores/README.md, utils/README.md, TODO.org
+     Docs updated: server/features/sheet-designs/README.md,
+       server/features/nesting/README.md, components/shared/README.md,
+       stores/README.md, utils/README.md, TODO.org
+     Notes: Sheet-design previews now store explicit semantic layer fallback
+       strokes for the sheet boundary and placed cassette contours, preserve
+       source layer styles when a standard's pen cannot be resolved, and choose
+       a portrait card aspect for tall sheet viewBoxes. Nesting summaries now
+       fall back from missing worker metrics to `solution.density` or placed
+       source polygon area. Stripped worker responses are enriched from the
+       original request before sheet-design persistence, and queue completion
+       notifications now use event objects so repeated runs for the same queue
+       reload related sheet designs. The dev Mongo previews/summaries/raw
+       geometry were regenerated from saved nesting worker results so existing
+       runs show the same layer-styled preview and metric contract.
+
+*** Agent Notes
+     [2026-06-10] Split nesting output into per-sheet designs
+     Files changed: server/features/nesting/operations.js,
+       server/features/nesting/operations.spec.js,
+       server/features/sheet-designs/service.js,
+       server/features/sheet-designs/service.spec.js,
+       server/features/nesting/README.md,
+       server/features/sheet-designs/README.md,
+       server/features/nesting-runs/README.md, utils/occs/README.md, TODO.org
+     Docs updated: server/features/nesting/README.md,
+       server/features/sheet-designs/README.md,
+       server/features/nesting-runs/README.md, utils/occs/README.md, TODO.org
+     Notes: The nesting task no longer creates a placeholder sheet design before
+       solving. After the worker returns, each `solution.layouts[]` entry is
+       persisted as its own `sheet_design` and linked from
+       `nesting_run.data.sheetDesignIds`. Baked OCCS `layerData` now travels as
+       request-side source layers and is merged back into worker results before
+       per-layout preview projection, so generated sheets can show cut, fold,
+       dimension, and annotation layers instead of fallback outlines only.
+
+*** Agent Notes
+     [2026-06-10] Add cassette marks and switch app designer to v2
+     Files changed: components/CassetteManager.vue,
+       components/CassetteDesignerV2.vue, utils/cassetteV2Renderer.js,
+       utils/cassetteV2Renderer.spec.js, utils/occs/evaluate.js,
+       utils/occs/evaluate.spec.js, server/features/parametric-cassettes/service.js,
+       server/features/sheet-designs/service.js,
+       server/features/sheet-designs/service.spec.js, components/README.md,
+       server/features/cassettes/README.md,
+       server/features/parametric-cassettes/README.md,
+       server/features/sheet-designs/README.md, utils/occs/README.md, TODO.org
+     Docs updated: components/README.md, server/features/cassettes/README.md,
+       server/features/parametric-cassettes/README.md,
+       server/features/sheet-designs/README.md, utils/occs/README.md, TODO.org
+     Notes: Cassette Designer v2 now emits one `code.cassette_mark` text entity
+       at the bottom-left of the main/root face for each sheet workpiece. The
+       text resolves from template name, template id or `draft`, and one-based
+       workpiece number in designer previews, saved OCCS documents, backend
+       OCCS evaluation, baked layer data, nesting source layers, and
+       sheet-design previews. The production cassette manager dialog now uses
+       `CassetteDesignerV2`; the legacy designer remains only in dev/test
+       fixture surfaces.
+
+* WAITING E2E Workflow Test Harness
+  :PROPERTIES:
+  :ID: e2e-workflow-test-harness
+  :END:
+
+*** Agent Notes
+     [2026-06-11] Add Playwright E2E workflow harness
+     Files changed: package.json, package-lock.json, .gitignore,
+       playwright.config.js, e2e/config.js, e2e/global-setup.js,
+       e2e/fixtures.js, e2e/auth.spec.js, e2e/warehouse.spec.js,
+       e2e/queue-workflow.spec.js
+     Docs updated: README.md, e2e/README.md, TODO.org
+     Notes: Added a Playwright harness that runs against an already-running app
+       stack, self-registers an E2E ContractorAdmin user when needed, stores
+       session state under `.playwright/.auth`, and fails smoke workflows on
+       page exceptions plus guarded API failures. Initial coverage protects
+       authenticated app bootstrap, warehouse hub status-action behavior, queue
+       editor loading, and the queue nesting command path that accepts
+       warehouse material pools before returning expected empty-queue business
+       validation.
+
 * WAITING Domain Entity Card Contract Redesign
   :PROPERTIES:
   :ID: domain-entity-card-contract-redesign
@@ -51,6 +280,316 @@
        counts, tool/pen/layer semantics, users, organizations, and artifacts.
        Inline and compact popovers now reuse those bodies without an extra
        EntityCard divider.
+
+* WAITING Warehouse Management MVP
+  :PROPERTIES:
+  :ID: warehouse-management-mvp
+  :END:
+
+*** Agent Notes
+     [2026-06-11] Add manual warehouse stock workflow
+     Files changed: components/hubs/WarehouseHub.vue,
+       components/hubs/PilesTab.vue, components/QueueEditor.vue,
+       components/entities/Queue/QueueCard.vue,
+       components/entities/Queue/QueueDetail.vue,
+       components/entities/SheetDesign/SheetDesignCard.vue,
+       components/entities/SheetDesign/SheetDesignDetail.vue,
+       components/entities/Warehouse/WarehouseDetail.vue,
+       components/entities/MaterialPile/PileCard.vue,
+       server/features/material-piles/model.js,
+       server/features/material-piles/service.js,
+       server/features/material-piles/material-piles.spec.js,
+       server/features/nesting/operations.js,
+       server/features/nesting/operations.spec.js,
+       server/features/queues/service.js,
+       server/features/queues/queues.spec.js,
+       server/features/sheet-designs/service.js,
+       pages/project/[slug]/queues.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/hubs/README.md,
+       components/README.md, components/entities/MaterialPile/README.md,
+       components/entities/SheetDesign/README.md,
+       server/features/warehouses/README.md,
+       server/features/material-piles/README.md,
+       server/features/queues/README.md,
+       server/features/nesting/README.md,
+       server/features/sheet-designs/README.md, TODO.org
+     Notes: WarehouseHub now supports manual warehouse creation/editing/deletion
+       and material pile creation/editing/deletion, including inline minimal
+       catalog/color creation when the user types material/color names. Material
+       pile list filters honor warehouse lineage, returned pile DTOs normalize
+       legacy `data.specs` into the standard `specs` block, cached warehouse
+       stock counters update on manual pile create/update/delete, and stock
+       edits cannot set used sheets above total sheets. Queue warehouse mode
+       filters unavailable piles, blocks mixed sheet sizes, persists selected
+       stock as `job.materialPool`, and the nesting backend resolves worker
+       sheet size/count from that pool while keeping the strict worker payload.
+       Generated sheet designs keep material-source context, and marking a
+       chosen queue as cut consumes selected pile stock and records
+       `data.materialConsumption`.
+
+*** Agent Notes
+     [2026-06-11] Harden warehouse stock cut consumption
+     Files changed: components/QueueEditor.vue,
+       server/features/queues/service.js,
+       server/features/queues/queues.spec.js,
+       server/features/nesting/operations.js,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/README.md,
+       server/features/queues/README.md, TODO.org
+     Notes: Queue CUT transition now preflights current selected pile
+       availability before allocating anything, so insufficient pile-only stock
+       fails without partially incrementing `data.stock.used`. QueueEditor cut
+       confirmation shows the chosen run sheet count and selected material
+       source count when material sources are present.
+
+*** Agent Notes
+     [2026-06-11] Add material pile stock movement audit trail
+     Files changed: components/entities/MaterialPile/MaterialSummary.vue,
+       server/features/material-piles/service.js,
+       server/features/material-piles/material-piles.spec.js,
+       server/features/queues/service.js,
+       server/features/queues/queues.spec.js,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/entities/MaterialPile/README.md,
+       server/features/material-piles/README.md,
+       server/DATA_MODEL.md, TODO.org
+     Notes: Material piles now keep bounded `data.stockMovements` entries for
+       receipt, manual adjustment, and allocation. Queue-cut allocations pass
+       queue and nesting-run ids into the movement entry, and material pile
+       cards show the latest stock movement beside stock totals.
+
+*** Agent Notes
+     [2026-06-11] Correct generated sheet design metric paths
+     Files changed: components/entities/SheetDesign/SheetDesignDetail.vue
+     Docs updated: components/entities/SheetDesign/README.md, TODO.org
+     Notes: Sheet design details now read generated nesting metrics from
+       `summary.efficiency` and `summary.placedCount`, matching the nesting
+       summary contract used when per-layout sheet designs are created.
+
+*** Agent Notes
+     [2026-06-11] Remove dead queue requisition affordance
+     Files changed: components/QueueEditor.vue,
+       components/entities/NestingRun/NestingRunCard.vue
+     Docs updated: TODO.org
+     Notes: Removed the unused `create-requisition` run-card event binding and
+       QueueEditor handler that only navigated to a non-existent `/materials`
+       route. Warehouse/manual stock remains the active material sourcing path.
+
+*** Agent Notes
+     [2026-06-11] Clarify queue CUT physical hook behavior
+     Files changed: server/features/queues/service.js
+     Docs updated: server/features/queues/README.md, TODO.org
+     Notes: Replaced the placeholder `processPhysicalCut` console log with an
+       explicit no-op. Pile stock consumption is now clearly owned by
+       `markCut()`; physical sheet/remnant unit transitions remain unmodeled.
+
+*** Agent Notes
+     [2026-06-11] Guard material pile allocation counts
+     Files changed: server/features/material-piles/service.js,
+       server/features/material-piles/material-piles.spec.js
+     Docs updated: server/features/material-piles/README.md, TODO.org
+     Notes: `allocate()` and `allocateSheets()` now reject non-positive counts
+       before touching stock, preventing bad callers from increasing available
+       stock through negative allocations.
+
+*** Agent Notes
+     [2026-06-11] Clamp warehouse cached inventory counters
+     Files changed: server/features/warehouses/service.js,
+       server/features/warehouses/warehouses.spec.js
+     Docs updated: server/features/warehouses/README.md, TODO.org
+     Notes: `updateInventoryCounts()` now clamps cached warehouse stats at zero
+       so stale decrements cannot make manual stock summaries negative.
+
+*** Agent Notes
+     [2026-06-11] Filter colors by lineage permissions
+     Files changed: server/features/colors/service.js,
+       server/features/colors/colors.spec.js
+     Docs updated: server/features/colors/README.md, TODO.org
+     Notes: Color listing now merges caller lineage permissions with requested
+       filters such as `catalogId`, preventing manual warehouse stock selectors
+       from seeing finishes outside the user's organization.
+
+*** Agent Notes
+     [2026-06-11] Add project sheet design list route
+     Files changed: pages/project/[slug].vue,
+       pages/project/[slug]/sheet-designs.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: pages/project/README.md, TODO.org
+     Notes: Project navigation now has a Sheet designs tab. The new list route
+       resolves the project id from the route slug, lists generated sheet
+       designs by project lineage, and uses `SheetDesignCard` so nesting outputs
+       are manageable outside individual queue run cards.
+
+*** Agent Notes
+     [2026-06-11] Fix warehouse-stock fallback catalog permissions
+     Files changed: components/hubs/WarehouseHub.vue,
+       server/features/catalogs/service.js,
+       server/features/catalogs/catalogs.spec.js,
+       server/features/colors/service.js,
+       server/features/colors/colors.spec.js
+     Docs updated: components/hubs/README.md,
+       server/features/catalogs/README.md,
+       server/features/colors/README.md, TODO.org
+     Notes: Manual warehouse stock fallback catalog/color creation now sends
+       `source: 'WAREHOUSE_STOCK'`. Backend catalog/color services accept that
+       source with `materials` write permission, while normal catalog/color
+       administration still requires catalog permissions.
+
+*** Agent Notes
+     [2026-06-11] Default warehouse creation to auth organization
+     Files changed: server/features/warehouses/service.js,
+       server/features/warehouses/warehouses.spec.js
+     Docs updated: server/features/warehouses/README.md, TODO.org
+     Notes: Warehouse creation now falls back to the authenticated
+       organization id when no explicit `organizationId` is provided, matching
+       the manual warehouse UI and other organization-scoped services.
+
+*** Agent Notes
+     [2026-06-11] Create physical warehouse outputs on queue cut
+     Files changed: server/features/queues/service.js,
+       server/features/queues/queues.spec.js,
+       server/features/material-piles/service.js,
+       server/features/sheets/service.js,
+       server/features/remnants/service.js,
+       server/features/cassette-instances/service.js
+     Docs updated: server/features/queues/README.md,
+       server/features/material-piles/README.md,
+       server/features/sheets/README.md,
+       server/features/remnants/README.md,
+       server/features/cassette-instances/README.md, TODO.org
+     Notes: Marking a queue as CUT now requires assigned warehouse material,
+       preflights selected pile stock, consumes pile sheets, decrements
+       warehouse sheet counters, creates MILLED cut sheet entities, creates
+       available remnants from reported remnant area, and creates cassette
+       instances from the generated sheet design cassette counts. CUT is guarded
+       against repeat execution so stock is not consumed twice.
+
+*** Agent Notes
+     [2026-06-11] Fix warehouse nesting command payload and run choice access
+     Files changed: components/QueueEditor.vue,
+       packages/domain-cnc/src/commands.js,
+       packages/domain-cnc/src/workflows.js,
+       server/features/nesting/operations.js,
+       server/features/nesting/operations.spec.js
+     Docs updated: components/README.md,
+       packages/domain-cnc/README.md,
+       server/features/nesting/README.md,
+       server/features/nesting-runs/README.md, TODO.org
+     Notes: QueueEditor now sends normalized selected `materialPool` when
+       starting nesting and stops if saving the queue fails. The solveNesting
+       command contract now accepts `WAREHOUSE`, virtual sheet aliases, and
+       normalized material pools; the nesting handler falls back to saved queue
+       materialPool when command input omits it. Nesting run CHOSEN/REJECTED
+       transitions now use parent `queues:write` access, matching the queue
+       editor and nesting-runs service.
+
+*** Agent Notes
+     [2026-06-11] Silence status actions for workflow-less warehouses
+     Files changed: components/shared/status/EntityStatus.vue,
+       server/core/machines/service.js,
+       server/core/machines/service.spec.js,
+       utils/status-actions.js
+     Docs updated: server/core/machines/README.md,
+       utils/README.md, TODO.org
+     Notes: EntityStatus now requests live status actions only for entity types
+       with registered CNC workflows, so warehouse detail pages do not ask the
+       status API for nonexistent warehouse transitions. The status service
+       action lookup also returns an empty action list for workflow-less entity
+       types while keeping actual transitions invalid.
+
+*** Agent Notes
+     [2026-06-11] Move warehouse consumption to chosen nesting run
+     Files changed: packages/domain-cnc/src/workflows.js,
+       packages/domain-cnc/src/hooks.js, server/runtime/app-registry.js,
+       server/features/nesting-runs/service.js,
+       server/features/nesting-runs/repository.js,
+       server/api/queue/[id]/choose-run.post.js,
+       server/api/queue/[id]/mark-cut.post.js,
+       server/features/queues/service.js,
+       server/features/queues/queues.spec.js, stores/queues.js,
+       components/QueueEditor.vue, i18n/locales/en.json,
+       i18n/locales/ru.json
+     Docs updated: server/features/queues/README.md,
+       server/features/nesting-runs/README.md,
+       server/features/material-piles/README.md,
+       server/features/remnants/README.md, components/README.md, TODO.org
+     Notes: Removed the invalid queue-level CUT workflow, mark-cut API, and
+       placeholder physical-unit hooks. Choosing a completed nesting run now
+       preflights selected pile stock, transitions the run to CHOSEN, consumes
+       warehouse material, creates production outputs, and stores
+       material/output ids on the READY queue. Failed preflight leaves pile
+       stock and run status untouched.
+
+*** Agent Notes
+     [2026-06-11] Store queue production outputs as instances and remnant geometry
+     Files changed: server/features/queues/service.js,
+       server/features/queues/queues.spec.js,
+       server/features/remnants/service.js,
+       server/features/cassette-instances/service.js,
+       components/QueueEditor.vue, components/hubs/WarehouseHub.vue,
+       components/hubs/CassetteInstancesTab.vue,
+       components/entities/Warehouse/WarehouseDetail.vue,
+       components/shared/DrawingCanvas.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: server/features/sheets/README.md,
+       server/features/remnants/README.md,
+       server/features/cassette-instances/README.md,
+       components/hubs/README.md, components/README.md, TODO.org
+     Notes: Queue production output no longer persists already-cut sheets into
+       sheet inventory. The chosen run consumes pile stock, records source-sheet
+       descriptors on queue output, stores produced cassette instances with
+       warehouse lineage, and creates remnant records whose geometry is the
+       sheet outer contour with placed cassette cut.outer polygons as holes.
+       WarehouseHub now loads cassette instances by warehouse lineage, filters
+       legacy queue-cut sheet rows out of the sheet tab, and shows an instances
+       tab plus cassette count.
+
+*** Agent Notes
+     [2026-06-11] Improve produced cassette instance cards
+     Files changed: components/entities/CassetteInstance/CassetteInstanceCard.vue,
+       components/entities/CassetteDesign/CassetteDesignCard.vue,
+       server/features/cassette-instances/service.js,
+       packages/domain-cnc/src/workflows.js,
+       server/features/queues/queues.spec.js
+     Docs updated: server/features/cassette-instances/README.md,
+       server/features/cassette-designs/README.md, components/README.md,
+       TODO.org
+     Notes: Queue-produced cassette instances now start in `CUT` state rather
+       than `NESTED`, and legacy queue-cut rows persisted as `NESTED` read back
+       as `CUT` without migrating unrelated records. `CUT` can transition to
+       `MILLED` through the existing operator workflow. Cassette instance cards
+       resolve the source cassette design and parent template, render the
+       actual design geometry thumbnail, and show embedded design/template
+       identity context instead of only generic trace links. Cassette design
+       cards also embed parent template identity.
+
+*** Agent Notes
+     [2026-06-11] Restore physical output geometry previews and inline entity context
+     Files changed: components/shared/DrawingCanvas.vue,
+       components/CassetteThumbnail.vue,
+       components/entities/CassetteInstance/CassetteInstanceCard.vue,
+       components/entities/CassetteInstance/CassetteInstanceDetail.vue,
+       components/entities/CassetteDesign/CassetteDesignCard.vue,
+       components/entities/Remnant/RemnantCard.vue,
+       components/entities/Remnant/RemnantDetail.vue,
+       components/entities/Sheet/SheetCard.vue,
+       components/entities/MaterialPile/PileCard.vue,
+       utils/drawingPreview.js, utils/drawingPreview.spec.js,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/README.md, components/shared/README.md,
+       components/entities/CassetteInstance/README.md,
+       components/entities/CassetteDesign/README.md,
+       components/entities/Remnant/README.md,
+       components/entities/Sheet/README.md,
+       components/entities/MaterialPile/README.md, utils/README.md, TODO.org
+     Notes: Card and thumbnail drawing canvases now own their aspect-ratio
+       height so previews do not collapse in entity cards. GeometryPreview can
+       render polygon-only remnant geometry with holes when layer data is
+       missing. Remnant and cassette instance cards/details render actual
+       geometry and use nested inline entity cards for source design, template,
+       queue, sheet, warehouse, pile, and catalog context instead of direct
+       trace-link-only rows.
 
 * WAITING Domain Builder Contract Component Redesign
   :PROPERTIES:
@@ -109,6 +648,47 @@
        output cards open a DrawingCanvas-backed preview dialog, isolated nested
        status/link/preview clicks from parent card selection, and redesigned
        default SpecsBlock/DataBlock layouts around dimensional and fact data.
+
+*** Agent Notes
+     [2026-06-11] Compact entity headers and single-field rename UX
+     Files changed: components/shared/EntityPage.vue,
+       components/shared/EntityCard.vue,
+       components/shared/NameEditPopover.vue,
+       components/shared/links/TraceChain.vue,
+       components/shared/links/TraceLink.vue,
+       components/entities/Project/ProjectCard.vue,
+       components/entities/User/UserCard.vue,
+       components/entities/Requisition/RequisitionCard.vue,
+       components/entities/MaterialPile/PileCard.vue,
+       components/entities/Catalog/CatalogDetail.vue,
+       components/entities/CassetteTemplate/CassetteTemplateCard.vue,
+       components/entities/SheetDesign/SheetDesignDetail.vue,
+       components/entities/Remnant/RemnantDetail.vue,
+       components/entities/Sheet/SheetDetail.vue,
+       components/entities/Warehouse/WarehouseDetail.vue,
+       components/CassetteDesigner.vue, components/CassetteManager.vue,
+       components/QueueEditor.vue, components/shared/DrawingCanvas.vue,
+       pages/project/[slug].vue, pages/projects/index.vue,
+       pages/projects/README.md,
+       pages/admin/organizations.vue, pages/admin/users.vue,
+       pages/admin/domain-builder.vue, pages/admin/workbench.vue,
+       pages/organization/users.vue, framework.manifest.json,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/README.md, components/shared/README.md,
+       components/entities/Project/README.md,
+       components/entities/SheetDesign/README.md,
+       pages/projects/README.md, TODO.org
+     Notes: EntityPage headers now use compact inline status without status
+       history, TraceChain renders as a tighter breadcrumb, project rename
+       actions use a shared popover instead of full dialogs, project-card
+       rename saving state is independent from create-dialog loading, and
+       sheet-design detail metrics use DataBlock rather than four separate fact panels.
+       EntityCard keeps lineage and identity-prefix chrome compact and aligned
+       across card variants.
+       The projects route now exposes its existing client-side search/sort
+       state in the UI.
+       Icon-only buttons across entity cards, admin tables, cassette surfaces,
+       and drawing controls now carry localized accessible labels.
 
 * DONE Entity System Refactor & Documentation
   :PROPERTIES:
@@ -2148,6 +2728,8 @@
     - pages/admin/domain-builder.vue
     - i18n/locales/en.json
     - i18n/locales/ru.json
+    Tests changed:
+    - server/features/entity-revisions/entity-revisions.spec.js
     Docs updated:
     - pages/admin/README.md
     - packages/domain-cnc/README.md
@@ -3525,3 +4107,612 @@
     - Collapsed the two 3D panels into one cassette assembly preview window.
     - Folded-preview faces now carry `workpieceId`, allowing deterministic varied hues and workpiece-level selection.
     - Clicking a workpiece in 3D selects it in the designer and isolates it; the back button clears isolation and returns to the whole cassette.
+
+*** Agent Notes
+    [2026-06-08] Convert Cassette Designer v2 workpieces to attachment graph topology
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/CassetteFoldedPreview.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2FoldedPreview.js
+    - utils/cassetteV2Renderer.spec.js
+    - utils/cassetteV2FoldedPreview.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - utils/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Workpieces are now modeled as graph nodes connected by OCCS joint edges; users declare face-to-face attachments, and placement choice remains internal renderer state.
+    - The topology overlay renders one compact graph navigator, while the Inspector lists and edits all attachments for the selected workpiece.
+    - Non-root workpiece deletion removes only that workpiece, its faces, and incident joints instead of deleting a tree subtree.
+    - Folded 3D placement uses the renderer-selected placement joints and reports extra attachment diagnostics for impossible or unresolved constraints.
+
+*** Agent Notes
+    [2026-06-09] Replace Cassette Designer v2 topology tab with selection inspector
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - pages/admin/README.md
+    - TODO.org
+    Notes:
+    - Removed the topology side-panel tab; graph node and edge selections now open the Inspector for workpieces and attachments.
+    - Moved global cassette parameters into their own Parameters tab so selected face, fold, workpiece, and attachment controls do not compete with ABC variables.
+    - Kept fold removal as selected child-face deletion instead of adding a separate fold-delete command, because the current same-sheet model does not support orphan faces after removing a fold relation.
+
+*** Agent Notes
+    [2026-06-09] Move Cassette Designer v2 topology controls into editor
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/shared/DrawingCanvas.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - utils/drawingPreview.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Selected faces now expose an editor-surface menu for role changes and child-face deletion instead of side-panel delete controls.
+    - Offset sockets are edited from value-only chips placed directly on selected face vertices, and fold labels open inline plain-number angle editing.
+    - The workpiece graph overlay now owns add/link/delete controls and relation selection; attachment mode renders assembly context and uses face clicks to set source/target faces.
+    - Fold deletion remains intentionally modeled as child-face deletion, not a standalone fold command, because removing the fold relation would create an unsupported orphan face in the current topology model.
+
+*** Agent Notes
+    [2026-06-09] Remove point labels from Cassette Designer v2 editor chips
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/shared/DrawingCanvas.vue
+    - utils/cassetteV2Renderer.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Offset chips now display only the current expression/value, not point labels.
+    - Inline editor popovers no longer render visible headers for face actions or point/fold expression edits.
+    - Face role options now come from the shared `OCCS_CASSETTE_FACE_ROLES` constant mirroring the OCCS cassette spec's recommended face role ids.
+
+*** Agent Notes
+    [2026-06-09] Move Cassette Designer v2 inspector controls onto canvas
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/shared/DrawingCanvas.vue
+    - utils/occs/drawing.js
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Removed the stale selected-object Inspector branch; the side panel now owns only global parameters, layers, and OCCS JSON.
+    - Moved face dimensions, base offset anchors, attachment fields, and section-plane edits into canvas popovers/handles.
+    - Added left/top section overlays generated by intersecting the folded 3D preview geometry with editable section planes.
+    - Kept the workpiece graph at fixed SVG dimensions so additions scroll the graph overlay instead of shrinking the node UI.
+
+*** Agent Notes
+    [2026-06-09] Reduce Cassette Designer v2 canvas overlay noise
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/shared/DrawingCanvas.vue
+    - utils/drawingPreview.js
+    - utils/occs/dimensions.js
+    - utils/occs/drawing.spec.js
+    - utils/drawingPreview.spec.js
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Fold angle chips are visible only for the hovered fold or selected child face.
+    - Offset chips are centered on selected-face points and render above edge-add handles; dimension edit targets moved to generated dimension text labels.
+    - Wide-face dimensions move inside the face at a 30 mm offset; narrower faces keep outside dimension placement.
+    - The workpiece graph overlay is constrained away from the top-right folded-preview panel and scrolls internally.
+
+*** Agent Notes
+    [2026-06-09] Make Cassette Designer v2 sections layer-toggleable and stabilize selection
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/shared/DrawingCanvas.vue
+    - utils/occs/layers.js
+    - utils/occs/drawing.js
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - pages/admin/README.md
+    - utils/README.md
+    - utils/occs/README.md
+    - TODO.org
+    Notes:
+    - Section graphics now render as real `code.cassette_mark` layer paths, so the layers panel controls section visibility.
+    - DrawingCanvas keeps only invisible section-plane drag hit targets and enables them only while the section mark layer is visible.
+    - Face/fold overlay metadata now includes workpiece ids, and non-attachment clicks from other workpieces are ignored.
+    - Preview rendering no longer watches raw selected face id, and DrawingCanvas preserves pan/zoom when refreshed drawings keep the same viewBox.
+
+*** Agent Notes
+    [2026-06-09] Restore Cassette Designer v2 symbolic dimension labels
+    Files changed:
+    - utils/cassetteV2Renderer.js
+    - utils/occs/dimensions.js
+    - utils/cassetteV2Renderer.spec.js
+    Docs updated:
+    - TODO.org
+    Notes:
+    - Composed and incremental cassette drawing paths now attach node dimension labels before building OCCS dimension layers.
+    - Explicit blank labels suppress inherited child-base dimensions instead of falling back to measured numeric values.
+    - Regression coverage checks composed/incremental drawings render `A`, `B`, and `R` labels rather than evaluated measurements.
+
+*** Agent Notes
+    [2026-06-09] Fix Cassette Designer v2 add-face and dimension edit affordances
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/shared/DrawingCanvas.vue
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - Workpiece selection mode no longer rejects free-edge `+` clicks; attachment mode hides free-edge handles because that mode uses face clicks for joint setup.
+    - DrawingCanvas renders interactive dimension chips only for selected or hovered faces, using `designerControl` metadata from the visible dimension layer text.
+    - Designer section, fold, free-edge, dimension, and selected-face overlays are ordered explicitly so hit targets do not get nested in the wrong loop.
+
+*** Agent Notes
+    [2026-06-09] Stabilize Cassette Designer v2 dimension label hover
+    Files changed:
+    - components/shared/DrawingCanvas.vue
+    Docs updated:
+    - TODO.org
+    Notes:
+    - Dimension edit chips now share face hover ownership and defer hover clearing briefly, so the chip no longer disappears and reappears when it becomes the pointer target.
+
+*** Agent Notes
+    [2026-06-09] Improve Cassette Designer v2 workpiece attachment context
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - components/shared/DrawingCanvas.vue
+    - utils/cassetteV2Renderer.js
+    - utils/cassetteV2Renderer.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Added workpiece joint deletion that removes the link while preserving both workpieces and promoting a remaining source-workpiece joint as placement driver when needed.
+    - Assembly context previews now use per-workpiece transparent layer paths plus source/target attachment snap markers instead of a single opaque unioned outline.
+    - DrawingCanvas limits face hit targets to the active/selectable workpieces, so background assembly context faces pass through and do not steal active face selection.
+
+*** Agent Notes
+    [2026-06-10] Compact Cassette Designer v2 assembly layout
+    Files changed:
+    - components/CassetteDesignerV2.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - TODO.org
+    Notes:
+    - Replaced the canvas-mounted workpiece SVG graph with a compact assembly DAG/list panel outside the CAD surface.
+    - Moved the folded 3D preview from the canvas overlay into the assembly rail, leaving the canvas responsible only for geometry-bound editing controls.
+    - Added responsive designer shell breakpoints: stacked below `lg`, canvas plus assembly at `lg`, and global/canvas/assembly columns from `xl`.
+    - Relation rows now appear under both source and target workpieces, expose unlink/edit actions, and show folded-preview diagnostics for unresolved/impossible attachments.
+
+*** Agent Notes
+    [2026-06-10] Correct Cassette Designer v2 header and narrow-layout panels
+    Files changed:
+    - pages/admin/workbench.vue
+    - components/CassetteDesignerV2.vue
+    Docs updated:
+    - pages/admin/README.md
+    - components/README.md
+    - TODO.org
+    Notes:
+    - Hid generic workbench draft/reset actions while the designer is active so cassette save/load/reset has one owner.
+    - Made the designer load selector action-like instead of a second selected-name display, and changed save to an icon-only button.
+    - Switched global parameter fields to a responsive grid when the settings panel is docked wide, while preserving one column in the narrow side rail.
+    - Hid the 3D preview below `lg` so mobile assembly space is reserved for workpiece and relation controls.
+
+*** Agent Notes
+    [2026-06-10] Route DXF uploads into queue nesting as cassette designs
+    Files changed:
+    - components/CassetteEditorDialog.vue
+    - components/QueueEditor.vue
+    - stores/cassettes.js
+    - server/features/cassettes/service.js
+    - server/features/cassette-designs/service.js
+    - server/api/cassettes/upload.post.js
+    - server/utils/dxf-extractor.js
+    - server/utils/dxf-extractor.spec.js
+    - utils/dxfParser.js
+    - utils/dxfParser.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - server/features/cassettes/README.md
+    - server/features/cassette-designs/README.md
+    - server/utils/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - DXF upload now requires a source layer mapped to `cut.outer`, extracts that layer as cassette-design `polygonParts`, and stores all mapped DXF curves as semantic `layerData`.
+    - The upload endpoint returns both the created template and initial cassette design; normal upload listeners keep receiving the template, while QueueEditor adds the design card to `queue.data.job.items`.
+    - CassetteEditorDialog now focuses on name, file preview, and layer mapping only; parameter chips were removed from the DXF upload flow.
+    - DXF preview generation now renders parser LINE entities with vertex pairs and emits path commands instead of raw SVG fragments for DrawingCanvas.
+
+*** Agent Notes
+    [2026-06-10] Fix queue static design rows and sheet design cassette counts
+    Files changed:
+    - components/QueueEditor.vue
+    - components/entities/SheetDesign/SheetDesignCard.vue
+    - components/entities/SheetDesign/SheetDesignDetail.vue
+    - server/features/cassette-designs/service.js
+    - server/features/nesting/operations.spec.js
+    - server/features/sheet-designs/service.js
+    - server/features/sheet-designs/service.spec.js
+    - utils/sheetDesigns.js
+    - utils/sheetDesigns.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - components/entities/SheetDesign/README.md
+    - server/features/cassette-designs/README.md
+    - server/features/nesting/README.md
+    - server/features/sheet-designs/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Queue rows now use a UI-only `_key` so deleting one persisted item does not remove every row with an undefined `_id`.
+    - Queue saves go through `queuesStore.updateQueue()` before nesting, preserving newly added template/design rows for the next run.
+    - Cassette-design service access now accepts cassette permissions for uploaded organization-level designs, so static design ids can be resolved during nesting.
+    - Sheet designs now persist `data.cassetteDesigns` with per-design placement counts and show that summary in card/detail UI.
+    - Nesting result enrichment now preserves request items missing from partial worker item output, so placed static design ids can be resolved for preview and counts.
+    - Sheet-design UI derives cassette-design counts from raw nesting geometry as a fallback for existing saved sheet designs.
+    - Degenerate two-point or zero-area DXF polygon parts are filtered during upload extraction and again before nesting worker payload creation.
+
+*** Agent Notes
+    [2026-06-11] Align warehouse outputs with status and geometry contracts
+    Files changed:
+    - components/CassetteThumbnail.vue
+    - components/shared/DrawingCanvas.vue
+    - components/shared/EntityInlineRef.vue
+    - components/entities/CassetteDesign/CassetteDesignCard.vue
+    - components/entities/CassetteInstance/CassetteInstanceCard.vue
+    - components/entities/CassetteInstance/CassetteInstanceDetail.vue
+    - components/entities/MaterialPile/MaterialSummary.vue
+    - components/entities/MaterialPile/PileCard.vue
+    - components/entities/Remnant/RemnantCard.vue
+    - components/entities/Remnant/RemnantDetail.vue
+    - components/entities/Sheet/SheetCard.vue
+    - packages/domain-cnc/src/ui.js
+    - packages/domain-cnc/src/workflows.js
+    - server/features/nesting/operations.js
+    - server/features/nesting-runs/service.js
+    - server/features/notification/sendEmail.js
+    - server/features/queues/service.js
+    - server/plugins/nest-notify.js
+    - utils/drawingPreview.js
+    Tests changed:
+    - server/features/nesting/operations.spec.js
+    - server/features/queues/queues.spec.js
+    - utils/drawingPreview.spec.js
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - components/entities/CassetteDesign/README.md
+    - components/entities/CassetteInstance/README.md
+    - components/entities/MaterialPile/README.md
+    - components/entities/Remnant/README.md
+    - packages/domain-cnc/README.md
+    - server/features/material-piles/README.md
+    - server/features/nesting/README.md
+    - server/features/notification/README.md
+    - server/features/queues/README.md
+    - server/features/remnants/README.md
+    - utils/README.md
+    - TODO.org
+    Notes:
+    - Baked cassette previews now normalize semantic `layerData` and `polygonParts`, including migration fallback under `data.geometry.data`, so cassette design/instance cards render actual cut/fold/mark geometry.
+    - Queue nesting now moves queues through `DRAFT -> NESTING -> READY`; choosing a completed run can repair old `DRAFT` queues left behind by the previous missing transition before consuming warehouse stock.
+    - Material piles and remnants now expose real workflows/status mappings, while latest movement and reusable/waste flags remain metadata rather than local status badges.
+    - Nest finish email failures from missing or invalid Resend credentials are logged as skipped notifications and do not surface as repeated server error stacks.
+
+*** Agent Notes
+    [2026-06-11] Restore cassette design entity API lookup
+    Files changed:
+    - server/api/cassette-designs/[id].get.js
+    Docs updated:
+    - server/features/cassette-designs/README.md
+    - TODO.org
+    Notes:
+    - Added the missing canonical `GET /api/cassette-designs/:id` route used by `useEntity('cassetteDesign')`.
+    - Cassette instance cards can now fetch source baked designs through the standard entity endpoint instead of hitting a page-level 404.
+
+*** Agent Notes
+    [2026-06-11] Fix inline relation affordance and cassette design facts
+    Files changed:
+    - components/shared/EntityInlineRef.vue
+    - components/entities/CassetteDesign/CassetteDesignCard.vue
+    - components/entities/CassetteInstance/CassetteInstanceCard.vue
+    - components/entities/CassetteInstance/CassetteInstanceDetail.vue
+    - components/entities/Remnant/RemnantCard.vue
+    - components/entities/Remnant/RemnantDetail.vue
+    - components/entities/Sheet/SheetCard.vue
+    Docs updated:
+    - components/shared/README.md
+    - components/entities/CassetteDesign/README.md
+    - components/entities/CassetteInstance/README.md
+    - components/entities/Remnant/README.md
+    - components/entities/Sheet/README.md
+    - TODO.org
+    Notes:
+    - EntityInlineRef now delegates to the referenced entity's registered card component with `variant="inline"` instead of swallowing parent card clicks without an action.
+    - Inline relation chips no longer render lifecycle status badges; status stays on the actual entity card or detail page.
+    - Cassette design cards no longer show raw `data.parameters.A/C` values as facts; geometry is represented by the cassette thumbnail.
+
+*** Agent Notes
+    [2026-06-11] Add immutable entity revisions for cassette geometry provenance
+    Files changed:
+    - server/features/entity-revisions/model.js
+    - server/features/entity-revisions/repository.js
+    - server/features/entity-revisions/service.js
+    - server/features/entity-revisions/index.js
+    - server/api/entity-revisions/index.get.js
+    - server/api/entity-revisions/[id].get.js
+    - server/features/cassettes/model.js
+    - server/features/cassettes/service.js
+    - server/features/cassette-designs/model.js
+    - server/features/cassette-designs/service.js
+    - server/runtime/app-registry.js
+    - packages/domain-cnc/src/entities.js
+    - packages/domain-cnc/src/summaries.js
+    - packages/domain-cnc/src/ui.js
+    - server/scripts/migrate-entity-revisions.js
+    - components/entities/EntityRevision/EntityRevisionCard.vue
+    - components/entities/Cassette/CassetteCard.vue
+    - components/entities/CassetteDesign/CassetteDesignCard.vue
+    - components/shared/EntityInlineRef.vue
+    - utils/design-system.js
+    - test-data/factories.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - server/features/entity-revisions/README.md
+    - server/features/README.md
+    - server/features/cassettes/README.md
+    - server/features/cassette-designs/README.md
+    - server/scripts/README.md
+    - components/entities/README.md
+    - components/entities/EntityRevision/README.md
+    - components/entities/Cassette/README.md
+    - components/entities/CassetteDesign/README.md
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - Added a generic `entity_revision` entity for immutable scoped content snapshots with content-hash dedupe.
+    - Cassette templates now maintain `data.revisions.geometry`; cassette designs store exact source provenance in `data.derivedFrom`.
+    - The migration script backfills current template geometry revisions and marks existing design provenance as inferred when historical source revisions were not recorded.
+    - UI relation rows use `EntityInlineRef` for both current geometry revision and design source revision.
+
+*** Agent Notes
+    [2026-06-11] Fix sheet design cassette relation routing and template revision display
+    Files changed:
+    - components/entities/SheetDesign/SheetDesignDetail.vue
+    - components/entities/CassetteTemplate/CassetteTemplateCard.vue
+    - packages/domain-cnc/src/ui.js
+    Docs updated:
+    - components/entities/SheetDesign/README.md
+    - components/entities/CassetteTemplate/README.md
+    - components/entities/README.md
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - Sheet design placed cassette rows now use `EntityInlineRef type="cassetteDesign"` instead of `TraceLink`, avoiding stale route mappings to cassette/template asset pages.
+    - Cassette template cards now show `data.revisions.geometry.currentId`, which is the visible current-geometry revision pointer for the `cassetteTemplate` UI contract.
+
+*** Agent Notes
+    [2026-06-11] Clean UI entity relation contracts and component docs
+    Files changed:
+    - packages/vue/src/index.js
+    - packages/vue/src/index.spec.js
+    - composables/useEntity.js
+    - components/shared/EntityInlineRef.vue
+    - components/entities/*/*.vue relation/card cleanup
+    - pages/project/[slug]/sheet-designs.vue
+    - pages/project/[slug]/queue/[queueId].vue
+    - utils/status-engine.js
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - components/entities/README.md
+    - components/entities/*/README.md
+    - composables/README.md
+    - packages/vue/README.md
+    - TODO.org
+    Notes:
+    - Entity relation rows now use `EntityInlineRef` instead of `TraceLink` throughout entity components; `TraceLink` remains only for explicit navigation demos.
+    - The Vue domain adapter now indexes surfaces by UI keys and backend aliases so `materialPile` / `material_pile` and similar pairs resolve to the same surface.
+    - Inline reference fetches can be silent, allowing stale relation ids to fall back to id chips without console flooding.
+    - Standard entity fetches in project sheet-design/detail pages now use `useEntity`; custom workflow, debug, payment, invitation, support, and project sub-resource endpoints remain direct.
+
+*** Agent Notes
+    [2026-06-12] Refactor active UI surfaces without deleting components
+    Files changed:
+    - components/CassetteManager.vue
+    - components/QueueEditor.vue
+    - components/entities/Queue/QueueEntryCard.vue
+    - components/entities/*/*Detail.vue stale grid helper cleanup
+    - pages/profile/index.vue
+    - pages/project/[slug]/data.vue
+    - pages/auth/login.vue
+    - pages/auth/register.vue
+    - pages/invitation/[token].vue
+    - pages/terms-and-conditions.vue
+    Docs updated:
+    - components/README.md
+    - components/entities/Queue/README.md
+    - pages/README.md
+    - TODO.org
+    Notes:
+    - No components were deleted. UI inventory is classified as route-active,
+      registry-active, or dormant before any future removal decision.
+    - Removed active `card-interactive` class usage and stale `grid-hub` /
+      `grid-details` helpers from routed and meaningful UI surfaces.
+    - Queue cassette entries now render through `QueueEntryCard`, preserving
+      existing `QueueEditor` persistence while giving source refs, thumbnails,
+      quantity, and parameter edits a single UI surface.
+    - Profile, project data, auth, invitation, and terms pages now use shared
+      page/state/table or PrimeVue panel chrome instead of raw bordered cards
+      and dashed placeholder boxes.
+
+*** Agent Notes
+    [2026-06-12] Audit core UI contracts and reduce warehouse/status friction
+    Files changed:
+    - components/hubs/WarehouseHub.vue
+    - components/shared/EntityCard.vue
+    - components/shared/status/EntityStatus.vue
+    - components/shared/blocks/StatusBadge.vue
+    - docs/UI_COMPONENT_AUDIT.md
+    Docs updated:
+    - README.md
+    - components/README.md
+    - components/shared/README.md
+    - components/hubs/README.md
+    - components/entities/Warehouse/README.md
+    - TODO.org
+    Notes:
+    - Added a component-by-component UI audit covering entity components,
+      shared primitives, operational hubs, pages, and layouts with the same
+      ten contract questions for each surface.
+    - Refactored `WarehouseHub` so inventory tabs are immediately reachable:
+      selected warehouse context and counts are compact tags above the tabs,
+      and full `WarehouseDetail` remains a detail-page surface instead of
+      being nested in the hub.
+    - Bounded inline status rails in `EntityStatus`/`EntityCard` and made
+      `StatusBadge` truncate inside that rail so statuses do not displace
+      entity identity or turn card headers into action/status rows.
+
+*** Agent Notes
+    [2026-06-12] Resolve audit-implied UI contract mismatches
+    Files changed:
+    - pages/assets/index.vue
+    - pages/assets/cassettes.vue
+    - pages/assets/layer-standards.vue
+    - pages/assets/pens.vue
+    - pages/assets/templates.vue
+    - pages/assets/tools.vue
+    - components/entities/Catalog/CatalogDetail.vue
+    - components/entities/Sheet/SheetDetail.vue
+    - components/entities/User/UserCard.vue
+    - components/shared/EntityPage.vue
+    - docs/UI_COMPONENT_AUDIT.md
+    Docs updated:
+    - components/shared/README.md
+    - components/entities/Catalog/README.md
+    - components/entities/Sheet/README.md
+    - components/entities/User/README.md
+    - pages/README.md
+    - TODO.org
+    Notes:
+    - Wrapped standalone asset routes in `StandardPage` instead of assuming
+      `/assets/index.vue` was their parent shell.
+    - Refactored `CatalogDetail` to use `EntityPage showStatus=false`, keeping
+      static master-data detail pages in the shared header contract without
+      workflow controls.
+    - Added source warehouse/material-pile/nesting-run `EntityInlineRef` rows
+      to `SheetDetail`, matching the relation contract already present in
+      `SheetCard`.
+    - Moved `UserCard` selection click ownership to the wrapper with
+      `isInteractiveEventTarget` guarding nested controls.
+
+*** Agent Notes
+    [2026-06-12] Fix routed UI shell and card intent regressions
+    Files changed:
+    - components/shared/StandardPage.vue
+    - layouts/app.vue
+    - pages/assets/index.vue
+    - pages/project/[slug].vue
+    - pages/project/[slug]/data.vue
+    - components/hubs/CatalogsTab.vue
+    - components/entities/CassetteDesign/CassetteDesignCard.vue
+    - components/entities/CassetteInstance/CassetteInstanceCard.vue
+    - components/entities/CassetteInstance/CassetteInstanceDetail.vue
+    - packages/vue/src/index.spec.js
+    - docs/UI_COMPONENT_AUDIT.md
+    Docs updated:
+    - components/shared/README.md
+    - pages/README.md
+    - components/hubs/README.md
+    - components/entities/CassetteDesign/README.md
+    - components/entities/CassetteInstance/README.md
+    - packages/vue/README.md
+    - TODO.org
+    Notes:
+    - Removed duplicate route padding by making `layouts/app.vue` own page
+      padding and `StandardPage` own only width/header spacing.
+    - Reduced `/assets` to a redirect/loading surface instead of rendering
+      tabs and `NuxtPage` from a file that is not the parent route for asset
+      children.
+    - Replaced nested `StandardPage` in the project data child route with a
+      section `ActionToolbar`, and restored catalog card navigation through
+      the card's `view` intent event.
+    - Rendered queue and sheet-design detail children outside the project
+      `EntityPage` because those detail components already own entity-page
+      headers and relation sidebars.
+    - Made cassette design/instance relation lookups silent so stale source ids
+      do not repeatedly log `useEntity` fetch errors while inline refs degrade
+      through the shared relation fallback.
+    - Added endpoint-map coverage that keeps `cassetteDesign` /
+      `cassette_design` on `/api/cassette-designs/:id` and separate from
+      `cassetteTemplate` on `/api/cassettes/:id`.
+
+*** Agent Notes
+    [2026-06-12] Implement access-aware entity field display
+    Files changed:
+    - packages/domain-cnc/src/field-access.js
+    - packages/domain-cnc/src/index.js
+    - shared/entity-field-access.js
+    - shared/entity-field-access.spec.js
+    - components/shared/blocks/DataBlock.vue
+    - components/shared/blocks/SpecsBlock.vue
+    - components/entities/*/*Card.vue and related detail/demo DataBlock/SpecsBlock call sites
+    - server/utils/entity-redaction.js
+    - server/api/* entity GET/list routes
+    - server/features/queues/service.js
+    - server/features/cassette-designs/service.js
+    - server/features/sheet-designs/service.js
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - components/entities/README.md
+    - packages/domain-cnc/README.md
+    - shared/README.md
+    - server/utils/README.md
+    - TODO.org
+    Notes:
+    - Added a shared field policy contract where missing policy paths are hidden.
+    - Wired `DataBlock` and `SpecsBlock` to require `entity-type` and filter rows
+      through the active auth-store permissions.
+    - Added API DTO redaction helpers and applied them to entity list/detail
+      responses so cards receive only fields allowed by the current membership.

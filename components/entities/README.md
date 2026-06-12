@@ -8,6 +8,9 @@ Each subdirectory owns one entity surface or a closely related display surface.
 Most cards are registered through the design-system manifest in
 `packages/domain-cnc/src/ui.js` and bound to Vue components in
 `utils/design-system.js`.
+`EntityRevision` is a read-only system entity surface used by provenance rows
+such as cassette template geometry versions and cassette design source
+revisions.
 
 ## Card Contract
 
@@ -19,9 +22,18 @@ Most cards are registered through the design-system manifest in
   production entities emphasize flow and generated outputs, material entities
   emphasize physical specs and stock, catalog entities emphasize options and
   visual samples, and system entities emphasize ownership/contact/file context.
-- Use `SpecsBlock`, `DataBlock`, `GeometryPreview`, `TraceLink`, and PrimeVue
-  `Tag`/`Badge` controls for concise facts. Do not render raw nested objects or
-  rebuild identity/status rows locally.
+- Use `SpecsBlock`, `DataBlock`, `GeometryPreview`, `EntityInlineRef`, and
+  PrimeVue `Tag`/`Badge` controls for concise facts. Use `TraceLink` only where
+  direct route navigation is intended, not for entity relation summaries. Do not
+  render raw nested objects or rebuild identity/status rows locally.
+- Entity facts are access-aware. `DataBlock` and `SpecsBlock` require an
+  `entity-type` prop and filter paths through `shared/entity-field-access.js`
+  using the field policies exported by `@cutkit/domain-cnc`. If a field is not
+  declared in the policy, cards must not display it.
+- Relation refs should pass design-system UI keys (`materialPile`,
+  `nestingRun`, `cassetteDesign`, `entityRevision`) instead of backend
+  snake-case names. The shared domain UI adapter still accepts backend aliases
+  for compatibility, but component code should speak in surface keys.
 - Inline and compact variants may add `compact-content` or `inline-extra` only
   for short, stable cues; the full body remains the authoritative summary.
 

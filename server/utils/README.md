@@ -71,6 +71,16 @@ const results = await repository.findAll(filter);
 Users without memberships get an empty `$in` filter; users with memberships get
 `{ 'lineage.organizationId': { $in: [...orgIds] } }`.
 
+## entity-redaction.js
+
+### `serializeForAccess(entityType, entity, auth)` / `serializeManyForAccess(...)`
+Serializes model instances or DTOs and applies shared field-level redaction
+from `shared/entity-field-access.js` when an auth context is provided. Internal
+service calls can omit `auth` to keep full domain objects for workflows, hooks,
+and background tasks. API GET/list routes should pass `event.context.auth` so
+entity cards only receive fields allowed by the current user's membership
+permissions.
+
 ### `requirePermission(event, entity, level)` → `authContext`
 Uses `hasPermission()` from auth-helpers against explicit `user.permissions`.
 Use for system-level resources without lineage.
@@ -134,6 +144,17 @@ so it must avoid Node-only APIs and browser APIs that require secure contexts.
 Graph ID generation falls back from `crypto.randomUUID` to
 `crypto.getRandomValues`, then to a timestamp/random string for plain HTTP LAN
 usage.
+
+## dxf-extractor.js
+
+Parses uploaded DXF buffers for cassette import. `extractNestingPolygons()`
+uses the DXF-to-OCCS layer mapping to find the source layer mapped to
+`cut.outer` and returns only closed polygon parts for nesting. It rejects
+degenerate two-point/zero-area curves so they remain available as source curves
+only when mapped through `extractCurvesFromDXFLayer()`, not as nestable parts.
+`extractCurvesFromDXFLayer()` preserves open and closed curves from mapped
+layers for `layerData`, so folds, marks, dimensions, and other source drawing
+layers can be projected into sheet-design previews after nesting.
 
 ## Related
 

@@ -15,6 +15,10 @@ import shared modules through its root alias at the call site.
 - `permission-templates.js`: Access presets that expand into copied membership
   permission grants when a preset is assigned. Runtime checks consume the
   decomposed grants and do not branch on verbal preset labels.
+- `entity-field-access.js`: Field-level display/redaction helpers shared by
+  Nuxt cards and server API serialization. It consumes `@cutkit/domain-cnc`
+  field policies plus the same grant evaluator used by UI actions and backend
+  access checks.
 - `ui-permissions.js`: Compatibility UI resolver backed by the same grant
   evaluator as the server access engine.
 - `*.spec.js`: Contract tests for shared framework and permission behavior.
@@ -55,6 +59,12 @@ hooks. Verbal labels such as `ContractorAdmin` are presets only. Persisted user
 records must already carry copied permission grants; loading a user does not
 expand grants from the preset label. Workbench `testAccess` grants use the same
 explicit permission shape.
+
+Entity field display is stricter than entity read access. Entity read access
+decides whether the record may be fetched; `entity-field-access.js` decides
+which DTO paths may be shown. A path must be declared in
+`cncEntityFieldAccess` and the active membership must satisfy the policy level.
+No field policy means no display and no API serialization for auth-bound DTOs.
 
 ## Related
 - [users feature](../server/features/users/README.md) - Stores preset label,
