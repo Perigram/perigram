@@ -15,7 +15,7 @@
       </div>
       <template #footer>
         <div class="flex gap-2">
-          <Button :label="$t('cassetteInstance.create')" icon="pi pi-plus" text size="small" class="flex-1" @click="emit('create-instance', template)" />
+          <Button :label="$t('cassetteDesign.createFromTemplate')" icon="pi pi-sitemap" text size="small" class="flex-1" @click="emit('create-design', template)" />
           <Button icon="pi pi-download" text size="small" :aria-label="$t('common.download')" @click="emit('download', template)" />
         </div>
       </template>
@@ -44,7 +44,7 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const emit = defineEmits(['create-instance', 'download']);
+const emit = defineEmits(['create-design', 'download']);
 
 const definition = computed(() => props.template.data?.definition || {});
 const templateParameters = computed(() => {

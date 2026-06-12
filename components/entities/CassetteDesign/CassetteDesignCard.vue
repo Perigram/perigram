@@ -16,6 +16,17 @@
           <EntityInlineRef type="entityRevision" :id="revisionId" />
         </div>
       </div>
+      <template #footer>
+        <div class="flex justify-end">
+          <Button
+            icon="pi pi-download"
+            text
+            size="small"
+            :aria-label="$t('cassetteDesign.downloadDxf')"
+            @click="downloadDxf"
+          />
+        </div>
+      </template>
     </EntityCard>
   </div>
 </template>
@@ -27,6 +38,7 @@
  */
 import { computed, ref, watch } from 'vue';
 import Divider from 'primevue/divider';
+import Button from 'primevue/button';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
@@ -41,6 +53,11 @@ const templateId = computed(() => props.design.lineage?.templateId || null);
 const revisionId = computed(() => props.design.data?.derivedFrom?.revisionId || null);
 const template = ref(null);
 const templateEntity = useEntity('cassetteTemplate');
+
+const downloadDxf = () => {
+  if (!props.design?._id || !import.meta.client) return;
+  window.location.href = `/api/cassette-designs/${encodeURIComponent(props.design._id)}/export`;
+};
 
 watch(templateId, async (id) => {
   template.value = null;

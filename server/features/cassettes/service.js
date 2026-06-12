@@ -16,7 +16,7 @@ import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { Cassette } from './model.js';
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../utils/dxf-extractor.js';
-import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
+import { OCCS_CASSETTE_FACE_LAYER, OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 
 /**
  * Cassette Templates Service - v24 Standardized
@@ -253,6 +253,77 @@ export async function exportDxf(id, dimensions, userId, userOrg, userRole, userP
     const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
     return bucket.openDownloadStream(toFlexibleId(design.data.geometry.dxfId));
   }
+}
+
+export async function createDesignFromTemplate(id, parameters, userId, userOrg, userRole, userPermissions) {
+  const template = await getById(id, userId, userOrg, userRole, userPermissions);
+
+  if (!hasLineagePermission({ memberships: userPermissions?.memberships || [] }, template.lineage, 'cassettes', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  const templateName = template.identity?.name || 'Cassette Template';
+  const revisionResult = await ensureCurrentGeometryRevision(template, userId, 'design-created');
+  const derivedFrom = derivedFromGeometryRevision(revisionResult.revision, parameters || {});
+
+  if (template.data?.type !== 'PARAMETRIC') {
+    const existing = await cassetteDesignService.getByTemplateId(
+      id,
+      userId,
+      userOrg,
+      userRole,
+      userPermissions
+    );
+    if (existing) return existing;
+
+    throw createError({ statusCode: 400, message: 'Uploaded templates require a base design DXF' });
+  }
+
+  const { evaluateTemplate, generateSimpleDxf } = await import('../parametric-cassettes/service.js');
+  const {
+    polygons,
+    dimensions,
+    nestingPolygons,
+    layerData: evaluatedLayerData
+  } = await evaluateTemplate(id, parameters || {});
+  if (!polygons?.length) {
+    throw createError({ statusCode: 400, message: 'Template evaluation produced no geometry' });
+  }
+  const layerData = evaluatedLayerData || polygons.map((polygon, index) => ({
+    layer: index === 0 ? OCCS_LAYER_CUT_OUTER : OCCS_CASSETTE_FACE_LAYER,
+    coordinates: polygon.coordinates,
+    handles: polygon.handles || [(256 + index).toString(16).toUpperCase()]
+  }));
+  const dxfContent = generateSimpleDxf(polygons);
+
+  const db = await connectDB();
+  const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
+  const filename = `cassette-design-${id}-${Date.now()}.dxf`;
+  const dxfId = await new Promise((resolve, reject) => {
+    const uploadStream = bucket.openUploadStream(filename, {
+      metadata: { userId, organizationId: userOrg || userId, templateId: id, type: 'CASSETTE_DESIGN_DXF' }
+    });
+    uploadStream.on('finish', () => resolve(uploadStream.id));
+    uploadStream.on('error', reject);
+    uploadStream.write(dxfContent);
+    uploadStream.end();
+  });
+
+  return await cassetteDesignService.createFromTemplateUpload({
+    name: `${templateName} Design`,
+    lineage: template.lineage,
+    templateId: id,
+    polygonParts: nestingPolygons?.length ? nestingPolygons : [polygons[0]],
+    layerData,
+    geometryData: {
+      polygonParts: nestingPolygons?.length ? nestingPolygons : [polygons[0]],
+      layerData,
+      dimensions
+    },
+    dxfId,
+    parameters: dimensions || parameters || {},
+    derivedFrom
+  }, userId, userPermissions);
 }
 
 export async function update(id, updates, userId, userOrg, userRole, userPermissions) {

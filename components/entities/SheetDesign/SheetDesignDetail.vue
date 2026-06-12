@@ -1,7 +1,13 @@
 <template>
     <EntityPage :entity="design" entity-type="sheet_design">
         <template #actions>
-                <Button :label="$t('sheetDesign.downloadDxf')" icon="pi pi-download" />
+                <Button
+                    :label="$t('sheetDesign.downloadDxf')"
+                    icon="pi pi-download"
+                    :loading="generatingDxf"
+                    data-testid="sheet-design-generate-dxf"
+                    @click="generateDxf"
+                />
                 <Button :label="$t('sheetDesign.exportGCode')" icon="pi pi-file-export" text />
         </template>
 
@@ -70,7 +76,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
@@ -84,6 +92,9 @@ import { cassetteDesignCountsForSheetDesign } from '~/utils/sheetDesigns.js';
 const props = defineProps({
     design: { type: Object, required: true }
 });
+const { t } = useI18n();
+const toast = useToast();
+const generatingDxf = ref(false);
 
 const SHEET_DESIGN_FIELDS = [
     { path: 'summary.efficiency', i18n: 'sheetDesign.utilization', suffix: '%' },
@@ -97,4 +108,22 @@ const cassetteDesigns = computed(() => cassetteDesignCountsForSheetDesign(props.
     cassetteDesignId: item.cassetteDesignId?.toString?.() || item.cassetteDesignId
 })));
 const materialPool = computed(() => props.design.data?.materialPool || []);
+
+const generateDxf = async () => {
+    generatingDxf.value = true;
+    try {
+        await $fetch('/api/commands/generateAttachment/run', {
+            method: 'POST',
+            body: {
+                entities: { sheetDesign: props.design._id },
+                parameters: { kind: 'LAYOUT_DXF' }
+            }
+        });
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('sheetDesign.dxfRequested'), life: 3000 });
+    } catch {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: t('sheetDesign.dxfRequestFailed'), life: 4000 });
+    } finally {
+        generatingDxf.value = false;
+    }
+};
 </script>

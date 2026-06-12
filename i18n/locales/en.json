@@ -164,6 +164,7 @@
     "settings": "Settings"
   },
   "status": {
+    "status": "Status",
     "draft": "Draft",
     "submitted": "Submitted",
     "approved": "Approved",
@@ -310,6 +311,7 @@
     "nestingLayerRequired": "Map the nesting boundary layer to {layer}. This layer is stored as the cassette design cut geometry.",
     "parameters": "Parameters",
     "design": "Design",
+    "downloadDxf": "Download DXF",
     "geometry": "Geometry",
     "parametersHelp": "Define variable dimensions for batch entries",
     "parametersPlaceholder": "e.g., A, B, C",
@@ -1762,6 +1764,8 @@
   "sheetDesign": {
     "sheetDesigns": "Sheet designs",
     "downloadDxf": "Download DXF",
+    "dxfRequested": "DXF generation was queued.",
+    "dxfRequestFailed": "Failed to queue DXF generation.",
     "exportGCode": "Export G-code",
     "utilization": "Utilization",
     "parts": "Parts",
@@ -1773,6 +1777,12 @@
     "notFound": "Sheet design not found",
     "noSheetDesigns": "No sheet designs yet",
     "runNestingFirst": "Run nesting from a project queue to generate sheet layouts."
+  },
+  "cassetteDesign": {
+    "createFromTemplate": "Create design",
+    "createdFromTemplate": "Cassette design was created.",
+    "createFromTemplateFailed": "Failed to create cassette design.",
+    "downloadDxf": "Download DXF"
   },
   "nestingRun": {
     "sheetDesigns": "Sheet designs"

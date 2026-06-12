@@ -48,6 +48,24 @@
               @save="(name, close) => onRename(cassette, name, close)"
             />
             <Button icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="editCassette(cassette)" />
+            <Button
+              icon="pi pi-sitemap"
+              text
+              rounded
+              size="small"
+              :loading="creatingDesignId === cassette._id"
+              :aria-label="$t('cassetteDesign.createFromTemplate')"
+              data-testid="cassette-template-create-design"
+              @click="createDesignFromTemplate(cassette)"
+            />
+            <Button
+              icon="pi pi-download"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('cassette.downloadDxf')"
+              @click="downloadCassetteDxf(cassette)"
+            />
             <Button icon="pi pi-trash" text rounded size="small" severity="danger" :aria-label="$t('common.delete')" @click="handleDelete(cassette._id)" />
           </div>
         </template>
@@ -106,6 +124,7 @@ const confirm = useConfirm();
 const showUploadDialog = ref(false);
 const showDesignerDialog = ref(false);
 const editingCassette = ref(null);
+const creatingDesignId = ref(null);
 const cassetteTemplateOptions = computed(() => (cassettes.value || []).map(cassette => ({
   label: getCassetteName(cassette),
   value: cassette._id?.toString()
@@ -143,6 +162,38 @@ const handleDelete = async (cassetteId) => {
 const editCassette = (cassette) => {
   editingCassette.value = cassette;
   showDesignerDialog.value = true;
+};
+
+const createDesignFromTemplate = async (cassette) => {
+  if (!cassette?._id) return;
+  creatingDesignId.value = cassette._id;
+  try {
+    await $fetch(`/api/cassettes/${encodeURIComponent(cassette._id)}/designs`, {
+      method: 'POST',
+      body: { parameters: defaultTemplateParameters(cassette) }
+    });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassetteDesign.createdFromTemplate'), life: 3000 });
+  } catch {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassetteDesign.createFromTemplateFailed'), life: 4000 });
+  } finally {
+    creatingDesignId.value = null;
+  }
+};
+
+const defaultTemplateParameters = (cassette) => {
+  const definitions = cassette?.data?.parameters || cassette?.data?.definition?.parameters || [];
+  if (!Array.isArray(definitions)) return {};
+  return definitions.reduce((parameters, item) => {
+    const key = item?.key || item?.name || item;
+    if (!key) return parameters;
+    parameters[key] = Number(item?.default ?? item?.value ?? item?.min ?? 1);
+    return parameters;
+  }, {});
+};
+
+const downloadCassetteDxf = (cassette) => {
+  if (!cassette?._id || !import.meta.client) return;
+  window.location.href = `/api/cassettes/${encodeURIComponent(cassette._id)}/export`;
 };
 
 const loadDesignerTemplate = async (cassetteId) => {

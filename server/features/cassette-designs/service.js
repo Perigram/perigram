@@ -10,8 +10,8 @@ import {
   createData
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
-import { mapLineageQuery } from '../../utils/query.js';
-import { ObjectId } from 'mongodb';
+import { GridFSBucket } from 'mongodb';
+import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { CassetteDesign } from './model.js';
 import { generateRandomString } from '../../utils/strings.js';
@@ -76,7 +76,7 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
   return toDTO(created, userPermissions);
 }
 
-export async function createFromTemplateUpload(data, userId) {
+export async function createFromTemplateUpload(data, userId, userPermissions = null) {
   const origin = createStatus('ACTIVE', userId, { note: 'Initial design from upload' });
   const slug = data.slug || `cassette-design-${generateRandomString(10)}`;
   const designData = {
@@ -100,7 +100,21 @@ export async function createFromTemplateUpload(data, userId) {
   };
 
   const created = await repository.create(designData);
-  return toDTO(created);
+  return toDTO(created, userPermissions);
+}
+
+function polygonsFromDesignData(data = {}) {
+  const geometryData = data.geometry?.data || {};
+  const candidates = [
+    geometryData.layerData,
+    data.layerData,
+    geometryData.polygonParts,
+    data.polygonParts
+  ];
+  const source = candidates.find(items => Array.isArray(items) && items.length) || [];
+  return source
+    .filter(item => Array.isArray(item?.coordinates) && item.coordinates.length >= 3)
+    .map(item => ({ coordinates: item.coordinates }));
 }
 
 export async function getById(id, userId, userRole, userPermissions) {
@@ -118,12 +132,37 @@ export async function getById(id, userId, userRole, userPermissions) {
 
 export async function getByTemplateId(templateId, userId, userOrg, userRole, userPermissions) {
   const filter = {
-    ...getLineageFilter({ memberships: userPermissions.memberships }),
+    ...getLineageFilter({ memberships: userPermissions?.memberships || [] }),
     'lineage.templateId': toFlexibleId(templateId)
   };
 
   const designs = await repository.find(filter);
   return toDTO(designs[0], userPermissions) || null;
+}
+
+export async function exportDxf(id, userId, userRole, userPermissions) {
+  const raw = await repository.findById(toFlexibleId(id));
+  if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
+  const design = new CassetteDesign(raw);
+
+  if (userPermissions && !hasCassetteDesignPermission(userPermissions, design.lineage, 'read')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  const dxfId = design.data?.geometry?.dxfId;
+  if (dxfId) {
+    const db = await connectDB();
+    const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
+    return bucket.openDownloadStream(toFlexibleId(dxfId));
+  }
+
+  const polygons = polygonsFromDesignData(design.data);
+  if (!polygons.length) {
+    throw createError({ statusCode: 404, message: 'Cassette design has no DXF or polygon geometry' });
+  }
+
+  const { generateSimpleDxf } = await import('../parametric-cassettes/service.js');
+  return generateSimpleDxf(polygons);
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
