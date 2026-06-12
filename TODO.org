@@ -5138,3 +5138,14 @@
     - Inventory cards no longer render generic warehouse location rows/chips.
     - Material pile cards no longer render the latest stock movement.
     - Detail surfaces keep lineage/history context where it has enough room.
+
+*** Agent Notes
+    [2026-06-12] Render queue warehouse sources as horizontal row
+    Files changed:
+    - components/QueueEditor.vue
+    Docs updated:
+    - components/README.md
+    - TODO.org
+    Notes:
+    - Selected warehouse material sources now render in a horizontally scrolled
+      row with stable card widths.
