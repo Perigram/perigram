@@ -1,7 +1,8 @@
 # CONTAINER: Geometry Capture Worker
 
-Polling worker for `vision.extractGeometry` task runs. The default path uses
-OpenCV; model-backed presets can opt into SAM2 and GroundingDINO+SAM2.
+Polling worker for `vision.extractGeometry` task runs. Auto presets are
+model-first when the ML worker image is enabled, with OpenCV as the fallback and
+explicit deterministic preset family.
 
 ## Responsibility
 
@@ -28,17 +29,23 @@ review state until an operator confirms it.
   `remnant_light_on_dark`, `remnant_dark_on_light`,
   `remnant_sheet_remainder`.
 
-`*_auto` runs the mode-specific presets and picks the highest scoring candidate.
-Candidates are scored from contour coverage, rectangularity, solidity, vertex
-count, and facade hole/window count. Results include compact diagnostics such as
-selected preset, candidate, score, rejected candidate count, and scale mode.
+`*_auto` first tries the mode-specific model provider order:
+
+- Facade: `facade_grounded_sam2`, then `facade_sam2_auto`.
+- Remnant: `remnant_sam2_auto`, then `remnant_grounded_sam2`.
+
+If no model provider produces candidates, auto falls back to the OpenCV preset
+family and picks the highest scoring candidate. Candidates are scored from
+contour coverage, rectangularity, solidity, vertex count, and facade
+hole/window count. Results include compact diagnostics such as selected preset,
+provider, candidate, score, rejected candidate count, and scale mode.
 
 `*_sam2_auto` uses SAM2 automatic masks as candidate outer polygons.
 `*_grounded_sam2` uses GroundingDINO text prompts for the outer object and
 holes/windows, then SAM2 turns the detected boxes into masks. If a model preset
 is selected but model dependencies or checkpoints are unavailable, the worker
-falls back to the OpenCV auto preset and records a `model_provider_error:*`
-diagnostic in the revision.
+falls back to OpenCV and records `model_provider_error:*` diagnostics in the
+revision. Set `GEOMETRY_CAPTURE_MODEL_FIRST=0` to force OpenCV auto behavior.
 
 ## Environment
 
@@ -47,7 +54,10 @@ diagnostic in the revision.
 | `CUTKIT_API_URL` | App base URL, default `http://localhost:3000`. |
 | `WORKER_TOKEN` | Shared worker token matching the app. |
 | `GEOMETRY_CAPTURE_WORKER_ID` | Optional stable worker id. |
-| `SAM2_MODEL_ID` | Hugging Face SAM2 model id, default `facebook/sam2-hiera-large`. |
+| `GEOMETRY_CAPTURE_ML` | `1` when the worker image includes ML dependencies; also enables model preload by default. |
+| `GEOMETRY_CAPTURE_MODEL_FIRST` | `1` by default; set `0` to keep auto presets on OpenCV only. |
+| `GEOMETRY_CAPTURE_PRELOAD_MODELS` | `auto`/unset preloads only with `GEOMETRY_CAPTURE_ML=1`; set `0` to skip startup preload or `1` to force it. |
+| `SAM2_MODEL_ID` | Hugging Face SAM2 model id, default `facebook/sam2-hiera-tiny` for CPU-friendly development. |
 | `SAM2_CHECKPOINT` / `SAM2_MODEL_CFG` | Optional local SAM2 checkpoint/config for APIs that do not support `from_pretrained`. |
 | `SAM2_DEVICE` | `cpu` by default; set to `cuda` only in a GPU worker image. |
 | `GROUNDING_DINO_MODEL` | Hugging Face GroundingDINO model id, default `IDEA-Research/grounding-dino-tiny`. |
@@ -67,7 +77,9 @@ GEOMETRY_CAPTURE_ML=1 docker compose -f docker-compose.dev.yml up -d --build geo
 ```
 
 Compose mounts `geometry-model-cache` at `/models` and sets `HF_HOME` there so
-downloaded Hugging Face weights survive container rebuilds.
+downloaded Hugging Face weights survive container rebuilds. With
+`GEOMETRY_CAPTURE_ML=1`, the worker preloads SAM2 and GroundingDINO at startup
+unless `GEOMETRY_CAPTURE_PRELOAD_MODELS=0`.
 
 ## Related
 

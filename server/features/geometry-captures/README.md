@@ -34,9 +34,10 @@ workflows.
 1. Authenticated UI uploads a photo to the `capturePhotos` GridFS bucket.
 2. `create()` persists a `geometry_capture` and queues
    `vision.extractGeometry`.
-3. `workers/geometry-capture` claims the task for the pending revision, runs
-   preset-based OpenCV contour extraction, posts the result to the worker
-   callback, and completes/fails the task.
+3. `workers/geometry-capture` claims the task for the pending revision. Auto
+   presets try the model-backed provider order first when the ML worker image is
+   enabled, then fall back to OpenCV contour extraction. The worker posts the
+   result to the callback and completes/fails the task.
 4. The capture moves to `READY` for review or `FAILED` if there is no previous
    active geometry. Failed recalculations keep the previous active geometry.
 5. `confirm()` moves the capture to `COMPLETE`.

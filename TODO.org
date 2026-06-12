@@ -139,6 +139,23 @@
        Model dependencies are opt-in through `GEOMETRY_CAPTURE_ML=1`; missing
        model providers fall back to OpenCV and emit revision diagnostics.
 
+     [2026-06-12] Make geometry capture auto presets model-first
+     Files changed: workers/geometry-capture/main.py,
+       workers/geometry-capture/model_providers.py,
+       workers/geometry-capture/Dockerfile,
+       workers/geometry-capture/requirements-ml.txt,
+       docker-compose.dev.yml, docker-compose.local.yml,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: workers/geometry-capture/README.md,
+       server/features/geometry-captures/README.md,
+       components/entities/GeometryCapture/README.md, workers/README.md,
+       TODO.org
+     Notes: `facade_auto` and `remnant_auto` now try model providers before
+       OpenCV when `GEOMETRY_CAPTURE_MODEL_FIRST` is enabled. The ML worker
+       uses CPU PyTorch wheels, a packaged SAM2 install, build-time import
+       validation, CPU-friendly SAM2 tiny defaults, and startup model preload
+       when `GEOMETRY_CAPTURE_ML=1`.
+
 * WAITING Core Project Route Workflow Fixes
   :PROPERTIES:
   :ID: core-project-route-workflow-fixes
