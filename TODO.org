@@ -5083,3 +5083,24 @@
       `inventoryItems` persistence.
     - Cassette view switching and add/upload controls moved into the cassette
       panel header.
+
+*** Agent Notes
+    [2026-06-12] Rework queue material source selection
+    Files changed:
+    - components/QueueEditor.vue
+    - components/entities/MaterialPile/PileCard.vue
+    - components/entities/MaterialPile/MaterialSummary.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - components/entities/MaterialPile/README.md
+    - TODO.org
+    Notes:
+    - Nesting settings no longer show a text panel title; the header now uses
+      localized material source options where warehouses are selectable options.
+    - Warehouse inventory is added through a dropdown/add control, and selected
+      sources render as cards in a stable grid.
+    - Virtual mode displays a virtual sheet source card from the configured
+      width and length.
+    - Material pile cards no longer duplicate material/spec facts as chips.

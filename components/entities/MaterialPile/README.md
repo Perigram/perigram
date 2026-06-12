@@ -12,10 +12,9 @@ Cards for warehouse/manual `material_pile` inventory entries.
 ## Contract
 
 - Expects a v24 `material_pile` DTO with `identity`, `status`, `lineage`, `specs`, and `data`.
-- Uses `data.material`, `data.specs`, `data.stock`, `data.stockMovements`, and
-  `data.serial` for the manual/warehouse pile summary. The card displays
-  `identity.serial` when present and falls back to `data.serial` for older
-  records.
+- Uses `data.stock` and `data.stockMovements` for the manual/warehouse pile
+  summary. Material identity belongs to related catalog/material context, and
+  dimensions belong to the standard `specs` block instead of duplicated chips.
 - `EntityCard` owns the actual pile lifecycle status (`STOCKED` / `DEPLETED`).
   `MaterialSummary` displays the latest stock movement only as compact audit
   context for receipt, manual adjustment, or production allocation; it must not

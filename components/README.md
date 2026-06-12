@@ -167,9 +167,11 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   project queue route fits the app-content viewport and each lane owns its own
   vertical scrolling, while the center lane delegates scrolling to its
   `ScrollablePanel` sections. Nesting settings are a content-height header-action
-  panel: run nesting is triggered from the settings panel header, and warehouse
-  sources render as a horizontal selector of compact material pile, sheet, and
-  remnant entity cards. Queue status/actions live on the selected queue card;
+  panel: its header owns material source selection (`Virtual` plus warehouse
+  options) and the run action. Virtual mode renders the virtual sheet
+  dimensions as the active material abstraction; warehouse mode chooses sources
+  through a dropdown/add control and renders selected material pile, sheet, and
+  remnant cards below it. Queue status/actions live on the selected queue card;
   the cassette panel header owns view switching and add/upload actions. The
   runs lane receives queue-level sheet designs once, selects one active run, and lets
   `NestingRunCard` filter designs by run before rendering preview tiles. Run
