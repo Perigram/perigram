@@ -281,6 +281,16 @@
        Inline and compact popovers now reuse those bodies without an extra
        EntityCard divider.
 
+*** Agent Notes
+     [2026-06-12] Clip PrimeVue card and panel media to rounded chrome
+     Files changed: assets/css/main.css, components/shared/EntityCard.vue
+     Docs updated: components/shared/README.md, TODO.org
+     Notes: PrimeVue Card and Panel carried token-backed radius and border, but
+       their roots did not clip child paint. Header media/top-slot backgrounds
+       could therefore paint square pixels past rounded top corners. PrimeVue
+       `.p-card` and `.p-panel` roots now clip overflow globally, with the
+       EntityCard class retaining the same behavior for its shared card roots.
+
 * WAITING Warehouse Management MVP
   :PROPERTIES:
   :ID: warehouse-management-mvp
