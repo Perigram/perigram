@@ -4,17 +4,14 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
-import FileUpload from 'primevue/fileupload';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
-import Message from 'primevue/message';
 import Panel from 'primevue/panel';
-import Select from 'primevue/select';
 import SelectButton from 'primevue/selectbutton';
+import Tag from 'primevue/tag';
 import StandardPage from '~/components/shared/StandardPage.vue';
-import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import GeometryCaptureCard from '~/components/entities/GeometryCapture/GeometryCaptureCard.vue';
+import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import GeometryCaptureDetail from '~/components/entities/GeometryCapture/GeometryCaptureDetail.vue';
 import { useEntity } from '~/composables/useEntity';
 
@@ -39,14 +36,14 @@ const confirming = ref(false);
 const recalculating = ref(false);
 const activatingRevisionId = ref(null);
 const selectedFile = ref(null);
+const cameraInput = ref(null);
+const galleryInput = ref(null);
 
 const form = ref({
-  name: '',
   mode: 'REMNANT',
   warehouseId: null,
   projectId: null,
   preset: 'remnant_auto',
-  calibrationMode: 'knownDimension',
   knownWidth: null,
   knownHeight: null,
   sheetWidth: null,
@@ -63,27 +60,13 @@ const modeOptions = computed(() => [
   { label: t('geometryCapture.modes.FACADE'), value: 'FACADE' }
 ]);
 
-const calibrationOptions = computed(() => [
-  { label: t('geometryCapture.calibration.knownDimension'), value: 'knownDimension' },
-  { label: t('geometryCapture.calibration.sheetRemainder'), value: 'sheetRemainder' },
-  { label: t('geometryCapture.calibration.facadeFloors'), value: 'facadeFloors' }
-]);
-
-const presetOptions = computed(() => {
-  const keys = form.value.mode === 'FACADE'
-    ? ['facade_auto', 'facade_grounded_sam2', 'facade_sam2_auto', 'facade_edges', 'facade_threshold', 'facade_windows_high_contrast']
-    : ['remnant_auto', 'remnant_sam2_auto', 'remnant_grounded_sam2', 'remnant_light_on_dark', 'remnant_dark_on_light', 'remnant_sheet_remainder'];
-  return keys.map(value => ({ label: t(`geometryCapture.presets.${value}`), value }));
-});
-
-const contextOptions = computed(() => form.value.mode === 'REMNANT'
-  ? warehouseEntity.items.value.map(item => ({ label: item.identity?.name || item._id, value: item._id }))
-  : projectEntity.items.value.map(item => ({ label: item.identity?.name || item._id, value: item._id })));
+const currentContextId = computed(() => form.value.mode === 'REMNANT'
+  ? form.value.warehouseId
+  : form.value.projectId);
 
 const canSubmit = computed(() => {
   if (!selectedFile.value) return false;
-  if (form.value.mode === 'REMNANT' && !form.value.warehouseId) return false;
-  if (form.value.mode === 'FACADE' && !form.value.projectId) return false;
+  if (!currentContextId.value) return false;
   return true;
 });
 
@@ -98,19 +81,80 @@ onMounted(async () => {
     warehouseEntity.list().catch(() => []),
     projectEntity.list().catch(() => [])
   ]);
+  applyDefaultContext();
 });
 
 watch(() => form.value.mode, (mode) => {
-  form.value.calibrationMode = mode === 'FACADE' ? 'facadeFloors' : 'knownDimension';
   form.value.preset = mode === 'FACADE' ? 'facade_auto' : 'remnant_auto';
+  applyDefaultContext();
 });
 
 const loadCaptures = async () => {
   await captureEntity.list().catch(() => []);
 };
 
-const handleFileSelect = (event) => {
-  selectedFile.value = event.files?.[0] || null;
+const handleNativeFileSelect = (event) => {
+  selectedFile.value = event.target.files?.[0] || null;
+  event.target.value = '';
+};
+
+const openCamera = () => {
+  cameraInput.value?.click();
+};
+
+const openGallery = () => {
+  galleryInput.value?.click();
+};
+
+const applyDefaultContext = () => {
+  if (form.value.mode === 'REMNANT' && !form.value.warehouseId) {
+    form.value.warehouseId = warehouseEntity.items.value[0]?._id || null;
+  }
+  if (form.value.mode === 'FACADE' && !form.value.projectId) {
+    form.value.projectId = projectEntity.items.value[0]?._id || null;
+  }
+};
+
+const calibrationForMode = () => {
+  if (form.value.mode === 'FACADE') {
+    return {
+      mode: 'facadeFloors',
+      floorCount: form.value.floorCount,
+      floorHeight: form.value.floorHeight
+    };
+  }
+  const hasSheetSize = Boolean(form.value.sheetWidth || form.value.sheetHeight);
+  return {
+    mode: hasSheetSize ? 'sheetRemainder' : 'knownDimension',
+    knownWidth: form.value.knownWidth,
+    knownHeight: form.value.knownHeight,
+    sheetWidth: form.value.sheetWidth,
+    sheetHeight: form.value.sheetHeight,
+    material: form.value.material,
+    color: form.value.color,
+    thickness: form.value.thickness
+  };
+};
+
+const statusSeverity = (capture) => {
+  const state = capture.status?.state;
+  if (state === 'READY') return 'success';
+  if (state === 'FAILED') return 'danger';
+  if (state === 'PROCESSING') return 'info';
+  if (state === 'COMPLETE') return 'secondary';
+  return 'secondary';
+};
+
+const captureTitle = (capture) => capture.identity?.name || capture.identity?.reference || capture._id;
+
+const captureMeta = (capture) => {
+  const parts = [];
+  const confidence = Number(capture.data?.extraction?.confidence || 0);
+  if (capture.specs?.width && capture.specs?.height) {
+    parts.push(`${Math.round(capture.specs.width)} x ${Math.round(capture.specs.height)} mm`);
+  }
+  if (confidence) parts.push(`${Math.round(confidence * 100)}%`);
+  return parts.join(' · ') || t(`geometryCapture.modes.${capture.data?.mode || 'REMNANT'}`);
 };
 
 const createCapture = async () => {
@@ -125,7 +169,6 @@ const createCapture = async () => {
     });
 
     const capture = await captureEntity.create({
-      name: form.value.name || undefined,
       mode: form.value.mode,
       warehouseId: form.value.mode === 'REMNANT' ? form.value.warehouseId : undefined,
       projectId: form.value.mode === 'FACADE' ? form.value.projectId : undefined,
@@ -133,18 +176,7 @@ const createCapture = async () => {
       fileName: uploaded.filename,
       bucketName: 'capturePhotos',
       preset: form.value.preset,
-      calibration: {
-        mode: form.value.calibrationMode,
-        knownWidth: form.value.knownWidth,
-        knownHeight: form.value.knownHeight,
-        sheetWidth: form.value.sheetWidth,
-        sheetHeight: form.value.sheetHeight,
-        floorCount: form.value.floorCount,
-        floorHeight: form.value.floorHeight,
-        material: form.value.material,
-        color: form.value.color,
-        thickness: form.value.thickness
-      }
+      calibration: calibrationForMode()
     });
 
     await loadCaptures();
@@ -211,73 +243,59 @@ const confirmCapture = async (capture) => {
 
 <template>
   <StandardPage :title="$t('geometryCapture.title')" :subtitle="$t('geometryCapture.subtitle')">
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[24rem_minmax(0,1fr)]">
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[22rem_minmax(0,1fr)]">
       <div class="flex flex-col gap-6">
         <Panel :header="$t('geometryCapture.newCapture')">
           <div class="flex flex-col gap-4">
-            <InputText v-model="form.name" :placeholder="$t('geometryCapture.namePlaceholder')" />
             <SelectButton v-model="form.mode" :options="modeOptions" option-label="label" option-value="value" />
-            <Select
-              v-if="form.mode === 'REMNANT'"
-              v-model="form.warehouseId"
-              :options="contextOptions"
-              option-label="label"
-              option-value="value"
-              :placeholder="$t('geometryCapture.selectWarehouse')"
-            />
-            <Select
-              v-else
-              v-model="form.projectId"
-              :options="contextOptions"
-              option-label="label"
-              option-value="value"
-              :placeholder="$t('geometryCapture.selectProject')"
-            />
 
-            <SelectButton v-model="form.calibrationMode" :options="calibrationOptions" option-label="label" option-value="value" />
-            <Select
-              v-model="form.preset"
-              :options="presetOptions"
-              option-label="label"
-              option-value="value"
-              :placeholder="$t('geometryCapture.detectorPreset')"
-            />
-
-            <div v-if="form.calibrationMode === 'knownDimension'" class="grid grid-cols-2 gap-3">
-              <InputNumber v-model="form.knownWidth" :placeholder="$t('geometryCapture.knownWidth')" suffix=" mm" />
-              <InputNumber v-model="form.knownHeight" :placeholder="$t('geometryCapture.knownHeight')" suffix=" mm" />
-            </div>
-            <div v-else-if="form.calibrationMode === 'sheetRemainder'" class="grid grid-cols-2 gap-3">
-              <InputNumber v-model="form.sheetWidth" :placeholder="$t('geometryCapture.sheetWidth')" suffix=" mm" />
-              <InputNumber v-model="form.sheetHeight" :placeholder="$t('geometryCapture.sheetHeight')" suffix=" mm" />
-            </div>
-            <div v-else class="grid grid-cols-2 gap-3">
+            <div v-if="form.mode === 'FACADE'" class="grid grid-cols-2 gap-3">
               <InputNumber v-model="form.floorCount" :placeholder="$t('geometryCapture.floorCount')" />
               <InputNumber v-model="form.floorHeight" :placeholder="$t('geometryCapture.floorHeight')" suffix=" mm" />
             </div>
-
-            <div v-if="form.mode === 'REMNANT'" class="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <InputText v-model="form.material" :placeholder="$t('geometryCapture.material')" />
-              <InputText v-model="form.color" :placeholder="$t('geometryCapture.color')" />
-              <InputNumber v-model="form.thickness" :placeholder="$t('geometryCapture.thickness')" suffix=" mm" />
+            <div v-else class="flex flex-col gap-3">
+              <div class="grid grid-cols-2 gap-3">
+                <InputNumber v-model="form.knownWidth" :placeholder="$t('geometryCapture.knownWidth')" suffix=" mm" />
+                <InputNumber v-model="form.knownHeight" :placeholder="$t('geometryCapture.knownHeight')" suffix=" mm" />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <InputNumber v-model="form.sheetWidth" :placeholder="$t('geometryCapture.sheetWidth')" suffix=" mm" />
+                <InputNumber v-model="form.sheetHeight" :placeholder="$t('geometryCapture.sheetHeight')" suffix=" mm" />
+              </div>
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <InputText v-model="form.material" :placeholder="$t('geometryCapture.material')" />
+                <InputText v-model="form.color" :placeholder="$t('geometryCapture.color')" />
+                <InputNumber v-model="form.thickness" :placeholder="$t('geometryCapture.thickness')" suffix=" mm" />
+              </div>
             </div>
 
-            <FileUpload
-              mode="basic"
+            <input
+              ref="cameraInput"
+              class="hidden"
+              type="file"
               accept="image/*"
-              :auto="false"
-              :custom-upload="true"
-              :choose-label="selectedFile ? selectedFile.name : $t('geometryCapture.choosePhoto')"
-              @select="handleFileSelect"
+              capture="environment"
+              @change="handleNativeFileSelect"
+            />
+            <input
+              ref="galleryInput"
+              class="hidden"
+              type="file"
+              accept="image/*"
+              @change="handleNativeFileSelect"
             />
 
-            <Message severity="info" size="small">
-              {{ $t('geometryCapture.reviewNotice') }}
-            </Message>
+            <div class="grid grid-cols-2 gap-3">
+              <Button :label="$t('geometryCapture.takePhoto')" icon="pi pi-camera" @click="openCamera" />
+              <Button :label="$t('geometryCapture.choosePhoto')" icon="pi pi-image" severity="secondary" @click="openGallery" />
+            </div>
+
+            <small v-if="selectedFile" class="truncate text-muted-color">{{ selectedFile.name }}</small>
+            <small v-else-if="!currentContextId" class="text-muted-color">{{ $t('geometryCapture.noContext') }}</small>
 
             <Button
               :label="$t('geometryCapture.queueExtraction')"
-              icon="pi pi-camera"
+              icon="pi pi-send"
               :disabled="!canSubmit"
               :loading="uploading"
               @click="createCapture"
@@ -289,15 +307,33 @@ const confirmCapture = async (capture) => {
           <div class="flex justify-end pb-3">
             <Button icon="pi pi-refresh" text rounded size="small" :aria-label="$t('common.update')" @click="loadCaptures" />
           </div>
-          <ResponsiveGrid v-if="captures.length" variant="dense">
-            <GeometryCaptureCard
+          <div v-if="captures.length" class="flex flex-col gap-2">
+            <div
               v-for="capture in captures"
               :key="capture._id"
-              :capture="capture"
-              variant="compact"
+              role="button"
+              tabindex="0"
+              class="grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-3 rounded-ui border border-content-border bg-surface-0 p-2 text-left transition hover:border-primary"
+              :class="capture._id === selectedCapture?._id ? 'border-primary' : ''"
               @click="selectedId = capture._id"
-            />
-          </ResponsiveGrid>
+              @keydown.enter="selectedId = capture._id"
+            >
+              <div class="min-h-16 overflow-hidden rounded-ui border border-content-border bg-subtle">
+                <GeometryPreview v-if="capture.data?.geometry?.polygon?.outer?.length" :entity="capture" />
+                <div v-else class="flex min-h-16 items-center justify-center text-muted-color">
+                  <i class="pi pi-spin pi-cog"></i>
+                </div>
+              </div>
+              <div class="flex min-w-0 flex-col gap-1">
+                <div class="flex items-center gap-2">
+                  <Tag :value="$t(`geometryCapture.modes.${capture.data?.mode || 'REMNANT'}`)" severity="secondary" size="small" />
+                  <Tag :value="capture.status?.state || 'DRAFT'" :severity="statusSeverity(capture)" size="small" />
+                </div>
+                <strong class="truncate text-sm">{{ captureTitle(capture) }}</strong>
+                <small class="truncate text-muted-color">{{ captureMeta(capture) }}</small>
+              </div>
+            </div>
+          </div>
           <StateBlock v-else-if="!loading" :message="$t('geometryCapture.noCaptures')" icon="pi pi-camera" />
         </Panel>
       </div>

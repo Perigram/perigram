@@ -56,6 +56,29 @@ function revisionSeverity(revision) {
   return 'secondary';
 }
 
+function revisionPreviewEntity(revision) {
+  return {
+    ...props.capture,
+    _id: `${props.capture._id}-${revision.id}`,
+    data: {
+      ...(props.capture.data || {}),
+      geometry: revision.geometry
+    },
+    specs: revision.metrics || {}
+  };
+}
+
+function compactRevisionId(revision) {
+  return String(revision.id || '').replace(/^rev-/, '');
+}
+
+function revisionMeta(revision) {
+  const parts = [];
+  if (revision.preset) parts.push(`geometryCapture.presets.${revision.preset}`);
+  if (revision.confidence) parts.push(`${Math.round(Number(revision.confidence) * 100)}%`);
+  return parts;
+}
+
 const FIELDS = [
   { path: 'data.mode', i18n: 'geometryCapture.mode' },
   { path: 'data.extraction.preset', i18n: 'geometryCapture.detectorPreset' },
@@ -78,8 +101,8 @@ const FIELDS = [
       />
     </template>
 
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
-      <div class="flex flex-col gap-6 lg:col-span-3">
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div class="flex flex-col gap-6">
         <Panel :header="$t('geometryCapture.detectedGeometry')">
           <GeometryPreview v-if="hasGeometry" :entity="capture" />
           <div v-else class="flex min-h-64 items-center justify-center rounded-ui border border-dashed border-content-border bg-subtle text-muted-color">
@@ -87,21 +110,51 @@ const FIELDS = [
           </div>
         </Panel>
 
-        <Panel :header="$t('common.traceability')">
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div v-if="warehouseId" class="flex items-center justify-between gap-4">
-              <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
-              <EntityInlineRef type="warehouse" :id="warehouseId" />
-            </div>
-            <div v-if="projectId" class="flex items-center justify-between gap-4">
-              <small class="text-muted-color">{{ $t('entities.project') }}</small>
-              <EntityInlineRef type="project" :id="projectId" />
-            </div>
-            <div v-if="output?.entityId" class="flex items-center justify-between gap-4">
-              <small class="text-muted-color">{{ $t('geometryCapture.createdEntity') }}</small>
-              <EntityInlineRef :type="output.entityType" :id="output.entityId" />
+        <Panel :header="$t('geometryCapture.revisions')">
+          <div v-if="revisions.length" class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div
+              v-for="revision in revisions"
+              :key="revision.id"
+              class="flex min-w-0 flex-col gap-3 rounded-ui border border-content-border bg-surface-0 p-3"
+              :class="revision.id === activeRevisionId ? 'border-primary' : ''"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex min-w-0 items-center gap-2">
+                  <Tag :value="revision.status" :severity="revisionSeverity(revision)" size="small" />
+                  <small class="truncate text-muted-color">{{ compactRevisionId(revision) }}</small>
+                </div>
+                <Button
+                  v-if="revision.status === 'READY' && revision.id !== activeRevisionId"
+                  icon="pi pi-check"
+                  text
+                  rounded
+                  size="small"
+                  :aria-label="$t('geometryCapture.activateRevision')"
+                  :loading="activatingRevisionId === revision.id"
+                  @click="emit('activate-revision', { capture, revision })"
+                />
+              </div>
+
+              <div class="min-h-32 overflow-hidden rounded-ui border border-content-border bg-subtle">
+                <GeometryPreview v-if="revision.geometry?.polygon?.outer?.length" :entity="revisionPreviewEntity(revision)" />
+                <div v-else class="flex min-h-32 items-center justify-center text-muted-color">
+                  <i class="pi pi-spin pi-cog"></i>
+                </div>
+              </div>
+
+              <div class="flex min-w-0 flex-col gap-1">
+                <small
+                  v-for="item in revisionMeta(revision)"
+                  :key="item"
+                  class="truncate text-muted-color"
+                >
+                  {{ item.startsWith('geometryCapture.') ? $t(item) : item }}
+                </small>
+                <small v-if="revision.error" class="truncate text-muted-color">{{ revision.error }}</small>
+              </div>
             </div>
           </div>
+          <small v-else class="text-muted-color">{{ $t('geometryCapture.noRevisions') }}</small>
         </Panel>
       </div>
 
@@ -132,42 +185,36 @@ const FIELDS = [
               />
             </div>
             <DataBlock entity-type="geometryCapture" :entity="capture" :fields="FIELDS" />
-            <div v-if="diagnostics.length" class="flex flex-col gap-2">
-              <small class="font-medium">{{ $t('geometryCapture.diagnostics') }}</small>
-              <Tag v-for="item in diagnostics" :key="item" :value="item" severity="secondary" />
+          </div>
+        </Panel>
+
+        <Panel :header="$t('common.traceability')">
+          <div class="flex flex-col gap-3">
+            <div v-if="warehouseId" class="flex items-center justify-between gap-4">
+              <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
+              <EntityInlineRef type="warehouse" :id="warehouseId" />
+            </div>
+            <div v-if="projectId" class="flex items-center justify-between gap-4">
+              <small class="text-muted-color">{{ $t('entities.project') }}</small>
+              <EntityInlineRef type="project" :id="projectId" />
+            </div>
+            <div v-if="output?.entityId" class="flex items-center justify-between gap-4">
+              <small class="text-muted-color">{{ $t('geometryCapture.createdEntity') }}</small>
+              <EntityInlineRef :type="output.entityType" :id="output.entityId" />
             </div>
           </div>
         </Panel>
 
-        <Panel :header="$t('geometryCapture.revisions')">
-          <div v-if="revisions.length" class="flex flex-col gap-3">
-            <div
-              v-for="revision in revisions"
-              :key="revision.id"
-              class="flex items-center justify-between gap-3"
+        <Panel v-if="diagnostics.length" :header="$t('geometryCapture.diagnostics')">
+          <div class="flex flex-col gap-2">
+            <small
+              v-for="item in diagnostics"
+              :key="item"
+              class="break-words rounded-ui border border-content-border bg-subtle px-2 py-1 text-muted-color"
             >
-              <div class="flex min-w-0 flex-col gap-1">
-                <div class="flex items-center gap-2">
-                  <Tag :value="revision.status" :severity="revisionSeverity(revision)" size="small" />
-                  <small class="truncate text-muted-color">{{ revision.id }}</small>
-                </div>
-                <small class="truncate text-muted-color">
-                  {{ revision.preset ? $t(`geometryCapture.presets.${revision.preset}`) : $t('geometryCapture.detectorPreset') }}
-                </small>
-              </div>
-              <Button
-                v-if="revision.status === 'READY' && revision.id !== activeRevisionId"
-                icon="pi pi-check"
-                text
-                rounded
-                size="small"
-                :aria-label="$t('geometryCapture.activateRevision')"
-                :loading="activatingRevisionId === revision.id"
-                @click="emit('activate-revision', { capture, revision })"
-              />
-            </div>
+              {{ item }}
+            </small>
           </div>
-          <small v-else class="text-muted-color">{{ $t('geometryCapture.noRevisions') }}</small>
         </Panel>
 
         <Panel :header="$t('common.history')">
