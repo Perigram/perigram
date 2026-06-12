@@ -1,6 +1,6 @@
 <template>
-    <div class="flex h-full min-h-0 min-w-0 flex-col">
-        <div class="grid h-full min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-12">
+    <div class="flex min-h-0 min-w-0 flex-col">
+        <div class="grid min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-12">
             <aside v-if="queues?.length > 0" class="hidden min-h-0 min-w-0 xl:col-span-3 xl:flex xl:flex-col xl:gap-3">
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>
@@ -13,31 +13,23 @@
                 </div>
                 <div class="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
                     <QueueCard
-                        :queue="queue"
-                        variant="card"
-                        :status-actions="queueStatusActions"
-                        :show-delete="false"
-                        :show-footer-actions="false"
-                        :expandable="false"
-                        @view="$emit('select-queue', queue._id)"
-                    />
-                    <QueueCard
-                        v-for="option in selectorQueueOptions"
+                        v-for="option in queues"
                         :key="option._id"
                         :queue="option"
-                        variant="compact"
-                        :status-actions="option._id === queue._id ? queueStatusActions : []"
+                        :variant="isSelectedQueue(option) ? 'card' : 'compact'"
+                        :status-actions="isSelectedQueue(option) ? queueStatusActions : []"
                         :show-delete="false"
-                        :show-summary="false"
+                        :show-summary="isSelectedQueue(option)"
+                        :show-footer-actions="false"
                         :expandable="false"
-                        :class="{ 'outline outline-2 outline-primary': option._id === queue._id }"
+                        :class="{ 'outline outline-2 outline-primary': isSelectedQueue(option) }"
                         @view="$emit('select-queue', option._id)"
                         @edit="$emit('select-queue', option._id)"
                     />
                 </div>
             </aside>
 
-            <main class="flex min-h-0 min-w-0 flex-col gap-4 overflow-y-auto pr-1 xl:col-span-6">
+            <main class="flex min-h-0 min-w-0 flex-col gap-4 xl:col-span-6">
                 <div v-if="queues?.length > 0" class="flex shrink-0 gap-2 xl:hidden">
                     <Select
                         :modelValue="queue._id"
@@ -229,7 +221,7 @@
                 </Panel>
             </main>
 
-            <aside class="min-h-0 min-w-0 overflow-y-auto pr-1 xl:col-span-3">
+            <aside class="min-h-0 min-w-0 xl:col-span-3">
                 <Panel :header="`${$t('queue.runs')} (${queueRuns.length})`">
                     <div v-if="queueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
                         <Select
@@ -354,9 +346,9 @@ const viewMode = ref('grid');
 const selectedRunId = ref(null);
 const instances = ref([]);
 const queueOptions = computed(() => namedSelectOptions(props.queues, t('common.unnamed')));
-const selectorQueueOptions = computed(() => queueOptions.value.filter(option => option._id !== props.queue._id));
 const toolOptions = computed(() => namedSelectOptions(tools.value, t('common.unnamed')));
 const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, t('common.unnamed')));
+const isSelectedQueue = (item = {}) => item._id?.toString() === props.queue._id?.toString();
 
 const formatInventorySpecs = (entity = {}) => {
     const specs = entity.specs || entity.data?.specs || {};
