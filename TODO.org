@@ -4879,3 +4879,16 @@
       geometry layers, and source revision provenance.
     - Cassette designs expose their own DXF export endpoint and card action.
     - Added Playwright click-to-request coverage for the broken action class.
+
+*** Agent Notes
+    [2026-06-12] Fix cassette template OCCS layer import
+    Files changed:
+    - server/features/cassettes/service.js
+    Docs updated:
+    - TODO.org
+    Notes:
+    - Replaced the nonexistent `OCCS_CASSETTE_FACE_LAYER` import with the
+      exported `OCCS_LAYER_CONTOUR_CASSETTE_FACE` layer constant from
+      `utils/occs/layers.js`.
+    - Verified OCCS layer exports directly and reran architecture plus focused
+      OCCS/parametric cassette tests.
