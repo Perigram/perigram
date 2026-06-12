@@ -1131,6 +1131,9 @@
     "permissionsUpdated": "Permissions updated",
     "featureAccessControl": "Feature Access Control",
     "featureAccessControlHelp": "Configure granular access levels for each system module.",
+    "permissionActions": "Actions",
+    "advancedPermissionJson": "Advanced grant JSON",
+    "invalidPermissionJson": "Invalid permission JSON",
     "membership": {
       "approve": "User approved",
       "reject": "User rejected"
@@ -1146,6 +1149,23 @@
       "read": "View Only",
       "write": "Edit Access",
       "admin": "Full Control"
+    },
+    "permissionActionLabels": {
+      "view": "View",
+      "read": "Read",
+      "view_all": "View all",
+      "view_contractors": "View contractors",
+      "create": "Create",
+      "edit": "Edit",
+      "update": "Update",
+      "send": "Send",
+      "run": "Run",
+      "setPen": "Set pen",
+      "delete": "Delete",
+      "approve": "Approve",
+      "reject": "Reject",
+      "fulfill": "Fulfill",
+      "admin": "Admin"
     },
     "permissionDescriptions": {
       "none": "No access to {feature}. Feature will be hidden from UI.",

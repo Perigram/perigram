@@ -43,7 +43,7 @@ const CATALOG_FIELDS = [
       <template #before-identity>
         <i class="pi pi-book"></i>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <div class="flex flex-wrap gap-2">
           <Tag v-if="material" :value="material" severity="secondary" size="small" />
           <Tag v-if="catalog.summary?.colorCount" :value="`${catalog.summary.colorCount} ${$t('catalog.colorsAvailable')}`" severity="info" size="small" />

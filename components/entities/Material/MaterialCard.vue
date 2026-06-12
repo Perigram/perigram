@@ -4,7 +4,7 @@
       <template #before-identity>
         <i class="pi pi-database"></i>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <Tag v-if="material.data?.code" :value="material.data.code" severity="secondary" size="small" />
       </template>
       <template #compact-content>

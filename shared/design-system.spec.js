@@ -225,38 +225,21 @@ describe('Design system manifest', () => {
     expect(cassetteTemplate.fieldPaths).not.toContain('parameterCount');
   });
 
-  it('keeps data-model review support collections out of manifest gap warnings', () => {
-    const source = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/data-model-review.vue'), 'utf8');
-
-    expect(source).toContain('const SUPPORT_COLLECTIONS = new Set');
-    expect(source).toContain('collection_name');
-    expect(source).toContain('invitations');
-    expect(source).toContain('material_options');
-    expect(source).toContain('sessions');
-    expect(source).toContain('status_events');
-    expect(source).toContain('const contractModels = computed');
-    expect(source).toContain('!SUPPORT_COLLECTIONS.has(model.collection)');
-  });
-
-  it('exposes the browser-export domain builder as an admin tool', () => {
-    const page = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/domain-builder.vue'), 'utf8');
+  it('keeps admin navigation tied to existing admin routes', () => {
     const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
+    const navigation = fs.readFileSync(path.join(REPO_ROOT, 'stores/navigation.js'), 'utf8');
 
-    expect(page).toContain('DOMAIN_BUILDER_STORAGE_KEY');
-    expect(page).toContain('generateDomainCncSource');
-    expect(page).toContain('validateDomainDraft');
-    expect(page).toContain('buildWorkflowGraph');
-    expect(page).toContain('addTransition');
-    expect(page).toContain('selectTransition');
-    expect(page).toContain('startTransitionDraft');
-    expect(page).toContain("from '@vue-flow/core'");
-    expect(page).not.toContain("from '@vue-flow/background'");
-    expect(page).toContain('workflowNodes');
-    expect(page).toContain('workflowEdges');
-    expect(page).not.toContain("tabs = ['entities', 'workflows', 'operations'");
-    expect(page).toContain("downloadText('domain-cnc.generated.js'");
-    expect(page).toContain("middleware: 'auth'");
-    expect(layout).toContain("router.push('/admin/domain-builder')");
+    for (const route of [
+      '/admin/domain-builder',
+      '/admin/data-model-review',
+      '/admin/diagnostics',
+      '/admin/organizations',
+      '/admin/marketing-animations',
+      '/admin/settings'
+    ]) {
+      expect(layout).not.toContain(route);
+      expect(navigation).not.toContain(route);
+    }
   });
 
   it('exposes ConfigBot as a draft-only admin tool', () => {

@@ -208,20 +208,6 @@
                 command: () => router.push('/admin/users')
             });
         }
-        if (authStore.hasPermission('organizations', 'admin')) {
-            adminItems.push({
-                label: t('features.organizations'),
-                icon: 'pi pi-building',
-                command: () => router.push('/admin/organizations')
-            });
-        }
-        if (authStore.hasPermission('domain_builder', 'admin')) {
-            adminItems.push({
-                label: t('admin.domainBuilder.title'),
-                icon: 'pi pi-sitemap',
-                command: () => router.push('/admin/domain-builder')
-            });
-        }
         if (authStore.hasPermission('config_bot', 'admin')) {
             adminItems.push({
                 label: t('admin.configBot.title'),

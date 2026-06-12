@@ -56,7 +56,7 @@ const statusActions = computed(() => {
       <template #before-identity>
         <i class="pi pi-send"></i>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <div class="flex flex-wrap gap-2">
           <Tag :value="`${items.length} ${$t('requisition.items')}`" severity="secondary" size="small" />
           <Tag v-if="totalQuantity" :value="`${totalQuantity} ${$t('common.units')}`" severity="info" size="small" />

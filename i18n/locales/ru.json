@@ -1131,6 +1131,9 @@
     "permissionsUpdated": "Разрешения обновлены",
     "featureAccessControl": "Управление доступом к функциям",
     "featureAccessControlHelp": "Настройте детальные уровни доступа для каждого системного модуля.",
+    "permissionActions": "Действия",
+    "advancedPermissionJson": "Расширенный JSON гранта",
+    "invalidPermissionJson": "Некорректный JSON разрешения",
     "membership": {
       "approve": "Пользователь одобрен",
       "reject": "Пользователь отклонён"
@@ -1146,6 +1149,23 @@
       "read": "Только просмотр",
       "write": "Доступ к редактированию",
       "admin": "Полный контроль"
+    },
+    "permissionActionLabels": {
+      "view": "Просмотр",
+      "read": "Чтение",
+      "view_all": "Просмотр всех",
+      "view_contractors": "Просмотр подрядчиков",
+      "create": "Создание",
+      "edit": "Редактирование",
+      "update": "Обновление",
+      "send": "Отправка",
+      "run": "Запуск",
+      "setPen": "Назначить перо",
+      "delete": "Удаление",
+      "approve": "Одобрение",
+      "reject": "Отклонение",
+      "fulfill": "Исполнение",
+      "admin": "Администрирование"
     },
     "permissionDescriptions": {
       "none": "Нет доступа к {feature}. Функция будет скрыта в интерфейсе.",

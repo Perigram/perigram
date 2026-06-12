@@ -56,7 +56,7 @@ const statusActions = computed(() => {
       <template #before-identity>
         <i class="pi pi-folder"></i>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <span v-if="project.data?.address">{{ project.data.address }}</span>
       </template>
       <template #compact-content>

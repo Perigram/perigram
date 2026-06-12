@@ -52,7 +52,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         { id: 'catalog', entity: 'catalogs', level: 'read', nameKey: 'features.catalogs', to: '/catalog', icon: 'pi pi-palette' },
         { id: 'requisitions', entity: 'requisitions', level: 'read', nameKey: 'features.requisitions', to: '/requisitions', icon: 'pi pi-shopping-cart' },
         { id: 'assets', entity: 'cassettes', level: 'read', nameKey: 'features.assets', to: '/assets/cassettes', icon: 'pi pi-objects-column' },
-        { id: 'admin', entity: 'organizations', level: 'admin', nameKey: 'nav.admin', to: '/admin/organizations', icon: 'pi pi-cog' },
+        { id: 'admin', entity: 'organizations', level: 'admin', nameKey: 'nav.admin', to: '/admin', icon: 'pi pi-cog' },
     ];
 
     const hubs = computed(() => {
@@ -132,14 +132,9 @@ export const useNavigationStore = defineStore('navigation', () => {
         if (parts[0] === 'admin') {
              const adminTabs = [
                 { id: 'workbench', name: t('admin.workbench.title'), to: '/admin' },
-                { id: 'organizations', name: t('features.organizations'), to: '/admin/organizations' },
                 { id: 'users', name: t('features.users'), to: '/admin/users' },
                 { id: 'config-bot', name: t('admin.configBot.title'), to: '/admin/config-bot' },
-                { id: 'domain-builder', name: t('admin.domainBuilder.title'), to: '/admin/domain-builder' },
-                { id: 'data-model-review', name: t('admin.dataModelReview.title'), to: '/admin/data-model-review' },
-                { id: 'marketing-animations', name: t('admin.marketingAnimations.title'), to: '/admin/marketing-animations' },
-                { id: 'diagnostics', name: t('admin.systemDiagnostics'), to: '/admin/diagnostics' },
-                { id: 'settings', name: t('nav.settings'), to: '/admin/settings' },
+                { id: 'support', name: t('admin.workbench.short.support'), to: '/admin/support' },
              ];
              const currentTabId = parts[1] || 'workbench';
              const currentTab = adminTabs.find(t => t.id === currentTabId);
