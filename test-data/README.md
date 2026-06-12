@@ -111,7 +111,10 @@ modules into generated chunks during SSR builds. `scripts/check-arch.js`
 enforces this for non-spec files in `test-data/`.
 
 When a component needs a new field for display, update the relevant DTO factory and manifest entry together. Do not add flat compatibility fields.
-When an entity type has a workflow, the factory `status.state` must be one of that workflow's canonical states; `shared/design-system.spec.js` enforces this for UI lab demos.
+When an entity type has a workflow, the factory `status.state` must be one of
+that workflow's canonical states; `shared/design-system.spec.js` enforces this
+for UI lab demos. Material pile factories use `STOCKED`, and the reusable
+remnant factory uses `AVAILABLE`, matching the current domain workflows.
 UI Lab/admin access examples use the same permission template and active
 membership shape as the access model. `createMockUser()` includes role,
 organization membership, and permissions so permission editors do not render a

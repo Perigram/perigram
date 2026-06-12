@@ -8,7 +8,7 @@ Shared frontend utility modules used by Vue pages/components.
 - `design-system.js`: Runtime binding that attaches Vue card components and DTO factories to the contract. Used by `/test/ui-lab`.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`.
 - `status-engine.js`: Compatibility status severity/icon mapping and entity route/icon registry used by shared status and trace components. New source-of-truth UI, artifact, and route metadata belongs in `@cutkit/domain-cnc` and is adapted by `@cutkit/vue`.
-- `status-actions.js`: Converts workflow definitions into default `EntityStatus` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows.
+- `status-actions.js`: Converts workflow definitions into default `EntityStatus` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows. Also exposes `hasWorkflow()` so UI primitives can avoid server action lookups for workflow-less entity types without importing the domain package directly.
 - `status-location.js`: Normalizes typed current location facts from `status.lifecycle.data.location` for status surfaces. Supported UI types are `warehouse`, `coordinates`, and `address`.
 - `interactive-target.js`: Shared DOM guard for entity cards that have parent
   click/select actions. It detects nested links, buttons, form controls, status
@@ -17,7 +17,7 @@ Shared frontend utility modules used by Vue pages/components.
 - `selectOptions.js`: Pure helpers for PrimeVue Select option arrays. Use it to
   normalize canonical DTOs (`identity.name`, `identity.slug`, `_id`) into flat
   string `name`/id values before passing them to `optionLabel="name"` controls.
-- `drawingPreview.js`: Pure drawing preview helpers for `DrawingCanvas`. It normalizes entity geometry previews and cassette render results into the shared `{ viewBox, layers }` drawing contract, extracts designer edge overlays, and resolves layer pens by explicit source mapping, caller-provided `standardCode`, layer-name standard fallback, then default pen. It must not hardcode production layer standard codes; source/caller data owns layer semantics.
+- `drawingPreview.js`: Pure drawing preview helpers for `DrawingCanvas`. It normalizes entity geometry previews, baked cassette `data.layerData` / `data.polygonParts` (including migration fallback under `data.geometry.data`), polygon-only remnant geometry, and cassette render results into the shared `{ viewBox, layers }` drawing contract, extracts designer edge overlays, and resolves layer pens by explicit source mapping, caller-provided `standardCode`, layer-name standard fallback, source layer styling, then default pen. If a matched layer standard points to a pen that is not loaded or no longer exists, normalization preserves the source layer `color` and `weight` before falling back to the default pen. It must not hardcode production layer standard codes; source/caller data owns layer semantics.
 - `occs/`: Canonical OCCS helpers for semantic layer ids, parameter
   extraction, arithmetic expression evaluation, Clipper-backed production
   layout, default dimension annotation entities, DrawingCanvas conversion,
@@ -27,7 +27,13 @@ Shared frontend utility modules used by Vue pages/components.
 - `dxfParser.js`: Browser DXF parsing and preview helpers. Layer-to-pen mapping
   consumes layer-standard DTO fields (`data.code`, `data.defaultPenId`,
   `data.orgPenId`) and pen DTO stroke data (`data.stroke`) so the seeded OCCS
-  layer catalogue is the source for preview styling.
+  layer catalogue is the source for preview styling. `generateSvgData()`
+  normalizes LINE, polyline, circle, and arc entities into SVG path commands for
+  the shared `DrawingCanvas` layer renderer.
+- `sheetDesigns.js`: Frontend summary helpers for sheet-design DTOs. It derives
+  cassette-design placement counts from `data.cassetteDesigns` when present and
+  falls back to raw nesting result `items`/`layouts` so existing sheet designs
+  can still show cassette-design composition.
 - `domain-builder.js`: Browser-side helpers for `/admin/domain-builder`. It clones CNC package definitions into a draft, validates entity/workflow/summary consistency, builds automatic Vue Flow node/edge layout data with reciprocal-transition metadata used unless the page has browser-local manual node positions, and generates deterministic `@cutkit/domain-cnc` source for manual export.
 - `workflow-compiler.js`: Shared workbench/domain-builder compiler wrapper for live workflow drafts. It validates draft machines, exposes state options for typed forms, and derives permission summaries used by fixture scenarios and workbench test access. If a caller has not loaded entity or hook definitions yet, it falls back to committed CNC contracts so workflow validation does not report every known workflow/hook as unknown.
 - `cassette.js` / `cassetteRenderer.js`: Browser cassette designer helpers. ID generation must work on plain HTTP LAN deployments where `crypto.randomUUID` may be unavailable; use local helpers that fall back to `crypto.getRandomValues` before non-cryptographic IDs.
@@ -43,9 +49,11 @@ Shared frontend utility modules used by Vue pages/components.
   workpiece root in the XY plane, recursively rotates child faces around parent
   fold axes by their fold angles and child attachment edge indices, preserves
   child face offsets along the selected parent edge when deriving the hinge
-  origin from evaluated flat loops, applies
-  workpiece joint transforms from folded source/target face snap points and
-  face-relative offsets, and returns 3D face points for thumbnail rendering.
+  origin from evaluated flat loops, applies the renderer-selected workpiece
+  joint transforms from folded source/target face snap points and face-relative
+  offsets, and returns 3D face points plus attachment diagnostics for thumbnail
+  rendering. Additional joints are kept as constraints and reported as `ok`,
+  `unresolved`, or `impossible` after placement.
 - `cassetteV2Trapezoid.js`: Pure OCCS trapezoid geometry helper. It resolves
   canonical trapezoid points from base length, zero-default offsets, and height,
   then places child faces on the selected parent edge's exterior side with child
@@ -59,12 +67,21 @@ Shared frontend utility modules used by Vue pages/components.
   `occs/`, emits OCCS v0.4-draft
   workpiece definitions, occurrences, joints, per-workpiece faces, and
   per-workpiece folds plus default `dimension.cassette` entities,
-  derives locked click targets plus fold-angle edit handles from tree folds,
-  and adapts editor-only graph state into canonical OCCS helper inputs.
-  It also exposes workpiece topology helpers for ordered workpiece-tree rows,
-  source/target face-snap relation editing, workpiece subtree deletion,
-  selected-workpiece flat preview, all-workpiece flat layout, and
-  attachment-driven assembly placement.
+  derives locked click targets, selected-face action metadata, point offset
+  edit controls, dimension label edit metadata, folded-geometry section mark
+  layers, and plain-number fold-angle edit handles from tree folds, and
+  adapts editor-only graph state into canonical OCCS helper inputs.
+  `OCCS_CASSETTE_FACE_ROLES` mirrors the recommended face role ids from the
+  OCCS cassette spec; roles remain descriptive metadata and do not drive
+  geometry.
+  It also exposes workpiece topology helpers for workpiece graph nodes/edges,
+  source/target face-snap relation editing, explicit attachment creation,
+  attachment deletion without deleting either workpiece, incident-edge
+  workpiece deletion, selected-workpiece flat preview, all-workpiece flat
+  layout, and attachment-based assembly placement. Assembly editor previews
+  can request selected-workpiece context styling; in that mode per-workpiece
+  paths replace the production union so attached/background workpieces render
+  with transparent pens and source/target attachment snap markers.
   It keeps Nodi graph composition helpers for export/debug checks, but live
   trapezoid preview does not initialize Nodi. Face socket values may be
   OCCS arithmetic expressions using identifiers, `+ - * /`, parentheses, unary

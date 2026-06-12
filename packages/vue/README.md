@@ -22,9 +22,17 @@ route metadata.
 `createDomainUiAdapter()` also exposes attachment kind lookup, preview
 policy, and download endpoint resolution so components do not infer preview
 behavior from MIME strings alone.
+Surface maps register both UI keys and backend entity aliases. For example,
+`materialPile` and `material_pile` resolve to the same surface so relation
+chips and route links do not fall back to generic icons when a caller uses the
+backend entity type.
 
 Endpoint maps register each route under keys derived from endpoint metadata:
 the declared type, optional `entityType`, camel/snake variants, and the
 singular collection name. This keeps runtime components able to pass canonical
 entity names such as `cassette_instance` while route ownership remains in the
 domain endpoint definitions.
+Keep semantically different surfaces on their own endpoint definitions even
+when they share product language. For example, `cassetteTemplate` resolves to
+`/api/cassettes/:id`, while `cassetteDesign` and `cassette_design` resolve to
+`/api/cassette-designs/:id`.

@@ -20,6 +20,9 @@ Manages cassette templates (Standard and Parametric) using standardized v24 arch
       `extensions.cutkit.graphTree`.
     - Standard uploaded templates store layer mapping data such as `{ mapping }`.
 - **`data.parameters`**: Array<String> of configurable variable names.
+- **`data.revisions.geometry`**: Current immutable geometry revision pointer
+  `{ currentId, number, contentHash }` maintained by the service after template
+  create/update/upload.
 
 `Cassette.toJSON()` hoists `type`, `definition`, and `parameters` for frontend compatibility. Frontend cards, thumbnails, and queue editors should read those hoisted fields first. Older records may also carry `data.params` / `data.extrusions` directly; the model normalizes that legacy graph into `definition`.
 
@@ -29,7 +32,24 @@ Manages cassette templates (Standard and Parametric) using standardized v24 arch
 Templates in the `cassettes` collection do NOT store DXF files or physical tracking data. They serve as the source for `cassette_designs`.
 - **Parametric**: `data.definition` contains the editable legacy designer graph
   or an OCCS v2 template document.
-- **Standard**: `data.definition.mapping` contains layer mapping; baked geometry lives in `cassette_designs`.
+- **Standard**: `data.definition.mapping` contains DXF-to-OCCS semantic layer
+  mapping; uploaded DXF bytes and extracted baked geometry live in
+  `cassette_designs`.
+
+Every template save resolves an `entity_revision` with `scope: "geometry"` from
+`data.type`, `data.definition`, and `data.parameters`. The template stores only
+the current pointer under `data.revisions.geometry`; the immutable source
+snapshot lives in `entity_revisions`.
+
+### DXF Upload
+`upload()` requires one mapped DXF layer to resolve to `cut.outer`. The service
+extracts closed polygons from that layer into the created cassette design
+`data.polygonParts` / `data.geometry.data.polygonParts` so nesting can consume
+the design directly. Other mapped DXF layers are extracted as open or closed
+curve `layerData` so nested sheet-design previews can carry folds, marks,
+dimensions, and other semantic layers forward. The endpoint returns both the
+created template and its initial design; queue uploads should add the design id,
+not the template id.
 
 ### Update Operations
 - **`saveCassetteTemplate`**: Domain operation used by `CassetteDesigner` and
@@ -37,13 +57,19 @@ Templates in the `cassettes` collection do NOT store DXF files or physical track
   through the service layer while preserving OCCS documents under
   `data.definition`. Callers should pass `entities.cassette` only for templates
   already loaded from the database; generated fixture/demo ids should be saved
-  without an entity ref so the operation creates a real cassette row.
+  without an entity ref so the operation creates a real cassette row. App
+  surfaces use `CassetteDesignerV2`; the legacy designer is kept for dev/test
+  fixture flows.
 - **`updateLayerMapping`**: Updates the mapping between DXF layers and production tools/standards.
 - **`updateParameters`**: Updates the list of configurable parameters for the template.
+- **`ensureCurrentGeometryRevision`**: Creates or reuses the current geometry
+  revision and refreshes `data.revisions.geometry`. Migration scripts use this
+  helper to backfill old templates.
 
 ### Permission Model
 Access is governed by `lineage.organizationId`. Multi-tenant isolation is enforced at the service layer using `hasLineagePermission`.
 
 ## Related
 - [cassette-designs](../cassette-designs/README.md) - Stores baked geometry and DXF references.
+- [entity-revisions](../entity-revisions/README.md) - Immutable source revision snapshots.
 - [parametric-cassettes](../parametric-cassettes/README.md) - Engine for evaluating parametric logic.

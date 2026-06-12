@@ -61,6 +61,8 @@ Interactive UI status changes use the canonical status endpoints:
 
 Entity-specific PATCH routes must not be the primary status API for standard
 workflow transitions.
+Entity types without a registered workflow return an empty action list from the
+actions endpoint; transitions for those types still remain invalid.
 
 ## Data Flow
 1. User/System triggers `statusService.transition(type, id, state, ...)` or

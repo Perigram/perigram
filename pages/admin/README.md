@@ -48,9 +48,17 @@ Entity status controls in fixture previews use a local `statusTransitionHandler`
 to update the in-memory workbench context, avoiding server transition calls for
 entities that have not been persisted.
 
-The Designer section embeds `CassetteDesignerV2` directly. Its left panel owns
-the cassette name, template load/save controls, global OCCS parameters, face
-expression sockets, fold-angle editing, layer visibility, and OCCS JSON tabs.
+The Designer section embeds `CassetteDesignerV2` directly and hides the generic
+workbench draft/reset action row while the designer is active, because cassette
+template save/load/reset are owned inside the designer. The designer top bar
+keeps only the current cassette name, a load-template action, and compact
+icon-only save/reset buttons. Its side panel owns global OCCS parameters, layer
+visibility, and OCCS JSON tabs. Parameter rows use a responsive grid while that
+panel is docked full-width and return to one column when the panel is a narrow
+side rail. Selected-object editing is canvas-local:
+face role/delete actions, dimension labels, offsets, anchors, fold angles,
+attachment face placement, and section planes are edited from drawing
+overlays/popovers.
 Save emits an OCCS v2 definition with `extensions.cutkit.graphTree`; the
 designer persists it through the `saveCassetteTemplate` command, then the
 workbench mirrors the saved cassette DTO into the fixture context, selects it as
@@ -64,24 +72,44 @@ templates are saved as new cassette rows. Parameter
 and fold-angle fields use the
 lightweight cassette expression editor with text validation, inline token
 highlighting, a tooltip usage guide, and one grouped insert-chip panel under
-the active expression without resizing the parameter list. Offset controls use
-point/side labels derived from the selected anchors. Invalid expression drafts
+the active expression without resizing the parameter list. Dimension labels are
+clickable drawing text, while offset controls use compact value chips centered
+on canvas points and keep anchors in the same popup for the base offset fields.
+Invalid expression drafts
 keep the drawing on the last successful preview and show a panel warning until
-evaluation succeeds again. The drawing canvas renders geometry and designer hit
-targets, a compact indented topology list for adding/selecting/deleting real
-OCCS workpieces, and a top-right folded sheet thumbnail derived from the same
-pure trapezoid face loops and OCCS fold topology. New workpieces get their own
-root face, definition, cassette occurrence, and editable face-relative joint
-with source/target face selection, snap points, and offsets; deleting a
-non-root workpiece removes its workpiece subtree and related joints. Edge
-clicks still add folds within the selected workpiece. The 2D canvas stays in
-selected-workpiece flat editing mode, while the top-right 3D overlay is one
-cassette assembly window with deterministic per-workpiece hues; source/target
-face attachment snaps are applied after sheet folding, clicking a workpiece
-selects it in the designer and isolates it in 3D, while the back button returns
-to the whole cassette view. The
-thumbnail supports drag orbit, wheel zoom, reset, and a stable overlay shell
-inside the viewport-bounded designer work area. Its 2D production layers and
+evaluation succeeds again. The drawing canvas renders only geometry and
+geometry-bound designer hit targets. Assembly topology is outside the canvas:
+the responsive assembly rail/dock renders a compact workpiece DAG/list for
+selecting real OCCS workpieces and attachments, while the folded 3D preview
+shares that rail on `lg` and wider layouts. Below `lg`, topology keeps the full
+mobile assembly row and the 3D preview is suppressed so workpiece controls do
+not collapse. New workpieces get their own root
+face, definition, cassette occurrence, and editable face-relative joint with
+source/target face selection, snap points, and offsets. A link action declares
+additional attachments to the selected workpiece without creating another
+workpiece; the renderer chooses a placement attachment internally and keeps the
+others as constraints. The workpiece DAG/list is the topology control: row
+buttons add related workpieces, start a link to another workpiece, or delete
+non-root workpieces, and relation rows are listed under both source and target
+workpieces so multi-parent attachments remain visible. Relation rows select
+attachments, expose unlink actions, and show folded-preview diagnostics for
+unresolved or impossible constraints. Section graphics are emitted on the toggleable
+`code.cassette_mark` layer. Selecting workpieces or attachments shows connected workpieces in
+the 2D editor background; while an attachment is selected, clicking faces in
+the canvas updates its source/target face ids. Deleting a non-root workpiece
+removes only that workpiece, its faces, and incident joints. Edge clicks still
+add folds within the selected workpiece, folded-edge chips open inline plain
+numeric fold-angle editing, and the selected-face menu changes role or deletes
+the child face. Outside attachment mode, face/fold clicks from other workpieces
+are ignored and selection-only changes do not regenerate the preview source, so
+pan/zoom is preserved. A separate fold-delete command is not exposed; deleting the
+child face is the supported removal operation. The folded 3D panel is one
+cassette assembly window with deterministic per-workpiece hues; placement
+attachment snaps are applied after sheet folding, extra attachments are
+highlighted when impossible or unresolved, clicking a workpiece selects it in
+the designer and isolates it in 3D, while the back button returns to the whole
+cassette view. The preview supports drag orbit, wheel zoom, reset, and a stable
+panel shell inside the viewport-bounded designer work area. Its 2D production layers and
 3D folded payload are derived through `utils/occs/` helpers before rendering in
 shared components. Generated CAD-style dimensions are semantic
 `dimension.cassette` OCCS entities/layers, with template labels kept as
@@ -130,7 +158,17 @@ file and domain JSON tabs.
 `data-model-review.vue` compares extracted Mongo collection fields with the
 framework manifest and stores review decisions in localStorage.
 
+## Marketing Animations
+
+`marketing-animations.vue` previews reusable public marketing visuals under the
+authenticated admin route. It currently hosts the cassette workflow animation
+used by the public landing page, including motion metadata and reduced-motion
+support notes. The animation itself lives in
+`components/marketing/CassetteMarketingAnimation.vue` so public and admin
+surfaces render the same asset.
+
 ## Related
 
 - [Runtime registry](../../server/runtime/README.md)
 - [domain-cnc](../../packages/domain-cnc/README.md)
+- [marketing components](../../components/marketing/README.md)

@@ -24,12 +24,18 @@ Pinia stores for client state and API orchestration.
   headers through `fetchProjectContext(slug, fetchOptions)` so protected project
   lookups use the same session cookie as auth middleware. Breadcrumb sibling
   options normalize canonical DTO labels before passing them to PrimeVue Select.
-  Admin workbench breadcrumbs also receive route query so `/admin?section=...`
-  can expose Designer/Entities/Context/Commands as navigation siblings.
+  Admin pages use a store-owned sibling list that includes workbench,
+  organizations, users, ConfigBot, domain builder, data model review, marketing
+  animations, diagnostics, and settings. Admin workbench breadcrumbs also
+  receive route query so `/admin?section=...` can expose
+  Designer/Entities/Context/Commands as navigation siblings.
 - `workbenchFixtures.js` owns the admin workbench fixture context. Manual
   entities and command/task outputs are upserted into the same context used for
   typed entity options; seeding preserves that context instead of regenerating
   fixtures and dropping manual entries. Preview status transitions update this
   context locally so draft/manual entities do not call the persisted status API.
-- Long-running operations start optimistic UI updates and polling until terminal states.
+- Long-running operations start optimistic UI updates and polling until
+  terminal states. Queue nesting completion is emitted as an event object
+  (`{ queueId, completedAt }`) rather than a bare queue id so repeated runs for
+  the same queue still trigger component watchers and related entity refetches.
 - Internal demo pages may pre-seed `entities.registry` with DTO-shaped mock entities so shared trace components render examples without calling authenticated APIs.

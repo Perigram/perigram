@@ -9,8 +9,9 @@ chrome.
   `card` variants.
 - Shows result metrics with `DataBlock` when the run is `COMPLETE` or `CHOSEN`.
 - Renders related `sheet_design` entities from the explicit `sheetDesigns` prop
-  and from injected context by matching `lineage.runId` or
-  `run.data.sheetDesignIds`. Related designs render as the normal
+  and from injected context only after filtering by `lineage.runId` or
+  `run.data.sheetDesignIds`; queue-level sheet-design lists must not make every
+  run card show every design in the queue. Related designs render as the normal
   `SheetDesignCard` inline variant; expansion is owned by `EntityCard`, not by
   the nesting run card or the workbench page.
 - Does not render generated artifacts or DXF previews. File outputs are owned by
@@ -20,7 +21,9 @@ chrome.
   passed as status actions.
 
 The injected context is used by development surfaces such as the admin
-workbench. Production pages can continue passing related entities explicitly.
+workbench. The production queue editor passes related entities explicitly by
+loading `/api/sheet-designs?queueId=:queueId` after run fetches and after
+nesting completion.
 
 ## Related
 

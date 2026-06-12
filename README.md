@@ -89,24 +89,30 @@ npm install
 npx vitest run shared/framework-packages.spec.js shared/design-system.spec.js
 node scripts/check-arch.js
 npm run framework:validate
+E2E_BASE_URL=http://localhost:3000 npm run test:e2e
 ```
 
 Do not run `npm run build` or start dev servers from coding-agent tasks unless a
 human explicitly asks. Worker endpoints require matching `WORKER_TOKEN` on app
 and workers; compose files use `cutkit-dev-worker` for local development.
+The E2E command assumes the app stack is already running and uses Playwright
+against the configured `E2E_BASE_URL`.
 
 ## Documentation Map
 
 | Area | Doc |
 |---|---|
 | System graph | [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md) |
+| UI component audit | [docs/UI_COMPONENT_AUDIT.md](./docs/UI_COMPONENT_AUDIT.md) |
 | Backend | [server/README.md](./server/README.md) |
 | Runtime registry | [server/runtime/README.md](./server/runtime/README.md) |
 | Commands | [server/core/commands/README.md](./server/core/commands/README.md) |
 | Tasks | [server/core/tasks/README.md](./server/core/tasks/README.md) |
 | Domain package | [packages/domain-cnc/README.md](./packages/domain-cnc/README.md) |
 | Core package | [packages/core/README.md](./packages/core/README.md) |
+| Pages and public entry | [pages/README.md](./pages/README.md) |
 | Workers | [workers/README.md](./workers/README.md) |
+| E2E workflow tests | [e2e/README.md](./e2e/README.md) |
 | Admin workbench | [pages/admin/README.md](./pages/admin/README.md) |
 | Scripts and guardrails | [scripts/README.md](./scripts/README.md) |
 | Schema specs | [docs/specs/README.md](./docs/specs/README.md) |

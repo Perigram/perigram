@@ -11,13 +11,16 @@ Vue components for displaying and interacting with `Project` entities.
 
 ## ProjectCard
 
-Props: `project` (Object, required), `variant` (String, default `'card'`).
-Emits: `view`, `edit`, `delete`.
+Props: `project` (Object, required), `variant` (String, default `'card'`),
+`renaming` (Boolean, default `false`).
+Emits: `view`, `rename`, `delete`.
 
 - Delegates chrome (TraceChain, IdentityBlock, EntityStatus) to `EntityCard`.
 - Card header: optional `data.thumbnailUrl` image when a project DTO provides one.
 - Card body: `DataBlock` with `summary.queueCount` — populated by the centralized aggregator (`server/core/machines/aggregator.js`) when queues are created — plus optional `data.address` text.
-- Footer: edit `Button` gated by `authStore.can('projects', 'edit')`.
+- Footer: `NameEditPopover` gated by `authStore.can('projects', 'edit')`
+  for compact single-field project renames. The optional `renaming` prop drives
+  the popover save loading state without coupling it to create dialogs.
 - Delete is passed to `EntityCard` as a `statusActions` menu action so destructive commands stay in the shared status/action surface.
 
 ## ProjectDetail

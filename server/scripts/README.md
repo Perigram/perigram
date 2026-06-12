@@ -14,6 +14,7 @@ node server/scripts/seed-all.js
 node server/scripts/seed-layer-standards.js  # OCCS layer standards from docs/specs/Cassette spec/layers.json
 node server/scripts/seed-system-pens.js      # OCCS/default system pens
 node server/scripts/seed-system-tools.js     # 6 common tools
+node server/scripts/migrate-entity-revisions.js # Backfill cassette geometry revisions and design provenance
 ```
 
 ## What Gets Created
@@ -101,3 +102,14 @@ Layer standard seed flow:
 Use `server/scripts/assign-default-pens.js` only as a repair helper for
 standards missing `data.defaultPenId`; it uses the same OCCS code/group pen
 mapping instead of round-robin assignment.
+
+## Entity Revision Migration
+
+`server/scripts/migrate-entity-revisions.js` creates or reuses
+`entity_revisions` records for every cassette template's current geometry scope
+and writes `data.revisions.geometry` pointers back to the templates. It also
+backfills `cassette_design.data.derivedFrom` when a design has
+`lineage.templateId` but no recorded source revision. Backfilled design
+provenance is marked with `migration.inferred: true` because historical designs
+created before revision tracking cannot prove which old template geometry state
+was used.
