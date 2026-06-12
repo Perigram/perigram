@@ -5,13 +5,14 @@ Routes under `pages/project/` render the authenticated project workspace.
 ## Route Structure
 
 - `[slug].vue`: Parent project shell. Loads the project via `useEntity('project')`,
-  renders compact `StandardPage` chrome, and lets the app navigation store
+  keeps route content inside `StandardPage`, and lets the app navigation store
   resolve the project-level route context.
 - `[slug]/queues.vue`: Active queue editor for creating queue entries, selecting
   warehouse stock, running nesting, and opening generated runs.
-- `[slug]/sheet-designs.vue`: Project-level list of generated sheet designs.
-  Resolves the project route id/slug first, then lists `sheet_design` entities
-  by `projectId` through `useEntity('sheetDesign')`.
+- `[slug]/sheet-designs.vue`: Project-level list of generated sheet designs for
+  selected production runs. It resolves project queues, reads
+  `queue.data.materialConsumption.runId`, loads sheet designs by queue, and
+  keeps only designs whose `lineage.runId` matches the selected run.
 - `[slug]/sheet-design/[sheetDesignId].vue`: Sheet-design detail route opened
   from sheet design cards and nesting run results.
 - `[slug]/details.vue`: Project identity, access-aware project fields,

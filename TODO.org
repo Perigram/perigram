@@ -4912,3 +4912,26 @@
       in the existing app-layout breadcrumb dropdown.
     - Removed page-local section navigation and the over-specific docs added in
       the previous pass.
+
+*** Agent Notes
+    [2026-06-12] Rework project and queue workspace layouts
+    Files changed:
+    - components/QueueEditor.vue
+    - components/entities/NestingRun/NestingRunCard.vue
+    - components/entities/Project/ProjectIndexCard.vue
+    - pages/project/[slug].vue
+    - pages/project/[slug]/sheet-designs.vue
+    Docs updated:
+    - components/README.md
+    - components/entities/NestingRun/README.md
+    - components/entities/Project/README.md
+    - pages/project/README.md
+    - TODO.org
+    Notes:
+    - Project workspace tabs now render without a project-name page header.
+    - Project index cards are full-width operational rows with compact queue
+      details instead of nested card sections.
+    - Project sheet-design tab now shows designs for selected queue runs only.
+    - Queue editor uses desktop lanes for queue selection, central
+      settings/cassettes, and right-side runs; run cards render related
+      sheet-design preview tiles from the queue-level sheet-design list.

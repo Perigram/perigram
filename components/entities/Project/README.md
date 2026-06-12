@@ -32,15 +32,16 @@ Emits: `view`, `rename`, `delete`.
 - Used only by `pages/projects/index.vue` so the project list can have a
   browsing-oriented row without changing the canonical `ProjectCard` used by
   relation refs and general entity surfaces.
-- Renders `EntityCard` with trace hidden, the project thumbnail when present,
-  access-aware `DataBlock` rows for address, queue count, and total area, and a
-  footer with rename/open actions.
+- Renders a route-specific full-width row instead of the canonical entity-card
+  chrome: project identity/status/address on the left, queue and area facts as
+  compact tags, recent queue rows in the center, and permission-gated
+  rename/open/delete actions on the right.
 - Reads `/api/project` `summary.queuePreview` to show compact recent queue
   details in the row body: status, cassette item count, requested quantity, run
   count, generated sheet count, and selected stock count. This preview is
   attached by the project list API so cards do not fetch queues independently.
-- Keeps delete in the shared status-action menu and uses the same click target
-  guard as other entity cards so footer controls do not trigger card navigation.
+- Uses the same click target guard as other entity cards so footer controls do
+  not trigger card navigation.
 
 ## ProjectDetail
 
