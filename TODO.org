@@ -5004,3 +5004,19 @@
       scrolling.
     - The left queue lane renders queues in their existing order; the selected
       queue expands in place.
+
+*** Agent Notes
+    [2026-06-12] Extract workspace lanes and remove cassette entry fill height
+    Files changed:
+    - components/QueueEditor.vue
+    - components/entities/Queue/QueueEntryCard.vue
+    - components/shared/WorkspaceLanes.vue
+    Docs updated:
+    - components/README.md
+    - components/entities/Queue/README.md
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - QueueEditor now uses the shared `WorkspaceLanes` shell instead of owning
+      the three-lane grid markup locally.
+    - Queue entry panels use natural height inside the center lane grid.

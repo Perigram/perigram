@@ -216,6 +216,10 @@ relationship.
 
 - **`ActionToolbar.vue`**: Responsive title/subtitle/actions row for pages, sections, and tab panels. Use instead of ad hoc `flex justify-between` header markup.
 - **`ResponsiveGrid.vue`**: Token-backed responsive grid for cards and repeated item surfaces. Variants: `cards` (default), `dense`, `wide`.
+- **`WorkspaceLanes.vue`**: Three-lane production workspace shell. The parent
+  route provides the viewport-sized frame; this component owns the left,
+  center, and right lane grid and assigns vertical scrolling to the lanes, not
+  to individual panels inside them.
 - **`StateBlock.vue`**: Standard loading/empty/error state block with icon, message, optional description, and action slot.
 - **`TableFrame.vue`**: Standard bordered/elevated frame around PrimeVue `DataTable` surfaces; owns the token-backed DataTable header-cell background override.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
@@ -261,7 +265,7 @@ mark themselves as card-interactive targets. Parent card click handlers must use
 primary action is a custom preview, such as `ArtifactCard`, can pass
 `expandable="false"` to `EntityCard` and own the click action themselves.
 
-Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
+Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `WorkspaceLanes`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
 
 Shared wrappers also own token-backed visual chrome. When a wrapper needs a new width, radius, spacing, or motion value, add it to `assets/tokens/index.js` and project it through Tailwind or CSS variables instead of hardcoding it in feature components.
 

@@ -41,6 +41,7 @@ All entity-related components MUST use these patterns:
 | Card/container chrome | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout |
 | Section/page action rows | `<ActionToolbar>` |
 | Repeated card grids | `<ResponsiveGrid>` |
+| Three-lane production workspaces | `<WorkspaceLanes>` |
 | Loading/empty/error surfaces | `<StateBlock>` |
 | Data table frame | `<TableFrame><DataTable ... /></TableFrame>` |
 | Dialog container | `<StandardDialog>` |
@@ -161,9 +162,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
 - `QueueEditor` is a production workspace: desktop layout uses a left queue
   lane rendered as a queue list where the selected queue expands in place and
   other queues stay compact, a center lane for nesting settings and wide
-  cassette entry cards, and a right runs lane. The project queue route fits the
-  app-content viewport and each lane owns its own vertical scrolling. Queue status/actions live on the
-  selected queue card; the center lane starts with queue content. The runs lane receives queue-level sheet designs once, selects one active run, and lets
+  cassette entry cards, and a right runs lane through `WorkspaceLanes`. The
+  project queue route fits the app-content viewport and each lane owns its own
+  vertical scrolling. Queue status/actions live on the selected queue card; the
+  center lane starts with queue content. The runs lane receives queue-level sheet designs once, selects one active run, and lets
   `NestingRunCard` filter designs by run before rendering preview tiles. Run
   material sources render on `NestingRunCard` through entity references; queue
   cards summarize queue work, not available stock.

@@ -26,7 +26,8 @@ Production queue card and detail surface.
   queue instead of opening the compact `EntityCard` popover.
 - Queue editor cassette rows use `QueueEntryCard`; the component emits quantity
   and parameter updates while `QueueEditor` remains the owner of persistence and
-  `_key`-based row deletion.
+  `_key`-based row deletion. These rows keep natural panel height inside the
+  center lane grid; the workspace lane owns scrolling.
 
 ## Related
 
