@@ -101,9 +101,9 @@ function openSheetDesign(design) {
         </div>
       </template>
       <template #compact-content>
-        <div v-if="relatedSheetDesigns.length" class="mt-3 text-sm text-muted-color">
+        <small v-if="relatedSheetDesigns.length" class="mt-3 block text-muted-color">
           {{ relatedSheetDesigns.length }} {{ $t('nestingRun.sheetDesigns') }}
-        </div>
+        </small>
       </template>
       <Divider />
       <div class="flex flex-col gap-4">
@@ -156,7 +156,7 @@ function openSheetDesign(design) {
         <div v-else-if="state === 'NESTING'" class="flex justify-center p-2">
           <i class="pi pi-spin pi-spinner"></i>
         </div>
-        <div v-else-if="state === 'ERROR'" class="text-sm italic text-muted-color">
+        <div v-else-if="state === 'ERROR'" class="italic text-muted-color">
           {{ $t('results.failed') }}
         </div>
       </div>

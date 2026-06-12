@@ -1,25 +1,5 @@
 <template>
-    <div class="flex flex-col gap-6 py-4">
-        <!-- New Queue Action (Mobile/Top) -->
-        <div class="flex justify-end px-1" v-if="queues.length > 0">
-            <div class="flex flex-wrap justify-end gap-2">
-                <Button
-                    :label="$t('nesting.manageWarehouseStock')"
-                    icon="pi pi-building"
-                    size="small"
-                    text
-                    @click="goToWarehouses"
-                />
-                <Button
-                    :label="$t('queue.create')"
-                    icon="pi pi-plus"
-                    size="small"
-                    text
-                    @click="createNewQueue"
-                />
-            </div>
-        </div>
-
+    <div class="min-h-0 py-4">
         <!-- Current queue editor -->
         <div v-if="currentQueue" class="animate-in fade-in slide-in-from-bottom-2 duration-500">
             <QueueEditor
@@ -28,6 +8,7 @@
                 :project-slug="slug"
                 @updated="refreshQueues"
                 @select-queue="currentQueueId = $event"
+                @create-queue="createNewQueue"
             />
         </div>
 
@@ -38,14 +19,6 @@
                     :label="$t('queue.createFirst')"
                     icon="pi pi-plus"
                     @click="createNewQueue"
-                    size="large"
-                />
-                <Button
-                    :label="$t('nesting.manageWarehouseStock')"
-                    icon="pi pi-building"
-                    severity="secondary"
-                    outlined
-                    @click="goToWarehouses"
                     size="large"
                 />
             </template>
@@ -101,5 +74,4 @@
         await refreshQueues()
     }
 
-    const goToWarehouses = () => navigateTo('/warehouses')
 </script>

@@ -14,7 +14,9 @@ import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const props = defineProps({
   queue: { type: Object, required: true },
-  variant: { type: String, default: 'card' }
+  variant: { type: String, default: 'card' },
+  statusActions: { type: Array, default: () => [] },
+  showDelete: { type: Boolean, default: true }
 });
 
 const emit = defineEmits(['view', 'edit', 'delete']);
@@ -47,16 +49,16 @@ const materialPoolSizes = computed(() => Array.from(new Set(materialPool.value.m
     return match ? `${match[1]}x${match[2]}` : '';
 }).filter(Boolean))));
 
-const statusActions = computed(() => {
-    if (!authStore.can('queues', 'delete')) return [];
-    return [{
+const statusActions = computed(() => [
+    ...props.statusActions,
+    ...(props.showDelete && authStore.can('queues', 'delete') ? [{
         label: t('common.delete'),
         icon: 'pi pi-trash',
         severity: 'danger',
         display: 'menu',
         command: () => emit('delete', props.queue)
-    }];
-});
+    }] : [])
+]);
 </script>
 
 <template>

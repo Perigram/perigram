@@ -1,27 +1,33 @@
 <template>
-    <div class="flex flex-col gap-6">
-        <div class="grid min-w-0 gap-4 xl:grid-cols-[16rem_minmax(0,1fr)_24rem] xl:items-start">
-            <aside v-if="queues?.length > 0" class="hidden min-w-0 xl:flex xl:flex-col xl:gap-2">
-                <div class="flex items-center justify-between gap-2 px-1">
+    <div class="flex h-[calc(100dvh-10rem)] min-h-0 min-w-0 flex-col overflow-hidden">
+        <div class="grid min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-12">
+            <aside v-if="queues?.length > 0" class="hidden min-h-0 min-w-0 xl:col-span-3 xl:flex xl:flex-col xl:gap-3 xl:overflow-hidden">
+                <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>
-                    <Tag :value="queues.length" size="small" severity="secondary" />
-                </div>
-                <div class="flex max-h-[calc(100vh-13rem)] flex-col gap-1 overflow-y-auto pr-1">
                     <Button
+                        icon="pi pi-plus"
+                        size="small"
+                        :aria-label="$t('queue.create')"
+                        @click="$emit('create-queue')"
+                    />
+                </div>
+                <div class="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+                    <QueueCard
                         v-for="option in queueOptions"
                         :key="option._id"
-                        :label="option.name"
-                        :severity="option._id === queue._id ? 'primary' : 'secondary'"
-                        :outlined="option._id !== queue._id"
-                        size="small"
-                        class="justify-start"
-                        @click="$emit('select-queue', option._id)"
+                        :queue="option"
+                        variant="compact"
+                        :status-actions="option._id === queue._id ? queueStatusActions : []"
+                        :show-delete="false"
+                        :class="{ 'outline outline-2 outline-primary': option._id === queue._id }"
+                        @view="$emit('select-queue', option._id)"
+                        @edit="$emit('select-queue', option._id)"
                     />
                 </div>
             </aside>
 
-            <main class="flex min-w-0 flex-col gap-4">
-                <div v-if="queues?.length > 0" class="xl:hidden">
+            <main class="flex min-h-0 min-w-0 flex-col gap-4 overflow-y-auto pr-1 xl:col-span-6">
+                <div v-if="queues?.length > 0" class="flex shrink-0 gap-2 xl:hidden">
                     <Select
                         :modelValue="queue._id"
                         :options="queueOptions"
@@ -35,16 +41,12 @@
                             <span class="block truncate font-semibold">{{ queueName }}</span>
                         </template>
                     </Select>
-                </div>
-
-                <div class="flex min-w-0 flex-col gap-2 rounded-ui border border-content-border bg-content px-3 py-2 md:flex-row md:items-center md:justify-between">
-                    <div class="min-w-0">
-                        <div class="truncate font-semibold">{{ queueName }}</div>
-                        <small class="text-muted-color">
-                            {{ entries.length }} {{ $t('queues.cassettes') }} · {{ queueRuns.length }} {{ $t('queue.runs') }}
-                        </small>
-                    </div>
-                    <EntityStatus :entity="queue" entity-type="queue" variant="inline" :actions="queueStatusActions" :show-history="false" />
+                    <Button
+                        icon="pi pi-plus"
+                        size="small"
+                        :aria-label="$t('queue.create')"
+                        @click="$emit('create-queue')"
+                    />
                 </div>
 
                 <Panel :header="$t('nesting.settings')">
@@ -80,15 +82,6 @@
                                         <div class="flex flex-col gap-1">
                                             <label>{{ $t('nesting.selectWarehouse') }}</label>
                                             <Select v-model="nestingOptions.warehouseId" :options="warehouseOptions" optionLabel="name" optionValue="_id" @change="loadWarehouseInventory" />
-                                            <Button
-                                                v-if="!warehouseOptions.length"
-                                                icon="pi pi-building"
-                                                :label="$t('nesting.manageWarehouseStock')"
-                                                text
-                                                size="small"
-                                                class="self-start"
-                                                @click="goToWarehouses"
-                                            />
                                         </div>
                                         <div class="flex flex-col gap-1">
                                             <label>{{ $t('nesting.customUpload') }}</label>
@@ -122,15 +115,6 @@
                                         <Message v-else-if="selectedStockSummary" severity="info">
                                             {{ selectedStockSummary }}
                                         </Message>
-                                        <Button
-                                            v-else
-                                            icon="pi pi-building"
-                                            :label="$t('nesting.manageWarehouseStock')"
-                                            text
-                                            size="small"
-                                            class="self-start"
-                                            @click="goToWarehouses"
-                                        />
                                     </div>
                                 </div>
                             </div>
@@ -234,21 +218,26 @@
                 </Panel>
             </main>
 
-            <aside class="min-w-0">
+            <aside class="min-h-0 min-w-0 overflow-y-auto pr-1 xl:col-span-3">
                 <Panel :header="`${$t('queue.runs')} (${queueRuns.length})`">
-                    <div
-                        v-if="queueRuns.length > 0"
-                        class="flex min-w-0 gap-3 overflow-x-auto pb-2 xl:max-h-[calc(100vh-13rem)] xl:flex-col xl:overflow-x-visible xl:overflow-y-auto xl:pb-0 xl:pr-1"
-                    >
+                    <div v-if="queueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
+                        <Select
+                            :model-value="selectedRunId"
+                            :options="runOptions"
+                            option-label="name"
+                            option-value="id"
+                            class="w-full"
+                            size="small"
+                            @update:model-value="selectedRunId = $event"
+                        />
                         <NestingRunCard
-                            v-for="run in queueRuns"
-                            :key="run._id"
-                            class="w-[22rem] shrink-0 xl:w-full"
-                            :run="run"
+                            v-if="activeRun"
+                            :key="activeRun._id"
+                            :run="activeRun"
                             :sheet-designs="sheetDesigns"
                             :show-sheet-design-previews="true"
-                            :active="run._id.toString() === selectedRunId"
-                            :is-chosen="run.status?.state === 'CHOSEN'"
+                            :active="true"
+                            :is-chosen="activeRun.status?.state === 'CHOSEN'"
                             @select="selectedRunId = $event.toString()"
                             @choose="chooseRunHandler"
                             @delete="deleteRunHandler"
@@ -310,9 +299,9 @@ import FileUpload from 'primevue/fileupload';
 import ConfirmDialog from 'primevue/confirmdialog';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import QueueEntryCard from '~/components/entities/Queue/QueueEntryCard.vue';
+import QueueCard from '~/components/entities/Queue/QueueCard.vue';
 import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
 import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
@@ -325,7 +314,7 @@ const props = defineProps({
     projectSlug: { type: String, required: true }
 });
 
-const emit = defineEmits(['updated', 'select-queue']);
+const emit = defineEmits(['updated', 'select-queue', 'create-queue']);
 const { t } = useI18n();
 const confirm = useConfirm();
 const toast = useToast();
@@ -549,6 +538,12 @@ const nestingOptions = ref({    materialMode: props.queue.data?.nestingParams?.m
 });
 
 const queueRuns = computed(() => runs.value[props.queue._id] || []);
+const runOptions = computed(() => queueRuns.value.map(run => ({
+    ...run,
+    id: run._id?.toString(),
+    name: entitySelectLabel(run, t('entities.nestingRun'))
+})));
+const activeRun = computed(() => queueRuns.value.find(run => run._id?.toString() === selectedRunId.value?.toString()) || queueRuns.value[0] || null);
 const hasPhysicalOutputs = computed(() => Boolean(props.queue.data?.physicalOutputs?.cassetteInstanceIds?.length));
 const queueStatusActions = computed(() => {
     if (!authStore.can('queues', 'edit')) return [];
@@ -651,7 +646,6 @@ const onCustomSheetUpload = (event) => {
     nestingOptions.value.inventoryItems.push(`file_${response.fileId}`);
 };
 
-const goToWarehouses = () => navigateTo('/warehouses');
 const runSheetCount = (run = {}) => Number(run.data?.results?.sheetCount || run.summary?.sheetCount || run.layoutCount || 0);
 const runParams = (run = {}) => run.data?.params || run.params || {};
 
@@ -698,6 +692,16 @@ watch(nestingCompleted, async (event) => {
         await loadSheetDesigns();
     }
 });
+
+watch(queueRuns, (runsForQueue) => {
+    if (!runsForQueue.length) {
+        selectedRunId.value = null;
+        return;
+    }
+    if (!runsForQueue.some(run => run._id?.toString() === selectedRunId.value?.toString())) {
+        selectedRunId.value = runsForQueue[runsForQueue.length - 1]._id?.toString();
+    }
+}, { immediate: true });
 
 watch(() => props.queue._id, async () => {
     await loadQueueData();
