@@ -6,8 +6,8 @@ Production queue card and detail surface.
 
 | File | Purpose |
 |---|---|
-| `QueueCard.vue` | Entity card wrapper for job items, material pool, output summary, and lifecycle actions. Accepts parent status actions and can hide delete/summary/footer actions or disable expansion in selector contexts. |
-| `QueueDetail.vue` | Detail page body for artifacts, job composition, material sources, consumption, and history. |
+| `QueueCard.vue` | Entity card wrapper for queue identity, job item totals, output summary, and lifecycle actions. |
+| `QueueDetail.vue` | Detail page body for artifacts, job composition, consumed source relations, and history. |
 | `QueueEntryCard.vue` | Queue-editor cassette entry card with source inline ref, thumbnail, quantity, and parameter editing. |
 
 ## Contract
@@ -16,6 +16,8 @@ Production queue card and detail surface.
   and `summary`.
 - `EntityCard`/`EntityPage` own identity, trace, and status placement.
 - Artifact and consumed material relations render through `EntityInlineRef`.
+- Available material source context is owned by nesting runs; queue cards do not
+  render material availability summaries.
 - Running nesting is a queue command action surfaced through status/page actions;
   material selection remains owned by `QueueEditor`.
 - Parent surfaces can pass extra `statusActions` into `QueueCard`; the queue

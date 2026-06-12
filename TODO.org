@@ -624,7 +624,7 @@
   :END:
 
 *** Agent Notes
-     [2026-06-10] Correct geometry previews, embedded interactions, and slop fields
+     [2026-06-10] Correct geometry previews, embedded interactions, and stale display fields
      Files changed: components/shared/EntityCard.vue,
        components/shared/status/EntityStatus.vue,
        components/shared/GeometryPreview.vue,
@@ -1810,7 +1810,7 @@
     - components/shared/README.md (Updated documentation)
     Notes:
     - Restored `slug` and `serial` to `IdentityBlock` to ensure full entity identification as requested.
-    - Stripped `projects/index` header to absolute essentials (Title and Create Button in a single row) to eliminate all perceived "slop".
+    - Stripped `projects/index` header to title and create action only.
     - Verified `ProjectCard` correctly renders summary data (Queues, Area) and actions via standardized `EntityCard` slots.
     - Confirmed `EntityStatus` serves as the "smart buttons block" for state transitions.
     - All changes strictly adhere to the "Zero Styling Policy" and documentation-first workflow.
@@ -3962,7 +3962,7 @@
     Notes:
     - Changed the v2 designer root from a growing minimum-height grid to a fixed viewport-height work area with internal overflow.
     - Kept the folded preview overlay mounted with an empty placeholder if projection data is delayed or temporarily missing.
-    - Mounted the preview through a dedicated absolute wrapper so the component root's relative positioning cannot push it below the full-height canvas.
+    - Mounted the preview through a dedicated absolute wrapper so the component root's relative positioning cannot push it below the canvas.
     - Added pointer-event stopping on the preview shell and CSS-variable fallbacks for SVG face fills/strokes so the overlay remains visible above canvas hit targets.
 
 *** Agent Notes
@@ -4971,3 +4971,21 @@
       the queue instead of opening a popover.
     - Cassette entries in the center lane use the wide grid variant for larger
       queue-entry cards.
+
+*** Agent Notes
+    [2026-06-12] Move material source display to nesting runs
+    Files changed:
+    - components/entities/NestingRun/NestingRunCard.vue
+    - components/entities/Queue/QueueCard.vue
+    - components/entities/Queue/QueueDetail.vue
+    Docs updated:
+    - components/README.md
+    - components/entities/NestingRun/README.md
+    - components/entities/Queue/README.md
+    - TODO.org
+    Notes:
+    - Queue cards no longer render material availability or forced card roots.
+    - Nesting run cards render run material sources as material pile, sheet, or
+      remnant `EntityInlineRef` rows.
+    - Queue detail keeps consumed source relations and renders those relations
+      through entity references.

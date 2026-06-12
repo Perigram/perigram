@@ -8,6 +8,9 @@ chrome.
 - Uses the `run` prop as the primary DTO and supports `inline`, `compact`, and
   `card` variants.
 - Shows result metrics with `DataBlock` when the run is `COMPLETE` or `CHOSEN`.
+- Renders `run.data.materialPool` as material pile, sheet, or remnant
+  `EntityInlineRef` rows. This is the accepted source context for a run; queue
+  cards do not summarize available material sources.
 - Renders related `sheet_design` entities from the explicit `sheetDesigns` prop
   and from injected context only after filtering by `lineage.runId` or
   `run.data.sheetDesignIds`; queue-level sheet-design lists must not make every

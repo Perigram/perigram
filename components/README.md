@@ -139,7 +139,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   cassette design and embeds source design/template/queue context through
   compact `EntityInlineRef` rows. Queue-produced instances are already `CUT`;
   lifecycle action design remains a workflow-machine concern, not a local card
-  workaround.
+  action override.
 - `RemnantCard` and `RemnantDetail` render saved leftover material geometry
   through `GeometryPreview`, including polygon-with-holes queue-cut remnants.
   Source sheet, warehouse, and material pile context should be compact
@@ -159,12 +159,14 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   id, type, quantity, and parameters. Delete actions must use `_key`; nesting
   payload saves must persist `id` without leaking the UI key.
 - `QueueEditor` is a production workspace: desktop layout uses a left queue
-  lane rendered with a detailed active `QueueCard` plus non-expanding compact
-  queue selector cards, a center lane for nesting settings and wide cassette
-  entry cards, and a right runs lane. Queue status/actions live on the active
-  queue card; the center lane starts with queue content. The runs lane receives
-  queue-level sheet designs once, selects one active run, and lets
-  `NestingRunCard` filter designs by run before rendering preview tiles.
+  lane rendered as one local scroll body containing the detailed active
+  `QueueCard` and non-expanding compact queue selector cards, a center lane for
+  nesting settings and wide cassette entry cards, and a right runs lane. Queue
+  status/actions live on the active queue card; the center lane starts with
+  queue content. The runs lane receives queue-level sheet designs once, selects one active run, and lets
+  `NestingRunCard` filter designs by run before rendering preview tiles. Run
+  material sources render on `NestingRunCard` through entity references; queue
+  cards summarize queue work, not available stock.
 - In warehouse material mode, `QueueEditor` loads selected warehouse piles,
   sheets, and remnants, filters unavailable piles, blocks mixed sheet sizes for
   the current one-bin nesting worker, and persists selected stock as
