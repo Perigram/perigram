@@ -146,6 +146,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   through `GeometryPreview`, including polygon-with-holes queue-cut remnants.
   Source sheet, warehouse, and material pile context should be compact
   `EntityInlineRef` rows, not trace-link-only rows or local status badges.
+- `GeometryCaptureCard` and `GeometryCaptureDetail` render photo-derived
+  `geometry_capture` drafts through `GeometryPreview`. Confirmation belongs to
+  the capture review API because remnant mode creates a real `remnant`, while
+  facade mode remains a draft geometry input until facade entities exist.
 - `material`, `materialPile`, and `batchPile` are separate UI surfaces:
   material cards describe the base material record, material pile cards
   summarize general/manual warehouse stock, and batch pile cards show
@@ -168,10 +172,11 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   vertical scrolling, while the center lane delegates scrolling to its
   `ScrollablePanel` sections. Nesting settings are a content-height header-action
   panel: its header owns material source selection (`Virtual` plus warehouse
-  options) and the run action. Virtual mode renders the virtual sheet
-  dimensions as the active material abstraction; warehouse mode chooses sources
-  through a dropdown/add control and renders selected material pile, sheet, and
-  remnant cards below it. Queue status/actions live on the selected queue card;
+  options), tool selection, and the run action. Virtual mode renders the virtual
+  sheet dimensions as the active material abstraction; warehouse mode adds a
+  selected source immediately from the source dropdown and renders selected
+  material pile, sheet, and remnant cards below it. Queue status/actions live on
+  the selected queue card;
   the cassette panel header owns view switching and add/upload actions. The
   runs lane receives queue-level sheet designs once, selects one active run, and lets
   `NestingRunCard` filter designs by run before rendering preview tiles. Run

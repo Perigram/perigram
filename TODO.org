@@ -5104,3 +5104,20 @@
     - Virtual mode displays a virtual sheet source card from the configured
       width and length.
     - Material pile cards no longer duplicate material/spec facts as chips.
+
+*** Agent Notes
+    [2026-06-12] Fix queue source picker and workspace height
+    Files changed:
+    - components/QueueEditor.vue
+    - layouts/app.vue
+    - pages/project/[slug].vue
+    - pages/project/[slug]/queues.vue
+    Docs updated:
+    - components/README.md
+    - pages/README.md
+    - pages/project/README.md
+    - TODO.org
+    Notes:
+    - Warehouse sources are added immediately from the dropdown selection.
+    - Queue settings header owns material source, tool selection, and run action.
+    - The project queue route fills the bounded app workspace height.

@@ -22,7 +22,8 @@ Authenticated route groups continue to use `layout: 'app'` and `middleware:
 Operational pages use shared UI shell primitives:
 
 - `StandardPage` owns route title/action spacing and width; the `app` layout
-  owns outer route padding.
+  owns outer route padding and passes bounded flex height to full-height
+  workspace routes.
 - `ActionToolbar` owns section headers.
 - `ResponsiveGrid` owns repeated card layouts.
 - `StateBlock` owns loading/empty/error surfaces.
@@ -32,6 +33,11 @@ Asset child routes under `pages/assets/*.vue` are standalone Nuxt routes, not
 nested children of `pages/assets/index.vue`; each routed asset page owns its own
 `StandardPage` shell. `pages/assets/index.vue` is only the `/assets` redirect
 surface and must not render tabs or `NuxtPage`.
+
+`pages/geometry-captures/index.vue` is the authenticated review workspace for
+photo-derived geometry. It creates `geometry_capture` records for remnant and
+facade modes, queues OpenCV extraction, and confirms reviewed remnant captures
+into warehouse inventory.
 
 Nested project child list/workflow routes under `pages/project/[slug]/` render
 inside the project entity page shell. They use section primitives such as
