@@ -2,9 +2,10 @@
     <div class="flex flex-col gap-6">
         <!-- Queue Header: Compact & Standard -->
         <Panel>
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div class="flex flex-col gap-1 flex-1 min-w-0">
-                    <div class="flex flex-wrap items-start gap-3 min-w-0">
+            <div class="flex flex-col gap-3">
+                <TraceChain :entity="queue" />
+                <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
                         <Select
                             v-if="queues?.length > 0"
                             :modelValue="queue._id"
@@ -19,11 +20,8 @@
                             </template>
                         </Select>
                         <h2 v-else class="m-0">{{ queueName }}</h2>
-                        <div class="min-w-0">
-                            <EntityStatus :entity="queue" entity-type="queue" variant="inline" :actions="queueStatusActions" />
-                        </div>
                     </div>
-                    <TraceChain :entity="queue" />
+                    <EntityStatus :entity="queue" entity-type="queue" variant="inline" :actions="queueStatusActions" :show-history="false" />
                 </div>
             </div>
         </Panel>
@@ -33,20 +31,20 @@
             <AccordionPanel v-if="queueRuns.length > 0" value="0">
                 <AccordionHeader>{{ $t('queue.runs') }} ({{ queueRuns.length }})</AccordionHeader>
                 <AccordionContent>
-                    <div class="grid-hub">
+                    <ResponsiveGrid variant="wide">
                         <NestingRunCard 
                             v-for="run in queueRuns" 
                             :key="run._id"
                             :run="run"
+                            :sheet-designs="sheetDesigns"
                             :active="run._id.toString() === selectedRunId"
                             :is-chosen="run.status?.state === 'CHOSEN'"
                             @select="selectedRunId = $event.toString()"
                             @choose="chooseRunHandler"
                             @delete="deleteRunHandler"
                             @convert-to-physical="handleConvertToPhysical"
-                            @create-requisition="handleCreateRequisition"
                         />
-                    </div>
+                    </ResponsiveGrid>
                 </AccordionContent>
             </AccordionPanel>
 
@@ -87,6 +85,15 @@
                                             <div class="flex flex-col gap-1">
                                                 <label>{{ $t('nesting.selectWarehouse') }}</label>
                                                 <Select v-model="nestingOptions.warehouseId" :options="warehouseOptions" optionLabel="name" optionValue="_id" @change="loadWarehouseInventory" />
+                                                <Button
+                                                    v-if="!warehouseOptions.length"
+                                                    icon="pi pi-building"
+                                                    :label="$t('nesting.manageWarehouseStock')"
+                                                    text
+                                                    size="small"
+                                                    class="self-start"
+                                                    @click="goToWarehouses"
+                                                />
                                             </div>
                                             <div class="flex flex-col gap-1">
                                                 <label>{{ $t('nesting.customUpload') }}</label>
@@ -114,6 +121,21 @@
                                                     </div>
                                                 </template>
                                             </MultiSelect>
+                                            <Message v-if="selectedStockSizeConflict" severity="error">
+                                                {{ $t('nesting.mixedStockSize') }}
+                                            </Message>
+                                            <Message v-else-if="selectedStockSummary" severity="info">
+                                                {{ selectedStockSummary }}
+                                            </Message>
+                                            <Button
+                                                v-else
+                                                icon="pi pi-building"
+                                                :label="$t('nesting.manageWarehouseStock')"
+                                                text
+                                                size="small"
+                                                class="self-start"
+                                                @click="goToWarehouses"
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -136,12 +158,11 @@
                             />
                         </div>
                     </div>
-                    <div v-else class="py-12 flex flex-col items-center gap-2">
-                        <div class="w-12 h-12 border rounded-full flex items-center justify-center">
-                            <i class="pi pi-lock"></i>
-                        </div>
-                        <p>{{ $t('nesting.lockedNote', { status: queueState }) }}</p>
-                    </div>
+                    <StateBlock
+                        v-else
+                        :message="$t('nesting.lockedNote', { status: queueState })"
+                        icon="pi pi-lock"
+                    />
                 </AccordionContent>
             </AccordionPanel>
 
@@ -152,72 +173,48 @@
                     <div class="flex flex-col gap-6">
                         <div class="flex justify-end items-center">
                             <div class="flex gap-2">
-                                <Button icon="pi pi-th-large" @click="viewMode = 'grid'" text />
-                                <Button icon="pi pi-table" @click="viewMode = 'table'" text />
+                                <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text />
+                                <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text />
                             </div>
                         </div>
 
-                        <div v-if="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                            <template v-for="entry in entries" :key="entry?._id || Math.random()">
-                                <Panel v-if="entry" class="card-interactive h-full">
-                                    <template #header>
-                                        <div class="flex justify-between items-center gap-2">
-                                            <span class="truncate">{{ getCassetteName(entry.cassetteTemplateId) }}</span>
-                                            <div class="flex items-center gap-1">
-                                                <InputNumber 
-                                                    v-model="entry.quantity" :min="1" :disabled="queueState !== 'DRAFT'"
-                                                    size="small" class="w-16"
-                                                    @update:model-value="saveQueue"
-                                                />
-                                                <small>{{ $t('common.units') }}</small>
-                                                <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="confirmDelete(entry)" :disabled="queueState !== 'DRAFT'" />
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <CassetteThumbnail 
-                                        :cassette-id="entry.cassetteTemplateId" 
-                                        :cassette="getCassetteData(entry.cassetteTemplateId)"
-                                        :dimensions="entry.dimensions"
-                                    />
-                                    <Divider />
-                                    <!-- Parameters -->
-                                    <div v-if="isParametricEntry(entry)" class="grid grid-cols-2 gap-4">
-                                        <div v-for="param in getEntryParameters(entry)" :key="param" class="flex flex-col">
-                                            <small>{{ param }}</small>
-                                            <InputNumber 
-                                                v-model="entry.dimensions[param]" :disabled="queueState !== 'DRAFT'"
-                                                size="small" :min="0"
-                                                @update:model-value="saveQueue"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div v-else class="flex justify-center italic opacity-20">
-                                        <span>{{ $t('queue.static') }}</span>
-                                    </div>
-                                </Panel>
+                        <ResponsiveGrid v-if="viewMode === 'grid'">
+                            <template v-for="entry in entries" :key="entry?._key">
+                                <QueueEntryCard
+                                    v-if="entry"
+                                    :entry="entry"
+                                    :cassette="getCassetteData(entry.cassetteTemplateId)"
+                                    :parameters="getEntryParameters(entry)"
+                                    :disabled="queueState !== 'DRAFT'"
+                                    @update-quantity="value => updateEntryQuantity(entry, value)"
+                                    @update-dimension="(param, value) => updateEntryDimension(entry, param, value)"
+                                    @remove="confirmDelete(entry)"
+                                />
                             </template>
-                        </div>
+                        </ResponsiveGrid>
 
-                        <DataTable v-else :value="entries" dataKey="_id" :editMode="queueState === 'DRAFT' ? 'cell' : null" @cell-edit-complete="onRowEditSave">
-                            <Column field="cassetteTemplateId" :header="$t('queues.cassette')">
-                                <template #body="{ data }"><span>{{ getCassetteName(data.cassetteTemplateId) }}</span></template>
-                            </Column>
-                            <Column field="quantity" :header="$t('queues.quantity')">
-                                <template #editor="{ data }"><InputNumber v-model="data.quantity" :min="1" fluid size="small" /></template>
-                            </Column>
-                            <Column v-for="param in allParameters" :key="param" :header="param" :field="`dimensions.${param}`">
-                                <template #body="{ data }">
-                                    <span v-if="isParametricEntry(data)">{{ data.dimensions?.[param] || '-' }}</span>
-                                    <span v-else class="opacity-20">-</span>
-                                </template>
-                                <template #editor="{ data }">
-                                    <InputNumber v-if="isParametricEntry(data)" v-model="data.dimensions[param]" fluid size="small" />
-                                </template>
-                            </Column>
-                            <Column v-if="queueState === 'DRAFT'" style="width: var(--ck-table-action-column-width)">
-                                <template #body="{ data }"><Button icon="pi pi-trash" severity="danger" text @click="confirmDelete(data)" size="small" /></template>
-                            </Column>
-                        </DataTable>
+                        <TableFrame v-else>
+                            <DataTable :value="entries" dataKey="_key" :editMode="queueState === 'DRAFT' ? 'cell' : null" @cell-edit-complete="onRowEditSave">
+                                <Column field="cassetteTemplateId" :header="$t('queues.cassette')">
+                                    <template #body="{ data }"><span>{{ getCassetteName(data.cassetteTemplateId) }}</span></template>
+                                </Column>
+                                <Column field="quantity" :header="$t('queues.quantity')">
+                                    <template #editor="{ data }"><InputNumber v-model="data.quantity" :min="1" fluid size="small" /></template>
+                                </Column>
+                                <Column v-for="param in allParameters" :key="param" :header="param" :field="`dimensions.${param}`">
+                                    <template #body="{ data }">
+                                        <span v-if="isParametricEntry(data)">{{ data.dimensions?.[param] || '-' }}</span>
+                                        <span v-else class="text-muted-color">-</span>
+                                    </template>
+                                    <template #editor="{ data }">
+                                        <InputNumber v-if="isParametricEntry(data)" v-model="data.dimensions[param]" fluid size="small" />
+                                    </template>
+                                </Column>
+                                <Column v-if="queueState === 'DRAFT'" style="width: var(--ck-table-action-column-width)">
+                                    <template #body="{ data }"><Button icon="pi pi-trash" severity="danger" text :aria-label="$t('common.delete')" @click="confirmDelete(data)" size="small" /></template>
+                                </Column>
+                            </DataTable>
+                        </TableFrame>
 
                         <div class="flex gap-3" v-if="queueState === 'DRAFT'">
                             <Button :label="$t('queues.addFromTemplate')" icon="pi pi-plus" text @click="showAddDialog = true" />
@@ -237,17 +234,17 @@
             </AccordionPanel>
 
             <!-- Tracking -->
-            <AccordionPanel v-if="queueState === 'CUT'" value="3">
+            <AccordionPanel v-if="hasPhysicalOutputs" value="3">
                 <AccordionHeader>{{ $t('project.cassettes') }} Instances</AccordionHeader>
                 <AccordionContent>
-                    <div class="grid-hub">
+                    <ResponsiveGrid>
                         <CassetteInstanceCard 
                             v-for="instance in instances" 
                             :key="instance._id" 
                             :instance="instance"
                             variant="compact"
                         />
-                    </div>
+                    </ResponsiveGrid>
                 </AccordionContent>
             </AccordionPanel>
         </Accordion>
@@ -278,7 +275,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
@@ -296,10 +293,7 @@ import Select from 'primevue/select';
 import SelectButton from 'primevue/selectbutton';
 import MultiSelect from 'primevue/multiselect';
 import Message from 'primevue/message';
-import Divider from 'primevue/divider';
-import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
-import Checkbox from 'primevue/checkbox';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FileUpload from 'primevue/fileupload';
 import ConfirmDialog from 'primevue/confirmdialog';
@@ -308,12 +302,16 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
-import CassetteThumbnail from './CassetteThumbnail.vue';
+import QueueEntryCard from '~/components/entities/Queue/QueueEntryCard.vue';
 import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
 import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
-import { namedSelectOptions } from '~/utils/selectOptions';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
+import TableFrame from '~/components/shared/TableFrame.vue';
+import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
+import { occsParameterNames } from '~/utils/occs/parameters.js';
 
 const props = defineProps({
     queue: { type: Object, required: true },
@@ -335,13 +333,14 @@ const cassettesStore = useCassettesStore();
 const toolProfilesStore = useToolProfilesStore();
 
 const entries = ref([]);
-const { runs } = storeToRefs(queuesStore);
+const { runs, nestingCompleted } = storeToRefs(queuesStore);
 const nestingInProgress = ref(false);
 const showAddDialog = ref(false);
 const showUploadDialog = ref(false);
 const uploadDialogRef = ref(null);
 const cassettes = ref([]);
 const cassetteDesigns = ref([]);
+const sheetDesigns = ref([]);
 const warehouses = ref([]);
 const availableInventory = ref([]);
 const { tools } = storeToRefs(toolProfilesStore);
@@ -352,10 +351,67 @@ const queueOptions = computed(() => namedSelectOptions(props.queues, t('common.u
 const toolOptions = computed(() => namedSelectOptions(tools.value, t('common.unnamed')));
 const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, t('common.unnamed')));
 
+const formatInventorySpecs = (entity = {}) => {
+    const specs = entity.specs || entity.data?.specs || {};
+    const width = specs.width || specs.w;
+    const length = specs.length || specs.height || specs.h;
+    return width && length ? `${width}x${length}` : '-';
+};
+
+const inventoryDimensions = (entity = {}) => {
+    const specs = entity.specs || entity.data?.specs || {};
+    const width = Number(specs.width || specs.w || 0);
+    const length = Number(specs.length || specs.height || specs.h || 0);
+    return { width, length };
+};
+
+const stockSizeKey = (item = {}) => {
+    const width = Number(item.dimensions?.width || 0);
+    const length = Number(item.dimensions?.length || item.dimensions?.height || 0);
+    return width > 0 && length > 0 ? `${width}x${length}` : '';
+};
+
+const selectedMaterialPool = computed(() => (
+    nestingOptions.value.inventoryItems
+        .map(uniqueId => availableInventory.value.find(item => item.uniqueId === uniqueId))
+        .filter(Boolean)
+        .map(item => ({
+            type: item.type,
+            id: item.id,
+            warehouseId: item.warehouseId,
+            label: item.label,
+            specs: item.specs,
+            dimensions: item.dimensions,
+            available: item.availableCount ?? 1
+        }))
+));
+const selectedStockSizeKeys = computed(() => Array.from(new Set(selectedMaterialPool.value.map(stockSizeKey).filter(Boolean))));
+const selectedStockSizeConflict = computed(() => selectedStockSizeKeys.value.length > 1);
+const selectedStockSummary = computed(() => {
+    if (!selectedMaterialPool.value.length || selectedStockSizeConflict.value) return '';
+    const available = selectedMaterialPool.value.reduce((sum, item) => sum + (item.available || 1), 0);
+    const size = selectedStockSizeKeys.value[0] || t('common.notAvailable');
+    return t('nesting.selectedStockSummary', { count: available, size });
+});
+
 const newEntry = ref({
     cassetteTemplateId: null,
     quantity: 1,
     dimensions: {}
+});
+
+const entryKeyFor = (item = {}, index = 0) => (
+    item._key ||
+    item.entryKey ||
+    `entry_${item.id || item.cassetteTemplateId || 'unknown'}_${index}`
+);
+
+const makeQueueEntry = (item = {}, index = 0) => ({
+    ...item,
+    _key: entryKeyFor(item, index),
+    cassetteTemplateId: item.cassetteTemplateId || item.id,
+    dimensions: item.parameters || item.dimensions || {},
+    type: item.type || 'STATIC'
 });
 
 const getCassetteData = (id) => {
@@ -372,7 +428,11 @@ const getCassetteName = (id) => {
 };
 
 const getCassetteType = (data) => data?.data?.type || '';
-const getCassetteParameters = (data) => data?.data?.parameters || [];
+const getCassetteParameters = (data) => {
+    const explicit = data?.data?.parameters;
+    if (Array.isArray(explicit) && explicit.length) return explicit;
+    return occsParameterNames(data?.data?.definition || {});
+};
 const getEntryCassetteData = (entry) => getCassetteData(entry?.cassetteTemplateId || entry?.id);
 const isParametricEntry = (entry) => {
     const data = getEntryCassetteData(entry);
@@ -403,29 +463,41 @@ const allParameters = computed(() => {
     return Array.from(params);
 });
 
+const findDesignForTemplate = (templateId) => {
+    const id = templateId?.toString();
+    if (!id) return null;
+    return cassetteDesigns.value.find(design => design.lineage?.templateId?.toString() === id) || null;
+};
+
+const resolveUploadedQueueItem = (payload) => {
+    if (!payload) return null;
+    const design = payload.design || (payload.data?.geometry ? payload : null);
+    if (design) {
+        if (!cassetteDesigns.value.some(item => item._id?.toString() === design._id?.toString())) {
+            cassetteDesigns.value.push(design);
+        }
+        return design;
+    }
+
+    const template = payload.template || payload;
+    return findDesignForTemplate(template._id) || template;
+};
+
 const nestingOptions = ref({    materialMode: props.queue.data?.nestingParams?.materialMode || 'VIRTUAL',
     virtualWidth: props.queue.data?.nestingParams?.virtualWidth || 3000,
     virtualLength: props.queue.data?.nestingParams?.virtualLength || 1500,
     warehouseId: props.queue.data?.nestingParams?.warehouseId || null,
     inventoryItems: props.queue.data?.nestingParams?.inventoryItems || [],
     toolId: props.queue.data?.nestingParams?.toolId || null,
-    requestedArtifacts: props.queue.requestedArtifacts || ['LAYOUT_DXF']
+    requestedArtifacts: props.queue.requestedArtifacts || []
 });
 
 const queueRuns = computed(() => runs.value[props.queue._id] || []);
-const hasChosenRun = computed(() => queueRuns.value.some(r => r.status?.state === 'CHOSEN'));
+const hasPhysicalOutputs = computed(() => Boolean(props.queue.data?.physicalOutputs?.cassetteInstanceIds?.length));
 const queueStatusActions = computed(() => {
     if (!authStore.can('queues', 'edit')) return [];
 
     const actions = [];
-    if (queueState.value === 'READY' && hasChosenRun.value) {
-        actions.push({
-            label: t('queue.markCut'),
-            icon: 'pi pi-scissors',
-            severity: 'success',
-            command: () => markCutHandler()
-        });
-    }
     if (queueState.value !== 'DRAFT') {
         actions.push({
             label: t('queue.resetToDraft'),
@@ -444,26 +516,14 @@ const warehouseShortage = computed(() => {
     const latestRun = queueRuns.value[queueRuns.value.length - 1];
     if (latestRun.status?.state !== 'COMPLETE' && latestRun.status?.state !== 'CHOSEN') return null;
     
-    // Calculate total available sheets in selected inventory
-    let totalAvailable = 0;
-    nestingOptions.value.inventoryItems.forEach(uniqueId => {
-        const [type, id] = uniqueId.split('_');
-        const item = availableInventory.value.find(i => i.uniqueId === uniqueId);
-        if (item) {
-            if (type === 'pile') {
-                const pile = warehouses.value.flatMap(w => w.piles || []).find(p => p._id.toString() === id);
-                if (pile) totalAvailable += (pile.data?.stock?.total || 0) - (pile.data?.stock?.used || 0);
-            } else if (type === 'sheet') {
-                totalAvailable += 1;
-            }
-        }
-    });
+    const totalAvailable = selectedMaterialPool.value.reduce((sum, item) => sum + (item.available || 1), 0);
     
-    if (latestRun.layoutCount > totalAvailable) {
+    const neededSheets = runSheetCount(latestRun);
+    if (neededSheets > totalAvailable) {
         return {
-            needed: latestRun.layoutCount,
+            needed: neededSheets,
             available: totalAvailable,
-            missing: latestRun.layoutCount - totalAvailable
+            missing: neededSheets - totalAvailable
         };
     }
     
@@ -475,6 +535,7 @@ const isNestingReady = computed(() => {
     
     if (nestingOptions.value.materialMode === 'WAREHOUSE') {
         if (nestingOptions.value.inventoryItems.length === 0) return false;
+        if (selectedStockSizeConflict.value) return false;
     }
     
     return true;
@@ -492,10 +553,26 @@ const loadWarehouseInventory = async () => {
         ]);
         
         availableInventory.value = [
-            ...piles.map(p => ({ type: 'PILE', uniqueId: `pile_${p._id}`, label: p.identity.name, specs: `${p.specs.width}x${p.specs.length}`, id: p._id })),
-            ...sheets.map(s => ({ type: 'SHEET', uniqueId: `sheet_${s._id}`, label: s.identity.serial, specs: `${s.specs.width}x${s.specs.length}`, id: s._id })),
-            ...remnants.map(r => ({ type: 'REMNANT', uniqueId: `remnant_${r._id}`, label: r.identity?.serial, specs: r.data?.area ? `${r.data.area}m²` : '-', id: r._id }))
+            ...piles.map(p => {
+                const stock = p.data?.stock || {};
+                const availableCount = Math.max((stock.total || 0) - (stock.used || 0), 0);
+                const dimensions = inventoryDimensions(p);
+                return {
+                    type: 'PILE',
+                    uniqueId: `pile_${p._id}`,
+                    warehouseId: whId,
+                    label: entitySelectLabel(p, p.data?.serial || t('piles.pile')),
+                    specs: `${formatInventorySpecs(p)} · ${availableCount} ${t('common.units')}`,
+                    id: p._id,
+                    dimensions,
+                    availableCount
+                };
+            }).filter(item => item.availableCount > 0),
+            ...sheets.map(s => ({ type: 'SHEET', uniqueId: `sheet_${s._id}`, warehouseId: whId, label: entitySelectLabel(s, t('sheets.title')), specs: formatInventorySpecs(s), id: s._id, dimensions: inventoryDimensions(s), availableCount: 1 })),
+            ...remnants.map(r => ({ type: 'REMNANT', uniqueId: `remnant_${r._id}`, warehouseId: whId, label: entitySelectLabel(r, t('remnants.title')), specs: r.data?.area ? `${r.data.area}m²` : '-', id: r._id, dimensions: inventoryDimensions(r), availableCount: 1 }))
         ];
+        const availableIds = new Set(availableInventory.value.map(item => item.uniqueId));
+        nestingOptions.value.inventoryItems = nestingOptions.value.inventoryItems.filter(id => availableIds.has(id));
     } catch (e) { console.error(e); }
 };
 
@@ -507,20 +584,28 @@ const onCustomSheetUpload = (event) => {
     nestingOptions.value.inventoryItems.push(`file_${response.fileId}`);
 };
 
+const goToWarehouses = () => navigateTo('/warehouses');
+const runSheetCount = (run = {}) => Number(run.data?.results?.sheetCount || run.summary?.sheetCount || run.layoutCount || 0);
+const runParams = (run = {}) => run.data?.params || run.params || {};
+
 const loadQueueData = async () => {
     try {
         const data = await queuesStore.getQueue(props.queue._id);
         if (data) {
-            entries.value = (data.data?.job?.items || []).map(item => ({
-                ...item,
-                cassetteTemplateId: item.cassetteTemplateId || item.id,
-                dimensions: item.parameters || item.dimensions || {},
-                type: item.type || 'STATIC'
-            }));
+            entries.value = (data.data?.job?.items || []).map(makeQueueEntry);
             entries.value.forEach(syncEntryWithCassette);
-            if (queueState.value === 'CUT') loadInstances();
+            if (hasPhysicalOutputs.value) loadInstances();
         }
     } catch (e) { console.error('Failed to load queue data:', e); }
+};
+
+const loadSheetDesigns = async () => {
+    try {
+        sheetDesigns.value = await $fetch('/api/sheet-designs', { query: { queueId: props.queue._id } });
+    } catch (e) {
+        console.error('Failed to load sheet designs:', e);
+        sheetDesigns.value = [];
+    }
 };
 
 onMounted(async () => {
@@ -536,7 +621,21 @@ onMounted(async () => {
     if (nestingOptions.value.warehouseId) loadWarehouseInventory();
     await toolProfilesStore.fetchTools();
     await queuesStore.fetchRuns(props.queue._id);
+    await loadSheetDesigns();
     loadQueueData();
+});
+
+watch(nestingCompleted, async (event) => {
+    const queueId = typeof event === 'object' ? event?.queueId : event;
+    if (queueId?.toString() === props.queue._id?.toString()) {
+        await loadSheetDesigns();
+    }
+});
+
+watch(() => props.queue._id, async () => {
+    await loadQueueData();
+    await queuesStore.fetchRuns(props.queue._id);
+    await loadSheetDesigns();
 });
 
 const formatDate = (d) => new Date(d).toLocaleString();
@@ -569,6 +668,19 @@ const syncEntryWithCassette = (entry) => {
     return entry;
 };
 
+const updateEntryQuantity = async (entry, quantity) => {
+    entry.quantity = quantity;
+    await saveQueue();
+};
+
+const updateEntryDimension = async (entry, param, value) => {
+    entry.dimensions = {
+        ...(entry.dimensions || {}),
+        [param]: value
+    };
+    await saveQueue();
+};
+
 const addEntry = async (item = null) => {
     const data = item || getCassetteData(newEntry.value.cassetteTemplateId);
     if (!data) return;
@@ -584,7 +696,7 @@ const addEntry = async (item = null) => {
 
     entries.value.push(syncEntryWithCassette({ 
         ...entryData, 
-        _id: `temp_${Date.now()}`, 
+        _key: `entry_${data._id}_${Date.now()}_${entries.value.length}`,
         type, 
         id: data._id 
     }));
@@ -597,37 +709,35 @@ const addEntry = async (item = null) => {
 const saveQueue = async () => {
     try { 
         entries.value.forEach(syncEntryWithCassette);
-        await $fetch(`/api/queue/${props.queue._id}`, { 
-            method: 'PUT', 
-            body: { 
-                job: { items: entries.value.map(e => ({ type: e.type, id: e.id, quantity: e.quantity, parameters: e.dimensions })) },
+        await queuesStore.updateQueue(
+            props.queue._id,
+            {
+                job: {
+                    items: entries.value.map(e => ({ type: e.type, id: e.id, quantity: e.quantity, parameters: e.dimensions })),
+                    materialPool: selectedMaterialPool.value
+                },
                 nestingParams: nestingOptions.value
-            } 
-        }); 
+            }
+        );
         emit('updated'); 
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        console.error(e);
+        throw e;
+    }
 };
 
 const runNesting = async () => {
     nestingInProgress.value = true;
     try {
         await saveQueue();
-        await queuesStore.startNesting(props.queue._id, nestingOptions.value);
+        await queuesStore.startNesting(props.queue._id, {
+            ...nestingOptions.value,
+            materialPool: selectedMaterialPool.value
+        });
+        await loadSheetDesigns();
         toast.add({ severity: 'info', summary: t('queues.nestingStarted'), life: 3000 });
     } catch (e) { toast.add({ severity: 'error', summary: t('queues.nestingFailed'), detail: e.message, life: 3000 }); }
     finally { nestingInProgress.value = false; }
-};
-
-const markCutHandler = async () => {
-    confirm.require({
-        message: t('queue.confirmMarkCut'),
-        header: t('queue.markCut'),
-        icon: 'pi pi-scissors',
-        accept: async () => {
-            try { await queuesStore.markCut(props.queue._id); emit('updated'); }
-            catch (e) { toast.add({ severity: 'error', summary: t('common.error'), detail: e.message }); }
-        }
-    });
 };
 
 const resetToDraft = async () => {
@@ -643,8 +753,12 @@ const resetToDraft = async () => {
 };
 
 const chooseRunHandler = async (id) => {
-    try { await queuesStore.chooseRun(props.queue._id, id); emit('updated'); }
-    catch (e) { console.error(e); }
+    try {
+        await queuesStore.chooseRun(props.queue._id, id);
+        await loadInstances();
+        emit('updated');
+    }
+    catch (e) { toast.add({ severity: 'error', summary: t('queue.chooseRunFailed'), detail: e.message }); }
 };
 
 const deleteRunHandler = async (id) => {
@@ -666,32 +780,15 @@ const deleteRunHandler = async (id) => {
 const handleConvertToPhysical = async (runId) => {
     const run = queueRuns.value.find(r => r._id.toString() === runId.toString());
     if (!run) return;
+    const params = runParams(run);
     nestingOptions.value.materialMode = 'WAREHOUSE';
-    nestingOptions.value.virtualWidth = run.params?.width || 3000;
-    nestingOptions.value.virtualLength = run.params?.height || 1500;
+    nestingOptions.value.virtualWidth = params.width || 3000;
+    nestingOptions.value.virtualLength = params.height || 1500;
     toast.add({ 
         severity: 'info', 
         summary: t('queues.switchingToWarehouse'),
         detail: t('queues.selectWarehouseHint'),
         life: 5000 
-    });
-};
-
-const handleCreateRequisition = async (runId) => {
-    const run = queueRuns.value.find(r => r._id.toString() === runId.toString());
-    if (!run) return;
-    confirm.require({
-        message: `Create a requisition for ${run.layoutCount} sheets (${run.params?.width}x${run.params?.height}) based on this nesting?`,
-        header: t('requisition.title'),
-        icon: 'pi pi-shopping-cart',
-        accept: async () => {
-            try {
-                navigateTo('/materials');
-                toast.add({ severity: 'success', summary: t('common.success'), detail: t('queues.requisitionRedirect') });
-            } catch (e) {
-                toast.add({ severity: 'error', summary: t('common.error'), detail: e.message });
-            }
-        }
     });
 };
 
@@ -701,7 +798,7 @@ const confirmDelete = (entry) => {
         header: t('common.confirmation'),
         icon: 'pi pi-exclamation-triangle',
         accept: async () => {
-            entries.value = entries.value.filter(e => e._id !== entry._id);
+            entries.value = entries.value.filter(e => e._key !== entry._key);
             await saveQueue();
         }
     });
@@ -723,7 +820,8 @@ const onCassetteUploaded = async (newItem) => {
     ]);
     cassettes.value = cRes || [];
     cassetteDesigns.value = dRes || [];
-    if (newItem) await addEntry(newItem);
+    const queueItem = resolveUploadedQueueItem(newItem);
+    if (queueItem) await addEntry(queueItem);
 };
 
 const onInstantUploadSelect = (event) => {

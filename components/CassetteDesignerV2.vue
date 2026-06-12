@@ -1,42 +1,43 @@
 <template>
-  <div class="grid h-[calc(100vh-10rem)] min-h-0 min-w-[64rem] grid-cols-[20rem_minmax(0,1fr)] gap-4 overflow-hidden">
-    <aside class="flex min-h-0 min-w-0 flex-col gap-4 overflow-auto">
-      <div class="flex flex-col gap-2">
-        <InputText
-          v-model="cassetteNameDraft"
-          :placeholder="$t('cassette.name')"
-          class="w-full"
-        />
-        <div class="flex min-w-0 items-center gap-2">
-          <Select
-            :model-value="selectedTemplateId"
-            :options="templateOptions"
-            option-label="label"
-            option-value="value"
-            :placeholder="$t('cassette.v2.loadTemplate')"
-            class="min-w-0 flex-1"
-            @update:model-value="value => emit('load-template', value)"
-          />
-          <Button
-            icon="pi pi-save"
-            :label="$t('common.save')"
-            size="small"
-            :loading="savingTemplate"
-            :disabled="savingTemplate"
-            @click="saveTemplate"
-          />
-          <Button
-            icon="pi pi-refresh"
-            severity="secondary"
-            text
-            rounded
-            size="small"
-            :aria-label="$t('common.reset')"
-            v-tooltip.top="$t('common.reset')"
-            @click="resetTree"
-          />
-        </div>
-      </div>
+  <div class="flex h-[calc(100dvh-10rem)] min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
+    <div class="flex shrink-0 flex-wrap items-center gap-2">
+      <InputText
+        v-model="cassetteNameDraft"
+        :placeholder="$t('cassette.name')"
+        class="min-w-44 flex-1"
+      />
+      <Select
+        :model-value="null"
+        :options="templateOptions"
+        option-label="label"
+        option-value="value"
+        :placeholder="$t('cassette.v2.loadTemplate')"
+        class="min-w-36 flex-1 sm:max-w-48 sm:flex-none"
+        @update:model-value="value => emit('load-template', value)"
+      />
+      <Button
+        icon="pi pi-save"
+        size="small"
+        :loading="savingTemplate"
+        :disabled="savingTemplate"
+        :aria-label="$t('common.save')"
+        v-tooltip.top="$t('common.save')"
+        @click="saveTemplate"
+      />
+      <Button
+        icon="pi pi-refresh"
+        severity="secondary"
+        text
+        rounded
+        size="small"
+        :aria-label="$t('common.reset')"
+        v-tooltip.top="$t('common.reset')"
+        @click="resetTree"
+      />
+    </div>
+
+    <div class="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(18rem,1fr)_16rem_12rem] gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)_14rem] xl:grid-cols-[18rem_minmax(0,1fr)_20rem] xl:grid-rows-1 2xl:grid-cols-[20rem_minmax(0,1fr)_22rem]">
+      <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border bg-content p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
 
       <div class="flex flex-wrap gap-2">
         <Button
@@ -50,26 +51,22 @@
         />
       </div>
 
-      <div v-if="activeSideTab === 'parameters'" class="flex min-w-0 flex-col gap-5">
-        <Message v-if="previewError" severity="warn" size="small" :closable="false">
-          {{ $t('cassette.v2.previewHeld') }}
-        </Message>
-
-        <div class="flex flex-col gap-3">
-          <div class="flex items-center justify-between gap-2">
-            <strong>{{ $t('cassette.v2.globalParameters') }}</strong>
-            <Button
-              icon="pi pi-plus"
-              severity="secondary"
-              text
-              rounded
-              size="small"
-              :aria-label="$t('common.add')"
-              v-tooltip.top="$t('common.add')"
-              @click="addGlobalParameter"
-            />
-          </div>
-          <div v-for="parameter in globalParameterEntries" :key="parameter.key" class="flex flex-col gap-1">
+      <div v-if="activeSideTab === 'parameters'" class="flex min-h-0 min-w-0 flex-col gap-3 overflow-auto">
+        <div class="flex items-center justify-between gap-2">
+          <strong>{{ $t('cassette.v2.globalParameters') }}</strong>
+          <Button
+            icon="pi pi-plus"
+            severity="secondary"
+            text
+            rounded
+            size="small"
+            :aria-label="$t('common.add')"
+            v-tooltip.top="$t('common.add')"
+            @click="addGlobalParameter"
+          />
+        </div>
+        <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-1">
+          <div v-for="parameter in globalParameterEntries" :key="parameter.key" class="flex min-w-0 flex-col gap-1">
             <div class="flex items-center justify-between gap-2">
               <label class="font-mono">{{ parameter.key }}</label>
               <Button
@@ -92,289 +89,9 @@
             />
           </div>
         </div>
-
-        <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex min-w-0 flex-col">
-              <strong class="truncate">{{ selectedNode.id }}</strong>
-              <small class="font-mono">{{ selectedRelation }}</small>
-            </div>
-            <Button
-              v-if="selectedNode.parentId"
-              icon="pi pi-trash"
-              severity="danger"
-              text
-              rounded
-              size="small"
-              :aria-label="$t('cassette.v2.deleteFace')"
-              v-tooltip.top="$t('cassette.v2.deleteFace')"
-              @click="deleteSelectedFace"
-            />
-          </div>
-
-          <div v-for="field in selectedFields" :key="field.key" class="flex flex-col gap-1">
-            <label>{{ selectedFieldLabel(field) }}</label>
-            <CassetteExpressionEditor
-              :model-value="selectedParameters[field.key]"
-              :parameters="selectedExpressionParameters"
-              :parameter-names="globalParameterNames"
-              :context-tokens="selectedExpressionContextTokens"
-              @update:model-value="value => updateSelectedParameter(field.key, value)"
-            />
-          </div>
-
-          <div v-if="selectedNode.parentId" class="flex flex-col gap-1">
-            <label>{{ $t('cassette.v2.fields.foldAngle') }}</label>
-            <CassetteExpressionEditor
-              :model-value="selectedNode.foldAngle || '90deg'"
-              :parameters="globalParameters"
-              :parameter-names="globalParameterNames"
-              allow-angle-suffix
-              @update:model-value="updateSelectedFoldAngle"
-            />
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('cassette.v2.fields.startAnchor') }}</label>
-              <Select
-                :model-value="selectedParameters.startAnchor"
-                :options="anchorOptions"
-                option-label="label"
-                option-value="value"
-                class="w-full"
-                size="small"
-                @update:model-value="value => updateSelectedParameter('startAnchor', value)"
-              />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('cassette.v2.fields.endAnchor') }}</label>
-              <Select
-                :model-value="selectedParameters.endAnchor"
-                :options="anchorOptions"
-                option-label="label"
-                option-value="value"
-                class="w-full"
-                size="small"
-                @update:model-value="value => updateSelectedParameter('endAnchor', value)"
-              />
-            </div>
-          </div>
-        </div>
       </div>
 
-      <div v-else-if="activeSideTab === 'topology'" class="flex min-w-0 flex-col gap-4">
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex min-w-0 items-center gap-2">
-            <i class="pi pi-sitemap text-muted-color" aria-hidden="true" />
-            <strong class="truncate">{{ $t('cassette.v2.topology') }}</strong>
-            <Tag :value="workpieces.length" severity="secondary" size="small" />
-          </div>
-          <Button
-            icon="pi pi-plus"
-            severity="secondary"
-            text
-            rounded
-            size="small"
-            :aria-label="$t('cassette.v2.addWorkpiece')"
-            v-tooltip.top="$t('cassette.v2.addWorkpiece')"
-            @click="addWorkpieceFromSelected"
-          />
-        </div>
-
-        <div class="flex flex-col gap-1">
-          <label>{{ $t('cassette.v2.selectedWorkpiece') }}</label>
-          <Select
-            :model-value="selectedWorkpieceId"
-            :options="workpieceOptions"
-            option-label="label"
-            option-value="value"
-            class="w-full"
-            size="small"
-            @update:model-value="selectWorkpieceForTopology"
-          />
-        </div>
-
-        <div v-if="selectedWorkpiece" class="flex flex-col gap-1 rounded-ui border border-content-border p-3">
-          <div class="flex items-center justify-between gap-2">
-            <strong class="truncate">{{ selectedWorkpiece.name || selectedWorkpiece.id }}</strong>
-            <div class="flex items-center gap-1">
-              <Button
-                icon="pi pi-plus"
-                severity="secondary"
-                text
-                rounded
-                size="small"
-                :aria-label="$t('cassette.v2.addRelatedWorkpiece')"
-                v-tooltip.top="$t('cassette.v2.addRelatedWorkpiece')"
-                @click="addWorkpieceFrom(selectedWorkpiece.id)"
-              />
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                rounded
-                size="small"
-                :disabled="!selectedWorkpieceDeletable"
-                :aria-label="$t('cassette.v2.deleteWorkpiece')"
-                v-tooltip.top="$t('cassette.v2.deleteWorkpiece')"
-                @click="deleteWorkpiece(selectedWorkpiece.id)"
-              />
-            </div>
-          </div>
-          <small class="font-mono text-muted-color">{{ selectedWorkpiece.id }} · {{ selectedWorkpiece.rootId }}</small>
-        </div>
-
-        <div v-if="selectedWorkpieceRelation" class="flex min-w-0 flex-col gap-3 rounded-ui border border-content-border p-3">
-          <div class="flex min-w-0 flex-col">
-            <strong>{{ $t('cassette.v2.attachment') }}</strong>
-            <small class="font-mono text-muted-color">{{ selectedWorkpieceRelationLabel }}</small>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('cassette.v2.attachmentFields.targetWorkpiece') }}</label>
-              <Select
-                :model-value="selectedWorkpieceRelation.targetWorkpieceId"
-                :options="targetWorkpieceOptions"
-                option-label="label"
-                option-value="value"
-                class="w-full"
-                size="small"
-                @update:model-value="value => updateSelectedWorkpieceRelation({ targetWorkpieceId: value })"
-              />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('cassette.v2.attachmentFields.targetFace') }}</label>
-              <Select
-                :model-value="selectedWorkpieceRelation.targetFaceId"
-                :options="targetFaceOptions"
-                option-label="label"
-                option-value="value"
-                class="w-full"
-                size="small"
-                @update:model-value="value => updateSelectedWorkpieceRelation({ targetFaceId: value })"
-              />
-            </div>
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label>{{ $t('cassette.v2.attachmentFields.sourceFace') }}</label>
-            <Select
-              :model-value="selectedWorkpieceRelation.sourceFaceId"
-              :options="sourceFaceOptions"
-              option-label="label"
-              option-value="value"
-              class="w-full"
-              size="small"
-              @update:model-value="value => updateSelectedWorkpieceRelation({ sourceFaceId: value })"
-            />
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('cassette.v2.attachmentFields.targetSnap') }}</label>
-              <Select
-                :model-value="selectedWorkpieceRelation.targetSnap"
-                :options="snapOptions"
-                option-label="label"
-                option-value="value"
-                class="w-full"
-                size="small"
-                @update:model-value="value => updateSelectedWorkpieceRelation({ targetSnap: value })"
-              />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('cassette.v2.attachmentFields.sourceSnap') }}</label>
-              <Select
-                :model-value="selectedWorkpieceRelation.sourceSnap"
-                :options="snapOptions"
-                option-label="label"
-                option-value="value"
-                class="w-full"
-                size="small"
-                @update:model-value="value => updateSelectedWorkpieceRelation({ sourceSnap: value })"
-              />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('cassette.v2.attachmentFields.offsetX') }}</label>
-              <CassetteExpressionEditor
-                :model-value="selectedWorkpieceRelation.offsetX"
-                :parameters="globalParameters"
-                :parameter-names="globalParameterNames"
-                @update:model-value="value => updateSelectedWorkpieceRelation({ offsetX: value })"
-              />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('cassette.v2.attachmentFields.offsetY') }}</label>
-              <CassetteExpressionEditor
-                :model-value="selectedWorkpieceRelation.offsetY"
-                :parameters="globalParameters"
-                :parameter-names="globalParameterNames"
-                @update:model-value="value => updateSelectedWorkpieceRelation({ offsetY: value })"
-              />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('cassette.v2.attachmentFields.rotation') }}</label>
-              <CassetteExpressionEditor
-                :model-value="selectedWorkpieceRelation.rotation"
-                :parameters="globalParameters"
-                :parameter-names="globalParameterNames"
-                allow-angle-suffix
-                @update:model-value="value => updateSelectedWorkpieceRelation({ rotation: value })"
-              />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('cassette.v2.attachmentFields.side') }}</label>
-              <Select
-                :model-value="selectedWorkpieceRelation.targetSide"
-                :options="sideOptions"
-                option-label="label"
-                option-value="value"
-                class="w-full"
-                size="small"
-                @update:model-value="value => updateSelectedWorkpieceRelation({ targetSide: value })"
-              />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('cassette.v2.attachmentFields.jointType') }}</label>
-              <Select
-                :model-value="selectedWorkpieceRelation.type"
-                :options="jointTypeOptions"
-                option-label="label"
-                option-value="value"
-                class="w-full"
-                size="small"
-                @update:model-value="value => updateSelectedWorkpieceRelation({ type: value })"
-              />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('cassette.v2.attachmentFields.method') }}</label>
-              <InputText
-                :model-value="selectedWorkpieceRelation.method"
-                size="small"
-                class="w-full"
-                @update:model-value="value => updateSelectedWorkpieceRelation({ method: value })"
-              />
-            </div>
-          </div>
-        </div>
-
-        <Message v-else severity="info" size="small" :closable="false">
-          {{ $t('cassette.v2.noAttachment') }}
-        </Message>
-      </div>
-
-      <div v-else-if="activeSideTab === 'layers'" class="flex flex-col gap-3">
+      <div v-else-if="activeSideTab === 'layers'" class="flex min-h-0 flex-col gap-3">
         <div class="flex items-center justify-between gap-2">
           <div class="flex min-w-0 items-center gap-2">
             <i class="pi pi-list text-muted-color" aria-hidden="true" />
@@ -437,103 +154,324 @@
       <div v-else class="flex min-h-0 flex-col gap-2">
         <Textarea :model-value="occsJson" readonly rows="22" class="min-h-0 w-full flex-1 font-mono text-xs" />
       </div>
-    </aside>
+      </aside>
 
-    <section class="relative min-h-0 min-w-0 overflow-hidden">
+      <section ref="editorSurfaceRef" class="relative order-1 min-h-0 min-w-0 overflow-hidden xl:order-2">
       <DrawingCanvas
-        :source="previewSource"
+        :source="drawingCanvasSource"
         source-type="geometry-preview"
         mode="designer"
         :visible-layer-names="visibleLayerNames"
-        :selected-designer-face-id="selectedNodeId"
+        :selected-designer-face-id="selectedDesignerFaceId"
+        :designer-selectable-workpiece-ids="designerSelectableWorkpieceIds"
+        :show-designer-workpiece-context="showDesignerWorkpieceContext"
         @ready="handleDrawingReady"
         @layer-toggle="updateVisibleLayerNames"
         @designer-action="handleDesignerAction"
         @designer-face-select="handleDesignerFaceSelect"
         @designer-fold-select="handleDesignerFoldSelect"
+        @designer-face-command="handleDesignerFaceCommand"
+        @designer-point-edit="handleDesignerPointEdit"
+        @designer-section-edit="handleDesignerSectionEdit"
+        @designer-fold-angle-edit="handleDesignerFoldAngleEdit"
       />
-      <div class="pointer-events-none absolute right-3 top-3 z-[100] h-56 w-72">
-        <CassetteFoldedPreview
-          :preview="cassettePreviewSource?.foldedPreview"
-          :selected-face-id="selectedNodeId"
-          :selected-workpiece-id="selectedWorkpieceId"
-          v-model:isolated-workpiece-id="foldedPreviewWorkpieceId"
-          title-key="cassette.v2.cassetteFoldedPreview"
-          class="pointer-events-auto"
-          @workpiece-select="selectWorkpieceForTopology"
-        />
-      </div>
-      <div class="pointer-events-none absolute left-3 top-3 z-[90] max-h-[22rem] max-w-[34rem] overflow-auto">
-        <div class="pointer-events-auto flex min-w-72 flex-col gap-2 rounded-ui border border-content-border bg-content p-2 [box-shadow:var(--ck-shadow-overlay)]">
-          <div class="flex items-center justify-between gap-2">
-            <small class="truncate text-muted-color">{{ $t('cassette.v2.workpieces') }}</small>
-            <Button
-              icon="pi pi-plus"
-              severity="secondary"
-              text
-              rounded
-              size="small"
-              :aria-label="$t('cassette.v2.addWorkpiece')"
-              v-tooltip.top="$t('cassette.v2.addWorkpiece')"
-              @click="addWorkpieceFromSelected"
+      <div
+        v-if="inlineEditor"
+        class="absolute z-[120] min-w-64 rounded-ui border border-content-border bg-content p-2 [box-shadow:var(--ck-shadow-overlay)]"
+        :style="{ left: `${inlineEditor.x}px`, top: `${inlineEditor.y}px` }"
+      >
+        <div class="mb-1 flex justify-end">
+          <Button
+            icon="pi pi-times"
+            severity="secondary"
+            text
+            rounded
+            size="small"
+            :aria-label="$t('common.close')"
+            @click="closeInlineEditor"
+          />
+        </div>
+        <div v-if="inlineEditor.type === 'faceActions'" class="flex flex-col gap-2">
+          <Select
+            :model-value="inlineEditorFaceRole"
+            :options="faceRoleOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+            size="small"
+            :aria-label="$t('cassette.v2.faceRole')"
+            @update:model-value="value => updateFaceRole(inlineEditor.nodeId, value)"
+          />
+          <Button
+            v-if="inlineEditorNode?.parentId"
+            icon="pi pi-trash"
+            :label="$t('cassette.v2.deleteFace')"
+            severity="danger"
+            size="small"
+            @click="deleteFaceNode(inlineEditor.nodeId)"
+          />
+        </div>
+        <div v-else-if="inlineEditor.type === 'attachment' && inlineEditorRelation" class="grid w-96 grid-cols-2 gap-2">
+          <Select
+            :model-value="inlineEditorRelation.targetFaceId"
+            :options="targetFaceOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+            size="small"
+            :aria-label="$t('cassette.v2.attachmentFields.targetFace')"
+            v-tooltip.top="$t('cassette.v2.attachmentFields.targetFace')"
+            @update:model-value="value => updateInlineAttachmentRelation({ targetFaceId: value })"
+          />
+          <Select
+            :model-value="inlineEditorRelation.sourceFaceId"
+            :options="sourceFaceOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+            size="small"
+            :aria-label="$t('cassette.v2.attachmentFields.sourceFace')"
+            v-tooltip.top="$t('cassette.v2.attachmentFields.sourceFace')"
+            @update:model-value="value => updateInlineAttachmentRelation({ sourceFaceId: value })"
+          />
+          <Select
+            :model-value="inlineEditorRelation.targetSnap"
+            :options="snapOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+            size="small"
+            :aria-label="$t('cassette.v2.attachmentFields.targetSnap')"
+            v-tooltip.top="$t('cassette.v2.attachmentFields.targetSnap')"
+            @update:model-value="value => updateInlineAttachmentRelation({ targetSnap: value })"
+          />
+          <Select
+            :model-value="inlineEditorRelation.sourceSnap"
+            :options="snapOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+            size="small"
+            :aria-label="$t('cassette.v2.attachmentFields.sourceSnap')"
+            v-tooltip.top="$t('cassette.v2.attachmentFields.sourceSnap')"
+            @update:model-value="value => updateInlineAttachmentRelation({ sourceSnap: value })"
+          />
+          <div v-tooltip.top="$t('cassette.v2.attachmentFields.offsetX')">
+            <CassetteExpressionEditor
+              :model-value="inlineEditorRelation.offsetX"
+              :parameters="globalParameters"
+              :parameter-names="globalParameterNames"
+              @update:model-value="value => updateInlineAttachmentRelation({ offsetX: value })"
             />
           </div>
-          <div class="flex min-w-0 flex-col gap-1">
-            <div
-              v-for="row in workpieceRows"
-              :key="row.id"
-              class="flex min-w-0 items-center gap-1 rounded-ui px-1 py-1"
-              :class="row.id === selectedWorkpieceId ? 'bg-subtle' : ''"
-              :style="{ paddingLeft: `${row.level * 14 + 4}px` }"
-            >
-              <Button
-                v-if="row.relationId"
-                icon="pi pi-angle-right"
-                text
-                rounded
-                size="small"
-                class="h-7 w-7 p-0"
-                :severity="row.relationId === selectedRelationId ? 'primary' : 'secondary'"
-                :aria-label="$t('cassette.v2.attachment')"
-                v-tooltip.top="row.relationLabel"
-                @click="selectWorkpieceRelation(row.relationId)"
-              />
-              <span v-else class="h-7 w-7" />
-              <Button
-                :label="row.label"
-                :severity="row.id === selectedWorkpieceId ? 'primary' : 'secondary'"
-                size="small"
-                class="min-w-0 flex-1 justify-start"
-                @click="selectWorkpieceForTopology(row.id)"
-              />
-              <Button
-                icon="pi pi-plus"
-                severity="secondary"
-                text
-                rounded
-                size="small"
-                class="h-7 w-7 p-0"
-                :aria-label="$t('cassette.v2.addRelatedWorkpiece')"
-                v-tooltip.top="$t('cassette.v2.addRelatedWorkpiece')"
-                @click="addWorkpieceFrom(row.id)"
-              />
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                rounded
-                size="small"
-                class="h-7 w-7 p-0"
-                :disabled="!row.deletable"
-                :aria-label="$t('cassette.v2.deleteWorkpiece')"
-                v-tooltip.top="$t('cassette.v2.deleteWorkpiece')"
-                @click="deleteWorkpiece(row.id)"
-              />
-            </div>
+          <div v-tooltip.top="$t('cassette.v2.attachmentFields.offsetY')">
+            <CassetteExpressionEditor
+              :model-value="inlineEditorRelation.offsetY"
+              :parameters="globalParameters"
+              :parameter-names="globalParameterNames"
+              @update:model-value="value => updateInlineAttachmentRelation({ offsetY: value })"
+            />
           </div>
+          <div v-tooltip.top="$t('cassette.v2.attachmentFields.rotation')">
+            <CassetteExpressionEditor
+              :model-value="inlineEditorRelation.rotation"
+              :parameters="globalParameters"
+              :parameter-names="globalParameterNames"
+              @update:model-value="value => updateInlineAttachmentRelation({ rotation: value })"
+            />
+          </div>
+          <Select
+            :model-value="inlineEditorRelation.targetSide"
+            :options="sideOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+            size="small"
+            :aria-label="$t('cassette.v2.attachmentFields.side')"
+            v-tooltip.top="$t('cassette.v2.attachmentFields.side')"
+            @update:model-value="value => updateInlineAttachmentRelation({ targetSide: value })"
+          />
+          <Select
+            :model-value="inlineEditorRelation.type"
+            :options="jointTypeOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+            size="small"
+            :aria-label="$t('cassette.v2.attachmentFields.jointType')"
+            v-tooltip.top="$t('cassette.v2.attachmentFields.jointType')"
+            @update:model-value="value => updateInlineAttachmentRelation({ type: value })"
+          />
+          <InputText
+            :model-value="inlineEditorRelation.method"
+            size="small"
+            class="w-full"
+            :aria-label="$t('cassette.v2.attachmentFields.method')"
+            v-tooltip.top="$t('cassette.v2.attachmentFields.method')"
+            @update:model-value="value => updateInlineAttachmentRelation({ method: value })"
+          />
+          <Button
+            icon="pi pi-map-marker"
+            :severity="inlineEditorRelation.driver ? 'primary' : 'secondary'"
+            size="small"
+            :aria-label="$t('cassette.v2.attachmentFields.driver')"
+            v-tooltip.top="$t('cassette.v2.attachmentFields.driver')"
+            @click="updateInlineAttachmentRelation({ driver: true })"
+          />
+          <Button
+            icon="pi pi-trash"
+            severity="danger"
+            size="small"
+            :aria-label="$t('cassette.v2.removeAttachment')"
+            v-tooltip.top="$t('cassette.v2.removeAttachment')"
+            @click="deleteInlineAttachmentRelation"
+          />
         </div>
+        <div v-else-if="inlineEditor.type === 'faceParameter' && inlineEditorAnchorKey" class="flex min-w-64 flex-col gap-2">
+          <CassetteExpressionEditor
+            :model-value="inlineEditor.value"
+            :parameters="inlineEditorParameters"
+            :parameter-names="globalParameterNames"
+            :context-tokens="inlineEditorContextTokens"
+            @update:model-value="updateInlineEditorValue"
+          />
+          <Select
+            :model-value="inlineEditorAnchorValue"
+            :options="anchorOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+            size="small"
+            :aria-label="$t(`cassette.v2.fields.${inlineEditorAnchorKey}`)"
+            v-tooltip.top="$t(`cassette.v2.fields.${inlineEditorAnchorKey}`)"
+            @update:model-value="value => updateFaceParameter(inlineEditor.nodeId, inlineEditorAnchorKey, value)"
+          />
+        </div>
+        <CassetteExpressionEditor
+          v-else
+          :model-value="inlineEditor.value"
+          :parameters="inlineEditorParameters"
+          :parameter-names="globalParameterNames"
+          :context-tokens="inlineEditorContextTokens"
+          @update:model-value="updateInlineEditorValue"
+        />
       </div>
-    </section>
+      </section>
+
+      <aside class="order-2 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden xl:order-3">
+        <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-ui border border-content-border bg-content p-3">
+          <div class="flex items-center justify-between gap-2">
+            <strong class="truncate">{{ $t('cassette.v2.workpieces') }}</strong>
+            <Tag :value="assemblySummary" severity="secondary" size="small" />
+          </div>
+          <ScrollPanel class="min-h-0 flex-1 rounded-ui border border-content-border">
+            <div class="flex flex-col">
+              <div
+                v-for="row in workpieceRows"
+                :key="row.id"
+                class="border-b border-content-border p-2 last:border-b-0"
+              >
+                <div class="flex min-w-0 items-center gap-2">
+                  <button
+                    type="button"
+                    class="flex min-w-0 flex-1 items-center gap-2 rounded-ui border border-transparent px-2 py-1 text-left"
+                    :class="row.id === selectedWorkpieceId ? 'border-primary bg-subtle' : ''"
+                    @click="handleWorkpieceGraphNodeSelect(row.id)"
+                  >
+                    <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="workpieceAccentStyle(row.id)" aria-hidden="true" />
+                    <span class="truncate">{{ row.label }}</span>
+                    <Tag v-if="row.parentCount > 1" :value="`×${row.parentCount}`" severity="secondary" size="small" />
+                  </button>
+                  <Button
+                    icon="pi pi-plus"
+                    severity="secondary"
+                    text
+                    rounded
+                    size="small"
+                    :aria-label="$t('cassette.v2.addRelatedWorkpiece')"
+                    v-tooltip.top="$t('cassette.v2.addRelatedWorkpiece')"
+                    @click="addWorkpieceFrom(row.id)"
+                  />
+                  <Button
+                    icon="pi pi-link"
+                    :severity="row.id === pendingAttachmentSourceId ? 'primary' : 'secondary'"
+                    text
+                    rounded
+                    size="small"
+                    :aria-label="$t('cassette.v2.addAttachment')"
+                    v-tooltip.top="$t('cassette.v2.addAttachment')"
+                    @click="startAttachmentConnect(row.id)"
+                  />
+                  <Button
+                    v-if="row.id !== workpieces[0]?.id"
+                    icon="pi pi-trash"
+                    severity="danger"
+                    text
+                    rounded
+                    size="small"
+                    :aria-label="$t('cassette.v2.deleteWorkpiece')"
+                    v-tooltip.top="$t('cassette.v2.deleteWorkpiece')"
+                    @click="deleteWorkpiece(row.id)"
+                  />
+                </div>
+
+                <div v-if="row.relations.length" class="mt-2 flex flex-col gap-1 pl-4">
+                  <div
+                    v-for="relationRow in row.relations"
+                    :key="`${row.id}-${relationRow.relation.id}-${relationRow.direction}`"
+                    class="flex min-w-0 items-center gap-1"
+                  >
+                    <button
+                      type="button"
+                      class="flex min-w-0 flex-1 items-center gap-2 rounded-ui border px-2 py-1 text-left"
+                      :class="relationRow.relation.id === selectedRelationId ? 'border-primary bg-subtle' : 'border-content-border'"
+                      @click="selectWorkpieceRelation(relationRow.relation.id, $event)"
+                    >
+                      <span class="shrink-0 font-mono text-xs text-muted-color">{{ relationRow.arrow }}</span>
+                      <span class="truncate text-sm">{{ relationRow.otherLabel }}</span>
+                      <small class="truncate text-muted-color">{{ relationRow.faceLabel }}</small>
+                      <Tag
+                        v-if="relationRow.relation.driver"
+                        :value="$t('cassette.v2.driver')"
+                        severity="secondary"
+                        size="small"
+                      />
+                      <Tag
+                        v-if="relationRow.status !== 'ok'"
+                        :value="$t(`cassette.v2.attachmentStatus.${relationRow.status}`)"
+                        :severity="relationStatusSeverity(relationRow.status)"
+                        size="small"
+                      />
+                    </button>
+                    <Button
+                      icon="pi pi-trash"
+                      severity="danger"
+                      text
+                      rounded
+                      size="small"
+                      :aria-label="$t('cassette.v2.removeAttachment')"
+                      v-tooltip.top="$t('cassette.v2.removeAttachment')"
+                      @click="deleteWorkpieceRelation(relationRow.relation.id)"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ScrollPanel>
+        </div>
+
+        <div class="hidden shrink-0 overflow-hidden lg:block lg:h-56 xl:h-64">
+          <CassetteFoldedPreview
+            :preview="cassettePreviewSource?.foldedPreview"
+            :selected-face-id="selectedNodeId"
+            :selected-workpiece-id="selectedWorkpieceId"
+            v-model:isolated-workpiece-id="foldedPreviewWorkpieceId"
+            title-key="cassette.v2.cassetteFoldedPreview"
+            @workpiece-select="selectWorkpieceForInspector"
+          />
+        </div>
+      </aside>
+    </div>
   </div>
 </template>
 
@@ -544,7 +482,6 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
-import Message from 'primevue/message';
 import ScrollPanel from 'primevue/scrollpanel';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
@@ -557,16 +494,19 @@ import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
+import { buildCassetteV2FoldedPreview } from '~/utils/cassetteV2FoldedPreview.js';
 import {
   addCassetteV2GraphChild,
+  addCassetteV2WorkpieceAttachment,
   addCassetteV2Workpiece,
-  buildCassetteV2WorkpieceTopology,
   collectCassetteV2ExpressionIdentifiers,
   createCassetteV2GraphTree,
   createCassetteV2OccsDocument,
   deleteCassetteV2Workpiece,
+  deleteCassetteV2WorkpieceRelation,
   getCassetteV2WorkpieceRelations,
   getCassetteV2Workpieces,
+  OCCS_CASSETTE_FACE_ROLES,
   renderCassetteV2TreeToDrawing,
   resolveCassetteV2AngleExpression,
   updateCassetteV2GraphNode,
@@ -599,17 +539,8 @@ const props = defineProps({
 });
 const emit = defineEmits(['load-template', 'save-template']);
 
-const FACE_FIELDS = [
-  { key: 'defaultLength', labelKey: 'cassette.v2.fields.defaultLength', rootOnly: true },
-  { key: 'height', labelKey: 'cassette.v2.fields.height' },
-  { key: 'baseStartOffset', labelKey: 'cassette.v2.fields.baseStartOffset' },
-  { key: 'baseEndOffset', labelKey: 'cassette.v2.fields.baseEndOffset' },
-  { key: 'topStartOffset', labelKey: 'cassette.v2.fields.topStartOffset' },
-  { key: 'topEndOffset', labelKey: 'cassette.v2.fields.topEndOffset' }
-];
 const sideTabs = [
   { value: 'parameters', labelKey: 'cassette.v2.parameters', icon: 'pi pi-sliders-h' },
-  { value: 'topology', labelKey: 'cassette.v2.topology', icon: 'pi pi-sitemap' },
   { value: 'layers', labelKey: 'common.layers', icon: 'pi pi-list' },
   { value: 'occs', labelKey: 'cassette.v2.occsDraft', icon: 'pi pi-code' }
 ];
@@ -617,6 +548,10 @@ const cassetteTree = ref(createCassetteV2GraphTree());
 const cassetteNameDraft = ref(t('cassette.newCassette'));
 const selectedNodeId = ref(cassetteTree.value.rootId);
 const selectedRelationId = ref('');
+const inspectorSelection = ref('face');
+const editorSurfaceRef = ref(null);
+const inlineEditor = ref(null);
+const pendingAttachmentSourceId = ref('');
 const foldedPreviewWorkpieceId = ref('');
 const previewSource = ref(null);
 const cassettePreviewSource = ref(null);
@@ -631,6 +566,10 @@ const persistedTemplateIdOverride = ref('');
 
 const templateOptions = computed(() => props.templateOptions || []);
 const selectedTemplateId = computed(() => persistedTemplateIdOverride.value || props.template?._id || '');
+const cassetteMarkContext = computed(() => ({
+  templateName: cassetteNameDraft.value || t('cassette.newCassette'),
+  templateId: selectedTemplateId.value || 'draft'
+}));
 const persistedTemplateIdSet = computed(() => new Set([
   ...(props.persistedTemplateIds || []),
   persistedTemplateIdOverride.value
@@ -644,45 +583,80 @@ const selectedNode = computed(() => treeNodes.value.find(node => node.id === sel
 const workpieces = computed(() => getCassetteV2Workpieces(cassetteTree.value));
 const selectedWorkpieceId = computed(() => selectedNode.value?.workpieceId || workpieces.value[0]?.id || '');
 const selectedWorkpiece = computed(() => workpieces.value.find(workpiece => workpiece.id === selectedWorkpieceId.value) || workpieces.value[0] || null);
-const selectedWorkpieceDeletable = computed(() => Boolean(selectedWorkpiece.value && selectedWorkpiece.value.id !== workpieces.value[0]?.id));
-const workpieceOptions = computed(() => workpieces.value.map(workpiece => ({
-  label: workpiece.name || workpiece.id,
-  value: workpiece.id
-})));
 const workpieceRelations = computed(() => getCassetteV2WorkpieceRelations(cassetteTree.value));
-const workpieceTopology = computed(() => buildCassetteV2WorkpieceTopology(cassetteTree.value));
-const workpieceRows = computed(() => {
-  const relationBySource = new Map(workpieceRelations.value.map(relation => [relation.sourceWorkpieceId, relation]));
-  const nodeById = new Map(workpieceTopology.value.nodes.map(node => [node.id, node]));
-  return workpieces.value
-    .map((workpiece, index) => {
-      const node = nodeById.get(workpiece.id);
-      const relation = relationBySource.get(workpiece.id);
-      return {
-        id: workpiece.id,
-        label: workpiece.name || workpiece.id,
-        level: node?.level || 0,
-        order: node?.y || index,
-        relationId: relation?.id || '',
-        relationLabel: relation
-          ? `${relation.targetWorkpieceId}.${relation.targetFaceId}.${relation.targetSnap}`
-          : '',
-        deletable: index > 0
-      };
-    })
-    .sort((left, right) => left.order - right.order || left.level - right.level);
-});
+const previewMode = computed(() => (
+  inspectorSelection.value === 'workpiece' || inspectorSelection.value === 'attachment'
+    ? 'assembly'
+    : 'workpiece'
+));
+const previewWorkpieceId = computed(() => previewMode.value === 'workpiece' ? selectedWorkpieceId.value : '');
+const selectedWorkpieceRelations = computed(() => workpieceRelations.value
+  .filter(relation => relation.sourceWorkpieceId === selectedWorkpieceId.value)
+  .sort((left, right) => left.id.localeCompare(right.id)));
 const selectedWorkpieceRelation = computed(() => (
   workpieceRelations.value.find(relation => relation.id === selectedRelationId.value) ||
-  workpieceRelations.value.find(relation => relation.sourceWorkpieceId === selectedWorkpieceId.value) ||
+  selectedWorkpieceRelations.value.find(relation => relation.driver) ||
+  selectedWorkpieceRelations.value[0] ||
   null
 ));
-const targetWorkpieceOptions = computed(() => workpieces.value
-  .filter(workpiece => workpiece.id !== selectedWorkpieceRelation.value?.sourceWorkpieceId)
-  .map(workpiece => ({
-    label: workpiece.name || workpiece.id,
-    value: workpiece.id
-  })));
+const workpieceById = computed(() => new Map(workpieces.value.map(workpiece => [workpiece.id, workpiece])));
+const foldedPreviewDiagnostics = computed(() => buildCassetteV2FoldedPreview(cassettePreviewSource.value?.foldedPreview || {}));
+const relationDiagnosticsById = computed(() => new Map(
+  (foldedPreviewDiagnostics.value.attachments || []).map(attachment => [attachment.id, attachment])
+));
+const assemblySummary = computed(() => `${workpieces.value.length}/${workpieceRelations.value.length}`);
+const workpieceLabel = (workpieceId) => {
+  const workpiece = workpieceById.value.get(workpieceId);
+  return workpiece?.name || workpieceId || '';
+};
+const workpieceRelationRowsById = computed(() => {
+  const rows = new Map(workpieces.value.map(workpiece => [workpiece.id, []]));
+  for (const relation of workpieceRelations.value) {
+    const status = relationDiagnosticsById.value.get(relation.id)?.status || 'ok';
+    if (relation.sourceWorkpieceId) {
+      rows.get(relation.sourceWorkpieceId)?.push({
+        relation,
+        direction: 'out',
+        arrow: '->',
+        otherLabel: workpieceLabel(relation.targetWorkpieceId),
+        faceLabel: `${relation.sourceFaceId} -> ${relation.targetFaceId}`,
+        status
+      });
+    }
+    if (relation.targetWorkpieceId) {
+      rows.get(relation.targetWorkpieceId)?.push({
+        relation,
+        direction: 'in',
+        arrow: '<-',
+        otherLabel: workpieceLabel(relation.sourceWorkpieceId),
+        faceLabel: `${relation.targetFaceId} <- ${relation.sourceFaceId}`,
+        status
+      });
+    }
+  }
+  return rows;
+});
+const workpieceRows = computed(() => workpieces.value.map(workpiece => ({
+  id: workpiece.id,
+  label: workpiece.name || workpiece.id,
+  parentCount: workpieceRelations.value.filter(relation => relation.sourceWorkpieceId === workpiece.id).length,
+  relations: workpieceRelationRowsById.value.get(workpiece.id) || []
+})));
+const relationStatusSeverity = (status) => {
+  if (status === 'impossible') return 'danger';
+  if (status === 'unresolved') return 'warn';
+  return 'secondary';
+};
+const hueForWorkpiece = (workpieceId = '') => {
+  let hash = 0;
+  for (const char of String(workpieceId || 'workpiece')) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 360;
+  }
+  return (hash * 137 + 43) % 360;
+};
+const workpieceAccentStyle = (workpieceId) => ({
+  backgroundColor: `hsl(${hueForWorkpiece(workpieceId)} 68% 52%)`
+});
 const targetFaceOptions = computed(() => treeNodes.value
   .filter(node => node.workpieceId === selectedWorkpieceRelation.value?.targetWorkpieceId)
   .map(node => ({
@@ -707,19 +681,42 @@ const jointTypeOptions = computed(() => ['mechanical', 'adhesive', 'weld', 'inte
   label: t(`cassette.v2.jointTypes.${type}`),
   value: type
 })));
+const anchorOptions = computed(() => [
+  { label: t('cassette.v2.anchors.start'), value: 0 },
+  { label: t('cassette.v2.anchors.end'), value: 1 }
+]);
 const globalParameters = computed(() => cassetteTree.value.parameters || {});
 const globalParameterNames = computed(() => Object.keys(globalParameters.value)
   .sort((left, right) => left.localeCompare(right, undefined, { numeric: true })));
 const globalParameterEntries = computed(() => globalParameterNames.value
   .map(key => ({ key, value: globalParameters.value[key] })));
-const selectedParameters = computed(() => selectedNode.value?.parameters || {});
-const selectedFields = computed(() => FACE_FIELDS.filter(field => !field.rootOnly || !selectedNode.value?.parentId));
+const selectedDesignerFaceId = computed(() => (
+  inspectorSelection.value === 'face' || inspectorSelection.value === 'fold'
+    ? selectedNodeId.value
+    : null
+));
+const showDesignerWorkpieceContext = computed(() => (
+  previewMode.value === 'assembly' && !selectedDesignerFaceId.value
+));
+const designerSelectableWorkpieceIds = computed(() => {
+  if (inspectorSelection.value === 'attachment' && selectedWorkpieceRelation.value) {
+    return [
+      selectedWorkpieceRelation.value.sourceWorkpieceId,
+      selectedWorkpieceRelation.value.targetWorkpieceId
+    ].filter(Boolean);
+  }
+  return selectedWorkpieceId.value ? [selectedWorkpieceId.value] : [];
+});
+const drawingCanvasSource = computed(() => {
+  if (!previewSource.value || inspectorSelection.value !== 'attachment') return previewSource.value;
+  return { ...previewSource.value, designerEdges: [] };
+});
 const selectedExpressionParameters = computed(() => {
   const scope = { ...globalParameters.value };
   if (selectedNode.value?.parentId) {
     scope.parentEdgeIndex = selectedNode.value.parentEdgeIndex ?? 0;
     try {
-      scope.foldAngle = resolveCassetteV2AngleExpression(selectedNode.value.foldAngle || '90deg', globalParameters.value);
+      scope.foldAngle = resolveCassetteV2AngleExpression(selectedNode.value.foldAngle || '90', globalParameters.value);
     } catch {
       scope.foldAngle = '';
     }
@@ -739,21 +736,35 @@ const selectedExpressionContextTokens = computed(() => {
     }
   ];
 });
-const selectedAnchorLabel = (key) => {
-  const value = Number(selectedParameters.value?.[key]);
-  return value === 1 ? t('cassette.v2.anchors.end') : t('cassette.v2.anchors.start');
-};
-const selectedFieldLabel = (field) => {
-  if (field.key === 'baseStartOffset') {
-    return t('cassette.v2.offsetLabels.baseStart', { anchor: selectedAnchorLabel('startAnchor') });
-  }
-  if (field.key === 'baseEndOffset') {
-    return t('cassette.v2.offsetLabels.baseEnd', { anchor: selectedAnchorLabel('endAnchor') });
-  }
-  if (field.key === 'topStartOffset') return t('cassette.v2.offsetLabels.topStart');
-  if (field.key === 'topEndOffset') return t('cassette.v2.offsetLabels.topEnd');
-  return t(field.labelKey);
-};
+const inlineEditorParameters = computed(() => {
+  if (inlineEditor.value?.type === 'foldAngle') return globalParameters.value;
+  return selectedExpressionParameters.value;
+});
+const inlineEditorContextTokens = computed(() => (
+  inlineEditor.value?.type === 'faceParameter' ? selectedExpressionContextTokens.value : []
+));
+const inlineEditorNode = computed(() => (
+  inlineEditor.value?.nodeId
+    ? treeNodes.value.find(node => node.id === inlineEditor.value.nodeId) || null
+    : null
+));
+const inlineEditorRelation = computed(() => (
+  inlineEditor.value?.relationId
+    ? workpieceRelations.value.find(relation => relation.id === inlineEditor.value.relationId) || null
+    : null
+));
+const inlineEditorAnchorKey = computed(() => {
+  if (inlineEditor.value?.type !== 'faceParameter') return '';
+  if (inlineEditor.value.key === 'baseStartOffset') return 'startAnchor';
+  if (inlineEditor.value.key === 'baseEndOffset') return 'endAnchor';
+  return '';
+});
+const inlineEditorAnchorValue = computed(() => inlineEditorNode.value?.parameters?.[inlineEditorAnchorKey.value] ?? 0);
+const inlineEditorFaceRole = computed(() => defaultFaceRole(inlineEditorNode.value));
+const faceRoleOptions = computed(() => OCCS_CASSETTE_FACE_ROLES.map(role => ({
+  label: role,
+  value: role
+})));
 const usedParameterNames = computed(() => {
   const used = new Set();
   const addIdentifiers = (value) => {
@@ -771,20 +782,7 @@ const usedParameterNames = computed(() => {
   });
   return used;
 });
-const anchorOptions = computed(() => [
-  { label: t('cassette.v2.anchors.start'), value: 0 },
-  { label: t('cassette.v2.anchors.end'), value: 1 }
-]);
-const occsJson = computed(() => JSON.stringify(createCassetteV2OccsDocument(cassetteTree.value), null, 2));
-const selectedRelation = computed(() => {
-  if (!selectedNode.value) return '';
-  if (!selectedNode.value.parentId) return `${t('cassette.v2.rootFace')} · ${selectedWorkpieceId.value}`;
-  return `${selectedNode.value.parentId}.E${selectedNode.value.parentEdgeIndex} -> ${selectedNode.value.id}.${selectedNode.value.attachEdge || 'E0'}`;
-});
-const selectedWorkpieceRelationLabel = computed(() => {
-  if (!selectedWorkpieceRelation.value) return '';
-  return `${selectedWorkpieceRelation.value.targetWorkpieceId}.${selectedWorkpieceRelation.value.targetFaceId}.${selectedWorkpieceRelation.value.targetSnap} -> ${selectedWorkpieceRelation.value.sourceWorkpieceId}.${selectedWorkpieceRelation.value.sourceFaceId}.${selectedWorkpieceRelation.value.sourceSnap}`;
-});
+const occsJson = computed(() => JSON.stringify(createCassetteV2OccsDocument(cassetteTree.value, cassetteMarkContext.value), null, 2));
 const drawingLayerNames = computed(() => drawingLayers.value.map(layer => layer.name).filter(Boolean));
 const visibleLayerSummary = computed(() => `${visibleLayerNames.value.length}/${drawingLayerNames.value.length}`);
 const allLayersVisible = computed(() => drawingLayerNames.value.length > 0 && drawingLayerNames.value.every(name => visibleLayerNames.value.includes(name)));
@@ -820,6 +818,7 @@ const applyTemplate = (template) => {
   cassetteTree.value = templateTree(template);
   selectedNodeId.value = cassetteTree.value.rootId;
   selectedRelationId.value = '';
+  inspectorSelection.value = 'face';
   foldedPreviewWorkpieceId.value = '';
   previewError.value = '';
   loadedTemplateId.value = template?._id || '';
@@ -846,7 +845,7 @@ const templateTree = (template) => {
 
 const saveTemplate = async () => {
   const tree = JSON.parse(JSON.stringify(cassetteTree.value));
-  const definition = createCassetteV2OccsDocument(tree);
+  const definition = createCassetteV2OccsDocument(tree, cassetteMarkContext.value);
   const payload = {
     id: selectedTemplateId.value,
     name: cassetteNameDraft.value || t('cassette.newCassette'),
@@ -905,12 +904,16 @@ const renderPreview = async (treeSnapshot, optionsSnapshot = {}) => {
     designerEdges: [],
     designerFaces: [],
     designerFoldEdges: [],
+    designerSections: { handles: [], segments: [] },
     foldedPreview: { faces: [], folds: [] }
   };
   try {
     const [drawing, cassetteDrawing] = await Promise.all([
       renderCassetteV2TreeToDrawing(treeSnapshot, optionsSnapshot),
-      renderCassetteV2TreeToDrawing(treeSnapshot, { mode: 'assembly' })
+      renderCassetteV2TreeToDrawing(treeSnapshot, {
+        mode: 'assembly',
+        cassetteMarkContext: optionsSnapshot.cassetteMarkContext || {}
+      })
     ]);
     if (token === previewToken) {
       previewSource.value = drawing || emptyDrawing;
@@ -935,17 +938,25 @@ const schedulePreviewRender = (delay = PREVIEW_RENDER_DELAY_MS) => {
   if (!process.client) return;
   if (previewTimer) window.clearTimeout(previewTimer);
   const treeSnapshot = JSON.parse(JSON.stringify(cassetteTree.value));
-  const optionsSnapshot = {
-    mode: 'workpiece',
-    workpieceId: selectedWorkpieceId.value
-  };
+  const optionsSnapshot = previewMode.value === 'assembly'
+    ? {
+        mode: 'assembly',
+        contextWorkpieceId: selectedWorkpieceId.value,
+        selectedRelationId: selectedRelationId.value,
+        cassetteMarkContext: cassetteMarkContext.value
+      }
+    : {
+        mode: 'workpiece',
+        workpieceId: previewWorkpieceId.value,
+        cassetteMarkContext: cassetteMarkContext.value
+      };
   previewTimer = window.setTimeout(() => {
     previewTimer = null;
     renderPreview(treeSnapshot, optionsSnapshot);
   }, delay);
 };
 
-watch([cassetteTree, selectedNodeId], () => schedulePreviewRender(), { immediate: true });
+watch([cassetteTree, previewMode, previewWorkpieceId, selectedWorkpieceId, selectedRelationId, cassetteNameDraft, selectedTemplateId], () => schedulePreviewRender(), { immediate: true });
 watch(() => props.template?._id || '', (templateId) => {
   persistedTemplateIdOverride.value = '';
   if (templateId === loadedTemplateId.value) return;
@@ -953,7 +964,9 @@ watch(() => props.template?._id || '', (templateId) => {
 }, { immediate: true });
 
 watch([selectedWorkpieceId, workpieceRelations], () => {
-  const selectedIncoming = workpieceRelations.value.find(relation => relation.sourceWorkpieceId === selectedWorkpieceId.value);
+  const selectedIncoming = selectedWorkpieceRelations.value.find(relation => relation.driver) ||
+    selectedWorkpieceRelations.value[0] ||
+    null;
   const stillExists = workpieceRelations.value.some(relation => relation.id === selectedRelationId.value);
   if (selectedIncoming && (!selectedRelationId.value || !stillExists)) {
     selectedRelationId.value = selectedIncoming.id;
@@ -967,18 +980,19 @@ onBeforeUnmount(() => {
   if (previewTimer && process.client) window.clearTimeout(previewTimer);
 });
 
-const updateSelectedParameter = (key, value) => {
-  if (!selectedNode.value) return;
-  cassetteTree.value = updateCassetteV2GraphNode(cassetteTree.value, selectedNode.value.id, { [key]: value });
+const updateFaceParameter = (nodeId, key, value) => {
+  cassetteTree.value = updateCassetteV2GraphNode(cassetteTree.value, nodeId, { [key]: value });
 };
 
-const updateSelectedFoldAngle = (value) => {
-  if (!selectedNode.value?.parentId) return;
+const sanitizeAngleInput = (value) => String(value ?? '').replace(/\s*deg\s*$/i, '').trim();
+
+const updateFoldAngle = (nodeId, value) => {
+  const nextValue = sanitizeAngleInput(value);
   cassetteTree.value = {
     ...cassetteTree.value,
     nodes: treeNodes.value.map(node => (
-      node.id === selectedNode.value.id
-        ? { ...node, foldAngle: value }
+      node.id === nodeId
+        ? { ...node, foldAngle: nextValue }
         : node
     ))
   };
@@ -1059,6 +1073,55 @@ const hideAllLayers = () => {
   updateHiddenLayers([]);
 };
 
+const defaultFaceRole = (node) => node?.role || (node?.parentId ? 'return_flange' : 'main');
+
+const updateFaceRole = (nodeId, role) => {
+  if (!OCCS_CASSETTE_FACE_ROLES.includes(role)) return;
+  cassetteTree.value = {
+    ...cassetteTree.value,
+    nodes: treeNodes.value.map(item => (
+      item.id === nodeId ? { ...item, role } : item
+    ))
+  };
+};
+
+const editorPointFromScreen = ({ x = 0, y = 0, type = '' } = {}) => {
+  const bounds = editorSurfaceRef.value?.getBoundingClientRect?.();
+  if (!bounds) return { x: 12, y: 12 };
+  const width = type === 'attachment' ? 400 : 272;
+  const height = type === 'attachment'
+    ? 360
+    : type === 'faceActions' ? 160 : 116;
+  return {
+    x: Math.min(Math.max(x - bounds.left + 8, 8), Math.max(bounds.width - width - 8, 8)),
+    y: Math.min(Math.max(y - bounds.top + 8, 8), Math.max(bounds.height - height - 8, 8))
+  };
+};
+
+const closeInlineEditor = () => {
+  inlineEditor.value = null;
+};
+
+const openInlineEditor = (editor) => {
+  inlineEditor.value = {
+    ...editor,
+    ...editorPointFromScreen(editor)
+  };
+};
+
+const updateInlineEditorValue = (value) => {
+  if (!inlineEditor.value) return;
+  if (inlineEditor.value.type === 'foldAngle') {
+    const nextValue = sanitizeAngleInput(value);
+    inlineEditor.value = { ...inlineEditor.value, value: nextValue };
+    updateFoldAngle(inlineEditor.value.nodeId, nextValue);
+    return;
+  }
+
+  inlineEditor.value = { ...inlineEditor.value, value };
+  updateFaceParameter(inlineEditor.value.nodeId, inlineEditor.value.key, value);
+};
+
 const layerInputId = (layer) => `cassette-v2-layer-${String(layer.name).replace(/[^A-Za-z0-9_-]/g, '-')}`;
 
 const handleDrawingReady = async (drawing) => {
@@ -1072,6 +1135,9 @@ const handleDrawingReady = async (drawing) => {
 const resetTree = () => {
   cassetteTree.value = createCassetteV2GraphTree();
   selectedNodeId.value = cassetteTree.value.rootId;
+  selectedRelationId.value = '';
+  inspectorSelection.value = 'face';
+  activeSideTab.value = 'parameters';
   previewError.value = '';
 };
 
@@ -1079,19 +1145,28 @@ const selectWorkpiece = (workpieceId) => {
   const workpiece = workpieces.value.find(item => item.id === workpieceId);
   if (!workpiece?.rootId) return;
   selectedNodeId.value = workpiece.rootId;
-  activeSideTab.value = 'parameters';
 };
 
-const selectWorkpieceForTopology = (workpieceId) => {
+const selectWorkpieceForInspector = (workpieceId) => {
+  closeInlineEditor();
   selectWorkpiece(workpieceId);
-  activeSideTab.value = 'topology';
+  inspectorSelection.value = 'workpiece';
 };
 
-const selectWorkpieceRelation = (relationId) => {
+const selectWorkpieceRelation = (relationId, event = null) => {
+  closeInlineEditor();
   const relation = workpieceRelations.value.find(item => item.id === relationId);
   selectedRelationId.value = relationId;
-  if (relation?.sourceWorkpieceId) selectWorkpieceForTopology(relation.sourceWorkpieceId);
-  activeSideTab.value = 'topology';
+  if (relation?.sourceWorkpieceId) selectWorkpiece(relation.sourceWorkpieceId);
+  inspectorSelection.value = 'attachment';
+  const point = event
+    ? { x: event.clientX, y: event.clientY }
+    : { x: 120, y: 120 };
+  openInlineEditor({
+    type: 'attachment',
+    relationId,
+    ...point
+  });
 };
 
 const updateSelectedWorkpieceRelation = (patch) => {
@@ -1099,7 +1174,29 @@ const updateSelectedWorkpieceRelation = (patch) => {
   cassetteTree.value = updateCassetteV2WorkpieceRelation(cassetteTree.value, selectedWorkpieceRelation.value.id, patch);
 };
 
+const updateInlineAttachmentRelation = (patch) => {
+  const relationId = inlineEditorRelation.value?.id || selectedWorkpieceRelation.value?.id;
+  if (!relationId) return;
+  cassetteTree.value = updateCassetteV2WorkpieceRelation(cassetteTree.value, relationId, patch);
+};
+
+const deleteWorkpieceRelation = (relationId) => {
+  if (!relationId) return;
+  const result = deleteCassetteV2WorkpieceRelation(cassetteTree.value, relationId);
+  if (!result.deletedRelationId) return;
+  closeInlineEditor();
+  cassetteTree.value = result.tree;
+  selectedRelationId.value = result.selectedRelationId;
+  if (result.selectedWorkpieceId) selectWorkpieceForInspector(result.selectedWorkpieceId);
+  else inspectorSelection.value = 'workpiece';
+};
+
+const deleteInlineAttachmentRelation = () => {
+  deleteWorkpieceRelation(inlineEditorRelation.value?.id || selectedWorkpieceRelation.value?.id);
+};
+
 const addWorkpieceFrom = (workpieceId) => {
+  closeInlineEditor();
   const referenceNode = selectedNode.value?.workpieceId === workpieceId
     ? selectedNode.value
     : treeNodes.value.find(node => node.workpieceId === workpieceId && !node.parentId);
@@ -1111,22 +1208,65 @@ const addWorkpieceFrom = (workpieceId) => {
   selectedNodeId.value = result.nodeId;
   selectedRelationId.value = getCassetteV2WorkpieceRelations(result.tree)
     .find(relation => relation.sourceWorkpieceId === result.workpieceId)?.id || '';
-  activeSideTab.value = 'topology';
+  inspectorSelection.value = 'workpiece';
 };
 
-const addWorkpieceFromSelected = () => {
-  addWorkpieceFrom(selectedWorkpieceId.value);
+const addAttachmentToWorkpiece = (workpieceId, targetWorkpieceId = '') => {
+  closeInlineEditor();
+  const targetWorkpiece = workpieces.value.find(workpiece => (
+    workpiece.id === targetWorkpieceId &&
+    workpiece.id !== workpieceId
+  )) || workpieces.value.find(workpiece => workpiece.id !== workpieceId);
+  if (!targetWorkpiece) return;
+  const sourceFaceId = selectedNode.value?.workpieceId === workpieceId
+    ? selectedNode.value.id
+    : treeNodes.value.find(node => node.workpieceId === workpieceId && !node.parentId)?.id;
+  const result = addCassetteV2WorkpieceAttachment(cassetteTree.value, workpieceId, {
+    targetWorkpieceId: targetWorkpiece.id,
+    targetFaceId: targetWorkpiece.rootId,
+    sourceFaceId,
+    driver: false
+  });
+  if (!result.relationId) return;
+  cassetteTree.value = result.tree;
+  selectedRelationId.value = result.relationId;
+  selectWorkpiece(workpieceId);
+  inspectorSelection.value = 'attachment';
+  openInlineEditor({
+    type: 'attachment',
+    relationId: result.relationId,
+    x: 120,
+    y: 120
+  });
+};
+
+const startAttachmentConnect = (workpieceId) => {
+  pendingAttachmentSourceId.value = pendingAttachmentSourceId.value === workpieceId ? '' : workpieceId;
+  selectWorkpieceForInspector(workpieceId);
+};
+
+const handleWorkpieceGraphNodeSelect = (workpieceId) => {
+  if (pendingAttachmentSourceId.value && pendingAttachmentSourceId.value !== workpieceId) {
+    addAttachmentToWorkpiece(pendingAttachmentSourceId.value, workpieceId);
+    pendingAttachmentSourceId.value = '';
+    return;
+  }
+  selectWorkpieceForInspector(workpieceId);
 };
 
 const deleteWorkpiece = (workpieceId) => {
+  closeInlineEditor();
   const result = deleteCassetteV2Workpiece(cassetteTree.value, workpieceId);
   if (!result.deletedWorkpieceIds.length) return;
   cassetteTree.value = result.tree;
   if (result.deletedWorkpieceIds.includes(foldedPreviewWorkpieceId.value)) {
     foldedPreviewWorkpieceId.value = '';
   }
+  if (result.deletedWorkpieceIds.includes(pendingAttachmentSourceId.value)) {
+    pendingAttachmentSourceId.value = '';
+  }
   selectedRelationId.value = '';
-  selectWorkpieceForTopology(result.selectedWorkpieceId);
+  selectWorkpieceForInspector(result.selectedWorkpieceId);
 };
 
 const addFaceAtEdge = (parentId, edgeIndex) => {
@@ -1134,29 +1274,111 @@ const addFaceAtEdge = (parentId, edgeIndex) => {
   const result = addCassetteV2GraphChild(cassetteTree.value, parentId, edgeIndex);
   cassetteTree.value = result.tree;
   selectedNodeId.value = result.nodeId;
+  inspectorSelection.value = 'face';
 };
 
 const handleDesignerAction = ({ edge, edgeIndex }) => {
+  if (inspectorSelection.value === 'attachment') return;
   if (!edge?.nodeId && edge?.nodeId !== '') return;
   addFaceAtEdge(edge.nodeId, edge.edgeIndex ?? edgeIndex);
 };
 
 const handleDesignerFaceSelect = ({ face }) => {
   if (!face?.nodeId && face?.nodeId !== '') return;
+  if (inspectorSelection.value === 'attachment' && selectedWorkpieceRelation.value) {
+    if (face.workpieceId === selectedWorkpieceRelation.value.sourceWorkpieceId) {
+      updateSelectedWorkpieceRelation({ sourceFaceId: face.nodeId });
+    } else if (face.workpieceId === selectedWorkpieceRelation.value.targetWorkpieceId) {
+      updateSelectedWorkpieceRelation({ targetFaceId: face.nodeId });
+    }
+    return;
+  }
+  if (face.workpieceId && face.workpieceId !== selectedWorkpieceId.value) return;
+
+  closeInlineEditor();
   selectedNodeId.value = face.nodeId;
-  activeSideTab.value = 'parameters';
+  inspectorSelection.value = 'face';
 };
 
 const handleDesignerFoldSelect = ({ fold }) => {
   if (!fold?.foldNodeId && fold?.foldNodeId !== '') return;
+  if (fold.workpieceId && fold.workpieceId !== selectedWorkpieceId.value) return;
+  closeInlineEditor();
   selectedNodeId.value = fold.foldNodeId;
-  activeSideTab.value = 'parameters';
+  inspectorSelection.value = 'fold';
 };
 
-const deleteSelectedFace = () => {
-  if (!selectedNode.value?.parentId) return;
-  const rootId = cassetteTree.value.rootId;
-  const removeIds = new Set([selectedNode.value.id]);
+const handleDesignerFaceCommand = ({ face, command, x, y }) => {
+  if (!face?.nodeId) return;
+  selectedNodeId.value = face.nodeId;
+  inspectorSelection.value = 'face';
+  closeInlineEditor();
+
+  if (command !== 'menu') return;
+  openInlineEditor({
+    type: 'faceActions',
+    nodeId: face.nodeId,
+    x,
+    y
+  });
+};
+
+const handleDesignerPointEdit = ({ control, x, y }) => {
+  if (!control?.nodeId || !control.key) return;
+  const node = treeNodes.value.find(item => item.id === control.nodeId);
+  selectedNodeId.value = control.nodeId;
+  inspectorSelection.value = 'face';
+  openInlineEditor({
+    type: 'faceParameter',
+    nodeId: control.nodeId,
+    key: control.key,
+    label: t(`cassette.v2.fields.${control.key}`),
+    value: node?.parameters?.[control.key] ?? control.value,
+    x,
+    y
+  });
+};
+
+const handleDesignerSectionEdit = ({ section, value }) => {
+  const orientation = section?.orientation;
+  if (!['vertical', 'horizontal'].includes(orientation)) return;
+  const minValue = Number(section.minValue);
+  const maxValue = Number(section.maxValue);
+  const nextValue = Number(value);
+  if (!Number.isFinite(minValue) || !Number.isFinite(maxValue) || !Number.isFinite(nextValue) || maxValue === minValue) return;
+  cassetteTree.value = {
+    ...cassetteTree.value,
+    sections: {
+      ...(cassetteTree.value.sections || {}),
+      [orientation]: {
+        ...(cassetteTree.value.sections?.[orientation] || {}),
+        ratio: Math.max(0, Math.min(1, (nextValue - minValue) / (maxValue - minValue)))
+      }
+    }
+  };
+};
+
+const handleDesignerFoldAngleEdit = ({ fold, x, y }) => {
+  if (!fold?.foldNodeId) return;
+  const node = treeNodes.value.find(item => item.id === fold.foldNodeId);
+  selectedNodeId.value = fold.foldNodeId;
+  inspectorSelection.value = 'fold';
+  openInlineEditor({
+    type: 'foldAngle',
+    nodeId: fold.foldNodeId,
+    label: t('cassette.v2.fields.foldAngle'),
+    value: sanitizeAngleInput(node?.foldAngle || fold.angle || '90'),
+    x,
+    y
+  });
+};
+
+const deleteFaceNode = (nodeId) => {
+  const node = treeNodes.value.find(item => item.id === nodeId);
+  if (!node?.parentId) return;
+  const workpiece = workpieces.value.find(item => item.id === node.workpieceId);
+  const selectedWorkpieceRootId = workpiece?.rootId || cassetteTree.value.rootId;
+  const removeIds = new Set([node.id]);
   let changed = true;
   while (changed) {
     changed = false;
@@ -1171,6 +1393,9 @@ const deleteSelectedFace = () => {
     ...cassetteTree.value,
     nodes: cassetteTree.value.nodes.filter(node => !removeIds.has(node.id))
   };
-  selectedNodeId.value = rootId;
+  selectedNodeId.value = selectedWorkpieceRootId;
+  inspectorSelection.value = 'face';
+  closeInlineEditor();
 };
+
 </script>

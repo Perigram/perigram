@@ -13,6 +13,8 @@
             :pile="pile" 
             variant="card"
             @view="viewDetails"
+            @edit="$emit('edit', $event)"
+            @delete="$emit('delete', $event)"
         />
     </ResponsiveGrid>
     
@@ -36,7 +38,7 @@ const props = defineProps({
     loading: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['view', 'create']);
+const emit = defineEmits(['view', 'create', 'edit', 'delete']);
 const authStore = useAuthStore();
 
 const viewDetails = (pile) => emit('view', pile);

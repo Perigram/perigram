@@ -25,11 +25,11 @@ const config = computed(() => {
 <template>
   <Tag 
     :severity="config.severity" 
-    class="status-badge max-w-full"
+    class="status-badge max-w-full min-w-0"
     :icon="config.icon"
   >
     <template v-if="!iconOnly">
-        {{ $t(config.label) || config.label }}
+        <span class="min-w-0 truncate">{{ $t(config.label) || config.label }}</span>
     </template>
   </Tag>
 </template>

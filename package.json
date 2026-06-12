@@ -17,6 +17,9 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "test": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
     "framework:list-entities": "node scripts/framework-inspect.js list-entities",
     "framework:list-workflows": "node scripts/framework-inspect.js list-workflows",
     "framework:list-routes": "node scripts/framework-inspect.js list-routes",
@@ -61,6 +64,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@primevue/nuxt-module": "^4.4.1",
     "@types/node": "^22.10.2",
     "kickstart-scripts": "^1.0.1",

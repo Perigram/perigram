@@ -14,7 +14,7 @@
                         {{ $t('queues.artifacts') }}
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <TraceLink v-for="artId in queue.artifacts" :key="artId" type="artifact" :id="artId" />
+                        <EntityInlineRef v-for="artId in queue.artifacts" :key="artId" type="artifact" :id="artId" />
                     </div>
                 </div>
 
@@ -55,6 +55,37 @@
                     <StatusHistory :entity="queue" entity-type="queue" />
                 </Panel>
 
+                <Panel :header="$t('nesting.inventorySources')">
+                    <div v-if="materialPool.length" class="flex flex-col gap-3">
+                        <div
+                            v-for="item in materialPool"
+                            :key="`${item.type}-${item.id}`"
+                            class="flex items-center justify-between gap-3"
+                        >
+                            <div class="flex min-w-0 flex-col">
+                                <span class="truncate">{{ item.label || item.id }}</span>
+                                <small class="text-muted-color">{{ item.specs || $t('common.notAvailable') }}</small>
+                            </div>
+                            <Tag :value="item.available || 1" size="small" />
+                        </div>
+                    </div>
+                    <div v-else class="text-muted-color">{{ $t('common.notAvailable') }}</div>
+                </Panel>
+
+                <Panel v-if="materialConsumption.length" :header="$t('queue.materialConsumption')">
+                    <div class="flex flex-col gap-3">
+                        <div
+                            v-for="item in materialConsumption"
+                            :key="`${item.type}-${item.id}`"
+                            class="flex items-center justify-between gap-3"
+                        >
+                            <EntityInlineRef v-if="item.type === 'PILE'" type="materialPile" :id="item.id" />
+                            <span v-else>{{ item.id }}</span>
+                            <Tag :value="item.count" severity="warn" size="small" />
+                        </div>
+                    </div>
+                </Panel>
+
                  <Panel :header="$t('project.overview')">
                     <div class="flex flex-col gap-4 py-2">
                         <div class="flex justify-between items-center">
@@ -72,7 +103,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import Panel from 'primevue/panel';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -87,6 +118,8 @@ const props = defineProps({
 
 const emit = defineEmits(['run-nesting']);
 const { t } = useI18n();
+const materialPool = computed(() => props.queue.data?.job?.materialPool || []);
+const materialConsumption = computed(() => props.queue.data?.materialConsumption?.sources || []);
 
 const queueStatusActions = computed(() => {
     if (props.queue.status?.state !== 'DRAFT') return [];

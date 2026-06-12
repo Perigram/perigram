@@ -1,12 +1,12 @@
 <template>
-  <div class="flex flex-col gap-6">
-    <div class="flex justify-end items-center px-1">
+  <StandardPage :title="$t('assets.pens')">
+    <template #actions>
       <Button 
         :label="$t('assets.newPen')" 
         icon="pi pi-plus" 
         @click="showDialog = true"
       />
-    </div>
+    </template>
     
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <div v-else-if="error" class="px-1">
@@ -88,7 +88,7 @@
     </StandardDialog>
     
     <ConfirmDialog />
-  </div>
+  </StandardPage>
 </template>
 
 <script setup>
@@ -104,6 +104,7 @@ import InputNumber from 'primevue/inputnumber';
 import Select from 'primevue/select';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Message from 'primevue/message';
+import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';

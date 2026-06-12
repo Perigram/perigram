@@ -23,6 +23,7 @@ export const cncFrontendEntities = [
   { type: 'artifact', collection: 'artifacts', routes: { single: '/api/artifacts/:id/metadata', download: '/api/artifacts/:id', list: '/api/artifacts' } },
   { type: 'catalog', collection: 'catalogs', routes: { single: '/api/catalogs/:id', list: '/api/catalogs' } },
   { type: 'color', collection: 'colors', routes: { single: '/api/colors/:id', list: '/api/colors' } },
+  { type: 'entityRevision', collection: 'entity-revisions', routes: { single: '/api/entity-revisions/:id', list: '/api/entity-revisions' } },
   { type: 'warehouse', collection: 'warehouses', routes: { single: '/api/warehouses/:id', list: '/api/warehouses' } },
   { type: 'user', collection: 'users', routes: { single: '/api/users/:id', list: '/api/users' } },
   { type: 'organization', collection: 'organizations', routes: { single: '/api/organizations/:id', list: '/api/organizations' } },

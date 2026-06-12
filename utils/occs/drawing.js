@@ -111,16 +111,21 @@ export const buildOccsDrawingFromFaceCurves = async (curves = [], overlays = {})
   if (dimensionDrawing?.layer) {
     layers.push(dimensionDrawing.layer);
   }
+  if (Array.isArray(overlays.extraLayers)) {
+    layers.push(...overlays.extraLayers.filter(layer => Array.isArray(layer?.paths) && layer.paths.length));
+  }
 
+  const overlayViewBoxCurves = Array.isArray(overlays.viewBoxCurves) ? overlays.viewBoxCurves : [];
   const viewBoxCurves = dimensionDrawing?.extentPoints?.length
-    ? [...curves, { vertices: dimensionDrawing.extentPoints }]
-    : curves;
+    ? [...curves, { vertices: dimensionDrawing.extentPoints }, ...overlayViewBoxCurves]
+    : [...curves, ...overlayViewBoxCurves];
 
   return {
     viewBox: occsViewBoxForCurves(viewBoxCurves),
     vertices: curves[0]?.boundaryVertices,
     designerFaces: overlays.designerFaces || [],
     designerFoldEdges: overlays.designerFoldEdges || [],
+    designerSections: overlays.designerSections || { handles: [], segments: [] },
     foldedPreview: overlays.foldedPreview || { faces: [], folds: [] },
     designerEdges: overlays.designerEdges || [],
     layers

@@ -1,17 +1,20 @@
 <template>
+    <NuxtPage v-if="isEntityDetailRoute" />
     <EntityPage 
-        v-if="project" 
+        v-else-if="project"
         :entity="project" 
         entity-type="project"
         @refresh="loadProject"
     >
         <template #actions>
-            <Button 
+            <NameEditPopover
                 v-if="authStore.can('projects', 'edit')"
-                :label="$t('common.edit')" 
-                icon="pi pi-pencil" 
-                outlined 
-                @click="showEditDialog = true" 
+                :model-value="project.identity?.name || ''"
+                :label="$t('project.name')"
+                :placeholder="$t('projects.enterName')"
+                :saving="savingProject"
+                :aria-label="$t('project.rename')"
+                @save="saveProject"
             />
         </template>
 
@@ -36,8 +39,8 @@
     import Tabs from 'primevue/tabs'
     import TabList from 'primevue/tablist'
     import Tab from 'primevue/tab'
-    import Button from 'primevue/button'
     import EntityPage from '~/components/shared/EntityPage.vue'
+    import NameEditPopover from '~/components/shared/NameEditPopover.vue'
     import { useAuthStore } from '~/stores/auth'
     import { useEntity } from '~/composables/useEntity'
 
@@ -52,13 +55,19 @@
     const authStore = useAuthStore()
     const slug = route.params.slug
 
-    const { entity: project, loading, error, fetch: loadProject } = useEntity('project', slug)
+    const { entity: project, fetch: loadProject, update: updateProject } = useEntity('project', slug)
     const activeTabIndex = ref(0)
-    const showEditDialog = ref(false)
+    const savingProject = ref(false)
+    const isEntityDetailRoute = computed(() =>
+        route.path.includes(`/project/${slug}/queue/`) ||
+        route.path.includes(`/project/${slug}/sheet-design/`)
+    )
 
     const tabs = computed(() => [
         { label: t('project.queues'), to: `/project/${slug}/queues`, key: 'queues' },
+        { label: t('sheetDesign.sheetDesigns'), to: `/project/${slug}/sheet-designs`, key: 'sheetDesigns' },
         { label: t('project.data'), to: `/project/${slug}/data`, key: 'data' },
+        { label: t('queues.artifacts'), to: `/project/${slug}/artifacts`, key: 'artifacts' },
     ])
 
     onMounted(async () => {
@@ -80,8 +89,12 @@
     const updateActiveTab = () => {
         if (route.path.includes('/queues')) {
             activeTabIndex.value = 0
-        } else if (route.path.includes('/data')) {
+        } else if (route.path.includes('/sheet-design')) {
             activeTabIndex.value = 1
+        } else if (route.path.includes('/data')) {
+            activeTabIndex.value = 2
+        } else if (route.path.includes('/artifacts')) {
+            activeTabIndex.value = 3
         }
     }
 
@@ -89,8 +102,16 @@
         const tab = tabs.value[index]
         router.push(tab.to)
     }
+
+    const saveProject = async (projectName, close) => {
+        if (!projectName.trim()) return
+        savingProject.value = true
+        try {
+            await updateProject({ name: projectName.trim() })
+            await loadProject()
+            close?.()
+        } finally {
+            savingProject.value = false
+        }
+    }
 </script>
-
-<style scoped>
-</style>
-

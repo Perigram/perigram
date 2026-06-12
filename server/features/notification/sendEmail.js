@@ -18,9 +18,10 @@ async function sendEmail(to, subject, htmlBody) {
     });
     logger.info('Email sent successfully!');
     logger.info('Response:', response);
+    return true;
   } catch (error) {
-    logger.error('Failed to send email:', error);
-    throw error;
+    logger.warn(`Email notification skipped: ${error.message}`);
+    return false;
   }
 }
 
@@ -43,9 +44,11 @@ export async function sendNestFinishEmail(nestingJob) {
       <p>You can view the project <a href="${useRuntimeConfig().public.baseUrl}/project/${project.identity?.slug}">here</a></p>
     `;
 
-    await sendEmail(recipient, emailSubject, emailBody);
-    logger.info('Email sending process completed.');
+    const sent = await sendEmail(recipient, emailSubject, emailBody);
+    if (sent) logger.info('Email sending process completed.');
+    return sent;
   } catch (err) {
-    logger.error('Failed to send email:', err);
+    logger.warn(`Email notification skipped: ${err.message}`);
+    return false;
   }
 }

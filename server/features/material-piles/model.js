@@ -5,7 +5,7 @@ import { BaseEntity } from '~/server/core/blocks/index.js';
  */
 export class MaterialPile extends BaseEntity {
   constructor(raw = {}) {
-    super(raw);
+    super({ ...raw, specs: raw.specs || raw.data?.specs || null });
     this.data = this.data || {};
   }
 

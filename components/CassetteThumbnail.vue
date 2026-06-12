@@ -1,5 +1,5 @@
 <template>
-  <div ref="container" class="h-full w-full" data-entity-card-interactive="true" @click.stop>
+  <div ref="container" class="w-full" data-entity-card-interactive="true" @click.stop>
     <DrawingCanvas
       v-if="canvasSource"
       :source="canvasSource"
@@ -7,7 +7,7 @@
       :layer-mapping="canvasLayerMapping"
       mode="thumbnail"
     />
-    <div v-else class="flex aspect-[5/3] h-full w-full items-center justify-center rounded-ui border border-content-border bg-subtle text-muted-color">
+    <div v-else class="flex aspect-[5/3] w-full items-center justify-center rounded-ui border border-content-border bg-subtle text-muted-color">
       <i :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-image'" />
     </div>
   </div>
@@ -101,6 +101,10 @@ const updateThumbnail = async () => {
     props.cassette?.updatedAt,
     props.cassette?.data?.definition,
     props.cassette?.data?.geometry,
+    props.cassette?.data?.layerData,
+    props.cassette?.data?.polygonParts,
+    props.cassette?.data?.geometry?.data?.layerData,
+    props.cassette?.data?.geometry?.data?.polygonParts,
     props.dimensions
   ]);
   if (currentKey === lastRenderKey && canvasSource.value) return;
@@ -118,7 +122,15 @@ const updateThumbnail = async () => {
       return;
     }
 
-    if (cassette.data?.geometry?.preview || cassette.data?.geometry?.data || cassette.data?.geometry?.points) {
+    if (
+      cassette.data?.geometry?.preview ||
+      cassette.data?.geometry?.data ||
+      cassette.data?.geometry?.points ||
+      cassette.data?.layerData?.length ||
+      cassette.data?.polygonParts?.length ||
+      cassette.data?.geometry?.data?.layerData?.length ||
+      cassette.data?.geometry?.data?.polygonParts?.length
+    ) {
       setGeometrySource(cassette);
       return;
     }

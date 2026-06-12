@@ -11,16 +11,5 @@ export const cncHookContracts = {
       { name: 'childType', label: 'Child type', type: 'entityType', required: true },
       { name: 'childState', label: 'Child state', type: 'workflowState', required: true, dependsOn: 'childType' }
     ]
-  },
-  processPhysicalCut: {
-    id: 'processPhysicalCut',
-    label: 'Process physical cut',
-    parameters: []
-  },
-  createPhysicalUnits: {
-    id: 'createPhysicalUnits',
-    label: 'Create physical units',
-    parameters: []
   }
 };
-

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <EntityCard :entity="color" entity-type="color" :variant="variant" class="card-interactive" :show-trace="false" :show-status="false">
+    <EntityCard :entity="color" entity-type="color" :variant="variant" :show-trace="false" :show-status="false">
       <template #header>
         <div class="h-32 w-full" :style="swatchStyle"></div>
       </template>
@@ -12,7 +12,7 @@
       </template>
       <template #compact-content>
         <div v-if="catalogId" class="mt-3 text-sm">
-          <TraceLink type="catalog" :id="catalogId" />
+          <EntityInlineRef type="catalog" :id="catalogId" />
         </div>
       </template>
       <Divider />
@@ -26,7 +26,7 @@
       </div>
       <div v-if="catalogId" class="flex justify-between items-center gap-4 mt-2">
         <small class="text-muted-color">{{ $t('entities.catalog') }}</small>
-        <TraceLink type="catalog" :id="catalogId" />
+        <EntityInlineRef type="catalog" :id="catalogId" />
       </div>
     </EntityCard>
   </div>
@@ -39,7 +39,7 @@
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 
 const props = defineProps({
   color: { type: Object, required: true },

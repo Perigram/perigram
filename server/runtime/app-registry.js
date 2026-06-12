@@ -8,6 +8,7 @@ import * as cassetteInstancesService from '~/server/features/cassette-instances/
 import * as cassettesService from '~/server/features/cassettes/service.js';
 import * as catalogsService from '~/server/features/catalogs/service.js';
 import * as colorsService from '~/server/features/colors/service.js';
+import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
 import * as layerStandardsService from '~/server/features/layer-standards/service.js';
 import * as materialsService from '~/server/features/materials/service.js';
 import * as materialPilesService from '~/server/features/material-piles/service.js';
@@ -76,6 +77,7 @@ const entityServices = {
   cassette: cassettesService,
   catalog: catalogsService,
   color: colorsService,
+  entity_revision: entityRevisionsService,
   layer_standard: layerStandardsService,
   material: materialsService,
   material_pile: materialPilesService,
@@ -105,7 +107,4 @@ const taskExecutors = {
   'nesting.solve': executeNestingSolveTask
 };
 
-const featureHookHandlers = {
-  createPhysicalUnits: (...args) => nestingRunsService.createPhysicalUnits(...args),
-  processPhysicalCut: (...args) => queuesService.processPhysicalCut(...args)
-};
+const featureHookHandlers = {};

@@ -161,6 +161,9 @@ export const statusService = {
   async getActions(entityType, targetId, authContext) {
     const normalizedEntityType = normalizeEntityType(entityType);
     const auth = normalizeAuthContext(authContext?.userId, authContext, {});
+    if (!stateMachines[normalizedEntityType]) {
+      return { entityType: normalizedEntityType, targetId, state: null, actions: [] };
+    }
     const { entity, machine } = await loadEntityForWorkflow(normalizedEntityType, targetId);
     const currentState = entity.status?.state || machine.initial;
     const lifecycle = entity.status?.lifecycle || normalizeLifecycle();

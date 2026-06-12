@@ -205,5 +205,72 @@ describe('cassette v2 folded preview', () => {
 
     source.points[0].forEach((value, index) => expect(value).toBeCloseTo(expectedAnchor[index]));
     expect(Math.max(...source.points.map(point => Math.abs(point[2])))).toBeGreaterThan(20);
+    expect(preview.attachments).toEqual([expect.objectContaining({
+      driver: true,
+      status: 'ok'
+    })]);
+  });
+
+  it('uses only driver joints for placement and reports impossible declared attachments', () => {
+    const preview = buildCassetteV2FoldedPreview({
+      faces: [
+        {
+          nodeId: 'face_1',
+          workpieceId: 'wp_1',
+          vertices: [[0, 0, 0], [100, 0, 0], [100, 40, 0], [0, 40, 0]]
+        },
+        {
+          nodeId: 'face_2',
+          workpieceId: 'wp_2',
+          vertices: [[0, 0, 0], [100, 0, 0], [100, 40, 0], [0, 40, 0]]
+        },
+        {
+          nodeId: 'face_3',
+          workpieceId: 'wp_3',
+          vertices: [[0, 0, 0], [100, 0, 0], [100, 40, 0], [0, 40, 0]]
+        }
+      ],
+      joints: [
+        {
+          id: 'driver',
+          sourceWorkpieceId: 'wp_3',
+          sourceFaceId: 'face_3',
+          sourceSnap: 'origin',
+          targetWorkpieceId: 'wp_1',
+          targetFaceId: 'face_1',
+          targetSnap: 'origin',
+          offsetX: 0,
+          offsetY: 0,
+          rotation: 0,
+          targetSide: 'front',
+          driver: true
+        },
+        {
+          id: 'declared',
+          sourceWorkpieceId: 'wp_3',
+          sourceFaceId: 'face_3',
+          sourceSnap: 'origin',
+          targetWorkpieceId: 'wp_2',
+          targetFaceId: 'face_2',
+          targetSnap: 'top_right',
+          offsetX: 0,
+          offsetY: 0,
+          rotation: 0,
+          targetSide: 'front',
+          driver: false
+        }
+      ]
+    });
+    const source = preview.faces.find(face => face.nodeId === 'face_3');
+
+    expect(source.points[0]).toEqual([0, 0, 0]);
+    expect(preview.attachments.map(attachment => ({
+      id: attachment.id,
+      driver: attachment.driver,
+      status: attachment.status
+    }))).toEqual([
+      { id: 'driver', driver: true, status: 'ok' },
+      { id: 'declared', driver: false, status: 'impossible' }
+    ]);
   });
 });

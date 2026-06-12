@@ -71,7 +71,8 @@ export const MOCK_IDS = {
   catalogId: 'catalog-demo-acm',
   sheetDesignId: 'sheet-design-demo-001',
   cassetteTemplateId: 'cassette-template-demo-001',
-  cassetteDesignId: 'cassette-design-demo-001'
+  cassetteDesignId: 'cassette-design-demo-001',
+  entityRevisionId: 'entity-revision-demo-001'
 };
 
 export function createMockProject(overrides = {}) {
@@ -230,7 +231,50 @@ export function createMockCassetteDesign(overrides = {}) {
       serial: 'CD-FACADE-01',
       state: 'APPROVED',
       lineage: { projectId: MOCK_IDS.projectId, templateId: MOCK_IDS.cassetteTemplateId },
-      data: { geometry, parameters }
+      data: {
+        geometry,
+        parameters,
+        derivedFrom: {
+          entityType: 'cassette',
+          entityId: MOCK_IDS.cassetteTemplateId,
+          scope: 'geometry',
+          revisionId: MOCK_IDS.entityRevisionId,
+          revisionNumber: 1,
+          contentHash: 'sha256:demo1234567890',
+          parameters
+        }
+      }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockEntityRevision(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: MOCK_IDS.entityRevisionId,
+      name: 'cassette geometry v1',
+      state: 'ACTIVE',
+      lineage: {
+        organizationId: MOCK_IDS.organizationId,
+        cassetteId: MOCK_IDS.cassetteTemplateId
+      },
+      data: {
+        entityType: 'cassette',
+        entityId: MOCK_IDS.cassetteTemplateId,
+        scope: 'geometry',
+        number: 1,
+        contentHash: 'sha256:demo1234567890',
+        snapshot: {
+          identity: { name: 'Parametric Type G' },
+          data: {
+            type: 'PARAMETRIC',
+            definition: { params: { A: 600, B: 400, C: 35 } },
+            parameters: ['A', 'B', 'C']
+          }
+        },
+        reason: 'template-created'
+      }
     }),
     ...overrides
   };
@@ -310,7 +354,7 @@ export function createMockPile(overrides = {}) {
       uid: 'pile-demo-001',
       name: 'Alucobond Silver',
       serial: 'P-101',
-      state: 'IN_STOCK',
+      state: 'STOCKED',
       lineage: {
         organizationId: MOCK_IDS.organizationId,
         warehouseId: MOCK_IDS.warehouseId,
@@ -332,7 +376,7 @@ export function createMockBatchPile(overrides = {}) {
       name: 'Batch Pile REQ-2025-001 / P-003',
       slug: 'batch-pile-req-2025-001-p-003',
       serial: 'P-003',
-      state: 'IN_STOCK',
+      state: 'STOCKED',
       lineage: {
         organizationId: MOCK_IDS.organizationId,
         warehouseId: MOCK_IDS.warehouseId,
@@ -352,11 +396,11 @@ export function createMockRemnant(overrides = {}) {
       uid: 'remnant-demo-001',
       name: 'Remnant REM-2025-X1',
       serial: 'REM-2025-X1',
-      state: 'SCRAP',
+      state: 'AVAILABLE',
       lineage: { warehouseId: MOCK_IDS.warehouseId, sheetId: 'sheet-demo-001' },
       specs: { width: 900, length: 500, area: 0.45, sheetThickness: 4 },
       data: {
-        isReusable: false,
+        isReusable: true,
         geometry: {
           preview: {
             viewBox: '0 0 120 80',

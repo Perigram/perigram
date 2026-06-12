@@ -108,4 +108,18 @@ describe('Catalog Management', () => {
     });
     expect(viewAll.map(item => item.identity.name).sort()).toEqual(['Other Catalog', 'Own Catalog']);
   });
+
+  it('should allow warehouse stock fallback catalog creation with materials write permission', async () => {
+    const catalog = await catalogService.create({
+      source: 'WAREHOUSE_STOCK',
+      name: 'Manual ACM',
+      manufacturerId: mockUser.organizationId.toString(),
+      material: 'Manual ACM',
+      options: { widths: [3000], lengths: [1500] }
+    }, mockUser.userId, mockUser.organizationId, null, {
+      memberships: [{ organizationId: mockUser.organizationId, permissions: { materials: 'write', catalogs: 'none' } }]
+    });
+
+    expect(catalog.identity.name).toBe('Manual ACM');
+  });
 });

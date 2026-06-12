@@ -57,7 +57,7 @@ function uniqueKeys(keys) {
 
 export function createDomainUiAdapter(domain = {}) {
   const endpointMap = createEndpointMap(domain.ui?.endpoints || []);
-  const surfaceMap = Object.fromEntries((domain.ui?.surfaces || []).map(surface => [surface.key || surface.entityType, surface]));
+  const surfaceMap = createSurfaceMap(domain.ui?.surfaces || []);
   const attachmentKindMap = domain.attachmentKinds || {};
 
   return {
@@ -72,6 +72,29 @@ export function createDomainUiAdapter(domain = {}) {
     getAttachmentPreview: kind => attachmentKindMap[kind]?.preview || { mode: 'download' },
     getDownloadEndpoint: (type, id) => endpointMap[type]?.download?.(id) || getSingleEndpoint(endpointMap, type, id)
   };
+}
+
+export function createSurfaceMap(surfaces = []) {
+  const surfaceMap = {};
+
+  for (const surface of surfaces) {
+    for (const key of createSurfaceKeys(surface)) {
+      surfaceMap[key] = surface;
+    }
+  }
+
+  return surfaceMap;
+}
+
+export function createSurfaceKeys(surface = {}) {
+  return uniqueKeys([
+    surface.key,
+    surface.entityType,
+    camelToSnake(surface.key),
+    snakeToCamel(surface.key),
+    camelToSnake(surface.entityType),
+    snakeToCamel(surface.entityType)
+  ]);
 }
 
 export function getSingleEndpoint(endpointMap, type, id) {

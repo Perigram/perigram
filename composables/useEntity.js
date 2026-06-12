@@ -37,7 +37,7 @@ export const useEntity = (type, identifier = null) => {
   /**
    * Fetch a single entity by ID or slug
    */
-  const fetch = async (id = identifier) => {
+  const fetch = async (id = identifier, options = {}) => {
     if (!id) return;
     loading.value = true;
     error.value = null;
@@ -47,7 +47,9 @@ export const useEntity = (type, identifier = null) => {
       return data;
     } catch (err) {
       error.value = err.data?.message || `Failed to fetch ${type}`;
-      console.error(`[useEntity] Error fetching ${type}:`, err);
+      if (!options.silent) {
+        console.error(`[useEntity] Error fetching ${type}:`, err);
+      }
       throw err;
     } finally {
       loading.value = false;

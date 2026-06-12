@@ -83,6 +83,21 @@ describe('Warehouse & Inventory Counting', () => {
     await warehouseService.updateInventoryCounts(warehouseId, { totalSheets: -2 });
     updated = await warehouseService.getById(warehouseId);
     expect(updated.data.stats.totalSheets).toBe(3);
+
+    await warehouseService.updateInventoryCounts(warehouseId, { totalSheets: -10 });
+    updated = await warehouseService.getById(warehouseId);
+    expect(updated.data.stats.totalSheets).toBe(0);
+  });
+
+  it('should create a warehouse from authenticated organization context', async () => {
+    await insertOrganization();
+
+    const warehouse = await warehouseService.create({
+      name: 'Auth Context Warehouse'
+    }, mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
+
+    expect(warehouse.identity.name).toBe('Auth Context Warehouse');
+    expect(warehouse.lineage.organizationId.toString()).toBe(mockUser.organizationId.toString());
   });
 
   it('should prevent deletion of warehouse with inventory', async () => {

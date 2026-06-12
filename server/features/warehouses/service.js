@@ -15,7 +15,9 @@ import { ObjectId } from 'mongodb';
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { name, organizationId, type, address, contactPerson } = data;
-  const organization = await organizationsService.getById(organizationId);
+  const targetOrganizationId = organizationId || userOrg;
+  if (!targetOrganizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
+  const organization = await organizationsService.getById(targetOrganizationId);
   if (!organization) throw createError({ statusCode: 404, message: 'Organization not found' });
 
   const warehouse = new Warehouse({
@@ -87,7 +89,8 @@ export async function updateInventoryCounts(uid, increments = {}) {
 
   const stats = { ...(warehouse.data?.stats || {}) };
   for (const [key, value] of Object.entries(increments)) {
-    stats[key] = (stats[key] || 0) + value;
+    const nextValue = Number(stats[key] || 0) + Number(value || 0);
+    stats[key] = Math.max(nextValue, 0);
   }
 
   await repository.updateById(uid, { data: { ...warehouse.data, stats } });

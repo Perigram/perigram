@@ -1,12 +1,12 @@
 <template>
-    <NuxtLink 
-        :to="route" 
-        class="inline-flex items-center gap-2 p-1 "
+    <NuxtLink
+        :to="route"
+        class="inline-flex min-w-0 items-center gap-1.5 rounded-ui p-1"
         data-entity-card-interactive="true"
         @click.stop
     >
-        <i :class="config.icon"></i>
-        <span>
+        <i :class="config.icon" class="shrink-0"></i>
+        <span class="truncate">
             {{ label || id }}
         </span>
     </NuxtLink>
@@ -22,7 +22,7 @@ const props = defineProps({
         required: true
     },
     id: {
-        type: String,
+        type: [String, Number, Object],
         required: true
     },
     label: {

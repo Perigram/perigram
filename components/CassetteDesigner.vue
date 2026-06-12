@@ -17,7 +17,7 @@
                 <div class="flex flex-col gap-6">
                     <div class="flex justify-between items-center">
                         <small>{{ $t('cassette.parametersTitle') }}</small>
-                        <Button icon="pi pi-plus" text rounded @click="showAddParamDialog = true" />
+                        <Button icon="pi pi-plus" text rounded :aria-label="$t('common.add')" @click="showAddParamDialog = true" />
                     </div>
                     
                     <!-- Global Dimensions -->
@@ -57,7 +57,7 @@
                                     <Tag :value="ext.param" severity="info" />
                                     <small>{{ $t('cassette.edge') }} {{ ext.edge }}</small>
                                 </div>
-                                <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="removeExtrusion(idx)" />
+                                <Button icon="pi pi-trash" severity="danger" text rounded size="small" :aria-label="$t('common.delete')" @click="removeExtrusion(idx)" />
                             </div>
                             <Select 
                                 v-model="ext.param" 
@@ -122,7 +122,7 @@
                         </div>
                     </Button>
                 </div>
-                <Button icon="pi pi-times" text rounded size="small" @click="addDialog.visible = false" class="absolute -top-2 -right-2 border" />
+                <Button icon="pi pi-times" text rounded size="small" :aria-label="$t('common.close')" @click="addDialog.visible = false" class="absolute -top-2 -right-2 border" />
             </div>
         </div>
         

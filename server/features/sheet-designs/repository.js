@@ -23,6 +23,16 @@ export async function find(filter = {}) {
   return await db.collection(COLLECTION).find(filter).toArray();
 }
 
+export async function updateById(id, updates) {
+  const db = await connectDB();
+  const { _id, ...clean } = updates;
+  await db.collection(COLLECTION).updateOne(
+    { _id: toFlexibleId(id) },
+    { $set: clean }
+  );
+  return await findById(id);
+}
+
 export async function deleteById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });

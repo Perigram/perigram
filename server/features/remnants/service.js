@@ -143,6 +143,41 @@ export async function searchReusable(userId, organizationId, userRole, userPermi
   return remnants.map(toDTO);
 }
 
+export async function createFromCutSheet(sheet, { area = 0, width = 0, height = 0, geometryData = null, index = 0, userId = 'SYSTEM' } = {}) {
+  const lineage = sheet.data?.virtualSource
+    ? { ...(sheet.lineage || {}) }
+    : inheritLineage(sheet, 'sheet');
+  const specs = sheet.specs || sheet.data?.specs || {};
+  const remnantNumber = await repository.getNextRemnantNumber();
+  const origin = createStatus('AVAILABLE', userId, { note: 'Created from queue cut' });
+  const isReusable = Number(area || 0) >= 0.1;
+  const remnantData = {
+    identity: createIdentity(`Remnant ${remnantNumber}`, remnantNumber, `${remnantNumber}-${index + 1}`),
+    origin,
+    status: origin,
+    lineage,
+    data: createData({
+      source: 'QUEUE_CUT',
+      geometry: { data: geometryData },
+      specs: {
+        area: Number(area || 0),
+        width: Number(width || 0),
+        height: Number(height || 0),
+        thickness: specs.sheetThickness || specs.thickness || 0,
+        material: specs.material || null,
+        color: specs.color || null
+      },
+      isReusable
+    })
+  };
+
+  const remnant = await repository.create(remnantData);
+  if (lineage.warehouseId) {
+    await warehouseService.updateInventoryCounts(lineage.warehouseId, { totalRemnants: 1 });
+  }
+  return toDTO(remnant);
+}
+
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const remnant = await getById(id, userId, userOrg, userRole, userPermissions);
   

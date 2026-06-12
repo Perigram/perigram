@@ -47,8 +47,9 @@ export async function deleteById(uid) {
 
 export async function resetChosenRuns(queueId) {
   const db = await connectDB();
+  const flexibleId = toFlexibleId(queueId);
   return await db.collection(COLLECTION).updateMany(
-    { 'lineage.queueId': toFlexibleId(queueId), 'status.state': 'CHOSEN' },
+    { 'lineage.queueId': { $in: [flexibleId, queueId?.toString()] }, 'status.state': 'CHOSEN' },
     { $set: { 'status.state': 'COMPLETE' } }
   );
 }

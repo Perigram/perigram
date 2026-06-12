@@ -17,6 +17,10 @@ export function getWorkflowStatusActions({
     .map(transition => createStatusAction(transition, mappings, t));
 }
 
+export function hasWorkflow(entityType, workflows = cncWorkflows) {
+  return Boolean(workflows?.[entityType]);
+}
+
 export function resolveActionDisplay(transition = {}) {
   if (transition.display === false || transition.displayBtn === false) return 'hidden';
   if (transition.display === 'hidden' || transition.display === 'menu' || transition.display === 'inline') return transition.display;

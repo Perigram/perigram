@@ -7,10 +7,13 @@
       <Divider />
       <div class="grid grid-cols-1 gap-4">
         <CassetteThumbnail :cassette="design" />
-        <DataBlock :entity="design" :fields="DESIGN_FIELDS" />
-        <div v-if="templateId" class="flex items-center justify-between gap-4">
+        <div v-if="template" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.cassetteTemplate') }}</small>
-          <TraceLink type="cassetteTemplate" :id="templateId" />
+          <EntityInlineRef type="cassetteTemplate" :entity="template" />
+        </div>
+        <div v-if="revisionId" class="flex items-center justify-between gap-4">
+          <small class="text-muted-color">{{ $t('revision.sourceRevision') }}</small>
+          <EntityInlineRef type="entityRevision" :id="revisionId" />
         </div>
       </div>
     </EntityCard>
@@ -22,22 +25,27 @@
  * Cassette Design View Component - v24 Standardized
  * CassetteDesign has no status — uses EntityCard with status disabled.
  */
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import { useEntity } from '~/composables/useEntity';
 
 const props = defineProps({
   design: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
 
-const DESIGN_FIELDS = [
-  { path: 'data.parameters.A', i18n: 'cassette.rootDim', suffix: ' mm' },
-  { path: 'data.parameters.C', i18n: 'cassette.faceDepth', suffix: ' mm' }
-];
-
 const templateId = computed(() => props.design.lineage?.templateId || null);
+const revisionId = computed(() => props.design.data?.derivedFrom?.revisionId || null);
+const template = ref(null);
+const templateEntity = useEntity('cassetteTemplate');
+
+watch(templateId, async (id) => {
+  template.value = null;
+  const normalizedId = id?.toString?.() || id;
+  if (!normalizedId) return;
+  template.value = await templateEntity.fetch(normalizedId, { silent: true }).catch(() => null);
+}, { immediate: true });
 </script>

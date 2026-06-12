@@ -1,7 +1,7 @@
 <template>
   <div class="flex w-full flex-col gap-4 p-4 md:p-6">
     <div class="flex flex-col gap-4">
-      <div class="flex flex-wrap items-center justify-end gap-2">
+      <div v-if="activeWorkbenchSection !== 'designer'" class="flex flex-wrap items-center justify-end gap-2">
         <div class="flex items-center gap-2">
           <Button icon="pi pi-refresh" :label="$t('common.reset')" severity="secondary" size="small" @click="resetWorkbench" />
           <Button icon="pi pi-download" :label="$t('admin.workbench.exportDraft')" size="small" @click="downloadDraft" />
@@ -453,7 +453,7 @@
                         <Checkbox :model-value="attachment.multiple" binary @update:model-value="value => updateLifecycleAttachmentMultiple(attachment.name, value)" />
                         <label>{{ $t('admin.domainBuilder.multiple') }}</label>
                       </div>
-                      <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="removeLifecycleAttachment(attachment.name)" />
+                      <Button icon="pi pi-trash" severity="danger" text rounded size="small" :aria-label="$t('common.delete')" @click="removeLifecycleAttachment(attachment.name)" />
                     </div>
                   </div>
                   <div class="flex items-center gap-2">

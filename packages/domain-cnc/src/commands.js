@@ -66,12 +66,15 @@ export const cncCommands = {
     input: {
       entities: [{ name: 'queue', type: 'queue', required: true }],
       parameters: [
-        { name: 'materialMode', label: 'Material mode', type: 'enum', options: ['VIRTUAL', 'INVENTORY'], default: 'VIRTUAL' },
+        { name: 'materialMode', label: 'Material mode', type: 'enum', options: ['VIRTUAL', 'WAREHOUSE', 'INVENTORY'], default: 'VIRTUAL' },
         { name: 'width', label: 'Sheet width', type: 'number', default: 1220, min: 1, unit: 'mm' },
         { name: 'height', label: 'Sheet height', type: 'number', default: 2440, min: 1, unit: 'mm' },
+        { name: 'virtualWidth', label: 'Virtual sheet width', type: 'number', min: 1, unit: 'mm', display: 'hidden' },
+        { name: 'virtualLength', label: 'Virtual sheet length', type: 'number', min: 1, unit: 'mm', display: 'hidden' },
         { name: 'spacing', label: 'Spacing', type: 'number', default: 5, min: 0, unit: 'mm' },
         { name: 'sheet_polygon', label: 'Sheet polygon', type: 'object', display: 'hidden', source: 'scenario.sheetSource.geometry' },
         { name: 'inventoryItems', label: 'Inventory items', type: 'array', default: [], display: 'hidden', source: 'scenario.inventorySource.items' },
+        { name: 'materialPool', label: 'Material pool', type: 'array', display: 'hidden', source: 'scenario.inventorySource.materialPool' },
         { name: 'toolProfileId', label: 'Tool profile', type: 'entityId', entityType: 'tool_profile' }
       ]
     },
@@ -83,8 +86,7 @@ export const cncCommands = {
     },
     access: {
       permissions: [
-        { feature: 'queues', level: 'write' },
-        { feature: 'nesting_runs', level: 'write' }
+        { feature: 'queues', level: 'write' }
       ]
     }
   },

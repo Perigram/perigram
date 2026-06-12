@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addCassetteV2GraphChild,
   addCassetteV2Workpiece,
+  addCassetteV2WorkpieceAttachment,
   buildCassetteV2ComposedDrawing,
   buildCassetteV2Drawing,
   buildCassetteV2FaceGraph,
@@ -13,6 +14,7 @@ import {
   createCassetteV2GraphTree,
   createCassetteV2OccsDocument,
   deleteCassetteV2Workpiece,
+  deleteCassetteV2WorkpieceRelation,
   findBoundaryOutputRef,
   getCassetteV2FoldEdges,
   getCassetteV2WorkpieceRelations,
@@ -183,7 +185,7 @@ describe('cassette v2 trapezoid renderer', () => {
       parentId: 'face_1',
       parentEdgeIndex: 2,
       attachEdge: 'E0',
-      foldAngle: '90deg',
+      foldAngle: '90',
       parameters: expect.objectContaining({
         height: 'R',
         baseStartOffset: '0',
@@ -196,7 +198,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(occs.definitions.workpieces[0].folds[0]).toMatchObject({
       from: 'face_1.E2',
       to: 'face_2.E0',
-      angle: '90deg'
+      angle: '90'
     });
     expect(occs.definitions.workpieces[0].folds).toHaveLength(3);
     expect(foldedEdges.get('face_1:E2')?.id).toBe('face_2');
@@ -273,7 +275,7 @@ describe('cassette v2 trapezoid renderer', () => {
     };
 
     const { tree: nextTree } = addCassetteV2GraphChild(tree, 'face_1', 2);
-    nextTree.nodes[1].foldAngle = '135deg';
+    nextTree.nodes[1].foldAngle = '135';
     nextTree.nodes[1].parameters = {
       ...nextTree.nodes[1].parameters,
       height: 'R + foldAngle / 10'
@@ -300,7 +302,7 @@ describe('cassette v2 trapezoid renderer', () => {
       baseLength: 'inherit',
       height: 'R + foldAngle / 10'
     });
-    expect(occs.definitions.workpieces[0].folds[0].angle).toBe('135deg');
+    expect(occs.definitions.workpieces[0].folds[0].angle).toBe('135');
     expect(graphNodeValuesByLabel(composition.graph, 'defaultLength')).toContain(1210);
     expect(graphNodeValuesByLabel(composition.graph, 'height')).toEqual(expect.arrayContaining([616.5, 48.5]));
     expect(graphNodeValuesByLabel(composition.graph, 'baseStartOffset')).toContain(16.5);
@@ -427,7 +429,7 @@ describe('cassette v2 trapezoid renderer', () => {
       sourceSnap: 'origin',
       offsetX: '10',
       offsetY: '5',
-      rotation: '0deg',
+      rotation: '0',
       targetSide: 'back'
     });
     const second = addCassetteV2Workpiece(tree, {
@@ -445,15 +447,16 @@ describe('cassette v2 trapezoid renderer', () => {
       source: item.sourceWorkpieceId,
       target: item.targetWorkpieceId,
       snap: item.targetSnap,
-      sourceSnap: item.sourceSnap
+      sourceSnap: item.sourceSnap,
+      driver: item.driver
     }))).toEqual([
-      { source: 'wp_2', target: 'wp_1', snap: 'top_right', sourceSnap: 'origin' },
-      { source: 'wp_3', target: 'wp_2', snap: 'center', sourceSnap: 'center' }
+      { source: 'wp_2', target: 'wp_1', snap: 'top_right', sourceSnap: 'origin', driver: true },
+      { source: 'wp_3', target: 'wp_2', snap: 'center', sourceSnap: 'center', driver: true }
     ]);
     expect(occs.cassette.occurrences.find(item => item.id === 'wp_2').placement).toMatchObject({
       relativeTo: { occurrence: 'wp_1', face: 'face_1', side: 'back' },
       origin: ['10', '5'],
-      rotation: '0deg',
+      rotation: '0',
       anchor: 'origin',
       targetAnchor: 'top_right'
     });
@@ -474,7 +477,125 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(assemblyCurves.find(curve => curve.node.id === 'face_2').vertices[0]).toEqual([510, 405, 0]);
   });
 
-  it('deletes a non-root workpiece with attached workpiece descendants', () => {
+  it('stores multiple declared attachments for one workpiece and uses only one placement driver', () => {
+    const first = addCassetteV2Workpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1'
+    });
+    const second = addCassetteV2Workpiece(first.tree, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1'
+    });
+    const addedAttachment = addCassetteV2WorkpieceAttachment(second.tree, 'wp_3', {
+      targetWorkpieceId: 'wp_2',
+      targetFaceId: 'face_2',
+      sourceFaceId: 'face_3'
+    });
+    const extraRelation = getCassetteV2WorkpieceRelations(addedAttachment.tree)
+      .find(relation => relation.id === addedAttachment.relationId);
+    const promoted = updateCassetteV2WorkpieceRelation(addedAttachment.tree, addedAttachment.relationId, {
+      driver: true,
+      targetSnap: 'origin'
+    });
+    const relations = getCassetteV2WorkpieceRelations(promoted).filter(relation => relation.sourceWorkpieceId === 'wp_3');
+    const occs = createCassetteV2OccsDocument(promoted);
+    const topology = buildCassetteV2WorkpieceTopology(promoted);
+
+    expect(extraRelation).toMatchObject({
+      sourceWorkpieceId: 'wp_3',
+      targetWorkpieceId: 'wp_2',
+      driver: false
+    });
+    expect(relations.map(relation => ({
+      target: relation.targetWorkpieceId,
+      driver: relation.driver,
+      snap: relation.targetSnap
+    }))).toEqual([
+      { target: 'wp_1', driver: false, snap: 'center' },
+      { target: 'wp_2', driver: true, snap: 'origin' }
+    ]);
+    expect(occs.cassette.joints.filter(joint => joint.source.occurrence === 'wp_3').map(joint => (
+      joint.target.occurrence
+    ))).toEqual(['wp_1', 'wp_2']);
+    expect(occs.cassette.joints.find(joint => joint.source.occurrence === 'wp_3')).not.toHaveProperty('driver');
+    expect(occs.cassette.occurrences.find(item => item.id === 'wp_3').placement.relativeTo).toMatchObject({
+      occurrence: 'wp_2',
+      face: 'face_2'
+    });
+    expect(topology.edges.filter(edge => edge.targetWorkpieceId === 'wp_3').map(edge => ({
+      source: edge.sourceWorkpieceId,
+      driver: edge.driver
+    }))).toEqual([
+      { source: 'wp_1', driver: false },
+      { source: 'wp_2', driver: true }
+    ]);
+  });
+
+  it('deletes workpiece attachment links without deleting the linked workpieces', async () => {
+    const first = addCassetteV2Workpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1'
+    });
+    const second = addCassetteV2Workpiece(first.tree, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1'
+    });
+    const addedAttachment = addCassetteV2WorkpieceAttachment(second.tree, 'wp_3', {
+      targetWorkpieceId: 'wp_2',
+      targetFaceId: 'face_2',
+      sourceFaceId: 'face_3'
+    });
+    const promoted = updateCassetteV2WorkpieceRelation(addedAttachment.tree, addedAttachment.relationId, {
+      driver: true,
+      targetSnap: 'origin'
+    });
+    const deleted = deleteCassetteV2WorkpieceRelation(promoted, addedAttachment.relationId);
+    const relations = getCassetteV2WorkpieceRelations(deleted.tree).filter(relation => relation.sourceWorkpieceId === 'wp_3');
+    const drawing = await renderCassetteV2TreeToDrawing(promoted, {
+      mode: 'assembly',
+      contextWorkpieceId: 'wp_3',
+      selectedRelationId: addedAttachment.relationId
+    });
+
+    expect(deleted.deletedRelationId).toBe(addedAttachment.relationId);
+    expect(deleted.tree.workpieces.map(workpiece => workpiece.id)).toEqual(['wp_1', 'wp_2', 'wp_3']);
+    expect(relations).toEqual([expect.objectContaining({
+      targetWorkpieceId: 'wp_1',
+      driver: true
+    })]);
+    expect(deleted.tree.workpieces.find(workpiece => workpiece.id === 'wp_3').placement.relativeTo).toMatchObject({
+      occurrence: 'wp_1'
+    });
+    expect(drawing.layers.find(layer => layer.standardCode === 'cut.outer').paths.map(path => ({
+      workpieceId: path.workpieceId,
+      opacity: path.opacity
+    }))).toEqual([
+      { workpieceId: 'wp_1', opacity: 0.28 },
+      { workpieceId: 'wp_2', opacity: 0.28 },
+      { workpieceId: 'wp_3', opacity: 1 }
+    ]);
+    expect(drawing.designerAttachmentMarkers.map(marker => ({
+      relationId: marker.relationId,
+      role: marker.role,
+      workpieceId: marker.workpieceId,
+      active: marker.active
+    }))).toEqual(expect.arrayContaining([
+      {
+        relationId: addedAttachment.relationId,
+        role: 'target',
+        workpieceId: 'wp_2',
+        active: true
+      },
+      {
+        relationId: addedAttachment.relationId,
+        role: 'source',
+        workpieceId: 'wp_3',
+        active: true
+      }
+    ]));
+  });
+
+  it('deletes only a non-root workpiece and its incident attachment edges', () => {
     const first = addCassetteV2Workpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1'
@@ -487,16 +608,16 @@ describe('cassette v2 trapezoid renderer', () => {
     const rootDelete = deleteCassetteV2Workpiece(result.tree, 'wp_1');
     const occs = createCassetteV2OccsDocument(result.tree);
 
-    expect(result.deletedWorkpieceIds).toEqual(['wp_2', 'wp_3']);
+    expect(result.deletedWorkpieceIds).toEqual(['wp_2']);
     expect(result.selectedWorkpieceId).toBe('wp_1');
-    expect(result.tree.workpieces.map(workpiece => workpiece.id)).toEqual(['wp_1']);
-    expect(result.tree.nodes.map(node => node.id)).toEqual(['face_1']);
+    expect(result.tree.workpieces.map(workpiece => workpiece.id)).toEqual(['wp_1', 'wp_3']);
+    expect(result.tree.nodes.map(node => node.id)).toEqual(['face_1', 'face_3']);
     expect(result.tree.joints).toEqual([]);
-    expect(occs.definitions.workpieces).toHaveLength(1);
-    expect(occs.cassette.occurrences).toHaveLength(1);
+    expect(occs.definitions.workpieces).toHaveLength(2);
+    expect(occs.cassette.occurrences).toHaveLength(2);
     expect(occs.cassette.joints).toEqual([]);
     expect(rootDelete.deletedWorkpieceIds).toEqual([]);
-    expect(rootDelete.tree.workpieces.map(workpiece => workpiece.id)).toEqual(['wp_1']);
+    expect(rootDelete.tree.workpieces.map(workpiece => workpiece.id)).toEqual(['wp_1', 'wp_3']);
   });
 
   it('writes labeled graph node values before loading the Nodi graph', () => {
@@ -585,7 +706,8 @@ describe('cassette v2 trapezoid renderer', () => {
       'contour.cassette_face',
       'cut.outer',
       'fold.route',
-      'dimension.cassette'
+      'dimension.cassette',
+      'code.cassette_mark'
     ]);
     expect(drawing.layers[0].paths).toHaveLength(1);
     expect(drawing.layers[1].paths).toHaveLength(1);
@@ -594,13 +716,16 @@ describe('cassette v2 trapezoid renderer', () => {
       fill: 'none',
       stroke: 'layer'
     }]);
+    expect(drawing.layers.find(layer => layer.standardCode === 'dimension.cassette').paths
+      .filter(path => path.kind === 'text')
+      .map(path => path.text)).toEqual(['A', 'B', 'R']);
     expect(drawing.designerFaces.map(face => face.nodeId)).toEqual(['face_1', 'face_2']);
     expect(drawing.designerFoldEdges).toEqual([expect.objectContaining({
       nodeId: 'face_1',
       edgeIndex: 2,
       foldNodeId: 'face_2',
-      angle: '90deg',
-      label: '90deg'
+      angle: '90',
+      label: '90'
     })]);
     expect(drawing.designerEdges.map(edge => edge.label)).toEqual(['+', '+', '+', '+', '+', '+']);
   });
@@ -608,7 +733,7 @@ describe('cassette v2 trapezoid renderer', () => {
   it('builds the live tree drawing from separately evaluated face boundaries', async () => {
     const initialTree = createCassetteV2GraphTree();
     const { tree } = addCassetteV2GraphChild(initialTree, 'face_1', 2);
-    tree.nodes[1].foldAngle = '135deg';
+    tree.nodes[1].foldAngle = '135';
     const occs = createCassetteV2OccsDocument(tree);
     const drawing = await buildCassetteV2IncrementalDrawing([
       {
@@ -625,20 +750,24 @@ describe('cassette v2 trapezoid renderer', () => {
       'contour.cassette_face',
       'cut.outer',
       'fold.route',
-      'dimension.cassette'
+      'dimension.cassette',
+      'code.cassette_mark'
     ]);
     expect(drawing.layers[0].paths).toHaveLength(1);
     expect(drawing.layers[1].paths).toHaveLength(1);
     expect(drawing.layers[2].paths).toHaveLength(1);
-    expect(occs.definitions.workpieces[0].folds[0].angle).toBe('135deg');
+    expect(drawing.layers.find(layer => layer.standardCode === 'dimension.cassette').paths
+      .filter(path => path.kind === 'text')
+      .map(path => path.text)).toEqual(['A', 'B', 'R']);
+    expect(occs.definitions.workpieces[0].folds[0].angle).toBe('135');
     expect(occs.definitions.workpieces[0].entities.map(entity => entity.layer)).toContain('dimension.cassette');
     expect(drawing.designerFaces.map(face => face.nodeId)).toEqual(['face_1', 'face_2']);
     expect(drawing.designerFoldEdges).toEqual([expect.objectContaining({
       nodeId: 'face_1',
       edgeIndex: 2,
       foldNodeId: 'face_2',
-      angle: '135deg',
-      label: '135deg'
+      angle: '135',
+      label: '135'
     })]);
     expect(drawing.designerEdges.map(edge => edge.label)).toEqual(['+', '+', '+', '+', '+', '+']);
   });
@@ -694,10 +823,46 @@ describe('cassette v2 trapezoid renderer', () => {
       'contour.cassette_face',
       'cut.outer',
       'fold.route',
-      'dimension.cassette'
+      'dimension.cassette',
+      'code.cassette_mark'
     ]);
     expect(drawing.foldedPreview.faces).toHaveLength(2);
+    expect(drawing.designerFaces.map(face => face.workpieceId)).toEqual(['wp_1', 'wp_1']);
+    expect(drawing.designerSections.handles.map(handle => handle.orientation)).toEqual(['vertical', 'horizontal']);
+    expect(drawing.designerSections.segments.map(segment => segment.orientation)).toEqual(expect.arrayContaining(['vertical', 'horizontal']));
+    expect(drawing.layers.find(layer => layer.standardCode === 'code.cassette_mark').paths.length).toBeGreaterThan(0);
     expect(drawing.designerEdges.map(edge => edge.label)).toEqual(['+', '+', '+', '+', '+', '+']);
+  });
+
+  it('adds cassette mark entities and drawing text for each sheet workpiece', async () => {
+    const added = addCassetteV2Workpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1'
+    });
+    const context = { templateName: 'Tray A', templateId: 'tpl_123' };
+    const occs = createCassetteV2OccsDocument(added.tree, context);
+    const drawing = await renderCassetteV2TreeToDrawing(added.tree, { cassetteMarkContext: context });
+    const markEntities = occs.definitions.workpieces.flatMap(workpiece => (
+      workpiece.entities.filter(entity => entity.layer === 'code.cassette_mark')
+    ));
+    const markLayer = drawing.layers.find(layer => layer.standardCode === 'code.cassette_mark');
+    const markTexts = markLayer.paths.filter(path => path.kind === 'text' && path.markKind === 'cassette');
+
+    expect(markEntities).toHaveLength(2);
+    expect(markEntities.map(entity => entity.geometry.text)).toEqual([
+      'Tray A\ntpl_123\nWP 1',
+      'Tray A\ntpl_123\nWP 2'
+    ]);
+    expect(markTexts.map(path => path.text)).toEqual([
+      'Tray A\ntpl_123\nWP 1',
+      'Tray A\ntpl_123\nWP 2'
+    ]);
+    expect(markTexts[0]).toMatchObject({
+      x: 12,
+      y: -12,
+      textAnchor: 'start',
+      dominantBaseline: 'hanging'
+    });
   });
 
   it('keeps template dimension labels symbolic in the fallback trapezoid renderer', async () => {

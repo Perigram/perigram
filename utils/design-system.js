@@ -14,6 +14,7 @@ import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
 import RemnantCard from '~/components/entities/Remnant/RemnantCard.vue';
 import CatalogCard from '~/components/entities/Catalog/CatalogCard.vue';
 import ColorCard from '~/components/entities/Color/ColorCard.vue';
+import EntityRevisionCard from '~/components/entities/EntityRevision/EntityRevisionCard.vue';
 import WarehouseCard from '~/components/entities/Warehouse/WarehouseCard.vue';
 import ToolProfileCard from '~/components/entities/ToolProfile/ToolProfileCard.vue';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
@@ -45,6 +46,7 @@ const components = {
   remnant: RemnantCard,
   catalog: CatalogCard,
   color: ColorCard,
+  entityRevision: EntityRevisionCard,
   warehouse: WarehouseCard,
   toolProfile: ToolProfileCard,
   penTemplate: PenTemplateCard,

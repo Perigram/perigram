@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col gap-6 p-4 md:p-6 w-full max-w-app mx-auto">
+    <div class="flex flex-col gap-6 w-full max-w-app mx-auto">
         <div v-if="title || $slots.header" class="flex flex-col gap-2">
             <slot v-if="$slots.header" name="header"></slot>
             <slot name="breadcrumbs"></slot>

@@ -3,6 +3,12 @@ import { requireAuth } from '../../utils/permissions.js';
 import * as sheetDesignsService from '../../features/sheet-designs/service.js';
 
 export default defineEventHandler(async (event) => {
-  requireAuth(event);
-  return await sheetDesignsService.list(getQuery(event));
+  const auth = requireAuth(event);
+  return await sheetDesignsService.list(
+    auth.userId,
+    auth.organizationId,
+    auth.role,
+    auth,
+    getQuery(event)
+  );
 });

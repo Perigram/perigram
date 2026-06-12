@@ -12,7 +12,8 @@ export class Cassette extends BaseEntity {
       ...this.data,
       type: raw.data?.type || 'PARAMETRIC',
       definition: raw.data?.definition || null,
-      parameters: raw.data?.parameters || []
+      parameters: raw.data?.parameters || [],
+      revisions: raw.data?.revisions || {}
     };
   }
 

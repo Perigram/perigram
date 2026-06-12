@@ -238,12 +238,55 @@ const transformPlacement = (placement, transform) => ({
   points: placement.points.map(point => add3(multiplyMatrixVector(transform.matrix, point), transform.origin))
 });
 
+const jointTargetAnchor = (targetPlacement, joint) => {
+  const targetBasis = faceBasis(targetPlacement);
+  return add3(
+    add3(faceSnapPoint3d(targetPlacement, joint.targetSnap), scale3(targetBasis.xAxis, numeric(joint.offsetX, 0))),
+    scale3(targetBasis.yAxis, numeric(joint.offsetY, 0))
+  );
+};
+
+const attachmentDiagnostics = (placed, joints = [], tolerance = 0.5) => joints.map((joint, index) => {
+  const targetPlacement = placed.get(joint.targetFaceId);
+  const sourcePlacement = placed.get(joint.sourceFaceId);
+  if (!targetPlacement || !sourcePlacement) {
+    return {
+      id: joint.id || `joint_${index + 1}`,
+      sourceWorkpieceId: joint.sourceWorkpieceId,
+      targetWorkpieceId: joint.targetWorkpieceId,
+      sourceFaceId: joint.sourceFaceId,
+      targetFaceId: joint.targetFaceId,
+      driver: joint.driver !== false,
+      status: 'unresolved',
+      distance: null
+    };
+  }
+
+  const targetPoint = jointTargetAnchor(targetPlacement, joint);
+  const sourcePoint = faceSnapPoint3d(sourcePlacement, joint.sourceSnap);
+  const distance = length3(sub3(sourcePoint, targetPoint));
+  const driver = joint.driver !== false;
+  return {
+    id: joint.id || `joint_${index + 1}`,
+    sourceWorkpieceId: joint.sourceWorkpieceId,
+    targetWorkpieceId: joint.targetWorkpieceId,
+    sourceFaceId: joint.sourceFaceId,
+    targetFaceId: joint.targetFaceId,
+    driver,
+    status: driver || distance <= tolerance ? 'ok' : 'impossible',
+    distance,
+    sourcePoint,
+    targetPoint
+  };
+});
+
 const applyWorkpieceJointTransforms = (placed, joints = []) => {
-  if (!joints.length) return placed;
+  if (!joints.length) return { placements: placed, attachments: [] };
 
   const localPlaced = new Map(placed);
   const workpieceIds = new Set([...localPlaced.values()].map(face => face.workpieceId).filter(Boolean));
-  const sourceWorkpieceIds = new Set(joints.map(joint => joint.sourceWorkpieceId).filter(Boolean));
+  const placementJoints = joints.filter(joint => joint.driver !== false);
+  const sourceWorkpieceIds = new Set(placementJoints.map(joint => joint.sourceWorkpieceId).filter(Boolean));
   const transforms = new Map();
 
   for (const workpieceId of workpieceIds) {
@@ -255,7 +298,7 @@ const applyWorkpieceJointTransforms = (placed, joints = []) => {
   let changed = true;
   while (changed) {
     changed = false;
-    for (const joint of joints) {
+    for (const joint of placementJoints) {
       if (!joint.sourceWorkpieceId || transforms.has(joint.sourceWorkpieceId)) continue;
       const targetTransform = transforms.get(joint.targetWorkpieceId);
       if (!targetTransform) continue;
@@ -275,10 +318,7 @@ const applyWorkpieceJointTransforms = (placed, joints = []) => {
       const twistAngle = signedAngleAroundAxis(alignedSourceX, targetBasis.xAxis, desiredNormal) + numeric(joint.rotation, 0);
       const twist = rotationMatrixAroundAxis(desiredNormal, twistAngle);
       const matrix = multiplyMatrices(twist, align);
-      const targetAnchor = add3(
-        add3(faceSnapPoint3d(targetPlacement, joint.targetSnap), scale3(targetBasis.xAxis, numeric(joint.offsetX, 0))),
-        scale3(targetBasis.yAxis, numeric(joint.offsetY, 0))
-      );
+      const targetAnchor = jointTargetAnchor(targetPlacement, joint);
       const sourceAnchor = multiplyMatrixVector(matrix, faceSnapPoint3d(sourceLocal, joint.sourceSnap));
 
       transforms.set(joint.sourceWorkpieceId, {
@@ -295,10 +335,15 @@ const applyWorkpieceJointTransforms = (placed, joints = []) => {
     }
   }
 
-  return new Map([...localPlaced.entries()].map(([nodeId, placement]) => [
+  const transformed = new Map([...localPlaced.entries()].map(([nodeId, placement]) => [
     nodeId,
     transformPlacement(placement, transforms.get(placement.workpieceId) || { matrix: identityMatrix(), origin: [0, 0, 0] })
   ]));
+
+  return {
+    placements: transformed,
+    attachments: attachmentDiagnostics(transformed, joints)
+  };
 };
 
 export const buildCassetteV2FoldedPreview = (preview = {}) => {
@@ -336,6 +381,7 @@ export const buildCassetteV2FoldedPreview = (preview = {}) => {
   const transformed = applyWorkpieceJointTransforms(placed, joints);
 
   return {
-    faces: faces.map(face => transformed.get(face.nodeId)).filter(Boolean)
+    faces: faces.map(face => transformed.placements.get(face.nodeId)).filter(Boolean),
+    attachments: transformed.attachments
   };
 };

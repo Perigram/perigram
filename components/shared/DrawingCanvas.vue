@@ -29,12 +29,25 @@ const props = defineProps({
   layerMapping: { type: Object, default: () => ({}) },
   showLayerPanel: { type: Boolean, default: false },
   selectedDesignerFaceId: { type: String, default: null },
+  designerSelectableWorkpieceIds: { type: Array, default: null },
+  showDesignerWorkpieceContext: { type: Boolean, default: false },
   visibleLayerNames: { type: Array, default: null },
   defaultPen: { type: Object, default: () => DEFAULT_DRAWING_PEN },
   highlightedExtrusionIndex: { type: Number, default: null }
 });
 
-const emit = defineEmits(['ready', 'error', 'layer-toggle', 'designer-action', 'designer-face-select', 'designer-fold-select']);
+const emit = defineEmits([
+  'ready',
+  'error',
+  'layer-toggle',
+  'designer-action',
+  'designer-face-select',
+  'designer-fold-select',
+  'designer-face-command',
+  'designer-point-edit',
+  'designer-section-edit',
+  'designer-fold-angle-edit'
+]);
 
 const standardsStore = useLayerStandardsStore();
 const pensStore = usePenTemplatesStore();
@@ -52,6 +65,8 @@ const panStart = ref({ x: 0, y: 0 });
 const hoveredEdge = ref(null);
 const hoveredFoldEdge = ref(null);
 const hoveredFaceId = ref(null);
+const activeSectionDrag = ref(null);
+let faceHoverClearTimer = null;
 
 const isDesigner = computed(() => props.mode === 'designer');
 const isViewer = computed(() => props.mode === 'viewer' || isDesigner.value);
@@ -102,7 +117,27 @@ const visibleDrawingLayers = computed(() => {
   if (!hasLayers.value) return [];
   return drawing.value.layers.filter(layer => visibleLayerSelection.value.includes(layer.name));
 });
+const designerSectionLayerCode = computed(() => (
+  drawing.value?.designerSections?.standardCode ||
+  drawing.value?.designerSections?.layerName ||
+  null
+));
+const hasVisibleDesignerSectionLayer = computed(() => {
+  const code = designerSectionLayerCode.value;
+  return Boolean(code) && visibleDrawingLayers.value.some(layer => (
+    layer.name === code ||
+    layer.standardCode === code ||
+    layer.role === 'section'
+  ));
+});
 const viewBoxValue = computed(() => `${viewBox.value.x} ${viewBox.value.y} ${viewBox.value.width} ${viewBox.value.height}`);
+const canvasAspectClass = computed(() => {
+  if (!['thumbnail', 'card'].includes(props.mode)) return '';
+  return viewBox.value.height > viewBox.value.width * 1.15 ? 'aspect-[3/4]' : 'aspect-[5/3]';
+});
+const canvasFrameClass = computed(() => (
+  ['thumbnail', 'card'].includes(props.mode) ? 'w-full' : 'h-full w-full'
+));
 const displayStrokeWidth = (weight, fallback = 1.5) => {
   const numericWeight = Number(weight);
   if (!Number.isFinite(numericWeight) || numericWeight <= 0) return fallback;
@@ -135,7 +170,17 @@ const fetchText = async (url) => {
 const sourceLayers = (source) => {
   const geometry = source?.data?.geometry || source?.geometry || source || {};
   const preview = geometry.preview || geometry.data || geometry;
-  return Array.isArray(preview.layers) ? preview.layers : [];
+  const layers = Array.isArray(preview.layers) ? preview.layers : [];
+  const layerData = Array.isArray(source?.data?.layerData)
+    ? source.data.layerData
+    : (Array.isArray(source?.data?.geometry?.data?.layerData) ? source.data.geometry.data.layerData : []);
+  return [
+    ...layers,
+    ...layerData.map(layer => ({
+      name: layer.layer || layer.name,
+      standardCode: layer.standardCode || layer.code || layer.layer || layer.name
+    }))
+  ];
 };
 
 const sourceHasStandardCodes = (source) => (
@@ -216,11 +261,14 @@ const refresh = async () => {
   try {
     const nextDrawing = await resolveDrawing();
     if (token !== resolveToken) return;
+    const previousViewBox = drawing.value?.viewBox;
     drawing.value = nextDrawing;
     if (!isLayerVisibilityControlled.value) {
       visibleLayers.value = nextDrawing?.layers?.map(layer => layer.name) || [];
     }
-    viewBox.value = parseViewBox(nextDrawing?.viewBox);
+    if (!previousViewBox || previousViewBox !== nextDrawing?.viewBox) {
+      viewBox.value = parseViewBox(nextDrawing?.viewBox);
+    }
     emit('ready', nextDrawing);
   } catch (err) {
     if (token !== resolveToken) return;
@@ -261,6 +309,26 @@ const pathOpacity = (path) => {
   if (path.extrusionIndex === props.highlightedExtrusionIndex) return path.highlightedOpacity || path.opacity || null;
   return path.opacity || null;
 };
+const pathFillRule = (path) => {
+  if (typeof path === 'string') return null;
+  return path.fillRule || path.fillrule || null;
+};
+const designerControlForPath = (path) => (
+  typeof path === 'object' && path?.designerControl ? path.designerControl : null
+);
+const designerDimensionControls = computed(() => visibleDrawingLayers.value.flatMap(layer => (
+  (layer.paths || []).flatMap((path) => {
+    const control = pathKind(path) === 'text' ? designerControlForPath(path) : null;
+    const label = String(path?.text ?? control?.value ?? '');
+    if (!control || !label.trim()) return [];
+    return [{
+      ...control,
+      x: Number(path.x) || 0,
+      y: Number(path.y) || 0,
+      label
+    }];
+  })
+)));
 
 const getPointFromEvent = (event) => {
   if (!svgElement.value) return null;
@@ -314,6 +382,16 @@ const handleMouseDown = (event) => {
 };
 
 const handleMouseMove = (event) => {
+  if (activeSectionDrag.value) {
+    const point = getPointFromEvent(event);
+    if (!point) return;
+    requestDesignerSectionEdit(
+      activeSectionDrag.value,
+      activeSectionDrag.value.orientation === 'horizontal' ? -point.y : point.x
+    );
+    event.preventDefault();
+    return;
+  }
   if (!isPanning.value || !svgElement.value) return;
   const dx = (event.clientX - panStart.value.x) * (viewBox.value.width / svgElement.value.clientWidth);
   const dy = (event.clientY - panStart.value.y) * (viewBox.value.height / svgElement.value.clientHeight);
@@ -323,12 +401,15 @@ const handleMouseMove = (event) => {
 
 const handleMouseUp = () => {
   isPanning.value = false;
+  activeSectionDrag.value = null;
 };
 
 const handleCanvasMouseLeave = () => {
   handleMouseUp();
   hoveredEdge.value = null;
   hoveredFoldEdge.value = null;
+  if (faceHoverClearTimer) window.clearTimeout(faceHoverClearTimer);
+  faceHoverClearTimer = null;
   hoveredFaceId.value = null;
 };
 
@@ -377,11 +458,87 @@ const requestDesignerFaceSelect = (face) => {
   });
 };
 
+const screenPointForCanvasPoint = (x, y, event = null) => {
+  if (event) return clampMenuPoint(event.clientX, event.clientY);
+  try {
+    const matrix = svgElement.value?.getScreenCTM?.();
+    if (svgElement.value && matrix) {
+      const point = svgElement.value.createSVGPoint();
+      point.x = x;
+      point.y = y;
+      const screenPoint = point.matrixTransform(matrix);
+      return clampMenuPoint(screenPoint.x, screenPoint.y);
+    }
+  } catch {
+    // Canvas coordinates are still enough for fallback placement.
+  }
+  return clampMenuPoint(x, y);
+};
+
+const requestDesignerFaceCommand = (face, command, event = null) => {
+  emit('designer-face-command', {
+    type: 'face-command',
+    command,
+    face,
+    ...screenPointForCanvasPoint(face.center?.x || 0, face.center?.y || 0, event)
+  });
+};
+
+const requestDesignerPointEdit = (control, event = null) => {
+  emit('designer-point-edit', {
+    type: 'point-edit',
+    control,
+    ...screenPointForCanvasPoint(control.x, control.y, event)
+  });
+};
+
+const requestDesignerSectionEdit = (section, value) => {
+  emit('designer-section-edit', {
+    type: 'section-edit',
+    section,
+    value
+  });
+};
+
+const startDesignerSectionDrag = (section, event) => {
+  activeSectionDrag.value = section;
+  const point = getPointFromEvent(event);
+  if (point) {
+    requestDesignerSectionEdit(
+      section,
+      section.orientation === 'horizontal' ? -point.y : point.x
+    );
+  }
+  event.preventDefault();
+};
+
 const requestDesignerFoldSelect = (fold) => {
   emit('designer-fold-select', {
     type: 'select-fold',
     fold
   });
+};
+
+const requestDesignerFoldAngleEdit = (fold, event = null) => {
+  emit('designer-fold-angle-edit', {
+    type: 'fold-angle-edit',
+    fold,
+    ...screenPointForCanvasPoint(fold.midX, fold.midY, event)
+  });
+};
+
+const setDesignerFaceHover = (nodeId) => {
+  if (faceHoverClearTimer) window.clearTimeout(faceHoverClearTimer);
+  faceHoverClearTimer = null;
+  hoveredFaceId.value = nodeId;
+};
+
+const scheduleDesignerFaceHoverClear = (nodeId) => {
+  if (faceHoverClearTimer) window.clearTimeout(faceHoverClearTimer);
+  faceHoverClearTimer = window.setTimeout(() => {
+    if (hoveredFaceId.value === nodeId) hoveredFaceId.value = null;
+    faceHoverClearTimer = null;
+  }, 40);
 };
 
 const isDesignerFaceActive = (face) => (
@@ -400,15 +557,77 @@ const isDesignerFoldActive = (fold, index) => (
   fold?.foldNodeId === props.selectedDesignerFaceId
 );
 
+const isDesignerDimensionActive = (control) => (
+  control?.nodeId === hoveredFaceId.value ||
+  control?.nodeId === props.selectedDesignerFaceId
+);
+
+const visibleDesignerDimensionControls = computed(() => (
+  designerDimensionControls.value.filter(isDesignerDimensionActive)
+));
+
+const selectableDesignerWorkpieceIds = computed(() => (
+  Array.isArray(props.designerSelectableWorkpieceIds)
+    ? new Set(props.designerSelectableWorkpieceIds.filter(Boolean))
+    : null
+));
+
+const isDesignerFaceSelectable = (face) => (
+  !selectableDesignerWorkpieceIds.value ||
+  selectableDesignerWorkpieceIds.value.has(face?.workpieceId)
+);
+
+const visibleDesignerFaces = computed(() => (
+  (drawing.value?.designerFaces || []).filter(isDesignerFaceSelectable)
+));
+
+const visibleDesignerAttachmentMarkers = computed(() => (
+  props.showDesignerWorkpieceContext && !props.selectedDesignerFaceId
+    ? drawing.value?.designerAttachmentMarkers || []
+    : []
+));
+
+const sectionHandleCursor = (section) => (
+  section?.orientation === 'horizontal' ? 'cursor-row-resize' : 'cursor-col-resize'
+);
+
+const controlValueLabel = (value) => {
+  const text = String(value ?? '');
+  return text.length > 5 ? `${text.slice(0, 4)}...` : text;
+};
+
+const faceInlineControls = (face) => face.offsetControls || [];
+
+const controlChipWidth = (control) => {
+  const text = controlValueLabel(control.value);
+  return Math.max(26, Math.min(48, text.length * 6 + 14));
+};
+
+const controlChipRect = (control) => {
+  const width = controlChipWidth(control);
+  return { x: -width / 2, y: -8, width };
+};
+
+const dimensionControlWidth = (control) => {
+  const text = String(control?.label || control?.value || '');
+  return Math.max(34, Math.min(72, text.length * 7 + 18));
+};
+
+const dimensionControlRect = (control) => {
+  const width = dimensionControlWidth(control);
+  return { x: -width / 2, y: -10, width };
+};
+
 onBeforeUnmount(() => {
   resolveToken += 1;
+  if (faceHoverClearTimer) window.clearTimeout(faceHoverClearTimer);
 });
 </script>
 
 <template>
   <div
-    class="relative flex h-full w-full overflow-hidden rounded-ui border border-content-border bg-subtle"
-    :class="mode === 'thumbnail' || mode === 'card' ? 'aspect-[5/3]' : ''"
+    class="relative flex overflow-hidden rounded-ui border border-content-border bg-subtle"
+    :class="[canvasFrameClass, canvasAspectClass]"
   >
     <div v-if="loading" class="flex h-full w-full items-center justify-center">
       <ProgressSpinner class="h-8 w-8" />
@@ -529,6 +748,7 @@ onBeforeUnmount(() => {
                 :text-anchor="path.textAnchor || 'middle'"
                 :dominant-baseline="path.dominantBaseline || 'middle'"
                 :transform="path.transform || null"
+                pointer-events="none"
                 stroke="none"
                 class="select-none"
               >
@@ -540,6 +760,7 @@ onBeforeUnmount(() => {
                 :fill="pathFill(path, layer)"
                 :stroke="pathStroke(path, layer)"
                 :opacity="pathOpacity(path)"
+                :fill-rule="pathFillRule(path)"
                 vector-effect="non-scaling-stroke"
               />
             </template>
@@ -547,7 +768,7 @@ onBeforeUnmount(() => {
 
           <g v-if="isDesigner">
             <path
-              v-for="face in drawing.designerFaces || []"
+              v-for="face in visibleDesignerFaces"
               :key="`face-hit-${face.nodeId}`"
               :d="face.d"
               fill="currentColor"
@@ -557,10 +778,37 @@ onBeforeUnmount(() => {
               pointer-events="fill"
               vector-effect="non-scaling-stroke"
               class="cursor-pointer"
-              @mouseenter="hoveredFaceId = face.nodeId"
-              @mouseleave="hoveredFaceId = null"
+              @mouseenter="setDesignerFaceHover(face.nodeId)"
+              @mouseleave="scheduleDesignerFaceHoverClear(face.nodeId)"
               @click.stop.prevent="requestDesignerFaceSelect(face)"
             />
+
+            <g v-if="visibleDesignerAttachmentMarkers.length" pointer-events="none">
+              <g
+                v-for="marker in visibleDesignerAttachmentMarkers"
+                :key="marker.id"
+                :transform="`translate(${marker.x}, ${marker.y})`"
+                class="select-none"
+              >
+                <circle
+                  r="7"
+                  fill="currentColor"
+                  :fill-opacity="marker.active ? 0.92 : 0.36"
+                />
+                <circle
+                  r="11"
+                  fill="none"
+                  stroke="currentColor"
+                  :stroke-opacity="marker.active ? 0.7 : 0.24"
+                  stroke-width="1.2"
+                  vector-effect="non-scaling-stroke"
+                />
+                <text text-anchor="middle" dominant-baseline="middle" class="fill-muted-color text-[9px]">
+                  {{ marker.label }}
+                </text>
+              </g>
+            </g>
+
             <g v-for="(fold, index) in drawing.designerFoldEdges || []" :key="`fold-edge-${index}`">
               <line
                 :x1="fold.x1"
@@ -583,14 +831,32 @@ onBeforeUnmount(() => {
                 class="cursor-pointer select-none"
                 @mouseenter="hoveredFoldEdge = index"
                 @mouseleave="hoveredFoldEdge = null"
-                @click.stop.prevent="requestDesignerFoldSelect(fold)"
+                @click.stop.prevent="requestDesignerFoldAngleEdit(fold, $event)"
               >
-                <rect :x="-28" :y="-10" :width="56" :height="20" rx="10" fill="currentColor" class="opacity-85" />
+                <rect :x="-22" :y="-10" :width="44" :height="20" rx="10" fill="currentColor" class="opacity-90" />
                 <text text-anchor="middle" dominant-baseline="middle" class="fill-muted-color text-xs">
                   {{ fold.label || fold.angle }}
                 </text>
               </g>
             </g>
+
+            <line
+              v-for="section in hasVisibleDesignerSectionLayer ? (drawing.designerSections?.handles || []) : []"
+              :key="`section-handle-hit-${section.orientation}`"
+              :x1="section.x1"
+              :y1="section.y1"
+              :x2="section.x2"
+              :y2="section.y2"
+              stroke="currentColor"
+              opacity="0.001"
+              stroke-width="22"
+              stroke-linecap="round"
+              pointer-events="stroke"
+              vector-effect="non-scaling-stroke"
+              :class="sectionHandleCursor(section)"
+              @mousedown.stop.prevent="startDesignerSectionDrag(section, $event)"
+            />
+
             <g v-for="(edge, index) in drawing.designerEdges || []" :key="`edge-${index}`">
               <line
                 :x1="edge.x1"
@@ -621,13 +887,82 @@ onBeforeUnmount(() => {
                 </text>
               </g>
             </g>
+
+            <g
+              v-for="control in visibleDesignerDimensionControls"
+              :key="`dimension-control-${control.nodeId}-${control.key}-${control.dimensionKind || ''}`"
+              :transform="`translate(${control.x}, ${control.y})`"
+              class="cursor-pointer select-none"
+              @mouseenter="setDesignerFaceHover(control.nodeId)"
+              @mouseleave="scheduleDesignerFaceHoverClear(control.nodeId)"
+              @click.stop.prevent="requestDesignerPointEdit(control, $event)"
+            >
+              <rect
+                :x="dimensionControlRect(control).x"
+                :y="dimensionControlRect(control).y"
+                :width="dimensionControlRect(control).width"
+                height="20"
+                rx="10"
+                fill="currentColor"
+                class="opacity-90"
+              />
+              <text text-anchor="middle" dominant-baseline="middle" class="fill-muted-color text-xs">
+                {{ control.label || control.value }}
+              </text>
+            </g>
+
+            <template v-for="face in drawing.designerFaces || []" :key="`face-controls-${face.nodeId}`">
+              <g
+                v-if="face.nodeId === selectedDesignerFaceId"
+                :transform="`translate(${face.center?.x || 0}, ${face.center?.y || 0})`"
+                class="select-none"
+              >
+                <g
+                  class="cursor-pointer"
+                  @click.stop.prevent="requestDesignerFaceCommand(face, 'menu', $event)"
+                >
+                  <rect x="-14" y="-14" width="28" height="28" rx="14" fill="currentColor" class="opacity-90" />
+                  <text y="-3" text-anchor="middle" dominant-baseline="middle" class="fill-muted-color text-sm">
+                    ...
+                  </text>
+                </g>
+              </g>
+              <template v-if="face.nodeId === selectedDesignerFaceId">
+                <g
+                  v-for="control in faceInlineControls(face)"
+                  :key="`${face.nodeId}-${control.key}`"
+                  :transform="`translate(${control.x}, ${control.y})`"
+                  class="cursor-pointer select-none"
+                  @click.stop.prevent="requestDesignerPointEdit(control, $event)"
+                >
+                  <rect
+                    :x="controlChipRect(control).x"
+                    :y="controlChipRect(control).y"
+                    :width="controlChipRect(control).width"
+                    height="16"
+                    rx="8"
+                    fill="currentColor"
+                    class="opacity-90"
+                  />
+                  <text
+                    :x="controlChipRect(control).x + controlChipRect(control).width / 2"
+                    :y="controlChipRect(control).y + 8"
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    class="fill-muted-color text-[10px]"
+                  >
+                    {{ controlValueLabel(control.value) }}
+                  </text>
+                </g>
+              </template>
+            </template>
           </g>
         </svg>
 
         <div v-if="isViewer" class="absolute bottom-4 right-4 flex gap-2">
-          <Button icon="pi pi-search-minus" rounded severity="secondary" @click="zoomOut" />
-          <Button icon="pi pi-refresh" rounded severity="secondary" @click="resetView" />
-          <Button icon="pi pi-search-plus" rounded severity="secondary" @click="zoomIn" />
+          <Button icon="pi pi-search-minus" rounded severity="secondary" :aria-label="$t('drawing.zoomOut')" @click="zoomOut" />
+          <Button icon="pi pi-refresh" rounded severity="secondary" :aria-label="$t('drawing.resetView')" @click="resetView" />
+          <Button icon="pi pi-search-plus" rounded severity="secondary" :aria-label="$t('drawing.zoomIn')" @click="zoomIn" />
         </div>
       </div>
     </template>

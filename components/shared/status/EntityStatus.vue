@@ -14,7 +14,7 @@ import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import StatusLocation from '~/components/shared/status/StatusLocation.vue';
 import { useStatus } from '~/composables/useBlocks';
 import { useStatusController } from '~/composables/useStatusController';
-import { createStatusAction, getWorkflowStatusActions } from '~/utils/status-actions.js';
+import { createStatusAction, getWorkflowStatusActions, hasWorkflow } from '~/utils/status-actions.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -44,7 +44,8 @@ const toggle = (event) => {
 
 const entityId = computed(() => props.entity?._id || props.entity?.identity?.uid || props.entity?.identity?.slug);
 const localWorkflows = computed(() => props.workflows || unref(providedWorkflows) || null);
-const useServerActions = computed(() => props.showActions && !localWorkflows.value);
+const hasRegisteredWorkflow = computed(() => hasWorkflow(props.entityType, localWorkflows.value || undefined));
+const useServerActions = computed(() => props.showActions && !localWorkflows.value && hasRegisteredWorkflow.value);
 const useLocalTransition = computed(() => Boolean(localWorkflows.value && localTransitionHandler));
 
 // Available transitions (to be fetched or derived from a machine registry if available)
@@ -152,13 +153,13 @@ const runAction = async (action) => {
 <template>
   <div
     v-if="props.entity"
-    class="entity-status min-w-0 max-w-full"
+    class="entity-status inline-flex min-w-0 max-w-full justify-end"
     data-entity-card-interactive="true"
     @click.stop
   >
     <template v-if="!isExpanded">
-      <div class="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-1.5">
-        <StatusBadge :state="state" class="cursor-pointer shrink-0 max-w-full" @click.stop="toggle" />
+      <div class="flex min-w-0 max-w-48 flex-wrap items-center justify-end gap-1.5 sm:max-w-56">
+        <StatusBadge :state="state" class="cursor-pointer min-w-0 max-w-full shrink" @click.stop="toggle" />
         <Button
           v-for="action in inlineActions"
           :key="action.to || action.label"
@@ -217,7 +218,7 @@ const runAction = async (action) => {
     </template>
 
     <template v-else>
-        <div class="flex flex-col gap-2 min-w-0">
+        <div class="flex flex-col gap-2 min-w-0 max-w-full">
             <div class="flex flex-wrap items-center gap-2 min-w-0">
                 <StatusBadge :state="state" class="max-w-full" />
             </div>

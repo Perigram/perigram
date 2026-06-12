@@ -43,14 +43,77 @@ describe('drawing preview contract', () => {
     const drawing = normalizeGeometryDrawing({
       viewBox: '0 0 10 10',
       designerFaces: [{ nodeId: 'face_1', d: 'M 0 0 L 10 0 L 10 10 Z' }],
-      designerFoldEdges: [{ foldNodeId: 'face_2', angle: '90deg' }],
+      designerFoldEdges: [{ foldNodeId: 'face_2', angle: '90' }],
+      designerSections: { handles: [{ orientation: 'vertical' }], segments: [{ orientation: 'vertical', d: 'M 5 0 L 5 10' }] },
       designerEdges: [{ nodeId: 'face_1', edgeIndex: 0 }],
+      foldedPreview: { faces: [{ nodeId: 'face_1' }], folds: [] },
       layers: [{ name: 'geometry', paths: ['M 0 0 L 10 0'] }]
     });
 
     expect(drawing.designerFaces).toEqual([{ nodeId: 'face_1', d: 'M 0 0 L 10 0 L 10 10 Z' }]);
-    expect(drawing.designerFoldEdges).toEqual([{ foldNodeId: 'face_2', angle: '90deg' }]);
+    expect(drawing.designerFoldEdges).toEqual([{ foldNodeId: 'face_2', angle: '90' }]);
+    expect(drawing.designerSections).toEqual({ handles: [{ orientation: 'vertical' }], segments: [{ orientation: 'vertical', d: 'M 5 0 L 5 10' }] });
     expect(drawing.designerEdges).toEqual([{ nodeId: 'face_1', edgeIndex: 0 }]);
+    expect(drawing.foldedPreview).toEqual({ faces: [{ nodeId: 'face_1' }], folds: [] });
+  });
+
+  it('normalizes polygon geometry with holes when no layers are stored', () => {
+    const drawing = normalizeGeometryDrawing({
+      data: {
+        geometry: {
+          data: {
+            polygon: {
+              outer: [[0, 0], [100, 0], [100, 50], [0, 50]],
+              inner: [[[10, 10], [20, 10], [20, 20], [10, 20]]]
+            }
+          }
+        }
+      }
+    });
+
+    expect(drawing.viewBox).toBe('-4 -4 108 58');
+    expect(drawing.layers).toHaveLength(1);
+    expect(drawing.layers[0].paths[0]).toMatchObject({
+      fill: 'layer',
+      stroke: 'layer',
+      fillRule: 'evenodd'
+    });
+    expect(drawing.layers[0].paths[0].d).toContain('M 0 0 L 100 0 L 100 50 L 0 50 L 0 0 Z');
+    expect(drawing.layers[0].paths[0].d).toContain('M 10 10 L 20 10 L 20 20 L 10 20 L 10 10 Z');
+  });
+
+  it('normalizes baked cassette layerData into semantic drawing layers', () => {
+    const drawing = normalizeGeometryDrawing({
+      data: {
+        layerData: [
+          {
+            layer: 'cut.outer',
+            coordinates: [[0, 0, 0], [100, 0, 0], [100, 50, 0], [0, 50, 0], [0, 0, 0]]
+          },
+          {
+            layer: 'fold.route',
+            coordinates: [[10, 0, 0], [10, 50, 0]]
+          },
+          {
+            layer: 'code.cassette_mark',
+            geometry: { type: 'text', point: [12, 12], text: 'T-1', fontSize: 8 }
+          }
+        ]
+      }
+    });
+
+    expect(drawing.viewBox).toBe('-4 -4 108 58');
+    expect(drawing.layers.map(layer => layer.standardCode)).toEqual(['cut.outer', 'fold.route', 'code.cassette_mark']);
+    expect(drawing.layers[0].paths[0]).toMatchObject({
+      d: 'M 0 0 L 100 0 L 100 50 L 0 50 L 0 0 Z',
+      stroke: 'layer'
+    });
+    expect(drawing.layers[2].paths[0]).toMatchObject({
+      kind: 'text',
+      text: 'T-1',
+      x: 12,
+      y: 12
+    });
   });
 
   it('resolves pens from explicit mapping before layer standard metadata', () => {
@@ -103,5 +166,28 @@ describe('drawing preview contract', () => {
     expect(drawing.layers[0].dasharray).toBe('5,5');
     expect(drawing.layers[0].standardId).toBe('fold-standard');
     expect(drawing.layers[0].penId).toBe('fold-pen');
+  });
+
+  it('preserves explicit layer styling when a standard pen is missing', () => {
+    const drawing = applyLayerPens({
+      viewBox: '0 0 10 10',
+      layers: [{
+        name: 'contour.cassette_face',
+        standardCode: 'contour.cassette_face',
+        color: '#2563eb',
+        weight: 2,
+        paths: ['M 0 0 L 10 0']
+      }]
+    }, {
+      standards: [
+        { _id: 'face-standard', data: { code: 'contour.cassette_face', defaultPenId: 'missing-pen' } }
+      ],
+      pens: []
+    });
+
+    expect(drawing.layers[0].color).toBe('#2563eb');
+    expect(drawing.layers[0].weight).toBe(2);
+    expect(drawing.layers[0].standardId).toBe('face-standard');
+    expect(drawing.layers[0].penId).toBeNull();
   });
 });

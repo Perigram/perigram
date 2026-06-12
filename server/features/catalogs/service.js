@@ -28,7 +28,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     }
   });
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, catalog.lineage, 'catalogs', 'admin')) {
+  if (!canCreateCatalog({ catalog, data, userPermissions })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -36,6 +36,13 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
   const createdRaw = await repository.create(catalog);
   return new Catalog(createdRaw);
+}
+
+function canCreateCatalog({ catalog, data = {}, userPermissions }) {
+  const auth = { memberships: userPermissions.memberships };
+  if (hasLineagePermission(auth, catalog.lineage, 'catalogs', 'admin')) return true;
+  if (data.source !== 'WAREHOUSE_STOCK') return false;
+  return hasLineagePermission(auth, catalog.lineage, 'materials', 'write');
 }
 
 export async function getById(uid) {

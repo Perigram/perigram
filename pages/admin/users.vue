@@ -45,8 +45,8 @@
             <Column :header="$t('common.actions.title')" class="text-right">
                 <template #body="slotProps">
                     <div class="flex justify-end gap-2">
-                        <Button icon="pi pi-pencil" text @click="editUser(slotProps.data)" />
-                        <Button icon="pi pi-shield" text severity="warn" @click="editPermissions(slotProps.data)" />
+                        <Button icon="pi pi-pencil" text :aria-label="$t('common.edit')" @click="editUser(slotProps.data)" />
+                        <Button icon="pi pi-shield" text severity="warn" :aria-label="$t('auth.permissions')" @click="editPermissions(slotProps.data)" />
                     </div>
                 </template>
             </Column>

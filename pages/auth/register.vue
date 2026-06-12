@@ -1,6 +1,6 @@
 <template>
-    <div class="flex items-center justify-center min-h-screen">
-        <div class="w-full max-w-md p-8 border rounded">
+    <div class="flex min-h-screen items-center justify-center bg-[var(--ck-page-background)] p-4">
+        <Panel class="w-full max-w-md">
             <div class="flex flex-col items-center gap-2 mb-8">
                 <i class="pi pi-box text-4xl"></i>
                 <h1>CutKit</h1>
@@ -48,7 +48,7 @@
                 <span>{{ $t('auth.hasAccount') }} </span>
                 <NuxtLink to="/auth/login">{{ $t('auth.login') }}</NuxtLink>
             </div>
-        </div>
+        </Panel>
 
         <!-- Create Organization Dialog -->
         <StandardDialog v-model:visible="showCreateOrg" :header="$t('auth.createOrg')" size="sm">
@@ -86,6 +86,7 @@ import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
+import Panel from 'primevue/panel';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { useEntity } from '~/composables/useEntity';
 import { namedSelectOptions } from '~/utils/selectOptions';

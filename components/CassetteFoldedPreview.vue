@@ -89,6 +89,14 @@ const visibleFaces = computed(() => {
   if (!props.isolatedWorkpieceId) return folded.value.faces || [];
   return (folded.value.faces || []).filter(face => face.workpieceId === props.isolatedWorkpieceId);
 });
+const visibleAttachments = computed(() => {
+  const attachments = folded.value.attachments || [];
+  if (!props.isolatedWorkpieceId) return attachments;
+  return attachments.filter(attachment => (
+    attachment.sourceWorkpieceId === props.isolatedWorkpieceId ||
+    attachment.targetWorkpieceId === props.isolatedWorkpieceId
+  ));
+});
 
 let animationFrame = 0;
 
@@ -109,6 +117,12 @@ const materialColor = (face) => {
 const edgeColor = (face) => {
   const hue = hueForWorkpiece(face.workpieceId || face.nodeId) / 360;
   return new THREE.Color().setHSL(hue, 0.62, 0.24);
+};
+
+const attachmentColor = (attachment) => {
+  if (attachment.status === 'impossible') return new THREE.Color(0xdc2626);
+  if (attachment.status === 'unresolved') return new THREE.Color(0xf59e0b);
+  return new THREE.Color(0x2563eb);
 };
 
 const toVector3 = (point = [0, 0, 0]) => new THREE.Vector3(
@@ -172,6 +186,20 @@ const createFaceMesh = (face) => {
   return { group, mesh };
 };
 
+const createAttachmentLine = (attachment) => {
+  if (!attachment.sourcePoint || !attachment.targetPoint) return null;
+  const geometry = new THREE.BufferGeometry().setFromPoints([
+    toVector3(attachment.sourcePoint),
+    toVector3(attachment.targetPoint)
+  ]);
+  const line = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({
+    color: attachmentColor(attachment),
+    depthTest: false
+  }));
+  line.raycast = () => {};
+  return line;
+};
+
 const updateSize = () => {
   const viewport = viewportRef.value;
   if (!viewport || !renderer.value || !camera.value) return;
@@ -213,6 +241,10 @@ const updateScene = () => {
     if (!entry) continue;
     group.add(entry.group);
     meshes.push(entry.mesh);
+  }
+  for (const attachment of visibleAttachments.value) {
+    const line = createAttachmentLine(attachment);
+    if (line) group.add(line);
   }
   scene.value.add(group);
   faceGroup.value = group;
@@ -297,7 +329,7 @@ const selectMesh = (event) => {
 onMounted(setupRenderer);
 
 watch(
-  () => [visibleFaces.value, props.selectedFaceId, props.selectedWorkpieceId],
+  () => [visibleFaces.value, visibleAttachments.value, props.selectedFaceId, props.selectedWorkpieceId],
   () => {
     if (!renderer.value) {
       setupRenderer();

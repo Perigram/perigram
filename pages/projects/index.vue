@@ -16,34 +16,54 @@
             </template>
         </StateBlock>
 
-        <DataView
-            v-else
-            :value="filteredProjects"
-            layout="grid"
-            :paginator="filteredProjects.length > 12"
-            :rows="12"
-            dataKey="_id"
-            :loading="loading"
-        >
-            <template #grid="slotProps">
-                <ResponsiveGrid>
-                    <ProjectCard
-                        v-for="project in slotProps.items"
-                        :key="project._id"
-                        :project="project"
-                        variant="card"
-                        @view="navigateToProject"
-                        @edit="editProject"
-                        @delete="confirmDeleteProject"
-                    />
-                </ResponsiveGrid>
-            </template>
-        </DataView>
+        <div v-else class="flex flex-col gap-4">
+            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <InputText
+                    v-model="searchQuery"
+                    :placeholder="$t('common.search')"
+                    class="w-full md:max-w-sm"
+                />
+                <Select
+                    v-model="sortBy"
+                    :options="sortOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    class="w-full md:w-56"
+                />
+            </div>
+
+            <StateBlock v-if="filteredProjects.length === 0" :message="$t('common.noResults')" icon="pi pi-search" />
+
+            <DataView
+                v-else
+                :value="filteredProjects"
+                layout="grid"
+                :paginator="filteredProjects.length > 12"
+                :rows="12"
+                dataKey="_id"
+                :loading="loading"
+            >
+                <template #grid="slotProps">
+                    <ResponsiveGrid>
+                        <ProjectCard
+                            v-for="project in slotProps.items"
+                            :key="project._id"
+                            :project="project"
+                            variant="card"
+                            :renaming="renamingProjectId === project._id"
+                            @view="navigateToProject"
+                            @rename="renameProject"
+                            @delete="confirmDeleteProject"
+                        />
+                    </ResponsiveGrid>
+                </template>
+            </DataView>
+        </div>
 
         <!-- Create/Edit Project Dialog -->
         <StandardDialog
             v-model:visible="showCreateDialog"
-            :header="editingProject ? $t('project.edit') : $t('project.create')"
+            :header="$t('project.create')"
             size="sm"
         >
             <div class="py-4">
@@ -66,12 +86,13 @@
                     @click="closeDialog"
                 />
                 <Button
-                    :label="editingProject ? $t('common.save') : $t('common.create')"
+                    :label="$t('common.create')"
                     :loading="creating"
-                    @click="editingProject ? saveProject() : createProject()"
+                    @click="createProject"
                 />
             </template>
         </StandardDialog>
+        <ConfirmDialog />
     </StandardPage>
 </template>
 
@@ -80,6 +101,8 @@
     import DataView from 'primevue/dataview'
     import Button from 'primevue/button'
     import InputText from 'primevue/inputtext'
+    import Select from 'primevue/select'
+    import ConfirmDialog from 'primevue/confirmdialog'
     import ProjectCard from '~/components/entities/Project/ProjectCard.vue'
     import StandardDialog from '~/components/shared/StandardDialog.vue'
     import StandardPage from '~/components/shared/StandardPage.vue'
@@ -88,6 +111,7 @@
     import { useGlobalStore } from '~/stores/global'
     import { storeToRefs } from 'pinia'
     import { useToast } from 'primevue/usetoast'
+    import { useConfirm } from 'primevue/useconfirm'
     import { useEntity } from '~/composables/useEntity'
 
     definePageMeta({
@@ -99,28 +123,24 @@
     const router = useRouter()
     const globalStore = useGlobalStore()
     const toast = useToast()
+    const confirm = useConfirm()
     const { projectsList } = storeToRefs(globalStore)
     
     const projects = projectsList
     const loading = ref(true)
     const searchQuery = ref('')
     const sortBy = ref('date-desc')
-    const viewMode = ref('grid')
 
     const showCreateDialog = ref(false)
     const newProjectName = ref('')
     const creating = ref(false)
-    const editingProject = ref(null)
+    const renamingProjectId = ref(null)
 
     const sortOptions = computed(() => [
         { label: t('projects.sortNewest'), value: 'date-desc' },
         { label: t('projects.sortOldest'), value: 'date-asc' },
         { label: t('projects.sortNameAZ'), value: 'name-asc' },
         { label: t('projects.sortNameZA'), value: 'name-desc' },
-    ])
-
-    const viewModes = computed(() => [
-        { label: t('assets.viewModes.grid'), value: 'grid', icon: 'pi pi-th-large' },
     ])
 
     const filteredProjects = computed(() => {
@@ -168,53 +188,40 @@
         router.push(`/project/${slug}`)
     }
 
-    const editProject = (project) => {
-        editingProject.value = project
-        newProjectName.value = project.identity?.name || ''
-        showCreateDialog.value = true
-    }
-
     const closeDialog = () => {
         showCreateDialog.value = false
-        editingProject.value = null
         newProjectName.value = ''
     }
 
-    const saveProject = async () => {
-        if (!newProjectName.value.trim()) return
-        creating.value = true
+    const renameProject = async (project, name, close) => {
+        if (!name.trim()) return
+        renamingProjectId.value = project._id
         try {
-            const slug = editingProject.value.identity?.slug
+            const slug = project.identity?.slug
             const { update } = useEntity('project', slug)
-            await update({ name: newProjectName.value.trim() })
+            await update({ name: name.trim() })
             await globalStore.getProjects()
-            closeDialog()
+            close?.()
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('project.updated'), life: 3000 })
         } catch (error) {
             console.error('Failed to update project:', error)
             toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 })
         } finally {
-            creating.value = false
+            renamingProjectId.value = null
         }
     }
 
     const createProject = async () => {
         creating.value = true
         try {
-            const { create, update } = useEntity('project')
-            const newProject = await create({})
-
-            if (newProjectName.value.trim()) {
-                const slug = newProject.identity?.slug
-                const { update: updateNew } = useEntity('project', slug)
-                await updateNew({ name: newProjectName.value.trim() })
-            }
+            const { create } = useEntity('project')
+            const newProject = await create({ name: newProjectName.value.trim() || undefined })
 
             showCreateDialog.value = false
             newProjectName.value = ''
 
             await globalStore.getProjects()
-            const slug = newProject.identity?.slug
+            const slug = newProject.identity?.slug || newProject.identity?.uid
             router.push(`/project/${slug}`)
         } catch (error) {
             console.error('Failed to create project:', error)
@@ -225,17 +232,22 @@
     }
 
     const confirmDeleteProject = async (project) => {
-        if (confirm(t('project.confirmDelete'))) {
-            try {
-                const slug = project.identity?.slug
-                const { remove } = useEntity('project', slug)
-                await remove()
-                await globalStore.getProjects()
-                toast.add({ severity: 'success', summary: t('common.success'), detail: t('project.deleted'), life: 3000 })
-            } catch (error) {
-                console.error('Failed to delete project:', error)
-                toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 })
+        confirm.require({
+            message: t('project.confirmDelete'),
+            header: t('common.confirmation'),
+            icon: 'pi pi-exclamation-triangle',
+            accept: async () => {
+                try {
+                    const slug = project.identity?.slug
+                    const { remove } = useEntity('project', slug)
+                    await remove()
+                    await globalStore.getProjects()
+                    toast.add({ severity: 'success', summary: t('common.success'), detail: t('project.deleted'), life: 3000 })
+                } catch (error) {
+                    console.error('Failed to delete project:', error)
+                    toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 })
+                }
             }
-        }
+        })
     }
 </script>

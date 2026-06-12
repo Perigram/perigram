@@ -35,17 +35,21 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
     if (!queue.data?.job?.items || queue.data.job.items.length === 0) {
       throw createError({ statusCode: 400, message: 'Queue has no entries' });
     }
+    await transitionQueueIfState(queue._id, 'DRAFT', 'NESTING', auth, {
+      note: `Nesting started in ${settings.materialMode || 'VIRTUAL'} mode`
+    });
 
     const jobFiles = await buildJobFiles(queue, auth);
     const nestingSlug = `queue-${queue.data?.queueNumber ?? queue._id.toString().slice(-6)}-${generateRandomString(6)}`;
-    const params = {
-      height: settings.virtualLength || settings.height || 2440,
-      width: settings.virtualWidth || settings.width || 1220,
-      space: settings.spacing || settings.space || 5,
-      sheetCount: 1000,
-      sheet_polygon: settings.sheet_polygon || null,
-      inventoryItems: settings.inventoryItems || []
-    };
+    const materialPool = resolveNestingMaterialPool(settings, queue);
+    const params = resolveNestingParams({
+      ...settings,
+      materialPool
+    });
+    const nestingContext = resolveNestingContext({
+      ...settings,
+      materialPool
+    });
 
     const runNumber = await nestingRunsService.getNextRunNumber(queue._id);
     const runUid = generateRandomString(12);
@@ -53,30 +57,22 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
     const run = await nestingRunsService.create({
       identity: { uid: runUid, name: `Nesting run ${runNumber}`, serial: `RUN-${runNumber}` },
       runNumber,
-      materialMode: settings.materialMode || 'VIRTUAL',
-      params,
+      data: {
+        runNumber,
+        materialMode: nestingContext.materialMode,
+        params,
+        materialPool: nestingContext.materialPool
+      },
       origin: runOrigin,
       status: runOrigin,
       lineage: inheritLineage(queue, 'queue')
     }, auth.userId);
     const runId = toFlexibleId(run._id);
 
-    const sheetDesign = await sheetDesignsService.createFromRun(run, {
-      name: `${queue.identity?.name || 'Queue'} sheet design`,
-      specs: { width: params.width, length: params.height, area: (params.width * params.height) / 1000000 },
-      geometryData: {
-        viewBox: `0 0 ${params.width} ${params.height}`,
-        layers: [
-          { name: 'sheet', color: 'currentColor', weight: 2, paths: [`M0 0 H${params.width} V${params.height} H0 Z`] },
-          { name: 'nesting', color: 'var(--p-primary-color)', weight: 1.5, paths: ['M80 80 H520 V360 H80 Z', 'M620 80 H1040 V420 H620 Z'] }
-        ]
-      }
-    }, auth.userId);
     const taskRun = await createTaskRun('nesting.solve', {
       entities: {
         queue: queue._id?.toString(),
-        nestingRun: runId.toString(),
-        sheetDesign: sheetDesign._id.toString()
+        nestingRun: runId.toString()
       },
       parameters: params
     }, auth);
@@ -90,6 +86,7 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
       taskRunId: toFlexibleId(taskRun._id),
       files: jobFiles,
       params,
+      materialPool: nestingContext.materialPool,
       status: 'pending',
       createdAt: new Date(),
       ownerId: auth.userId
@@ -97,8 +94,7 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
 
     return {
       entities: [
-        { type: 'nesting_run', id: runId.toString() },
-        { type: 'sheet_design', id: sheetDesign._id.toString() }
+        { type: 'nesting_run', id: runId.toString() }
       ],
       jobs: [
         { type: 'task_run', id: taskRun._id.toString() },
@@ -108,8 +104,7 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
         nestingSlug,
         status: 'NESTING',
         taskRunId: taskRun._id.toString(),
-        runId: runId.toString(),
-        sheetDesignId: sheetDesign._id.toString()
+        runId: runId.toString()
       }
     };
   } finally {
@@ -117,18 +112,20 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
   }
 }
 
-async function buildJobFiles(queue, auth) {
+export async function buildJobFiles(queue, auth) {
   const jobFiles = [];
   for (const entry of queue.data.job.items) {
     try {
+      const entryParameters = entry.parameters || entry.dimensions || {};
       if (entry.type === 'PARAMETRIC') {
         const template = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth);
-        const bakedCassette = await bakeTemplateInstance(toFlexibleId(template._id), entry.parameters || {}, auth.userId);
+        const bakedCassette = await bakeTemplateInstance(toFlexibleId(template._id), entryParameters, auth.userId);
         jobFiles.push({
           cassetteId: bakedCassette._id.toString(),
           count: entry.quantity,
-          dimensions: entry.parameters || bakedCassette.data?.dimensions || {},
-          polygonParts: getPolygonParts(bakedCassette)
+          dimensions: hasEntries(entryParameters) ? entryParameters : bakedCassette.data?.dimensions || {},
+          polygonParts: getPolygonParts(bakedCassette),
+          layerData: getLayerData(bakedCassette)
         });
         continue;
       }
@@ -139,11 +136,24 @@ async function buildJobFiles(queue, auth) {
       }
       if (!item) throw createError({ statusCode: 400, message: `Cassette item ${entry.id} not found in any collection` });
 
+      if (isParametricTemplate(item)) {
+        const bakedCassette = await bakeTemplateInstance(toFlexibleId(item._id), entryParameters, auth.userId);
+        jobFiles.push({
+          cassetteId: bakedCassette._id.toString(),
+          count: entry.quantity,
+          dimensions: hasEntries(entryParameters) ? entryParameters : bakedCassette.data?.dimensions || {},
+          polygonParts: getPolygonParts(bakedCassette),
+          layerData: getLayerData(bakedCassette)
+        });
+        continue;
+      }
+
       jobFiles.push({
         cassetteId: item._id.toString(),
         count: entry.quantity,
-        dimensions: entry.parameters || item.data?.dimensions || item.data?.parameters || {},
-        polygonParts: getPolygonParts(item)
+        dimensions: hasEntries(entryParameters) ? entryParameters : item.data?.dimensions || item.data?.parameters || {},
+        polygonParts: getPolygonParts(item),
+        layerData: getLayerData(item)
       });
     } catch (error) {
       throw createError({ statusCode: 400, message: `Failed to process item ${entry.id}: ${error.message}` });
@@ -155,7 +165,6 @@ async function buildJobFiles(queue, auth) {
 export async function executeNestingSolveTask({ run, input, auth = {} }) {
   const queueId = input.entities?.queue;
   const runId = input.entities?.nestingRun;
-  const sheetDesignId = input.entities?.sheetDesign;
   const queue = await queuesService.getById(queueId);
   if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
 
@@ -167,16 +176,19 @@ export async function executeNestingSolveTask({ run, input, auth = {} }) {
   try {
     const jobFiles = job?.files?.length ? job.files : await buildJobFiles(queue, auth);
     const request = buildNestingWorkerRequest(jobFiles, input.parameters || {});
-    const result = await callNestingWorker(request);
+    const result = enrichNestingResult(await callNestingWorker(request), request);
     if (result.status === 'error') throw createError({ statusCode: 500, message: result.message || 'Nesting worker failed' });
 
-    const summary = summarizeNestingResult(result);
+    const summary = summarizeNestingResult(result, input.parameters || {});
     const currentRun = await nestingRunsRepository.findById(runId);
+    const sheetDesigns = await createSheetDesignsForLayouts(currentRun, result, summary, input.parameters || {}, auth);
+    const sheetDesignIds = sheetDesigns.map(design => design._id?.toString()).filter(Boolean);
     await nestingRunsRepository.updateById(runId, {
       data: {
         ...(currentRun?.data || {}),
         results: summary,
-        layoutData: result
+        layoutData: result,
+        sheetDesignIds
       }
     });
     await statusService.transition(
@@ -187,6 +199,10 @@ export async function executeNestingSolveTask({ run, input, auth = {} }) {
       createTransitionAuth(auth.userId || 'SYSTEM', 'SYSTEM'),
       { note: 'Nesting calculation completed', taskRunId: run._id.toString() }
     );
+    await transitionQueueIfState(queueId, 'NESTING', 'READY', { userId: 'SYSTEM', role: 'SYSTEM', system: true }, {
+      note: 'Nesting calculation completed',
+      runId
+    });
 
     if (job) {
       await nestingJobs.updateById(job._id, {
@@ -200,12 +216,12 @@ export async function executeNestingSolveTask({ run, input, auth = {} }) {
     return {
       entities: [
         { type: 'nesting_run', id: runId },
-        { type: 'sheet_design', id: sheetDesignId }
+        ...sheetDesignIds.map(id => ({ type: 'sheet_design', id }))
       ],
       data: {
         status: 'COMPLETE',
         runId,
-        sheetDesignId,
+        sheetDesignIds,
         results: summary
       }
     };
@@ -220,35 +236,280 @@ export async function executeNestingSolveTask({ run, input, auth = {} }) {
     }
     if (finalFailure) {
       await markRunError(runId, run?._id, auth, error);
+      await transitionQueueIfState(queueId, 'NESTING', 'DRAFT', { userId: 'SYSTEM', role: 'SYSTEM', system: true }, {
+        note: error.message || 'Nesting failed',
+        runId
+      });
     }
     throw error;
   }
 }
 
+async function transitionQueueIfState(queueId, fromState, toState, auth = {}, metadata = {}) {
+  const queue = await queuesService.getById(queueId);
+  if ((queue?.status?.state || 'DRAFT') !== fromState) return null;
+  const actor = auth.userId || 'SYSTEM';
+  const transitionAuth = auth.system
+    ? createTransitionAuth(actor, 'SYSTEM')
+    : createTransitionAuth(actor, auth);
+  return await statusService.transition('queue', queueId, toState, actor, transitionAuth, metadata);
+}
+
 export function buildNestingWorkerRequest(jobFiles, settings = {}) {
   const items = buildNestingItems(jobFiles);
   if (!items.length) throw createError({ statusCode: 400, message: 'No nestable cassette geometry found' });
+  const params = resolveNestingParams(settings);
   return {
     items,
-    params: {
-      width: settings.virtualWidth || settings.width || 1220,
-      height: settings.virtualLength || settings.height || 2440,
-      space: settings.spacing || settings.space || 5,
-      sheetCount: settings.sheetCount || 1000,
-      sheet_polygon: settings.sheet_polygon || null
-    }
+    params
   };
 }
 
-export function summarizeNestingResult(result = {}) {
+export function resolveNestingParams(settings = {}) {
+  const context = resolveNestingContext(settings);
+  return {
+    width: context.width,
+    height: context.height,
+    space: context.space,
+    sheetCount: context.sheetCount,
+    sheet_polygon: context.sheet_polygon
+  };
+}
+
+export function resolveNestingMaterialPool(settings = {}, queue = {}) {
+  return Array.isArray(settings.materialPool) && settings.materialPool.length
+    ? settings.materialPool
+    : queue.data?.job?.materialPool || [];
+}
+
+export function resolveNestingContext(settings = {}) {
+  const materialPool = Array.isArray(settings.materialPool) ? settings.materialPool : [];
+  const stockSources = materialPool.map(normalizeMaterialPoolSource).filter(source => source.width > 0 && source.height > 0 && source.available > 0);
+  const usesWarehouseStock = settings.materialMode === 'WAREHOUSE' || stockSources.length > 0;
+
+  if (usesWarehouseStock && !stockSources.length) {
+    throw createError({ statusCode: 400, message: 'Selected warehouse stock must include sheet dimensions' });
+  }
+
+  if (usesWarehouseStock) {
+    const sizeKeys = new Set(stockSources.map(source => `${source.width}x${source.height}`));
+    if (sizeKeys.size > 1) {
+      throw createError({ statusCode: 400, message: 'Selected warehouse stock must share one sheet size' });
+    }
+    const [source] = stockSources;
+    return {
+      width: source.width,
+      height: source.height,
+      space: settings.spacing || settings.space || 5,
+      sheetCount: stockSources.reduce((sum, item) => sum + item.available, 0),
+      sheet_polygon: settings.sheet_polygon || null,
+      materialMode: 'WAREHOUSE',
+      materialPool: stockSources
+    };
+  }
+
+  return {
+    width: settings.virtualWidth || settings.width || 1220,
+    height: settings.virtualLength || settings.height || 2440,
+    space: settings.spacing || settings.space || 5,
+    sheetCount: settings.sheetCount || 1000,
+    sheet_polygon: settings.sheet_polygon || null,
+    materialMode: settings.materialMode || 'VIRTUAL',
+    inventoryItems: settings.inventoryItems || [],
+    materialPool
+  };
+}
+
+export function enrichNestingResult(result = {}, request = {}) {
+  const params = request.params || {};
+  const width = Number(params.width || 1220);
+  const height = Number(params.height || 2440);
+  const requestItems = request.items || [];
+  const resultItemsById = new Map((Array.isArray(result.items) ? result.items : [])
+    .map(item => [item.id?.toString(), item])
+    .filter(([id]) => id !== undefined));
+  const enrichedItems = requestItems.map(requestItem => {
+    const item = resultItemsById.get(requestItem.id?.toString()) || {};
+    resultItemsById.delete(requestItem.id?.toString());
+    return {
+      ...item,
+      id: requestItem.id,
+      cassette_id: item.cassette_id || requestItem.cassette_id,
+      handles: item.handles?.length ? item.handles : requestItem.handles || [],
+      sourceLayers: item.sourceLayers?.length ? item.sourceLayers : requestItem.sourceLayers || [],
+      demand: item.demand ?? requestItem.count ?? 1,
+      shape: item.shape?.data?.length ? item.shape : {
+        type: 'simple_polygon',
+        data: requestItem.coords || []
+      }
+    };
+  });
+  enrichedItems.push(...Array.from(resultItemsById.values()));
+  if (!enrichedItems.length) {
+    enrichedItems.push(...requestItems.map(item => ({
+      id: item.id,
+      cassette_id: item.cassette_id,
+      handles: item.handles || [],
+      sourceLayers: item.sourceLayers || [],
+      demand: item.count || 1,
+      shape: {
+        type: 'simple_polygon',
+        data: item.coords || []
+      }
+    })));
+  }
+  return {
+    ...result,
+    items: enrichedItems,
+    bins: Array.isArray(result.bins) && result.bins.length
+      ? result.bins
+      : [{
+        id: 0,
+        shape: {
+          type: 'polygon',
+          data: {
+            outer: [[0, 0], [width, 0], [width, height], [0, height], [0, 0]],
+            inner: []
+          }
+        },
+        stock: params.sheetCount || 1
+      }]
+  };
+}
+
+async function createSheetDesignsForLayouts(run, result, summary, params, auth = {}) {
+  const layouts = result.solution?.layouts || result.layouts || [];
+  const specs = {
+    width: Number(params.width || params.virtualWidth || 1220),
+    length: Number(params.height || params.virtualLength || 2440)
+  };
+  specs.area = (specs.width * specs.length) / 1000000;
+
+  const runName = run?.identity?.name || run?._id?.toString() || 'Nesting run';
+  const designs = [];
+  for (let index = 0; index < layouts.length; index += 1) {
+    const sheetResult = sheetDesignsService.nestingResultForLayout(result, index);
+    const sheetSummary = summarizeNestingResult(sheetResult, params);
+    designs.push(await sheetDesignsService.createFromRun(run, {
+      name: `${runName} sheet ${index + 1}`,
+      serial: `${run?.identity?.serial || run?._id || 'RUN'}-S${index + 1}`,
+      specs,
+      geometry: {
+        data: sheetResult,
+        preview: sheetDesignsService.nestingResultToPreview(result, params, { layoutIndex: index }),
+        summary: sheetSummary
+      },
+      materialPool: run?.data?.materialPool || [],
+      summary: sheetSummary || summary
+    }, auth.userId || 'SYSTEM'));
+  }
+  return designs;
+}
+
+export function summarizeNestingResult(result = {}, params = {}) {
   const layouts = result.solution?.layouts || result.layouts || [];
   const placedCount = layouts.reduce((sum, layout) => sum + (layout.placed_items?.length || layout.items?.length || 0), 0);
+  const sheetCount = layouts.length;
+  const density = result.solution?.density ?? averageLayoutDensity(layouts);
+  const sheetArea = nestingSheetArea(result, params);
+  const efficiency = firstFinite([
+    result.stats?.efficiency,
+    result.efficiency,
+    percentFromDensity(density),
+    percentFromPlacedArea(result, layouts, sheetArea)
+  ]);
+  const remnantArea = firstFinite([
+    result.stats?.remnantArea,
+    result.remnantArea,
+    remnantAreaFromDensity(density, sheetArea, sheetCount),
+    remnantAreaFromPlacedArea(result, layouts, sheetArea, sheetCount)
+  ]);
   return {
-    efficiency: Number(result.stats?.efficiency || result.efficiency || 0),
-    sheetCount: layouts.length,
-    remnantArea: Number(result.stats?.remnantArea || result.remnantArea || 0),
+    efficiency,
+    sheetCount,
+    remnantArea,
     placedCount
   };
+}
+
+function firstFinite(values = []) {
+  for (const value of values) {
+    if (value === null || value === undefined || value === '') continue;
+    const number = Number(value);
+    if (Number.isFinite(number)) return Math.round(number * 100) / 100;
+  }
+  return 0;
+}
+
+function averageLayoutDensity(layouts = []) {
+  const densities = layouts.map(layout => Number(layout.density)).filter(Number.isFinite);
+  if (!densities.length) return null;
+  return densities.reduce((sum, density) => sum + density, 0) / densities.length;
+}
+
+function percentFromDensity(density) {
+  if (density === null || density === undefined || density === '') return null;
+  const number = Number(density);
+  if (!Number.isFinite(number)) return null;
+  return number <= 1 ? number * 100 : number;
+}
+
+function remnantAreaFromDensity(density, sheetArea, sheetCount) {
+  if (density === null || density === undefined || density === '') return null;
+  const number = Number(density);
+  if (!Number.isFinite(number) || !sheetArea || !sheetCount) return null;
+  const ratio = number <= 1 ? number : number / 100;
+  return Math.max(sheetArea * sheetCount * (1 - ratio), 0) / 1000000;
+}
+
+function percentFromPlacedArea(result, layouts, sheetArea) {
+  const placedArea = nestingPlacedArea(result, layouts);
+  if (!placedArea || !sheetArea || !layouts.length) return null;
+  return (placedArea / (sheetArea * layouts.length)) * 100;
+}
+
+function remnantAreaFromPlacedArea(result, layouts, sheetArea, sheetCount) {
+  const placedArea = nestingPlacedArea(result, layouts);
+  if (!sheetArea || !sheetCount) return null;
+  return Math.max(sheetArea * sheetCount - placedArea, 0) / 1000000;
+}
+
+function nestingSheetArea(result = {}, params = {}) {
+  const width = Number(params.width || params.virtualWidth || 0);
+  const height = Number(params.height || params.virtualLength || 0);
+  if (width > 0 && height > 0) return width * height;
+  const binOuter = result.bins?.[0]?.shape?.data?.outer;
+  return polygonArea(binOuter);
+}
+
+function nestingPlacedArea(result = {}, layouts = []) {
+  const sourceAreas = new Map((result.items || [])
+    .map(item => [item.id?.toString(), polygonArea(item.shape?.data || item.coords || item.coordinates)])
+    .filter(([id, area]) => id !== undefined && area > 0));
+  return layouts.reduce((sum, layout) => {
+    const items = layout.placed_items || layout.items || [];
+    return sum + items.reduce((layoutSum, item) => {
+      const id = item.item_id ?? item.itemId ?? item.id;
+      return layoutSum + (sourceAreas.get(id?.toString()) || 0);
+    }, 0);
+  }, 0);
+}
+
+function polygonArea(points = []) {
+  if (!Array.isArray(points) || points.length < 3) return 0;
+  let area = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const current = points[index];
+    const next = points[(index + 1) % points.length];
+    if (!Array.isArray(current) || !Array.isArray(next)) continue;
+    const x1 = Number(current[0]);
+    const y1 = Number(current[1]);
+    const x2 = Number(next[0]);
+    const y2 = Number(next[1]);
+    if (!Number.isFinite(x1) || !Number.isFinite(y1) || !Number.isFinite(x2) || !Number.isFinite(y2)) continue;
+    area += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(area) / 2;
 }
 
 function buildNestingItems(jobFiles = []) {
@@ -257,15 +518,17 @@ function buildNestingItems(jobFiles = []) {
   for (const file of jobFiles) {
     const count = Number(file.count || file.quantity || 1);
     const polygonParts = file.polygonParts || [];
+    const layerData = file.layerData || [];
     if (polygonParts.length) {
       for (const part of polygonParts) {
         const coords = normalizeCoordinates(part.coordinates);
-        if (!coords.length) continue;
+        if (!isValidPolygonCoordinates(coords)) continue;
         items.push({
           id,
           cassette_id: file.cassetteId,
           coords,
           handles: part.handles || [],
+          sourceLayers: sourceLayersForPart(layerData, part),
           count
         });
         id += 1;
@@ -280,6 +543,7 @@ function buildNestingItems(jobFiles = []) {
       cassette_id: file.cassetteId,
       coords: rectangle,
       handles: [],
+      sourceLayers: sourceLayersForPart(layerData, {}),
       count
     });
     id += 1;
@@ -294,11 +558,53 @@ function getPolygonParts(entity = {}) {
     || [];
 }
 
+function getLayerData(entity = {}) {
+  return entity.data?.layerData
+    || entity.layerData
+    || entity.data?.geometry?.data?.layerData
+    || [];
+}
+
+function sourceLayersForPart(layerData = [], part = {}) {
+  return layerData.filter(layer => (
+    !layer.workpieceId ||
+    !part.workpieceId ||
+    layer.workpieceId === part.workpieceId
+  ));
+}
+
+function hasEntries(value = {}) {
+  return value && typeof value === 'object' && Object.keys(value).length > 0;
+}
+
+function isParametricTemplate(entity = {}) {
+  if (entity.data?.geometry) return false;
+  const definition = entity.data?.definition || entity.definition || {};
+  return entity.data?.type === 'PARAMETRIC' ||
+    Boolean(definition?.occs && definition?.documentType) ||
+    Boolean(definition?.params) ||
+    Boolean(definition?.parameters);
+}
+
 function normalizeCoordinates(coords = []) {
   return coords
     .filter(point => Array.isArray(point) && point.length >= 2)
     .map(point => [Number(point[0]), Number(point[1])])
     .filter(point => Number.isFinite(point[0]) && Number.isFinite(point[1]));
+}
+
+function uniquePointCount(coords = []) {
+  return new Set(coords.map(point => `${roundCoord(point[0])}:${roundCoord(point[1])}`)).size;
+}
+
+function roundCoord(value) {
+  return Math.round(Number(value) * 1000000) / 1000000;
+}
+
+function isValidPolygonCoordinates(coords = []) {
+  if (!Array.isArray(coords) || coords.length < 3) return false;
+  if (uniquePointCount(coords) < 3) return false;
+  return polygonArea(coords) > 0.000001;
 }
 
 function rectangleFromDimensions(dimensions = {}) {
@@ -307,6 +613,29 @@ function rectangleFromDimensions(dimensions = {}) {
   const [width, height] = values;
   if (width <= 0 || height <= 0) return [];
   return [[0, 0], [width, 0], [width, height], [0, height], [0, 0]];
+}
+
+function normalizeMaterialPoolSource(source = {}) {
+  const dimensions = source.dimensions || source.specsData || source.sheet || {};
+  const parsed = parseDimensionText(source.specs || source.label || '');
+  const width = Number(dimensions.width || dimensions.w || parsed.width || 0);
+  const height = Number(dimensions.length || dimensions.height || dimensions.h || parsed.height || 0);
+  const available = Number(source.available || source.availableCount || source.quantity || source.count || 1);
+  return {
+    ...source,
+    width,
+    height,
+    available: Number.isFinite(available) && available > 0 ? Math.floor(available) : 1
+  };
+}
+
+function parseDimensionText(text = '') {
+  const match = String(text).match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
+  if (!match) return {};
+  return {
+    width: Number(match[1]),
+    height: Number(match[2])
+  };
 }
 
 async function callNestingWorker(request) {

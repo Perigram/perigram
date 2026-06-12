@@ -10,6 +10,7 @@ import { ObjectId } from 'mongodb';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { NestingRun } from './model.js';
+import * as queuesService from '../queues/service.js';
 
 /**
  * Nesting Runs Service - v24 Standardized
@@ -58,10 +59,14 @@ export async function createFromQueue(queue, results, userId) {
   return new NestingRun(raw).toJSON();
 }
 
-export async function getById(uid) {
+export async function getById(uid, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(uid);
   if (!raw) return null;
-  return new NestingRun(raw).toJSON();
+  const run = new NestingRun(raw);
+  if (userPermissions?.memberships && !hasLineagePermission({ memberships: userPermissions.memberships }, run.lineage, 'queues', 'read')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  return run.toJSON();
 }
 
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
@@ -96,10 +101,24 @@ export async function chooseRun(queueId, runId, userId, userOrg, userRole, userP
   const raw = await repository.findById(runId);
   if (!raw) throw createError({ statusCode: 404, message: 'Nesting run not found' });
   const run = new NestingRun(raw);
+  if (run.lineage?.queueId?.toString() !== queueId?.toString()) {
+    throw createError({ statusCode: 400, message: 'Nesting run does not belong to this queue' });
+  }
   
   if (!hasLineagePermission({ memberships: userPermissions.memberships }, run.lineage, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
+
+  await queuesService.ensureReadyForCompletedRun(queueId, run.toJSON());
+
+  const productionPreflight = await queuesService.preflightChosenRunProduction(
+    queueId,
+    run.toJSON(),
+    userId,
+    userOrg,
+    userRole,
+    userPermissions
+  );
 
   // Reset other chosen runs for this queue using repository
   await repository.resetChosenRuns(queueId);
@@ -107,7 +126,11 @@ export async function chooseRun(queueId, runId, userId, userOrg, userRole, userP
   // Transition this run to CHOSEN
   await statusService.transition('nesting_run', runId, 'CHOSEN', userId, createTransitionAuth(userId, userRole, userPermissions), { note: 'Chosen for production' });
 
-  return await getById(runId);
+  const chosenRun = await getById(runId);
+  const queue = productionPreflight.alreadyProduced
+    ? await queuesService.getById(queueId, userId, userOrg, userRole, userPermissions)
+    : await queuesService.applyChosenRunProduction(queueId, chosenRun, userId, userOrg, userRole, userPermissions);
+  return { run: chosenRun, queue };
 }
 
 export async function remove(queueId, runId, userId, userOrg, userRole, userPermissions) {
@@ -120,12 +143,4 @@ export async function remove(queueId, runId, userId, userOrg, userRole, userPerm
   }
   
   return await repository.deleteById(runId);
-}
-
-/**
- * Side effect: When run is CHOSEN, prepare physical inventory
- */
-export async function createPhysicalUnits({ targetId, userId, userRole, lineage }) {
-  console.log(`[Nesting Run Service] Creating physical units for chosen run ${targetId}`);
-  // Implementation will follow
 }

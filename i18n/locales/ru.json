@@ -24,6 +24,7 @@
     "reject": "Отклонить",
     "revoke": "Отозвать",
     "copied": "Скопировано",
+    "copy": "Копировать",
     "active": "Активно",
     "pending": "Ожидает",
     "back": "Назад",
@@ -72,6 +73,7 @@
     "unnamed": "Без названия",
     "user": "Пользователь",
     "notAvailable": "Н/Д",
+    "noResults": "Нет результатов",
     "componentError": "Ошибка компонента",
     "tryAgain": "Повторить",
     "traceability": "Трассируемость",
@@ -84,7 +86,10 @@
   },
   "drawing": {
     "showAllLayers": "Показать все слои",
-    "hideAllLayers": "Скрыть все слои"
+    "hideAllLayers": "Скрыть все слои",
+    "zoomIn": "Приблизить",
+    "zoomOut": "Отдалить",
+    "resetView": "Сбросить вид"
   },
   "footer": {
     "termsAndConditions": "Условия и положения",
@@ -104,6 +109,34 @@
     "enterName": "Введите название проекта (необязательно)",
     "deleteConfirm": "Удалить проект",
     "deleteWarning": "Вы уверены, что хотите удалить «{name}»? Это действие нельзя отменить."
+  },
+  "marketing": {
+    "heroEyebrow": "Исполнение CNC-проектов",
+    "heroTitle": "CutKit",
+    "heroSubtitle": "Объединяйте дизайн кассет, решения раскроя, складской материал и производственный статус в один трассируемый workflow.",
+    "primaryCta": "Создать рабочее пространство",
+    "secondaryCta": "Войти",
+    "valueTraceabilityTitle": "Отслеживайте решения",
+    "valueTraceability": "Проекты, очереди, дизайны листов и физические результаты сохраняют lineage от дизайна до монтажа.",
+    "valueCassetteTitle": "Проектируйте для производства",
+    "valueCassette": "Геометрия кассет, сгибы, слои резки и раскладки листов остаются связаны с производственными превью.",
+    "valueProductionTitle": "Двигайте работу вперед",
+    "valueProduction": "Очереди, складской запас, запуски раскроя, заявки и lifecycle-статусы находятся в одном рабочем интерфейсе.",
+    "animation": {
+      "aria": "Анимированный workflow кассеты от дизайна листа через раскрой к сложенной производственной кассете",
+      "flatPattern": "Развертка кассеты",
+      "nestingToFold": "Раскрой → сгиб",
+      "foldedCassette": "Сложенная кассета",
+      "sheetNest": "Раскладка листа",
+      "stageDesign": "Дизайн",
+      "stageBuild": "Сборка",
+      "optimize": "Оптимизация",
+      "ready": "Готово для CNC",
+      "import": "Импорт",
+      "nest": "Раскрой",
+      "fabricate": "Производство",
+      "install": "Монтаж"
+    }
   },
   "nav": {
     "projects": "Проекты",
@@ -160,6 +193,9 @@
     "ready": "Готово",
     "active": "Активно",
     "available": "Доступно",
+    "stocked": "На складе",
+    "depleted": "Израсходовано",
+    "used": "Использовано",
     "nesting": "Раскрой",
     "generating": "Генерируется",
     "scrap": "Списано",
@@ -186,6 +222,7 @@
     "title": "Проект",
     "create": "Создать проект",
     "name": "Название проекта",
+    "rename": "Переименовать проект",
     "address": "Адрес",
     "status": "Статус",
     "openProjects": "Открыть проекты",
@@ -268,8 +305,10 @@
     "preview": "Предпросмотр",
     "noPreview": "Предпросмотр недоступен",
     "selectLayerType": "Выберите тип слоя",
+    "nestingLayerRequired": "Привяжите контур раскроя к слою {layer}. Этот слой будет сохранён как геометрия реза дизайна кассеты.",
     "parameters": "Параметры",
     "design": "Дизайн",
+    "geometry": "Геометрия",
     "parametersHelp": "Определите переменные размеры для записей партии",
     "parametersPlaceholder": "например, A, B, C",
     "parametersHint": "Общие: A, B, C, D, E, F, horizontal_seam_width",
@@ -313,6 +352,7 @@
     "initialValue": "Начальное значение",
     "v2": {
       "face": "Грань",
+      "inspector": "Инспектор",
       "parameters": "Параметры",
       "preview": "Предпросмотр раскладки",
       "loadTemplate": "Загрузить шаблон",
@@ -321,10 +361,14 @@
       "topology": "Топология",
       "selectedWorkpiece": "Выбранная заготовка",
       "attachment": "Привязка",
-      "noAttachment": "У корневой заготовки нет привязки. Используйте + на заготовке, чтобы создать связанную заготовку.",
+      "attachments": "Привязки",
+      "noAttachment": "У этой заготовки пока нет привязки. Используйте +, чтобы создать связанную заготовку, или действие-связку, чтобы объявить ещё одну привязку.",
       "addWorkpiece": "Добавить заготовку",
       "addRelatedWorkpiece": "Добавить связанную заготовку",
+      "addAttachment": "Добавить привязку",
       "deleteWorkpiece": "Удалить заготовку",
+      "removeAttachment": "Удалить привязку",
+      "driver": "ведущая",
       "foldedPreview": "Предпросмотр 3D гибки",
       "selectedFoldedPreview": "Выбранная 3D",
       "cassetteFoldedPreview": "Кассета 3D",
@@ -336,6 +380,7 @@
       "previewHeld": "Чертёж удержан на последнем корректном предпросмотре. Исправьте выражение, чтобы обновить его.",
       "addFace": "Добавить трапецию",
       "deleteFace": "Удалить грань",
+      "faceRole": "Роль грани",
       "rootFace": "Корневая трапеция",
       "previewModes": {
         "workpiece": "Заготовка",
@@ -352,8 +397,14 @@
         "offsetX": "Смещение X",
         "offsetY": "Смещение Y",
         "rotation": "Поворот",
+        "driver": "Ведущая привязка",
         "jointType": "Тип соединения",
         "method": "Метод"
+      },
+      "attachmentStatus": {
+        "ok": "ok",
+        "unresolved": "не разрешена",
+        "impossible": "невозможна"
       },
       "snapPoints": {
         "center": "Центр",
@@ -381,7 +432,7 @@
         "label": "Выражение",
         "guideTitle": "Справка по выражению",
         "guide": "Введите числа, параметры кассеты, + - * /, скобки и sin(30), cos(60), tan(45). Тригонометрия использует градусы.",
-        "angleGuide": "В полях угла можно использовать суффикс deg, например 90deg.",
+        "angleGuide": "Поля углов используют числа в градусах, например 90.",
         "angleAlias": "Угол гиба от родителя",
         "trigTooltip": "{name}() использует градусы",
         "groups": {
@@ -398,10 +449,10 @@
         "end": "Конец"
       },
       "offsetLabels": {
-        "baseStart": "P0: смещение основания от {anchor}",
-        "baseEnd": "P1: смещение основания от {anchor}",
-        "topStart": "Смещение верха со стороны P0",
-        "topEnd": "Смещение верха со стороны P1"
+        "baseStart": "Смещение основания от {anchor}",
+        "baseEnd": "Смещение основания от {anchor}",
+        "topStart": "Смещение верха",
+        "topEnd": "Смещение верха"
       },
       "fields": {
         "defaultLength": "Длина основания",
@@ -428,6 +479,14 @@
       "renamed": "Кассета переименована",
       "saveSuccess": "Шаблон успешно сохранен"
     }
+  },
+  "revision": {
+    "scope": "Область",
+    "number": "Ревизия",
+    "hash": "Хеш",
+    "source": "Источник",
+    "sourceRevision": "Ревизия источника",
+    "currentGeometry": "Текущая геометрия"
   },
   "nesting": {
     "title": "Раскрой",
@@ -470,6 +529,9 @@
     "selectWarehouse": "Выберите склад",
     "customUpload": "Загрузка своего листа",
     "inventorySources": "Разрешенные источники",
+    "selectedStockSummary": "Доступно листов: {count}, размер {size} мм. Раскрой будет использовать этот размер листа.",
+    "mixedStockSize": "Выбранные складские источники имеют разные размеры листа. Выберите один размер на запуск раскроя.",
+    "manageWarehouseStock": "Управлять складским запасом",
     "algorithmNote": "Алгоритм будет использовать по мере необходимости",
     "shortageTitle": "Дефицит на складе",
     "shortageNote": "Алгоритму требуется {needed} листов, но доступно только {available}. Не хватает {missing} ед.",
@@ -684,6 +746,18 @@
     "minutesShort": "{count}м",
     "secondsShort": "{count}с",
     "selectChatPrompt": "Выберите чат из списка, чтобы начать общение",
+    "marketingAnimations": {
+      "title": "Маркетинговые анимации",
+      "subtitle": "Переиспользуемые визуалы workflow кассет для публичных и sales-поверхностей.",
+      "cassetteWorkflow": "Анимация workflow кассеты",
+      "landingReady": "Landing page",
+      "usage": "Использование",
+      "surface": "Поверхность",
+      "surfaceLanding": "Встроено в публичную landing page и доступно здесь для проверки.",
+      "motion": "Анимация",
+      "motionCss": "SVG и CSS keyframes без runtime-зависимости для анимации.",
+      "reducedMotion": "Поддержка reduced motion"
+    },
     "workbench": {
       "title": "Development Workbench",
       "subtitle": "Единое рабочее место для данных домена, UI-компонентов, workflow, диагностики и админ-инструментов.",
@@ -1131,7 +1205,13 @@
     "receiptId": "ID квитанции",
     "stockTotal": "Всего",
     "stockUsed": "Использовано",
-    "remaining": "Остаток"
+    "remaining": "Остаток",
+    "lastMovement": "Последнее движение",
+    "stockMovementTypes": {
+      "RECEIPT": "Приход",
+      "ADJUSTMENT": "Корректировка",
+      "ALLOCATION": "Списание"
+    }
   },
   "remnants": {
     "title": "Остатки",
@@ -1149,6 +1229,9 @@
     "markMilled": "Отметить фрезерованным"
   },
   "cassetteInstance": {
+    "title": "Экземпляры кассет",
+    "subtitle": "Произведенные кассеты на складе.",
+    "noInstances": "Экземпляры кассет не найдены",
     "updateStatus": "Обновить статус",
     "printLabel": "Печать этикетки",
     "updatePhysicalStatus": "Обновить физический статус",
@@ -1304,6 +1387,7 @@
     "cassetteDesign": "Дизайн кассеты",
     "cassetteTemplate": "Шаблон кассеты",
     "cassetteInstance": "Экземпляр кассеты",
+    "entityRevision": "Ревизия сущности",
     "requisition": "Заявка",
     "material": "Материал",
     "materialPile": "Стопка материала",
@@ -1363,6 +1447,8 @@
     "nestingRuns": "Запуски раскроя",
     "nestingConfig": "Конфиг. раскроя",
     "jobComposition": "Состав работы",
+    "materialConsumption": "Списание материала",
+    "consumed": "списано",
     "runStatus": {
       "NESTING": "Раскрой",
       "ERROR": "Ошибка",
@@ -1370,10 +1456,6 @@
       "CHOSEN": "Выбрано"
     },
     "chooseRun": "Выбрать эту попытку",
-    "markCut": "Отметить как вырезано",
-    "confirmMarkCut": "Вы уверены, что хотите отметить эту очередь как ВЫРЕЗАННУЮ? Это означает, что очередь физически вырезана.",
-    "markedCut": "Очередь отмечена как вырезанная",
-    "markCutFailed": "Не удалось отметить очередь как вырезанную",
     "runChosen": "Попытка выбрана успешно",
     "chooseRunFailed": "Не удалось выбрать попытку",
     "updated": "Обновлено",
@@ -1548,6 +1630,8 @@
     "subtitle": "Цифровой двойник складских помещений и запасов сырья.",
     "newWarehouse": "Новый склад",
     "editWarehouse": "Редактировать склад",
+    "addStock": "Добавить запас",
+    "editStock": "Редактировать запас",
     "editFacility": "Настроить объект",
     "activeWarehouse": "Текущий склад",
     "selectWarehouse": "Выбрать склад",
@@ -1557,19 +1641,33 @@
     "storedBatches": "Партии на хранении",
     "availableSheets": "Доступные листы",
     "remnants": "Деловые остатки",
+    "cassetteInstances": "Экземпляры кассет",
     "activeShipments": "Активные поставки",
     "rawSheets": "Целые листы",
     "recoveredArea": "Восстановленная площадь",
     "manager": "Заведующий",
     "notAssigned": "Не назначен",
     "inventorySnapshot": "Отчет по остаткам",
+    "sheetThickness": "Толщина листа",
+    "foilThickness": "Толщина пленки",
+    "materialName": "Название материала",
+    "colorName": "Цвет / отделка",
+    "createCatalogFirst": "Создайте каталог и цвет перед добавлением складского запаса.",
+    "catalogFallback": "Каталог не выбран. Название материала и цвет создадут минимальные записи каталога для этого запаса.",
+    "confirmDeleteStock": "Удалить эту складскую партию? Можно удалить только неиспользованный запас.",
+    "confirmDeleteWarehouse": "Удалить этот склад? Можно удалить только пустой склад.",
     "placeholders": {
       "name": "напр., Главный склад",
       "address": "Полный адрес объекта...",
-      "contact": "Ответственное лицо"
+      "contact": "Ответственное лицо",
+      "material": "напр., АКП 4 мм",
+      "color": "напр., RAL 7016"
     },
     "messages": {
-      "saved": "Склад сохранен"
+      "saved": "Склад сохранен",
+      "deleted": "Склад удален",
+      "stockSaved": "Запас сохранен",
+      "stockDeleted": "Запас удален"
     },
     "type": "Тип",
     "address": "Адрес",
@@ -1634,13 +1732,19 @@
     "type": "Тип организации"
   },
   "sheetDesign": {
+    "sheetDesigns": "Дизайны листов",
     "downloadDxf": "Скачать DXF",
     "exportGCode": "Экспорт G-code",
     "utilization": "Использование",
     "parts": "Детали",
     "cuttingLength": "Длина реза",
     "estimatedTime": "Расчетное время",
-    "instances": "Экземпляры"
+    "cassetteDesigns": "Дизайны кассет",
+    "materialSources": "Источники материала",
+    "instances": "Экземпляры",
+    "notFound": "Дизайн листа не найден",
+    "noSheetDesigns": "Дизайнов листов пока нет",
+    "runNestingFirst": "Запустите раскрой из очереди проекта, чтобы получить раскладки листов."
   },
   "nestingRun": {
     "sheetDesigns": "Дизайны листов"

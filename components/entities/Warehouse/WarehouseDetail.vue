@@ -2,17 +2,17 @@
     <EntityPage :entity="warehouse" entity-type="warehouse">
         <template #actions>
             <div class="flex gap-2" v-if="authStore.can('warehouses', 'edit')">
-                <Button icon="pi pi-pencil" severity="secondary" text @click="$emit('edit', warehouse)" />
+                <Button icon="pi pi-pencil" severity="secondary" text :aria-label="$t('common.edit')" @click="$emit('edit', warehouse)" />
             </div>
         </template>
 
-        <div v-if="warehouse.address" class="flex items-center gap-2 opacity-60">
+        <div v-if="warehouse.data?.address" class="flex items-center gap-2 opacity-60">
             <i class="pi pi-map-marker"></i>
-            <span>{{ warehouse.address }}</span>
+            <span>{{ warehouse.data.address }}</span>
         </div>
 
         <!-- Operational Stock -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             <Panel>
                 <template #header>
                     <div class="flex items-center gap-4">
@@ -39,6 +39,15 @@
                     </div>
                 </template>
                 <small>{{ $t('warehouse.recoveredArea') }}</small>
+            </Panel>
+            <Panel>
+                <template #header>
+                    <div class="flex items-center gap-4">
+                        <i class="pi pi-box"></i>
+                        <span>{{ warehouseStats.totalCassetteInstances || 0 }}</span>
+                    </div>
+                </template>
+                <small>{{ $t('warehouse.cassetteInstances') }}</small>
             </Panel>
         </div>
     </EntityPage>

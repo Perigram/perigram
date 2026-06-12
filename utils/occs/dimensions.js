@@ -91,6 +91,7 @@ const point2d = (point = []) => [numeric(point[0]), numeric(point[1])];
 const add = (left, right) => [left[0] + right[0], left[1] + right[1]];
 const sub = (left, right) => [left[0] - right[0], left[1] - right[1]];
 const mul = (point, scalar) => [point[0] * scalar, point[1] * scalar];
+const dot = (left, right) => left[0] * right[0] + left[1] * right[1];
 const length = (point) => Math.hypot(point[0], point[1]);
 const midpoint = (left, right) => [(left[0] + right[0]) / 2, (left[1] + right[1]) / 2];
 const svgPoint = (point) => [numeric(point[0]), -numeric(point[1])];
@@ -121,10 +122,28 @@ const outwardNormal = (from, to, centroid) => {
     : candidates[0];
 };
 
-const dimensionPath = ({ from, to, centroid, offset = 34, label, id }) => {
-  const normal = outwardNormal(from, to, centroid);
-  const dimFrom = add(from, mul(normal, offset));
-  const dimTo = add(to, mul(normal, offset));
+const dimensionOffset = ({ points = [], from, to, centroid, outsideOffset = 34 }) => {
+  const outward = outwardNormal(from, to, centroid);
+  const inward = mul(outward, -1);
+  const insideSpan = Math.max(
+    0,
+    ...points.map(point => dot(sub(point, from), inward))
+  );
+  return insideSpan > 100
+    ? { normal: inward, offset: 30 }
+    : { normal: outward, offset: outsideOffset };
+};
+
+const dimensionPath = ({ points = [], from, to, centroid, offset = 34, label, id, control = null }) => {
+  const { normal, offset: resolvedOffset } = dimensionOffset({
+    points,
+    from,
+    to,
+    centroid,
+    outsideOffset: offset
+  });
+  const dimFrom = add(from, mul(normal, resolvedOffset));
+  const dimTo = add(to, mul(normal, resolvedOffset));
   const textPoint = add(midpoint(dimFrom, dimTo), mul(normal, 11));
   const [fromX, fromY] = svgPoint(from);
   const [toX, toY] = svgPoint(to);
@@ -146,6 +165,7 @@ const dimensionPath = ({ from, to, centroid, offset = 34, label, id }) => {
         x: textX,
         y: textY,
         text: label,
+        designerControl: control,
         fill: 'layer',
         fontSize: 12,
         textAnchor: 'middle',
@@ -182,11 +202,18 @@ const heightDimensionSegment = (points = [], curve = {}) => {
 
 const dimensionLabel = (curve, kind, fallback) => {
   const custom = curve.dimensionLabels?.[kind];
-  if (custom) return custom;
+  if (custom !== undefined && custom !== null) return custom;
   const value = kind === 'height'
     ? curve.trapezoid?.height
     : curve.trapezoid?.defaultLength;
   return Number.isFinite(Number(value)) ? formatNumber(value) : fallback;
+};
+
+const resolvedDimensionLabel = (curve, kind, fallback, options = {}) => {
+  const custom = options.labelForDimension?.(curve, kind);
+  return custom !== undefined && custom !== null
+    ? custom
+    : dimensionLabel(curve, kind, fallback);
 };
 
 export const buildOccsDimensionLayerFromFaceCurves = (curves = [], options = {}) => {
@@ -207,13 +234,13 @@ export const buildOccsDimensionLayerFromFaceCurves = (curves = [], options = {})
       {
         kind: 'base',
         segment: baseSegment,
-        label: options.labelForDimension?.(curve, 'base') || dimensionLabel(curve, 'base', measuredLabel(baseSegment)),
+        label: resolvedDimensionLabel(curve, 'base', measuredLabel(baseSegment), options),
         value: curve.trapezoid?.defaultLength
       },
       {
         kind: 'height',
         segment: heightSegment,
-        label: options.labelForDimension?.(curve, 'height') || dimensionLabel(curve, 'height', measuredLabel(heightSegment)),
+        label: resolvedDimensionLabel(curve, 'height', measuredLabel(heightSegment), options),
         value: curve.trapezoid?.height
       }
     ];
@@ -224,12 +251,21 @@ export const buildOccsDimensionLayerFromFaceCurves = (curves = [], options = {})
       if (length(sub(to, from)) <= 0.001) continue;
       const id = `dim_${curve.node?.id || curve.id || 'face'}_${dimension.kind}`;
       const rendered = dimensionPath({
+        points,
         from,
         to,
         centroid,
         offset: dimension.kind === 'height' ? 44 : 34,
         label: dimension.label,
-        id
+        id,
+        control: curve.node?.id
+          ? {
+              nodeId: curve.node.id,
+              key: dimension.kind === 'height' ? 'height' : 'defaultLength',
+              value: dimension.label,
+              dimensionKind: dimension.kind
+            }
+          : null
       });
       paths.push(...rendered.paths);
       extentPoints.push(...rendered.extentPoints);

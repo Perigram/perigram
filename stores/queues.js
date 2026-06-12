@@ -39,8 +39,9 @@ export const useQueuesStore = defineStore('queues', () => {
                 const hasNestingRuns = queueRuns.some(run => run.status?.state === 'NESTING');
                 if (!hasNestingRuns) {
                     stopPolling(queueId);
-                    // Nesting just completed — notify so UI can re-fetch artifacts
-                    nestingCompleted.value = queueId;
+                    // Nesting just completed; use a fresh object so repeated
+                    // runs for the same queue still trigger Vue watchers.
+                    nestingCompleted.value = { queueId, completedAt: Date.now() };
                 }
             } catch (err) {
                 console.error(`Polling error for queue ${queueId}:`, err);
@@ -191,6 +192,15 @@ export const useQueuesStore = defineStore('queues', () => {
                 body: { runId }
             });
             await fetchRuns(queueId);
+            if (result.queue) {
+                const index = queues.value.findIndex(q => q._id === queueId);
+                if (index !== -1) {
+                    queues.value[index] = result.queue;
+                }
+                if (currentQueue.value?._id === queueId) {
+                    currentQueue.value = result.queue;
+                }
+            }
             return result;
         } catch (err) {
             error.value = err.message;
@@ -222,27 +232,6 @@ export const useQueuesStore = defineStore('queues', () => {
         }
     }
 
-    async function markCut(queueId) {
-        try {
-            const result = await $fetch(`/api/queue/${queueId}/mark-cut`, {
-                method: 'POST'
-            });
-            
-            const index = queues.value.findIndex(q => q._id === queueId);
-            if (index !== -1) {
-                queues.value[index] = result.queue;
-            }
-            if (currentQueue.value?._id === queueId) {
-                currentQueue.value = result.queue;
-            }
-            
-            return result;
-        } catch (err) {
-            error.value = err.message;
-            throw err;
-        }
-    }
-
     return {
         queues,
         currentQueue,
@@ -259,7 +248,6 @@ export const useQueuesStore = defineStore('queues', () => {
         getArtifacts,
         resetStatus,
         chooseRun,
-        markCut,
         deleteRun,
         stopPolling,
         fetchRuns

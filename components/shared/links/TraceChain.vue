@@ -1,20 +1,29 @@
 <template>
-      <div class="flex items-center flex-wrap gap-2 text-xs " v-if="items.length > 0">
-        <template v-for="(item, index) in visibleItems" :key="index">
-            <template v-if="item.type !== 'separator'">
-                <TraceLink 
-                    :type="item.type" 
-                    :id="item.id" 
+    <nav v-if="items.length > 0" class="max-w-full" :aria-label="$t('common.traceability')">
+        <ol class="flex max-w-full flex-wrap items-center gap-1 text-xs text-muted-color">
+            <li v-for="(item, index) in visibleItems" :key="`${item.type}-${item.id || index}`" class="flex min-w-0 items-center gap-1">
+                <Button
+                    v-if="item.type === 'separator'"
+                    icon="pi pi-ellipsis-h"
+                    text
+                    rounded
+                    size="small"
+                    :aria-label="$t('common.more')"
+                    class="h-6 w-6 shrink-0 p-0"
+                    @click="isExpanded = true"
+                />
+                <TraceLink
+                    v-else
+                    :type="item.type"
+                    :id="item.id"
                     :label="labels[item.id] || item.id"
                     :slug="item.slug"
+                    class="max-w-[14rem]"
                 />
-            </template>
-            <template v-else>
-                <Button label="..." text size="small" @click="isExpanded = true" class="p-0 h-6 min-w-8" />
-            </template>
-            <span v-if="index < visibleItems.length - 1" class="text-muted-color">/</span>
-        </template>
-    </div>
+                <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-[0.625rem] text-muted-color"></i>
+            </li>
+        </ol>
+    </nav>
 </template>
 
 <script setup>

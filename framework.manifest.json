@@ -107,10 +107,6 @@
         {
           "feature": "queues",
           "level": "write"
-        },
-        {
-          "feature": "nesting_runs",
-          "level": "write"
         }
       ],
       "service": "nesting",
@@ -290,10 +286,7 @@
           "server/features/cassette-designs/README.md"
         ],
         "entityType": "cassette_design",
-        "fieldPaths": [
-          "data.parameters.A",
-          "data.parameters.C"
-        ],
+        "fieldPaths": [],
         "group": "production",
         "key": "cassetteDesign",
         "labelKey": "entities.cassetteDesign",
@@ -304,6 +297,7 @@
       {
         "componentPath": "components/entities/CassetteTemplate/CassetteTemplateCard.vue",
         "docs": [
+          "components/entities/CassetteTemplate/README.md",
           "server/features/cassettes/README.md"
         ],
         "entityType": "cassette_template",
@@ -380,7 +374,7 @@
         "key": "materialPile",
         "labelKey": "entities.materialPile",
         "propName": "pile",
-        "status": "hidden",
+        "status": "interactive",
         "trace": true
       },
       {
@@ -399,7 +393,7 @@
         "key": "batchPile",
         "labelKey": "entities.batchPile",
         "propName": "pile",
-        "status": "hidden",
+        "status": "interactive",
         "trace": true
       },
       {
@@ -427,7 +421,7 @@
         "key": "remnant",
         "labelKey": "entities.remnant",
         "propName": "remnant",
-        "status": "hidden",
+        "status": "interactive",
         "trace": true
       },
       {
@@ -460,6 +454,21 @@
         "key": "color",
         "labelKey": "entities.color",
         "propName": "color",
+        "status": "hidden",
+        "trace": true
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "components/entities/EntityRevision/README.md",
+          "server/features/entity-revisions/README.md"
+        ],
+        "entityType": "entity_revision",
+        "fieldPaths": [],
+        "group": "system",
+        "key": "entityRevision",
+        "labelKey": "entities.entityRevision",
+        "propName": "revision",
         "status": "hidden",
         "trace": true
       },
@@ -1018,6 +1027,19 @@
         "attachments",
         "data"
       ],
+      "collection": "entity_revisions",
+      "lineage": {},
+      "type": "entity_revision"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data"
+      ],
       "collection": "layer_standards",
       "lineage": {},
       "type": "layer_standard"
@@ -1279,18 +1301,6 @@
     },
     {
       "kind": "lineage",
-      "source": "template",
-      "target": "cassette",
-      "via": "lineage.templateId"
-    },
-    {
-      "kind": "lineage",
-      "source": "template",
-      "target": "cassette_template",
-      "via": "lineage.templateId"
-    },
-    {
-      "kind": "lineage",
       "source": "user",
       "target": "pen_template",
       "via": "lineage.userId"
@@ -1428,6 +1438,12 @@
       "list": "/api/colors",
       "single": "/api/colors/:id",
       "type": "color"
+    },
+    {
+      "collection": "entity-revisions",
+      "list": "/api/entity-revisions",
+      "single": "/api/entity-revisions/:id",
+      "type": "entityRevision"
     },
     {
       "collection": "warehouses",
@@ -1610,7 +1626,6 @@
         "DRAFT",
         "NESTING",
         "READY",
-        "CUT",
         "CLOSED"
       ],
       "transitionCount": 10,
@@ -1649,13 +1664,32 @@
       "type": "sheet"
     },
     {
-      "initial": "PRODUCED",
+      "initial": "STOCKED",
       "states": [
+        "STOCKED",
+        "DEPLETED"
+      ],
+      "transitionCount": 3,
+      "type": "material_pile"
+    },
+    {
+      "initial": "AVAILABLE",
+      "states": [
+        "AVAILABLE",
+        "USED"
+      ],
+      "transitionCount": 3,
+      "type": "remnant"
+    },
+    {
+      "initial": "CUT",
+      "states": [
+        "CUT",
         "PRODUCED",
         "MILLED",
         "INSTALLED"
       ],
-      "transitionCount": 2,
+      "transitionCount": 3,
       "type": "cassette_instance"
     },
     {

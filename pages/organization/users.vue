@@ -35,7 +35,7 @@
                         <span class="text-xs font-mono opacity-60 truncate max-w-md">
                             {{ getInvitationUrl(data.token) }}
                         </span>
-                        <Button icon="pi pi-copy" text size="small" @click="copyToClipboard(getInvitationUrl(data.token))" />
+                        <Button icon="pi pi-copy" text size="small" :aria-label="$t('common.copy')" @click="copyToClipboard(getInvitationUrl(data.token))" />
                     </div>
                 </template>
             </Column>
@@ -87,7 +87,7 @@
                         <small>{{ $t('auth.invitationLink') }}</small>
                         <div class="flex items-center gap-2">
                             <span class="text-xs font-mono truncate flex-1">{{ generatedUrl }}</span>
-                            <Button icon="pi pi-copy" text size="small" @click="copyToClipboard(generatedUrl)" />
+                            <Button icon="pi pi-copy" text size="small" :aria-label="$t('common.copy')" @click="copyToClipboard(generatedUrl)" />
                         </div>
                     </div>
                 </Panel>

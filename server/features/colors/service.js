@@ -1,7 +1,7 @@
 import * as repository from './repository.js';
 import * as catalogService from '../catalogs/service.js';
 import { createError } from 'h3';
-import { hasLineagePermission } from '~/server/utils/permissions';
+import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { inheritLineage } from '~/server/core/blocks/index.js';
 import { Color } from './model.js';
 import { statusService } from '~/server/core/machines/service';
@@ -27,7 +27,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     }
   });
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, color.lineage, 'catalogs', 'write')) {
+  if (!canCreateColor({ color, data, userPermissions })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -37,6 +37,13 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   return new Color(createdRaw);
 }
 
+function canCreateColor({ color, data = {}, userPermissions }) {
+  const auth = { memberships: userPermissions.memberships };
+  if (hasLineagePermission(auth, color.lineage, 'catalogs', 'write')) return true;
+  if (data.source !== 'WAREHOUSE_STOCK') return false;
+  return hasLineagePermission(auth, color.lineage, 'materials', 'write');
+}
+
 export async function getById(uid) {
   const raw = await repository.findById(uid);
   if (!raw) return null;
@@ -44,7 +51,10 @@ export async function getById(uid) {
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const finalFilter = mapLineageQuery(filter);
+  const finalFilter = mapLineageQuery({
+    ...getLineageFilter({ memberships: userPermissions.memberships }),
+    ...filter
+  });
   const raws = await repository.find(finalFilter);
   return raws.map(raw => new Color(raw));
 }

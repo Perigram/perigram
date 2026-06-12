@@ -54,6 +54,40 @@ export async function allocateFromPile(pileId, count, user) {
   return await createFromPile(pileId, count, user.userId, user.role, userPermissions);
 }
 
+export async function createCutSheetFromPile(pileId, { queue, run, source = {}, index = 0, userId = 'SYSTEM' } = {}) {
+  const pileRaw = await materialPilesRepository.findById(pileId);
+  if (!pileRaw) throw createError({ statusCode: 404, message: 'Material pile not found' });
+
+  const serial = `CUT-${generateRandomString(8)}`;
+  const lineage = inheritLineage(pileRaw, 'pile')
+    .add('queue', queue?._id)
+    .add('run', run?._id);
+  if (queue?.lineage?.projectId) lineage.projectId = queue.lineage.projectId;
+
+  const specs = pileRaw.specs || pileRaw.data?.specs || source.dimensions || {};
+  const sheet = new Sheet({
+    identity: { uid: `sheet-${generateRandomString(8)}`, serial, name: `Cut sheet ${index + 1}` },
+    lineage,
+    specs,
+    data: {
+      serial,
+      specs,
+      source: 'QUEUE_CUT',
+      materialSource: {
+        type: 'PILE',
+        id: pileId,
+        label: source.label || pileRaw.identity?.name || pileId
+      },
+      queueId: queue?._id?.toString?.() || queue?._id,
+      runId: run?._id?.toString?.() || run?._id
+    }
+  });
+
+  sheet.applyStatus('MILLED', userId, { note: 'Consumed by queue cut' });
+  const createdRaw = await repository.create(sheet);
+  return new Sheet(createdRaw).toJSON();
+}
+
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter(userPermissions);
   const finalFilter = mapLineageQuery({ ...lineageFilter, ...filter });

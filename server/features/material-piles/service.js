@@ -1,11 +1,13 @@
 import * as repository from './repository.js';
+import * as warehouseService from '../warehouses/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createStatus } from '~/server/core/blocks/index.js';
+import { createSpecs, createStatus } from '~/server/core/blocks/index.js';
 import { MaterialPile } from './model.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';
-import { toObjectId, isValidObjectId } from '~/server/utils/objectid';
+import { toFlexibleId } from '~/server/utils/objectid';
+import { mapLineageQuery } from '~/server/utils/query';
 
 /**
  * Material Piles Service - v24 Absolute Final
@@ -14,16 +16,20 @@ import { toObjectId, isValidObjectId } from '~/server/utils/objectid';
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { warehouseId, catalogId, colorId, specs, quantity, serial } = data;
+  const totalQuantity = Number(quantity || 0);
 
-  if (!warehouseId || !catalogId || !colorId || !serial) {
-    throw createError({ statusCode: 400, message: 'warehouseId, catalogId, colorId, and serial are required' });
+  if (!warehouseId || !catalogId || !colorId) {
+    throw createError({ statusCode: 400, message: 'warehouseId, catalogId, and colorId are required' });
+  }
+  if (totalQuantity < 0) {
+    throw createError({ statusCode: 400, message: 'quantity must be non-negative' });
   }
 
   const lineage = {
     organizationId: userOrg,
-    warehouseId: warehouseId,
-    catalogId: catalogId,
-    colorId: colorId,
+    warehouseId: toFlexibleId(warehouseId),
+    catalogId: toFlexibleId(catalogId),
+    colorId: toFlexibleId(colorId),
     requisitionId: data.requisitionId || null
   };
 
@@ -32,36 +38,55 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   }
 
   const uid = `pile-${generateRandomString(8)}`;
+  const pileSerial = serial || uid;
+  const materialLabel = data.material || specs?.material || data.catalogName || '';
+  const colorLabel = data.color || specs?.color || data.colorName || '';
+  const pileName = data.name || [materialLabel, colorLabel, pileSerial].filter(Boolean).join(' / ') || 'Material Pile';
 
   const pile = new MaterialPile({
-    identity: { uid },
+    identity: { uid, name: pileName, serial: pileSerial },
     lineage,
+    specs: specs || {},
     data: {
-      serial,
+      serial: pileSerial,
+      material: materialLabel,
+      color: colorLabel,
       specs: specs || {},
       stock: {
-        total: quantity || 0,
+        total: totalQuantity,
         used: 0
-      }
+      },
+      stockMovements: []
     }
+  });
+  appendStockMovement(pile, {
+    type: 'RECEIPT',
+    quantity: totalQuantity,
+    userId,
+    note: 'Initial material stocking'
   });
 
   pile.applyStatus('STOCKED', userId, { note: 'Initial material stocking' });
 
   const createdRaw = await repository.create(pile);
-  return new MaterialPile(createdRaw);
+  await warehouseService.updateInventoryCounts(warehouseId, {
+    totalBatches: 1,
+    totalSheets: totalQuantity
+  });
+  return new MaterialPile(createdRaw).toJSON();
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter(userPermissions);
-  const raws = await repository.find({ ...lineageFilter });
-  return raws.map(raw => new MaterialPile(raw));
+  const finalFilter = mapLineageQuery({ ...lineageFilter, ...filter });
+  const raws = await repository.find(finalFilter);
+  return raws.map(raw => new MaterialPile(raw).toJSON());
 }
 
 export async function getById(uid) {
   const raw = await repository.findById(uid);
   if (!raw) return null;
-  return new MaterialPile(raw);
+  return new MaterialPile(raw).toJSON();
 }
 
 export async function update(uid, updates, userId, userOrg, userRole, userPermissions) {
@@ -78,17 +103,56 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
     return await getById(uid);
   }
 
-  const { identity, origin, status, lineage, data: updatesData, ...clean } = updates;
-  
+  const previousTotal = Number(pile.data?.stock?.total || 0);
+  const previousUsed = Number(pile.data?.stock?.used || 0);
+  const { identity, origin, status, lineage, data: updatesData, specs, stock, name, serial, ...clean } = updates;
+  const safeUpdatesData = { ...(updatesData || {}) };
+  delete safeUpdatesData.stockMovements;
+
+  if (name) pile.identity.name = name;
+  if (serial) pile.identity.serial = serial;
+  if (specs) pile.specs = createSpecs(specs);
+  if (stock) {
+    const nextTotal = Number(stock.total ?? pile.data?.stock?.total ?? 0);
+    const nextUsed = Number(stock.used ?? pile.data?.stock?.used ?? 0);
+    if (nextTotal < 0 || nextUsed < 0 || nextUsed > nextTotal) {
+      throw createError({ statusCode: 400, message: 'stock totals must be non-negative and total must be at least used' });
+    }
+  }
+
   pile.data = {
     ...pile.data,
-    ...updatesData,
-    ...clean
+    ...safeUpdatesData,
+    ...clean,
+    ...(serial ? { serial } : {}),
+    ...(specs ? { specs } : {}),
+    ...(stock ? { stock } : {})
   };
 
+  if (stock) {
+    const nextTotalForMovement = Number(pile.data?.stock?.total || 0);
+    const nextUsedForMovement = Number(pile.data?.stock?.used || 0);
+    const totalDelta = nextTotalForMovement - previousTotal;
+    const usedDelta = nextUsedForMovement - previousUsed;
+    if (totalDelta !== 0 || usedDelta !== 0) {
+      appendStockMovement(pile, {
+        type: 'ADJUSTMENT',
+        quantity: totalDelta,
+        usedDelta,
+        userId,
+        note: 'Manual stock adjustment'
+      });
+    }
+  }
+
   await repository.updateById(uid, pile);
+  const nextTotal = Number(pile.data?.stock?.total || 0);
+  const totalDelta = nextTotal - previousTotal;
+  if (totalDelta !== 0 && pile.lineage?.warehouseId) {
+    await warehouseService.updateInventoryCounts(pile.lineage.warehouseId, { totalSheets: totalDelta });
+  }
   const updatedRaw = await repository.findById(uid);
-  return new MaterialPile(updatedRaw);
+  return new MaterialPile(updatedRaw).toJSON();
 }
 
 export async function updateStatus(id, state, note, user, additionalData = {}) {
@@ -115,23 +179,43 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 400, message: 'Cannot delete pile with used stock' });
   }
   
-  return await repository.deleteById(id);
+  const stock = pileRaw.data?.stock || {};
+  const remainingSheets = Math.max(Number(stock.total || 0) - Number(stock.used || 0), 0);
+  const result = await repository.deleteById(id);
+  if (pileRaw.lineage?.warehouseId) {
+    await warehouseService.updateInventoryCounts(pileRaw.lineage.warehouseId, {
+      totalBatches: -1,
+      totalSheets: -remainingSheets
+    });
+  }
+  return result;
 }
 
-export async function allocate(uid, count, userId, userRole) {
+export async function allocate(uid, count, userId, userRole, meta = {}) {
+  const allocationCount = Math.floor(Number(count || 0));
+  if (allocationCount <= 0) throw new Error('Allocation count must be positive');
   const pileRaw = await repository.findById(uid);
   if (!pileRaw) throw new Error('Pile not found');
   const pile = new MaterialPile(pileRaw);
   
   const available = (pile.data?.stock?.total || 0) - (pile.data?.stock?.used || 0);
-  if (available < count) throw new Error('Insufficient stock in pile');
+  if (available < allocationCount) throw new Error('Insufficient stock in pile');
   
-  pile.data.stock.used += count;
+  pile.data.stock.used += allocationCount;
+  appendStockMovement(pile, {
+    type: 'ALLOCATION',
+    quantity: -allocationCount,
+    userId,
+    ...meta
+  });
 
   await repository.updateById(uid, pile);
+  if (pile.lineage?.warehouseId) {
+    await warehouseService.updateInventoryCounts(pile.lineage.warehouseId, { totalSheets: -allocationCount });
+  }
   
   if (pile.data.stock.used >= pile.data.stock.total) {
-    await statusService.transition('material_pile', uid, 'DEPLETED', userId, 'SYSTEM', {
+    await statusService.transition('material_pile', uid, 'DEPLETED', 'SYSTEM', { system: true, userId: 'SYSTEM' }, {
       note: `All ${pile.data.stock.total} sheets allocated`
     });
   }
@@ -140,24 +224,62 @@ export async function allocate(uid, count, userId, userRole) {
 }
 
 export async function allocateSheets(uid, pileId, count, userId) {
+  const allocationCount = Math.floor(Number(count || 0));
+  if (allocationCount <= 0) throw createError({ statusCode: 400, message: 'Allocation count must be positive' });
   const pileRaw = await repository.findById(uid);
   if (!pileRaw) throw createError({ statusCode: 404, message: 'Material pile not found' });
   const pile = new MaterialPile(pileRaw);
 
   const available = (pile.data?.stock?.total || 0) - (pile.data?.stock?.used || 0);
-  if (available < count) {
+  if (available < allocationCount) {
     throw createError({ statusCode: 400, message: 'Insufficient sheets in pile' });
   }
 
-  pile.data.stock.used += count;
+  pile.data.stock.used += allocationCount;
+  appendStockMovement(pile, {
+    type: 'ALLOCATION',
+    quantity: -allocationCount,
+    userId,
+    pileId
+  });
   await repository.updateById(uid, pile);
 
   return {
     success: true,
-    sheets: Array.from({ length: count }, (_, index) => ({
+    sheets: Array.from({ length: allocationCount }, (_, index) => ({
       id: `${pileId || uid}-${index + 1}`,
       pileId: pileId || uid,
       userId
     }))
   };
+}
+
+function appendStockMovement(pile, movement = {}) {
+  const stock = pile.data?.stock || {};
+  const movements = Array.isArray(pile.data?.stockMovements) ? pile.data.stockMovements : [];
+  pile.data = {
+    ...(pile.data || {}),
+    stockMovements: [
+      ...movements,
+      cleanMovementEntry({
+        at: new Date(),
+        type: movement.type,
+        quantity: Number(movement.quantity || 0),
+        usedDelta: movement.usedDelta === undefined ? undefined : Number(movement.usedDelta || 0),
+        userId: movement.userId,
+        note: movement.note,
+        queueId: movement.queueId,
+        runId: movement.runId,
+        pileId: movement.pileId,
+        stock: {
+          total: Number(stock.total || 0),
+          used: Number(stock.used || 0)
+        }
+      })
+    ].slice(-100)
+  };
+}
+
+function cleanMovementEntry(entry = {}) {
+  return Object.fromEntries(Object.entries(entry).filter(([, value]) => value !== undefined));
 }

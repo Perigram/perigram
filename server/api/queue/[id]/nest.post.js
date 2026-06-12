@@ -8,7 +8,9 @@ export default defineEventHandler(async (event) => {
     entities: { queue: event.context.params.id },
     parameters: body
   }, auth);
-  const requestedAttachments = body.requestedAttachments || body.requestedArtifacts || ['LAYOUT_DXF'];
+  const requestedAttachments = body.generateAttachments
+    ? (body.requestedAttachments || body.requestedArtifacts || ['LAYOUT_DXF'])
+    : [];
   const attachments = [];
 
   for (const kind of requestedAttachments) {

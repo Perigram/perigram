@@ -1,18 +1,14 @@
 <template>
-    <div class="flex flex-col gap-8">
-        <!-- Project Data Header -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div class="flex flex-col gap-1">
-                <h1 class="m-0">{{ $t('project.data') }}</h1>
-            </div>
-            <div class="flex gap-2">
-                <Button 
-                    :label="$t('projectData.addMaterial')" 
-                    icon="pi pi-plus" 
+    <div class="flex flex-col gap-6">
+        <ActionToolbar :title="$t('project.data')">
+            <template #actions>
+                <Button
+                    :label="$t('projectData.addMaterial')"
+                    icon="pi pi-plus"
                     @click="showAddMaterialDialog = true"
                 />
-            </div>
-        </div>
+            </template>
+        </ActionToolbar>
 
         <!-- Inventory and Logs Tabs -->
         <Tabs value="0">
@@ -34,20 +30,19 @@
                 <!-- Project Materials Panel -->
                 <TabPanel value="0">
                     <div class="flex flex-col gap-6 py-4">
-                        <div v-if="projectMaterials.length === 0" class="py-12 flex flex-col items-center justify-center text-center italic opacity-50">
-                            <i class="pi pi-database text-5xl mb-4"></i>
-                            <p>{{ $t('projectData.noMaterials') }}</p>
-                            <Button :label="$t('projectData.addMaterial')" icon="pi pi-plus" text size="small" @click="showAddMaterialDialog = true" />
-                        </div>
+                        <StateBlock v-if="projectMaterials.length === 0" :message="$t('projectData.noMaterials')" icon="pi pi-database">
+                            <template #actions>
+                                <Button :label="$t('projectData.addMaterial')" icon="pi pi-plus" text size="small" @click="showAddMaterialDialog = true" />
+                            </template>
+                        </StateBlock>
 
                         <div v-else class="grid grid-cols-1 gap-6">
-                            <div v-for="(pm, pIdx) in projectMaterials" :key="pIdx" 
-                                class="border rounded overflow-hidden card-interactive"
-                            >
+                            <Panel v-for="(pm, pIdx) in projectMaterials" :key="pIdx">
+                                <template #header>
                                 <!-- Material Header -->
-                                <div class="flex items-center justify-between p-4 border-b">
+                                <div class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-4">
                                     <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 border rounded flex items-center justify-center">
+                                        <div class="w-10 h-10 rounded-ui border border-content-border flex items-center justify-center">
                                             {{ pm.material.name.charAt(0) }}
                                         </div>
                                         <div class="flex flex-col">
@@ -57,32 +52,35 @@
                                     </div>
                                     <div class="flex gap-2">
                                         <Button icon="pi pi-plus" :label="$t('projectData.addSheets')" text size="small" @click="openAddSheets(pm)" />
-                                        <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="confirmDeleteMaterial(pIdx)" />
+                                        <Button icon="pi pi-trash" severity="danger" text rounded size="small" :aria-label="$t('common.delete')" @click="confirmDeleteMaterial(pIdx)" />
                                     </div>
                                 </div>
+                                </template>
 
                                 <!-- Material Content: Sheets and Waste -->
                                 <div class="grid grid-cols-1 md:grid-cols-2">
                                     <!-- Sheets Column -->
                                     <div class="p-4 flex flex-col gap-3">
                                         <small>{{ $t('projectData.sheets') }}</small>
-                                        <DataTable :value="pm.sheets" size="small">
-                                            <Column field="width" :header="$t('projectData.size')">
-                                                <template #body="slotProps">
-                                                    {{ slotProps.data.width }}x{{ slotProps.data.height }}
+                                        <TableFrame>
+                                            <DataTable :value="pm.sheets" size="small">
+                                                <Column field="width" :header="$t('projectData.size')">
+                                                    <template #body="slotProps">
+                                                        {{ slotProps.data.width }}x{{ slotProps.data.height }}
+                                                    </template>
+                                                </Column>
+                                                <Column field="available" :header="$t('metadata.available')" />
+                                                <Column field="quantity" :header="$t('projectData.quantity')" />
+                                                <Column header="" style="width: var(--ck-table-action-column-width)">
+                                                    <template #body="slotProps">
+                                                        <Button icon="pi pi-times" severity="danger" text rounded size="small" :aria-label="$t('common.delete')" @click="removeSheets(pm, slotProps.index)" />
+                                                    </template>
+                                                </Column>
+                                                <template #empty>
+                                                    <span class="text-muted-color">{{ $t('projectData.noSheets') }}</span>
                                                 </template>
-                                            </Column>
-                                            <Column field="available" :header="$t('metadata.available')" />
-                                            <Column field="quantity" :header="$t('projectData.quantity')" />
-                                            <Column header="" style="width: var(--ck-table-action-column-width)">
-                                                <template #body="slotProps">
-                                                    <Button icon="pi pi-times" severity="danger" text rounded size="small" @click="removeSheets(pm, slotProps.index)" />
-                                                </template>
-                                            </Column>
-                                            <template #empty>
-                                                <p class="text-center italic py-4">{{ $t('projectData.noSheets') }}</p>
-                                            </template>
-                                        </DataTable>
+                                            </DataTable>
+                                        </TableFrame>
                                     </div>
 
                                     <!-- Waste Polygons Column -->
@@ -94,7 +92,7 @@
                                         <p v-else class="text-center italic py-4">{{ $t('projectData.noWastePolygons') }}</p>
                                     </div>
                                 </div>
-                            </div>
+                            </Panel>
                         </div>
                     </div>
                 </TabPanel>
@@ -102,45 +100,47 @@
                 <!-- Cut Logs Panel -->
                 <TabPanel value="1">
                     <div class="flex flex-col gap-4 py-4">
-                        <DataTable :value="cutLogs" class="border rounded" responsiveLayout="scroll">
-                            <Column field="date" :header="$t('projectData.logDate')">
-                                <template #body="slotProps">
-                                    <span class="italic">{{ formatDate(slotProps.data.date) }}</span>
-                                </template>
-                            </Column>
-                            <column field="userName" :header="$t('projectData.logUser')">
-                                <template #body="slotProps">
-                                    <span>{{ slotProps.data.userName || $t('admin.unknownUser') }}</span>
-                                </template>
-                            </column>
-                            <column field="queueName" :header="$t('projectData.logQueue')">
-                                <template #body="slotProps">
-                                    <span>{{ slotProps.data.queueName }}</span>
-                                </template>
-                            </column>
-                            <column field="sheetsUsed" :header="$t('projectData.logSheets')" class="text-center" />
-                            <Column field="utilization" :header="$t('projectData.logUtilization')" class="text-center">
-                                <template #body="slotProps">
-                                    <span>{{ (slotProps.data.utilization * 100).toFixed(1) }}%</span>
-                                </template>
-                            </Column>
-                            <Column field="wasteArea" :header="$t('projectData.logWaste')">
-                                <template #body="slotProps">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span>{{ (slotProps.data.wasteArea || 0).toFixed(2) }} m²</span>
-                                        <Button 
-                                            v-if="slotProps.data.hasWastePolygons"
-                                            icon="pi pi-plus-circle" 
-                                            severity="secondary" 
-                                            text 
-                                            rounded 
-                                            size="small" 
-                                            @click="addWasteToInventory(slotProps.data)"
-                                        />
-                                    </div>
-                                </template>
-                            </Column>
-                        </DataTable>
+                        <TableFrame>
+                            <DataTable :value="cutLogs" responsiveLayout="scroll">
+                                <Column field="date" :header="$t('projectData.logDate')">
+                                    <template #body="slotProps">
+                                        <span class="italic">{{ formatDate(slotProps.data.date) }}</span>
+                                    </template>
+                                </Column>
+                                <Column field="userName" :header="$t('projectData.logUser')">
+                                    <template #body="slotProps">
+                                        <span>{{ slotProps.data.userName || $t('admin.unknownUser') }}</span>
+                                    </template>
+                                </Column>
+                                <Column field="queueName" :header="$t('projectData.logQueue')">
+                                    <template #body="slotProps">
+                                        <span>{{ slotProps.data.queueName }}</span>
+                                    </template>
+                                </Column>
+                                <Column field="sheetsUsed" :header="$t('projectData.logSheets')" class="text-center" />
+                                <Column field="utilization" :header="$t('projectData.logUtilization')" class="text-center">
+                                    <template #body="slotProps">
+                                        <span>{{ (slotProps.data.utilization * 100).toFixed(1) }}%</span>
+                                    </template>
+                                </Column>
+                                <Column field="wasteArea" :header="$t('projectData.logWaste')">
+                                    <template #body="slotProps">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span>{{ (slotProps.data.wasteArea || 0).toFixed(2) }} m²</span>
+                                            <Button
+                                                v-if="slotProps.data.hasWastePolygons"
+                                                icon="pi pi-plus-circle"
+                                                severity="secondary"
+                                                text
+                                                rounded
+                                                size="small"
+                                                @click="addWasteToInventory(slotProps.data)"
+                                            />
+                                        </div>
+                                    </template>
+                                </Column>
+                            </DataTable>
+                        </TableFrame>
                     </div>
                 </TabPanel>
             </TabPanels>
@@ -148,15 +148,15 @@
 
         <!-- Add Material Dialog -->
         <StandardDialog
-            v-model:visible="showAddMaterialDialog" 
-            :header="$t('projectData.addMaterialToProject')" 
+            v-model:visible="showAddMaterialDialog"
+            :header="$t('projectData.addMaterialToProject')"
             size="sm"
         >
             <div class="flex flex-col gap-4 py-4">
                 <div class="flex flex-col gap-1">
                     <label>{{ $t('projectData.selectFromGlobalLibrary') }}</label>
-                    <Select 
-                        v-model="selectedGlobalMaterialId" 
+                    <Select
+                        v-model="selectedGlobalMaterialId"
                         :options="globalMaterialOptions"
                         optionLabel="name"
                         optionValue="_id"
@@ -171,10 +171,11 @@
                         </template>
                     </Select>
                 </div>
-                <div class="p-4 border border-dashed rounded text-center">
-                    <small>{{ $t('projectData.materialNotFound') }}</small>
-                    <Button :label="$t('projectData.createNewMaterial')" text size="small" @click="showCreateMaterialDialog = true" />
-                </div>
+                <StateBlock :message="$t('projectData.materialNotFound')" icon="pi pi-search">
+                    <template #actions>
+                        <Button :label="$t('projectData.createNewMaterial')" text size="small" @click="showCreateMaterialDialog = true" />
+                    </template>
+                </StateBlock>
             </div>
             <template #footer>
                 <Button :label="$t('common.cancel')" text severity="secondary" @click="showAddMaterialDialog = false" />
@@ -222,8 +223,8 @@
 
         <!-- Add Sheets Dialog -->
         <StandardDialog
-            v-model:visible="showAddSheetsDialog" 
-            :header="$t('projectData.addSheets')" 
+            v-model:visible="showAddSheetsDialog"
+            :header="$t('projectData.addSheets')"
             size="sm"
         >
             <div class="flex flex-col gap-4 py-4" v-if="activeProjectMaterial">
@@ -261,7 +262,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
-import Tag from 'primevue/tag';
+import Panel from 'primevue/panel';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -274,7 +275,10 @@ import Chip from 'primevue/chip';
 import ConfirmDialog from 'primevue/confirmdialog';
 
 import { useEntity } from '~/composables/useEntity';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
+import TableFrame from '~/components/shared/TableFrame.vue';
 import { namedSelectOptions } from '~/utils/selectOptions';
 
 definePageMeta({
@@ -330,8 +334,8 @@ const fetchProjectData = async () => {
     loading.value = true;
     try {
         const data = await fetchEntity(projectSlug);
-        projectMaterials.value = data.projectMaterials || [];
-        cutLogs.value = data.cutLogs || [];
+        projectMaterials.value = data.data?.projectMaterials || data.projectMaterials || [];
+        cutLogs.value = data.data?.cutLogs || data.cutLogs || [];
     } catch (error) {
         console.error('Failed to fetch project data:', error);
         toast.add({ severity: 'error', summary: t('common.error'), detail: t('errors.loadFailed'), life: 3000 });
@@ -346,6 +350,10 @@ const fetchGlobalMaterials = async () => {
     } catch (error) {
         console.error('Failed to fetch global materials:', error);
     }
+};
+
+const saveProjectMaterials = async (materials) => {
+    await updateProject({ data: { projectMaterials: materials } });
 };
 
 const addMaterialToProject = async () => {
@@ -368,7 +376,7 @@ const addMaterialToProject = async () => {
     ];
 
     try {
-        await updateProject({ projectMaterials: newProjectMaterials });
+        await saveProjectMaterials(newProjectMaterials);
         projectMaterials.value = newProjectMaterials;
         showAddMaterialDialog.value = false;
         selectedGlobalMaterialId.value = null;
@@ -397,10 +405,10 @@ const openAddSheets = (pm) => {
 
 const saveSheets = async () => {
     if (!activeProjectMaterial.value) return;
-    
+
     const pm = activeProjectMaterial.value;
     const existing = pm.sheets.find(s => s.width === sheetForm.value.width && s.height === sheetForm.value.height);
-    
+
     if (existing) {
         existing.quantity += sheetForm.value.quantity;
         existing.available += sheetForm.value.quantity;
@@ -412,7 +420,7 @@ const saveSheets = async () => {
     }
 
     try {
-        await updateProject({ projectMaterials: projectMaterials.value });
+        await saveProjectMaterials(projectMaterials.value);
         showAddSheetsDialog.value = false;
         toast.add({ severity: 'success', summary: t('common.success'), detail: t('projectData.sheetsAdded'), life: 3000 });
     } catch (error) {
@@ -422,12 +430,12 @@ const saveSheets = async () => {
 
 const removeSheets = async (pm, index) => {
     pm.sheets.splice(index, 1);
-    await updateProject({ projectMaterials: projectMaterials.value });
+    await saveProjectMaterials(projectMaterials.value);
 };
 
 const removeWaste = async (pm, index) => {
     pm.wastePolygons.splice(index, 1);
-    await updateProject({ projectMaterials: projectMaterials.value });
+    await saveProjectMaterials(projectMaterials.value);
 };
 
 const confirmDeleteMaterial = (index) => {
@@ -439,7 +447,7 @@ const confirmDeleteMaterial = (index) => {
             const newMats = [...projectMaterials.value];
             newMats.splice(index, 1);
             try {
-                await updateProject({ projectMaterials: newMats });
+                await saveProjectMaterials(newMats);
                 projectMaterials.value = newMats;
                 toast.add({ severity: 'success', summary: t('common.success'), detail: t('messages.deleteSuccess'), life: 3000 });
             } catch (error) {

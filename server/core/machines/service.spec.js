@@ -86,6 +86,20 @@ describe('status service lifecycle payloads', () => {
     expect(denied.actions).toEqual([]);
   });
 
+  it('returns no actions for entity types without workflows', async () => {
+    const actions = await statusService.getActions('warehouse', 'warehouse-1', {
+      userId: 'admin-1',
+      memberships: [{ organizationId: 'org-1', permissions: { warehouses: 'admin' } }]
+    });
+
+    expect(actions).toEqual({
+      entityType: 'warehouse',
+      targetId: 'warehouse-1',
+      state: null,
+      actions: []
+    });
+  });
+
   it('writes metadata and lifecycle to the entity snapshot and status event', async () => {
     const id = new ObjectId();
     const projectId = new ObjectId();

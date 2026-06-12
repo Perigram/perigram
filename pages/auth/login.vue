@@ -1,6 +1,6 @@
 <template>
-    <div class="flex items-center justify-center min-h-screen">
-        <div class="w-full max-w-md p-8 border rounded">
+    <div class="flex min-h-screen items-center justify-center bg-[var(--ck-page-background)] p-4">
+        <Panel class="w-full max-w-md">
             <div class="flex flex-col items-center gap-2 mb-8">
                 <i class="pi pi-box text-4xl"></i>
                 <h1>CutKit</h1>
@@ -25,7 +25,7 @@
                 <span>{{ $t('auth.noAccount') }} </span>
                 <NuxtLink to="/auth/register">{{ $t('auth.signup') }}</NuxtLink>
             </div>
-        </div>
+        </Panel>
     </div>
 </template>
 
@@ -38,6 +38,7 @@ import { useToast } from 'primevue/usetoast';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
+import Panel from 'primevue/panel';
 
 definePageMeta({
     layout: 'empty'

@@ -24,6 +24,7 @@
     "reject": "Reject",
     "revoke": "Revoke",
     "copied": "Copied",
+    "copy": "Copy",
     "active": "Active",
     "pending": "Pending",
     "back": "Back",
@@ -72,6 +73,7 @@
     "unnamed": "Unnamed",
     "user": "User",
     "notAvailable": "N/A",
+    "noResults": "No results",
     "componentError": "Component Error",
     "tryAgain": "Try Again",
     "traceability": "Traceability",
@@ -84,7 +86,10 @@
   },
   "drawing": {
     "showAllLayers": "Show all layers",
-    "hideAllLayers": "Hide all layers"
+    "hideAllLayers": "Hide all layers",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "resetView": "Reset view"
   },
   "footer": {
     "termsAndConditions": "Terms and Conditions",
@@ -104,6 +109,34 @@
     "enterName": "Enter project name (optional)",
     "deleteConfirm": "Delete Project",
     "deleteWarning": "Are you sure you want to delete \"{name}\"? This action cannot be undone."
+  },
+  "marketing": {
+    "heroEyebrow": "CNC project execution",
+    "heroTitle": "CutKit",
+    "heroSubtitle": "Turn cassette designs, nesting decisions, warehouse stock, and production status into one traceable workflow.",
+    "primaryCta": "Start a workspace",
+    "secondaryCta": "Sign in",
+    "valueTraceabilityTitle": "Trace every decision",
+    "valueTraceability": "Projects, queues, sheet designs, and physical outputs keep lineage visible from design through installation.",
+    "valueCassetteTitle": "Design for real fabrication",
+    "valueCassette": "Cassette geometry, folds, cut layers, and sheet layouts stay connected to production-ready previews.",
+    "valueProductionTitle": "Move work forward",
+    "valueProduction": "Queues, warehouse stock, nesting runs, requisitions, and lifecycle status share one operational surface.",
+    "animation": {
+      "aria": "Animated cassette workflow from sheet design through nesting to folded production cassette",
+      "flatPattern": "Cassette flat pattern",
+      "nestingToFold": "Nest → fold",
+      "foldedCassette": "Folded cassette",
+      "sheetNest": "Sheet nest",
+      "stageDesign": "Design",
+      "stageBuild": "Build",
+      "optimize": "Optimize",
+      "ready": "Ready for CNC",
+      "import": "Import",
+      "nest": "Nest",
+      "fabricate": "Fabricate",
+      "install": "Install"
+    }
   },
   "nav": {
     "projects": "Projects",
@@ -160,6 +193,9 @@
     "ready": "Ready",
     "active": "Active",
     "available": "Available",
+    "stocked": "Stocked",
+    "depleted": "Depleted",
+    "used": "Used",
     "nesting": "Nesting",
     "generating": "Generating",
     "scrap": "Scrap",
@@ -186,6 +222,7 @@
     "title": "Project",
     "create": "Create Project",
     "name": "Project Name",
+    "rename": "Rename project",
     "address": "Address",
     "status": "Status",
     "openProjects": "Open projects",
@@ -268,8 +305,10 @@
     "preview": "Preview",
     "noPreview": "No preview available",
     "selectLayerType": "Select layer type",
+    "nestingLayerRequired": "Map the nesting boundary layer to {layer}. This layer is stored as the cassette design cut geometry.",
     "parameters": "Parameters",
     "design": "Design",
+    "geometry": "Geometry",
     "parametersHelp": "Define variable dimensions for batch entries",
     "parametersPlaceholder": "e.g., A, B, C",
     "parametersHint": "Common: A, B, C, D, E, F, horizontal_seam_width",
@@ -313,6 +352,7 @@
     "initialValue": "Initial Value",
     "v2": {
       "face": "Face",
+      "inspector": "Inspector",
       "parameters": "Parameters",
       "preview": "Layout preview",
       "loadTemplate": "Load template",
@@ -321,10 +361,14 @@
       "topology": "Topology",
       "selectedWorkpiece": "Selected workpiece",
       "attachment": "Attachment",
-      "noAttachment": "Root workpieces have no attachment. Use a workpiece + button to create a related workpiece.",
+      "attachments": "Attachments",
+      "noAttachment": "This workpiece has no attachment yet. Use + to create a related workpiece or the link action to declare another attachment.",
       "addWorkpiece": "Add workpiece",
       "addRelatedWorkpiece": "Add related workpiece",
+      "addAttachment": "Add attachment",
       "deleteWorkpiece": "Delete workpiece",
+      "removeAttachment": "Remove attachment",
+      "driver": "driver",
       "foldedPreview": "Folded 3D preview",
       "selectedFoldedPreview": "Selected 3D",
       "cassetteFoldedPreview": "Cassette 3D",
@@ -336,6 +380,7 @@
       "previewHeld": "Drawing is held at the last valid preview. Fix the expression to update it.",
       "addFace": "Add trapezoid",
       "deleteFace": "Delete face",
+      "faceRole": "Face role",
       "rootFace": "Root trapezoid",
       "previewModes": {
         "workpiece": "Workpiece",
@@ -352,8 +397,14 @@
         "offsetX": "Offset X",
         "offsetY": "Offset Y",
         "rotation": "Rotation",
+        "driver": "Placement driver",
         "jointType": "Joint type",
         "method": "Method"
+      },
+      "attachmentStatus": {
+        "ok": "ok",
+        "unresolved": "unresolved",
+        "impossible": "impossible"
       },
       "snapPoints": {
         "center": "Center",
@@ -381,7 +432,7 @@
         "label": "Expression",
         "guideTitle": "Expression help",
         "guide": "Type numbers, cassette parameters, + - * /, parentheses, and sin(30), cos(60), tan(45). Trig uses degrees.",
-        "angleGuide": "Angle fields may use a deg suffix, for example 90deg.",
+        "angleGuide": "Angle fields use plain degree numbers, for example 90.",
         "angleAlias": "Fold angle from parent",
         "trigTooltip": "{name}() uses degrees",
         "groups": {
@@ -398,10 +449,10 @@
         "end": "End"
       },
       "offsetLabels": {
-        "baseStart": "P0 base offset from {anchor}",
-        "baseEnd": "P1 base offset from {anchor}",
-        "topStart": "Top offset at P0 side",
-        "topEnd": "Top offset at P1 side"
+        "baseStart": "Base offset from {anchor}",
+        "baseEnd": "Base offset from {anchor}",
+        "topStart": "Top offset",
+        "topEnd": "Top offset"
       },
       "fields": {
         "defaultLength": "Base length",
@@ -428,6 +479,14 @@
       "renamed": "Cassette renamed",
       "saveSuccess": "Template saved successfully"
     }
+  },
+  "revision": {
+    "scope": "Scope",
+    "number": "Revision",
+    "hash": "Hash",
+    "source": "Source",
+    "sourceRevision": "Source revision",
+    "currentGeometry": "Current geometry"
   },
   "nesting": {
     "title": "Nesting",
@@ -470,6 +529,9 @@
     "selectWarehouse": "Select Warehouse",
     "customUpload": "Custom Sheet Upload",
     "inventorySources": "Allowed Inventory Sources",
+    "selectedStockSummary": "{count} sheets available at {size} mm. Nesting will use this sheet size.",
+    "mixedStockSize": "Selected stock has different sheet sizes. Select one size per nesting run.",
+    "manageWarehouseStock": "Manage warehouse stock",
     "algorithmNote": "Algorithm will use as needed",
     "shortageTitle": "Warehouse Stock Shortage",
     "shortageNote": "Algorithm calculated {needed} sheets needed, but only {available} are available. Missing {missing} units.",
@@ -684,6 +746,18 @@
     "minutesShort": "{count}m",
     "secondsShort": "{count}s",
     "selectChatPrompt": "Select a chat from the list to start messaging",
+    "marketingAnimations": {
+      "title": "Marketing Animations",
+      "subtitle": "Reusable cassette workflow visuals for public and sales-facing surfaces.",
+      "cassetteWorkflow": "Cassette workflow animation",
+      "landingReady": "Landing page",
+      "usage": "Usage",
+      "surface": "Surface",
+      "surfaceLanding": "Embedded on the public landing page and available here for review.",
+      "motion": "Motion",
+      "motionCss": "SVG and CSS keyframes, no runtime animation dependency.",
+      "reducedMotion": "Reduced motion support"
+    },
     "workbench": {
       "title": "Development Workbench",
       "subtitle": "Single workspace for domain data, UI components, workflows, diagnostics, and admin tools.",
@@ -1131,7 +1205,13 @@
     "receiptId": "Receipt ID",
     "stockTotal": "Total Stock",
     "stockUsed": "Used",
-    "remaining": "Remaining"
+    "remaining": "Remaining",
+    "lastMovement": "Last movement",
+    "stockMovementTypes": {
+      "RECEIPT": "Receipt",
+      "ADJUSTMENT": "Adjustment",
+      "ALLOCATION": "Allocation"
+    }
   },
   "remnants": {
     "title": "Remnants",
@@ -1149,6 +1229,9 @@
     "markMilled": "Mark Milled"
   },
   "cassetteInstance": {
+    "title": "Cassette Instances",
+    "subtitle": "Produced cassette pieces stored in the warehouse.",
+    "noInstances": "No cassette instances found",
     "updateStatus": "Update Status",
     "printLabel": "Print Label",
     "updatePhysicalStatus": "Update Physical Status",
@@ -1304,6 +1387,7 @@
     "cassetteDesign": "Cassette Design",
     "cassetteTemplate": "Cassette Template",
     "cassetteInstance": "Cassette Instance",
+    "entityRevision": "Entity Revision",
     "requisition": "Requisition",
     "material": "Material",
     "materialPile": "Material Pile",
@@ -1363,6 +1447,8 @@
     "nestingRuns": "Nesting Runs",
     "nestingConfig": "Nesting Config",
     "jobComposition": "Job Composition",
+    "materialConsumption": "Material Consumption",
+    "consumed": "consumed",
     "runStatus": {
       "NESTING": "Nesting",
       "ERROR": "Error",
@@ -1370,10 +1456,6 @@
       "CHOSEN": "Chosen"
     },
     "chooseRun": "Choose this run",
-    "markCut": "Mark as Cut",
-    "confirmMarkCut": "Are you sure you want to mark this queue as CUT? This means the queue has been physically cut.",
-    "markedCut": "Queue marked as CUT",
-    "markCutFailed": "Failed to mark queue as cut",
     "runChosen": "Run chosen successfully",
     "chooseRunFailed": "Failed to choose run",
     "updated": "Updated",
@@ -1548,6 +1630,8 @@
     "subtitle": "Physical twin of storage facilities and raw material inventory.",
     "newWarehouse": "New Warehouse",
     "editWarehouse": "Edit Warehouse",
+    "addStock": "Add Stock",
+    "editStock": "Edit Stock",
     "editFacility": "Edit Facility",
     "activeWarehouse": "Active Warehouse",
     "selectWarehouse": "Select Warehouse",
@@ -1557,19 +1641,33 @@
     "storedBatches": "Stored Batches",
     "availableSheets": "Available Sheets",
     "remnants": "Remnants",
+    "cassetteInstances": "Cassette Instances",
     "activeShipments": "Active Shipments",
     "rawSheets": "Raw Sheets",
     "recoveredArea": "Recovered Area",
     "manager": "Manager",
     "notAssigned": "Not Assigned",
     "inventorySnapshot": "Inventory Snapshot",
+    "sheetThickness": "Sheet Thickness",
+    "foilThickness": "Foil Thickness",
+    "materialName": "Material Name",
+    "colorName": "Color / Finish",
+    "createCatalogFirst": "Create a catalog and color before adding warehouse stock.",
+    "catalogFallback": "No catalog is selected. The material and color names will create minimal catalog records for this stock.",
+    "confirmDeleteStock": "Delete this stock pile? Only unused stock can be deleted.",
+    "confirmDeleteWarehouse": "Delete this warehouse? Only empty warehouses can be deleted.",
     "placeholders": {
       "name": "e.g., Main Production Stock",
       "address": "Full location address...",
-      "contact": "Person responsible for this warehouse"
+      "contact": "Person responsible for this warehouse",
+      "material": "e.g., ACM 4 mm",
+      "color": "e.g., RAL 7016"
     },
     "messages": {
-      "saved": "Warehouse saved"
+      "saved": "Warehouse saved",
+      "deleted": "Warehouse deleted",
+      "stockSaved": "Stock saved",
+      "stockDeleted": "Stock deleted"
     },
     "type": "Type",
     "address": "Address",
@@ -1634,13 +1732,19 @@
     "type": "Organization Type"
   },
   "sheetDesign": {
+    "sheetDesigns": "Sheet designs",
     "downloadDxf": "Download DXF",
     "exportGCode": "Export G-code",
     "utilization": "Utilization",
     "parts": "Parts",
     "cuttingLength": "Cutting Length",
     "estimatedTime": "Estimated Time",
-    "instances": "Instances"
+    "cassetteDesigns": "Cassette designs",
+    "materialSources": "Material sources",
+    "instances": "Instances",
+    "notFound": "Sheet design not found",
+    "noSheetDesigns": "No sheet designs yet",
+    "runNestingFirst": "Run nesting from a project queue to generate sheet layouts."
   },
   "nestingRun": {
     "sheetDesigns": "Sheet designs"

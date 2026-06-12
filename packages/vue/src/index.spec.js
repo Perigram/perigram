@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   collectionToEntityType,
+  createDomainUiAdapter,
   createEndpointMap,
   getSingleEndpoint
 } from './index.js';
@@ -22,6 +23,31 @@ describe('@cutkit/vue endpoint map', () => {
     expect(getSingleEndpoint(endpointMap, 'cassette_instance', 'ci-1')).toBe('/api/cassette-instances/ci-1');
   });
 
+  it('keeps cassette design endpoints separate from cassette templates', () => {
+    const endpointMap = createEndpointMap([
+      {
+        type: 'cassetteTemplate',
+        collection: 'cassettes',
+        routes: {
+          single: '/api/cassettes/:id',
+          list: '/api/cassettes'
+        }
+      },
+      {
+        type: 'cassetteDesign',
+        collection: 'cassette-designs',
+        routes: {
+          single: '/api/cassette-designs/:id',
+          list: '/api/cassette-designs'
+        }
+      }
+    ]);
+
+    expect(getSingleEndpoint(endpointMap, 'cassetteTemplate', 'ct-1')).toBe('/api/cassettes/ct-1');
+    expect(getSingleEndpoint(endpointMap, 'cassetteDesign', 'cd-1')).toBe('/api/cassette-designs/cd-1');
+    expect(getSingleEndpoint(endpointMap, 'cassette_design', 'cd-1')).toBe('/api/cassette-designs/cd-1');
+  });
+
   it('derives singular snake_case keys from collection names', () => {
     const endpointMap = createEndpointMap([
       {
@@ -36,5 +62,23 @@ describe('@cutkit/vue endpoint map', () => {
 
     expect(collectionToEntityType('material-piles')).toBe('material_pile');
     expect(getSingleEndpoint(endpointMap, 'material_pile', 'pile-1')).toBe('/api/material-piles/pile-1');
+  });
+
+  it('registers surface aliases for UI keys and backend entity types', () => {
+    const adapter = createDomainUiAdapter({
+      ui: {
+        surfaces: [
+          {
+            key: 'materialPile',
+            entityType: 'material_pile',
+            icon: 'pi pi-database'
+          }
+        ]
+      }
+    });
+
+    expect(adapter.getIcon('materialPile')).toBe('pi pi-database');
+    expect(adapter.getIcon('material_pile')).toBe('pi pi-database');
+    expect(adapter.getSurface('material_pile')?.key).toBe('materialPile');
   });
 });

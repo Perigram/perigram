@@ -8,6 +8,8 @@ const { mockedConnectDB } = vi.hoisted(() => ({
 vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
 
 import * as queueService from './service';
+import * as nestingRunsService from '../nesting-runs/service';
+import * as cassetteInstancesService from '../cassette-instances/service';
 
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
@@ -41,6 +43,13 @@ describe('Production Queues & Nesting Status', () => {
   beforeEach(async () => {
     await db.collection('queues').deleteMany({});
     await db.collection('projects').deleteMany({});
+    await db.collection('nesting_runs').deleteMany({});
+    await db.collection('material_piles').deleteMany({});
+    await db.collection('warehouses').deleteMany({});
+    await db.collection('sheets').deleteMany({});
+    await db.collection('remnants').deleteMany({});
+    await db.collection('cassette_instances').deleteMany({});
+    await db.collection('sheet_designs').deleteMany({});
   });
 
   const mockUser = {
@@ -75,7 +84,7 @@ describe('Production Queues & Nesting Status', () => {
     expect(result.lineage.projectId).toBe(projectId);
   });
 
-  it('should mark a queue as CUT only if a run is CHOSEN', async () => {
+  it('should require material assignment before choosing a production run', async () => {
     const queueId = new ObjectId();
     await db.collection('queues').insertOne({
       _id: queueId,
@@ -84,16 +93,434 @@ describe('Production Queues & Nesting Status', () => {
       status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} }
     });
 
-    await expect(queueService.markCut(queueId.toString(), mockUser.userId, mockUser.organizationId, null, mockUser.permissions))
-      .rejects.toThrow(/No run chosen/);
-
     await db.collection('nesting_runs').insertOne({
-      _id: new ObjectId(),
-      lineage: { queueId: queueId.toString() },
-      status: { state: 'CHOSEN' }
+      _id: 'run-no-material',
+      lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
+      status: { state: 'COMPLETE' },
+      data: { results: { sheetCount: 1 } }
     });
 
-    const result = await queueService.markCut(queueId.toString(), mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
-    expect(result.status.state).toBe('CUT');
+    await expect(nestingRunsService.chooseRun(queueId.toString(), 'run-no-material', mockUser.userId, mockUser.organizationId, null, mockUser.permissions))
+      .rejects.toThrow(/Material assignment is required/);
+  });
+
+  it('should consume selected pile stock when choosing a production run', async () => {
+    const queueId = new ObjectId();
+    const pileId = 'pile-cut-1';
+    await db.collection('queues').insertOne({
+      _id: queueId,
+      identity: { uid: queueId, name: 'Warehouse queue' },
+      lineage: { organizationId: mockUser.organizationId },
+      status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: {
+        job: {
+          materialPool: [{
+            type: 'PILE',
+            id: pileId,
+            warehouseId: 'warehouse-cut-1',
+            available: 5,
+            dimensions: { width: 3000, length: 1500 }
+          }]
+        }
+      }
+    });
+    await db.collection('nesting_runs').insertOne({
+      _id: 'run-cut-1',
+      lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
+      status: { state: 'COMPLETE' },
+      data: {
+        results: { sheetCount: 3 },
+        materialPool: [{
+          type: 'PILE',
+          id: pileId,
+          warehouseId: 'warehouse-cut-1',
+          available: 5,
+          dimensions: { width: 3000, length: 1500 }
+        }]
+      }
+    });
+    await db.collection('material_piles').insertOne({
+      _id: pileId,
+      identity: { uid: pileId, name: 'Cut Pile' },
+      data: { stock: { total: 5, used: 0 } }
+    });
+
+    const result = await nestingRunsService.chooseRun(queueId.toString(), 'run-cut-1', mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
+    const pile = await db.collection('material_piles').findOne({ _id: pileId });
+
+    expect(result.run.status.state).toBe('CHOSEN');
+    expect(result.queue.status.state).toBe('READY');
+    expect(result.queue.data.materialConsumption.sources).toMatchObject([{ type: 'PILE', id: pileId, count: 3 }]);
+    expect(result.queue.data.physicalOutputs.sheetIds).toEqual([]);
+    expect(result.queue.data.physicalOutputs.sourceSheets).toHaveLength(3);
+    expect(pile.data.stock.used).toBe(3);
+    expect(pile.data.stockMovements[0]).toMatchObject({
+      type: 'ALLOCATION',
+      quantity: -3,
+      queueId: queueId.toString(),
+      runId: 'run-cut-1'
+    });
+  });
+
+  it('should choose a production run when pile allocation depletes the selected stock', async () => {
+    const queueId = new ObjectId();
+    const pileId = 'pile-cut-depleted';
+    await db.collection('queues').insertOne({
+      _id: queueId,
+      identity: { uid: queueId, name: 'Depleting queue' },
+      lineage: { organizationId: mockUser.organizationId },
+      status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: {
+        job: {
+          materialPool: [{
+            type: 'PILE',
+            id: pileId,
+            warehouseId: 'warehouse-cut-1',
+            available: 1,
+            dimensions: { width: 3000, length: 1500 }
+          }]
+        }
+      }
+    });
+    await db.collection('nesting_runs').insertOne({
+      _id: 'run-cut-depleted',
+      lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
+      status: { state: 'COMPLETE' },
+      data: {
+        results: { sheetCount: 1 },
+        materialPool: [{
+          type: 'PILE',
+          id: pileId,
+          warehouseId: 'warehouse-cut-1',
+          available: 1,
+          dimensions: { width: 3000, length: 1500 }
+        }]
+      }
+    });
+    await db.collection('material_piles').insertOne({
+      _id: pileId,
+      identity: { uid: pileId, name: 'Depleted Pile' },
+      lineage: { organizationId: mockUser.organizationId },
+      status: { state: 'STOCKED', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: { stock: { total: 1, used: 0 } }
+    });
+
+    const result = await nestingRunsService.chooseRun(queueId.toString(), 'run-cut-depleted', mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
+    const pile = await db.collection('material_piles').findOne({ _id: pileId });
+
+    expect(result.run.status.state).toBe('CHOSEN');
+    expect(result.queue.data.materialConsumption.sources).toMatchObject([{ type: 'PILE', id: pileId, count: 1 }]);
+    expect(pile.data.stock.used).toBe(1);
+    expect(pile.status.state).toBe('DEPLETED');
+  });
+
+  it('should create remnant geometry and cassette instances from a chosen warehouse run without storing cut sheets', async () => {
+    const queueId = new ObjectId();
+    const warehouseId = new ObjectId();
+    const pileId = 'pile-cut-physical';
+    await db.collection('warehouses').insertOne({
+      _id: warehouseId,
+      identity: { uid: 'warehouse-physical', name: 'Physical Warehouse' },
+      lineage: { organizationId: mockUser.organizationId },
+      data: { stats: { totalSheets: 5, totalRemnants: 0 } }
+    });
+    await db.collection('queues').insertOne({
+      _id: queueId,
+      identity: { uid: queueId, name: 'Physical queue' },
+      lineage: { organizationId: mockUser.organizationId, projectId: 'project-1' },
+      status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: {
+        job: {
+          materialPool: [{
+            type: 'PILE',
+            id: pileId,
+            warehouseId: warehouseId.toString(),
+            available: 5,
+            dimensions: { width: 3000, length: 1500 }
+          }]
+        }
+      }
+    });
+    await db.collection('nesting_runs').insertOne({
+      _id: 'run-cut-physical',
+      lineage: { organizationId: mockUser.organizationId, projectId: 'project-1', queueId: queueId.toString() },
+      status: { state: 'COMPLETE' },
+      data: {
+        results: { sheetCount: 1, remnantArea: 0.25 },
+        sheetDesignIds: ['sheet-design-physical'],
+        materialPool: [{
+          type: 'PILE',
+          id: pileId,
+          warehouseId: warehouseId.toString(),
+          available: 5,
+          dimensions: { width: 3000, length: 1500 }
+        }]
+      }
+    });
+    await db.collection('sheet_designs').insertOne({
+      _id: 'sheet-design-physical',
+      identity: { uid: 'sheet-design-physical', name: 'Sheet Design 1', serial: 'S1' },
+      lineage: { organizationId: mockUser.organizationId, projectId: 'project-1', queueId, runId: 'run-cut-physical' },
+      specs: { width: 3000, length: 1500 },
+      data: {
+        geometry: {
+          data: {
+            items: [{
+              id: 0,
+              cassette_id: 'cassette-design-a',
+              shape: { type: 'simple_polygon', data: [[0, 0], [100, 0], [100, 50], [0, 50], [0, 0]] }
+            }],
+            bins: [{
+              shape: {
+                data: {
+                  outer: [[0, 0], [3000, 0], [3000, 1500], [0, 1500], [0, 0]],
+                  inner: []
+                }
+              }
+            }],
+            solution: {
+              layouts: [{
+                placed_items: [{ item_id: 0, transformation: { translation: [10, 20], rotation: 0 } }]
+              }]
+            }
+          }
+        },
+        cassetteDesigns: [{ cassetteDesignId: 'cassette-design-a', count: 2 }]
+      }
+    });
+    await db.collection('material_piles').insertOne({
+      _id: pileId,
+      identity: { uid: pileId, name: 'Physical Pile' },
+      lineage: {
+        organizationId: mockUser.organizationId,
+        warehouseId
+      },
+      specs: { width: 3000, length: 1500, sheetThickness: 4 },
+      data: { stock: { total: 5, used: 0 }, specs: { width: 3000, length: 1500, sheetThickness: 4 } }
+    });
+
+    const result = await nestingRunsService.chooseRun(queueId.toString(), 'run-cut-physical', mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
+    const sheets = await db.collection('sheets').find({}).toArray();
+    const remnants = await db.collection('remnants').find({}).toArray();
+    const instances = await db.collection('cassette_instances').find({}).toArray();
+    const warehouseInstances = await cassetteInstancesService.list(
+      mockUser.userId,
+      mockUser.organizationId,
+      null,
+      mockUser.permissions,
+      { 'lineage.warehouseId': warehouseId.toString() }
+    );
+    const warehouse = await db.collection('warehouses').findOne({ _id: warehouseId });
+
+    expect(result.run.status.state).toBe('CHOSEN');
+    expect(result.queue.status.state).toBe('READY');
+    expect(result.queue.data.physicalOutputs.sheetIds).toEqual([]);
+    expect(result.queue.data.physicalOutputs.sourceSheets).toHaveLength(1);
+    expect(result.queue.data.physicalOutputs.remnantIds).toHaveLength(1);
+    expect(result.queue.data.physicalOutputs.cassetteInstanceIds).toHaveLength(2);
+    expect(sheets).toHaveLength(0);
+    expect(remnants).toHaveLength(1);
+    expect(remnants[0].lineage.sheetId).toBeUndefined();
+    expect(remnants[0].lineage.warehouseId.toString()).toBe(warehouseId.toString());
+    expect(remnants[0].data.geometry.data.polygon.inner).toHaveLength(1);
+    expect(remnants[0].data.geometry.data.layers.find(layer => layer.standardCode === 'remnant.usable')).toBeTruthy();
+    expect(instances).toHaveLength(2);
+    expect(warehouseInstances).toHaveLength(2);
+    expect(instances[0].status.state).toBe('CUT');
+    expect(instances[0].lineage.sheetId).toBeUndefined();
+    expect(instances[0].lineage.warehouseId.toString()).toBe(warehouseId.toString());
+    expect(instances[0].lineage.queueId.toString()).toBe(queueId.toString());
+    expect(warehouse.data.stats.totalSheets).toBe(4);
+    expect(warehouse.data.stats.totalRemnants).toBe(1);
+  });
+
+  it('should expose legacy queue-cut cassette instances as CUT in warehouse lists', async () => {
+    const queueId = new ObjectId();
+    const warehouseId = new ObjectId();
+    await db.collection('cassette_instances').insertOne({
+      _id: new ObjectId(),
+      identity: { uid: 'ci-legacy-cut', name: 'Legacy Cut Cassette', serial: 'LC-1' },
+      lineage: {
+        organizationId: mockUser.organizationId,
+        queueId,
+        warehouseId,
+        designId: 'cassette-design-a'
+      },
+      status: { state: 'NESTED', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: { source: 'QUEUE_CUT', cassetteDesignId: 'cassette-design-a' }
+    });
+
+    const warehouseInstances = await cassetteInstancesService.list(
+      mockUser.userId,
+      mockUser.organizationId,
+      null,
+      mockUser.permissions,
+      { 'lineage.warehouseId': warehouseId.toString() }
+    );
+
+    expect(warehouseInstances).toHaveLength(1);
+    expect(warehouseInstances[0].status.state).toBe('CUT');
+  });
+
+  it('should not partially consume pile stock when selected piles are insufficient', async () => {
+    const queueId = new ObjectId();
+    const pileId = 'pile-cut-short';
+    await db.collection('queues').insertOne({
+      _id: queueId,
+      identity: { uid: queueId, name: 'Short stock queue' },
+      lineage: { organizationId: mockUser.organizationId },
+      status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: {
+        job: {
+          materialPool: [{
+            type: 'PILE',
+            id: pileId,
+            available: 5,
+            dimensions: { width: 3000, length: 1500 }
+          }]
+        }
+      }
+    });
+    await db.collection('nesting_runs').insertOne({
+      _id: 'run-cut-short',
+      lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
+      status: { state: 'COMPLETE' },
+      data: {
+        results: { sheetCount: 3 },
+        materialPool: [{
+          type: 'PILE',
+          id: pileId,
+          available: 5,
+          dimensions: { width: 3000, length: 1500 }
+        }]
+      }
+    });
+    await db.collection('material_piles').insertOne({
+      _id: pileId,
+      identity: { uid: pileId, name: 'Short Pile' },
+      data: { stock: { total: 2, used: 0 } }
+    });
+
+    await expect(nestingRunsService.chooseRun(queueId.toString(), 'run-cut-short', mockUser.userId, mockUser.organizationId, null, mockUser.permissions))
+      .rejects.toThrow(/Insufficient selected pile stock/);
+
+    const pile = await db.collection('material_piles').findOne({ _id: pileId });
+    const run = await db.collection('nesting_runs').findOne({ _id: 'run-cut-short' });
+    expect(pile.data.stock.used).toBe(0);
+    expect(run.status.state).toBe('COMPLETE');
+  });
+
+  it('should not consume pile stock again when production output already exists for the same run', async () => {
+    const queueId = new ObjectId();
+    const pileId = 'pile-cut-done';
+    await db.collection('queues').insertOne({
+      _id: queueId,
+      identity: { uid: queueId, name: 'Already cut queue' },
+      lineage: { organizationId: mockUser.organizationId },
+      status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: {
+        materialConsumption: { runId: 'run-cut-done', requiredSheets: 1, sources: [{ type: 'PILE', id: pileId, count: 1 }] },
+        physicalOutputs: { runId: 'run-cut-done', sheetIds: ['sheet-1'], remnantIds: [], cassetteInstanceIds: [] },
+        job: {
+          materialPool: [{ type: 'PILE', id: pileId }]
+        }
+      }
+    });
+    await db.collection('nesting_runs').insertOne({
+      _id: 'run-cut-done',
+      lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
+      status: { state: 'COMPLETE' },
+      data: {
+        results: { sheetCount: 1 },
+        materialPool: [{ type: 'PILE', id: pileId }]
+      }
+    });
+    await db.collection('material_piles').insertOne({
+      _id: pileId,
+      identity: { uid: pileId, name: 'Done Pile' },
+      data: { stock: { total: 2, used: 0 } }
+    });
+
+    const result = await nestingRunsService.chooseRun(queueId.toString(), 'run-cut-done', mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
+
+    const pile = await db.collection('material_piles').findOne({ _id: pileId });
+    expect(pile.data.stock.used).toBe(0);
+    expect(result.queue.data.materialConsumption.runId).toBe('run-cut-done');
+  });
+
+  it('should repair a draft queue with a completed run before choosing production output', async () => {
+    const queueId = new ObjectId();
+    const pileId = 'pile-cut-draft';
+    await db.collection('queues').insertOne({
+      _id: queueId,
+      identity: { uid: queueId, name: 'Draft queue' },
+      lineage: { organizationId: mockUser.organizationId },
+      status: { state: 'DRAFT', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: {
+        job: {
+          materialPool: [{ type: 'PILE', id: pileId }]
+        }
+      }
+    });
+    await db.collection('nesting_runs').insertOne({
+      _id: 'run-cut-draft',
+      lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
+      status: { state: 'COMPLETE' },
+      data: {
+        results: { sheetCount: 1 },
+        materialPool: [{ type: 'PILE', id: pileId }]
+      }
+    });
+    await db.collection('material_piles').insertOne({
+      _id: pileId,
+      identity: { uid: pileId, name: 'Draft Pile' },
+      data: { stock: { total: 2, used: 0 } }
+    });
+
+    const result = await nestingRunsService.chooseRun(queueId.toString(), 'run-cut-draft', mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
+
+    const pile = await db.collection('material_piles').findOne({ _id: pileId });
+    const run = await db.collection('nesting_runs').findOne({ _id: 'run-cut-draft' });
+    expect(result.queue.status.state).toBe('READY');
+    expect(pile.data.stock.used).toBe(1);
+    expect(run.status.state).toBe('CHOSEN');
+  });
+
+  it('should not consume pile stock when choosing an unfinished run for a queue that is not READY', async () => {
+    const queueId = new ObjectId();
+    const pileId = 'pile-cut-nesting';
+    await db.collection('queues').insertOne({
+      _id: queueId,
+      identity: { uid: queueId, name: 'Draft queue' },
+      lineage: { organizationId: mockUser.organizationId },
+      status: { state: 'DRAFT', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: {
+        job: {
+          materialPool: [{ type: 'PILE', id: pileId }]
+        }
+      }
+    });
+    await db.collection('nesting_runs').insertOne({
+      _id: 'run-cut-nesting',
+      lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
+      status: { state: 'NESTING' },
+      data: {
+        results: { sheetCount: 1 },
+        materialPool: [{ type: 'PILE', id: pileId }]
+      }
+    });
+    await db.collection('material_piles').insertOne({
+      _id: pileId,
+      identity: { uid: pileId, name: 'Draft Pile' },
+      data: { stock: { total: 2, used: 0 } }
+    });
+
+    await expect(nestingRunsService.chooseRun(queueId.toString(), 'run-cut-nesting', mockUser.userId, mockUser.organizationId, null, mockUser.permissions))
+      .rejects.toThrow(/must be READY/);
+
+    const pile = await db.collection('material_piles').findOne({ _id: pileId });
+    const run = await db.collection('nesting_runs').findOne({ _id: 'run-cut-nesting' });
+    expect(pile.data.stock.used).toBe(0);
+    expect(run.status.state).toBe('NESTING');
   });
 });

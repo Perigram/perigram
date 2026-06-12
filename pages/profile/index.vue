@@ -1,7 +1,5 @@
 <template>
-    <div class="flex flex-col gap-6">
-        <h1>{{ $t('nav.profile') }}</h1>
-        
+    <StandardPage :title="$t('nav.profile')">
         <Tabs value="0">
             <TabList>
                 <Tab value="0"><span>{{ $t('profile.account') }}</span></Tab>
@@ -14,7 +12,7 @@
                 <TabPanel value="0">
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-6 py-4">
                         <div class="md:col-span-4">
-                            <Panel class="h-full card-interactive" :header="$t('profile.title')">
+                            <Panel class="h-full" :header="$t('profile.title')">
                                     <div class="flex flex-col items-center text-center gap-4 py-4">
                                         <Avatar :label="user.name ? user.name[0].toUpperCase() : 'U'" size="xlarge" shape="circle" />
                                         <div class="flex flex-col gap-1">
@@ -25,7 +23,7 @@
                             </Panel>
                         </div>
                         <div class="md:col-span-8">
-                            <Panel class="h-full card-interactive" :header="$t('profile.authentication')">
+                            <Panel class="h-full" :header="$t('profile.authentication')">
                                     <div class="flex flex-col gap-6 py-2">
                                         <div class="mt-auto">
                                             <Button :label="$t('nav.logout')" icon="pi pi-sign-out" severity="danger" outlined @click="logoutHandler" />
@@ -38,7 +36,7 @@
 
                 <TabPanel value="1">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
-                        <Panel class="card-interactive" :header="$t('billing.creditBalance')">
+                        <Panel :header="$t('billing.creditBalance')">
                                 <div class="flex flex-col gap-6 py-2">
                                     <Panel>
                                             <div class="flex justify-between items-center p-6">
@@ -56,18 +54,15 @@
                                 </div>
                         </Panel>
                         
-                        <Panel class="card-interactive" :header="$t('billing.purchaseHistory')">
-                                <div class="flex flex-col items-center justify-center py-12 text-center gap-4 border-2 border-dashed rounded opacity-50">
-                                    <i class="pi pi-history text-4xl"></i>
-                                    <p class="m-0 italic">{{ $t('billing.noHistory') }}</p>
-                                </div>
+                        <Panel :header="$t('billing.purchaseHistory')">
+                                <StateBlock :message="$t('billing.noHistory')" icon="pi pi-history" />
                         </Panel>
                     </div>
                 </TabPanel>
 
                 <TabPanel value="2">
                     <div class="max-w-2xl py-4">
-                        <Panel class="card-interactive" :header="$t('profile.settings')">
+                        <Panel :header="$t('profile.settings')">
                                 <div class="flex flex-col gap-8 py-2">
                                     <div class="flex flex-col gap-3">
                                         <label>{{ $t('profile.theme') }}</label>
@@ -102,17 +97,18 @@
                 <TabPanel value="3">
                     <div class="py-4 flex flex-col gap-6">
                         <!-- Create New Organization Button -->
-                        <div class="flex justify-between items-center px-1">
-                            <h2 class="m-0">{{ $t('profile.myOrganizations') }}</h2>
-                            <Button :label="$t('auth.createOrg')" icon="pi pi-plus" @click="showCreateOrgDialog = true" />
-                        </div>
+                        <ActionToolbar :title="$t('profile.myOrganizations')">
+                            <template #actions>
+                                <Button :label="$t('auth.createOrg')" icon="pi pi-plus" @click="showCreateOrgDialog = true" />
+                            </template>
+                        </ActionToolbar>
 
                         <!-- Memberships List -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <ResponsiveGrid variant="wide">
                             <Panel 
                                 v-for="membership in authStore.userData.memberships" 
                                 :key="membership.organizationId"
-                                class="relative overflow-hidden card-interactive"
+                                class="relative overflow-hidden"
                                 :class="[membership.status === 'pending' ? 'opacity-50' : '']"
                                 @click="membership.status !== 'pending' && authStore.switchOrganization(membership.organizationId)"
                             >
@@ -137,17 +133,14 @@
                                         </div>
                                     </div>
                             </Panel>
-                        </div>
+                        </ResponsiveGrid>
                     </div>
                 </TabPanel>
 
                 <TabPanel value="4">
                     <div class="py-4">
-                        <Panel class="card-interactive" :header="$t('profile.usageStatistics')">
-                                <div class="flex flex-col items-center justify-center py-20 text-center gap-4 border-2 border-dashed rounded opacity-50">
-                                    <i class="pi pi-chart-bar text-5xl"></i>
-                                    <p class="m-0 italic">{{ $t('profile.usageStatisticsComingSoon') }}</p>
-                                </div>
+                        <Panel :header="$t('profile.usageStatistics')">
+                                <StateBlock :message="$t('profile.usageStatisticsComingSoon')" icon="pi pi-chart-bar" />
                         </Panel>
                     </div>
                 </TabPanel>
@@ -176,7 +169,7 @@
                 </div>
             </form>
         </StandardDialog>
-    </div>
+    </StandardPage>
 </template>
 
 <script setup>
@@ -199,6 +192,10 @@ import InputText from 'primevue/inputtext';
 import { useToast } from 'primevue/usetoast';
 import BuyCreditsDialog from '~/components/BuyCreditsDialog.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import StandardPage from '~/components/shared/StandardPage.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
 import { useEntity } from '~/composables/useEntity';
 import { selectOptionText } from '~/utils/selectOptions';
 

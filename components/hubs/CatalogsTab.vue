@@ -12,7 +12,7 @@
             :key="catalog._id" 
             :catalog="catalog" 
             variant="card"
-            @click="viewCatalog(catalog)"
+            @view="viewCatalog"
         />
     </ResponsiveGrid>
 
@@ -31,7 +31,7 @@ import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 
-const props = defineProps({
+defineProps({
     catalogs: { type: Array, default: () => [] },
     loading: { type: Boolean, default: false }
 });

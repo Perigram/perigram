@@ -1,21 +1,22 @@
 import * as repository from './repository.js';
-import * as designRepository from '../cassette-designs/repository.js';
+import * as cassetteDesignService from '../cassette-designs/service.js';
+import * as entityRevisionsService from '../entity-revisions/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import {
   createIdentity,
   createStatus,
-  inheritLineage,
   createData
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
-import { mapLineageQuery } from '../../utils/query.js';
 import standardSlugify from 'standard-slugify';
 import { generateRandomString } from '../../utils/strings.js';
-import { ObjectId, GridFSBucket } from 'mongodb';
+import { GridFSBucket } from 'mongodb';
 import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { Cassette } from './model.js';
+import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../utils/dxf-extractor.js';
+import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 
 /**
  * Cassette Templates Service - v24 Standardized
@@ -25,6 +26,80 @@ import { Cassette } from './model.js';
 function toDTO(cassette) {
   if (!cassette) return null;
   return new Cassette(cassette).toJSON();
+}
+
+function buildMappedLayerData(fileBuffer, layerMapping = {}) {
+  return Object.entries(layerMapping).flatMap(([sourceLayer, layer]) => {
+    if (!layer) return [];
+    return extractCurvesFromDXFLayer(fileBuffer, sourceLayer).map((part, index) => ({
+      layer,
+      sourceLayer,
+      coordinates: part.coordinates,
+      handles: part.handles || [],
+      entityType: part.entityType,
+      sourceId: `${sourceLayer}:${part.handles?.[0] || index}`
+    }));
+  });
+}
+
+const GEOMETRY_REVISION_SCOPE = 'geometry';
+
+function geometryRevisionContent(cassette) {
+  const data = cassette.data || {};
+  return {
+    type: data.type || 'PARAMETRIC',
+    definition: data.definition || null,
+    parameters: data.parameters || []
+  };
+}
+
+function geometryRevisionSnapshot(cassette) {
+  return {
+    identity: cassette.identity || null,
+    data: geometryRevisionContent(cassette)
+  };
+}
+
+function geometryRevisionPointer(revision) {
+  if (!revision) return null;
+  return {
+    currentId: revision._id,
+    number: revision.data?.number || 0,
+    contentHash: revision.data?.contentHash || ''
+  };
+}
+
+async function ensureGeometryRevision(cassette, userId, reason = 'content-change') {
+  const revision = await entityRevisionsService.ensureForEntitySnapshot({
+    entityType: 'cassette',
+    entity: cassette,
+    scope: GEOMETRY_REVISION_SCOPE,
+    content: geometryRevisionContent(cassette),
+    snapshot: geometryRevisionSnapshot(cassette),
+    userId,
+    reason
+  });
+  const data = {
+    ...(cassette.data || {}),
+    revisions: {
+      ...(cassette.data?.revisions || {}),
+      [GEOMETRY_REVISION_SCOPE]: geometryRevisionPointer(revision)
+    }
+  };
+  const updated = await repository.updateById(cassette._id, { data });
+  return { revision, cassette: updated };
+}
+
+export async function ensureCurrentGeometryRevision(cassetteOrId, userId = 'SYSTEM', reason = 'content-change') {
+  const raw = typeof cassetteOrId === 'object'
+    ? cassetteOrId
+    : await repository.findById(toFlexibleId(cassetteOrId));
+  if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
+  return await ensureGeometryRevision(new Cassette(raw).toJSON(), userId, reason);
+}
+
+export function derivedFromGeometryRevision(revision, parameters = {}) {
+  return entityRevisionsService.derivedFromRevision(revision, parameters);
 }
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
@@ -52,7 +127,8 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   };
 
   const cassette = await repository.create(cassetteData);
-  return toDTO(cassette);
+  const { cassette: updated } = await ensureGeometryRevision(cassette, userId, 'template-created');
+  return toDTO(updated);
 }
 
 export async function upload(fileBuffer, fileName, name, userId, userOrg, userRole, userPermissions, mapping, parameters) {
@@ -62,6 +138,16 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
   if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships }, lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
+
+  const layerMapping = mapping || {};
+  const polygonParts = extractNestingPolygons(fileBuffer, layerMapping, OCCS_LAYER_CUT_OUTER);
+  if (!polygonParts.length) {
+    throw createError({
+      statusCode: 400,
+      message: `DXF upload requires at least one closed polygon mapped to ${OCCS_LAYER_CUT_OUTER}`
+    });
+  }
+  const layerData = buildMappedLayerData(fileBuffer, layerMapping);
 
   const db = await connectDB();
   const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
@@ -87,35 +173,33 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
     lineage,
     data: createData({
       type: 'STANDARD',
-      definition: { mapping: mapping || {} },
+      definition: { mapping: layerMapping },
       parameters: parameters || []
     })
   };
 
   const template = await repository.create(templateData);
+  const { revision, cassette: updatedTemplate } = await ensureGeometryRevision(template, userId, 'template-uploaded');
 
-  // 2. Create Design (Baked Geometry)
-  const designOrigin = createStatus('ACTIVE', userId, { note: 'Initial design from upload' });
-  const designData = {
-    identity: createIdentity(`${name || fileName} (Base Design)`),
-    origin: designOrigin,
-    status: designOrigin,
-    lineage: {
-      ...lineage,
-      templateId: template._id
+  const design = await cassetteDesignService.createFromTemplateUpload({
+    name: `${name || fileName} (Base Design)`,
+    lineage,
+    templateId: template._id,
+    polygonParts,
+    layerData,
+    geometryData: {
+      polygonParts,
+      layerData
     },
-    data: createData({
-      geometry: {
-        data: null,
-        dxfId: uploadStream.id
-      },
-      parameters: {}
-    })
+    dxfId: uploadStream.id,
+    parameters: {},
+    derivedFrom: derivedFromGeometryRevision(revision, {})
+  }, userId);
+
+  return {
+    template: toDTO(updatedTemplate),
+    design
   };
-
-  await designRepository.create(designData);
-
-  return toDTO(template);
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, query = {}) {
@@ -203,7 +287,8 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
   await repository.updateById(id, { identity: cassette.identity, data: cassetteData });
   const updatedRaw = await repository.findById(id);
-  return new Cassette(updatedRaw).toJSON();
+  const { cassette: revisioned } = await ensureGeometryRevision(updatedRaw, userId, 'template-updated');
+  return new Cassette(revisioned).toJSON();
 }
 
 export async function updateLayerMapping(id, mapping, userId, userOrg, userRole, userPermissions) {
@@ -225,7 +310,8 @@ export async function updateLayerMapping(id, mapping, userId, userOrg, userRole,
 
   await repository.updateById(id, { data });
   const updatedRaw = await repository.findById(id);
-  return new Cassette(updatedRaw).toJSON();
+  const { cassette: revisioned } = await ensureGeometryRevision(updatedRaw, userId, 'layer-mapping-updated');
+  return new Cassette(revisioned).toJSON();
 }
 
 export async function updateParameters(id, parameters, userId, userOrg, userRole, userPermissions) {
@@ -244,7 +330,8 @@ export async function updateParameters(id, parameters, userId, userOrg, userRole
 
   await repository.updateById(id, { data });
   const updatedRaw = await repository.findById(id);
-  return new Cassette(updatedRaw).toJSON();
+  const { cassette: revisioned } = await ensureGeometryRevision(updatedRaw, userId, 'parameters-updated');
+  return new Cassette(revisioned).toJSON();
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
