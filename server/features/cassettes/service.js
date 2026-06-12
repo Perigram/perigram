@@ -16,7 +16,7 @@ import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { Cassette } from './model.js';
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../utils/dxf-extractor.js';
-import { OCCS_CASSETTE_FACE_LAYER, OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
+import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 
 /**
  * Cassette Templates Service - v24 Standardized
@@ -290,7 +290,7 @@ export async function createDesignFromTemplate(id, parameters, userId, userOrg, 
     throw createError({ statusCode: 400, message: 'Template evaluation produced no geometry' });
   }
   const layerData = evaluatedLayerData || polygons.map((polygon, index) => ({
-    layer: index === 0 ? OCCS_LAYER_CUT_OUTER : OCCS_CASSETTE_FACE_LAYER,
+    layer: index === 0 ? OCCS_LAYER_CUT_OUTER : OCCS_LAYER_CONTOUR_CASSETTE_FACE,
     coordinates: polygon.coordinates,
     handles: polygon.handles || [(256 + index).toString(16).toUpperCase()]
   }));
