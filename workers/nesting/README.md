@@ -38,13 +38,22 @@ The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesti
     "width": 1220,
     "height": 2440,
     "space": 5,
-    "sheetCount": 10
+    "sheetCount": 10,
+    "sheet_polygon": {
+      "outer": [[0, 0], [1220, 0], [1220, 2440], [0, 2440], [0, 0]],
+      "inner": [[[300, 300], [500, 300], [500, 500], [300, 500], [300, 300]]]
+    }
   }
 }
 ```
 
 **Response:**
 Standard `lbf` JSON output containing layouts and placed items with transformations.
+
+`sheet_polygon` is optional. It may be omitted for rectangular stock, provided
+as a legacy outer ring list, or provided as `{ outer, inner }`. Inner rings are
+passed to jagua-rs as container holes, which are fixed non-placeable zones used
+for remnant material with already-cut openings.
 
 ## Building & Running Locally
 

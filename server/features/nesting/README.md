@@ -45,8 +45,9 @@ Command handler and compatibility job metadata for queue nesting.
   material pool falls back to the saved queue material pool instead of
   overriding it. Remnant stock sources may carry `sheetPolygon`/`geometryData`;
   `resolveNestingContext()` forwards that polygon as FastAPI `sheet_polygon`
-  so irregular remnants are nested against their usable shape instead of a
-  rectangle fallback.
+  using `{ outer, inner }` shape data when holes exist. Remnant holes are
+  container holes in jagua-rs, i.e. fixed non-placeable material zones, not fake
+  movable nesting items.
 
 `buildJobFiles()` is exported for focused coverage of the handoff from queue
 items to worker files. Parametric queue entries must load the cassette template,

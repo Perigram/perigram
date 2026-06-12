@@ -163,8 +163,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   sheets, and remnants, filters unavailable piles, blocks mixed sheet sizes for
   the current one-bin nesting worker, and persists selected stock as
   `queue.data.job.materialPool` with dimensions, available counts, and remnant
-  `sheetPolygon`/`geometryData` when present. The backend resolves worker sheet
-  size/count and irregular remnant sheet polygon from that material pool.
+  `sheetPolygon`/`geometryData` when present. For remnants, `sheetPolygon`
+  preserves both `outer` and `inner` rings so holes remain fixed non-placeable
+  zones in the nesting bin. The backend resolves worker sheet size/count and
+  irregular remnant sheet polygon from that material pool.
   Starting nesting also sends the normalized selected material pool directly so
   command validation does not reduce warehouse selections to UI ids. If queue
   saving fails, nesting must not start with stale material context. Choosing a

@@ -4817,3 +4817,24 @@
       run applies production output and then transitions the queue to `READY`.
     - Warehouse remnant selections now carry usable polygon geometry into the
       nesting worker request.
+
+*** Agent Notes
+    [2026-06-12] Preserve remnant holes in nesting geometry
+    Files changed:
+    - components/QueueEditor.vue
+    - server/features/nesting/operations.js
+    - server/features/nesting/operations.spec.js
+    - workers/nesting/core/nesting_input_builder.py
+    - workers/nesting/worker_service.py
+    Docs updated:
+    - components/README.md
+    - server/features/nesting/README.md
+    - workers/nesting/README.md
+    - TODO.org
+    Notes:
+    - Remnant nesting now passes `{ outer, inner }` sheet polygons through to the
+      worker, so cutout holes become fixed container holes instead of being
+      discarded or modeled as movable parts.
+    - Fallback bin metadata and summary area calculations now use the polygon
+      shape area instead of rectangular width times height when `sheet_polygon`
+      is present.
