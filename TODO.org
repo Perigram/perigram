@@ -4786,3 +4786,34 @@
       presentation without changing canonical `ProjectCard` behavior.
     - The override still uses `EntityCard`, `DataBlock`, `NameEditPopover`,
       access gates, and the same view/rename/delete events.
+
+*** Agent Notes
+    [2026-06-12] Implement project workspace and queue lifecycle cleanup
+    Files changed:
+    - components/QueueEditor.vue
+    - components/entities/Project/ProjectIndexCard.vue
+    - pages/project/[slug].vue
+    - pages/project/[slug]/details.vue
+    - pages/projects/index.vue
+    - server/api/project/index.get.js
+    - server/features/nesting/operations.js
+    - server/features/nesting/operations.spec.js
+    - server/features/queues/service.js
+    - server/features/queues/queues.spec.js
+    Docs updated:
+    - components/README.md
+    - components/entities/Project/README.md
+    - pages/project/README.md
+    - pages/projects/README.md
+    - server/features/nesting/README.md
+    - server/features/queues/README.md
+    - TODO.org
+    Notes:
+    - Project cards now render full-width rows with access-redacted queue
+      previews from `/api/project`.
+    - Project workspace status and rename controls moved into a Details tab,
+      leaving queue content visible immediately.
+    - Queue solve completion leaves the queue in `NESTING`; choosing a completed
+      run applies production output and then transitions the queue to `READY`.
+    - Warehouse remnant selections now carry usable polygon geometry into the
+      nesting worker request.

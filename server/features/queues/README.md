@@ -13,25 +13,31 @@ Defines a specific nesting job, bridging the digital production intent with phys
    Queue edits persist these selections as `data.job.materialPool` with source
    ids, labels, dimensions, and available counts.
 3. **Transition to Nesting**: Handing off the job to the Nesting Worker moves a
-   draft queue to `NESTING`. When the async solver task completes it moves the
-   queue to `READY`; final solver failure returns a `NESTING` queue to `DRAFT`.
-   A hidden system-only `DRAFT -> READY` recovery transition exists only for
-   older completed runs created before queue status synchronization was fixed.
-   In
-   warehouse mode, selected stock dimensions/counts define the worker sheet
-   size and sheet count; mixed sheet sizes are rejected for the current
-   one-bin worker contract.
+   draft queue to `NESTING`. When the async solver task completes, the generated
+   `nesting_run` becomes `COMPLETE` and the queue stays `NESTING` until an
+   operator chooses a completed run for production. Final solver failure returns
+   a `NESTING` queue to `DRAFT`. In warehouse mode, selected stock
+   dimensions/counts define the worker sheet size and sheet count; mixed sheet
+   sizes are rejected for the current one-bin worker contract.
 4. **Run Acceptance / Production Output**: When a completed nesting run is
-   chosen for production, the parent queue must be `READY` and have assigned
-   warehouse material. Selected `PILE` sources are consumed in order up to the
-   chosen run's sheet count, and the current pile stock is preflighted before
-   any allocation is written so insufficient stock fails without partial
-   consumption or changing the run state. Choosing the run also creates
-   physical outputs: one milled sheet per consumed stock sheet, remnants when
-   the run reports remnant area, and cassette instances from the matching
+   chosen for production, the parent queue must be awaiting selection
+   (`NESTING`) or already `READY` for an idempotent same-run response, and it
+   must have assigned warehouse material. Selected `PILE` sources are consumed
+   in order up to the chosen run's sheet count, and the current pile stock is
+   preflighted before any allocation is written so insufficient stock fails
+   without partial consumption or changing the run state. Choosing the run also
+   creates physical outputs: one milled sheet per consumed stock sheet, remnants
+   when the run reports remnant area, and cassette instances from the matching
    generated sheet design cassette counts. Output ids are recorded on
-   `data.physicalOutputs`. The queue stays `READY`; there is no queue-level
-   `CUT` state.
+   `data.physicalOutputs`, and the queue transitions to `READY` only after that
+   run is chosen. There is no queue-level `CUT` state.
+
+## Read Model Helpers
+
+- `listPreviewByProjects(projectIds, ..., { limit })` returns access-redacted,
+  summary-oriented queue previews keyed by parent project id. `/api/project`
+  uses this to attach `summary.queuePreview` for the `/projects` route without
+  requiring the frontend to issue one queue request per project card.
 
 ## Notes
 - Nesting runs are stored in `nesting_runs` collection (linked by `lineage.queueId`), not embedded in the queue.
@@ -44,7 +50,7 @@ Defines a specific nesting job, bridging the digital production intent with phys
   lineage: { organizationId, projectId },
   job: {
     items: Array<{ designId, quantity, parameters }>,
-    materialPool: Array<{ type, id, label, specs, dimensions, available }>
+    materialPool: Array<{ type, id, label, specs, dimensions, available, sheetPolygon? }>
   },
   materialConsumption?: {
     runId,

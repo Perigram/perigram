@@ -162,16 +162,19 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
 - In warehouse material mode, `QueueEditor` loads selected warehouse piles,
   sheets, and remnants, filters unavailable piles, blocks mixed sheet sizes for
   the current one-bin nesting worker, and persists selected stock as
-  `queue.data.job.materialPool` with dimensions and available counts. The
-  backend resolves worker sheet size/count from that material pool. Starting
-  nesting also sends the normalized selected material pool directly so command
-  validation does not reduce warehouse selections to UI ids. If queue saving
-  fails, nesting must not start with stale material context. Choosing a
+  `queue.data.job.materialPool` with dimensions, available counts, and remnant
+  `sheetPolygon`/`geometryData` when present. The backend resolves worker sheet
+  size/count and irregular remnant sheet polygon from that material pool.
+  Starting nesting also sends the normalized selected material pool directly so
+  command validation does not reduce warehouse selections to UI ids. If queue
+  saving fails, nesting must not start with stale material context. Choosing a
   completed run is the production acceptance action: the backend consumes
   selected pile stock, records `queue.data.materialConsumption`, creates
-  physical outputs, and returns the updated queue while the queue status remains
-  `READY`. Those outputs are cassette instances plus remnant geometry; already
-  cut source sheets are not displayed as warehouse sheet inventory.
+  physical outputs, transitions the queue to `READY`, and returns the updated
+  queue. Solver completion alone leaves the queue in `NESTING` so the operator
+  still has to choose the accepted run. Those outputs are cassette instances
+  plus remnant geometry; already cut source sheets are not displayed as
+  warehouse sheet inventory.
 - `CassetteDesignerV2` is the persisted cassette-template designer used by the
   cassette manager and the admin workbench designer section. The legacy
   `CassetteDesigner` remains only for dev/test fixture surfaces that still need

@@ -20,8 +20,9 @@ Command handler and compatibility job metadata for queue nesting.
   layers, and bin shape data, creates one `sheet_design` per returned layout,
   stores their IDs on `nesting_run.data.sheetDesignIds`, completes/fails the
   task run, updates the compatibility job, transitions the `nesting_run` to
-  `COMPLETE` or final-attempt `ERROR`, and transitions the parent queue from
-  `NESTING` to `READY` on success or back to `DRAFT` on final failure.
+  `COMPLETE` or final-attempt `ERROR`, leaves the parent queue in `NESTING` on
+  success so a human can choose the accepted run, and transitions the parent
+  queue back to `DRAFT` on final failure.
 - Run summaries use explicit worker `efficiency`/`remnantArea` metrics when
   present. Current `lbf` responses usually expose only `solution.density` and
   layout placements, so `operations.js` falls back to density and then placed
@@ -42,7 +43,10 @@ Command handler and compatibility job metadata for queue nesting.
   rejected before task creation. The command may also receive a normalized
   `materialPool` directly from QueueEditor; an empty or omitted command
   material pool falls back to the saved queue material pool instead of
-  overriding it.
+  overriding it. Remnant stock sources may carry `sheetPolygon`/`geometryData`;
+  `resolveNestingContext()` forwards that polygon as FastAPI `sheet_polygon`
+  so irregular remnants are nested against their usable shape instead of a
+  rectangle fallback.
 
 `buildJobFiles()` is exported for focused coverage of the handoff from queue
 items to worker files. Parametric queue entries must load the cassette template,
