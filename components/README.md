@@ -160,7 +160,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   id, type, quantity, and parameters. Delete actions must use `_key`; nesting
   payload saves must persist `id` without leaking the UI key.
 - `QueueEditor` is a production workspace: desktop layout uses a left queue
-  lane rendered as a queue list where the selected queue expands in place and
+  lane rendered newest-first where the selected queue expands in place and
   other queues stay compact, a center lane for nesting settings and wide
   cassette entry cards, and a right runs lane through `WorkspaceLanes`. The
   project queue route fits the app-content viewport and each lane owns its own

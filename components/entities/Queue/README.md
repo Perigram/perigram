@@ -22,8 +22,10 @@ Production queue card and detail surface.
   material selection remains owned by `QueueEditor`.
 - Parent surfaces can pass extra `statusActions` into `QueueCard`; the queue
   workspace uses this so reset/status commands stay on the active queue entity.
-- Selector surfaces pass `expandable=false` so clicking the card selects the
-  queue instead of opening the compact `EntityCard` popover.
+- Selector surfaces pass `expandable=false` and `density=dense` so clicking the
+  compact card selects the queue without opening the `EntityCard` popover or
+  using full card padding. Queue number prefixes render only on full queue
+  cards.
 - Queue editor cassette rows use `QueueEntryCard`; the component emits quantity
   and parameter updates while `QueueEditor` remains the owner of persistence and
   `_key`-based row deletion. These rows keep natural panel height inside the

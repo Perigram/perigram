@@ -5031,3 +5031,21 @@
     Notes:
     - ResponsiveGrid now aligns children to the start of grid rows so repeated
       card and panel surfaces do not stretch to the tallest item in the row.
+
+*** Agent Notes
+    [2026-06-12] Tighten queue lane rows and route height
+    Files changed:
+    - components/QueueEditor.vue
+    - components/entities/Queue/QueueCard.vue
+    - components/shared/EntityCard.vue
+    - pages/project/[slug]/queues.vue
+    Docs updated:
+    - components/README.md
+    - components/entities/Queue/README.md
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - Queue route no longer adds extra vertical padding inside the app shell.
+    - Queue lane lists queues newest-first, expands the selected queue in place
+      without an outline, and renders compact queue rows with dense padding and
+      no queue-number prefix.
