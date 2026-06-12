@@ -16,7 +16,8 @@ const props = defineProps({
   queue: { type: Object, required: true },
   variant: { type: String, default: 'card' },
   statusActions: { type: Array, default: () => [] },
-  showDelete: { type: Boolean, default: true }
+  showDelete: { type: Boolean, default: true },
+  showSummary: { type: Boolean, default: true }
 });
 
 const emit = defineEmits(['view', 'edit', 'delete']);
@@ -68,7 +69,7 @@ const statusActions = computed(() => [
         <template #before-identity v-if="queue.data?.queueNumber">
             <small>#{{ queue.data.queueNumber }}</small>
         </template>
-        <template #subtitle v-if="variant !== 'card'">
+        <template #subtitle v-if="variant !== 'card' && showSummary">
             <div class="flex flex-wrap gap-2">
                 <Tag :value="`${jobItems.length} ${$t('queue.jobItems')}`" severity="secondary" size="small" />
                 <Tag v-if="totalQuantity" :value="`${totalQuantity} ${$t('common.units')}`" severity="info" size="small" />
@@ -76,7 +77,7 @@ const statusActions = computed(() => [
                 <Tag v-if="consumedSheetCount" :value="`${consumedSheetCount} ${$t('queue.consumed')}`" severity="warn" size="small" />
             </div>
         </template>
-        <template #compact-content>
+        <template #compact-content v-if="showSummary">
             <div class="mt-3 flex flex-wrap gap-2">
                 <Tag v-if="materialPool.length" :value="`${materialPool.length} ${$t('nesting.inventorySources')}`" severity="secondary" size="small" />
                 <Tag v-if="queue.summary?.runCount" :value="`${queue.summary.runCount} ${$t('queue.runs')}`" severity="info" size="small" />

@@ -19,6 +19,7 @@
                         variant="compact"
                         :status-actions="option._id === queue._id ? queueStatusActions : []"
                         :show-delete="false"
+                        :show-summary="false"
                         :class="{ 'outline outline-2 outline-primary': option._id === queue._id }"
                         @view="$emit('select-queue', option._id)"
                         @edit="$emit('select-queue', option._id)"
