@@ -45,11 +45,10 @@
             >
                 <template #grid="slotProps">
                     <ResponsiveGrid>
-                        <ProjectCard
+                        <ProjectIndexCard
                             v-for="project in slotProps.items"
                             :key="project._id"
                             :project="project"
-                            variant="card"
                             :renaming="renamingProjectId === project._id"
                             @view="navigateToProject"
                             @rename="renameProject"
@@ -103,7 +102,7 @@
     import InputText from 'primevue/inputtext'
     import Select from 'primevue/select'
     import ConfirmDialog from 'primevue/confirmdialog'
-    import ProjectCard from '~/components/entities/Project/ProjectCard.vue'
+    import ProjectIndexCard from '~/components/entities/Project/ProjectIndexCard.vue'
     import StandardDialog from '~/components/shared/StandardDialog.vue'
     import StandardPage from '~/components/shared/StandardPage.vue'
     import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue'
