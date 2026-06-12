@@ -13,6 +13,10 @@ This directory contains Vue components used in the Cutkit-Demo application.
   relation context inside another card/detail row, use `EntityInlineRef`
   instead of nesting full card popovers.
 - **Smart Components:** Sub-components should use explicit permission grants to conditionally render actions (edit, delete, view).
+- **Permission Editing:** `PermissionEditor.vue` edits the same grant shape used
+  by `shared/access-control.js`: flat levels, action overrides, and advanced
+  JSON for scoped grants / transition grants / grant arrays. Do not replace it
+  with a flat role-only selector.
 
 ## v24 Standardized Patterns
 

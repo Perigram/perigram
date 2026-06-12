@@ -4716,3 +4716,23 @@
       through the active auth-store permissions.
     - Added API DTO redaction helpers and applied them to entity list/detail
       responses so cards receive only fields allowed by the current membership.
+
+*** Agent Notes
+    [2026-06-12] Expand permission editing and remove duplicated card facts
+    Files changed:
+    - components/PermissionEditor.vue
+    - components/entities/Project/ProjectCard.vue
+    - components/entities/Material/MaterialCard.vue
+    - components/entities/Queue/QueueCard.vue
+    - components/entities/Catalog/CatalogCard.vue
+    - components/entities/Requisition/RequisitionCard.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - TODO.org
+    Notes:
+    - Permission editor now exposes every production feature key plus action
+      overrides and raw grant JSON for scoped/transition/array grants.
+    - Full card variants no longer duplicate body `DataBlock` facts in header
+      subtitles for project, material, queue, catalog, and requisition cards.
