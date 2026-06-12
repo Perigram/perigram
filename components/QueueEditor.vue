@@ -13,7 +13,7 @@
                 </div>
                 <div class="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
                     <QueueCard
-                        v-for="option in queues"
+                        v-for="option in queueList"
                         :key="option._id"
                         :queue="option"
                         :variant="isSelectedQueue(option) ? 'card' : 'compact'"
@@ -22,7 +22,7 @@
                         :show-summary="isSelectedQueue(option)"
                         :show-footer-actions="false"
                         :expandable="false"
-                        :class="{ 'outline outline-2 outline-primary': isSelectedQueue(option) }"
+                        :density="isSelectedQueue(option) ? 'default' : 'dense'"
                         @view="$emit('select-queue', option._id)"
                         @edit="$emit('select-queue', option._id)"
                     />
@@ -344,6 +344,7 @@ const viewMode = ref('grid');
 const selectedRunId = ref(null);
 const instances = ref([]);
 const queueOptions = computed(() => namedSelectOptions(props.queues, t('common.unnamed')));
+const queueList = computed(() => [...props.queues].reverse());
 const toolOptions = computed(() => namedSelectOptions(tools.value, t('common.unnamed')));
 const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, t('common.unnamed')));
 const isSelectedQueue = (item = {}) => item._id?.toString() === props.queue._id?.toString();

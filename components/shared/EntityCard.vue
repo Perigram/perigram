@@ -42,7 +42,7 @@
     <template v-else-if="variant === 'compact'">
         <Card
             class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] hover:[box-shadow:var(--ck-shadow-card-hover)] transition-shadow duration-normal"
-            :class="{ 'cursor-pointer': expandable }"
+            :class="[{ 'cursor-pointer': expandable }, compactDensityClass]"
             :role="expandable ? 'button' : undefined"
             :tabindex="expandable ? 0 : undefined"
             data-entity-card-interactive="true"
@@ -170,12 +170,17 @@ const props = defineProps({
     showStatus: { type: Boolean, default: true },
     showTrace: { type: Boolean, default: true },
     expandable: { type: Boolean, default: true },
+    density: { type: String, default: 'default' },
     statusActions: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['refresh']);
 
 const entityConfig = computed(() => ENTITY_UI[props.entityType] || { icon: 'pi pi-box' });
+const compactDensityClass = computed(() => props.density === 'dense'
+    ? '[&_.p-card-body]:!p-3 [&_.p-card-content]:!p-0'
+    : ''
+);
 
 const op = ref();
 const togglePopup = (event) => {

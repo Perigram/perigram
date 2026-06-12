@@ -19,7 +19,8 @@ const props = defineProps({
   showDelete: { type: Boolean, default: true },
   showSummary: { type: Boolean, default: true },
   showFooterActions: { type: Boolean, default: true },
-  expandable: { type: Boolean, default: true }
+  expandable: { type: Boolean, default: true },
+  density: { type: String, default: 'default' }
 });
 
 const emit = defineEmits(['view', 'edit', 'delete']);
@@ -67,9 +68,9 @@ const statusActions = computed(() => [
         :variant="variant"
         :status-actions="statusActions"
         :expandable="expandable"
+        :density="density"
     >
-        <!-- Queue number prefix in compact + card title -->
-        <template #before-identity v-if="queue.data?.queueNumber">
+        <template #before-identity v-if="variant === 'card' && queue.data?.queueNumber">
             <small>#{{ queue.data.queueNumber }}</small>
         </template>
         <template #subtitle v-if="variant !== 'card' && showSummary">

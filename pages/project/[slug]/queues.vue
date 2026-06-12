@@ -1,5 +1,5 @@
 <template>
-    <div class="h-[calc(100dvh-5.5rem)] overflow-hidden py-4 md:h-[calc(100dvh-6.5rem)] lg:h-[calc(100dvh-7.5rem)]">
+    <div class="h-[calc(100dvh-5.5rem)] overflow-hidden md:h-[calc(100dvh-6.5rem)] lg:h-[calc(100dvh-7.5rem)]">
         <!-- Current queue editor -->
         <div v-if="currentQueue" class="h-full min-h-0 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <QueueEditor
