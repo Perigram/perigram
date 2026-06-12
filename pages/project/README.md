@@ -5,10 +5,8 @@ Routes under `pages/project/` render the authenticated project workspace.
 ## Route Structure
 
 - `[slug].vue`: Parent project shell. Loads the project via `useEntity('project')`,
-  renders compact `StandardPage` chrome, and owns the top-level page-header
-  navigation through `StandardPage`'s `nav` slot. Workspace tabs are a PrimeVue
-  `Menubar`, not toolbar action buttons or a separate content section. The shell
-  does not render project status/data chrome above every workspace tab.
+  renders compact `StandardPage` chrome, and lets the app navigation store
+  resolve the project-level route context.
 - `[slug]/queues.vue`: Active queue editor for creating queue entries, selecting
   warehouse stock, running nesting, and opening generated runs.
 - `[slug]/sheet-designs.vue`: Project-level list of generated sheet designs.

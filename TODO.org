@@ -4878,7 +4878,8 @@
     - Cassette templates can create a concrete cassette design with stored DXF,
       geometry layers, and source revision provenance.
     - Cassette designs expose their own DXF export endpoint and card action.
-    - Added Playwright click-to-request coverage for the broken action class.
+    - Added Playwright coverage for sheet-design DXF generation and
+      cassette-template-to-design creation.
 
 *** Agent Notes
     [2026-06-12] Fix cassette template OCCS layer import
@@ -4894,15 +4895,20 @@
       OCCS/parametric cassette tests.
 
 *** Agent Notes
-    [2026-06-12] Move project workspace navigation into page header nav
+    [2026-06-12] Move project sections into navigation store
     Files changed:
-    - components/shared/StandardPage.vue
     - pages/project/[slug].vue
+    - stores/navigation.js
     Docs updated:
+    - components/README.md
+    - components/entities/CassetteTemplate/README.md
     - components/shared/README.md
+    - e2e/README.md
     - pages/project/README.md
+    - stores/README.md
     - TODO.org
     Notes:
-    - Added a dedicated `StandardPage` `nav` slot for page-header navigation.
-    - Replaced project workspace tab action buttons with a PrimeVue `Menubar`
-      rendered in the page header navigation slot.
+    - Project section routes now resolve from `stores/navigation.js` and appear
+      in the existing app-layout breadcrumb dropdown.
+    - Removed page-local section navigation and the over-specific docs added in
+      the previous pass.

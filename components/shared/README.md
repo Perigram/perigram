@@ -88,12 +88,6 @@ same field policy.
 ### `StatusBadge.vue`
 Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.
 
-### `StandardPage.vue`
-Page frame for route-level content. Use the `actions` slot only for commands
-that operate on the current page or entity, and use the `nav` slot for
-page-header navigation such as workspace tabs or a PrimeVue `Menubar`.
-Navigation must not be rendered as action buttons in the toolbar.
-
 ---
 
 ## Status & History (`components/shared/status/`)

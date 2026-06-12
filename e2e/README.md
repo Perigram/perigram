@@ -59,9 +59,6 @@ worker stack; keep those in a separate spec so smoke tests stay cheap.
 5. For a regression, assert the exact boundary that failed. Example: if command
    validation rejected `WAREHOUSE`, test for the next expected business error
    instead of forcing a full nesting solve.
-6. Entity action buttons that trigger commands, creates, exports, or status
-   transitions should get focused click coverage before they are treated as
-   working UI.
 
 ## Environment
 

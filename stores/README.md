@@ -24,6 +24,8 @@ Pinia stores for client state and API orchestration.
   headers through `fetchProjectContext(slug, fetchOptions)` so protected project
   lookups use the same session cookie as auth middleware. Breadcrumb sibling
   options normalize canonical DTO labels before passing them to PrimeVue Select.
+  Project routes include a store-resolved section breadcrumb for queues, sheet
+  designs, data, artifacts, and details.
   Admin pages use a store-owned sibling list that includes workbench,
   organizations, users, ConfigBot, domain builder, data model review, marketing
   animations, diagnostics, and settings. Admin workbench breadcrumbs also
