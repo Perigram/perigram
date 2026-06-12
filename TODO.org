@@ -4989,3 +4989,18 @@
       remnant `EntityInlineRef` rows.
     - Queue detail keeps consumed source relations and renders those relations
       through entity references.
+
+*** Agent Notes
+    [2026-06-12] Fix queue lane sizing and selected queue placement
+    Files changed:
+    - components/QueueEditor.vue
+    - pages/project/[slug]/queues.vue
+    Docs updated:
+    - components/README.md
+    - TODO.org
+    Notes:
+    - Queue workspace fits the app-content viewport derived from the app shell
+      header and page padding; left, center, and right lanes own vertical
+      scrolling.
+    - The left queue lane renders queues in their existing order; the selected
+      queue expands in place.
