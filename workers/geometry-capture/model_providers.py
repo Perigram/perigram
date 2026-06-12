@@ -9,6 +9,11 @@ MODEL_PRESETS = {
     "REMNANT": ["remnant_sam2_auto", "remnant_grounded_sam2"],
 }
 
+MODEL_AUTO_ORDER = {
+    "FACADE": ["facade_grounded_sam2", "facade_sam2_auto"],
+    "REMNANT": ["remnant_sam2_auto", "remnant_grounded_sam2"],
+}
+
 PROMPTS = {
     "FACADE": {
         "outer": "building facade. wall.",
@@ -32,6 +37,16 @@ def build_model_candidates(image, mode, preset):
     if preset.endswith("_grounded_sam2"):
         return grounded_sam2_candidates(rgb, mode, preset)
     return []
+
+
+def preload_model_providers():
+    for preset in sorted({preset for presets in MODEL_AUTO_ORDER.values() for preset in presets}):
+        mode = "FACADE" if preset.startswith("facade_") else "REMNANT"
+        if preset.endswith("_sam2_auto"):
+            get_sam2_auto_generator()
+        elif preset.endswith("_grounded_sam2"):
+            get_sam2_predictor()
+            get_grounding_model()
 
 
 def sam2_auto_candidates(rgb, mode, preset):
@@ -95,9 +110,10 @@ def get_sam2_auto_generator():
     except Exception as exc:
         raise RuntimeError(f"SAM2 automatic mask generator is not installed: {exc}") from exc
 
-    model_id = os.getenv("SAM2_MODEL_ID", "facebook/sam2-hiera-large")
+    model_id = os.getenv("SAM2_MODEL_ID", "facebook/sam2-hiera-tiny")
+    device = os.getenv("SAM2_DEVICE", "cpu")
     if hasattr(SAM2AutomaticMaskGenerator, "from_pretrained"):
-        _SAM2_AUTO = SAM2AutomaticMaskGenerator.from_pretrained(model_id)
+        _SAM2_AUTO = SAM2AutomaticMaskGenerator.from_pretrained(model_id, device=device)
         return _SAM2_AUTO
 
     checkpoint = os.getenv("SAM2_CHECKPOINT")
@@ -106,7 +122,6 @@ def get_sam2_auto_generator():
         raise RuntimeError("SAM2_CHECKPOINT and SAM2_MODEL_CFG are required for automatic mask generation")
     from sam2.build_sam import build_sam2
 
-    device = os.getenv("SAM2_DEVICE", "cpu")
     _SAM2_AUTO = SAM2AutomaticMaskGenerator(build_sam2(model_cfg, checkpoint, device=device))
     return _SAM2_AUTO
 
@@ -120,9 +135,10 @@ def get_sam2_predictor():
     except Exception as exc:
         raise RuntimeError(f"SAM2 image predictor is not installed: {exc}") from exc
 
-    model_id = os.getenv("SAM2_MODEL_ID", "facebook/sam2-hiera-large")
+    model_id = os.getenv("SAM2_MODEL_ID", "facebook/sam2-hiera-tiny")
+    device = os.getenv("SAM2_DEVICE", "cpu")
     if hasattr(SAM2ImagePredictor, "from_pretrained"):
-        _SAM2_PREDICTOR = SAM2ImagePredictor.from_pretrained(model_id)
+        _SAM2_PREDICTOR = SAM2ImagePredictor.from_pretrained(model_id, device=device)
         return _SAM2_PREDICTOR
 
     checkpoint = os.getenv("SAM2_CHECKPOINT")
@@ -131,7 +147,6 @@ def get_sam2_predictor():
         raise RuntimeError("SAM2_CHECKPOINT and SAM2_MODEL_CFG are required for prompted segmentation")
     from sam2.build_sam import build_sam2
 
-    device = os.getenv("SAM2_DEVICE", "cpu")
     _SAM2_PREDICTOR = SAM2ImagePredictor(build_sam2(model_cfg, checkpoint, device=device))
     return _SAM2_PREDICTOR
 

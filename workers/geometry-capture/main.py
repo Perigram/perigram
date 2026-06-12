@@ -7,13 +7,18 @@ import cv2
 import numpy as np
 import requests
 
-from model_providers import MODEL_PRESETS, build_model_candidates
+from model_providers import MODEL_AUTO_ORDER, MODEL_PRESETS, build_model_candidates, preload_model_providers
 
 
 API_URL = os.getenv("CUTKIT_API_URL", "http://localhost:3000").rstrip("/")
 WORKER_TOKEN = os.getenv("WORKER_TOKEN", "")
 WORKER_ID = os.getenv("GEOMETRY_CAPTURE_WORKER_ID", "geometry-capture-worker")
 POLL_SECONDS = float(os.getenv("GEOMETRY_CAPTURE_POLL_SECONDS", "2"))
+MODEL_FIRST = os.getenv("GEOMETRY_CAPTURE_MODEL_FIRST", "1") != "0"
+PRELOAD_MODELS_ENV = os.getenv("GEOMETRY_CAPTURE_PRELOAD_MODELS")
+PRELOAD_MODELS = PRELOAD_MODELS_ENV == "1" or (
+    PRELOAD_MODELS_ENV in [None, "", "auto"] and os.getenv("GEOMETRY_CAPTURE_ML") == "1"
+)
 
 PRESETS = {
     "FACADE": [
@@ -171,8 +176,18 @@ def normalize_preset(mode, preset):
 
 
 def build_candidates(image, mode, preset):
+    return build_candidates_for_preset(image, mode, preset, allow_model=True)
+
+
+def build_candidates_for_preset(image, mode, preset, allow_model):
     provider_errors = []
-    if preset in MODEL_PRESETS.get(mode, []):
+    if allow_model and preset.endswith("_auto") and MODEL_FIRST:
+        model_candidates, model_errors = build_model_first_candidates(image, mode)
+        provider_errors.extend(model_errors)
+        if model_candidates:
+            return model_candidates, provider_errors
+
+    if allow_model and preset in MODEL_PRESETS.get(mode, []):
         try:
             candidates = build_model_candidates(image, mode, preset)
             if candidates:
@@ -181,7 +196,8 @@ def build_candidates(image, mode, preset):
         except Exception as exc:
             provider_errors.append(f"model_provider_error:{preset}:{exc}")
         fallback = "facade_auto" if mode == "FACADE" else "remnant_auto"
-        return build_candidates(image, mode, fallback)[0], provider_errors
+        candidates, fallback_errors = build_candidates_for_preset(image, mode, fallback, allow_model=False)
+        return candidates, [*provider_errors, *fallback_errors]
 
     if preset.endswith("_auto"):
         presets = [item for item in PRESETS.get(mode, []) if not item.endswith("_auto")]
@@ -196,6 +212,20 @@ def build_candidates(image, mode, preset):
     for item in presets:
         candidates.extend(candidate_masks(normalized, mode, item))
     return candidates, provider_errors
+
+
+def build_model_first_candidates(image, mode):
+    errors = []
+    for provider_preset in MODEL_AUTO_ORDER.get(mode, []):
+        try:
+            candidates = build_model_candidates(image, mode, provider_preset)
+            if candidates:
+                return candidates, errors
+            else:
+                errors.append(f"model_provider_empty:{provider_preset}")
+        except Exception as exc:
+            errors.append(f"model_provider_error:{provider_preset}:{exc}")
+    return [], errors
 
 
 def normalize_light(gray):
@@ -511,6 +541,12 @@ def main():
     if not WORKER_TOKEN:
         raise RuntimeError("WORKER_TOKEN is required")
     print(f"[geometry-capture] polling {API_URL} as {WORKER_ID}", flush=True)
+    if PRELOAD_MODELS:
+        try:
+            preload_model_providers()
+            print("[geometry-capture] model providers preloaded", flush=True)
+        except Exception as exc:
+            print(f"[geometry-capture] model preload failed; OpenCV fallback remains available: {exc}", flush=True)
     while True:
         try:
             run = claim_task()
