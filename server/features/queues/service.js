@@ -19,6 +19,68 @@ import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-r
  * Queues Service - v24 Absolute Final
  */
 
+const DEFAULT_NESTING_SETTINGS = Object.freeze({
+  materialMode: 'VIRTUAL',
+  virtualWidth: 3000,
+  virtualLength: 1500,
+  spacing: 5,
+  warehouseId: null,
+  inventoryItems: [],
+  toolProfileId: null,
+  requestedArtifacts: []
+});
+
+export function normalizeQueueNestingSettings(input = {}, previous = {}) {
+  const merged = {
+    ...DEFAULT_NESTING_SETTINGS,
+    ...(previous || {}),
+    ...(input || {})
+  };
+  const materialMode = ['WAREHOUSE', 'INVENTORY'].includes(merged.materialMode) ? 'WAREHOUSE' : 'VIRTUAL';
+  const inventoryItems = Array.from(new Set(
+    (Array.isArray(merged.inventoryItems) ? merged.inventoryItems : [])
+      .map(item => item?.toString?.() || item)
+      .filter(Boolean)
+  ));
+  const requestedArtifacts = Array.from(new Set(
+    (Array.isArray(merged.requestedArtifacts) ? merged.requestedArtifacts : [])
+      .map(item => item?.toString?.() || item)
+      .filter(Boolean)
+  ));
+
+  return {
+    materialMode,
+    virtualWidth: positiveNumber(merged.virtualWidth ?? merged.width, DEFAULT_NESTING_SETTINGS.virtualWidth),
+    virtualLength: positiveNumber(merged.virtualLength ?? merged.height, DEFAULT_NESTING_SETTINGS.virtualLength),
+    spacing: nonNegativeNumber(merged.spacing ?? merged.space, DEFAULT_NESTING_SETTINGS.spacing),
+    warehouseId: merged.warehouseId?.toString?.() || merged.warehouseId || null,
+    inventoryItems,
+    toolProfileId: merged.toolProfileId?.toString?.() || merged.toolId?.toString?.() || merged.toolProfileId || merged.toolId || null,
+    requestedArtifacts
+  };
+}
+
+export function getQueueNestingSettings(queue = {}) {
+  return normalizeQueueNestingSettings(queue.data?.nestingSettings || queue.data?.nestingParams || {});
+}
+
+export function buildNestingCommandParameters(queue = {}, overrides = {}) {
+  const settings = normalizeQueueNestingSettings(overrides.nestingSettings || {}, getQueueNestingSettings(queue));
+  const materialPool = Array.isArray(overrides.materialPool) && overrides.materialPool.length
+    ? overrides.materialPool
+    : queue.data?.job?.materialPool || [];
+
+  return {
+    materialMode: settings.materialMode,
+    virtualWidth: settings.virtualWidth,
+    virtualLength: settings.virtualLength,
+    spacing: settings.spacing,
+    inventoryItems: settings.inventoryItems,
+    materialPool,
+    toolProfileId: settings.toolProfileId
+  };
+}
+
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { projectId, name, job } = data;
@@ -44,6 +106,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     lineage,
     data: {
       job: job || { items: [], materialPool: [] },
+      nestingSettings: normalizeQueueNestingSettings(data.nestingSettings || data.nestingParams || {}),
       queueNumber
     }
   });
@@ -120,12 +183,24 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
     return await getById(uid, userId, userOrg, userRole, userPermissions);
   }
 
+  const dataUpdates = { ...(updates.data || {}) };
+  if (dataUpdates.nestingParams && !dataUpdates.nestingSettings) {
+    dataUpdates.nestingSettings = dataUpdates.nestingParams;
+  }
+  delete dataUpdates.nestingParams;
+
   // Update data block
-  queue.data = { ...queue.data, ...(updates.data || {}) };
+  queue.data = { ...queue.data, ...dataUpdates };
   
   // Handle root level updates that should go to job/params
   if (updates.job) queue.data.job = updates.job;
-  if (updates.nestingParams) queue.data.nestingParams = updates.nestingParams;
+  const nestingSettingsUpdate = updates.nestingSettings || updates.nestingParams;
+  if (nestingSettingsUpdate) {
+    queue.data.nestingSettings = normalizeQueueNestingSettings(nestingSettingsUpdate, queue.data.nestingSettings || queue.data.nestingParams);
+  } else if (!queue.data.nestingSettings && queue.data.nestingParams) {
+    queue.data.nestingSettings = normalizeQueueNestingSettings(queue.data.nestingParams);
+  }
+  delete queue.data.nestingParams;
 
   await repository.updateById(uid, queue);
   const updatedRaw = await repository.findById(uid);
@@ -214,6 +289,16 @@ function flexibleLookupValues(id) {
   return [flexibleId, stringId].filter((value, index, values) => (
     value !== null && value !== undefined && values.findIndex(item => item?.toString?.() === value?.toString?.()) === index
   ));
+}
+
+function positiveNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : fallback;
+}
+
+function nonNegativeNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : fallback;
 }
 
 function queuePreview(queue = {}) {

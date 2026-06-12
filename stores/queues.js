@@ -129,11 +129,11 @@ export const useQueuesStore = defineStore('queues', () => {
         }
     }
 
-    async function startNesting(queueId, nestingParams) {
+    async function startNesting(queueId, payload = {}) {
         try {
             const result = await $fetch(`/api/queue/${queueId}/nest`, {
                 method: 'POST',
-                body: nestingParams
+                body: payload
             });
             await fetchRuns(queueId);
             pollQueueStatus(queueId);

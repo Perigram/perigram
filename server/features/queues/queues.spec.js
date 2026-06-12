@@ -84,6 +84,77 @@ describe('Production Queues & Nesting Status', () => {
     expect(result.lineage.projectId).toBe(projectId);
   });
 
+  it('stores nesting settings on the queue and migrates legacy nesting params', async () => {
+    const queueId = new ObjectId();
+    await db.collection('queues').insertOne({
+      _id: queueId,
+      identity: { uid: queueId.toString(), name: 'Settings queue' },
+      lineage: { organizationId: mockUser.organizationId },
+      status: { state: 'DRAFT', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: {
+        job: { items: [], materialPool: [] },
+        nestingParams: {
+          materialMode: 'VIRTUAL',
+          virtualWidth: 1000,
+          virtualLength: 500
+        }
+      }
+    });
+
+    const result = await queueService.update(queueId.toString(), {
+      nestingParams: {
+        materialMode: 'WAREHOUSE',
+        virtualWidth: 2500,
+        virtualLength: 1250,
+        warehouseId: 'warehouse-1',
+        inventoryItems: ['pile_1', 'pile_1', 'sheet_2'],
+        toolId: 'tool-legacy',
+        requestedArtifacts: ['LAYOUT_DXF']
+      }
+    }, mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
+    const raw = await db.collection('queues').findOne({ _id: queueId });
+
+    expect(result.data.nestingSettings).toMatchObject({
+      materialMode: 'WAREHOUSE',
+      virtualWidth: 2500,
+      virtualLength: 1250,
+      warehouseId: 'warehouse-1',
+      inventoryItems: ['pile_1', 'sheet_2'],
+      toolProfileId: 'tool-legacy',
+      requestedArtifacts: ['LAYOUT_DXF']
+    });
+    expect(result.data.nestingParams).toBeUndefined();
+    expect(raw.data.nestingSettings).toBeDefined();
+    expect(raw.data.nestingParams).toBeUndefined();
+  });
+
+  it('builds nesting command parameters from queue-local settings and material pool', () => {
+    const materialPool = [{ type: 'PILE', id: 'pile-1', dimensions: { width: 3000, length: 1500 }, available: 2 }];
+    const parameters = queueService.buildNestingCommandParameters({
+      data: {
+        job: { materialPool },
+        nestingSettings: {
+          materialMode: 'WAREHOUSE',
+          virtualWidth: 2400,
+          virtualLength: 1200,
+          spacing: 8,
+          inventoryItems: ['pile_1'],
+          toolProfileId: 'tool-1'
+        }
+      }
+    });
+
+    expect(parameters).toEqual({
+      materialMode: 'WAREHOUSE',
+      virtualWidth: 2400,
+      virtualLength: 1200,
+      spacing: 8,
+      inventoryItems: ['pile_1'],
+      materialPool,
+      toolProfileId: 'tool-1'
+    });
+  });
+
   it('should require material assignment before choosing a production run', async () => {
     const queueId = new ObjectId();
     await db.collection('queues').insertOne({

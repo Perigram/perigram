@@ -1,6 +1,6 @@
 <template>
     <NuxtPage v-if="isEntityDetailRoute" />
-    <StandardPage v-else-if="project" :class="{ 'h-full min-h-0': isQueueWorkspaceRoute }">
+    <StandardPage v-else-if="project" :class="{ 'h-full min-h-0 gap-0 overflow-hidden': isQueueWorkspaceRoute }">
         <NuxtPage />
     </StandardPage>
 </template>

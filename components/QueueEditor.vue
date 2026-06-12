@@ -71,7 +71,7 @@
                                 class="min-w-0"
                             />
                             <Select
-                                v-model="nestingOptions.toolId"
+                                v-model="nestingOptions.toolProfileId"
                                 :options="toolOptions"
                                 optionLabel="name"
                                 optionValue="_id"
@@ -649,14 +649,28 @@ const resolveUploadedQueueItem = (payload) => {
     return findDesignForTemplate(template._id) || template;
 };
 
-const nestingOptions = ref({    materialMode: props.queue.data?.nestingParams?.materialMode || 'VIRTUAL',
-    virtualWidth: props.queue.data?.nestingParams?.virtualWidth || 3000,
-    virtualLength: props.queue.data?.nestingParams?.virtualLength || 1500,
-    warehouseId: props.queue.data?.nestingParams?.warehouseId || null,
-    inventoryItems: props.queue.data?.nestingParams?.inventoryItems || [],
-    toolId: props.queue.data?.nestingParams?.toolId || null,
-    requestedArtifacts: props.queue.requestedArtifacts || []
+const defaultNestingSettings = () => ({
+    materialMode: 'VIRTUAL',
+    virtualWidth: 3000,
+    virtualLength: 1500,
+    warehouseId: null,
+    inventoryItems: [],
+    toolProfileId: null,
+    requestedArtifacts: []
 });
+
+const queueNestingSettings = (queue = {}) => {
+    const settings = queue.data?.nestingSettings || queue.data?.nestingParams || {};
+    return {
+        ...defaultNestingSettings(),
+        ...settings,
+        toolProfileId: settings.toolProfileId || settings.toolId || null,
+        inventoryItems: Array.isArray(settings.inventoryItems) ? [...settings.inventoryItems] : [],
+        requestedArtifacts: Array.isArray(settings.requestedArtifacts) ? [...settings.requestedArtifacts] : []
+    };
+};
+
+const nestingOptions = ref(queueNestingSettings(props.queue));
 
 const queueRuns = computed(() => runs.value[props.queue._id] || []);
 const runOptions = computed(() => queueRuns.value.map(run => ({
@@ -776,6 +790,12 @@ const loadQueueData = async () => {
         if (data) {
             entries.value = (data.data?.job?.items || []).map(makeQueueEntry);
             entries.value.forEach(syncEntryWithCassette);
+            nestingOptions.value = queueNestingSettings(data);
+            if (nestingOptions.value.warehouseId) {
+                await loadWarehouseInventory();
+            } else {
+                availableInventory.value = [];
+            }
             if (hasPhysicalOutputs.value) loadInstances();
         }
     } catch (e) { console.error('Failed to load queue data:', e); }
@@ -800,7 +820,6 @@ onMounted(async () => {
     cassettes.value = cassetteResult || [];
     cassetteDesigns.value = designResult || [];
     warehouses.value = whRes || [];
-    if (nestingOptions.value.warehouseId) loadWarehouseInventory();
     await toolProfilesStore.fetchTools();
     await queuesStore.fetchRuns(props.queue._id);
     await loadSheetDesigns();
@@ -908,7 +927,7 @@ const saveQueue = async () => {
                     items: entries.value.map(e => ({ type: e.type, id: e.id, quantity: e.quantity, parameters: e.dimensions })),
                     materialPool: selectedMaterialPool.value
                 },
-                nestingParams: nestingOptions.value
+                nestingSettings: nestingOptions.value
             }
         );
         emit('updated'); 
@@ -922,10 +941,7 @@ const runNesting = async () => {
     nestingInProgress.value = true;
     try {
         await saveQueue();
-        await queuesStore.startNesting(props.queue._id, {
-            ...nestingOptions.value,
-            materialPool: selectedMaterialPool.value
-        });
+        await queuesStore.startNesting(props.queue._id);
         await loadSheetDesigns();
         toast.add({ severity: 'info', summary: t('queues.nestingStarted'), life: 3000 });
     } catch (e) { toast.add({ severity: 'error', summary: t('queues.nestingFailed'), detail: e.message, life: 3000 }); }

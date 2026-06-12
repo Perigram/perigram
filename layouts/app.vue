@@ -1,6 +1,11 @@
 <template>
-    <div class="flex flex-col min-h-screen bg-[var(--ck-page-background)]">
-    <header class="sticky top-0 z-50 border-b border-content-border bg-[var(--ck-chrome-background)] backdrop-blur-md">
+    <div
+        :class="[
+            'flex flex-col bg-[var(--ck-page-background)]',
+            isBoundedWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'
+        ]"
+    >
+    <header class="sticky top-0 z-50 shrink-0 border-b border-content-border bg-[var(--ck-chrome-background)] backdrop-blur-md">
             <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2 ">
                 <!-- Left: Logo & Breadcrumbs -->
                 <div class="flex items-center h-full min-w-0 flex-1">
@@ -72,7 +77,12 @@
             </nav>
         </header>
 
-        <main class="flex min-h-0 w-full max-w-[var(--ck-page-max-width)] flex-1 flex-col mx-auto p-4 md:p-6 lg:p-8">
+        <main
+            :class="[
+                'flex min-h-0 w-full max-w-[var(--ck-page-max-width)] flex-1 flex-col mx-auto',
+                isBoundedWorkspaceRoute ? 'overflow-hidden p-3 md:p-4' : 'p-4 md:p-6 lg:p-8'
+            ]"
+        >
             <slot />
         </main>
 
@@ -131,6 +141,8 @@
     const breadcrumbs = computed(() => {
         return navStore.resolveBreadcrumbs(route.path, route.query)
     })
+
+    const isBoundedWorkspaceRoute = computed(() => /^\/project\/[^/]+\/queues\/?$/.test(route.path))
 
     // --- User Menu ---
     const userMenu = ref();
