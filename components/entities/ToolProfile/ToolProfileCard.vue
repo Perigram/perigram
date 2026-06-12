@@ -4,7 +4,7 @@
       <template #before-identity>
         <i class="pi pi-wrench"></i>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <div class="flex flex-wrap gap-2">
           <Tag v-if="diameter" :value="`D${diameter}`" severity="secondary" size="small" />
           <Tag v-if="kerf" :value="`${$t('toolProfile.kerf')}: ${kerf} mm`" severity="info" size="small" />

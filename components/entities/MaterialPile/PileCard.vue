@@ -58,7 +58,7 @@ watch(catalogId, async (id) => {
       <template #before-identity>
         <i class="pi pi-database"></i>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <div class="flex flex-wrap gap-2">
           <Tag v-if="stock.total" :value="`${remaining} / ${stock.total}`" severity="success" size="small" />
           <Tag v-if="serial" :value="serial" severity="secondary" size="small" />

@@ -41,6 +41,8 @@
     "description": "Description",
     "reference": "Reference",
     "area": "Area",
+    "source": "Source",
+    "allRightsReserved": "{brand}. All rights reserved.",
     "terms": "Terms",
     "metadata": "Metadata",
     "project": "Project",
@@ -1211,6 +1213,7 @@
     "batches": "Material Piles",
     "sheets": "Sheets",
     "remnants": "Remnants",
+    "layerStandards": "Layer Standards",
     "users": "Team Members",
     "organizations": "Organizations",
     "configBot": "ConfigBot",
@@ -1252,6 +1255,7 @@
     "title": "Cassette Instances",
     "subtitle": "Produced cassette pieces stored in the warehouse.",
     "noInstances": "No cassette instances found",
+    "instances": "Instances",
     "updateStatus": "Update Status",
     "printLabel": "Print Label",
     "updatePhysicalStatus": "Update Physical Status",
@@ -1310,6 +1314,9 @@
     "subtitle": "Manifest-driven demo of entity cards, shared primitives, DTO contracts, and theme behavior.",
     "testMode": "Test Mode",
     "testUser": "Test User",
+    "fixtures": {
+      "downtownComplex": "Downtown Complex"
+    },
     "groups": {
       "production": "Production",
       "material": "Material",
@@ -1745,6 +1752,7 @@
   "layerStandard": {
     "defaultPen": "Pen",
     "noDefaultPen": "No pen assigned",
+    "overridden": "Overridden",
     "setPen": "Set pen",
     "selectPen": "Select pen..."
   },

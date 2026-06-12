@@ -4,7 +4,7 @@
       <template #before-identity>
         <Avatar :image="avatarUrl" :label="!avatarUrl ? avatarLabel : null" shape="circle" size="xlarge" />
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <div class="flex flex-wrap gap-2">
           <Tag v-if="role" :value="role" severity="secondary" size="small" />
           <Tag v-if="organizationCount" :value="`${organizationCount} ${$t('profile.myOrganizations')}`" severity="info" size="small" />

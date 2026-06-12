@@ -7,7 +7,7 @@
       <template #before-identity>
         <div class="w-6 h-6 rounded-full border shrink-0" :style="swatchStyle"></div>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <small>{{ color.data?.code || color.identity?.serial || hexCode || '—' }}</small>
       </template>
       <template #compact-content>

@@ -225,6 +225,20 @@ describe('Design system manifest', () => {
     expect(cassetteTemplate.fieldPaths).not.toContain('parameterCount');
   });
 
+  it('keeps entity full-card subtitles from duplicating body facts', () => {
+    const offenders = walkFiles(
+      path.join(REPO_ROOT, 'components/entities'),
+      (file) => file.endsWith('.vue')
+    )
+      .map((file) => path.relative(REPO_ROOT, file))
+      .filter((file) => {
+        const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+        return /<template\s+#subtitle(?![^>]*variant !== 'card')/.test(source);
+      });
+
+    expect(offenders).toEqual([]);
+  });
+
   it('keeps admin navigation tied to existing admin routes', () => {
     const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
     const navigation = fs.readFileSync(path.join(REPO_ROOT, 'stores/navigation.js'), 'utf8');

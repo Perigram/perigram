@@ -6,7 +6,7 @@
           <span class="block w-full" :style="lineStyle" />
         </div>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <div class="flex flex-wrap gap-2">
           <Tag v-if="isSystemPen" :value="$t('assets.system')" severity="info" size="small" />
           <Tag v-if="strokeWeight" :value="`${strokeWeight}px`" severity="secondary" size="small" />

@@ -22,7 +22,7 @@
                                 <span class="truncate">{{ chat.user?.name || $t('admin.unknownUser') }}</span>
                             </div>
                         </template>
-                        <small>ID: {{ chat.userId.slice(-8) }}</small>
+                        <small>{{ $t('common.id') }}: {{ chat.userId.slice(-8) }}</small>
                         <Divider />
                         <div class="flex flex-col">
                             <p class="m-0 italic truncate">{{ chat.lastMessage }}</p>

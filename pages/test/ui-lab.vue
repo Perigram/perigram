@@ -274,7 +274,7 @@
             </template>
 
             <template v-else-if="primitive.key === 'TraceLink'">
-              <TraceLink type="project" :id="primitiveEntity.lineage.projectId" label="Downtown Complex" slug="downtown-complex" />
+              <TraceLink type="project" :id="primitiveEntity.lineage.projectId" :label="$t('uiLab.fixtures.downtownComplex')" slug="downtown-complex" />
             </template>
 
             <template v-else-if="primitive.key === 'TraceChain'">

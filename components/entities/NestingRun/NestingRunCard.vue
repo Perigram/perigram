@@ -80,7 +80,7 @@ function selectRun(event) {
       <template #before-identity>
         <i class="pi pi-list-check"></i>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <div class="flex flex-wrap gap-2">
           <Tag v-if="results.efficiency" :value="`${results.efficiency}%`" severity="success" size="small" />
           <Tag v-if="results.sheetCount" :value="`${results.sheetCount} ${$t('results.sheets')}`" severity="secondary" size="small" />

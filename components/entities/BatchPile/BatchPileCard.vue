@@ -4,7 +4,7 @@
       <template #before-identity>
         <i class="pi pi-box"></i>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <div class="flex flex-wrap items-center gap-2">
           <Tag v-if="serial" :value="serial" severity="secondary" size="small" />
           <small v-if="stock">{{ remaining }} / {{ stock.total }}</small>

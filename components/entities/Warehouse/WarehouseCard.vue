@@ -4,7 +4,7 @@
       <template #before-identity>
         <i class="pi pi-building"></i>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <div class="flex flex-wrap gap-2">
           <Tag v-if="warehouseType" :value="warehouseType" severity="secondary" size="small" />
           <Tag v-if="totalSheets" :value="`${totalSheets} ${$t('warehouse.rawSheets')}`" severity="info" size="small" />

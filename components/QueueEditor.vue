@@ -235,7 +235,7 @@
 
             <!-- Tracking -->
             <AccordionPanel v-if="hasPhysicalOutputs" value="3">
-                <AccordionHeader>{{ $t('project.cassettes') }} Instances</AccordionHeader>
+                <AccordionHeader>{{ $t('project.cassettes') }} {{ $t('cassetteInstance.instances') }}</AccordionHeader>
                 <AccordionContent>
                     <ResponsiveGrid>
                         <CassetteInstanceCard 

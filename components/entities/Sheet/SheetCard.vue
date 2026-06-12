@@ -54,7 +54,7 @@ watch(runId, async (id) => {
       <template #before-identity>
         <i class="pi pi-file"></i>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <div class="flex flex-wrap gap-2">
           <Tag v-if="thickness" :value="`${thickness} mm`" severity="secondary" size="small" />
           <Tag v-if="warehouseId" :value="$t('entities.warehouse')" severity="info" size="small" />

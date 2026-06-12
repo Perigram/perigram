@@ -19,7 +19,7 @@
             
             <div class="flex items-center gap-4">
                 <small>
-                    &copy; {{ new Date().getFullYear() }} CutKit. All rights reserved.
+                    &copy; {{ new Date().getFullYear() }} {{ $t('common.allRightsReserved', { brand: 'CutKit' }) }}
                 </small>
             </div>
         </div>

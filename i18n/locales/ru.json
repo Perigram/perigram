@@ -41,6 +41,8 @@
     "description": "Описание",
     "reference": "Ссылка",
     "area": "Площадь",
+    "source": "Источник",
+    "allRightsReserved": "Все права защищены, {brand}.",
     "terms": "Условия",
     "metadata": "Метаданные",
     "project": "Проект",
@@ -1211,6 +1213,7 @@
     "batches": "Складские партии",
     "sheets": "Листы",
     "remnants": "Остатки",
+    "layerStandards": "Стандарты слоёв",
     "users": "Участники команды",
     "organizations": "Организации",
     "configBot": "ConfigBot",
@@ -1252,6 +1255,7 @@
     "title": "Экземпляры кассет",
     "subtitle": "Произведенные кассеты на складе.",
     "noInstances": "Экземпляры кассет не найдены",
+    "instances": "Экземпляры",
     "updateStatus": "Обновить статус",
     "printLabel": "Печать этикетки",
     "updatePhysicalStatus": "Обновить физический статус",
@@ -1310,6 +1314,9 @@
     "subtitle": "Демо сущностей, общих блоков, DTO-контрактов и темы на основе манифеста.",
     "testMode": "Тестовый режим",
     "testUser": "Тестовый пользователь",
+    "fixtures": {
+      "downtownComplex": "Downtown Complex"
+    },
     "groups": {
       "production": "Производство",
       "material": "Материалы",
@@ -1745,6 +1752,7 @@
   "layerStandard": {
     "defaultPen": "Перо",
     "noDefaultPen": "Перо не назначено",
+    "overridden": "Переопределено",
     "setPen": "Выбрать перо",
     "selectPen": "Выберите перо..."
   },
