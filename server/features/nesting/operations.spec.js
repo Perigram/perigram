@@ -82,8 +82,9 @@ describe('nesting operation worker payloads', () => {
     });
   });
 
-  it('uses selected remnant geometry as the nesting sheet polygon', () => {
+  it('uses selected remnant geometry as the nesting sheet polygon with holes', () => {
     const polygon = [[0, 0], [1200, 0], [1200, 800], [700, 800], [700, 1200], [0, 1200]];
+    const hole = [[200, 200], [400, 200], [400, 400], [200, 400]];
     const context = resolveNestingContext({
       materialMode: 'WAREHOUSE',
       materialPool: [{
@@ -92,13 +93,17 @@ describe('nesting operation worker payloads', () => {
         dimensions: { width: 1200, length: 1200 },
         available: 1,
         geometryData: {
-          polygon: { outer: polygon }
+          polygon: { outer: polygon, inner: [hole] }
         }
       }]
     });
 
-    expect(context.sheet_polygon).toEqual([...polygon, [0, 0]]);
-    expect(resolveNestingParams(context).sheet_polygon).toEqual([...polygon, [0, 0]]);
+    const expected = {
+      outer: [...polygon, [0, 0]],
+      inner: [[...hole, [200, 200]]]
+    };
+    expect(context.sheet_polygon).toEqual(expected);
+    expect(resolveNestingParams(context).sheet_polygon).toEqual(expected);
   });
 
   it('declares warehouse material pool as a solveNesting command input', () => {
@@ -456,6 +461,35 @@ describe('nesting operation worker payloads', () => {
     expect(summarizeNestingResult(result, request.params)).toMatchObject({
       efficiency: 8.33,
       remnantArea: 0.06,
+      placedCount: 1
+    });
+  });
+
+  it('uses sheet polygon holes for fallback bins and summary area', () => {
+    const sheetPolygon = {
+      outer: [[0, 0], [100, 0], [100, 100], [0, 100], [0, 0]],
+      inner: [[[40, 40], [60, 40], [60, 60], [40, 60], [40, 40]]]
+    };
+    const request = buildNestingWorkerRequest([
+      {
+        cassetteId: 'cassette-1',
+        count: 1,
+        polygonParts: [{
+          coordinates: [[0, 0], [20, 0], [20, 20], [0, 20], [0, 0]]
+        }]
+      }
+    ], { width: 100, height: 100, sheet_polygon: sheetPolygon });
+    const result = enrichNestingResult({
+      solution: {
+        layouts: [
+          { placed_items: [{ item_id: 0, transformation: { rotation: 0, translation: [10, 10] } }] }
+        ]
+      }
+    }, request);
+
+    expect(result.bins[0].shape.data).toEqual(sheetPolygon);
+    expect(summarizeNestingResult(result, request.params)).toMatchObject({
+      remnantArea: 0.01,
       placedCount: 1
     });
   });

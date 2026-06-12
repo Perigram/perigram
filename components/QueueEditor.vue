@@ -370,7 +370,7 @@ const inventoryGeometryData = (entity = {}) => (
     null
 );
 
-const normalizeSheetPolygon = (points = []) => {
+const normalizeSheetRing = (points = []) => {
     if (!Array.isArray(points)) return null;
     const normalized = points
         .map(point => Array.isArray(point) && point.length >= 2 ? [Number(point[0]), Number(point[1])] : null)
@@ -384,10 +384,25 @@ const normalizeSheetPolygon = (points = []) => {
     return normalized;
 };
 
+const normalizeSheetPolygon = (polygon = null) => {
+    if (polygon && !Array.isArray(polygon) && typeof polygon === 'object') {
+        const outer = normalizeSheetRing(polygon.outer || polygon.data?.outer || []);
+        if (!outer) return null;
+        return {
+            outer,
+            inner: (polygon.inner || polygon.data?.inner || [])
+                .map(normalizeSheetRing)
+                .filter(Boolean)
+        };
+    }
+    const outer = normalizeSheetRing(polygon);
+    return outer ? { outer, inner: [] } : null;
+};
+
 const inventorySheetPolygon = (entity = {}) => {
     const geometry = inventoryGeometryData(entity);
     return normalizeSheetPolygon(
-        geometry?.polygon?.outer ||
+        geometry?.polygon ||
         geometry?.sheetPolygon ||
         geometry?.sheet_polygon ||
         geometry?.polygonParts?.find(part => Array.isArray(part?.coordinates))?.coordinates ||

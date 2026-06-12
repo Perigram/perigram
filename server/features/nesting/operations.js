@@ -298,7 +298,7 @@ export function resolveNestingContext(settings = {}) {
       height: source.height,
       space: settings.spacing || settings.space || 5,
       sheetCount: stockSources.reduce((sum, item) => sum + item.available, 0),
-      sheet_polygon: normalizeSheetPolygon(settings.sheet_polygon) || source.sheetPolygon || null,
+      sheet_polygon: normalizeSheetPolygonShape(settings.sheet_polygon) || source.sheetPolygon || null,
       materialMode: 'WAREHOUSE',
       materialPool: stockSources
     };
@@ -309,7 +309,7 @@ export function resolveNestingContext(settings = {}) {
     height: settings.virtualLength || settings.height || 2440,
     space: settings.spacing || settings.space || 5,
     sheetCount: settings.sheetCount || 1000,
-    sheet_polygon: settings.sheet_polygon || null,
+    sheet_polygon: normalizeSheetPolygonShape(settings.sheet_polygon) || null,
     materialMode: settings.materialMode || 'VIRTUAL',
     inventoryItems: settings.inventoryItems || [],
     materialPool
@@ -363,10 +363,7 @@ export function enrichNestingResult(result = {}, request = {}) {
         id: 0,
         shape: {
           type: 'polygon',
-          data: {
-            outer: [[0, 0], [width, 0], [width, height], [0, height], [0, 0]],
-            inner: []
-          }
+          data: fallbackBinShapeData(params, width, height)
         },
         stock: params.sheetCount || 1
       }]
@@ -471,11 +468,15 @@ function remnantAreaFromPlacedArea(result, layouts, sheetArea, sheetCount) {
 }
 
 function nestingSheetArea(result = {}, params = {}) {
+  const paramShapeArea = polygonShapeArea(params.sheet_polygon);
+  if (paramShapeArea > 0) return paramShapeArea;
+  const binOuter = result.bins?.[0]?.shape?.data?.outer;
+  const binInner = result.bins?.[0]?.shape?.data?.inner || [];
+  const binShapeArea = polygonShapeArea({ outer: binOuter, inner: binInner });
+  if (binShapeArea > 0) return binShapeArea;
   const width = Number(params.width || params.virtualWidth || 0);
   const height = Number(params.height || params.virtualLength || 0);
-  if (width > 0 && height > 0) return width * height;
-  const binOuter = result.bins?.[0]?.shape?.data?.outer;
-  return polygonArea(binOuter);
+  return width > 0 && height > 0 ? width * height : 0;
 }
 
 function nestingPlacedArea(result = {}, layouts = []) {
@@ -506,6 +507,23 @@ function polygonArea(points = []) {
     area += x1 * y2 - x2 * y1;
   }
   return Math.abs(area) / 2;
+}
+
+function polygonShapeArea(shape = null) {
+  const normalized = normalizeSheetPolygonShape(shape);
+  if (!normalized) return 0;
+  const outerArea = polygonArea(normalized.outer);
+  const innerArea = normalized.inner.reduce((sum, ring) => sum + polygonArea(ring), 0);
+  return Math.max(outerArea - innerArea, 0);
+}
+
+function fallbackBinShapeData(params = {}, width = 0, height = 0) {
+  const sheetPolygon = normalizeSheetPolygonShape(params.sheet_polygon);
+  if (sheetPolygon) return sheetPolygon;
+  return {
+    outer: [[0, 0], [width, 0], [width, height], [0, height], [0, 0]],
+    inner: []
+  };
 }
 
 function buildNestingItems(jobFiles = []) {
@@ -628,9 +646,15 @@ function normalizeMaterialPoolSource(source = {}) {
 }
 
 function resolveMaterialSheetPolygon(source = {}) {
-  return normalizeSheetPolygon(
+  return normalizeSheetPolygonShape(
     source.sheet_polygon ||
     source.sheetPolygon ||
+    source.geometry?.polygon ||
+    source.geometryData?.polygon ||
+    source.data?.geometryData?.polygon ||
+    source.data?.geometry?.data?.polygon ||
+    source.data?.geometry?.polygon ||
+    source.geometry?.data?.polygon ||
     source.geometry?.polygon?.outer ||
     source.geometryData?.polygon?.outer ||
     source.data?.geometryData?.polygon?.outer ||
@@ -645,6 +669,19 @@ function resolveMaterialSheetPolygon(source = {}) {
 function firstPolygonPartCoordinates(parts = []) {
   const part = Array.isArray(parts) ? parts.find(item => Array.isArray(item?.coordinates)) : null;
   return part?.coordinates || null;
+}
+
+function normalizeSheetPolygonShape(polygon = null) {
+  if (polygon && !Array.isArray(polygon) && typeof polygon === 'object') {
+    const outer = normalizeSheetPolygon(polygon.outer || polygon.data?.outer || []);
+    if (!outer) return null;
+    const inner = (polygon.inner || polygon.data?.inner || [])
+      .map(normalizeSheetPolygon)
+      .filter(Boolean);
+    return { outer, inner };
+  }
+  const outer = normalizeSheetPolygon(polygon);
+  return outer ? { outer, inner: [] } : null;
 }
 
 function normalizeSheetPolygon(points = []) {
