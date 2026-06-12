@@ -17,7 +17,9 @@ const props = defineProps({
   variant: { type: String, default: 'card' },
   statusActions: { type: Array, default: () => [] },
   showDelete: { type: Boolean, default: true },
-  showSummary: { type: Boolean, default: true }
+  showSummary: { type: Boolean, default: true },
+  showFooterActions: { type: Boolean, default: true },
+  expandable: { type: Boolean, default: true }
 });
 
 const emit = defineEmits(['view', 'edit', 'delete']);
@@ -30,7 +32,14 @@ const queueSummaryFields = computed(() => [
     { path: 'summary.totalArea', i18n: 'common.area', suffix: ' m²' }
 ]);
 
+const FORM_CONTROL_SELECTOR = 'a[href],button,input,select,textarea,[contenteditable="true"]';
+
 const handleCardClick = (event) => {
+    if (!props.expandable) {
+        if (event?.target?.closest?.(FORM_CONTROL_SELECTOR)) return;
+        emit('view', props.queue);
+        return;
+    }
     if (isInteractiveEventTarget(event)) return;
     emit('view', props.queue);
 };
@@ -64,7 +73,13 @@ const statusActions = computed(() => [
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <EntityCard :entity="queue" entity-type="queue" :variant="variant" :status-actions="statusActions">
+    <EntityCard
+        :entity="queue"
+        entity-type="queue"
+        :variant="variant"
+        :status-actions="statusActions"
+        :expandable="expandable"
+    >
         <!-- Queue number prefix in compact + card title -->
         <template #before-identity v-if="queue.data?.queueNumber">
             <small>#{{ queue.data.queueNumber }}</small>
@@ -97,7 +112,7 @@ const statusActions = computed(() => [
         </div>
 
         <!-- Card footer -->
-        <template #footer v-if="variant === 'card'">
+        <template #footer v-if="variant === 'card' && showFooterActions">
             <div class="flex justify-end gap-2" @click.stop>
                 <Button v-if="authStore.can('queues', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="$emit('edit', queue)" />
             </div>

@@ -1,7 +1,7 @@
 <template>
-    <div class="flex h-[calc(100dvh-10rem)] min-h-0 min-w-0 flex-col overflow-hidden">
-        <div class="grid min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-12">
-            <aside v-if="queues?.length > 0" class="hidden min-h-0 min-w-0 xl:col-span-3 xl:flex xl:flex-col xl:gap-3 xl:overflow-hidden">
+    <div class="flex min-h-0 min-w-0 flex-col">
+        <div class="grid min-h-0 min-w-0 flex-1 gap-4 xl:h-[calc(100dvh-10rem)] xl:grid-cols-12">
+            <aside v-if="queues?.length > 0" class="hidden min-h-0 min-w-0 xl:col-span-3 xl:flex xl:flex-col xl:gap-3">
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>
                     <Button
@@ -11,15 +11,25 @@
                         @click="$emit('create-queue')"
                     />
                 </div>
+                <QueueCard
+                    :queue="queue"
+                    variant="card"
+                    :status-actions="queueStatusActions"
+                    :show-delete="false"
+                    :show-footer-actions="false"
+                    :expandable="false"
+                    @view="$emit('select-queue', queue._id)"
+                />
                 <div class="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
                     <QueueCard
-                        v-for="option in queueOptions"
+                        v-for="option in selectorQueueOptions"
                         :key="option._id"
                         :queue="option"
                         variant="compact"
                         :status-actions="option._id === queue._id ? queueStatusActions : []"
                         :show-delete="false"
                         :show-summary="false"
+                        :expandable="false"
                         :class="{ 'outline outline-2 outline-primary': option._id === queue._id }"
                         @view="$emit('select-queue', option._id)"
                         @edit="$emit('select-queue', option._id)"
@@ -153,7 +163,7 @@
                             </div>
                         </div>
 
-                        <ResponsiveGrid v-if="viewMode === 'grid'">
+                        <ResponsiveGrid v-if="viewMode === 'grid'" variant="wide">
                             <template v-for="entry in entries" :key="entry?._key">
                                 <QueueEntryCard
                                     v-if="entry"
@@ -344,6 +354,7 @@ const viewMode = ref('grid');
 const selectedRunId = ref(null);
 const instances = ref([]);
 const queueOptions = computed(() => namedSelectOptions(props.queues, t('common.unnamed')));
+const selectorQueueOptions = computed(() => queueOptions.value.filter(option => option._id !== props.queue._id));
 const toolOptions = computed(() => namedSelectOptions(tools.value, t('common.unnamed')));
 const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, t('common.unnamed')));
 
