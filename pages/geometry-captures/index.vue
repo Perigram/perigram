@@ -313,7 +313,7 @@ const confirmCapture = async (capture) => {
               :key="capture._id"
               role="button"
               tabindex="0"
-              class="grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-3 rounded-ui border border-content-border bg-surface-0 p-2 text-left transition hover:border-primary"
+              class="grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-3 rounded-ui border border-content-border bg-subtle p-2 text-left transition hover:border-primary"
               :class="capture._id === selectedCapture?._id ? 'border-primary' : ''"
               @click="selectedId = capture._id"
               @keydown.enter="selectedId = capture._id"

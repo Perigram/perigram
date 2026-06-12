@@ -115,7 +115,7 @@ const FIELDS = [
             <div
               v-for="revision in revisions"
               :key="revision.id"
-              class="flex min-w-0 flex-col gap-3 rounded-ui border border-content-border bg-surface-0 p-3"
+              class="flex min-w-0 flex-col gap-3 rounded-ui border border-content-border bg-subtle p-3"
               :class="revision.id === activeRevisionId ? 'border-primary' : ''"
             >
               <div class="flex items-center justify-between gap-2">
