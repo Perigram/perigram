@@ -180,6 +180,14 @@
        preview list, diagnostics are readable text rows, and revisions render
        as preview tiles directly under the active geometry.
 
+     [2026-06-12] Fix geometry capture local white card backgrounds
+     Files changed: pages/geometry-captures/index.vue,
+       components/entities/GeometryCapture/GeometryCaptureDetail.vue
+     Docs updated: TODO.org
+     Notes: Replaced feature-local `bg-surface-0` row/tile backgrounds with
+       the token-backed subtle surface so capture list rows and revision tiles
+       follow the existing design-system surface contract.
+
 * WAITING Core Project Route Workflow Fixes
   :PROPERTIES:
   :ID: core-project-route-workflow-fixes
