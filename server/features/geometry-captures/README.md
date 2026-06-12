@@ -18,6 +18,10 @@ workflows.
 - `attachments.primary`: original immutable capture photo (`CAPTURE_PHOTO`).
 - `data.calibration`: scale assumptions such as known size, sheet size, or
   facade floor count/height.
+- `data.activeRevisionId`: accepted extraction revision currently projected
+  into `data.geometry`.
+- `data.revisions[]`: recalculation attempts with preset, task run, geometry,
+  confidence, diagnostics, metrics, and failure state.
 - `data.geometry.polygon.outer`: extracted closed outer ring in millimeters.
 - `data.geometry.polygon.inner`: extracted closed hole rings in millimeters.
 - `data.geometry.preview`: `DrawingCanvas` preview generated from the polygon.
@@ -30,13 +34,22 @@ workflows.
 1. Authenticated UI uploads a photo to the `capturePhotos` GridFS bucket.
 2. `create()` persists a `geometry_capture` and queues
    `vision.extractGeometry`.
-3. `workers/geometry-capture` claims the task, runs OpenCV contour extraction,
-   posts the result to the worker callback, and completes/fails the task.
-4. The capture moves to `READY` for review or `FAILED` for correction/retry.
+3. `workers/geometry-capture` claims the task for the pending revision, runs
+   preset-based OpenCV contour extraction, posts the result to the worker
+   callback, and completes/fails the task.
+4. The capture moves to `READY` for review or `FAILED` if there is no previous
+   active geometry. Failed recalculations keep the previous active geometry.
 5. `confirm()` moves the capture to `COMPLETE`.
    - `REMNANT` creates a real `remnant` entity and increments warehouse remnant
      count.
    - `FACADE` stores the accepted draft only; facade entities are deferred.
+
+Recalculation uses `POST /api/geometry-captures/:id/recalculate` with a detector
+preset and optional calibration override. It appends a new revision and queues a
+new `vision.extractGeometry` task using an idempotency key scoped to that
+revision. `POST /api/geometry-captures/:id/revisions/:revisionId/activate`
+switches `data.activeRevisionId` back to any successful revision and refreshes
+the denormalized geometry/specs fields.
 
 ## Access
 

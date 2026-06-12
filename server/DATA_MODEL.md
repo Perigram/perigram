@@ -134,11 +134,13 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
+| `data.activeRevisionId` | String | active revision id field |
 | `data.calibration` | String | calibration field |
 | `data.extraction` | String | extraction field |
 | `data.geometry` | String | geometry field |
 | `data.mode` | String | mode field |
 | `data.output` | String | output field |
+| `data.revisions` | Array | revisions field |
 
 ### invitations
 *Invitations - manages invitations*

@@ -16,8 +16,9 @@ Routes are grouped into sub-directories corresponding to features:
   `command_runs`.
 - `config-bot/`: Admin draft generation, chat, and session routes for
   ConfigBot v0.1.
-- `geometry-captures/`: Authenticated photo-to-polygon capture CRUD, review
-  confirmation, and worker-result callback.
+- `geometry-captures/`: Authenticated photo-to-polygon capture CRUD,
+  preset-based recalculation, revision activation, review confirmation, and
+  worker-result callback.
 - `admin/config-bot/`: Admin knowledge reindex route for ConfigBot.
 - `admin/tasks/`: Authenticated task definition and run listing for
   `task_runs`.

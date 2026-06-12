@@ -97,6 +97,28 @@
        inventory for remnant mode and keeps facade mode as draft geometry until
        facade domain entities exist.
 
+     [2026-06-12] Add revisioned recalculation and preset CV workflow
+     Files changed: packages/domain-cnc/src/tasks.js,
+       packages/domain-cnc/src/field-access.js,
+       server/features/geometry-captures/*,
+       server/api/geometry-captures/*,
+       workers/geometry-capture/main.py, docker-compose.dev.yml,
+       docker-compose.local.yml,
+       components/entities/GeometryCapture/GeometryCaptureDetail.vue,
+       pages/geometry-captures/index.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: server/features/geometry-captures/README.md,
+       server/api/README.md, workers/README.md,
+       workers/geometry-capture/README.md,
+       components/entities/GeometryCapture/README.md,
+       server/DATA_MODEL.md, TODO.org
+     Notes: Geometry captures now keep revision history and active revision
+       projection. Recalculate queues a revision-scoped extraction task with a
+       detector preset, failed recalculations preserve previous active geometry,
+       and the review UI can switch successful revisions. The worker now runs
+       multiple deterministic OpenCV candidates per preset, ranks them, returns
+       diagnostics, and retries task claiming while the app warms up.
+
 * WAITING Core Project Route Workflow Fixes
   :PROPERTIES:
   :ID: core-project-route-workflow-fixes
