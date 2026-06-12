@@ -176,6 +176,8 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   sheet dimensions as the active material abstraction; warehouse mode adds a
   selected source immediately from the source dropdown and renders selected
   material pile, sheet, and remnant cards in a horizontally scrolled row. Queue
+  settings keep `Run nesting` as the only primary action; section utility,
+  add, upload, and view controls use compact secondary buttons. Queue
   status/actions live on the selected queue card;
   the cassette panel header owns view switching and add/upload actions. The
   runs lane receives queue-level sheet designs once, selects one active run, and lets

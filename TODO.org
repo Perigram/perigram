@@ -5183,3 +5183,16 @@
     Notes:
     - Selected warehouse material sources now render in a horizontally scrolled
       row with stable card widths.
+
+*** Agent Notes
+    [2026-06-12] Standardize queue workspace button hierarchy
+    Files changed:
+    - components/QueueEditor.vue
+    - components/entities/NestingRun/NestingRunCard.vue
+    Docs updated:
+    - components/README.md
+    - TODO.org
+    Notes:
+    - Queue workspace keeps Run nesting as the only primary action.
+    - Section utility, add, upload, and view controls use compact secondary
+      button styling and explicit small input sizes.
