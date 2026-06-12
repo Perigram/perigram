@@ -44,7 +44,7 @@
                 :loading="loading"
             >
                 <template #grid="slotProps">
-                    <ResponsiveGrid>
+                    <div class="grid grid-cols-1 gap-4">
                         <ProjectIndexCard
                             v-for="project in slotProps.items"
                             :key="project._id"
@@ -54,7 +54,7 @@
                             @rename="renameProject"
                             @delete="confirmDeleteProject"
                         />
-                    </ResponsiveGrid>
+                    </div>
                 </template>
             </DataView>
         </div>
@@ -105,7 +105,6 @@
     import ProjectIndexCard from '~/components/entities/Project/ProjectIndexCard.vue'
     import StandardDialog from '~/components/shared/StandardDialog.vue'
     import StandardPage from '~/components/shared/StandardPage.vue'
-    import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue'
     import StateBlock from '~/components/shared/StateBlock.vue'
     import { useGlobalStore } from '~/stores/global'
     import { storeToRefs } from 'pinia'

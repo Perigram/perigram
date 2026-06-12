@@ -1,30 +1,28 @@
 <template>
     <div class="flex flex-col gap-6">
-        <!-- Queue Header: Compact & Standard -->
-        <Panel>
-            <div class="flex flex-col gap-3">
-                <TraceChain :entity="queue" />
-                <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-                        <Select
-                            v-if="queues?.length > 0"
-                            :modelValue="queue._id"
-                            :options="queueOptions"
-                            option-label="name"
-                            option-value="_id"
-                            class="border-none bg-transparent p-0 shadow-none"
-                            @update:modelValue="$emit('select-queue', $event)"
-                        >
-                            <template #value="slotProps">
-                                <h2 class="m-0 truncate">{{ queueName }}</h2>
-                            </template>
-                        </Select>
-                        <h2 v-else class="m-0">{{ queueName }}</h2>
-                    </div>
-                    <EntityStatus :entity="queue" entity-type="queue" variant="inline" :actions="queueStatusActions" :show-history="false" />
-                </div>
+        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div class="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                <Select
+                    v-if="queues?.length > 0"
+                    :modelValue="queue._id"
+                    :options="queueOptions"
+                    option-label="name"
+                    option-value="_id"
+                    class="w-full sm:w-80"
+                    size="small"
+                    @update:modelValue="$emit('select-queue', $event)"
+                >
+                    <template #value>
+                        <span class="block truncate font-semibold">{{ queueName }}</span>
+                    </template>
+                </Select>
+                <h2 v-else class="m-0 text-lg">{{ queueName }}</h2>
+                <span class="text-sm text-muted-color">
+                    {{ entries.length }} {{ $t('queues.cassettes') }} · {{ queueRuns.length }} {{ $t('queue.runs') }}
+                </span>
             </div>
-        </Panel>
+            <EntityStatus :entity="queue" entity-type="queue" variant="inline" :actions="queueStatusActions" :show-history="false" />
+        </div>
 
         <Accordion :multiple="true" :value="['0', '1', '2']" class="flex flex-col gap-4">
             <!-- Runs Panel -->
@@ -306,7 +304,6 @@ import QueueEntryCard from '~/components/entities/Queue/QueueEntryCard.vue';
 import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
 import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
@@ -365,6 +362,39 @@ const inventoryDimensions = (entity = {}) => {
     return { width, length };
 };
 
+const inventoryGeometryData = (entity = {}) => (
+    entity.data?.geometryData ||
+    entity.data?.geometry?.data ||
+    entity.geometryData ||
+    entity.geometry?.data ||
+    null
+);
+
+const normalizeSheetPolygon = (points = []) => {
+    if (!Array.isArray(points)) return null;
+    const normalized = points
+        .map(point => Array.isArray(point) && point.length >= 2 ? [Number(point[0]), Number(point[1])] : null)
+        .filter(point => point && Number.isFinite(point[0]) && Number.isFinite(point[1]));
+    if (normalized.length < 3) return null;
+    const [firstX, firstY] = normalized[0];
+    const [lastX, lastY] = normalized[normalized.length - 1];
+    if (Math.abs(firstX - lastX) > 0.001 || Math.abs(firstY - lastY) > 0.001) {
+        normalized.push([firstX, firstY]);
+    }
+    return normalized;
+};
+
+const inventorySheetPolygon = (entity = {}) => {
+    const geometry = inventoryGeometryData(entity);
+    return normalizeSheetPolygon(
+        geometry?.polygon?.outer ||
+        geometry?.sheetPolygon ||
+        geometry?.sheet_polygon ||
+        geometry?.polygonParts?.find(part => Array.isArray(part?.coordinates))?.coordinates ||
+        null
+    );
+};
+
 const stockSizeKey = (item = {}) => {
     const width = Number(item.dimensions?.width || 0);
     const length = Number(item.dimensions?.length || item.dimensions?.height || 0);
@@ -382,6 +412,8 @@ const selectedMaterialPool = computed(() => (
             label: item.label,
             specs: item.specs,
             dimensions: item.dimensions,
+            geometryData: item.geometryData,
+            sheetPolygon: item.sheetPolygon,
             available: item.availableCount ?? 1
         }))
 ));
@@ -569,7 +601,18 @@ const loadWarehouseInventory = async () => {
                 };
             }).filter(item => item.availableCount > 0),
             ...sheets.map(s => ({ type: 'SHEET', uniqueId: `sheet_${s._id}`, warehouseId: whId, label: entitySelectLabel(s, t('sheets.title')), specs: formatInventorySpecs(s), id: s._id, dimensions: inventoryDimensions(s), availableCount: 1 })),
-            ...remnants.map(r => ({ type: 'REMNANT', uniqueId: `remnant_${r._id}`, warehouseId: whId, label: entitySelectLabel(r, t('remnants.title')), specs: r.data?.area ? `${r.data.area}m²` : '-', id: r._id, dimensions: inventoryDimensions(r), availableCount: 1 }))
+            ...remnants.map(r => ({
+                type: 'REMNANT',
+                uniqueId: `remnant_${r._id}`,
+                warehouseId: whId,
+                label: entitySelectLabel(r, t('remnants.title')),
+                specs: r.data?.area ? `${r.data.area}m²` : '-',
+                id: r._id,
+                dimensions: inventoryDimensions(r),
+                geometryData: inventoryGeometryData(r),
+                sheetPolygon: inventorySheetPolygon(r),
+                availableCount: 1
+            }))
         ];
         const availableIds = new Set(availableInventory.value.map(item => item.uniqueId));
         nestingOptions.value.inventoryItems = nestingOptions.value.inventoryItems.filter(id => availableIds.has(id));

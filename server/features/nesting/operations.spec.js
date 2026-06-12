@@ -82,6 +82,25 @@ describe('nesting operation worker payloads', () => {
     });
   });
 
+  it('uses selected remnant geometry as the nesting sheet polygon', () => {
+    const polygon = [[0, 0], [1200, 0], [1200, 800], [700, 800], [700, 1200], [0, 1200]];
+    const context = resolveNestingContext({
+      materialMode: 'WAREHOUSE',
+      materialPool: [{
+        type: 'REMNANT',
+        id: 'remnant-1',
+        dimensions: { width: 1200, length: 1200 },
+        available: 1,
+        geometryData: {
+          polygon: { outer: polygon }
+        }
+      }]
+    });
+
+    expect(context.sheet_polygon).toEqual([...polygon, [0, 0]]);
+    expect(resolveNestingParams(context).sheet_polygon).toEqual([...polygon, [0, 0]]);
+  });
+
   it('declares warehouse material pool as a solveNesting command input', () => {
     const fields = cncCommands.solveNesting.input.parameters;
     const materialMode = fields.find(field => field.name === 'materialMode');
@@ -110,14 +129,12 @@ describe('nesting operation worker payloads', () => {
     ]);
   });
 
-  it('declares queue lifecycle transitions used by nesting solve tasks', () => {
+  it('declares queue lifecycle transitions used by nesting solve and run selection', () => {
     const startTransition = cncWorkflows.queue.transitions.find(transition => transition.from === 'DRAFT' && transition.to === 'NESTING');
-    const repairTransition = cncWorkflows.queue.transitions.find(transition => transition.from === 'DRAFT' && transition.to === 'READY');
     const finishTransition = cncWorkflows.queue.transitions.find(transition => transition.from === 'NESTING' && transition.to === 'READY');
     const failTransition = cncWorkflows.queue.transitions.find(transition => transition.from === 'NESTING' && transition.to === 'DRAFT');
 
     expect(startTransition.access.permissions).toEqual([{ feature: 'queues', level: 'write' }]);
-    expect(repairTransition.access.system).toBe(true);
     expect(finishTransition.access.system).toBe(true);
     expect(failTransition.access.system).toBe(true);
   });

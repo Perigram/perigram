@@ -90,7 +90,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Ready queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} }
+      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} }
     });
 
     await db.collection('nesting_runs').insertOne({
@@ -111,7 +111,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Warehouse queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
       data: {
         job: {
           materialPool: [{
@@ -169,7 +169,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Depleting queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
       data: {
         job: {
           materialPool: [{
@@ -228,7 +228,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Physical queue' },
       lineage: { organizationId: mockUser.organizationId, projectId: 'project-1' },
-      status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
       data: {
         job: {
           materialPool: [{
@@ -369,7 +369,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Short stock queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
       data: {
         job: {
           materialPool: [{
@@ -417,7 +417,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Already cut queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'READY', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
       data: {
         materialConsumption: { runId: 'run-cut-done', requiredSheets: 1, sources: [{ type: 'PILE', id: pileId, count: 1 }] },
         physicalOutputs: { runId: 'run-cut-done', sheetIds: ['sheet-1'], remnantIds: [], cassetteInstanceIds: [] },
@@ -448,7 +448,7 @@ describe('Production Queues & Nesting Status', () => {
     expect(result.queue.data.materialConsumption.runId).toBe('run-cut-done');
   });
 
-  it('should repair a draft queue with a completed run before choosing production output', async () => {
+  it('should reject choosing a completed run before the queue is awaiting selection', async () => {
     const queueId = new ObjectId();
     const pileId = 'pile-cut-draft';
     await db.collection('queues').insertOne({
@@ -477,16 +477,16 @@ describe('Production Queues & Nesting Status', () => {
       data: { stock: { total: 2, used: 0 } }
     });
 
-    const result = await nestingRunsService.chooseRun(queueId.toString(), 'run-cut-draft', mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
+    await expect(nestingRunsService.chooseRun(queueId.toString(), 'run-cut-draft', mockUser.userId, mockUser.organizationId, null, mockUser.permissions))
+      .rejects.toThrow(/awaiting a completed nesting run/);
 
     const pile = await db.collection('material_piles').findOne({ _id: pileId });
     const run = await db.collection('nesting_runs').findOne({ _id: 'run-cut-draft' });
-    expect(result.queue.status.state).toBe('READY');
-    expect(pile.data.stock.used).toBe(1);
-    expect(run.status.state).toBe('CHOSEN');
+    expect(pile.data.stock.used).toBe(0);
+    expect(run.status.state).toBe('COMPLETE');
   });
 
-  it('should not consume pile stock when choosing an unfinished run for a queue that is not READY', async () => {
+  it('should not consume pile stock when choosing an unfinished run', async () => {
     const queueId = new ObjectId();
     const pileId = 'pile-cut-nesting';
     await db.collection('queues').insertOne({
@@ -516,7 +516,7 @@ describe('Production Queues & Nesting Status', () => {
     });
 
     await expect(nestingRunsService.chooseRun(queueId.toString(), 'run-cut-nesting', mockUser.userId, mockUser.organizationId, null, mockUser.permissions))
-      .rejects.toThrow(/must be READY/);
+      .rejects.toThrow(/Only completed nesting runs/);
 
     const pile = await db.collection('material_piles').findOne({ _id: pileId });
     const run = await db.collection('nesting_runs').findOne({ _id: 'run-cut-nesting' });

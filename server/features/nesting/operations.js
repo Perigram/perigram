@@ -199,10 +199,6 @@ export async function executeNestingSolveTask({ run, input, auth = {} }) {
       createTransitionAuth(auth.userId || 'SYSTEM', 'SYSTEM'),
       { note: 'Nesting calculation completed', taskRunId: run._id.toString() }
     );
-    await transitionQueueIfState(queueId, 'NESTING', 'READY', { userId: 'SYSTEM', role: 'SYSTEM', system: true }, {
-      note: 'Nesting calculation completed',
-      runId
-    });
 
     if (job) {
       await nestingJobs.updateById(job._id, {
@@ -302,7 +298,7 @@ export function resolveNestingContext(settings = {}) {
       height: source.height,
       space: settings.spacing || settings.space || 5,
       sheetCount: stockSources.reduce((sum, item) => sum + item.available, 0),
-      sheet_polygon: settings.sheet_polygon || null,
+      sheet_polygon: normalizeSheetPolygon(settings.sheet_polygon) || source.sheetPolygon || null,
       materialMode: 'WAREHOUSE',
       materialPool: stockSources
     };
@@ -621,12 +617,48 @@ function normalizeMaterialPoolSource(source = {}) {
   const width = Number(dimensions.width || dimensions.w || parsed.width || 0);
   const height = Number(dimensions.length || dimensions.height || dimensions.h || parsed.height || 0);
   const available = Number(source.available || source.availableCount || source.quantity || source.count || 1);
+  const sheetPolygon = resolveMaterialSheetPolygon(source);
   return {
     ...source,
     width,
     height,
+    sheetPolygon,
     available: Number.isFinite(available) && available > 0 ? Math.floor(available) : 1
   };
+}
+
+function resolveMaterialSheetPolygon(source = {}) {
+  return normalizeSheetPolygon(
+    source.sheet_polygon ||
+    source.sheetPolygon ||
+    source.geometry?.polygon?.outer ||
+    source.geometryData?.polygon?.outer ||
+    source.data?.geometryData?.polygon?.outer ||
+    source.data?.geometry?.data?.polygon?.outer ||
+    source.data?.geometry?.polygon?.outer ||
+    source.geometry?.data?.polygon?.outer ||
+    firstPolygonPartCoordinates(source.geometryData?.polygonParts) ||
+    firstPolygonPartCoordinates(source.data?.geometry?.data?.polygonParts)
+  );
+}
+
+function firstPolygonPartCoordinates(parts = []) {
+  const part = Array.isArray(parts) ? parts.find(item => Array.isArray(item?.coordinates)) : null;
+  return part?.coordinates || null;
+}
+
+function normalizeSheetPolygon(points = []) {
+  const normalized = normalizeCoordinates(Array.isArray(points) ? points : []);
+  if (!isValidPolygonCoordinates(normalized)) return null;
+  if (!sameCoordinate(normalized[0], normalized[normalized.length - 1])) {
+    normalized.push([...normalized[0]]);
+  }
+  return normalized;
+}
+
+function sameCoordinate(left = [], right = []) {
+  return Math.abs(Number(left[0]) - Number(right[0])) <= 0.001 &&
+    Math.abs(Number(left[1]) - Number(right[1])) <= 0.001;
 }
 
 function parseDimensionText(text = '') {

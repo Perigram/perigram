@@ -79,6 +79,33 @@ export async function listByProject(projectId, userId, userOrg, userRole, userPe
   return serializeManyForAccess('queue', raws.map(raw => new Queue(raw)), userPermissions);
 }
 
+export async function listPreviewByProjects(projectIds = [], userId, userOrg, userRole, userPermissions, options = {}) {
+  const projectIdValues = Array.from(new Set(projectIds
+    .flatMap(projectId => flexibleLookupValues(projectId))
+    .filter(Boolean)));
+  if (!projectIdValues.length) return {};
+
+  const filter = {
+    ...getLineageFilter({ memberships: userPermissions.memberships }),
+    'lineage.projectId': { $in: projectIdValues }
+  };
+  const limit = Math.max(Number(options.limit || 5), 1);
+  const raws = await repository.find(filter);
+  const queues = serializeManyForAccess('queue', raws.map(raw => new Queue(raw)), userPermissions)
+    .sort((left, right) => Number(right.data?.queueNumber || 0) - Number(left.data?.queueNumber || 0));
+  const previews = {};
+
+  for (const queue of queues) {
+    const projectId = queue.lineage?.projectId?.toString?.() || queue.lineage?.projectId;
+    if (!projectId) continue;
+    previews[projectId] = previews[projectId] || [];
+    if (previews[projectId].length >= limit) continue;
+    previews[projectId].push(queuePreview(queue));
+  }
+
+  return previews;
+}
+
 export async function update(uid, updates, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(uid);
   if (!raw) throw createError({ statusCode: 404, message: 'Queue not found' });
@@ -129,8 +156,11 @@ export async function preflightChosenRunProduction(queueId, chosenRun, userId, u
     if (existingRunId === chosenRun._id?.toString()) return { alreadyProduced: true };
     throw createError({ statusCode: 400, message: 'Queue already has chosen production output' });
   }
-  if ((queue.status?.state || 'DRAFT') !== 'READY') {
-    throw createError({ statusCode: 400, message: 'Queue must be READY before choosing production run' });
+  if (chosenRun?.status?.state !== 'COMPLETE') {
+    throw createError({ statusCode: 400, message: 'Only completed nesting runs can be chosen for production' });
+  }
+  if (!['NESTING', 'READY'].includes(queue.status?.state || 'DRAFT')) {
+    throw createError({ statusCode: 400, message: 'Queue must be awaiting a completed nesting run before choosing production run' });
   }
 
   await planMaterialConsumption(queue, chosenRun);
@@ -141,16 +171,7 @@ export async function ensureReadyForCompletedRun(queueId, chosenRun) {
   const raw = await repository.findById(queueId);
   if (!raw) throw createError({ statusCode: 404, message: 'Queue not found' });
   const queue = new Queue(raw);
-  const state = queue.status?.state || 'DRAFT';
-  if (state === 'READY') return queue.toJSON();
-  if (!['DRAFT', 'NESTING'].includes(state)) return queue.toJSON();
-  if (chosenRun?.status?.state !== 'COMPLETE') return queue.toJSON();
-
-  await statusService.transition('queue', queue._id, 'READY', 'SYSTEM', createTransitionAuth('SYSTEM', 'SYSTEM'), {
-    note: 'Nesting calculation completed',
-    runId: chosenRun._id?.toString?.() || chosenRun._id
-  });
-  return await getById(queueId);
+  return queue.toJSON();
 }
 
 export async function applyChosenRunProduction(queueId, chosenRun, userId, userOrg, userRole, userPermissions) {
@@ -175,8 +196,42 @@ export async function applyChosenRunProduction(queueId, chosenRun, userId, userO
     physicalOutputs
   };
   await repository.updateById(queueId, queue);
+  if ((queue.status?.state || 'DRAFT') !== 'READY') {
+    await statusService.transition('queue', queueId, 'READY', 'SYSTEM', createTransitionAuth('SYSTEM', 'SYSTEM'), {
+      note: 'Production run chosen',
+      runId: chosenRun._id?.toString?.() || chosenRun._id,
+      chosenBy: userId
+    });
+  }
 
   return await getById(queueId);
+}
+
+function flexibleLookupValues(id) {
+  if (id === null || id === undefined) return [];
+  const stringId = id?.toString?.() || id;
+  const flexibleId = toFlexibleId(id);
+  return [flexibleId, stringId].filter((value, index, values) => (
+    value !== null && value !== undefined && values.findIndex(item => item?.toString?.() === value?.toString?.()) === index
+  ));
+}
+
+function queuePreview(queue = {}) {
+  const items = queue.data?.job?.items || [];
+  const materialPool = queue.data?.job?.materialPool || [];
+  return {
+    _id: queue._id?.toString?.() || queue._id,
+    name: queue.identity?.name || queue.identity?.slug || '',
+    queueNumber: queue.data?.queueNumber || null,
+    state: queue.status?.state || 'DRAFT',
+    jobItemCount: items.length,
+    totalQuantity: items.reduce((sum, item) => sum + Number(item.quantity || item.count || 1), 0),
+    runCount: Number(queue.summary?.runCount || 0),
+    sheetCount: Number(queue.summary?.sheetCount || 0),
+    totalArea: Number(queue.summary?.totalArea || 0),
+    materialSourceCount: materialPool.length,
+    materialSheetCount: materialPool.reduce((sum, item) => sum + Number(item.available || item.availableCount || item.quantity || item.count || 1), 0)
+  };
 }
 
 async function consumePileStockForCut(queue, chosenRun, userId, userRole) {
