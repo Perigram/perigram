@@ -54,6 +54,12 @@ body {
     background: color-mix(in srgb, var(--p-primary-color), transparent 78%);
 }
 
+/* PrimeVue Card/Panel roots own rounded chrome; clip child backgrounds/media to it. */
+.p-card,
+.p-panel {
+    overflow: hidden;
+}
+
 /* Minimal layout helpers only */
 @layer utilities {
     .grid-hub {
