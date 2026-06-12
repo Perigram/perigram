@@ -164,6 +164,7 @@ function openSheetDesign(design) {
                     icon="pi pi-external-link"
                     text
                     rounded
+                    severity="secondary"
                     size="small"
                     :aria-label="$t('common.open')"
                     @click.stop="openSheetDesign(design)"

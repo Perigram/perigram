@@ -7,6 +7,9 @@
                     <Button
                         icon="pi pi-plus"
                         size="small"
+                        text
+                        rounded
+                        severity="secondary"
                         :aria-label="$t('queue.create')"
                         @click="$emit('create-queue')"
                     />
@@ -47,6 +50,9 @@
                     <Button
                         icon="pi pi-plus"
                         size="small"
+                        text
+                        rounded
+                        severity="secondary"
                         :aria-label="$t('queue.create')"
                         @click="$emit('create-queue')"
                     />
@@ -80,7 +86,6 @@
                             v-if="queueState === 'DRAFT'"
                             :label="$t('nesting.calculateLayout')"
                             icon="pi pi-play"
-                            severity="success"
                             size="small"
                             @click="runNesting"
                             :loading="nestingInProgress"
@@ -92,8 +97,8 @@
                             <!-- Virtual Mode -->
                             <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="flex flex-col gap-3">
                                 <div class="grid grid-cols-2 gap-4">
-                                    <InputNumber v-model="nestingOptions.virtualWidth" :min="100" :placeholder="$t('nesting.width')" />
-                                    <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" />
+                                    <InputNumber v-model="nestingOptions.virtualWidth" :min="100" :placeholder="$t('nesting.width')" size="small" />
+                                    <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" size="small" />
                                 </div>
                                 <div class="rounded-panel border border-content-border bg-content p-3">
                                     <div class="flex items-center justify-between gap-3">
@@ -134,7 +139,7 @@
                                         :auto="true"
                                         @upload="onCustomSheetUpload"
                                         :chooseLabel="$t('nesting.customUpload')"
-                                        text
+                                        :choose-button-props="{ severity: 'secondary', text: true, size: 'small' }"
                                     />
                                 </div>
 
@@ -196,13 +201,14 @@
 
                 <ScrollablePanel :header="$t('queues.cassettes')" class="min-h-0 flex-1">
                     <template #actions>
-                        <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text size="small" />
-                        <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text size="small" />
+                        <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text severity="secondary" size="small" />
+                        <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text severity="secondary" size="small" />
                         <Button
                             v-if="queueState === 'DRAFT'"
                             :label="$t('queues.addFromTemplate')"
                             icon="pi pi-plus"
                             text
+                            severity="secondary"
                             size="small"
                             @click="showAddDialog = true"
                         />
@@ -215,7 +221,7 @@
                             :customUpload="true"
                             @select="onInstantUploadSelect"
                             :chooseLabel="$t('queues.uploadCassette')"
-                            text
+                            :choose-button-props="{ severity: 'secondary', text: true, size: 'small' }"
                         />
                     </template>
                     <div class="flex flex-col gap-6">
@@ -307,16 +313,16 @@
             <div class="flex flex-col gap-4 py-4">
                 <div class="flex flex-col gap-2">
                     <label>{{ $t('queues.cassette') }}</label>
-                    <Select v-model="newEntry.cassetteTemplateId" :options="allAvailableCassettes" optionLabel="name" optionValue="_id" class="w-full" @change="onNewCassetteChange" />
+                    <Select v-model="newEntry.cassetteTemplateId" :options="allAvailableCassettes" optionLabel="name" optionValue="_id" class="w-full" size="small" @change="onNewCassetteChange" />
                 </div>
                 <div class="flex flex-col gap-2">
                     <label>{{ $t('queues.quantity') }}</label>
-                    <InputNumber v-model="newEntry.quantity" :min="1" fluid />
+                    <InputNumber v-model="newEntry.quantity" :min="1" fluid size="small" />
                 </div>
             </div>
             <template #footer>
-                <Button :label="$t('common.cancel')" text severity="secondary" @click="showAddDialog = false" />
-                <Button :label="$t('common.add')" @click="() => addEntry()" :disabled="!newEntry.cassetteTemplateId" />
+                <Button :label="$t('common.cancel')" text severity="secondary" size="small" @click="showAddDialog = false" />
+                <Button :label="$t('common.add')" severity="secondary" size="small" @click="() => addEntry()" :disabled="!newEntry.cassetteTemplateId" />
             </template>
         </StandardDialog>
 
