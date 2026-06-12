@@ -55,11 +55,24 @@ services:
     build:
       context: .
       dockerfile: workers/geometry-capture/Dockerfile
+      args:
+        GEOMETRY_CAPTURE_ML: ${GEOMETRY_CAPTURE_ML:-0}
     container_name: geometry-capture-worker
     environment:
       - CUTKIT_API_URL=${CUTKIT_API_URL:-http://host.docker.internal:3000}
       - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
       - GEOMETRY_CAPTURE_WORKER_ID=geometry-capture
+      - HF_HOME=/models/huggingface
+      - SAM2_MODEL_ID=${SAM2_MODEL_ID:-facebook/sam2-hiera-large}
+      - SAM2_CHECKPOINT=${SAM2_CHECKPOINT:-}
+      - SAM2_MODEL_CFG=${SAM2_MODEL_CFG:-}
+      - SAM2_DEVICE=${SAM2_DEVICE:-cpu}
+      - GROUNDING_DINO_MODEL=${GROUNDING_DINO_MODEL:-IDEA-Research/grounding-dino-tiny}
+      - GROUNDING_DINO_DEVICE=${GROUNDING_DINO_DEVICE:-cpu}
+      - GROUNDING_DINO_BOX_THRESHOLD=${GROUNDING_DINO_BOX_THRESHOLD:-0.25}
+      - GROUNDING_DINO_TEXT_THRESHOLD=${GROUNDING_DINO_TEXT_THRESHOLD:-0.25}
+    volumes:
+      - geometry-model-cache:/models
     networks:
       - cutkit-network
     restart: unless-stopped
@@ -86,3 +99,4 @@ networks:
 
 volumes:
   mongo-data:
+  geometry-model-cache:

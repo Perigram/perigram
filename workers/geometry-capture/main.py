@@ -7,6 +7,8 @@ import cv2
 import numpy as np
 import requests
 
+from model_providers import MODEL_PRESETS, build_model_candidates
+
 
 API_URL = os.getenv("CUTKIT_API_URL", "http://localhost:3000").rstrip("/")
 WORKER_TOKEN = os.getenv("WORKER_TOKEN", "")
@@ -14,8 +16,22 @@ WORKER_ID = os.getenv("GEOMETRY_CAPTURE_WORKER_ID", "geometry-capture-worker")
 POLL_SECONDS = float(os.getenv("GEOMETRY_CAPTURE_POLL_SECONDS", "2"))
 
 PRESETS = {
-    "FACADE": ["facade_auto", "facade_edges", "facade_threshold", "facade_windows_high_contrast"],
-    "REMNANT": ["remnant_auto", "remnant_light_on_dark", "remnant_dark_on_light", "remnant_sheet_remainder"],
+    "FACADE": [
+        "facade_auto",
+        "facade_grounded_sam2",
+        "facade_sam2_auto",
+        "facade_edges",
+        "facade_threshold",
+        "facade_windows_high_contrast",
+    ],
+    "REMNANT": [
+        "remnant_auto",
+        "remnant_sam2_auto",
+        "remnant_grounded_sam2",
+        "remnant_light_on_dark",
+        "remnant_dark_on_light",
+        "remnant_sheet_remainder",
+    ],
 }
 
 
@@ -88,7 +104,7 @@ def download_image(file_url):
 def extract_geometry(image, mode, calibration, preset=None, revision_id=None):
     resized, resize_scale = resize_for_processing(image)
     selected_preset = normalize_preset(mode, preset)
-    candidates = build_candidates(resized, mode, selected_preset)
+    candidates, provider_errors = build_candidates(resized, mode, selected_preset)
     scored = []
     rejected = []
     for candidate in candidates:
@@ -110,6 +126,7 @@ def extract_geometry(image, mode, calibration, preset=None, revision_id=None):
     diagnostics = [
         f"revision:{revision_id}" if revision_id else "revision:none",
         f"preset:{selected_preset}",
+        f"provider:{best.get('provider', 'opencv')}",
         f"candidate:{best['name']}",
         f"candidate_score:{round(best['score'], 3)}",
         f"candidates:{len(scored)}",
@@ -119,6 +136,7 @@ def extract_geometry(image, mode, calibration, preset=None, revision_id=None):
     ]
     if rejected:
         diagnostics.append(f"rejected:{len(rejected)}")
+    diagnostics.extend(provider_errors[:3])
     return {
         "ok": True,
         "revisionId": revision_id,
@@ -153,8 +171,21 @@ def normalize_preset(mode, preset):
 
 
 def build_candidates(image, mode, preset):
+    provider_errors = []
+    if preset in MODEL_PRESETS.get(mode, []):
+        try:
+            candidates = build_model_candidates(image, mode, preset)
+            if candidates:
+                return candidates, provider_errors
+            provider_errors.append(f"model_provider_empty:{preset}")
+        except Exception as exc:
+            provider_errors.append(f"model_provider_error:{preset}:{exc}")
+        fallback = "facade_auto" if mode == "FACADE" else "remnant_auto"
+        return build_candidates(image, mode, fallback)[0], provider_errors
+
     if preset.endswith("_auto"):
         presets = [item for item in PRESETS.get(mode, []) if not item.endswith("_auto")]
+        presets = [item for item in presets if item not in MODEL_PRESETS.get(mode, [])]
     else:
         presets = [preset]
 
@@ -164,7 +195,7 @@ def build_candidates(image, mode, preset):
     candidates = []
     for item in presets:
         candidates.extend(candidate_masks(normalized, mode, item))
-    return candidates
+    return candidates, provider_errors
 
 
 def normalize_light(gray):
@@ -213,7 +244,7 @@ def mask_candidate(name, mask, epsilon_ratio):
 
 def analyze_candidate(candidate, resize_scale, mode):
     mask = candidate["mask"]
-    contours, hierarchy = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL if candidate.get("holeMasks") else cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
     if hierarchy is None or not contours:
         return None
 
@@ -230,16 +261,17 @@ def analyze_candidate(candidate, resize_scale, mode):
     hull_area = max(cv2.contourArea(cv2.convexHull(outer_contour)), 1.0)
     solidity = min(outer_area / hull_area, 1.0)
     outer_px = approximate_contour(outer_contour, resize_scale, candidate["epsilonRatio"])
-    hole_candidates = []
-    for index, item in enumerate(hierarchy):
-        if index == outer_index:
-            continue
-        if not is_hole_candidate(contours[index], hierarchy[index], outer_contour, outer_area, mode):
-            continue
-        hole_candidates.append((
-            cv2.contourArea(contours[index]),
-            approximate_contour(contours[index], resize_scale, candidate["epsilonRatio"]),
-        ))
+    hole_candidates = hole_candidates_from_masks(candidate.get("holeMasks") or [], outer_contour, outer_area, resize_scale, candidate["epsilonRatio"], mode)
+    if not hole_candidates:
+        for index, item in enumerate(hierarchy):
+            if index == outer_index:
+                continue
+            if not is_hole_candidate(contours[index], hierarchy[index], outer_contour, outer_area, mode):
+                continue
+            hole_candidates.append((
+                cv2.contourArea(contours[index]),
+                approximate_contour(contours[index], resize_scale, candidate["epsilonRatio"]),
+            ))
     max_holes = 64 if mode == "FACADE" else 24
     holes_px = [ring for _, ring in sorted(hole_candidates, key=lambda item: item[0], reverse=True)[:max_holes]]
 
@@ -260,6 +292,7 @@ def analyze_candidate(candidate, resize_scale, mode):
         "areaRatio": area_ratio,
         "rectangularity": rectangularity,
         "solidity": solidity,
+        "provider": candidate.get("provider", "opencv"),
     }
 
 
@@ -315,6 +348,20 @@ def is_hole_candidate(contour, hierarchy_item, outer_contour, outer_area, mode):
     if mode == "FACADE":
         return rectangularity >= 0.5
     return int(hierarchy_item[3]) >= 0
+
+
+def hole_candidates_from_masks(hole_masks, outer_contour, outer_area, resize_scale, epsilon_ratio, mode):
+    candidates = []
+    for mask in hole_masks:
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for contour in contours:
+            if not is_hole_candidate(contour, [0, 0, 0, 0], outer_contour, outer_area, mode):
+                continue
+            candidates.append((
+                cv2.contourArea(contour),
+                approximate_contour(contour, resize_scale, epsilon_ratio),
+            ))
+    return candidates
 
 
 def approximate_contour(contour, resize_scale, epsilon_ratio=0.012):

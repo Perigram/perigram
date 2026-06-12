@@ -1265,10 +1265,14 @@
     },
     "presets": {
       "remnant_auto": "Remnant auto",
+      "remnant_sam2_auto": "Remnant SAM2 automatic masks",
+      "remnant_grounded_sam2": "Remnant GroundingDINO + SAM2",
       "remnant_light_on_dark": "Light remnant on dark background",
       "remnant_dark_on_light": "Dark remnant on light background",
       "remnant_sheet_remainder": "Sheet remainder edges",
       "facade_auto": "Facade auto",
+      "facade_grounded_sam2": "Facade GroundingDINO + SAM2",
+      "facade_sam2_auto": "Facade SAM2 automatic masks",
       "facade_edges": "Facade edge detection",
       "facade_threshold": "Facade threshold detection",
       "facade_windows_high_contrast": "High-contrast facade windows"

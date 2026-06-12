@@ -71,8 +71,8 @@ const calibrationOptions = computed(() => [
 
 const presetOptions = computed(() => {
   const keys = form.value.mode === 'FACADE'
-    ? ['facade_auto', 'facade_edges', 'facade_threshold', 'facade_windows_high_contrast']
-    : ['remnant_auto', 'remnant_light_on_dark', 'remnant_dark_on_light', 'remnant_sheet_remainder'];
+    ? ['facade_auto', 'facade_grounded_sam2', 'facade_sam2_auto', 'facade_edges', 'facade_threshold', 'facade_windows_high_contrast']
+    : ['remnant_auto', 'remnant_sam2_auto', 'remnant_grounded_sam2', 'remnant_light_on_dark', 'remnant_dark_on_light', 'remnant_sheet_remainder'];
   return keys.map(value => ({ label: t(`geometryCapture.presets.${value}`), value }));
 });
 

@@ -1265,10 +1265,14 @@
     },
     "presets": {
       "remnant_auto": "Остаток автоматически",
+      "remnant_sam2_auto": "Остаток: автоматические маски SAM2",
+      "remnant_grounded_sam2": "Остаток: GroundingDINO + SAM2",
       "remnant_light_on_dark": "Светлый остаток на темном фоне",
       "remnant_dark_on_light": "Темный остаток на светлом фоне",
       "remnant_sheet_remainder": "Кромки остатка листа",
       "facade_auto": "Фасад автоматически",
+      "facade_grounded_sam2": "Фасад: GroundingDINO + SAM2",
+      "facade_sam2_auto": "Фасад: автоматические маски SAM2",
       "facade_edges": "Фасад по кромкам",
       "facade_threshold": "Фасад по порогу",
       "facade_windows_high_contrast": "Контрастные окна фасада"
