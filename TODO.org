@@ -4935,3 +4935,23 @@
     - Queue editor uses desktop lanes for queue selection, central
       settings/cassettes, and right-side runs; run cards render related
       sheet-design preview tiles from the queue-level sheet-design list.
+
+*** Agent Notes
+    [2026-06-12] Correct queue workspace lane ownership
+    Files changed:
+    - components/QueueEditor.vue
+    - components/entities/NestingRun/NestingRunCard.vue
+    - components/entities/Queue/QueueCard.vue
+    - pages/project/[slug]/queues.vue
+    Docs updated:
+    - components/README.md
+    - components/entities/Queue/README.md
+    - pages/project/README.md
+    - TODO.org
+    Notes:
+    - Project queues route no longer renders top actions or warehouse shortcuts.
+    - Queue selection moved to a left lane made from `QueueCard` components;
+      the create-queue action lives in that lane.
+    - The center lane now contains queue settings and cassette content only.
+    - The runs lane uses a run selector and expands only the active run with
+      related sheet-design previews.
