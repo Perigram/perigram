@@ -42,6 +42,7 @@ All entity-related components MUST use these patterns:
 | Section/page action rows | `<ActionToolbar>` |
 | Repeated card grids | `<ResponsiveGrid>` |
 | Three-lane production workspaces | `<WorkspaceLanes>` |
+| Bounded scrolling workspace sections | `<ScrollablePanel>` |
 | Loading/empty/error surfaces | `<StateBlock>` |
 | Data table frame | `<TableFrame><DataTable ... /></TableFrame>` |
 | Dialog container | `<StandardDialog>` |
@@ -164,8 +165,9 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   other queues stay compact, a center lane for nesting settings and wide
   cassette entry cards, and a right runs lane through `WorkspaceLanes`. The
   project queue route fits the app-content viewport and each lane owns its own
-  vertical scrolling. Queue status/actions live on the selected queue card; the
-  center lane starts with queue content. The runs lane receives queue-level sheet designs once, selects one active run, and lets
+  vertical scrolling, while the center lane delegates scrolling to its
+  `ScrollablePanel` sections. Queue status/actions live on the selected queue
+  card; the center lane starts with queue content. The runs lane receives queue-level sheet designs once, selects one active run, and lets
   `NestingRunCard` filter designs by run before rendering preview tiles. Run
   material sources render on `NestingRunCard` through entity references; queue
   cards summarize queue work, not available stock.

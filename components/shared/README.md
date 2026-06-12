@@ -221,8 +221,11 @@ relationship.
   height instead of stretching to the tallest item.
 - **`WorkspaceLanes.vue`**: Three-lane production workspace shell. The parent
   route provides the viewport-sized frame; this component owns the left,
-  center, and right lane grid and assigns vertical scrolling to the lanes, not
-  to individual panels inside them.
+  center, and right lane grid. By default the center lane scrolls as a lane;
+  pass `:center-scroll="false"` when bounded child surfaces such as
+  `ScrollablePanel` own their own body scrolling.
+- **`ScrollablePanel.vue`**: PrimeVue `Panel` wrapper for bounded workspace
+  sections whose header remains fixed while the panel content scrolls.
 - **`StateBlock.vue`**: Standard loading/empty/error state block with icon, message, optional description, and action slot.
 - **`TableFrame.vue`**: Standard bordered/elevated frame around PrimeVue `DataTable` surfaces; owns the token-backed DataTable header-cell background override.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.

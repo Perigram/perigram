@@ -5049,3 +5049,19 @@
     - Queue lane lists queues newest-first, expands the selected queue in place
       without an outline, and renders compact queue rows with dense padding and
       no queue-number prefix.
+
+*** Agent Notes
+    [2026-06-12] Make queue center panels scroll internally
+    Files changed:
+    - components/QueueEditor.vue
+    - components/shared/ScrollablePanel.vue
+    - components/shared/WorkspaceLanes.vue
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - QueueEditor disables center lane scrolling and wraps nesting settings,
+      cassette entries, and physical outputs in bounded scrollable panels.
+    - WorkspaceLanes keeps lane-level center scrolling as the default for
+      existing callers.
