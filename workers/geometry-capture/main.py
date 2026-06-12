@@ -230,13 +230,18 @@ def analyze_candidate(candidate, resize_scale, mode):
     hull_area = max(cv2.contourArea(cv2.convexHull(outer_contour)), 1.0)
     solidity = min(outer_area / hull_area, 1.0)
     outer_px = approximate_contour(outer_contour, resize_scale, candidate["epsilonRatio"])
-    holes_px = []
+    hole_candidates = []
     for index, item in enumerate(hierarchy):
         if index == outer_index:
             continue
         if not is_hole_candidate(contours[index], hierarchy[index], outer_contour, outer_area, mode):
             continue
-        holes_px.append(approximate_contour(contours[index], resize_scale, candidate["epsilonRatio"]))
+        hole_candidates.append((
+            cv2.contourArea(contours[index]),
+            approximate_contour(contours[index], resize_scale, candidate["epsilonRatio"]),
+        ))
+    max_holes = 64 if mode == "FACADE" else 24
+    holes_px = [ring for _, ring in sorted(hole_candidates, key=lambda item: item[0], reverse=True)[:max_holes]]
 
     vertices = max(len(outer_px), 0)
     area_ratio = outer_area / image_area
@@ -292,17 +297,23 @@ def best_outer_contour(contours, hierarchy, shape, mode):
 
 def is_hole_candidate(contour, hierarchy_item, outer_contour, outer_area, mode):
     area = cv2.contourArea(contour)
-    if area < 80:
+    min_area = max(120.0, outer_area * (0.002 if mode == "FACADE" else 0.0005))
+    if area < min_area:
         return False
-    if area > outer_area * 0.4:
+    if area > outer_area * (0.25 if mode == "FACADE" else 0.4):
         return False
     x, y, w, h = cv2.boundingRect(contour)
+    if mode == "FACADE" and (w < 12 or h < 12):
+        return False
+    aspect = float(w) / max(float(h), 1.0)
+    if mode == "FACADE" and (aspect < 0.2 or aspect > 6.0):
+        return False
     rectangularity = min(area / max(float(w * h), 1.0), 1.0)
     center = (float(x + w / 2.0), float(y + h / 2.0))
     if cv2.pointPolygonTest(outer_contour, center, False) < 0:
         return False
     if mode == "FACADE":
-        return rectangularity >= 0.35
+        return rectangularity >= 0.5
     return int(hierarchy_item[3]) >= 0
 
 
