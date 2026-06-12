@@ -3,7 +3,8 @@ FROM python:3.11-slim
 WORKDIR /app
 ARG GEOMETRY_CAPTURE_ML=0
 ENV PIP_DEFAULT_TIMEOUT=120 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    GEOMETRY_CAPTURE_ML=${GEOMETRY_CAPTURE_ML}
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libglib2.0-0 libgl1 \

@@ -52,6 +52,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   geometry-capture-worker:
+    image: ghcr.io/1suo/geometry-capture-worker:latest
     build:
       context: .
       dockerfile: workers/geometry-capture/Dockerfile
