@@ -76,6 +76,13 @@ Model dependencies are opt-in because Torch/SAM2/GroundingDINO are large:
 GEOMETRY_CAPTURE_ML=1 docker compose -f docker-compose.dev.yml up -d --build geometry-capture-worker
 ```
 
+The project `start-dev.sh` and `build-images.sh` scripts default
+`GEOMETRY_CAPTURE_ML` to `1` for this worker, so script-driven local/dev image
+builds run the model-first worker unless `GEOMETRY_CAPTURE_ML=0` is set.
+`build-images.sh` tags the image as
+`ghcr.io/1suo/geometry-capture-worker:latest`; the stack files run the same
+image with the model cache mounted at `/models`.
+
 Compose mounts `geometry-model-cache` at `/models` and sets `HF_HOME` there so
 downloaded Hugging Face weights survive container rebuilds. With
 `GEOMETRY_CAPTURE_ML=1`, the worker preloads SAM2 and GroundingDINO at startup

@@ -156,6 +156,18 @@
        validation, CPU-friendly SAM2 tiny defaults, and startup model preload
        when `GEOMETRY_CAPTURE_ML=1`.
 
+     [2026-06-12] Wire geometry capture worker into Docker scripts and stacks
+     Files changed: build-images.sh, start-dev.sh, docker-compose.dev.yml,
+       docker-compose.local.yml, docker-stack.yml, docker-stack-external.yml,
+       workers/geometry-capture/Dockerfile
+     Docs updated: workers/README.md,
+       workers/geometry-capture/README.md, TODO.org
+     Notes: The image build script now builds and lists
+       `ghcr.io/1suo/geometry-capture-worker:latest`, defaulting
+       `GEOMETRY_CAPTURE_ML` to `1`. Script-driven dev startup also defaults
+       the geometry worker to ML/model-first mode, and stack files now run the
+       geometry capture worker with model cache volume and provider env vars.
+
 * WAITING Core Project Route Workflow Fixes
   :PROPERTIES:
   :ID: core-project-route-workflow-fixes
