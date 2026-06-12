@@ -1,7 +1,7 @@
 <template>
-    <div class="flex min-h-0 min-w-0 flex-col">
-        <div class="grid min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-12">
-            <aside v-if="queues?.length > 0" class="hidden min-h-0 min-w-0 xl:col-span-3 xl:flex xl:flex-col xl:gap-3">
+    <div class="flex h-full min-h-0 min-w-0 flex-col">
+        <div class="grid h-full min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-12">
+            <aside v-if="queues?.length > 0" class="hidden h-full min-h-0 min-w-0 xl:col-span-3 xl:flex xl:flex-col xl:gap-3">
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>
                     <Button
@@ -29,7 +29,7 @@
                 </div>
             </aside>
 
-            <main class="flex min-h-0 min-w-0 flex-col gap-4 xl:col-span-6">
+            <main class="flex h-full min-h-0 min-w-0 flex-col gap-4 overflow-y-auto pr-1 xl:col-span-6">
                 <div v-if="queues?.length > 0" class="flex shrink-0 gap-2 xl:hidden">
                     <Select
                         :modelValue="queue._id"
@@ -221,7 +221,7 @@
                 </Panel>
             </main>
 
-            <aside class="min-h-0 min-w-0 xl:col-span-3">
+            <aside class="h-full min-h-0 min-w-0 overflow-y-auto pr-1 xl:col-span-3">
                 <Panel :header="`${$t('queue.runs')} (${queueRuns.length})`">
                     <div v-if="queueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
                         <Select
