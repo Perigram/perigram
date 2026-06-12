@@ -16,8 +16,9 @@ Entity card and detail surfaces for `geometry_capture` records.
 - Expects `data.geometry.preview` and `data.geometry.polygon.outer/inner` from
   the backend extraction workflow.
 - Expects `data.revisions[]` and `data.activeRevisionId` when recalculation is
-  available. The detail surface can queue a new preset-based recalculation and
-  reactivate older successful revisions.
+  available. The detail surface shows revision preview tiles under the active
+  geometry, can queue a new preset-based recalculation, and can reactivate older
+  successful revisions.
 - Preset options include model-first auto, explicit OpenCV, SAM2 automatic mask,
   and GroundingDINO+SAM2 variants for both remnant and facade captures.
   Model-backed presets fall back to OpenCV when the worker image is not built

@@ -168,6 +168,18 @@
        the geometry worker to ML/model-first mode, and stack files now run the
        geometry capture worker with model cache volume and provider env vars.
 
+     [2026-06-12] Simplify geometry capture page and revision review UI
+     Files changed: pages/geometry-captures/index.vue,
+       components/entities/GeometryCapture/GeometryCaptureDetail.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: pages/README.md,
+       components/entities/GeometryCapture/README.md, TODO.org
+     Notes: Capture creation no longer asks for name, warehouse/project, or
+       calibration mode. The page uses hidden default context, camera/gallery
+       buttons, and mode-specific input groups. The capture list is a compact
+       preview list, diagnostics are readable text rows, and revisions render
+       as preview tiles directly under the active geometry.
+
 * WAITING Core Project Route Workflow Fixes
   :PROPERTIES:
   :ID: core-project-route-workflow-fixes

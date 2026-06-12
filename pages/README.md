@@ -35,9 +35,10 @@ nested children of `pages/assets/index.vue`; each routed asset page owns its own
 surface and must not render tabs or `NuxtPage`.
 
 `pages/geometry-captures/index.vue` is the authenticated review workspace for
-photo-derived geometry. It creates `geometry_capture` records for remnant and
-facade modes, queues OpenCV extraction, and confirms reviewed remnant captures
-into warehouse inventory.
+photo-derived geometry. Its creation flow is camera/upload first: mode-specific
+inputs infer calibration, route/default warehouse or project context is applied
+without an explicit selector, and the resulting `geometry_capture` queues
+model-first extraction before review/confirmation.
 
 Nested project child list/workflow routes under `pages/project/[slug]/` render
 inside the project entity page shell. They use section primitives such as
