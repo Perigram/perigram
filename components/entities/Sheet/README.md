@@ -14,8 +14,9 @@ Card surface for physical sheet inventory entries.
 - Expects a v24 `sheet` DTO with dimensions in the standard `specs` block and
   storage/source ids in `lineage`.
 - Standard physical dimensions render through `SpecsBlock`.
-- Warehouse, material pile, and nesting run relationships render as compact
-  clickable `EntityInlineRef` rows when available.
+- Material pile and nesting run relationships render as compact clickable
+  `EntityInlineRef` rows when available. Warehouse location remains part of
+  lineage/detail traceability, not a repeated card fact.
 - `SheetDetail` follows the same relation policy as `SheetCard`: source
   warehouse, material pile, and nesting run ids from lineage render through
   `EntityInlineRef` rows instead of text-only ids.

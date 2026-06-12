@@ -5121,3 +5121,20 @@
     - Warehouse sources are added immediately from the dropdown selection.
     - Queue settings header owns material source, tool selection, and run action.
     - The project queue route fills the bounded app workspace height.
+
+*** Agent Notes
+    [2026-06-12] Remove low-context inventory card facts
+    Files changed:
+    - components/entities/Sheet/SheetCard.vue
+    - components/entities/MaterialPile/PileCard.vue
+    - components/entities/MaterialPile/MaterialSummary.vue
+    - components/entities/Remnant/RemnantCard.vue
+    Docs updated:
+    - components/entities/Sheet/README.md
+    - components/entities/MaterialPile/README.md
+    - components/entities/Remnant/README.md
+    - TODO.org
+    Notes:
+    - Inventory cards no longer render generic warehouse location rows/chips.
+    - Material pile cards no longer render the latest stock movement.
+    - Detail surfaces keep lineage/history context where it has enough room.
