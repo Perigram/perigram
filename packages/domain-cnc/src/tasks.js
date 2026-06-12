@@ -63,6 +63,8 @@ export const cncTasks = {
       entities: [{ name: 'geometryCapture', type: 'geometry_capture', required: true }],
       parameters: [
         { name: 'mode', label: 'Capture mode', type: 'enum', options: ['REMNANT', 'FACADE'], required: true },
+        { name: 'revisionId', label: 'Capture revision id', type: 'string' },
+        { name: 'preset', label: 'Detector preset', type: 'string' },
         { name: 'fileId', label: 'Photo file id', type: 'string', required: true },
         { name: 'bucketName', label: 'Photo bucket', type: 'string', default: 'capturePhotos' },
         { name: 'fileUrl', label: 'Photo URL', type: 'string', required: true },

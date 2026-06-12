@@ -9,6 +9,8 @@ export class GeometryCapture extends BaseEntity {
     super(raw);
     this.data = {
       mode: raw.data?.mode || 'REMNANT',
+      activeRevisionId: raw.data?.activeRevisionId || null,
+      revisions: raw.data?.revisions || [],
       calibration: raw.data?.calibration || {},
       geometry: raw.data?.geometry || null,
       extraction: raw.data?.extraction || {},

@@ -83,11 +83,16 @@ describe('Geometry captures service', () => {
 
     expect(capture.status.state).toBe('PROCESSING');
     expect(capture.data.extraction.taskRunId).toBeTruthy();
+    expect(capture.data.revisions).toHaveLength(1);
+    expect(capture.data.revisions[0].preset).toBe('remnant_auto');
     const taskRuns = await listTaskRuns({ taskId: 'vision.extractGeometry' });
     expect(taskRuns).toHaveLength(1);
+    expect(taskRuns[0].input.parameters.revisionId).toBe(capture.data.revisions[0].id);
 
     const ready = await geometryCaptureService.applyExtractionResult(capture._id, {
       ok: true,
+      revisionId: capture.data.revisions[0].id,
+      preset: 'remnant_auto',
       geometry: {
         polygon: {
           outer: [[0, 0], [1000, 0], [1000, 500], [0, 500]],
@@ -100,6 +105,8 @@ describe('Geometry captures service', () => {
     });
 
     expect(ready.status.state).toBe('READY');
+    expect(ready.data.activeRevisionId).toBe(capture.data.revisions[0].id);
+    expect(ready.data.revisions[0].status).toBe('READY');
     expect(ready.data.geometry.polygon.outer.at(-1)).toEqual([0, 0]);
     expect(ready.data.geometry.polygon.inner[0].at(-1)).toEqual([200, 100]);
     expect(ready.specs.area).toBe(0.47);
@@ -113,5 +120,67 @@ describe('Geometry captures service', () => {
     expect(remnant.data.geometry.data.polygon.inner).toHaveLength(1);
     const warehouse = await db.collection('warehouses').findOne({ _id: warehouseId });
     expect(warehouse.data.stats.totalRemnants).toBe(1);
+  });
+
+  it('recalculates into revisions without deleting the active geometry', async () => {
+    const capture = await geometryCaptureService.create({
+      mode: 'REMNANT',
+      warehouseId: warehouseId.toString(),
+      fileId: new ObjectId().toString(),
+      fileName: 'remnant.jpg',
+      preset: 'remnant_dark_on_light',
+      calibration: { mode: 'knownDimension', knownWidth: 1000 }
+    }, auth.userId, auth.organizationId, auth.role, auth);
+    const firstRevisionId = capture.data.revisions[0].id;
+
+    const ready = await geometryCaptureService.applyExtractionResult(capture._id, {
+      ok: true,
+      revisionId: firstRevisionId,
+      preset: 'remnant_dark_on_light',
+      geometry: { polygon: { outer: [[0, 0], [1000, 0], [1000, 500], [0, 500]] } },
+      calibration: { mode: 'knownDimension', knownWidth: 1000 },
+      confidence: 0.8,
+      diagnostics: ['candidate:initial']
+    });
+    expect(ready.data.activeRevisionId).toBe(firstRevisionId);
+
+    const recalculating = await geometryCaptureService.recalculate(capture._id, {
+      preset: 'remnant_light_on_dark'
+    }, auth.userId, auth.organizationId, auth.role, auth);
+    const secondRevision = recalculating.data.revisions.find(revision => revision.id !== firstRevisionId);
+    expect(recalculating.status.state).toBe('PROCESSING');
+    expect(recalculating.data.geometry.polygon.outer).toHaveLength(5);
+    expect(secondRevision.status).toBe('QUEUED');
+    expect(secondRevision.preset).toBe('remnant_light_on_dark');
+
+    const failed = await geometryCaptureService.applyExtractionResult(capture._id, {
+      ok: false,
+      revisionId: secondRevision.id,
+      preset: 'remnant_light_on_dark',
+      error: 'No usable contour detected',
+      diagnostics: ['candidate:none']
+    });
+    expect(failed.status.state).toBe('READY');
+    expect(failed.data.activeRevisionId).toBe(firstRevisionId);
+    expect(failed.data.geometry.polygon.outer).toHaveLength(5);
+    expect(failed.data.revisions.find(revision => revision.id === secondRevision.id).status).toBe('FAILED');
+
+    const third = await geometryCaptureService.recalculate(capture._id, {
+      preset: 'remnant_sheet_remainder'
+    }, auth.userId, auth.organizationId, auth.role, auth);
+    const thirdRevision = third.data.revisions.find(revision => revision.status === 'QUEUED' && revision.id !== secondRevision.id);
+    await geometryCaptureService.applyExtractionResult(capture._id, {
+      ok: true,
+      revisionId: thirdRevision.id,
+      preset: 'remnant_sheet_remainder',
+      geometry: { polygon: { outer: [[0, 0], [900, 0], [900, 400], [0, 400]] } },
+      calibration: { mode: 'knownDimension', knownWidth: 900 },
+      confidence: 0.9,
+      diagnostics: ['candidate:third']
+    });
+
+    const activated = await geometryCaptureService.activateRevision(capture._id, firstRevisionId, auth.userId, auth.organizationId, auth.role, auth);
+    expect(activated.data.activeRevisionId).toBe(firstRevisionId);
+    expect(activated.specs.width).toBe(1000);
   });
 });

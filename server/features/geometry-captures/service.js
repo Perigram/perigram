@@ -13,6 +13,10 @@ import { generateRandomString } from '../../utils/strings.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 
 const PHOTO_BUCKET = 'capturePhotos';
+const DEFAULT_PRESETS = {
+  REMNANT: 'remnant_auto',
+  FACADE: 'facade_auto'
+};
 
 function toDTO(raw) {
   return raw ? new GeometryCapture(raw).toJSON() : null;
@@ -32,6 +36,12 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const captureUid = `capture-${generateRandomString(8)}`;
   const origin = createStatus('DRAFT', userId, { note: 'Geometry capture created' });
 
+  const revision = createRevision({
+    mode,
+    calibration: normalizeCalibration(data.calibration || {}),
+    preset: normalizePreset(mode, data.preset)
+  });
+
   const doc = {
     identity: {
       name: data.name || defaultNameForMode(mode),
@@ -50,11 +60,15 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     },
     data: createData({
       mode,
-      calibration: normalizeCalibration(data.calibration || {}),
+      activeRevisionId: null,
+      revisions: [revision],
+      calibration: revision.calibration,
       geometry: null,
       extraction: {
         status: 'QUEUED',
         taskRunId: null,
+        revisionId: revision.id,
+        preset: revision.preset,
         confidence: 0,
         diagnostics: []
       },
@@ -63,28 +77,21 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   };
 
   const created = await repository.create(doc);
-  const taskRun = await createTaskRun('vision.extractGeometry', {
-    entities: { geometryCapture: created._id.toString() },
-    parameters: {
-      mode,
-      fileId: fileId.toString(),
-      bucketName,
-      fileUrl: `/api/files/download/${fileId.toString()}?bucket=${encodeURIComponent(bucketName)}`,
-      calibration: doc.data.calibration
-    }
-  }, { userId, organizationId: userOrg, role: userRole }, {
-    idempotencyKey: `geometry-capture:${created._id.toString()}:extract`
-  });
+  const taskRun = await enqueueExtractionTask(created, revision, { userId, organizationId: userOrg, role: userRole });
 
   const processingStatus = createStatus('PROCESSING', userId, { note: 'Vision extraction queued', taskRunId: taskRun._id.toString() });
+  const queuedRevision = { ...revision, taskRunId: taskRun._id.toString() };
   const updated = await repository.updateById(created._id, {
     status: processingStatus,
     data: {
       ...created.data,
+      revisions: [queuedRevision],
       extraction: {
         ...created.data.extraction,
         status: 'QUEUED',
-        taskRunId: taskRun._id.toString()
+        taskRunId: taskRun._id.toString(),
+        revisionId: revision.id,
+        preset: revision.preset
       }
     }
   });
@@ -132,6 +139,56 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   return toDTO(updated);
 }
 
+export async function recalculate(id, options = {}, userId, userOrg, userRole, userPermissions) {
+  const raw = await repository.findById(id);
+  if (!raw) throw createError({ statusCode: 404, message: 'Geometry capture not found' });
+  const mode = raw.data?.mode || 'REMNANT';
+  const feature = mode === 'REMNANT' ? 'materials' : 'projects';
+  requireLineageAccess(raw.lineage, feature, 'write', userPermissions);
+
+  const attachment = raw.attachments?.primary;
+  if (!attachment?.fileId) throw createError({ statusCode: 400, message: 'Geometry capture has no primary photo' });
+
+  const revision = createRevision({
+    mode,
+    calibration: normalizeCalibration({ ...(raw.data?.calibration || {}), ...(options.calibration || {}) }),
+    preset: normalizePreset(mode, options.preset || raw.data?.extraction?.preset)
+  });
+  const nextData = {
+    ...(raw.data || {}),
+    revisions: [...normalizedRevisions(raw), revision],
+    extraction: {
+      ...(raw.data?.extraction || {}),
+      status: 'QUEUED',
+      taskRunId: null,
+      revisionId: revision.id,
+      preset: revision.preset,
+      confidence: 0,
+      diagnostics: []
+    }
+  };
+
+  const saved = await repository.updateById(id, { data: nextData });
+  const taskRun = await enqueueExtractionTask(saved, revision, { userId, organizationId: userOrg, role: userRole });
+  const queuedRevision = { ...revision, taskRunId: taskRun._id.toString() };
+  const status = createStatus('PROCESSING', userId, { note: 'Geometry extraction recalculation queued', taskRunId: taskRun._id.toString(), revisionId: revision.id });
+  const updated = await repository.updateById(id, {
+    status,
+    data: {
+      ...(saved.data || {}),
+      revisions: replaceRevision(saved.data?.revisions || [], queuedRevision),
+      extraction: {
+        ...(saved.data?.extraction || {}),
+        status: 'QUEUED',
+        taskRunId: taskRun._id.toString(),
+        revisionId: revision.id,
+        preset: revision.preset
+      }
+    }
+  });
+  return toDTO(updated);
+}
+
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Geometry capture not found' });
@@ -144,16 +201,29 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
 export async function applyExtractionResult(id, result = {}) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Geometry capture not found' });
+  const revisionId = result.revisionId || raw.data?.extraction?.revisionId || raw.data?.activeRevisionId || createRevisionId();
+  const revisions = ensureRevision(raw, revisionId, result);
 
   if (result.ok === false) {
-    const status = createStatus('FAILED', 'SYSTEM', { note: result.error || 'Geometry extraction failed' });
+    const hasActiveGeometry = Boolean(raw.data?.geometry?.polygon?.outer?.length);
+    const status = createStatus(hasActiveGeometry ? 'READY' : 'FAILED', 'SYSTEM', { note: result.error || 'Geometry extraction failed', revisionId });
+    const failedRevision = {
+      ...findRevision(revisions, revisionId),
+      status: 'FAILED',
+      completedAt: new Date().toISOString(),
+      error: result.error || 'Geometry extraction failed',
+      diagnostics: result.diagnostics || []
+    };
     const updated = await repository.updateById(id, {
       status,
       data: {
         ...(raw.data || {}),
+        revisions: replaceRevision(revisions, failedRevision),
         extraction: {
           ...(raw.data?.extraction || {}),
           status: 'FAILED',
+          revisionId,
+          preset: failedRevision.preset,
           error: result.error || 'Geometry extraction failed',
           diagnostics: result.diagnostics || []
         }
@@ -166,21 +236,76 @@ export async function applyExtractionResult(id, result = {}) {
   const metrics = metricsForGeometry(geometry);
   const status = createStatus('READY', 'SYSTEM', {
     note: 'Geometry extraction completed',
+    revisionId,
     confidence: Number(result.confidence || 0)
   });
+  const readyRevision = {
+    ...findRevision(revisions, revisionId),
+    status: 'READY',
+    completedAt: new Date().toISOString(),
+    geometry,
+    calibration: result.calibration || raw.data?.calibration || {},
+    confidence: Number(result.confidence || 0),
+    diagnostics: result.diagnostics || [],
+    metrics,
+    error: null
+  };
   const updated = await repository.updateById(id, {
     status,
     specs: metrics,
     data: {
       ...(raw.data || {}),
+      activeRevisionId: revisionId,
+      revisions: replaceRevision(revisions, readyRevision),
       geometry,
       calibration: result.calibration || raw.data?.calibration || {},
       extraction: {
         ...(raw.data?.extraction || {}),
         status: 'READY',
+        revisionId,
+        preset: readyRevision.preset,
         confidence: Number(result.confidence || 0),
         diagnostics: result.diagnostics || [],
         metrics
+      }
+    }
+  });
+  return toDTO(updated);
+}
+
+export async function activateRevision(id, revisionId, userId, userOrg, userRole, userPermissions) {
+  const raw = await repository.findById(id);
+  if (!raw) throw createError({ statusCode: 404, message: 'Geometry capture not found' });
+  const mode = raw.data?.mode || 'REMNANT';
+  const feature = mode === 'REMNANT' ? 'materials' : 'projects';
+  requireLineageAccess(raw.lineage, feature, 'write', userPermissions);
+
+  const revision = findRevision(raw.data?.revisions || [], revisionId);
+  if (!revision) throw createError({ statusCode: 404, message: 'Geometry capture revision not found' });
+  if (revision.status !== 'READY' || !revision.geometry?.polygon?.outer?.length) {
+    throw createError({ statusCode: 400, message: 'Only successful geometry revisions can be activated' });
+  }
+
+  const geometry = normalizeGeometry(revision.geometry);
+  const metrics = revision.metrics || metricsForGeometry(geometry);
+  const status = createStatus('READY', userId, { note: 'Geometry capture revision activated', revisionId });
+  const updated = await repository.updateById(id, {
+    status,
+    specs: metrics,
+    data: {
+      ...(raw.data || {}),
+      activeRevisionId: revisionId,
+      geometry,
+      calibration: revision.calibration || raw.data?.calibration || {},
+      extraction: {
+        ...(raw.data?.extraction || {}),
+        status: 'READY',
+        revisionId,
+        preset: revision.preset,
+        confidence: Number(revision.confidence || 0),
+        diagnostics: revision.diagnostics || [],
+        metrics,
+        error: null
       }
     }
   });
@@ -291,6 +416,106 @@ function normalizeCalibration(calibration = {}) {
     color: calibration.color || null,
     thickness: numberOrNull(calibration.thickness)
   };
+}
+
+function normalizePreset(mode, preset) {
+  const normalizedMode = normalizeMode(mode);
+  const allowed = normalizedMode === 'FACADE'
+    ? ['facade_auto', 'facade_edges', 'facade_threshold', 'facade_windows_high_contrast']
+    : ['remnant_auto', 'remnant_light_on_dark', 'remnant_dark_on_light', 'remnant_sheet_remainder'];
+  return allowed.includes(preset) ? preset : DEFAULT_PRESETS[normalizedMode];
+}
+
+function createRevision({ mode, calibration, preset }) {
+  return {
+    id: createRevisionId(),
+    status: 'QUEUED',
+    createdAt: new Date().toISOString(),
+    taskRunId: null,
+    preset: normalizePreset(mode, preset),
+    calibration,
+    geometry: null,
+    confidence: 0,
+    diagnostics: [],
+    metrics: {},
+    error: null
+  };
+}
+
+function createRevisionId() {
+  return `rev-${generateRandomString(8)}`;
+}
+
+async function enqueueExtractionTask(capture, revision, auth) {
+  const attachment = capture.attachments?.primary || {};
+  const fileId = attachment.fileId?.toString?.() || attachment.fileId;
+  const bucketName = attachment.metadata?.bucketName || attachment.bucketName || PHOTO_BUCKET;
+  return await createTaskRun('vision.extractGeometry', {
+    entities: { geometryCapture: capture._id.toString() },
+    parameters: {
+      mode: capture.data?.mode || 'REMNANT',
+      revisionId: revision.id,
+      preset: revision.preset,
+      fileId,
+      bucketName,
+      fileUrl: `/api/files/download/${fileId}?bucket=${encodeURIComponent(bucketName)}`,
+      calibration: revision.calibration
+    }
+  }, auth, {
+    idempotencyKey: `geometry-capture:${capture._id.toString()}:extract:${revision.id}`
+  });
+}
+
+function normalizedRevisions(raw) {
+  if (Array.isArray(raw.data?.revisions) && raw.data.revisions.length) return raw.data.revisions;
+  if (raw.data?.geometry?.polygon?.outer?.length) {
+    const metrics = raw.specs || metricsForGeometry(raw.data.geometry);
+    const revision = {
+      id: raw.data?.activeRevisionId || createRevisionId(),
+      status: 'READY',
+      createdAt: raw.status?.timestamp || raw.origin?.timestamp || new Date().toISOString(),
+      completedAt: raw.status?.timestamp || new Date().toISOString(),
+      taskRunId: raw.data?.extraction?.taskRunId || null,
+      preset: raw.data?.extraction?.preset || normalizePreset(raw.data?.mode || 'REMNANT'),
+      calibration: raw.data?.calibration || {},
+      geometry: raw.data.geometry,
+      confidence: Number(raw.data?.extraction?.confidence || 0),
+      diagnostics: raw.data?.extraction?.diagnostics || [],
+      metrics,
+      error: null
+    };
+    return [revision];
+  }
+  return [];
+}
+
+function ensureRevision(raw, revisionId, result = {}) {
+  const revisions = normalizedRevisions(raw);
+  if (findRevision(revisions, revisionId)) return revisions;
+  return [
+    ...revisions,
+    {
+      id: revisionId,
+      status: 'QUEUED',
+      createdAt: new Date().toISOString(),
+      taskRunId: raw.data?.extraction?.taskRunId || null,
+      preset: result.preset || raw.data?.extraction?.preset || normalizePreset(raw.data?.mode || 'REMNANT'),
+      calibration: result.calibration || raw.data?.calibration || {},
+      geometry: null,
+      confidence: 0,
+      diagnostics: [],
+      metrics: {},
+      error: null
+    }
+  ];
+}
+
+function findRevision(revisions = [], revisionId) {
+  return revisions.find(revision => revision.id === revisionId);
+}
+
+function replaceRevision(revisions = [], revision) {
+  return revisions.map(item => item.id === revision.id ? revision : item);
 }
 
 function normalizeGeometry(geometry = {}) {

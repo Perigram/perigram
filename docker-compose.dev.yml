@@ -89,6 +89,20 @@ services:
       - cutkit-network
     restart: unless-stopped
 
+  geometry-capture-worker:
+    build:
+      context: .
+      dockerfile: workers/geometry-capture/Dockerfile
+    environment:
+      - CUTKIT_API_URL=http://app:3000
+      - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
+      - GEOMETRY_CAPTURE_WORKER_ID=geometry-capture
+    depends_on:
+      - app
+    networks:
+      - cutkit-network
+    restart: unless-stopped
+
 networks:
   cutkit-network:
     external: true

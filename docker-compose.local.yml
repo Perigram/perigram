@@ -51,6 +51,21 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  geometry-capture-worker:
+    build:
+      context: .
+      dockerfile: workers/geometry-capture/Dockerfile
+    container_name: geometry-capture-worker
+    environment:
+      - CUTKIT_API_URL=${CUTKIT_API_URL:-http://host.docker.internal:3000}
+      - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
+      - GEOMETRY_CAPTURE_WORKER_ID=geometry-capture
+    networks:
+      - cutkit-network
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   nesting-worker:
     image: ghcr.io/1suo/nesting-worker:latest
     build:

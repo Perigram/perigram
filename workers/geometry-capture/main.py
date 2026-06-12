@@ -13,6 +13,11 @@ WORKER_TOKEN = os.getenv("WORKER_TOKEN", "")
 WORKER_ID = os.getenv("GEOMETRY_CAPTURE_WORKER_ID", "geometry-capture-worker")
 POLL_SECONDS = float(os.getenv("GEOMETRY_CAPTURE_POLL_SECONDS", "2"))
 
+PRESETS = {
+    "FACADE": ["facade_auto", "facade_edges", "facade_threshold", "facade_windows_high_contrast"],
+    "REMNANT": ["remnant_auto", "remnant_light_on_dark", "remnant_dark_on_light", "remnant_sheet_remainder"],
+}
+
 
 def headers():
     return {"x-worker-token": WORKER_TOKEN}
@@ -80,36 +85,44 @@ def download_image(file_url):
     return image
 
 
-def extract_geometry(image, mode, calibration):
+def extract_geometry(image, mode, calibration, preset=None, revision_id=None):
     resized, resize_scale = resize_for_processing(image)
-    mask = foreground_mask(resized, mode)
-    contours, hierarchy = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-    if hierarchy is None or not contours:
-        raise ValueError("No usable contour detected")
-
-    hierarchy = hierarchy[0]
-    outer_index = largest_outer_contour(contours, hierarchy)
-    if outer_index is None:
-        raise ValueError("No outer contour detected")
-
-    outer_px = approximate_contour(contours[outer_index], resize_scale)
-    holes_px = []
-    for index, item in enumerate(hierarchy):
-        parent = int(item[3])
-        if parent != outer_index:
+    selected_preset = normalize_preset(mode, preset)
+    candidates = build_candidates(resized, mode, selected_preset)
+    scored = []
+    rejected = []
+    for candidate in candidates:
+        result = analyze_candidate(candidate, resize_scale, mode)
+        if result is None:
+            rejected.append(f"{candidate['name']}:no_contour")
             continue
-        area = cv2.contourArea(contours[index]) / (resize_scale * resize_scale)
-        if area < 150:
-            continue
-        holes_px.append(approximate_contour(contours[index], resize_scale))
+        scored.append(result)
 
-    outer_px = ensure_clockwise(close_ring(outer_px))
-    holes_px = [ensure_counter_clockwise(close_ring(ring)) for ring in holes_px if len(ring) >= 4]
+    if not scored:
+        raise ValueError(f"No usable contour detected ({', '.join(rejected[:6])})")
+
+    best = max(scored, key=lambda item: item["score"])
+    outer_px = ensure_clockwise(close_ring(best["outer"]))
+    holes_px = [ensure_counter_clockwise(close_ring(ring)) for ring in best["holes"] if len(ring) >= 4]
     outer_mm, holes_mm, scale_info = scale_polygon(outer_px, holes_px, calibration)
 
-    confidence = score_confidence(outer_px, holes_px, mode, calibration, scale_info)
+    confidence = score_confidence(outer_px, holes_px, mode, calibration, scale_info, best)
+    diagnostics = [
+        f"revision:{revision_id}" if revision_id else "revision:none",
+        f"preset:{selected_preset}",
+        f"candidate:{best['name']}",
+        f"candidate_score:{round(best['score'], 3)}",
+        f"candidates:{len(scored)}",
+        f"outer_vertices:{max(len(outer_mm) - 1, 0)}",
+        f"holes:{len(holes_mm)}",
+        f"scale_mode:{scale_info['mode']}",
+    ]
+    if rejected:
+        diagnostics.append(f"rejected:{len(rejected)}")
     return {
         "ok": True,
+        "revisionId": revision_id,
+        "preset": selected_preset,
         "geometry": {
             "polygon": {
                 "outer": outer_mm,
@@ -121,11 +134,127 @@ def extract_geometry(image, mode, calibration):
             "scale": scale_info,
         },
         "confidence": confidence,
-        "diagnostics": [
-            f"outer_vertices:{max(len(outer_mm) - 1, 0)}",
-            f"holes:{len(holes_mm)}",
-            f"scale_mode:{scale_info['mode']}",
-        ],
+        "diagnostics": diagnostics,
+        "debug": {
+            "pixelBounds": scale_info["pixelBounds"],
+            "score": best["score"],
+            "areaRatio": best["areaRatio"],
+            "rectangularity": best["rectangularity"],
+            "solidity": best["solidity"],
+        },
+    }
+
+
+def normalize_preset(mode, preset):
+    mode_presets = PRESETS.get(mode, PRESETS["REMNANT"])
+    if preset in mode_presets:
+        return preset
+    return mode_presets[0]
+
+
+def build_candidates(image, mode, preset):
+    if preset.endswith("_auto"):
+        presets = [item for item in PRESETS.get(mode, []) if not item.endswith("_auto")]
+    else:
+        presets = [preset]
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.GaussianBlur(gray, (5, 5), 0)
+    normalized = normalize_light(gray)
+    candidates = []
+    for item in presets:
+        candidates.extend(candidate_masks(normalized, mode, item))
+    return candidates
+
+
+def normalize_light(gray):
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    return clahe.apply(gray)
+
+
+def candidate_masks(gray, mode, preset):
+    masks = []
+    if mode == "FACADE":
+        if preset in ["facade_edges", "facade_windows_high_contrast"]:
+            for low, high in [(30, 100), (45, 140), (70, 190)]:
+                edges = cv2.Canny(gray, low, high)
+                kernel = np.ones((5, 5), np.uint8)
+                mask = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=2)
+                masks.append(mask_candidate(f"{preset}:canny:{low}-{high}", mask, 0.01))
+        if preset in ["facade_threshold", "facade_windows_high_contrast"]:
+            adaptive = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 5)
+            masks.append(mask_candidate(f"{preset}:adaptive", clean_mask(adaptive, 3), 0.01))
+            masks.append(mask_candidate(f"{preset}:adaptive_inv", clean_mask(cv2.bitwise_not(adaptive), 3), 0.01))
+        _, otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        masks.append(mask_candidate(f"{preset}:otsu", clean_mask(otsu, 5), 0.01))
+        masks.append(mask_candidate(f"{preset}:otsu_inv", clean_mask(cv2.bitwise_not(otsu), 5), 0.01))
+        return masks
+
+    _, otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    if preset in ["remnant_auto", "remnant_light_on_dark", "remnant_sheet_remainder"]:
+        masks.append(mask_candidate(f"{preset}:light", clean_mask(otsu, 7), 0.012))
+    if preset in ["remnant_auto", "remnant_dark_on_light", "remnant_sheet_remainder"]:
+        masks.append(mask_candidate(f"{preset}:dark", clean_mask(cv2.bitwise_not(otsu), 7), 0.012))
+    if preset == "remnant_sheet_remainder":
+        edges = cv2.Canny(gray, 35, 120)
+        masks.append(mask_candidate(f"{preset}:edges", clean_mask(edges, 5), 0.008))
+    return masks
+
+
+def clean_mask(mask, kernel_size):
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    return cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel, iterations=1)
+
+
+def mask_candidate(name, mask, epsilon_ratio):
+    return {"name": name, "mask": mask, "epsilonRatio": epsilon_ratio}
+
+
+def analyze_candidate(candidate, resize_scale, mode):
+    mask = candidate["mask"]
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    if hierarchy is None or not contours:
+        return None
+
+    hierarchy = hierarchy[0]
+    outer_index = best_outer_contour(contours, hierarchy, mask.shape, mode)
+    if outer_index is None:
+        return None
+
+    outer_contour = contours[outer_index]
+    outer_area = max(cv2.contourArea(outer_contour), 1.0)
+    image_area = float(mask.shape[0] * mask.shape[1])
+    x, y, w, h = cv2.boundingRect(outer_contour)
+    rectangularity = min(outer_area / max(float(w * h), 1.0), 1.0)
+    hull_area = max(cv2.contourArea(cv2.convexHull(outer_contour)), 1.0)
+    solidity = min(outer_area / hull_area, 1.0)
+    outer_px = approximate_contour(outer_contour, resize_scale, candidate["epsilonRatio"])
+    holes_px = []
+    for index, item in enumerate(hierarchy):
+        if index == outer_index:
+            continue
+        if not is_hole_candidate(contours[index], hierarchy[index], outer_contour, outer_area, mode):
+            continue
+        holes_px.append(approximate_contour(contours[index], resize_scale, candidate["epsilonRatio"]))
+
+    vertices = max(len(outer_px), 0)
+    area_ratio = outer_area / image_area
+    vertex_score = 1.0 if 4 <= vertices <= 14 else max(0.2, 1.0 - abs(vertices - 8) * 0.08)
+    coverage_score = min(area_ratio / 0.35, 1.0) if mode == "FACADE" else min(area_ratio / 0.55, 1.0)
+    hole_score = min(len(holes_px) / 8.0, 1.0)
+    if mode == "FACADE":
+        score = coverage_score * 0.25 + rectangularity * 0.2 + solidity * 0.2 + vertex_score * 0.2 + hole_score * 0.15
+    else:
+        score = coverage_score * 0.35 + solidity * 0.3 + vertex_score * 0.2 + rectangularity * 0.15
+    return {
+        "name": candidate["name"],
+        "score": score,
+        "outer": outer_px,
+        "holes": holes_px,
+        "areaRatio": area_ratio,
+        "rectangularity": rectangularity,
+        "solidity": solidity,
     }
 
 
@@ -138,47 +267,48 @@ def resize_for_processing(image):
     return cv2.resize(image, (int(width * scale), int(height * scale))), scale
 
 
-def foreground_mask(image, mode):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (5, 5), 0)
-
-    if mode == "FACADE":
-        edges = cv2.Canny(gray, 40, 120)
-        kernel = np.ones((5, 5), np.uint8)
-        return cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=2)
-
-    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    inverted = cv2.bitwise_not(thresh)
-    chosen = inverted if border_foreground_score(inverted) < border_foreground_score(thresh) else thresh
-    kernel = np.ones((7, 7), np.uint8)
-    chosen = cv2.morphologyEx(chosen, cv2.MORPH_CLOSE, kernel, iterations=2)
-    return cv2.morphologyEx(chosen, cv2.MORPH_OPEN, kernel, iterations=1)
-
-
-def border_foreground_score(mask):
-    top = mask[0, :]
-    bottom = mask[-1, :]
-    left = mask[:, 0]
-    right = mask[:, -1]
-    return float(np.mean(np.concatenate([top, bottom, left, right])) / 255.0)
-
-
-def largest_outer_contour(contours, hierarchy):
+def best_outer_contour(contours, hierarchy, shape, mode):
     best_index = None
-    best_area = 0
+    best_score = 0
+    image_area = float(shape[0] * shape[1])
     for index, item in enumerate(hierarchy):
         if int(item[3]) != -1:
             continue
-        area = cv2.contourArea(contours[index])
-        if area > best_area:
-            best_area = area
+        contour = contours[index]
+        area = cv2.contourArea(contour)
+        area_ratio = area / image_area
+        if area_ratio < 0.01:
+            continue
+        x, y, w, h = cv2.boundingRect(contour)
+        rectangularity = min(area / max(float(w * h), 1.0), 1.0)
+        hull_area = max(cv2.contourArea(cv2.convexHull(contour)), 1.0)
+        solidity = min(area / hull_area, 1.0)
+        score = area_ratio + solidity * 0.35 + rectangularity * (0.2 if mode == "FACADE" else 0.1)
+        if score > best_score:
+            best_score = score
             best_index = index
     return best_index
 
 
-def approximate_contour(contour, resize_scale):
+def is_hole_candidate(contour, hierarchy_item, outer_contour, outer_area, mode):
+    area = cv2.contourArea(contour)
+    if area < 80:
+        return False
+    if area > outer_area * 0.4:
+        return False
+    x, y, w, h = cv2.boundingRect(contour)
+    rectangularity = min(area / max(float(w * h), 1.0), 1.0)
+    center = (float(x + w / 2.0), float(y + h / 2.0))
+    if cv2.pointPolygonTest(outer_contour, center, False) < 0:
+        return False
+    if mode == "FACADE":
+        return rectangularity >= 0.35
+    return int(hierarchy_item[3]) >= 0
+
+
+def approximate_contour(contour, resize_scale, epsilon_ratio=0.012):
     perimeter = cv2.arcLength(contour, True)
-    epsilon = max(perimeter * 0.012, 2.0)
+    epsilon = max(perimeter * epsilon_ratio, 2.0)
     approx = cv2.approxPolyDP(contour, epsilon, True)
     points = approx.reshape(-1, 2).astype(float) / resize_scale
     return [[round(float(x), 3), round(float(y), 3)] for x, y in points]
@@ -222,13 +352,15 @@ def scale_polygon(outer, holes, calibration):
     }
 
 
-def score_confidence(outer, holes, mode, calibration, scale_info):
+def score_confidence(outer, holes, mode, calibration, scale_info, candidate):
     score = 0.45
     vertices = max(len(outer) - 1, 0)
     if vertices >= 4:
         score += 0.15
     if mode == "FACADE" and holes:
         score += 0.1
+    if candidate.get("score"):
+        score += min(candidate["score"], 1.0) * 0.15
     if scale_info.get("scaleX") and scale_info.get("scaleY"):
         score += 0.15
     if calibration.get("knownWidth") and calibration.get("knownHeight"):
@@ -291,14 +423,26 @@ def process_run(run):
 
     try:
         image = download_image(parameters["fileUrl"])
-        result = extract_geometry(image, parameters.get("mode", "REMNANT"), parameters.get("calibration") or {})
+        result = extract_geometry(
+            image,
+            parameters.get("mode", "REMNANT"),
+            parameters.get("calibration") or {},
+            parameters.get("preset"),
+            parameters.get("revisionId"),
+        )
         post_capture_result(capture_id, result)
         complete_task(run, {
             "entities": [{"type": "geometry_capture", "id": capture_id}],
             "data": result,
         })
     except Exception as exc:
-        failure = {"ok": False, "error": str(exc), "diagnostics": [traceback.format_exc(limit=3)]}
+        failure = {
+            "ok": False,
+            "revisionId": parameters.get("revisionId"),
+            "preset": parameters.get("preset"),
+            "error": str(exc),
+            "diagnostics": [traceback.format_exc(limit=3)],
+        }
         try:
             post_capture_result(capture_id, failure)
         finally:
@@ -310,7 +454,12 @@ def main():
         raise RuntimeError("WORKER_TOKEN is required")
     print(f"[geometry-capture] polling {API_URL} as {WORKER_ID}", flush=True)
     while True:
-        run = claim_task()
+        try:
+            run = claim_task()
+        except Exception as exc:
+            print(f"[geometry-capture] claim failed: {exc}", flush=True)
+            time.sleep(POLL_SECONDS)
+            continue
         if not run:
             time.sleep(POLL_SECONDS)
             continue

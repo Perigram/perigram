@@ -36,6 +36,8 @@ const selectedId = ref(null);
 const selectedCapture = computed(() => captures.value.find(item => item._id === selectedId.value) || captures.value[0] || null);
 const uploading = ref(false);
 const confirming = ref(false);
+const recalculating = ref(false);
+const activatingRevisionId = ref(null);
 const selectedFile = ref(null);
 
 const form = ref({
@@ -43,6 +45,7 @@ const form = ref({
   mode: 'REMNANT',
   warehouseId: null,
   projectId: null,
+  preset: 'remnant_auto',
   calibrationMode: 'knownDimension',
   knownWidth: null,
   knownHeight: null,
@@ -65,6 +68,13 @@ const calibrationOptions = computed(() => [
   { label: t('geometryCapture.calibration.sheetRemainder'), value: 'sheetRemainder' },
   { label: t('geometryCapture.calibration.facadeFloors'), value: 'facadeFloors' }
 ]);
+
+const presetOptions = computed(() => {
+  const keys = form.value.mode === 'FACADE'
+    ? ['facade_auto', 'facade_edges', 'facade_threshold', 'facade_windows_high_contrast']
+    : ['remnant_auto', 'remnant_light_on_dark', 'remnant_dark_on_light', 'remnant_sheet_remainder'];
+  return keys.map(value => ({ label: t(`geometryCapture.presets.${value}`), value }));
+});
 
 const contextOptions = computed(() => form.value.mode === 'REMNANT'
   ? warehouseEntity.items.value.map(item => ({ label: item.identity?.name || item._id, value: item._id }))
@@ -92,6 +102,7 @@ onMounted(async () => {
 
 watch(() => form.value.mode, (mode) => {
   form.value.calibrationMode = mode === 'FACADE' ? 'facadeFloors' : 'knownDimension';
+  form.value.preset = mode === 'FACADE' ? 'facade_auto' : 'remnant_auto';
 });
 
 const loadCaptures = async () => {
@@ -121,6 +132,7 @@ const createCapture = async () => {
       fileId: uploaded.id,
       fileName: uploaded.filename,
       bucketName: 'capturePhotos',
+      preset: form.value.preset,
       calibration: {
         mode: form.value.calibrationMode,
         knownWidth: form.value.knownWidth,
@@ -143,6 +155,42 @@ const createCapture = async () => {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error.data?.message || error.message, life: 4000 });
   } finally {
     uploading.value = false;
+  }
+};
+
+const recalculateCapture = async ({ capture, preset }) => {
+  if (!capture?._id) return;
+  recalculating.value = true;
+  try {
+    const updated = await $fetch(`/api/geometry-captures/${capture._id}/recalculate`, {
+      method: 'POST',
+      body: {
+        preset,
+        calibration: capture.data?.calibration || {}
+      }
+    });
+    await loadCaptures();
+    selectedId.value = updated._id;
+    toast.add({ severity: 'success', summary: t('geometryCapture.recalculateQueued'), detail: t('geometryCapture.extractionQueued'), life: 3000 });
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error.data?.message || error.message, life: 4000 });
+  } finally {
+    recalculating.value = false;
+  }
+};
+
+const activateRevision = async ({ capture, revision }) => {
+  if (!capture?._id || !revision?.id) return;
+  activatingRevisionId.value = revision.id;
+  try {
+    const updated = await $fetch(`/api/geometry-captures/${capture._id}/revisions/${revision.id}/activate`, { method: 'POST' });
+    await loadCaptures();
+    selectedId.value = updated._id;
+    toast.add({ severity: 'success', summary: t('geometryCapture.revisionActivated'), detail: t('geometryCapture.revisionActivatedDetail'), life: 3000 });
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error.data?.message || error.message, life: 4000 });
+  } finally {
+    activatingRevisionId.value = null;
   }
 };
 
@@ -187,6 +235,13 @@ const confirmCapture = async (capture) => {
             />
 
             <SelectButton v-model="form.calibrationMode" :options="calibrationOptions" option-label="label" option-value="value" />
+            <Select
+              v-model="form.preset"
+              :options="presetOptions"
+              option-label="label"
+              option-value="value"
+              :placeholder="$t('geometryCapture.detectorPreset')"
+            />
 
             <div v-if="form.calibrationMode === 'knownDimension'" class="grid grid-cols-2 gap-3">
               <InputNumber v-model="form.knownWidth" :placeholder="$t('geometryCapture.knownWidth')" suffix=" mm" />
@@ -251,7 +306,11 @@ const confirmCapture = async (capture) => {
         v-if="selectedCapture"
         :capture="selectedCapture"
         :confirming="confirming"
+        :recalculating="recalculating"
+        :activating-revision-id="activatingRevisionId"
         @confirm="confirmCapture"
+        @recalculate="recalculateCapture"
+        @activate-revision="activateRevision"
       />
       <StateBlock v-else :message="$t('geometryCapture.selectCapture')" icon="pi pi-vector-square" />
     </div>

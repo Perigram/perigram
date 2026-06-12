@@ -136,7 +136,7 @@ export const cncEntityFieldAccess = {
   },
   geometryCapture: {
     feature: 'materials',
-    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.mode', 'data.calibration.*', 'data.geometry.*', 'data.extraction.*', 'data.output.*', 'attachments.primary.*'],
+    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.mode', 'data.activeRevisionId', 'data.revisions.*', 'data.calibration.*', 'data.geometry.*', 'data.extraction.*', 'data.output.*', 'attachments.primary.*'],
     write: ['data.*', 'specs.*', 'attachments.*'],
     admin: ['data.*', 'specs.*', 'attachments.*']
   },
