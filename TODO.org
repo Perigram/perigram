@@ -4771,3 +4771,18 @@
     - Replaced the JSON-only localization safety net with Vue template parsing
       for static text nodes and visible literal props, then localized the
       concrete offenders it exposed.
+
+*** Agent Notes
+    [2026-06-12] Add project index card override
+    Files changed:
+    - components/entities/Project/ProjectIndexCard.vue
+    - pages/projects/index.vue
+    Docs updated:
+    - components/entities/Project/README.md
+    - pages/projects/README.md
+    - TODO.org
+    Notes:
+    - Added a route-specific project browsing tile so `/projects` can override
+      presentation without changing canonical `ProjectCard` behavior.
+    - The override still uses `EntityCard`, `DataBlock`, `NameEditPopover`,
+      access gates, and the same view/rename/delete events.

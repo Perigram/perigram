@@ -7,6 +7,7 @@ Vue components for displaying and interacting with `Project` entities.
 | File | Purpose |
 |---|---|
 | `ProjectCard.vue` | Card display for a project entity — supports `card`, `compact`, `inline` variants via `EntityCard` chrome |
+| `ProjectIndexCard.vue` | `/projects` route tile override for project browsing and management |
 | `ProjectDetail.vue` | Expanded detail view with queues list and summary sidebar |
 
 ## ProjectCard
@@ -22,6 +23,20 @@ Emits: `view`, `rename`, `delete`.
   for compact single-field project renames. The optional `renaming` prop drives
   the popover save loading state without coupling it to create dialogs.
 - Delete is passed to `EntityCard` as a `statusActions` menu action so destructive commands stay in the shared status/action surface.
+
+## ProjectIndexCard
+
+Props: `project` (Object, required), `renaming` (Boolean, default `false`).
+Emits: `view`, `rename`, `delete`.
+
+- Used only by `pages/projects/index.vue` so the project list can have a
+  browsing-oriented tile without changing the canonical `ProjectCard` used by
+  relation refs and general entity surfaces.
+- Renders `EntityCard` with trace hidden, the project thumbnail when present,
+  access-aware `DataBlock` rows for address, queue count, and total area, and a
+  footer with rename/open actions.
+- Keeps delete in the shared status-action menu and uses the same click target
+  guard as other entity cards so footer controls do not trigger card navigation.
 
 ## ProjectDetail
 
