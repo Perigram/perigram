@@ -215,7 +215,10 @@ relationship.
 ## Layout Containers (`components/shared/`)
 
 - **`ActionToolbar.vue`**: Responsive title/subtitle/actions row for pages, sections, and tab panels. Use instead of ad hoc `flex justify-between` header markup.
-- **`ResponsiveGrid.vue`**: Token-backed responsive grid for cards and repeated item surfaces. Variants: `cards` (default), `dense`, `wide`.
+- **`ResponsiveGrid.vue`**: Token-backed responsive grid for cards and
+  repeated item surfaces. Variants: `cards` (default), `dense`, `wide`. Grid
+  children align to the start of each row so cards and panels keep natural
+  height instead of stretching to the tallest item.
 - **`WorkspaceLanes.vue`**: Three-lane production workspace shell. The parent
   route provides the viewport-sized frame; this component owns the left,
   center, and right lane grid and assigns vertical scrolling to the lanes, not

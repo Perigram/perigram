@@ -5020,3 +5020,14 @@
     - QueueEditor now uses the shared `WorkspaceLanes` shell instead of owning
       the three-lane grid markup locally.
     - Queue entry panels use natural height inside the center lane grid.
+
+*** Agent Notes
+    [2026-06-12] Keep responsive grid items natural height
+    Files changed:
+    - components/shared/ResponsiveGrid.vue
+    Docs updated:
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - ResponsiveGrid now aligns children to the start of grid rows so repeated
+      card and panel surfaces do not stretch to the tallest item in the row.
