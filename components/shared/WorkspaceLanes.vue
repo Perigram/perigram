@@ -7,7 +7,12 @@
       <slot name="left" />
     </aside>
 
-    <main class="flex h-full min-h-0 min-w-0 flex-col gap-4 overflow-y-auto pr-1 xl:col-span-6">
+    <main
+      :class="[
+        'flex h-full min-h-0 min-w-0 flex-col gap-4 xl:col-span-6',
+        centerScroll ? 'overflow-y-auto pr-1' : 'overflow-hidden',
+      ]"
+    >
       <slot />
     </main>
 
@@ -19,3 +24,9 @@
     </aside>
   </div>
 </template>
+
+<script setup>
+defineProps({
+  centerScroll: { type: Boolean, default: true },
+});
+</script>

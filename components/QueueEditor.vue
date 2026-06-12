@@ -1,6 +1,6 @@
 <template>
     <div class="flex h-full min-h-0 min-w-0 flex-col">
-        <WorkspaceLanes>
+        <WorkspaceLanes :center-scroll="false">
             <template v-if="queues?.length > 0" #left>
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>
@@ -29,7 +29,8 @@
                 </div>
             </template>
 
-            <div v-if="queues?.length > 0" class="flex shrink-0 gap-2 xl:hidden">
+            <div class="flex h-full min-h-0 min-w-0 flex-col gap-4">
+                <div v-if="queues?.length > 0" class="flex shrink-0 gap-2 xl:hidden">
                     <Select
                         :modelValue="queue._id"
                         :options="queueOptions"
@@ -51,7 +52,7 @@
                     />
                 </div>
 
-                <Panel :header="$t('nesting.settings')">
+                <ScrollablePanel :header="$t('nesting.settings')" class="flex-1">
                     <div class="flex flex-col gap-6" v-if="queueState === 'DRAFT'">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div class="flex flex-col gap-4">
@@ -143,9 +144,9 @@
                         :message="$t('nesting.lockedNote', { status: queueState })"
                         icon="pi pi-lock"
                     />
-                </Panel>
+                </ScrollablePanel>
 
-                <Panel :header="$t('queues.cassettes')">
+                <ScrollablePanel :header="$t('queues.cassettes')" class="flex-[2]">
                     <div class="flex flex-col gap-6">
                         <div class="flex justify-end items-center">
                             <div class="flex gap-2">
@@ -206,9 +207,9 @@
                             />
                         </div>
                     </div>
-                </Panel>
+                </ScrollablePanel>
 
-                <Panel v-if="hasPhysicalOutputs" :header="`${$t('project.cassettes')} ${$t('cassetteInstance.instances')}`">
+                <ScrollablePanel v-if="hasPhysicalOutputs" :header="`${$t('project.cassettes')} ${$t('cassetteInstance.instances')}`" class="flex-1">
                     <ResponsiveGrid>
                         <CassetteInstanceCard 
                             v-for="instance in instances" 
@@ -217,7 +218,8 @@
                             variant="compact"
                         />
                     </ResponsiveGrid>
-                </Panel>
+                </ScrollablePanel>
+            </div>
             <template #right>
                 <Panel :header="`${$t('queue.runs')} (${queueRuns.length})`">
                     <div v-if="queueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
@@ -306,6 +308,7 @@ import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
+import ScrollablePanel from '~/components/shared/ScrollablePanel.vue';
 import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
 
