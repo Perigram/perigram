@@ -225,7 +225,9 @@ relationship.
   pass `:center-scroll="false"` when bounded child surfaces such as
   `ScrollablePanel` own their own body scrolling.
 - **`ScrollablePanel.vue`**: PrimeVue `Panel` wrapper for bounded workspace
-  sections whose header remains fixed while the panel content scrolls.
+  sections whose header remains fixed while the panel content scrolls. It
+  supports an `actions` slot for header controls and `:scroll-content="false"`
+  for content-height panels.
 - **`StateBlock.vue`**: Standard loading/empty/error state block with icon, message, optional description, and action slot.
 - **`TableFrame.vue`**: Standard bordered/elevated frame around PrimeVue `DataTable` surfaces; owns the token-backed DataTable header-cell background override.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.

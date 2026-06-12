@@ -166,8 +166,12 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   cassette entry cards, and a right runs lane through `WorkspaceLanes`. The
   project queue route fits the app-content viewport and each lane owns its own
   vertical scrolling, while the center lane delegates scrolling to its
-  `ScrollablePanel` sections. Queue status/actions live on the selected queue
-  card; the center lane starts with queue content. The runs lane receives queue-level sheet designs once, selects one active run, and lets
+  `ScrollablePanel` sections. Nesting settings are a content-height header-action
+  panel: run nesting is triggered from the settings panel header, and warehouse
+  sources render as a horizontal selector of compact material pile, sheet, and
+  remnant entity cards. Queue status/actions live on the selected queue card;
+  the cassette panel header owns view switching and add/upload actions. The
+  runs lane receives queue-level sheet designs once, selects one active run, and lets
   `NestingRunCard` filter designs by run before rendering preview tiles. Run
   material sources render on `NestingRunCard` through entity references; queue
   cards summarize queue work, not available stock.

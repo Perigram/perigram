@@ -5065,3 +5065,21 @@
       cassette entries, and physical outputs in bounded scrollable panels.
     - WorkspaceLanes keeps lane-level center scrolling as the default for
       existing callers.
+
+*** Agent Notes
+    [2026-06-12] Tighten queue settings and cassette panel headers
+    Files changed:
+    - components/QueueEditor.vue
+    - components/shared/ScrollablePanel.vue
+    Docs updated:
+    - components/README.md
+    - components/shared/README.md
+    - TODO.org
+    Notes:
+    - Nesting settings now use a content-height panel with the run action in
+      the header and no visible input labels.
+    - Warehouse source selection renders compact pile, sheet, and remnant
+      entity cards in a horizontal selector while preserving existing
+      `inventoryItems` persistence.
+    - Cassette view switching and add/upload controls moved into the cassette
+      panel header.
