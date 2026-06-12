@@ -74,6 +74,20 @@ export const useNavigationStore = defineStore('navigation', () => {
         { id: '/assets/templates', name: t('nav.templates'), to: '/assets/templates', entity: 'cassettes' },
     ].filter(a => authStore.hasPermission(a.entity, 'read')));
 
+    const projectSectionSiblings = (projectSlug) => [
+        { id: 'queues', name: t('project.queues'), to: `/project/${projectSlug}/queues` },
+        { id: 'sheet-designs', name: t('sheetDesign.sheetDesigns'), to: `/project/${projectSlug}/sheet-designs` },
+        { id: 'data', name: t('project.data'), to: `/project/${projectSlug}/data` },
+        { id: 'artifacts', name: t('queues.artifacts'), to: `/project/${projectSlug}/artifacts` },
+        { id: 'details', name: t('common.details'), to: `/project/${projectSlug}/details` },
+    ];
+
+    const resolveProjectSectionId = (parts) => {
+        if (parts[2] === 'queue') return 'queues';
+        if (parts[2] === 'sheet-design') return 'sheet-designs';
+        return parts[2] || 'queues';
+    };
+
     // Master breadcrumb generator
     const resolveBreadcrumbs = (path, query = {}) => {
         const parts = path.split('/').filter((p) => p);
@@ -111,6 +125,15 @@ export const useNavigationStore = defineStore('navigation', () => {
                 siblings: Array.isArray(globalStore.projectsList)
                         ? globalStore.projectsList.map(projectSiblingOption).filter(Boolean)
                         : [],
+            });
+
+            const sectionSiblings = projectSectionSiblings(projectSlug);
+            const currentSection = sectionSiblings.find(section => section.id === resolveProjectSectionId(parts)) || sectionSiblings[0];
+            nav.push({
+                id: currentSection.id,
+                name: currentSection.name,
+                to: currentSection.to,
+                siblings: sectionSiblings.map(section => siblingOption(section.name, section.to)),
             });
         }
 
