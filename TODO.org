@@ -4736,3 +4736,38 @@
       overrides and raw grant JSON for scoped/transition/array grants.
     - Full card variants no longer duplicate body `DataBlock` facts in header
       subtitles for project, material, queue, catalog, and requisition cards.
+
+*** Agent Notes
+    [2026-06-12] Finish duplicate card fact cleanup and strengthen i18n tests
+    Files changed:
+    - components/entities/BatchPile/BatchPileCard.vue
+    - components/entities/Color/ColorCard.vue
+    - components/entities/LayerStandard/LayerStandardCard.vue
+    - components/entities/MaterialPile/PileCard.vue
+    - components/entities/NestingRun/NestingRunCard.vue
+    - components/entities/Organization/OrganizationCard.vue
+    - components/entities/PenTemplate/PenTemplateCard.vue
+    - components/entities/Sheet/SheetCard.vue
+    - components/entities/ToolProfile/ToolProfileCard.vue
+    - components/entities/User/UserCard.vue
+    - components/entities/Warehouse/WarehouseCard.vue
+    - components/AdminSupportChatList.vue
+    - components/Footer.vue
+    - components/QueueEditor.vue
+    - pages/test/ui-lab.vue
+    - shared/design-system.spec.js
+    - shared/localization.spec.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - components/entities/README.md
+    - TODO.org
+    Notes:
+    - Full-card subtitles are now guarded out for the remaining entity cards
+      where subtitle chips repeated body `DataBlock`, `SpecsBlock`, relation,
+      or summary facts.
+    - Added a design-system regression test for entity subtitle guards.
+    - Replaced the JSON-only localization safety net with Vue template parsing
+      for static text nodes and visible literal props, then localized the
+      concrete offenders it exposed.

@@ -8,6 +8,10 @@ This directory contains Vue components used in the Cutkit-Demo application.
 - **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).
 - **Standard Components:** Create reusable components for common UI patterns (cards, modals, forms, tables) and use them consistently across the app. See [components/shared/README.md](./shared/README.md) for the full list.
 - **Use Variants:** Components should support different visual variants (`inline`, `compact`, `card`) to ensure flexibility in different contexts.
+- **Localization:** User-facing static template copy and visible component
+  props must use i18n keys. `shared/localization.spec.js` parses active Vue
+  templates and fails on hardcoded labels/placeholders/messages, while allowing
+  real data units and code/file literals.
 - **Child Components:** When a component needs to display full child entities,
   use the child entity's dedicated card component. When it only needs compact
   relation context inside another card/detail row, use `EntityInlineRef`
@@ -57,7 +61,7 @@ Interactive status belongs only to entity types with real `cncWorkflows`
 definitions. Cards for DTOs without workflows should set `:show-status="false"`
 or use a read-only badge only when the data model requires it; do not invent
 component-local lifecycle states.
-Entity-specific card components should use `before-identity`, `subtitle`, body, and footer slots; do not override `#title`, because that bypasses standardized identity/status layout.
+Entity-specific card components should use `before-identity`, `subtitle`, body, and footer slots; do not override `#title`, because that bypasses standardized identity/status layout. Subtitle slots that render entity facts must be hidden for `variant === 'card'`; the full card body is the only owner of those facts.
 Entity-specific cards should render a single `EntityCard :variant="variant"`.
 Inline/compact/card branching inside entity cards is a smell unless the entity
 has a genuinely different structural surface. The default slot is the canonical
