@@ -1,5 +1,5 @@
 <template>
-  <Panel class="h-full">
+  <Panel>
     <template #header>
       <div class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
         <EntityInlineRef :type="sourceType" :entity="cassette" :id="sourceId" />

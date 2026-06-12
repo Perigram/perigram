@@ -1,7 +1,7 @@
 <template>
     <div class="flex h-full min-h-0 min-w-0 flex-col">
-        <div class="grid h-full min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-12">
-            <aside v-if="queues?.length > 0" class="hidden h-full min-h-0 min-w-0 xl:col-span-3 xl:flex xl:flex-col xl:gap-3">
+        <WorkspaceLanes>
+            <template v-if="queues?.length > 0" #left>
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>
                     <Button
@@ -27,10 +27,9 @@
                         @edit="$emit('select-queue', option._id)"
                     />
                 </div>
-            </aside>
+            </template>
 
-            <main class="flex h-full min-h-0 min-w-0 flex-col gap-4 overflow-y-auto pr-1 xl:col-span-6">
-                <div v-if="queues?.length > 0" class="flex shrink-0 gap-2 xl:hidden">
+            <div v-if="queues?.length > 0" class="flex shrink-0 gap-2 xl:hidden">
                     <Select
                         :modelValue="queue._id"
                         :options="queueOptions"
@@ -219,9 +218,7 @@
                         />
                     </ResponsiveGrid>
                 </Panel>
-            </main>
-
-            <aside class="h-full min-h-0 min-w-0 overflow-y-auto pr-1 xl:col-span-3">
+            <template #right>
                 <Panel :header="`${$t('queue.runs')} (${queueRuns.length})`">
                     <div v-if="queueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
                         <Select
@@ -249,8 +246,8 @@
                     </div>
                     <StateBlock v-else :message="$t('queue.nestingRuns')" icon="pi pi-list-check" />
                 </Panel>
-            </aside>
-        </div>
+            </template>
+        </WorkspaceLanes>
 
 
         <!-- Add Entry Dialog -->
@@ -308,6 +305,7 @@ import CassetteInstanceCard from '~/components/entities/CassetteInstance/Cassett
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
+import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
 import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
 
