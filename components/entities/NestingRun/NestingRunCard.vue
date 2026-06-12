@@ -4,9 +4,13 @@
  */
 import { computed, inject, unref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
+import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import GeometryPreview from '~/components/shared/GeometryPreview.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import SheetDesignCard from '../SheetDesign/SheetDesignCard.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import { useAuthStore } from '~/stores/auth';
@@ -17,13 +21,16 @@ const props = defineProps({
   variant: { type: String, default: 'card' },
   active: { type: Boolean, default: false },
   isChosen: { type: Boolean, default: false },
-  sheetDesigns: { type: Array, default: () => [] }
+  sheetDesigns: { type: Array, default: () => [] },
+  showSheetDesignPreviews: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['select', 'choose', 'delete', 'convert-to-physical']);
 
 const authStore = useAuthStore();
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
 const entityContext = inject('entityContext', null);
 
 const canManage = computed(() => authStore.can('queues', 'edit'));
@@ -31,6 +38,7 @@ const state = computed(() => props.run.status?.state || 'UNKNOWN');
 const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
 const results = computed(() => props.run.data?.results || {});
 const runId = computed(() => props.run._id?.toString());
+const projectSlug = computed(() => route.params.slug || props.run.lineage?.projectSlug || null);
 const runSheetDesignIds = computed(() => (props.run.data?.sheetDesignIds || []).map(String));
 const relatedSheetDesigns = computed(() => uniqueById([
     ...props.sheetDesigns.filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value)),
@@ -72,6 +80,11 @@ function selectRun(event) {
     if (isInteractiveEventTarget(event)) return;
     emit('select', props.run._id);
 }
+
+function openSheetDesign(design) {
+    if (!projectSlug.value || !design?._id) return;
+    router.push(`/project/${projectSlug.value}/sheet-design/${design._id}`);
+}
 </script>
 
 <template>
@@ -98,7 +111,39 @@ function selectRun(event) {
           <DataBlock entity-type="nestingRun" :entity="run" :fields="RUN_FIELDS" />
           <div v-if="relatedSheetDesigns.length" class="flex flex-col gap-2">
             <small class="text-muted-color">{{ $t('nestingRun.sheetDesigns') }}</small>
-            <div class="flex flex-wrap gap-2">
+            <div
+              v-if="showSheetDesignPreviews"
+              class="grid grid-cols-1 gap-2"
+            >
+              <div
+                v-for="design in relatedSheetDesigns"
+                :key="design._id"
+                class="min-w-0 rounded-ui border border-content-border bg-content p-2 text-left"
+              >
+                <GeometryPreview :entity="design" />
+                <div class="mt-2 flex min-w-0 items-center justify-between gap-2">
+                  <IdentityBlock :entity="design" variant="compact" />
+                  <div class="flex shrink-0 items-center gap-1">
+                    <Tag
+                      v-if="design.summary?.placedCount"
+                      :value="design.summary.placedCount"
+                      severity="secondary"
+                      size="small"
+                    />
+                    <Button
+                      v-if="projectSlug"
+                      icon="pi pi-external-link"
+                      text
+                      rounded
+                      size="small"
+                      :aria-label="$t('common.open')"
+                      @click.stop="openSheetDesign(design)"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="flex flex-wrap gap-2">
               <SheetDesignCard
                 v-for="design in relatedSheetDesigns"
                 :key="design._id"

@@ -1,132 +1,87 @@
 <template>
     <div class="flex flex-col gap-6">
-        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div class="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-                <Select
-                    v-if="queues?.length > 0"
-                    :modelValue="queue._id"
-                    :options="queueOptions"
-                    option-label="name"
-                    option-value="_id"
-                    class="w-full sm:w-80"
-                    size="small"
-                    @update:modelValue="$emit('select-queue', $event)"
-                >
-                    <template #value>
-                        <span class="block truncate font-semibold">{{ queueName }}</span>
-                    </template>
-                </Select>
-                <h2 v-else class="m-0 text-lg">{{ queueName }}</h2>
-                <span class="text-sm text-muted-color">
-                    {{ entries.length }} {{ $t('queues.cassettes') }} · {{ queueRuns.length }} {{ $t('queue.runs') }}
-                </span>
-            </div>
-            <EntityStatus :entity="queue" entity-type="queue" variant="inline" :actions="queueStatusActions" :show-history="false" />
-        </div>
+        <div class="grid min-w-0 gap-4 xl:grid-cols-[16rem_minmax(0,1fr)_24rem] xl:items-start">
+            <aside v-if="queues?.length > 0" class="hidden min-w-0 xl:flex xl:flex-col xl:gap-2">
+                <div class="flex items-center justify-between gap-2 px-1">
+                    <span class="font-medium">{{ $t('project.queues') }}</span>
+                    <Tag :value="queues.length" size="small" severity="secondary" />
+                </div>
+                <div class="flex max-h-[calc(100vh-13rem)] flex-col gap-1 overflow-y-auto pr-1">
+                    <Button
+                        v-for="option in queueOptions"
+                        :key="option._id"
+                        :label="option.name"
+                        :severity="option._id === queue._id ? 'primary' : 'secondary'"
+                        :outlined="option._id !== queue._id"
+                        size="small"
+                        class="justify-start"
+                        @click="$emit('select-queue', option._id)"
+                    />
+                </div>
+            </aside>
 
-        <Accordion :multiple="true" :value="['0', '1', '2']" class="flex flex-col gap-4">
-            <!-- Runs Panel -->
-            <AccordionPanel v-if="queueRuns.length > 0" value="0">
-                <AccordionHeader>{{ $t('queue.runs') }} ({{ queueRuns.length }})</AccordionHeader>
-                <AccordionContent>
-                    <ResponsiveGrid variant="wide">
-                        <NestingRunCard 
-                            v-for="run in queueRuns" 
-                            :key="run._id"
-                            :run="run"
-                            :sheet-designs="sheetDesigns"
-                            :active="run._id.toString() === selectedRunId"
-                            :is-chosen="run.status?.state === 'CHOSEN'"
-                            @select="selectedRunId = $event.toString()"
-                            @choose="chooseRunHandler"
-                            @delete="deleteRunHandler"
-                            @convert-to-physical="handleConvertToPhysical"
-                        />
-                    </ResponsiveGrid>
-                </AccordionContent>
-            </AccordionPanel>
+            <main class="flex min-w-0 flex-col gap-4">
+                <div v-if="queues?.length > 0" class="xl:hidden">
+                    <Select
+                        :modelValue="queue._id"
+                        :options="queueOptions"
+                        option-label="name"
+                        option-value="_id"
+                        class="w-full"
+                        size="small"
+                        @update:modelValue="$emit('select-queue', $event)"
+                    >
+                        <template #value>
+                            <span class="block truncate font-semibold">{{ queueName }}</span>
+                        </template>
+                    </Select>
+                </div>
 
-            <!-- Sheets & Nesting Settings -->
-            <AccordionPanel value="1">
-                <AccordionHeader>{{ $t('projectData.sheets') }}</AccordionHeader>
-                <AccordionContent>
+                <div class="flex min-w-0 flex-col gap-2 rounded-ui border border-content-border bg-content px-3 py-2 md:flex-row md:items-center md:justify-between">
+                    <div class="min-w-0">
+                        <div class="truncate font-semibold">{{ queueName }}</div>
+                        <small class="text-muted-color">
+                            {{ entries.length }} {{ $t('queues.cassettes') }} · {{ queueRuns.length }} {{ $t('queue.runs') }}
+                        </small>
+                    </div>
+                    <EntityStatus :entity="queue" entity-type="queue" variant="inline" :actions="queueStatusActions" :show-history="false" />
+                </div>
+
+                <Panel :header="$t('nesting.settings')">
                     <div class="flex flex-col gap-6" v-if="queueState === 'DRAFT'">
-                        <Panel>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div class="flex flex-col gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="flex flex-col gap-4">
+                                <div class="flex flex-col gap-1">
+                                    <label>{{ $t('nesting.materialSourcing') }}</label>
+                                    <SelectButton v-model="nestingOptions.materialMode" :options="['VIRTUAL', 'WAREHOUSE']" size="small" />
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <label>{{ $t('nesting.productionTool') }}</label>
+                                    <Select v-model="nestingOptions.toolId" :options="toolOptions" optionLabel="name" optionValue="_id" :placeholder="$t('nesting.selectTool')" class="w-full" />
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-4">
+                                <!-- Virtual Mode -->
+                                <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="grid grid-cols-2 gap-4">
                                     <div class="flex flex-col gap-1">
-                                        <label>{{ $t('nesting.materialSourcing') }}</label>
-                                        <SelectButton v-model="nestingOptions.materialMode" :options="['VIRTUAL', 'WAREHOUSE']" size="small" />
+                                        <label>{{ $t('nesting.width') }}</label>
+                                        <InputNumber v-model="nestingOptions.virtualWidth" :min="100" />
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <label>{{ $t('nesting.productionTool') }}</label>
-                                        <Select v-model="nestingOptions.toolId" :options="toolOptions" optionLabel="name" optionValue="_id" :placeholder="$t('nesting.selectTool')" class="w-full" />
+                                        <label>{{ $t('nesting.length') }}</label>
+                                        <InputNumber v-model="nestingOptions.virtualLength" :min="100" />
                                     </div>
                                 </div>
 
-                                <div class="flex flex-col gap-4">
-                                    <!-- Virtual Mode -->
-                                    <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="grid grid-cols-2 gap-4">
+                                <!-- Warehouse Mode -->
+                                <div v-else class="flex flex-col gap-4">
+                                    <div class="grid grid-cols-2 gap-4">
                                         <div class="flex flex-col gap-1">
-                                            <label>{{ $t('nesting.width') }}</label>
-                                            <InputNumber v-model="nestingOptions.virtualWidth" :min="100" />
-                                        </div>
-                                        <div class="flex flex-col gap-1">
-                                            <label>{{ $t('nesting.length') }}</label>
-                                            <InputNumber v-model="nestingOptions.virtualLength" :min="100" />
-                                        </div>
-                                    </div>
-
-                                    <!-- Warehouse Mode -->
-                                    <div v-else class="flex flex-col gap-4">
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <div class="flex flex-col gap-1">
-                                                <label>{{ $t('nesting.selectWarehouse') }}</label>
-                                                <Select v-model="nestingOptions.warehouseId" :options="warehouseOptions" optionLabel="name" optionValue="_id" @change="loadWarehouseInventory" />
-                                                <Button
-                                                    v-if="!warehouseOptions.length"
-                                                    icon="pi pi-building"
-                                                    :label="$t('nesting.manageWarehouseStock')"
-                                                    text
-                                                    size="small"
-                                                    class="self-start"
-                                                    @click="goToWarehouses"
-                                                />
-                                            </div>
-                                            <div class="flex flex-col gap-1">
-                                                <label>{{ $t('nesting.customUpload') }}</label>
-                                                <FileUpload mode="basic" name="file" url="/api/files/upload" accept=".dxf" :auto="true" @upload="onCustomSheetUpload" :chooseLabel="$t('common.upload')" />
-                                            </div>
-                                        </div>
-
-                                        <div v-if="nestingOptions.warehouseId" class="flex flex-col gap-1">
-                                            <label>{{ $t('nesting.inventorySources') }}</label>
-                                            <MultiSelect 
-                                                v-model="nestingOptions.inventoryItems" 
-                                                :options="availableInventory" 
-                                                optionLabel="label" 
-                                                optionValue="uniqueId"
-                                                display="chip"
-                                                :placeholder="$t('nesting.selectInventory')"
-                                                class="w-full"
-                                                filter
-                                            >
-                                                <template #option="slotProps">
-                                                    <div class="flex items-center gap-2">
-                                                        <Tag :value="slotProps.option.type" />
-                                                        <span>{{ slotProps.option.label }}</span>
-                                                        <small>{{ slotProps.option.specs }}</small>
-                                                    </div>
-                                                </template>
-                                            </MultiSelect>
-                                            <Message v-if="selectedStockSizeConflict" severity="error">
-                                                {{ $t('nesting.mixedStockSize') }}
-                                            </Message>
-                                            <Message v-else-if="selectedStockSummary" severity="info">
-                                                {{ selectedStockSummary }}
-                                            </Message>
+                                            <label>{{ $t('nesting.selectWarehouse') }}</label>
+                                            <Select v-model="nestingOptions.warehouseId" :options="warehouseOptions" optionLabel="name" optionValue="_id" @change="loadWarehouseInventory" />
                                             <Button
-                                                v-else
+                                                v-if="!warehouseOptions.length"
                                                 icon="pi pi-building"
                                                 :label="$t('nesting.manageWarehouseStock')"
                                                 text
@@ -135,10 +90,51 @@
                                                 @click="goToWarehouses"
                                             />
                                         </div>
+                                        <div class="flex flex-col gap-1">
+                                            <label>{{ $t('nesting.customUpload') }}</label>
+                                            <FileUpload mode="basic" name="file" url="/api/files/upload" accept=".dxf" :auto="true" @upload="onCustomSheetUpload" :chooseLabel="$t('common.upload')" />
+                                        </div>
+                                    </div>
+
+                                    <div v-if="nestingOptions.warehouseId" class="flex flex-col gap-1">
+                                        <label>{{ $t('nesting.inventorySources') }}</label>
+                                        <MultiSelect
+                                            v-model="nestingOptions.inventoryItems"
+                                            :options="availableInventory"
+                                            optionLabel="label"
+                                            optionValue="uniqueId"
+                                            display="chip"
+                                            :placeholder="$t('nesting.selectInventory')"
+                                            class="w-full"
+                                            filter
+                                        >
+                                            <template #option="slotProps">
+                                                <div class="flex items-center gap-2">
+                                                    <Tag :value="slotProps.option.type" />
+                                                    <span>{{ slotProps.option.label }}</span>
+                                                    <small>{{ slotProps.option.specs }}</small>
+                                                </div>
+                                            </template>
+                                        </MultiSelect>
+                                        <Message v-if="selectedStockSizeConflict" severity="error">
+                                            {{ $t('nesting.mixedStockSize') }}
+                                        </Message>
+                                        <Message v-else-if="selectedStockSummary" severity="info">
+                                            {{ selectedStockSummary }}
+                                        </Message>
+                                        <Button
+                                            v-else
+                                            icon="pi pi-building"
+                                            :label="$t('nesting.manageWarehouseStock')"
+                                            text
+                                            size="small"
+                                            class="self-start"
+                                            @click="goToWarehouses"
+                                        />
                                     </div>
                                 </div>
                             </div>
-                        </Panel>
+                        </div>
 
                         <!-- Run Action -->
                         <div class="flex flex-col gap-4">
@@ -161,13 +157,9 @@
                         :message="$t('nesting.lockedNote', { status: queueState })"
                         icon="pi pi-lock"
                     />
-                </AccordionContent>
-            </AccordionPanel>
+                </Panel>
 
-            <!-- Cassettes Panel -->
-            <AccordionPanel value="2">
-                <AccordionHeader>{{ $t('queues.cassettes') }}</AccordionHeader>
-                <AccordionContent>
+                <Panel :header="$t('queues.cassettes')">
                     <div class="flex flex-col gap-6">
                         <div class="flex justify-end items-center">
                             <div class="flex gap-2">
@@ -228,13 +220,9 @@
                             />
                         </div>
                     </div>
-                </AccordionContent>
-            </AccordionPanel>
+                </Panel>
 
-            <!-- Tracking -->
-            <AccordionPanel v-if="hasPhysicalOutputs" value="3">
-                <AccordionHeader>{{ $t('project.cassettes') }} {{ $t('cassetteInstance.instances') }}</AccordionHeader>
-                <AccordionContent>
+                <Panel v-if="hasPhysicalOutputs" :header="`${$t('project.cassettes')} ${$t('cassetteInstance.instances')}`">
                     <ResponsiveGrid>
                         <CassetteInstanceCard 
                             v-for="instance in instances" 
@@ -243,9 +231,34 @@
                             variant="compact"
                         />
                     </ResponsiveGrid>
-                </AccordionContent>
-            </AccordionPanel>
-        </Accordion>
+                </Panel>
+            </main>
+
+            <aside class="min-w-0">
+                <Panel :header="`${$t('queue.runs')} (${queueRuns.length})`">
+                    <div
+                        v-if="queueRuns.length > 0"
+                        class="flex min-w-0 gap-3 overflow-x-auto pb-2 xl:max-h-[calc(100vh-13rem)] xl:flex-col xl:overflow-x-visible xl:overflow-y-auto xl:pb-0 xl:pr-1"
+                    >
+                        <NestingRunCard
+                            v-for="run in queueRuns"
+                            :key="run._id"
+                            class="w-[22rem] shrink-0 xl:w-full"
+                            :run="run"
+                            :sheet-designs="sheetDesigns"
+                            :show-sheet-design-previews="true"
+                            :active="run._id.toString() === selectedRunId"
+                            :is-chosen="run.status?.state === 'CHOSEN'"
+                            @select="selectedRunId = $event.toString()"
+                            @choose="chooseRunHandler"
+                            @delete="deleteRunHandler"
+                            @convert-to-physical="handleConvertToPhysical"
+                        />
+                    </div>
+                    <StateBlock v-else :message="$t('queue.nestingRuns')" icon="pi pi-list-check" />
+                </Panel>
+            </aside>
+        </div>
 
 
         <!-- Add Entry Dialog -->
@@ -295,10 +308,6 @@ import InputNumber from 'primevue/inputnumber';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FileUpload from 'primevue/fileupload';
 import ConfirmDialog from 'primevue/confirmdialog';
-import Accordion from 'primevue/accordion';
-import AccordionPanel from 'primevue/accordionpanel';
-import AccordionHeader from 'primevue/accordionheader';
-import AccordionContent from 'primevue/accordioncontent';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import QueueEntryCard from '~/components/entities/Queue/QueueEntryCard.vue';
 import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';

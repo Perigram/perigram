@@ -1,9 +1,6 @@
 <template>
     <NuxtPage v-if="isEntityDetailRoute" />
-    <StandardPage
-        v-else-if="project"
-        :title="project.identity?.name || project.identity?.slug || $t('nav.projects')"
-    >
+    <StandardPage v-else-if="project">
         <NuxtPage />
     </StandardPage>
 </template>

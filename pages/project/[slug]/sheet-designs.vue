@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import SheetDesignCard from '~/components/entities/SheetDesign/SheetDesignCard.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
@@ -35,17 +35,59 @@ definePageMeta({
 const route = useRoute();
 const slug = route.params.slug;
 const { entity: project, loading: projectLoading, fetch: loadProject } = useEntity('project', slug);
-const { items, loading: sheetDesignsLoading, list } = useEntity('sheetDesign');
+const selectedRunSheetDesigns = ref([]);
+const sheetDesignsLoading = ref(false);
 const loading = computed(() => projectLoading.value || sheetDesignsLoading.value);
-const sheetDesigns = computed(() => [...items.value].sort((left, right) => (
+const sheetDesigns = computed(() => [...selectedRunSheetDesigns.value].sort((left, right) => (
   new Date(right.createdAt || right.origin?.timestamp || 0) -
   new Date(left.createdAt || left.origin?.timestamp || 0)
 )));
 
 const loadSheetDesigns = async () => {
   const loadedProject = project.value || await loadProject();
-  await list({ projectId: loadedProject?._id });
+  if (!loadedProject?._id) {
+    selectedRunSheetDesigns.value = [];
+    return;
+  }
+
+  sheetDesignsLoading.value = true;
+  try {
+    const queues = await $fetch(`/api/project/${slug}/queues`);
+    const selectedRuns = queues
+      .map((queue) => ({
+        queueId: toIdString(queue._id),
+        runId: toIdString(queue.data?.materialConsumption?.runId)
+      }))
+      .filter(({ queueId, runId }) => queueId && runId);
+
+    if (!selectedRuns.length) {
+      selectedRunSheetDesigns.value = [];
+      return;
+    }
+
+    const designGroups = await Promise.all(selectedRuns.map(async ({ queueId, runId }) => {
+      const designs = await $fetch('/api/sheet-designs', { query: { queueId } });
+      return designs.filter((design) => isSheetDesignForRun(design, runId));
+    }));
+
+    selectedRunSheetDesigns.value = uniqueById(designGroups.flat());
+  } finally {
+    sheetDesignsLoading.value = false;
+  }
 };
+
+function isSheetDesignForRun(design, runId) {
+  return toIdString(design?.lineage?.runId) === runId;
+}
+
+function toIdString(value) {
+  if (!value) return '';
+  return value.toString?.() || String(value);
+}
+
+function uniqueById(items) {
+  return Array.from(new Map(items.map((item) => [toIdString(item._id), item])).values());
+}
 
 onMounted(loadSheetDesigns);
 </script>
