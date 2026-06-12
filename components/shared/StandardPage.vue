@@ -14,6 +14,7 @@
                     <slot name="actions"></slot>
                 </template>
             </ActionToolbar>
+            <slot name="nav"></slot>
         </div>
 
         <slot></slot>

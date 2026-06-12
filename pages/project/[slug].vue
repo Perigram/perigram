@@ -4,18 +4,19 @@
         v-else-if="project"
         :title="project.identity?.name || project.identity?.slug || $t('nav.projects')"
     >
-        <template #actions>
-            <div class="flex flex-wrap items-center gap-2">
-                <Button
-                    v-for="tab in tabs"
-                    :key="tab.key"
-                    :label="tab.label"
-                    :severity="isActiveTab(tab) ? 'primary' : 'secondary'"
-                    :outlined="!isActiveTab(tab)"
-                    size="small"
-                    @click="router.push(tab.to)"
-                />
-            </div>
+        <template #nav>
+            <Menubar :model="tabs">
+                <template #item="{ item, props }">
+                    <NuxtLink
+                        v-bind="props.action"
+                        :to="item.to"
+                        :aria-current="isActiveTab(item) ? 'page' : undefined"
+                        :class="{ 'font-semibold': isActiveTab(item) }"
+                    >
+                        <span>{{ item.label }}</span>
+                    </NuxtLink>
+                </template>
+            </Menubar>
         </template>
 
         <NuxtPage />
@@ -26,7 +27,7 @@
     import { computed, onMounted } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { useI18n } from 'vue-i18n'
-    import Button from 'primevue/button'
+    import Menubar from 'primevue/menubar'
     import StandardPage from '~/components/shared/StandardPage.vue'
     import { useEntity } from '~/composables/useEntity'
 
