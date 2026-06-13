@@ -16,6 +16,7 @@ import { toFlexibleId } from '../../utils/objectid.js';
 import { CassetteDesign } from './model.js';
 import { generateRandomString } from '../../utils/strings.js';
 import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-redaction.js';
+import { generateLayeredDxf } from '../../utils/dxf-writer.js';
 
 /**
  * Cassette Designs Service - v24 Standardized
@@ -117,6 +118,20 @@ function polygonsFromDesignData(data = {}) {
     .map(item => ({ coordinates: item.coordinates }));
 }
 
+function layeredDxfFromDesignData(data = {}) {
+  const geometryData = data.geometry?.data || {};
+  const layerData = Array.isArray(data.layerData) && data.layerData.length
+    ? data.layerData
+    : (Array.isArray(geometryData.layerData) ? geometryData.layerData : []);
+  const polygonParts = Array.isArray(data.polygonParts) && data.polygonParts.length
+    ? data.polygonParts
+    : (Array.isArray(geometryData.polygonParts) ? geometryData.polygonParts : []);
+  return generateLayeredDxf({
+    layerData,
+    polygonParts
+  });
+}
+
 export async function getById(id, userId, userRole, userPermissions) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
@@ -141,13 +156,18 @@ export async function getByTemplateId(templateId, userId, userOrg, userRole, use
 }
 
 export async function exportDxf(id, userId, userRole, userPermissions) {
-  const raw = await repository.findById(toFlexibleId(id));
+  const flexId = toFlexibleId(id);
+  const raw = await repository.findById(flexId) ||
+    (await repository.find({ 'lineage.templateId': flexId }))[0];
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   const design = new CassetteDesign(raw);
 
   if (userPermissions && !hasCassetteDesignPermission(userPermissions, design.lineage, 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
+
+  const layeredDxf = layeredDxfFromDesignData(design.data);
+  if (layeredDxf) return layeredDxf;
 
   const dxfId = design.data?.geometry?.dxfId;
   if (dxfId) {

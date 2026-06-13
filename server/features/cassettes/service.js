@@ -17,6 +17,7 @@ import { toFlexibleId } from '../../utils/objectid.js';
 import { Cassette } from './model.js';
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../utils/dxf-extractor.js';
 import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
+import { generateLayeredDxf } from '../../utils/dxf-writer.js';
 
 /**
  * Cassette Templates Service - v24 Standardized
@@ -240,8 +241,10 @@ export async function exportDxf(id, dimensions, userId, userOrg, userRole, userP
 
   if (template.data?.type === 'PARAMETRIC') {
     const { evaluateTemplate, generateSimpleDxf } = await import('../parametric-cassettes/service.js');
-    const { polygons } = await evaluateTemplate(id, dimensions || {});
-    return generateSimpleDxf(polygons);
+    const { polygons, nestingPolygons, layerData } = await evaluateTemplate(id, dimensions || {});
+    return layerData?.length
+      ? generateLayeredDxf({ layerData, polygonParts: nestingPolygons?.length ? nestingPolygons : polygons })
+      : generateSimpleDxf(polygons);
   } else {
     const db = await connectDB();
     const design = await repository.findDesignByTemplateId(id);
@@ -294,7 +297,9 @@ export async function createDesignFromTemplate(id, parameters, userId, userOrg, 
     coordinates: polygon.coordinates,
     handles: polygon.handles || [(256 + index).toString(16).toUpperCase()]
   }));
-  const dxfContent = generateSimpleDxf(polygons);
+  const dxfContent = layerData?.length
+    ? generateLayeredDxf({ layerData, polygonParts: nestingPolygons?.length ? nestingPolygons : [polygons[0]] })
+    : generateSimpleDxf(polygons);
 
   const db = await connectDB();
   const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });

@@ -2,6 +2,7 @@ import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
 import * as attachmentService from './service.js';
 import * as nestingJobs from '../nesting/jobs.js';
+import * as sheetDesignsService from '../sheet-designs/service.js';
 
 export async function generateAttachment({ entities, parameters = {}, auth }) {
   const source = entities.sheetDesign || entities.nestingRun;
@@ -16,14 +17,18 @@ export async function generateAttachment({ entities, parameters = {}, auth }) {
   };
 
   if (kind === 'LAYOUT_DXF') {
+    const generatedDxf = entities.sheetDesign
+      ? await sheetDesignsService.generateAndStoreDxf(sourceId, auth.userId, auth.organizationId, auth.role, auth)
+      : null;
     const existingDxf = entities.nestingRun ? await findGeneratedRunDxf(sourceId) : null;
+    const dxfFile = generatedDxf || existingDxf;
     const attachment = await attachmentService.create({
       type: kind,
       lineage,
       name: `${source.identity?.name || 'Source'} - LAYOUT_DXF.dxf`,
-      status: existingDxf ? 'READY' : 'GENERATING',
-      fileId: existingDxf?.fileId,
-      mimeType: existingDxf ? 'application/dxf' : undefined
+      status: dxfFile ? 'READY' : 'GENERATING',
+      fileId: dxfFile?.fileId,
+      mimeType: dxfFile ? 'application/dxf' : undefined
     }, auth.userId);
 
     return toCommandAttachmentResult(attachment);

@@ -14,6 +14,8 @@ import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { SheetDesign } from './model.js';
 import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-redaction.js';
+import { generateLayeredDxf } from '../../utils/dxf-writer.js';
+import * as filesService from '../files/service.js';
 
 /**
  * Sheet Designs Service - v24 Standardized
@@ -412,6 +414,38 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return serializeForAccess('sheetDesign', design, userPermissions);
+}
+
+export async function generateDxf(id, userId, userOrg, userRole, userPermissions) {
+  const design = await getById(id, userId, userOrg, userRole, userPermissions);
+  return generateDxfForDesign(design);
+}
+
+function generateDxfForDesign(design) {
+  const dxf = generateLayeredDxf({
+    layers: design.data?.geometry?.preview?.layers || [],
+    layerData: design.data?.geometry?.data?.layerData || [],
+    polygonParts: design.data?.geometry?.data?.polygonParts || []
+  });
+  if (!dxf) throw createError({ statusCode: 404, message: 'Sheet design has no exportable geometry' });
+  return dxf;
+}
+
+export async function generateAndStoreDxf(id, userId, userOrg, userRole, userPermissions) {
+  const design = await getById(id, userId, userOrg, userRole, userPermissions);
+  const dxf = generateDxfForDesign(design);
+  const file = await filesService.uploadFile(
+    Buffer.from(dxf, 'utf8'),
+    `${design.identity?.slug || design._id || id}.dxf`,
+    {
+      userId,
+      organizationId: userOrg,
+      sheetDesignId: id,
+      type: 'LAYOUT_DXF'
+    },
+    'nestDxf'
+  );
+  return { fileId: file.id, dxf, design };
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
