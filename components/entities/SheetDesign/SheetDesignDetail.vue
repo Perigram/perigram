@@ -112,13 +112,17 @@ const materialPool = computed(() => props.design.data?.materialPool || []);
 const generateDxf = async () => {
     generatingDxf.value = true;
     try {
-        await $fetch('/api/commands/generateAttachment/run', {
+        const response = await $fetch('/api/commands/generateAttachment/run', {
             method: 'POST',
             body: {
                 entities: { sheetDesign: props.design._id },
                 parameters: { kind: 'LAYOUT_DXF' }
             }
         });
+        const attachmentId = response?.result?.data?.attachmentId || response?.result?.attachments?.[0]?.id;
+        if (attachmentId && import.meta.client) {
+            window.location.href = `/api/artifacts/${encodeURIComponent(attachmentId)}`;
+        }
         toast.add({ severity: 'success', summary: t('common.success'), detail: t('sheetDesign.dxfRequested'), life: 3000 });
     } catch {
         toast.add({ severity: 'error', summary: t('common.error'), detail: t('sheetDesign.dxfRequestFailed'), life: 4000 });

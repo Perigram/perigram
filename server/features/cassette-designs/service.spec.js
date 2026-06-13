@@ -92,9 +92,32 @@ describe('cassette design DXF export', () => {
     expect(dxf).toContain('code.cassette_mark');
     expect(dxf).toContain('Base design');
   });
+
+  it('can export older records that only have stored preview layers', async () => {
+    await db.collection('cassette_designs').insertOne(cassetteDesign({
+      _id: 'preview-only-design',
+      organizationId,
+      layerData: []
+    }, {
+      preview: {
+        layers: [
+          {
+            name: 'folds',
+            standardCode: 'fold.route',
+            paths: ['M 0 25 L 100 25']
+          }
+        ]
+      }
+    }));
+
+    const dxf = await cassetteDesignsService.exportDxf('preview-only-design', 'user-1', null, auth);
+
+    expect(dxf).toContain('fold.route');
+    expect(dxf).toContain('LWPOLYLINE');
+  });
 });
 
-function cassetteDesign({ _id, organizationId, templateId = new ObjectId(), layerData = [], dxfId = null }) {
+function cassetteDesign({ _id, organizationId, templateId = new ObjectId(), layerData = [], dxfId = null }, geometryOverrides = {}) {
   return {
     _id,
     identity: { uid: _id, name: _id, slug: _id },
@@ -111,7 +134,8 @@ function cassetteDesign({ _id, organizationId, templateId = new ObjectId(), laye
           layerData,
           polygonParts: []
         },
-        dxfId
+        dxfId,
+        ...geometryOverrides
       },
       parameters: {}
     }

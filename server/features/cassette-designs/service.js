@@ -127,6 +127,7 @@ function layeredDxfFromDesignData(data = {}) {
     ? data.polygonParts
     : (Array.isArray(geometryData.polygonParts) ? geometryData.polygonParts : []);
   return generateLayeredDxf({
+    layers: geometryData.preview?.layers || data.geometry?.preview?.layers || [],
     layerData,
     polygonParts
   });

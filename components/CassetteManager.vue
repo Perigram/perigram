@@ -113,6 +113,7 @@ import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import NameEditPopover from '~/components/shared/NameEditPopover.vue';
+import { occsQueueParameters } from '~/utils/occs/parameters.js';
 
 const { t } = useI18n();
 const cassettesStore = useCassettesStore();
@@ -181,12 +182,19 @@ const createDesignFromTemplate = async (cassette) => {
 };
 
 const defaultTemplateParameters = (cassette) => {
-  const definitions = cassette?.data?.parameters || cassette?.data?.definition?.parameters || [];
-  if (!Array.isArray(definitions)) return {};
+  const rawParameters = cassette?.data?.parameters;
+  const definitionDefaults = occsQueueParameters(cassette?.data?.definition || {});
+  if (rawParameters && typeof rawParameters === 'object' && !Array.isArray(rawParameters)) {
+    return occsQueueParameters({ parameters: rawParameters });
+  }
+
+  const definitions = Array.isArray(rawParameters)
+    ? rawParameters
+    : Object.keys(definitionDefaults);
   return definitions.reduce((parameters, item) => {
     const key = item?.key || item?.name || item;
     if (!key) return parameters;
-    parameters[key] = Number(item?.default ?? item?.value ?? item?.min ?? 1);
+    parameters[key] = Number(item?.default ?? item?.value ?? item?.min ?? definitionDefaults[key] ?? 1);
     return parameters;
   }, {});
 };

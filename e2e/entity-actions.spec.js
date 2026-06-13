@@ -1,7 +1,8 @@
 import { test, expect } from './fixtures.js';
+import { createCncFixtureScenario } from '../test-data/scenarios.js';
 
 test.describe('entity action buttons', () => {
-  test('queues DXF generation from the sheet design detail action', async ({ app }) => {
+  test('generates and downloads DXF from the sheet design detail action', async ({ app }) => {
     let commandBody = null;
 
     await app.page.route('**/api/sheet-designs/sheet-action-test', async route => {
@@ -29,17 +30,36 @@ test.describe('entity action buttons', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, result: { _id: 'artifact-action-test' } })
+        body: JSON.stringify({
+          success: true,
+          result: {
+            data: { attachmentId: 'artifact-action-test' },
+            attachments: [{ id: 'artifact-action-test', kind: 'LAYOUT_DXF' }]
+          }
+        })
+      });
+    });
+    await app.page.route('**/api/artifacts/artifact-action-test', async route => {
+      await route.fulfill({
+        status: 200,
+        headers: {
+          'Content-Type': 'application/dxf',
+          'Content-Disposition': 'attachment; filename="sheet-action-test.dxf"'
+        },
+        body: '0\nSECTION\n2\nENTITIES\n0\nEOF'
       });
     });
 
     await app.page.goto('/project/project-action-test/sheet-design/sheet-action-test');
+    const downloadPromise = app.page.waitForEvent('download');
     await app.page.getByTestId('sheet-design-generate-dxf').click();
+    const download = await downloadPromise;
 
     expect(commandBody).toEqual({
       entities: { sheetDesign: 'sheet-action-test' },
       parameters: { kind: 'LAYOUT_DXF' }
     });
+    expect(download.suggestedFilename()).toBe('sheet-action-test.dxf');
     await app.expectCleanRuntime();
   });
 
@@ -67,8 +87,8 @@ test.describe('entity action buttons', () => {
           status: { state: 'ACTIVE' },
           data: {
             type: 'PARAMETRIC',
-            definition: {},
-            parameters: [{ key: 'A', default: 500 }, { key: 'B', default: 600 }]
+            definition: { parameters: { A: '500', B: '600' } },
+            parameters: ['A', 'B']
           }
         }])
       });
@@ -93,5 +113,57 @@ test.describe('entity action buttons', () => {
 
     expect(createBody).toEqual({ parameters: { A: 500, B: 600 } });
     await app.expectCleanRuntime();
+  });
+
+  test('exports seeded sheet, cassette template, and cassette design DXF through real API routes', async ({ app }) => {
+    const scenario = createCncFixtureScenario();
+    const seed = await app.request.post('/api/workbench/fixtures/seed', {
+      data: { scenario },
+      failOnStatusCode: false
+    });
+    const seedText = await seed.text();
+    expect(seed.ok(), seedText).toBeTruthy();
+
+    const sheetExport = await app.request.get(`/api/sheet-designs/${scenario.refs.sheetDesign}/export`, {
+      failOnStatusCode: false
+    });
+    const sheetDxf = await sheetExport.text();
+    expect(sheetExport.ok(), sheetDxf).toBeTruthy();
+    expect(sheetDxf).toContain('LWPOLYLINE');
+
+    const templateExport = await app.request.get(`/api/cassettes/${scenario.refs.cassetteTemplate}/export?A=500&B=400&R=35`, {
+      failOnStatusCode: false
+    });
+    const templateDxf = await templateExport.text();
+    expect(templateExport.ok(), templateDxf).toBeTruthy();
+    expect(templateDxf).toContain('cut.outer');
+    expect(templateDxf).toContain('dimension.cassette');
+
+    const designExport = await app.request.get(`/api/cassette-designs/${scenario.refs.cassetteDesign}/export`, {
+      failOnStatusCode: false
+    });
+    const designDxf = await designExport.text();
+    expect(designExport.ok(), designDxf).toBeTruthy();
+    expect(designDxf).toContain('LWPOLYLINE');
+
+    const command = await app.request.post('/api/commands/generateAttachment/run', {
+      data: {
+        entities: { sheetDesign: scenario.refs.sheetDesign },
+        parameters: { kind: 'LAYOUT_DXF' }
+      },
+      failOnStatusCode: false
+    });
+    const commandText = await command.text();
+    expect(command.ok(), commandText).toBeTruthy();
+    const commandResult = JSON.parse(commandText);
+    const attachmentId = commandResult.result?.data?.attachmentId;
+    expect(attachmentId).toBeTruthy();
+
+    const artifactDownload = await app.request.get(`/api/artifacts/${attachmentId}`, {
+      failOnStatusCode: false
+    });
+    const artifactDxf = await artifactDownload.text();
+    expect(artifactDownload.ok(), artifactDxf).toBeTruthy();
+    expect(artifactDxf).toContain('LWPOLYLINE');
   });
 });
