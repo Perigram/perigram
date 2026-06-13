@@ -9,7 +9,8 @@ explicit deterministic preset family.
 - Claims `vision.extractGeometry` through `/api/tasks/claim`.
 - Downloads the immutable capture photo from GridFS through the app file route.
 - Applies optional normalized hand-drawn prompt rings from the task parameters
-  before falling back to automatic model/OpenCV candidates.
+  as hard outer-boundary constraints before falling back to automatic
+  model/OpenCV candidates.
 - Extracts a draft polygon through deterministic or model-backed preset
   candidates:
   - outer contour becomes `polygon.outer`
@@ -42,9 +43,16 @@ contour coverage, rectangularity, solidity, vertex count, and facade
 hole/window count. Results include compact diagnostics such as selected preset,
 provider, candidate, score, rejected candidate count, and scale mode.
 
-Prompted tasks run the SAM2 image predictor from the drawn outer contour first
-and keep a manual prompt-mask candidate as fallback, so a rough operator sketch
-can constrain detection even when model inference is unavailable.
+Prompted tasks use the drawn outer contour before model/OpenCV scoring. In
+facade mode, a four-corner prompt is perspective-rectified with a homography and
+holes are detected in the rectified plane; non-quadrilateral prompts become the
+hard outer polygon without perspective correction. Remnant prompts stay as the
+drawn polygon so irregular offcuts are not forced into rectangles.
+
+Facade candidates from model/OpenCV extraction are also rectified when their
+outer contour is rectangular enough to produce a stable homography. Rectified
+results store transform metadata under `calibration.scale.transform` so the UI
+can project the corrected millimeter geometry back over the original photo.
 `*_sam2_auto` uses SAM2 automatic masks as candidate outer polygons.
 `*_grounded_sam2` uses GroundingDINO text prompts for the outer object and
 holes/windows, then SAM2 turns the detected boxes into masks. If a model preset

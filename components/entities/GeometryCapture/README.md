@@ -18,9 +18,13 @@ Entity card and detail surfaces for `geometry_capture` records.
   the backend extraction workflow.
 - Expects `attachments.primary` to point at the immutable capture photo. The
   detail surface renders it under the active geometry when calibration scale
-  metadata is present.
+  metadata is present. When the worker returns homography transform metadata,
+  `PhotoGeometryOverlay` projects rectified geometry back onto the source photo
+  for review and vertex editing.
 - Creation can submit `data.prompt.outer` from a hand-drawn image-space contour;
-  the worker treats it as a SAM2/manual-mask extraction hint.
+  the worker treats it as a hard outer boundary. Facade quadrilateral prompts
+  trigger perspective correction, while irregular remnant prompts remain the
+  drawn polygon.
 - Expects `data.revisions[]` and `data.activeRevisionId` when recalculation is
   available. The detail surface shows revision preview tiles under the active
   geometry, can queue a new preset-based recalculation, and can reactivate older

@@ -19,13 +19,17 @@ workflows.
 - `data.calibration`: scale assumptions such as known size, sheet size, or
   facade floor count/height.
 - `data.prompt`: optional normalized image-space prompt rings from operator
-  hand drawing. The extraction task receives this as a SAM2/manual-mask hint.
+  hand drawing. The extraction task treats the outer ring as a hard boundary;
+  facade quadrilaterals can drive homography-based perspective correction.
 - `data.activeRevisionId`: accepted extraction revision currently projected
   into `data.geometry`.
 - `data.revisions[]`: recalculation attempts with preset, task run, geometry,
   prompt, confidence, diagnostics, metrics, and failure state.
 - `data.geometry.polygon.outer`: extracted closed outer ring in millimeters.
 - `data.geometry.polygon.inner`: extracted closed hole rings in millimeters.
+- `data.calibration.scale.transform`: optional worker transform metadata, such
+  as homography matrices for projecting rectified geometry back onto the source
+  photo.
 - `data.geometry.preview`: `DrawingCanvas` preview generated from the polygon.
 - `data.extraction`: task id, confidence, diagnostics, and worker status.
 - `data.output`: created entity reference after confirmation.
@@ -37,10 +41,12 @@ workflows.
    UI may also submit a normalized hand-drawn outer contour prompt.
 2. `create()` persists a `geometry_capture` and queues
    `vision.extractGeometry`.
-3. `workers/geometry-capture` claims the task for the pending revision. Auto
-   presets try the model-backed provider order first when the ML worker image is
-   enabled, then fall back to OpenCV contour extraction. The worker posts the
-   result to the callback and completes/fails the task.
+3. `workers/geometry-capture` claims the task for the pending revision. Prompted
+   tasks use the drawn contour before model/OpenCV scoring. Auto presets try the
+   model-backed provider order first when the ML worker image is enabled, then
+   fall back to OpenCV contour extraction. Facade quadrilaterals are rectified
+   into a working plane when a stable homography is available. The worker posts
+   the result to the callback and completes/fails the task.
 4. The capture moves to `READY` for review or `FAILED` if there is no previous
    active geometry. Failed recalculations keep the previous active geometry.
 5. `confirm()` moves the capture to `COMPLETE`.

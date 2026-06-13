@@ -214,6 +214,18 @@
        can delete outer vertices, correct a two-vertex dimension by scaling the
        full polygon, and save the result as an active manual revision.
 
+     [2026-06-13] Fix prompted geometry and facade perspective correction
+     Files changed: workers/geometry-capture/main.py,
+       components/entities/GeometryCapture/PhotoGeometryOverlay.vue
+     Docs updated: workers/geometry-capture/README.md,
+       server/features/geometry-captures/README.md,
+       components/entities/GeometryCapture/README.md, TODO.org
+     Notes: Hand-drawn capture prompts now bypass model/OpenCV candidate
+       scoring and are treated as hard outer-boundary constraints. Facade
+       quadrilateral prompts and rectangular automatic facade detections are
+       rectified with homography metadata, and the photo overlay projects
+       rectified millimeter geometry back onto the original source photo.
+
 * WAITING Core Project Route Workflow Fixes
   :PROPERTIES:
   :ID: core-project-route-workflow-fixes
