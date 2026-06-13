@@ -9,7 +9,7 @@ Routes are grouped into sub-directories corresponding to features:
 - `cassette-instances/`: Authenticated cassette instance listing, detail, and status routes.
 - `cassettes/`: Upload and management of templates.
 - `commands/`: Authenticated execution route for declared domain commands such
-  as `saveCassetteTemplate`.
+  as `saveCassetteTemplate` and `generateAttachment`.
 - `tasks/`: Worker task queue protocol for claim, heartbeat, complete,
   fail, and cancel.
 - `admin/commands/`: Authenticated command definition and run listing for
@@ -23,6 +23,8 @@ Routes are grouped into sub-directories corresponding to features:
 - `admin/tasks/`: Authenticated task definition and run listing for
   `task_runs`.
 - `project/`: Main project orchestration and nesting triggers.
+- `sheet-designs/`: Lineage-scoped sheet design list/detail and direct DXF
+  export.
 - `user/`: Profile and credit management.
 
 ## Conventions

@@ -2043,6 +2043,37 @@
   Baked cassette should include all the layers using layer standard. Only the one layer should be used in nesting, that in marked as nesting layer in standard. Artifacts created during nesting should use transform data for placing other layers data back to nested cassettes. Of course, everything should be done procedurally without hardcoding layer names etc.
 
 *** Agent Notes
+    [2026-06-13] Fix layered DXF exports for cassettes and sheet designs
+    Files changed:
+    - server/utils/dxf-writer.js
+    - server/utils/dxf-writer.spec.js
+    - server/api/commands/[id]/run.post.js
+    - server/api/sheet-designs/[id]/export.get.js
+    - server/features/artifacts/operations.js
+    - server/features/artifacts/operations.spec.js
+    - server/features/cassettes/service.js
+    - server/features/cassettes/export.spec.js
+    - server/features/cassette-designs/service.js
+    - server/features/cassette-designs/service.spec.js
+    - server/features/sheet-designs/service.js
+    Docs updated:
+    - server/api/README.md
+    - server/utils/README.md
+    - server/features/artifacts/README.md
+    - server/features/cassettes/README.md
+    - server/features/cassette-designs/README.md
+    - server/features/sheet-designs/README.md
+    - TODO.org
+    Notes:
+    - Added a shared layer-aware DXF writer for preview layers, OCCS layerData,
+      text, dimensions, and polygon fallback.
+    - Sheet-design `LAYOUT_DXF` command generation now stores a ready DXF
+      artifact instead of creating a placeholder with no file.
+    - Parametric cassette template/design exports now preserve evaluated
+      semantic layers, and cassette-design export can resolve a template id to
+      its base design.
+
+*** Agent Notes
     [2026-06-07] Generate OCCS cassette dimension annotations by default
     Files changed:
     - utils/occs/layers.js

@@ -79,6 +79,18 @@ GET/list APIs require authenticated lineage context. `queueId` and `projectId`
 query parameters are mapped to `lineage.queueId` and `lineage.projectId`, then
 combined with the server-derived access filter.
 
+## DXF Export
+
+- `GET /api/sheet-designs/:id/export` returns a generated DXF directly from the
+  stored preview/layer geometry.
+- The `generateAttachment` command with `kind: "LAYOUT_DXF"` uses
+  `generateAndStoreDxf()` to write that DXF to the `nestDxf` GridFS bucket and
+  creates a ready artifact linked to the sheet design lineage.
+
+DXF generation reads `data.geometry.preview.layers` first, then falls back to
+stored `data.geometry.data.layerData` / `polygonParts` when preview layers are
+not available.
+
 ## Related
 
 - [nesting-runs](../nesting-runs/README.md) - parent process that produces sheet designs

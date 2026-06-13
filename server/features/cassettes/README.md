@@ -45,15 +45,17 @@ snapshot lives in `entity_revisions`.
 `POST /api/cassettes/:id/designs` calls `createDesignFromTemplate()` and creates
 or returns a `cassette_design` for the selected template.
 - Parametric templates are evaluated with the supplied concrete parameter map,
-  generate a DXF into the `cassettes` GridFS bucket, and create a design with
-  `data.polygonParts`, `data.layerData`, `data.geometry.dxfId`, and
+  generate a layer-aware DXF into the `cassettes` GridFS bucket, and create a
+  design with `data.polygonParts`, `data.layerData`, `data.geometry.dxfId`, and
   `data.derivedFrom` pointing to the source geometry revision.
 - Standard uploaded templates already create their initial base design during
   upload. The route returns that existing design when available instead of
   duplicating the uploaded DXF.
 
-`GET /api/cassettes/:id/export` remains a template-level DXF export. For saved
-design assets, use the cassette-design export endpoint.
+`GET /api/cassettes/:id/export` remains a template-level DXF export. Parametric
+exports use evaluated `layerData` when available, so folds, marks, dimensions,
+and cut layers are preserved instead of emitting only the nestable contour. For
+saved design assets, use the cassette-design export endpoint.
 
 ### DXF Upload
 `upload()` requires one mapped DXF layer to resolve to `cut.outer`. The service

@@ -38,9 +38,12 @@ Aligned with `@PROPOSED_DATA_MODEL.md` Section 5:
   `useEntity('cassetteDesign')`; cards must not fetch cassette designs through
   template or cassette fallback routes.
 - `GET /api/cassette-designs/:id/export` downloads the design DXF. The service
-  streams `data.geometry.dxfId` from the `cassettes` GridFS bucket when present
-  and can regenerate a DXF from stored `layerData` / `polygonParts` when a file
-  reference is missing.
+  regenerates a layer-aware DXF from stored `layerData` / `polygonParts` before
+  using `data.geometry.dxfId` from the `cassettes` GridFS bucket. This keeps
+  exported designs aligned with the stored semantic OCCS layers even when an
+  older baked file contains only contour geometry. If a template id is passed,
+  the service resolves the first design with `lineage.templateId` for standard
+  upload/base-design flows.
 - `GET /api/cassette-designs/by-template/:id` remains a convenience lookup for
   standard templates that need their initial design.
 
@@ -51,6 +54,8 @@ Designs are created by "baking" a `cassette_template` with concrete parameters. 
 3. Creates a `cassette_design` document referencing the DXF, storing the
    parameter snapshot, and recording `data.derivedFrom` for the template
    geometry revision used.
+The stored semantic layers are the export source of truth; the GridFS file is a
+download fallback when semantic geometry is not present on older records.
 
 Standard DXF uploads also create an initial design. The upload service extracts
 the mapped `cut.outer` layer as `polygonParts`; queues should nest this design

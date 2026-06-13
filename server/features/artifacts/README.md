@@ -23,6 +23,16 @@ current app entity type that stores file metadata and GridFS references.
 - `GET /api/artifacts/:id/metadata`
 - `DELETE /api/artifacts/:id`
 
+## Generation Notes
+
+`generateAttachment()` handles `LAYOUT_DXF` for two source types:
+- `entities.sheetDesign` generates a DXF from the sheet design preview/layer
+  geometry, stores it in the `nestDxf` GridFS bucket, and creates a `READY`
+  artifact with `attachments.primary`.
+- `entities.nestingRun` attaches the latest completed worker DXF when the
+  nesting job already produced one; otherwise it creates a pending
+  `GENERATING` artifact.
+
 ## Related
 
 - [domain-cnc attachment kinds](../../../packages/domain-cnc/README.md)

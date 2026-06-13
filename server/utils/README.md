@@ -156,6 +156,19 @@ only when mapped through `extractCurvesFromDXFLayer()`, not as nestable parts.
 layers for `layerData`, so folds, marks, dimensions, and other source drawing
 layers can be projected into sheet-design previews after nesting.
 
+## dxf-writer.js
+
+Writes simple AC1015 DXF output from the app drawing contract. It accepts:
+- DrawingCanvas-style preview layers with SVG-like `M/L/H/V/Z` paths and text
+  path objects.
+- OCCS `layerData` records with coordinates, text geometry, or dimension
+  geometry.
+- `polygonParts` as a fallback when only nestable outlines exist.
+
+Sheet design exports and cassette template/design exports use this helper so
+semantic layer names such as `cut.outer`, `fold.route`, `dimension.cassette`,
+and `code.cassette_mark` survive into downloaded DXF files.
+
 ## Related
 
 - [server/features/README.md](../features/README.md) — Service layer patterns
