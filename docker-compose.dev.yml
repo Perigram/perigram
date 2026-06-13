@@ -104,7 +104,7 @@ services:
       - GEOMETRY_CAPTURE_MODEL_FIRST=${GEOMETRY_CAPTURE_MODEL_FIRST:-1}
       - GEOMETRY_CAPTURE_PRELOAD_MODELS=${GEOMETRY_CAPTURE_PRELOAD_MODELS:-}
       - HF_HOME=/models/huggingface
-      - SAM2_MODEL_ID=${SAM2_MODEL_ID:-facebook/sam2-hiera-tiny}
+      - SAM2_MODEL_ID=${SAM2_MODEL_ID:-facebook/sam2-hiera-large}
       - SAM2_CHECKPOINT=${SAM2_CHECKPOINT:-}
       - SAM2_MODEL_CFG=${SAM2_MODEL_CFG:-}
       - SAM2_DEVICE=${SAM2_DEVICE:-cpu}

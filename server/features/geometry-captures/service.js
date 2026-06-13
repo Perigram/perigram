@@ -39,7 +39,8 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const revision = createRevision({
     mode,
     calibration: normalizeCalibration(data.calibration || {}),
-    preset: normalizePreset(mode, data.preset)
+    preset: normalizePreset(mode, data.preset),
+    prompt: normalizePrompt(data.prompt)
   });
 
   const doc = {
@@ -63,6 +64,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
       activeRevisionId: null,
       revisions: [revision],
       calibration: revision.calibration,
+      prompt: revision.prompt,
       geometry: null,
       extraction: {
         status: 'QUEUED',
@@ -152,7 +154,8 @@ export async function recalculate(id, options = {}, userId, userOrg, userRole, u
   const revision = createRevision({
     mode,
     calibration: normalizeCalibration({ ...(raw.data?.calibration || {}), ...(options.calibration || {}) }),
-    preset: normalizePreset(mode, options.preset || raw.data?.extraction?.preset)
+    preset: normalizePreset(mode, options.preset || raw.data?.extraction?.preset),
+    prompt: normalizePrompt(options.prompt || raw.data?.prompt || {})
   });
   const nextData = {
     ...(raw.data || {}),
@@ -165,7 +168,8 @@ export async function recalculate(id, options = {}, userId, userOrg, userRole, u
       preset: revision.preset,
       confidence: 0,
       diagnostics: []
-    }
+    },
+    prompt: revision.prompt
   };
 
   const saved = await repository.updateById(id, { data: nextData });
@@ -183,6 +187,59 @@ export async function recalculate(id, options = {}, userId, userOrg, userRole, u
         taskRunId: taskRun._id.toString(),
         revisionId: revision.id,
         preset: revision.preset
+      }
+    }
+  });
+  return toDTO(updated);
+}
+
+export async function createManualRevision(id, options = {}, userId, userOrg, userRole, userPermissions) {
+  const raw = await repository.findById(id);
+  if (!raw) throw createError({ statusCode: 404, message: 'Geometry capture not found' });
+  const mode = raw.data?.mode || 'REMNANT';
+  const feature = mode === 'REMNANT' ? 'materials' : 'projects';
+  requireLineageAccess(raw.lineage, feature, 'write', userPermissions);
+
+  const geometry = normalizeGeometry(options.geometry || {});
+  const calibration = normalizeCalibration({ ...(raw.data?.calibration || {}), ...(options.calibration || {}) });
+  const metrics = metricsForGeometry(geometry);
+  const revisionId = createRevisionId();
+  const diagnostics = ['source:manual_edit'];
+  if (options.reason) diagnostics.push(`reason:${String(options.reason).slice(0, 80)}`);
+  const revision = {
+    id: revisionId,
+    status: 'READY',
+    createdAt: new Date().toISOString(),
+    completedAt: new Date().toISOString(),
+    taskRunId: null,
+    preset: 'manual_edit',
+    calibration,
+    prompt: normalizePrompt(options.prompt || raw.data?.prompt || {}),
+    geometry,
+    confidence: 1,
+    diagnostics,
+    metrics,
+    error: null
+  };
+  const status = createStatus('READY', userId, { note: 'Geometry capture manually edited', revisionId });
+  const updated = await repository.updateById(id, {
+    status,
+    specs: metrics,
+    data: {
+      ...(raw.data || {}),
+      activeRevisionId: revisionId,
+      revisions: [...normalizedRevisions(raw), revision],
+      calibration,
+      geometry,
+      extraction: {
+        ...(raw.data?.extraction || {}),
+        status: 'READY',
+        revisionId,
+        preset: revision.preset,
+        confidence: revision.confidence,
+        diagnostics,
+        metrics,
+        error: null
       }
     }
   });
@@ -412,6 +469,9 @@ function normalizeCalibration(calibration = {}) {
     sheetHeight: numberOrNull(calibration.sheetHeight),
     floorCount: numberOrNull(calibration.floorCount),
     floorHeight: numberOrNull(calibration.floorHeight),
+    materialId: calibration.materialId || null,
+    materialCode: calibration.materialCode || null,
+    materialName: calibration.materialName || null,
     material: calibration.material || null,
     color: calibration.color || null,
     thickness: numberOrNull(calibration.thickness)
@@ -426,7 +486,7 @@ function normalizePreset(mode, preset) {
   return allowed.includes(preset) ? preset : DEFAULT_PRESETS[normalizedMode];
 }
 
-function createRevision({ mode, calibration, preset }) {
+function createRevision({ mode, calibration, preset, prompt }) {
   return {
     id: createRevisionId(),
     status: 'QUEUED',
@@ -434,6 +494,7 @@ function createRevision({ mode, calibration, preset }) {
     taskRunId: null,
     preset: normalizePreset(mode, preset),
     calibration,
+    prompt: normalizePrompt(prompt),
     geometry: null,
     confidence: 0,
     diagnostics: [],
@@ -459,7 +520,8 @@ async function enqueueExtractionTask(capture, revision, auth) {
       fileId,
       bucketName,
       fileUrl: `/api/files/download/${fileId}?bucket=${encodeURIComponent(bucketName)}`,
-      calibration: revision.calibration
+      calibration: revision.calibration,
+      prompt: revision.prompt
     }
   }, auth, {
     idempotencyKey: `geometry-capture:${capture._id.toString()}:extract:${revision.id}`
@@ -478,6 +540,7 @@ function normalizedRevisions(raw) {
       taskRunId: raw.data?.extraction?.taskRunId || null,
       preset: raw.data?.extraction?.preset || normalizePreset(raw.data?.mode || 'REMNANT'),
       calibration: raw.data?.calibration || {},
+      prompt: raw.data?.prompt || {},
       geometry: raw.data.geometry,
       confidence: Number(raw.data?.extraction?.confidence || 0),
       diagnostics: raw.data?.extraction?.diagnostics || [],
@@ -501,6 +564,7 @@ function ensureRevision(raw, revisionId, result = {}) {
       taskRunId: raw.data?.extraction?.taskRunId || null,
       preset: result.preset || raw.data?.extraction?.preset || normalizePreset(raw.data?.mode || 'REMNANT'),
       calibration: result.calibration || raw.data?.calibration || {},
+      prompt: result.prompt || raw.data?.prompt || {},
       geometry: null,
       confidence: 0,
       diagnostics: [],
@@ -518,6 +582,28 @@ function replaceRevision(revisions = [], revision) {
   return revisions.map(item => item.id === revision.id ? revision : item);
 }
 
+function normalizePrompt(prompt = {}) {
+  const outer = normalizePromptRing(prompt.outer || []);
+  const holes = (prompt.holes || prompt.inner || [])
+    .map(normalizePromptRing)
+    .filter(ring => ring.length >= 3);
+  return outer.length >= 3 ? { outer, holes } : {};
+}
+
+function normalizePromptRing(ring = []) {
+  return ring
+    .map(point => Array.isArray(point)
+      ? [clampUnit(point[0]), clampUnit(point[1])]
+      : [clampUnit(point?.x), clampUnit(point?.y)])
+    .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
+}
+
+function clampUnit(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return NaN;
+  return Math.min(Math.max(number, 0), 1);
+}
+
 function normalizeGeometry(geometry = {}) {
   const polygon = geometry.polygon || geometry;
   const outer = closeRing(normalizeRing(polygon.outer || []));
@@ -525,7 +611,7 @@ function normalizeGeometry(geometry = {}) {
     .map(ring => closeRing(normalizeRing(ring)))
     .filter(ring => ring.length >= 4);
   if (outer.length < 4) throw createError({ statusCode: 400, message: 'Geometry outer polygon requires at least 3 points' });
-  const preview = geometry.preview || previewForPolygon({ outer, inner });
+  const preview = previewForPolygon({ outer, inner });
   return {
     ...geometry,
     polygon: { outer, inner },

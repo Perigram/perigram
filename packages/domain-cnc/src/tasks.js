@@ -68,7 +68,8 @@ export const cncTasks = {
         { name: 'fileId', label: 'Photo file id', type: 'string', required: true },
         { name: 'bucketName', label: 'Photo bucket', type: 'string', default: 'capturePhotos' },
         { name: 'fileUrl', label: 'Photo URL', type: 'string', required: true },
-        { name: 'calibration', label: 'Calibration', type: 'object', default: {} }
+        { name: 'calibration', label: 'Calibration', type: 'object', default: {} },
+        { name: 'prompt', label: 'Manual vision prompt', type: 'object', default: {} }
       ]
     },
     output: {

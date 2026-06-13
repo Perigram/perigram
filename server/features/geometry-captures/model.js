@@ -12,6 +12,7 @@ export class GeometryCapture extends BaseEntity {
       activeRevisionId: raw.data?.activeRevisionId || null,
       revisions: raw.data?.revisions || [],
       calibration: raw.data?.calibration || {},
+      prompt: raw.data?.prompt || {},
       geometry: raw.data?.geometry || null,
       extraction: raw.data?.extraction || {},
       output: raw.data?.output || null,

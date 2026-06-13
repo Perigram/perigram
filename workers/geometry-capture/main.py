@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 import requests
 
-from model_providers import MODEL_AUTO_ORDER, MODEL_PRESETS, build_model_candidates, preload_model_providers
+from model_providers import MODEL_AUTO_ORDER, MODEL_PRESETS, build_model_candidates, build_prompt_candidates, preload_model_providers
 
 
 API_URL = os.getenv("CUTKIT_API_URL", "http://localhost:3000").rstrip("/")
@@ -106,10 +106,10 @@ def download_image(file_url):
     return image
 
 
-def extract_geometry(image, mode, calibration, preset=None, revision_id=None):
+def extract_geometry(image, mode, calibration, preset=None, revision_id=None, prompt=None):
     resized, resize_scale = resize_for_processing(image)
     selected_preset = normalize_preset(mode, preset)
-    candidates, provider_errors = build_candidates(resized, mode, selected_preset)
+    candidates, provider_errors = build_candidates(resized, mode, selected_preset, prompt)
     scored = []
     rejected = []
     for candidate in candidates:
@@ -139,6 +139,8 @@ def extract_geometry(image, mode, calibration, preset=None, revision_id=None):
         f"holes:{len(holes_mm)}",
         f"scale_mode:{scale_info['mode']}",
     ]
+    if has_outer_prompt(prompt):
+        diagnostics.append("prompt:outer")
     if rejected:
         diagnostics.append(f"rejected:{len(rejected)}")
     diagnostics.extend(provider_errors[:3])
@@ -175,12 +177,20 @@ def normalize_preset(mode, preset):
     return mode_presets[0]
 
 
-def build_candidates(image, mode, preset):
-    return build_candidates_for_preset(image, mode, preset, allow_model=True)
+def build_candidates(image, mode, preset, prompt=None):
+    return build_candidates_for_preset(image, mode, preset, allow_model=True, prompt=prompt)
 
 
-def build_candidates_for_preset(image, mode, preset, allow_model):
+def build_candidates_for_preset(image, mode, preset, allow_model, prompt=None):
     provider_errors = []
+    if has_outer_prompt(prompt):
+        try:
+            prompt_candidates = build_prompt_candidates(image, mode, preset, prompt)
+            if prompt_candidates:
+                return prompt_candidates, provider_errors
+        except Exception as exc:
+            provider_errors.append(f"prompt_provider_error:{exc}")
+
     if allow_model and preset.endswith("_auto") and MODEL_FIRST:
         model_candidates, model_errors = build_model_first_candidates(image, mode)
         provider_errors.extend(model_errors)
@@ -196,7 +206,7 @@ def build_candidates_for_preset(image, mode, preset, allow_model):
         except Exception as exc:
             provider_errors.append(f"model_provider_error:{preset}:{exc}")
         fallback = "facade_auto" if mode == "FACADE" else "remnant_auto"
-        candidates, fallback_errors = build_candidates_for_preset(image, mode, fallback, allow_model=False)
+        candidates, fallback_errors = build_candidates_for_preset(image, mode, fallback, allow_model=False, prompt=None)
         return candidates, [*provider_errors, *fallback_errors]
 
     if preset.endswith("_auto"):
@@ -212,6 +222,10 @@ def build_candidates_for_preset(image, mode, preset, allow_model):
     for item in presets:
         candidates.extend(candidate_masks(normalized, mode, item))
     return candidates, provider_errors
+
+
+def has_outer_prompt(prompt):
+    return isinstance(prompt, dict) and len(prompt.get("outer") or []) >= 3
 
 
 def build_model_first_candidates(image, mode):
@@ -517,6 +531,7 @@ def process_run(run):
             parameters.get("calibration") or {},
             parameters.get("preset"),
             parameters.get("revisionId"),
+            parameters.get("prompt") or {},
         )
         post_capture_result(capture_id, result)
         complete_task(run, {
