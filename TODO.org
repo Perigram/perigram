@@ -407,6 +407,24 @@
        as `queue.data.nestingSettings`; the nest API builds command parameters
        from saved queue settings and `queue.data.job.materialPool`.
 
+*** Agent Notes
+     [2026-06-13] Clean queue selector actions and source previews
+     Files changed: components/QueueEditor.vue,
+       components/entities/Queue/QueueSourceCard.vue,
+       pages/project/[slug]/queues.vue,
+       packages/domain-cnc/src/workflows.js, framework.manifest.json,
+       server/core/machines/service.spec.js
+     Docs updated: components/README.md,
+       components/entities/Queue/README.md,
+       server/features/queues/README.md, packages/domain-cnc/README.md,
+       TODO.org
+     Notes: The queue left lane now renders compact queue cards only, with
+       selected-queue status/delete actions kept on that entity card. Queue
+       workflow actions now include archiving from every queue lifecycle state,
+       covered by a status-service test. Warehouse nesting sources render
+       through preview-first source tiles that show remnant geometry when stored
+       and rectangular stock dimensions for sheet/pile sources.
+
 * WAITING E2E Workflow Test Harness
   :PROPERTIES:
   :ID: e2e-workflow-test-harness

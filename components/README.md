@@ -165,8 +165,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   id, type, quantity, and parameters. Delete actions must use `_key`; nesting
   payload saves must persist `id` without leaking the UI key.
 - `QueueEditor` is a production workspace: desktop layout uses a left queue
-  lane rendered newest-first where the selected queue expands in place and
-  other queues stay compact, a center lane for nesting settings and wide
+  lane rendered newest-first as compact queue entity rows, a center lane for nesting settings and wide
   cassette entry cards, and a right runs lane through `WorkspaceLanes`. The
   project queue route is rendered inside the app shell's bounded workspace frame
   and each lane owns its own vertical scrolling, while the center lane delegates
@@ -175,11 +174,12 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   source selection (`Virtual` plus warehouse options), tool selection, and the
   run action. Virtual mode renders the virtual sheet dimensions as the active
   material abstraction; warehouse mode adds a selected source immediately from
-  the source dropdown and renders selected material pile, sheet, and remnant
-  cards in a horizontally scrolled row. Queue
+  the source dropdown and renders selected material sources as preview-first
+  `QueueSourceCard` tiles in a horizontally scrolled row. Queue
   settings keep `Run nesting` as the only primary action; section utility,
   add, upload, and view controls use compact secondary buttons. Queue
-  status/actions live on the selected queue card;
+  status/actions, including destructive queue removal, live on the selected
+  queue card;
   the cassette panel header owns view switching and add/upload actions. The
   runs lane receives queue-level sheet designs once, selects one active run, and lets
   `NestingRunCard` filter designs by run before rendering preview tiles. Run
@@ -189,7 +189,8 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   sheets, and remnants, filters unavailable piles, blocks mixed sheet sizes for
   the current one-bin nesting worker, and persists selected stock as
   `queue.data.job.materialPool` with dimensions, available counts, and remnant
-  `sheetPolygon`/`geometryData` when present. For remnants, `sheetPolygon`
+  `sheetPolygon`/`geometryData` when present. Selected warehouse sources render
+  remnant geometry when present and rectangular stock dimensions otherwise. For remnants, `sheetPolygon`
   preserves both `outer` and `inner` rings so holes remain fixed non-placeable
   zones in the nesting bin. The backend resolves worker sheet size/count and
   irregular remnant sheet polygon from that material pool.

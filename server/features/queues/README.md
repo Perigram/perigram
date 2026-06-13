@@ -8,7 +8,8 @@ Defines a specific nesting job, bridging the digital production intent with phys
   `data.nestingSettings`; each `nesting_run` stores the immutable execution
   snapshot under `data.params`.
 - **Inheritance**: Inherits lineage from the parent `Project`.
-- **Status**: Governed by `QueueMachine` (`DRAFT -> NESTING -> READY -> CLOSED`).
+- **Status**: Governed by `QueueMachine` (`DRAFT -> NESTING -> READY -> CLOSED`,
+  with `ARCHIVED` available from any queue state).
 
 ## Key Workflows
 1. **Job Initialization**: Selecting baked or parametric designs and specifying quantities.
@@ -37,6 +38,9 @@ Defines a specific nesting job, bridging the digital production intent with phys
    generated sheet design cassette counts. Output ids are recorded on
    `data.physicalOutputs`, and the queue transitions to `READY` only after that
    run is chosen. There is no queue-level `CUT` state.
+5. **Archiving / Removal**: Queue status controls can transition any queue state
+   to `ARCHIVED`; destructive deletion remains an entity removal action guarded
+   by queue delete access.
 
 ## Read Model Helpers
 

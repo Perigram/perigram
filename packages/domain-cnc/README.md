@@ -34,7 +34,9 @@ later through the artifacts service and `AttachmentKind` contracts, not as
 primary nesting-run outputs.
 Queue workflow UI actions start with `DRAFT -> NESTING`; any system-only
 `DRAFT -> READY` recovery transition is marked `display: 'hidden'` so operators
-cannot skip nesting from status controls.
+cannot skip nesting from status controls. Queues can be moved to `ARCHIVED`
+from any current queue state through a menu transition; admin users can restore
+archived queues to `DRAFT`.
 Material pile and remnant workflows are also declared here: material piles use
 `STOCKED -> DEPLETED`, while remnants use `AVAILABLE -> USED`. `ui.js` contains
 matching status labels/icons so live cards and framework/UI-lab previews use the
