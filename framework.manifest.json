@@ -1689,9 +1689,10 @@
         "DRAFT",
         "NESTING",
         "READY",
-        "CLOSED"
+        "CLOSED",
+        "ARCHIVED"
       ],
-      "transitionCount": 10,
+      "transitionCount": 16,
       "type": "queue"
     },
     {

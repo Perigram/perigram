@@ -9,6 +9,7 @@
                 @updated="refreshQueues"
                 @select-queue="currentQueueId = $event"
                 @create-queue="createNewQueue"
+                @queue-deleted="handleQueueDeleted"
             />
         </div>
 
@@ -72,6 +73,13 @@
         })
         currentQueueId.value = newQueue._id
         await refreshQueues()
+    }
+
+    const handleQueueDeleted = async (deletedQueueId) => {
+        await refreshQueues()
+        if (currentQueueId.value === deletedQueueId) {
+            currentQueueId.value = queues.value[queues.value.length - 1]?._id || null
+        }
     }
 
 </script>

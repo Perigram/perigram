@@ -12,18 +12,24 @@ export const cncWorkflows = {
   },
   queue: {
     initial: 'DRAFT',
-    states: { DRAFT: { canUpdateMeta: true }, NESTING: { canUpdateMeta: true }, READY: { canUpdateMeta: true }, CLOSED: { isTerminal: true, canUpdateMeta: false } },
+    states: { DRAFT: { canUpdateMeta: true }, NESTING: { canUpdateMeta: true }, READY: { canUpdateMeta: true }, CLOSED: { isTerminal: true, canUpdateMeta: false }, ARCHIVED: { isTerminal: true, canUpdateMeta: false } },
     transitions: [
       { from: 'DRAFT', to: 'NESTING', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'DRAFT', to: 'READY', display: 'hidden', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'READY', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'READY', to: 'CLOSED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'DRAFT', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'READY', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'CLOSED', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'DRAFT', access: { system: true, permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'READY', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'CLOSED', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'ARCHIVED', to: 'DRAFT', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'DRAFT', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
       { from: 'NESTING', to: 'NESTING', access: { system: true } },
-      { from: 'READY', to: 'READY', access: { permissions: [{ feature: 'queues', level: 'write' }] } }
+      { from: 'READY', to: 'READY', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
+      { from: 'ARCHIVED', to: 'ARCHIVED', access: { permissions: [{ feature: 'queues', level: 'write' }] } }
     ]
   },
   nesting_run: {

@@ -19,15 +19,16 @@
                         v-for="option in queueList"
                         :key="option._id"
                         :queue="option"
-                        :variant="isSelectedQueue(option) ? 'card' : 'compact'"
+                        variant="compact"
                         :status-actions="isSelectedQueue(option) ? queueStatusActions : []"
-                        :show-delete="false"
-                        :show-summary="isSelectedQueue(option)"
+                        :show-delete="isSelectedQueue(option)"
+                        :show-summary="false"
                         :show-footer-actions="false"
                         :expandable="false"
-                        :density="isSelectedQueue(option) ? 'default' : 'dense'"
+                        density="dense"
                         @view="$emit('select-queue', option._id)"
                         @edit="$emit('select-queue', option._id)"
+                        @delete="confirmDeleteQueue"
                     />
                 </div>
             </template>
@@ -145,35 +146,13 @@
 
                                 <div v-if="nestingOptions.warehouseId" class="flex flex-col gap-2">
                                     <div v-if="selectedInventory.length" class="flex min-w-0 gap-3 overflow-x-auto pb-1">
-                                        <div
+                                        <QueueSourceCard
                                             v-for="item in selectedInventory"
                                             :key="item.uniqueId"
+                                            :source="item"
                                             class="relative min-w-72 flex-[0_0_18rem] sm:flex-[0_0_20rem]"
-                                        >
-                                            <component
-                                                v-if="inventoryCardComponent(item)"
-                                                :is="inventoryCardComponent(item)"
-                                                v-bind="inventoryCardProps(item)"
-                                                variant="compact"
-                                            />
-                                            <div v-else class="rounded-panel border border-content-border bg-content p-3">
-                                                <div class="flex items-center gap-2">
-                                                    <i class="pi pi-file"></i>
-                                                    <span class="truncate font-medium">{{ item.label }}</span>
-                                                </div>
-                                                <small class="text-muted-color">{{ item.specs }}</small>
-                                            </div>
-                                            <Button
-                                                icon="pi pi-times"
-                                                rounded
-                                                text
-                                                severity="danger"
-                                                size="small"
-                                                class="absolute right-2 top-2"
-                                                :aria-label="$t('common.delete')"
-                                                @click.stop="removeInventoryItem(item.uniqueId)"
-                                            />
-                                        </div>
+                                            @remove="removeInventoryItem(item.uniqueId)"
+                                        />
                                     </div>
                                     <small v-else class="text-muted-color">
                                         {{ $t('nesting.selectInventory') }}
@@ -356,11 +335,9 @@ import ConfirmDialog from 'primevue/confirmdialog';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import QueueEntryCard from '~/components/entities/Queue/QueueEntryCard.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';
+import QueueSourceCard from '~/components/entities/Queue/QueueSourceCard.vue';
 import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
 import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
-import MaterialPileCard from '~/components/entities/MaterialPile/PileCard.vue';
-import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
-import RemnantCard from '~/components/entities/Remnant/RemnantCard.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
@@ -375,7 +352,7 @@ const props = defineProps({
     projectSlug: { type: String, required: true }
 });
 
-const emit = defineEmits(['updated', 'select-queue', 'create-queue']);
+const emit = defineEmits(['updated', 'select-queue', 'create-queue', 'queue-deleted']);
 const { t } = useI18n();
 const confirm = useConfirm();
 const toast = useToast();
@@ -529,17 +506,6 @@ const unselectedInventoryOptions = computed(() => {
     return availableInventory.value.filter(item => !selectedIds.has(item.uniqueId));
 });
 const virtualSheetLabel = computed(() => `${nestingOptions.value.virtualWidth || 0} x ${nestingOptions.value.virtualLength || 0} mm`);
-const inventoryCardComponent = (item = {}) => ({
-    PILE: MaterialPileCard,
-    SHEET: SheetCard,
-    REMNANT: RemnantCard
-}[item.type] || null);
-const inventoryCardProps = (item = {}) => {
-    if (item.type === 'PILE') return { pile: item.entity };
-    if (item.type === 'SHEET') return { sheet: item.entity };
-    if (item.type === 'REMNANT') return { remnant: item.entity };
-    return {};
-};
 const inventoryOptionMeta = (item = {}) => [inventoryTypeLabel(item.type), item.specs]
     .filter(Boolean)
     .join(' · ');
@@ -956,6 +922,23 @@ const resetToDraft = async () => {
         accept: async () => {
             try { await queuesStore.resetStatus(props.queue._id); emit('updated'); }
             catch (e) { console.error(e); }
+        }
+    });
+};
+
+const confirmDeleteQueue = (queueToDelete) => {
+    confirm.require({
+        message: t('queue.confirmDelete'),
+        header: t('common.confirmation'),
+        icon: 'pi pi-exclamation-triangle',
+        accept: async () => {
+            try {
+                await queuesStore.deleteQueue(queueToDelete._id);
+                emit('queue-deleted', queueToDelete._id);
+                toast.add({ severity: 'success', summary: t('common.success'), life: 2000 });
+            } catch (e) {
+                toast.add({ severity: 'error', summary: t('common.error'), detail: e.message });
+            }
         }
     });
 };

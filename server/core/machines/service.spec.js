@@ -44,6 +44,7 @@ describe('status service lifecycle payloads', () => {
     await db.collection('cassette_instances').deleteMany({});
     await db.collection('cassettes').deleteMany({});
     await db.collection('projects').deleteMany({});
+    await db.collection('queues').deleteMany({});
     await db.collection('status_events').deleteMany({});
   });
 
@@ -84,6 +85,31 @@ describe('status service lifecycle payloads', () => {
 
     expect(allowed.actions.map(action => action.to)).toEqual(['ARCHIVED']);
     expect(denied.actions).toEqual([]);
+  });
+
+  it('returns archive as a queue menu action from every queue lifecycle state', async () => {
+    const states = ['DRAFT', 'NESTING', 'READY', 'CLOSED'];
+
+    for (const state of states) {
+      const id = `queue-${state.toLowerCase()}`;
+      await db.collection('queues').insertOne({
+        _id: id,
+        identity: { uid: id, name: `Queue ${state}` },
+        lineage: { organizationId: 'org-1' },
+        status: { state, userId: 'creator', timestamp: new Date(), metadata: {} }
+      });
+
+      const allowed = await statusService.getActions('queue', id, {
+        userId: 'operator-1',
+        memberships: [{ organizationId: 'org-1', permissions: { queues: 'write' } }]
+      });
+
+      expect(allowed.actions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ to: 'ARCHIVED', display: 'menu' })
+        ])
+      );
+    }
   });
 
   it('returns no actions for entity types without workflows', async () => {
