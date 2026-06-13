@@ -150,7 +150,7 @@
                                             v-for="item in selectedInventory"
                                             :key="item.uniqueId"
                                             :source="item"
-                                            class="relative min-w-72 flex-[0_0_18rem] sm:flex-[0_0_20rem]"
+                                            class="relative min-w-56 flex-[0_0_14rem] sm:flex-[0_0_15rem]"
                                             @remove="removeInventoryItem(item.uniqueId)"
                                         />
                                     </div>
