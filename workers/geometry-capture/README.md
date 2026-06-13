@@ -50,9 +50,14 @@ hard outer polygon without perspective correction. Remnant prompts stay as the
 drawn polygon so irregular offcuts are not forced into rectangles.
 
 Facade candidates from model/OpenCV extraction are also rectified when their
-outer contour is rectangular enough to produce a stable homography. Rectified
-results store transform metadata under `calibration.scale.transform` so the UI
-can project the corrected millimeter geometry back over the original photo.
+outer contour approximates to a stable quadrilateral. Rectified results preserve
+window/opening detections by projecting source-plane hole polygons through the
+same homography and only falling back to rectified-image hole detection when the
+source detector found no holes. Facade hole polygons are normalized to
+axis-aligned rectangles in the rectified plane when their contour is rectangular
+enough. Results store transform metadata under `calibration.scale.transform` so
+the UI can project the corrected millimeter geometry back over the original
+photo.
 `*_sam2_auto` uses SAM2 automatic masks as candidate outer polygons.
 `*_grounded_sam2` uses GroundingDINO text prompts for the outer object and
 holes/windows, then SAM2 turns the detected boxes into masks. If a model preset

@@ -226,6 +226,16 @@
        rectified with homography metadata, and the photo overlay projects
        rectified millimeter geometry back onto the original source photo.
 
+     [2026-06-13] Preserve facade windows during rectification
+     Files changed: workers/geometry-capture/main.py
+     Docs updated: workers/geometry-capture/README.md, TODO.org
+     Notes: Facade rectification now carries source detector window polygons
+       through the homography instead of relying only on post-warp contour
+       detection. Rectified facade openings are de-duplicated and normalized to
+       rectangular rings where their contour supports it, while automatic
+       facade perspective correction no longer uses loose minimum-area box
+       fallback corners.
+
 * WAITING Core Project Route Workflow Fixes
   :PROPERTIES:
   :ID: core-project-route-workflow-fixes
