@@ -8,6 +8,7 @@ Entity card and detail surfaces for `geometry_capture` records.
 |---|---|
 | `GeometryCaptureCard.vue` | Entity-card wrapper for photo-derived capture drafts, extraction confidence, dimensions, and lineage context. |
 | `GeometryCaptureDetail.vue` | Review surface for extracted polygons, detector presets, revisions, diagnostics, traceability, and confirmation action. |
+| `PhotoGeometryOverlay.vue` | Stored-photo overlay for drawing pre-extraction prompts and selecting detected vertices during review. |
 
 ## Contracts
 
@@ -15,10 +16,18 @@ Entity card and detail surfaces for `geometry_capture` records.
   `EntityInlineRef`, and `StatusHistory`.
 - Expects `data.geometry.preview` and `data.geometry.polygon.outer/inner` from
   the backend extraction workflow.
+- Expects `attachments.primary` to point at the immutable capture photo. The
+  detail surface renders it under the active geometry when calibration scale
+  metadata is present.
+- Creation can submit `data.prompt.outer` from a hand-drawn image-space contour;
+  the worker treats it as a SAM2/manual-mask extraction hint.
 - Expects `data.revisions[]` and `data.activeRevisionId` when recalculation is
   available. The detail surface shows revision preview tiles under the active
   geometry, can queue a new preset-based recalculation, and can reactivate older
   successful revisions.
+- Manual review edits can delete outer vertices and scale the full polygon from
+  a corrected two-vertex dimension. Saving those edits posts a manual revision,
+  which becomes the active geometry without creating a separate domain model.
 - Preset options include model-first auto, explicit OpenCV, SAM2 automatic mask,
   and GroundingDINO+SAM2 variants for both remnant and facade captures.
   Model-backed presets fall back to OpenCV when the worker image is not built

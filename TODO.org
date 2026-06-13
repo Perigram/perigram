@@ -188,6 +188,32 @@
        the token-backed subtle surface so capture list rows and revision tiles
        follow the existing design-system surface contract.
 
+     [2026-06-13] Add prompted photo review and manual geometry revisions
+     Files changed: packages/domain-cnc/src/tasks.js,
+       server/features/geometry-captures/service.js,
+       server/features/geometry-captures/model.js,
+       server/features/geometry-captures/geometry-captures.spec.js,
+       server/api/geometry-captures/[id]/revisions/manual.post.js,
+       workers/geometry-capture/main.py,
+       workers/geometry-capture/model_providers.py,
+       docker-compose.dev.yml, docker-compose.local.yml,
+       docker-stack.yml, docker-stack-external.yml,
+       pages/geometry-captures/index.vue,
+       components/entities/GeometryCapture/GeometryCaptureDetail.vue,
+       components/entities/GeometryCapture/PhotoGeometryOverlay.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: packages/domain-cnc/README.md,
+       server/features/geometry-captures/README.md,
+       workers/README.md, workers/geometry-capture/README.md,
+       pages/README.md, components/entities/GeometryCapture/README.md,
+       TODO.org
+     Notes: SAM2 defaults now use `facebook/sam2-hiera-large`. Capture
+       creation can send an optional hand-drawn image-space prompt to the
+       worker, remnants use known dimensions plus material catalog selection or
+       creation, and review renders the stored photo under geometry. Operators
+       can delete outer vertices, correct a two-vertex dimension by scaling the
+       full polygon, and save the result as an active manual revision.
+
 * WAITING Core Project Route Workflow Fixes
   :PROPERTIES:
   :ID: core-project-route-workflow-fixes

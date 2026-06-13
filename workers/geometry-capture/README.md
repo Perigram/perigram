@@ -8,6 +8,8 @@ explicit deterministic preset family.
 
 - Claims `vision.extractGeometry` through `/api/tasks/claim`.
 - Downloads the immutable capture photo from GridFS through the app file route.
+- Applies optional normalized hand-drawn prompt rings from the task parameters
+  before falling back to automatic model/OpenCV candidates.
 - Extracts a draft polygon through deterministic or model-backed preset
   candidates:
   - outer contour becomes `polygon.outer`
@@ -40,6 +42,9 @@ contour coverage, rectangularity, solidity, vertex count, and facade
 hole/window count. Results include compact diagnostics such as selected preset,
 provider, candidate, score, rejected candidate count, and scale mode.
 
+Prompted tasks run the SAM2 image predictor from the drawn outer contour first
+and keep a manual prompt-mask candidate as fallback, so a rough operator sketch
+can constrain detection even when model inference is unavailable.
 `*_sam2_auto` uses SAM2 automatic masks as candidate outer polygons.
 `*_grounded_sam2` uses GroundingDINO text prompts for the outer object and
 holes/windows, then SAM2 turns the detected boxes into masks. If a model preset
@@ -57,7 +62,7 @@ revision. Set `GEOMETRY_CAPTURE_MODEL_FIRST=0` to force OpenCV auto behavior.
 | `GEOMETRY_CAPTURE_ML` | `1` when the worker image includes ML dependencies; also enables model preload by default. |
 | `GEOMETRY_CAPTURE_MODEL_FIRST` | `1` by default; set `0` to keep auto presets on OpenCV only. |
 | `GEOMETRY_CAPTURE_PRELOAD_MODELS` | `auto`/unset preloads only with `GEOMETRY_CAPTURE_ML=1`; set `0` to skip startup preload or `1` to force it. |
-| `SAM2_MODEL_ID` | Hugging Face SAM2 model id, default `facebook/sam2-hiera-tiny` for CPU-friendly development. |
+| `SAM2_MODEL_ID` | Hugging Face SAM2 model id, default `facebook/sam2-hiera-large` for higher-quality local model-first extraction. |
 | `SAM2_CHECKPOINT` / `SAM2_MODEL_CFG` | Optional local SAM2 checkpoint/config for APIs that do not support `from_pretrained`. |
 | `SAM2_DEVICE` | `cpu` by default; set to `cuda` only in a GPU worker image. |
 | `GROUNDING_DINO_MODEL` | Hugging Face GroundingDINO model id, default `IDEA-Research/grounding-dino-tiny`. |

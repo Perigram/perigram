@@ -10,7 +10,7 @@ workflows.
 | `model.js` | `GeometryCapture` v24 entity wrapper. |
 | `repository.js` | MongoDB access for `geometry_captures`, using flexible ids. |
 | `service.js` | Capture creation, extraction task enqueueing, worker-result application, review updates, and confirmation. |
-| `server/api/geometry-captures/` | Authenticated CRUD/confirm routes plus worker-result callback. |
+| `server/api/geometry-captures/` | Authenticated CRUD/confirm/revision routes plus worker-result callback. |
 
 ## Data Contract
 
@@ -18,10 +18,12 @@ workflows.
 - `attachments.primary`: original immutable capture photo (`CAPTURE_PHOTO`).
 - `data.calibration`: scale assumptions such as known size, sheet size, or
   facade floor count/height.
+- `data.prompt`: optional normalized image-space prompt rings from operator
+  hand drawing. The extraction task receives this as a SAM2/manual-mask hint.
 - `data.activeRevisionId`: accepted extraction revision currently projected
   into `data.geometry`.
 - `data.revisions[]`: recalculation attempts with preset, task run, geometry,
-  confidence, diagnostics, metrics, and failure state.
+  prompt, confidence, diagnostics, metrics, and failure state.
 - `data.geometry.polygon.outer`: extracted closed outer ring in millimeters.
 - `data.geometry.polygon.inner`: extracted closed hole rings in millimeters.
 - `data.geometry.preview`: `DrawingCanvas` preview generated from the polygon.
@@ -31,7 +33,8 @@ workflows.
 
 ## Workflow
 
-1. Authenticated UI uploads a photo to the `capturePhotos` GridFS bucket.
+1. Authenticated UI uploads a photo to the `capturePhotos` GridFS bucket. The
+   UI may also submit a normalized hand-drawn outer contour prompt.
 2. `create()` persists a `geometry_capture` and queues
    `vision.extractGeometry`.
 3. `workers/geometry-capture` claims the task for the pending revision. Auto
@@ -46,11 +49,15 @@ workflows.
    - `FACADE` stores the accepted draft only; facade entities are deferred.
 
 Recalculation uses `POST /api/geometry-captures/:id/recalculate` with a detector
-preset and optional calibration override. It appends a new revision and queues a
-new `vision.extractGeometry` task using an idempotency key scoped to that
-revision. `POST /api/geometry-captures/:id/revisions/:revisionId/activate`
-switches `data.activeRevisionId` back to any successful revision and refreshes
-the denormalized geometry/specs fields.
+preset, optional calibration override, and optional prompt override. It appends
+a new revision and queues a new `vision.extractGeometry` task using an
+idempotency key scoped to that revision.
+`POST /api/geometry-captures/:id/revisions/manual` stores an operator-edited
+polygon as a ready revision, activates it immediately, and regenerates specs and
+preview from the submitted geometry. `POST
+/api/geometry-captures/:id/revisions/:revisionId/activate` switches
+`data.activeRevisionId` back to any successful revision and refreshes the
+denormalized geometry/specs fields.
 
 ## Access
 

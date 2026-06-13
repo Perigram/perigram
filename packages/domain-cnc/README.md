@@ -42,8 +42,9 @@ same lifecycle vocabulary.
 
 `geometry_capture` is the generic photo-to-vector bridge for remnant capture and
 facade draft capture. It queues `vision.extractGeometry`, stores polygon
-geometry with hole rings, and keeps facade output draft-only until facade domain
-entities are introduced.
+geometry with hole rings, accepts optional normalized image-space prompt rings
+for model-assisted extraction, and keeps facade output draft-only until facade
+domain entities are introduced.
 
 `generateConfigBotDraft` and `reindexConfigBotKnowledge` are admin capability
 commands. They require `config_bot: admin`, produce command `data`, and do not

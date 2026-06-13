@@ -37,8 +37,11 @@ surface and must not render tabs or `NuxtPage`.
 `pages/geometry-captures/index.vue` is the authenticated review workspace for
 photo-derived geometry. Its creation flow is camera/upload first: mode-specific
 inputs infer calibration, route/default warehouse or project context is applied
-without an explicit selector, and the resulting `geometry_capture` queues
-model-first extraction before review/confirmation.
+without an explicit selector, remnant captures use only known dimensions plus an
+existing or newly created material, and selected photos can receive an optional
+hand-drawn outer contour prompt before upload. The resulting `geometry_capture`
+queues model-first extraction before photo-backed review, manual revision
+editing, and confirmation.
 
 Nested project child list/workflow routes under `pages/project/[slug]/` render
 inside the project entity page shell. They use section primitives such as

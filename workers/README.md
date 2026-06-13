@@ -11,7 +11,7 @@ protocol under `/api/tasks/*`; polling workers authenticate with
 |---|---|---|---|
 | fileprocessing | `dxf.parseUpload` | `workers/fileprocessing/main.py` | Reads uploaded DXF payloads, extracts metadata/geometry, writes preview files. |
 | cassette-processing | `cassette.bakeTemplate` | `workers/cassette-processing/main.py` | Bakes cassette templates into concrete geometry/DXF data. |
-| geometry-capture | `vision.extractGeometry` | `workers/geometry-capture/main.py` | Uses model-first SAM2/GroundingDINO auto presets with OpenCV fallback to turn capture photos into revisioned draft polygons with hole contours. |
+| geometry-capture | `vision.extractGeometry` | `workers/geometry-capture/main.py` | Uses prompted/automatic SAM2, GroundingDINO, and OpenCV fallback to turn capture photos into revisioned draft polygons with hole contours. |
 | nesting | `nesting.solve` HTTP executor | `workers/nesting/worker_service.py` | Pure FastAPI 2D nesting solver called by the app/adapter. |
 
 ## Protocol
