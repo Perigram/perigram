@@ -425,6 +425,17 @@
        through preview-first source tiles that show remnant geometry when stored
        and rectangular stock dimensions for sheet/pile sources.
 
+*** Agent Notes
+     [2026-06-13] Tighten queue source selector cards
+     Files changed: components/QueueEditor.vue,
+       components/entities/Queue/QueueSourceCard.vue
+     Docs updated: components/README.md,
+       components/entities/Queue/README.md, TODO.org
+     Notes: Source selector tiles now use a smaller fixed-width card and an
+       internal SVG preview instead of the full drawing canvas. Remnant source
+       polygons are drawn directly when available; sheet and pile sources use
+       their stock dimensions as the preview rectangle.
+
 * WAITING E2E Workflow Test Harness
   :PROPERTIES:
   :ID: e2e-workflow-test-harness

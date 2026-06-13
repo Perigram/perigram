@@ -174,8 +174,8 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   source selection (`Virtual` plus warehouse options), tool selection, and the
   run action. Virtual mode renders the virtual sheet dimensions as the active
   material abstraction; warehouse mode adds a selected source immediately from
-  the source dropdown and renders selected material sources as preview-first
-  `QueueSourceCard` tiles in a horizontally scrolled row. Queue
+  the source dropdown and renders selected material sources as compact
+  `QueueSourceCard` preview tiles in a horizontally scrolled row. Queue
   settings keep `Run nesting` as the only primary action; section utility,
   add, upload, and view controls use compact secondary buttons. Queue
   status/actions, including destructive queue removal, live on the selected

@@ -9,7 +9,7 @@ Production queue card and detail surface.
 | `QueueCard.vue` | Entity card wrapper for queue identity, job item totals, output summary, and lifecycle actions. |
 | `QueueDetail.vue` | Detail page body for artifacts, job composition, consumed source relations, and history. |
 | `QueueEntryCard.vue` | Queue-editor cassette entry card with source inline ref, thumbnail, quantity, and parameter editing. |
-| `QueueSourceCard.vue` | Queue-editor selected material source tile with preview, identity, dimensions, and count. |
+| `QueueSourceCard.vue` | Compact queue-editor material source tile with deterministic SVG preview, identity, dimensions, and count. |
 
 ## Contract
 
@@ -32,10 +32,10 @@ Production queue card and detail surface.
   and parameter updates while `QueueEditor` remains the owner of persistence and
   `_key`-based row deletion. These rows keep natural panel height inside the
   center lane grid; the workspace lane owns scrolling.
-- Queue editor selected warehouse sources use `QueueSourceCard` instead of
-  embedding pile/sheet/remnant cards. It renders remnant geometry through
-  `GeometryPreview` when present and uses a rectangular sheet preview for stock
-  sources without stored geometry.
+- Queue editor selected warehouse sources use compact `QueueSourceCard` tiles
+  instead of embedding pile/sheet/remnant cards. It draws remnant polygons when
+  present and rectangular sheet previews for stock sources without stored
+  geometry.
 
 ## Related
 
