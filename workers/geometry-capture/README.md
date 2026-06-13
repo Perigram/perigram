@@ -81,6 +81,10 @@ Model dependencies are opt-in because Torch/SAM2/GroundingDINO are large:
 GEOMETRY_CAPTURE_ML=1 docker compose -f docker-compose.dev.yml up -d --build geometry-capture-worker
 ```
 
+`requirements-ml.txt` keeps the PyTorch CPU wheel index configured while using
+plain Torch/Torchvision version pins, because the CPU index now resolves those
+versions without the local `+cpu` suffix.
+
 The project `start-dev.sh` and `build-images.sh` scripts default
 `GEOMETRY_CAPTURE_ML` to `1` for this worker, so script-driven local/dev image
 builds run the model-first worker unless `GEOMETRY_CAPTURE_ML=0` is set.
