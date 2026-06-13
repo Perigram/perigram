@@ -22,6 +22,7 @@ const canDraw = computed(() => props.promptEditable && props.imageUrl);
 const outerPrompt = computed(() => props.prompt?.outer || []);
 const scale = computed(() => props.calibration?.scale || {});
 const pixelBounds = computed(() => scale.value.pixelBounds || {});
+const transform = computed(() => scale.value.transform || {});
 
 const geometryOuter = computed(() => {
   const ring = props.geometry?.polygon?.outer || [];
@@ -84,10 +85,14 @@ function pointToImagePixel(point) {
   const minX = Number(pixelBounds.value.min_x ?? pixelBounds.value.minX);
   const minY = Number(pixelBounds.value.min_y ?? pixelBounds.value.minY);
   if (!width || !height || !scaleX || !scaleY || !Number.isFinite(minX) || !Number.isFinite(minY)) return null;
-  return [
+  const canvasPoint = [
     minX + Number(point[0]) / scaleX,
     minY + Number(point[1]) / scaleY
   ];
+  if (transform.value.type === 'homography' && Array.isArray(transform.value.warpedToSource)) {
+    return applyHomography(canvasPoint, transform.value.warpedToSource);
+  }
+  return canvasPoint;
 }
 
 function isSelected(index) {
@@ -123,6 +128,20 @@ function simplifyNormalizedRing(points) {
 
 function clamp(value) {
   return Math.min(Math.max(Number(value) || 0, 0), 1);
+}
+
+function applyHomography(point, matrix) {
+  if (!Array.isArray(matrix) || matrix.length < 3 || matrix.some(row => !Array.isArray(row) || row.length < 3)) {
+    return point;
+  }
+  const [x, y] = point;
+  const denominator = matrix[2][0] * x + matrix[2][1] * y + matrix[2][2];
+  if (!denominator) return point;
+  const projected = [
+    (matrix[0][0] * x + matrix[0][1] * y + matrix[0][2]) / denominator,
+    (matrix[1][0] * x + matrix[1][1] * y + matrix[1][2]) / denominator
+  ];
+  return projected.every(Number.isFinite) ? projected : point;
 }
 </script>
 
