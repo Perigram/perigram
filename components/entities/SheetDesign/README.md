@@ -18,8 +18,8 @@
   utilization and `summary.placedCount` for placed parts.
 - The detail page DXF action triggers the standard
   `generateAttachment` command with `entities.sheetDesign` and
-  `parameters.kind = "LAYOUT_DXF"`; it is a command action, not a passive
-  button.
+  `parameters.kind = "LAYOUT_DXF"`, then downloads the returned artifact from
+  `/api/artifacts/:id`.
 - Cards show a compact cassette-design summary when `data.cassetteDesigns` is
   present. The detail sidebar lists each cassette design placed on the sheet
   with `EntityInlineRef type="cassetteDesign"` and its placement count; it must

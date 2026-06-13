@@ -41,8 +41,9 @@ blocked by unrelated shell noise.
   `/api/queue/:id/nest` accepts `WAREHOUSE` material-pool command input before
   returning the expected business validation error for an empty queue.
 - `entity-actions.spec.js`: verifies user clicks on entity action buttons send
-  the expected command/API requests for sheet-design DXF generation and
-  cassette-template-to-design creation.
+  the expected command/API requests, sheet-design DXF action downloads the
+  generated artifact, cassette-template creation uses OCCS defaults, and the
+  seeded sheet/template/design DXF export routes return real DXF content.
 
 The queue nesting regression intentionally stops before the worker-backed
 solve. Full nesting tests need explicit fixture cassette geometry and a running

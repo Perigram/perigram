@@ -19,6 +19,9 @@ and rendered through the `cassetteTemplate` design-system contract.
   backend current-geometry revision pointer exists.
 - Create/download actions remain footer actions and do not replace entity
   relation rows.
+- Create-design action sends concrete parameter values. When `data.parameters`
+  only lists parameter names, defaults are read from OCCS
+  `data.definition.parameters` instead of falling back to `1`.
 
 ## Related
 

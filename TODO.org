@@ -2043,6 +2043,29 @@
   Baked cassette should include all the layers using layer standard. Only the one layer should be used in nesting, that in marked as nesting layer in standard. Artifacts created during nesting should use transform data for placing other layers data back to nested cassettes. Of course, everything should be done procedurally without hardcoding layer names etc.
 
 *** Agent Notes
+    [2026-06-13] Add app-level DXF export coverage and action fixes
+    Files changed:
+    - components/CassetteManager.vue
+    - components/entities/SheetDesign/SheetDesignDetail.vue
+    - e2e/entity-actions.spec.js
+    - server/features/cassette-designs/service.js
+    - server/features/cassette-designs/service.spec.js
+    Docs updated:
+    - components/entities/CassetteTemplate/README.md
+    - components/entities/SheetDesign/README.md
+    - e2e/README.md
+    - server/features/cassette-designs/README.md
+    - TODO.org
+    Notes:
+    - Sheet-design DXF action now downloads the artifact returned by
+      `generateAttachment`.
+    - Cassette template create-design action now derives OCCS parameter defaults
+      from `data.definition.parameters` when `data.parameters` is only a name
+      list.
+    - Cassette-design export can regenerate DXF from stored preview layers, and
+      Playwright now checks real seeded sheet/template/design export routes.
+
+*** Agent Notes
     [2026-06-13] Fix layered DXF exports for cassettes and sheet designs
     Files changed:
     - server/utils/dxf-writer.js

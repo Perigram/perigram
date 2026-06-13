@@ -38,10 +38,10 @@ Aligned with `@PROPOSED_DATA_MODEL.md` Section 5:
   `useEntity('cassetteDesign')`; cards must not fetch cassette designs through
   template or cassette fallback routes.
 - `GET /api/cassette-designs/:id/export` downloads the design DXF. The service
-  regenerates a layer-aware DXF from stored `layerData` / `polygonParts` before
-  using `data.geometry.dxfId` from the `cassettes` GridFS bucket. This keeps
-  exported designs aligned with the stored semantic OCCS layers even when an
-  older baked file contains only contour geometry. If a template id is passed,
+  regenerates a layer-aware DXF from stored preview layers, `layerData`, or
+  `polygonParts` before using `data.geometry.dxfId` from the `cassettes` GridFS
+  bucket. This keeps exported designs aligned with stored semantic OCCS layers
+  and lets older preview-only records export a DXF. If a template id is passed,
   the service resolves the first design with `lineage.templateId` for standard
   upload/base-design flows.
 - `GET /api/cassette-designs/by-template/:id` remains a convenience lookup for
