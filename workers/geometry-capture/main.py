@@ -197,6 +197,7 @@ def extract_prompt_constrained_geometry(image, resize_scale, mode, calibration, 
 
     quad = prompt_quad(prompt_points, allow_box_fallback=False) if mode == "FACADE" else None
     if quad is not None:
+        source_holes = collect_facade_source_holes(image, resize_scale, preset)
         return extract_quad_rectified_geometry(
             image,
             resize_scale,
@@ -211,6 +212,7 @@ def extract_prompt_constrained_geometry(image, resize_scale, mode, calibration, 
             0.98,
             ["prompt:outer", "perspective:homography"],
             {"areaRatio": 1.0, "rectangularity": 1.0, "solidity": 1.0},
+            source_holes,
         )
 
     outer_px = ensure_clockwise(close_ring(simplify_prompt_points(prompt_points, resize_scale)))
@@ -267,11 +269,12 @@ def extract_auto_facade_rectified_geometry(image, resize_scale, mode, calibratio
         return None
 
     resized_points = [[point[0] * resize_scale, point[1] * resize_scale] for point in outer_px[:-1]]
-    quad = prompt_quad(resized_points, allow_box_fallback=True)
+    quad = prompt_quad(resized_points, allow_box_fallback=False)
     if quad is None:
         return None
 
     score = float(candidate.get("score") or 0)
+    source_holes = [ensure_counter_clockwise(close_ring(ring)) for ring in candidate.get("holes") or [] if len(ring) >= 4]
     confidence = score_confidence(outer_px, candidate.get("holes") or [], mode, calibration, {"scaleX": 1, "scaleY": 1}, candidate)
     return extract_quad_rectified_geometry(
         image,
@@ -291,18 +294,21 @@ def extract_auto_facade_rectified_geometry(image, resize_scale, mode, calibratio
             "rectangularity": candidate.get("rectangularity"),
             "solidity": candidate.get("solidity"),
         },
+        source_holes,
     )
 
 
-def extract_quad_rectified_geometry(image, resize_scale, mode, calibration, preset, revision_id, quad, provider, candidate_name, candidate_score, confidence, extra_diagnostics, debug_metrics):
-    warped, warped_to_source, rectified_size = warp_prompt_quad(image, quad, resize_scale)
+def extract_quad_rectified_geometry(image, resize_scale, mode, calibration, preset, revision_id, quad, provider, candidate_name, candidate_score, confidence, extra_diagnostics, debug_metrics, source_holes=None):
+    warped, warped_to_source, source_to_warped, rectified_size = warp_prompt_quad(image, quad, resize_scale)
     outer_px = close_ring([
         [0.0, 0.0],
         [float(rectified_size[0]), 0.0],
         [float(rectified_size[0]), float(rectified_size[1])],
         [0.0, float(rectified_size[1])],
     ])
-    holes_px = extract_rectified_holes(warped, mode, outer_px)
+    detected_holes = extract_rectified_holes(warped, mode, outer_px)
+    projected_holes = project_source_holes_to_rectified(source_holes or [], source_to_warped, rectified_size, mode)
+    holes_px = merge_rectified_holes(projected_holes or detected_holes, rectified_size, mode)
     outer_mm, holes_mm, scale_info = scale_polygon(outer_px, holes_px, calibration)
     scale_info["transform"] = {
         "type": "homography",
@@ -322,11 +328,32 @@ def extract_quad_rectified_geometry(image, resize_scale, mode, calibration, pres
         f"scale_mode:{scale_info['mode']}",
         *extra_diagnostics,
     ]
+    if projected_holes:
+        diagnostics.append(f"projected_holes:{len(projected_holes)}")
+    if detected_holes:
+        diagnostics.append(f"detected_holes:{len(detected_holes)}")
     return extraction_result(revision_id, preset, outer_mm, holes_mm, calibration, scale_info, confidence, diagnostics, {
         "pixelBounds": scale_info["pixelBounds"],
         "score": round(candidate_score, 3),
         **debug_metrics,
     })
+
+
+def collect_facade_source_holes(image, resize_scale, preset):
+    holes = []
+    try:
+        candidates, _ = build_candidates_for_preset(image, "FACADE", preset, allow_model=True, prompt=None)
+    except Exception:
+        candidates = []
+    scored = []
+    for candidate in candidates:
+        result = analyze_candidate(candidate, resize_scale, "FACADE")
+        if result:
+            scored.append(result)
+    if scored:
+        best = max(scored, key=lambda item: item.get("score") or 0)
+        holes.extend(best.get("holes") or [])
+    return [ensure_counter_clockwise(close_ring(ring)) for ring in holes if len(ring) >= 4]
 
 
 def normalize_preset(mode, preset):
@@ -455,7 +482,10 @@ def warp_prompt_quad(image, quad, resize_scale):
     warped_to_source = warped_to_resized.copy()
     warped_to_source[0, :] = warped_to_source[0, :] / resize_scale
     warped_to_source[1, :] = warped_to_source[1, :] / resize_scale
-    return warped, warped_to_source, (target_width - 1, target_height - 1)
+    source_to_warped_original = source_to_warped.copy()
+    source_to_warped_original[:, 0] = source_to_warped_original[:, 0] * resize_scale
+    source_to_warped_original[:, 1] = source_to_warped_original[:, 1] * resize_scale
+    return warped, warped_to_source, source_to_warped_original, (target_width - 1, target_height - 1)
 
 
 def extract_rectified_holes(image, mode, outer_px):
@@ -474,7 +504,126 @@ def extract_rectified_holes(image, mode, outer_px):
                     continue
                 holes.append((cv2.contourArea(contour), approximate_contour(contour, 1.0, candidate["epsilonRatio"])))
     max_holes = 64 if mode == "FACADE" else 24
-    return [ring for _, ring in sorted(holes, key=lambda item: item[0], reverse=True)[:max_holes]]
+    return [ensure_counter_clockwise(close_ring(ring)) for _, ring in sorted(holes, key=lambda item: item[0], reverse=True)[:max_holes]]
+
+
+def project_source_holes_to_rectified(source_holes, source_to_warped, rectified_size, mode):
+    if mode != "FACADE":
+        return []
+    projected = []
+    for ring in source_holes:
+        points = []
+        for point in ring[:-1] if ring and ring[0] == ring[-1] else ring:
+            warped = apply_homography(point, source_to_warped)
+            if warped:
+                points.append(warped)
+        if len(points) < 3:
+            continue
+        cleaned = clip_ring_to_rectified_bounds(points, rectified_size)
+        if len(cleaned) >= 3:
+            projected.append(ensure_counter_clockwise(close_ring(cleaned)))
+    return projected
+
+
+def merge_rectified_holes(holes, rectified_size, mode):
+    if mode != "FACADE":
+        return holes
+
+    candidates = []
+    for ring in holes:
+        normalized = rectilinearize_facade_hole(ring)
+        if normalized is None:
+            continue
+        bounds = bounds_for_ring(normalized)
+        area = abs(signed_area(normalized))
+        if not is_rectified_hole_ring(bounds, area, rectified_size, mode):
+            continue
+        candidates.append({"ring": ensure_counter_clockwise(close_ring(normalized)), "bounds": bounds, "area": area})
+
+    merged = []
+    for candidate in sorted(candidates, key=lambda item: item["area"], reverse=True):
+        overlap_index = next((index for index, item in enumerate(merged) if bounds_iou(candidate["bounds"], item["bounds"]) > 0.45), None)
+        if overlap_index is None:
+            merged.append(candidate)
+            continue
+        if merged[overlap_index]["area"] > candidate["area"] * 1.8:
+            merged[overlap_index] = candidate
+            continue
+    return [item["ring"] for item in merged[:64]]
+
+
+def rectilinearize_facade_hole(ring):
+    points = ring[:-1] if ring and ring[0] == ring[-1] else ring
+    if len(points) < 3:
+        return None
+    contour = np.array(points, dtype=np.float32).reshape(-1, 1, 2)
+    area = abs(cv2.contourArea(contour))
+    if area <= 1:
+        return None
+    x, y, w, h = cv2.boundingRect(contour)
+    if w <= 1 or h <= 1:
+        return None
+    rectangularity = min(area / max(float(w * h), 1.0), 1.0)
+    aspect = float(w) / max(float(h), 1.0)
+    if rectangularity < 0.38 or aspect < 0.18 or aspect > 7.0:
+        return ensure_counter_clockwise(close_ring([[round(float(px), 3), round(float(py), 3)] for px, py in points]))
+    return ensure_counter_clockwise(close_ring([
+        [round(float(x), 3), round(float(y), 3)],
+        [round(float(x + w), 3), round(float(y), 3)],
+        [round(float(x + w), 3), round(float(y + h), 3)],
+        [round(float(x), 3), round(float(y + h), 3)],
+    ]))
+
+
+def is_rectified_hole_ring(bounds, area, rectified_size, mode):
+    width, height = rectified_size
+    outer_area = max(float(width * height), 1.0)
+    min_area = max(80.0, outer_area * (0.0015 if mode == "FACADE" else 0.0005))
+    max_area = outer_area * (0.18 if mode == "FACADE" else 0.35)
+    if area < min_area or area > max_area:
+        return False
+    border_pad = max(2, int(min(width, height) * 0.005))
+    if bounds["min_x"] <= border_pad or bounds["min_y"] <= border_pad:
+        return False
+    if bounds["max_x"] >= width - border_pad or bounds["max_y"] >= height - border_pad:
+        return False
+    aspect = bounds["width"] / max(bounds["height"], 1.0)
+    return 0.18 <= aspect <= 7.0
+
+
+def clip_ring_to_rectified_bounds(ring, rectified_size):
+    width, height = rectified_size
+    result = []
+    for x, y in ring:
+        if not np.isfinite(x) or not np.isfinite(y):
+            continue
+        result.append([
+            round(min(max(float(x), 0.0), float(width)), 3),
+            round(min(max(float(y), 0.0), float(height)), 3),
+        ])
+    return result
+
+
+def apply_homography(point, matrix):
+    x, y = point
+    denominator = matrix[2][0] * x + matrix[2][1] * y + matrix[2][2]
+    if abs(denominator) < 1e-9:
+        return None
+    return [
+        (matrix[0][0] * x + matrix[0][1] * y + matrix[0][2]) / denominator,
+        (matrix[1][0] * x + matrix[1][1] * y + matrix[1][2]) / denominator,
+    ]
+
+
+def bounds_iou(first, second):
+    left = max(first["min_x"], second["min_x"])
+    top = max(first["min_y"], second["min_y"])
+    right = min(first["max_x"], second["max_x"])
+    bottom = min(first["max_y"], second["max_y"])
+    intersection = max(right - left, 0.0) * max(bottom - top, 0.0)
+    first_area = max(first["width"] * first["height"], 1.0)
+    second_area = max(second["width"] * second["height"], 1.0)
+    return intersection / max(first_area + second_area - intersection, 1.0)
 
 
 def is_rectified_hole_candidate(contour, shape, outer_area, mode):
