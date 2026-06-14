@@ -67,6 +67,7 @@ export { expect };
 function shouldFailOnClientError(url, status) {
   if (status < 400 || status >= 500) return false;
   if (url.includes('/api/status/actions')) return true;
+  if (url.includes('/api/status/transition')) return true;
   if (url.includes('/api/queue/') && (url.endsWith('/nest') || url.includes('/choose-run'))) return true;
   return false;
 }

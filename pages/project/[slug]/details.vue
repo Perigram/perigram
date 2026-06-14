@@ -22,7 +22,14 @@
 
             <Panel :header="$t('status.status')">
                 <div class="flex flex-col gap-4">
-                    <EntityStatus :entity="project" entity-type="project" variant="inline" :show-history="false" />
+                    <EntityStatus
+                        :entity="project"
+                        entity-type="project"
+                        variant="inline"
+                        :show-history="false"
+                        @refresh="loadProject"
+                        @transitioned="loadProject"
+                    />
                     <StatusHistory :entity="project" entity-type="project" compact />
                 </div>
             </Panel>

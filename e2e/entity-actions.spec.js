@@ -2,6 +2,41 @@ import { test, expect } from './fixtures.js';
 import { createCncFixtureScenario } from '../test-data/scenarios.js';
 
 test.describe('entity action buttons', () => {
+  test('transitions an entity through the shared status control', async ({ app }) => {
+    const project = await app.createProject();
+    const projectSlug = project.identity?.slug || project._id;
+
+    await app.page.goto(`/project/${projectSlug}/details`);
+    const statusControl = app.page.locator(
+      `[data-entity-status="true"][data-entity-type="project"][data-entity-id="${project._id}"]`
+    );
+    await expect(statusControl).toBeVisible();
+    await expect(statusControl.locator('[data-status-menu-trigger="true"]')).toBeVisible();
+
+    const transitionResponsePromise = app.page.waitForResponse(response =>
+      response.url().includes('/api/status/transition') &&
+      response.request().method() === 'POST'
+    );
+
+    await statusControl.locator('[data-status-menu-trigger="true"]').click();
+    const activeAction = app.page.locator('[data-status-action="ACTIVE"]').first();
+    await expect(activeAction).toBeVisible();
+    await activeAction.click();
+
+    const transitionResponse = await transitionResponsePromise;
+    const transitionText = await transitionResponse.text();
+    expect(transitionResponse.ok(), transitionText).toBeTruthy();
+
+    const updatedResponse = await app.request.get(`/api/project/${projectSlug}`, {
+      failOnStatusCode: false
+    });
+    const updatedText = await updatedResponse.text();
+    expect(updatedResponse.ok(), updatedText).toBeTruthy();
+    const updatedProject = JSON.parse(updatedText);
+    expect(updatedProject.status?.state).toBe('ACTIVE');
+    await app.expectCleanRuntime();
+  });
+
   test('generates and downloads DXF from the sheet design detail action', async ({ app }) => {
     let commandBody = null;
 

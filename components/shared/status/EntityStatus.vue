@@ -178,6 +178,9 @@ function normalizeEventType(type) {
     v-if="props.entity"
     class="entity-status inline-flex min-w-0 max-w-full justify-end"
     data-entity-card-interactive="true"
+    data-entity-status="true"
+    :data-entity-type="entityType"
+    :data-entity-id="entityId"
     @click.stop
   >
     <template v-if="!isExpanded">
@@ -190,6 +193,7 @@ function normalizeEventType(type) {
           :icon="action.icon"
           :severity="action.severity || 'secondary'"
           :disabled="isTransitioning"
+          :data-status-action="action.to || action.label"
           size="small"
           text
           class="shrink-0"
@@ -203,6 +207,7 @@ function normalizeEventType(type) {
           size="small"
           severity="secondary"
           :aria-label="$t('common.more')"
+          data-status-menu-trigger="true"
           @click.stop="toggle"
         />
       </div>
@@ -217,6 +222,7 @@ function normalizeEventType(type) {
                       :icon="action.icon"
                       :severity="action.severity || 'secondary'"
                       :disabled="isTransitioning"
+                      :data-status-action="action.to || action.label"
                       size="small"
                       text
                       class="justify-start whitespace-normal text-left"
@@ -258,6 +264,7 @@ function normalizeEventType(type) {
                     :icon="action.icon"
                     :severity="action.severity || 'secondary'"
                     :disabled="isTransitioning"
+                    :data-status-action="action.to || action.label"
                     size="small"
                     @click.stop="runAction(action)"
                 />
@@ -269,6 +276,7 @@ function normalizeEventType(type) {
                     size="small"
                     severity="secondary"
                     :aria-label="$t('common.more')"
+                    data-status-menu-trigger="true"
                     @click.stop="toggle"
                 />
             </div>
@@ -282,6 +290,7 @@ function normalizeEventType(type) {
                         :icon="action.icon"
                         :severity="action.severity || 'secondary'"
                         :disabled="isTransitioning"
+                        :data-status-action="action.to || action.label"
                         size="small"
                         text
                         class="justify-start whitespace-normal text-left"
