@@ -28,7 +28,7 @@ database. If local Playwright browsers are not installed, the config uses
 when set.
 
 The shared fixture fails tests on page exceptions, server errors, and guarded
-client errors such as queue nesting or status-action failures. It ignores only
+client errors such as queue nesting or status action/transition failures. It ignores only
 Vue's exact dev-mode hydration summary message so smoke workflows are not
 blocked by unrelated shell noise.
 
@@ -41,7 +41,8 @@ blocked by unrelated shell noise.
   `/api/queue/:id/nest` accepts `WAREHOUSE` material-pool command input before
   returning the expected business validation error for an empty queue.
 - `entity-actions.spec.js`: verifies user clicks on entity action buttons send
-  the expected command/API requests, sheet-design DXF action downloads the
+  the expected command/API requests, verifies a generic shared `EntityStatus`
+  transition against a project workflow, sheet-design DXF action downloads the
   generated artifact, cassette-template creation uses OCCS defaults, and the
   seeded sheet/template/design DXF export routes return real DXF content.
 

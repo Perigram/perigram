@@ -103,6 +103,9 @@ Successful server transitions emit the `transitioned` event from
 from the status component itself. `EntityCard` forwards both as `refresh` for
 every variant, so entity-specific cards and pages can reload entity-local data
 after lifecycle changes without wiring listeners in each card.
+The root exposes stable E2E hooks through `data-entity-status`,
+`data-entity-type`, and `data-entity-id`; menu triggers and transition buttons
+use `data-status-menu-trigger` and `data-status-action`.
 
 **Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@cutkit/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `EntityStatus`, hides it, or renders read-only status.
 Interactive status is enabled only for entity types that have a real workflow in

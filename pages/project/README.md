@@ -23,7 +23,8 @@ Routes under `pages/project/` render the authenticated project workspace.
 - `[slug]/sheet-design/[sheetDesignId].vue`: Sheet-design detail route opened
   from sheet design cards and nesting run results.
 - `[slug]/details.vue`: Project identity, access-aware project fields,
-  interactive status, and status history.
+  interactive status, and status history. Direct status changes reload the
+  project through the shared status component events.
 - `[slug]/data.vue` and `[slug]/artifacts.vue`: Project data and artifact views.
 
 ## Workflow Notes

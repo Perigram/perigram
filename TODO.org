@@ -523,6 +523,19 @@
        warehouse material pools before returning expected empty-queue business
        validation.
 
+*** Agent Notes
+     [2026-06-14] Cover shared entity status transitions in Playwright
+     Files changed: components/shared/status/EntityStatus.vue,
+       pages/project/[slug]/details.vue, e2e/fixtures.js,
+       e2e/entity-actions.spec.js
+     Docs updated: components/shared/README.md, pages/project/README.md,
+       e2e/README.md, TODO.org
+     Notes: EntityStatus now exposes stable entity/action selectors for e2e
+       workflows, project details reload after direct status events, and the
+       shared Playwright fixture fails on status transition 4xx responses. The
+       new e2e coverage clicks a generic project status transition through the
+       shared control instead of a nesting-run-specific action.
+
 * WAITING Domain Entity Card Contract Redesign
   :PROPERTIES:
   :ID: domain-entity-card-contract-redesign
