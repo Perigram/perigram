@@ -12,8 +12,10 @@ Routes under `pages/project/` render the authenticated project workspace.
 - `[slug]/queues.vue`: Active queue editor for creating queue entries, selecting
   warehouse stock, running nesting, and opening generated runs. The route
   delegates workspace actions to `QueueEditor`; it does not render a separate
-  top action bar. The app layout gives this route a viewport-bounded frame, and
-  the route fills that area so scrolling stays inside workspace lanes/panels.
+  top action bar. Queue creation controls render only when the active membership
+  has `queues:create` access, matching the backend `queues:write` check. The app
+  layout gives this route a viewport-bounded frame, and the route fills that
+  area so scrolling stays inside workspace lanes/panels.
 - `[slug]/sheet-designs.vue`: Project-level list of generated sheet designs for
   selected production runs. It resolves project queues, reads
   `queue.data.materialConsumption.runId`, loads sheet designs by queue, and

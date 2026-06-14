@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+     [2026-06-14] Fix breadcrumb sibling trigger and queue create visibility
+     Files changed: layouts/app.vue, layouts/README.md,
+       components/QueueEditor.vue, pages/project/[slug]/queues.vue,
+       i18n/locales/en.json, i18n/locales/ru.json,
+       pages/project/README.md
+     Docs updated: layouts/README.md, pages/project/README.md, TODO.org
+     Notes: Breadcrumb sibling navigation now uses an icon-only popup menu so
+       production builds cannot render a duplicate selected label inside the
+       trigger. Project queue creation controls now check `queues:create` before
+       rendering or posting, matching the backend queue write permission.
+
+*** Agent Notes
      [2026-06-14] Recover duplicate signup accounts without organizations
      Files changed: server/api/auth/register.post.js,
        server/features/users/service.js, server/features/users/users.spec.js
