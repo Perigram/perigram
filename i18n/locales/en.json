@@ -1115,6 +1115,8 @@
     "hasAccount": "Already have an account?",
     "createAccount": "Create your account",
     "organization": "Organization",
+    "organizationName": "Organization name",
+    "organizationType": "Organization type",
     "createOrg": "Create Organization",
     "accessPreset": "Access preset",
     "selectAccessPreset": "Select access preset",

@@ -1115,6 +1115,8 @@
     "hasAccount": "Уже есть учетная запись?",
     "createAccount": "Создать учетную запись",
     "organization": "Организация",
+    "organizationName": "Название организации",
+    "organizationType": "Тип организации",
     "createOrg": "Создать организацию",
     "accessPreset": "Пресет доступа",
     "selectAccessPreset": "Выберите пресет доступа",

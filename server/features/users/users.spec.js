@@ -8,6 +8,7 @@ const { mockedConnectDB } = vi.hoisted(() => ({
 vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
 
 import * as userService from './service';
+import * as organizationService from '../organizations/service';
 import { User } from './model';
 
 vi.mock('h3', () => ({
@@ -45,6 +46,7 @@ describe('User Management & Auth', () => {
 
   beforeEach(async () => {
     await db.collection('users').deleteMany({});
+    await db.collection('organizations').deleteMany({});
   });
 
   it('should register a user with correct permission template', async () => {
@@ -81,6 +83,27 @@ describe('User Management & Auth', () => {
     expect(result.user.toJSON().data.email).toBe('login@example.com');
     expect(result.sessionId).toBeTruthy();
     expect(result.accessToken).toBeTruthy();
+  });
+
+  it('should create an initial organization membership for signup users', async () => {
+    const user = await userService.register({
+      email: 'owner@example.com',
+      password: 'password123',
+      name: 'Owner User'
+    });
+
+    const organization = await organizationService.createInitialForUser(user.id, {
+      name: 'Owner Workshop',
+      type: 'Contractor'
+    });
+
+    const rawUser = await db.collection('users').findOne({ 'data.email': 'owner@example.com' });
+    expect(organization.toJSON().identity.name).toBe('Owner Workshop');
+    expect(rawUser.lineage.organizationId.toString()).toBe(organization.id);
+    expect(rawUser.data.role).toBe('ContractorAdmin');
+    expect(rawUser.data.permissions.projects).toBe('admin');
+    expect(rawUser.data.memberships[0].organizationId.toString()).toBe(organization.id);
+    expect(rawUser.data.memberships[0].status).toBe('active');
   });
 
   it('should allow switching organizations if membership exists', async () => {

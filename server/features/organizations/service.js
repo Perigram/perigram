@@ -51,6 +51,42 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   return new Organization(createdRaw);
 }
 
+export async function createInitialForUser(userId, data = {}) {
+  if (!userId) throw createError({ statusCode: 400, message: 'Missing user id' });
+  if (!data.name) throw createError({ statusCode: 400, message: 'Missing organization name' });
+
+  const orgType = data.type || 'Contractor';
+  const org = new Organization({
+    identity: { uid: `org-${new ObjectId().toString().substring(0, 8)}`, name: data.name },
+    data: {
+      type: orgType,
+      email: data.email || '',
+      phone: data.phone || '',
+      address: data.address || '',
+      settings: data.settings || {}
+    }
+  });
+
+  org.applyStatus('ACTIVE', userId, { note: 'Organization created during signup' });
+
+  const createdRaw = await repository.create(org);
+  const orgRole = `${orgType}Admin`;
+  const orgPermissions = PERMISSION_TEMPLATES[orgRole] || PERMISSION_TEMPLATES['IndividualUser'];
+
+  await repository.addUserMembership(userId, {
+    organizationId: createdRaw._id,
+    role: orgRole,
+    permissions: orgPermissions,
+    status: 'active'
+  }, {
+    role: orgRole,
+    permissions: orgPermissions,
+    organizationId: createdRaw._id
+  });
+
+  return new Organization(createdRaw);
+}
+
 export async function getById(uid) {
   const raw = await repository.findById(uid);
   if (!raw) return null;
