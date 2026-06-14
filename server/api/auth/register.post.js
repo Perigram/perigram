@@ -10,9 +10,19 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: 'Missing required fields' });
     }
 
-    const user = await usersService.register(body, null, null, null, null);
     const organizationName = body.organizationName || body.organization?.name;
     const organizationType = body.organizationType || body.organization?.type || 'Contractor';
+    let recoveredExistingUser = false;
+    let user;
+
+    try {
+      user = await usersService.register(body, null, null, null, null);
+    } catch (err) {
+      if (err.statusCode !== 409 || !organizationName) throw err;
+      user = await usersService.recoverSignupWithoutOrganization(body.email, body.password);
+      recoveredExistingUser = true;
+    }
+
     const organization = organizationName
       ? await organizationsService.createInitialForUser(user.id, {
         name: organizationName,
@@ -23,7 +33,8 @@ export default defineEventHandler(async (event) => {
     return { 
       success: true, 
       userId: user._id,
-      organizationId: organization?._id || null
+      organizationId: organization?._id || null,
+      recoveredExistingUser
     };
   } catch (err) {
     if (err.statusCode) throw err;

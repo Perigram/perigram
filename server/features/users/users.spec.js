@@ -106,6 +106,21 @@ describe('User Management & Auth', () => {
     expect(rawUser.data.memberships[0].status).toBe('active');
   });
 
+  it('should recover a pre-organization signup only with the existing password', async () => {
+    await userService.register({
+      email: 'orphan@example.com',
+      password: 'password123',
+      name: 'Orphan User'
+    });
+
+    await expect(userService.recoverSignupWithoutOrganization('orphan@example.com', 'wrong_password'))
+      .rejects.toMatchObject({ statusCode: 409 });
+
+    const recovered = await userService.recoverSignupWithoutOrganization('orphan@example.com', 'correct_password');
+    expect(recovered.toJSON().data.email).toBe('orphan@example.com');
+    expect(recovered.memberships).toEqual([]);
+  });
+
   it('should allow switching organizations if membership exists', async () => {
     const org1 = new ObjectId();
     const org2 = new ObjectId();
