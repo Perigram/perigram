@@ -104,6 +104,7 @@ against the configured `E2E_BASE_URL`.
 | Area | Doc |
 |---|---|
 | System graph | [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md) |
+| Remote access and deployment | [docs/REMOTE_ACCESS.md](./docs/REMOTE_ACCESS.md) |
 | UI component audit | [docs/UI_COMPONENT_AUDIT.md](./docs/UI_COMPONENT_AUDIT.md) |
 | Backend | [server/README.md](./server/README.md) |
 | Runtime registry | [server/runtime/README.md](./server/runtime/README.md) |

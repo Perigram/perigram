@@ -4,6 +4,14 @@
   :END:
 
 *** Agent Notes
+     [2026-06-14] Document R240 remote access path
+     Files changed: docs/REMOTE_ACCESS.md, README.md, docs/DEPLOYMENT.md
+     Docs updated: README.md, docs/DEPLOYMENT.md, TODO.org
+     Notes: Added a non-secret runbook for WireGuard, SSH alias usage,
+       remote checkout/bare repo paths, Docker Swarm rollout commands, health
+       checks, and secret-handling boundaries for future agents.
+
+*** Agent Notes
      [2026-06-14] Fix breadcrumb sibling trigger and queue create visibility
      Files changed: layouts/app.vue, layouts/README.md,
        components/QueueEditor.vue, pages/project/[slug]/queues.vue,

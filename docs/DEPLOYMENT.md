@@ -35,6 +35,9 @@ Railway is recommended for quick cloud deployments with automatic CI/CD.
 
 For production on your own server.
 
+For the current R240 deployment path, VPN/SSH targets, and Swarm rollout
+commands, use [REMOTE_ACCESS.md](./REMOTE_ACCESS.md).
+
 1.  **Init Swarm**: `docker swarm init`
 2.  **Secrets**:
     ```bash
