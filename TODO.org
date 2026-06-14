@@ -820,6 +820,16 @@
        data, sheet designs, and instances after run status changes.
 
 *** Agent Notes
+     [2026-06-14] Let status UI react to entity-change events
+     Files changed: components/shared/status/EntityStatus.vue,
+       components/shared/EntityCard.vue
+     Docs updated: components/shared/README.md, TODO.org
+     Notes: `EntityStatus` now listens for browser-local entity-change events
+       matching its own entity type/id and emits `refresh`; `EntityCard`
+       forwards that event from every status placement. Page-level listeners
+       remain responsible for aggregate refreshes such as queue output reloads.
+
+*** Agent Notes
      [2026-06-11] Store queue production outputs as instances and remnant geometry
      Files changed: server/features/queues/service.js,
        server/features/queues/queues.spec.js,
