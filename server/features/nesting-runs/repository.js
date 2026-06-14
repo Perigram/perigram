@@ -53,3 +53,18 @@ export async function resetChosenRuns(queueId) {
     { $set: { 'status.state': 'COMPLETE' } }
   );
 }
+
+export async function findChosenRuns(queueId, excludeRunId = null) {
+  const db = await connectDB();
+  const flexibleQueueId = toFlexibleId(queueId);
+  const filter = {
+    'lineage.queueId': { $in: [flexibleQueueId, queueId?.toString()] },
+    'status.state': 'CHOSEN'
+  };
+
+  if (excludeRunId !== null && excludeRunId !== undefined) {
+    filter._id = { $ne: toFlexibleId(excludeRunId) };
+  }
+
+  return await db.collection(COLLECTION).find(filter).toArray();
+}

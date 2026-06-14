@@ -11,5 +11,17 @@ export const cncHookContracts = {
       { name: 'childType', label: 'Child type', type: 'entityType', required: true },
       { name: 'childState', label: 'Child state', type: 'workflowState', required: true, dependsOn: 'childType' }
     ]
+  },
+  preflightChosenNestingRun: {
+    id: 'preflightChosenNestingRun',
+    label: 'Preflight chosen nesting run',
+    mode: 'sync',
+    parameters: []
+  },
+  applyChosenNestingRun: {
+    id: 'applyChosenNestingRun',
+    label: 'Apply chosen nesting run',
+    mode: 'sync',
+    parameters: []
   }
 };

@@ -484,12 +484,8 @@ function createCutSheetDescriptor(pileId, { queue, run, source = {}, index = 0, 
 }
 
 async function sheetDesignsForRun(queue, chosenRun, userId, userOrg, userRole, userPermissions) {
-  const designs = await sheetDesignsService.list(userId, userOrg, userRole, userPermissions, { queueId: queue._id });
   const runId = chosenRun._id?.toString();
-  const runSheetDesignIds = new Set((chosenRun.data?.sheetDesignIds || []).map(String));
-  return designs
-    .filter(design => design.lineage?.runId?.toString() === runId || runSheetDesignIds.has(design._id?.toString()))
-    .sort((left, right) => String(left.identity?.serial || left._id).localeCompare(String(right.identity?.serial || right._id)));
+  return await sheetDesignsService.listForRunOutput(queue._id, runId, chosenRun.data?.sheetDesignIds || []);
 }
 
 function cassetteInstanceDesignsForSheet(sheetDesign = null) {

@@ -64,7 +64,13 @@
                     </template>
                 </div>
                 <div v-if="showStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
-                    <EntityStatus :entity="entity" :entity-type="entityType" variant="inline" :actions="statusActions" />
+                    <EntityStatus
+                        :entity="entity"
+                        :entity-type="entityType"
+                        variant="inline"
+                        :actions="statusActions"
+                        @transitioned="$emit('refresh')"
+                    />
                 </div>
             </div>
             <template v-if="$slots.subtitle">
@@ -117,7 +123,13 @@
                             <IdentityBlock :entity="entity" />
                         </div>
                         <div v-if="showStatus" class="min-w-0 max-w-full shrink self-start sm:max-w-56" @click.stop>
-                            <EntityStatus :entity="entity" :entity-type="entityType" variant="inline" :actions="statusActions" />
+                            <EntityStatus
+                                :entity="entity"
+                                :entity-type="entityType"
+                                variant="inline"
+                                :actions="statusActions"
+                                @transitioned="$emit('refresh')"
+                            />
                         </div>
                     </div>
                 </template>

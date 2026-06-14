@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { emitStatusTransitionResult } from '~/utils/entity-events.js';
 
 export const STATUS_ACTIONS_ENDPOINT = '/api/status/actions';
 export const STATUS_TRANSITION_ENDPOINT = '/api/status/transition';
@@ -25,6 +26,7 @@ export const useStatusController = () => {
         method: 'POST',
         body: { entityType, id: targetId, status: newState, statusMeta }
       });
+      emitStatusTransitionResult({ entityType, targetId, response });
       return response;
     } catch (err) {
       transitionError.value = err.data?.message || 'Failed to update status';

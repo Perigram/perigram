@@ -279,6 +279,7 @@
                             :is-chosen="activeRun.status?.state === 'CHOSEN'"
                             @select="selectedRunId = $event.toString()"
                             @choose="chooseRunHandler"
+                            @refresh="handleRunStatusChanged"
                             @delete="deleteRunHandler"
                             @convert-to-physical="handleConvertToPhysical"
                         />
@@ -314,7 +315,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
@@ -346,6 +347,7 @@ import TableFrame from '~/components/shared/TableFrame.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
 import ScrollablePanel from '~/components/shared/ScrollablePanel.vue';
 import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
+import { onEntityChanged } from '~/utils/entity-events.js';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
 
 const props = defineProps({
@@ -779,6 +781,35 @@ const loadSheetDesigns = async () => {
     }
 };
 
+let queueRunRefreshPromise = null;
+const refreshQueueAfterRunTransition = async () => {
+    if (queueRunRefreshPromise) return queueRunRefreshPromise;
+
+    queueRunRefreshPromise = (async () => {
+        await queuesStore.fetchRuns(props.queue._id);
+        await Promise.all([
+            loadQueueData(),
+            loadSheetDesigns()
+        ]);
+        if (hasPhysicalOutputs.value) {
+            await loadInstances();
+        }
+        emit('updated');
+    })().finally(() => {
+        queueRunRefreshPromise = null;
+    });
+
+    return queueRunRefreshPromise;
+};
+
+const handleRunStatusChanged = async () => {
+    try {
+        await refreshQueueAfterRunTransition();
+    } catch (e) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: e.message });
+    }
+};
+
 onMounted(async () => {
     const [cassetteResult, designResult, projectRes, whRes] = await Promise.all([
         cassettesStore.fetchCassettes(),
@@ -793,6 +824,26 @@ onMounted(async () => {
     await queuesStore.fetchRuns(props.queue._id);
     await loadSheetDesigns();
     loadQueueData();
+});
+
+const stopEntityChangeListener = onEntityChanged(async ({ type, id, entity }) => {
+    const queueId = props.queue._id?.toString();
+    if (type === 'queue' && id?.toString() === queueId) {
+        await loadQueueData();
+        return;
+    }
+
+    if (type !== 'nesting_run') return;
+
+    const runQueueId = entity?.lineage?.queueId?.toString?.() || entity?.lineage?.queueId;
+    const knownRun = queueRuns.value.some(run => run._id?.toString() === id?.toString());
+    if (runQueueId?.toString() === queueId || knownRun) {
+        await refreshQueueAfterRunTransition();
+    }
+});
+
+onUnmounted(() => {
+    stopEntityChangeListener();
 });
 
 watch(nestingCompleted, async (event) => {
@@ -949,8 +1000,7 @@ const confirmDeleteQueue = (queueToDelete) => {
 const chooseRunHandler = async (id) => {
     try {
         await queuesStore.chooseRun(props.queue._id, id);
-        await loadInstances();
-        emit('updated');
+        await refreshQueueAfterRunTransition();
     }
     catch (e) { toast.add({ severity: 'error', summary: t('queue.chooseRunFailed'), detail: e.message }); }
 };

@@ -109,27 +109,14 @@ export async function chooseRun(queueId, runId, userId, userOrg, userRole, userP
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  await queuesService.ensureReadyForCompletedRun(queueId, run.toJSON());
+  if (run.status?.state !== 'COMPLETE') {
+    throw createError({ statusCode: 400, message: 'Only completed nesting runs can be chosen for production' });
+  }
 
-  const productionPreflight = await queuesService.preflightChosenRunProduction(
-    queueId,
-    run.toJSON(),
-    userId,
-    userOrg,
-    userRole,
-    userPermissions
-  );
-
-  // Reset other chosen runs for this queue using repository
-  await repository.resetChosenRuns(queueId);
-
-  // Transition this run to CHOSEN
   await statusService.transition('nesting_run', runId, 'CHOSEN', userId, createTransitionAuth(userId, userRole, userPermissions), { note: 'Chosen for production' });
 
   const chosenRun = await getById(runId);
-  const queue = productionPreflight.alreadyProduced
-    ? await queuesService.getById(queueId, userId, userOrg, userRole, userPermissions)
-    : await queuesService.applyChosenRunProduction(queueId, chosenRun, userId, userOrg, userRole, userPermissions);
+  const queue = await queuesService.getById(queueId, userId, userOrg, userRole, userPermissions);
   return { run: chosenRun, queue };
 }
 
@@ -144,3 +131,70 @@ export async function remove(queueId, runId, userId, userOrg, userRole, userPerm
   
   return await repository.deleteById(runId);
 }
+
+async function preflightChosenNestingRun({ entity, targetId, userId, userRole, auth }) {
+  const run = new NestingRun(entity);
+  const queueId = run.lineage?.queueId?.toString?.() || run.lineage?.queueId;
+
+  if (!queueId) {
+    throw createError({ statusCode: 400, message: 'Nesting run is missing queue lineage' });
+  }
+
+  if (run.status?.state !== 'COMPLETE') {
+    throw createError({ statusCode: 400, message: 'Only completed nesting runs can be chosen for production' });
+  }
+
+  await queuesService.ensureReadyForCompletedRun(queueId, run.toJSON());
+  await queuesService.preflightChosenRunProduction(
+    queueId,
+    run.toJSON(),
+    userId,
+    auth?.organizationId,
+    userRole,
+    auth
+  );
+}
+
+async function applyChosenNestingRun({ targetId, userId, userRole, auth }) {
+  const raw = await repository.findById(targetId);
+  if (!raw) throw createError({ statusCode: 404, message: 'Nesting run not found' });
+
+  const chosenRun = new NestingRun(raw).toJSON();
+  const queueId = chosenRun.lineage?.queueId?.toString?.() || chosenRun.lineage?.queueId;
+  if (!queueId) {
+    throw createError({ statusCode: 400, message: 'Nesting run is missing queue lineage' });
+  }
+
+  const previousChosenRuns = await repository.findChosenRuns(queueId, targetId);
+  for (const previousRun of previousChosenRuns) {
+    await statusService.transition(
+      'nesting_run',
+      previousRun._id,
+      'COMPLETE',
+      userId,
+      createTransitionAuth(userId, auth || userRole),
+      { note: 'Another nesting run was chosen for production' }
+    );
+  }
+
+  const queue = await queuesService.applyChosenRunProduction(
+    queueId,
+    chosenRun,
+    userId,
+    auth?.organizationId,
+    userRole,
+    auth
+  );
+
+  return {
+    entities: [
+      { type: 'nesting_run', id: chosenRun._id?.toString?.() || chosenRun._id, entity: chosenRun },
+      { type: 'queue', id: queue._id?.toString?.() || queue._id, entity: queue }
+    ]
+  };
+}
+
+export const hooks = {
+  preflightChosenNestingRun,
+  applyChosenNestingRun
+};

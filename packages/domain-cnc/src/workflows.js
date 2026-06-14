@@ -38,7 +38,7 @@ export const cncWorkflows = {
     transitions: [
       { from: 'NESTING', to: 'COMPLETE', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'ERROR', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
-      { from: 'COMPLETE', to: 'CHOSEN', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'COMPLETE', to: 'CHOSEN', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'preflightChosenNestingRun', phase: 'before' }, { handler: 'applyChosenNestingRun', mode: 'sync' }, { handler: 'triggerAggregator' }] },
       { from: 'COMPLETE', to: 'REJECTED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'CHOSEN', to: 'COMPLETE', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'NESTING', access: { system: true } },

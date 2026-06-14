@@ -464,6 +464,23 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   return serializeManyForAccess('sheetDesign', designs.map(design => new SheetDesign(design)), userPermissions);
 }
 
+export async function listForRunOutput(queueId, runId, sheetDesignIds = []) {
+  const flexibleQueueId = toFlexibleId(queueId);
+  const ids = new Set((sheetDesignIds || []).map(String));
+  const designs = await repository.find({
+    'lineage.queueId': { $in: [flexibleQueueId, queueId?.toString()] }
+  });
+
+  return designs
+    .map(design => new SheetDesign(design).toJSON())
+    .filter(design => {
+      const designId = design._id?.toString?.() || design._id;
+      const designRunId = design.lineage?.runId?.toString?.() || design.lineage?.runId;
+      return designRunId?.toString() === runId?.toString() || ids.has(designId?.toString());
+    })
+    .sort((left, right) => String(left.identity?.serial || left._id).localeCompare(String(right.identity?.serial || right._id)));
+}
+
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
   return await statusService.transition('sheet_design', id, newState, userId, createTransitionAuth(userId, userRole), metadata);
 }

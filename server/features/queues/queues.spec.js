@@ -10,6 +10,7 @@ vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
 import * as queueService from './service';
 import * as nestingRunsService from '../nesting-runs/service';
 import * as cassetteInstancesService from '../cassette-instances/service';
+import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
@@ -50,6 +51,7 @@ describe('Production Queues & Nesting Status', () => {
     await db.collection('remnants').deleteMany({});
     await db.collection('cassette_instances').deleteMany({});
     await db.collection('sheet_designs').deleteMany({});
+    await db.collection('status_events').deleteMany({});
   });
 
   const mockUser = {
@@ -231,6 +233,79 @@ describe('Production Queues & Nesting Status', () => {
       queueId: queueId.toString(),
       runId: 'run-cut-1'
     });
+  });
+
+  it('should choose a production run through the generic status transition', async () => {
+    const queueId = new ObjectId();
+    const pileId = 'pile-status-choice';
+    await db.collection('queues').insertOne({
+      _id: queueId,
+      identity: { uid: queueId, name: 'Status choice queue' },
+      lineage: { organizationId: mockUser.organizationId },
+      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: {
+        job: {
+          materialPool: [{
+            type: 'PILE',
+            id: pileId,
+            available: 4,
+            dimensions: { width: 3000, length: 1500 }
+          }]
+        }
+      }
+    });
+    await db.collection('nesting_runs').insertMany([
+      {
+        _id: 'run-status-previous',
+        lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
+        status: { state: 'CHOSEN' },
+        data: { results: { sheetCount: 1 }, materialPool: [{ type: 'PILE', id: pileId }] }
+      },
+      {
+        _id: 'run-status-choice',
+        lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
+        status: { state: 'COMPLETE' },
+        data: {
+          results: { sheetCount: 2 },
+          materialPool: [{
+            type: 'PILE',
+            id: pileId,
+            available: 4,
+            dimensions: { width: 3000, length: 1500 }
+          }]
+        }
+      }
+    ]);
+    await db.collection('material_piles').insertOne({
+      _id: pileId,
+      identity: { uid: pileId, name: 'Status Choice Pile' },
+      data: { stock: { total: 4, used: 0 } }
+    });
+
+    const result = await statusService.transitionWithResult({
+      entityType: 'nesting_run',
+      targetId: 'run-status-choice',
+      targetState: 'CHOSEN',
+      auth: createTransitionAuth(mockUser.userId, null, mockUser.permissions),
+      context: { metadata: { note: 'Chosen from status control' } }
+    });
+
+    const pile = await db.collection('material_piles').findOne({ _id: pileId });
+    const queue = await db.collection('queues').findOne({ _id: queueId });
+    const previousRun = await db.collection('nesting_runs').findOne({ _id: 'run-status-previous' });
+
+    expect(result.entity.status.state).toBe('CHOSEN');
+    expect(result.effects).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        entities: expect.arrayContaining([
+          expect.objectContaining({ type: 'queue', id: queueId.toString() })
+        ])
+      })
+    ]));
+    expect(previousRun.status.state).toBe('COMPLETE');
+    expect(queue.status.state).toBe('READY');
+    expect(queue.data.materialConsumption.sources).toMatchObject([{ type: 'PILE', id: pileId, count: 2 }]);
+    expect(pile.data.stock.used).toBe(2);
   });
 
   it('should choose a production run when pile allocation depletes the selected stock', async () => {

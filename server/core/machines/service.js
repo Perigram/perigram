@@ -26,21 +26,78 @@ export const statusService = {
    * @param {Object} metadata - Optional notes/attachments
    */
   async transition(entityType, targetId, targetState, userId, userRole, metadata = {}) {
+    const { status } = await performTransition(entityType, targetId, targetState, userId, userRole, metadata);
+    return status;
+  },
+
+  async getActions(entityType, targetId, authContext) {
+    const normalizedEntityType = normalizeEntityType(entityType);
+    const machine = stateMachines[normalizedEntityType];
+    if (!machine) {
+      return { entityType: normalizedEntityType, targetId, state: null, actions: [] };
+    }
+    const auth = normalizeAuthContext(authContext?.userId, authContext, {});
+    const { entity, machine: loadedMachine } = await loadEntityForWorkflow(normalizedEntityType, targetId);
+    const currentState = entity.status?.state || loadedMachine.initial;
+    const lifecycle = entity.status?.lifecycle || normalizeLifecycle();
+    const actions = [];
+
+    for (const transition of loadedMachine.transitions || []) {
+      if (transition.from !== currentState) continue;
+
+      const validation = validateTransition({
+        workflow: loadedMachine,
+        currentState,
+        targetState: transition.to,
+        role: auth.role,
+        actorId: auth.userId,
+        currentStatus: entity.status,
+        lifecycle
+      });
+
+      if (!validation.ok) continue;
+
+      try {
+        assertTransitionAccess({ transition, entity, auth });
+      } catch {
+        continue;
+      }
+
+      actions.push({
+        from: transition.from,
+        to: transition.to,
+        display: transition.display,
+        displayBtn: transition.displayBtn
+      });
+    }
+
+    return { entityType: normalizedEntityType, targetId, state: currentState, actions };
+  },
+
+  async transitionWithResult({ entityType, targetId, targetState, auth, context = {} }) {
+    const normalizedEntityType = normalizeEntityType(entityType);
+    const { status, effects } = await performTransition(normalizedEntityType, targetId, targetState, auth?.userId, auth, context);
+    const { entity } = await loadEntityForWorkflow(normalizedEntityType, targetId);
+    const actions = await this.getActions(normalizedEntityType, targetId, auth);
+    return { entity, status, actions: actions.actions, effects };
+  }
+};
+
+async function performTransition(entityType, targetId, targetState, userId, userRole, metadata = {}) {
     const normalizedEntityType = normalizeEntityType(entityType);
     const transitionContext = normalizeTransitionContext(metadata);
     const auth = normalizeAuthContext(userId, userRole, transitionContext.metadata);
     const actorId = auth.userId || userId || 'SYSTEM';
     const db = await connectDB();
-    const registry = getCutkitRegistry();
     const machine = stateMachines[normalizedEntityType];
-    
+
     if (!machine) {
-      throw createError({ 
-        statusCode: 400, 
-        message: `No state machine defined for entity type: ${normalizedEntityType}` 
+      throw createError({
+        statusCode: 400,
+        message: `No state machine defined for entity type: ${normalizedEntityType}`
       });
     }
-    
+
     const flexId = toFlexibleId(targetId);
     const collection = getEntityCollection(normalizedEntityType);
     if (!collection) {
@@ -49,16 +106,16 @@ export const statusService = {
         message: `No entity collection defined for entity type: ${normalizedEntityType}`
       });
     }
-    
+
     const entity = await db.collection(collection).findOne({ _id: flexId });
-    
+
     if (!entity) {
-      throw createError({ 
-        statusCode: 404, 
-        message: `${normalizedEntityType} not found (ID: ${targetId}, Collection: ${collection})` 
+      throw createError({
+        statusCode: 404,
+        message: `${normalizedEntityType} not found (ID: ${targetId}, Collection: ${collection})`
       });
     }
-    
+
     const currentState = entity.status?.state || machine.initial;
     const targetLifecycleSchema = machine.states?.[targetState]?.lifecycle;
     const lifecycleForValidation = targetLifecycleSchema
@@ -101,6 +158,19 @@ export const statusService = {
 
     for (const hookConfig of transition?.hooks || []) validateHookParams(hookConfig);
     assertTransitionAccess({ transition, entity, auth });
+
+    const hookContext = {
+      targetId: flexId,
+      targetType: normalizedEntityType,
+      fromState: currentState,
+      toState: targetState,
+      userId: actorId,
+      userRole: auth.role,
+      auth,
+      lineage: entity.lineage,
+      entity
+    };
+    const effects = await runTransitionHooks(transition, 'before', hookContext);
     
     // 3. Create Event Record
     const eventId = new ObjectId();
@@ -126,89 +196,16 @@ export const statusService = {
       { _id: flexId },
       { $set: { status: statusData } }
     );
-    
-    // 5. Trigger Hooks
-    if (transition?.hooks) {
-      for (const hookConfig of transition.hooks) {
-        validateHookParams(hookConfig);
-        let hookFn = registry.getHookHandler(hookConfig.handler) || hooks[hookConfig.handler];
-        
-        // 2. Dynamic Fallback: Check the specific Feature Service for this entity
-        if (!hookFn) {
-          const service = registry.getEntityService(normalizedEntityType);
-          if (service && service.hooks && service.hooks[hookConfig.handler]) {
-            hookFn = service.hooks[hookConfig.handler];
-          }
-        }
 
-        if (hookFn) {
-          console.log(`[Status Engine] Executing hook ${hookConfig.handler} for ${normalizedEntityType} ${targetId}`);
-          // Execute hook in background to avoid blocking
-          hookFn({ 
-            targetId: flexId, targetType: normalizedEntityType, toState: targetState, userId: actorId, userRole: auth.role, auth, lineage: entity.lineage 
-          }, hookConfig.params || {}).catch(err => {
-            console.error(`[Status Engine] Hook ${hookConfig.handler} failed:`, err.message);
-          });
-        } else {
-          console.warn(`[Status Engine] Hook "${hookConfig.handler}" not found in core or ${normalizedEntityType} service.`);
-        }
-      }
-    }
-    
-    return newStatus;
-  },
+    const afterEffects = await runTransitionHooks(
+      transition,
+      'after',
+      { ...hookContext, status: statusData }
+    );
+    effects.push(...afterEffects);
 
-  async getActions(entityType, targetId, authContext) {
-    const normalizedEntityType = normalizeEntityType(entityType);
-    const auth = normalizeAuthContext(authContext?.userId, authContext, {});
-    if (!stateMachines[normalizedEntityType]) {
-      return { entityType: normalizedEntityType, targetId, state: null, actions: [] };
-    }
-    const { entity, machine } = await loadEntityForWorkflow(normalizedEntityType, targetId);
-    const currentState = entity.status?.state || machine.initial;
-    const lifecycle = entity.status?.lifecycle || normalizeLifecycle();
-    const actions = [];
-
-    for (const transition of machine.transitions || []) {
-      if (transition.from !== currentState) continue;
-
-      const validation = validateTransition({
-        workflow: machine,
-        currentState,
-        targetState: transition.to,
-        role: auth.role,
-        actorId: auth.userId,
-        currentStatus: entity.status,
-        lifecycle
-      });
-
-      if (!validation.ok) continue;
-
-      try {
-        assertTransitionAccess({ transition, entity, auth });
-      } catch {
-        continue;
-      }
-
-      actions.push({
-        from: transition.from,
-        to: transition.to,
-        display: transition.display,
-        displayBtn: transition.displayBtn
-      });
-    }
-
-    return { entityType: normalizedEntityType, targetId, state: currentState, actions };
-  },
-
-  async transitionWithResult({ entityType, targetId, targetState, auth, context = {} }) {
-    const normalizedEntityType = normalizeEntityType(entityType);
-    const status = await this.transition(normalizedEntityType, targetId, targetState, auth?.userId, auth, context);
-    const { entity } = await loadEntityForWorkflow(normalizedEntityType, targetId);
-    const actions = await this.getActions(normalizedEntityType, targetId, auth);
-    return { entity, status, actions: actions.actions };
-  }
-};
+    return { status: newStatus, effects };
+}
 
 export function createTransitionAuth(userId, userRoleOrAuth, userPermissions = {}) {
   if (userRoleOrAuth && typeof userRoleOrAuth === 'object') {
@@ -284,6 +281,62 @@ function validateHookParams(hookConfig = {}) {
   for (const key of Object.keys(params)) {
     if (!names.has(key)) throw createError({ statusCode: 500, message: `Hook ${hookConfig.handler} has unknown parameter ${key}` });
   }
+}
+
+async function runTransitionHooks(transition, phase, context) {
+  const effects = [];
+  const registry = getCutkitRegistry();
+
+  for (const hookConfig of transition?.hooks || []) {
+    const hookPhase = hookConfig.phase || 'after';
+    if (hookPhase !== phase) continue;
+
+    validateHookParams(hookConfig);
+    const hookFn = resolveHookHandler(registry, context.targetType, hookConfig.handler);
+    if (!hookFn) {
+      console.warn(`[Status Engine] Hook "${hookConfig.handler}" not found in core or ${context.targetType} service.`);
+      continue;
+    }
+
+    const runHook = async () => {
+      console.log(`[Status Engine] Executing hook ${hookConfig.handler} for ${context.targetType} ${context.targetId}`);
+      const result = await hookFn(context, hookConfig.params || {});
+      appendHookEffects(effects, result);
+    };
+
+    if (phase === 'before' || isSynchronousHook(hookConfig)) {
+      await runHook();
+    } else {
+      runHook().catch(err => {
+        console.error(`[Status Engine] Hook ${hookConfig.handler} failed:`, err.message);
+      });
+    }
+  }
+
+  return effects;
+}
+
+function resolveHookHandler(registry, entityType, handler) {
+  const hookFn = registry.getHookHandler(handler) || hooks[handler];
+  if (hookFn) return hookFn;
+
+  const service = registry.getEntityService(entityType);
+  return service?.hooks?.[handler] || null;
+}
+
+function isSynchronousHook(hookConfig = {}) {
+  const domain = getCutkitRegistry().getDomain('cnc');
+  const contract = domain?.hooks?.[hookConfig.handler];
+  return hookConfig.mode === 'sync' || hookConfig.blocking === true || contract?.mode === 'sync';
+}
+
+function appendHookEffects(effects, result) {
+  if (!result) return;
+  if (Array.isArray(result)) {
+    effects.push(...result.filter(Boolean));
+    return;
+  }
+  effects.push(result);
 }
 
 async function loadEntityForWorkflow(entityType, targetId) {

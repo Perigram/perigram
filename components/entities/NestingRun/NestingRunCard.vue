@@ -26,7 +26,7 @@ const props = defineProps({
   showSheetDesignPreviews: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['select', 'choose', 'delete', 'convert-to-physical']);
+const emit = defineEmits(['select', 'choose', 'delete', 'convert-to-physical', 'refresh']);
 
 const authStore = useAuthStore();
 const { t } = useI18n();
@@ -60,7 +60,7 @@ const RUN_FIELDS = [
 const statusActions = computed(() => {
     const actions = [];
     if (canManage.value && state.value === 'COMPLETE') {
-        actions.push({ label: t('status.chosen'), to: 'CHOSEN', icon: 'pi pi-check-circle', severity: 'success', command: () => emit('choose', props.run._id) });
+        actions.push({ label: t('status.chosen'), to: 'CHOSEN', icon: 'pi pi-check-circle', severity: 'success' });
     }
     if (canManage.value) {
         actions.push({ label: t('common.delete'), icon: 'pi pi-trash', severity: 'danger', display: 'menu', command: () => emit('delete', props.run._id) });
@@ -104,7 +104,14 @@ function openSheetDesign(design) {
 
 <template>
   <div class="cursor-pointer" @click="selectRun">
-    <EntityCard :entity="run" entity-type="nesting_run" :variant="variant" :show-trace="false" :status-actions="statusActions">
+    <EntityCard
+      :entity="run"
+      entity-type="nesting_run"
+      :variant="variant"
+      :show-trace="false"
+      :status-actions="statusActions"
+      @refresh="emit('refresh')"
+    >
       <template #before-identity>
         <i class="pi pi-list-check"></i>
       </template>
