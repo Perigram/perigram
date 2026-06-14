@@ -31,18 +31,18 @@
                             >
                                 {{ crumb.name }}
                             </NuxtLink>
-                            <Select
+                            <Button
                                 v-if="crumb.siblings && crumb.siblings.length > 1"
-                                :model-value="crumb.to"
-                                :options="crumb.siblings"
-                                option-label="name"
-                                option-value="id"
-                                @change="(e) => router.push(e.value)"
-                                pt:root:class="p-button p-component p-button-text p-button-secondary px-0 mr-1 border-none"
-                                pt:label:class="hidden"
-                                pt:dropdown:class="p-0 m-0"
+                                icon="pi pi-chevron-down"
+                                text
+                                severity="secondary"
+                                size="small"
+                                class="mr-1"
+                                :aria-label="crumb.name"
+                                @click="openBreadcrumbMenu($event, crumb)"
                             />
                         </div>
+                        <Menu ref="breadcrumbMenu" :model="breadcrumbMenuItems" :popup="true" />
                     </div>
                 </div>
 
@@ -103,7 +103,6 @@
     import { useRouter, useRoute } from 'vue-router'
     import { useI18n } from 'vue-i18n'
     import Button from 'primevue/button'
-    import Select from 'primevue/select'
     import Menu from 'primevue/menu'
     import Avatar from 'primevue/avatar'
     import ChatSupport from '~/components/ChatSupport.vue'
@@ -141,6 +140,16 @@
     const breadcrumbs = computed(() => {
         return navStore.resolveBreadcrumbs(route.path, route.query)
     })
+
+    const breadcrumbMenu = ref()
+    const breadcrumbMenuItems = ref([])
+    const openBreadcrumbMenu = (event, crumb) => {
+        breadcrumbMenuItems.value = (crumb.siblings || []).map((sibling) => ({
+            label: sibling.name,
+            command: () => router.push(sibling.id || sibling.to)
+        }))
+        breadcrumbMenu.value?.toggle(event)
+    }
 
     const isBoundedWorkspaceRoute = computed(() => /^\/project\/[^/]+\/queues\/?$/.test(route.path))
 

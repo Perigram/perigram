@@ -14,8 +14,8 @@
         </div>
 
         <!-- Empty state -->
-        <StateBlock v-else-if="queues.length === 0" :message="$t('queue.empty')" icon="pi pi-inbox">
-            <template #actions>
+        <StateBlock v-else-if="queues.length === 0" :message="$t(canCreateQueue ? 'queue.empty' : 'queue.readOnlyEmpty')" icon="pi pi-inbox">
+            <template v-if="canCreateQueue" #actions>
                 <Button
                     :label="$t('queue.createFirst')"
                     icon="pi pi-plus"
@@ -31,6 +31,7 @@
     import { ref, computed, watch, onMounted } from 'vue'
     import { useRoute } from 'vue-router'
     import { useQueuesStore } from '~/stores/queues'
+    import { useAuthStore } from '~/stores/auth'
     import { storeToRefs } from 'pinia'
     import QueueEditor from '~/components/QueueEditor.vue'
     import Button from 'primevue/button'
@@ -46,9 +47,11 @@
     const slug = route.params.slug
 
     const queuesStore = useQueuesStore()
+    const authStore = useAuthStore()
     const { queues } = storeToRefs(queuesStore)
     const currentQueueId = ref(null)
     const currentQueue = computed(() => queues.value.find((q) => q._id === currentQueueId.value))
+    const canCreateQueue = computed(() => authStore.can('queues', 'create'))
 
     watch(currentQueueId, async (newId) => {
         if (newId) {
@@ -68,6 +71,7 @@
     }
 
     const createNewQueue = async () => {
+        if (!canCreateQueue.value) return
         const newQueue = await queuesStore.createQueue(slug, {
             name: `${t('queue.title')} ${queues.value.length + 1}`,
         })

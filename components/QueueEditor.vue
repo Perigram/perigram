@@ -5,6 +5,7 @@
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>
                     <Button
+                        v-if="canCreateQueue"
                         icon="pi pi-plus"
                         size="small"
                         text
@@ -49,6 +50,7 @@
                         </template>
                     </Select>
                     <Button
+                        v-if="canCreateQueue"
                         icon="pi pi-plus"
                         size="small"
                         text
@@ -384,6 +386,7 @@ const queueOptions = computed(() => namedSelectOptions(props.queues, t('common.u
 const queueList = computed(() => [...props.queues].reverse());
 const toolOptions = computed(() => namedSelectOptions(tools.value, t('common.unnamed')));
 const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, t('common.unnamed')));
+const canCreateQueue = computed(() => authStore.can('queues', 'create'));
 const isSelectedQueue = (item = {}) => item._id?.toString() === props.queue._id?.toString();
 const materialSourceOptions = computed(() => [
     { label: t('nesting.virtualMode'), value: 'VIRTUAL' },
