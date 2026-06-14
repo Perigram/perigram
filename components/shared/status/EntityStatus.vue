@@ -4,7 +4,7 @@
  * Mandatory component for managing entity states and transitions.
  * Integrates display (StatusBadge) and logic (useStatusController).
  */
-import { ref, computed, inject, toRef, unref, watch } from 'vue';
+import { ref, computed, inject, onUnmounted, toRef, unref, watch } from 'vue';
 import Popover from 'primevue/popover';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
@@ -15,6 +15,7 @@ import StatusLocation from '~/components/shared/status/StatusLocation.vue';
 import { useStatus } from '~/composables/useBlocks';
 import { useStatusController } from '~/composables/useStatusController';
 import { createStatusAction, getWorkflowStatusActions, hasWorkflow } from '~/utils/status-actions.js';
+import { onEntityChanged } from '~/utils/entity-events.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -29,7 +30,7 @@ const props = defineProps({
   workflows: { type: Object, default: null }
 });
 
-const emit = defineEmits(['transitioned']);
+const emit = defineEmits(['transitioned', 'refresh']);
 const { t } = useI18n();
 const { state } = useStatus(toRef(props, 'entity'));
 const { transition, fetchActions, isTransitioning } = useStatusController();
@@ -85,6 +86,15 @@ watch(
     () => refreshServerActions(),
     { immediate: true }
 );
+
+const stopEntityChangeListener = onEntityChanged(({ type, id, entity }) => {
+    if (!matchesEntityChange({ type, id, entity })) return;
+    emit('refresh');
+});
+
+onUnmounted(() => {
+    stopEntityChangeListener();
+});
 
 const customActions = computed(() => {
     if (Array.isArray(props.actions) && props.actions.length > 0) return props.actions;
@@ -148,6 +158,19 @@ const runAction = async (action) => {
         await handleTransition(action.to);
     }
 };
+
+function matchesEntityChange({ type, id, entity } = {}) {
+    if (normalizeEventType(type) !== normalizeEventType(props.entityType)) return false;
+
+    const changedId = id || entity?._id || entity?.identity?.uid || entity?.identity?.slug;
+    if (!changedId || !entityId.value) return false;
+
+    return changedId.toString() === entityId.value.toString();
+}
+
+function normalizeEventType(type) {
+    return String(type || '').replace(/_/g, '').toLowerCase();
+}
 </script>
 
 <template>

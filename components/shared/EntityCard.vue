@@ -26,6 +26,7 @@
                             :entity-type="entityType"
                             variant="inline"
                             :actions="statusActions"
+                            @refresh="$emit('refresh')"
                             @transitioned="$emit('refresh')"
                         />
                     </div>
@@ -69,6 +70,7 @@
                         :entity-type="entityType"
                         variant="inline"
                         :actions="statusActions"
+                        @refresh="$emit('refresh')"
                         @transitioned="$emit('refresh')"
                     />
                 </div>
@@ -93,6 +95,7 @@
                             :entity-type="entityType"
                             variant="inline"
                             :actions="statusActions"
+                            @refresh="$emit('refresh')"
                             @transitioned="$emit('refresh')"
                         />
                     </div>
@@ -128,6 +131,7 @@
                                 :entity-type="entityType"
                                 variant="inline"
                                 :actions="statusActions"
+                                @refresh="$emit('refresh')"
                                 @transitioned="$emit('refresh')"
                             />
                         </div>
