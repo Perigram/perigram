@@ -39,7 +39,10 @@ Inherits all `BaseEntity` fields.
 `organizationName` is supplied, creates the first organization through the
 organizations service. The new user receives an active membership, lineage
 organization, role preset, and copied permission grants for the selected
-organization type.
+organization type. `recoverSignupWithoutOrganization()` is the narrow recovery
+path for pre-fix accounts that have a password hash but no organization
+membership; it verifies the submitted password before the register route can
+attach the first organization.
 
 ## Persistence Notes
 - `User.toJSON()` strips `data.passwordHash` and is safe for API responses.

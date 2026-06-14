@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+     [2026-06-14] Recover duplicate signup accounts without organizations
+     Files changed: server/api/auth/register.post.js,
+       server/features/users/service.js, server/features/users/users.spec.js
+     Docs updated: server/api/README.md, server/features/users/README.md,
+       TODO.org
+     Notes: Duplicate email during signup now recovers only the legacy
+       password-backed no-organization state, and only after verifying the
+       submitted password. Normal already-onboarded duplicate emails still
+       return 409.
+
+*** Agent Notes
      [2026-06-14] Fix public signup organization creation
      Files changed: server/api/auth/register.post.js,
        server/features/organizations/service.js,

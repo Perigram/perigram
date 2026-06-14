@@ -44,7 +44,10 @@ for plain HTTP LAN deployments so browsers keep the session cookie.
 `auth/register.post.js` is the public signup boundary. It accepts user
 credentials plus `organizationName`/`organizationType`, creates the user, and
 creates the user's initial organization membership without calling protected
-organization CRUD routes.
+organization CRUD routes. If a previous signup created a password-backed user
+before the organization step existed, submitting the same email/password with
+organization details recovers that orphaned account instead of returning a
+duplicate-email dead end.
 
 ## Example Handler
 ```javascript
