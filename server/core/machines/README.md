@@ -36,12 +36,17 @@ lifecycle schema do not retain lifecycle facts.
 ### 2. Dynamic Hook Registry (`hooks.js` & App Registry)
 Acts as a decoupled dispatcher for side-effects. To prevent architectural leaks, manufacturing-specific logic is NOT implemented in the core engine.
 - **Global Hooks (`hooks.js`)**: System-wide primitives (e.g., `propagateToChildren`, `triggerAggregator`).
-- **Feature Hooks**: Feature hook handlers are bound explicitly in `server/runtime/app-registry.js`.
+- **Feature Hooks**: Feature hook handlers are bound explicitly in `server/runtime/app-registry.js` or exported from the owning feature service.
 - **Resolution**: The engine reads hook handlers from the active app registry, then falls back to feature-service hooks for transitional compatibility.
 - **Typed Settings**: Hook handler ids and parameter fields are declared in
   the registered domain hook contracts. The engine validates required and
   unknown hook parameters before executing side effects, and admin editors render
   typed controls instead of raw params JSON.
+- **Execution mode**: Hooks default to asynchronous `after` execution. A
+  workflow hook can declare `phase: 'before'` for preflight validation or
+  `mode: 'sync'` for side effects that must complete before
+  `POST /api/status/transition` returns. Synchronous hook results are returned
+  as transition `effects` so frontend stores can refresh related entities.
 
 ### 3. Centralized Aggregator (`aggregator.js`)
 Synchronizes parent summaries based on child activity using lineage-aware MongoDB aggregation pipelines.
@@ -69,10 +74,11 @@ actions endpoint; transitions for those types still remain invalid.
    `POST /api/status/transition`.
 2. Transition is validated against the domain workflow, access requirements, lifecycle schema, and actor/capability assignments.
 3. Entity's `status` block, including `metadata` and `lifecycle`, is updated and a history event is logged.
-4. **Hook Execution**: 
-    - Engine looks up hook handler in `hooks.js`.
-    - If not found, it queries the Feature Service for the entity.
-    - Hook is executed asynchronously.
+4. **Hook Execution**:
+    - Engine executes any `phase: 'before'` hooks before writing the new status.
+    - It writes the event and entity status snapshot.
+    - It executes `after` hooks; async hooks run in the background, while
+      `mode: 'sync'` hooks are awaited and may return related entity effects.
 5. Parent's `summary` block is updated via `aggregator.js` (if `triggerAggregator` hook was called).
 
 ## Related

@@ -27,7 +27,7 @@ Defines a specific nesting job, bridging the digital production intent with phys
    `data.nestingSettings` plus `data.job.materialPool`; callers only send
    optional setting updates or attachment requests.
 4. **Run Acceptance / Production Output**: When a completed nesting run is
-   chosen for production, the parent queue must be awaiting selection
+   transitioned to `CHOSEN`, the parent queue must be awaiting selection
    (`NESTING`) or already `READY` for an idempotent same-run response, and it
    must have assigned warehouse material. Selected `PILE` sources are consumed
    in order up to the chosen run's sheet count, and the current pile stock is
@@ -37,7 +37,9 @@ Defines a specific nesting job, bridging the digital production intent with phys
    when the run reports remnant area, and cassette instances from the matching
    generated sheet design cassette counts. Output ids are recorded on
    `data.physicalOutputs`, and the queue transitions to `READY` only after that
-   run is chosen. There is no queue-level `CUT` state.
+   run is chosen. The queue choose-run API delegates to the generic status
+   transition so status controls and API callers share the same side effects.
+   There is no queue-level `CUT` state.
 5. **Archiving / Removal**: Queue status controls can transition any queue state
    to `ARCHIVED`; destructive deletion remains an entity removal action guarded
    by queue delete access.

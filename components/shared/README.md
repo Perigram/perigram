@@ -98,6 +98,9 @@ Interactive status component for display + state-machine transitions. Status-cha
 Props: `:entity`, `entity-type`, `variant` (`inline` | `compact` | `full`), `:actions` (optional custom action set), `:expanded` (optional override).
 Rendering guard: component renders only when `props.entity` is present.
 Behavior: component auto-expands when custom `actions` are provided; otherwise inline mode uses badge + popover. The popover is compact UI, not a labeled detail page: it renders action controls, current location, notes, and the status timeline without section headings or empty placeholder copy.
+Successful server transitions emit the `transitioned` event from
+`EntityStatus`; `EntityCard` forwards it as `refresh` for every variant, so
+entity-specific cards and pages can reload related data after lifecycle changes.
 
 **Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@cutkit/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `EntityStatus`, hides it, or renders read-only status.
 Interactive status is enabled only for entity types that have a real workflow in

@@ -24,8 +24,10 @@ chrome.
 - Does not render generated artifacts or DXF previews. File outputs are owned by
   artifact/attachment surfaces; the nesting run card stays focused on run
   metrics and resulting sheet designs.
-- Keeps lifecycle actions inside `EntityCard`/`EntityStatus`; choose/delete are
-  passed as status actions.
+- Keeps lifecycle actions inside `EntityCard`/`EntityStatus`. Choosing a
+  completed run passes a real `to: 'CHOSEN'` status transition, not a
+  component-local command, so the generic status API owns production side
+  effects.
 
 The injected context is used by development surfaces such as the admin
 workbench. The production queue editor passes related entities explicitly by

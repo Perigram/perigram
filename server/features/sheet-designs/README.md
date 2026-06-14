@@ -79,6 +79,12 @@ GET/list APIs require authenticated lineage context. `queueId` and `projectId`
 query parameters are mapped to `lineage.queueId` and `lineage.projectId`, then
 combined with the server-derived access filter.
 
+`listForRunOutput(queueId, runId, sheetDesignIds)` is an internal service
+lookup used by queue production output creation. It returns full sheet-design
+DTOs for the owning queue/run without applying UI field redaction, because
+remnant and cassette-instance generation need stored geometry and placement
+counts.
+
 ## DXF Export
 
 - `GET /api/sheet-designs/:id/export` returns a generated DXF directly from the

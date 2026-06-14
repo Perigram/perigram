@@ -121,6 +121,9 @@ All standard workflow transitions go through `POST /api/status/transition`.
 Interactive status controls load server-authorized actions from
 `GET /api/status/actions`, so frontend components do not duplicate transition
 permission checks.
+After a successful transition, `useStatusController` emits a browser-local
+entity-change event for the changed entity and any related entities returned in
+transition `effects`.
 
 ```js
 const { transition, fetchActions, isTransitioning } = useStatusController();

@@ -793,6 +793,33 @@
        stock and run status untouched.
 
 *** Agent Notes
+     [2026-06-14] Route chosen nesting runs through status transition hooks
+     Files changed: packages/domain-cnc/src/workflows.js,
+       packages/domain-cnc/src/hooks.js, server/core/machines/service.js,
+       server/features/nesting-runs/service.js,
+       server/features/nesting-runs/repository.js,
+       server/features/queues/service.js,
+       server/features/sheet-designs/service.js,
+       server/features/queues/queues.spec.js,
+       components/shared/EntityCard.vue,
+       components/entities/NestingRun/NestingRunCard.vue,
+       components/QueueEditor.vue, composables/useStatusController.js,
+       utils/entity-events.js
+     Docs updated: server/core/machines/README.md,
+       server/features/nesting-runs/README.md,
+       server/features/queues/README.md,
+       server/features/sheet-designs/README.md,
+       components/shared/README.md,
+       components/entities/NestingRun/README.md,
+       composables/README.md, utils/README.md,
+       packages/domain-cnc/README.md, TODO.org
+     Notes: `nesting_run COMPLETE -> CHOSEN` now runs the same production
+       acceptance through the generic status API. The status engine supports
+       before/synchronous hooks and returns synchronous hook effects, while the
+       queue editor listens for entity-change events and refreshes runs, queue
+       data, sheet designs, and instances after run status changes.
+
+*** Agent Notes
      [2026-06-11] Store queue production outputs as instances and remnant geometry
      Files changed: server/features/queues/service.js,
        server/features/queues/queues.spec.js,

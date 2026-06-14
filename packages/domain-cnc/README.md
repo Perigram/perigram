@@ -37,6 +37,10 @@ Queue workflow UI actions start with `DRAFT -> NESTING`; any system-only
 cannot skip nesting from status controls. Queues can be moved to `ARCHIVED`
 from any current queue state through a menu transition; admin users can restore
 archived queues to `DRAFT`.
+Nesting run acceptance is modeled as the `COMPLETE -> CHOSEN` transition. That
+transition declares a synchronous preflight hook and a synchronous application
+hook so the app runtime can validate selected material, persist queue production
+outputs, and report related entity effects through the generic status API.
 Material pile and remnant workflows are also declared here: material piles use
 `STOCKED -> DEPLETED`, while remnants use `AVAILABLE -> USED`. `ui.js` contains
 matching status labels/icons so live cards and framework/UI-lab previews use the
