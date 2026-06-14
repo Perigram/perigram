@@ -23,6 +23,9 @@ Key fields:
 - `write` can create/update organization records.
 - `admin` can delete organization records.
 - List queries are scoped by membership lineage.
+- `createInitialForUser()` is the narrow public-signup helper. It creates the
+  first organization for a newly registered user, assigns the type-specific
+  admin role, and writes the user's initial membership/lineage.
 
 ## API Behavior
 - `GET /api/organizations/:id` returns the serialized organization when found.

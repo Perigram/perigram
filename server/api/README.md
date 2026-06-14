@@ -41,6 +41,10 @@ Responsibilities:
 `auth/login.post.js` sets the `sessionId` cookie after password login. The cookie
 is secure in production by default, but `SESSION_COOKIE_SECURE=false` can be set
 for plain HTTP LAN deployments so browsers keep the session cookie.
+`auth/register.post.js` is the public signup boundary. It accepts user
+credentials plus `organizationName`/`organizationType`, creates the user, and
+creates the user's initial organization membership without calling protected
+organization CRUD routes.
 
 ## Example Handler
 ```javascript

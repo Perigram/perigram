@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+     [2026-06-14] Fix public signup organization creation
+     Files changed: server/api/auth/register.post.js,
+       server/features/organizations/service.js,
+       server/features/users/users.spec.js, pages/auth/register.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: server/api/README.md, server/features/users/README.md,
+       server/features/organizations/README.md, pages/README.md, TODO.org
+     Notes: Public signup now collects organization name/type directly and
+       creates the first organization membership through a narrow
+       organizations service helper. The register page no longer calls
+       protected organization list/create APIs before a user exists.
+
+*** Agent Notes
      [2026-06-09] Add repo-local workflow and OCCS skills
      Files changed: .codex/README.md,
        .codex/skills/cutkit-project-workflow/SKILL.md,

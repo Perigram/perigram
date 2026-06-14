@@ -53,6 +53,9 @@ shell to avoid nested detail headers.
 Public auth/invitation pages may use full-height shells because they run
 outside the app layout, but their content chrome should still come from
 PrimeVue/shared primitives instead of raw bordered containers.
+`pages/auth/register.vue` is a public signup form: it collects the new user's
+credentials plus organization name/type and submits them to `/api/auth/register`.
+It must not list or create organizations through authenticated entity APIs.
 
 UI cleanup classifies components by route reachability plus architectural
 registries (`utils/design-system.js`, `framework.manifest.json`,

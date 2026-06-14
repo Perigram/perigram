@@ -34,6 +34,13 @@ Inherits all `BaseEntity` fields.
 4. Token → `generateAccessToken(userId)` (JWT, 15m)
 5. Middleware → `server/middleware/auth.js` populates `event.context.auth`
 
+## Public Signup
+`POST /api/auth/register` creates a password-backed user and, when
+`organizationName` is supplied, creates the first organization through the
+organizations service. The new user receives an active membership, lineage
+organization, role preset, and copied permission grants for the selected
+organization type.
+
 ## Persistence Notes
 - `User.toJSON()` strips `data.passwordHash` and is safe for API responses.
 - `repository.create()` restores `data.passwordHash` from the model instance before inserting into MongoDB; persistence must not rely on the public JSON shape for sensitive fields.
