@@ -34,7 +34,7 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 
 const FIELDS = [
     { path: 'data.stroke.color',   i18n: 'penTemplate.color' },
-    { path: 'data.stroke.weight',  i18n: 'penTemplate.weight',  suffix: ' px' },
+    { path: 'data.stroke.weight',  i18n: 'penTemplate.weight',  suffix: ' mm' },
     { path: 'data.stroke.pattern', i18n: 'penTemplate.pattern' }
 ];
 

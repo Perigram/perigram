@@ -18,7 +18,7 @@
     <ResponsiveGrid v-else>
       <PenTemplateCard v-for="pen in pens" :key="pen._id" :pen="pen">
         <template #footer>
-          <div class="flex justify-end gap-2" v-if="pen.ownerId">
+          <div class="flex justify-end gap-2" v-if="isUserOwnedPen(pen)">
             <Button 
               icon="pi pi-pencil" 
               severity="secondary"
@@ -127,6 +127,8 @@ const patternOptions = computed(() => [
   { label: t('assets.patterns.DOTTED'), value: 'DOTTED' }
 ]);
 
+const isUserOwnedPen = (pen) => Boolean(pen?.lineage?.userId || pen?.ownerId);
+
 const showDialog = ref(false);
 const editingPen = ref(null);
 const form = ref({
@@ -144,7 +146,14 @@ onMounted(async () => {
 
 const editPen = (pen) => {
   editingPen.value = pen;
-  form.value = JSON.parse(JSON.stringify(pen));
+  form.value = {
+    name: pen.identity?.name || pen.name || '',
+    stroke: {
+      color: pen.data?.stroke?.color || pen.stroke?.color || '#000000',
+      weight: pen.data?.stroke?.weight || pen.stroke?.weight || 0.35,
+      pattern: pen.data?.stroke?.pattern || pen.stroke?.pattern || 'SOLID'
+    }
+  };
   showDialog.value = true;
 };
 
@@ -172,7 +181,7 @@ const savePen = async () => {
 
 const deletePenConfirm = (pen) => {
   confirm.require({
-    message: t('messages.confirmDeleteFile', { name: pen.name }),
+    message: t('messages.confirmDeleteFile', { name: pen.identity?.name || pen.name || pen._id }),
     header: t('common.confirmation'),
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {

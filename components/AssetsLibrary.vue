@@ -217,7 +217,14 @@ onMounted(async () => {
 // Pen methods
 const editPen = (pen) => {
   editingPen.value = pen;
-  penForm.value = JSON.parse(JSON.stringify(pen));
+  penForm.value = {
+    name: pen.identity?.name || pen.name || '',
+    stroke: {
+      color: pen.data?.stroke?.color || pen.stroke?.color || '#000000',
+      weight: pen.data?.stroke?.weight || pen.stroke?.weight || 0.35,
+      pattern: pen.data?.stroke?.pattern || pen.stroke?.pattern || 'SOLID'
+    }
+  };
   showPenDialog.value = true;
 };
 
@@ -245,7 +252,7 @@ const savePen = async () => {
 
 const deletePenConfirm = (pen) => {
   confirm.require({
-    message: t('messages.confirmDeleteFile', { name: pen.name }),
+    message: t('messages.confirmDeleteFile', { name: pen.identity?.name || pen.name || pen._id }),
     header: t('common.confirmation'),
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {
