@@ -719,6 +719,7 @@ const manualEntityRefs = ref([]);
 const manualCassetteDesignerKey = ref(0);
 const selectedCassetteTemplateId = ref('');
 const persistedCassetteTemplateIds = ref([]);
+const failedOutputRefs = ref(new Set());
 let commandRunPoll = null;
 let taskRunPoll = null;
 
@@ -1294,7 +1295,13 @@ async function hydrateTaskRunOutputs(runs = []) {
 async function hydrateOutputRefs(refs = []) {
   const hydrated = [];
   for (const ref of refs) {
-    const entity = await fetchCommandEntity(ref).catch(() => null);
+    if (hasScenarioEntity(ref) || failedOutputRefs.value.has(outputRefKey(ref))) continue;
+    const entity = await fetchCommandEntity(ref).catch((error) => {
+      if (isPermanentHydrationError(error)) {
+        failedOutputRefs.value = new Set([...failedOutputRefs.value, outputRefKey(ref)]);
+      }
+      return null;
+    });
     if (entity) hydrated.push({ type: ref.type, entity });
   }
   if (hydrated.length) fixtureStore.upsertEntities(hydrated);
@@ -1316,6 +1323,19 @@ function commandEntityPath(type, id) {
   return paths[type] || null;
 }
 
+function outputRefKey(ref = {}) {
+  return `${ref.type}:${ref.id}`;
+}
+
+function hasScenarioEntity(ref = {}) {
+  return Boolean(findScenarioEntity(ref.type, ref.id));
+}
+
+function isPermanentHydrationError(error) {
+  const status = Number(error?.statusCode || error?.status || error?.response?.status || error?.data?.statusCode || 0);
+  return status === 401 || status === 403 || status === 404;
+}
+
 async function runSelectedCommand() {
   if (!selectedCommand.value || !selectedCommand.value.runnable) return;
   commandRunning.value = true;
@@ -1329,6 +1349,7 @@ async function runSelectedCommand() {
         testAccess: workbenchTestAccess.value
       }
     });
+    failedOutputRefs.value = new Set();
     await loadCommandRuns();
   } catch (error) {
     commandsError.value = error?.data?.message || error?.message || t('admin.workbench.errors.runCommandFailed');

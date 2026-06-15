@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, inject, ref, unref, watch } from 'vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { useEntity } from '~/composables/useEntity';
@@ -42,8 +42,19 @@ const props = defineProps({
 const loaded = ref(null);
 const domainUi = useCutkitDomainUi();
 const entityApi = useEntity(props.type);
+const entityContext = inject('entityContext', null);
 const normalizedId = computed(() => props.id?.toString?.() || props.id || '');
-const resolved = computed(() => props.entity || loaded.value);
+const contextEntity = computed(() => {
+  if (!normalizedId.value) return null;
+  const context = unref(entityContext);
+  const entities = context?.entities || {};
+  for (const type of contextTypeCandidates(props.type)) {
+    const entity = entities[type]?.[normalizedId.value];
+    if (entity) return entity;
+  }
+  return null;
+});
+const resolved = computed(() => props.entity || contextEntity.value || loaded.value);
 const icon = computed(() => domainUi.getIcon?.(props.type) || 'pi pi-box');
 const contract = computed(() =>
   DESIGN_SYSTEM_ENTITY_CONTRACTS.find(entry => entry.key === props.type || entry.entityType === props.type) || null
@@ -55,14 +66,32 @@ const cardProps = computed(() => ({
 }));
 
 watch(
-  () => [props.entity, normalizedId.value, props.type],
+  () => [props.entity, normalizedId.value, props.type, contextEntity.value?._id],
   async () => {
     loaded.value = null;
-    if (props.entity || !normalizedId.value) return;
+    if (props.entity || contextEntity.value || !normalizedId.value) return;
     loaded.value = await entityApi.fetch(normalizedId.value, { silent: true }).catch(() => null);
   },
   { immediate: true }
 );
+
+function contextTypeCandidates(type) {
+  const aliases = {
+    nestingRun: 'nesting_run',
+    sheetDesign: 'sheet_design',
+    cassetteDesign: 'cassette_design',
+    cassetteTemplate: 'cassette',
+    cassetteInstance: 'cassette_instance',
+    materialPile: 'material_pile',
+    batchPile: 'material_pile',
+    entityRevision: 'entity_revision',
+    geometryCapture: 'geometry_capture',
+    toolProfile: 'tool_profile',
+    penTemplate: 'pen_template',
+    layerStandard: 'layer_standard'
+  };
+  return Array.from(new Set([type, aliases[type]].filter(Boolean)));
+}
 </script>
 
 <template>
