@@ -942,9 +942,10 @@
        pages/admin/README.md, TODO.org
      Notes: EntityInlineRef now resolves injected entityContext entries before
        falling back to API fetches, so fixture-local relation refs do not call
-       protected endpoints. Workbench command output hydration skips refs
-       already present in context and caches 401/403/404 output refs for the
-       current session to stop poll-driven retry loops.
+       protected endpoints. Workbench command output previews now resolve only
+       from the fixture context; refs not present there remain listed as
+       missing output refs instead of being hydrated through protected entity
+       APIs during polling.
 
 *** Agent Notes
      [2026-06-15] Add status action feedback and workflow hook controls
