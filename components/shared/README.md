@@ -205,6 +205,10 @@ domain UI adapter for compatibility, but they should not appear in new entity
 component templates.
 Inline reference fetches are silent by default: stale or deleted relation ids
 fall back to an id chip without flooding the browser console.
+When an `entityContext` provider is present, `EntityInlineRef` resolves the
+entity from that context before calling the API. This keeps workbench fixture
+and project-local previews from requesting protected entities already loaded in
+the surrounding surface.
 Revision/provenance rows should use this component with `type="entityRevision"`
 so the shared entity popover shows the immutable revision summary and source
 relationship.

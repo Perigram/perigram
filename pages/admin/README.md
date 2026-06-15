@@ -37,6 +37,10 @@ the operator chooses them explicitly.
 Command output hydration includes both the synchronous command result and
 related task-run outputs. Async nesting completion therefore updates the
 in-memory `nesting_run` and `sheet_design` previews when the task finishes.
+Output refs that are already present in the fixture context are not fetched
+again. Entity refs that return 401/403/404 during hydration are remembered for
+the current workbench session so the polling loop does not repeatedly request
+forbidden or missing output URLs.
 Artifact output cards open the same attachment-kind-aware preview dialog used by
 artifact surfaces, so DXF/SVG outputs render through `DrawingCanvas` and
 download-only/PDF outputs keep a direct download path.

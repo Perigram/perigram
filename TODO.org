@@ -935,6 +935,18 @@
   :END:
 
 *** Agent Notes
+     [2026-06-15] Stop repeated forbidden workbench output fetches
+     Files changed: components/shared/EntityInlineRef.vue,
+       pages/admin/workbench.vue
+     Docs updated: components/shared/README.md,
+       pages/admin/README.md, TODO.org
+     Notes: EntityInlineRef now resolves injected entityContext entries before
+       falling back to API fetches, so fixture-local relation refs do not call
+       protected endpoints. Workbench command output hydration skips refs
+       already present in context and caches 401/403/404 output refs for the
+       current session to stop poll-driven retry loops.
+
+*** Agent Notes
      [2026-06-15] Add status action feedback and workflow hook controls
      Files changed: server/core/machines/service.js,
        server/features/queues/queues.spec.js,
