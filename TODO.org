@@ -5559,3 +5559,20 @@
     - Queue workspace keeps Run nesting as the only primary action.
     - Section utility, add, upload, and view controls use compact secondary
       button styling and explicit small input sizes.
+
+*** Agent Notes
+    [2026-06-15] Fix pen template DTO rendering in asset UI
+    Files changed:
+    - pages/assets/pens.vue
+    - components/AssetsLibrary.vue
+    - components/entities/PenTemplate/PenTemplateCard.vue
+    Docs updated:
+    - components/entities/PenTemplate/README.md
+    - pages/README.md
+    - TODO.org
+    Notes:
+    - Pen surfaces now read canonical v24 DTO fields: `identity.name` for
+      labels and `data.stroke` for style data.
+    - User-owned pen actions now key off `lineage.userId` instead of the legacy
+      `ownerId` alias.
+    - The pen card now displays weight in millimeters to match stored data.

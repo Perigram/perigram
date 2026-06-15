@@ -57,6 +57,10 @@ PrimeVue/shared primitives instead of raw bordered containers.
 credentials plus organization name/type and submits them to `/api/auth/register`.
 It must not list or create organizations through authenticated entity APIs.
 
+Asset management routes under `pages/assets/` consume canonical v24 DTOs. Pen
+template screens must read `identity.name` for labels and `data.stroke` for
+rendered style; legacy flat `name` / `stroke` fields are compatibility only.
+
 UI cleanup classifies components by route reachability plus architectural
 registries (`utils/design-system.js`, `framework.manifest.json`,
 `EntityInlineRef`, and framework tooling). Components that are dormant but
