@@ -719,7 +719,6 @@ const manualEntityRefs = ref([]);
 const manualCassetteDesignerKey = ref(0);
 const selectedCassetteTemplateId = ref('');
 const persistedCassetteTemplateIds = ref([]);
-const failedOutputRefs = ref(new Set());
 let commandRunPoll = null;
 let taskRunPoll = null;
 
@@ -1255,7 +1254,6 @@ async function loadTasks() {
     });
     taskDefinitions.value = result.definitions || [];
     taskRuns.value = result.runs || [];
-    await hydrateTaskRunOutputs(taskRuns.value);
   } catch (error) {
     tasksError.value = error?.data?.message || error?.message || t('admin.workbench.errors.loadTasksFailed');
   } finally {
@@ -1274,66 +1272,11 @@ async function loadCommandRuns() {
       query: { commandId: selectedCommandId.value, limit: 1 }
     });
     commandRuns.value = result.runs || [];
-    await hydrateCommandRunOutput(commandRuns.value[0]);
   } catch (error) {
     commandsError.value = error?.data?.message || error?.message || t('admin.workbench.errors.loadCommandRunsFailed');
   } finally {
     commandRunsLoading.value = false;
   }
-}
-
-async function hydrateCommandRunOutput(run) {
-  const refs = outputRefsFromResult(run?.result);
-  await hydrateOutputRefs(refs);
-}
-
-async function hydrateTaskRunOutputs(runs = []) {
-  const refs = uniqueOutputRefs(runs.flatMap(run => outputRefsFromResult(run.output)));
-  await hydrateOutputRefs(refs);
-}
-
-async function hydrateOutputRefs(refs = []) {
-  const hydrated = [];
-  for (const ref of refs) {
-    if (hasScenarioEntity(ref) || failedOutputRefs.value.has(outputRefKey(ref))) continue;
-    const entity = await fetchCommandEntity(ref).catch((error) => {
-      if (isPermanentHydrationError(error)) {
-        failedOutputRefs.value = new Set([...failedOutputRefs.value, outputRefKey(ref)]);
-      }
-      return null;
-    });
-    if (entity) hydrated.push({ type: ref.type, entity });
-  }
-  if (hydrated.length) fixtureStore.upsertEntities(hydrated);
-}
-
-async function fetchCommandEntity(ref) {
-  const path = commandEntityPath(ref.type, ref.id);
-  if (!path) return null;
-  const entity = await $fetch(path);
-  return entity && typeof entity === 'object' ? entity : null;
-}
-
-function commandEntityPath(type, id) {
-  const paths = {
-    nesting_run: `/api/nesting-runs/${id}`,
-    sheet_design: `/api/sheet-designs/${id}`,
-    artifact: `/api/artifacts/${id}/metadata`
-  };
-  return paths[type] || null;
-}
-
-function outputRefKey(ref = {}) {
-  return `${ref.type}:${ref.id}`;
-}
-
-function hasScenarioEntity(ref = {}) {
-  return Boolean(findScenarioEntity(ref.type, ref.id));
-}
-
-function isPermanentHydrationError(error) {
-  const status = Number(error?.statusCode || error?.status || error?.response?.status || error?.data?.statusCode || 0);
-  return status === 401 || status === 403 || status === 404;
 }
 
 async function runSelectedCommand() {
@@ -1349,7 +1292,6 @@ async function runSelectedCommand() {
         testAccess: workbenchTestAccess.value
       }
     });
-    failedOutputRefs.value = new Set();
     await loadCommandRuns();
   } catch (error) {
     commandsError.value = error?.data?.message || error?.message || t('admin.workbench.errors.runCommandFailed');
