@@ -308,6 +308,60 @@ describe('Production Queues & Nesting Status', () => {
     expect(pile.data.stock.used).toBe(2);
   });
 
+  it('should not advertise chosen run action when preflight rejects it', async () => {
+    const queueId = new ObjectId();
+    const pileId = 'pile-status-action-preflight';
+    await db.collection('queues').insertOne({
+      _id: queueId,
+      identity: { uid: queueId, name: 'Draft action queue' },
+      lineage: { organizationId: mockUser.organizationId },
+      status: { state: 'DRAFT', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: {
+        job: {
+          materialPool: [{
+            type: 'PILE',
+            id: pileId,
+            available: 2,
+            dimensions: { width: 3000, length: 1500 }
+          }]
+        }
+      }
+    });
+    await db.collection('nesting_runs').insertOne({
+      _id: 'run-action-preflight',
+      identity: { uid: 'run-action-preflight', name: 'Preflight run' },
+      lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
+      status: { state: 'COMPLETE', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      data: {
+        results: { sheetCount: 1 },
+        materialPool: [{
+          type: 'PILE',
+          id: pileId,
+          available: 2,
+          dimensions: { width: 3000, length: 1500 }
+        }]
+      }
+    });
+    await db.collection('material_piles').insertOne({
+      _id: pileId,
+      identity: { uid: pileId, name: 'Preflight Pile' },
+      data: { stock: { total: 2, used: 0 } }
+    });
+
+    const result = await statusService.getActions(
+      'nesting_run',
+      'run-action-preflight',
+      createTransitionAuth(mockUser.userId, null, mockUser.permissions)
+    );
+    const statusEvents = await db.collection('status_events').countDocuments({ targetId: 'run-action-preflight' });
+    const pile = await db.collection('material_piles').findOne({ _id: pileId });
+
+    expect(result.actions.map(action => action.to)).not.toContain('CHOSEN');
+    expect(result.actions.map(action => action.to)).toContain('REJECTED');
+    expect(statusEvents).toBe(0);
+    expect(pile.data.stock.used).toBe(0);
+  });
+
   it('should choose a production run when pile allocation depletes the selected stock', async () => {
     const queueId = new ObjectId();
     const pileId = 'pile-cut-depleted';

@@ -9,6 +9,7 @@ import Popover from 'primevue/popover';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import StatusLocation from '~/components/shared/status/StatusLocation.vue';
@@ -32,6 +33,7 @@ const props = defineProps({
 
 const emit = defineEmits(['transitioned', 'refresh']);
 const { t } = useI18n();
+const toast = useToast();
 const { state } = useStatus(toRef(props, 'entity'));
 const { transition, fetchActions, isTransitioning } = useStatusController();
 const op = ref();
@@ -61,10 +63,23 @@ const handleTransition = async (targetState) => {
             })
             : await transition(props.entityType, entityId.value, targetState);
         emit('transitioned', targetState, result);
+        toast.add({
+            severity: 'success',
+            summary: t('common.success'),
+            detail: t('status.transitionSucceeded'),
+            life: 3000
+        });
         await refreshServerActions();
         op.value?.hide?.();
     } catch (e) {
-        console.error('Transition failed', e);
+        toast.add({
+            severity: 'error',
+            summary: t('common.error'),
+            detail: e?.data?.message || e?.message || t('status.transitionFailed'),
+            life: 5000
+        });
+        await refreshServerActions();
+        emit('refresh');
     }
 };
 

@@ -203,7 +203,9 @@
     "generating": "Генерируется",
     "processing": "Обработка",
     "scrap": "Списано",
-    "noHistory": "Истории пока нет."
+    "noHistory": "Истории пока нет.",
+    "transitionSucceeded": "Статус обновлен.",
+    "transitionFailed": "Не удалось обновить статус."
   },
   "dashboard": {
     "welcome": "Добро пожаловать в CutKit",
@@ -1066,6 +1068,10 @@
       "capabilities": "Capabilities",
       "hooks": "Hooks",
       "hookHandler": "Handler hook",
+      "hookPhaseBefore": "До",
+      "hookPhaseAfter": "После",
+      "hookModeSync": "Синхр.",
+      "hookModeAsync": "Асинхр.",
       "hooksJson": "Hooks JSON",
       "entityType": "Тип сущности",
       "parentType": "Тип родителя",

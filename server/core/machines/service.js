@@ -59,7 +59,16 @@ export const statusService = {
 
       try {
         assertTransitionAccess({ transition, entity, auth });
-      } catch {
+        await assertTransitionPreflight({
+          transition,
+          entity,
+          targetId,
+          targetType: normalizedEntityType,
+          currentState,
+          auth
+        });
+      } catch (error) {
+        if (isConfigurationError(error)) throw error;
         continue;
       }
 
@@ -283,9 +292,39 @@ function validateHookParams(hookConfig = {}) {
   }
 }
 
-async function runTransitionHooks(transition, phase, context) {
+async function assertTransitionPreflight({ transition, entity, targetId, targetType, currentState, auth }) {
+  const hasBeforeHooks = (transition?.hooks || []).some(hook => (hook.phase || 'after') === 'before');
+  if (!hasBeforeHooks) return;
+
+  const actorId = auth.userId || 'SYSTEM';
+  await runTransitionHooks(
+    transition,
+    'before',
+    {
+      targetId: toFlexibleId(targetId),
+      targetType,
+      fromState: currentState,
+      toState: transition.to,
+      userId: actorId,
+      userRole: auth.role,
+      auth,
+      lineage: entity.lineage,
+      entity,
+      dryRun: true
+    },
+    { collectEffects: false, log: false }
+  );
+}
+
+function isConfigurationError(error) {
+  const statusCode = Number(error?.statusCode || error?.status || 0);
+  return !statusCode || statusCode >= 500;
+}
+
+async function runTransitionHooks(transition, phase, context, options = {}) {
   const effects = [];
   const registry = getCutkitRegistry();
+  const { collectEffects = true, log = true } = options;
 
   for (const hookConfig of transition?.hooks || []) {
     const hookPhase = hookConfig.phase || 'after';
@@ -299,9 +338,9 @@ async function runTransitionHooks(transition, phase, context) {
     }
 
     const runHook = async () => {
-      console.log(`[Status Engine] Executing hook ${hookConfig.handler} for ${context.targetType} ${context.targetId}`);
+      if (log) console.log(`[Status Engine] Executing hook ${hookConfig.handler} for ${context.targetType} ${context.targetId}`);
       const result = await hookFn(context, hookConfig.params || {});
-      appendHookEffects(effects, result);
+      if (collectEffects) appendHookEffects(effects, result);
     };
 
     if (phase === 'before' || isSynchronousHook(hookConfig)) {

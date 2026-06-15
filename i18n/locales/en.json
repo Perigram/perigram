@@ -203,7 +203,9 @@
     "generating": "Generating",
     "processing": "Processing",
     "scrap": "Scrap",
-    "noHistory": "No history recorded yet."
+    "noHistory": "No history recorded yet.",
+    "transitionSucceeded": "Status updated.",
+    "transitionFailed": "Status update failed."
   },
   "dashboard": {
     "welcome": "Welcome to CutKit",
@@ -1066,6 +1068,10 @@
       "capabilities": "Capabilities",
       "hooks": "Hooks",
       "hookHandler": "Hook handler",
+      "hookPhaseBefore": "Before",
+      "hookPhaseAfter": "After",
+      "hookModeSync": "Sync",
+      "hookModeAsync": "Async",
       "hooksJson": "Hooks JSON",
       "entityType": "Entity type",
       "parentType": "Parent type",

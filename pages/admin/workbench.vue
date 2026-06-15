@@ -440,7 +440,15 @@
                   </div>
                   <div class="flex flex-col gap-2">
                     <label>{{ $t('admin.domainBuilder.lifecycleActors') }}</label>
-                    <InputText :model-value="stringifyCommaList(selectedStateDefinition.lifecycle?.actors)" class="w-full" @update:model-value="updateLifecycleActors" />
+                    <MultiSelect
+                      :model-value="selectedStateDefinition.lifecycle?.actors || []"
+                      :options="capabilityOptions"
+                      option-label="label"
+                      option-value="value"
+                      display="chip"
+                      class="w-full"
+                      @update:model-value="updateLifecycleActors"
+                    />
                   </div>
                   <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
@@ -487,21 +495,47 @@
                   </div>
                   <div class="flex flex-col gap-2">
                     <label>{{ $t('admin.domainBuilder.capabilities') }}</label>
-                    <InputText :model-value="stringifyCommaList(selectedTransition.capabilities || selectedTransition.requiredCapabilities)" @update:model-value="value => updateTransitionCapabilities(selectedTransition, value)" />
+                    <MultiSelect
+                      :model-value="selectedTransition.capabilities || selectedTransition.requiredCapabilities || []"
+                      :options="capabilityOptions"
+                      option-label="label"
+                      option-value="value"
+                      display="chip"
+                      class="w-full"
+                      @update:model-value="value => updateTransitionCapabilities(selectedTransition, value)"
+                    />
                   </div>
                   <div class="flex items-center justify-between">
                     <strong>{{ $t('admin.domainBuilder.hooks') }}</strong>
                     <Button icon="pi pi-plus" :label="$t('common.add')" size="small" @click="addTransitionHook(selectedTransition)" />
                   </div>
                   <div v-for="(hook, index) in selectedTransition.hooks || []" :key="index" class="flex flex-col gap-2 rounded-ui border border-content-border p-3">
-                    <Select
-                      :model-value="hook.handler"
-                      :options="hookOptions"
-                      option-label="label"
-                      option-value="value"
-                      class="w-full"
-                      @update:model-value="value => updateHookHandler(hook, value)"
-                    />
+                    <div class="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_8rem_8rem]">
+                      <Select
+                        :model-value="hook.handler"
+                        :options="hookOptions"
+                        option-label="label"
+                        option-value="value"
+                        class="w-full"
+                        @update:model-value="value => updateHookHandler(hook, value)"
+                      />
+                      <Select
+                        :model-value="hook.phase || 'after'"
+                        :options="hookPhaseOptions"
+                        option-label="label"
+                        option-value="value"
+                        class="w-full"
+                        @update:model-value="value => updateHookPhase(hook, value)"
+                      />
+                      <Select
+                        :model-value="hook.mode || 'async'"
+                        :options="hookModeOptions"
+                        option-label="label"
+                        option-value="value"
+                        class="w-full"
+                        @update:model-value="value => updateHookMode(hook, value)"
+                      />
+                    </div>
                     <TypedSettingsForm
                       v-model="hook.params"
                       :fields="hookParameterFields(hook.handler)"
@@ -596,6 +630,7 @@ import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
+import MultiSelect from 'primevue/multiselect';
 import Panel from 'primevue/panel';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
@@ -607,7 +642,7 @@ import CassetteDesigner from '~/components/CassetteDesigner.vue';
 import CassetteDesignerV2 from '~/components/CassetteDesignerV2.vue';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { DESIGN_SYSTEM_ENTITIES, createDesignSystemDemoRows } from '~/utils/design-system.js';
-import { buildWorkflowGraph, parseCommaList, parseJsonObject, stringifyCommaList } from '~/utils/domain-builder.js';
+import { buildWorkflowGraph, parseCommaList, parseJsonObject } from '~/utils/domain-builder.js';
 import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
 import { occsParameterNames, occsQueueParameters } from '~/utils/occs/parameters.js';
 import { useWorkbenchFixturesStore } from '~/stores/workbenchFixtures.js';
@@ -799,6 +834,23 @@ const hookOptions = computed(() => uniqueSorted([
   ...Object.keys(hookContracts.value),
   ...(workflowDraft.value.transitions || []).flatMap(transition => (transition.hooks || []).map(hook => hook.handler).filter(Boolean))
 ]).map(value => ({ label: value, value })));
+const capabilityOptions = computed(() => uniqueSorted([
+  'engineering',
+  'operator',
+  'mounting',
+  ...Object.values(workflows.value || {}).flatMap(workflow => [
+    ...Object.values(workflow.states || {}).flatMap(state => state.lifecycle?.actors || []),
+    ...(workflow.transitions || []).flatMap(transition => transition.capabilities || transition.requiredCapabilities || [])
+  ])
+]).map(value => ({ label: value, value })));
+const hookPhaseOptions = computed(() => [
+  { label: t('admin.domainBuilder.hookPhaseAfter'), value: 'after' },
+  { label: t('admin.domainBuilder.hookPhaseBefore'), value: 'before' }
+]);
+const hookModeOptions = computed(() => [
+  { label: t('admin.domainBuilder.hookModeAsync'), value: 'async' },
+  { label: t('admin.domainBuilder.hookModeSync'), value: 'sync' }
+]);
 const visibleCommands = computed(() => {
   const term = commandSearch.value.trim().toLowerCase();
   const runnableCommands = commands.value.filter(command => command.kind !== 'task' && command.runnable !== false);
@@ -1789,7 +1841,7 @@ function pruneLifecycle() {
 }
 
 function updateLifecycleActors(value) {
-  const actors = parseCommaList(value);
+  const actors = parseValueList(value);
   if (actors.length) ensureLifecycle().actors = actors;
   else if (selectedStateDefinition.value.lifecycle) delete selectedStateDefinition.value.lifecycle.actors;
   pruneLifecycle();
@@ -1835,7 +1887,7 @@ function removeLifecycleAttachment(name) {
 }
 
 function updateTransitionCapabilities(transition, value) {
-  const capabilities = parseCommaList(value);
+  const capabilities = parseValueList(value);
   delete transition.requiredCapabilities;
   if (capabilities.length) transition.capabilities = capabilities;
   else delete transition.capabilities;
@@ -1859,8 +1911,23 @@ function updateHookHandler(hook, value) {
   hook.params = {};
 }
 
+function updateHookPhase(hook, value) {
+  if (value && value !== 'after') hook.phase = value;
+  else delete hook.phase;
+}
+
+function updateHookMode(hook, value) {
+  if (value && value !== 'async') hook.mode = value;
+  else delete hook.mode;
+}
+
 function hookParameterFields(handler) {
   return hookContracts.value[handler]?.parameters || [];
+}
+
+function parseValueList(value) {
+  if (Array.isArray(value)) return uniqueSorted(value.map(item => String(item || '').trim()).filter(Boolean));
+  return parseCommaList(value);
 }
 
 function removeSelectedTransition() {

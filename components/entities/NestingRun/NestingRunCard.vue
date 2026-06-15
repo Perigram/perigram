@@ -59,9 +59,6 @@ const RUN_FIELDS = [
 ];
 const statusActions = computed(() => {
     const actions = [];
-    if (canManage.value && state.value === 'COMPLETE') {
-        actions.push({ label: t('status.chosen'), to: 'CHOSEN', icon: 'pi pi-check-circle', severity: 'success' });
-    }
     if (canManage.value) {
         actions.push({ label: t('common.delete'), icon: 'pi pi-trash', severity: 'danger', display: 'menu', command: () => emit('delete', props.run._id) });
     }
