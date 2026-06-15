@@ -103,6 +103,9 @@ Successful server transitions emit the `transitioned` event from
 from the status component itself. `EntityCard` forwards both as `refresh` for
 every variant, so entity-specific cards and pages can reload entity-local data
 after lifecycle changes without wiring listeners in each card.
+Status transition results and failures are surfaced through PrimeVue toast
+messages. Failed transitions also refresh server actions and emit `refresh`, so
+stale popover actions are corrected after backend preflight rejects an action.
 The root exposes stable E2E hooks through `data-entity-status`,
 `data-entity-type`, and `data-entity-id`; menu triggers and transition buttons
 use `data-status-menu-trigger` and `data-status-action`.
@@ -111,11 +114,12 @@ use `data-status-menu-trigger` and `data-status-action`.
 Interactive status is enabled only for entity types that have a real workflow in
 `cncWorkflows`; non-workflow entities hide status chrome in cards unless a
 read-only `StatusBadge` is explicitly required. Live app transition actions are
-loaded from the canonical status API so access filtering stays server-side.
+loaded from the canonical status API so access and preflight filtering stay
+server-side.
 Development surfaces with custom workflow drafts derive actions from workflow
 definitions through `utils/status-actions.js`. Card components should only pass
-custom actions for domain-specific commands such as choosing a completed nesting
-run.
+custom actions for non-lifecycle commands such as delete/archive affordances;
+real status transitions must be advertised by the workflow/status API.
 `EntityStatus` can also receive a `workflows` prop or consume a provided
 `statusWorkflows` value. This is used only by development surfaces such as the
 admin workbench so live draft machines can drive previews without replacing the

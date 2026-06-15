@@ -61,13 +61,17 @@ Interactive UI status changes use the canonical status endpoints:
 
 | Endpoint | Responsibility |
 |---|---|
-| `GET /api/status/actions?entityType=<type>&id=<id>` | Returns transitions authorized for the current user and entity. |
+| `GET /api/status/actions?entityType=<type>&id=<id>` | Returns transitions authorized for the current user and entity, after running `before` hooks as availability preflight. |
 | `POST /api/status/transition` | Executes a transition with full auth context and returns the updated entity, status, and refreshed actions. |
 
 Entity-specific PATCH routes must not be the primary status API for standard
 workflow transitions.
 Entity types without a registered workflow return an empty action list from the
 actions endpoint; transitions for those types still remain invalid.
+Action lookup runs only `phase: 'before'` hooks and does not write status events
+or collect side effects. Business preflight failures hide the action, while
+configuration errors still fail the endpoint so broken hook contracts are not
+masked.
 
 ## Data Flow
 1. User/System triggers `statusService.transition(type, id, state, ...)` or

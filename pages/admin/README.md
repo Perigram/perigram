@@ -47,6 +47,14 @@ runtime APIs.
 Entity status controls in fixture previews use a local `statusTransitionHandler`
 to update the in-memory workbench context, avoiding server transition calls for
 entities that have not been persisted.
+The workflow editor is the current development surface for lifecycle drafting:
+it edits the loaded domain workflow graph, state lifecycle schemas, transition
+access, transition capabilities, and hooks. Lifecycle actors and transition
+capabilities use selectable option lists built from existing workflow usage plus
+standard capability names. Hook rows expose handler, phase, and mode selectors,
+and hook parameters render through `TypedSettingsForm`; domain hook contracts
+with `entityType` or `workflowState` parameters therefore render selects instead
+of free-text fields.
 
 The Designer section embeds `CassetteDesignerV2` directly and hides the generic
 workbench draft/reset action row while the designer is active, because cassette

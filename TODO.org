@@ -935,6 +935,25 @@
   :END:
 
 *** Agent Notes
+     [2026-06-15] Add status action feedback and workflow hook controls
+     Files changed: server/core/machines/service.js,
+       server/features/queues/queues.spec.js,
+       components/shared/status/EntityStatus.vue,
+       components/entities/NestingRun/NestingRunCard.vue,
+       pages/admin/workbench.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: server/core/machines/README.md,
+       components/shared/README.md,
+       components/entities/NestingRun/README.md,
+       pages/admin/README.md, TODO.org
+     Notes: Status actions now run before-hook preflight during action lookup,
+       so impossible lifecycle buttons are not advertised by the canonical API.
+       EntityStatus shows toast feedback for successful and failed transitions.
+       The workbench workflow editor now uses selectable lifecycle
+       actor/capability controls and exposes hook handler, phase, mode, and
+       typed parameter editors.
+
+*** Agent Notes
      [2026-06-10] Correct geometry previews, embedded interactions, and stale display fields
      Files changed: components/shared/EntityCard.vue,
        components/shared/status/EntityStatus.vue,
