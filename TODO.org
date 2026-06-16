@@ -22,6 +22,15 @@
        without changing stored status blocks.
 
 *** Agent Notes
+     [2026-06-16] Document repair-script runtime context
+     Files changed: server/scripts/README.md
+     Docs updated: server/scripts/README.md, TODO.org
+     Notes: Clarified that the system-data permission repair helper needs a
+       Node environment backed by the repo source tree, because the production
+       app image does not ship the standalone `mongodb`/`server/db` import
+       stack for direct script execution.
+
+*** Agent Notes
      [2026-06-16] Floor default system-data access and remove dead admin route
      Files changed: shared/permission-templates.js,
        shared/ui-permissions.spec.js,

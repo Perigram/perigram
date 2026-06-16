@@ -107,7 +107,10 @@ mapping instead of round-robin assignment.
 Use `server/scripts/repair-system-data-permissions.js` when a preset change
 needs to be applied to already-created user records. It rewrites stored user
 permissions in place, keeping stronger grants intact while flooring
-`materials` and `layer_standards` to `read`.
+`materials` and `layer_standards` to `read`. Run it from a Node environment
+that can import the repo's `shared/`, `server/db/`, and `server/utils/`
+modules; the production app image does not include those standalone source
+dependencies for direct script execution.
 
 ## Entity Revision Migration
 
