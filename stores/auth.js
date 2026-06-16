@@ -23,13 +23,7 @@ export const useAuthStore = defineStore('auth', () => {
         return activeMembership?.permissions || user.value?.permissions || user.value?.data?.permissions || {};
     });
 
-    const isOrgAdmin = computed(() => hasPermission('organizations', 'write') || hasPermission('users', 'admin'));
     const canManagePlatform = computed(() => hasPermission('organizations', 'admin') || hasPermission('users', 'admin') || hasPermission('workbench', 'admin') || hasPermission('domain_builder', 'admin') || hasPermission('config_bot', 'admin'));
-    
-    // Org Types
-    const isManufacturer = computed(() => organization.value?.data?.type === 'Manufacturer');
-    const isContractor = computed(() => organization.value?.data?.type === 'Contractor');
-    const isCustomer = computed(() => organization.value?.data?.type === 'Customer');
 
     async function setUser(fetchOptions = {}) {
         try {
@@ -173,11 +167,7 @@ export const useAuthStore = defineStore('auth', () => {
         userOrganizations,
         memberships,
         activePermissions,
-        isOrgAdmin,
         canManagePlatform,
-        isManufacturer,
-        isContractor,
-        isCustomer,
         setUser,
         fetchUserOrgs,
         login,
