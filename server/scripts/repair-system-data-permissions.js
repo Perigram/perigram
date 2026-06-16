@@ -2,9 +2,6 @@
  * Repair system-data permissions on stored users.
  */
 
-import dotenv from 'dotenv';
-dotenv.config();
-
 import { connectDB } from '../db/mongo.js';
 import { materializeRolePermissions } from '../../shared/permission-templates.js';
 import { levelAtLeast } from '../../shared/access-control.js';
