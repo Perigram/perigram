@@ -203,6 +203,7 @@
     "generating": "Generating",
     "processing": "Processing",
     "scrap": "Scrap",
+    "systemActor": "System",
     "noHistory": "No history recorded yet.",
     "transitionSucceeded": "Status updated.",
     "transitionFailed": "Status update failed."

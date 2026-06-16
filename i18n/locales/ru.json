@@ -203,6 +203,7 @@
     "generating": "Генерируется",
     "processing": "Обработка",
     "scrap": "Списано",
+    "systemActor": "Система",
     "noHistory": "Истории пока нет.",
     "transitionSucceeded": "Статус обновлен.",
     "transitionFailed": "Не удалось обновить статус."

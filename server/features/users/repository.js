@@ -25,6 +25,15 @@ export async function findById(id) {
   return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) });
 }
 
+export async function findByIds(ids = []) {
+  const flexibleIds = ids.map(toFlexibleId).filter(Boolean);
+  if (!flexibleIds.length) return [];
+  const db = await connectDB();
+  return await db.collection(COLLECTION)
+    .find({ _id: { $in: flexibleIds } })
+    .toArray();
+}
+
 export async function findByEmail(email) {
   const db = await connectDB();
   const emailLower = email.toLowerCase();

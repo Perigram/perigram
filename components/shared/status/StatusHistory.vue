@@ -3,11 +3,10 @@
  * Unified Status History Component - v24 Standardized
  * Fetches and displays the audit log (status_events) for an entity.
  */
-import Timeline from 'primevue/timeline';
-import Divider from 'primevue/divider';
 import ProgressSpinner from 'primevue/progressspinner';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import { computed, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStatusHistory } from '~/composables/useStatusHistory';
 
 const props = defineProps({
@@ -22,6 +21,7 @@ const resolvedTargetId = computed(
   () => props.targetId || props.entity?._id?.toString() || props.entity?.id?.toString()
 );
 
+const { t } = useI18n();
 const { events, isLoading, fetchHistory } = useStatusHistory(props.entityType, resolvedTargetId.value);
 const displayEvents = computed(() => {
   if (events.value.length) return events.value;
@@ -50,8 +50,44 @@ watch(() => props.mockEvents, (newVal) => {
 }, { deep: true });
 
 const formatTime = (ts) => {
-  return new Date(ts).toLocaleString();
+  const date = new Date(ts);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString(undefined, {
+    dateStyle: props.compact ? 'short' : 'medium',
+    timeStyle: 'short'
+  });
 };
+
+const dateTimeAttribute = (ts) => {
+  const date = new Date(ts);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+const eventState = (event) => event.toState || event.status?.state || event.state;
+
+const eventNote = (event) => event.status?.metadata?.note || event.metadata?.note || '';
+
+const actorName = (event) => {
+  const userId = event.status?.userId || event.userId;
+  if (userId === 'SYSTEM') return t('status.systemActor');
+
+  return event.actor?.name
+    || event.status?.actor?.name
+    || event.status?.metadata?.actorName
+    || event.status?.metadata?.userName
+    || event.metadata?.actorName
+    || event.metadata?.userName
+    || userId
+    || '';
+};
+
+const actorTitle = (event) => {
+  const userId = event.status?.userId || event.userId;
+  const name = actorName(event);
+  return userId && name && userId !== name ? userId : name;
+};
+
+const eventKey = (event, index) => event._id || `${eventState(event)}-${event.timestamp}-${index}`;
 </script>
 
 <template>
@@ -59,37 +95,42 @@ const formatTime = (ts) => {
     <div v-if="isLoading" class="flex justify-center" :class="compact ? 'p-3' : 'p-10'">
       <ProgressSpinner />
     </div>
-    
-    <Timeline v-else-if="displayEvents.length" :value="displayEvents" class="customized-timeline" :class="{ 'compact-timeline': compact }">
-      <template #opposite="slotProps">
-        <small>{{ formatTime(slotProps.item.timestamp) }}</small>
-      </template>
-      <template #content="slotProps">
-        <div class="flex flex-col gap-2" :class="compact ? 'mb-3' : 'mb-8'">
-            <div class="flex items-center justify-between">
-              <StatusBadge :state="slotProps.item.toState" />
-              <small>{{ slotProps.item.status?.userId }}</small>
-            </div>
-            <p v-if="slotProps.item.status?.metadata?.note" class="m-0 italic text-sm">
-              "{{ slotProps.item.status.metadata.note }}"
-            </p>
-            <Divider />
+
+    <ol v-else-if="displayEvents.length" class="m-0 flex min-w-0 list-none flex-col p-0" :class="compact ? 'gap-2' : 'gap-3'">
+      <li
+        v-for="(event, index) in displayEvents"
+        :key="eventKey(event, index)"
+        class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2"
+      >
+        <div class="flex flex-col items-center pt-1">
+          <span class="h-2.5 w-2.5 rounded-full bg-primary"></span>
+          <span v-if="index < displayEvents.length - 1" class="mt-1 min-h-6 w-px flex-1 bg-content-border"></span>
         </div>
-      </template>
-    </Timeline>
+
+        <div class="min-w-0 pb-2">
+          <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <StatusBadge :state="eventState(event)" />
+            <small
+              v-if="actorName(event)"
+              class="min-w-0 truncate text-muted-color"
+              :title="actorTitle(event)"
+            >
+              <i class="pi pi-user mr-1"></i>{{ actorName(event) }}
+            </small>
+            <time
+              v-if="formatTime(event.timestamp)"
+              class="ml-auto text-right text-xs text-muted-color"
+              :datetime="dateTimeAttribute(event.timestamp)"
+            >
+              {{ formatTime(event.timestamp) }}
+            </time>
+          </div>
+
+          <p v-if="eventNote(event)" class="m-0 mt-2 min-w-0 break-words text-sm italic">
+            {{ eventNote(event) }}
+          </p>
+        </div>
+      </li>
+    </ol>
   </div>
 </template>
-
-<style scoped>
-.customized-timeline :deep(.p-timeline-event-opposite) {
-    flex: 0;
-    min-width: 140px;
-    text-align: right;
-    padding-right: 1.5rem;
-}
-
-.compact-timeline :deep(.p-timeline-event-opposite) {
-    min-width: 84px;
-    padding-right: 0.75rem;
-}
-</style>

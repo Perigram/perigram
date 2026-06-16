@@ -7,6 +7,7 @@ import { ObjectId } from 'mongodb';
 import { isValidStatus, getValidStatuses, getDefaultStatus } from './types.js';
 import { createError } from 'h3';
 import * as repository from './repository.js';
+import * as usersRepository from '../users/repository.js';
 
 /**
  * Add a new status entry in the central collection.
@@ -51,12 +52,47 @@ export async function findLatest(collection, entityId) {
  */
 export async function getStatusHistory(collection, entityId) {
   const entityType = collection.replace(/s$/, '');
-  const history = await repository.findByEntity(entityId, entityType);
+  const history = await getHistoryByTarget(entityType, entityId);
   const latest = history.length > 0 ? history[0] : null;
   
   return {
     currentStatus: latest?.status?.state || 'unknown',
     history: history
+  };
+}
+
+export async function getHistoryByTarget(entityType, entityId) {
+  const history = await repository.findByEntity(entityId, entityType);
+  return await enrichHistoryActors(history);
+}
+
+async function enrichHistoryActors(history) {
+  const actorIds = [...new Set(history
+    .map(event => event.status?.userId)
+    .filter(userId => userId && userId !== 'SYSTEM'))];
+
+  const users = await usersRepository.findByIds(actorIds);
+  const usersById = new Map(users.map(user => [user._id?.toString(), user]));
+
+  return history.map(event => {
+    const userId = event.status?.userId;
+    const actor = resolveActor(userId, usersById.get(userId?.toString()));
+    return {
+      ...event,
+      actor
+    };
+  });
+}
+
+function resolveActor(userId, user) {
+  if (!userId) return null;
+  if (userId === 'SYSTEM') {
+    return { userId, type: 'system', name: 'System' };
+  }
+  return {
+    userId,
+    type: 'user',
+    name: user?.identity?.name || userId
   };
 }
 

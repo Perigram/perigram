@@ -1,8 +1,6 @@
 import { defineEventHandler, getQuery, createError } from 'h3';
-import { connectDB } from '../../db/mongo.js';
-import { ObjectId } from 'mongodb';
 import { requireAuth } from '../../utils/permissions.js';
-import { toFlexibleId } from '../../utils/objectid.js';
+import * as statusService from '../../features/statuses/service.js';
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);
@@ -14,13 +12,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'targetId and targetType are required' });
   }
 
-  const db = await connectDB();
-  
-  return await db.collection('status_events')
-    .find({ 
-      targetId: toFlexibleId(targetId),
-      targetType: targetType
-    })
-    .sort({ timestamp: -1 })
-    .toArray();
+  return await statusService.getHistoryByTarget(targetType, targetId);
 });

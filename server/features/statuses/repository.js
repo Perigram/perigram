@@ -1,5 +1,5 @@
 import { connectDB } from '~/server/db/mongo';
-import { ObjectId } from 'mongodb';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 const COLLECTION = 'status_events';
 
@@ -7,7 +7,7 @@ export async function create(data) {
     const db = await connectDB();
     const doc = {
         ...data,
-        targetId: typeof data.targetId === 'string' ? new ObjectId(data.targetId) : data.targetId,
+        targetId: toFlexibleId(data.targetId),
         timestamp: data.timestamp || new Date()
     };
     const result = await db.collection(COLLECTION).insertOne(doc);
@@ -20,7 +20,7 @@ export async function findByEntity(entityId, entityType) {
     // but the service should pass the correct targetType
     return await db.collection(COLLECTION)
         .find({ 
-            targetId: typeof entityId === 'string' ? new ObjectId(entityId) : entityId,
+            targetId: toFlexibleId(entityId),
             targetType: entityType 
         })
         .sort({ timestamp: -1 })
@@ -32,7 +32,7 @@ export async function findLatestByEntity(entityId, entityType) {
     return await db.collection(COLLECTION)
         .findOne(
             { 
-                targetId: typeof entityId === 'string' ? new ObjectId(entityId) : entityId,
+                targetId: toFlexibleId(entityId),
                 targetType: entityType 
             },
             { sort: { timestamp: -1 } }
