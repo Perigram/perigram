@@ -9,7 +9,7 @@ workflows.
 |---|---|
 | `model.js` | `GeometryCapture` v24 entity wrapper. |
 | `repository.js` | MongoDB access for `geometry_captures`, using flexible ids. |
-| `service.js` | Capture creation, extraction task enqueueing, worker-result application, review updates, and confirmation. |
+| `service.js` | Capture creation, extraction task enqueueing, worker-result application, review updates, and confirmation. Lifecycle changes use workflow intents through `statusService`. |
 | `server/api/geometry-captures/` | Authenticated CRUD/confirm/revision routes plus worker-result callback. |
 
 ## Data Contract
@@ -39,17 +39,18 @@ workflows.
 
 1. Authenticated UI uploads a photo to the `capturePhotos` GridFS bucket. The
    UI may also submit a normalized hand-drawn outer contour prompt.
-2. `create()` persists a `geometry_capture` and queues
-   `vision.extractGeometry`.
+2. `create()` persists a `geometry_capture` with the workflow initial status,
+   queues `vision.extractGeometry`, and applies the `queueExtraction` intent.
 3. `workers/geometry-capture` claims the task for the pending revision. Prompted
    tasks use the drawn contour before model/OpenCV scoring. Auto presets try the
    model-backed provider order first when the ML worker image is enabled, then
    fall back to OpenCV contour extraction. Facade quadrilaterals are rectified
    into a working plane when a stable homography is available. The worker posts
    the result to the callback and completes/fails the task.
-4. The capture moves to `READY` for review or `FAILED` if there is no previous
-   active geometry. Failed recalculations keep the previous active geometry.
-5. `confirm()` moves the capture to `COMPLETE`.
+4. Worker results apply the `extractionReady` or `extractionFailed` intent.
+   Failed recalculations with a previous active geometry return the capture to
+   `READY` and keep the previous active geometry.
+5. `confirm()` applies the `confirmGeometry` intent.
    - `REMNANT` creates a real `remnant` entity and increments warehouse remnant
      count.
    - `FACADE` stores the accepted draft only; facade entities are deferred.
@@ -63,7 +64,10 @@ polygon as a ready revision, activates it immediately, and regenerates specs and
 preview from the submitted geometry. `POST
 /api/geometry-captures/:id/revisions/:revisionId/activate` switches
 `data.activeRevisionId` back to any successful revision and refreshes the
-denormalized geometry/specs fields.
+denormalized geometry/specs fields through the `activateRevision` intent.
+
+Remnant creation during `confirm()` is still service-local and is listed by the
+architecture migration inventory as a remaining effect-policy migration target.
 
 ## Access
 

@@ -25,6 +25,8 @@ should call `getAppRegistry()`.
 - Task executors: `nesting.solve`, which bridges queued task runs to the
   FastAPI nesting worker. Polling workers claim other task definitions such as
   `vision.extractGeometry` through the worker protocol.
+- Effect policies and hook-returned effects are executed through the core
+  effect runtime after the registry resolves the relevant services.
 - Workflow hook handlers from `server/core/machines/hooks.js` and explicitly
   registered feature hook handlers such as queue physical-cut processing.
 - Domain definitions: entities, workflows, commands, tasks, hooks,

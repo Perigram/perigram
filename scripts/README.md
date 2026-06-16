@@ -8,8 +8,9 @@ script explicitly installs its own resolver.
 ## Core Files
 
 - `check-arch.js`: Architecture guardrail for v24 backend features, API layer
-  boundaries, canonical DTO blocks, retired vocabulary, and portable-runtime
-  import rules.
+  boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
+  retired vocabulary, portable-runtime import rules, and non-blocking migration
+  inventory output for legacy lifecycle/service/UI hotspots.
 - `framework-inspect.js`: Framework/package inspection utility used during
   extraction checks.
 - `seed-*.js`: Local seed helpers for layer standards and tool profiles.
@@ -27,6 +28,12 @@ from `shared/` and non-spec `test-data/` modules. Cross-root portable imports
 should use the package imports declared in `package.json` (`#shared/...`,
 `#packages/...`, `#utils/...`) so direct Node loaders and Nuxt/Nitro SSR builds
 resolve the same graph.
+
+The checker also prints a non-blocking migration inventory with file, line,
+symbol, and rule id for legacy `createStatus(...)`, raw target-state
+`statusService.transition(...)`, feature-service `db.collection(...)`, and
+hardcoded UI lifecycle literals. These entries document remaining refactor
+scope; only categories already migrated to a strict boundary fail the command.
 
 ## Related
 

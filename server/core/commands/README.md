@@ -12,7 +12,9 @@ Generic runtime for declared domain commands.
 - Returns normalized `createCommandResult()` output.
 
 Handlers receive `{ command, entities, parameters, data, auth }` and may return
-`entities`, `attachments`, `tasks`, `transitions`, `events`, and `data`.
+`entities`, `attachments`, `tasks`, `transitions`, `events`, `effects`, and
+`data`. The runtime validates and executes returned effects after the handler
+finishes.
 Handlers do business work; access decisions stay in `server/core/access`.
 
 ## API
@@ -25,6 +27,7 @@ Handlers do business work; access decisions stay in `server/core/access`.
 ## Files
 
 - `service.js` - command execution, input normalization, access check, handler dispatch.
+- `../effects/README.md` - centralized effect processor used after handler completion.
 - `repository.js` - Mongo persistence for `command_runs`.
 
 ## Related

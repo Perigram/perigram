@@ -19,11 +19,11 @@ Production queue card and detail surface.
 - Artifact and consumed material relations render through `EntityInlineRef`.
 - Available material source context is owned by nesting runs; queue cards do not
   render material availability summaries.
-- Running nesting is a queue command action surfaced through status/page actions;
-  material selection remains owned by `QueueEditor`.
-- Parent surfaces can pass extra `statusActions` into `QueueCard`; the queue
-  workspace uses this so reset/status/delete commands stay on the active queue
-  entity.
+- Running nesting is a queue command action surfaced through page/header
+  actions; material selection remains owned by `QueueEditor`.
+- Queue reset/delete commands are rendered outside the status rail. Compact
+  queue cards keep command buttons in the card body, while the queue detail page
+  exposes them in the header actions slot.
 - Selector surfaces pass `expandable=false` and `density=dense` so clicking the
   compact card selects the queue without opening the `EntityCard` popover or
   using full card padding. Queue number prefixes and the full queue data block

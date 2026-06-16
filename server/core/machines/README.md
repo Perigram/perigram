@@ -42,6 +42,9 @@ Acts as a decoupled dispatcher for side-effects. To prevent architectural leaks,
   the registered domain hook contracts. The engine validates required and
   unknown hook parameters before executing side effects, and admin editors render
   typed controls instead of raw params JSON.
+- **Effects**: Hook results can return declared effects. The engine validates
+  them and forwards them to the centralized effect runtime so hooks can request
+  cross-entity changes without mutating sibling services directly.
 - **Execution mode**: Hooks default to asynchronous `after` execution. A
   workflow hook can declare `phase: 'before'` for preflight validation or
   `mode: 'sync'` for side effects that must complete before
@@ -65,7 +68,10 @@ Interactive UI status changes use the canonical status endpoints:
 | `POST /api/status/transition` | Executes a transition with full auth context and returns the updated entity, status, and refreshed actions. |
 
 Entity-specific PATCH routes must not be the primary status API for standard
-workflow transitions.
+workflow transitions. Runtime callers that know the business meaning of a
+transition should call `statusService.applyIntent(entityType, id, intent, auth,
+metadata)` instead of naming a target state. Raw `statusService.transition(...)`
+is retained for the status API/runtime adapter and focused tests.
 Entity types without a registered workflow return an empty action list from the
 actions endpoint; transitions for those types still remain invalid.
 Action lookup runs only `phase: 'before'` hooks and does not write status events
@@ -74,15 +80,17 @@ configuration errors still fail the endpoint so broken hook contracts are not
 masked.
 
 ## Data Flow
-1. User/System triggers `statusService.transition(type, id, state, ...)` or
-   `POST /api/status/transition`.
+1. User/System triggers `statusService.applyIntent(type, id, intent, ...)`,
+   `statusService.transition(type, id, state, ...)` from the status runtime/API
+   boundary, or `POST /api/status/transition`.
 2. Transition is validated against the domain workflow, access requirements, lifecycle schema, and actor/capability assignments.
 3. Entity's `status` block, including `metadata` and `lifecycle`, is updated and a history event is logged.
 4. **Hook Execution**:
     - Engine executes any `phase: 'before'` hooks before writing the new status.
     - It writes the event and entity status snapshot.
     - It executes `after` hooks; async hooks run in the background, while
-      `mode: 'sync'` hooks are awaited and may return related entity effects.
+      `mode: 'sync'` hooks are awaited and may return declared effects for the
+      centralized effect runtime.
 5. Parent's `summary` block is updated via `aggregator.js` (if `triggerAggregator` hook was called).
 
 ## Related
@@ -90,3 +98,4 @@ masked.
 - [server/utils/objectid.js](../utils/objectid.js) (Flexible ID handling)
 - [server/runtime/README.md](../../runtime/README.md) (Entity registry helpers)
 - [packages/workflows/README.md](../../../packages/workflows/README.md) (Framework workflow package)
+- [server/core/effects/README.md](../effects/README.md) (Effect processor)

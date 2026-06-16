@@ -22,7 +22,7 @@ Emits: `view`, `rename`, `delete`.
 - Footer: `NameEditPopover` gated by `authStore.can('projects', 'edit')`
   for compact single-field project renames. The optional `renaming` prop drives
   the popover save loading state without coupling it to create dialogs.
-- Delete is passed to `EntityCard` as a `statusActions` menu action so destructive commands stay in the shared status/action surface.
+- Delete is rendered in the project card footer so the shared status surface stays limited to lifecycle actions.
 
 ## ProjectIndexCard
 

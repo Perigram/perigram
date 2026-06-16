@@ -123,7 +123,10 @@ Interactive status controls load server-authorized actions from
 permission checks.
 After a successful transition, `useStatusController` emits a browser-local
 entity-change event for the changed entity and any related entities returned in
-transition `effects`.
+transition `effects`. Transition responses normalize effects as grouped arrays
+(`effects.entities`, `effects.tasks`, `effects.transitions`, and
+`effects.events`); legacy array-shaped responses remain tolerated by the browser
+event bridge.
 
 ```js
 const { transition, fetchActions, isTransitioning } = useStatusController();
@@ -133,6 +136,7 @@ await transition(type, id, newState, {
   metadata: { note: 'Measured after milling' },
   lifecycle: { attachments: { geometry: geometryRef } }
 });
+await transition(type, id, newState, { intent: 'acceptNestingRun' });
 ```
 
 ---

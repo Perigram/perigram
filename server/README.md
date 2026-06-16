@@ -13,6 +13,7 @@ Nuxt/Nitro backend for the CutKit modular monolith.
 | Workflows | `server/core/machines/` | Status transitions, hook dispatch, summaries. |
 | Commands | `server/core/commands/` | Command execution and `command_runs`. |
 | Tasks | `server/core/tasks/` | Async queue and `task_runs`. |
+| Effects | `server/core/effects/` | Declared cross-entity effect execution. |
 | Runtime registry | `server/runtime/` | Explicit app registry binding domain contracts to services/handlers. |
 
 ## Golden Path
@@ -32,6 +33,10 @@ Commands are synchronous business intent boundaries. Tasks are asynchronous
 execution boundaries. Both are domain-agnostic runtimes backed by explicit
 registry definitions from `@cutkit/domain-cnc`.
 
+Command, task, and status handlers may return declared effects. Those effects
+are executed by the centralized effect runtime after validation so handlers
+can stay focused on local state and emitted intent.
+
 Workers must use `/api/tasks/*` and must never write `task_runs` directly.
 
 Server modules that need shared root utilities should import them through
@@ -50,4 +55,5 @@ npm run framework:validate
 - [Feature template](./features/_template/README.md)
 - [Commands](./core/commands/README.md)
 - [Tasks](./core/tasks/README.md)
+- [Effects](./core/effects/README.md)
 - [Runtime registry](./runtime/README.md)

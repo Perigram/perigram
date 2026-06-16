@@ -7,6 +7,7 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
 
 - `entities.js` - CNC entity definitions.
 - `workflows.js` - entity lifecycle machines and transition hooks.
+- `effects.js` - effect policy declarations consumed by the runtimes.
 - `commands.js` - business intent contracts: `saveCassetteTemplate`,
   `solveNesting`, `generateAttachment`, `generateConfigBotDraft`,
   `reindexConfigBotKnowledge`.
@@ -37,10 +38,15 @@ Queue workflow UI actions start with `DRAFT -> NESTING`; any system-only
 cannot skip nesting from status controls. Queues can be moved to `ARCHIVED`
 from any current queue state through a menu transition; admin users can restore
 archived queues to `DRAFT`.
-Nesting run acceptance is modeled as the `COMPLETE -> CHOSEN` transition. That
-transition declares a synchronous preflight hook and a synchronous application
-hook so the app runtime can validate selected material, persist queue production
-outputs, and report related entity effects through the generic status API.
+The first intent-based nesting flow now uses transition intents instead of raw
+status names:
+- `requestNesting` moves `queue` from `DRAFT -> NESTING`.
+- `completeNestingProduction` moves `queue` from `NESTING -> READY`.
+- `nestingSolveCompleted` and `nestingSolveFailed` move `nesting_run` from `NESTING` to its terminal solver states.
+- `acceptNestingRun` moves `nesting_run` from `COMPLETE -> CHOSEN`.
+Nesting run acceptance still declares a synchronous preflight hook and a
+synchronous application hook, but the hook now emits declared effects that the
+status runtime executes after the status snapshot is written.
 Material pile and remnant workflows are also declared here: material piles use
 `STOCKED -> DEPLETED`, while remnants use `AVAILABLE -> USED`. `ui.js` contains
 matching status labels/icons so live cards and framework/UI-lab previews use the
@@ -50,7 +56,9 @@ same lifecycle vocabulary.
 facade draft capture. It queues `vision.extractGeometry`, stores polygon
 geometry with hole rings, accepts optional normalized image-space prompt rings
 for model-assisted extraction, and keeps facade output draft-only until facade
-domain entities are introduced.
+domain entities are introduced. Geometry capture lifecycle writes use workflow
+intents: `queueExtraction`, `extractionReady`, `extractionFailed`,
+`activateRevision`, and `confirmGeometry`.
 
 `generateConfigBotDraft` and `reindexConfigBotKnowledge` are admin capability
 commands. They require `config_bot: admin`, produce command `data`, and do not

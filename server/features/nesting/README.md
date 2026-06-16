@@ -5,9 +5,10 @@ Command handler and compatibility job metadata for queue nesting.
 ## Responsibilities
 
 - `operations.js` implements the `solveNesting` command.
-- The handler validates queue state, transitions a draft queue to `NESTING`,
-  creates a `nesting_run`, enqueues `nesting.solve`, and writes a linked
-  compatibility `nesting_jobs` record.
+- The handler validates queue state, creates a `nesting_run`, enqueues
+  `nesting.solve`, writes a linked compatibility `nesting_jobs` record, and
+  returns a queue `requestNesting` effect instead of mutating queue status
+  directly.
 - Command output is initially the `nesting_run` plus task/job references.
   `sheet_design` entities are created only after the worker returns, one entity
   per physical sheet layout in `solution.layouts[]`. Generated files are
@@ -18,11 +19,10 @@ Command handler and compatibility job metadata for queue nesting.
   `layerData` as request-side source layers, calls `NESTING_WORKER_URL`,
   enriches stripped worker responses with source request geometry, source
   layers, and bin shape data, creates one `sheet_design` per returned layout,
-  stores their IDs on `nesting_run.data.sheetDesignIds`, completes/fails the
-  task run, updates the compatibility job, transitions the `nesting_run` to
-  `COMPLETE` or final-attempt `ERROR`, leaves the parent queue in `NESTING` on
-  success so a human can choose the accepted run, and transitions the parent
-  queue back to `DRAFT` on final failure.
+  stores their IDs on `nesting_run.data.sheetDesignIds`, updates the
+  compatibility job, and returns solver completion/failure effects for the task
+  runtime to apply. Queue lifecycle changes now happen through the declared
+  effect policy rather than directly inside the executor.
 - Run summaries use explicit worker `efficiency`/`remnantArea` metrics when
   present. Current `lbf` responses usually expose only `solution.density` and
   layout placements, so `operations.js` falls back to density and then placed

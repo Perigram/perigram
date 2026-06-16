@@ -79,6 +79,27 @@
        when a surface injects a command like reset/produce alongside the real
        workflow transitions.
 
+*** Agent Notes
+     [2026-06-16] Move command actions out of the status rail
+     Files changed: components/shared/status/EntityStatus.vue,
+       components/entities/Queue/QueueCard.vue,
+       components/entities/Queue/QueueDetail.vue,
+       components/entities/Project/ProjectCard.vue,
+       components/entities/Requisition/RequisitionCard.vue,
+       components/entities/NestingRun/NestingRunCard.vue,
+       components/shared/README.md, components/entities/Queue/README.md,
+       components/entities/Project/README.md,
+       components/entities/Requisition/README.md, TODO.org
+     Docs updated: components/shared/README.md,
+       components/entities/Queue/README.md,
+       components/entities/Project/README.md,
+       components/entities/Requisition/README.md, TODO.org
+     Notes: Removed command-style queue/project/requisition/nesting-run buttons
+       from the status rail and rendered them in card footers or page/header
+       actions instead. `EntityStatus` now filters out command-only entries so
+       only lifecycle transitions can render there even if a caller passes the
+       wrong action set.
+
 * WAITING Repo-local Codex Skills
   :PROPERTIES:
   :ID: repo-local-codex-skills

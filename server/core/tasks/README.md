@@ -16,6 +16,8 @@ Generic asynchronous queue backed by `task_runs`.
 - Dispatches registered app-side task executors from `server/plugins/task-executors.js`.
   External workers still use the claim protocol; app-side executors claim runs
   internally and then call `completeTaskRun()` / `failTaskRun()`.
+- Executes declared task effects after a handler returns and before the run is
+  finalized.
 
 Task definitions come from the app registry. Worker-specific payloads and IO live
 in worker processes or feature adapters; this runtime is domain-agnostic.
@@ -38,6 +40,7 @@ All worker endpoints require `WORKER_TOKEN` on the app and matching
 - `repository.js` - Mongo persistence for `task_runs`.
 - `server/plugins/task-executors.js` - background dispatcher for registered
   app-side executors such as HTTP solver adapters.
+- `../effects/README.md` - centralized effect processor used for task results.
 
 ## Related
 

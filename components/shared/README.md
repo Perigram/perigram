@@ -95,14 +95,15 @@ Atomic, read-only status tag with semantic coloring. Use for display-only contex
 ### `EntityStatus.vue`
 Interactive status component for display + state-machine transitions. Status-changing action buttons must live here (not in parent layouts).
 
-Props: `:entity`, `entity-type`, `variant` (`inline` | `compact` | `full`), `:actions` (optional custom action set), `:expanded` (optional override).
+Props: `:entity`, `entity-type`, `variant` (`inline` | `compact` | `full`), `:actions` (optional lifecycle override set for workflow-driven surfaces), `:expanded` (optional override).
 Rendering guard: component renders only when `props.entity` is present.
-Behavior: component auto-expands when custom `actions` are provided; otherwise inline mode uses badge + popover. The popover is compact UI, not a labeled detail page: it renders action controls, current location, notes, and the status timeline without section headings or empty placeholder copy.
+Behavior: component auto-expands when lifecycle `actions` are provided; otherwise inline mode uses badge + popover. The popover is compact UI, not a labeled detail page: it renders lifecycle controls, current location, notes, and the status timeline without section headings or empty placeholder copy.
 Successful server transitions emit the `transitioned` event from
 `EntityStatus`; matching browser-local entity-change events emit `refresh`
-from the status component itself. `EntityCard` forwards both as `refresh` for
-every variant, so entity-specific cards and pages can reload entity-local data
-after lifecycle changes without wiring listeners in each card.
+from the status component itself. `EntityCard` and `EntityPage` forward both as
+`refresh` on their entity shells, so entity-specific cards and pages can reload
+entity-local data after lifecycle changes without wiring listeners in each
+card.
 Status transition results and failures are surfaced through PrimeVue toast
 messages. Failed transitions also refresh server actions and emit `refresh`, so
 stale popover actions are corrected after backend preflight rejects an action.
@@ -115,11 +116,13 @@ Interactive status is enabled only for entity types that have a real workflow in
 `cncWorkflows`; non-workflow entities hide status chrome in cards unless a
 read-only `StatusBadge` is explicitly required. Live app transition actions are
 loaded from the canonical status API so access and preflight filtering stay
-server-side.
-Development surfaces with custom workflow drafts derive actions from workflow
-definitions through `utils/status-actions.js`. Card components should only pass
-custom actions for non-lifecycle commands such as delete/archive affordances;
-real status transitions must be advertised by the workflow/status API.
+server-side. When an action includes `intent`, `EntityStatus` posts that intent
+with the target state so frontend components do not infer business meaning from
+raw lifecycle state names.
+Development surfaces with custom workflow drafts derive lifecycle actions from
+workflow definitions through `utils/status-actions.js`. Card and page command
+actions must live outside `EntityStatus` in the card footer or page action
+slots; only real lifecycle transitions belong in the status surface.
 `EntityStatus` can also receive a `workflows` prop or consume a provided
 `statusWorkflows` value. This is used only by development surfaces such as the
 admin workbench so live draft machines can drive previews without replacing the
@@ -275,7 +278,7 @@ relationship.
   tighter padding while keeping the same identity/status contract.
 - **`NameEditPopover.vue`**: Compact single-field rename control for entity names and other one-field edits. Use it near identity or action clusters instead of opening a full dialog when the only editable field is a name.
 
-`EntityStatus` action objects support `display: 'inline' | 'menu' | 'hidden'`. Workflow transitions default to inline actions, self-loop metadata transitions are hidden, and lower-priority/destructive actions should use menu placement. Inline/card status surfaces default to the current badge plus an ellipsis popover so card titles do not show multiple badge-like controls; expanded/full status surfaces show up to two inline actions by default and put overflow actions, current location, metadata, and compact status history in the popover. Entity card title/status rows and status menus are allowed to wrap, and inline status rails are deliberately bounded so compact containers do not let status text or action buttons displace identity content.
+`EntityStatus` action objects support `display: 'inline' | 'menu' | 'hidden'`. Workflow transitions default to inline actions, self-loop metadata transitions are hidden, and only lifecycle transitions should be passed into the status surface. Inline/card status surfaces default to the current badge plus an ellipsis popover so card titles do not show multiple badge-like controls; expanded/full status surfaces show up to two inline actions by default and put overflow actions, current location, metadata, and compact status history in the popover. Entity card title/status rows and status menus are allowed to wrap, and inline status rails are deliberately bounded so compact containers do not let status text or action buttons displace identity content.
 
 `EntityCard` owns inline and compact expansion. Inline and compact variants open
 the shared entity popover on click/keyboard activation. Entity-specific card

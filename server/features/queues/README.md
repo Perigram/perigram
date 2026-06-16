@@ -16,11 +16,13 @@ Defines a specific nesting job, bridging the digital production intent with phys
 2. **Material Allocation**: Defining which warehouse piles, sheets, or remnants are allowed for the run.
    Queue edits persist these selections as `data.job.materialPool` with source
    ids, labels, dimensions, and available counts.
-3. **Transition to Nesting**: Handing off the job to the Nesting Worker moves a
-   draft queue to `NESTING`. When the async solver task completes, the generated
-   `nesting_run` becomes `COMPLETE` and the queue stays `NESTING` until an
-   operator chooses a completed run for production. Final solver failure returns
-   a `NESTING` queue to `DRAFT`. In warehouse mode, selected stock
+3. **Transition to Nesting**: Handing off the job to the Nesting Worker now
+   uses the `requestNesting` intent to move a draft queue to `NESTING`. When
+   the async solver task completes, the generated `nesting_run` becomes
+   `COMPLETE` and the queue stays `NESTING` until an operator chooses a
+   completed run for production. Final solver failure transitions both the
+   nesting run and queue to `ERROR` through declared effects. In warehouse mode,
+   selected stock
    dimensions/counts define the worker sheet size and sheet count; mixed sheet
    sizes are rejected for the current one-bin worker contract.
    The queue nesting API derives command parameters from saved
@@ -38,7 +40,9 @@ Defines a specific nesting job, bridging the digital production intent with phys
    generated sheet design cassette counts. Output ids are recorded on
    `data.physicalOutputs`, and the queue transitions to `READY` only after that
    run is chosen. The queue choose-run API delegates to the generic status
-   transition so status controls and API callers share the same side effects.
+   transition so status controls and API callers share the same side effects,
+   while the status hook emits the queue-production effect instead of mutating
+   the queue directly.
    There is no queue-level `CUT` state.
 5. **Archiving / Removal**: Queue status controls can transition any queue state
    to `ARCHIVED`; destructive deletion remains an entity removal action guarded
