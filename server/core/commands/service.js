@@ -3,6 +3,7 @@ import { createCommandResult } from '../blocks/index.js';
 import { assertCommandAccess } from '../access/service.js';
 import { getAppRegistry } from '../../runtime/app-registry.js';
 import * as commandRunsRepository from './repository.js';
+import { processEffects, processEvents } from '../effects/service.js';
 
 export async function executeCommand(commandId, input = {}, auth = {}) {
   const registry = getAppRegistry();
@@ -29,16 +30,29 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
     const handler = registry.getCommandHandler(commandId);
     if (!handler) throw createError({ statusCode: 500, message: `Command handler not registered: ${commandId}` });
 
+    const rawResult = await handler({
+      command,
+      entities,
+      parameters,
+      data: parameters,
+      auth
+    }) || {};
     const result = createCommandResult({
       commandId,
-      ...(await handler({
-        command,
-        entities,
-        parameters,
-        data: parameters,
-        auth
-      }) || {})
+      ...rawResult,
+      raw: rawResult
     });
+    const effectContext = {
+      auth,
+      command,
+      entities,
+      result,
+      registry: getAppRegistry()
+    };
+    const processedEvents = await processEvents(result.events || [], effectContext);
+    const processedEffects = await processEffects(result.effects || [], effectContext);
+    result.events = processedEvents.events;
+    result.effects = mergeProcessedEffects(processedEvents, processedEffects);
 
     await commandRunsRepository.updateById(run._id, {
       status: 'SUCCEEDED',
@@ -58,6 +72,16 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
     });
     throw error;
   }
+}
+
+function mergeProcessedEffects(left, right) {
+  return {
+    entities: [...(left.entities || []), ...(right.entities || [])],
+    tasks: [...(left.tasks || []), ...(right.tasks || [])],
+    transitions: [...(left.transitions || []), ...(right.transitions || [])],
+    events: [...(left.events || []), ...(right.events || [])],
+    attachments: [...(left.attachments || []), ...(right.attachments || [])]
+  };
 }
 
 export function listCommands() {

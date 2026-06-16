@@ -90,7 +90,7 @@ export const cncCommands = {
     output: {
       entities: ['nesting_run', 'sheet_design'],
       tasks: ['nesting.solve'],
-      events: ['nesting.solveStarted', 'nesting.solveCompleted', 'nesting.solveFailed']
+      events: ['queue.nestingRequested', 'nesting.solveStarted']
     },
     access: {
       permissions: [

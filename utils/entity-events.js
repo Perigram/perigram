@@ -13,16 +13,22 @@ export function emitStatusTransitionResult({ entityType, targetId, response }) {
     reason: 'status-transition'
   });
 
-  for (const effect of response?.effects || []) {
-    for (const changed of effect?.entities || []) {
-      emitEntityChanged({
-        type: changed.type,
-        id: changed.id || changed.entity?._id,
-        entity: changed.entity,
-        reason: 'status-transition-effect'
-      });
-    }
+  for (const changed of normalizedEffectEntities(response?.effects)) {
+    emitEntityChanged({
+      type: changed.type,
+      id: changed.id || changed.entity?._id,
+      entity: changed.entity,
+      reason: 'status-transition-effect'
+    });
   }
+}
+
+function normalizedEffectEntities(effects) {
+  if (!effects) return [];
+  if (Array.isArray(effects)) {
+    return effects.flatMap(effect => effect?.entities || []);
+  }
+  return effects.entities || [];
 }
 
 export function onEntityChanged(handler) {

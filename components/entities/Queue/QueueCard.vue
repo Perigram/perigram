@@ -47,14 +47,12 @@ const handleCardClick = (event) => {
 
 const jobItems = computed(() => props.queue.data?.job?.items || []);
 const totalQuantity = computed(() => jobItems.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0));
-
-const statusActions = computed(() => [
+const commandActions = computed(() => [
     ...props.statusActions,
     ...(props.showDelete && authStore.can('queues', 'delete') ? [{
         label: t('common.delete'),
         icon: 'pi pi-trash',
         severity: 'danger',
-        display: 'menu',
         command: () => emit('delete', props.queue)
     }] : [])
 ]);
@@ -66,7 +64,6 @@ const statusActions = computed(() => [
         :entity="queue"
         entity-type="queue"
         :variant="variant"
-        :status-actions="statusActions"
         :expandable="expandable"
         :density="density"
     >
@@ -80,10 +77,23 @@ const statusActions = computed(() => [
             </div>
         </template>
         <template #compact-content v-if="showSummary">
-            <div class="mt-3 flex flex-wrap gap-2">
+            <div class="mt-3 flex flex-wrap items-center gap-2">
                 <Tag v-if="queue.summary?.runCount" :value="`${queue.summary.runCount} ${$t('queue.runs')}`" severity="info" size="small" />
             </div>
         </template>
+
+        <div v-if="variant !== 'card' && commandActions.length" class="mt-3 flex flex-wrap gap-2" @click.stop>
+            <Button
+                v-for="action in commandActions"
+                :key="action.label"
+                :label="action.label"
+                :icon="action.icon"
+                :severity="action.severity || 'secondary'"
+                size="small"
+                text
+                @click.stop="action.command?.()"
+            />
+        </div>
 
         <div class="flex flex-col gap-3">
             <Divider />
@@ -93,6 +103,16 @@ const statusActions = computed(() => [
         <!-- Card footer -->
         <template #footer v-if="variant === 'card' && showFooterActions">
             <div class="flex justify-end gap-2" @click.stop>
+                <Button
+                    v-for="action in commandActions"
+                    :key="action.label"
+                    :label="action.label"
+                    :icon="action.icon"
+                    :severity="action.severity || 'secondary'"
+                    size="small"
+                    text
+                    @click.stop="action.command?.()"
+                />
                 <Button v-if="authStore.can('queues', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="$emit('edit', queue)" />
             </div>
         </template>

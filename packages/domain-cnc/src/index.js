@@ -1,5 +1,7 @@
 export { cncEntities } from './entities.js';
 export { cncWorkflows } from './workflows.js';
+export { cncEvents } from './events.js';
+export { cncEffects } from './effects.js';
 export { cncServiceContracts, cncCommands } from './commands.js';
 export { cncTasks } from './tasks.js';
 export { cncHookContracts } from './hooks.js';
@@ -22,6 +24,8 @@ export {
 
 import { cncEntities } from './entities.js';
 import { cncWorkflows } from './workflows.js';
+import { cncEvents } from './events.js';
+import { cncEffects } from './effects.js';
 import { cncServiceContracts, cncCommands } from './commands.js';
 import { cncTasks } from './tasks.js';
 import { cncHookContracts } from './hooks.js';
@@ -35,6 +39,8 @@ export const cncDomain = {
   label: 'CNC fabrication',
   entities: cncEntities,
   workflows: cncWorkflows,
+  events: cncEvents,
+  effects: cncEffects,
   serviceContracts: cncServiceContracts,
   commands: cncCommands,
   tasks: cncTasks,

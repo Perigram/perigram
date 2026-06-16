@@ -4,7 +4,7 @@ import * as projectsService from '../projects/service.js';
 import * as remnantsService from '../remnants/service.js';
 import * as warehousesService from '../warehouses/service.js';
 import { GeometryCapture } from './model.js';
-import { createAttachment, createData, createStatus } from '../../core/blocks/index.js';
+import { createAttachment, createData } from '../../core/blocks/index.js';
 import { statusService, createTransitionAuth } from '../../core/machines/service.js';
 import { createTaskRun } from '../../core/tasks/service.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
@@ -34,7 +34,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const bucketName = data.bucketName || data.photo?.bucketName || PHOTO_BUCKET;
   const fileName = data.fileName || data.photo?.filename || data.photo?.name || 'capture-photo';
   const captureUid = `capture-${generateRandomString(8)}`;
-  const origin = createStatus('DRAFT', userId, { note: 'Geometry capture created' });
+  const origin = statusService.initialStatus('geometry_capture', userId, { note: 'Geometry capture created' });
 
   const revision = createRevision({
     mode,
@@ -81,10 +81,8 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const created = await repository.create(doc);
   const taskRun = await enqueueExtractionTask(created, revision, { userId, organizationId: userOrg, role: userRole });
 
-  const processingStatus = createStatus('PROCESSING', userId, { note: 'Vision extraction queued', taskRunId: taskRun._id.toString() });
   const queuedRevision = { ...revision, taskRunId: taskRun._id.toString() };
-  const updated = await repository.updateById(created._id, {
-    status: processingStatus,
+  await repository.updateById(created._id, {
     data: {
       ...created.data,
       revisions: [queuedRevision],
@@ -97,8 +95,11 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
       }
     }
   });
-
-  return toDTO(updated);
+  await applyGeometryCaptureIntent(created._id, 'queueExtraction', createTransitionAuth('SYSTEM', 'SYSTEM'), {
+    note: 'Vision extraction queued',
+    taskRunId: taskRun._id.toString()
+  });
+  return await getById(created._id, userId, userOrg, userRole, userPermissions);
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
@@ -175,9 +176,7 @@ export async function recalculate(id, options = {}, userId, userOrg, userRole, u
   const saved = await repository.updateById(id, { data: nextData });
   const taskRun = await enqueueExtractionTask(saved, revision, { userId, organizationId: userOrg, role: userRole });
   const queuedRevision = { ...revision, taskRunId: taskRun._id.toString() };
-  const status = createStatus('PROCESSING', userId, { note: 'Geometry extraction recalculation queued', taskRunId: taskRun._id.toString(), revisionId: revision.id });
-  const updated = await repository.updateById(id, {
-    status,
+  await repository.updateById(id, {
     data: {
       ...(saved.data || {}),
       revisions: replaceRevision(saved.data?.revisions || [], queuedRevision),
@@ -190,7 +189,12 @@ export async function recalculate(id, options = {}, userId, userOrg, userRole, u
       }
     }
   });
-  return toDTO(updated);
+  await applyGeometryCaptureIntent(id, 'queueExtraction', createTransitionAuth('SYSTEM', 'SYSTEM'), {
+    note: 'Geometry extraction recalculation queued',
+    taskRunId: taskRun._id.toString(),
+    revisionId: revision.id
+  });
+  return await getById(id, userId, userOrg, userRole, userPermissions);
 }
 
 export async function createManualRevision(id, options = {}, userId, userOrg, userRole, userPermissions) {
@@ -221,9 +225,7 @@ export async function createManualRevision(id, options = {}, userId, userOrg, us
     metrics,
     error: null
   };
-  const status = createStatus('READY', userId, { note: 'Geometry capture manually edited', revisionId });
-  const updated = await repository.updateById(id, {
-    status,
+  await repository.updateById(id, {
     specs: metrics,
     data: {
       ...(raw.data || {}),
@@ -243,7 +245,11 @@ export async function createManualRevision(id, options = {}, userId, userOrg, us
       }
     }
   });
-  return toDTO(updated);
+  await applyGeometryCaptureIntent(id, 'extractionReady', createTransitionAuth('SYSTEM', 'SYSTEM'), {
+    note: 'Geometry capture manually edited',
+    revisionId
+  });
+  return await getById(id, userId, userOrg, userRole, userPermissions);
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
@@ -263,7 +269,6 @@ export async function applyExtractionResult(id, result = {}) {
 
   if (result.ok === false) {
     const hasActiveGeometry = Boolean(raw.data?.geometry?.polygon?.outer?.length);
-    const status = createStatus(hasActiveGeometry ? 'READY' : 'FAILED', 'SYSTEM', { note: result.error || 'Geometry extraction failed', revisionId });
     const failedRevision = {
       ...findRevision(revisions, revisionId),
       status: 'FAILED',
@@ -271,8 +276,7 @@ export async function applyExtractionResult(id, result = {}) {
       error: result.error || 'Geometry extraction failed',
       diagnostics: result.diagnostics || []
     };
-    const updated = await repository.updateById(id, {
-      status,
+    await repository.updateById(id, {
       data: {
         ...(raw.data || {}),
         revisions: replaceRevision(revisions, failedRevision),
@@ -286,16 +290,16 @@ export async function applyExtractionResult(id, result = {}) {
         }
       }
     });
+    await applyGeometryCaptureIntent(id, hasActiveGeometry ? 'extractionReady' : 'extractionFailed', createTransitionAuth('SYSTEM', 'SYSTEM'), {
+      note: result.error || 'Geometry extraction failed',
+      revisionId
+    });
+    const updated = await repository.findById(id);
     return toDTO(updated);
   }
 
   const geometry = normalizeGeometry(result.geometry || {});
   const metrics = metricsForGeometry(geometry);
-  const status = createStatus('READY', 'SYSTEM', {
-    note: 'Geometry extraction completed',
-    revisionId,
-    confidence: Number(result.confidence || 0)
-  });
   const readyRevision = {
     ...findRevision(revisions, revisionId),
     status: 'READY',
@@ -307,8 +311,7 @@ export async function applyExtractionResult(id, result = {}) {
     metrics,
     error: null
   };
-  const updated = await repository.updateById(id, {
-    status,
+  await repository.updateById(id, {
     specs: metrics,
     data: {
       ...(raw.data || {}),
@@ -327,6 +330,12 @@ export async function applyExtractionResult(id, result = {}) {
       }
     }
   });
+  await applyGeometryCaptureIntent(id, 'extractionReady', createTransitionAuth('SYSTEM', 'SYSTEM'), {
+    note: 'Geometry extraction completed',
+    revisionId,
+    confidence: Number(result.confidence || 0)
+  });
+  const updated = await repository.findById(id);
   return toDTO(updated);
 }
 
@@ -345,9 +354,7 @@ export async function activateRevision(id, revisionId, userId, userOrg, userRole
 
   const geometry = normalizeGeometry(revision.geometry);
   const metrics = revision.metrics || metricsForGeometry(geometry);
-  const status = createStatus('READY', userId, { note: 'Geometry capture revision activated', revisionId });
-  const updated = await repository.updateById(id, {
-    status,
+  await repository.updateById(id, {
     specs: metrics,
     data: {
       ...(raw.data || {}),
@@ -366,7 +373,11 @@ export async function activateRevision(id, revisionId, userId, userOrg, userRole
       }
     }
   });
-  return toDTO(updated);
+  await applyGeometryCaptureIntent(id, 'activateRevision', createTransitionAuth('SYSTEM', 'SYSTEM'), {
+    note: 'Geometry capture revision activated',
+    revisionId
+  });
+  return await getById(id, userId, userOrg, userRole, userPermissions);
 }
 
 export async function confirm(id, userId, userOrg, userRole, userPermissions) {
@@ -412,16 +423,15 @@ export async function confirm(id, userId, userOrg, userRole, userPermissions) {
       output
     }
   });
-  await statusService.transition(
-    'geometry_capture',
-    id,
-    'COMPLETE',
-    'SYSTEM',
-    createTransitionAuth('SYSTEM', 'SYSTEM'),
-    { note: mode === 'REMNANT' ? 'Confirmed into remnant inventory' : 'Confirmed as facade draft' }
-  );
+  await applyGeometryCaptureIntent(id, 'confirmGeometry', createTransitionAuth('SYSTEM', 'SYSTEM'), {
+    note: mode === 'REMNANT' ? 'Confirmed into remnant inventory' : 'Confirmed as facade draft'
+  });
 
   return await getById(id, userId, userOrg, userRole, userPermissions);
+}
+
+async function applyGeometryCaptureIntent(id, intent, auth, metadata = {}) {
+  return await statusService.applyIntent('geometry_capture', id, intent, auth, metadata);
 }
 
 async function resolveLineage(mode, data, auth, level) {

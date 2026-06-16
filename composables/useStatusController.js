@@ -20,11 +20,12 @@ export const useStatusController = () => {
     const statusMeta = context && typeof context === 'object' && ('metadata' in context || 'lifecycle' in context)
       ? context
       : { metadata: context || {} };
+    const intent = context?.intent || null;
     
     try {
       const response = await $fetch(getStatusEndpoint(), {
         method: 'POST',
-        body: { entityType, id: targetId, status: newState, statusMeta }
+        body: { entityType, id: targetId, status: newState, intent, statusMeta }
       });
       emitStatusTransitionResult({ entityType, targetId, response });
       return response;

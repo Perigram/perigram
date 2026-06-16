@@ -41,6 +41,7 @@ const emit = defineEmits(['refresh']);
             variant="inline"
             :actions="statusActions"
             :show-history="false"
+            @refresh="$emit('refresh')"
             @transitioned="$emit('refresh')"
           />
           <slot name="actions"></slot>

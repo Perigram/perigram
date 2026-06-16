@@ -34,6 +34,7 @@ export function createStatusAction(transition = {}, mappings = STATUS_MAPPINGS, 
   return {
     label: translateStatusLabel(transition.to, mapping.label, t),
     to: transition.to,
+    intent: transition.intent || null,
     severity: mapping.severity || 'secondary',
     icon: mapping.icon || 'pi pi-arrow-right',
     display: resolveActionDisplay(transition)

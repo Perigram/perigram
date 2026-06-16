@@ -57,13 +57,6 @@ const RUN_FIELDS = [
     { path: 'data.results.efficiency', i18n: 'sheetDesign.utilization', suffix: '%' },
     { path: 'data.results.remnantArea', i18n: 'results.area', suffix: ' m²' }
 ];
-const statusActions = computed(() => {
-    const actions = [];
-    if (canManage.value) {
-        actions.push({ label: t('common.delete'), icon: 'pi pi-trash', severity: 'danger', display: 'menu', command: () => emit('delete', props.run._id) });
-    }
-    return actions;
-});
 
 function contextEntities(type) {
     const context = unref(entityContext);
@@ -106,7 +99,6 @@ function openSheetDesign(design) {
       entity-type="nesting_run"
       :variant="variant"
       :show-trace="false"
-      :status-actions="statusActions"
       @refresh="emit('refresh')"
     >
       <template #before-identity>
@@ -193,6 +185,20 @@ function openSheetDesign(design) {
           {{ $t('results.failed') }}
         </div>
       </div>
+      <template #footer v-if="variant === 'card'">
+        <div class="flex justify-end gap-2" @click.stop>
+          <Button
+            v-if="canManage"
+            icon="pi pi-trash"
+            text
+            rounded
+            severity="danger"
+            size="small"
+            :aria-label="$t('common.delete')"
+            @click="emit('delete', props.run._id)"
+          />
+        </div>
+      </template>
     </EntityCard>
   </div>
 </template>

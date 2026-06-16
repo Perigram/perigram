@@ -1,5 +1,5 @@
 import { createError } from 'h3';
-import { createStatus, inheritLineage } from '../../core/blocks/index.js';
+import { inheritLineage } from '../../core/blocks/index.js';
 import * as queuesService from '../queues/service.js';
 import * as projectsService from '../projects/service.js';
 import * as cassetteService from '../cassettes/service.js';
@@ -9,7 +9,6 @@ import * as nestingRunsRepository from '../nesting-runs/repository.js';
 import * as nestingRunsService from '../nesting-runs/service.js';
 import * as sheetDesignsService from '../sheet-designs/service.js';
 import * as nestingJobs from './jobs.js';
-import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { createTaskRun, getTaskRunById } from '../../core/tasks/service.js';
 import { generateRandomString } from '../../utils/strings.js';
 import { toFlexibleId } from '../../utils/objectid.js';
@@ -19,6 +18,7 @@ const activeQueueNestLocks = new Set();
 export async function solveNesting({ entities, parameters = {}, data = {}, auth }) {
   const settings = { ...data, ...parameters };
   const queue = entities.queue;
+  if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
   const queueId = queue._id?.toString();
 
   if (activeQueueNestLocks.has(queueId)) {
@@ -27,7 +27,6 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
   activeQueueNestLocks.add(queueId);
 
   try {
-    if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
     await clearStaleActiveNestingJob(queue._id);
     if (await nestingJobs.findActiveByQueue(queue._id) || queue.status?.state === 'NESTING') {
       throw createError({ statusCode: 400, message: 'Queue is already nesting' });
@@ -35,10 +34,6 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
     if (!queue.data?.job?.items || queue.data.job.items.length === 0) {
       throw createError({ statusCode: 400, message: 'Queue has no entries' });
     }
-    await transitionQueueIfState(queue._id, 'DRAFT', 'NESTING', auth, {
-      note: `Nesting started in ${settings.materialMode || 'VIRTUAL'} mode`
-    });
-
     const jobFiles = await buildJobFiles(queue, auth);
     const nestingSlug = `queue-${queue.data?.queueNumber ?? queue._id.toString().slice(-6)}-${generateRandomString(6)}`;
     const materialPool = resolveNestingMaterialPool(settings, queue);
@@ -53,7 +48,6 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
 
     const runNumber = await nestingRunsService.getNextRunNumber(queue._id);
     const runUid = generateRandomString(12);
-    const runOrigin = createStatus('NESTING', auth.userId, { note: `Nesting started in ${settings.materialMode || 'VIRTUAL'} mode` });
     const run = await nestingRunsService.create({
       identity: { uid: runUid, name: `Nesting run ${runNumber}`, serial: `RUN-${runNumber}` },
       runNumber,
@@ -63,8 +57,6 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
         params,
         materialPool: nestingContext.materialPool
       },
-      origin: runOrigin,
-      status: runOrigin,
       lineage: inheritLineage(queue, 'queue')
     }, auth.userId);
     const runId = toFlexibleId(run._id);
@@ -99,6 +91,18 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
       jobs: [
         { type: 'task_run', id: taskRun._id.toString() },
         { type: 'nesting_job', id: job._id.toString(), compatibility: true }
+      ],
+      events: [
+        {
+          type: 'queue.nestingRequested',
+          source: { type: 'queue', id: queue._id?.toString() || queue._id },
+          entities: [{ type: 'nesting_run', id: runId.toString() }],
+          data: {
+            materialMode: settings.materialMode || 'VIRTUAL',
+            taskRunId: taskRun._id.toString(),
+            runId: runId.toString()
+          }
+        }
       ],
       data: {
         nestingSlug,
@@ -191,14 +195,6 @@ export async function executeNestingSolveTask({ run, input, auth = {} }) {
         sheetDesignIds
       }
     });
-    await statusService.transition(
-      'nesting_run',
-      runId,
-      'COMPLETE',
-      auth.userId || 'SYSTEM',
-      createTransitionAuth(auth.userId || 'SYSTEM', 'SYSTEM'),
-      { note: 'Nesting calculation completed', taskRunId: run._id.toString() }
-    );
 
     if (job) {
       await nestingJobs.updateById(job._id, {
@@ -213,6 +209,14 @@ export async function executeNestingSolveTask({ run, input, auth = {} }) {
       entities: [
         { type: 'nesting_run', id: runId },
         ...sheetDesignIds.map(id => ({ type: 'sheet_design', id }))
+      ],
+      events: [
+        {
+          type: 'nesting.solveCompleted',
+          source: { type: 'nesting_run', id: runId },
+          entities: sheetDesignIds.map(id => ({ type: 'sheet_design', id })),
+          data: { taskRunId: run._id.toString(), results: summary }
+        }
       ],
       data: {
         status: 'COMPLETE',
@@ -232,23 +236,19 @@ export async function executeNestingSolveTask({ run, input, auth = {} }) {
     }
     if (finalFailure) {
       await markRunError(runId, run?._id, auth, error);
-      await transitionQueueIfState(queueId, 'NESTING', 'DRAFT', { userId: 'SYSTEM', role: 'SYSTEM', system: true }, {
-        note: error.message || 'Nesting failed',
-        runId
-      });
+    }
+    if (finalFailure) {
+      error.events = [
+        {
+          type: 'nesting.solveFailed',
+          source: { type: 'nesting_run', id: runId },
+          entities: [{ type: 'queue', id: queueId }],
+          data: { note: error.message || 'Nesting failed', runId, taskRunId: run?._id?.toString?.() || run?._id }
+        }
+      ];
     }
     throw error;
   }
-}
-
-async function transitionQueueIfState(queueId, fromState, toState, auth = {}, metadata = {}) {
-  const queue = await queuesService.getById(queueId);
-  if ((queue?.status?.state || 'DRAFT') !== fromState) return null;
-  const actor = auth.userId || 'SYSTEM';
-  const transitionAuth = auth.system
-    ? createTransitionAuth(actor, 'SYSTEM')
-    : createTransitionAuth(actor, auth);
-  return await statusService.transition('queue', queueId, toState, actor, transitionAuth, metadata);
 }
 
 export function buildNestingWorkerRequest(jobFiles, settings = {}) {
@@ -743,14 +743,6 @@ async function markRunError(runId, taskRunId, auth, error) {
       error: error.message
     }
   });
-  await statusService.transition(
-    'nesting_run',
-    runId,
-    'ERROR',
-    auth.userId || 'SYSTEM',
-    createTransitionAuth(auth.userId || 'SYSTEM', 'SYSTEM'),
-    { note: error.message, taskRunId: taskRunId?.toString() }
-  );
 }
 
 function isFinalTaskAttempt(run = {}) {

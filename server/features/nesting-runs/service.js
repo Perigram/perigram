@@ -1,9 +1,6 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { 
-  createStatus, 
-  inheritLineage 
-} from '../../core/blocks/index.js';
+import { inheritLineage } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
 import { ObjectId } from 'mongodb';
@@ -18,7 +15,12 @@ import * as queuesService from '../queues/service.js';
 
 
 export async function create(runData, userId) {
+  const initialStatus = runData.status || statusService.initialStatus('nesting_run', userId || 'SYSTEM', {
+    note: 'Nesting run initialized'
+  });
   const run = new NestingRun(runData);
+  run.origin = run.origin || initialStatus;
+  run.status = run.status || initialStatus;
   const raw = await repository.create(run);
   
   // Trigger summary update on queue
@@ -31,7 +33,7 @@ export async function create(runData, userId) {
 
 export async function createFromQueue(queue, results, userId) {
   const lineage = inheritLineage(queue, 'queue');
-  const origin = createStatus('COMPLETE', userId || 'SYSTEM', { note: 'Nesting calculation completed' });
+  const origin = statusService.initialStatus('nesting_run', userId || 'SYSTEM', { note: 'Nesting run initialized' });
 
   const runData = {
     identity: { uid: `run-${new ObjectId().toString().substring(0, 8)}` },
@@ -50,13 +52,21 @@ export async function createFromQueue(queue, results, userId) {
   };
 
   const raw = await repository.create(runData);
+  await statusService.applyIntent(
+    'nesting_run',
+    raw._id,
+    'nestingSolveCompleted',
+    createTransitionAuth(userId || 'SYSTEM', 'SYSTEM'),
+    { note: 'Nesting calculation completed' }
+  );
+  const completed = await repository.findById(raw._id);
 
   // Trigger summary update on queue
   aggregator.syncParentSummary('nesting_run', lineage).catch(err => {
     console.error('[Nesting Run Service] Failed to sync parent summary:', err.message);
   });
 
-  return new NestingRun(raw).toJSON();
+  return new NestingRun(completed || raw).toJSON();
 }
 
 export async function getById(uid, userId, userOrg, userRole, userPermissions) {
@@ -113,7 +123,13 @@ export async function chooseRun(queueId, runId, userId, userOrg, userRole, userP
     throw createError({ statusCode: 400, message: 'Only completed nesting runs can be chosen for production' });
   }
 
-  await statusService.transition('nesting_run', runId, 'CHOSEN', userId, createTransitionAuth(userId, userRole, userPermissions), { note: 'Chosen for production' });
+  await statusService.applyIntent(
+    'nesting_run',
+    runId,
+    'acceptNestingRun',
+    createTransitionAuth(userId, userRole, userPermissions),
+    { note: 'Chosen for production' }
+  );
 
   const chosenRun = await getById(runId);
   const queue = await queuesService.getById(queueId, userId, userOrg, userRole, userPermissions);
@@ -165,31 +181,22 @@ async function applyChosenNestingRun({ targetId, userId, userRole, auth }) {
     throw createError({ statusCode: 400, message: 'Nesting run is missing queue lineage' });
   }
 
-  const previousChosenRuns = await repository.findChosenRuns(queueId, targetId);
-  for (const previousRun of previousChosenRuns) {
-    await statusService.transition(
-      'nesting_run',
-      previousRun._id,
-      'COMPLETE',
-      userId,
-      createTransitionAuth(userId, auth || userRole),
-      { note: 'Another nesting run was chosen for production' }
-    );
-  }
-
-  const queue = await queuesService.applyChosenRunProduction(
-    queueId,
-    chosenRun,
-    userId,
-    auth?.organizationId,
-    userRole,
-    auth
-  );
-
   return {
-    entities: [
-      { type: 'nesting_run', id: chosenRun._id?.toString?.() || chosenRun._id, entity: chosenRun },
-      { type: 'queue', id: queue._id?.toString?.() || queue._id, entity: queue }
+    entities: [{ type: 'nesting_run', id: chosenRun._id?.toString?.() || chosenRun._id, entity: chosenRun }],
+    effects: [
+      ...(await repository.findChosenRuns(queueId, targetId)).map(previousRun => ({
+        type: 'transition',
+        entity: { type: 'nesting_run', id: previousRun._id?.toString?.() || previousRun._id },
+        targetState: 'COMPLETE',
+        metadata: { note: 'Another nesting run was chosen for production' }
+      })),
+      {
+        type: 'updateEntity',
+        entity: { type: 'queue', id: queueId },
+        operation: 'applyChosenRunProduction',
+        args: [chosenRun],
+        input: chosenRun
+      }
     ]
   };
 }

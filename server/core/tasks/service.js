@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { createTaskResult } from '../blocks/index.js';
 import { getAppRegistry } from '../../runtime/app-registry.js';
 import * as repository from './repository.js';
+import { processEffects, processEvents } from '../effects/service.js';
 
 const TERMINAL_STATUSES = ['SUCCEEDED', 'FAILED', 'CANCELLED'];
 
@@ -95,12 +96,32 @@ export async function completeTaskRun(id, result = {}, claimToken = null) {
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
   requireClaim(run, claimToken);
   const task = getTaskDefinition(run.taskId);
-  const output = createTaskResult({ taskId: run.taskId, ...result });
+  const output = createTaskResult({ taskId: run.taskId, ...result, raw: result });
+  const effectContext = {
+    auth: run.auth || {},
+    task,
+    run,
+    registry: getAppRegistry()
+  };
+  const processedEvents = await processEvents(output.events || [], effectContext);
+  const processedEffects = await processEffects(output.effects || [], effectContext);
+  output.events = processedEvents.events;
+  output.effects = mergeProcessedEffects(processedEvents, processedEffects);
   return await repository.updateClaimedById(id, claimToken, {
     status: task?.status?.succeeded || 'SUCCEEDED',
     output,
     finishedAt: new Date()
   });
+}
+
+function mergeProcessedEffects(left, right) {
+  return {
+    entities: [...(left.entities || []), ...(right.entities || [])],
+    tasks: [...(left.tasks || []), ...(right.tasks || [])],
+    transitions: [...(left.transitions || []), ...(right.transitions || [])],
+    events: [...(left.events || []), ...(right.events || [])],
+    attachments: [...(left.attachments || []), ...(right.attachments || [])]
+  };
 }
 
 export async function failTaskRun(id, error, claimToken = null) {
@@ -120,9 +141,28 @@ export async function failTaskRun(id, error, claimToken = null) {
       leaseExpiresAt: null
     });
   }
+  const processedEvents = await processEvents(error?.events || [], {
+    auth: run.auth || {},
+    task,
+    run,
+    registry: getAppRegistry()
+  });
+  const processedEffects = await processEffects(error?.effects || [], {
+    auth: run.auth || {},
+    task,
+    run,
+    registry: getAppRegistry()
+  });
   return await repository.updateClaimedById(id, claimToken, {
     status: task?.status?.failed || 'FAILED',
     error: { message: error?.message || String(error) },
+    output: {
+      ok: false,
+      taskId: run.taskId,
+      events: processedEvents.events,
+      effects: mergeProcessedEffects(processedEvents, processedEffects),
+      error: { message: error?.message || String(error) }
+    },
     finishedAt: new Date()
   });
 }

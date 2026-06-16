@@ -9,6 +9,7 @@ import { normalizeLifecycle, validateTransition } from '~/packages/workflows/src
 import { assertTransitionAccess } from '../access/service.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 import { getEntityCollection, normalizeEntityType } from '~/server/runtime/entities.js';
+import { processEffects } from '../effects/service.js';
 
 /**
  * Unified Status Service - v24 Absolute Final
@@ -28,6 +29,52 @@ export const statusService = {
   async transition(entityType, targetId, targetState, userId, userRole, metadata = {}) {
     const { status } = await performTransition(entityType, targetId, targetState, userId, userRole, metadata);
     return status;
+  },
+
+  initialStatus(entityType, actor = 'SYSTEM', metadata = {}) {
+    const normalizedEntityType = normalizeEntityType(entityType);
+    const machine = stateMachines[normalizedEntityType];
+    if (!machine) {
+      throw createError({
+        statusCode: 400,
+        message: `No state machine defined for entity type: ${normalizedEntityType}`
+      });
+    }
+    const actorId = typeof actor === 'object' ? actor.userId : actor;
+    return createStatus(machine.initial, actorId || 'SYSTEM', metadata);
+  },
+
+  async applyIntent(entityType, targetId, intent, authContext = {}, metadata = {}, transitionContext = {}) {
+    const normalizedEntityType = normalizeEntityType(entityType);
+    const machine = stateMachines[normalizedEntityType];
+    if (!machine) {
+      throw createError({
+        statusCode: 400,
+        message: `No state machine defined for entity type: ${normalizedEntityType}`
+      });
+    }
+
+    const { entity } = await loadEntityForWorkflow(normalizedEntityType, targetId);
+    const currentState = entity.status?.state || machine.initial;
+    const transition = (machine.transitions || []).find(item => item.intent === intent && item.from === currentState);
+    if (!transition) {
+      throw createError({
+        statusCode: 400,
+        message: `No transition intent "${intent}" defined for ${normalizedEntityType} from ${currentState}`
+      });
+    }
+
+    return await performTransition(
+      normalizedEntityType,
+      targetId,
+      transition.to,
+      authContext?.userId,
+      authContext,
+      {
+        metadata,
+        ...transitionContext
+      }
+    );
   },
 
   async getActions(entityType, targetId, authContext) {
@@ -75,6 +122,7 @@ export const statusService = {
       actions.push({
         from: transition.from,
         to: transition.to,
+        intent: transition.intent || null,
         display: transition.display,
         displayBtn: transition.displayBtn
       });
@@ -83,9 +131,11 @@ export const statusService = {
     return { entityType: normalizedEntityType, targetId, state: currentState, actions };
   },
 
-  async transitionWithResult({ entityType, targetId, targetState, auth, context = {} }) {
+  async transitionWithResult({ entityType, targetId, targetState, intent = null, auth, context = {} }) {
     const normalizedEntityType = normalizeEntityType(entityType);
-    const { status, effects } = await performTransition(normalizedEntityType, targetId, targetState, auth?.userId, auth, context);
+    const { status, effects } = intent
+      ? await this.applyIntent(normalizedEntityType, targetId, intent, auth, context?.metadata || context, context)
+      : await performTransition(normalizedEntityType, targetId, targetState, auth?.userId, auth, context);
     const { entity } = await loadEntityForWorkflow(normalizedEntityType, targetId);
     const actions = await this.getActions(normalizedEntityType, targetId, auth);
     return { entity, status, actions: actions.actions, effects };
@@ -179,7 +229,7 @@ async function performTransition(entityType, targetId, targetState, userId, user
       lineage: entity.lineage,
       entity
     };
-    const effects = await runTransitionHooks(transition, 'before', hookContext);
+    await runTransitionHooks(transition, 'before', hookContext);
     
     // 3. Create Event Record
     const eventId = new ObjectId();
@@ -211,9 +261,24 @@ async function performTransition(entityType, targetId, targetState, userId, user
       'after',
       { ...hookContext, status: statusData }
     );
-    effects.push(...afterEffects);
-
-    return { status: newStatus, effects };
+    const processedEffects = await processEffects(afterEffects, {
+      auth,
+      entity,
+      entityType: normalizedEntityType,
+      targetId: flexId,
+      targetState,
+      transition,
+      status: statusData,
+      event: { source: { type: normalizedEntityType, id: flexId.toString() } },
+      registry: getCutkitRegistry()
+    });
+    return {
+      status: newStatus,
+      effects: {
+        raw: afterEffects,
+        ...processedEffects
+      }
+    };
 }
 
 export function createTransitionAuth(userId, userRoleOrAuth, userPermissions = {}) {
@@ -375,7 +440,15 @@ function appendHookEffects(effects, result) {
     effects.push(...result.filter(Boolean));
     return;
   }
-  effects.push(result);
+  if (Array.isArray(result.effects)) {
+    effects.push(...result.effects.filter(Boolean));
+  }
+  if (Array.isArray(result.entities)) {
+    effects.push(...result.entities.filter(Boolean).map(entity => ({ type: 'relatedEntity', entity })));
+  }
+  if (result.type || result.kind || result.intent || result.targetState) {
+    effects.push(result);
+  }
 }
 
 async function loadEntityForWorkflow(entityType, targetId) {

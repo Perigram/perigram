@@ -38,21 +38,11 @@ const currency = computed(() => props.requisition.data?.currency || '');
 const manufacturerId = computed(() => props.requisition.lineage?.manufacturerId || props.requisition.data?.manufacturerId || null);
 const projectId = computed(() => props.requisition.lineage?.projectId || null);
 
-const statusActions = computed(() => {
-    if (!authStore.can('requisitions', 'delete')) return [];
-    return [{
-        label: t('common.delete'),
-        icon: 'pi pi-trash',
-        severity: 'danger',
-        display: 'menu',
-        command: () => emit('delete', props.requisition)
-    }];
-});
 </script>
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <EntityCard :entity="requisition" entity-type="requisition" :variant="variant" :status-actions="statusActions">
+    <EntityCard :entity="requisition" entity-type="requisition" :variant="variant">
       <template #before-identity>
         <i class="pi pi-send"></i>
       </template>
@@ -77,6 +67,7 @@ const statusActions = computed(() => {
       </div>
       <template #footer v-if="variant === 'card'">
         <div class="flex justify-end gap-2" @click.stop>
+            <Button v-if="authStore.can('requisitions', 'delete')" icon="pi pi-trash" text rounded size="small" severity="danger" :aria-label="$t('common.delete')" @click="emit('delete', requisition)" />
             <Button v-if="authStore.can('requisitions', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="emit('edit', requisition)" />
         </div>
       </template>

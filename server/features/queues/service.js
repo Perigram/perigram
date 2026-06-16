@@ -272,7 +272,7 @@ export async function applyChosenRunProduction(queueId, chosenRun, userId, userO
   };
   await repository.updateById(queueId, queue);
   if ((queue.status?.state || 'DRAFT') !== 'READY') {
-    await statusService.transition('queue', queueId, 'READY', 'SYSTEM', createTransitionAuth('SYSTEM', 'SYSTEM'), {
+    await statusService.applyIntent('queue', queueId, 'completeNestingProduction', createTransitionAuth('SYSTEM', 'SYSTEM'), {
       note: 'Production run chosen',
       runId: chosenRun._id?.toString?.() || chosenRun._id,
       chosenBy: userId

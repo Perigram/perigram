@@ -1,7 +1,15 @@
 <template>
-    <EntityPage :entity="queue" entity-type="queue" :status-actions="queueStatusActions">
+    <EntityPage :entity="queue" entity-type="queue">
         <template #actions>
                 <Button :label="$t('queue.nestingConfig')" icon="pi pi-sliders-h" severity="secondary" outlined />
+                <Button
+                  v-if="queueStatusActions.length"
+                  :label="queueStatusActions[0].label"
+                  :icon="queueStatusActions[0].icon"
+                  :severity="queueStatusActions[0].severity || 'secondary'"
+                  outlined
+                  @click="queueStatusActions[0].command?.()"
+                />
         </template>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-10">

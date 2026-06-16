@@ -57,12 +57,20 @@ async function findGeneratedRunDxf(runId) {
 }
 
 function toCommandAttachmentResult(attachment) {
+  const id = (attachment._id || attachment.id).toString();
+  const kind = attachment.data?.type;
+  const status = attachment.status?.state || 'GENERATING';
   return {
-    attachments: [{ kind: attachment.data?.type, id: (attachment._id || attachment.id).toString() }],
+    attachments: [{ kind, id }],
+    events: [{
+      type: status === 'READY' ? 'attachment.generationCompleted' : 'attachment.generationQueued',
+      source: { type: 'artifact', id },
+      data: { kind, status }
+    }],
     data: {
-      attachmentId: (attachment._id || attachment.id).toString(),
-      kind: attachment.data?.type,
-      status: attachment.status?.state || 'GENERATING'
+      attachmentId: id,
+      kind,
+      status
     }
   };
 }

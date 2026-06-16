@@ -5,11 +5,16 @@ export async function generateConfigBotDraft({ parameters = {}, auth }) {
     prompt: parameters.prompt,
     context: parameters.context || {}
   }, auth);
-  return { data: result };
+  return {
+    events: [{ type: 'configBot.draftGenerated', source: { type: 'configBot', id: 'draft' } }],
+    data: result
+  };
 }
 
 export async function reindexConfigBotKnowledge({ auth }) {
   const result = await service.reindexKnowledge({}, auth);
-  return { data: result };
+  return {
+    events: [{ type: 'configBot.knowledgeReindexed', source: { type: 'configBot', id: 'knowledge' } }],
+    data: result
+  };
 }
-

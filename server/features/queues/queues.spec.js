@@ -295,12 +295,8 @@ describe('Production Queues & Nesting Status', () => {
     const previousRun = await db.collection('nesting_runs').findOne({ _id: 'run-status-previous' });
 
     expect(result.entity.status.state).toBe('CHOSEN');
-    expect(result.effects).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        entities: expect.arrayContaining([
-          expect.objectContaining({ type: 'queue', id: queueId.toString() })
-        ])
-      })
+    expect(result.effects.entities).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'queue', id: queueId.toString() })
     ]));
     expect(previousRun.status.state).toBe('COMPLETE');
     expect(queue.status.state).toBe('READY');

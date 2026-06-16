@@ -4,7 +4,9 @@ export function createRegistry({ id = 'app' } = {}) {
   const workflowDefinitions = new Map();
   const commandDefinitions = new Map();
   const taskDefinitions = new Map();
+  const eventDefinitions = new Map();
   const hookDefinitions = new Map();
+  const effectDefinitions = new Map();
   const attachmentKindDefinitions = new Map();
   const entityServices = new Map();
   const commandHandlers = new Map();
@@ -22,7 +24,9 @@ export function createRegistry({ id = 'app' } = {}) {
       for (const [entityType, workflow] of Object.entries(domain.workflows || {})) registry.defineWorkflow({ entityType, ...workflow });
       for (const command of Object.values(domain.commands || {})) registry.defineCommand(command);
       for (const task of Object.values(domain.tasks || {})) registry.defineTask(task);
+      for (const event of Object.values(domain.events || {})) registry.defineEvent(event);
       for (const hook of Object.values(domain.hooks || {})) registry.defineHook(hook);
+      for (const effect of Object.values(domain.effects || {})) registry.defineEffect(effect);
       for (const kind of Object.values(domain.attachmentKinds || {})) registry.defineAttachmentKind(kind);
       return registry.getDomain(domain.id);
     },
@@ -111,6 +115,24 @@ export function createRegistry({ id = 'app' } = {}) {
       return Array.from(taskDefinitions.values());
     },
 
+    defineEvent(definition) {
+      validateEventDefinition(definition);
+      eventDefinitions.set(definition.id, deepFreeze({
+        informational: false,
+        payload: [],
+        ...definition
+      }));
+      return registry.getEventDefinition(definition.id);
+    },
+
+    getEventDefinition(id) {
+      return eventDefinitions.get(id) || null;
+    },
+
+    listEventDefinitions() {
+      return Array.from(eventDefinitions.values());
+    },
+
     defineHook(definition) {
       validateHookDefinition(definition);
       hookDefinitions.set(definition.id, deepFreeze({ parameters: [], ...definition }));
@@ -123,6 +145,23 @@ export function createRegistry({ id = 'app' } = {}) {
 
     listHookDefinitions() {
       return Array.from(hookDefinitions.values());
+    },
+
+    defineEffect(definition) {
+      validateEffectDefinition(definition);
+      effectDefinitions.set(definition.id, deepFreeze({
+        effects: [],
+        ...definition
+      }));
+      return registry.getEffectDefinition(definition.id);
+    },
+
+    getEffectDefinition(id) {
+      return effectDefinitions.get(id) || null;
+    },
+
+    listEffectDefinitions() {
+      return Array.from(effectDefinitions.values());
     },
 
     defineAttachmentKind(definition) {
@@ -366,11 +405,13 @@ export function createCommandResult({
   tasks = [],
   transitions = [],
   events = [],
+  effects = [],
   data = {},
+  raw = null,
   error = null
 } = {}) {
   if (!commandId) throw new Error('CommandResult requires commandId');
-  return { ok, commandId, entities, attachments, tasks, transitions, events, data, error };
+  return { ok, commandId, entities, attachments, tasks, transitions, events, effects, data, raw, error };
 }
 
 export function createTaskResult({
@@ -380,11 +421,13 @@ export function createTaskResult({
   attachments = [],
   tasks = [],
   events = [],
+  effects = [],
   data = {},
+  raw = null,
   error = null
 } = {}) {
   if (!taskId) throw new Error('TaskResult requires taskId');
-  return { ok, taskId, entities, attachments, tasks, events, data, error };
+  return { ok, taskId, entities, attachments, tasks, events, effects, data, raw, error };
 }
 
 export const createIdentity = (name, slug = '', serial = '', reference = '', uid = slug || name) => new Identity(uid, name, slug, serial, reference);
@@ -420,8 +463,17 @@ export function validateTaskDefinition(definition) {
   if (!definition?.executor) throw new Error(`Task ${definition.id} requires executor`);
 }
 
+export function validateEventDefinition(definition) {
+  if (!definition?.id) throw new Error('Event definition requires id');
+}
+
 export function validateHookDefinition(definition) {
   if (!definition?.id) throw new Error('Hook definition requires id');
+}
+
+export function validateEffectDefinition(definition) {
+  if (!definition?.id) throw new Error('Effect definition requires id');
+  if (!definition?.on) throw new Error(`Effect ${definition.id} requires on`);
 }
 
 export function validateAttachmentKindDefinition(definition) {

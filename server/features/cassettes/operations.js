@@ -16,6 +16,10 @@ export async function saveCassetteTemplate({ entities = {}, parameters = {}, aut
 
   return {
     entities: [{ type: 'cassette', id: cassette._id.toString() }],
+    events: [{
+      type: 'cassette.templateSaved',
+      source: { type: 'cassette', id: cassette._id.toString() }
+    }],
     data: { cassetteId: cassette._id.toString() }
   };
 }

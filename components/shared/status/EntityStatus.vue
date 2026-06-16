@@ -52,16 +52,17 @@ const useServerActions = computed(() => props.showActions && !localWorkflows.val
 const useLocalTransition = computed(() => Boolean(localWorkflows.value && localTransitionHandler));
 
 // Available transitions (to be fetched or derived from a machine registry if available)
-const handleTransition = async (targetState) => {
+const handleTransition = async (targetState, action = {}) => {
     try {
         const result = useLocalTransition.value
             ? await localTransitionHandler({
                 entityType: props.entityType,
                 targetId: entityId.value,
                 targetState,
+                intent: action.intent || null,
                 entity: props.entity
             })
-            : await transition(props.entityType, entityId.value, targetState);
+            : await transition(props.entityType, entityId.value, targetState, action.intent ? { intent: action.intent } : {});
         emit('transitioned', targetState, result);
         toast.add({
             severity: 'success',
@@ -112,9 +113,15 @@ onUnmounted(() => {
 });
 
 const customActions = computed(() => {
-    if (Array.isArray(props.actions) && props.actions.length > 0) return props.actions;
-    if (Array.isArray(props.manualActions) && props.manualActions.length > 0) return props.manualActions;
-    return [];
+    const source = Array.isArray(props.actions) && props.actions.length > 0
+        ? props.actions
+        : Array.isArray(props.manualActions) && props.manualActions.length > 0
+            ? props.manualActions
+            : [];
+
+    return source
+        .filter(action => Boolean(action?.to || action?.intent))
+        .map(action => normalizeCustomAction(action));
 });
 
 const defaultTransitions = computed(() => {
@@ -132,12 +139,17 @@ const defaultTransitions = computed(() => {
 
 const effectiveActions = computed(() => {
     if (!props.showActions) return [];
-    const customKeys = new Set(customActions.value.map(action => action.to || action.label));
+    const seen = new Set();
     return [
-        ...customActions.value,
-        ...defaultTransitions.value.filter(action => !customKeys.has(action.to || action.label))
-    ]
-      .filter(action => action?.display !== false && action?.display !== 'hidden');
+        ...defaultTransitions.value,
+        ...customActions.value
+    ].filter(action => {
+        if (!action || action.display === false || action.display === 'hidden') return false;
+        const key = actionKey(action);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
 });
 
 const hasActions = computed(() => effectiveActions.value.length > 0);
@@ -170,9 +182,35 @@ const runAction = async (action) => {
     }
 
     if (action.to) {
-        await handleTransition(action.to);
+        await handleTransition(action.to, action);
     }
 };
+
+function normalizeCustomAction(action = {}) {
+    const display = action.display || action.displayBtn
+        ? action.display || 'inline'
+        : (action.to || action.intent ? 'inline' : 'menu');
+    return {
+        ...action,
+        display
+    };
+}
+
+function actionKey(action = {}) {
+    return [
+        action.intent || '',
+        action.to || '',
+        normalizeLabel(action.label || ''),
+        action.command ? 'command' : 'status'
+    ].join(':');
+}
+
+function normalizeLabel(value = '') {
+    return String(value)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+}
 
 function matchesEntityChange({ type, id, entity } = {}) {
     if (normalizeEventType(type) !== normalizeEventType(props.entityType)) return false;

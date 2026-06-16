@@ -2,6 +2,7 @@
 /**
  * ProjectCard - v24 Standardized
  */
+import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import { computed } from 'vue';
@@ -35,21 +36,11 @@ const handleCardClick = (event) => {
 const queueCount = computed(() => props.project.summary?.queueCount || 0);
 const totalArea = computed(() => props.project.summary?.totalArea || 0);
 
-const statusActions = computed(() => {
-  if (!authStore.can('projects', 'delete')) return [];
-  return [{
-    label: t('common.delete'),
-    icon: 'pi pi-trash',
-    severity: 'danger',
-    display: 'menu',
-    command: () => emit('delete', props.project)
-  }];
-});
 </script>
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <EntityCard :entity="project" entity-type="project" :variant="variant" :status-actions="statusActions">
+    <EntityCard :entity="project" entity-type="project" :variant="variant">
       <template #header v-if="variant === 'card' && project.data?.thumbnailUrl">
         <img :src="project.data.thumbnailUrl" :alt="project.identity?.name" class="h-32 w-full object-cover" />
       </template>
@@ -76,6 +67,16 @@ const statusActions = computed(() => {
 
       <template #footer v-if="variant === 'card'">
         <div class="flex justify-end gap-2" @click.stop>
+          <Button
+            v-if="authStore.can('projects', 'delete')"
+            icon="pi pi-trash"
+            text
+            rounded
+            size="small"
+            severity="danger"
+            :aria-label="$t('common.delete')"
+            @click="$emit('delete', project)"
+          />
           <NameEditPopover
             v-if="authStore.can('projects', 'edit')"
             :model-value="project.identity?.name || ''"
