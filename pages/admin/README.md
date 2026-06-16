@@ -132,11 +132,11 @@ workpiece selection, so layer visibility settings persist across preview
 regeneration without SVG painter-order artifacts.
 
 Workbench command runs can submit a per-run `testAccess` object with custom
-`userId`, `organizationId`, optional preset label, memberships, permission
+`userId`, `organizationId`, optional compatibility label, memberships, permission
 grants, and `restrictedTo` data. The server preserves that object shape and
 evaluates explicit grants through the same access engine as production
 requests, so fixture ownership and scoped access experiments do not need
-preset-name branches.
+compatibility-label branches.
 
 ## Domain Builder
 

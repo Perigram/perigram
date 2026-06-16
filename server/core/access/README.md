@@ -25,7 +25,7 @@ permissions; the engine evaluates those requirements against the current entity
 and transition. Processors and handlers perform domain work after access has
 already passed.
 
-Preset labels are not authorization primitives. User records store copied
+Preset labels are compatibility labels only. User records store copied
 membership permissions produced from access presets, and test surfaces such as
 the admin workbench can submit custom permission grants for a single run.
 

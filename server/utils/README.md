@@ -11,7 +11,7 @@ Every API route has `event.context.auth` populated by the auth middleware after 
 ```js
 {
   userId: string,         // OAuth user ID (string, NOT ObjectId)
-  role: string,           // Optional preset label, not an authorization primitive
+  role: string,           // Optional legacy compatibility label
   memberships: [          // Array of organization memberships
     {
       organizationId: ObjectId,

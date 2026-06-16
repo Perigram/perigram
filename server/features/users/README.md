@@ -20,8 +20,7 @@ Inherits all `BaseEntity` fields.
 **Data Block:**
 - `email`: User's email (lowercase)
 - `passwordHash`: Argon2id hash
-- `role`: Legacy field name for the access preset label, for example
-  ManufacturerAdmin, ContractorAdmin, CustomerAdmin, or IndividualUser. Runtime
+- `role`: Legacy compatibility label copied from the selected preset. Runtime
   authorization must use copied permission grants, not this label.
 - `permissions`: Per-entity access levels (none/read/write/admin)
 - `memberships`: Array of organization memberships `{ organizationId, role, permissions, status }`; `role` is a preset label only
@@ -38,11 +37,11 @@ Inherits all `BaseEntity` fields.
 `POST /api/auth/register` creates a password-backed user and, when
 `organizationName` is supplied, creates the first organization through the
 organizations service. The new user receives an active membership, lineage
-organization, role preset, and copied permission grants for the selected
-organization type. `recoverSignupWithoutOrganization()` is the narrow recovery
-path for pre-fix accounts that have a password hash but no organization
-membership; it verifies the submitted password before the register route can
-attach the first organization.
+organization, a legacy compatibility label, and copied permission grants for
+the selected organization type. `recoverSignupWithoutOrganization()` is the
+narrow recovery path for pre-fix accounts that have a password hash but no
+organization membership; it verifies the submitted password before the
+register route can attach the first organization.
 
 ## Persistence Notes
 - `User.toJSON()` strips `data.passwordHash` and is safe for API responses.

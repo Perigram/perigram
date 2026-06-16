@@ -59,10 +59,10 @@ exercise production access code.
 
 Workflow definitions must not duplicate app preset names for access policy; they
 should declare feature permission requirements, lifecycle capabilities, and
-hooks. Verbal labels such as `ContractorAdmin` are presets only. Persisted user
-records must already carry copied permission grants; loading a user does not
-expand grants from the preset label. Workbench `testAccess` grants use the same
-explicit permission shape.
+hooks. Preset labels are compatibility labels only. Persisted user records must
+already carry copied permission grants; loading a user does not expand grants
+from the preset label. Workbench `testAccess` grants use the same explicit
+permission shape.
 
 Entity field display is stricter than entity read access. Entity read access
 decides whether the record may be fetched; `entity-field-access.js` decides
@@ -71,7 +71,7 @@ which DTO paths may be shown. A path must be declared in
 No field policy means no display and no API serialization for auth-bound DTOs.
 
 ## Related
-- [users feature](../server/features/users/README.md) - Stores preset label,
-  membership, and copied permission data on user records.
+- [users feature](../server/features/users/README.md) - Stores membership and
+  copied permission data on user records.
 - [admin pages](../pages/admin/README.md) - Workbench editor for permission
   template drafts and UI action visibility drafts.

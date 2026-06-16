@@ -1,3 +1,84 @@
+* WAITING Full Intent/Contract/Responsibility Audit And Refactor
+  :PROPERTIES:
+  :ID: full-intent-contract-responsibility-audit-and-refactor
+  :END:
+
+*** Agent Notes
+     [2026-06-16] Introduce intent-based nesting effects and audit guardrails
+     Files changed: packages/core/src/index.js, packages/domain-cnc/src/index.js,
+       packages/domain-cnc/src/workflows.js, packages/domain-cnc/src/effects.js,
+       server/core/effects/service.js, server/core/effects/README.md,
+       server/core/commands/service.js, server/core/commands/README.md,
+       server/core/tasks/service.js, server/core/tasks/README.md,
+       server/core/machines/service.js, server/core/machines/README.md,
+       server/features/nesting/operations.js,
+       server/features/nesting/README.md,
+       server/features/nesting-runs/service.js,
+       server/features/nesting-runs/README.md,
+       server/features/queues/service.js,
+       server/features/queues/README.md,
+       server/runtime/README.md, server/README.md,
+       packages/domain-cnc/README.md, scripts/check-arch.js,
+       server/features/queues/queues.spec.js
+     Docs updated: server/README.md, server/core/commands/README.md,
+       server/core/tasks/README.md, server/core/machines/README.md,
+       server/core/effects/README.md, server/runtime/README.md,
+       server/features/nesting/README.md,
+       server/features/nesting-runs/README.md,
+       server/features/queues/README.md, packages/domain-cnc/README.md,
+       TODO.org
+     Notes: Added a centralized effect runtime, intent-based queue/nesting
+       transitions, and effect-return processing in command/task/status
+       runtimes. The nesting command now emits queue request effects instead of
+       mutating queue status directly, the nesting solve task emits solver
+       completion/failure effects, the chosen-run hook returns queue-production
+       effects, and the architecture guardrail now checks the intent flow and
+       command/task boundary leaks.
+
+*** Agent Notes
+     [2026-06-16] Continue contract refactor with geometry intents and migration inventory
+     Files changed: packages/domain-cnc/src/workflows.js,
+       server/features/geometry-captures/service.js,
+       server/features/geometry-captures/README.md,
+       server/features/nesting-runs/service.js,
+       server/features/nesting-runs/README.md,
+       server/core/machines/README.md, scripts/check-arch.js,
+       scripts/README.md, packages/domain-cnc/README.md, TODO.org
+     Docs updated: server/features/geometry-captures/README.md,
+       server/features/nesting-runs/README.md,
+       server/core/machines/README.md, scripts/README.md,
+       packages/domain-cnc/README.md, TODO.org
+     Notes: Added explicit geometry capture workflow intents and moved capture
+       status writes from inline `createStatus(...)` snapshots to
+       `statusService.initialStatus()` and `statusService.applyIntent()`.
+       The legacy nesting-run queue helper now creates runs at workflow initial
+       status and completes them through `nestingSolveCompleted` instead of
+       storing a pre-completed status block.
+       `check-arch.js` now prints a non-blocking migration inventory with
+       file/line/rule/symbol entries for remaining legacy status, service, and
+       UI lifecycle hotspots while preserving the enforced zero-error gate.
+
+*** Agent Notes
+     [2026-06-16] Forward EntityPage status refresh events
+     Files changed: components/shared/EntityPage.vue,
+       components/shared/README.md, TODO.org
+     Docs updated: components/shared/README.md, TODO.org
+     Notes: Fixed the shared entity-page shell so it forwards the status
+       component's `refresh` event in addition to `transitioned`. This keeps
+       page-level status chrome in sync when the entity changes outside the
+       local transition button path.
+
+*** Agent Notes
+     [2026-06-16] De-overlap custom queue actions from workflow status rail
+     Files changed: components/shared/status/EntityStatus.vue,
+       components/shared/README.md, TODO.org
+     Docs updated: components/shared/README.md, TODO.org
+     Notes: Changed `EntityStatus` so workflow transitions are preferred and
+       custom command actions default to menu placement instead of sharing the
+       primary lifecycle rail. This reduces duplicate-looking queue actions
+       when a surface injects a command like reset/produce alongside the real
+       workflow transitions.
+
 * WAITING Repo-local Codex Skills
   :PROPERTIES:
   :ID: repo-local-codex-skills
@@ -20,6 +101,23 @@
        single-column audit list and moved status history fetching through the
        statuses service so API responses can include display actor names
        without changing stored status blocks.
+
+*** Agent Notes
+     [2026-06-16] Remove legacy org-type startup branches
+     Files changed: pages/index.vue, components/hubs/CatalogsTab.vue,
+       stores/auth.js, shared/README.md, server/core/access/README.md,
+       server/utils/README.md, server/features/users/README.md,
+       server/features/organizations/README.md, pages/README.md,
+       pages/admin/README.md
+     Docs updated: shared/README.md, server/core/access/README.md,
+       server/utils/README.md, server/features/users/README.md,
+       server/features/organizations/README.md, pages/README.md,
+       pages/admin/README.md, TODO.org
+     Notes: Removed the landing-page and catalog-hub branches that were still
+       keying off organization type, and rewrote the docs to describe only the
+       actual authorization model: copied membership grants plus lineage.
+       Compatibility labels remain in the data model for legacy records, but
+       they are no longer treated as a runtime routing signal.
 
 *** Agent Notes
      [2026-06-16] Document repair-script runtime context
