@@ -36,7 +36,7 @@ export const ENTITY_UI = {
     geometryCapture: { icon: 'pi pi-camera', route: (id) => `/geometry-captures` },
     geometry_capture: { icon: 'pi pi-camera', route: (id) => `/geometry-captures` },
     user: { icon: 'pi pi-user', route: (id) => `/admin/users` },
-    organization: { icon: 'pi pi-building', route: (id) => `/admin/organizations` },
+    organization: { icon: 'pi pi-building', route: (id) => `/organization/users` },
     artifact: { icon: 'pi pi-file', route: (id) => `/api/artifacts/${id}` }
 };
 

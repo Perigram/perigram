@@ -1,8 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import { PERMISSION_TEMPLATES } from './permission-templates.js';
+import { hasPermissionGrant } from './access-control.js';
 import { resolveUiPermission } from './ui-permissions.js';
 
 describe('UI Permission Matrix', () => {
+    describe('system data defaults', () => {
+        const systemFeatures = ['materials', 'layer_standards'];
+        const presets = Object.entries(PERMISSION_TEMPLATES);
+
+        for (const [role, permissions] of presets) {
+            for (const feature of systemFeatures) {
+                it(`${role} can read ${feature}`, () => {
+                    expect(hasPermissionGrant({ permissions, feature, level: 'read' })).toBe(true);
+                });
+            }
+        }
+    });
+
     describe('manufacturer preset grants', () => {
         const permissions = PERMISSION_TEMPLATES.ManufacturerAdmin;
 

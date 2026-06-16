@@ -42,7 +42,7 @@ export const PERMISSION_TEMPLATES = {
     catalogs: 'none',
     requisitions: 'read',
     materials: 'read',
-    layer_standards: 'none',
+    layer_standards: 'read',
     users: 'admin',
     organizations: 'write'
   },
@@ -56,7 +56,7 @@ export const PERMISSION_TEMPLATES = {
     warehouses: 'none',
     catalogs: 'none',
     requisitions: 'none',
-    materials: 'none',
+    materials: 'read',
     layer_standards: { level: 'write', actions: { setPen: true } },
     users: 'none',
     organizations: 'write'
