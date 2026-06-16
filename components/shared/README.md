@@ -133,10 +133,17 @@ status API.
 Fetches and displays the audit log (`status_events`) for any entity.
 
 Props: `:entity`, `entity-type`, `target-id`, `mock-events`, `compact`.
+Events render as a single-column audit list so the component fits cards,
+popovers, sidebars, and other narrow surfaces. The event header contains the
+status badge, actor display name, and timestamp in a wrapping row; timestamps
+must not be rendered in a separate fixed-width side column.
 When the persisted audit log is not available yet, it renders the entity's
 current `status`/`origin` as the first timeline event instead of displaying an
 empty-history placeholder. Last-update timestamps belong in this timeline, not
 as a separate status section.
+Persisted events may include response-only `actor` data from the status API.
+`StatusHistory` prefers `actor.name` for display and falls back to `status.userId`
+only when no actor name is available.
 
 ### `StatusLocation.vue`
 Renders the current mutable lifecycle location from `status.lifecycle.data.location`.

@@ -48,6 +48,8 @@ attach the first organization.
 - `User.toJSON()` strips `data.passwordHash` and is safe for API responses.
 - `repository.create()` restores `data.passwordHash` from the model instance before inserting into MongoDB; persistence must not rely on the public JSON shape for sensitive fields.
 - Existing users without `data.passwordHash` cannot log in until their password is reset or the account is recreated.
+- `repository.findByIds()` is the batch lookup used by status history actor
+  enrichment. It accepts the same flexible string/ObjectId ids as `findById()`.
 
 ## Permission System
 - Organization context via `user.lineage.organizationId`

@@ -50,6 +50,22 @@ Every state transition is recorded in the `status_events` collection for full tr
 }
 ```
 
+`getHistoryByTarget(targetType, targetId)` returns persisted events sorted
+newest-first and adds a response-only `actor` object resolved from
+`status.userId`:
+
+```javascript
+actor: {
+  userId: String,
+  type: 'user' | 'system',
+  name: String
+}
+```
+
+This display actor is not written back to the status block. The status block
+keeps the immutable `userId` audit value, while UI surfaces can render the
+human name when the user still exists.
+
 ## Core Engine: State Machines
 Transitions are governed by declarative machines in `server/core/machines/`.
 

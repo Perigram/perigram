@@ -4,6 +4,24 @@
   :END:
 
 *** Agent Notes
+     [2026-06-16] Recompose status history rows and enrich actors
+     Files changed: components/shared/status/StatusHistory.vue,
+       server/api/status/history.get.js, server/features/statuses/service.js,
+       server/features/statuses/repository.js,
+       server/features/statuses/statuses.spec.js,
+       server/features/users/repository.js, i18n/locales/en.json,
+       i18n/locales/ru.json, components/shared/README.md,
+       server/features/statuses/README.md, server/features/users/README.md,
+       server/api/README.md
+     Docs updated: components/shared/README.md,
+       server/features/statuses/README.md, server/features/users/README.md,
+       server/api/README.md, TODO.org
+     Notes: Replaced the fixed-opposite-column timeline with a wrapping
+       single-column audit list and moved status history fetching through the
+       statuses service so API responses can include display actor names
+       without changing stored status blocks.
+
+*** Agent Notes
      [2026-06-16] Floor default system-data access and remove dead admin route
      Files changed: shared/permission-templates.js,
        shared/ui-permissions.spec.js,

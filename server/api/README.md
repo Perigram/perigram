@@ -25,6 +25,9 @@ Routes are grouped into sub-directories corresponding to features:
 - `project/`: Main project orchestration and nesting triggers.
 - `sheet-designs/`: Lineage-scoped sheet design list/detail and direct DXF
   export.
+- `status/`: Authenticated status action and history endpoints. History
+  handlers delegate to the statuses feature and return response-only actor
+  display data for audit rows.
 - `user/`: Profile and credit management.
 
 ## Conventions
