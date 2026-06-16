@@ -4,6 +4,23 @@
   :END:
 
 *** Agent Notes
+     [2026-06-16] Floor default system-data access and remove dead admin route
+     Files changed: shared/permission-templates.js,
+       shared/ui-permissions.spec.js,
+       server/scripts/repair-system-data-permissions.js, pages/index.vue,
+       utils/status-engine.js, components/entities/Organization/README.md,
+       shared/README.md, server/features/users/README.md,
+       server/scripts/README.md, pages/README.md
+     Docs updated: shared/README.md, server/features/users/README.md,
+       server/scripts/README.md, pages/README.md,
+       components/entities/Organization/README.md, TODO.org
+     Notes: Raised the preset floor for `materials` and `layer_standards` so
+       all roles can access the seeded system pens/layers/tools, added a
+       one-shot repair script for existing user records, and replaced the
+       stale `/admin/organizations` landing-page redirect with the existing
+       `/admin` shell.
+
+*** Agent Notes
      [2026-06-14] Document R240 remote access path
      Files changed: docs/REMOTE_ACCESS.md, README.md, docs/DEPLOYMENT.md
      Docs updated: README.md, docs/DEPLOYMENT.md, TODO.org

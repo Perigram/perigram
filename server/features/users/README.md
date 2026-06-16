@@ -57,6 +57,13 @@ attach the first organization.
 - Presets are materialized when registering users or accepting invitations.
   `User` model reads do not expand permissions from `data.role`; persisted
   memberships must carry the explicit grant object used by authorization.
+- All presets guarantee at least `read` access to `materials` and
+  `layer_standards`, which keeps system tools, pens, and layer catalogs
+  available for basic app use.
+- Existing accounts created before a preset change need a repair pass to copy
+  the current template floor into stored `data.permissions` and
+  `data.memberships[*].permissions`; see
+  [server/scripts/repair-system-data-permissions.js](../../../server/scripts/repair-system-data-permissions.js).
 
 ## Related Components
 - [organizations](../organizations/README.md) - Users belong to organizations via memberships and current lineage context

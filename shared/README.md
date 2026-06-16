@@ -33,6 +33,10 @@ Access uses feature keys such as `projects`, `queues`, `cassettes`,
 `materials`, `layer_standards`, `users`, and `organizations` with levels
 `none`, `read`, `write`, and `admin`.
 
+Default presets always floor `materials` and `layer_standards` to at least
+`read`, because system tools, pens, and layer catalogs are part of the base
+app runtime rather than optional user content.
+
 Permission values may be legacy strings (`queues: 'write'`) or grant objects /
 arrays:
 

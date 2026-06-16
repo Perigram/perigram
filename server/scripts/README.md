@@ -15,6 +15,7 @@ node server/scripts/seed-layer-standards.js  # OCCS layer standards from docs/sp
 node server/scripts/seed-system-pens.js      # OCCS/default system pens
 node server/scripts/seed-system-tools.js     # 6 common tools
 node server/scripts/migrate-entity-revisions.js # Backfill cassette geometry revisions and design provenance
+node server/scripts/repair-system-data-permissions.js # Floor stored user grants so system pens/layers/tools stay visible
 ```
 
 ## What Gets Created
@@ -72,7 +73,7 @@ To reset system data:
 use cutkit;
 db.layer_standards.deleteMany({ "lineage.userId": null });
 db.pen_templates.deleteMany({ "lineage.userId": null });
-db.tool_profiles.deleteMany({ownerId: null});
+db.tool_profiles.deleteMany({ "lineage.userId": null });
 
 # Then re-run seed script
 node server/scripts/seed-all.js
@@ -102,6 +103,11 @@ Layer standard seed flow:
 Use `server/scripts/assign-default-pens.js` only as a repair helper for
 standards missing `data.defaultPenId`; it uses the same OCCS code/group pen
 mapping instead of round-robin assignment.
+
+Use `server/scripts/repair-system-data-permissions.js` when a preset change
+needs to be applied to already-created user records. It rewrites stored user
+permissions in place, keeping stronger grants intact while flooring
+`materials` and `layer_standards` to `read`.
 
 ## Entity Revision Migration
 

@@ -14,8 +14,10 @@ Organization card surface for tenant/manufacturer records.
   `data`.
 - Status and trace are hidden for organization cards unless a future workflow is
   added to the domain contract.
-- Related pages manage invitations and permissions through custom endpoints;
-  this card remains a read-oriented entity summary.
+- Shared entity-card navigation routes organization cards to
+  `/organization/users`, which is the existing organization management surface.
+  The card itself remains a read-oriented summary; invitations and permissions
+  still use custom endpoints.
 
 ## Related
 
