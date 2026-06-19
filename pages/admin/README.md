@@ -51,14 +51,20 @@ runtime APIs.
 Entity status controls in fixture previews use a local `statusTransitionHandler`
 to update the in-memory workbench context, avoiding server transition calls for
 entities that have not been persisted.
-The workflow editor is the current development surface for lifecycle drafting:
-it edits the loaded domain workflow graph, state lifecycle schemas, transition
-access, transition capabilities, and hooks. Lifecycle actors and transition
-capabilities use selectable option lists built from existing workflow usage plus
-standard capability names. Hook rows expose handler, phase, and mode selectors,
-and hook parameters render through `TypedSettingsForm`; domain hook contracts
-with `entityType` or `workflowState` parameters therefore render selects instead
-of free-text fields.
+The workflow editor uses `WorkflowDesignerV2`, which edits v2 state-machine
+regions while preserving flat workflow drafts through normalization. It edits
+region initial states, states, transitions, lifecycle metadata, transition
+access, capabilities, and hooks, and renders a compact visual graph for the
+selected region.
+
+## Workflow Overrides
+
+`workflows.vue` is the organization-scoped workflow override surface. It loads
+domain entities/workflows from `/api/admin/domain`, shows only entity types
+whose backing feature is admin-accessible to the current user, loads the active
+override from `/api/workflow-overrides/:entityType`, and saves normalized v2
+workflow definitions through the same endpoint. Reset reloads the domain default
+into the editor without saving it.
 
 The Designer section embeds `CassetteDesignerV2` directly and hides the generic
 workbench draft/reset action row while the designer is active, because cassette
@@ -144,12 +150,18 @@ Workbench command runs can submit a per-run `testAccess` object with custom
 `userId`, `organizationId`, optional compatibility label, memberships, permission
 grants, and `restrictedTo` data. The server preserves that object shape and
 evaluates explicit grants through the same access engine as production
-requests, so fixture ownership and scoped access experiments do not need
-compatibility-label branches.
+requests, including optional logical `grant.rule` predicates, so fixture
+ownership and scoped access experiments do not need compatibility-label
+branches.
 
 The workflow tab delegates state/transition editing to
 `components/WorkflowDesignerV2.vue`, keeping Workbench on the same workflow
 graph editor as the admin workflow surface.
+
+`workflows.vue` is the admin workflow override page. It loads committed domain
+workflows from `/api/admin/domain`, fetches an organization override from
+`/api/workflow-overrides/:entityType`, and saves edited workflow JSON through
+the same override endpoint.
 
 ## Domain Builder
 
