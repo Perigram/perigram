@@ -5878,3 +5878,34 @@
     - User-owned pen actions now key off `lineage.userId` instead of the legacy
       `ownerId` alias.
     - The pen card now displays weight in millimeters to match stored data.
+
+*** Agent Notes
+    [2026-06-19] Implement navigation cleanup, workflow overrides, and atomic access rules
+    Files changed:
+    - pages/index.vue
+    - pages/designer-test.vue
+    - pages/admin/workbench.vue
+    - pages/admin/workflows.vue
+    - components/WorkflowDesignerV2.vue
+    - components/PermissionEditor.vue
+    - stores/navigation.js
+    - shared/access-control.js
+    - shared/ui-permissions.spec.js
+    - utils/domain-builder.js
+    - utils/workflow-compiler.js
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - pages/admin/README.md
+    - stores/README.md
+    - components/README.md
+    - shared/README.md
+    - server/core/access/README.md
+    - TODO.org
+    Notes:
+    - Authenticated root navigation now lands on Projects, and the standalone
+      designer page is removed from routing.
+    - Admin workflow overrides use the v2 region workflow designer and existing
+      workflow override APIs.
+    - Permission grants remain backward-compatible and can now add logical rule
+      filters with nested all/any/not gates.
