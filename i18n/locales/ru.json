@@ -1261,9 +1261,49 @@
     "permissionsUpdated": "Разрешения обновлены",
     "featureAccessControl": "Управление доступом к функциям",
     "featureAccessControlHelp": "Настройте детальные уровни доступа для каждого системного модуля.",
+    "permissionFeatures": "Функции",
+    "permissionGrantCount": "{count} грантов",
+    "permissionGrantSummary": "{level} / {count} грантов",
+    "addGrant": "Добавить грант",
+    "removeGrant": "Удалить грант",
+    "noAccess": "Нет доступа",
+    "noPermissionGrants": "Для этой функции нет грантов.",
+    "permissionLevel": "Уровень",
     "permissionActions": "Действия",
-    "permissionRules": "Конструктор правил",
-    "permissionRuleValue": "Значение правила",
+    "permissionScope": "Область",
+    "permissionTransitions": "Переходы",
+    "permissionConditions": "Условия",
+    "permissionGate": "Гейт",
+    "permissionCommaSeparated": "ID через запятую",
+    "permissionFieldPath": "Путь поля сущности",
+    "permissionConditionValue": "Значение",
+    "permissionTransitionCount": "{count} переходов",
+    "permissionConditionCount": "{count} условий",
+    "transitionFrom": "Из статуса",
+    "transitionTo": "В статус",
+    "permissionModes": {
+      "global": "Глобально",
+      "scoped": "С областью",
+      "conditional": "С условиями"
+    },
+    "permissionGates": {
+      "all": "Все условия",
+      "any": "Любое условие"
+    },
+    "permissionOperators": {
+      "equals": "Равно",
+      "notEquals": "Не равно",
+      "in": "В списке",
+      "exists": "Существует"
+    },
+    "scope": {
+      "organizationId": "Организация",
+      "projectId": "Проект",
+      "queueId": "Очередь",
+      "warehouseId": "Склад",
+      "entityId": "Сущность",
+      "entityType": "Тип сущности"
+    },
     "permissionRuleTypes": {
       "projectId": "ID проекта",
       "entityType": "Тип сущности",

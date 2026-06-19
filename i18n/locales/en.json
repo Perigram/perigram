@@ -1261,9 +1261,49 @@
     "permissionsUpdated": "Permissions updated",
     "featureAccessControl": "Feature Access Control",
     "featureAccessControlHelp": "Configure granular access levels for each system module.",
+    "permissionFeatures": "Features",
+    "permissionGrantCount": "{count} grants",
+    "permissionGrantSummary": "{level} / {count} grants",
+    "addGrant": "Add grant",
+    "removeGrant": "Remove grant",
+    "noAccess": "No access",
+    "noPermissionGrants": "No grants for this feature.",
+    "permissionLevel": "Level",
     "permissionActions": "Actions",
-    "permissionRules": "Rule builder",
-    "permissionRuleValue": "Rule value",
+    "permissionScope": "Scope",
+    "permissionTransitions": "Transitions",
+    "permissionConditions": "Conditions",
+    "permissionGate": "Gate",
+    "permissionCommaSeparated": "Comma-separated IDs",
+    "permissionFieldPath": "Entity field path",
+    "permissionConditionValue": "Value",
+    "permissionTransitionCount": "{count} transitions",
+    "permissionConditionCount": "{count} conditions",
+    "transitionFrom": "From state",
+    "transitionTo": "To state",
+    "permissionModes": {
+      "global": "Global",
+      "scoped": "Scoped",
+      "conditional": "Conditional"
+    },
+    "permissionGates": {
+      "all": "All conditions",
+      "any": "Any condition"
+    },
+    "permissionOperators": {
+      "equals": "Equals",
+      "notEquals": "Not equals",
+      "in": "In list",
+      "exists": "Exists"
+    },
+    "scope": {
+      "organizationId": "Organization",
+      "projectId": "Project",
+      "queueId": "Queue",
+      "warehouseId": "Warehouse",
+      "entityId": "Entity",
+      "entityType": "Entity type"
+    },
     "permissionRuleTypes": {
       "projectId": "Project ID",
       "entityType": "Entity type",
