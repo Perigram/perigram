@@ -219,16 +219,15 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   plus remnant geometry; already cut source sheets are not displayed as
   warehouse sheet inventory.
 - `CassetteDesignerV2` is the persisted cassette-template designer used by the
-  cassette manager and the admin workbench designer section. The legacy
-  `CassetteDesigner` remains only for dev/test fixture surfaces that still need
-  its local-save graph format.
-- `CassetteDesignerV2` is the top-level cassette designer section in the admin
-  workbench. Its header edits the cassette template name, loads existing
-  workbench cassette templates from parent-provided options, receives
-  `persistedTemplateIds` from the parent to distinguish DB templates from
-  generated fixture templates, persists saves through `saveCassetteTemplate` by
-  default, and emits a save payload with the saved cassette DTO plus the OCCS v2 definition and
-  `extensions.cutkit.graphTree` so the workbench can mirror and reload the exact
+  production app cassette surface. The admin workbench no longer exposes it as a
+  separate section; the legacy non-persisted `CassetteDesigner` remains only for
+  dev/test fixture surfaces that still need its local-save graph format.
+- `CassetteDesignerV2` edits the cassette template name, loads existing
+  templates from parent-provided options, receives `persistedTemplateIds` from
+  the parent to distinguish DB templates from generated fixture templates,
+  persists saves through the configured save handler by default, and emits a
+  save payload with the saved cassette DTO plus the OCCS v2 definition and
+  `extensions.cutkit.graphTree` so the parent can mirror and reload the exact
   graph tree. Template data is applied only when the selected template id
   changes; saving or updating the fixture context must not overwrite the
   in-progress name/graph draft. It starts from one root

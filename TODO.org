@@ -5911,6 +5911,23 @@
       filters with nested all/any/not gates.
 
 *** Agent Notes
+    [2026-06-19] Remove remaining Workbench cassette designer section
+    Files changed:
+    - pages/admin/workbench.vue
+    - stores/navigation.js
+    - pages/admin/workflows.vue
+    - components/WorkflowDesignerV2.vue
+    Docs updated:
+    - pages/admin/README.md
+    - components/README.md
+    - TODO.org
+    Notes:
+    - `/admin?section=designer` is no longer a Workbench section or breadcrumb
+      sibling; invalid Workbench sections now fall back to Entities.
+    - Workflow override cloning now uses JSON-safe plain cloning instead of
+      `structuredClone` to avoid Vue proxy clone errors in the browser.
+
+*** Agent Notes
     [2026-06-19] Slim AGENTS.md into agent protocol and clarify commit rules
     Files changed:
     - AGENTS.md
