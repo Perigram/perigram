@@ -24,8 +24,11 @@ Feature modules follow `server/features/_template/README.md`:
 - `repository.js` owns MongoDB access and uses `toFlexibleId()`.
 - `service.js` owns orchestration and returns serialized DTOs.
 - Services do not call `db.collection` directly.
+- Feature services do not read or write another feature collection directly;
+  cross-module work goes through service calls or registered effects.
 - Entity services do not self-register; `server/runtime/app-registry.js`
   performs explicit registration.
+- Authenticated user ids are OAuth/string identifiers, not MongoDB ObjectIds.
 
 ## Runtime Flow
 

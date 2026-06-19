@@ -5909,3 +5909,20 @@
       workflow override APIs.
     - Permission grants remain backward-compatible and can now add logical rule
       filters with nested all/any/not gates.
+
+*** Agent Notes
+    [2026-06-19] Slim AGENTS.md into agent protocol and clarify commit rules
+    Files changed:
+    - AGENTS.md
+    - server/README.md
+    Docs updated:
+    - AGENTS.md
+    - server/README.md
+    - TODO.org
+    Notes:
+    - AGENTS.md now points to README source-of-truth files instead of carrying
+      duplicated backend/frontend architecture rules.
+    - Commit rules now explicitly require completed work to be committed, with
+      code and docs split into separate commits.
+    - Backend user-id and cross-module access conventions moved to
+      server/README.md.
