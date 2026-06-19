@@ -1,5 +1,5 @@
 import { cncEntities, cncHookContracts } from '../packages/domain-cnc/src/index.js';
-import { validateTransition } from '../packages/workflows/src/index.js';
+import { getWorkflowRegions, normalizeWorkflow, validateTransition } from '../packages/workflows/src/index.js';
 import { validateDomainDraft } from './domain-builder.js';
 
 export function compileWorkflowDraft({ entities = cncEntities, workflows = {}, hookContracts = cncHookContracts } = {}) {
@@ -19,18 +19,19 @@ export function compileWorkflowDraft({ entities = cncEntities, workflows = {}, h
   const machines = {};
 
   for (const [entityType, workflow] of Object.entries(workflows || {})) {
-    if (!workflow?.initial || !workflow?.states || !Array.isArray(workflow.transitions)) continue;
-    machines[entityType] = toPlainObject(workflow);
+    const normalized = normalizeWorkflowSafe(workflow);
+    if (!normalized) continue;
+    machines[entityType] = toPlainObject(normalized);
     const initialValidation = validateTransition({
-      workflow,
-      currentState: workflow.initial,
-      targetState: workflow.initial
+      workflow: normalized,
+      currentState: normalized.initial,
+      targetState: normalized.initial
     });
-    if (!initialValidation.ok && !workflow.states?.[workflow.initial]?.canUpdateMeta) {
+    if (!initialValidation.ok && !normalized.states?.[normalized.initial]?.canUpdateMeta) {
       machineIssues.push({
         area: 'workflows',
         severity: 'warning',
-        message: `${entityType} initial state ${workflow.initial} has no self-loop metadata transition`
+        message: `${entityType} initial state ${normalized.initial} has no self-loop metadata transition`
       });
     }
   }
@@ -41,25 +42,27 @@ export function compileWorkflowDraft({ entities = cncEntities, workflows = {}, h
   return {
     ok: issues.length === 0,
     machines,
-    states: Object.fromEntries(Object.entries(machines).map(([type, workflow]) => [type, Object.keys(workflow.states || {})])),
+    states: Object.fromEntries(Object.entries(machines).map(([type, workflow]) => [type, workflowStateNames(workflow)])),
     issues,
     warnings
   };
 }
 
 export function workflowInitialState(workflows = {}, entityType, fallback = 'DRAFT') {
-  return workflows?.[entityType]?.initial || fallback;
+  return normalizeWorkflowSafe(workflows?.[entityType])?.initial || fallback;
 }
 
 export function workflowStateExists(workflows = {}, entityType, state) {
   if (!state) return false;
-  return Boolean(workflows?.[entityType]?.states?.[state]);
+  return workflowStateNames(workflows?.[entityType]).includes(state);
 }
 
 export function collectWorkflowAccess(workflows = {}) {
   const permissions = {};
   for (const workflow of Object.values(workflows || {})) {
-    for (const transition of workflow.transitions || []) {
+    const transitions = Object.values(getWorkflowRegionsSafe(workflow))
+      .flatMap(region => region.transitions || []);
+    for (const transition of transitions) {
       for (const requirement of transition.access?.permissions || []) {
         const current = permissions[requirement.feature];
         permissions[requirement.feature] = strongestAccess(current, requirement.level || 'read');
@@ -87,4 +90,25 @@ function strongestAccess(left = 'none', right = 'none') {
 
 function toPlainObject(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeWorkflowSafe(workflow) {
+  try {
+    return workflow ? normalizeWorkflow(workflow) : null;
+  } catch {
+    return null;
+  }
+}
+
+function getWorkflowRegionsSafe(workflow) {
+  try {
+    return workflow ? getWorkflowRegions(workflow) : {};
+  } catch {
+    return {};
+  }
+}
+
+function workflowStateNames(workflow) {
+  const regions = getWorkflowRegionsSafe(workflow);
+  return [...new Set(Object.values(regions).flatMap(region => Object.keys(region.states || {})))];
 }
