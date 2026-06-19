@@ -147,6 +147,10 @@ evaluates explicit grants through the same access engine as production
 requests, so fixture ownership and scoped access experiments do not need
 compatibility-label branches.
 
+The workflow tab delegates state/transition editing to
+`components/WorkflowDesignerV2.vue`, keeping Workbench on the same workflow
+graph editor as the admin workflow surface.
+
 ## Domain Builder
 
 `domain-builder.vue` is a browser-local editor for CNC domain source drafts. It
