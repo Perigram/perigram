@@ -24,6 +24,7 @@ Use these source-of-truth docs for technical rules:
 | Frontend components and design system | `components/README.md`, `components/shared/README.md` |
 | Frontend entity data flow | `composables/README.md` |
 | Scripts and validation | `scripts/README.md` |
+| External agent write scope | `.agents/README.md`, `.agents/app-layer.allowlist` |
 
 If a required README is missing, stale, or contradicts code, update the README
 first or in the same task before relying on implementation details.
@@ -67,6 +68,9 @@ first or in the same task before relying on implementation details.
   passes.
 - Framework/package contract changes should run `npm run framework:validate`
   when practical.
+- External top-layer/app-composition agents must run
+  `npm run agent:scope-check -- --base origin/local` before committing or
+  pushing.
 - Report any validation that could not be run.
 
 ## Commit Rules

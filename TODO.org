@@ -5943,3 +5943,23 @@
       code and docs split into separate commits.
     - Backend user-id and cross-module access conventions moved to
       server/README.md.
+
+*** Agent Notes
+    [2026-06-19] Add enforced app-layer agent scope gate
+    Files changed:
+    - .agents/app-layer.allowlist
+    - .agents/README.md
+    - .github/workflows/agent-scope.yml
+    - scripts/check-agent-scope.js
+    - package.json
+    Docs updated:
+    - AGENTS.md
+    - scripts/README.md
+    - TODO.org
+    Notes:
+    - External composition agents now have a checked-in allowlist and a
+      mandatory `npm run agent:scope-check -- --base origin/local` guard.
+    - The guard checks branch diff, staged changes, unstaged changes, and
+      untracked files while ignoring local tool/cache directories.
+    - GitHub workflow enforcement applies to `agent/app-layer/*` PRs into
+      `local`.

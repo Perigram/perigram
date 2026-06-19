@@ -11,6 +11,10 @@ script explicitly installs its own resolver.
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
   retired vocabulary, portable-runtime import rules, and non-blocking migration
   inventory output for legacy lifecycle/service/UI hotspots.
+- `check-agent-scope.js`: Diff guard for top-layer composition agents. It
+  compares committed, staged, unstaged, and untracked files against
+  `.agents/app-layer.allowlist` and fails if an agent touched core/runtime/shared
+  paths outside the allowed app-layer surface.
 - `framework-inspect.js`: Framework/package inspection utility used during
   extraction checks.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
@@ -39,6 +43,12 @@ legacy `createStatus(...)`, raw target-state `statusService.transition(...)`,
 feature-service `db.collection(...)`, and hardcoded UI lifecycle literals.
 These entries document remaining refactor scope; only categories already
 migrated to a strict boundary fail the command.
+
+`npm run agent:scope-check -- --base origin/local` is the mandatory guard for
+external top-layer agents before they commit or push. It is intentionally
+allowlist-based: new composition surfaces must be added to
+`.agents/app-layer.allowlist` by the repository owner instead of letting the
+agent edit core files ad hoc.
 
 ## Related
 
