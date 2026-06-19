@@ -5928,6 +5928,21 @@
       `structuredClone` to avoid Vue proxy clone errors in the browser.
 
 *** Agent Notes
+    [2026-06-19] Redesign permission access composer
+    Files changed:
+    - components/PermissionEditor.vue
+    - i18n/locales/en.json
+    - i18n/locales/ru.json
+    Docs updated:
+    - components/README.md
+    - TODO.org
+    Notes:
+    - Permission editing now uses a feature/grant composer instead of feature
+      cards with one-line rule input.
+    - Grants expose level, action toggles, scope fields, transition filters,
+      logical condition gates, and selected-grant JSON as an escape hatch.
+
+*** Agent Notes
     [2026-06-19] Slim AGENTS.md into agent protocol and clarify commit rules
     Files changed:
     - AGENTS.md

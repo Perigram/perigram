@@ -18,9 +18,10 @@ This directory contains Vue components used in the Cutkit-Demo application.
   instead of nesting full card popovers.
 - **Smart Components:** Sub-components should use explicit permission grants to conditionally render actions (edit, delete, view).
 - **Permission Editing:** `PermissionEditor.vue` edits the same grant shape used
-  by `shared/access-control.js`: flat levels, action overrides, rule-builder
-  predicates, and advanced JSON for scoped grants / transition grants / grant
-  arrays. Do not replace it with a flat role-only selector.
+  by `shared/access-control.js`: each feature has one or more explicit grants
+  with level, action overrides, lineage/entity scope fields, transition scopes,
+  logical rule conditions, and advanced JSON for the selected grant. Do not
+  replace it with a flat role-only selector.
 
 ## v24 Standardized Patterns
 
