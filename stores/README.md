@@ -27,8 +27,7 @@ Pinia stores for client state and API orchestration.
   Project routes include a store-resolved section breadcrumb for queues, sheet
   designs, data, artifacts, and details.
   Admin pages use a store-owned sibling list that includes workbench,
-  organizations, users, ConfigBot, domain builder, data model review, marketing
-  animations, diagnostics, and settings. Admin workbench breadcrumbs also
+  workflow overrides, users, ConfigBot, and support. Admin workbench breadcrumbs also
   receive route query so `/admin?section=...` can expose
   Designer/Entities/Context/Commands as navigation siblings.
 - `workbenchFixtures.js` owns the admin workbench fixture context. Manual

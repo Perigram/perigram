@@ -18,9 +18,9 @@ This directory contains Vue components used in the Cutkit-Demo application.
   instead of nesting full card popovers.
 - **Smart Components:** Sub-components should use explicit permission grants to conditionally render actions (edit, delete, view).
 - **Permission Editing:** `PermissionEditor.vue` edits the same grant shape used
-  by `shared/access-control.js`: flat levels, action overrides, and advanced
-  JSON for scoped grants / transition grants / grant arrays. Do not replace it
-  with a flat role-only selector.
+  by `shared/access-control.js`: flat levels, action overrides, rule-builder
+  predicates, and advanced JSON for scoped grants / transition grants / grant
+  arrays. Do not replace it with a flat role-only selector.
 
 ## v24 Standardized Patterns
 
@@ -49,6 +49,12 @@ All entity-related components MUST use these patterns:
 | Single-field rename/edit | `<NameEditPopover>` |
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
 | Public marketing animation | `components/marketing/CassetteMarketingAnimation.vue` |
+
+`WorkflowDesignerV2.vue` is the shared v2 state-machine editor used by the admin
+workbench and organization workflow overrides page. It normalizes flat legacy
+workflows into a `regions` contract, edits the selected region's states and
+transitions, and keeps lifecycle metadata, transition capabilities, access JSON,
+and hooks JSON editable.
 
 Lifecycle transitions belong in `EntityStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,
