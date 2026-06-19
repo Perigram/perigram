@@ -172,7 +172,6 @@ export const useNavigationStore = defineStore('navigation', () => {
              if (currentTab?.id === 'workbench') {
                  const section = Array.isArray(query.section) ? query.section[0] : query.section;
                  const workbenchSections = [
-                    { id: 'designer', name: t('admin.workbench.sectionsDesigner'), to: '/admin?section=designer' },
                     { id: 'entities', name: t('admin.workbench.entities'), to: '/admin?section=entities' },
                     { id: 'context', name: t('admin.workbench.sectionsContext'), to: '/admin?section=context' },
                     { id: 'commands', name: t('admin.workbench.sectionsCommands'), to: '/admin?section=commands' },

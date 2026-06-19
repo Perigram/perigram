@@ -104,7 +104,7 @@ async function loadOverride(entityType = selectedEntityType.value) {
   error.value = '';
   try {
     activeOverride.value = await $fetch(`/api/workflow-overrides/${entityType}`);
-    selectedWorkflow.value = structuredClone(activeOverride.value?.workflow || domainWorkflows.value[entityType] || null);
+    selectedWorkflow.value = clonePlain(activeOverride.value?.workflow || domainWorkflows.value[entityType] || null);
     savedSnapshot.value = JSON.stringify(selectedWorkflow.value || null);
   } catch (err) {
     error.value = err?.data?.message || err?.message || t('admin.workflows.loadFailed');
@@ -114,7 +114,7 @@ async function loadOverride(entityType = selectedEntityType.value) {
 }
 
 function loadDefaultWorkflow() {
-  selectedWorkflow.value = structuredClone(domainWorkflows.value[selectedEntityType.value] || null);
+  selectedWorkflow.value = clonePlain(domainWorkflows.value[selectedEntityType.value] || null);
 }
 
 async function saveOverride() {
@@ -126,7 +126,7 @@ async function saveOverride() {
       method: 'PUT',
       body: { workflow: selectedWorkflow.value }
     });
-    selectedWorkflow.value = structuredClone(activeOverride.value.workflow);
+    selectedWorkflow.value = clonePlain(activeOverride.value.workflow);
     savedSnapshot.value = JSON.stringify(selectedWorkflow.value || null);
   } catch (err) {
     error.value = err?.data?.message || err?.message || t('admin.workflows.saveFailed');
@@ -142,5 +142,9 @@ function entityFeature(entityType) {
   if (entityType === 'requisition') return 'requisitions';
   if (String(entityType || '').includes('cassette')) return 'projects';
   return String(entityType || '').replace(/_/g, '-');
+}
+
+function clonePlain(value) {
+  return value ? JSON.parse(JSON.stringify(value)) : value;
 }
 </script>

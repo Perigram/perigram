@@ -1,24 +1,14 @@
 <template>
   <div class="flex w-full flex-col gap-4 p-4 md:p-6">
     <div class="flex flex-col gap-4">
-      <div v-if="activeWorkbenchSection !== 'designer'" class="flex flex-wrap items-center justify-end gap-2">
+      <div class="flex flex-wrap items-center justify-end gap-2">
         <div class="flex items-center gap-2">
           <Button icon="pi pi-refresh" :label="$t('common.reset')" severity="secondary" size="small" @click="resetWorkbench" />
           <Button icon="pi pi-download" :label="$t('admin.workbench.exportDraft')" size="small" @click="downloadDraft" />
         </div>
       </div>
 
-      <section v-if="activeWorkbenchSection === 'designer'">
-        <CassetteDesignerV2
-          :template="selectedCassetteTemplate"
-          :template-options="cassetteTemplateOptions"
-          :persisted-template-ids="persistedCassetteTemplateIds"
-          @load-template="loadCassetteTemplate"
-          @save-template="saveCassetteTemplate"
-        />
-      </section>
-
-      <div v-else-if="activeWorkbenchSection === 'commands'" class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <div v-if="activeWorkbenchSection === 'commands'" class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <Panel :header="$t('admin.workbench.sectionsCommands')" class="lg:sticky lg:top-4">
           <div class="flex flex-col gap-3">
             <Message v-if="commandsError" severity="warn">{{ commandsError }}</Message>
@@ -470,7 +460,6 @@ import TypedSettingsForm from '~/components/shared/TypedSettingsForm.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import CassetteDesigner from '~/components/CassetteDesigner.vue';
-import CassetteDesignerV2 from '~/components/CassetteDesignerV2.vue';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { DESIGN_SYSTEM_ENTITIES, createDesignSystemDemoRows } from '~/utils/design-system.js';
 import { buildWorkflowGraph, parseCommaList, parseJsonObject } from '~/utils/domain-builder.js';
@@ -498,7 +487,6 @@ const domainUi = useCutkitDomainUi();
 const STORAGE_KEY = 'cutkit:entity-workbench:v1';
 const WORKFLOW_LAYOUT_STORAGE_KEY = 'cutkit:entity-workbench-layout:v1';
 const globalWorkbenchTabs = [
-  { value: 'designer', labelKey: 'admin.workbench.sectionsDesigner' },
   { value: 'entities', labelKey: 'admin.workbench.sectionsEntities' },
   { value: 'context', labelKey: 'admin.workbench.sectionsContext' },
   { value: 'commands', labelKey: 'admin.workbench.sectionsCommands' }
@@ -848,7 +836,7 @@ watch(manualEntityType, resetManualEntityDraft);
 
 function normalizeWorkbenchSection(value) {
   const section = Array.isArray(value) ? value[0] : value;
-  return WORKBENCH_SECTION_VALUES.includes(section) ? section : 'designer';
+  return WORKBENCH_SECTION_VALUES.includes(section) ? section : 'entities';
 }
 
 function loadCassetteTemplate(id) {
@@ -1033,9 +1021,9 @@ async function loadDomain() {
       workflows: result.workflows || result.domain?.workflows || {},
       hooks: result.hooks || result.domain?.hooks || {}
     };
-    entities.value = structuredClone(sourceDomain.value.entities);
-    workflows.value = structuredClone(sourceDomain.value.workflows);
-    hookContracts.value = structuredClone(sourceDomain.value.hooks);
+    entities.value = clonePlain(sourceDomain.value.entities);
+    workflows.value = clonePlain(sourceDomain.value.workflows);
+    hookContracts.value = clonePlain(sourceDomain.value.hooks);
   } catch (error) {
     domainError.value = error?.data?.message || error?.message || t('admin.workbench.errors.loadDomainFailed');
   } finally {
@@ -1466,9 +1454,9 @@ function saveWorkflowLayouts() {
 }
 
 function resetWorkbench() {
-  entities.value = structuredClone(sourceDomain.value.entities || []);
-  workflows.value = structuredClone(sourceDomain.value.workflows || {});
-  hookContracts.value = structuredClone(sourceDomain.value.hooks || {});
+  entities.value = clonePlain(sourceDomain.value.entities || []);
+  workflows.value = clonePlain(sourceDomain.value.workflows || {});
+  hookContracts.value = clonePlain(sourceDomain.value.hooks || {});
   feedback.value = {};
   dataDecisions.value = {};
   workflowLayouts.value = {};

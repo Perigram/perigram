@@ -385,7 +385,7 @@ function normalizeWorkflowDraft(value = {}) {
     return {
       schemaVersion: 2,
       primaryRegion: value.primaryRegion || 'main',
-      ...structuredClone(value)
+      ...clonePlain(value)
     };
   }
   return {
@@ -395,8 +395,8 @@ function normalizeWorkflowDraft(value = {}) {
       main: {
         label: 'Lifecycle',
         initial: value.initial || 'DRAFT',
-        states: structuredClone(value.states || { DRAFT: { canUpdateMeta: true } }),
-        transitions: structuredClone(value.transitions || [])
+        states: clonePlain(value.states || { DRAFT: { canUpdateMeta: true } }),
+        transitions: clonePlain(value.transitions || [])
       }
     }
   };
@@ -434,5 +434,9 @@ function uniqueName(prefix, existing = []) {
     value = `${prefix}_${index}`;
   }
   return value;
+}
+
+function clonePlain(value) {
+  return JSON.parse(JSON.stringify(value || {}));
 }
 </script>
