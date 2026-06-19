@@ -379,179 +379,10 @@
         </Panel>
 
           <Panel v-else-if="activeEntityTab === 'workflow'" :header="$t('admin.workbench.sectionsWorkflow')" class="order-2">
-          <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_22rem]">
-            <div class="flex flex-col gap-4">
-              <Message severity="info">{{ $t('admin.workbench.workflowNoRoles') }}</Message>
-              <div class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
-                <div class="flex flex-col gap-2">
-                  <label>{{ $t('admin.domainBuilder.initialState') }}</label>
-                  <Select v-model="workflowDraft.initial" :options="workflowStateOptions" option-label="label" option-value="value" />
-                </div>
-                <Button icon="pi pi-circle" :label="$t('admin.domainBuilder.addState')" size="small" @click="addWorkflowState" />
-                <Button
-                  icon="pi pi-arrow-right"
-                  :label="$t('admin.domainBuilder.addTransition')"
-                  :severity="transitionDraftFrom ? 'primary' : 'secondary'"
-                  size="small"
-                  @click="startTransitionDraft"
-                />
-              </div>
-              <Message v-if="transitionDraftFrom" severity="info">
-                {{ $t('admin.domainBuilder.transitionDraft', { state: transitionDraftFrom }) }}
-              </Message>
-              <div class="h-[32rem] w-full overflow-hidden rounded-ui border border-content-border bg-content">
-                <VueFlow
-                  :nodes="workflowNodes"
-                  :edges="workflowEdges"
-                  fit-view-on-init
-                  :nodes-draggable="true"
-                  :nodes-connectable="true"
-                  :default-edge-options="defaultEdgeOptions"
-                  @node-click="onWorkflowNodeClick"
-                  @node-drag-stop="onWorkflowNodeDragStop"
-                  @edge-click="onWorkflowEdgeClick"
-                  @connect="onWorkflowConnect"
-                />
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-4">
-              <Panel v-if="selectedState" :header="$t('admin.domainBuilder.stateProperties')">
-                <div class="flex flex-col gap-3">
-                  <div class="flex flex-col gap-2">
-                    <label>{{ $t('admin.domainBuilder.state') }}</label>
-                    <InputText :model-value="selectedState" class="w-full font-mono" @update:model-value="renameSelectedState" />
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <Checkbox :model-value="workflowDraft.initial === selectedState" binary @update:model-value="value => value && (workflowDraft.initial = selectedState)" />
-                    <label>{{ $t('admin.domainBuilder.initialState') }}</label>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <Checkbox v-model="selectedStateDefinition.isTerminal" binary />
-                    <label>{{ $t('admin.domainBuilder.terminalState') }}</label>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <Checkbox v-model="selectedStateDefinition.canUpdateMeta" binary />
-                    <label>{{ $t('admin.domainBuilder.canUpdateMeta') }}</label>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <Checkbox v-model="selectedStateDefinition.canUpdateLifecycle" binary />
-                    <label>{{ $t('admin.domainBuilder.canUpdateLifecycle') }}</label>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <label>{{ $t('admin.domainBuilder.lifecycleActors') }}</label>
-                    <MultiSelect
-                      :model-value="selectedStateDefinition.lifecycle?.actors || []"
-                      :options="capabilityOptions"
-                      option-label="label"
-                      option-value="value"
-                      display="chip"
-                      class="w-full"
-                      @update:model-value="updateLifecycleActors"
-                    />
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between">
-                      <label>{{ $t('admin.domainBuilder.lifecycleAttachments') }}</label>
-                      <Button icon="pi pi-plus" :label="$t('common.add')" size="small" @click="addLifecycleAttachment" />
-                    </div>
-                    <div v-for="attachment in selectedLifecycleAttachments" :key="attachment.name" class="grid grid-cols-[1fr_auto_auto] items-center gap-2">
-                      <InputText :model-value="attachment.name" :placeholder="$t('admin.domainBuilder.attachmentName')" @update:model-value="value => renameLifecycleAttachment(attachment.name, value)" />
-                      <div class="flex items-center gap-2">
-                        <Checkbox :model-value="attachment.multiple" binary @update:model-value="value => updateLifecycleAttachmentMultiple(attachment.name, value)" />
-                        <label>{{ $t('admin.domainBuilder.multiple') }}</label>
-                      </div>
-                      <Button icon="pi pi-trash" severity="danger" text rounded size="small" :aria-label="$t('common.delete')" @click="removeLifecycleAttachment(attachment.name)" />
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <Checkbox :model-value="selectedStateDefinition.lifecycle?.data === true" binary @update:model-value="updateLifecycleData" />
-                    <label>{{ $t('admin.domainBuilder.lifecycleData') }}</label>
-                  </div>
-                  <Button icon="pi pi-trash" :label="$t('admin.domainBuilder.removeState')" severity="danger" outlined @click="removeWorkflowState(selectedState)" />
-                </div>
-              </Panel>
-
-              <Panel v-else-if="selectedTransition" :header="$t('admin.domainBuilder.transitionProperties')">
-                <div class="flex flex-col gap-3">
-                  <div class="grid grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-2">
-                      <label>{{ $t('admin.domainBuilder.from') }}</label>
-                      <Select v-model="selectedTransition.from" :options="workflowStateOptions" option-label="label" option-value="value" />
-                    </div>
-                    <div class="flex flex-col gap-2">
-                      <label>{{ $t('admin.domainBuilder.to') }}</label>
-                      <Select v-model="selectedTransition.to" :options="workflowStateOptions" option-label="label" option-value="value" />
-                    </div>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <label>{{ $t('admin.domainBuilder.access') }}</label>
-                    <Textarea
-                      :model-value="JSON.stringify(selectedTransition.access || {}, null, 2)"
-                      rows="4"
-                      class="w-full font-mono text-xs"
-                      @update:model-value="value => updateTransitionAccess(selectedTransition, value)"
-                    />
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <label>{{ $t('admin.domainBuilder.capabilities') }}</label>
-                    <MultiSelect
-                      :model-value="selectedTransition.capabilities || selectedTransition.requiredCapabilities || []"
-                      :options="capabilityOptions"
-                      option-label="label"
-                      option-value="value"
-                      display="chip"
-                      class="w-full"
-                      @update:model-value="value => updateTransitionCapabilities(selectedTransition, value)"
-                    />
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <strong>{{ $t('admin.domainBuilder.hooks') }}</strong>
-                    <Button icon="pi pi-plus" :label="$t('common.add')" size="small" @click="addTransitionHook(selectedTransition)" />
-                  </div>
-                  <div v-for="(hook, index) in selectedTransition.hooks || []" :key="index" class="flex flex-col gap-2 rounded-ui border border-content-border p-3">
-                    <div class="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_8rem_8rem]">
-                      <Select
-                        :model-value="hook.handler"
-                        :options="hookOptions"
-                        option-label="label"
-                        option-value="value"
-                        class="w-full"
-                        @update:model-value="value => updateHookHandler(hook, value)"
-                      />
-                      <Select
-                        :model-value="hook.phase || 'after'"
-                        :options="hookPhaseOptions"
-                        option-label="label"
-                        option-value="value"
-                        class="w-full"
-                        @update:model-value="value => updateHookPhase(hook, value)"
-                      />
-                      <Select
-                        :model-value="hook.mode || 'async'"
-                        :options="hookModeOptions"
-                        option-label="label"
-                        option-value="value"
-                        class="w-full"
-                        @update:model-value="value => updateHookMode(hook, value)"
-                      />
-                    </div>
-                    <TypedSettingsForm
-                      v-model="hook.params"
-                      :fields="hookParameterFields(hook.handler)"
-                      :context="typedSettingsContext"
-                    />
-                    <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" text @click="selectedTransition.hooks.splice(index, 1)" />
-                  </div>
-                  <Button icon="pi pi-trash" :label="$t('admin.domainBuilder.removeTransition')" severity="danger" outlined @click="removeSelectedTransition" />
-                </div>
-              </Panel>
-
-              <Panel v-else :header="$t('admin.domainBuilder.selection')">
-                <Message severity="info">{{ $t('admin.domainBuilder.selectGraphItem') }}</Message>
-              </Panel>
-            </div>
-              </div>
+          <div class="flex flex-col gap-4">
+            <Message severity="info">{{ $t('admin.workbench.workflowNoRoles') }}</Message>
+            <WorkflowDesignerV2 v-model="workflows[selectedEntity.type]" :feature="entityFeature(selectedEntity.type)" />
+          </div>
         </Panel>
 
           <Panel v-else-if="activeEntityTab === 'data'" :header="$t('admin.workbench.sectionsData')" class="order-4">
@@ -1972,6 +1803,15 @@ function manualFieldLabel(name) {
 
 function normalizeCollection(collection) {
   return String(collection || '').replace(/-/g, '_');
+}
+
+function entityFeature(entityType) {
+  if (entityType === 'project') return 'projects';
+  if (entityType === 'queue') return 'queues';
+  if (['material', 'material_pile', 'sheet', 'remnant', 'geometry_capture'].includes(entityType)) return 'materials';
+  if (entityType === 'requisition') return 'requisitions';
+  if (String(entityType || '').includes('cassette')) return 'projects';
+  return String(entityType || '').replace(/_/g, '-');
 }
 
 function uniqueName(prefix, existing) {
