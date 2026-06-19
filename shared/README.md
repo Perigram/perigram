@@ -11,7 +11,8 @@ import shared modules through its root alias at the call site.
 
 ## Core Files
 - `access-control.js`: Shared permission grant evaluator for feature levels,
-  UI actions, entity lineage scopes, and workflow-transition scopes.
+  UI actions, entity lineage scopes, workflow-transition scopes, and optional
+  logical grant rules.
 - `permission-templates.js`: Access presets that expand into copied membership
   permission grants when a preset is assigned. Runtime checks consume the
   decomposed grants and do not branch on verbal preset labels.
@@ -56,6 +57,30 @@ Scopes are matched against entity lineage (`organizationId`, `projectId`,
 `from->to`, target state, or `{ from, to }`. Workbench test access uses the
 same permission object shape, so fixture ownership and per-run access overrides
 exercise production access code.
+
+Grant objects may also include `rule`, an additive logical filter evaluated
+after level/action/scope/transition checks:
+
+```js
+{
+  projects: {
+    level: 'write',
+    rule: {
+      all: [
+        { fact: 'lineage.projectId', equals: 'project-a' },
+        { fact: 'status.primary', equals: 'ACTIVE' },
+        { not: { fact: 'action', equals: 'delete' } }
+      ]
+    }
+  }
+}
+```
+
+Rules support `all`, `any`, and `not` gates plus predicates over feature,
+level, action, entity type/id, entity lineage, primary status, transition
+fields, arbitrary entity fields, and explicit context facts. Supported
+comparators are `exists`, `equals`, `notEquals`, `in`, `includes`, and
+`atLeast` for access levels.
 
 Workflow definitions must not duplicate app preset names for access policy; they
 should declare feature permission requirements, lifecycle capabilities, and

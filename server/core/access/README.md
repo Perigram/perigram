@@ -11,14 +11,29 @@ Centralized authorization for entity services, workflow transitions, and command
 
 Access is derived from membership permission grants and entity lineage.
 Legacy grants are simple levels (`queues: 'write'`). Granular grants can scope a
-level to lineage ids, entity ids, UI actions, or workflow transitions:
+level to lineage ids, entity ids, UI actions, workflow transitions, or a
+logical rule:
 
 ```js
 {
   queues: [{ level: 'write', scope: { projectId: 'project-a' } }],
-  projects: [{ level: 'write', transitions: ['PRODUCED->MILLED'] }]
+  projects: [{
+    level: 'write',
+    transitions: ['PRODUCED->MILLED'],
+    rule: {
+      all: [
+        { fact: 'status.primary', equals: 'ACTIVE' },
+        { not: { fact: 'action', equals: 'delete' } }
+      ]
+    }
+  }]
 }
 ```
+
+Rules are additive filters on otherwise valid grants. The shared evaluator
+supports nested `all` / `any` / `not` gates and predicates over feature, level,
+action, entity type/id, lineage fields, primary status, transition fields, and
+entity field paths.
 
 Workflow transitions and command definitions declare required feature
 permissions; the engine evaluates those requirements against the current entity
