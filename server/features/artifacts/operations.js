@@ -3,6 +3,7 @@ import { toFlexibleId } from '../../utils/objectid.js';
 import * as attachmentService from './service.js';
 import * as nestingJobs from '../nesting/jobs.js';
 import * as sheetDesignsService from '../sheet-designs/service.js';
+import { getPrimaryState } from '~/server/core/blocks/index.js';
 
 export async function generateAttachment({ entities, parameters = {}, auth }) {
   const source = entities.sheetDesign || entities.nestingRun;
@@ -59,7 +60,7 @@ async function findGeneratedRunDxf(runId) {
 function toCommandAttachmentResult(attachment) {
   const id = (attachment._id || attachment.id).toString();
   const kind = attachment.data?.type;
-  const status = attachment.status?.state || 'GENERATING';
+  const status = getPrimaryState(attachment.status, 'GENERATING');
   return {
     attachments: [{ kind, id }],
     events: [{

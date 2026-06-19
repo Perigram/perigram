@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
@@ -404,6 +404,15 @@ const handleMouseUp = () => {
   activeSectionDrag.value = null;
 };
 
+const handleDocumentMouseMove = (event) => {
+  if (!activeSectionDrag.value && !isPanning.value) return;
+  handleMouseMove(event);
+};
+
+const handleDocumentMouseUp = () => {
+  handleMouseUp();
+};
+
 const handleCanvasMouseLeave = () => {
   handleMouseUp();
   hoveredEdge.value = null;
@@ -618,9 +627,18 @@ const dimensionControlRect = (control) => {
   return { x: -width / 2, y: -10, width };
 };
 
+onMounted(() => {
+  if (!process.client) return;
+  window.document.addEventListener('mousemove', handleDocumentMouseMove);
+  window.document.addEventListener('mouseup', handleDocumentMouseUp);
+});
+
 onBeforeUnmount(() => {
   resolveToken += 1;
   if (faceHoverClearTimer) window.clearTimeout(faceHoverClearTimer);
+  if (!process.client) return;
+  window.document.removeEventListener('mousemove', handleDocumentMouseMove);
+  window.document.removeEventListener('mouseup', handleDocumentMouseUp);
 });
 </script>
 
@@ -803,7 +821,7 @@ onBeforeUnmount(() => {
                   stroke-width="1.2"
                   vector-effect="non-scaling-stroke"
                 />
-                <text text-anchor="middle" dominant-baseline="middle" class="fill-muted-color text-[9px]">
+                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-[9px]">
                   {{ marker.label }}
                 </text>
               </g>
@@ -834,7 +852,7 @@ onBeforeUnmount(() => {
                 @click.stop.prevent="requestDesignerFoldAngleEdit(fold, $event)"
               >
                 <rect :x="-22" :y="-10" :width="44" :height="20" rx="10" fill="currentColor" class="opacity-90" />
-                <text text-anchor="middle" dominant-baseline="middle" class="fill-muted-color text-xs">
+                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-xs">
                   {{ fold.label || fold.angle }}
                 </text>
               </g>
@@ -871,7 +889,6 @@ onBeforeUnmount(() => {
                 class="cursor-pointer"
                 @mouseenter="hoveredEdge = index"
                 @mouseleave="hoveredEdge = null"
-                @click.stop.prevent="requestDesignerAction(edge.edgeIndex ?? index, edge, $event)"
               />
               <g
                 v-if="hoveredEdge === index"
@@ -882,7 +899,7 @@ onBeforeUnmount(() => {
                 @click.stop.prevent="requestDesignerAction(edge.edgeIndex ?? index, edge, $event)"
               >
                 <rect :x="-10" :y="-10" :width="20" :height="20" rx="10" fill="currentColor" class="opacity-90" />
-                <text text-anchor="middle" dominant-baseline="middle" class="fill-muted-color text-xs">
+                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-xs">
                   +
                 </text>
               </g>
@@ -906,7 +923,7 @@ onBeforeUnmount(() => {
                 fill="currentColor"
                 class="opacity-90"
               />
-              <text text-anchor="middle" dominant-baseline="middle" class="fill-muted-color text-xs">
+              <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-xs">
                 {{ control.label || control.value }}
               </text>
             </g>
@@ -922,7 +939,7 @@ onBeforeUnmount(() => {
                   @click.stop.prevent="requestDesignerFaceCommand(face, 'menu', $event)"
                 >
                   <rect x="-14" y="-14" width="28" height="28" rx="14" fill="currentColor" class="opacity-90" />
-                  <text y="-3" text-anchor="middle" dominant-baseline="middle" class="fill-muted-color text-sm">
+                  <text y="-3" text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-sm">
                     ...
                   </text>
                 </g>
@@ -949,7 +966,7 @@ onBeforeUnmount(() => {
                     :y="controlChipRect(control).y + 8"
                     text-anchor="middle"
                     dominant-baseline="middle"
-                    class="fill-muted-color text-[10px]"
+                    class="fill-[var(--p-content-background)] text-[10px]"
                   >
                     {{ controlValueLabel(control.value) }}
                   </text>

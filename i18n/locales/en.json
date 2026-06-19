@@ -8,6 +8,8 @@
     "save": "Save",
     "update": "Update",
     "reset": "Reset",
+    "undo": "Undo",
+    "redo": "Redo",
     "revert": "Revert to default",
     "delete": "Delete",
     "edit": "Edit",
@@ -374,6 +376,10 @@
       "addWorkpiece": "Add workpiece",
       "addRelatedWorkpiece": "Add related workpiece",
       "addAttachment": "Add attachment",
+      "addHardware": "Add hardware",
+      "addProfile": "Add profile",
+      "editProfile": "Edit profile",
+      "profile": "Profile",
       "deleteWorkpiece": "Delete workpiece",
       "removeAttachment": "Remove attachment",
       "driver": "driver",
@@ -390,6 +396,27 @@
       "deleteFace": "Delete face",
       "faceRole": "Face role",
       "rootFace": "Root trapezoid",
+      "autosaveDraftAvailable": "A session draft is available for this cassette.",
+      "recoverDraft": "Recover draft",
+      "discardDraft": "Discard draft",
+      "onboarding": {
+        "document": {
+          "title": "Document controls",
+          "body": "Name, load, save, reset, and draft recovery live in the left document panel."
+        },
+        "canvas": {
+          "title": "2D editor",
+          "body": "Hover a free edge to show +, then click the + chip to add a face."
+        },
+        "parameters": {
+          "title": "Inline editors",
+          "body": "Click labels or offset chips to edit expressions. Popups can be dragged and close with Enter or Escape."
+        },
+        "topology": {
+          "title": "Topology rail",
+          "body": "Use the workpiece rail for related workpieces, attachments, and the folded 3D preview."
+        }
+      },
       "previewModes": {
         "workpiece": "Workpiece",
         "layout": "Flat layout",
@@ -405,9 +432,75 @@
         "offsetX": "Offset X",
         "offsetY": "Offset Y",
         "rotation": "Rotation",
+        "placementMode": "Placement",
+        "arrayEdge": "Array edge",
+        "arrayMode": "Array rule",
+        "arrayCount": "Array count",
+        "arraySpacing": "Array spacing",
         "driver": "Placement driver",
         "jointType": "Joint type",
         "method": "Method"
+      },
+      "hardwareFields": {
+        "family": "Hardware family",
+        "productionMode": "Production mode",
+        "primarySize": "Primary size",
+        "secondarySize": "Secondary size"
+      },
+      "hardwareFamilies": {
+        "bolt": "Bolt",
+        "nut": "Nut",
+        "washer": "Washer",
+        "rivet": "Rivet",
+        "screw": "Screw",
+        "spacer": "Spacer",
+        "standoff": "Standoff",
+        "hanger_clip": "Hanger clip"
+      },
+      "hangerProductionModes": {
+        "sheetPart": "Separate sheet part",
+        "integralCut": "Cut in parent",
+        "castSolid": "Cast solid"
+      },
+      "profileKinds": {
+        "hanger": "Hanger",
+        "extruded_profile": "Extruded profile",
+        "generic_profile": "Generic profile"
+      },
+      "profileProcesses": {
+        "extruded": "Extruded",
+        "roll_formed": "Roll formed",
+        "brake_formed": "Brake formed",
+        "machined": "Machined"
+      },
+      "profileEditor": {
+        "title": "Profile sketch",
+        "name": "Profile name",
+        "defaultName": "Hanger profile",
+        "loadTemplate": "Load profile template",
+        "preview": "Profile sketch preview",
+        "parameters": "Parameters",
+        "points": "Points",
+        "holes": "Holes",
+        "filletRadius": "Fillet radius",
+        "insert": "Insert into cassette",
+        "saved": "Profile template saved",
+        "saveFailed": "Failed to save profile template",
+        "kind": "Kind",
+        "process": "Process",
+        "tools": {
+          "select": "Select",
+          "point": "Point",
+          "hole": "Hole"
+        }
+      },
+      "placementModes": {
+        "point": "Point",
+        "edgeArray": "Edge array"
+      },
+      "arrayModes": {
+        "count": "By count",
+        "spacing": "By spacing"
       },
       "attachmentStatus": {
         "ok": "ok",
@@ -416,6 +509,8 @@
       },
       "snapPoints": {
         "center": "Center",
+        "start": "Start",
+        "end": "End",
         "origin": "Origin",
         "top_left": "Top left",
         "top_right": "Top right",
@@ -1511,6 +1606,7 @@
     "cassetteInstance": "Cassette Instance",
     "entityRevision": "Entity Revision",
     "geometryCapture": "Geometry Capture",
+    "profileTemplate": "Profile Template",
     "requisition": "Requisition",
     "material": "Material",
     "materialPile": "Material Pile",

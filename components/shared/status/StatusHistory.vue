@@ -8,6 +8,7 @@ import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import { computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStatusHistory } from '~/composables/useStatusHistory';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
   entity: { type: Object, default: null },
@@ -31,7 +32,7 @@ const fallbackEvents = computed(() => {
   const status = props.entity?.status || props.entity?.origin;
   if (!status?.state) return [];
   return [{
-    toState: status.state,
+    toState: getPrimaryState(status),
     timestamp: status.timestamp || status.createdAt || props.entity?.updatedAt || props.entity?.createdAt || new Date(),
     status
   }];
@@ -63,7 +64,7 @@ const dateTimeAttribute = (ts) => {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
 
-const eventState = (event) => event.toState || event.status?.state || event.state;
+const eventState = (event) => event.toStatePrimary || event.toState || getPrimaryState(event.status || event.state);
 
 const eventNote = (event) => event.status?.metadata?.note || event.metadata?.note || '';
 

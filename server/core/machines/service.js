@@ -1,15 +1,24 @@
-import { stateMachines } from './definitions.js';
 import { connectDB } from '../../db/mongo.js';
 import { ObjectId } from 'mongodb';
 import { createStatus } from '../../core/blocks/index.js';
 import { hooks } from './hooks.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { createError } from 'h3';
-import { normalizeLifecycle, validateTransition } from '~/packages/workflows/src/index.js';
+import {
+  applyWorkflowTransitionState,
+  createWorkflowState,
+  getPrimaryState,
+  getRegionState,
+  getWorkflowRegion,
+  normalizeLifecycle,
+  normalizeWorkflow,
+  validateTransition
+} from '~/packages/workflows/src/index.js';
 import { assertTransitionAccess } from '../access/service.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 import { getEntityCollection, normalizeEntityType } from '~/server/runtime/entities.js';
 import { processEffects } from '../effects/service.js';
+import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 
 /**
  * Unified Status Service - v24 Absolute Final
@@ -33,7 +42,7 @@ export const statusService = {
 
   initialStatus(entityType, actor = 'SYSTEM', metadata = {}) {
     const normalizedEntityType = normalizeEntityType(entityType);
-    const machine = stateMachines[normalizedEntityType];
+    const machine = workflowOverridesService.resolveDefaultWorkflow(normalizedEntityType);
     if (!machine) {
       throw createError({
         statusCode: 400,
@@ -41,22 +50,31 @@ export const statusService = {
       });
     }
     const actorId = typeof actor === 'object' ? actor.userId : actor;
-    return createStatus(machine.initial, actorId || 'SYSTEM', metadata);
+    return createStatus(createWorkflowState(machine), actorId || 'SYSTEM', metadata);
   },
 
-  async applyIntent(entityType, targetId, intent, authContext = {}, metadata = {}, transitionContext = {}) {
+  async initialStatusForOrganization(entityType, organizationId, actor = 'SYSTEM', metadata = {}) {
     const normalizedEntityType = normalizeEntityType(entityType);
-    const machine = stateMachines[normalizedEntityType];
+    const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId });
     if (!machine) {
       throw createError({
         statusCode: 400,
         message: `No state machine defined for entity type: ${normalizedEntityType}`
       });
     }
+    const actorId = typeof actor === 'object' ? actor.userId : actor;
+    return createStatus(createWorkflowState(machine), actorId || 'SYSTEM', metadata);
+  },
 
-    const { entity } = await loadEntityForWorkflow(normalizedEntityType, targetId);
-    const currentState = entity.status?.state || machine.initial;
-    const transition = (machine.transitions || []).find(item => item.intent === intent && item.from === currentState);
+  async applyIntent(entityType, targetId, intent, authContext = {}, metadata = {}, transitionContext = {}) {
+    const normalizedEntityType = normalizeEntityType(entityType);
+    const { entity, machine } = await loadEntityForWorkflow(normalizedEntityType, targetId);
+    const normalizedMachine = normalizeWorkflow(machine);
+    const transitionScope = normalizeTransitionScope(transitionContext);
+    const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
+    const currentState = getRegionState(entity.status, regionId, getWorkflowRegion(normalizedMachine, regionId)?.initial);
+    const region = getWorkflowRegion(normalizedMachine, regionId);
+    const transition = (region?.transitions || []).find(item => item.intent === intent && item.from === currentState);
     if (!transition) {
       throw createError({
         statusCode: 400,
@@ -72,6 +90,7 @@ export const statusService = {
       authContext,
       {
         metadata,
+        region: regionId,
         ...transitionContext
       }
     );
@@ -79,23 +98,36 @@ export const statusService = {
 
   async getActions(entityType, targetId, authContext) {
     const normalizedEntityType = normalizeEntityType(entityType);
-    const machine = stateMachines[normalizedEntityType];
-    if (!machine) {
-      return { entityType: normalizedEntityType, targetId, state: null, actions: [] };
-    }
     const auth = normalizeAuthContext(authContext?.userId, authContext, {});
-    const { entity, machine: loadedMachine } = await loadEntityForWorkflow(normalizedEntityType, targetId);
-    const currentState = entity.status?.state || loadedMachine.initial;
+    const defaultMachine = workflowOverridesService.resolveDefaultWorkflow(normalizedEntityType);
+    let loaded;
+    try {
+      loaded = await loadEntityForWorkflow(normalizedEntityType, targetId, { requireMachine: false });
+    } catch (error) {
+      if (!defaultMachine && Number(error?.statusCode) === 404) {
+        return { entityType: normalizedEntityType, targetId, state: null, actions: [] };
+      }
+      throw error;
+    }
+    const { entity, machine: loadedMachine } = loaded;
+    if (!loadedMachine) {
+      return { entityType: normalizedEntityType, targetId, state: entity.status?.state || null, actions: [] };
+    }
+    const normalizedMachine = normalizeWorkflow(loadedMachine);
+    const primaryState = getPrimaryState(entity.status, normalizedMachine.initial);
     const lifecycle = entity.status?.lifecycle || normalizeLifecycle();
     const actions = [];
 
-    for (const transition of loadedMachine.transitions || []) {
+    for (const [regionId, region] of Object.entries(normalizedMachine.regions || {})) {
+      const currentState = getRegionState(entity.status, regionId, region.initial);
+      for (const transition of region.transitions || []) {
       if (transition.from !== currentState) continue;
 
       const validation = validateTransition({
-        workflow: loadedMachine,
+        workflow: normalizedMachine,
         currentState,
         targetState: transition.to,
+        region: regionId,
         role: auth.role,
         actorId: auth.userId,
         currentStatus: entity.status,
@@ -120,15 +152,18 @@ export const statusService = {
       }
 
       actions.push({
+        region: regionId,
+        path: region.states?.[transition.to]?.path || [transition.to],
         from: transition.from,
         to: transition.to,
         intent: transition.intent || null,
         display: transition.display,
         displayBtn: transition.displayBtn
       });
+      }
     }
 
-    return { entityType: normalizedEntityType, targetId, state: currentState, actions };
+    return { entityType: normalizedEntityType, targetId, state: entity.status?.state || createWorkflowState(normalizedMachine), primaryState, actions };
   },
 
   async transitionWithResult({ entityType, targetId, targetState, intent = null, auth, context = {} }) {
@@ -148,35 +183,14 @@ async function performTransition(entityType, targetId, targetState, userId, user
     const auth = normalizeAuthContext(userId, userRole, transitionContext.metadata);
     const actorId = auth.userId || userId || 'SYSTEM';
     const db = await connectDB();
-    const machine = stateMachines[normalizedEntityType];
+    const { entity, machine, collection, flexId } = await loadEntityForWorkflow(normalizedEntityType, targetId);
 
-    if (!machine) {
-      throw createError({
-        statusCode: 400,
-        message: `No state machine defined for entity type: ${normalizedEntityType}`
-      });
-    }
-
-    const flexId = toFlexibleId(targetId);
-    const collection = getEntityCollection(normalizedEntityType);
-    if (!collection) {
-      throw createError({
-        statusCode: 400,
-        message: `No entity collection defined for entity type: ${normalizedEntityType}`
-      });
-    }
-
-    const entity = await db.collection(collection).findOne({ _id: flexId });
-
-    if (!entity) {
-      throw createError({
-        statusCode: 404,
-        message: `${normalizedEntityType} not found (ID: ${targetId}, Collection: ${collection})`
-      });
-    }
-
-    const currentState = entity.status?.state || machine.initial;
-    const targetLifecycleSchema = machine.states?.[targetState]?.lifecycle;
+    const normalizedMachine = normalizeWorkflow(machine);
+    const transitionScope = normalizeTransitionScope(transitionContext);
+    const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
+    const workflowRegion = getWorkflowRegion(normalizedMachine, regionId);
+    const currentState = getRegionState(entity.status, regionId, workflowRegion?.initial);
+    const targetLifecycleSchema = workflowRegion?.states?.[targetState]?.lifecycle;
     const lifecycleForValidation = targetLifecycleSchema
       ? mergeLifecycle(entity.status?.lifecycle, transitionContext.lifecycle)
       : transitionContext.lifecycle;
@@ -187,6 +201,8 @@ async function performTransition(entityType, targetId, targetState, userId, user
       workflow: machine,
       currentState,
       targetState,
+      region: regionId,
+      path: transitionScope.path,
       role: auth.role,
       actorId,
       currentStatus: entity.status,
@@ -223,6 +239,7 @@ async function performTransition(entityType, targetId, targetState, userId, user
       targetType: normalizedEntityType,
       fromState: currentState,
       toState: targetState,
+      region: regionId,
       userId: actorId,
       userRole: auth.role,
       auth,
@@ -233,7 +250,13 @@ async function performTransition(entityType, targetId, targetState, userId, user
     
     // 3. Create Event Record
     const eventId = new ObjectId();
-    const newStatus = createStatus(targetState, actorId, transitionContext.metadata, eventId, lifecycleForStatus);
+    const nextState = applyWorkflowTransitionState(
+      entity.status?.state || createWorkflowState(normalizedMachine),
+      normalizedMachine,
+      transition || { region: regionId },
+      targetState
+    );
+    const newStatus = createStatus(nextState, actorId, transitionContext.metadata, eventId, lifecycleForStatus);
     
     // Ensure we store a plain object in DB, not a class instance
     const statusData = JSON.parse(JSON.stringify(newStatus));
@@ -244,6 +267,9 @@ async function performTransition(entityType, targetId, targetState, userId, user
       targetType: normalizedEntityType,
       fromState: currentState,
       toState: targetState,
+      fromStatePrimary: getPrimaryState(entity.status, normalizedMachine.initial),
+      toStatePrimary: getPrimaryState(nextState, targetState),
+      region: regionId,
       status: statusData,
       timestamp: new Date()
     };
@@ -267,6 +293,8 @@ async function performTransition(entityType, targetId, targetState, userId, user
       entityType: normalizedEntityType,
       targetId: flexId,
       targetState,
+      scopedState: targetState,
+      region: regionId,
       transition,
       status: statusData,
       event: { source: { type: normalizedEntityType, id: flexId.toString() } },
@@ -306,13 +334,24 @@ function normalizeTransitionContext(input = {}) {
   if (input && typeof input === 'object' && ('metadata' in input || 'lifecycle' in input)) {
     return {
       metadata: input.metadata && typeof input.metadata === 'object' ? input.metadata : {},
-      lifecycle: normalizeLifecycle(input.lifecycle)
+      lifecycle: normalizeLifecycle(input.lifecycle),
+      region: input.region || input.machineRegion || input.machine,
+      path: Array.isArray(input.path) ? input.path : null
     };
   }
 
   return {
     metadata: input && typeof input === 'object' ? input : {},
-    lifecycle: normalizeLifecycle()
+    lifecycle: normalizeLifecycle(),
+    region: input?.region || input?.machineRegion || input?.machine,
+    path: Array.isArray(input?.path) ? input.path : null
+  };
+}
+
+function normalizeTransitionScope(context = {}) {
+  return {
+    region: context?.region || context?.metadata?.region || context?.machineRegion || context?.machine || null,
+    path: Array.isArray(context?.path) ? context.path : null
   };
 }
 
@@ -451,17 +490,9 @@ function appendHookEffects(effects, result) {
   }
 }
 
-async function loadEntityForWorkflow(entityType, targetId) {
+async function loadEntityForWorkflow(entityType, targetId, options = {}) {
+  const { requireMachine = true } = options;
   const normalizedEntityType = normalizeEntityType(entityType);
-  const machine = stateMachines[normalizedEntityType];
-
-  if (!machine) {
-    throw createError({
-      statusCode: 400,
-      message: `No state machine defined for entity type: ${normalizedEntityType}`
-    });
-  }
-
   const collection = getEntityCollection(normalizedEntityType);
   if (!collection) {
     throw createError({
@@ -478,6 +509,16 @@ async function loadEntityForWorkflow(entityType, targetId) {
     throw createError({
       statusCode: 404,
       message: `${normalizedEntityType} not found (ID: ${targetId}, Collection: ${collection})`
+    });
+  }
+
+  const organizationId = entity.lineage?.organizationId || entity.origin?.organizationId || entity.organizationId;
+  const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId });
+
+  if (!machine && requireMachine) {
+    throw createError({
+      statusCode: 400,
+      message: `No state machine defined for entity type: ${normalizedEntityType}`
     });
   }
 

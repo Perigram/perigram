@@ -22,7 +22,7 @@ export const useEntity = (type, identifier = null) => {
 
   // Block helpers — reactive to entity ref
   const { name, slug, serial, reference } = useIdentity(entity);
-  const { state, statusColor, timestamp: statusTime, metadata: statusMeta, lifecycle: statusLifecycle } = useStatus(entity);
+  const { state, stateObject, regions: statusRegions, statusColor, timestamp: statusTime, metadata: statusMeta, lifecycle: statusLifecycle } = useStatus(entity);
   const { lineage, getAncestorId } = useLineage(entity);
   const { specs, formattedDimensions, formattedArea } = useSpecs(entity);
 
@@ -163,6 +163,8 @@ export const useEntity = (type, identifier = null) => {
     serial,
     reference,
     state,
+    stateObject,
+    statusRegions,
     statusColor,
     statusTime,
     statusMeta,

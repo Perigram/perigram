@@ -43,7 +43,7 @@ export async function findChosenNestingRun(queueId) {
   const flexibleId = toFlexibleId(queueId);
   return await db.collection('nesting_runs').findOne({
     'lineage.queueId': { $in: [flexibleId, queueId?.toString()] },
-    'status.state': 'CHOSEN'
+    'status.state.primary': 'CHOSEN'
   });
 }
 

@@ -21,14 +21,14 @@
             <span>{{ artifact.identity?.name }}</span>
             <div class="flex items-center gap-2">
                <small>{{ artifactType(artifact).replace('LAYOUT_', '') }}</small>
-               <Tag :value="artifact.status?.state" :severity="getStatusSeverity(artifact.status)" />
+               <Tag :value="getPrimaryState(artifact.status)" :severity="getStatusSeverity(artifact.status)" />
             </div>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
           <Button 
-            v-if="artifact.status?.state === 'READY'"
+            v-if="getPrimaryState(artifact.status) === 'READY'"
             icon="pi pi-download" 
             text
             @click.stop="downloadArtifact(artifact)" 
@@ -94,6 +94,7 @@ import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
   batchId: { type: String, required: false },
@@ -136,7 +137,7 @@ const getArtifactIcon = (mimeType) => {
 };
 
 const getStatusSeverity = (status) => {
-    const state = status?.state;
+    const state = getPrimaryState(status);
     if (state === 'READY') return 'success';
     if (state === 'FAILED' || state === 'ERROR') return 'danger';
     return 'secondary';

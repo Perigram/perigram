@@ -6,7 +6,7 @@ import * as cassetteInstancesService from '../cassette-instances/service.js';
 import * as sheetDesignsService from '../sheet-designs/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
-import { inheritLineage } from '~/server/core/blocks/index.js';
+import { getPrimaryState, inheritLineage } from '~/server/core/blocks/index.js';
 import { Queue } from './model.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
@@ -231,10 +231,10 @@ export async function preflightChosenRunProduction(queueId, chosenRun, userId, u
     if (existingRunId === chosenRun._id?.toString()) return { alreadyProduced: true };
     throw createError({ statusCode: 400, message: 'Queue already has chosen production output' });
   }
-  if (chosenRun?.status?.state !== 'COMPLETE') {
+  if (getPrimaryState(chosenRun?.status) !== 'COMPLETE') {
     throw createError({ statusCode: 400, message: 'Only completed nesting runs can be chosen for production' });
   }
-  if (!['NESTING', 'READY'].includes(queue.status?.state || 'DRAFT')) {
+  if (!['NESTING', 'READY'].includes(getPrimaryState(queue.status, 'DRAFT'))) {
     throw createError({ statusCode: 400, message: 'Queue must be awaiting a completed nesting run before choosing production run' });
   }
 
@@ -271,7 +271,7 @@ export async function applyChosenRunProduction(queueId, chosenRun, userId, userO
     physicalOutputs
   };
   await repository.updateById(queueId, queue);
-  if ((queue.status?.state || 'DRAFT') !== 'READY') {
+  if (getPrimaryState(queue.status, 'DRAFT') !== 'READY') {
     await statusService.applyIntent('queue', queueId, 'completeNestingProduction', createTransitionAuth('SYSTEM', 'SYSTEM'), {
       note: 'Production run chosen',
       runId: chosenRun._id?.toString?.() || chosenRun._id,
@@ -308,7 +308,7 @@ function queuePreview(queue = {}) {
     _id: queue._id?.toString?.() || queue._id,
     name: queue.identity?.name || queue.identity?.slug || '',
     queueNumber: queue.data?.queueNumber || null,
-    state: queue.status?.state || 'DRAFT',
+    state: getPrimaryState(queue.status, 'DRAFT'),
     jobItemCount: items.length,
     totalQuantity: items.reduce((sum, item) => sum + Number(item.quantity || item.count || 1), 0),
     runCount: Number(queue.summary?.runCount || 0),

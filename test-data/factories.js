@@ -527,6 +527,52 @@ export function createMockToolProfile(overrides = {}) {
   };
 }
 
+export function createMockProfileTemplate(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: 'profile-demo-hanger',
+      name: 'Hanger profile',
+      state: 'ACTIVE',
+      lineage: { userId: 'user-demo' },
+      data: {
+        kind: 'hanger',
+        process: 'extruded',
+        parameters: { W: '42', H: '28', R: '3', D: '6', L: '120' },
+        sketch: {
+          version: '0.1',
+          units: 'mm',
+          parameters: { W: '42', H: '28', R: '3', D: '6', L: '120' },
+          points: [
+            { id: 'p0', x: '0', y: '0' },
+            { id: 'p1', x: 'W', y: '0' },
+            { id: 'p2', x: 'W', y: 'H' },
+            { id: 'p3', x: '0', y: 'H' }
+          ],
+          edges: [
+            { id: 'e0', type: 'line', from: 'p0', to: 'p1' },
+            { id: 'e1', type: 'line', from: 'p1', to: 'p2' },
+            { id: 'e2', type: 'line', from: 'p2', to: 'p3' },
+            { id: 'e3', type: 'line', from: 'p3', to: 'p0' }
+          ],
+          holes: [{ id: 'h0', type: 'circle', center: ['W / 2', 'H / 2'], diameter: 'D' }],
+          modifiers: [{ type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 'R' }]
+        },
+        occsProfile: {
+          section: {
+            type: 'polygon',
+            vertices: [['0', '0'], ['W', '0'], ['W', 'H'], ['0', 'H']],
+            edges: [{ type: 'line' }, { type: 'line' }, { type: 'line' }, { type: 'line' }],
+            holes: [{ type: 'circle', center: ['W / 2', 'H / 2'], diameter: 'D' }],
+            modifiers: [{ type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 'R' }]
+          },
+          sweep: { type: 'linear', length: 'L' }
+        }
+      }
+    }),
+    ...overrides
+  };
+}
+
 export function createMockPenTemplate(overrides = {}) {
   const stroke = { color: '#FF0000', weight: 2, pattern: 'SOLID' };
   return {

@@ -140,6 +140,12 @@ export const cncEntityFieldAccess = {
     write: ['data.*', 'specs.*', 'attachments.*'],
     admin: ['data.*', 'specs.*', 'attachments.*']
   },
+  profileTemplate: {
+    feature: 'cassettes',
+    read: [...COMMON_READ_FIELDS, 'data.kind', 'data.process', 'data.parameters', 'data.sketch', 'data.occsProfile', 'data.description'],
+    write: ['data.*'],
+    admin: ['data.*', 'attachments.*']
+  },
   toolProfile: {
     feature: 'materials',
     read: [...COMMON_READ_FIELDS, 'data.diameter', 'data.kerf', 'data.angle'],
@@ -170,6 +176,7 @@ const ENTITY_ALIASES = {
   batch_pile: 'batchPile',
   entity_revision: 'entityRevision',
   geometry_capture: 'geometryCapture',
+  profile_template: 'profileTemplate',
   tool_profile: 'toolProfile',
   pen_template: 'penTemplate',
   layer_standard: 'layerStandard'

@@ -13,6 +13,7 @@ export const cncEntities = [
   { type: 'nesting_run', collection: 'nesting_runs', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'organization', collection: 'organizations', blocks: ['identity', 'origin', 'status', 'attachments', 'data'] },
   { type: 'pen_template', collection: 'pen_templates', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
+  { type: 'profile_template', collection: 'profile_templates', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'project', collection: 'projects', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'] },
   { type: 'queue', collection: 'queues', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'] },
   { type: 'remnant', collection: 'remnants', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },

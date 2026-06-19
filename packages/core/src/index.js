@@ -267,7 +267,7 @@ export class Identity {
 export class Status {
   constructor(state, userId = 'SYSTEM', metadata = {}, eventId = null, timestamp = new Date(), lifecycle = {}) {
     if (!state) throw new Error('Status: state is required');
-    this.state = state;
+    this.state = normalizeStatusState(state);
     this.userId = userId || 'SYSTEM';
     this.timestamp = timestamp ? new Date(timestamp) : new Date();
     this.metadata = metadata || {};
@@ -294,6 +294,98 @@ export function normalizeStatusLifecycle(lifecycle = {}) {
     attachments: source.attachments && typeof source.attachments === 'object' ? source.attachments : {},
     data: source.data && typeof source.data === 'object' ? source.data : {}
   };
+}
+
+export function normalizeStatusState(state, { region = 'main' } = {}) {
+  if (state && typeof state === 'object' && state.schemaVersion === 2) {
+    const primary = state.primary || getFirstActiveState(state.active) || 'UNKNOWN';
+    const active = normalizeActiveStates(state.active || { [region]: primary });
+    const regions = normalizeStateRegions(state.regions || {}, active);
+    return {
+      schemaVersion: 2,
+      primary,
+      active,
+      regions
+    };
+  }
+
+  const primary = typeof state === 'string' ? state : String(state || 'UNKNOWN');
+  return {
+    schemaVersion: 2,
+    primary,
+    active: { [region]: primary },
+    regions: {
+      [region]: { state: primary, path: [primary] }
+    }
+  };
+}
+
+export function createStatusState(primary, options = {}) {
+  return normalizeStatusState({
+    schemaVersion: 2,
+    primary,
+    active: options.active || { [options.region || 'main']: primary },
+    regions: options.regions || {
+      [options.region || 'main']: {
+        state: primary,
+        path: Array.isArray(options.path) && options.path.length ? options.path : [primary]
+      }
+    }
+  });
+}
+
+export function getPrimaryState(statusOrState, fallback = 'UNKNOWN') {
+  const state = statusOrState?.state ?? statusOrState;
+  if (typeof state === 'string') return state || fallback;
+  if (state && typeof state === 'object') {
+    return state.primary || getFirstActiveState(state.active) || fallback;
+  }
+  return fallback;
+}
+
+export function getRegionState(statusOrState, region = 'main', fallback = null) {
+  const state = statusOrState?.state ?? statusOrState;
+  if (typeof state === 'string') return region === 'main' ? state : fallback;
+  if (!state || typeof state !== 'object') return fallback;
+  return state.active?.[region] || state.regions?.[region]?.state || (region === 'main' ? getPrimaryState(state, fallback) : fallback);
+}
+
+export function getStatusRegions(statusOrState) {
+  const state = normalizeStatusState(statusOrState?.state ?? statusOrState);
+  return Object.entries(state.regions || {}).map(([id, region]) => ({
+    id,
+    state: region.state || state.active?.[id] || state.primary,
+    path: Array.isArray(region.path) ? region.path : [region.state || state.active?.[id] || state.primary],
+    label: region.label || id
+  }));
+}
+
+function normalizeActiveStates(active = {}) {
+  return Object.fromEntries(Object.entries(active)
+    .filter(([key, value]) => key && value)
+    .map(([key, value]) => [key, typeof value === 'string' ? value : String(value)]));
+}
+
+function normalizeStateRegions(regions = {}, active = {}) {
+  const entries = Object.entries(regions)
+    .filter(([key]) => key)
+    .map(([key, value]) => {
+      const regionState = value?.state || active[key] || 'UNKNOWN';
+      return [key, {
+        ...(value && typeof value === 'object' ? value : {}),
+        state: regionState,
+        path: Array.isArray(value?.path) && value.path.length ? value.path : [regionState]
+      }];
+    });
+  const normalized = Object.fromEntries(entries);
+  for (const [key, value] of Object.entries(active)) {
+    if (!normalized[key]) normalized[key] = { state: value, path: [value] };
+  }
+  return normalized;
+}
+
+function getFirstActiveState(active = {}) {
+  return Object.values(active || {}).find(Boolean) || null;
 }
 
 export class Lineage {
@@ -447,8 +539,9 @@ export function validateEntityDefinition(definition) {
 
 export function validateWorkflowDefinition(definition) {
   if (!definition?.entityType) throw new Error('Workflow definition requires entityType');
-  if (!definition?.initial) throw new Error(`Workflow ${definition.entityType} requires initial state`);
-  if (!definition?.states || typeof definition.states !== 'object') throw new Error(`Workflow ${definition.entityType} requires states`);
+  if (!definition?.regions && !definition?.initial) throw new Error(`Workflow ${definition.entityType} requires regions or initial state`);
+  if (definition.regions && typeof definition.regions !== 'object') throw new Error(`Workflow ${definition.entityType} regions must be an object`);
+  if (!definition.regions && (!definition?.states || typeof definition.states !== 'object')) throw new Error(`Workflow ${definition.entityType} requires states`);
 }
 
 export function validateCommandDefinition(definition) {

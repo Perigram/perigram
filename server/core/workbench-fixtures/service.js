@@ -2,6 +2,7 @@ import { createError } from 'h3';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 import { contextToScenario, normalizeWorkbenchContext } from '~/test-data/workbench-context.js';
 import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
+import { createWorkflowState, getPrimaryState, getWorkflowRegion, normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import * as repository from './repository.js';
 
 export async function seedScenario({ scenario, context, workflows = {} } = {}) {
@@ -57,8 +58,11 @@ function getEntityCollections() {
 
 function normalizeEntityStatus(entity, workflow) {
   if (!workflow) return entity;
-  const state = workflow.states?.[entity.status?.state] ? entity.status.state : workflow.initial;
-  const lifecycleSchema = workflow.states?.[state]?.lifecycle;
+  const normalized = normalizeWorkflow(workflow);
+  const region = getWorkflowRegion(normalized, normalized.primaryRegion);
+  const state = region?.states?.[getPrimaryState(entity.status)] ? getPrimaryState(entity.status) : region.initial;
+  const lifecycleSchema = region.states?.[state]?.lifecycle;
+  const stateObject = createWorkflowState(normalized, { primary: state, active: { [normalized.primaryRegion]: state } });
   const lifecycle = lifecycleSchema
     ? {
         actors: [],
@@ -68,8 +72,8 @@ function normalizeEntityStatus(entity, workflow) {
     : { actors: [], attachments: {}, data: {} };
   return {
     ...entity,
-    status: { ...(entity.status || {}), state, lifecycle },
-    origin: { ...(entity.origin || entity.status || {}), state, lifecycle }
+    status: { ...(entity.status || {}), state: stateObject, lifecycle },
+    origin: { ...(entity.origin || entity.status || {}), state: stateObject, lifecycle }
   };
 }
 

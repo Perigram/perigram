@@ -15,7 +15,7 @@ import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 const props = defineProps({
   queue: { type: Object, required: true },
   variant: { type: String, default: 'card' },
-  statusActions: { type: Array, default: () => [] },
+  commandActions: { type: Array, default: () => [] },
   showDelete: { type: Boolean, default: true },
   showSummary: { type: Boolean, default: true },
   showFooterActions: { type: Boolean, default: true },
@@ -48,7 +48,7 @@ const handleCardClick = (event) => {
 const jobItems = computed(() => props.queue.data?.job?.items || []);
 const totalQuantity = computed(() => jobItems.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0));
 const commandActions = computed(() => [
-    ...props.statusActions,
+    ...props.commandActions,
     ...(props.showDelete && authStore.can('queues', 'delete') ? [{
         label: t('common.delete'),
         icon: 'pi pi-trash',

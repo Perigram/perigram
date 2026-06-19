@@ -72,7 +72,7 @@ export const resolveCassetteV2TrapezoidLocalPoints = (trapezoid = {}) => {
   const referenceLength = numeric(trapezoid.defaultLength, 0);
   const baseStartOffset = numeric(trapezoid.baseStartOffset, 0);
   const baseEndOffset = numeric(trapezoid.baseEndOffset, 0);
-  const localLength = referenceLength - baseStartOffset - baseEndOffset;
+  const localLength = referenceLength + baseStartOffset + baseEndOffset;
   if (localLength <= 0) {
     throw new Error('Trapezoid base length must stay positive after offsets');
   }
@@ -86,8 +86,8 @@ export const resolveCassetteV2TrapezoidLocalPoints = (trapezoid = {}) => {
   return [
     [0, 0, 0],
     [localLength, 0, 0],
-    [localLength - topEndOffset, p2Height, 0],
-    [topStartOffset, p3Height, 0]
+    [localLength - baseEndOffset + topEndOffset, p2Height, 0],
+    [baseStartOffset - topStartOffset, p3Height, 0]
   ];
 };
 
@@ -106,8 +106,8 @@ export const buildCassetteV2TrapezoidVertices = (
 
   const baseStartOffset = numeric(trapezoid.baseStartOffset, 0);
   const origin = [
-    frame.start[0] + frame.direction[0] * baseStartOffset,
-    frame.start[1] + frame.direction[1] * baseStartOffset,
+    frame.start[0] - frame.direction[0] * baseStartOffset,
+    frame.start[1] - frame.direction[1] * baseStartOffset,
     frame.start[2] || 0
   ];
 

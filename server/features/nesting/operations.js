@@ -1,5 +1,5 @@
 import { createError } from 'h3';
-import { inheritLineage } from '../../core/blocks/index.js';
+import { getPrimaryState, inheritLineage } from '../../core/blocks/index.js';
 import * as queuesService from '../queues/service.js';
 import * as projectsService from '../projects/service.js';
 import * as cassetteService from '../cassettes/service.js';
@@ -28,7 +28,7 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
 
   try {
     await clearStaleActiveNestingJob(queue._id);
-    if (await nestingJobs.findActiveByQueue(queue._id) || queue.status?.state === 'NESTING') {
+    if (await nestingJobs.findActiveByQueue(queue._id) || getPrimaryState(queue.status) === 'NESTING') {
       throw createError({ statusCode: 400, message: 'Queue is already nesting' });
     }
     if (!queue.data?.job?.items || queue.data.job.items.length === 0) {

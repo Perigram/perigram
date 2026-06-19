@@ -1,6 +1,7 @@
 import { computed, unref } from 'vue';
 
 import { STATUS_MAPPINGS } from '~/utils/status-engine';
+import { getPrimaryState, getStatusRegions, normalizeStatusState } from '~/packages/core/src/index.js';
 
 /**
  * Universal Block Composables - v24 Standardized
@@ -37,7 +38,9 @@ export const useStatus = (entity) => {
       return e.status || {};
   });
 
-  const state = computed(() => statusBlock.value.state || 'UNKNOWN');
+  const stateObject = computed(() => normalizeStatusState(statusBlock.value.state || 'UNKNOWN'));
+  const state = computed(() => getPrimaryState(statusBlock.value, 'UNKNOWN'));
+  const regions = computed(() => getStatusRegions(statusBlock.value));
   const timestamp = computed(() => statusBlock.value.timestamp ? new Date(statusBlock.value.timestamp) : null);
   const metadata = computed(() => statusBlock.value.metadata || {});
   const lifecycle = computed(() => {
@@ -68,7 +71,7 @@ export const useStatus = (entity) => {
     return colors[s] || 'secondary';
   });
 
-  return { state, timestamp, metadata, lifecycle, statusColor };
+  return { state, stateObject, regions, timestamp, metadata, lifecycle, statusColor };
 };
 
 export const useLineage = (entity) => {

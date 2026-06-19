@@ -82,6 +82,7 @@ export const cncDesignSystemEntityContracts = [
   ['color', 'color', 'master', 'entities.color', 'color', 'createMockColor', 'hidden', true, ['server/features/colors/README.md']],
   ['entityRevision', 'entity_revision', 'system', 'entities.entityRevision', 'revision', 'createMockEntityRevision', 'hidden', true, ['components/entities/EntityRevision/README.md', 'server/features/entity-revisions/README.md']],
   ['geometryCapture', 'geometry_capture', 'production', 'entities.geometryCapture', 'capture', 'createMockGeometryCapture', workflowStatus('geometry_capture'), true, ['components/entities/GeometryCapture/README.md', 'server/features/geometry-captures/README.md']],
+  ['profileTemplate', 'profile_template', 'master', 'entities.profileTemplate', 'profile', 'createMockProfileTemplate', 'hidden', false, ['server/features/profile-templates/README.md']],
   ['warehouse', 'warehouse', 'master', 'entities.warehouse', 'warehouse', 'createMockWarehouse', workflowStatus('warehouse'), true, ['server/features/warehouses/README.md']],
   ['toolProfile', 'tool_profile', 'master', 'entities.toolProfile', 'tool', 'createMockToolProfile', 'hidden', false, ['server/features/tool-profiles/README.md']],
   ['penTemplate', 'pen_template', 'master', 'entities.penTemplate', 'pen', 'createMockPenTemplate', 'hidden', false, ['server/features/pen-templates/README.md']],

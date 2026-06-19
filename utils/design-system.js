@@ -16,6 +16,7 @@ import CatalogCard from '~/components/entities/Catalog/CatalogCard.vue';
 import ColorCard from '~/components/entities/Color/ColorCard.vue';
 import EntityRevisionCard from '~/components/entities/EntityRevision/EntityRevisionCard.vue';
 import GeometryCaptureCard from '~/components/entities/GeometryCapture/GeometryCaptureCard.vue';
+import ProfileTemplateCard from '~/components/entities/ProfileTemplate/ProfileTemplateCard.vue';
 import WarehouseCard from '~/components/entities/Warehouse/WarehouseCard.vue';
 import ToolProfileCard from '~/components/entities/ToolProfile/ToolProfileCard.vue';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
@@ -49,6 +50,7 @@ const components = {
   color: ColorCard,
   entityRevision: EntityRevisionCard,
   geometryCapture: GeometryCaptureCard,
+  profileTemplate: ProfileTemplateCard,
   warehouse: WarehouseCard,
   toolProfile: ToolProfileCard,
   penTemplate: PenTemplateCard,

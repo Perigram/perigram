@@ -17,6 +17,7 @@ import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import GeometryCaptureDetail from '~/components/entities/GeometryCapture/GeometryCaptureDetail.vue';
 import PhotoGeometryOverlay from '~/components/entities/GeometryCapture/PhotoGeometryOverlay.vue';
 import { useEntity } from '~/composables/useEntity';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 definePageMeta({
   layout: 'app',
@@ -198,7 +199,7 @@ const createMaterial = async () => {
 };
 
 const statusSeverity = (capture) => {
-  const state = capture.status?.state;
+  const state = getPrimaryState(capture.status);
   if (state === 'READY') return 'success';
   if (state === 'FAILED') return 'danger';
   if (state === 'PROCESSING') return 'info';
@@ -438,7 +439,7 @@ const confirmCapture = async (capture) => {
               <div class="flex min-w-0 flex-col gap-1">
                 <div class="flex items-center gap-2">
                   <Tag :value="$t(`geometryCapture.modes.${capture.data?.mode || 'REMNANT'}`)" severity="secondary" size="small" />
-                  <Tag :value="capture.status?.state || 'DRAFT'" :severity="statusSeverity(capture)" size="small" />
+                  <Tag :value="getPrimaryState(capture.status, 'DRAFT')" :severity="statusSeverity(capture)" size="small" />
                 </div>
                 <strong class="truncate text-sm">{{ captureTitle(capture) }}</strong>
                 <small class="truncate text-muted-color">{{ captureMeta(capture) }}</small>

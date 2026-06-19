@@ -11,6 +11,7 @@ import {
   createMockNestingRun,
   createMockOrganization,
   createMockPenTemplate,
+  createMockProfileTemplate,
   createMockPile,
   createMockProject,
   createMockQueue,
@@ -39,6 +40,7 @@ export function createCncFixtureScenario({ workflows = cncWorkflows, commands = 
     catalog: MOCK_IDS.catalogId,
     color: 'color-demo-ral-9016',
     penTemplate: 'pen-demo-cutting',
+    profileTemplate: 'profile-demo-hanger',
     layerStandard: 'layer-standard-demo-facade-ext',
     toolProfile: 'tool-demo-flat-endmill-4',
     warehouse: MOCK_IDS.warehouseId,
@@ -80,6 +82,7 @@ export function createCncFixtureScenario({ workflows = cncWorkflows, commands = 
       catalog: [createMockCatalog({ status: undefined, origin: undefined })],
       color: [createMockColor({ status: undefined, origin: undefined })],
       pen_template: [createMockPenTemplate({ status: undefined, origin: undefined })],
+      profile_template: [createMockProfileTemplate({ status: undefined, origin: undefined })],
       layer_standard: [createMockLayerStandard({
         status: undefined,
         origin: undefined,

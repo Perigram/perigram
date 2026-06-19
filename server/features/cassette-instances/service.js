@@ -5,7 +5,8 @@ import {
   createIdentity,
   createStatus,
   inheritLineage,
-  createData
+  createData,
+  getPrimaryState
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
@@ -20,8 +21,16 @@ import { ObjectId } from 'mongodb';
 
 function serializeInstance(raw) {
   const instance = new CassetteInstance(raw).toJSON();
-  if (instance.data?.source === 'QUEUE_CUT' && instance.status?.state === 'NESTED') {
-    instance.status = { ...instance.status, state: 'CUT' };
+  if (instance.data?.source === 'QUEUE_CUT' && getPrimaryState(instance.status) === 'NESTED') {
+    instance.status = {
+      ...instance.status,
+      state: {
+        schemaVersion: 2,
+        primary: 'CUT',
+        active: { main: 'CUT' },
+        regions: { main: { state: 'CUT', path: ['CUT'] } }
+      }
+    };
   }
   return instance;
 }

@@ -1,43 +1,82 @@
 <template>
-  <div class="flex h-[calc(100dvh-10rem)] min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
-    <div class="flex shrink-0 flex-wrap items-center gap-2">
-      <InputText
-        v-model="cassetteNameDraft"
-        :placeholder="$t('cassette.name')"
-        class="min-w-44 flex-1"
+  <div class="relative flex h-[calc(100dvh-10rem)] min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
+    <div
+      v-if="showOnboardingRail"
+      class="absolute z-[140] w-80 rounded-ui border border-content-border bg-content p-3 [box-shadow:var(--ck-shadow-overlay)]"
+      :class="onboardingCalloutClass"
+    >
+      <span
+        class="absolute h-3 w-3 rotate-45 border border-content-border bg-content"
+        :class="onboardingChevronClass"
+        aria-hidden="true"
       />
-      <Select
-        :model-value="null"
-        :options="templateOptions"
-        option-label="label"
-        option-value="value"
-        :placeholder="$t('cassette.v2.loadTemplate')"
-        class="min-w-36 flex-1 sm:max-w-48 sm:flex-none"
-        @update:model-value="value => emit('load-template', value)"
-      />
-      <Button
-        icon="pi pi-save"
-        size="small"
-        :loading="savingTemplate"
-        :disabled="savingTemplate"
-        :aria-label="$t('common.save')"
-        v-tooltip.top="$t('common.save')"
-        @click="saveTemplate"
-      />
-      <Button
-        icon="pi pi-refresh"
-        severity="secondary"
-        text
-        rounded
-        size="small"
-        :aria-label="$t('common.reset')"
-        v-tooltip.top="$t('common.reset')"
-        @click="resetTree"
-      />
+      <div class="relative flex min-w-0 flex-col gap-2">
+        <div class="flex min-w-0 items-start justify-between gap-2">
+          <div class="flex min-w-0 flex-col">
+            <strong>{{ $t(activeOnboardingStep.titleKey) }}</strong>
+            <small class="text-muted-color">{{ $t(activeOnboardingStep.bodyKey) }}</small>
+          </div>
+          <Button icon="pi pi-times" severity="secondary" text rounded size="small" :aria-label="$t('common.close')" @click="dismissOnboarding" />
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <Tag :value="`${onboardingIndex + 1}/${onboardingSteps.length}`" severity="secondary" size="small" />
+          <div class="flex items-center gap-1">
+            <Button icon="pi pi-angle-left" severity="secondary" text rounded size="small" :disabled="onboardingIndex === 0" :aria-label="$t('common.back')" @click="previousOnboardingStep" />
+            <Button icon="pi pi-angle-right" severity="secondary" text rounded size="small" :disabled="onboardingIndex >= onboardingSteps.length - 1" :aria-label="$t('common.next')" @click="nextOnboardingStep" />
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(18rem,1fr)_16rem_12rem] gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)_14rem] xl:grid-cols-[18rem_minmax(0,1fr)_20rem] xl:grid-rows-1 2xl:grid-cols-[20rem_minmax(0,1fr)_22rem]">
       <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border bg-content p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
+
+      <div class="flex shrink-0 flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
+        <InputText
+          v-model="cassetteNameDraft"
+          :placeholder="$t('cassette.name')"
+          class="w-full"
+        />
+        <Select
+          :model-value="null"
+          :options="templateOptions"
+          option-label="label"
+          option-value="value"
+          :placeholder="$t('cassette.v2.loadTemplate')"
+          class="w-full"
+          @update:model-value="value => emit('load-template', value)"
+        />
+        <div class="flex items-center gap-1">
+          <Button
+            icon="pi pi-save"
+            size="small"
+            :loading="savingTemplate"
+            :disabled="savingTemplate"
+            :aria-label="$t('common.save')"
+            v-tooltip.top="$t('common.save')"
+            @click="saveTemplate"
+          />
+          <Button
+            icon="pi pi-refresh"
+            severity="secondary"
+            text
+            rounded
+            size="small"
+            :aria-label="$t('common.reset')"
+            v-tooltip.top="$t('common.reset')"
+            @click="resetTree"
+          />
+        </div>
+        <Message v-if="sessionDraftAvailable" severity="info" size="small" :closable="false">
+          <div class="flex flex-col gap-2">
+            <span>{{ $t('cassette.v2.autosaveDraftAvailable') }}</span>
+            <div class="flex flex-wrap gap-1">
+              <Button :label="$t('cassette.v2.recoverDraft')" size="small" @click="recoverSessionDraft" />
+              <Button :label="$t('cassette.v2.discardDraft')" severity="secondary" text size="small" @click="discardSessionDraft" />
+            </div>
+          </div>
+        </Message>
+      </div>
 
       <div class="flex flex-wrap gap-2">
         <Button
@@ -175,33 +214,62 @@
         @designer-section-edit="handleDesignerSectionEdit"
         @designer-fold-angle-edit="handleDesignerFoldAngleEdit"
       />
+      <div class="absolute left-3 top-3 z-[80] flex gap-1 rounded-ui border border-content-border bg-content p-1 [box-shadow:var(--ck-shadow-overlay)]">
+        <Button
+          icon="pi pi-undo"
+          severity="secondary"
+          text
+          rounded
+          size="small"
+          :disabled="!canUndo"
+          :aria-label="$t('common.undo')"
+          v-tooltip.bottom="$t('common.undo')"
+          @click="undoDesignerChange"
+        />
+        <Button
+          icon="pi pi-replay"
+          severity="secondary"
+          text
+          rounded
+          size="small"
+          :disabled="!canRedo"
+          :aria-label="$t('common.redo')"
+          v-tooltip.bottom="$t('common.redo')"
+          @click="redoDesignerChange"
+        />
+      </div>
       <div
         v-if="inlineEditor"
         class="absolute z-[120] min-w-64 rounded-ui border border-content-border bg-content p-2 [box-shadow:var(--ck-shadow-overlay)]"
         :style="{ left: `${inlineEditor.x}px`, top: `${inlineEditor.y}px` }"
+        tabindex="-1"
+        @keydown.enter.stop.prevent="closeInlineEditor"
+        @keydown.esc.stop.prevent="closeInlineEditor"
       >
-        <div class="mb-1 flex justify-end">
-          <Button
-            icon="pi pi-times"
-            severity="secondary"
-            text
-            rounded
-            size="small"
-            :aria-label="$t('common.close')"
-            @click="closeInlineEditor"
-          />
-        </div>
         <div v-if="inlineEditor.type === 'faceActions'" class="flex flex-col gap-2">
-          <Select
-            :model-value="inlineEditorFaceRole"
-            :options="faceRoleOptions"
-            option-label="label"
-            option-value="value"
-            class="w-full"
-            size="small"
-            :aria-label="$t('cassette.v2.faceRole')"
-            @update:model-value="value => updateFaceRole(inlineEditor.nodeId, value)"
-          />
+          <div class="flex cursor-move items-center gap-1" @mousedown.prevent="startInlineEditorDrag">
+            <Select
+              :model-value="inlineEditorFaceRole"
+              :options="faceRoleOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+              size="small"
+              :aria-label="$t('cassette.v2.faceRole')"
+              @mousedown.stop
+              @update:model-value="value => updateFaceRole(inlineEditor.nodeId, value)"
+            />
+            <Button
+              icon="pi pi-times"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('common.close')"
+              @mousedown.stop
+              @click="closeInlineEditor"
+            />
+          </div>
           <Button
             v-if="inlineEditorNode?.parentId"
             icon="pi pi-trash"
@@ -211,130 +279,211 @@
             @click="deleteFaceNode(inlineEditor.nodeId)"
           />
         </div>
-        <div v-else-if="inlineEditor.type === 'attachment' && inlineEditorRelation" class="grid w-96 grid-cols-2 gap-2">
-          <Select
-            :model-value="inlineEditorRelation.targetFaceId"
-            :options="targetFaceOptions"
-            option-label="label"
-            option-value="value"
-            class="w-full"
-            size="small"
-            :aria-label="$t('cassette.v2.attachmentFields.targetFace')"
-            v-tooltip.top="$t('cassette.v2.attachmentFields.targetFace')"
-            @update:model-value="value => updateInlineAttachmentRelation({ targetFaceId: value })"
-          />
-          <Select
-            :model-value="inlineEditorRelation.sourceFaceId"
-            :options="sourceFaceOptions"
-            option-label="label"
-            option-value="value"
-            class="w-full"
-            size="small"
-            :aria-label="$t('cassette.v2.attachmentFields.sourceFace')"
-            v-tooltip.top="$t('cassette.v2.attachmentFields.sourceFace')"
-            @update:model-value="value => updateInlineAttachmentRelation({ sourceFaceId: value })"
-          />
-          <Select
-            :model-value="inlineEditorRelation.targetSnap"
-            :options="snapOptions"
-            option-label="label"
-            option-value="value"
-            class="w-full"
-            size="small"
-            :aria-label="$t('cassette.v2.attachmentFields.targetSnap')"
-            v-tooltip.top="$t('cassette.v2.attachmentFields.targetSnap')"
-            @update:model-value="value => updateInlineAttachmentRelation({ targetSnap: value })"
-          />
-          <Select
-            :model-value="inlineEditorRelation.sourceSnap"
-            :options="snapOptions"
-            option-label="label"
-            option-value="value"
-            class="w-full"
-            size="small"
-            :aria-label="$t('cassette.v2.attachmentFields.sourceSnap')"
-            v-tooltip.top="$t('cassette.v2.attachmentFields.sourceSnap')"
-            @update:model-value="value => updateInlineAttachmentRelation({ sourceSnap: value })"
-          />
-          <div v-tooltip.top="$t('cassette.v2.attachmentFields.offsetX')">
-            <CassetteExpressionEditor
-              :model-value="inlineEditorRelation.offsetX"
-              :parameters="globalParameters"
-              :parameter-names="globalParameterNames"
-              @update:model-value="value => updateInlineAttachmentRelation({ offsetX: value })"
+        <div v-else-if="inlineEditor.type === 'attachment' && inlineEditorRelation" class="flex w-96 flex-col gap-2">
+          <div class="flex cursor-move items-center gap-1" @mousedown.prevent="startInlineEditorDrag">
+            <Select
+              :model-value="inlineEditorRelation.targetFaceId"
+              :options="targetFaceOptions"
+              option-label="label"
+              option-value="value"
+              class="min-w-0 flex-1"
+              size="small"
+              :aria-label="$t('cassette.v2.attachmentFields.targetFace')"
+              v-tooltip.top="$t('cassette.v2.attachmentFields.targetFace')"
+              @mousedown.stop
+              @update:model-value="value => updateInlineAttachmentRelation({ targetFaceId: value })"
+            />
+            <Select
+              :model-value="inlineEditorRelation.sourceFaceId"
+              :options="sourceFaceOptions"
+              option-label="label"
+              option-value="value"
+              class="min-w-0 flex-1"
+              size="small"
+              :aria-label="$t('cassette.v2.attachmentFields.sourceFace')"
+              v-tooltip.top="$t('cassette.v2.attachmentFields.sourceFace')"
+              @mousedown.stop
+              @update:model-value="value => updateInlineAttachmentRelation({ sourceFaceId: value })"
+            />
+            <Button
+              icon="pi pi-times"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('common.close')"
+              @mousedown.stop
+              @click="closeInlineEditor"
             />
           </div>
-          <div v-tooltip.top="$t('cassette.v2.attachmentFields.offsetY')">
-            <CassetteExpressionEditor
-              :model-value="inlineEditorRelation.offsetY"
-              :parameters="globalParameters"
-              :parameter-names="globalParameterNames"
-              @update:model-value="value => updateInlineAttachmentRelation({ offsetY: value })"
+          <div class="grid grid-cols-2 gap-2">
+            <Select
+              :model-value="inlineEditorRelation.targetSnap"
+              :options="snapOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+              size="small"
+              :aria-label="$t('cassette.v2.attachmentFields.targetSnap')"
+              v-tooltip.top="$t('cassette.v2.attachmentFields.targetSnap')"
+              @update:model-value="value => updateInlineAttachmentRelation({ targetSnap: value })"
+            />
+            <Select
+              :model-value="inlineEditorRelation.sourceSnap"
+              :options="snapOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+              size="small"
+              :aria-label="$t('cassette.v2.attachmentFields.sourceSnap')"
+              v-tooltip.top="$t('cassette.v2.attachmentFields.sourceSnap')"
+              @update:model-value="value => updateInlineAttachmentRelation({ sourceSnap: value })"
+            />
+            <div v-tooltip.top="$t('cassette.v2.attachmentFields.offsetX')">
+              <CassetteExpressionEditor
+                :model-value="inlineEditorRelation.offsetX"
+                :parameters="globalParameters"
+                :parameter-names="globalParameterNames"
+                @update:model-value="value => updateInlineAttachmentRelation({ offsetX: value })"
+              />
+            </div>
+            <div v-tooltip.top="$t('cassette.v2.attachmentFields.offsetY')">
+              <CassetteExpressionEditor
+                :model-value="inlineEditorRelation.offsetY"
+                :parameters="globalParameters"
+                :parameter-names="globalParameterNames"
+                @update:model-value="value => updateInlineAttachmentRelation({ offsetY: value })"
+              />
+            </div>
+            <div v-tooltip.top="$t('cassette.v2.attachmentFields.rotation')">
+              <CassetteExpressionEditor
+                :model-value="inlineEditorRelation.rotation"
+                :parameters="globalParameters"
+                :parameter-names="globalParameterNames"
+                @update:model-value="value => updateInlineAttachmentRelation({ rotation: value })"
+              />
+            </div>
+            <Select
+              :model-value="inlineEditorRelation.targetSide"
+              :options="sideOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+              size="small"
+              :aria-label="$t('cassette.v2.attachmentFields.side')"
+              v-tooltip.top="$t('cassette.v2.attachmentFields.side')"
+              @update:model-value="value => updateInlineAttachmentRelation({ targetSide: value })"
+            />
+            <Select
+              :model-value="inlineEditorRelation.placementMode"
+              :options="placementModeOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+              size="small"
+              :aria-label="$t('cassette.v2.attachmentFields.placementMode')"
+              v-tooltip.top="$t('cassette.v2.attachmentFields.placementMode')"
+              @update:model-value="value => updateInlineAttachmentRelation({ placementMode: value })"
+            />
+            <Select
+              v-if="inlineEditorRelation.placementMode === 'edgeArray'"
+              :model-value="inlineEditorRelation.arrayEdge"
+              :options="edgeOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+              size="small"
+              :aria-label="$t('cassette.v2.attachmentFields.arrayEdge')"
+              v-tooltip.top="$t('cassette.v2.attachmentFields.arrayEdge')"
+              @update:model-value="value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arrayEdge: value })"
+            />
+            <Select
+              v-if="inlineEditorRelation.placementMode === 'edgeArray'"
+              :model-value="inlineEditorRelation.arrayMode"
+              :options="arrayModeOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+              size="small"
+              :aria-label="$t('cassette.v2.attachmentFields.arrayMode')"
+              v-tooltip.top="$t('cassette.v2.attachmentFields.arrayMode')"
+              @update:model-value="value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arrayMode: value })"
+            />
+            <div v-if="inlineEditorRelation.placementMode === 'edgeArray'" v-tooltip.top="$t('cassette.v2.attachmentFields.arrayCount')">
+              <CassetteExpressionEditor
+                :model-value="inlineEditorRelation.arrayCount"
+                :parameters="globalParameters"
+                :parameter-names="globalParameterNames"
+                @update:model-value="value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arrayCount: value })"
+              />
+            </div>
+            <div v-if="inlineEditorRelation.placementMode === 'edgeArray'" v-tooltip.top="$t('cassette.v2.attachmentFields.arraySpacing')">
+              <CassetteExpressionEditor
+                :model-value="inlineEditorRelation.arraySpacing"
+                :parameters="globalParameters"
+                :parameter-names="globalParameterNames"
+                @update:model-value="value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arraySpacing: value })"
+              />
+            </div>
+            <Select
+              :model-value="inlineEditorRelation.type"
+              :options="jointTypeOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+              size="small"
+              :aria-label="$t('cassette.v2.attachmentFields.jointType')"
+              v-tooltip.top="$t('cassette.v2.attachmentFields.jointType')"
+              @update:model-value="value => updateInlineAttachmentRelation({ type: value })"
+            />
+            <InputText
+              :model-value="inlineEditorRelation.method"
+              size="small"
+              class="w-full"
+              :aria-label="$t('cassette.v2.attachmentFields.method')"
+              v-tooltip.top="$t('cassette.v2.attachmentFields.method')"
+              @update:model-value="value => updateInlineAttachmentRelation({ method: value })"
+            />
+            <Button
+              icon="pi pi-map-marker"
+              :severity="inlineEditorRelation.driver ? 'primary' : 'secondary'"
+              size="small"
+              :aria-label="$t('cassette.v2.attachmentFields.driver')"
+              v-tooltip.top="$t('cassette.v2.attachmentFields.driver')"
+              @click="updateInlineAttachmentRelation({ driver: true })"
+            />
+            <Button
+              icon="pi pi-trash"
+              severity="danger"
+              size="small"
+              :aria-label="$t('cassette.v2.removeAttachment')"
+              v-tooltip.top="$t('cassette.v2.removeAttachment')"
+              @click="deleteInlineAttachmentRelation"
             />
           </div>
-          <div v-tooltip.top="$t('cassette.v2.attachmentFields.rotation')">
-            <CassetteExpressionEditor
-              :model-value="inlineEditorRelation.rotation"
-              :parameters="globalParameters"
-              :parameter-names="globalParameterNames"
-              @update:model-value="value => updateInlineAttachmentRelation({ rotation: value })"
-            />
-          </div>
-          <Select
-            :model-value="inlineEditorRelation.targetSide"
-            :options="sideOptions"
-            option-label="label"
-            option-value="value"
-            class="w-full"
-            size="small"
-            :aria-label="$t('cassette.v2.attachmentFields.side')"
-            v-tooltip.top="$t('cassette.v2.attachmentFields.side')"
-            @update:model-value="value => updateInlineAttachmentRelation({ targetSide: value })"
-          />
-          <Select
-            :model-value="inlineEditorRelation.type"
-            :options="jointTypeOptions"
-            option-label="label"
-            option-value="value"
-            class="w-full"
-            size="small"
-            :aria-label="$t('cassette.v2.attachmentFields.jointType')"
-            v-tooltip.top="$t('cassette.v2.attachmentFields.jointType')"
-            @update:model-value="value => updateInlineAttachmentRelation({ type: value })"
-          />
-          <InputText
-            :model-value="inlineEditorRelation.method"
-            size="small"
-            class="w-full"
-            :aria-label="$t('cassette.v2.attachmentFields.method')"
-            v-tooltip.top="$t('cassette.v2.attachmentFields.method')"
-            @update:model-value="value => updateInlineAttachmentRelation({ method: value })"
-          />
-          <Button
-            icon="pi pi-map-marker"
-            :severity="inlineEditorRelation.driver ? 'primary' : 'secondary'"
-            size="small"
-            :aria-label="$t('cassette.v2.attachmentFields.driver')"
-            v-tooltip.top="$t('cassette.v2.attachmentFields.driver')"
-            @click="updateInlineAttachmentRelation({ driver: true })"
-          />
-          <Button
-            icon="pi pi-trash"
-            severity="danger"
-            size="small"
-            :aria-label="$t('cassette.v2.removeAttachment')"
-            v-tooltip.top="$t('cassette.v2.removeAttachment')"
-            @click="deleteInlineAttachmentRelation"
-          />
         </div>
         <div v-else-if="inlineEditor.type === 'faceParameter' && inlineEditorAnchorKey" class="flex min-w-64 flex-col gap-2">
-          <CassetteExpressionEditor
-            :model-value="inlineEditor.value"
-            :parameters="inlineEditorParameters"
-            :parameter-names="globalParameterNames"
-            :context-tokens="inlineEditorContextTokens"
-            @update:model-value="updateInlineEditorValue"
-          />
+          <div class="flex cursor-move items-start gap-1" @mousedown.prevent="startInlineEditorDrag">
+            <CassetteExpressionEditor
+              class="min-w-0 flex-1"
+              :model-value="inlineEditor.value"
+              :parameters="inlineEditorParameters"
+              :parameter-names="globalParameterNames"
+              :context-tokens="inlineEditorContextTokens"
+              @mousedown.stop
+              @update:model-value="updateInlineEditorValue"
+            />
+            <Button
+              icon="pi pi-times"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('common.close')"
+              @mousedown.stop
+              @click="closeInlineEditor"
+            />
+          </div>
           <Select
             :model-value="inlineEditorAnchorValue"
             :options="anchorOptions"
@@ -347,14 +496,27 @@
             @update:model-value="value => updateFaceParameter(inlineEditor.nodeId, inlineEditorAnchorKey, value)"
           />
         </div>
-        <CassetteExpressionEditor
-          v-else
-          :model-value="inlineEditor.value"
-          :parameters="inlineEditorParameters"
-          :parameter-names="globalParameterNames"
-          :context-tokens="inlineEditorContextTokens"
-          @update:model-value="updateInlineEditorValue"
-        />
+        <div v-else class="flex min-w-64 cursor-move items-start gap-1" @mousedown.prevent="startInlineEditorDrag">
+          <CassetteExpressionEditor
+            class="min-w-0 flex-1"
+            :model-value="inlineEditor.value"
+            :parameters="inlineEditorParameters"
+            :parameter-names="globalParameterNames"
+            :context-tokens="inlineEditorContextTokens"
+            @mousedown.stop
+            @update:model-value="updateInlineEditorValue"
+          />
+          <Button
+            icon="pi pi-times"
+            severity="secondary"
+            text
+            rounded
+            size="small"
+            :aria-label="$t('common.close')"
+            @mousedown.stop
+            @click="closeInlineEditor"
+          />
+        </div>
       </div>
       </section>
 
@@ -362,7 +524,29 @@
         <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-ui border border-content-border bg-content p-3">
           <div class="flex items-center justify-between gap-2">
             <strong class="truncate">{{ $t('cassette.v2.workpieces') }}</strong>
-            <Tag :value="assemblySummary" severity="secondary" size="small" />
+            <div class="flex items-center gap-1">
+              <Tag :value="assemblySummary" severity="secondary" size="small" />
+              <Button
+                icon="pi pi-sliders-v"
+                severity="secondary"
+                text
+                rounded
+                size="small"
+                :aria-label="$t('cassette.v2.addProfile')"
+                v-tooltip.top="$t('cassette.v2.addProfile')"
+                @click="openProfileDialog()"
+              />
+              <Button
+                icon="pi pi-bolt"
+                severity="secondary"
+                text
+                rounded
+                size="small"
+                :aria-label="$t('cassette.v2.addHardware')"
+                v-tooltip.top="$t('cassette.v2.addHardware')"
+                @click="addHardwareToSelectedWorkpiece"
+              />
+            </div>
           </div>
           <ScrollPanel class="min-h-0 flex-1 rounded-ui border border-content-border">
             <div class="flex flex-col">
@@ -380,6 +564,9 @@
                   >
                     <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="workpieceAccentStyle(row.id)" aria-hidden="true" />
                     <span class="truncate">{{ row.label }}</span>
+                    <Tag v-if="row.isProfile" :value="$t('cassette.v2.profile')" severity="secondary" size="small" />
+                    <Tag v-if="row.family" :value="$t(`cassette.v2.hardwareFamilies.${row.family}`)" severity="secondary" size="small" />
+                    <Tag v-if="row.productionMode" :value="$t(`cassette.v2.hangerProductionModes.${row.productionMode}`)" severity="secondary" size="small" />
                     <Tag v-if="row.parentCount > 1" :value="`×${row.parentCount}`" severity="secondary" size="small" />
                   </button>
                   <Button
@@ -403,6 +590,17 @@
                     @click="startAttachmentConnect(row.id)"
                   />
                   <Button
+                    v-if="row.isProfile"
+                    icon="pi pi-pencil"
+                    severity="secondary"
+                    text
+                    rounded
+                    size="small"
+                    :aria-label="$t('cassette.v2.editProfile')"
+                    v-tooltip.top="$t('cassette.v2.editProfile')"
+                    @click="openProfileDialog(row.id)"
+                  />
+                  <Button
                     v-if="row.id !== workpieces[0]?.id"
                     icon="pi pi-trash"
                     severity="danger"
@@ -412,6 +610,46 @@
                     :aria-label="$t('cassette.v2.deleteWorkpiece')"
                     v-tooltip.top="$t('cassette.v2.deleteWorkpiece')"
                     @click="deleteWorkpiece(row.id)"
+                  />
+                </div>
+
+                <div v-if="row.id === selectedWorkpieceId && row.isHardware" class="mt-2 grid grid-cols-2 gap-2 pl-4">
+                  <Select
+                    :model-value="row.family"
+                    :options="hardwareFamilyOptions"
+                    option-label="label"
+                    option-value="value"
+                    size="small"
+                    class="w-full"
+                    :aria-label="$t('cassette.v2.hardwareFields.family')"
+                    @update:model-value="value => updateSelectedHardware({ family: value })"
+                  />
+                  <Select
+                    v-if="row.family === 'hanger_clip'"
+                    :model-value="row.productionMode || 'integralCut'"
+                    :options="hangerProductionModeOptions"
+                    option-label="label"
+                    option-value="value"
+                    size="small"
+                    class="w-full"
+                    :aria-label="$t('cassette.v2.hardwareFields.productionMode')"
+                    @update:model-value="value => updateSelectedHardware({ productionMode: value })"
+                  />
+                  <InputText
+                    :model-value="row.parameters.diameter || row.parameters.width || ''"
+                    size="small"
+                    class="w-full"
+                    :placeholder="$t('cassette.v2.hardwareFields.primarySize')"
+                    :aria-label="$t('cassette.v2.hardwareFields.primarySize')"
+                    @update:model-value="value => updateSelectedHardwareParameter(row.family === 'hanger_clip' ? 'width' : 'diameter', value)"
+                  />
+                  <InputText
+                    :model-value="row.parameters.length || row.parameters.height || row.parameters.thickness || ''"
+                    size="small"
+                    class="w-full"
+                    :placeholder="$t('cassette.v2.hardwareFields.secondarySize')"
+                    :aria-label="$t('cassette.v2.hardwareFields.secondarySize')"
+                    @update:model-value="value => updateSelectedHardwareParameter(row.family === 'hanger_clip' ? 'height' : 'length', value)"
                   />
                 </div>
 
@@ -472,33 +710,113 @@
         </div>
       </aside>
     </div>
+
+    <StandardDialog
+      v-model:visible="profileDialogVisible"
+      :header="$t('cassette.v2.profileEditor.title')"
+      size="lg"
+    >
+      <div class="flex min-h-0 flex-col gap-3">
+        <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_12rem_12rem]">
+          <InputText
+            v-model="profileDraft.name"
+            :placeholder="$t('cassette.v2.profileEditor.name')"
+            class="w-full"
+          />
+          <Select
+            v-model="profileDraft.kind"
+            :options="profileKindOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+          />
+          <Select
+            v-model="profileDraft.process"
+            :options="profileProcessOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+          />
+        </div>
+        <Select
+          v-model="selectedProfileTemplateId"
+          :options="profileTemplateOptions"
+          option-label="label"
+          option-value="value"
+          :placeholder="$t('cassette.v2.profileEditor.loadTemplate')"
+          class="w-full"
+          @update:model-value="loadProfileTemplateDraft"
+        />
+        <ProfileSketchEditor
+          v-model="profileDraft.sketch"
+          @profile="profileDraft.occsProfile = $event"
+        />
+      </div>
+
+      <template #footer>
+        <div class="flex w-full flex-wrap justify-between gap-2">
+          <Button
+            :label="$t('cassette.v2.profileEditor.insert')"
+            icon="pi pi-plus"
+            size="small"
+            :disabled="profileSaving"
+            @click="insertProfileDraft"
+          />
+          <div class="flex gap-2">
+            <Button
+              :label="$t('common.cancel')"
+              severity="secondary"
+              text
+              size="small"
+              @click="profileDialogVisible = false"
+            />
+            <Button
+              :label="$t('common.save')"
+              icon="pi pi-save"
+              size="small"
+              :loading="profileSaving"
+              :disabled="profileSaving"
+              @click="saveProfileDraft"
+            />
+          </div>
+        </div>
+      </template>
+    </StandardDialog>
   </div>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
+import Message from 'primevue/message';
 import ScrollPanel from 'primevue/scrollpanel';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import CassetteExpressionEditor from '~/components/CassetteExpressionEditor.vue';
 import CassetteFoldedPreview from '~/components/CassetteFoldedPreview.vue';
+import ProfileSketchEditor from '~/components/ProfileSketchEditor.vue';
 import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import { useEntity } from '~/composables/useEntity.js';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { buildCassetteV2FoldedPreview } from '~/utils/cassetteV2FoldedPreview.js';
 import {
   addCassetteV2GraphChild,
+  addCassetteV2HardwareWorkpiece,
+  addCassetteV2ProfileWorkpiece,
   addCassetteV2WorkpieceAttachment,
   addCassetteV2Workpiece,
+  CASSETTE_V2_HANGER_PRODUCTION_MODES,
+  CASSETTE_V2_HARDWARE_FAMILIES,
   collectCassetteV2ExpressionIdentifiers,
   createCassetteV2GraphTree,
   createCassetteV2OccsDocument,
@@ -510,13 +828,21 @@ import {
   renderCassetteV2TreeToDrawing,
   resolveCassetteV2AngleExpression,
   updateCassetteV2GraphNode,
+  updateCassetteV2Workpiece,
   updateCassetteV2WorkpieceRelation
 } from '~/utils/cassetteV2Renderer.js';
+import {
+  OCCS_PROFILE_KINDS,
+  OCCS_PROFILE_PROCESSES,
+  createDefaultOccsProfileTemplateData,
+  occsProfileFromSketch
+} from '../utils/occs/profiles.js';
 
 const { t } = useI18n();
 const toast = useToast();
 const standardsStore = useLayerStandardsStore();
 const pensStore = usePenTemplatesStore();
+const profileTemplateEntity = useEntity('profileTemplate');
 const { standards } = storeToRefs(standardsStore);
 const { pens } = storeToRefs(pensStore);
 const props = defineProps({
@@ -547,6 +873,7 @@ const sideTabs = [
 const cassetteTree = ref(createCassetteV2GraphTree());
 const cassetteNameDraft = ref(t('cassette.newCassette'));
 const selectedNodeId = ref(cassetteTree.value.rootId);
+const selectedWorkpieceOverrideId = ref('');
 const selectedRelationId = ref('');
 const inspectorSelection = ref('face');
 const editorSurfaceRef = ref(null);
@@ -563,9 +890,27 @@ const hiddenLayerNames = ref([]);
 const loadedTemplateId = ref('');
 const savingTemplate = ref(false);
 const persistedTemplateIdOverride = ref('');
+const historyPast = ref([]);
+const historyFuture = ref([]);
+const lastHistorySnapshot = ref('');
+const sessionDraftAvailable = ref(false);
+const onboardingIndex = ref(0);
+const onboardingDismissed = ref(false);
+const inlineEditorDrag = ref(null);
+const profileDialogVisible = ref(false);
+const profileSaving = ref(false);
+const selectedProfileTemplateId = ref('');
+const editingProfileWorkpieceId = ref('');
+const profileDraft = ref({
+  name: '',
+  ...createDefaultOccsProfileTemplateData()
+});
 
 const templateOptions = computed(() => props.templateOptions || []);
 const selectedTemplateId = computed(() => persistedTemplateIdOverride.value || props.template?._id || '');
+const autosaveStorageKey = computed(() => `cutkit:cassette-designer-v2:draft:${selectedTemplateId.value || 'draft'}`);
+const inlineEditorPositionKey = 'cutkit:cassette-designer-v2:inline-editor-position';
+const onboardingStorageKey = 'cutkit:onboarding:cassette-designer-v2';
 const cassetteMarkContext = computed(() => ({
   templateName: cassetteNameDraft.value || t('cassette.newCassette'),
   templateId: selectedTemplateId.value || 'draft'
@@ -581,8 +926,9 @@ const selectedTemplateIsPersisted = computed(() => Boolean(
 const treeNodes = computed(() => cassetteTree.value.nodes || []);
 const selectedNode = computed(() => treeNodes.value.find(node => node.id === selectedNodeId.value) || treeNodes.value[0] || null);
 const workpieces = computed(() => getCassetteV2Workpieces(cassetteTree.value));
-const selectedWorkpieceId = computed(() => selectedNode.value?.workpieceId || workpieces.value[0]?.id || '');
+const selectedWorkpieceId = computed(() => selectedWorkpieceOverrideId.value || selectedNode.value?.workpieceId || workpieces.value[0]?.id || '');
 const selectedWorkpiece = computed(() => workpieces.value.find(workpiece => workpiece.id === selectedWorkpieceId.value) || workpieces.value[0] || null);
+const selectedWorkpieceHardware = computed(() => selectedWorkpiece.value?.hardware || null);
 const workpieceRelations = computed(() => getCassetteV2WorkpieceRelations(cassetteTree.value));
 const previewMode = computed(() => (
   inspectorSelection.value === 'workpiece' || inspectorSelection.value === 'attachment'
@@ -639,6 +985,12 @@ const workpieceRelationRowsById = computed(() => {
 const workpieceRows = computed(() => workpieces.value.map(workpiece => ({
   id: workpiece.id,
   label: workpiece.name || workpiece.id,
+  type: workpiece.type || 'sheet',
+  family: workpiece.family || workpiece.hardware?.family || '',
+  productionMode: workpiece.productionMode || workpiece.hardware?.productionMode || '',
+  parameters: workpiece.parameters || workpiece.hardware?.parameters || {},
+  isHardware: Boolean(workpiece.family || workpiece.hardware?.family),
+  isProfile: workpiece.type === 'profile' || Boolean(workpiece.profileSnapshot || workpiece.profile),
   parentCount: workpieceRelations.value.filter(relation => relation.sourceWorkpieceId === workpiece.id).length,
   relations: workpieceRelationRowsById.value.get(workpiece.id) || []
 })));
@@ -669,7 +1021,7 @@ const sourceFaceOptions = computed(() => treeNodes.value
     label: node.id,
     value: node.id
   })));
-const snapOptions = computed(() => ['center', 'origin', 'top_left', 'top_right', 'bottom_left', 'bottom_right'].map(anchor => ({
+const snapOptions = computed(() => ['center', 'start', 'end', 'origin', 'top_left', 'top_right', 'bottom_left', 'bottom_right'].map(anchor => ({
   label: t(`cassette.v2.snapPoints.${anchor}`),
   value: anchor
 })));
@@ -680,6 +1032,38 @@ const sideOptions = computed(() => ['front', 'back'].map(side => ({
 const jointTypeOptions = computed(() => ['mechanical', 'adhesive', 'weld', 'interlock', 'hook_on', 'sealed', 'gasketed', 'other'].map(type => ({
   label: t(`cassette.v2.jointTypes.${type}`),
   value: type
+})));
+const hardwareFamilyOptions = computed(() => CASSETTE_V2_HARDWARE_FAMILIES.map(family => ({
+  label: t(`cassette.v2.hardwareFamilies.${family}`),
+  value: family
+})));
+const hangerProductionModeOptions = computed(() => CASSETTE_V2_HANGER_PRODUCTION_MODES.map(mode => ({
+  label: t(`cassette.v2.hangerProductionModes.${mode}`),
+  value: mode
+})));
+const profileKindOptions = computed(() => OCCS_PROFILE_KINDS.map(kind => ({
+  label: t(`cassette.v2.profileKinds.${kind}`),
+  value: kind
+})));
+const profileProcessOptions = computed(() => OCCS_PROFILE_PROCESSES.map(process => ({
+  label: t(`cassette.v2.profileProcesses.${process}`),
+  value: process
+})));
+const profileTemplateOptions = computed(() => (profileTemplateEntity.items.value || []).map(profile => ({
+  label: profile.identity?.name || profile.name || profile._id,
+  value: profile._id
+})));
+const placementModeOptions = computed(() => ['point', 'edgeArray'].map(mode => ({
+  label: t(`cassette.v2.placementModes.${mode}`),
+  value: mode
+})));
+const arrayModeOptions = computed(() => ['count', 'spacing'].map(mode => ({
+  label: t(`cassette.v2.arrayModes.${mode}`),
+  value: mode
+})));
+const edgeOptions = computed(() => [0, 1, 2, 3].map(index => ({
+  label: `E${index}`,
+  value: `E${index}`
 })));
 const anchorOptions = computed(() => [
   { label: t('cassette.v2.anchors.start'), value: 0 },
@@ -812,16 +1196,192 @@ const layerRows = computed(() => drawingLayers.value.map(layer => {
     pen
   };
 }));
+const canUndo = computed(() => historyPast.value.length > 0);
+const canRedo = computed(() => historyFuture.value.length > 0);
+const onboardingSteps = computed(() => [
+  {
+    id: 'document',
+    type: 'toolbar',
+    titleKey: 'cassette.v2.onboarding.document.title',
+    bodyKey: 'cassette.v2.onboarding.document.body'
+  },
+  {
+    id: 'canvas',
+    type: 'canvas',
+    titleKey: 'cassette.v2.onboarding.canvas.title',
+    bodyKey: 'cassette.v2.onboarding.canvas.body'
+  },
+  {
+    id: 'parameters',
+    type: 'popup',
+    titleKey: 'cassette.v2.onboarding.parameters.title',
+    bodyKey: 'cassette.v2.onboarding.parameters.body'
+  },
+  {
+    id: 'topology',
+    type: 'rail',
+    titleKey: 'cassette.v2.onboarding.topology.title',
+    bodyKey: 'cassette.v2.onboarding.topology.body'
+  }
+]);
+const activeOnboardingStep = computed(() => onboardingSteps.value[onboardingIndex.value] || onboardingSteps.value[0]);
+const showOnboardingRail = computed(() => !onboardingDismissed.value && Boolean(activeOnboardingStep.value));
+const onboardingCalloutClass = computed(() => ({
+  document: 'left-4 top-4 xl:left-4 xl:top-4',
+  canvas: 'left-1/2 top-20 -translate-x-1/2',
+  parameters: 'left-4 top-40 xl:left-4 xl:top-52',
+  topology: 'right-4 top-24'
+}[activeOnboardingStep.value?.id] || 'left-4 top-4'));
+const onboardingChevronClass = computed(() => ({
+  document: '-left-1.5 top-6 border-r-0 border-t-0',
+  canvas: 'left-1/2 -top-1.5 -translate-x-1/2 border-b-0 border-r-0',
+  parameters: '-left-1.5 top-6 border-r-0 border-t-0',
+  topology: '-right-1.5 top-6 border-b-0 border-l-0'
+}[activeOnboardingStep.value?.id] || '-left-1.5 top-6 border-r-0 border-t-0'));
+
+const cloneDesignerTree = (tree = cassetteTree.value) => JSON.parse(JSON.stringify(tree || createCassetteV2GraphTree()));
+const designerSnapshot = () => JSON.stringify({
+  name: cassetteNameDraft.value || t('cassette.newCassette'),
+  tree: cloneDesignerTree()
+});
+
+let suppressHistory = false;
+let suppressAutosave = false;
+let autosaveTimer = null;
+
+const resetDesignerHistory = () => {
+  historyPast.value = [];
+  historyFuture.value = [];
+  lastHistorySnapshot.value = designerSnapshot();
+};
+
+const applyDesignerSnapshot = (snapshot) => {
+  try {
+    const parsed = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
+    suppressHistory = true;
+    cassetteNameDraft.value = parsed.name || t('cassette.newCassette');
+    cassetteTree.value = parsed.tree || createCassetteV2GraphTree();
+    selectedWorkpieceOverrideId.value = '';
+    closeInlineEditor();
+    lastHistorySnapshot.value = designerSnapshot();
+  } catch {
+    suppressHistory = false;
+  }
+};
+
+const undoDesignerChange = () => {
+  if (!canUndo.value) return;
+  const current = designerSnapshot();
+  const previous = historyPast.value[historyPast.value.length - 1];
+  historyPast.value = historyPast.value.slice(0, -1);
+  historyFuture.value = [current, ...historyFuture.value].slice(0, 50);
+  applyDesignerSnapshot(previous);
+};
+
+const redoDesignerChange = () => {
+  if (!canRedo.value) return;
+  const current = designerSnapshot();
+  const next = historyFuture.value[0];
+  historyFuture.value = historyFuture.value.slice(1);
+  historyPast.value = [...historyPast.value, current].slice(-50);
+  applyDesignerSnapshot(next);
+};
+
+const isEditableKeyboardTarget = (target) => {
+  const tagName = target?.tagName?.toLowerCase?.();
+  return Boolean(target?.isContentEditable || ['input', 'textarea', 'select'].includes(tagName));
+};
+
+const handleDesignerKeydown = (event) => {
+  if (isEditableKeyboardTarget(event.target)) return;
+  const isUndo = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.shiftKey;
+  const isRedo = (event.ctrlKey || event.metaKey) && (
+    event.key.toLowerCase() === 'y' ||
+    (event.key.toLowerCase() === 'z' && event.shiftKey)
+  );
+  if (!isUndo && !isRedo) return;
+  event.preventDefault();
+  if (isUndo) undoDesignerChange();
+  else redoDesignerChange();
+};
+
+const readSessionDraft = () => {
+  if (!process.client) return null;
+  try {
+    const raw = window.sessionStorage.getItem(autosaveStorageKey.value);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeSessionDraft = () => {
+  if (!process.client) return;
+  try {
+    window.sessionStorage.setItem(autosaveStorageKey.value, JSON.stringify({
+      updatedAt: Date.now(),
+      name: cassetteNameDraft.value || t('cassette.newCassette'),
+      tree: cloneDesignerTree()
+    }));
+  } catch {
+    // Session autosave is best-effort; explicit Save remains the reliable path.
+  }
+};
+
+const clearSessionDraft = () => {
+  if (!process.client) return;
+  window.sessionStorage.removeItem(autosaveStorageKey.value);
+  sessionDraftAvailable.value = false;
+};
+
+const refreshSessionDraftState = () => {
+  const draft = readSessionDraft();
+  sessionDraftAvailable.value = Boolean(draft?.tree);
+};
+
+const recoverSessionDraft = () => {
+  const draft = readSessionDraft();
+  if (!draft?.tree) return;
+  suppressHistory = true;
+  suppressAutosave = true;
+  cassetteNameDraft.value = draft.name || cassetteNameDraft.value;
+  cassetteTree.value = draft.tree;
+  selectedWorkpieceOverrideId.value = '';
+  sessionDraftAvailable.value = false;
+  resetDesignerHistory();
+};
+
+const discardSessionDraft = () => {
+  clearSessionDraft();
+};
+
+const nextOnboardingStep = () => {
+  onboardingIndex.value = Math.min(onboardingIndex.value + 1, onboardingSteps.value.length - 1);
+};
+
+const previousOnboardingStep = () => {
+  onboardingIndex.value = Math.max(onboardingIndex.value - 1, 0);
+};
+
+const dismissOnboarding = () => {
+  onboardingDismissed.value = true;
+  if (!process.client) return;
+  window.localStorage.setItem(onboardingStorageKey, JSON.stringify({ dismissed: true, dismissedAt: Date.now() }));
+};
 
 const applyTemplate = (template) => {
+  suppressAutosave = true;
   cassetteNameDraft.value = templateName(template);
   cassetteTree.value = templateTree(template);
   selectedNodeId.value = cassetteTree.value.rootId;
+  selectedWorkpieceOverrideId.value = '';
   selectedRelationId.value = '';
   inspectorSelection.value = 'face';
   foldedPreviewWorkpieceId.value = '';
   previewError.value = '';
   loadedTemplateId.value = template?._id || '';
+  resetDesignerHistory();
+  refreshSessionDraftState();
 };
 
 const templateName = (template) => (
@@ -846,6 +1406,7 @@ const templateTree = (template) => {
 const saveTemplate = async () => {
   const tree = JSON.parse(JSON.stringify(cassetteTree.value));
   const definition = createCassetteV2OccsDocument(tree, cassetteMarkContext.value);
+  const draftKeyBeforeSave = autosaveStorageKey.value;
   const payload = {
     id: selectedTemplateId.value,
     name: cassetteNameDraft.value || t('cassette.newCassette'),
@@ -857,6 +1418,7 @@ const saveTemplate = async () => {
 
   if (!props.persist) {
     emit('save-template', payload);
+    clearSessionDraft();
     return;
   }
 
@@ -875,8 +1437,16 @@ const saveTemplate = async () => {
     const savedId = response?.result?.data?.cassetteId ||
       response?.result?.entities?.find(entity => entity.type === 'cassette')?.id ||
       payload.id;
-    if (savedId) persistedTemplateIdOverride.value = savedId;
+    if (savedId) {
+      suppressAutosave = true;
+      persistedTemplateIdOverride.value = savedId;
+    }
     const savedEntity = savedId ? await $fetch(`/api/cassettes/${encodeURIComponent(savedId)}`).catch(() => null) : null;
+    if (process.client) {
+      window.sessionStorage.removeItem(draftKeyBeforeSave);
+      window.sessionStorage.removeItem(autosaveStorageKey.value);
+    }
+    sessionDraftAvailable.value = false;
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.messages.saveSuccess'), life: 3000 });
     emit('save-template', {
       ...payload,
@@ -957,6 +1527,37 @@ const schedulePreviewRender = (delay = PREVIEW_RENDER_DELAY_MS) => {
 };
 
 watch([cassetteTree, previewMode, previewWorkpieceId, selectedWorkpieceId, selectedRelationId, cassetteNameDraft, selectedTemplateId], () => schedulePreviewRender(), { immediate: true });
+watch([cassetteTree, cassetteNameDraft], () => {
+  const snapshot = designerSnapshot();
+  if (!lastHistorySnapshot.value) {
+    lastHistorySnapshot.value = snapshot;
+    return;
+  }
+  if (suppressHistory) {
+    suppressHistory = false;
+    lastHistorySnapshot.value = snapshot;
+    return;
+  }
+  if (snapshot === lastHistorySnapshot.value) return;
+  historyPast.value = [...historyPast.value, lastHistorySnapshot.value].slice(-50);
+  historyFuture.value = [];
+  lastHistorySnapshot.value = snapshot;
+}, { deep: true });
+watch([cassetteTree, cassetteNameDraft, autosaveStorageKey], () => {
+  if (!process.client) return;
+  if (suppressAutosave) {
+    suppressAutosave = false;
+    return;
+  }
+  if (autosaveTimer) window.clearTimeout(autosaveTimer);
+  autosaveTimer = window.setTimeout(() => {
+    autosaveTimer = null;
+    writeSessionDraft();
+  }, 900);
+}, { deep: true });
+watch(autosaveStorageKey, () => {
+  refreshSessionDraftState();
+});
 watch(() => props.template?._id || '', (templateId) => {
   persistedTemplateIdOverride.value = '';
   if (templateId === loadedTemplateId.value) return;
@@ -975,9 +1576,27 @@ watch([selectedWorkpieceId, workpieceRelations], () => {
   }
 }, { immediate: true });
 
+onMounted(() => {
+  if (!process.client) return;
+  window.addEventListener('keydown', handleDesignerKeydown);
+  try {
+    const onboardingState = window.localStorage.getItem(onboardingStorageKey);
+    onboardingDismissed.value = Boolean(onboardingState && JSON.parse(onboardingState)?.dismissed);
+  } catch {
+    onboardingDismissed.value = false;
+  }
+  refreshSessionDraftState();
+  resetDesignerHistory();
+});
+
 onBeforeUnmount(() => {
   previewToken += 1;
   if (previewTimer && process.client) window.clearTimeout(previewTimer);
+  if (autosaveTimer && process.client) window.clearTimeout(autosaveTimer);
+  if (!process.client) return;
+  window.removeEventListener('keydown', handleDesignerKeydown);
+  window.document.removeEventListener('mousemove', handleInlineEditorDragMove);
+  window.document.removeEventListener('mouseup', stopInlineEditorDrag);
 });
 
 const updateFaceParameter = (nodeId, key, value) => {
@@ -1098,15 +1717,70 @@ const editorPointFromScreen = ({ x = 0, y = 0, type = '' } = {}) => {
   };
 };
 
+const storedInlineEditorPoint = () => {
+  if (!process.client) return null;
+  try {
+    const point = JSON.parse(window.sessionStorage.getItem(inlineEditorPositionKey) || 'null');
+    if (!Number.isFinite(point?.x) || !Number.isFinite(point?.y)) return null;
+    return point;
+  } catch {
+    return null;
+  }
+};
+
+const persistInlineEditorPoint = (point) => {
+  if (!process.client) return;
+  window.sessionStorage.setItem(inlineEditorPositionKey, JSON.stringify({
+    x: Math.max(8, Math.round(point.x)),
+    y: Math.max(8, Math.round(point.y))
+  }));
+};
+
 const closeInlineEditor = () => {
   inlineEditor.value = null;
 };
 
 const openInlineEditor = (editor) => {
+  const storedPoint = storedInlineEditorPoint();
   inlineEditor.value = {
     ...editor,
-    ...editorPointFromScreen(editor)
+    ...(storedPoint || editorPointFromScreen(editor))
   };
+};
+
+const handleInlineEditorDragMove = (event) => {
+  if (!inlineEditorDrag.value || !inlineEditor.value) return;
+  const bounds = editorSurfaceRef.value?.getBoundingClientRect?.();
+  if (!bounds) return;
+  const width = inlineEditorDrag.value.width || 272;
+  const height = inlineEditorDrag.value.height || 116;
+  const next = {
+    x: Math.min(Math.max(event.clientX - bounds.left - inlineEditorDrag.value.dx, 8), Math.max(bounds.width - width - 8, 8)),
+    y: Math.min(Math.max(event.clientY - bounds.top - inlineEditorDrag.value.dy, 8), Math.max(bounds.height - height - 8, 8))
+  };
+  inlineEditor.value = { ...inlineEditor.value, ...next };
+  persistInlineEditorPoint(next);
+};
+
+const stopInlineEditorDrag = () => {
+  inlineEditorDrag.value = null;
+  if (!process.client) return;
+  window.document.removeEventListener('mousemove', handleInlineEditorDragMove);
+};
+
+const startInlineEditorDrag = (event) => {
+  if (!inlineEditor.value || !process.client) return;
+  const target = event.currentTarget?.parentElement;
+  const rect = target?.getBoundingClientRect?.();
+  if (!rect) return;
+  inlineEditorDrag.value = {
+    dx: event.clientX - rect.left,
+    dy: event.clientY - rect.top,
+    width: rect.width,
+    height: rect.height
+  };
+  window.document.addEventListener('mousemove', handleInlineEditorDragMove);
+  window.document.addEventListener('mouseup', stopInlineEditorDrag, { once: true });
 };
 
 const updateInlineEditorValue = (value) => {
@@ -1133,18 +1807,23 @@ const handleDrawingReady = async (drawing) => {
 };
 
 const resetTree = () => {
+  suppressAutosave = true;
   cassetteTree.value = createCassetteV2GraphTree();
   selectedNodeId.value = cassetteTree.value.rootId;
+  selectedWorkpieceOverrideId.value = '';
   selectedRelationId.value = '';
   inspectorSelection.value = 'face';
   activeSideTab.value = 'parameters';
   previewError.value = '';
+  clearSessionDraft();
+  resetDesignerHistory();
 };
 
 const selectWorkpiece = (workpieceId) => {
   const workpiece = workpieces.value.find(item => item.id === workpieceId);
-  if (!workpiece?.rootId) return;
-  selectedNodeId.value = workpiece.rootId;
+  if (!workpiece) return;
+  selectedWorkpieceOverrideId.value = workpiece.id;
+  if (workpiece.rootId) selectedNodeId.value = workpiece.rootId;
 };
 
 const selectWorkpieceForInspector = (workpieceId) => {
@@ -1206,9 +1885,164 @@ const addWorkpieceFrom = (workpieceId) => {
   });
   cassetteTree.value = result.tree;
   selectedNodeId.value = result.nodeId;
+  selectedWorkpieceOverrideId.value = '';
   selectedRelationId.value = getCassetteV2WorkpieceRelations(result.tree)
     .find(relation => relation.sourceWorkpieceId === result.workpieceId)?.id || '';
   inspectorSelection.value = 'workpiece';
+};
+
+const addHardwareToSelectedWorkpiece = () => {
+  closeInlineEditor();
+  const selectedIsHardware = Boolean(selectedWorkpiece.value?.family || selectedWorkpiece.value?.hardware?.family);
+  const parentRelation = selectedIsHardware
+    ? workpieceRelations.value.find(relation => relation.sourceWorkpieceId === selectedWorkpieceId.value)
+    : null;
+  const referenceWorkpieceId = parentRelation?.targetWorkpieceId || selectedWorkpieceId.value || workpieces.value[0]?.id;
+  const referenceNodeId = selectedNode.value?.workpieceId === referenceWorkpieceId
+    ? selectedNode.value.id
+    : treeNodes.value.find(node => node.workpieceId === referenceWorkpieceId && !node.parentId)?.id;
+  const result = addCassetteV2HardwareWorkpiece(cassetteTree.value, {
+    referenceWorkpieceId,
+    referenceNodeId,
+    family: 'hanger_clip',
+    productionMode: 'integralCut'
+  });
+  cassetteTree.value = result.tree;
+  selectedWorkpieceOverrideId.value = result.workpieceId;
+  selectedRelationId.value = getCassetteV2WorkpieceRelations(result.tree)
+    .find(relation => relation.sourceWorkpieceId === result.workpieceId)?.id || '';
+  inspectorSelection.value = 'attachment';
+};
+
+const profileDraftPayload = () => {
+  const data = {
+    kind: profileDraft.value.kind,
+    process: profileDraft.value.process,
+    parameters: profileDraft.value.sketch?.parameters || profileDraft.value.parameters || {},
+    sketch: profileDraft.value.sketch,
+    occsProfile: profileDraft.value.occsProfile || occsProfileFromSketch(profileDraft.value.sketch)
+  };
+  return {
+    name: profileDraft.value.name || t('cassette.v2.profileEditor.defaultName'),
+    ...data
+  };
+};
+
+const loadProfileTemplateDraft = (profileId) => {
+  const profile = (profileTemplateEntity.items.value || []).find(item => item._id === profileId);
+  if (!profile) return;
+  profileDraft.value = {
+    _id: profile._id,
+    name: profile.identity?.name || profile.name || '',
+    kind: profile.data?.kind || 'hanger',
+    process: profile.data?.process || 'extruded',
+    parameters: profile.data?.parameters || {},
+    sketch: profile.data?.sketch || createDefaultOccsProfileTemplateData().sketch,
+    occsProfile: profile.data?.occsProfile || null
+  };
+};
+
+const openProfileDialog = async (workpieceId = '') => {
+  closeInlineEditor();
+  editingProfileWorkpieceId.value = workpieceId;
+  if (!profileTemplateEntity.items.value.length) {
+    await profileTemplateEntity.list().catch(() => []);
+  }
+  const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;
+  if (workpiece) {
+    const profile = workpiece.profileSnapshot || workpiece.profile || createDefaultOccsProfileTemplateData();
+    selectedProfileTemplateId.value = workpiece.profileTemplateId || '';
+    profileDraft.value = {
+      _id: workpiece.profileTemplateId || '',
+      name: workpiece.name || t('cassette.v2.profileEditor.defaultName'),
+      kind: workpiece.role || profile.kind || 'hanger',
+      process: workpiece.process || profile.process || 'extruded',
+      parameters: workpiece.parameters || profile.parameters || {},
+      sketch: profile.sketch || createDefaultOccsProfileTemplateData().sketch,
+      occsProfile: profile.section ? { section: profile.section, sweep: profile.sweep, sketch: profile.sketch } : profile.occsProfile || null
+    };
+  } else {
+    selectedProfileTemplateId.value = '';
+    profileDraft.value = {
+      name: t('cassette.v2.profileEditor.defaultName'),
+      ...createDefaultOccsProfileTemplateData()
+    };
+  }
+  profileDialogVisible.value = true;
+};
+
+const saveProfileDraft = async () => {
+  profileSaving.value = true;
+  try {
+    const payload = profileDraftPayload();
+    const saved = profileDraft.value._id
+      ? await profileTemplateEntity.update(payload, profileDraft.value._id)
+      : await profileTemplateEntity.create(payload);
+    selectedProfileTemplateId.value = saved?._id || selectedProfileTemplateId.value;
+    profileDraft.value._id = saved?._id || profileDraft.value._id;
+    await profileTemplateEntity.list().catch(() => []);
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.saved'), life: 2500 });
+    return saved;
+  } catch {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassette.v2.profileEditor.saveFailed'), life: 3000 });
+    return null;
+  } finally {
+    profileSaving.value = false;
+  }
+};
+
+const insertProfileDraft = async () => {
+  const saved = profileDraft.value._id ? { _id: profileDraft.value._id, identity: { name: profileDraft.value.name }, data: profileDraftPayload() } : await saveProfileDraft();
+  const selectedIsAttachment = Boolean(selectedWorkpiece.value?.family || selectedWorkpiece.value?.hardware?.family || selectedWorkpiece.value?.type === 'profile');
+  const parentRelation = selectedIsAttachment
+    ? workpieceRelations.value.find(relation => relation.sourceWorkpieceId === selectedWorkpieceId.value)
+    : null;
+  const referenceWorkpieceId = parentRelation?.targetWorkpieceId || selectedWorkpieceId.value || workpieces.value[0]?.id;
+  const referenceNodeId = selectedNode.value?.workpieceId === referenceWorkpieceId
+    ? selectedNode.value.id
+    : treeNodes.value.find(node => node.workpieceId === referenceWorkpieceId && !node.parentId)?.id;
+  const result = editingProfileWorkpieceId.value
+    ? {
+        tree: updateCassetteV2Workpiece(cassetteTree.value, editingProfileWorkpieceId.value, {
+          name: profileDraft.value.name,
+          type: 'profile',
+          role: profileDraft.value.kind,
+          process: profileDraft.value.process,
+          profileTemplateId: saved?._id || profileDraft.value._id || '',
+          profileSnapshot: profileDraftPayload()
+        }),
+        workpieceId: editingProfileWorkpieceId.value
+      }
+    : addCassetteV2ProfileWorkpiece(cassetteTree.value, {
+        referenceWorkpieceId,
+        referenceNodeId,
+        profileTemplate: saved || {
+          _id: profileDraft.value._id || '',
+          identity: { name: profileDraft.value.name },
+          data: profileDraftPayload()
+        }
+      });
+  cassetteTree.value = result.tree;
+  selectedWorkpieceOverrideId.value = result.workpieceId;
+  selectedRelationId.value = getCassetteV2WorkpieceRelations(result.tree)
+    .find(relation => relation.sourceWorkpieceId === result.workpieceId)?.id || '';
+  inspectorSelection.value = 'attachment';
+  profileDialogVisible.value = false;
+};
+
+const updateSelectedHardware = (patch) => {
+  if (!selectedWorkpiece.value) return;
+  cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, selectedWorkpiece.value.id, patch);
+};
+
+const updateSelectedHardwareParameter = (key, value) => {
+  if (!selectedWorkpiece.value || !key) return;
+  updateSelectedHardware({
+    parameters: {
+      ...(selectedWorkpieceHardware.value?.parameters || selectedWorkpiece.value.parameters || {}),
+      [key]: value
+    }
+  });
 };
 
 const addAttachmentToWorkpiece = (workpieceId, targetWorkpieceId = '') => {
@@ -1265,6 +2099,9 @@ const deleteWorkpiece = (workpieceId) => {
   if (result.deletedWorkpieceIds.includes(pendingAttachmentSourceId.value)) {
     pendingAttachmentSourceId.value = '';
   }
+  if (result.deletedWorkpieceIds.includes(selectedWorkpieceOverrideId.value)) {
+    selectedWorkpieceOverrideId.value = '';
+  }
   selectedRelationId.value = '';
   selectWorkpieceForInspector(result.selectedWorkpieceId);
 };
@@ -1274,6 +2111,7 @@ const addFaceAtEdge = (parentId, edgeIndex) => {
   const result = addCassetteV2GraphChild(cassetteTree.value, parentId, edgeIndex);
   cassetteTree.value = result.tree;
   selectedNodeId.value = result.nodeId;
+  selectedWorkpieceOverrideId.value = '';
   inspectorSelection.value = 'face';
 };
 
@@ -1297,6 +2135,7 @@ const handleDesignerFaceSelect = ({ face }) => {
 
   closeInlineEditor();
   selectedNodeId.value = face.nodeId;
+  selectedWorkpieceOverrideId.value = '';
   inspectorSelection.value = 'face';
 };
 
@@ -1305,12 +2144,14 @@ const handleDesignerFoldSelect = ({ fold }) => {
   if (fold.workpieceId && fold.workpieceId !== selectedWorkpieceId.value) return;
   closeInlineEditor();
   selectedNodeId.value = fold.foldNodeId;
+  selectedWorkpieceOverrideId.value = '';
   inspectorSelection.value = 'fold';
 };
 
 const handleDesignerFaceCommand = ({ face, command, x, y }) => {
   if (!face?.nodeId) return;
   selectedNodeId.value = face.nodeId;
+  selectedWorkpieceOverrideId.value = '';
   inspectorSelection.value = 'face';
   closeInlineEditor();
 
@@ -1327,6 +2168,7 @@ const handleDesignerPointEdit = ({ control, x, y }) => {
   if (!control?.nodeId || !control.key) return;
   const node = treeNodes.value.find(item => item.id === control.nodeId);
   selectedNodeId.value = control.nodeId;
+  selectedWorkpieceOverrideId.value = '';
   inspectorSelection.value = 'face';
   openInlineEditor({
     type: 'faceParameter',
@@ -1362,6 +2204,7 @@ const handleDesignerFoldAngleEdit = ({ fold, x, y }) => {
   if (!fold?.foldNodeId) return;
   const node = treeNodes.value.find(item => item.id === fold.foldNodeId);
   selectedNodeId.value = fold.foldNodeId;
+  selectedWorkpieceOverrideId.value = '';
   inspectorSelection.value = 'fold';
   openInlineEditor({
     type: 'foldAngle',
@@ -1394,6 +2237,7 @@ const deleteFaceNode = (nodeId) => {
     nodes: cassetteTree.value.nodes.filter(node => !removeIds.has(node.id))
   };
   selectedNodeId.value = selectedWorkpieceRootId;
+  selectedWorkpieceOverrideId.value = workpiece?.id || '';
   inspectorSelection.value = 'face';
   closeInlineEditor();
 };

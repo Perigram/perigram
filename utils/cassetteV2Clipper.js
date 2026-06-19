@@ -409,6 +409,44 @@ export const unionCassetteV2FacePolygons = async (
   }
 };
 
+export const differenceCassetteV2FacePolygon = async (
+  subject = [],
+  clips = [],
+  { precision = CASSETTE_V2_CLIPPER_PRECISION } = {}
+) => {
+  const clipper = await getCassetteV2Clipper();
+  const subjects = pathsDFromPolygons(clipper, [subject]);
+  const clipPaths = pathsDFromPolygons(clipper, clips);
+
+  try {
+    if (!subjects.size()) return { outer: closePath(subject), holes: [] };
+    if (!clipPaths.size()) return { outer: closePath(subject), holes: [] };
+    const solution = clipper.DifferenceD(subjects, clipPaths, clipper.FillRule.NonZero, precision);
+    try {
+      const paths = verticesFromPathsD(solution, precision);
+      if (!paths.length) return { outer: [], holes: [] };
+      const rings = paths.map(path => ({
+        vertices: closePath(withoutClosingVertex(path).map(point3)),
+        area: polygonArea(path)
+      }));
+      const outer = rings
+        .filter(ring => ring.area > 0)
+        .sort((left, right) => Math.abs(right.area) - Math.abs(left.area))[0]?.vertices ||
+        rings.sort((left, right) => Math.abs(right.area) - Math.abs(left.area))[0]?.vertices ||
+        [];
+      const holes = rings
+        .filter(ring => ring.vertices !== outer && ring.area < 0)
+        .map(ring => ring.vertices);
+      return { outer, holes };
+    } finally {
+      solution.delete();
+    }
+  } finally {
+    subjects.delete();
+    clipPaths.delete();
+  }
+};
+
 export const buildCassetteV2ClipperLayout = async (
   faces = [],
   { precision = CASSETTE_V2_CLIPPER_PRECISION } = {}

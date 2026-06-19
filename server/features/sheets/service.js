@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import * as materialPilesRepository from '../material-piles/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createStatus, inheritLineage } from '~/server/core/blocks/index.js';
+import { createStatus, getPrimaryState, inheritLineage } from '~/server/core/blocks/index.js';
 import { Sheet } from './model.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';
@@ -136,7 +136,7 @@ export async function remove(uid, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  if (raw.status?.state === 'MILLED') {
+  if (getPrimaryState(raw.status) === 'MILLED') {
     throw createError({ statusCode: 400, message: 'Cannot delete milled sheet' });
   }
   
@@ -147,7 +147,7 @@ export async function finishMilling(uid, cassetteInstanceIds = [], remnantIds = 
   const raw = await repository.findById(uid);
   if (!raw) throw createError({ statusCode: 404, message: 'Sheet not found' });
 
-  const currentState = raw.status?.state;
+  const currentState = getPrimaryState(raw.status);
   if (currentState !== 'IN-CUTTING' && currentState !== 'in_cutting') {
     throw createError({ statusCode: 400, message: 'Sheet must be in cutting status' });
   }

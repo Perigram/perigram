@@ -74,7 +74,7 @@ describe('Sheet Lifecycle & Milling', () => {
       mockUser
     );
 
-    expect(result.status.state).toBe('MILLED');
+    expect(result.status.state.primary).toBe('MILLED');
     expect(result.data.cassetteInstanceIds).toHaveLength(2);
     expect(result.data.remnantIds).toHaveLength(1);
 

@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="sheet" entity-type="sheet" :status-actions="statusActions">
+    <EntityPage :entity="sheet" entity-type="sheet">
         <template #actions>
             <Button icon="pi pi-qrcode" text :aria-label="$t('common.printTag')" />
         </template>
@@ -86,29 +86,14 @@ const props = defineProps({
     sheet: { type: Object, required: true }
 });
 
-const emit = defineEmits(['update-status']);
 const { t } = useI18n();
 
-const sheetState = computed(() => props.sheet.status?.state || 'UNKNOWN');
 const sheetSpecs = computed(() => props.sheet.specs || props.sheet.data?.specs || {});
 const sheetWidth = computed(() => sheetSpecs.value.width || 0);
 const sheetLength = computed(() => sheetSpecs.value.length || 0);
 const warehouseId = computed(() => props.sheet.lineage?.warehouseId || null);
 const pileId = computed(() => props.sheet.lineage?.pileId || props.sheet.lineage?.materialPileId || null);
 const runId = computed(() => props.sheet.lineage?.runId || props.sheet.lineage?.nestingRunId || null);
-
-const statusActions = computed(() => {
-    const actions = [];
-    if (sheetState.value === 'IN-CUTTING' || sheetState.value === 'in cutting') {
-        actions.push({ 
-            label: t('sheets.markMilled'),
-            icon: 'pi pi-check', 
-            severity: 'success', 
-            command: () => emit('update-status', { id: props.sheet._id, status: 'MILLED' }) 
-        });
-    }
-    return actions;
-});
 
 const colorName = computed(() => props.sheet.specs?.color || t('common.unknown'));
 const materialName = computed(() => props.sheet.specs?.material || t('common.unknown'));

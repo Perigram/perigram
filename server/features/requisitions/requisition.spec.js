@@ -85,7 +85,7 @@ describe('Requisition Lifecycle', () => {
     const result = await requisitionService.create(data, mockContractor.userId, mockContractor.organizationId, null, mockContractor.permissions);
     
     expect(result).toBeDefined();
-    expect(result.status.state).toBe('DRAFT');
+    expect(result.status.state.primary).toBe('DRAFT');
     expect(result.data.items[0].priceSnapshot).toBe(100);
     expect(result).not.toHaveProperty('items');
   });

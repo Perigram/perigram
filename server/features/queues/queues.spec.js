@@ -11,6 +11,7 @@ import * as queueService from './service';
 import * as nestingRunsService from '../nesting-runs/service';
 import * as cassetteInstancesService from '../cassette-instances/service';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
+import { normalizeStatusState } from '../../core/blocks/index.js';
 
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
@@ -23,6 +24,10 @@ vi.mock('h3', () => ({
 vi.mock('~/server/utils/auth-helpers', () => ({
   hasPermission: vi.fn(() => true)
 }));
+
+function statusFixture(state, extra = {}) {
+  return { state: normalizeStatusState(state), ...extra };
+}
 
 describe('Production Queues & Nesting Status', () => {
   let con;
@@ -82,7 +87,7 @@ describe('Production Queues & Nesting Status', () => {
 
     expect(result.identity.name).toBe('Morning Shift Run');
     expect(result).not.toHaveProperty('name');
-    expect(result.status.state).toBe('DRAFT');
+    expect(result.status.state.primary).toBe('DRAFT');
     expect(result.lineage.projectId).toBe(projectId);
   });
 
@@ -92,7 +97,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId.toString(), name: 'Settings queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'DRAFT', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('DRAFT', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: {
         job: { items: [], materialPool: [] },
         nestingParams: {
@@ -163,13 +168,13 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Ready queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} }
+      status: statusFixture('NESTING', { userId: mockUser.userId, timestamp: new Date(), metadata: {} })
     });
 
     await db.collection('nesting_runs').insertOne({
       _id: 'run-no-material',
       lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
-      status: { state: 'COMPLETE' },
+      status: statusFixture('COMPLETE'),
       data: { results: { sheetCount: 1 } }
     });
 
@@ -184,7 +189,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Warehouse queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('NESTING', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: {
         job: {
           materialPool: [{
@@ -200,7 +205,7 @@ describe('Production Queues & Nesting Status', () => {
     await db.collection('nesting_runs').insertOne({
       _id: 'run-cut-1',
       lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
-      status: { state: 'COMPLETE' },
+      status: statusFixture('COMPLETE'),
       data: {
         results: { sheetCount: 3 },
         materialPool: [{
@@ -221,8 +226,8 @@ describe('Production Queues & Nesting Status', () => {
     const result = await nestingRunsService.chooseRun(queueId.toString(), 'run-cut-1', mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
     const pile = await db.collection('material_piles').findOne({ _id: pileId });
 
-    expect(result.run.status.state).toBe('CHOSEN');
-    expect(result.queue.status.state).toBe('READY');
+    expect(result.run.status.state.primary).toBe('CHOSEN');
+    expect(result.queue.status.state.primary).toBe('READY');
     expect(result.queue.data.materialConsumption.sources).toMatchObject([{ type: 'PILE', id: pileId, count: 3 }]);
     expect(result.queue.data.physicalOutputs.sheetIds).toEqual([]);
     expect(result.queue.data.physicalOutputs.sourceSheets).toHaveLength(3);
@@ -242,7 +247,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Status choice queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('NESTING', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: {
         job: {
           materialPool: [{
@@ -258,13 +263,13 @@ describe('Production Queues & Nesting Status', () => {
       {
         _id: 'run-status-previous',
         lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
-        status: { state: 'CHOSEN' },
+        status: statusFixture('CHOSEN'),
         data: { results: { sheetCount: 1 }, materialPool: [{ type: 'PILE', id: pileId }] }
       },
       {
         _id: 'run-status-choice',
         lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
-        status: { state: 'COMPLETE' },
+        status: statusFixture('COMPLETE'),
         data: {
           results: { sheetCount: 2 },
           materialPool: [{
@@ -294,12 +299,12 @@ describe('Production Queues & Nesting Status', () => {
     const queue = await db.collection('queues').findOne({ _id: queueId });
     const previousRun = await db.collection('nesting_runs').findOne({ _id: 'run-status-previous' });
 
-    expect(result.entity.status.state).toBe('CHOSEN');
+    expect(result.entity.status.state.primary).toBe('CHOSEN');
     expect(result.effects.entities).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: 'queue', id: queueId.toString() })
     ]));
-    expect(previousRun.status.state).toBe('COMPLETE');
-    expect(queue.status.state).toBe('READY');
+    expect(previousRun.status.state.primary).toBe('COMPLETE');
+    expect(queue.status.state.primary).toBe('READY');
     expect(queue.data.materialConsumption.sources).toMatchObject([{ type: 'PILE', id: pileId, count: 2 }]);
     expect(pile.data.stock.used).toBe(2);
   });
@@ -311,7 +316,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Draft action queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'DRAFT', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('DRAFT', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: {
         job: {
           materialPool: [{
@@ -327,7 +332,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: 'run-action-preflight',
       identity: { uid: 'run-action-preflight', name: 'Preflight run' },
       lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
-      status: { state: 'COMPLETE', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('COMPLETE', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: {
         results: { sheetCount: 1 },
         materialPool: [{
@@ -365,7 +370,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Depleting queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('NESTING', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: {
         job: {
           materialPool: [{
@@ -381,7 +386,7 @@ describe('Production Queues & Nesting Status', () => {
     await db.collection('nesting_runs').insertOne({
       _id: 'run-cut-depleted',
       lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
-      status: { state: 'COMPLETE' },
+      status: statusFixture('COMPLETE'),
       data: {
         results: { sheetCount: 1 },
         materialPool: [{
@@ -397,17 +402,17 @@ describe('Production Queues & Nesting Status', () => {
       _id: pileId,
       identity: { uid: pileId, name: 'Depleted Pile' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'STOCKED', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('STOCKED', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: { stock: { total: 1, used: 0 } }
     });
 
     const result = await nestingRunsService.chooseRun(queueId.toString(), 'run-cut-depleted', mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
     const pile = await db.collection('material_piles').findOne({ _id: pileId });
 
-    expect(result.run.status.state).toBe('CHOSEN');
+    expect(result.run.status.state.primary).toBe('CHOSEN');
     expect(result.queue.data.materialConsumption.sources).toMatchObject([{ type: 'PILE', id: pileId, count: 1 }]);
     expect(pile.data.stock.used).toBe(1);
-    expect(pile.status.state).toBe('DEPLETED');
+    expect(pile.status.state.primary).toBe('DEPLETED');
   });
 
   it('should create remnant geometry and cassette instances from a chosen warehouse run without storing cut sheets', async () => {
@@ -424,7 +429,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Physical queue' },
       lineage: { organizationId: mockUser.organizationId, projectId: 'project-1' },
-      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('NESTING', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: {
         job: {
           materialPool: [{
@@ -440,7 +445,7 @@ describe('Production Queues & Nesting Status', () => {
     await db.collection('nesting_runs').insertOne({
       _id: 'run-cut-physical',
       lineage: { organizationId: mockUser.organizationId, projectId: 'project-1', queueId: queueId.toString() },
-      status: { state: 'COMPLETE' },
+      status: statusFixture('COMPLETE'),
       data: {
         results: { sheetCount: 1, remnantArea: 0.25 },
         sheetDesignIds: ['sheet-design-physical'],
@@ -508,8 +513,8 @@ describe('Production Queues & Nesting Status', () => {
     );
     const warehouse = await db.collection('warehouses').findOne({ _id: warehouseId });
 
-    expect(result.run.status.state).toBe('CHOSEN');
-    expect(result.queue.status.state).toBe('READY');
+    expect(result.run.status.state.primary).toBe('CHOSEN');
+    expect(result.queue.status.state.primary).toBe('READY');
     expect(result.queue.data.physicalOutputs.sheetIds).toEqual([]);
     expect(result.queue.data.physicalOutputs.sourceSheets).toHaveLength(1);
     expect(result.queue.data.physicalOutputs.remnantIds).toHaveLength(1);
@@ -522,7 +527,7 @@ describe('Production Queues & Nesting Status', () => {
     expect(remnants[0].data.geometry.data.layers.find(layer => layer.standardCode === 'remnant.usable')).toBeTruthy();
     expect(instances).toHaveLength(2);
     expect(warehouseInstances).toHaveLength(2);
-    expect(instances[0].status.state).toBe('CUT');
+    expect(instances[0].status.state.primary).toBe('CUT');
     expect(instances[0].lineage.sheetId).toBeUndefined();
     expect(instances[0].lineage.warehouseId.toString()).toBe(warehouseId.toString());
     expect(instances[0].lineage.queueId.toString()).toBe(queueId.toString());
@@ -542,7 +547,7 @@ describe('Production Queues & Nesting Status', () => {
         warehouseId,
         designId: 'cassette-design-a'
       },
-      status: { state: 'NESTED', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('NESTED', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: { source: 'QUEUE_CUT', cassetteDesignId: 'cassette-design-a' }
     });
 
@@ -555,7 +560,7 @@ describe('Production Queues & Nesting Status', () => {
     );
 
     expect(warehouseInstances).toHaveLength(1);
-    expect(warehouseInstances[0].status.state).toBe('CUT');
+    expect(warehouseInstances[0].status.state.primary).toBe('CUT');
   });
 
   it('should not partially consume pile stock when selected piles are insufficient', async () => {
@@ -565,7 +570,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Short stock queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('NESTING', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: {
         job: {
           materialPool: [{
@@ -580,7 +585,7 @@ describe('Production Queues & Nesting Status', () => {
     await db.collection('nesting_runs').insertOne({
       _id: 'run-cut-short',
       lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
-      status: { state: 'COMPLETE' },
+      status: statusFixture('COMPLETE'),
       data: {
         results: { sheetCount: 3 },
         materialPool: [{
@@ -603,7 +608,7 @@ describe('Production Queues & Nesting Status', () => {
     const pile = await db.collection('material_piles').findOne({ _id: pileId });
     const run = await db.collection('nesting_runs').findOne({ _id: 'run-cut-short' });
     expect(pile.data.stock.used).toBe(0);
-    expect(run.status.state).toBe('COMPLETE');
+    expect(run.status.state.primary).toBe('COMPLETE');
   });
 
   it('should not consume pile stock again when production output already exists for the same run', async () => {
@@ -613,7 +618,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Already cut queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'NESTING', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('NESTING', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: {
         materialConsumption: { runId: 'run-cut-done', requiredSheets: 1, sources: [{ type: 'PILE', id: pileId, count: 1 }] },
         physicalOutputs: { runId: 'run-cut-done', sheetIds: ['sheet-1'], remnantIds: [], cassetteInstanceIds: [] },
@@ -625,7 +630,7 @@ describe('Production Queues & Nesting Status', () => {
     await db.collection('nesting_runs').insertOne({
       _id: 'run-cut-done',
       lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
-      status: { state: 'COMPLETE' },
+      status: statusFixture('COMPLETE'),
       data: {
         results: { sheetCount: 1 },
         materialPool: [{ type: 'PILE', id: pileId }]
@@ -651,7 +656,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Draft queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'DRAFT', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('DRAFT', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: {
         job: {
           materialPool: [{ type: 'PILE', id: pileId }]
@@ -661,7 +666,7 @@ describe('Production Queues & Nesting Status', () => {
     await db.collection('nesting_runs').insertOne({
       _id: 'run-cut-draft',
       lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
-      status: { state: 'COMPLETE' },
+      status: statusFixture('COMPLETE'),
       data: {
         results: { sheetCount: 1 },
         materialPool: [{ type: 'PILE', id: pileId }]
@@ -679,7 +684,7 @@ describe('Production Queues & Nesting Status', () => {
     const pile = await db.collection('material_piles').findOne({ _id: pileId });
     const run = await db.collection('nesting_runs').findOne({ _id: 'run-cut-draft' });
     expect(pile.data.stock.used).toBe(0);
-    expect(run.status.state).toBe('COMPLETE');
+    expect(run.status.state.primary).toBe('COMPLETE');
   });
 
   it('should not consume pile stock when choosing an unfinished run', async () => {
@@ -689,7 +694,7 @@ describe('Production Queues & Nesting Status', () => {
       _id: queueId,
       identity: { uid: queueId, name: 'Draft queue' },
       lineage: { organizationId: mockUser.organizationId },
-      status: { state: 'DRAFT', userId: mockUser.userId, timestamp: new Date(), metadata: {} },
+      status: statusFixture('DRAFT', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
       data: {
         job: {
           materialPool: [{ type: 'PILE', id: pileId }]
@@ -699,7 +704,7 @@ describe('Production Queues & Nesting Status', () => {
     await db.collection('nesting_runs').insertOne({
       _id: 'run-cut-nesting',
       lineage: { organizationId: mockUser.organizationId, queueId: queueId.toString() },
-      status: { state: 'NESTING' },
+      status: statusFixture('NESTING'),
       data: {
         results: { sheetCount: 1 },
         materialPool: [{ type: 'PILE', id: pileId }]
@@ -717,6 +722,6 @@ describe('Production Queues & Nesting Status', () => {
     const pile = await db.collection('material_piles').findOne({ _id: pileId });
     const run = await db.collection('nesting_runs').findOne({ _id: 'run-cut-nesting' });
     expect(pile.data.stock.used).toBe(0);
-    expect(run.status.state).toBe('NESTING');
+    expect(run.status.state.primary).toBe('NESTING');
   });
 });

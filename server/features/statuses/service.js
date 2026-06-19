@@ -8,6 +8,7 @@ import { isValidStatus, getValidStatuses, getDefaultStatus } from './types.js';
 import { createError } from 'h3';
 import * as repository from './repository.js';
 import * as usersRepository from '../users/repository.js';
+import { getPrimaryState, normalizeStatusState } from '~/server/core/blocks/index.js';
 
 /**
  * Add a new status entry in the central collection.
@@ -20,7 +21,7 @@ export async function addStatus(collection, entityId, status, userId, note = '',
     targetId: new ObjectId(entityId),
     targetType: entityType,
     status: {
-        state: status,
+        state: normalizeStatusState(status),
         userId,
         timestamp: new Date(),
         metadata: { ...metadata, note }
@@ -56,7 +57,7 @@ export async function getStatusHistory(collection, entityId) {
   const latest = history.length > 0 ? history[0] : null;
   
   return {
-    currentStatus: latest?.status?.state || 'unknown',
+    currentStatus: getPrimaryState(latest?.status, 'unknown'),
     history: history
   };
 }

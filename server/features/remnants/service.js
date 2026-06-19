@@ -138,7 +138,7 @@ export async function searchReusable(userId, organizationId, userRole, userPermi
   const filter = {
     ...getLineageFilter({ memberships: userPermissions.memberships }),
     isReusable: true,
-    'status.state': 'AVAILABLE'
+    'status.state.primary': 'AVAILABLE'
   };
   const remnants = await repository.find(filter);
   return remnants.map(toDTO);

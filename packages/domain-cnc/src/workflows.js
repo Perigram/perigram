@@ -1,4 +1,17 @@
-export const cncWorkflows = {
+const mainWorkflow = ({ initial, states, transitions }) => ({
+  schemaVersion: 2,
+  primaryRegion: 'main',
+  regions: {
+    main: {
+      label: 'Lifecycle',
+      initial,
+      states,
+      transitions
+    }
+  }
+});
+
+const workflowDefinitions = {
   project: {
     initial: 'DRAFT',
     states: { DRAFT: { canUpdateMeta: true }, ACTIVE: { canUpdateMeta: true }, CLOSED: { isTerminal: true, canUpdateMeta: false } },
@@ -140,3 +153,7 @@ export const cncWorkflows = {
     ]
   }
 };
+
+export const cncWorkflows = Object.fromEntries(
+  Object.entries(workflowDefinitions).map(([entityType, workflow]) => [entityType, mainWorkflow(workflow)])
+);

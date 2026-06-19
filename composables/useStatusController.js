@@ -21,11 +21,23 @@ export const useStatusController = () => {
       ? context
       : { metadata: context || {} };
     const intent = context?.intent || null;
+    const region = context?.region || context?.machineRegion || context?.machine || null;
+    const path = Array.isArray(context?.path) ? context.path : null;
     
     try {
       const response = await $fetch(getStatusEndpoint(), {
         method: 'POST',
-        body: { entityType, id: targetId, status: newState, intent, statusMeta }
+        body: {
+          entityType,
+          id: targetId,
+          status: newState,
+          intent,
+          statusMeta: {
+            ...statusMeta,
+            ...(region ? { region } : {}),
+            ...(path ? { path } : {})
+          }
+        }
       });
       emitStatusTransitionResult({ entityType, targetId, response });
       return response;

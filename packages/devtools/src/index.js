@@ -10,9 +10,11 @@ export function summarizeDefinitions(definitions = []) {
 export function summarizeWorkflows(workflows = []) {
   return workflows.map(({ type, workflow }) => ({
     type,
-    initial: workflow.initial,
-    states: Object.keys(workflow.states || {}),
-    transitionCount: workflow.transitions?.length || 0
+    initial: workflow.initial || workflow.regions?.[workflow.primaryRegion || 'main']?.initial,
+    states: Object.values(workflow.regions || { main: workflow }).flatMap(region => Object.keys(region.states || {})),
+    regions: Object.keys(workflow.regions || { main: workflow }),
+    transitionCount: Object.values(workflow.regions || { main: workflow })
+      .reduce((total, region) => total + (region.transitions?.length || 0), 0)
   }));
 }
 
@@ -152,7 +154,8 @@ export function validateStatusPolicies({ components = [], workflows = {} } = {})
     .filter(component => component.status === 'interactive' && workflows[component.entityType])
     .flatMap(component => {
       const workflow = workflows[component.entityType];
-      if (workflow.initial && Object.keys(workflow.states || {}).length > 0) return [];
+      const regions = workflow.regions || { main: workflow };
+      if ((workflow.initial || regions[workflow.primaryRegion || 'main']?.initial) && Object.values(regions).some(region => Object.keys(region.states || {}).length > 0)) return [];
       return [{ key: component.key, entityType: component.entityType, issue: 'invalid-workflow-status-policy' }];
     });
 }
@@ -256,14 +259,14 @@ export function validateFrameworkManifest({
 }
 
 export function validateWorkflowAccess(workflows = {}) {
-  return Object.entries(workflows).flatMap(([type, workflow]) => (workflow.transitions || []).flatMap((transition, index) => {
+  return Object.entries(workflows).flatMap(([type, workflow]) => Object.entries(workflow.regions || { main: workflow }).flatMap(([regionId, region]) => (region.transitions || []).flatMap((transition, index) => {
     const issues = [];
-    if (transition.roles) issues.push({ type, index, issue: 'legacy roles are not allowed' });
+    if (transition.roles) issues.push({ type, region: regionId, index, issue: 'legacy roles are not allowed' });
     if (!transition.access?.system && !Array.isArray(transition.access?.permissions)) {
-      issues.push({ type, index, issue: 'missing access permissions' });
+      issues.push({ type, region: regionId, index, issue: 'missing access permissions' });
     }
     return issues;
-  }));
+  })));
 }
 
 export function validateCommands(commands = {}) {

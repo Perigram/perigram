@@ -82,7 +82,7 @@ describe('Geometry captures service', () => {
       prompt: { outer: [[0.1, 0.1], [0.9, 0.12], [0.88, 0.8], [0.12, 0.82]] }
     }, auth.userId, auth.organizationId, auth.role, auth);
 
-    expect(capture.status.state).toBe('PROCESSING');
+    expect(capture.status.state.primary).toBe('PROCESSING');
     expect(capture.data.extraction.taskRunId).toBeTruthy();
     expect(capture.data.revisions).toHaveLength(1);
     expect(capture.data.revisions[0].preset).toBe('remnant_auto');
@@ -107,7 +107,7 @@ describe('Geometry captures service', () => {
       diagnostics: ['outer_vertices:4', 'holes:1']
     });
 
-    expect(ready.status.state).toBe('READY');
+    expect(ready.status.state.primary).toBe('READY');
     expect(ready.data.activeRevisionId).toBe(capture.data.revisions[0].id);
     expect(ready.data.revisions[0].status).toBe('READY');
     expect(ready.data.geometry.polygon.outer.at(-1)).toEqual([0, 0]);
@@ -116,7 +116,7 @@ describe('Geometry captures service', () => {
 
     const confirmed = await geometryCaptureService.confirm(capture._id, auth.userId, auth.organizationId, auth.role, auth);
 
-    expect(confirmed.status.state).toBe('COMPLETE');
+    expect(confirmed.status.state.primary).toBe('COMPLETE');
     expect(confirmed.data.output.entityType).toBe('remnant');
     const remnant = await db.collection('remnants').findOne({});
     expect(remnant.data.source.geometryCaptureId).toBe(capture._id.toString());
@@ -151,7 +151,7 @@ describe('Geometry captures service', () => {
       preset: 'remnant_light_on_dark'
     }, auth.userId, auth.organizationId, auth.role, auth);
     const secondRevision = recalculating.data.revisions.find(revision => revision.id !== firstRevisionId);
-    expect(recalculating.status.state).toBe('PROCESSING');
+    expect(recalculating.status.state.primary).toBe('PROCESSING');
     expect(recalculating.data.geometry.polygon.outer).toHaveLength(5);
     expect(secondRevision.status).toBe('QUEUED');
     expect(secondRevision.preset).toBe('remnant_light_on_dark');
@@ -163,7 +163,7 @@ describe('Geometry captures service', () => {
       error: 'No usable contour detected',
       diagnostics: ['candidate:none']
     });
-    expect(failed.status.state).toBe('READY');
+    expect(failed.status.state.primary).toBe('READY');
     expect(failed.data.activeRevisionId).toBe(firstRevisionId);
     expect(failed.data.geometry.polygon.outer).toHaveLength(5);
     expect(failed.data.revisions.find(revision => revision.id === secondRevision.id).status).toBe('FAILED');
@@ -221,7 +221,7 @@ describe('Geometry captures service', () => {
     }, auth.userId, auth.organizationId, auth.role, auth);
 
     const manual = edited.data.revisions.find(revision => revision.preset === 'manual_edit');
-    expect(edited.status.state).toBe('READY');
+    expect(edited.status.state.primary).toBe('READY');
     expect(edited.data.activeRevisionId).toBe(manual.id);
     expect(manual.status).toBe('READY');
     expect(manual.geometry.preview.layers[0].paths[0]).toContain('800');

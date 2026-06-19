@@ -26,7 +26,8 @@ const CAPABILITY_FEATURES = [
   'sessions',
   'statuses',
   'support',
-  'system-settings'
+  'system-settings',
+  'workflow-overrides'
 ];
 const IGNORE = ['_template', 'README.md', 'index.js'];
 const ENTITY_ROOT_ALIAS_FIELDS = ['id', 'name', 'slug', 'serial', 'reference', 'type', 'geometry', 'parameters'];
@@ -358,6 +359,14 @@ uiRuntimeFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   if (/['"]\/api\/status\/(?:transition|actions)['"]/.test(content)) {
     console.error(`❌ ${relFile} calls status API directly — use useStatusController/EntityStatus`);
+    errors++;
+  }
+  if (
+    !relFile.startsWith('components/shared/') &&
+    !relFile.startsWith('pages/test/') &&
+    /:status-actions\s*=/.test(content)
+  ) {
+    console.error(`❌ ${relFile} passes local status actions — live entity UI must use server-provided EntityStatus actions`);
     errors++;
   }
 });

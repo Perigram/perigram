@@ -1,6 +1,6 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { inheritLineage } from '../../core/blocks/index.js';
+import { getPrimaryState, inheritLineage } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
 import { ObjectId } from 'mongodb';
@@ -119,7 +119,7 @@ export async function chooseRun(queueId, runId, userId, userOrg, userRole, userP
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  if (run.status?.state !== 'COMPLETE') {
+  if (getPrimaryState(run.status) !== 'COMPLETE') {
     throw createError({ statusCode: 400, message: 'Only completed nesting runs can be chosen for production' });
   }
 
@@ -156,7 +156,7 @@ async function preflightChosenNestingRun({ entity, targetId, userId, userRole, a
     throw createError({ statusCode: 400, message: 'Nesting run is missing queue lineage' });
   }
 
-  if (run.status?.state !== 'COMPLETE') {
+  if (getPrimaryState(run.status) !== 'COMPLETE') {
     throw createError({ statusCode: 400, message: 'Only completed nesting runs can be chosen for production' });
   }
 

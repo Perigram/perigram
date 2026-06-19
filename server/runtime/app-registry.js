@@ -16,6 +16,7 @@ import * as materialPilesService from '~/server/features/material-piles/service.
 import * as nestingRunsService from '~/server/features/nesting-runs/service.js';
 import * as organizationsService from '~/server/features/organizations/service.js';
 import * as penTemplatesService from '~/server/features/pen-templates/service.js';
+import * as profileTemplatesService from '~/server/features/profile-templates/service.js';
 import * as projectsService from '~/server/features/projects/service.js';
 import * as queuesService from '~/server/features/queues/service.js';
 import * as remnantsService from '~/server/features/remnants/service.js';
@@ -86,6 +87,7 @@ const entityServices = {
   nesting_run: nestingRunsService,
   organization: organizationsService,
   pen_template: penTemplatesService,
+  profile_template: profileTemplatesService,
   project: projectsService,
   queue: queuesService,
   remnant: remnantsService,

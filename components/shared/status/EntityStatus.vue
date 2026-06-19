@@ -34,7 +34,7 @@ const props = defineProps({
 const emit = defineEmits(['transitioned', 'refresh']);
 const { t } = useI18n();
 const toast = useToast();
-const { state } = useStatus(toRef(props, 'entity'));
+const { state, regions } = useStatus(toRef(props, 'entity'));
 const { transition, fetchActions, isTransitioning } = useStatusController();
 const op = ref();
 const serverActions = ref([]);
@@ -60,9 +60,15 @@ const handleTransition = async (targetState, action = {}) => {
                 targetId: entityId.value,
                 targetState,
                 intent: action.intent || null,
+                region: action.region || 'main',
+                path: action.path || null,
                 entity: props.entity
             })
-            : await transition(props.entityType, entityId.value, targetState, action.intent ? { intent: action.intent } : {});
+            : await transition(props.entityType, entityId.value, targetState, {
+                ...(action.intent ? { intent: action.intent } : {}),
+                region: action.region || 'main',
+                path: action.path || null
+            });
         emit('transitioned', targetState, result);
         toast.add({
             severity: 'success',
@@ -174,15 +180,15 @@ const isExpanded = computed(() => {
 const runAction = async (action) => {
     if (!action) return;
 
-    if (typeof action.command === 'function') {
-        await action.command();
-        emit('transitioned', action.to || action.label || null);
-        op.value?.hide?.();
+    if (action.to) {
+        await handleTransition(action.to, action);
         return;
     }
 
-    if (action.to) {
-        await handleTransition(action.to, action);
+    if (typeof action.command === 'function') {
+        await action.command();
+        emit('transitioned', action.label || null);
+        op.value?.hide?.();
     }
 };
 
@@ -198,12 +204,14 @@ function normalizeCustomAction(action = {}) {
 
 function actionKey(action = {}) {
     return [
+        action.region || 'main',
         action.intent || '',
         action.to || '',
-        normalizeLabel(action.label || ''),
-        action.command ? 'command' : 'status'
+        normalizeLabel(action.label || '')
     ].join(':');
 }
+
+const secondaryRegions = computed(() => regions.value.filter(region => region.id !== 'main'));
 
 function normalizeLabel(value = '') {
     return String(value)
@@ -239,6 +247,14 @@ function normalizeEventType(type) {
     <template v-if="!isExpanded">
       <div class="flex min-w-0 max-w-48 flex-wrap items-center justify-end gap-1.5 sm:max-w-56">
         <StatusBadge :state="state" class="cursor-pointer min-w-0 max-w-full shrink" @click.stop="toggle" />
+        <StatusBadge
+          v-for="region in secondaryRegions"
+          :key="region.id"
+          :state="region.state"
+          icon-only
+          class="cursor-pointer shrink-0"
+          @click.stop="toggle"
+        />
         <Button
           v-for="action in inlineActions"
           :key="action.to || action.label"
@@ -303,6 +319,13 @@ function normalizeEventType(type) {
         <div class="flex flex-col gap-2 min-w-0 max-w-full">
             <div class="flex flex-wrap items-center gap-2 min-w-0">
                 <StatusBadge :state="state" class="max-w-full" />
+                <StatusBadge
+                    v-for="region in secondaryRegions"
+                    :key="region.id"
+                    :state="region.state"
+                    icon-only
+                    class="shrink-0"
+                />
             </div>
 
             <StatusLocation v-if="hasLocation" :entity="entity" />

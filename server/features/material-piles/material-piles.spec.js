@@ -83,7 +83,7 @@ describe('Material Batch & Sheet Allocation', () => {
     const result = await batchService.create(data, mockManufacturer.userId, mockManufacturer.organizationId, null, mockManufacturer.permissions);
     
     expect(result).toBeDefined();
-    expect(result.status.state).toBe('STOCKED');
+    expect(result.status.state.primary).toBe('STOCKED');
     expect(result.data.stock.total).toBe(10);
     expect(result.data.stockMovements[0]).toMatchObject({ type: 'RECEIPT', quantity: 10, userId: mockManufacturer.userId });
     expect(result.specs.width).toBe(1500);

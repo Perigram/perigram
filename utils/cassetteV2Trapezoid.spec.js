@@ -22,6 +22,52 @@ describe('cassette v2 trapezoid geometry', () => {
     ]);
   });
 
+  it('uses positive offsets to extend points outward and negative offsets inward', () => {
+    expect(resolveCassetteV2TrapezoidLocalPoints({
+      defaultLength: 100,
+      height: 40,
+      baseStartOffset: 10,
+      baseEndOffset: 15,
+      topStartOffset: 5,
+      topEndOffset: 8
+    })).toEqual([
+      [0, 0, 0],
+      [125, 0, 0],
+      [118, 40, 0],
+      [5, 40, 0]
+    ]);
+
+    expect(buildCassetteV2TrapezoidVertices({
+      defaultLength: 100,
+      height: 40,
+      baseStartOffset: 10,
+      baseEndOffset: 15,
+      topStartOffset: 5,
+      topEndOffset: 8
+    })).toEqual([
+      [-10, 0, 0],
+      [115, 0, 0],
+      [108, 40, 0],
+      [-5, 40, 0],
+      [-10, 0, 0]
+    ]);
+
+    expect(buildCassetteV2TrapezoidVertices({
+      defaultLength: 100,
+      height: 40,
+      baseStartOffset: -10,
+      baseEndOffset: -15,
+      topStartOffset: -5,
+      topEndOffset: -8
+    })).toEqual([
+      [10, 0, 0],
+      [85, 0, 0],
+      [92, 40, 0],
+      [5, 40, 0],
+      [10, 0, 0]
+    ]);
+  });
+
   it('places a child trapezoid from the selected parent edge direction', () => {
     const parent = [[0, 0, 0], [500, 0, 0], [500, 400, 0], [0, 400, 0], [0, 0, 0]];
     const child = buildCassetteV2TrapezoidVertices({

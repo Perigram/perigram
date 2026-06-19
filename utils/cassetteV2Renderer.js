@@ -7,6 +7,8 @@ import {
   OCCS_LAYER_CODE_CASSETTE_MARK,
   OCCS_LAYER_CONTOUR_CASSETTE_FACE,
   OCCS_LAYER_CONTOUR_FLAT_PATTERN,
+  OCCS_LAYER_CUT_HOLE,
+  OCCS_LAYER_CUT_INNER,
   OCCS_LAYER_CUT_OUTER,
   OCCS_LAYER_FOLD_ROUTE
 } from './occs/layers.js';
@@ -17,15 +19,41 @@ import {
 } from './occs/expressions.js';
 import {
   buildOccsDrawingFromFaceCurves,
-  occsCurveToPath
+  occsCurveToPath,
+  occsShapeToPath
 } from './occs/drawing.js';
+import { buildOccsProductionLayout } from './occs/production-layout.js';
 import { buildOccsFaceDimensionEntities } from './occs/dimensions.js';
 import { buildOccsFoldedPreviewPayload } from './occs/folded-3d.js';
+import { differenceCassetteV2FacePolygon } from './cassetteV2Clipper.js';
+import {
+  OCCS_EDGE_ARRAY_DEFAULTS,
+  OCCS_HANGER_PRODUCTION_MODES,
+  OCCS_HARDWARE_FAMILIES,
+  createOccsHardwareMetadata,
+  edgeArrayDefaults,
+  expandOccsEdgeArray2d,
+  hangerClipCutPolygon,
+  hardwareHoleDiameter,
+  hardwareDefaultParameters,
+  hardwareLabel,
+  hardwareWorkpieceType,
+  isOccsHardwareWorkpiece,
+  OCCS_HOLE_HARDWARE_FAMILIES,
+  normalizeHardwareFamily,
+  normalizeHangerProductionMode
+} from './occs/hardware.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
+import {
+  createDefaultOccsProfileTemplateData,
+  normalizeOccsProfileSketch,
+  occsProfileFromSketch
+} from './occs/profiles.js';
 
 const BOUNDARY_LAYER = OCCS_LAYER_CONTOUR_FLAT_PATTERN;
 const FOLD_ROUTE_LAYER = OCCS_LAYER_FOLD_ROUTE;
 const CONSTRUCTION_LAYER = 'construction.nodi';
+const DESIGNER_SECTION_LAYER = 'designer.section';
 const DEFAULT_CASSETTE_V2_WORKPIECE_ID = 'wp_1';
 const DEFAULT_CASSETTE_V2_WORKPIECE_GAP = 160;
 const DEFAULT_CASSETTE_V2_WORKPIECE_NODE_WIDTH = 82;
@@ -94,10 +122,14 @@ const DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT = Object.freeze({
   rotation: '0',
   side: 'front'
 });
+const DEFAULT_CASSETTE_V2_HARDWARE_ARRAY = Object.freeze({ ...OCCS_EDGE_ARRAY_DEFAULTS });
 const DEFAULT_CASSETTE_V2_SECTION_PLANES = Object.freeze({
   vertical: { ratio: 0.5 },
   horizontal: { ratio: 0.5 }
 });
+
+export const CASSETTE_V2_HARDWARE_FAMILIES = OCCS_HARDWARE_FAMILIES;
+export const CASSETTE_V2_HANGER_PRODUCTION_MODES = OCCS_HANGER_PRODUCTION_MODES;
 
 const GRAPH_LABELS = Object.freeze({
   defaultLength: 'defaultLength',
@@ -164,9 +196,68 @@ const createCassetteV2RootNode = (id, workpieceId) => ({
   parameters: { ...DEFAULT_CASSETTE_V2_TRAPEZOID }
 });
 
+const createCassetteV2ChildNode = (id, workpieceId, parentId, edgeIndex, options = {}) => ({
+  id,
+  workpieceId,
+  operation: 'face.trapezoid',
+  parentId,
+  parentEdgeIndex: Math.max(0, Math.round(numeric(edgeIndex, 0))),
+  attachEdge: 'E0',
+  foldAngle: options.foldAngle || DEFAULT_CASSETTE_V2_FOLD_ANGLE,
+  role: options.role,
+  parameters: { ...DEFAULT_CASSETTE_V2_CHILD_TRAPEZOID, ...(options.parameters || {}) }
+});
+
 const clonePlacement = (placement = {}) => JSON.parse(JSON.stringify(placement || {}));
 
 const occurrenceIdForWorkpiece = (workpiece = {}) => workpiece.occurrenceId || workpiece.id;
+
+const isCassetteV2SheetWorkpiece = (workpiece = {}) => (
+  !workpiece.type ||
+  workpiece.type === 'sheet' ||
+  (workpiece.family === 'hanger_clip' && workpiece.hardware?.productionMode === 'sheetPart')
+);
+
+const normalizeCassetteV2Hardware = (workpiece = {}) => {
+  const family = normalizeHardwareFamily(workpiece.family || workpiece.hardware?.family || 'bolt');
+  const productionMode = family === 'hanger_clip'
+    ? normalizeHangerProductionMode(workpiece.productionMode || workpiece.hardware?.productionMode || 'integralCut')
+    : '';
+  const parameters = {
+    ...hardwareDefaultParameters(family),
+    ...(workpiece.hardware?.parameters || {}),
+    ...(workpiece.parameters || {})
+  };
+  return createOccsHardwareMetadata({ family, productionMode, parameters });
+};
+
+const isCassetteV2ProfileWorkpiece = (workpiece = {}) => workpiece.type === 'profile' || Boolean(workpiece.profile);
+
+export const normalizeCassetteV2Profile = (workpiece = {}) => {
+  const source = workpiece.profileSnapshot || workpiece.profile || workpiece.data?.occsProfile || {};
+  const data = createDefaultOccsProfileTemplateData({
+    kind: workpiece.profileKind || workpiece.kind || source.kind,
+    process: workpiece.process || workpiece.manufacturing?.process || source.process,
+    parameters: {
+      ...(workpiece.parameters || {}),
+      ...(source.parameters || {})
+    },
+    sketch: source.sketch || workpiece.sketch
+  });
+  const sketch = normalizeOccsProfileSketch(source.sketch || workpiece.sketch || data.sketch, data.parameters);
+  const occsProfile = source.section && source.sweep
+    ? { section: source.section, sweep: source.sweep, sketch }
+    : occsProfileFromSketch(sketch, { parameters: data.parameters });
+
+  return {
+    kind: data.kind,
+    process: data.process,
+    parameters: { ...data.parameters },
+    sketch,
+    section: occsProfile.section,
+    sweep: occsProfile.sweep
+  };
+};
 
 const faceIdForWorkpiece = (tree, workpiece, preferredFaceId) => (
   tree.nodes.find(node => node.id === preferredFaceId && node.workpieceId === workpiece?.id)?.id ||
@@ -329,10 +420,21 @@ const cloneCassetteV2Tree = (tree) => {
   });
   const explicitPlacementByWorkpieceId = new Map(nextTree.workpieces.map(workpiece => [workpiece.id, Boolean(workpiece.placement)]));
   nextTree.workpieces.forEach((workpiece, index) => {
-    workpiece.rootId ||= nextTree.nodes.find(node => node.workpieceId === workpiece.id && !node.parentId)?.id || nextTree.rootId;
+    if (isCassetteV2SheetWorkpiece(workpiece)) {
+      workpiece.rootId ||= nextTree.nodes.find(node => node.workpieceId === workpiece.id && !node.parentId)?.id || nextTree.rootId;
+    } else {
+      workpiece.rootId ||= '';
+    }
     workpiece.definitionId ||= `${workpiece.id}_def`;
     workpiece.occurrenceId ||= workpiece.id;
     workpiece.name ||= `Workpiece ${index + 1}`;
+    if (isOccsHardwareWorkpiece(workpiece) || workpiece.family) {
+      workpiece.hardware = normalizeCassetteV2Hardware(workpiece);
+      workpiece.family = workpiece.hardware.family;
+      workpiece.productionMode = workpiece.hardware.productionMode || '';
+      workpiece.parameters = { ...(workpiece.hardware.parameters || {}) };
+      workpiece.type ||= hardwareWorkpieceType(workpiece.family, workpiece.productionMode);
+    }
     workpiece.previewOrigin ||= [index * (DEFAULT_CASSETTE_V2_NUMERIC.defaultLength + DEFAULT_CASSETTE_V2_WORKPIECE_GAP), 0, 0];
     workpiece.placement ||= {
       relativeTo: 'world',
@@ -393,6 +495,9 @@ const normalizedCassetteV2WorkpieceRelation = (tree, joint, index = 0) => {
   const sourceSnap = placement.anchor ||
     placement.sourceSnap ||
     DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.sourceSnap;
+  const pattern = placement.pattern?.type === 'edgeArray'
+    ? edgeArrayDefaults(placement.pattern)
+    : null;
 
   return {
     id: joint.id || `joint_${index + 1}`,
@@ -409,6 +514,12 @@ const normalizedCassetteV2WorkpieceRelation = (tree, joint, index = 0) => {
     offsetX: origin[0] ?? placement.offsetX ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetX,
     offsetY: origin[1] ?? placement.offsetY ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetY,
     rotation: placement.rotation ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.rotation,
+    pattern,
+    placementMode: pattern ? 'edgeArray' : 'point',
+    arrayEdge: pattern?.edge || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.edge,
+    arrayMode: pattern?.mode || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.mode,
+    arrayCount: pattern?.count || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.count,
+    arraySpacing: pattern?.spacing || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.spacing,
     source: {
       ...(joint.source || {}),
       occurrence: sourceWorkpiece ? occurrenceIdForWorkpiece(sourceWorkpiece) : joint.source?.occurrence,
@@ -431,7 +542,8 @@ const normalizedCassetteV2WorkpieceRelation = (tree, joint, index = 0) => {
         origin[1] ?? placement.offsetY ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetY
       ],
       anchor: sourceSnap,
-      targetAnchor: targetSnap
+      targetAnchor: targetSnap,
+      ...(pattern ? { pattern } : {})
     }
   };
 };
@@ -564,16 +676,14 @@ export const addCassetteV2GraphChild = (tree, parentId, edgeIndex) => {
   if (existingChild) return { tree: nextTree, nodeId: existingChild.id };
 
   const id = nextCassetteV2NodeId(nextTree);
-  nextTree.nodes.push({
-    id,
-    workpieceId: parent.workpieceId,
-    operation: 'face.trapezoid',
-    parentId,
-    parentEdgeIndex: normalizedEdgeIndex,
-    attachEdge: 'E0',
-    foldAngle: DEFAULT_CASSETTE_V2_FOLD_ANGLE,
-    parameters: { ...DEFAULT_CASSETTE_V2_CHILD_TRAPEZOID }
-  });
+  const parentRole = parent.role || (parent.parentId ? 'return_flange' : 'main');
+  const childOptions = parentRole === 'return_flange'
+    ? {
+        role: 'mounting_flange',
+        foldAngle: '-90'
+      }
+    : { role: 'return_flange' };
+  nextTree.nodes.push(createCassetteV2ChildNode(id, parent.workpieceId, parentId, normalizedEdgeIndex, childOptions));
 
   return { tree: nextTree, nodeId: id };
 };
@@ -622,6 +732,232 @@ export const addCassetteV2Workpiece = (tree, reference = {}) => {
   }
 
   return { tree: nextTree, workpieceId: id, nodeId };
+};
+
+export const addCassetteV2HardwareWorkpiece = (tree, reference = {}) => {
+  const nextTree = cloneCassetteV2Tree(tree);
+  const family = normalizeHardwareFamily(reference.family || 'bolt');
+  const productionMode = family === 'hanger_clip'
+    ? normalizeHangerProductionMode(reference.productionMode || 'integralCut')
+    : '';
+  const type = hardwareWorkpieceType(family, productionMode);
+  const id = nextCassetteV2WorkpieceId(nextTree);
+  const index = nextTree.workpieces.length;
+  const referenceNode = nextTree.nodes.find(node => node.id === reference.referenceNodeId) ||
+    nextTree.nodes.find(node => node.id === reference.targetFaceId) ||
+    null;
+  const referenceWorkpiece = nextTree.workpieces.find(workpiece => (
+    workpiece.id === (reference.referenceWorkpieceId || reference.targetWorkpieceId || referenceNode?.workpieceId)
+  )) || nextTree.workpieces[0] || null;
+  const targetNode = referenceNode || nextTree.nodes.find(node => node.id === referenceWorkpiece?.rootId) || null;
+  const metadata = createOccsHardwareMetadata({
+    family,
+    productionMode,
+    parameters: reference.parameters || {}
+  });
+  const isSheetPart = type === 'sheet';
+  const nodeId = isSheetPart ? nextCassetteV2NodeId(nextTree) : '';
+  const sourceWorkpiece = {
+    id,
+    name: reference.name || hardwareLabel(family, productionMode),
+    type,
+    family,
+    productionMode,
+    hardware: metadata,
+    parameters: { ...(metadata.parameters || {}) },
+    rootId: nodeId,
+    definitionId: `${id}_def`,
+    occurrenceId: id,
+    previewOrigin: [
+      index * (DEFAULT_CASSETTE_V2_NUMERIC.defaultLength + DEFAULT_CASSETTE_V2_WORKPIECE_GAP),
+      0,
+      0
+    ]
+  };
+  const placement = referenceWorkpiece
+    ? defaultCassetteV2AttachmentPlacement(referenceWorkpiece, targetNode)
+    : {
+        relativeTo: 'world',
+        origin: ['0', '0', '0'],
+        rotation: ['0', '0', '0']
+      };
+  placement.pattern = edgeArrayDefaults(reference.pattern || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY);
+
+  nextTree.workpieces.push({
+    ...sourceWorkpiece,
+    placement
+  });
+
+  if (isSheetPart) {
+    nextTree.nodes.push(createCassetteV2RootNode(nodeId, id));
+    const sheetNode = nextTree.nodes.find(node => node.id === nodeId);
+    if (sheetNode) {
+      sheetNode.role = 'hook_flange';
+      sheetNode.parameters = {
+        ...sheetNode.parameters,
+        defaultLength: metadata.parameters.width || '42',
+        height: metadata.parameters.height || '28'
+      };
+    }
+  }
+
+  if (referenceWorkpiece) {
+    const joint = createCassetteV2WorkpieceJoint(sourceWorkpiece, referenceWorkpiece, targetNode, {
+      id: nextCassetteV2JointId(nextTree, id, referenceWorkpiece.id),
+      driver: true
+    });
+    joint.source.face = nodeId || '';
+    joint.placement.pattern = edgeArrayDefaults(reference.pattern || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY);
+    nextTree.joints.push(joint);
+  }
+
+  return { tree: nextTree, workpieceId: id, nodeId };
+};
+
+export const addCassetteV2ProfileWorkpiece = (tree, reference = {}) => {
+  const nextTree = cloneCassetteV2Tree(tree);
+  const id = nextCassetteV2WorkpieceId(nextTree);
+  const index = nextTree.workpieces.length;
+  const referenceNode = nextTree.nodes.find(node => node.id === reference.referenceNodeId) ||
+    nextTree.nodes.find(node => node.id === reference.targetFaceId) ||
+    null;
+  const referenceWorkpiece = nextTree.workpieces.find(workpiece => (
+    workpiece.id === (reference.referenceWorkpieceId || reference.targetWorkpieceId || referenceNode?.workpieceId)
+  )) || nextTree.workpieces[0] || null;
+  const targetNode = referenceNode || nextTree.nodes.find(node => node.id === referenceWorkpiece?.rootId) || null;
+  const templateData = reference.template?.data || reference.profileTemplate?.data || reference;
+  const profile = normalizeCassetteV2Profile({
+    type: 'profile',
+    profileKind: templateData.kind,
+    process: templateData.process,
+    parameters: templateData.parameters,
+    profile: templateData.occsProfile || templateData.profile,
+    sketch: templateData.sketch
+  });
+  const sourceWorkpiece = {
+    id,
+    name: reference.name || reference.template?.identity?.name || reference.profileTemplate?.identity?.name || `Profile ${index + 1}`,
+    type: 'profile',
+    role: profile.kind,
+    profileTemplateId: reference.template?._id || reference.profileTemplate?._id || reference.profileTemplateId || '',
+    profileSnapshot: profile,
+    process: profile.process,
+    parameters: { ...profile.parameters },
+    rootId: '',
+    definitionId: `${id}_def`,
+    occurrenceId: id,
+    previewOrigin: [
+      index * (DEFAULT_CASSETTE_V2_NUMERIC.defaultLength + DEFAULT_CASSETTE_V2_WORKPIECE_GAP),
+      0,
+      0
+    ]
+  };
+  const placement = referenceWorkpiece
+    ? defaultCassetteV2AttachmentPlacement(referenceWorkpiece, targetNode)
+    : {
+        relativeTo: 'world',
+        origin: ['0', '0', '0'],
+        rotation: ['0', '0', '0']
+      };
+
+  nextTree.workpieces.push({
+    ...sourceWorkpiece,
+    placement
+  });
+
+  if (referenceWorkpiece) {
+    const joint = createCassetteV2WorkpieceJoint(sourceWorkpiece, referenceWorkpiece, targetNode, {
+      id: nextCassetteV2JointId(nextTree, id, referenceWorkpiece.id),
+      driver: true
+    });
+    joint.source.face = '';
+    nextTree.joints.push(joint);
+  }
+
+  return { tree: nextTree, workpieceId: id, nodeId: '' };
+};
+
+export const updateCassetteV2Workpiece = (tree, workpieceId, patch = {}) => {
+  const nextTree = cloneCassetteV2Tree(tree);
+  const index = nextTree.workpieces.findIndex(workpiece => workpiece.id === workpieceId);
+  if (index < 0) return nextTree;
+  const current = nextTree.workpieces[index];
+  if (isCassetteV2ProfileWorkpiece(current) || patch.type === 'profile' || patch.profile || patch.profileSnapshot) {
+    const profile = normalizeCassetteV2Profile({
+      ...current,
+      ...patch,
+      profile: patch.profile || patch.profileSnapshot || current.profileSnapshot || current.profile,
+      parameters: {
+        ...(current.parameters || {}),
+        ...(patch.parameters || {})
+      }
+    });
+    nextTree.nodes = nextTree.nodes.filter(node => node.workpieceId !== current.id);
+    nextTree.joints.forEach((joint) => {
+      if (joint.source?.occurrence === occurrenceIdForWorkpiece(current)) {
+        joint.source.face = '';
+      }
+    });
+    nextTree.workpieces[index] = {
+      ...current,
+      ...patch,
+      type: 'profile',
+      role: patch.role || current.role || profile.kind,
+      process: profile.process,
+      parameters: profile.parameters,
+      profileSnapshot: profile,
+      rootId: ''
+    };
+    delete nextTree.workpieces[index].family;
+    delete nextTree.workpieces[index].productionMode;
+    delete nextTree.workpieces[index].hardware;
+    return nextTree;
+  }
+  const family = normalizeHardwareFamily(patch.family || current.family || current.hardware?.family || 'bolt');
+  const productionMode = family === 'hanger_clip'
+    ? normalizeHangerProductionMode(patch.productionMode || current.productionMode || current.hardware?.productionMode || 'integralCut')
+    : '';
+  const parameters = {
+    ...hardwareDefaultParameters(family),
+    ...(current.parameters || {}),
+    ...(current.hardware?.parameters || {}),
+    ...(patch.parameters || {})
+  };
+  const hardware = createOccsHardwareMetadata({ family, productionMode, parameters });
+  const type = patch.type || hardwareWorkpieceType(family, productionMode);
+  let rootId = current.rootId || '';
+  if (type === 'sheet' && !rootId) {
+    rootId = nextCassetteV2NodeId(nextTree);
+    nextTree.nodes.push({
+      ...createCassetteV2RootNode(rootId, current.id),
+      role: 'hook_flange',
+      parameters: {
+        ...DEFAULT_CASSETTE_V2_TRAPEZOID,
+        defaultLength: parameters.width || '42',
+        height: parameters.height || '28'
+      }
+    });
+  } else if (type !== 'sheet') {
+    const removedNodeIds = new Set(nextTree.nodes.filter(node => node.workpieceId === current.id).map(node => node.id));
+    nextTree.nodes = nextTree.nodes.filter(node => node.workpieceId !== current.id);
+    nextTree.joints.forEach((joint) => {
+      if (joint.source?.occurrence === occurrenceIdForWorkpiece(current) && removedNodeIds.has(joint.source.face)) {
+        joint.source.face = '';
+      }
+    });
+    rootId = '';
+  }
+  nextTree.workpieces[index] = {
+    ...current,
+    ...patch,
+    type,
+    family,
+    productionMode,
+    rootId,
+    parameters,
+    hardware
+  };
+  return nextTree;
 };
 
 export const addCassetteV2WorkpieceAttachment = (tree, sourceWorkpieceId, reference = {}) => {
@@ -765,7 +1101,9 @@ export const updateCassetteV2WorkpieceRelation = (tree, relationId, patch = {}) 
   const targetWorkpiece = nextTree.workpieces.find(workpiece => (
     workpiece.id === (patch.targetWorkpieceId || relation.targetWorkpieceId)
   )) || nextTree.workpieces[0];
-  const sourceFaceId = faceIdForWorkpiece(nextTree, sourceWorkpiece, patch.sourceFaceId || relation.sourceFaceId);
+  const sourceFaceId = isCassetteV2SheetWorkpiece(sourceWorkpiece)
+    ? faceIdForWorkpiece(nextTree, sourceWorkpiece, patch.sourceFaceId || relation.sourceFaceId)
+    : '';
   const targetFaceId = faceIdForWorkpiece(nextTree, targetWorkpiece, patch.targetFaceId ||
     (patch.targetWorkpieceId ? targetWorkpiece?.rootId : relation.targetFaceId));
   const targetSide = patch.targetSide || relation.targetSide || DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.side;
@@ -794,6 +1132,16 @@ export const updateCassetteV2WorkpieceRelation = (tree, relationId, patch = {}) 
     anchor: sourceSnap,
     targetAnchor: targetSnap
   };
+  if (patch.placementMode === 'edgeArray' || patch.pattern) {
+    placement.pattern = edgeArrayDefaults(patch.pattern || {
+      edge: patch.arrayEdge ?? relation.arrayEdge,
+      mode: patch.arrayMode ?? relation.arrayMode,
+      count: patch.arrayCount ?? relation.arrayCount,
+      spacing: patch.arraySpacing ?? relation.arraySpacing
+    });
+  } else if (patch.placementMode === 'point') {
+    delete placement.pattern;
+  }
   const nextJoint = {
     ...nextTree.joints[relationIndex],
     type: patch.type || relation.type,
@@ -1040,6 +1388,13 @@ export const createCassetteV2OccsDocumentFromTree = (tree = createCassetteV2Grap
     if (!nodesByWorkpieceId.has(node.workpieceId)) nodesByWorkpieceId.set(node.workpieceId, []);
     nodesByWorkpieceId.get(node.workpieceId).push(node);
   }
+  const curves = buildCassetteV2TrapezoidTreeCurves(sourceTree, { mode: 'assembly' });
+  const curveByNodeId = new Map(curves.map(curve => [curve.node.id, curve]));
+  const productionEntitiesByTarget = new Map();
+  for (const entity of hardwareProductionEntitiesForTree(curves, sourceTree)) {
+    if (!productionEntitiesByTarget.has(entity.target)) productionEntitiesByTarget.set(entity.target, []);
+    productionEntitiesByTarget.get(entity.target).push(entity);
+  }
 
   return {
     occs: '0.4-draft',
@@ -1051,16 +1406,71 @@ export const createCassetteV2OccsDocumentFromTree = (tree = createCassetteV2Grap
       workpieces: sourceTree.workpieces.map(workpiece => {
         const workpieceNodes = nodesByWorkpieceId.get(workpiece.id) || [];
         const workpieceIndex = sourceTree.workpieces.findIndex(item => item.id === workpiece.id);
+        if (isCassetteV2ProfileWorkpiece(workpiece)) {
+          const profile = normalizeCassetteV2Profile(workpiece);
+          return {
+            id: workpiece.definitionId || `${workpiece.id}_def`,
+            type: 'profile',
+            role: workpiece.role || profile.kind,
+            parameters: { ...(profile.parameters || {}) },
+            profile: {
+              section: profile.section,
+              sweep: profile.sweep
+            },
+            manufacturing: {
+              process: profile.process
+            },
+            extensions: {
+              cutkit: {
+                profileTemplateId: workpiece.profileTemplateId || '',
+                sketch: profile.sketch
+              }
+            }
+          };
+        }
+        if (!isCassetteV2SheetWorkpiece(workpiece)) {
+          const hardware = normalizeCassetteV2Hardware(workpiece);
+          return {
+            id: workpiece.definitionId || `${workpiece.id}_def`,
+            type: workpiece.type || hardwareWorkpieceType(hardware.family, hardware.productionMode),
+            role: hardware.family,
+            parameters: { ...(hardware.parameters || {}) },
+            hardware,
+            ...(workpiece.type === 'solid' ? { solid: { kind: hardware.family } } : {})
+          };
+        }
         const cassetteMarkEntity = cassetteMarkEntityForWorkpiece(workpiece, workpieceIndex);
-        const faces = workpieceNodes.map(node => ({
-          id: node.id,
-          role: faceRoleFromNode(node),
-          shape: shapeFromNode(node)
-        }));
+        const faces = workpieceNodes.map((node) => {
+          const hookCuts = (productionEntitiesByTarget.get(node.id) || [])
+            .filter(entity => !entity.booleanOnly && entity.layer === OCCS_LAYER_CUT_INNER && entity.geometry?.type === 'polygon');
+          const curve = curveByNodeId.get(node.id);
+          const shape = hookCuts.length && curve
+            ? {
+                type: 'polygon',
+                vertices: (curve.boundaryVertices || curve.vertices || []).map(vertex => [
+                  String(vertex[0]),
+                  String(vertex[1])
+                ]),
+                holes: hookCuts.map(entity => entity.geometry.vertices.map(vertex => [
+                  String(vertex[0]),
+                  String(vertex[1])
+                ]))
+              }
+            : shapeFromNode(node);
+          return {
+            id: node.id,
+            role: faceRoleFromNode(node),
+            shape
+          };
+        });
         return {
           id: workpiece.definitionId || `${workpiece.id}_def`,
           type: 'sheet',
-          role: workpiece.id === sourceTree.workpieces[0]?.id ? 'cassette_tray' : 'cassette_part',
+          role: workpiece.hardware?.family || (workpiece.id === sourceTree.workpieces[0]?.id ? 'cassette_tray' : 'cassette_part'),
+          ...(workpiece.hardware ? {
+            hardware: normalizeCassetteV2Hardware(workpiece),
+            parameters: { ...(workpiece.parameters || workpiece.hardware?.parameters || {}) }
+          } : {}),
           faces,
           folds: workpieceNodes
             .filter(node => node.parentId)
@@ -1074,6 +1484,33 @@ export const createCassetteV2OccsDocumentFromTree = (tree = createCassetteV2Grap
             })),
           entities: [
             ...faces.flatMap(face => dimensionEntitiesForFaceShape(face.id, face.shape)),
+            ...faces.flatMap(face => (productionEntitiesByTarget.get(face.id) || []).filter(entity => !entity.booleanOnly).map(entity => ({
+              id: entity.id,
+              layer: entity.layer,
+              target: entity.target,
+              geometry: entity.geometry.type === 'circle'
+                ? {
+                    type: 'circle',
+                    diameter: String(entity.geometry.diameter),
+                    center: [
+                      String(entity.geometry.center[0]),
+                      String(entity.geometry.center[1])
+                    ]
+                  }
+                : {
+                    type: 'polygon',
+                    vertices: entity.geometry.vertices.map(vertex => [
+                      String(vertex[0]),
+                      String(vertex[1])
+                    ])
+                  },
+              extensions: {
+                cutkit: {
+                  relationId: entity.relationId,
+                  hardwareWorkpieceId: entity.hardwareWorkpieceId
+                }
+              }
+            }))),
             {
               ...cassetteMarkEntity,
               geometry: {
@@ -1538,7 +1975,13 @@ const designerFoldEdgesForTree = (curves = [], tree = createCassetteV2GraphTree(
     .filter(node => node.parentId)
     .map((node) => {
       const parentCurve = curveById.get(node.parentId);
-      const parentVertices = withoutClosingVertex(parentCurve?.boundaryVertices || parentCurve?.vertices || []);
+      const parentVertices = withoutClosingVertex(
+        parentCurve?.referenceVertices ||
+        parentCurve?.originalBoundaryVertices ||
+        parentCurve?.boundaryVertices ||
+        parentCurve?.vertices ||
+        []
+      );
       const edgeIndex = Math.max(0, Math.round(numeric(node.parentEdgeIndex, 0)));
       const vertex = parentVertices[edgeIndex];
       const next = parentVertices[(edgeIndex + 1) % parentVertices.length];
@@ -1573,29 +2016,53 @@ const designerAssemblyFillOpacity = (workpieceId, contextWorkpieceId) => (
   !contextWorkpieceId || workpieceId === contextWorkpieceId ? 0.1 : 0.035
 );
 
-const designerAssemblyLayersForCurves = (curves = [], foldEdges = [], sectionLayer = null, options = {}) => {
+const groupedCurvesByWorkpiece = (curves = []) => {
+  const groups = new Map();
+  for (const curve of curves) {
+    const workpieceId = curve.node?.workpieceId || '';
+    if (!groups.has(workpieceId)) groups.set(workpieceId, []);
+    groups.get(workpieceId).push(curve);
+  }
+  return groups;
+};
+
+const designerAssemblyLayersForCurves = async (curves = [], extraLayers = [], options = {}) => {
   const contextWorkpieceId = options.contextWorkpieceId || '';
-  const facePaths = curves.map(curve => ({
-    d: occsCurveToPath(curve.vertices),
-    fill: 'layer',
-    stroke: 'none',
-    opacity: designerAssemblyFillOpacity(curve.node?.workpieceId, contextWorkpieceId),
-    workpieceId: curve.node?.workpieceId
-  }));
-  const cutPaths = curves.map(curve => ({
-    d: occsCurveToPath(curve.vertices),
-    fill: 'none',
-    stroke: 'layer',
-    opacity: designerAssemblyLayerOpacity(curve.node?.workpieceId, contextWorkpieceId),
-    workpieceId: curve.node?.workpieceId
-  }));
-  const foldPaths = foldEdges.map(fold => ({
-    d: `M ${fold.x1} ${fold.y1} L ${fold.x2} ${fold.y2}`,
-    fill: 'none',
-    stroke: 'layer',
-    opacity: designerAssemblyLayerOpacity(fold.workpieceId, contextWorkpieceId),
-    workpieceId: fold.workpieceId
-  }));
+  const facePaths = [];
+  const cutPaths = [];
+  const foldPaths = [];
+
+  for (const [workpieceId, groupCurves] of groupedCurvesByWorkpiece(curves)) {
+    const layout = await buildOccsProductionLayout(
+      groupCurves.map(curve => ({
+        id: curve.id || curve.nodeId || curve.node?.id,
+        vertices: curve.boundaryVertices || curve.vertices
+      })),
+      options
+    );
+    const opacity = designerAssemblyLayerOpacity(workpieceId, contextWorkpieceId);
+    facePaths.push(...layout.cutOuterPaths.map(vertices => ({
+      d: occsCurveToPath(vertices),
+      fill: 'layer',
+      stroke: 'none',
+      opacity: designerAssemblyFillOpacity(workpieceId, contextWorkpieceId),
+      workpieceId
+    })));
+    cutPaths.push(...layout.cutOuterPaths.map(vertices => ({
+      d: occsCurveToPath(vertices),
+      fill: 'none',
+      stroke: 'layer',
+      opacity,
+      workpieceId
+    })));
+    foldPaths.push(...layout.foldPaths.map(vertices => ({
+      d: occsCurveToPath(vertices),
+      fill: 'none',
+      stroke: 'layer',
+      opacity,
+      workpieceId
+    })));
+  }
   const layers = [
     {
       name: OCCS_LAYER_CONTOUR_CASSETTE_FACE,
@@ -1628,7 +2095,9 @@ const designerAssemblyLayersForCurves = (curves = [], foldEdges = [], sectionLay
       paths: foldPaths
     });
   }
-  if (Array.isArray(sectionLayer?.paths) && sectionLayer.paths.length) layers.push(sectionLayer);
+  for (const layer of extraLayers) {
+    if (Array.isArray(layer?.paths) && layer.paths.length) layers.push(layer);
+  }
   return layers;
 };
 
@@ -1682,6 +2151,249 @@ const designerAttachmentMarkersForTree = (curves = [], tree = createCassetteV2Gr
       }
       return markers;
     });
+};
+
+const relationHardwareWorkpiece = (tree, relation) => (
+  tree.workpieces.find(workpiece => workpiece.id === relation.sourceWorkpieceId && (
+    isOccsHardwareWorkpiece(workpiece) || workpiece.family
+  )) || null
+);
+
+const hardwarePointsForRelation = (curve, relation, parameters = {}) => {
+  const vertices = curve?.boundaryVertices || curve?.vertices || [];
+  if (relation.pattern?.type === 'edgeArray') {
+    return expandOccsEdgeArray2d({
+      vertices,
+      pattern: relation.pattern,
+      origin: [relation.offsetX, relation.offsetY],
+      binding: relation.targetSnap,
+      resolve: (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback)
+    }).map(point => [point.x, point.y, 0]);
+  }
+  const snap = faceSnapPoint(vertices, relation.targetSnap);
+  return [[
+    numeric(snap?.[0], 0) + resolveCassetteV2Expression(relation.offsetX, parameters, 0),
+    numeric(snap?.[1], 0) + resolveCassetteV2Expression(relation.offsetY, parameters, 0),
+    0
+  ]];
+};
+
+const designerHardwareMarkersForTree = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
+  const sourceTree = cloneCassetteV2Tree(tree);
+  const parameters = treeParameters(sourceTree);
+  const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
+  return getCassetteV2WorkpieceRelations(sourceTree)
+    .flatMap((relation) => {
+      const hardware = relationHardwareWorkpiece(sourceTree, relation);
+      if (!hardware) return [];
+      if (options.contextWorkpieceId && ![relation.sourceWorkpieceId, relation.targetWorkpieceId].includes(options.contextWorkpieceId)) {
+        return [];
+      }
+      const targetCurve = curveById.get(relation.targetFaceId);
+      if (!targetCurve) return [];
+      return hardwarePointsForRelation(targetCurve, relation, parameters).map((point, index) => markerFromPoint(point, {
+        id: `${relation.id}:hardware:${index}`,
+        relationId: relation.id,
+        workpieceId: relation.sourceWorkpieceId,
+        faceId: relation.targetFaceId,
+        role: 'hardware',
+        snap: relation.targetSnap,
+        label: String(hardware.family || hardware.hardware?.family || 'H').slice(0, 1).toUpperCase(),
+        active: !options.selectedRelationId || options.selectedRelationId === relation.id
+      }));
+    });
+};
+
+const hardwareSchematicLayer = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
+  const markers = designerHardwareMarkersForTree(curves, tree, options);
+  return {
+    name: OCCS_LAYER_CODE_CASSETTE_MARK,
+    standardCode: OCCS_LAYER_CODE_CASSETTE_MARK,
+    role: 'hardware',
+    color: 'currentColor',
+    weight: 1,
+    dasharray: 'none',
+    paths: markers.map(marker => ({
+      kind: 'text',
+      x: marker.x,
+      y: marker.y,
+      text: marker.label,
+      fill: 'layer',
+      fontSize: 12,
+      textAnchor: 'middle',
+      dominantBaseline: 'middle',
+      workpieceId: marker.workpieceId,
+      relationId: marker.relationId,
+      markKind: 'hardware'
+    }))
+  };
+};
+
+const circlePathAt = (point = [0, 0], diameter = 5) => {
+  const radius = Math.max(0.1, Number(diameter) / 2 || 2.5);
+  const [cx, cy] = toSvgPoint(point);
+  return [
+    `M ${cx - radius} ${cy}`,
+    `A ${radius} ${radius} 0 1 0 ${cx + radius} ${cy}`,
+    `A ${radius} ${radius} 0 1 0 ${cx - radius} ${cy}`,
+    'Z'
+  ].join(' ');
+};
+
+const pointInPolygon = (point = [0, 0], polygon = []) => {
+  const vertices = withoutClosingVertex(polygon);
+  if (vertices.length < 3) return false;
+  const x = numeric(point?.[0], 0);
+  const y = numeric(point?.[1], 0);
+  let inside = false;
+
+  for (let index = 0, previousIndex = vertices.length - 1; index < vertices.length; previousIndex = index, index += 1) {
+    const current = vertices[index];
+    const previous = vertices[previousIndex];
+    const xi = numeric(current?.[0], 0);
+    const yi = numeric(current?.[1], 0);
+    const xj = numeric(previous?.[0], 0);
+    const yj = numeric(previous?.[1], 0);
+    const crosses = ((yi > y) !== (yj > y)) &&
+      (x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1) + xi);
+    if (crosses) inside = !inside;
+  }
+
+  return inside;
+};
+
+const polygonInsideFace = (polygon = [], face = []) => {
+  const faceVertices = withoutClosingVertex(face);
+  return withoutClosingVertex(polygon).every(point => pointInPolygon(point, faceVertices));
+};
+
+const hardwareProductionEntitiesForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
+  const sourceTree = cloneCassetteV2Tree(tree);
+  const parameters = treeParameters(sourceTree);
+  const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
+  return getCassetteV2WorkpieceRelations(sourceTree)
+    .flatMap((relation) => {
+      const workpiece = relationHardwareWorkpiece(sourceTree, relation);
+      if (!workpiece) return [];
+      const hardware = normalizeCassetteV2Hardware(workpiece);
+      const targetCurve = curveById.get(relation.targetFaceId);
+      if (!targetCurve) return [];
+      const points = hardwarePointsForRelation(targetCurve, relation, parameters);
+      if (hardware.family === 'hanger_clip' && hardware.productionMode === 'integralCut') {
+        return points.map((point, index) => ({
+          id: `${relation.id}:hook_cut:${index}`,
+          layer: OCCS_LAYER_CUT_INNER,
+          target: relation.targetFaceId,
+          workpieceId: relation.targetWorkpieceId,
+          hardwareWorkpieceId: relation.sourceWorkpieceId,
+          relationId: relation.id,
+          geometry: {
+            type: 'polygon',
+            vertices: hangerClipCutPolygon(hardware.parameters, point)
+          }
+        })).map((entity) => ({
+          ...entity,
+          booleanOperation: true,
+          booleanOnly: !polygonInsideFace(
+            entity.geometry.vertices,
+            targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices
+          )
+        }));
+      }
+      if (OCCS_HOLE_HARDWARE_FAMILIES.includes(hardware.family)) {
+        return points.map((point, index) => ({
+          id: `${relation.id}:hole:${index}`,
+          layer: OCCS_LAYER_CUT_HOLE,
+          target: relation.targetFaceId,
+          workpieceId: relation.targetWorkpieceId,
+          hardwareWorkpieceId: relation.sourceWorkpieceId,
+          relationId: relation.id,
+          geometry: {
+            type: 'circle',
+            center: point,
+            diameter: hardwareHoleDiameter(hardware)
+          }
+        }));
+      }
+      return [];
+    });
+};
+
+const hardwareProductionLayers = (entities = []) => {
+  const pathsForLayer = (layer) => entities
+    .filter(entity => entity.layer === layer && !entity.booleanOnly)
+    .map(entity => ({
+      d: entity.geometry.type === 'circle'
+        ? circlePathAt(entity.geometry.center, entity.geometry.diameter)
+        : occsCurveToPath(entity.geometry.vertices),
+      fill: 'none',
+      stroke: 'layer',
+      workpieceId: entity.workpieceId,
+      hardwareWorkpieceId: entity.hardwareWorkpieceId,
+      relationId: entity.relationId,
+      productionEntityId: entity.id
+    }));
+  const layers = [];
+  const innerPaths = pathsForLayer(OCCS_LAYER_CUT_INNER);
+  const holePaths = pathsForLayer(OCCS_LAYER_CUT_HOLE);
+  if (innerPaths.length) {
+    layers.push({
+      name: OCCS_LAYER_CUT_INNER,
+      standardCode: OCCS_LAYER_CUT_INNER,
+      role: 'cut',
+      color: 'currentColor',
+      weight: 1,
+      dasharray: 'none',
+      paths: innerPaths
+    });
+  }
+  if (holePaths.length) {
+    layers.push({
+      name: OCCS_LAYER_CUT_HOLE,
+      standardCode: OCCS_LAYER_CUT_HOLE,
+      role: 'cut',
+      color: 'currentColor',
+      weight: 1,
+      dasharray: 'none',
+      paths: holePaths
+    });
+  }
+  return layers;
+};
+
+const hookCutEntitiesByTarget = (entities = []) => {
+  const byTarget = new Map();
+  for (const entity of entities) {
+    if (!entity.booleanOperation && entity.layer !== OCCS_LAYER_CUT_INNER) continue;
+    if (entity.geometry?.type !== 'polygon') continue;
+    if (!byTarget.has(entity.target)) byTarget.set(entity.target, []);
+    byTarget.get(entity.target).push(entity);
+  }
+  return byTarget;
+};
+
+const applyHardwareBooleanDifferences = async (curves = [], productionEntities = []) => {
+  const cutsByTarget = hookCutEntitiesByTarget(productionEntities);
+  if (!cutsByTarget.size) return curves;
+
+  return Promise.all(curves.map(async (curve) => {
+    const cuts = cutsByTarget.get(curve.node?.id);
+    if (!cuts?.length) return curve;
+    const difference = await differenceCassetteV2FacePolygon(
+      curve.boundaryVertices || curve.vertices,
+      cuts.map(entity => entity.geometry.vertices)
+    );
+    if (!difference.outer?.length) return curve;
+    return {
+      ...curve,
+      originalBoundaryVertices: curve.originalBoundaryVertices || curve.boundaryVertices || curve.vertices,
+      referenceVertices: curve.referenceVertices || curve.boundaryVertices || curve.vertices,
+      boundaryVertices: difference.outer,
+      vertices: difference.outer,
+      holes: difference.holes,
+      shapeType: 'polygon'
+    };
+  }));
 };
 
 const centroidForVertices = (vertices = []) => {
@@ -1901,8 +2613,8 @@ const facePlaneIntersections = (points = [], axisIndex = 0, value = 0) => {
 
 const designerSectionsForTree = (curves = [], foldedPreview = {}, tree = createCassetteV2GraphTree()) => {
   const layer = {
-    name: OCCS_LAYER_CODE_CASSETTE_MARK,
-    standardCode: OCCS_LAYER_CODE_CASSETTE_MARK,
+    name: DESIGNER_SECTION_LAYER,
+    standardCode: null,
     role: 'section',
     color: 'currentColor',
     weight: 1,
@@ -2000,8 +2712,8 @@ const designerSectionsForTree = (curves = [], foldedPreview = {}, tree = createC
   }
 
   return {
-    layerName: OCCS_LAYER_CODE_CASSETTE_MARK,
-    standardCode: OCCS_LAYER_CODE_CASSETTE_MARK,
+    layerName: DESIGNER_SECTION_LAYER,
+    standardCode: null,
     handles,
     segments,
     layer,
@@ -2024,12 +2736,62 @@ const mergeCassetteMarkLayers = (...layers) => {
   };
 };
 
+const foldedPreviewProductionEntitiesForTree = (curves = [], tree = createCassetteV2GraphTree()) => (
+  hardwareProductionEntitiesForTree(curves, tree)
+    .filter(entity => !entity.booleanOnly)
+    .map(entity => ({
+      id: entity.id,
+      layer: entity.layer,
+      targetFaceId: entity.target,
+      workpieceId: entity.workpieceId,
+      relationId: entity.relationId,
+      geometry: entity.geometry
+    }))
+);
+
+const foldedPreviewBodiesForTree = (tree = createCassetteV2GraphTree(), parameters = {}) => {
+  const sourceTree = cloneCassetteV2Tree(tree);
+  return getCassetteV2WorkpieceRelations(sourceTree)
+    .map((relation) => {
+      const workpiece = relationHardwareWorkpiece(sourceTree, relation);
+      if (!workpiece) return null;
+      const hardware = normalizeCassetteV2Hardware(workpiece);
+      return {
+        id: `${relation.id}:${workpiece.id}`,
+        workpieceId: workpiece.id,
+        relationId: relation.id,
+        targetWorkpieceId: relation.targetWorkpieceId,
+        targetFaceId: relation.targetFaceId,
+        targetSnap: relation.targetSnap,
+        targetSide: relation.targetSide,
+        offsetX: resolveCassetteV2Expression(relation.offsetX, parameters, 0),
+        offsetY: resolveCassetteV2Expression(relation.offsetY, parameters, 0),
+        rotation: resolveCassetteV2AngleExpression(relation.rotation, parameters, 0),
+        pattern: relation.pattern ? {
+          ...relation.pattern,
+          mode: relation.pattern.mode || 'count',
+          count: resolveCassetteV2Expression(relation.pattern.count, parameters, 1),
+          spacing: resolveCassetteV2Expression(relation.pattern.spacing, parameters, 0)
+        } : null,
+        family: hardware.family,
+        productionMode: hardware.productionMode || '',
+        parameters: Object.fromEntries(Object.entries(hardware.parameters || {}).map(([key, value]) => [
+          key,
+          Number.isFinite(Number(value)) ? Number(value) : value
+        ]))
+      };
+    })
+    .filter(Boolean);
+};
+
 const foldedPreviewForTree = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const parameters = treeParameters(tree);
   const faces = curves.map(curve => ({
     nodeId: curve.node.id,
     workpieceId: curve.node.workpieceId,
-    vertices: curve.boundaryVertices || curve.vertices
+    referenceVertices: curve.referenceVertices || curve.originalBoundaryVertices || curve.boundaryVertices || curve.vertices,
+    vertices: curve.boundaryVertices || curve.vertices,
+    holes: curve.holes || []
   }));
   const folds = (tree.nodes || [])
     .filter(node => node.parentId)
@@ -2054,54 +2816,85 @@ const foldedPreviewForTree = (curves = [], tree = createCassetteV2GraphTree(), o
       offsetX: resolveCassetteV2Expression(relation.offsetX, parameters, 0),
       offsetY: resolveCassetteV2Expression(relation.offsetY, parameters, 0),
       rotation: resolveCassetteV2AngleExpression(relation.rotation, parameters, 0),
-      driver: relation.driver
+      driver: relation.driver,
+      pattern: relation.pattern
     }))
     : [];
+  const bodies = foldedPreviewBodiesForTree(tree, parameters);
+  const cutouts = foldedPreviewProductionEntitiesForTree(curves, tree);
 
-  return buildOccsFoldedPreviewPayload({ faces, folds, joints });
+  return buildOccsFoldedPreviewPayload({ faces, folds, joints, bodies, cutouts });
 };
 
 const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const foldedEdges = getCassetteV2FoldEdges(tree);
-  const foldedPreviewCurves = options.foldedPreviewCurves || curves;
-  const designerEdges = curves.flatMap(curve => (
-    designerEdgesForBoundary(curve.node.id, curve.boundaryVertices, foldedEdges)
+  const hardwareProductionEntities = hardwareProductionEntitiesForTree(curves, tree);
+  const shapedCurves = await applyHardwareBooleanDifferences(curves, hardwareProductionEntities);
+  const foldedPreviewCurves = options.foldedPreviewCurves
+    ? await applyHardwareBooleanDifferences(options.foldedPreviewCurves, hardwareProductionEntities)
+    : shapedCurves;
+  const drawingCurves = shapedCurves.map(curve => {
+    const labelBoundaryVertices = curve.labelBoundaryVertices
+      || curve.referenceVertices
+      || curve.originalBoundaryVertices
+      || curve.boundaryVertices
+      || curve.vertices;
+
+    return {
+      ...curve,
+      labelBoundaryVertices
+    };
+  });
+  const designerEdges = drawingCurves.flatMap(curve => (
+    designerEdgesForBoundary(curve.node.id, curve.labelBoundaryVertices, foldedEdges)
   ));
-  const designerFoldEdges = designerFoldEdgesForTree(curves, tree);
+  const designerFoldEdges = designerFoldEdgesForTree(shapedCurves, tree);
   const foldedPreview = foldedPreviewForTree(foldedPreviewCurves, tree, { includeJoints: options.includeFoldedPreviewJoints });
-  const designerSections = designerSectionsForTree(curves, foldedPreview, tree);
-  const cassetteMarkLayer = buildCassetteV2CassetteMarkLayer(curves, tree, options.cassetteMarkContext || {});
-  const markLayer = mergeCassetteMarkLayers(designerSections.layer, cassetteMarkLayer);
-  const designerAttachmentMarkers = designerAttachmentMarkersForTree(curves, tree, {
+  const designerSections = designerSectionsForTree(shapedCurves, foldedPreview, tree);
+  const hardwareLayers = hardwareProductionLayers(hardwareProductionEntities);
+  const cassetteMarkLayer = buildCassetteV2CassetteMarkLayer(shapedCurves, tree, options.cassetteMarkContext || {});
+  const hardwareLayer = hardwareSchematicLayer(shapedCurves, tree, {
     contextWorkpieceId: options.contextWorkpieceId,
     selectedRelationId: options.selectedRelationId
   });
-  const designerFaces = curves.map(curve => ({
-    nodeId: curve.node.id,
-    workpieceId: curve.node.workpieceId,
-    d: occsCurveToPath(curve.vertices),
-    label: curve.node.id,
-    role: faceRoleFromNode(curve.node),
-    parentId: curve.node.parentId || null,
-    center: centroidForVertices(curve.boundaryVertices || curve.vertices),
-    dimensionControls: dimensionControlsForNode(curve.node, curve.boundaryVertices || curve.vertices),
-    offsetControls: offsetControlsForNode(curve.node, curve.boundaryVertices || curve.vertices)
+  const markLayer = mergeCassetteMarkLayers(cassetteMarkLayer, hardwareLayer);
+  const designerAttachmentMarkers = designerAttachmentMarkersForTree(shapedCurves, tree, {
+    contextWorkpieceId: options.contextWorkpieceId,
+    selectedRelationId: options.selectedRelationId
+  }).concat(designerHardwareMarkersForTree(shapedCurves, tree, {
+    contextWorkpieceId: options.contextWorkpieceId,
+    selectedRelationId: options.selectedRelationId
   }));
+  const designerFaces = drawingCurves.map(curve => {
+    const labelBoundary = curve.labelBoundaryVertices || curve.boundaryVertices || curve.vertices;
+    return {
+      nodeId: curve.node.id,
+      workpieceId: curve.node.workpieceId,
+      d: occsShapeToPath(curve),
+      label: curve.node.id,
+      role: faceRoleFromNode(curve.node),
+      parentId: curve.node.parentId || null,
+      center: centroidForVertices(labelBoundary),
+      dimensionControls: dimensionControlsForNode(curve.node, labelBoundary),
+      offsetControls: offsetControlsForNode(curve.node, labelBoundary)
+    };
+  });
 
-  const drawing = await buildOccsDrawingFromFaceCurves(curves, {
+  const drawing = await buildOccsDrawingFromFaceCurves(drawingCurves, {
     designerFaces,
     designerFoldEdges,
     designerSections,
     foldedPreview,
     designerEdges,
-    extraLayers: [markLayer],
+    extraLayers: [...hardwareLayers, designerSections.layer, markLayer],
     viewBoxCurves: designerSections.viewBoxCurves,
     includeDimensions: options.includeDimensions
   });
   if (options.contextWorkpieceId) {
-    drawing.layers = designerAssemblyLayersForCurves(curves, designerFoldEdges, markLayer, {
+    const assemblyLayers = await designerAssemblyLayersForCurves(shapedCurves, [designerSections.layer, markLayer], {
       contextWorkpieceId: options.contextWorkpieceId
     });
+    drawing.layers = assemblyLayers.concat(hardwareLayers);
   }
   drawing.designerAttachmentMarkers = designerAttachmentMarkers;
   return drawing;

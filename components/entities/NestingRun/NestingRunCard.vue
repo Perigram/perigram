@@ -16,6 +16,7 @@ import SheetDesignCard from '../SheetDesign/SheetDesignCard.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
   run: { type: Object, required: true },
@@ -35,7 +36,7 @@ const router = useRouter();
 const entityContext = inject('entityContext', null);
 
 const canManage = computed(() => authStore.can('queues', 'edit'));
-const state = computed(() => props.run.status?.state || 'UNKNOWN');
+const state = computed(() => getPrimaryState(props.run.status, 'UNKNOWN'));
 const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
 const results = computed(() => props.run.data?.results || {});
 const runId = computed(() => props.run._id?.toString());

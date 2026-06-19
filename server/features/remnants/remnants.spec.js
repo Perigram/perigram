@@ -103,7 +103,7 @@ describe('Remnants & Reusability Logic', () => {
     const queueId = new ObjectId();
     const result = await remnantService.markAsUsed(remnantId.toString(), queueId.toString(), mockUser);
     
-    expect(result.status.state).toBe('USED');
+    expect(result.status.state.primary).toBe('USED');
     expect(result.usedInQueueId.toString()).toBe(queueId.toString());
 
     const wh = await db.collection('warehouses').findOne({ _id: warehouseId });

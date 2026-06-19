@@ -2,6 +2,7 @@ import { createError } from 'h3';
 import { getAppRegistry } from '../../runtime/app-registry.js';
 import { statusService } from '../machines/service.js';
 import { enqueueTask } from '../tasks/service.js';
+import { getPrimaryState } from '~/server/core/blocks/index.js';
 
 export async function processEffects(effects = [], context = {}) {
   const list = Array.isArray(effects) ? effects.filter(Boolean) : [effects].filter(Boolean);
@@ -119,7 +120,7 @@ async function processTransitionEffect(effect = {}, context = {}) {
       type: 'transition',
       entity,
       intent,
-      targetState: result?.status?.state || targetState,
+      targetState: getPrimaryState(result?.status, targetState),
       status: result?.status || null,
       effects: result?.effects || []
     };

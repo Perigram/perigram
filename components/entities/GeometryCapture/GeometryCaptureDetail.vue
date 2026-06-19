@@ -11,6 +11,7 @@ import PhotoGeometryOverlay from './PhotoGeometryOverlay.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
   capture: { type: Object, required: true },
@@ -21,7 +22,7 @@ const props = defineProps({
 
 const emit = defineEmits(['confirm', 'recalculate', 'activate-revision', 'save-manual-revision']);
 
-const state = computed(() => props.capture.status?.state || 'DRAFT');
+const state = computed(() => getPrimaryState(props.capture.status, 'DRAFT'));
 const mode = computed(() => props.capture.data?.mode || 'REMNANT');
 const hasGeometry = computed(() => Boolean(props.capture.data?.geometry?.polygon?.outer?.length));
 const warehouseId = computed(() => props.capture.lineage?.warehouseId || null);

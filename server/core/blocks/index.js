@@ -19,7 +19,12 @@ export {
   createCommandResult,
   createEntityRef,
   createTaskResult,
-  createData
+  createData,
+  createStatusState,
+  getPrimaryState,
+  getRegionState,
+  getStatusRegions,
+  normalizeStatusState
 } from '#packages/core/src/index.js';
 
 // Factory helpers for clean service code

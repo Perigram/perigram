@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import { normalizeStatusState } from '#packages/core/src/index.js';
 
 /**
  * Status Block - v24 Standardized
@@ -9,7 +10,7 @@ export class Status {
   constructor(state, userId, metadata = {}, eventId = null, timestamp = null, lifecycle = {}) {
     if (!state) throw new Error('Status: state is required');
     
-    this.state = state;
+    this.state = normalizeStatusState(state);
     this.userId = userId || 'SYSTEM'; // Fallback for legacy data
     this.timestamp = timestamp ? new Date(timestamp) : new Date();
     this.metadata = metadata || {};

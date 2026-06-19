@@ -32,8 +32,21 @@ export const occsCurveToPath = (vertices = []) => {
   return `${commands.join(' ')}${isClosed ? ' Z' : ''}`;
 };
 
+export const occsShapeToPath = (shape = {}) => {
+  const outer = shape.outer || shape.boundaryVertices || shape.vertices || [];
+  const holes = Array.isArray(shape.holes) ? shape.holes : [];
+  return [occsCurveToPath(outer), ...holes.map(hole => occsCurveToPath(hole))]
+    .filter(Boolean)
+    .join(' ');
+};
+
 export const occsViewBoxForCurves = (curves = []) => {
-  const points = curves.flatMap(curve => curve.vertices || []).map(toOccsSvgPoint);
+  const points = curves
+    .flatMap(curve => [
+      ...(curve.boundaryVertices || curve.vertices || []),
+      ...(curve.holes || []).flat()
+    ])
+    .map(toOccsSvgPoint);
   if (!points.length) return '0 0 100 100';
 
   const xs = points.map(point => point[0]);
@@ -49,9 +62,13 @@ export const occsViewBoxForCurves = (curves = []) => {
 };
 
 export const buildOccsDrawingFromFaceCurves = async (curves = [], overlays = {}) => {
+  const dimensionCurves = curves.map((curve) => ({
+    ...curve,
+    boundaryVertices: curve.labelBoundaryVertices || curve.referenceVertices || curve.originalBoundaryVertices || curve.boundaryVertices || curve.vertices
+  }));
   const dimensionDrawing = overlays.includeDimensions === false
     ? null
-    : buildOccsDimensionLayerFromFaceCurves(curves, overlays);
+    : buildOccsDimensionLayerFromFaceCurves(dimensionCurves, overlays);
   const layout = await buildOccsProductionLayout(
     curves.map(curve => ({
       id: curve.id || curve.nodeId || curve.node?.id,
@@ -59,12 +76,21 @@ export const buildOccsDrawingFromFaceCurves = async (curves = [], overlays = {})
     })),
     overlays
   );
-  const facePaths = layout.cutOuterPaths.map(vertices => ({
-    d: occsCurveToPath(vertices),
-    fill: 'layer',
-    stroke: 'none',
-    opacity: 0.1
-  }));
+  const hasShapedFaces = curves.some(curve => Array.isArray(curve.holes) && curve.holes.length);
+  const facePaths = hasShapedFaces
+    ? curves.map(curve => ({
+        d: occsShapeToPath(curve),
+        fill: 'layer',
+        stroke: 'none',
+        opacity: 0.1,
+        fillRule: Array.isArray(curve.holes) && curve.holes.length ? 'evenodd' : null
+      }))
+    : layout.cutOuterPaths.map(vertices => ({
+        d: occsCurveToPath(vertices),
+        fill: 'layer',
+        stroke: 'none',
+        opacity: 0.1
+      }));
   const cutOuterPaths = layout.cutOuterPaths.map(vertices => ({
     d: occsCurveToPath(vertices),
     fill: 'none',

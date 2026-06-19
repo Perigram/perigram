@@ -15,6 +15,7 @@ import {
   tailwindThemeExtension
 } from '../assets/tokens/index.js';
 import { cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { normalizeWorkflow } from '../packages/workflows/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { STATUS_MAPPINGS } from '../utils/status-engine.js';
 import { getWorkflowStatusActions } from '../utils/status-actions.js';
@@ -185,6 +186,13 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens.dataview.root.background).toBe('transparent');
+  });
+
+  it('uses existing semantic variables for SVG designer label contrast', () => {
+    const drawingCanvas = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/DrawingCanvas.vue'), 'utf8');
+
+    expect(drawingCanvas).not.toContain('--ck-content-background');
+    expect(drawingCanvas).toContain('fill-[var(--p-content-background)]');
   });
 
   it('keeps raw Card and Dialog ownership inside shared wrappers', () => {
@@ -462,16 +470,22 @@ describe('Design system manifest', () => {
     for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {
       const workflow = cncWorkflows[entry.entityType];
       if (!workflow) continue;
+      const normalizedWorkflow = normalizeWorkflow(workflow);
+      const workflowStates = Object.values(normalizedWorkflow.regions || {})
+        .flatMap(region => Object.keys(region.states || {}));
 
       const entity = factories[entry.factoryName]();
       expect(
-        Object.keys(workflow.states),
+        workflowStates,
         `${entry.key} factory state ${entity.status.state} must exist in workflow ${entry.entityType}`
       ).toContain(entity.status.state);
     }
 
     for (const [entityType, workflow] of Object.entries(cncWorkflows)) {
-      for (const state of Object.keys(workflow.states)) {
+      const normalizedWorkflow = normalizeWorkflow(workflow);
+      const workflowStates = Object.values(normalizedWorkflow.regions || {})
+        .flatMap(region => Object.keys(region.states || {}));
+      for (const state of workflowStates) {
         expect(
           STATUS_MAPPINGS[state] || STATUS_MAPPINGS[state.toLowerCase()],
           `${entityType}.${state} missing status badge mapping`

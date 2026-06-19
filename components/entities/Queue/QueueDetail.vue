@@ -3,12 +3,12 @@
         <template #actions>
                 <Button :label="$t('queue.nestingConfig')" icon="pi pi-sliders-h" severity="secondary" outlined />
                 <Button
-                  v-if="queueStatusActions.length"
-                  :label="queueStatusActions[0].label"
-                  :icon="queueStatusActions[0].icon"
-                  :severity="queueStatusActions[0].severity || 'secondary'"
+                  v-if="queueCommandActions.length"
+                  :label="queueCommandActions[0].label"
+                  :icon="queueCommandActions[0].icon"
+                  :severity="queueCommandActions[0].severity || 'secondary'"
                   outlined
-                  @click="queueStatusActions[0].command?.()"
+                  @click="queueCommandActions[0].command?.()"
                 />
         </template>
 
@@ -102,6 +102,7 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
     queue: { type: Object, required: true }
@@ -122,8 +123,8 @@ function materialSourceEntityType(source = {}) {
     return null;
 }
 
-const queueStatusActions = computed(() => {
-    if (props.queue.status?.state !== 'DRAFT') return [];
+const queueCommandActions = computed(() => {
+    if (getPrimaryState(props.queue.status) !== 'DRAFT') return [];
     return [{
         label: t('queues.runNesting'),
         icon: 'pi pi-play',

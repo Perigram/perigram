@@ -8,6 +8,8 @@
     "save": "Сохранить",
     "update": "Обновить",
     "reset": "Сбросить",
+    "undo": "Отменить",
+    "redo": "Повторить",
     "revert": "Вернуть к умолчанию",
     "delete": "Удалить",
     "edit": "Редактировать",
@@ -374,6 +376,10 @@
       "addWorkpiece": "Добавить заготовку",
       "addRelatedWorkpiece": "Добавить связанную заготовку",
       "addAttachment": "Добавить привязку",
+      "addHardware": "Добавить метиз",
+      "addProfile": "Добавить профиль",
+      "editProfile": "Редактировать профиль",
+      "profile": "Профиль",
       "deleteWorkpiece": "Удалить заготовку",
       "removeAttachment": "Удалить привязку",
       "driver": "ведущая",
@@ -390,6 +396,27 @@
       "deleteFace": "Удалить грань",
       "faceRole": "Роль грани",
       "rootFace": "Корневая трапеция",
+      "autosaveDraftAvailable": "Для этой кассеты есть черновик текущей сессии.",
+      "recoverDraft": "Восстановить черновик",
+      "discardDraft": "Сбросить черновик",
+      "onboarding": {
+        "document": {
+          "title": "Управление документом",
+          "body": "Имя, загрузка, сохранение, сброс и восстановление черновика находятся в левой панели документа."
+        },
+        "canvas": {
+          "title": "2D редактор",
+          "body": "Наведите на свободное ребро, чтобы показать +, затем нажмите именно на чип + для добавления грани."
+        },
+        "parameters": {
+          "title": "Встроенные редакторы",
+          "body": "Нажимайте лейблы или чипы офсетов для редактирования выражений. Попапы можно перетаскивать, Enter и Escape закрывают их."
+        },
+        "topology": {
+          "title": "Рельс топологии",
+          "body": "Используйте рельс заготовок для связанных деталей, привязок и 3D предпросмотра гибки."
+        }
+      },
       "previewModes": {
         "workpiece": "Заготовка",
         "layout": "Плоская раскладка",
@@ -405,9 +432,75 @@
         "offsetX": "Смещение X",
         "offsetY": "Смещение Y",
         "rotation": "Поворот",
+        "placementMode": "Размещение",
+        "arrayEdge": "Ребро массива",
+        "arrayMode": "Правило массива",
+        "arrayCount": "Количество",
+        "arraySpacing": "Шаг массива",
         "driver": "Ведущая привязка",
         "jointType": "Тип соединения",
         "method": "Метод"
+      },
+      "hardwareFields": {
+        "family": "Семейство метиза",
+        "productionMode": "Способ производства",
+        "primarySize": "Основной размер",
+        "secondarySize": "Второй размер"
+      },
+      "hardwareFamilies": {
+        "bolt": "Болт",
+        "nut": "Гайка",
+        "washer": "Шайба",
+        "rivet": "Заклёпка",
+        "screw": "Винт",
+        "spacer": "Втулка",
+        "standoff": "Стойка",
+        "hanger_clip": "Подвесной крюк"
+      },
+      "hangerProductionModes": {
+        "sheetPart": "Отдельная листовая деталь",
+        "integralCut": "Вырез в родительской детали",
+        "castSolid": "Литое тело"
+      },
+      "profileKinds": {
+        "hanger": "Подвес",
+        "extruded_profile": "Экструдированный профиль",
+        "generic_profile": "Обычный профиль"
+      },
+      "profileProcesses": {
+        "extruded": "Экструзия",
+        "roll_formed": "Профилирование",
+        "brake_formed": "Гибка",
+        "machined": "Мехобработка"
+      },
+      "profileEditor": {
+        "title": "Эскиз профиля",
+        "name": "Имя профиля",
+        "defaultName": "Подвесной профиль",
+        "loadTemplate": "Загрузить шаблон профиля",
+        "preview": "Предпросмотр эскиза профиля",
+        "parameters": "Параметры",
+        "points": "Точки",
+        "holes": "Отверстия",
+        "filletRadius": "Радиус скругления",
+        "insert": "Вставить в кассету",
+        "saved": "Шаблон профиля сохранён",
+        "saveFailed": "Не удалось сохранить шаблон профиля",
+        "kind": "Тип",
+        "process": "Процесс",
+        "tools": {
+          "select": "Выбор",
+          "point": "Точка",
+          "hole": "Отверстие"
+        }
+      },
+      "placementModes": {
+        "point": "Точка",
+        "edgeArray": "Массив по ребру"
+      },
+      "arrayModes": {
+        "count": "По количеству",
+        "spacing": "По шагу"
       },
       "attachmentStatus": {
         "ok": "ok",
@@ -416,6 +509,8 @@
       },
       "snapPoints": {
         "center": "Центр",
+        "start": "Начало",
+        "end": "Конец",
         "origin": "Начало координат",
         "top_left": "Сверху слева",
         "top_right": "Сверху справа",
@@ -1511,6 +1606,7 @@
     "cassetteInstance": "Экземпляр кассеты",
     "entityRevision": "Ревизия сущности",
     "geometryCapture": "Захват геометрии",
+    "profileTemplate": "Шаблон профиля",
     "requisition": "Заявка",
     "material": "Материал",
     "materialPile": "Стопка материала",

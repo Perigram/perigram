@@ -73,7 +73,7 @@ describe('Projects & Multi-tenant Ownership', () => {
     expect(dto).not.toHaveProperty('id');
     expect(dto).not.toHaveProperty('name');
     expect(result.lineage.organizationId.toString()).toBe(contractor1.organizationId.toString());
-    expect(result.status.state).toBe('DRAFT');
+    expect(result.status.state.primary).toBe('DRAFT');
   });
 
   it('should isolate project lists between organizations', async () => {

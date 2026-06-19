@@ -7,6 +7,7 @@ import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import NameEditPopover from '~/components/shared/NameEditPopover.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
   project: { type: Object, required: true },
@@ -20,7 +21,7 @@ const visibleQueues = computed(() => queuePreview.value.slice(0, 3));
 const queueCount = computed(() => Number(props.project.summary?.queueCount || queuePreview.value.length || 0));
 const remainingQueueCount = computed(() => Math.max(queueCount.value - visibleQueues.value.length, 0));
 const totalArea = computed(() => Number(props.project.summary?.totalArea || 0));
-const projectState = computed(() => props.project.status?.state || props.project.status?.current || 'DRAFT');
+const projectState = computed(() => getPrimaryState(props.project.status, props.project.status?.current || 'DRAFT'));
 const address = computed(() => props.project.data?.address || null);
 
 const areaLabel = computed(() => {

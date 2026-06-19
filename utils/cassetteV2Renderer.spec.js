@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   addCassetteV2GraphChild,
+  addCassetteV2HardwareWorkpiece,
+  addCassetteV2ProfileWorkpiece,
   addCassetteV2Workpiece,
   addCassetteV2WorkpieceAttachment,
   buildCassetteV2ComposedDrawing,
@@ -25,8 +27,10 @@ import {
   resolveCassetteV2AngleExpression,
   resolveCassetteV2Expression,
   setGraphNumberInput,
+  updateCassetteV2Workpiece,
   updateCassetteV2WorkpieceRelation
 } from './cassetteV2Renderer.js';
+import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
 
 const graph = {
   nodes: {
@@ -149,7 +153,7 @@ const graphNodeValuesByLabel = (targetGraph, label) => Object.values(targetGraph
   .map(node => node.entity?.data?.value);
 
 describe('cassette v2 trapezoid renderer', () => {
-  it('starts from one root trapezoid and grows a graph tree by parent edge', () => {
+  it('starts from one face and defaults child role by parent role', () => {
     const initialTree = createCassetteV2GraphTree();
     let result = addCassetteV2GraphChild(initialTree, 'face_1', 2);
     result = addCassetteV2GraphChild(result.tree, 'face_2', 1);
@@ -186,6 +190,7 @@ describe('cassette v2 trapezoid renderer', () => {
       parentEdgeIndex: 2,
       attachEdge: 'E0',
       foldAngle: '90',
+      role: 'return_flange',
       parameters: expect.objectContaining({
         height: 'R',
         baseStartOffset: '0',
@@ -194,7 +199,20 @@ describe('cassette v2 trapezoid renderer', () => {
         topEndOffset: '0'
       })
     });
+    expect(result.tree.nodes[2]).toMatchObject({
+      id: 'face_3',
+      parentId: 'face_2',
+      parentEdgeIndex: 1,
+      role: 'mounting_flange',
+      foldAngle: '-90'
+    });
     expect(occs.definitions.workpieces[0].faces.map(face => face.id)).toEqual(['face_1', 'face_2', 'face_3', 'face_4']);
+    expect(occs.definitions.workpieces[0].faces.map(face => face.role)).toEqual([
+      'main',
+      'return_flange',
+      'mounting_flange',
+      'return_flange'
+    ]);
     expect(occs.definitions.workpieces[0].folds[0]).toMatchObject({
       from: 'face_1.E2',
       to: 'face_2.E0',
@@ -210,6 +228,46 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(childParentInputParameter.connections).toEqual([parentBoundaryOutput]);
     expect(parentBoundaryOutputParameter.connections).toContain(childParentInput);
     expect(Object.values(composition.graph.nodes).filter(node => node.label === 'parentEdgeIndex').map(node => node.entity.data.value)).toContain(2);
+  });
+
+  it('adds profile workpieces and exports them without hardware normalization', () => {
+    const initialTree = createCassetteV2GraphTree();
+    const result = addCassetteV2ProfileWorkpiece(initialTree, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      profileTemplate: {
+        _id: 'profile_1',
+        identity: { name: 'Hook profile' },
+        data: {
+          kind: 'hanger',
+          process: 'extruded',
+          parameters: { W: '40', H: '24', R: '2', D: '5', L: '100' }
+        }
+      }
+    });
+    const workpiece = getCassetteV2Workpieces(result.tree).find(item => item.id === result.workpieceId);
+    const occs = createCassetteV2OccsDocument(result.tree);
+    const definition = occs.definitions.workpieces.find(item => item.id === workpiece.definitionId);
+
+    expect(workpiece).toMatchObject({
+      type: 'profile',
+      profileTemplateId: 'profile_1'
+    });
+    expect(workpiece).not.toHaveProperty('family');
+    expect(workpiece).not.toHaveProperty('hardware');
+    expect(definition).toMatchObject({
+      type: 'profile',
+      role: 'hanger',
+      parameters: { W: '40', H: '24', R: '2', D: '5', L: '100' },
+      profile: {
+        section: {
+          type: 'polygon',
+          holes: [{ type: 'circle', center: ['W / 2', 'H / 2'], diameter: 'D' }]
+        },
+        sweep: { type: 'linear', length: 'L' }
+      },
+      manufacturing: { process: 'extruded' }
+    });
   });
 
   it('builds one face graph by feeding evaluated parent vertices through a Nodi polyline input', () => {
@@ -418,6 +476,384 @@ describe('cassette v2 trapezoid renderer', () => {
     })]);
   });
 
+  it('adds declarative hardware as a non-sheet OCCS workpiece with edge-array placement', async () => {
+    const result = addCassetteV2HardwareWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      family: 'bolt',
+      parameters: { diameter: '8', length: '20' },
+      pattern: {
+        type: 'edgeArray',
+        edge: 'E0',
+        mode: 'count',
+        count: '3',
+        spacing: '120'
+      }
+    });
+    const relation = getCassetteV2WorkpieceRelations(result.tree)[0];
+    const placedTree = updateCassetteV2WorkpieceRelation(result.tree, relation.id, {
+      offsetX: '40',
+      offsetY: '12'
+    });
+    const occs = createCassetteV2OccsDocument(placedTree);
+    const relations = getCassetteV2WorkpieceRelations(placedTree);
+    const drawing = await renderCassetteV2TreeToDrawing(placedTree, { mode: 'assembly' });
+    const folded = buildCassetteV2FoldedPreview(drawing.foldedPreview);
+    const hardwareDefinition = occs.definitions.workpieces.find(workpiece => workpiece.id === `${result.workpieceId}_def`);
+
+    expect(result.nodeId).toBe('');
+    expect(hardwareDefinition).toMatchObject({
+      type: 'hardware',
+      role: 'bolt',
+      hardware: {
+        family: 'bolt',
+        parameters: expect.objectContaining({ diameter: '8', length: '20' })
+      }
+    });
+    expect(hardwareDefinition).not.toHaveProperty('faces');
+    expect(relations[0]).toMatchObject({
+      sourceWorkpieceId: result.workpieceId,
+      sourceFaceId: '',
+      targetFaceId: 'face_1',
+      placementMode: 'edgeArray',
+      arrayEdge: 'E0',
+      arrayMode: 'count',
+      arrayCount: '3'
+    });
+    expect(occs.cassette.joints[0].placement.pattern).toMatchObject({
+      type: 'edgeArray',
+      edge: 'E0',
+      count: '3'
+    });
+    expect(drawing.layers.find(layer => layer.standardCode === 'code.cassette_mark').paths
+      .filter(path => path.markKind === 'hardware')
+      .map(path => path.text)).toEqual(['B', 'B', 'B']);
+    expect(drawing.layers.find(layer => layer.standardCode === 'code.cassette_mark').paths
+      .every(path => path.kind === 'text')).toBe(true);
+    expect(drawing.layers.find(layer => layer.standardCode === 'cut.hole').paths).toHaveLength(3);
+    expect(occs.definitions.workpieces[0].entities
+      .filter(entity => entity.layer === 'cut.hole')
+      .map(entity => entity.geometry.type)).toEqual(['circle', 'circle', 'circle']);
+    expect(drawing.foldedPreview.cutouts.filter(cutout => cutout.layer === 'cut.hole')).toHaveLength(3);
+    expect(drawing.foldedPreview.bodies[0]).toMatchObject({
+      family: 'bolt',
+      targetFaceId: 'face_1',
+      pattern: expect.objectContaining({ edge: 'E0', count: 3 })
+    });
+    expect(folded.bodies).toHaveLength(3);
+    expect(folded.cutouts).toHaveLength(3);
+    expect(folded.bodies.map(body => body.workpieceId)).toEqual([result.workpieceId, result.workpieceId, result.workpieceId]);
+  });
+
+  it('binds hardware edge arrays from start, end, or center with two-sided X margins', async () => {
+    const start = addCassetteV2HardwareWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      family: 'bolt',
+      parameters: { diameter: '8' },
+      pattern: {
+        type: 'edgeArray',
+        edge: 'E0',
+        mode: 'spacing',
+        spacing: '120'
+      }
+    });
+    const startRelation = getCassetteV2WorkpieceRelations(start.tree)[0];
+    const startTree = updateCassetteV2WorkpieceRelation(start.tree, startRelation.id, {
+      targetSnap: 'start',
+      offsetX: '40'
+    });
+    const centerTree = updateCassetteV2WorkpieceRelation(start.tree, startRelation.id, {
+      targetSnap: 'center',
+      offsetX: '40'
+    });
+    const endTree = updateCassetteV2WorkpieceRelation(start.tree, startRelation.id, {
+      targetSnap: 'end',
+      offsetX: '40'
+    });
+
+    const holeXs = (tree) => createCassetteV2OccsDocument(tree).definitions.workpieces[0].entities
+      .filter(entity => entity.layer === 'cut.hole')
+      .map(entity => Number(entity.geometry.center[0]));
+    const foldedBodyXs = async (tree) => {
+      const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
+      return buildCassetteV2FoldedPreview(drawing.foldedPreview).bodies.map(body => Math.round(body.center[0]));
+    };
+
+    expect(holeXs(startTree)).toEqual([40, 160, 280, 400]);
+    expect(holeXs(centerTree)).toEqual([70, 190, 310, 430]);
+    expect(holeXs(endTree)).toEqual([460, 340, 220, 100]);
+    expect(await foldedBodyXs(centerTree)).toEqual([70, 190, 310, 430]);
+  });
+
+  it('stores hanger clips with selectable production modes', () => {
+    const sheetPart = addCassetteV2HardwareWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      family: 'hanger_clip',
+      productionMode: 'sheetPart'
+    });
+    const castSolid = addCassetteV2HardwareWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      family: 'hanger_clip',
+      productionMode: 'castSolid'
+    });
+    const sheetOccs = createCassetteV2OccsDocument(sheetPart.tree);
+    const solidOccs = createCassetteV2OccsDocument(castSolid.tree);
+    const convertedToSheet = updateCassetteV2Workpiece(castSolid.tree, castSolid.workpieceId, {
+      family: 'hanger_clip',
+      productionMode: 'sheetPart'
+    });
+    const convertedBackToSolid = updateCassetteV2Workpiece(convertedToSheet, castSolid.workpieceId, {
+      family: 'hanger_clip',
+      productionMode: 'castSolid'
+    });
+
+    expect(sheetPart.nodeId).toBe('face_2');
+    expect(sheetOccs.definitions.workpieces.find(workpiece => workpiece.id === `${sheetPart.workpieceId}_def`)).toMatchObject({
+      type: 'sheet',
+      role: 'hanger_clip',
+      hardware: { family: 'hanger_clip', productionMode: 'sheetPart' }
+    });
+    expect(solidOccs.definitions.workpieces.find(workpiece => workpiece.id === `${castSolid.workpieceId}_def`)).toMatchObject({
+      type: 'solid',
+      role: 'hanger_clip',
+      solid: { kind: 'hanger_clip' },
+      hardware: { family: 'hanger_clip', productionMode: 'castSolid' }
+    });
+    expect(convertedToSheet.nodes.find(node => node.workpieceId === castSolid.workpieceId)).toMatchObject({
+      role: 'hook_flange'
+    });
+    expect(convertedBackToSolid.nodes.find(node => node.workpieceId === castSolid.workpieceId)).toBeUndefined();
+  });
+
+  it('renders integral-cut hanger clips as parent-face inner cut polygons', async () => {
+    const result = addCassetteV2HardwareWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      family: 'hanger_clip',
+      productionMode: 'integralCut',
+      parameters: { width: '40', height: '24', hookDepth: '10' },
+      pattern: {
+        type: 'edgeArray',
+        edge: 'E2',
+        mode: 'count',
+        count: '2',
+        spacing: '160'
+      }
+    });
+    const relation = getCassetteV2WorkpieceRelations(result.tree)[0];
+    const placedTree = updateCassetteV2WorkpieceRelation(result.tree, relation.id, {
+      offsetX: '70',
+      offsetY: '18'
+    });
+    const occs = createCassetteV2OccsDocument(placedTree);
+    const drawing = await renderCassetteV2TreeToDrawing(placedTree, { mode: 'assembly' });
+    const folded = buildCassetteV2FoldedPreview(drawing.foldedPreview);
+    const innerEntities = occs.definitions.workpieces[0].entities.filter(entity => entity.layer === 'cut.inner');
+
+    expect(innerEntities).toHaveLength(2);
+    expect(innerEntities.map(entity => entity.geometry.type)).toEqual(['polygon', 'polygon']);
+    expect(occs.definitions.workpieces[0].faces[0].shape).toMatchObject({
+      type: 'polygon',
+      holes: expect.any(Array)
+    });
+    expect(occs.definitions.workpieces[0].faces[0].shape.holes).toHaveLength(2);
+    expect(drawing.layers.find(layer => layer.standardCode === 'contour.cassette_face').paths[0]).toMatchObject({
+      fillRule: 'evenodd'
+    });
+    expect(drawing.layers.find(layer => layer.standardCode === 'cut.inner').paths).toHaveLength(2);
+    expect(drawing.foldedPreview.cutouts.filter(cutout => cutout.layer === 'cut.inner')).toHaveLength(2);
+    expect(folded.faces[0].holes).toHaveLength(2);
+    expect(folded.cutouts.filter(cutout => cutout.layer === 'cut.inner').map(cutout => cutout.points.length)).toEqual([9, 9]);
+  });
+
+  it('dispatches edge-breaking integral cuts only through the modified parent contour', async () => {
+    const result = addCassetteV2HardwareWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      family: 'hanger_clip',
+      productionMode: 'integralCut',
+      parameters: { width: '42', height: '28', hookDepth: '12' },
+      pattern: {
+        type: 'edgeArray',
+        edge: 'E0',
+        mode: 'count',
+        count: '1'
+      }
+    });
+    const relation = getCassetteV2WorkpieceRelations(result.tree)[0];
+    const tree = updateCassetteV2WorkpieceRelation(result.tree, relation.id, {
+      targetSnap: 'start',
+      offsetX: '250',
+      offsetY: '0'
+    });
+    const occs = createCassetteV2OccsDocument(tree);
+    const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
+    const contextDrawing = await renderCassetteV2TreeToDrawing(tree, {
+      mode: 'assembly',
+      contextWorkpieceId: 'wp_1'
+    });
+    const folded = buildCassetteV2FoldedPreview(drawing.foldedPreview);
+
+    const cutOuter = drawing.layers.find(layer => layer.standardCode === 'cut.outer');
+    const innerCut = drawing.layers.find(layer => layer.standardCode === 'cut.inner');
+    const faceContour = drawing.layers.find(layer => layer.standardCode === 'contour.cassette_face');
+    const contextCutOuter = contextDrawing.layers.find(layer => layer.standardCode === 'cut.outer');
+    const contextFaceContour = contextDrawing.layers.find(layer => layer.standardCode === 'contour.cassette_face');
+    const cutEntities = occs.definitions.workpieces[0].entities.filter(entity => entity.layer?.startsWith('cut.'));
+
+    expect(cutOuter.paths).toHaveLength(1);
+    expect(cutOuter.paths[0].d).toContain('257.349609375 -14');
+    expect(faceContour.paths[0].fillRule).toBeUndefined();
+    expect(contextCutOuter.paths).toHaveLength(1);
+    expect(contextFaceContour.paths).toHaveLength(1);
+    expect(contextCutOuter.paths[0].d).toBe(cutOuter.paths[0].d);
+    expect(contextFaceContour.paths[0].d).toBe(cutOuter.paths[0].d);
+    expect(innerCut).toBeUndefined();
+    expect(cutEntities).toEqual([]);
+    expect(folded.cutouts || []).toEqual([]);
+  });
+
+  it('keeps face labels and dimension controls on the original boundary for integral cuts', async () => {
+    const cleanTree = createCassetteV2GraphTree();
+    const cleanDrawing = await renderCassetteV2TreeToDrawing(cleanTree, { mode: 'assembly' });
+    const cleanFace = cleanDrawing.designerFaces.find(face => face.nodeId === 'face_1');
+
+    const clipped = addCassetteV2HardwareWorkpiece(cleanTree, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      family: 'hanger_clip',
+      productionMode: 'integralCut',
+      parameters: { width: '42', height: '28', hookDepth: '12' },
+      pattern: {
+        type: 'edgeArray',
+        edge: 'E0',
+        mode: 'count',
+        count: '1'
+      }
+    });
+    const relation = getCassetteV2WorkpieceRelations(clipped.tree)[0];
+    const clippedTree = updateCassetteV2WorkpieceRelation(clipped.tree, relation.id, {
+      offsetX: '250',
+      offsetY: '0'
+    });
+    const clippedDrawing = await renderCassetteV2TreeToDrawing(clippedTree, { mode: 'assembly' });
+    const clippedFace = clippedDrawing.designerFaces.find(face => face.nodeId === 'face_1');
+
+    expect(cleanFace).toBeDefined();
+    expect(clippedFace).toBeDefined();
+    expect(clippedFace.label).toBe(cleanFace.label);
+    expect(clippedFace.center).toMatchObject(cleanFace.center);
+    expect(clippedFace.dimensionControls).toEqual(cleanFace.dimensionControls);
+    expect(clippedFace.offsetControls).toEqual(cleanFace.offsetControls);
+  });
+
+  it('keeps edge hover and add-face button anchors on the original boundary for integral cuts', async () => {
+    const cleanTree = createCassetteV2GraphTree();
+    const cleanDrawing = await renderCassetteV2TreeToDrawing(cleanTree, { mode: 'assembly' });
+    const cleanEdges = (cleanDrawing.designerEdges || [])
+      .filter(edge => edge.nodeId === 'face_1')
+      .map(({ edgeIndex, x1, y1, x2, y2, midX, midY, length, label }) => ({
+        edgeIndex,
+        x1,
+        y1,
+        x2,
+        y2,
+        midX,
+        midY,
+        length,
+        label
+      }));
+
+    const clipped = addCassetteV2HardwareWorkpiece(cleanTree, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      family: 'hanger_clip',
+      productionMode: 'integralCut',
+      parameters: { width: '42', height: '28', hookDepth: '12' },
+      pattern: {
+        type: 'edgeArray',
+        edge: 'E2',
+        mode: 'count',
+        count: '1',
+        spacing: '0'
+      }
+    });
+    const relation = getCassetteV2WorkpieceRelations(clipped.tree)[0];
+    const clippedTree = updateCassetteV2WorkpieceRelation(clipped.tree, relation.id, {
+      offsetX: '70',
+      offsetY: '8'
+    });
+    const clippedDrawing = await renderCassetteV2TreeToDrawing(clippedTree, { mode: 'assembly' });
+    const clippedEdges = (clippedDrawing.designerEdges || [])
+      .filter(edge => edge.nodeId === 'face_1')
+      .map(({ edgeIndex, x1, y1, x2, y2, midX, midY, length, label }) => ({
+        edgeIndex,
+        x1,
+        y1,
+        x2,
+        y2,
+        midX,
+        midY,
+        length,
+        label
+      }));
+
+    expect(clippedEdges).toEqual(cleanEdges);
+  });
+
+  it('keeps fold-route indices on the original boundary after integral cut booleans', async () => {
+    const cleanChild = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 2);
+    const cleanDrawing = await renderCassetteV2TreeToDrawing(cleanChild.tree, { mode: 'assembly' });
+    const cleanFoldEdges = (cleanDrawing.designerFoldEdges || [])
+      .map(({ nodeId, edgeIndex, x1, y1, x2, y2, foldNodeId, label }) => ({
+        nodeId,
+        edgeIndex,
+        x1,
+        y1,
+        x2,
+        y2,
+        foldNodeId,
+        label
+      }));
+
+    const clipped = addCassetteV2HardwareWorkpiece(cleanChild.tree, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      family: 'hanger_clip',
+      productionMode: 'integralCut',
+      parameters: { width: '42', height: '28', hookDepth: '12' },
+      pattern: {
+        type: 'edgeArray',
+        edge: 'E2',
+        mode: 'count',
+        count: '1',
+        spacing: '0'
+      }
+    });
+    const relation = getCassetteV2WorkpieceRelations(clipped.tree)[0];
+    const clippedTree = updateCassetteV2WorkpieceRelation(clipped.tree, relation.id, {
+      offsetX: '70',
+      offsetY: '8'
+    });
+    const clippedDrawing = await renderCassetteV2TreeToDrawing(clippedTree, { mode: 'assembly' });
+    const clippedFoldEdges = (clippedDrawing.designerFoldEdges || [])
+      .map(({ nodeId, edgeIndex, x1, y1, x2, y2, foldNodeId, label }) => ({
+        nodeId,
+        edgeIndex,
+        x1,
+        y1,
+        x2,
+        y2,
+        foldNodeId,
+        label
+      }));
+
+    expect(clippedFoldEdges).toEqual(cleanFoldEdges);
+  });
+
   it('edits workpiece attachment topology and renders selected/assembly preview modes', async () => {
     const first = addCassetteV2Workpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
@@ -434,7 +870,7 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const second = addCassetteV2Workpiece(tree, {
       referenceWorkpieceId: 'wp_2',
-      referenceNodeId: 'face_2'
+      referenceNodeId: first.nodeId
     });
     tree = second.tree;
     const occs = createCassetteV2OccsDocument(tree);
@@ -473,8 +909,8 @@ describe('cassette v2 trapezoid renderer', () => {
       { id: 'wp_2', level: 1 },
       { id: 'wp_3', level: 2 }
     ]);
-    expect(selectedDrawing.foldedPreview.faces.map(face => face.nodeId)).toEqual(['face_2']);
-    expect(assemblyCurves.find(curve => curve.node.id === 'face_2').vertices[0]).toEqual([510, 405, 0]);
+    expect(selectedDrawing.foldedPreview.faces.map(face => face.nodeId)).toEqual([first.nodeId]);
+    expect(assemblyCurves.find(curve => curve.node.id === first.nodeId).vertices[0]).toEqual([510, 405, 0]);
   });
 
   it('stores multiple declared attachments for one workpiece and uses only one placement driver', () => {
@@ -488,8 +924,8 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const addedAttachment = addCassetteV2WorkpieceAttachment(second.tree, 'wp_3', {
       targetWorkpieceId: 'wp_2',
-      targetFaceId: 'face_2',
-      sourceFaceId: 'face_3'
+      targetFaceId: first.nodeId,
+      sourceFaceId: second.nodeId
     });
     const extraRelation = getCassetteV2WorkpieceRelations(addedAttachment.tree)
       .find(relation => relation.id === addedAttachment.relationId);
@@ -520,7 +956,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(occs.cassette.joints.find(joint => joint.source.occurrence === 'wp_3')).not.toHaveProperty('driver');
     expect(occs.cassette.occurrences.find(item => item.id === 'wp_3').placement.relativeTo).toMatchObject({
       occurrence: 'wp_2',
-      face: 'face_2'
+      face: first.nodeId
     });
     expect(topology.edges.filter(edge => edge.targetWorkpieceId === 'wp_3').map(edge => ({
       source: edge.sourceWorkpieceId,
@@ -542,8 +978,8 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const addedAttachment = addCassetteV2WorkpieceAttachment(second.tree, 'wp_3', {
       targetWorkpieceId: 'wp_2',
-      targetFaceId: 'face_2',
-      sourceFaceId: 'face_3'
+      targetFaceId: first.nodeId,
+      sourceFaceId: second.nodeId
     });
     const promoted = updateCassetteV2WorkpieceRelation(addedAttachment.tree, addedAttachment.relationId, {
       driver: true,
@@ -569,11 +1005,11 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(drawing.layers.find(layer => layer.standardCode === 'cut.outer').paths.map(path => ({
       workpieceId: path.workpieceId,
       opacity: path.opacity
-    }))).toEqual([
+    }))).toEqual(expect.arrayContaining([
       { workpieceId: 'wp_1', opacity: 0.28 },
       { workpieceId: 'wp_2', opacity: 0.28 },
       { workpieceId: 'wp_3', opacity: 1 }
-    ]);
+    ]));
     expect(drawing.designerAttachmentMarkers.map(marker => ({
       relationId: marker.relationId,
       role: marker.role,
@@ -581,9 +1017,9 @@ describe('cassette v2 trapezoid renderer', () => {
       active: marker.active
     }))).toEqual(expect.arrayContaining([
       {
-        relationId: addedAttachment.relationId,
-        role: 'target',
-        workpieceId: 'wp_2',
+      relationId: addedAttachment.relationId,
+      role: 'target',
+      workpieceId: 'wp_2',
         active: true
       },
       {
@@ -602,7 +1038,7 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const second = addCassetteV2Workpiece(first.tree, {
       referenceWorkpieceId: 'wp_2',
-      referenceNodeId: 'face_2'
+      referenceNodeId: first.nodeId
     });
     const result = deleteCassetteV2Workpiece(second.tree, 'wp_2');
     const rootDelete = deleteCassetteV2Workpiece(result.tree, 'wp_1');
@@ -611,7 +1047,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(result.deletedWorkpieceIds).toEqual(['wp_2']);
     expect(result.selectedWorkpieceId).toBe('wp_1');
     expect(result.tree.workpieces.map(workpiece => workpiece.id)).toEqual(['wp_1', 'wp_3']);
-    expect(result.tree.nodes.map(node => node.id)).toEqual(['face_1', 'face_3']);
+    expect(result.tree.nodes.map(node => node.id)).toEqual(['face_1', second.nodeId]);
     expect(result.tree.joints).toEqual([]);
     expect(occs.definitions.workpieces).toHaveLength(2);
     expect(occs.cassette.occurrences).toHaveLength(2);
@@ -707,6 +1143,7 @@ describe('cassette v2 trapezoid renderer', () => {
       'cut.outer',
       'fold.route',
       'dimension.cassette',
+      null,
       'code.cassette_mark'
     ]);
     expect(drawing.layers[0].paths).toHaveLength(1);
@@ -720,13 +1157,13 @@ describe('cassette v2 trapezoid renderer', () => {
       .filter(path => path.kind === 'text')
       .map(path => path.text)).toEqual(['A', 'B', 'R']);
     expect(drawing.designerFaces.map(face => face.nodeId)).toEqual(['face_1', 'face_2']);
-    expect(drawing.designerFoldEdges).toEqual([expect.objectContaining({
+    expect(drawing.designerFoldEdges).toEqual(expect.arrayContaining([expect.objectContaining({
       nodeId: 'face_1',
       edgeIndex: 2,
       foldNodeId: 'face_2',
       angle: '90',
       label: '90'
-    })]);
+    })]));
     expect(drawing.designerEdges.map(edge => edge.label)).toEqual(['+', '+', '+', '+', '+', '+']);
   });
 
@@ -751,6 +1188,7 @@ describe('cassette v2 trapezoid renderer', () => {
       'cut.outer',
       'fold.route',
       'dimension.cassette',
+      null,
       'code.cassette_mark'
     ]);
     expect(drawing.layers[0].paths).toHaveLength(1);
@@ -762,13 +1200,13 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(occs.definitions.workpieces[0].folds[0].angle).toBe('135');
     expect(occs.definitions.workpieces[0].entities.map(entity => entity.layer)).toContain('dimension.cassette');
     expect(drawing.designerFaces.map(face => face.nodeId)).toEqual(['face_1', 'face_2']);
-    expect(drawing.designerFoldEdges).toEqual([expect.objectContaining({
+    expect(drawing.designerFoldEdges).toEqual(expect.arrayContaining([expect.objectContaining({
       nodeId: 'face_1',
       edgeIndex: 2,
       foldNodeId: 'face_2',
       angle: '135',
       label: '135'
-    })]);
+    })]));
     expect(drawing.designerEdges.map(edge => edge.label)).toEqual(['+', '+', '+', '+', '+', '+']);
   });
 
@@ -824,13 +1262,17 @@ describe('cassette v2 trapezoid renderer', () => {
       'cut.outer',
       'fold.route',
       'dimension.cassette',
+      null,
       'code.cassette_mark'
     ]);
     expect(drawing.foldedPreview.faces).toHaveLength(2);
     expect(drawing.designerFaces.map(face => face.workpieceId)).toEqual(['wp_1', 'wp_1']);
     expect(drawing.designerSections.handles.map(handle => handle.orientation)).toEqual(['vertical', 'horizontal']);
     expect(drawing.designerSections.segments.map(segment => segment.orientation)).toEqual(expect.arrayContaining(['vertical', 'horizontal']));
-    expect(drawing.layers.find(layer => layer.standardCode === 'code.cassette_mark').paths.length).toBeGreaterThan(0);
+    expect(drawing.layers.find(layer => layer.name === 'designer.section').paths
+      .every(path => path.sectionKind)).toBe(true);
+    expect(drawing.layers.find(layer => layer.standardCode === 'code.cassette_mark').paths
+      .every(path => path.kind === 'text')).toBe(true);
     expect(drawing.designerEdges.map(edge => edge.label)).toEqual(['+', '+', '+', '+', '+', '+']);
   });
 

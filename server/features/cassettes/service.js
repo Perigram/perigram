@@ -210,7 +210,7 @@ export async function list(userId, userOrg, userRole, userPermissions, query = {
   const processedFilter = { ...rest };
 
   if (status) {
-    processedFilter['status.state'] = status;
+    processedFilter['status.state.primary'] = status;
   }
 
   const finalFilter = { ...lineageFilter, ...processedFilter };

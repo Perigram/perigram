@@ -31,13 +31,13 @@
     <div
       ref="viewportRef"
       class="h-[calc(100%-1.5rem)] w-full cursor-grab touch-none active:cursor-grabbing"
-      :class="visibleFaces.length ? '' : 'hidden'"
+      :class="visibleFaces.length || visibleBodies.length ? '' : 'hidden'"
       role="img"
       :aria-label="$t(titleKey)"
       @pointerdown="recordPointerDown"
       @click.stop="selectMesh"
     />
-    <div v-if="!visibleFaces.length" class="flex h-[calc(100%-1.5rem)] w-full items-center justify-center text-muted-color">
+    <div v-if="!visibleFaces.length && !visibleBodies.length" class="flex h-[calc(100%-1.5rem)] w-full items-center justify-center text-muted-color">
       <i class="pi pi-image" aria-hidden="true" />
     </div>
   </div>
@@ -97,6 +97,16 @@ const visibleAttachments = computed(() => {
     attachment.targetWorkpieceId === props.isolatedWorkpieceId
   ));
 });
+const visibleBodies = computed(() => {
+  const bodies = folded.value.bodies || [];
+  if (!props.isolatedWorkpieceId) return bodies;
+  return bodies.filter(body => body.workpieceId === props.isolatedWorkpieceId);
+});
+const visibleCutouts = computed(() => {
+  const cutouts = folded.value.cutouts || [];
+  if (!props.isolatedWorkpieceId) return cutouts;
+  return cutouts.filter(cutout => cutout.workpieceId === props.isolatedWorkpieceId);
+});
 
 let animationFrame = 0;
 
@@ -125,11 +135,23 @@ const attachmentColor = (attachment) => {
   return new THREE.Color(0x2563eb);
 };
 
+const cutoutColor = (cutout) => (
+  cutout.layer === 'cut.hole' ? new THREE.Color(0x0f766e) : new THREE.Color(0xdc2626)
+);
+
+const bodyColor = (body) => {
+  const hue = hueForWorkpiece(body.workpieceId || body.id) / 360;
+  const selected = body.workpieceId === props.selectedWorkpieceId;
+  return new THREE.Color().setHSL(hue, selected ? 0.72 : 0.58, selected ? 0.46 : 0.36);
+};
+
 const toVector3 = (point = [0, 0, 0]) => new THREE.Vector3(
   Number(point[0]) || 0,
   Number(point[2]) || 0,
   -(Number(point[1]) || 0)
 );
+
+const toDirection3 = (point = [0, 0, 1]) => toVector3(point).normalize();
 
 const disposeObject = (object) => {
   object?.traverse?.((child) => {
@@ -143,13 +165,26 @@ const disposeObject = (object) => {
 };
 
 const createFaceMesh = (face) => {
-  const points = (face.points || []).map(toVector3);
+  const points3d = face.points || [];
+  const points = points3d.map(toVector3);
   if (points.length < 3) return null;
 
-  const geometry = new THREE.BufferGeometry().setFromPoints(points);
-  const indices = [];
-  for (let index = 1; index < points.length - 1; index += 1) {
-    indices.push(0, index, index + 1);
+  const holePoints3d = face.holes || [];
+  const flatPoints = [...points, ...holePoints3d.flat().map(toVector3)];
+  const geometry = new THREE.BufferGeometry().setFromPoints(flatPoints);
+  const sourceVertices = face.sourceVertices || points3d.map(point => [point[0], point[1]]);
+  const sourceHoles = face.sourceHoles || [];
+  const triangles = THREE.ShapeUtils.triangulateShape(
+    sourceVertices.map(point => new THREE.Vector2(Number(point?.[0]) || 0, Number(point?.[1]) || 0)),
+    sourceHoles.map(hole => hole.map(point => new THREE.Vector2(Number(point?.[0]) || 0, Number(point?.[1]) || 0)))
+  );
+  const indices = triangles.length
+    ? triangles.flat()
+    : [];
+  if (!indices.length) {
+    for (let index = 1; index < points.length - 1; index += 1) {
+      indices.push(0, index, index + 1);
+    }
   }
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
@@ -171,8 +206,8 @@ const createFaceMesh = (face) => {
     workpieceId: face.workpieceId
   };
 
-  const outline = new THREE.LineSegments(
-    new THREE.EdgesGeometry(geometry),
+  const outline = new THREE.LineLoop(
+    new THREE.BufferGeometry().setFromPoints(points),
     new THREE.LineBasicMaterial({
       color: selected ? 0x111827 : edgeColor(face),
       depthTest: true
@@ -198,6 +233,57 @@ const createAttachmentLine = (attachment) => {
   }));
   line.raycast = () => {};
   return line;
+};
+
+const createCutoutLine = (cutout) => {
+  if (cutout.layer === 'cut.inner') return null;
+  const points = (cutout.points || []).map(toVector3);
+  if (points.length < 2) return null;
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({
+    color: cutoutColor(cutout),
+    depthTest: false
+  }));
+  line.raycast = () => {};
+  return line;
+};
+
+const bodyParameter = (body, key, fallback) => {
+  const value = Number(body?.parameters?.[key]);
+  return Number.isFinite(value) ? value : fallback;
+};
+
+const createBodyMesh = (body) => {
+  const diameter = bodyParameter(body, 'diameter', bodyParameter(body, 'outerDiameter', 8));
+  const length = bodyParameter(body, 'length', bodyParameter(body, 'thickness', 8));
+  const width = bodyParameter(body, 'width', bodyParameter(body, 'widthAcrossFlats', diameter * 1.6));
+  const height = bodyParameter(body, 'height', length);
+  const thickness = bodyParameter(body, 'thickness', Math.max(1.5, diameter * 0.25));
+  const family = body.family || 'bolt';
+  let geometry;
+
+  if (family === 'nut') {
+    geometry = new THREE.CylinderGeometry(width / 2, width / 2, thickness, 6);
+  } else if (family === 'washer') {
+    geometry = new THREE.TorusGeometry(bodyParameter(body, 'outerDiameter', 14) / 2, Math.max(0.5, thickness / 2), 8, 28);
+  } else if (family === 'hanger_clip') {
+    geometry = new THREE.BoxGeometry(width, Math.max(2, thickness), height);
+  } else {
+    geometry = new THREE.CylinderGeometry(diameter / 2, diameter / 2, Math.max(2, length), 20);
+  }
+
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+    color: bodyColor(body),
+    roughness: 0.54,
+    metalness: family === 'hanger_clip' ? 0.18 : 0.42
+  }));
+  mesh.position.copy(toVector3(body.center));
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), toDirection3(body.normal || [0, 0, 1]));
+  mesh.userData = {
+    workpieceId: body.workpieceId,
+    bodyId: body.id
+  };
+  return mesh;
 };
 
 const updateSize = () => {
@@ -245,6 +331,16 @@ const updateScene = () => {
   for (const attachment of visibleAttachments.value) {
     const line = createAttachmentLine(attachment);
     if (line) group.add(line);
+  }
+  for (const cutout of visibleCutouts.value) {
+    const line = createCutoutLine(cutout);
+    if (line) group.add(line);
+  }
+  for (const body of visibleBodies.value) {
+    const mesh = createBodyMesh(body);
+    if (!mesh) continue;
+    group.add(mesh);
+    meshes.push(mesh);
   }
   scene.value.add(group);
   faceGroup.value = group;
@@ -329,7 +425,7 @@ const selectMesh = (event) => {
 onMounted(setupRenderer);
 
 watch(
-  () => [visibleFaces.value, visibleAttachments.value, props.selectedFaceId, props.selectedWorkpieceId],
+  () => [visibleFaces.value, visibleAttachments.value, visibleBodies.value, visibleCutouts.value, props.selectedFaceId, props.selectedWorkpieceId],
   () => {
     if (!renderer.value) {
       setupRenderer();

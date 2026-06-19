@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="remnant" entity-type="remnant" :status-actions="statusActions">
+    <EntityPage :entity="remnant" entity-type="remnant">
         <template #actions>
             <Button icon="pi pi-qrcode" text :aria-label="$t('common.printTag')" />
         </template>
@@ -50,9 +50,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { computed, ref, watch } from 'vue';
 import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
@@ -68,12 +66,9 @@ const props = defineProps({
     }
 });
 
-const { t } = useI18n();
-const { changeStatus } = useEntity('remnant', props.remnant?._id || props.remnant?.id);
 const pileEntity = useEntity('materialPile');
 const sheetEntity = useEntity('sheet');
 const warehouseEntity = useEntity('warehouse');
-const state = computed(() => props.remnant.status?.state || 'UNKNOWN');
 const specs = computed(() => props.remnant.specs || props.remnant.data?.specs || {});
 const pileId = computed(() => props.remnant.lineage?.pileId || null);
 const sheetId = computed(() => props.remnant.lineage?.sheetId || null);
@@ -84,11 +79,6 @@ const warehouse = ref(null);
 const formattedArea = computed(() => {
     const area = Number(specs.value.area || 0);
     return `${area.toFixed(2)} m²`;
-});
-
-const statusActions = computed(() => {
-    if (state.value !== 'AVAILABLE') return [];
-    return [{ label: t('common.markUsed'), icon: 'pi pi-check-circle', severity: 'success', command: () => changeStatus('USED') }];
 });
 
 watch(pileId, async (id) => {

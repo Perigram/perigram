@@ -21,7 +21,6 @@
                         :key="option._id"
                         :queue="option"
                         variant="compact"
-                        :status-actions="isSelectedQueue(option) ? queueStatusActions : []"
                         :show-delete="isSelectedQueue(option)"
                         :show-summary="false"
                         :show-footer-actions="false"
@@ -276,7 +275,7 @@
                             :sheet-designs="sheetDesigns"
                             :show-sheet-design-previews="true"
                             :active="true"
-                            :is-chosen="activeRun.status?.state === 'CHOSEN'"
+                            :is-chosen="getPrimaryState(activeRun.status) === 'CHOSEN'"
                             @select="selectedRunId = $event.toString()"
                             @choose="chooseRunHandler"
                             @refresh="handleRunStatusChanged"
@@ -349,6 +348,7 @@ import ScrollablePanel from '~/components/shared/ScrollablePanel.vue';
 import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
     queue: { type: Object, required: true },
@@ -362,7 +362,7 @@ const confirm = useConfirm();
 const toast = useToast();
 const authStore = useAuthStore();
 
-const queueState = computed(() => props.queue.status?.state || 'UNKNOWN');
+const queueState = computed(() => getPrimaryState(props.queue.status, 'UNKNOWN'));
 const queueName = computed(() => props.queue.identity?.name || props.queue.identity?.slug || t('common.unnamed'));
 
 const queuesStore = useQueuesStore();
@@ -651,27 +651,13 @@ const runOptions = computed(() => queueRuns.value.map(run => ({
 })));
 const activeRun = computed(() => queueRuns.value.find(run => run._id?.toString() === selectedRunId.value?.toString()) || queueRuns.value[0] || null);
 const hasPhysicalOutputs = computed(() => Boolean(props.queue.data?.physicalOutputs?.cassetteInstanceIds?.length));
-const queueStatusActions = computed(() => {
-    if (!authStore.can('queues', 'edit')) return [];
-
-    const actions = [];
-    if (queueState.value !== 'DRAFT') {
-        actions.push({
-            label: t('queue.resetToDraft'),
-            icon: 'pi pi-refresh',
-            severity: 'warning',
-            command: () => resetToDraft()
-        });
-    }
-    return actions;
-});
-
 const warehouseShortage = computed(() => {
     if (nestingOptions.value.materialMode !== 'WAREHOUSE') return null;
     if (queueRuns.value.length === 0) return null;
     
     const latestRun = queueRuns.value[queueRuns.value.length - 1];
-    if (latestRun.status?.state !== 'COMPLETE' && latestRun.status?.state !== 'CHOSEN') return null;
+    const latestState = getPrimaryState(latestRun.status);
+    if (latestState !== 'COMPLETE' && latestState !== 'CHOSEN') return null;
     
     const totalAvailable = selectedMaterialPool.value.reduce((sum, item) => sum + (item.available || 1), 0);
     
@@ -966,18 +952,6 @@ const runNesting = async () => {
         toast.add({ severity: 'info', summary: t('queues.nestingStarted'), life: 3000 });
     } catch (e) { toast.add({ severity: 'error', summary: t('queues.nestingFailed'), detail: e.message, life: 3000 }); }
     finally { nestingInProgress.value = false; }
-};
-
-const resetToDraft = async () => {
-    confirm.require({
-        message: t('queues.confirmResetMessage'),
-        header: t('queues.confirmResetTitle'),
-        icon: 'pi pi-exclamation-triangle',
-        accept: async () => {
-            try { await queuesStore.resetStatus(props.queue._id); emit('updated'); }
-            catch (e) { console.error(e); }
-        }
-    });
 };
 
 const confirmDeleteQueue = (queueToDelete) => {

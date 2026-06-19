@@ -92,6 +92,40 @@ describe('cassette v2 folded preview', () => {
     expect(Math.max(...child.points.map(point => Math.abs(point[2])))).toBeGreaterThan(20);
   });
 
+  it('uses uncut reference vertices for folding when a parent face has holes', () => {
+    const preview = buildCassetteV2FoldedPreview({
+      faces: [
+        {
+          nodeId: 'face_1',
+          referenceVertices: [[0, 0, 0], [100, 0, 0], [100, 40, 0], [0, 40, 0]],
+          vertices: [[0, 0, 0], [100, 0, 0], [100, 40, 0], [0, 40, 0]],
+          holes: [[[20, 30, 0], [40, 30, 0], [40, 36, 0], [20, 36, 0]]]
+        },
+        {
+          nodeId: 'face_2',
+          referenceVertices: [[100, 40, 0], [0, 40, 0], [0, 70, 0], [100, 70, 0]],
+          vertices: [[100, 40, 0], [0, 40, 0], [0, 70, 0], [100, 70, 0]]
+        }
+      ],
+      folds: [
+        {
+          parentId: 'face_1',
+          childId: 'face_2',
+          parentEdgeIndex: 2,
+          childEdgeIndex: 0,
+          angle: 90
+        }
+      ]
+    });
+    const root = preview.faces.find(face => face.nodeId === 'face_1');
+    const child = preview.faces.find(face => face.nodeId === 'face_2');
+
+    expect(root.holes).toHaveLength(1);
+    expect(child.points[0]).toEqual([100, 40, 0]);
+    expect(child.points[1]).toEqual([0, 40, 0]);
+    expect(Math.max(...child.points.map(point => Math.abs(point[2])))).toBeGreaterThan(20);
+  });
+
   it('folds each disconnected workpiece root instead of only the first root', () => {
     const preview = buildCassetteV2FoldedPreview({
       faces: [
@@ -272,5 +306,41 @@ describe('cassette v2 folded preview', () => {
       { id: 'driver', driver: true, status: 'ok' },
       { id: 'declared', driver: false, status: 'impossible' }
     ]);
+  });
+
+  it('omits integral-cut hanger bodies from folded preview payload', () => {
+    const preview = buildCassetteV2FoldedPreview({
+      faces: [{
+        nodeId: 'face_1',
+        workpieceId: 'wp_1',
+        vertices: [[0, 0, 0], [100, 0, 0], [100, 40, 0], [0, 40, 0]],
+        holes: [[
+          [20, 20, 0],
+          [30, 20, 0],
+          [30, 30, 0],
+          [20, 30, 0]
+        ]]
+      }],
+      bodies: [{
+        id: 'hanger-hw',
+        targetFaceId: 'face_1',
+        relationId: 'rel_1',
+        family: 'hanger_clip',
+        productionMode: 'integralCut'
+      }],
+      cutouts: [{
+        id: 'cut_1',
+        layer: 'cut.inner',
+        targetFaceId: 'face_1',
+        relationId: 'rel_1',
+        geometry: {
+          type: 'polygon',
+          vertices: [[20, 20, 0], [30, 20, 0], [30, 30, 0], [20, 30, 0], [20, 20, 0]]
+        }
+      }]
+    });
+
+    expect(preview.bodies).toHaveLength(0);
+    expect(preview.cutouts).toHaveLength(1);
   });
 });
