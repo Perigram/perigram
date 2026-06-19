@@ -155,6 +155,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         if (parts[0] === 'admin') {
              const adminTabs = [
                 { id: 'workbench', name: t('admin.workbench.title'), to: '/admin' },
+                { id: 'workflows', name: t('admin.workflows.title'), to: '/admin/workflows' },
                 { id: 'users', name: t('features.users'), to: '/admin/users' },
                 { id: 'config-bot', name: t('admin.configBot.title'), to: '/admin/config-bot' },
                 { id: 'support', name: t('admin.workbench.short.support'), to: '/admin/support' },

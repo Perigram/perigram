@@ -80,11 +80,7 @@ onMounted(async () => {
   }
 
   if (authStore.userIsSet) {
-    if (authStore.canManagePlatform) {
-      await navigateTo('/admin');
-    } else {
-      await navigateTo('/projects');
-    }
+    await navigateTo('/projects');
     return;
   }
 
