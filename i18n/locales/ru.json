@@ -936,6 +936,27 @@
         "support": "Просмотр и ответы на support conversations."
       }
     },
+    "workflows": {
+      "title": "Переопределения workflow",
+      "subtitle": "Организационные переопределения state machine для workflow сущностей.",
+      "regions": "Регионы",
+      "addRegion": "Добавить регион",
+      "regionSettings": "Настройки региона",
+      "regionId": "ID региона",
+      "regionLabel": "Метка региона",
+      "noInitial": "Нет начального состояния",
+      "states": "Состояния",
+      "transitions": "Переходы",
+      "stateName": "Имя состояния",
+      "intent": "Intent",
+      "display": "Отображение",
+      "saveOverride": "Сохранить переопределение",
+      "overrideActive": "Переопределение активно",
+      "defaultWorkflow": "Workflow по умолчанию",
+      "unsaved": "Не сохранено",
+      "loadFailed": "Не удалось загрузить workflow",
+      "saveFailed": "Не удалось сохранить workflow"
+    },
     "commands": {
       "command": "Команда",
       "handler": "Handler",
@@ -1241,6 +1262,15 @@
     "featureAccessControl": "Управление доступом к функциям",
     "featureAccessControlHelp": "Настройте детальные уровни доступа для каждого системного модуля.",
     "permissionActions": "Действия",
+    "permissionRules": "Конструктор правил",
+    "permissionRuleValue": "Значение правила",
+    "permissionRuleTypes": {
+      "projectId": "ID проекта",
+      "entityType": "Тип сущности",
+      "primaryStatus": "Основной статус",
+      "transitionTo": "Целевой переход",
+      "fieldEquals": "Поле равно"
+    },
     "advancedPermissionJson": "Расширенный JSON гранта",
     "invalidPermissionJson": "Некорректный JSON разрешения",
     "membership": {

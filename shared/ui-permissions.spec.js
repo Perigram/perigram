@@ -63,6 +63,51 @@ describe('UI Permission Matrix', () => {
                 permissions: { config_bot: 'admin' }
             })).toBe(false);
         });
+
+        it('should apply logical rule filters to otherwise valid grants', () => {
+            const permissions = {
+                projects: {
+                    level: 'write',
+                    rule: {
+                        all: [
+                            { fact: 'lineage.projectId', equals: 'project-a' },
+                            { fact: 'status.primary', equals: 'ACTIVE' }
+                        ]
+                    }
+                }
+            };
+            expect(hasPermissionGrant({
+                permissions,
+                feature: 'projects',
+                level: 'write',
+                entityType: 'project',
+                entity: { lineage: { projectId: 'project-a' }, status: { state: { primary: 'ACTIVE' } } }
+            })).toBe(true);
+            expect(hasPermissionGrant({
+                permissions,
+                feature: 'projects',
+                level: 'write',
+                entityType: 'project',
+                entity: { lineage: { projectId: 'project-b' }, status: { state: { primary: 'ACTIVE' } } }
+            })).toBe(false);
+        });
+
+        it('should support any/not rule gates for transition grants', () => {
+            const permissions = {
+                projects: {
+                    level: 'admin',
+                    rule: {
+                        all: [
+                            { fact: 'transition.to', in: ['READY', 'DONE'] },
+                            { not: { fact: 'action', equals: 'delete' } }
+                        ]
+                    }
+                }
+            };
+            expect(hasPermissionGrant({ permissions, feature: 'projects', action: 'admin', transition: { from: 'DRAFT', to: 'READY' } })).toBe(true);
+            expect(hasPermissionGrant({ permissions, feature: 'projects', action: 'delete', transition: { from: 'DRAFT', to: 'READY' } })).toBe(false);
+            expect(hasPermissionGrant({ permissions, feature: 'projects', action: 'admin', transition: { from: 'DRAFT', to: 'ARCHIVED' } })).toBe(false);
+        });
     });
 
     describe('missing grants', () => {

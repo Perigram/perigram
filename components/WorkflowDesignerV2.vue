@@ -35,6 +35,58 @@
         </div>
       </Panel>
 
+      <Panel :header="$t('admin.domainBuilder.graph')">
+        <div class="min-h-64 overflow-auto rounded-ui border border-content-border">
+          <svg :width="graph.width" :height="graph.height" role="img" class="block">
+            <g v-for="edge in graph.edges" :key="edge.id">
+              <line
+                :x1="edge.x1"
+                :y1="edge.y1"
+                :x2="edge.x2"
+                :y2="edge.y2"
+                stroke="var(--p-content-border-color)"
+                stroke-width="2"
+                marker-end="url(#workflow-arrow)"
+              />
+              <text
+                :x="(edge.x1 + edge.x2) / 2"
+                :y="(edge.y1 + edge.y2) / 2 - 6"
+                fill="var(--p-text-color)"
+                font-size="11"
+                text-anchor="middle"
+              >
+                {{ transitionLabel(selectedRegion.transitions[edge.index]) }}
+              </text>
+            </g>
+            <defs>
+              <marker id="workflow-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 Z" fill="var(--p-content-border-color)" />
+              </marker>
+            </defs>
+            <g
+              v-for="node in graph.nodes"
+              :key="node.id"
+              class="cursor-pointer"
+              tabindex="0"
+              @click="selectedState = node.id"
+              @keyup.enter="selectedState = node.id"
+            >
+              <rect
+                :x="node.x"
+                :y="node.y"
+                :width="node.width"
+                :height="node.height"
+                rx="6"
+                fill="var(--p-content-background)"
+                :stroke="node.id === selectedState ? 'var(--p-primary-color)' : 'var(--p-content-border-color)'"
+                stroke-width="2"
+              />
+              <text :x="node.x + 12" :y="node.y + 27" fill="var(--p-text-color)" font-size="12">{{ node.id }}</text>
+            </g>
+          </svg>
+        </div>
+      </Panel>
+
       <div class="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel :header="$t('admin.workflows.states')">
           <div class="flex flex-col gap-3">
@@ -97,6 +149,20 @@
             <span>{{ $t('admin.domainBuilder.canUpdateLifecycle') }}</span>
           </label>
         </div>
+        <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div class="flex flex-col gap-1">
+            <label>{{ $t('admin.domainBuilder.lifecycleActors') }}</label>
+            <InputText :model-value="stringifyList(selectedStateDefinition.lifecycle?.actors)" @update:model-value="updateLifecycleActors" />
+          </div>
+          <label class="flex items-center gap-2 self-end">
+            <Checkbox :model-value="selectedStateDefinition.lifecycle?.data === true" binary @update:model-value="updateLifecycleData" />
+            <span>{{ $t('admin.domainBuilder.lifecycleData') }}</span>
+          </label>
+        </div>
+        <div class="mt-3 flex flex-col gap-1">
+          <label>{{ $t('admin.domainBuilder.lifecycleAttachments') }}</label>
+          <Textarea :model-value="formatJson(selectedStateDefinition.lifecycle?.attachments || {})" rows="4" auto-resize class="font-mono text-xs" @update:model-value="updateLifecycleAttachments" />
+        </div>
         <div class="mt-3 flex justify-end">
           <Button icon="pi pi-trash" :label="$t('admin.domainBuilder.removeState')" severity="danger" outlined size="small" @click="removeState(selectedState)" />
         </div>
@@ -125,6 +191,14 @@
           <label>{{ $t('admin.domainBuilder.access') }}</label>
           <Textarea :model-value="formatJson(selectedTransition.access || defaultAccess)" rows="5" auto-resize class="font-mono text-xs" @update:model-value="updateTransitionAccess" />
         </div>
+        <div class="mt-3 flex flex-col gap-1">
+          <label>{{ $t('admin.domainBuilder.capabilities') }}</label>
+          <InputText :model-value="stringifyList(selectedTransition.capabilities || selectedTransition.requiredCapabilities)" @update:model-value="updateTransitionCapabilities" />
+        </div>
+        <div class="mt-3 flex flex-col gap-1">
+          <label>{{ $t('admin.domainBuilder.hooksJson') }}</label>
+          <Textarea :model-value="formatJson(selectedTransition.hooks || [])" rows="5" auto-resize class="font-mono text-xs" @update:model-value="updateTransitionHooks" />
+        </div>
         <div class="mt-3 flex justify-end">
           <Button icon="pi pi-trash" :label="$t('admin.domainBuilder.removeTransition')" severity="danger" outlined size="small" @click="removeTransition" />
         </div>
@@ -142,6 +216,7 @@ import Panel from 'primevue/panel';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
+import { buildWorkflowGraph } from '~/utils/domain-builder.js';
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -178,6 +253,7 @@ const selectedStateDefinition = computed(() => {
   return selectedRegion.value.states[selectedState.value];
 });
 const selectedTransition = computed(() => selectedTransitionIndex.value === null ? null : selectedRegion.value.transitions?.[selectedTransitionIndex.value] || null);
+const graph = computed(() => buildWorkflowGraph(workflow.value, selectedRegionId.value));
 
 watch(() => props.modelValue, () => {
   if (!workflow.value.regions[selectedRegionId.value]) selectedRegionId.value = 'main';
@@ -261,6 +337,49 @@ function updateTransitionAccess(value) {
   } catch {}
 }
 
+function updateTransitionCapabilities(value) {
+  if (!selectedTransition.value) return;
+  selectedTransition.value.capabilities = parseList(value);
+  delete selectedTransition.value.requiredCapabilities;
+  commit();
+}
+
+function updateTransitionHooks(value) {
+  if (!selectedTransition.value) return;
+  try {
+    const parsed = JSON.parse(value || '[]');
+    selectedTransition.value.hooks = Array.isArray(parsed) ? parsed : [];
+    commit();
+  } catch {}
+}
+
+function updateLifecycleActors(value) {
+  const lifecycle = ensureLifecycle();
+  lifecycle.actors = parseList(value);
+  commit();
+}
+
+function updateLifecycleAttachments(value) {
+  const lifecycle = ensureLifecycle();
+  try {
+    const parsed = JSON.parse(value || '{}');
+    lifecycle.attachments = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    commit();
+  } catch {}
+}
+
+function updateLifecycleData(value) {
+  const lifecycle = ensureLifecycle();
+  if (value) lifecycle.data = true;
+  else delete lifecycle.data;
+  commit();
+}
+
+function ensureLifecycle() {
+  selectedStateDefinition.value.lifecycle ||= {};
+  return selectedStateDefinition.value.lifecycle;
+}
+
 function normalizeWorkflowDraft(value = {}) {
   if (value.regions) {
     return {
@@ -285,6 +404,18 @@ function normalizeWorkflowDraft(value = {}) {
 
 function formatJson(value) {
   return JSON.stringify(value || {}, null, 2);
+}
+
+function stringifyList(value) {
+  return Array.isArray(value) ? value.join(', ') : '';
+}
+
+function parseList(value) {
+  return String(value || '').split(',').map(item => item.trim()).filter(Boolean);
+}
+
+function transitionLabel(transition = {}) {
+  return transition.intent || transition.display || '';
 }
 
 function normalizeId(value) {

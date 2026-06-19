@@ -51,6 +51,19 @@
                         </div>
                     </div>
                     <div v-if="getFeatureLevel(feature.key) !== 'none'" class="flex flex-col gap-2">
+                        <small class="font-medium">{{ $t('auth.permissionRules') }}</small>
+                        <div class="grid grid-cols-1 gap-2 md:grid-cols-[10rem_minmax(0,1fr)_auto]">
+                            <Select
+                                v-model="ruleDrafts[feature.key].type"
+                                :options="ruleTypeOptions"
+                                option-label="label"
+                                option-value="value"
+                            />
+                            <InputText v-model="ruleDrafts[feature.key].value" :placeholder="$t('auth.permissionRuleValue')" />
+                            <Button :label="$t('common.add')" icon="pi pi-plus" size="small" outlined @click="addRuleCondition(feature.key)" />
+                        </div>
+                    </div>
+                    <div v-if="getFeatureLevel(feature.key) !== 'none'" class="flex flex-col gap-2">
                         <small class="font-medium">{{ $t('auth.advancedPermissionJson') }}</small>
                         <Textarea
                             :model-value="permissionDrafts[feature.key] ?? formatPermission(feature.key)"
@@ -83,6 +96,8 @@ import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Checkbox from 'primevue/checkbox';
 import Textarea from 'primevue/textarea';
+import InputText from 'primevue/inputtext';
+import Select from 'primevue/select';
 
 const props = defineProps({
     permissions: { type: Object, default: () => ({}) }
@@ -126,17 +141,32 @@ const buildLocalPermissions = (permissions = {}) => ({
 const localPermissions = ref(buildLocalPermissions(props.permissions));
 const permissionDrafts = ref({});
 const permissionErrors = ref({});
+const ruleDrafts = ref({});
+
+const ruleTypeOptions = computed(() => [
+    { label: t('auth.permissionRuleTypes.projectId'), value: 'projectId' },
+    { label: t('auth.permissionRuleTypes.entityType'), value: 'entityType' },
+    { label: t('auth.permissionRuleTypes.primaryStatus'), value: 'primaryStatus' },
+    { label: t('auth.permissionRuleTypes.transitionTo'), value: 'transitionTo' },
+    { label: t('auth.permissionRuleTypes.fieldEquals'), value: 'fieldEquals' }
+]);
 
 watch(() => props.permissions, (newVal) => {
     localPermissions.value = buildLocalPermissions(newVal);
     permissionDrafts.value = {};
     permissionErrors.value = {};
+    ruleDrafts.value = buildRuleDrafts();
 }, { deep: true });
+
+watch(entities, () => {
+    ruleDrafts.value = buildRuleDrafts();
+}, { immediate: true });
 
 const reset = () => {
     localPermissions.value = buildLocalPermissions(props.permissions);
     permissionDrafts.value = {};
     permissionErrors.value = {};
+    ruleDrafts.value = buildRuleDrafts();
 };
 
 const getIcon = (key) => {
@@ -209,6 +239,22 @@ const setAction = (key, action, enabled) => {
     permissionDrafts.value[key] = formatPermission(key);
 };
 
+const addRuleCondition = (key) => {
+    const draft = ruleDrafts.value[key] || {};
+    const rule = buildRuleCondition(draft);
+    if (!rule) return;
+    const grant = ensureGrantObject(key);
+    const existing = grant.rule?.all ? grant.rule.all : grant.rule ? [grant.rule] : [];
+    localPermissions.value[key] = {
+        ...grant,
+        rule: {
+            all: [...existing, rule]
+        }
+    };
+    ruleDrafts.value[key] = defaultRuleDraft();
+    permissionDrafts.value[key] = formatPermission(key);
+};
+
 const getActionLabel = (action) => t(`auth.permissionActionLabels.${action}`, action);
 
 const formatPermission = (key) => JSON.stringify(localPermissions.value[key] ?? 'none', null, 2);
@@ -249,4 +295,27 @@ const getDescription = (key, level) => {
     if (level === 'admin') return t('auth.permissionDescriptions.admin', { feature });
     return '';
 };
+
+function defaultRuleDraft() {
+    return { type: 'projectId', value: '' };
+}
+
+function buildRuleDrafts() {
+    return Object.fromEntries(entities.value.map(feature => [feature.key, defaultRuleDraft()]));
+}
+
+function buildRuleCondition(draft = {}) {
+    const value = String(draft.value || '').trim();
+    if (!value) return null;
+    if (draft.type === 'projectId') return { fact: 'lineage.projectId', equals: value };
+    if (draft.type === 'entityType') return { fact: 'entityType', equals: value };
+    if (draft.type === 'primaryStatus') return { fact: 'status.primary', equals: value };
+    if (draft.type === 'transitionTo') return { fact: 'transition.to', equals: value };
+    if (draft.type === 'fieldEquals') {
+        const [path, ...rest] = value.split('=');
+        if (!path || rest.length === 0) return null;
+        return { fact: 'field', field: path.trim(), equals: rest.join('=').trim() };
+    }
+    return null;
+}
 </script>

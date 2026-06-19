@@ -936,6 +936,27 @@
         "support": "Review and respond to support conversations."
       }
     },
+    "workflows": {
+      "title": "Workflow Overrides",
+      "subtitle": "Create organization-specific state machine overrides for entity workflows.",
+      "regions": "Regions",
+      "addRegion": "Add region",
+      "regionSettings": "Region settings",
+      "regionId": "Region ID",
+      "regionLabel": "Region label",
+      "noInitial": "No initial state",
+      "states": "States",
+      "transitions": "Transitions",
+      "stateName": "State name",
+      "intent": "Intent",
+      "display": "Display",
+      "saveOverride": "Save override",
+      "overrideActive": "Override active",
+      "defaultWorkflow": "Default workflow",
+      "unsaved": "Unsaved",
+      "loadFailed": "Failed to load workflow",
+      "saveFailed": "Failed to save workflow"
+    },
     "commands": {
       "command": "Command",
       "handler": "Handler",
@@ -1241,6 +1262,15 @@
     "featureAccessControl": "Feature Access Control",
     "featureAccessControlHelp": "Configure granular access levels for each system module.",
     "permissionActions": "Actions",
+    "permissionRules": "Rule builder",
+    "permissionRuleValue": "Rule value",
+    "permissionRuleTypes": {
+      "projectId": "Project ID",
+      "entityType": "Entity type",
+      "primaryStatus": "Primary status",
+      "transitionTo": "Transition target",
+      "fieldEquals": "Field equals"
+    },
     "advancedPermissionJson": "Advanced grant JSON",
     "invalidPermissionJson": "Invalid permission JSON",
     "membership": {
