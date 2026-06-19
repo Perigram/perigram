@@ -27,6 +27,8 @@ const result = useEntity(type, identifier?)
 | `serial` | `ComputedRef<string>` | `entity.identity.serial` |
 | `reference` | `ComputedRef<string>` | `entity.identity.reference` |
 | `state` | `ComputedRef<string>` | `entity.status.state` |
+| `stateObject` | `ComputedRef<object>` | Structured v2 status state snapshot |
+| `statusRegions` | `ComputedRef<array>` | Active region chips derived from `entity.status.state.regions` |
 | `statusColor` | `ComputedRef<string>` | PrimeVue severity string |
 | `statusTime` | `ComputedRef<Date>` | `entity.status.timestamp` |
 | `statusMeta` | `ComputedRef<object>` | `entity.status.metadata` |
@@ -49,6 +51,9 @@ Entity JSON is strict block DTO data: root `_id` plus canonical blocks only.
 `lineage`, and `specs`, but it does not rely on root aliases such as
 `entity.id`, `entity.name`, `entity.slug`, `entity.type`, or
 `entity.parameters`.
+`state` is the primary lifecycle string derived from structured
+`status.state.primary`; `stateObject` and `statusRegions` expose the full v2
+machine state when a surface needs region details.
 
 ### Fetching a single entity
 
@@ -137,6 +142,7 @@ await transition(type, id, newState, {
   lifecycle: { attachments: { geometry: geometryRef } }
 });
 await transition(type, id, newState, { intent: 'acceptNestingRun' });
+await transition(type, id, newState, { region: 'qa' });
 ```
 
 ---

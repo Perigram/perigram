@@ -13,6 +13,9 @@ script explicitly installs its own resolver.
   inventory output for legacy lifecycle/service/UI hotspots.
 - `framework-inspect.js`: Framework/package inspection utility used during
   extraction checks.
+- `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
+  string `status.state` / `origin.state` values and `status_events` records to
+  the v2 structured status shape. Supports `--dry-run`.
 - `seed-*.js`: Local seed helpers for layer standards and tool profiles.
 - `test-*.js`, `debug_*.js`, `check-data.js`, `check-jobs.js`: Manual
   diagnostics for local database, auth, jobs, and data shape investigations.
@@ -29,11 +32,13 @@ should use the package imports declared in `package.json` (`#shared/...`,
 `#packages/...`, `#utils/...`) so direct Node loaders and Nuxt/Nitro SSR builds
 resolve the same graph.
 
-The checker also prints a non-blocking migration inventory with file, line,
-symbol, and rule id for legacy `createStatus(...)`, raw target-state
-`statusService.transition(...)`, feature-service `db.collection(...)`, and
-hardcoded UI lifecycle literals. These entries document remaining refactor
-scope; only categories already migrated to a strict boundary fail the command.
+The checker also blocks live entity UI that passes local `:status-actions`
+instead of relying on server-provided `EntityStatus` workflow actions. It prints
+a non-blocking migration inventory with file, line, symbol, and rule id for
+legacy `createStatus(...)`, raw target-state `statusService.transition(...)`,
+feature-service `db.collection(...)`, and hardcoded UI lifecycle literals.
+These entries document remaining refactor scope; only categories already
+migrated to a strict boundary fail the command.
 
 ## Related
 

@@ -4,6 +4,126 @@
   :END:
 
 *** Agent Notes
+     [2026-06-18] Make profile sketch editing responsive
+     Files changed: components/ProfileSketchEditor.vue,
+       i18n/locales/en.json, i18n/locales/ru.json, TODO.org
+     Docs updated: TODO.org
+     Notes: Changed profile point dragging to update only the local SVG preview
+       during pointer movement and commit the sketch once on release, avoiding
+       full OCCS normalization and parent cassette updates on every mouse move.
+       Added explicit sketch tools for select/move, point insertion, and hole
+       insertion so the popup behaves more like a compact drawing tool.
+       Profile templates remain centralized reusable entities for linear
+       hanger/extrusion sections; integral cut-in-parent hangers remain hardware
+       cut operands because they modify the parent face rather than exist as a
+       separate profile body.
+
+     [2026-06-18] Refactor status machines to v2 structured regions
+     Files changed: packages/core/src/index.js,
+       packages/workflows/src/index.js,
+       packages/domain-cnc/src/workflows.js,
+       server/core/machines/service.js,
+       server/core/blocks/Status.js,
+       server/core/blocks/index.js,
+       server/db/indexes.js,
+       server/features/queues/service.js,
+       server/features/queues/repository.js,
+       server/features/nesting-runs/service.js,
+       server/features/nesting-runs/repository.js,
+       server/features/profile-templates/service.js,
+       components/shared/status/EntityStatus.vue,
+       components/shared/status/StatusHistory.vue,
+       composables/useBlocks.js,
+       composables/useEntity.js,
+       composables/useStatusController.js,
+       utils/status-actions.js,
+       scripts/migrate-status-state-v2.js
+     Docs updated: packages/core/README.md,
+       packages/workflows/README.md,
+       packages/domain-cnc/README.md,
+       server/core/blocks/README.md,
+       server/core/machines/README.md,
+       components/shared/README.md,
+       composables/README.md,
+       scripts/README.md, TODO.org
+     Notes: Status blocks now normalize `state` to the v2 structured snapshot
+       with `primary`, `active`, and `regions`; workflow definitions normalize
+       to region machines and CNC workflows export a `main` region. The status
+       runtime writes primary event fields, accepts scoped `region`/`path`
+       context, returns region-aware actions, and primary-state reads moved to
+       helper APIs across backend and shared UI. Added a status-state migration
+       script and updated queue/status tests for the v2 fixture contract. Also
+       fixed the profile template OCCS import to use the portable `#utils`
+       alias so Nitro does not generate `/utils/occs/profiles.js`.
+
+     [2026-06-18] Add reusable OCCS profile sketch templates
+     Files changed: packages/domain-cnc/src/entities.js,
+       packages/domain-cnc/src/summaries.js,
+       packages/domain-cnc/src/field-access.js,
+       packages/domain-cnc/src/ui.js,
+       server/runtime/app-registry.js,
+       server/features/profile-templates/model.js,
+       server/features/profile-templates/repository.js,
+       server/features/profile-templates/service.js,
+       server/features/profile-templates/index.js,
+       server/api/profile-templates/index.get.js,
+       server/api/profile-templates/index.post.js,
+       server/api/profile-templates/[id].get.js,
+       server/api/profile-templates/[id].patch.js,
+       server/api/profile-templates/[id].delete.js,
+       utils/occs/profiles.js,
+       utils/cassetteV2Renderer.js,
+       components/ProfileSketchEditor.vue,
+       components/CassetteDesignerV2.vue,
+       components/entities/ProfileTemplate/ProfileTemplateCard.vue,
+       utils/design-system.js,
+       test-data/factories.js,
+       test-data/scenarios.js,
+       i18n/locales/en.json,
+       i18n/locales/ru.json,
+       utils/occs/profiles.spec.js,
+       utils/cassetteV2Renderer.spec.js
+     Docs updated: docs/specs/Cassette spec/SPEC.md,
+       docs/specs/README.md, utils/occs/README.md,
+       components/README.md,
+       components/entities/ProfileTemplate/README.md,
+       server/features/README.md,
+       server/features/profile-templates/README.md,
+       packages/domain-cnc/README.md, TODO.org
+     Notes: Added reusable `profile_template` master-data entities for
+       declarative OCCS profile-section sketches and wired them into the
+       cassette designer through a `StandardDialog` popup. Profile workpieces
+       are inserted into cassette OCCS as local snapshots with a
+       `profileTemplateId` reference, preserving expression-based sketch data,
+       circle holes, fillet modifiers, linear sweep, and manufacturing process.
+       The cassette renderer now treats `type: profile` separately from
+       hardware so profile workpieces are not normalized into hardware bodies.
+
+     [2026-06-17] Restore cassette hardware contour helper
+     Files changed: utils/occs/hardware.js, utils/cassetteV2Renderer.js,
+       utils/cassetteV2FoldedPreview.js, utils/cassetteV2Renderer.spec.js,
+       components/CassetteDesignerV2.vue, i18n/locales/en.json,
+       i18n/locales/ru.json, utils/occs/README.md, TODO.org
+     Docs updated: utils/occs/README.md, TODO.org
+     Notes: Restored the pure OCCS hardware helper required by
+       cassetteV2Renderer's cut-hanger path. The helper normalizes declarative
+       hardware families and hanger production modes, expands edge-array
+       placement points, generates integral-cut hanger polygons for `cut.inner`,
+       and resolves hole hardware diameters for `cut.hole`. Verified renderer,
+       folded preview, clipper, and OCCS drawing tests covering boolean-shaped
+       parent faces and production layer dispatch. Follow-up fixes keep
+       fold-route indexing on preserved original face boundaries after hanger
+       booleans, expose start/end snap bindings, and make hardware edge arrays
+       respect start/end/center binding with X as a two-sided edge margin.
+       Designer section helper lines now render on `designer.section` instead
+       of leaking into the production `code.cassette_mark` layer.
+       Edge-breaking integral hanger cuts are now boolean-only operands: they
+       alter the parent `cut.outer` contour and are not emitted as `cut.inner`,
+       OCCS cut entities, or folded-preview cutout wires.
+       Whole-workpiece assembly preview now dispatches `contour.cassette_face`,
+       `cut.outer`, and `fold.route` from the same per-workpiece production
+       layout used by face-selected preview instead of raw per-face paths.
+
      [2026-06-16] Introduce intent-based nesting effects and audit guardrails
      Files changed: packages/core/src/index.js, packages/domain-cnc/src/index.js,
        packages/domain-cnc/src/workflows.js, packages/domain-cnc/src/effects.js,
@@ -442,6 +562,25 @@
        rectangular rings where their contour supports it, while automatic
        facade perspective correction no longer uses loose minimum-area box
        fallback corners.
+
+* WAITING App Composition Agent Lane
+  :PROPERTIES:
+  :ID: app-composition-agent-lane
+  :END:
+
+*** Agent Notes
+     [2026-06-19] Add organization-owned workflow overrides and composition guide
+     Files changed: server/features/workflow-overrides/*,
+       server/api/workflow-overrides/*, server/core/machines/service.js,
+       server/db/indexes.js, scripts/check-arch.js,
+       /home/isuo/Documents/cutkit-cortex/3_core/Агентский слой композиций CutKit.md
+     Docs updated: server/features/workflow-overrides/README.md,
+       server/features/README.md, server/api/README.md,
+       server/core/machines/README.md, TODO.org
+     Notes: Added a DB-backed organization override layer for entity workflow
+       definitions, with active override resolution before domain defaults.
+       The Cortex guide defines the read-only core/write-only composition lane
+       for a friend's agent and the checks required before accepting work.
 
 * WAITING Core Project Route Workflow Fixes
   :PROPERTIES:

@@ -38,6 +38,10 @@ Queue workflow UI actions start with `DRAFT -> NESTING`; any system-only
 cannot skip nesting from status controls. Queues can be moved to `ARCHIVED`
 from any current queue state through a menu transition; admin users can restore
 archived queues to `DRAFT`.
+CNC workflows export the v2 workflow contract from `@cutkit/workflows`. Current
+CNC lifecycles use a single `main` region, so persisted entity status stores
+`status.state.primary` plus `status.state.active.main`; future independent
+lifecycle axes should add regions instead of overloading the primary state.
 The first intent-based nesting flow now uses transition intents instead of raw
 status names:
 - `requestNesting` moves `queue` from `DRAFT -> NESTING`.
@@ -66,6 +70,11 @@ write generated Vue/domain files to the repository.
 
 `artifact` remains the current persisted entity type for generated file records.
 File behavior is declared by `AttachmentKind`.
+
+`profile_template` is reusable master data for OCCS profile-section sketches.
+Cassette templates insert profile workpieces as snapshots with a
+`profileTemplateId` reference so old templates remain reproducible when the
+library profile changes.
 
 ## UI Boundary
 

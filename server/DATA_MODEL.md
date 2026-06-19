@@ -140,6 +140,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.geometry` | String | geometry field |
 | `data.mode` | String | mode field |
 | `data.output` | String | output field |
+| `data.prompt` | String | prompt field |
 | `data.revisions` | Array | revisions field |
 
 ### invitations
@@ -233,6 +234,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.artifactIds` | Array | artifact ids field |
 | `data.layoutData` | String | layout data field |
+| `data.note` | String | note field |
 | `data.results` | Array | results field |
 
 ### organizations
@@ -264,6 +266,19 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.stroke` | String | stroke field |
 | `lineage.userId` | ObjectId \| string | Lineage link to userId |
 
+### profile_templates
+*Profile-templates - manages profile templates*
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | Object | Standard Identity Block (uid, name) |
+| `origin` | Object | Standard Origin Block (creation state) |
+| `status` | Object | Standard Status Block (current state) |
+| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `attachments` | Object | Standard Attachments Block (files) |
+| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
+| `lineage.userId` | ObjectId \| string | Lineage link to userId |
+
 ### projects
 *Projects - manages projects*
 
@@ -286,18 +301,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `data.job` | Object | Queue job definition with `items` and resolved `materialPool` |
-| `data.job.items` | Array | Cassette/design entries with quantity and exact parameters |
-| `data.job.materialPool` | Array | Resolved selected physical/virtual sources for nesting |
-| `data.nestingSettings` | Object | Queue-local editable nesting settings used to start new runs |
-| `data.nestingSettings.materialMode` | String | `VIRTUAL` or `WAREHOUSE` material source mode |
-| `data.nestingSettings.virtualWidth` | Number | Virtual sheet width in millimeters |
-| `data.nestingSettings.virtualLength` | Number | Virtual sheet length in millimeters |
-| `data.nestingSettings.spacing` | Number | Nesting spacing in millimeters |
-| `data.nestingSettings.warehouseId` | ObjectId \| string | Selected warehouse for warehouse material mode |
-| `data.nestingSettings.inventoryItems` | Array | Selected inventory source keys in the queue editor |
-| `data.nestingSettings.toolProfileId` | ObjectId \| string | Selected tool profile for nesting/export context |
-| `data.nestingSettings.requestedArtifacts` | Array | Attachment kinds requested after nesting |
+| `data.job` | String | job field |
 | `data.materialSource` | String | material source field |
 | `data.nestingSettings` | Array | nesting settings field |
 | `data.queueId` | String | queue id field |
@@ -398,7 +402,6 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.note` | String | note field |
-| `data.targetId` | String | target id field |
 
 ### tool_profiles
 *Tool-profiles - manages tool profiles*
@@ -448,3 +451,16 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.contactPerson` | String | contact person field |
 | `data.stats` | Array | stats field |
 | `data.type` | String | type field |
+
+### workflow_overrides
+*Workflow-overrides - manages workflow overrides*
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | Object | Standard Identity Block (uid, name) |
+| `origin` | Object | Standard Origin Block (creation state) |
+| `status` | Object | Standard Status Block (current state) |
+| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `attachments` | Object | Standard Attachments Block (files) |
+| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
+

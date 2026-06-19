@@ -27,8 +27,8 @@ Support capabilities are documented and classified, but do not need empty
 
 | Kind | Modules |
 |---|---|
-| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
-| Capability modules | `config-bot`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `payment`, `results`, `sessions`, `statuses`, `support`, `system-settings` |
+| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
+| Capability modules | `config-bot`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `payment`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
 
 ---
 
@@ -99,6 +99,7 @@ services must not self-register through hidden globals.
 | `warehouses` | Material storage locations | `organizationId` |
 | `catalogs` | Material specifications | `organizationId` |
 | `pen-templates` | Drawing pen/stroke template | `organizationId` or `userId` |
+| `profile-templates` | Reusable OCCS profile sketches for cassette hangers/extrusions | `organizationId` or `userId` |
 | `tool-profiles` | Milling tool parameters | `organizationId` or `userId` |
 
 ---
@@ -119,4 +120,5 @@ services must not self-register through hidden globals.
 - [server/utils/README.md](../utils/README.md) — Permissions API
 - [server/features/_template/README.md](./_template/README.md) — Golden Path template
 - [server/features/config-bot/README.md](./config-bot/README.md) — draft package generator capability
+- [server/features/workflow-overrides/README.md](./workflow-overrides/README.md) — organization-owned lifecycle overrides
 - [packages/domain-cnc/README.md](../../packages/domain-cnc/README.md) — CNC entity/workflow definition pack

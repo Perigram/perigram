@@ -59,13 +59,19 @@ Shared frontend utility modules used by Vue pages/components.
   rendering. Additional joints are kept as constraints and reported as `ok`,
   `unresolved`, or `impossible` after placement.
 - `cassetteV2Trapezoid.js`: Pure OCCS trapezoid geometry helper. It resolves
-  canonical trapezoid points from base length, zero-default offsets, and height,
+  canonical trapezoid points from base length, zero-default offsets, and height.
+  Positive start/end offsets extend points outward from the edge and negative
+  offsets move them inward, so designer `+`/`-` controls match the visible
+  growth direction. It
   then places child faces on the selected parent edge's exterior side with child
   `E0` reversed against the shared parent edge so both polygons remain CCW. It
   returns closed face curves for the v2 renderer.
 - `cassetteV2Renderer.js`: Cassette Designer v2 graph adapter. It owns the local
   recursive `face.trapezoid` graph-tree model with a top-level OCCS-style
-  parameter scope, separate workpiece roots, and explicit workpiece joints,
+  parameter scope, separate workpiece roots, and explicit workpiece joints. New
+  graph trees start from one root face; child creation defaults to
+  `return_flange` from non-return parents and `mounting_flange` with a `-90`
+  fold from return-flange parents. The adapter
   builds live preview curves through `cassetteV2Trapezoid.js`, delegates
   production layer drawing and folded-preview payload construction to
   `occs/`, emits OCCS v0.4-draft
@@ -73,7 +79,7 @@ Shared frontend utility modules used by Vue pages/components.
   per-workpiece folds plus default `dimension.cassette` entities,
   derives locked click targets, selected-face action metadata, point offset
   edit controls, dimension label edit metadata, folded-geometry section mark
-  layers, and plain-number fold-angle edit handles from tree folds, and
+  layers, and plain-number fold-angle edit handles from tree folds. It
   adapts editor-only graph state into canonical OCCS helper inputs.
   `OCCS_CASSETTE_FACE_ROLES` mirrors the recommended face role ids from the
   OCCS cassette spec; roles remain descriptive metadata and do not drive
@@ -92,6 +98,11 @@ Shared frontend utility modules used by Vue pages/components.
   minus, and degree-based `sin()`, `cos()`, and `tan()`; child face scopes add
   `foldAngle` from the incoming parent fold. Helper code preserves expressions
   in OCCS and resolves numeric preview values from the current parameter scope.
+  For modified faces created by declarative hardware cutouts (integral-cut),
+  preview geometry is boolean-subtracted for drawing output, while dimension
+  labels and edit controls are calculated from preserved original face boundaries,
+  and edge interaction metadata (`designerEdges`) keeps plus-button and hover
+  anchors on the original outer edge set so add-geometry actions stay stable.
 
 ## Utility Protocol
 

@@ -62,16 +62,19 @@ of free-text fields.
 
 The Designer section embeds `CassetteDesignerV2` directly and hides the generic
 workbench draft/reset action row while the designer is active, because cassette
-template save/load/reset are owned inside the designer. The designer top bar
-keeps only the current cassette name, a load-template action, and compact
-icon-only save/reset buttons. Its side panel owns global OCCS parameters, layer
+template save/load/reset are owned inside the designer. The left designer rail
+keeps the current cassette name, load-template action, compact icon-only
+save/reset buttons, and session draft recovery; undo/redo controls sit in the
+canvas top-left overlay. The same rail owns global OCCS parameters, layer
 visibility, and OCCS JSON tabs. Parameter rows use a responsive grid while that
 panel is docked full-width and return to one column when the panel is a narrow
 side rail. Selected-object editing is canvas-local:
 face role/delete actions, dimension labels, offsets, anchors, fold angles,
 attachment face placement, and section planes are edited from drawing
 overlays/popovers.
-Save emits an OCCS v2 definition with `extensions.cutkit.graphTree`; the
+New drafts start with one root face; plus actions add one child face at a time,
+defaulting to a return flange from non-return parents and to a mounting flange
+with `-90` fold from return-flange parents. Save emits an OCCS v2 definition with `extensions.cutkit.graphTree`; the
 designer persists it through the `saveCassetteTemplate` command, then the
 workbench mirrors the saved cassette DTO into the fixture context, selects it as
 `refs.cassetteTemplate`, and rewrites the active queue's first nesting item with
@@ -86,10 +89,13 @@ lightweight cassette expression editor with text validation, inline token
 highlighting, a tooltip usage guide, and one grouped insert-chip panel under
 the active expression without resizing the parameter list. Dimension labels are
 clickable drawing text, while offset controls use compact value chips centered
-on canvas points and keep anchors in the same popup for the base offset fields.
+on canvas points, positive offsets extend outward, and anchors stay in the same
+popup for the base offset fields.
 Invalid expression drafts
 keep the drawing on the last successful preview and show a panel warning until
-evaluation succeeds again. The drawing canvas renders only geometry and
+evaluation succeeds again. The designer keeps session-local autosave drafts and
+offers recovery/discard before overwriting them, but only explicit Save writes
+through the command API and does not show a persistent autosaved badge. The drawing canvas renders only geometry and
 geometry-bound designer hit targets. Assembly topology is outside the canvas:
 the responsive assembly rail/dock renders a compact workpiece DAG/list for
 selecting real OCCS workpieces and attachments, while the folded 3D preview
@@ -109,10 +115,13 @@ unresolved or impossible constraints. Section graphics are emitted on the toggle
 `code.cassette_mark` layer. Selecting workpieces or attachments shows connected workpieces in
 the 2D editor background; while an attachment is selected, clicking faces in
 the canvas updates its source/target face ids. Deleting a non-root workpiece
-removes only that workpiece, its faces, and incident joints. Edge clicks still
-add folds within the selected workpiece, folded-edge chips open inline plain
-numeric fold-angle editing, and the selected-face menu changes role or deletes
-the child face. Outside attachment mode, face/fold clicks from other workpieces
+removes only that workpiece, its faces, and incident joints. Edge hover shows a
+`+` chip and only that visible chip adds folds within the selected workpiece;
+folded-edge chips open inline plain numeric fold-angle editing, and the
+selected-face menu changes role or deletes the child face. Inline popups are
+draggable, remember their browser-session position, keep close controls in the
+input line instead of a dedicated header row, and close on Enter or Escape.
+Outside attachment mode, face/fold clicks from other workpieces
 are ignored and selection-only changes do not regenerate the preview source, so
 pan/zoom is preserved. A separate fold-delete command is not exposed; deleting the
 child face is the supported removal operation. The folded 3D panel is one

@@ -8,6 +8,10 @@ The system consists of three main parts: the transition engine, the dynamic hook
 ### 1. State Machine Engine
 - **`definitions.js`**: Compatibility export that resolves workflow definitions from the active app registry.
 - **`service.js`**: Orchestrates transitions, performs lifecycle/capability validation, delegates access checks to `server/core/access/`, updates entity snapshots (`status` block), and logs history to `status_events`.
+- **Workflow overrides**: Runtime transition/action paths resolve the target
+  entity's organization-scoped active override from
+  `server/features/workflow-overrides` before falling back to the registered
+  domain workflow.
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and
   resolves collections through the runtime/domain entity registry.
 
@@ -16,6 +20,27 @@ The reusable workflow API is being extracted to
 `service.js` is the runtime adapter and delegates transition validation to the
 package while using registered domain definitions, the app's existing event log,
 and hook dispatch.
+
+Workflow definitions are v2 region machines. Flat lifecycles are represented as
+the `main` region; nested or parallel lifecycles add more regions under
+`workflow.regions`. Entity `status.state` is a structured snapshot, not a
+string:
+
+```js
+{
+  schemaVersion: 2,
+  primary: 'READY',
+  active: { main: 'READY', qa: 'OPEN' },
+  regions: {
+    main: { state: 'READY', path: ['READY'] },
+    qa: { state: 'OPEN', path: ['OPEN'] }
+  }
+}
+```
+
+Use `getPrimaryState(status)` for primary lifecycle reads and
+`getRegionState(status, regionId)` for scoped reads. Primary-state indexes and
+filters use `status.state.primary`.
 
 `metadata` is transition-local context. Current lifecycle facts belong in
 `status.lifecycle`, which is validated against each state's optional lifecycle
@@ -65,7 +90,7 @@ Interactive UI status changes use the canonical status endpoints:
 | Endpoint | Responsibility |
 |---|---|
 | `GET /api/status/actions?entityType=<type>&id=<id>` | Returns transitions authorized for the current user and entity, after running `before` hooks as availability preflight. |
-| `POST /api/status/transition` | Executes a transition with full auth context and returns the updated entity, status, and refreshed actions. |
+| `POST /api/status/transition` | Executes a transition with full auth context and returns the updated entity, status, and refreshed actions. Optional `statusMeta.region` / `statusMeta.path` scopes a transition to a non-primary region. |
 
 Entity-specific PATCH routes must not be the primary status API for standard
 workflow transitions. Runtime callers that know the business meaning of a
@@ -84,7 +109,7 @@ masked.
    `statusService.transition(type, id, state, ...)` from the status runtime/API
    boundary, or `POST /api/status/transition`.
 2. Transition is validated against the domain workflow, access requirements, lifecycle schema, and actor/capability assignments.
-3. Entity's `status` block, including `metadata` and `lifecycle`, is updated and a history event is logged.
+3. Entity's structured `status` block, including `metadata` and `lifecycle`, is updated and a history event is logged with `fromState`, `toState`, `fromStatePrimary`, `toStatePrimary`, and `region`.
 4. **Hook Execution**:
     - Engine executes any `phase: 'before'` hooks before writing the new status.
     - It writes the event and entity status snapshot.

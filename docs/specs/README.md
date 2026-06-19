@@ -8,7 +8,7 @@ runtime modules.
 
 | Spec | Purpose |
 |---|---|
-| [Cassette spec](<./Cassette spec/SPEC.md>) | OCCS v0.4 draft package for canonical cassette templates/designs, semantic layers, validation, examples, and tooling. |
+| [Cassette spec](<./Cassette spec/SPEC.md>) | OCCS v0.4 draft package for canonical cassette templates/designs, declarative hardware/profile workpieces, semantic layers, validation, examples, and tooling. |
 | [cassette-occs-migration-plan.md](./cassette-occs-migration-plan.md) | Maps the current CutKit cassette designer graph to OCCS and defines the migration path. |
 | [nodi-operation-contract.md](./nodi-operation-contract.md) | Formal CutKit-to-Nodi3d operation manifest and compiler contract for OCCS evaluation. |
 | [nodi-operation-manifest.schema.json](./nodi-operation-manifest.schema.json) | JSON Schema for validating Nodi3d operation manifests. |

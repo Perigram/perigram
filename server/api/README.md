@@ -28,6 +28,8 @@ Routes are grouped into sub-directories corresponding to features:
 - `status/`: Authenticated status action and history endpoints. History
   handlers delegate to the statuses feature and return response-only actor
   display data for audit rows.
+- `workflow-overrides/`: Authenticated organization-owned lifecycle override
+  read and replace endpoints for entity status machines.
 - `user/`: Profile and credit management.
 
 ## Conventions

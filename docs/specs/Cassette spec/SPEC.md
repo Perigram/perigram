@@ -257,7 +257,37 @@ OCCS does not distinguish sheet and plate at the core level. Both are encoded as
 
 `profile` describes the form: a linear part with a cross-section. `extruded`, `roll_formed`, `brake_formed`, and `machined` are manufacturing processes and SHOULD be stored in `manufacturing.process`.
 
-### 7.3 Sheet workpiece
+### 7.3 Profile workpiece
+
+A profile workpiece contains a declarative cross-section and a sweep. Template
+profiles SHOULD preserve expression text instead of evaluated numeric values.
+
+```jsonc
+{
+  "id": "hanger_profile_def",
+  "type": "profile",
+  "role": "hanger",
+  "parameters": { "W": "42", "H": "28", "R": "3", "D": "6", "L": "120" },
+  "profile": {
+    "section": {
+      "type": "polygon",
+      "vertices": [["0", "0"], ["W", "0"], ["W", "H"], ["0", "H"]],
+      "edges": [{ "type": "line" }, { "type": "line" }, { "type": "line" }, { "type": "line" }],
+      "holes": [{ "type": "circle", "center": ["W / 2", "H / 2"], "diameter": "D" }],
+      "modifiers": [{ "type": "fillet", "vertices": ["p0", "p1", "p2", "p3"], "radius": "R" }]
+    },
+    "sweep": { "type": "linear", "length": "L" }
+  },
+  "manufacturing": { "process": "extruded" }
+}
+```
+
+`profile.section.modifiers` is a CutKit draft extension for non-destructive
+rounding/chamfer intent. Editable sketch source MAY be carried under
+`extensions.cutkit.sketch`; consumers that do not understand it can still use
+the normalized `profile.section`.
+
+### 7.4 Sheet workpiece
 
 A sheet workpiece contains:
 
@@ -277,6 +307,57 @@ Example:
   "faces": [],
   "folds": [],
   "entities": []
+}
+```
+
+### 7.4 Hardware and solid workpieces
+
+Hardware is declared as a component contract, not as a constructive solid
+operation history. A workpiece MAY use:
+
+- `type: "hardware"` for standard fasteners and small purchased parts;
+- `type: "solid"` for rigid non-sheet bodies such as cast hanger clips;
+- `type: "sheet"` plus `hardware.family` for separately cut sheet hardware,
+  such as sheet-part hanger clips.
+
+Recommended hardware families are `bolt`, `nut`, `washer`, `rivet`, `screw`,
+`spacer`, `standoff`, and `hanger_clip`. Hanger clips MAY set
+`hardware.productionMode` to `sheetPart`, `integralCut`, or `castSolid`.
+`integralCut` hanger clips are produced as parent sheet geometry: the target
+face SHOULD become a resolved `polygon` shape with `holes[]` produced by curve
+boolean difference, and the helper cut polygons SHOULD remain available as
+`cut.inner` entities for manufacturing traceability. Fastener families that
+require through holes, such as bolts, rivets, screws, spacers, and standoffs,
+SHOULD emit exact `circle` entities on `cut.hole` at their resolved placement
+points.
+
+Example:
+
+```jsonc
+{
+  "id": "hanger_clip_def",
+  "type": "solid",
+  "role": "hanger_clip",
+  "parameters": {
+    "width": "42",
+    "height": "28",
+    "thickness": "2"
+  },
+  "hardware": {
+    "family": "hanger_clip",
+    "productionMode": "castSolid",
+    "standard": "",
+    "parameters": {
+      "width": "42",
+      "height": "28",
+      "thickness": "2"
+    },
+    "interfaces": [
+      { "id": "mount", "kind": "hanger" }
+    ],
+    "preview": { "kind": "hanger_clip" }
+  },
+  "solid": { "kind": "hanger_clip" }
 }
 ```
 
@@ -755,10 +836,37 @@ OCCS uses one placement language for entities, workpiece occurrences, library pa
     "face": "main",
     "edge": "E2"
   },
-  "startOffset": "50",
-  "endOffset": "50",
-  "normalOffset": "0",
+  "origin": ["50", "0"],
   "rotation": "0deg"
+}
+```
+
+Repeated hardware along a face edge SHOULD use a placement `pattern` instead of
+duplicating occurrence data. The base placement `origin` defines the first item
+location in edge-local coordinates: X is distance along the selected edge and Y
+is the in-face normal offset. The pattern MUST use one non-conflicting rule:
+`mode: "count"` distributes `count` items between symmetric origin-X edge
+margins; `mode: "spacing"` repeats by `spacing` from origin-X until the edge
+ends.
+
+```jsonc
+{
+  "relativeTo": {
+    "occurrence": "tray",
+    "face": "main",
+    "side": "back"
+  },
+  "origin": ["50", "12"],
+  "anchor": "center",
+  "targetAnchor": "center",
+  "pattern": {
+    "type": "edgeArray",
+    "edge": "E2",
+    "mode": "count",
+    "spacing": "160",
+    "count": "3",
+    "alignment": "start"
+  }
 }
 ```
 

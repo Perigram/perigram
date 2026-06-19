@@ -50,7 +50,10 @@ All entity-related components MUST use these patterns:
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
 | Public marketing animation | `components/marketing/CassetteMarketingAnimation.vue` |
 
-When a card needs custom lifecycle commands, pass them to `EntityCard` through `:status-actions` so the shared title/status layout remains the single owner of status placement. Destructive delete/remove commands belong in these status actions with `display: 'menu'`; edit/configuration commands stay in card footers or page action slots.
+Lifecycle transitions belong in `EntityStatus` and should come from the
+canonical workflow/status API or development workflow previews. Destructive,
+edit, reset helper, and feature command buttons stay outside the status surface
+in card footers or page action slots.
 Geometry-capable entity cards should render the visual source, not tags that
 state a file type or preview flag. Use `GeometryPreview` for entities with
 `data.geometry.preview`/points and `CassetteThumbnail` for cassette DTOs because
@@ -142,6 +145,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   compact `EntityInlineRef` rows. Queue-produced instances are already `CUT`;
   lifecycle action design remains a workflow-machine concern, not a local card
   action override.
+- `CassetteDesignerV2` owns OCCS cassette-template editing. It uses
+  `StandardDialog` for the profile sketch popup, `ProfileSketchEditor` for
+  reusable `profile_template` sketches, and renderer helpers for inserting
+  profile workpieces as cassette-local snapshots with library references.
 - `RemnantCard` and `RemnantDetail` render saved leftover material geometry
   through `GeometryPreview`, including polygon-with-holes queue-cut remnants.
   Source sheet, warehouse, and material pile context should be compact
@@ -225,9 +232,9 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `R`, ...), and keeps actual OCCS workpieces as graph nodes connected by
   OCCS cassette joints. The designer shell separates document actions,
   geometry editing, global settings, assembly topology, and folded 3D preview:
-  the canvas owns only CAD interaction, the top bar owns the active cassette
-  name plus compact load/save/reset actions, the side panel owns global
-  parameters, layer visibility, and OCCS JSON, and the assembly rail owns the
+  the canvas owns only CAD interaction, the left document/settings rail owns the
+  active cassette name plus compact load/save/reset actions, global parameters,
+  layer visibility, and OCCS JSON, and the assembly rail owns the
   compact workpiece DAG/list plus 3D preview. The load selector is an action
   placeholder rather than a second selected-name display, and save/reset are
   icon-only controls. The workpiece `+` action creates a new
@@ -244,7 +251,22 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   deleting either workpiece, and display unresolved/impossible diagnostics from
   the folded preview helper. Attachment placement choice is
   internal renderer state; the user workflow only declares face-to-face
-  attachments. The 2D canvas stays in selected-workpiece flat
+  attachments. Hardware is added from the workpiece rail as declarative OCCS
+  workpieces rather than SCAD-style operation history: bolts, nuts, washers,
+  rivets, screws, spacers, standoffs, and hanger clips carry family/parameter
+  metadata, hanger clips expose `sheetPart`, `integralCut`, and `castSolid`
+  production modes, and their placement can be a dynamic edge array on the
+  target face edge. Array placement uses the attachment `offsetX`/`offsetY` as
+  the first item position and then either a count distribution or spacing step,
+  not a separate start/end/normal-offset system. Integral-cut hanger clips
+  boolean-subtract from the parent face, so the affected face becomes a polygon
+  shape with holes and also exposes helper `cut.inner` polygons; bolts, rivets,
+  screws, spacers, and standoffs generate exact `cut.hole` circles at their
+  resolved placement points. Non-sheet hardware renders as schematic 2D cassette
+  marks, production cut layers, and folded 3D preview bodies; folded 3D face
+  meshes triangulate those hook holes while preserving the original uncut
+  trapezoid edges as fold/reference frames, so cutouts do not corrupt face
+  transforms. Sheet part hanger clips remain sheet workpieces with generated root geometry. The 2D canvas stays in selected-workpiece flat
   editing mode for face operations, while the folded 3D panel is a single
   cassette assembly window in the assembly rail: workpieces render in deterministic varied hues,
   source/target face attachment snaps are applied after sheet folding, clicking
@@ -253,7 +275,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   clicks, resolves
   `face.trapezoid` boundaries through a pure OCCS trapezoid geometry helper
   from cached parent edge vertices, and displays an OCCS v0.4-draft template
-  with per-workpiece faces, folds, occurrences, and joints. Face shape
+  with per-workpiece faces, folds, occurrences, and joints. New documents start
+  with one root face; adding a child from a non-return face defaults to
+  `return_flange`, while adding from a `return_flange` defaults to
+  `mounting_flange` with a `-90` fold. Face shape
   sockets store arithmetic expression strings such as `A + 10` or
   `B + (R / 2 - 1)`. `CassetteExpressionEditor` keeps those fields text-backed
   while validating them, highlighting recognized tokens inline, offering
@@ -264,11 +289,13 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   parameter list. Highlight refresh restores cursor selection only for the
   focused editor so sibling parameter fields cannot steal focus during invalid
   draft edits. Selected-face offsets are edited from compact value chips
-  centered on evaluated face points, base offset anchors stay in the same
+  centered on evaluated face points, positive offsets extend points outward
+  while negative offsets move them inward, base offset anchors stay in the same
   popup, and generated `dimension.cassette` labels stay on the annotation layer
   while selected/hovered labels get interactive edit chips. The
   renderer preserves those strings in OCCS and resolves numeric values only for
-  preview geometry. Free edge handles show a `+` only on hover;
+  preview geometry. Free edge handles show a `+` only on hover, and only the
+  visible `+` chip adds one child face. The edge hit line itself only manages hover.
   folded edges show a plain numeric fold angle and open the inline angle editor
   when clicked. The selected face exposes an editor-surface action menu for
   canonical OCCS face role ids and child-face deletion. Deleting a fold is not exposed as a
@@ -282,7 +309,13 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   workpiece faces updates the corresponding joint faces.
   The assembly rail scrolls topology internally instead of occupying the CAD
   surface.
-  Editable section-plane handles on the main drawing generate 1:1 left and top
+  The designer keeps a 50-step document history for cassette name and graph
+  edits, exposes undo/redo buttons in the canvas top-left overlay plus standard
+  shortcuts outside text fields, and stores session-local autosave drafts per
+  template id without writing to the server before explicit save or showing a
+  persistent autosaved badge. Absolute onboarding callouts formalize the first
+  designer scenario and appear near document controls, the 2D editor, inline
+  popups, and topology. Editable section-plane handles on the main drawing generate 1:1 left and top
   section views by intersecting the folded 3D workpiece geometry; section
   graphics are emitted on the toggleable `code.cassette_mark` layer while the
   canvas keeps only invisible drag hit targets. At `xl` and wider breakpoints
@@ -314,7 +347,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   OrbitControls registers drag continuation on `ownerDocument`. The designer
   root uses a fixed viewport-height work area with
   internal side-panel/canvas overflow instead of growing below the window.
-  Edges already represented by either side of a fold are not clickable. It
+  Edges already represented by either side of a fold are not clickable. Inline
+  coordinate/expression popups are draggable, remember their session-local
+  position, keep close controls in the input line, and close on Enter or
+  Escape. It
   automatically emits a `code.cassette_mark` text entity at the bottom-left of
   the main/root face for each sheet workpiece. The mark text resolves from the
   current cassette template name, template id (or `draft` before first save),

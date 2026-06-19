@@ -10,6 +10,11 @@ validation step for CNC workflow definitions from `@cutkit/domain-cnc`.
 - `defineWorkflow(type, workflow)`
 - `getWorkflow(type)`
 - `listWorkflows()`
+- `normalizeWorkflow(workflow)`
+- `createWorkflowState(workflow, overrides)`
+- `applyWorkflowTransitionState(currentState, workflow, transition, targetState)`
+- `getPrimaryState(statusOrState)`
+- `getRegionState(statusOrState, regionId)`
 - `validateTransition(context)`
 - `normalizeLifecycle(lifecycle)`
 - `validateLifecyclePayload(schema, lifecycle)`
@@ -17,6 +22,44 @@ validation step for CNC workflow definitions from `@cutkit/domain-cnc`.
 - `createTransitionEngine(adapters)`
 
 ## Lifecycle Validation
+
+## Workflow Shape
+
+Workflows use the v2 region contract. A simple lifecycle is a single `main`
+region; independent lifecycle axes can be added as additional regions.
+
+```js
+{
+  schemaVersion: 2,
+  primaryRegion: 'main',
+  regions: {
+    main: {
+      initial: 'DRAFT',
+      states: { DRAFT: {}, READY: {} },
+      transitions: [{ from: 'DRAFT', to: 'READY', access: { permissions: [] } }]
+    },
+    qa: {
+      initial: 'OPEN',
+      states: { OPEN: {}, APPROVED: {} },
+      transitions: [{ from: 'OPEN', to: 'APPROVED', access: { permissions: [] } }]
+    }
+  }
+}
+```
+
+Runtime status snapshots store structured state:
+
+```js
+{
+  schemaVersion: 2,
+  primary: 'READY',
+  active: { main: 'READY', qa: 'OPEN' },
+  regions: {
+    main: { state: 'READY', path: ['READY'] },
+    qa: { state: 'OPEN', path: ['OPEN'] }
+  }
+}
+```
 
 Workflow states may declare lifecycle payload schemas:
 

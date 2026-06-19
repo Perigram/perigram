@@ -16,6 +16,25 @@ frontend/shared utility layer.
   parameter path.
 - `expressions.js` evaluates the lightweight arithmetic/trig expression subset
   used by cassette templates.
+- `hardware.js` declares the OCCS hardware catalog used by Cassette Designer v2:
+  bolts, nuts, washers, rivets, screws, spacers, standoffs, and hanger clips.
+  It keeps hardware declarative with parameters, interfaces, preview metadata,
+  hanger production modes (`sheetPart`, `integralCut`, `castSolid`), and
+  edge-array expansion helpers instead of storing constructive solid operation
+  history. Integral-cut hanger clips resolve through curve boolean difference:
+  the parent face becomes the resulting polygon. Fully internal cutouts remain
+  on `cut.inner`; edge-breaking hanger operands are boolean-only and dispatch
+  only through the modified `cut.outer` contour. Bolt/rivet/screw/spacer/standoff
+  placements resolve to exact `cut.hole` circles. Edge arrays use attachment X
+  as a margin from both edge ends, attachment Y as the face-normal offset, and
+  the target snap (`start`, `end`, or `center`) as the array binding before
+  applying either a `count` or `spacing` rule.
+- `profiles.js` declares the reusable OCCS profile sketch helper used by
+  Cassette Designer v2. It keeps profile templates declarative: editable point,
+  line, circle-hole, constraint, and fillet-modifier sketch data is normalized
+  into `profile.section` polygon/circle data plus a linear `profile.sweep`.
+  Template output preserves expression text such as `W`, `H`, `D`, `R`, and
+  `L`; numeric evaluation is limited to editor previews.
 - `production-layout.js` wraps the Clipper-backed face union/fold-route pass and
   returns semantic `cut.outer` / `fold.route` layer intent.
 - `evaluate.js` resolves OCCS graph-tree templates into production data. It
@@ -33,9 +52,15 @@ frontend/shared utility layer.
 - Cassette Designer v2 emits a `code.cassette_mark` text entity for the
   bottom-left of each sheet workpiece's main/root face. The resolved text uses
   the cassette template name, template id, and one-based workpiece number; the
-  same layer data is carried through baking and nesting.
+  same layer data is carried through baking and nesting. Designer-only section
+  preview lines stay on `designer.section` so production mark layers do not
+  receive contour-like helper paths.
+  Whole-workpiece assembly previews use the same per-workpiece production layout
+  as face/workpiece previews, so `contour.cassette_face`, `cut.outer`, and
+  `fold.route` are dispatched from unioned workpiece geometry instead of raw
+  per-face paths.
 - `folded-3d.js` prepares canonical folded preview payloads for the Three.js
-  preview component.
+  preview component, including optional non-sheet hardware body descriptors.
 - `templates.js` provides the default OCCS cassette fixture template.
 
 ## Conventions

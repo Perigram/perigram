@@ -14,8 +14,9 @@ Purchasing/requisition card and detail surfaces.
 - Expects a `requisition` DTO with workflow status, `data.items`,
   `data.totalPrice`, and lineage to manufacturer/project where available.
 - Related manufacturer and project context uses `EntityInlineRef`.
-- Lifecycle transitions are passed to `EntityCard`/`EntityPage` status actions;
-  non-status commands such as delete live in the card footer or page actions.
+- Lifecycle transitions are rendered by `EntityCard`/`EntityPage` through
+  `EntityStatus` using the workflow/status API. Non-status commands such as
+  delete live in the card footer or page actions.
 
 ## Related
 

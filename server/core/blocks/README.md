@@ -48,12 +48,27 @@ Status { state, userId, timestamp, metadata, eventId, lifecycle }
 
 | Field | Type | Purpose |
 |---|---|---|
-| `state` | string | Machine state key (e.g. `'OPEN'`, `'PROCESSING'`) |
+| `state` | object | v2 machine state snapshot with `primary`, `active`, and `regions` |
 | `userId` | string | OAuth user ID who caused transition; `'SYSTEM'` for automated |
 | `timestamp` | Date | When this status was recorded |
 | `metadata` | object | Event-local transition context (notes, reason codes, job/request ids) |
 | `eventId` | ObjectId \| null | Reference to `status_events` collection entry |
 | `lifecycle` | object | Current mutable facts owned by this lifecycle state |
+
+`state` always serializes as a v2 object:
+
+```js
+{
+  schemaVersion: 2,
+  primary: 'READY',
+  active: { main: 'READY' },
+  regions: { main: { state: 'READY', path: ['READY'] } }
+}
+```
+
+Use `getPrimaryState(status)` and `getRegionState(status, regionId)` for reads;
+do not compare `status.state` directly to a string. Mongo filters use
+`status.state.primary` for the primary lifecycle.
 
 `lifecycle` always serializes as `{ actors: [], attachments: {}, data: {} }`. Use it for current lifecycle facts such as assigned actors, state-specific attachment refs, and measured/captured state data. Do not use `metadata` for durable facts that must be queried, diffed, or updated independently.
 
@@ -62,7 +77,7 @@ or lineage. The frontend status surface supports typed location values such as
 `{ type: 'warehouse', warehouseId }`, `{ type: 'coordinates', coordinates: { x, y, z } }`,
 and `{ type: 'address', address }`.
 
-**Usage:** Created with `createStatus(state, userId, metadata, eventId, lifecycle)` or via `BaseEntity.applyStatus()`.
+**Usage:** Created with `createStatus(state, userId, metadata, eventId, lifecycle)` or via `BaseEntity.applyStatus()`. String input is normalized to the v2 object shape at construction boundaries.
 
 ---
 

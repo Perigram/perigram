@@ -20,6 +20,8 @@ Card surface for physical sheet inventory entries.
 - `SheetDetail` follows the same relation policy as `SheetCard`: source
   warehouse, material pile, and nesting run ids from lineage render through
   `EntityInlineRef` rows instead of text-only ids.
+- Sheet lifecycle controls are owned by `EntityStatus` and the workflow/status
+  API; detail pages do not synthesize local status commands.
 
 ## Related
 

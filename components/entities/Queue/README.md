@@ -6,7 +6,7 @@ Production queue card and detail surface.
 
 | File | Purpose |
 |---|---|
-| `QueueCard.vue` | Entity card wrapper for queue identity, job item totals, output summary, and lifecycle actions. |
+| `QueueCard.vue` | Entity card wrapper for queue identity, job item totals, output summary, and command actions. |
 | `QueueDetail.vue` | Detail page body for artifacts, job composition, consumed source relations, and history. |
 | `QueueEntryCard.vue` | Queue-editor cassette entry card with source inline ref, thumbnail, quantity, and parameter editing. |
 | `QueueSourceCard.vue` | Compact queue-editor material source tile with deterministic SVG preview, identity, dimensions, and count. |
@@ -21,9 +21,13 @@ Production queue card and detail surface.
   render material availability summaries.
 - Running nesting is a queue command action surfaced through page/header
   actions; material selection remains owned by `QueueEditor`.
-- Queue reset/delete commands are rendered outside the status rail. Compact
-  queue cards keep command buttons in the card body, while the queue detail page
-  exposes them in the header actions slot.
+- Queue delete commands are rendered outside the status rail. Compact queue
+  cards keep command buttons in the card body, while the queue detail page
+  exposes feature commands in the header actions slot. Queue lifecycle reset
+  transitions come from `EntityStatus` through the workflow/status API.
+- The queue editor passes command actions to `QueueCard` through the
+  `commandActions` prop so lifecycle transitions and non-status commands stay
+  separated by name as well as placement.
 - Selector surfaces pass `expandable=false` and `density=dense` so clicking the
   compact card selects the queue without opening the `EntityCard` popover or
   using full card padding. Queue number prefixes and the full queue data block
