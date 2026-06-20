@@ -139,7 +139,7 @@ import Select from 'primevue/select';
 defineOptions({ name: 'PermissionRuleBuilder' });
 
 const props = defineProps({
-    modelValue: { type: Object, required: true },
+    modelValue: { type: Object, default: null },
     depth: { type: Number, default: 0 },
     gateOptions: { type: Array, required: true },
     filterTargetOptions: { type: Array, required: true },

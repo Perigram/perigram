@@ -48,7 +48,7 @@
                                 type="button"
                                 class="flex min-w-0 flex-col gap-2 rounded-ui border border-content-border bg-content px-3 py-2 text-left"
                                 :class="selectedGrantIndex === index ? 'border-primary' : ''"
-                                @click="selectedGrantIndex = index"
+                                @click="selectGrant(index)"
                             >
                                 <span class="flex min-w-0 items-center justify-between gap-2">
                                     <strong>{{ getLevelLabel(grant.level) }}</strong>
@@ -105,7 +105,7 @@
                                     {{ $t('auth.permissionFilterBuilderHelp') }}
                                 </p>
                                 <PermissionRuleBuilder
-                                    v-model="selectedRuleTree"
+                                    :model-value="selectedRuleTree"
                                     :gate-options="gateOptions"
                                     :filter-target-options="filterTargetOptions"
                                     :condition-operator-options="conditionOperatorOptions"
@@ -120,6 +120,7 @@
                                     :clause-value-list="clauseValueList"
                                     :create-condition="createConditionNode"
                                     :create-group="createGroupNode"
+                                    @update:model-value="updateRuleTree"
                                 />
                             </Panel>
 
@@ -178,6 +179,7 @@ const selectedGrantJson = ref('');
 const selectedGrantError = ref('');
 const entityOptionsLoading = ref(false);
 const entityOptionLists = ref({});
+const selectedRuleTree = ref(null);
 const entityLoaders = {
     artifact: useEntity('artifact'),
     catalog: useEntity('catalog'),
@@ -187,7 +189,6 @@ const entityLoaders = {
     material: useEntity('material'),
     nestingRun: useEntity('nestingRun'),
     project: useEntity('project'),
-    queue: useEntity('queue'),
     requisition: useEntity('requisition'),
     sheetDesign: useEntity('sheetDesign'),
     user: useEntity('user'),
@@ -332,19 +333,17 @@ const localPermissions = ref(buildLocalPermissions(props.permissions));
 const selectedFeature = computed(() => entities.value.find(feature => feature.key === selectedFeatureKey.value) || entities.value[0]);
 const selectedGrants = computed(() => normalizeGrants(localPermissions.value[selectedFeatureKey.value]));
 const selectedGrant = computed(() => selectedGrants.value[selectedGrantIndex.value] || null);
-const selectedRuleTree = computed({
-    get: () => ruleTreeFromGrant(selectedGrant.value),
-    set: value => applyRuleTree(value)
-});
 
 watch(() => props.permissions, (newVal) => {
     localPermissions.value = buildLocalPermissions(newVal);
     selectedGrantIndex.value = 0;
+    hydrateRuleTree();
 }, { deep: true });
 
 watch(selectedFeatureKey, () => {
     selectedGrantIndex.value = 0;
     selectedGrantError.value = '';
+    hydrateRuleTree();
     loadEntityOptions();
 });
 
@@ -353,11 +352,15 @@ watch(selectedGrant, (grant) => {
     selectedGrantError.value = '';
 }, { immediate: true, deep: true });
 
-onMounted(loadEntityOptions);
+onMounted(() => {
+    hydrateRuleTree();
+    loadEntityOptions();
+});
 
 const reset = () => {
     localPermissions.value = buildLocalPermissions(props.permissions);
     selectedGrantIndex.value = 0;
+    hydrateRuleTree();
 };
 
 function addGrant() {
@@ -365,17 +368,25 @@ function addGrant() {
     grants.push({ level: 'read' });
     setFeatureGrants(selectedFeatureKey.value, grants);
     selectedGrantIndex.value = grants.length - 1;
+    hydrateRuleTree();
 }
 
 function removeGrant(index) {
     const grants = selectedGrants.value.filter((_, grantIndex) => grantIndex !== index);
     setFeatureGrants(selectedFeatureKey.value, grants);
     selectedGrantIndex.value = Math.max(0, Math.min(index, grants.length - 1));
+    hydrateRuleTree();
 }
 
 function clearFeature() {
     localPermissions.value[selectedFeatureKey.value] = 'none';
     selectedGrantIndex.value = 0;
+    hydrateRuleTree();
+}
+
+function selectGrant(index) {
+    selectedGrantIndex.value = index;
+    hydrateRuleTree();
 }
 
 function updateGrant(patch) {
@@ -387,6 +398,15 @@ function replaceSelectedGrant(grant) {
     const grants = selectedGrants.value;
     grants[selectedGrantIndex.value] = grant;
     setFeatureGrants(selectedFeatureKey.value, grants);
+}
+
+function hydrateRuleTree() {
+    selectedRuleTree.value = ruleTreeFromGrant(selectedGrant.value);
+}
+
+function updateRuleTree(value) {
+    selectedRuleTree.value = value;
+    applyRuleTree(value);
 }
 
 function setFeatureGrants(key, grants) {
@@ -669,23 +689,54 @@ async function loadEntityOptions() {
         const featureEntityType = FEATURE_ENTITY_TYPE[selectedFeatureKey.value];
         if (featureEntityType) requiredTypes.add(featureEntityType);
 
-        await Promise.all([...requiredTypes].map(async (type) => {
+        let projectEntities = [];
+        if (requiredTypes.has('project')) {
+            projectEntities = await loadEntityOptionsForType('project', next);
+        }
+        if (requiredTypes.has('queue')) {
+            next.queue = await loadQueueOptions(projectEntities);
+        }
+
+        await Promise.all([...requiredTypes].filter(type => !['project', 'queue'].includes(type)).map(async (type) => {
             if (type === 'organization') {
                 next.organization = organizationOptions();
                 return;
             }
-            const loader = entityLoaders[type];
-            if (!loader) return;
-            try {
-                next[type] = mapEntityOptions(await loader.list());
-            } catch {
-                next[type] = next[type] || [];
-            }
+            await loadEntityOptionsForType(type, next);
         }));
         entityOptionLists.value = next;
     } finally {
         entityOptionsLoading.value = false;
     }
+}
+
+async function loadEntityOptionsForType(type, next) {
+    const loader = entityLoaders[type];
+    if (!loader) return [];
+    try {
+        const entities = await loader.list();
+        next[type] = mapEntityOptions(entities);
+        return entities;
+    } catch {
+        next[type] = next[type] || [];
+        return [];
+    }
+}
+
+async function loadQueueOptions(projectEntities = []) {
+    const projects = projectEntities.length ? projectEntities : entityOptionLists.value.project || [];
+    const queues = [];
+    await Promise.all(projects.map(async (project) => {
+        const projectKey = entityRouteKey(project);
+        if (!projectKey) return;
+        try {
+            const data = await $fetch(`/api/project/${encodeURIComponent(projectKey)}/queues`);
+            queues.push(...(Array.isArray(data) ? data : data.items || data.data || []));
+        } catch {
+            // Queue listing is project-scoped in this app; inaccessible projects simply contribute no options.
+        }
+    }));
+    return mapEntityOptions(dedupeEntities(queues));
 }
 
 function organizationOptions() {
@@ -724,6 +775,15 @@ function entityOptionLabel(entity = {}) {
         || entity.data?.name
         || entity.data?.title
         || entityOptionValue(entity);
+}
+
+function entityRouteKey(entity = {}) {
+    return entity.identity?.slug
+        || entity.slug
+        || entity.identity?.uid
+        || entity._id
+        || entity.id
+        || entity.value;
 }
 
 function grantTransitions(grant) {
