@@ -54,7 +54,7 @@
                                     <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                                         <strong>{{ $t('auth.permissionGrantTitle', { index: index + 1 }) }}</strong>
                                         <Tag :value="getLevelLabel(grant.level)" :severity="grantLevelSeverity(grant.level)" size="small" />
-                                        <small class="text-muted-color">{{ grantModeLabel(grant) }}</small>
+                                        <Tag :value="grantModeLabel(grant)" :severity="grantHasFilters(grant) ? 'warn' : 'secondary'" size="small" />
                                     </div>
                                 </AccordionHeader>
                                 <AccordionContent>
@@ -72,7 +72,18 @@
                                                 />
                                                 <span class="pb-2 text-muted-color">{{ $t('auth.permissionWhen') }}</span>
                                             </div>
-                                            <Button icon="pi pi-trash" severity="danger" text rounded :aria-label="$t('auth.removeGrant')" @click="removeGrant(index)" />
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <Button
+                                                    v-if="grantHasFilters(grant)"
+                                                    icon="pi pi-filter-slash"
+                                                    :label="$t('auth.permissionClearFilters')"
+                                                    severity="secondary"
+                                                    outlined
+                                                    size="small"
+                                                    @click="clearGrantFiltersAt(index)"
+                                                />
+                                                <Button icon="pi pi-trash" severity="danger" text rounded :aria-label="$t('auth.removeGrant')" @click="removeGrant(index)" />
+                                            </div>
                                         </div>
 
                                         <PermissionRuleBuilder
@@ -442,6 +453,18 @@ function setGrantActionAt(index, action, enabled) {
             [action]: enabled === true
         }
     });
+}
+
+function clearGrantFiltersAt(index) {
+    const grant = selectedGrants.value[index];
+    if (!grant) return;
+    const nextGrant = { ...grant };
+    delete nextGrant.scope;
+    delete nextGrant.rule;
+    delete nextGrant.transition;
+    delete nextGrant.transitions;
+    replaceGrantAt(index, nextGrant);
+    if (index === selectedGrantIndex.value) hydrateRuleTree();
 }
 
 function scopeValue(grant, key) {
@@ -1053,7 +1076,12 @@ function featureSummary(key) {
     const grants = normalizeGrants(localPermissions.value[key]);
     if (grants.length === 0) return t('auth.permissionLevelLabels.none');
     const strongest = grants.reduce((current, grant) => strongestLevel(current, grant.level), 'none');
-    return grants.length === 1 ? getLevelLabel(strongest) : t('auth.permissionGrantSummary', { level: getLevelLabel(strongest), count: grants.length });
+    if (grants.length === 1) {
+        return grantHasFilters(grants[0])
+            ? t('auth.permissionFilteredSummary', { level: getLevelLabel(strongest) })
+            : getLevelLabel(strongest);
+    }
+    return t('auth.permissionGrantSummary', { level: getLevelLabel(strongest), count: grants.length });
 }
 
 function featureSummarySeverity(key) {
