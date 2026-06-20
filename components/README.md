@@ -21,18 +21,20 @@ This directory contains Vue components used in the Cutkit-Demo application.
   by `shared/access-control.js`: each feature has one or more explicit grants
   with level, action overrides, lineage/entity trait filters, transition
   filters, logical rule conditions, and advanced JSON for the selected grant.
-  The main editing surface is a unified filter builder: each clause selects a
-  target (`entity`, `organization`, `project`, `queue`, `warehouse`,
-  `transition`, or custom path), a trait (`id`, `type`, `status`, `from`,
-  `to`, or `path`), an operator, and a value, while the gate selects whether
-  all or any clauses must match. Exact entity ID clauses and lineage ID clauses
-  must use entity pickers when a canonical list source exists; users should not
-  type IDs for ordinary project/queue/warehouse/organization lineage filters or
-  for the selected feature entity. Lifecycle status clauses must derive their
-  values from `cncWorkflows` for the selected feature entity or resolved lineage
-  entity target; do not maintain a parallel hardcoded status list. The visible
-  gate selects `all`/`any`, and each group or clause must expose a `not` toggle
-  that saves to the shared evaluator's `{ not: ... }` rule shape. The editor is
+  The main editing surface is a unified filter builder: each predicate selects
+  a subject (`current entity`, `related entity`, `transition`, or custom path),
+  then an entity type when the subject is related, then a trait (`id`, `type`,
+  `status`, `from`, `to`, or `path`), an operator, and a value. Do not expose
+  storage terms like `lineage.organization` as user-facing targets; related
+  entity types come from the domain frontend entity registry. Exact entity ID
+  clauses and related entity ID clauses must use entity pickers when a
+  canonical list source exists; users should not type IDs for ordinary
+  project/queue/warehouse/organization filters or for the selected feature
+  entity. Lifecycle status clauses must derive their values from `cncWorkflows`
+  for the selected feature entity or resolved related entity type; do not
+  maintain a parallel hardcoded status list. The visible gate selects
+  `all`/`any`, and each group or clause must expose a `not` toggle that saves
+  to the shared evaluator's `{ not: ... }` rule shape. The editor is
   a nested boolean expression builder: users must be able to add condition rows
   and nested groups, producing rule trees such as `(A AND B) OR NOT (C AND D)`.
   Do not collapse it back into a single flat clause list. Incomplete draft
@@ -41,12 +43,13 @@ This directory contains Vue components used in the Cutkit-Demo application.
   does not expose a global `/api/queues` list. Free text is reserved for custom
   entity paths, entity type names, transition state names, and unsupported
   entity list sources. The editor should present grants as editable filter
-  expressions, for example "Lineage project / Status equals ACTIVE and Entity /
-  Status equals READY", not as opaque role/global chips, prose summaries, or raw
-  storage fields such as `lineage.projectId`. Do not replace it with a flat
-  role-only selector. When a feature has no grants, the detail area must show an
-  explicit add-grant call to action; once a grant exists, the access level must
-  be edited through a visible control before the filter builder.
+  expressions, for example "Related entity / Project / Status equals ACTIVE and
+  Current entity / Status equals READY", not as opaque role/global chips, prose
+  summaries, or raw storage fields such as `lineage.projectId`. Do not replace
+  it with a flat role-only selector. When a feature has no grants, the detail
+  area must show an explicit add-grant call to action; once a grant exists, the
+  access level must be edited through a visible control before the filter
+  builder.
 
 ## v24 Standardized Patterns
 
