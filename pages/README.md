@@ -29,6 +29,12 @@ Operational pages use shared UI shell primitives:
 - `StateBlock` owns loading/empty/error surfaces.
 - `TableFrame` owns DataTable frames.
 
+Entity-heavy pages should render facts through the entity display constructor
+instead of page-local field arrays when the surface is reusable. App-specific
+surface extensions live in `utils/app-entity-surfaces.js`; current production
+uses include project workspace rows, project detail facts, and selected
+warehouse inventory context.
+
 Asset child routes under `pages/assets/*.vue` are standalone Nuxt routes, not
 nested children of `pages/assets/index.vue`; each routed asset page owns its own
 `StandardPage` shell. `pages/assets/index.vue` is only the `/assets` redirect

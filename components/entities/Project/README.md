@@ -7,7 +7,7 @@ Vue components for displaying and interacting with `Project` entities.
 | File | Purpose |
 |---|---|
 | `ProjectCard.vue` | Card display for a project entity — supports `card`, `compact`, `inline` variants via `EntityCard` chrome |
-| `ProjectIndexCard.vue` | `/projects` route row override for project browsing and management |
+| `ProjectIndexCard.vue` | `/projects` browsing card composed from `EntityCard`, app workspace surface facts, queue preview rows, and footer actions |
 | `ProjectDetail.vue` | Expanded detail view with queues list and summary sidebar |
 
 ## ProjectCard
@@ -17,8 +17,10 @@ Props: `project` (Object, required), `variant` (String, default `'card'`),
 Emits: `view`, `rename`, `delete`.
 
 - Delegates chrome (TraceChain, IdentityBlock, EntityStatus) to `EntityCard`.
-- Card header: optional `data.thumbnailUrl` image when a project DTO provides one.
-- Card body: `DataBlock` with `summary.queueCount` — populated by the centralized aggregator (`server/core/machines/aggregator.js`) when queues are created — plus optional `data.address` text.
+- Card body: `EntitySurfaceContent` using the app `workspace` surface from
+  `utils/app-entity-surfaces.js`. That surface layers `data.address`,
+  `summary.queueCount`, and `summary.totalArea` onto the core project display
+  contract while preserving field-access filtering.
 - Footer: `NameEditPopover` gated by `authStore.can('projects', 'edit')`
   for compact single-field project renames. The optional `renaming` prop drives
   the popover save loading state without coupling it to create dialogs.
@@ -29,13 +31,12 @@ Emits: `view`, `rename`, `delete`.
 Props: `project` (Object, required), `renaming` (Boolean, default `false`).
 Emits: `view`, `rename`, `delete`.
 
-- Used only by `pages/projects/index.vue` so the project list can have a
-  browsing-oriented row without changing the canonical `ProjectCard` used by
-  relation refs and general entity surfaces.
-- Renders a route-specific full-width row instead of the canonical entity-card
-  chrome: project identity/status/address on the left, queue and area facts as
-  compact tags, recent queue rows in the center, and permission-gated
-  rename/open/delete actions on the right.
+- Used only by `pages/projects/index.vue` so the project list can combine
+  canonical `EntityCard` chrome and app workspace facts with the project-list
+  queue preview payload.
+- Renders identity/status through `EntityCard`, project facts through
+  `EntitySurfaceContent` with the app `workspace` surface, recent queue rows in
+  the body, and permission-gated rename/open/delete actions in the footer.
 - Reads `/api/project` `summary.queuePreview` to show compact recent queue
   details in the row body: status, cassette item count, requested quantity, run
   count, generated sheet count, and selected stock count. This preview is

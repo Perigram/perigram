@@ -94,9 +94,11 @@ Contract-driven body primitives for app constructors. `EntitySurfaceContent`
 resolves an entity type plus `surface` through `utils/entity-display-contract.js`
 and renders preview, data facts, and relation rows with the shared primitives.
 `EntityPreview` dispatches to existing preview components such as
-`GeometryPreview` and `CassetteThumbnail`; `EntityRelationsBlock` renders
-relation descriptors through `EntityInlineRef`. Specialized production cards
-may still use custom slots where the workflow needs more than the default body.
+`GeometryPreview` and `CassetteThumbnail`, and renders ordinary DTO thumbnails
+from `data.thumbnailUrl` or thumbnail attachment metadata for non-cassette
+entities. `EntityRelationsBlock` renders relation descriptors through
+`EntityInlineRef`. Specialized production cards may still use custom slots
+where the workflow needs more than the default body.
 
 ### `StatusBadge.vue`
 Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.

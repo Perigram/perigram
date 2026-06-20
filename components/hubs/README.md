@@ -24,6 +24,11 @@ operational page.
 - List tabs preserve entity-card click contracts: parent hubs listen to card
   intent events such as `view` rather than attaching raw click handlers to
   child components.
+- `WarehouseHub` renders selected-warehouse facts through
+  `EntitySurfaceContent` and the app `warehouse.workspace` surface. The hub
+  merges its derived inventory counts into the selected warehouse DTO before
+  rendering so the display remains constructor-driven while preserving the
+  operational inventory calculation.
 - `WarehouseHub` keeps the current workflow manual: users create warehouses and
   add stock piles directly from existing catalog/color references, or type
   material/color names to create minimal catalog/color records inline. Supply

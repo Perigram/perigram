@@ -10,6 +10,10 @@ Shared frontend utility modules used by Vue pages/components.
   core domain field groups/surfaces, optional app extensions, and per-call
   overrides, then returns the effective surface contract and ordered field
   descriptors for cards, details, workbench previews, and generated consumers.
+- `app-entity-surfaces.js`: App-owned display extensions layered on top of the
+  core domain constructor. Production pages use it for route-specific surfaces
+  such as project workspace rows, project detail facts, and selected warehouse
+  inventory context without changing the reusable core library contract.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`.
 - `status-engine.js`: Compatibility status severity/icon mapping and entity route/icon registry used by shared status and trace components. New source-of-truth UI, artifact, and route metadata belongs in `@cutkit/domain-cnc` and is adapted by `@cutkit/vue`.
 - `status-actions.js`: Converts workflow definitions into default `EntityStatus` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows. Also exposes `hasWorkflow()` so UI primitives can avoid server action lookups for workflow-less entity types without importing the domain package directly.

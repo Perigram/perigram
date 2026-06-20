@@ -4,12 +4,14 @@
 
 ## Behavior
 
-- Uses `StandardPage` for page chrome and `ProjectIndexCard` for each project
-  list row. `ProjectIndexCard` is a route-specific override; the canonical
-  `ProjectCard` remains available for generic entity and relation surfaces.
+- Uses `StandardPage` for page chrome, `ResponsiveGrid` for list layout, and
+  `ProjectIndexCard` for each project row. `ProjectIndexCard` now composes
+  `EntityCard` and `EntitySurfaceContent` with the app `workspace` surface, so
+  project list facts follow the same constructor contract as generic project
+  cards.
 - Loads project DTOs from `useGlobalStore().getProjects()` and reads them via
   `projectsList`.
-- Renders projects as full-width rows inside `DataView`. Each row reads
+- Renders projects through the shared responsive grid. Each row reads
   `summary.queuePreview` from `/api/project` to show recent queue states,
   cassette counts, quantities, run counts, sheet counts, and selected stock
   counts without extra per-card queue fetches.
