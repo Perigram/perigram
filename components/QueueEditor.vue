@@ -34,7 +34,7 @@
             </template>
 
             <div class="flex h-full min-h-0 min-w-0 flex-col gap-4">
-                <div v-if="queues?.length > 0" class="flex shrink-0 gap-2 xl:hidden">
+                <div v-if="queues?.length > 0" class="flex shrink-0 gap-2 lg:hidden">
                     <Select
                         :modelValue="queue._id"
                         :options="queueOptions"
@@ -60,6 +60,34 @@
                     />
                 </div>
 
+                <MetricPanel
+                    class="shrink-0"
+                    :title="queueName"
+                    :subtitle="queue.identity?.slug || ''"
+                    :metrics="queueOverviewMetrics"
+                >
+                    <div class="flex flex-wrap gap-2">
+                        <Button
+                            v-if="queueState === 'DRAFT'"
+                            :label="$t('nesting.calculateLayout')"
+                            icon="pi pi-play"
+                            size="small"
+                            @click="runNesting"
+                            :loading="nestingInProgress"
+                            :disabled="!isNestingReady"
+                        />
+                        <Button
+                            v-if="canCreateQueue"
+                            :label="$t('queue.create')"
+                            icon="pi pi-plus"
+                            severity="secondary"
+                            outlined
+                            size="small"
+                            @click="$emit('create-queue')"
+                        />
+                    </div>
+                </MetricPanel>
+
                 <ScrollablePanel class="shrink-0" :scroll-content="false">
                     <template #header>
                         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -82,17 +110,6 @@
                                 size="small"
                             />
                         </div>
-                    </template>
-                    <template #actions>
-                        <Button
-                            v-if="queueState === 'DRAFT'"
-                            :label="$t('nesting.calculateLayout')"
-                            icon="pi pi-play"
-                            size="small"
-                            @click="runNesting"
-                            :loading="nestingInProgress"
-                            :disabled="!isNestingReady"
-                        />
                     </template>
                     <div class="flex flex-col gap-6" v-if="queueState === 'DRAFT'">
                         <div class="flex flex-col gap-4">
@@ -340,6 +357,7 @@ import QueueCard from '~/components/entities/Queue/QueueCard.vue';
 import QueueSourceCard from '~/components/entities/Queue/QueueSourceCard.vue';
 import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
 import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
+import MetricPanel from '~/components/shared/MetricPanel.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
@@ -530,6 +548,14 @@ const addInventoryItem = (value) => {
 const removeInventoryItem = (uniqueId) => {
     nestingOptions.value.inventoryItems = nestingOptions.value.inventoryItems.filter(item => item !== uniqueId);
 };
+
+const totalEntryQuantity = computed(() => entries.value.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0));
+const queueOverviewMetrics = computed(() => [
+    { key: 'entries', label: t('queue.jobItems'), value: entries.value.length },
+    { key: 'quantity', label: t('queues.quantity'), value: totalEntryQuantity.value },
+    { key: 'sources', label: t('nesting.materialSourcing'), value: nestingOptions.value.materialMode === 'WAREHOUSE' ? selectedInventory.value.length : 1 },
+    { key: 'runs', label: t('queue.runs'), value: queueRuns.value.length }
+]);
 
 const newEntry = ref({
     cassetteTemplateId: null,
