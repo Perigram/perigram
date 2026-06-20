@@ -7,7 +7,7 @@ Vue components for displaying and interacting with `Project` entities.
 | File | Purpose |
 |---|---|
 | `ProjectCard.vue` | Card display for a project entity — supports `card`, `compact`, `inline` variants via `EntityCard` chrome |
-| `ProjectIndexCard.vue` | `/projects` browsing card composed from `EntityCard`, app workspace surface facts, queue preview rows, and footer actions |
+| `ProjectIndexCard.vue` | `/projects` workcard composed from `EntityCard`, thumbnail/visual area, app workspace surface facts, queue preview tiles, a metrics/action rail, and footer edit/delete actions |
 | `ProjectDetail.vue` | Expanded detail view with queues list and summary sidebar |
 
 ## ProjectCard
@@ -34,9 +34,10 @@ Emits: `view`, `rename`, `delete`.
 - Used only by `pages/projects/index.vue` so the project list can combine
   canonical `EntityCard` chrome and app workspace facts with the project-list
   queue preview payload.
-- Renders identity/status through `EntityCard`, project facts through
-  `EntitySurfaceContent` with the app `workspace` surface, recent queue rows in
-  the body, and permission-gated rename/open/delete actions in the footer.
+- Renders identity/status through `EntityCard`, a thumbnail or folder visual,
+  project facts through `EntitySurfaceContent` with the app `workspace`
+  surface, recent queue tiles in the body, a right-side metrics/open rail, and
+  permission-gated rename/delete actions in the footer.
 - Reads `/api/project` `summary.queuePreview` to show compact recent queue
   details in the row body: status, cassette item count, requested quantity, run
   count, generated sheet count, and selected stock count. This preview is

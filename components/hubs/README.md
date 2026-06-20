@@ -28,7 +28,9 @@ operational page.
   `EntitySurfaceContent` and the app `warehouse.workspace` surface. The hub
   merges its derived inventory counts into the selected warehouse DTO before
   rendering so the display remains constructor-driven while preserving the
-  operational inventory calculation.
+  operational inventory calculation. The selected facility header also renders
+  a visible inventory metric strip for batches, sheets, remnants, and produced
+  cassette instances before the tabs.
 - `WarehouseHub` keeps the current workflow manual: users create warehouses and
   add stock piles directly from existing catalog/color references, or type
   material/color names to create minimal catalog/color records inline. Supply
