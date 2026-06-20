@@ -58,6 +58,14 @@ Scopes are matched against entity lineage (`organizationId`, `projectId`,
 same permission object shape, so fixture ownership and per-run access overrides
 exercise production access code.
 
+Lineage ID facts such as `lineage.projectId` read directly from the checked
+entity. Lineage entity traits use facts such as
+`lineage.project.status.primary` and `lineage.project.type`; they require the
+caller to supply resolved ancestors through `context.lineageEntities` (for
+example `{ project }`) or embed them on the checked entity as
+`entity.lineageEntities`. Without that context, only the stored lineage IDs are
+enforceable.
+
 Grant objects may also include `rule`, an additive logical filter evaluated
 after level/action/scope/transition checks:
 
@@ -77,10 +85,10 @@ after level/action/scope/transition checks:
 ```
 
 Rules support `all`, `any`, and `not` gates plus predicates over feature,
-level, action, entity type/id, entity lineage, primary status, transition
-fields, arbitrary entity fields, and explicit context facts. Supported
-comparators are `exists`, `equals`, `notEquals`, `in`, `includes`, and
-`atLeast` for access levels.
+level, action, entity type/id, entity lineage IDs, resolved lineage entity
+traits, primary status, transition fields, arbitrary entity fields, and
+explicit context facts. Supported comparators are `exists`, `equals`,
+`notEquals`, `in`, `includes`, and `atLeast` for access levels.
 
 Workflow definitions must not duplicate app preset names for access policy; they
 should declare feature permission requirements, lifecycle capabilities, and

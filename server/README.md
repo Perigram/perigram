@@ -46,6 +46,16 @@ Server modules that need shared root utilities should import them through
 configured aliases such as `#utils/...`, not relative paths that climb out of
 `server/`. Nitro dev chunks resolve those aliases through `nuxt.config.js`.
 
+## Access Context
+
+Server access checks delegate to `shared/access-control.js`. Entity lineage IDs
+are always available from the checked entity, but lineage entity trait rules
+such as `lineage.project.status.primary` require resolved ancestors in the
+access context. Command access passes its related `entities` map as
+`context.lineageEntities`; services that need ancestor status/type based access
+must pass the relevant ancestor DTOs instead of expecting the evaluator to load
+them implicitly.
+
 ## Required Checks
 
 ```bash

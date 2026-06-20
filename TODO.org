@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Make permission composer expose lineage traits and NOT
+     Files changed: components/PermissionEditor.vue, shared/access-control.js,
+       shared/ui-permissions.js, server/core/access/service.js,
+       shared/ui-permissions.spec.js, i18n/locales/en.json,
+       i18n/locales/ru.json, shared/README.md, components/README.md,
+       server/README.md, TODO.org
+     Docs updated: shared/README.md, components/README.md, server/README.md,
+       TODO.org
+     Notes: Added evaluator support for resolved lineage entity facts such as
+       `lineage.project.status.primary` and `lineage.project.type`; callers must
+       supply ancestors through `context.lineageEntities` or embedded
+       `entity.lineageEntities`. PermissionEditor now renders horizontal filter
+       rows, exposes All/Any plus per-clause NOT, derives lifecycle status
+       choices from `cncWorkflows`, and shows lineage targets explicitly.
+
      [2026-06-20] Refactor entity UI into display constructor contracts
      Files changed: packages/domain-cnc/src/ui-fields.js,
        packages/domain-cnc/src/ui-surfaces.js,
