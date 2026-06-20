@@ -273,16 +273,20 @@ relationship.
   `{ key, label, value }` and may use the default slot for route actions. Use it
   beside reusable entity cards, hub tabs, or workflow tables; do not use it as a
   replacement for entity-specific `DataBlock`, `SpecsBlock`, or
-  `EntitySurfaceContent`.
+  `EntitySurfaceContent`. Vertical metric panels collapse to a two-column
+  compact grid below the normal desktop breakpoint and become a stacked rail at
+  `lg` and wider.
 - **`ResponsiveGrid.vue`**: Token-backed responsive grid for cards and
   repeated item surfaces. Variants: `cards` (default), `dense`, `wide`. Grid
   children align to the start of each row so cards and panels keep natural
   height instead of stretching to the tallest item.
 - **`WorkspaceLanes.vue`**: Three-lane production workspace shell. The parent
   route provides the viewport-sized frame; this component owns the left,
-  center, and right lane grid. By default the center lane scrolls as a lane;
-  pass `:center-scroll="false"` when bounded child surfaces such as
-  `ScrollablePanel` own their own body scrolling.
+  center, and right lane grid from the normal desktop breakpoint. Below that,
+  callers should provide their own compact selector/control surface because the
+  left lane is hidden. By default the center lane scrolls as a lane; pass
+  `:center-scroll="false"` when bounded child surfaces such as `ScrollablePanel`
+  own their own body scrolling.
 - **`ScrollablePanel.vue`**: PrimeVue `Panel` wrapper for bounded workspace
   sections whose header remains fixed while the panel content scrolls. It
   supports an `actions` slot for header controls and `:scroll-content="false"`

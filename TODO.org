@@ -4,6 +4,30 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Redesign project queue workspace
+     Files changed: components/QueueEditor.vue,
+       components/shared/WorkspaceLanes.vue
+     Docs updated: components/README.md, components/shared/README.md,
+       pages/project/README.md, TODO.org
+     Notes: Queue workspace now renders the left queue selector, center
+       selected-queue workspace, and right runs lane at the normal desktop
+       breakpoint. Added a selected queue MetricPanel overview for job items,
+       total quantity, material sources, and runs, and moved Run nesting into
+       that overview as the primary queue action.
+
+     [2026-06-20] Make non-project library rails visible at desktop width
+     Files changed: components/shared/MetricPanel.vue,
+       pages/project/[slug]/sheet-designs.vue,
+       pages/project/[slug]/artifacts.vue, pages/project/[slug]/data.vue,
+       pages/project/[slug]/details.vue, pages/catalog/index.vue,
+       pages/requisitions/index.vue, pages/assets/pens.vue,
+       pages/assets/tools.vue, pages/assets/layer-standards.vue
+     Docs updated: components/shared/README.md, pages/README.md,
+       pages/project/README.md, TODO.org
+     Notes: Moved the route summary rail layouts from xl-only breakpoints to
+       the normal desktop lg breakpoint so the redesigned non-/projects pages
+       render as split summary-and-content workspaces on ordinary app widths.
+
      [2026-06-20] Make page redesign visually explicit with metric panels
      Files changed: components/shared/MetricPanel.vue,
        pages/project/[slug]/sheet-designs.vue,

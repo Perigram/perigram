@@ -12,18 +12,21 @@ Routes under `pages/project/` render the authenticated project workspace.
 - `[slug]/queues.vue`: Active queue editor for creating queue entries, selecting
   warehouse stock, running nesting, and opening generated runs. The route
   delegates workspace actions to `QueueEditor`; it does not render a separate
-  top action bar because the editor owns the production workspace. Queue
-  creation controls render only when the active membership has `queues:create`
-  access, matching the backend `queues:write` check. Empty states are centered
-  inside the bounded workspace frame so the page preserves the same layout
-  contract before and after queues exist.
+  top action bar because the editor owns the production workspace. On normal
+  desktop widths, the editor renders queue selection, the selected-queue
+  overview/settings/cassette workspace, and nesting runs as three visible lanes.
+  Queue creation controls render only when the active membership has
+  `queues:create` access, matching the backend `queues:write` check. Empty
+  states are centered inside the bounded workspace frame so the page preserves
+  the same layout contract before and after queues exist.
 - `[slug]/sheet-designs.vue`: Project-level list of generated sheet designs for
   selected production runs. It resolves project queues, reads
   `queue.data.materialConsumption.runId`, loads sheet designs by queue, and
   keeps only designs whose `lineage.runId` matches the selected run. The route
-  uses `ActionToolbar`, a sticky `MetricPanel` summary rail, and
-  `ResponsiveGrid` with `SheetDesignCard` so the page owns workflow context
-  while the entity card owns the reusable sheet-design display contract.
+  uses `ActionToolbar`, a sticky `MetricPanel` summary rail from the normal
+  desktop breakpoint, and `ResponsiveGrid` with `SheetDesignCard` so the page
+  owns workflow context while the entity card owns the reusable sheet-design
+  display contract.
 - `[slug]/sheet-design/[sheetDesignId].vue`: Sheet-design detail route opened
   from sheet design cards and nesting run results.
 - `[slug]/details.vue`: Project identity/status through `EntityPage`, a visible
@@ -34,11 +37,12 @@ Routes under `pages/project/` render the authenticated project workspace.
   events.
 - `[slug]/data.vue`: Project inventory, logs, and material data. The route keeps
   the existing tabbed editing flows, places them beside a `MetricPanel` summary
-  rail for loaded material/log state, and avoids nested `StandardPage` chrome
-  inside the project shell.
+  rail for loaded material/log state at normal desktop widths, and avoids
+  nested `StandardPage` chrome inside the project shell.
 - `[slug]/artifacts.vue`: Queue artifact browser. It renders an `ActionToolbar`,
-  a sticky aggregate `MetricPanel`, and queue accordions whose headers expose
-  summary tags before delegating row rendering to `ArtifactsTable`.
+  a sticky aggregate `MetricPanel` from the normal desktop breakpoint, and queue
+  accordions whose headers expose summary tags before delegating row rendering
+  to `ArtifactsTable`.
 
 ## Workflow Notes
 
