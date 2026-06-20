@@ -1,50 +1,71 @@
 <template>
   <StandardPage :title="$t('assets.pens')">
     <template #actions>
-      <Button 
-        :label="$t('assets.newPen')" 
-        icon="pi pi-plus" 
+      <Button
+        :label="$t('assets.newPen')"
+        icon="pi pi-plus"
         @click="showDialog = true"
       />
     </template>
-    
+
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <div v-else-if="error" class="px-1">
       <Message severity="error">{{ error }}</Message>
     </div>
-    
+
     <StateBlock v-else-if="!pens.length" :message="$t('assets.noPens')" icon="pi pi-pencil" />
 
-    <ResponsiveGrid v-else>
-      <PenTemplateCard v-for="pen in pens" :key="pen._id" :pen="pen">
-        <template #footer>
-          <div class="flex justify-end gap-2" v-if="isUserOwnedPen(pen)">
-            <Button 
-              icon="pi pi-pencil" 
-              severity="secondary"
-              text
-              rounded
-              size="small"
-              @click="editPen(pen)"
-              v-tooltip.top="$t('common.edit')"
-            />
-            <Button 
-              icon="pi pi-trash" 
-              severity="danger"
-              text
-              rounded
-              size="small"
-              @click="deletePenConfirm(pen)"
-              v-tooltip.top="$t('common.delete')"
-            />
-          </div>
-        </template>
-      </PenTemplateCard>
-    </ResponsiveGrid>
-    
+    <template v-else>
+      <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+          <small class="text-muted-color">{{ $t('assets.pens') }}</small>
+          <div class="mt-1 text-2xl font-semibold">{{ penStats.total }}</div>
+        </div>
+        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+          <small class="text-muted-color">{{ $t('common.user') }}</small>
+          <div class="mt-1 text-2xl font-semibold">{{ penStats.userOwned }}</div>
+        </div>
+        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+          <small class="text-muted-color">{{ $t('assets.pattern') }}</small>
+          <div class="mt-1 text-2xl font-semibold">{{ penStats.patterns }}</div>
+        </div>
+        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+          <small class="text-muted-color">{{ $t('assets.weight') }}</small>
+          <div class="mt-1 text-2xl font-semibold">{{ penStats.averageWeight }} mm</div>
+        </div>
+      </section>
+
+      <ResponsiveGrid>
+        <PenTemplateCard v-for="pen in pens" :key="pen._id" :pen="pen">
+          <template #footer>
+            <div class="flex justify-end gap-2" v-if="isUserOwnedPen(pen)">
+              <Button
+                icon="pi pi-pencil"
+                severity="secondary"
+                text
+                rounded
+                size="small"
+                @click="editPen(pen)"
+                v-tooltip.top="$t('common.edit')"
+              />
+              <Button
+                icon="pi pi-trash"
+                severity="danger"
+                text
+                rounded
+                size="small"
+                @click="deletePenConfirm(pen)"
+                v-tooltip.top="$t('common.delete')"
+              />
+            </div>
+          </template>
+        </PenTemplateCard>
+      </ResponsiveGrid>
+    </template>
+
     <!-- Pen Dialog -->
     <StandardDialog
-      v-model:visible="showDialog" 
+      v-model:visible="showDialog"
       :header="editingPen ? $t('assets.editPen') : $t('assets.newPen')"
       size="sm"
     >
@@ -53,7 +74,7 @@
           <label>{{ $t('batch.name') }}</label>
           <InputText v-model="form.name" :placeholder="$t('assets.placeholders.penName')" class="w-full" autofocus />
         </div>
-        
+
         <div class="flex flex-col gap-2">
           <label>{{ $t('assets.color') }}</label>
           <div class="flex gap-2">
@@ -61,32 +82,32 @@
             <div class="w-swatch h-swatch border rounded shrink-0" :style="{ backgroundColor: form.stroke.color }"></div>
           </div>
         </div>
-        
+
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-2">
             <label>{{ $t('assets.weight') }} (mm)</label>
             <InputNumber v-model="form.stroke.weight" :min="0.1" :max="10" :step="0.1" mode="decimal" :minFractionDigits="2" class="w-full" />
           </div>
-          
+
           <div class="flex flex-col gap-2">
             <label>{{ $t('assets.pattern') }}</label>
-            <Select 
-              v-model="form.stroke.pattern" 
-              :options="patternOptions" 
-              optionLabel="label" 
+            <Select
+              v-model="form.stroke.pattern"
+              :options="patternOptions"
+              optionLabel="label"
               optionValue="value"
               class="w-full"
             />
           </div>
         </div>
       </div>
-      
+
       <template #footer>
         <Button :label="$t('common.cancel')" text severity="secondary" @click="closeDialog" />
         <Button :label="$t('common.save')" @click="savePen" />
       </template>
     </StandardDialog>
-    
+
     <ConfirmDialog />
   </StandardPage>
 </template>
@@ -126,6 +147,18 @@ const patternOptions = computed(() => [
   { label: t('assets.patterns.DASHED'), value: 'DASHED' },
   { label: t('assets.patterns.DOTTED'), value: 'DOTTED' }
 ]);
+const penStats = computed(() => {
+  const rows = pens.value || [];
+  const average = rows.length
+    ? rows.reduce((sum, pen) => sum + Number(pen.data?.stroke?.weight || pen.stroke?.weight || 0), 0) / rows.length
+    : 0;
+  return {
+    total: rows.length,
+    userOwned: rows.filter(isUserOwnedPen).length,
+    patterns: new Set(rows.map(pen => pen.data?.stroke?.pattern || pen.stroke?.pattern).filter(Boolean)).size,
+    averageWeight: Number(average.toFixed(2))
+  };
+});
 
 const isUserOwnedPen = (pen) => Boolean(pen?.lineage?.userId || pen?.ownerId);
 

@@ -10,6 +10,25 @@
             </template>
         </ActionToolbar>
 
+        <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+                <small class="text-muted-color">{{ $t('metadata.materials') }}</small>
+                <div class="mt-1 text-2xl font-semibold">{{ projectDataStats.materials }}</div>
+            </div>
+            <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+                <small class="text-muted-color">{{ $t('projectData.sheets') }}</small>
+                <div class="mt-1 text-2xl font-semibold">{{ projectDataStats.sheets }}</div>
+            </div>
+            <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+                <small class="text-muted-color">{{ $t('projectData.logs') }}</small>
+                <div class="mt-1 text-2xl font-semibold">{{ projectDataStats.logs }}</div>
+            </div>
+            <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+                <small class="text-muted-color">{{ $t('projectData.wastePolygons') }}</small>
+                <div class="mt-1 text-2xl font-semibold">{{ projectDataStats.waste }}</div>
+            </div>
+        </section>
+
         <!-- Inventory and Logs Tabs -->
         <Tabs value="0">
             <TabList>
@@ -301,6 +320,12 @@ const globalMaterials = ref([]);
 const loading = ref(false);
 const saving = ref(false);
 const globalMaterialOptions = computed(() => namedSelectOptions(globalMaterials.value, t('common.name')));
+const projectDataStats = computed(() => ({
+    materials: projectMaterials.value.length,
+    sheets: projectMaterials.value.reduce((sum, material) => sum + Number(material.sheets?.length || 0), 0),
+    logs: cutLogs.value.length,
+    waste: projectMaterials.value.reduce((sum, material) => sum + Number(material.wastePolygons?.length || 0), 0)
+}));
 
 const showAddMaterialDialog = ref(false);
 const showCreateMaterialDialog = ref(false);

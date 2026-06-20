@@ -1,48 +1,69 @@
 <template>
   <StandardPage :title="$t('assets.tools')" :subtitle="$t('assets.toolsSubtitle')">
     <template #actions>
-      <Button 
-        :label="$t('assets.newTool')" 
-        icon="pi pi-plus" 
+      <Button
+        :label="$t('assets.newTool')"
+        icon="pi pi-plus"
         @click="showDialog = true"
       />
     </template>
-    
+
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <div v-else-if="error">
       <Message severity="error">{{ error }}</Message>
     </div>
-    
+
     <StateBlock v-else-if="!tools.length" :message="$t('assets.noTools')" icon="pi pi-wrench" />
 
-    <ResponsiveGrid v-else>
-      <div v-for="tool in tools" :key="tool._id" class="flex flex-col gap-2">
-        <ToolProfileCard :tool="tool" variant="card" />
-        <div class="flex justify-end gap-2" v-if="tool.lineage?.userId">
-            <Button 
-              icon="pi pi-pencil" 
-              severity="secondary" 
-              text
-              rounded
-              size="small"
-              @click="editTool(tool)"
-              v-tooltip.top="$t('common.edit')"
-            />
-            <Button 
-              icon="pi pi-trash" 
-              severity="danger" 
-              text
-              rounded
-              size="small"
-              @click="deleteToolConfirm(tool)"
-              v-tooltip.top="$t('common.delete')"
-            />
+    <template v-else>
+      <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+          <small class="text-muted-color">{{ $t('assets.tools') }}</small>
+          <div class="mt-1 text-2xl font-semibold">{{ toolStats.total }}</div>
         </div>
-      </div>
-    </ResponsiveGrid>
-    
-    <StandardDialog 
-      v-model:visible="showDialog" 
+        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+          <small class="text-muted-color">{{ $t('common.user') }}</small>
+          <div class="mt-1 text-2xl font-semibold">{{ toolStats.userOwned }}</div>
+        </div>
+        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+          <small class="text-muted-color">{{ $t('assets.diameter') }}</small>
+          <div class="mt-1 text-2xl font-semibold">{{ toolStats.averageDiameter }} mm</div>
+        </div>
+        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+          <small class="text-muted-color">{{ $t('assets.angle') }}</small>
+          <div class="mt-1 text-2xl font-semibold">{{ toolStats.maxAngle }}°</div>
+        </div>
+      </section>
+
+      <ResponsiveGrid>
+        <div v-for="tool in tools" :key="tool._id" class="flex flex-col gap-2">
+          <ToolProfileCard :tool="tool" variant="card" />
+          <div class="flex justify-end gap-2" v-if="tool.lineage?.userId">
+              <Button
+                icon="pi pi-pencil"
+                severity="secondary"
+                text
+                rounded
+                size="small"
+                @click="editTool(tool)"
+                v-tooltip.top="$t('common.edit')"
+              />
+              <Button
+                icon="pi pi-trash"
+                severity="danger"
+                text
+                rounded
+                size="small"
+                @click="deleteToolConfirm(tool)"
+                v-tooltip.top="$t('common.delete')"
+              />
+          </div>
+        </div>
+      </ResponsiveGrid>
+    </template>
+
+    <StandardDialog
+      v-model:visible="showDialog"
       :header="editingTool ? $t('assets.editTool') : $t('assets.newTool')"
       size="sm"
     >
@@ -51,32 +72,32 @@
           <label>{{ $t('batch.name') }}</label>
           <InputText v-model="form.name" :placeholder="$t('assets.placeholders.toolName')" class="w-full" autofocus />
         </div>
-        
+
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-2">
             <label>{{ $t('assets.diameter') }} (mm)</label>
             <InputNumber v-model="form.diameter" :min="0.1" :max="100" :step="0.1" mode="decimal" :minFractionDigits="2" class="w-full" />
           </div>
-          
+
           <div class="flex flex-col gap-2">
             <label>{{ $t('assets.angle') }} (°)</label>
             <InputNumber v-model="form.angle" :min="0" :max="180" :step="1" class="w-full" />
           </div>
         </div>
       </div>
-      
+
       <template #footer>
         <Button :label="$t('common.cancel')" text severity="secondary" @click="closeDialog" />
         <Button :label="$t('common.save')" @click="saveTool" />
       </template>
     </StandardDialog>
-    
+
     <ConfirmDialog />
   </StandardPage>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToolProfilesStore } from '~/stores/toolProfiles';
 import { storeToRefs } from 'pinia';
@@ -103,6 +124,18 @@ const toolProfilesStore = useToolProfilesStore();
 const { tools, loading, error } = storeToRefs(toolProfilesStore);
 const confirm = useConfirm();
 const toast = useToast();
+const toolStats = computed(() => {
+  const rows = tools.value || [];
+  const average = rows.length
+    ? rows.reduce((sum, tool) => sum + Number(tool.data?.diameter || 0), 0) / rows.length
+    : 0;
+  return {
+    total: rows.length,
+    userOwned: rows.filter(tool => tool.lineage?.userId).length,
+    averageDiameter: Number(average.toFixed(2)),
+    maxAngle: rows.reduce((max, tool) => Math.max(max, Number(tool.data?.angle || 0)), 0)
+  };
+});
 
 const showDialog = ref(false);
 const editingTool = ref(null);

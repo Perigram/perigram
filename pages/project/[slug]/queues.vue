@@ -14,16 +14,18 @@
         </div>
 
         <!-- Empty state -->
-        <StateBlock v-else-if="queues.length === 0" :message="$t(canCreateQueue ? 'queue.empty' : 'queue.readOnlyEmpty')" icon="pi pi-inbox">
-            <template v-if="canCreateQueue" #actions>
-                <Button
-                    :label="$t('queue.createFirst')"
-                    icon="pi pi-plus"
-                    @click="createNewQueue"
-                    size="large"
-                />
-            </template>
-        </StateBlock>
+        <div v-else-if="queues.length === 0" class="flex h-full min-h-0 items-center justify-center p-4">
+            <StateBlock :message="$t(canCreateQueue ? 'queue.empty' : 'queue.readOnlyEmpty')" icon="pi pi-inbox">
+                <template v-if="canCreateQueue" #actions>
+                    <Button
+                        :label="$t('queue.createFirst')"
+                        icon="pi pi-plus"
+                        @click="createNewQueue"
+                        size="large"
+                    />
+                </template>
+            </StateBlock>
+        </div>
     </div>
 </template>
 
