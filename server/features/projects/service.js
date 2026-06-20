@@ -38,7 +38,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   });
   
   // Verify permissions
-  if (!hasLineagePermission(userPermissions, project.lineage, 'projects', 'write')) {
+  if (!hasLineagePermission(userPermissions, project, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -66,7 +66,7 @@ export async function getBySlug(uid, userId, userOrg, userRole, userPermissions)
     throw createError({ statusCode: 404, message: 'Project not found' });
   }
   
-  if (!hasLineagePermission(userPermissions, project.lineage, 'projects', 'read')) {
+  if (!hasLineagePermission(userPermissions, project, 'projects', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -98,7 +98,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
     const project = await getBySlug(uid, userId, userOrg, userRole, userPermissions);
-    if (!hasLineagePermission(userPermissions, project.lineage, 'projects', 'admin')) {
+    if (!hasLineagePermission(userPermissions, project, 'projects', 'admin')) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
     }
     return await repository.deleteById(uid);

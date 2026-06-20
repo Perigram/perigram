@@ -12,17 +12,20 @@ export function requireAuth(event) {
 /**
  * Checks if user has permission for a specific entity based on its lineage
  * @param {Object} user - User from event.context.auth
- * @param {Object} lineage - The entity's lineage block
+ * @param {Object} lineageOrEntity - The entity DTO/model or its lineage block
  * @param {string} entityType - e.g., 'projects', 'queues'
  * @param {string} level - 'read', 'write', 'admin'
  */
-export function hasLineagePermission(user, lineage, entityType, level) {
-  return hasEntityAccess({ entity: { lineage }, feature: entityType, level, auth: user });
+export function hasLineagePermission(user, lineageOrEntity, entityType, level) {
+  const entity = lineageOrEntity?.lineage
+    ? lineageOrEntity
+    : { lineage: lineageOrEntity || {} };
+  return hasEntityAccess({ entity, feature: entityType, level, auth: user });
 }
 
-export function requireLineagePermission(event, lineage, entityType, level) {
+export function requireLineagePermission(event, lineageOrEntity, entityType, level) {
   const user = requireAuth(event);
-  if (!hasLineagePermission(user, lineage, entityType, level)) {
+  if (!hasLineagePermission(user, lineageOrEntity, entityType, level)) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return user;

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { assertCommandAccess, assertTransitionAccess, hasEntityAccess } from './service.js';
+import { hasLineagePermission } from '../../utils/permissions.js';
 
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
@@ -63,6 +64,35 @@ describe('access engine', () => {
       level: 'write',
       auth: scopedAuth
     })).toBe(false);
+  });
+
+  it('keeps full entity facts available through lineage permission checks', () => {
+    const project = {
+      _id: 'project-a',
+      lineage: { organizationId: 'org-1' },
+      status: { state: { primary: 'ACTIVE' } },
+      data: { address: 'Factory Row' }
+    };
+    const scopedAuth = {
+      userId: 'u3',
+      memberships: [{
+        organizationId: 'org-1',
+        permissions: {
+          projects: {
+            level: 'read',
+            rule: {
+              all: [
+                { fact: 'status.primary', equals: 'ACTIVE' },
+                { fact: 'entity.data.address', equals: 'Factory Row' }
+              ]
+            }
+          }
+        }
+      }]
+    };
+
+    expect(hasLineagePermission(scopedAuth, project, 'projects', 'read')).toBe(true);
+    expect(hasLineagePermission(scopedAuth, project.lineage, 'projects', 'read')).toBe(false);
   });
 
   it('supports transition-scoped grants', () => {

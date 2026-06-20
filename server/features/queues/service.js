@@ -127,7 +127,7 @@ export async function getById(uid, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(uid);
   if (!raw) return null;
   const queue = new Queue(raw);
-  if (userPermissions?.memberships && !hasLineagePermission({ memberships: userPermissions.memberships }, queue.lineage, 'queues', 'read')) {
+  if (userPermissions?.memberships && !hasLineagePermission({ memberships: userPermissions.memberships }, queue, 'queues', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return serializeForAccess('queue', queue, userPermissions);
@@ -174,7 +174,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   if (!raw) throw createError({ statusCode: 404, message: 'Queue not found' });
   const queue = new Queue(raw);
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue.lineage, 'queues', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -211,7 +211,7 @@ export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   const queue = await repository.findById(uid);
   if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue.lineage, 'queues', 'admin')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue, 'queues', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -223,7 +223,7 @@ export async function preflightChosenRunProduction(queueId, chosenRun, userId, u
   if (!raw) throw createError({ statusCode: 404, message: 'Queue not found' });
   const queue = new Queue(raw);
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue.lineage, 'queues', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   const existingRunId = queue.data?.materialConsumption?.runId;
@@ -254,7 +254,7 @@ export async function applyChosenRunProduction(queueId, chosenRun, userId, userO
   if (!raw) throw createError({ statusCode: 404, message: 'Queue not found' });
   const queue = new Queue(raw);
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue.lineage, 'queues', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   const existingRunId = queue.data?.materialConsumption?.runId;
@@ -649,7 +649,7 @@ export async function resetToDraft(queueId, userId, userOrg, userRole, userPermi
   if (!raw) throw createError({ statusCode: 404, message: 'Queue not found' });
   const queue = new Queue(raw);
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue.lineage, 'queues', 'write')) {
+  if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -662,7 +662,7 @@ export async function getArtifacts(queueId, userId, userOrg, userRole, userPermi
     const queue = await getById(queueId);
     if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
     
-    if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue.lineage, 'queues', 'read')) {
+    if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue, 'queues', 'read')) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
     }
 
