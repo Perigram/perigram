@@ -32,9 +32,12 @@ This directory contains Vue components used in the Cutkit-Demo application.
   project/queue/warehouse/organization filters or for the selected feature
   entity. Lifecycle status clauses must derive their values from `cncWorkflows`
   for the selected feature entity or resolved related entity type; do not
-  maintain a parallel hardcoded status list. The visible gate selects
-  `all`/`any`, and each group or clause must expose a `not` toggle that saves
-  to the shared evaluator's `{ not: ... }` rule shape. The editor is
+  maintain a parallel hardcoded status list. Exact-entity value pickers must be
+  loaded only for the selected predicate types that have supported list sources;
+  do not preload every domain entity type or call missing routes such as
+  artifact indexes. The visible gate selects `all`/`any`, and each group or
+  clause must expose a `not` toggle that saves to the shared evaluator's
+  `{ not: ... }` rule shape. The editor is
   a nested boolean expression builder: users must be able to add condition rows
   and nested groups, producing rule trees such as `(A AND B) OR NOT (C AND D)`.
   Do not collapse it back into a single flat clause list. Incomplete draft
