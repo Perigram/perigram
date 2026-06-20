@@ -79,7 +79,7 @@
                                             :model-value="ruleTreeForGrant(index)"
                                             :gate-options="gateOptions"
                                             :subject-options="subjectOptionsForFeature"
-                                            :entity-type-options="entityTypeOptions"
+                                            :entity-type-options="relatedEntityTypeOptions"
                                             :condition-operator-options="conditionOperatorOptions"
                                             :entity-options-loading="entityOptionsLoading"
                                             :trait-options-for-condition="traitOptionsForCondition"
@@ -212,6 +212,28 @@ const FEATURE_ENTITY_TYPE = {
     organizations: 'organization'
 };
 
+const RELATED_ENTITY_TYPES_BY_ENTITY = {
+    artifact: ['queue', 'nestingRun', 'project', 'organization'],
+    batchPile: ['requisition', 'warehouse', 'organization'],
+    catalog: ['organization'],
+    cassetteDesign: ['queue', 'project', 'organization'],
+    cassetteInstance: ['project', 'organization'],
+    cassetteTemplate: ['organization'],
+    color: ['catalog', 'organization'],
+    geometryCapture: ['project', 'warehouse', 'organization'],
+    material: ['organization'],
+    materialPile: ['warehouse', 'organization'],
+    nestingRun: ['queue', 'project', 'organization'],
+    project: ['organization'],
+    queue: ['project', 'organization'],
+    remnant: ['warehouse', 'organization'],
+    requisition: ['project', 'organization'],
+    sheet: ['warehouse', 'organization'],
+    sheetDesign: ['queue', 'project', 'organization'],
+    user: ['organization'],
+    warehouse: ['organization']
+};
+
 const PERMISSION_LEVELS = computed(() => [
     { label: t('auth.permissionLevels.read'),  value: 'read' },
     { label: t('auth.permissionLevels.write'), value: 'write' },
@@ -252,7 +274,7 @@ const gateOptions = computed(() => [
 
 const subjectOptionsForFeature = computed(() => [
     ...(selectedFeatureHasEntity() ? [{ label: entityTypeLabel(selectedFeatureEntityType()), value: 'current' }] : []),
-    { label: t('auth.permissionSubjects.related'), value: 'related' },
+    ...(relatedEntityTypeOptions.value.length ? [{ label: t('auth.permissionSubjects.related'), value: 'related' }] : []),
     { label: t('auth.permissionSubjects.transition'), value: 'transition' },
     { label: t('auth.permissionSubjects.custom'), value: 'custom' }
 ]);
@@ -263,6 +285,17 @@ const entityTypeOptions = computed(() => (
         value: type
     }))
 ));
+
+const relatedEntityTypeOptions = computed(() => {
+    const currentType = selectedFeatureEntityType();
+    const relatedTypes = selectedFeatureHasEntity()
+        ? RELATED_ENTITY_TYPES_BY_ENTITY[currentType] || []
+        : [];
+    return relatedTypes.map(type => ({
+        label: entityTypeLabel(type),
+        value: type
+    }));
+});
 
 const SCOPE_FACT_BY_KEY = {
     organizationId: 'lineage.organizationId',
@@ -437,7 +470,7 @@ function createGroupNode(patch = {}) {
 
 function createConditionNode(patch = {}) {
     const subject = selectedFeatureHasEntity() ? 'current' : 'related';
-    const entityType = subject === 'current' ? selectedFeatureEntityType() : entityTypeOptions.value[0]?.value || 'project';
+    const entityType = subject === 'current' ? selectedFeatureEntityType() : defaultRelatedEntityType();
     return normalizeClause({
         id: nextRuleNodeId(),
         type: 'condition',
@@ -640,7 +673,7 @@ function conditionEntityType(clause = {}) {
     const idMatch = fact.match(/^lineage\.([^.]+)Id$/);
     if (idMatch) return idMatch[1];
     const traitMatch = fact.match(/^lineage\.([^.]+)\./);
-    return traitMatch?.[1] || entityTypeOptions.value[0]?.value || '';
+    return traitMatch?.[1] || defaultRelatedEntityType();
 }
 
 function conditionEntityTypeLabel(clause = {}) {
@@ -665,7 +698,7 @@ function conditionTrait(clause = {}) {
 }
 
 function patchConditionSubject(clause = {}, subject) {
-    const entityType = subject === 'related' ? entityTypeOptions.value[0]?.value || 'project' : selectedFeatureEntityType();
+    const entityType = subject === 'related' ? defaultRelatedEntityType() : selectedFeatureEntityType();
     const next = {
         ...clause,
         subject,
@@ -739,6 +772,10 @@ function selectedFeatureEntityType() {
 
 function selectedFeatureHasEntity() {
     return Boolean(FEATURE_ENTITY_TYPE[selectedFeatureKey.value]);
+}
+
+function defaultRelatedEntityType() {
+    return relatedEntityTypeOptions.value[0]?.value || 'organization';
 }
 
 function entityTypeLabel(type) {

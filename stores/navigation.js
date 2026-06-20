@@ -36,7 +36,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         try {
             currentProject.value = await $fetch(`/api/project/${slug}`, fetchOptions);
         } catch (e) {
-            if (e.status === 401) {
+            if (e.status === 401 || e.statusCode === 401 || e.status === 403 || e.statusCode === 403) {
                 currentProject.value = null;
                 return;
             }

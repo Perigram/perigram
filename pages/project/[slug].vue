@@ -28,7 +28,15 @@
     const isQueueWorkspaceRoute = computed(() => route.path.replace(/\/$/, '') === `/project/${slug}/queues`)
 
     onMounted(async () => {
-        await loadProject()
+        try {
+            await loadProject()
+        } catch (error) {
+            if (error?.statusCode === 403 || error?.status === 403) {
+                router.replace('/projects')
+                return
+            }
+            throw error
+        }
 
         if (route.path === `/project/${slug}` || route.path === `/project/${slug}/`) {
             router.replace(`/project/${slug}/queues`)
