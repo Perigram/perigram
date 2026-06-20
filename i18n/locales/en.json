@@ -1286,6 +1286,8 @@
     "permissionCommaSeparated": "Comma-separated IDs",
     "permissionFieldPath": "Entity field path",
     "permissionConditionValue": "Value",
+    "permissionSelectValue": "Select value",
+    "permissionSelectValues": "Select values",
     "permissionBooleanValue": "true or false",
     "addFilterClause": "Add filter",
     "permissionTargets": {
@@ -1330,6 +1332,14 @@
       "notEquals": "Not equals",
       "in": "In list",
       "exists": "Exists"
+    },
+    "permissionStatuses": {
+      "active": "Active",
+      "ready": "Ready",
+      "draft": "Draft",
+      "pending": "Pending",
+      "archived": "Archived",
+      "disabled": "Disabled"
     },
     "scope": {
       "organizationId": "Organization",

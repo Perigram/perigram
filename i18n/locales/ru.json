@@ -1286,6 +1286,8 @@
     "permissionCommaSeparated": "ID через запятую",
     "permissionFieldPath": "Путь поля сущности",
     "permissionConditionValue": "Значение",
+    "permissionSelectValue": "Выберите значение",
+    "permissionSelectValues": "Выберите значения",
     "permissionBooleanValue": "true или false",
     "addFilterClause": "Добавить фильтр",
     "permissionTargets": {
@@ -1330,6 +1332,14 @@
       "notEquals": "Не равно",
       "in": "В списке",
       "exists": "Существует"
+    },
+    "permissionStatuses": {
+      "active": "Активен",
+      "ready": "Готов",
+      "draft": "Черновик",
+      "pending": "Ожидает",
+      "archived": "В архиве",
+      "disabled": "Отключен"
     },
     "scope": {
       "organizationId": "Организация",

@@ -54,7 +54,6 @@
                                     <strong>{{ getLevelLabel(grant.level) }}</strong>
                                     <small class="text-muted-color">{{ grantModeLabel(grant) }}</small>
                                 </span>
-                                <small class="text-muted-color">{{ grantFilterSummary(grant) }}</small>
                             </button>
                             <Message v-if="selectedGrants.length === 0" severity="info">{{ $t('auth.noPermissionGrants') }}</Message>
                         </div>
@@ -67,10 +66,6 @@
                         </div>
 
                         <div v-else-if="selectedGrant" class="flex min-w-0 flex-col gap-4">
-                            <Message severity="info">
-                                {{ grantExpressionSummary(selectedGrant) }}
-                            </Message>
-
                             <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,16rem)_auto] md:items-end">
                                 <div class="flex flex-col gap-2">
                                     <label>{{ $t('auth.permissionLevel') }}</label>
@@ -121,7 +116,6 @@
                                                 @update:model-value="setFilterGate"
                                             />
                                         </div>
-                                        <small class="text-muted-color">{{ grantFilterSummary(selectedGrant) }}</small>
                                     </div>
 
                                     <div class="flex flex-col gap-2">
@@ -159,10 +153,37 @@
                                             />
                                             <InputText
                                                 v-else
-                                                :model-value="conditionFactLabel(clause.fact)"
+                                                :model-value="clauseTraitLabel(clause)"
                                                 disabled
                                             />
+                                            <MultiSelect
+                                                v-if="usesOptionValuePicker(clause) && clause.operator === 'in'"
+                                                :model-value="clauseValueList(clause)"
+                                                :options="valueOptionsForClause(clause)"
+                                                option-label="label"
+                                                option-value="value"
+                                                filter
+                                                display="chip"
+                                                class="w-full"
+                                                :loading="entityOptionsLoading"
+                                                :placeholder="$t('auth.permissionSelectValues')"
+                                                @update:model-value="values => updateFilterClause(index, { value: values.join(', ') })"
+                                            />
+                                            <Select
+                                                v-else-if="usesOptionValuePicker(clause)"
+                                                :model-value="clause.value"
+                                                :options="valueOptionsForClause(clause)"
+                                                option-label="label"
+                                                option-value="value"
+                                                filter
+                                                show-clear
+                                                class="w-full"
+                                                :loading="entityOptionsLoading"
+                                                :placeholder="$t('auth.permissionSelectValue')"
+                                                @update:model-value="value => updateFilterClause(index, { value })"
+                                            />
                                             <InputText
+                                                v-else
                                                 :model-value="clause.value"
                                                 :placeholder="clause.operator === 'exists' ? $t('auth.permissionBooleanValue') : $t('auth.permissionConditionValue')"
                                                 @update:model-value="value => updateFilterClause(index, { value })"
@@ -202,7 +223,32 @@
                                             :model-value="draftTraitLabel"
                                             disabled
                                         />
+                                        <MultiSelect
+                                            v-if="draftUsesOptionValuePicker && filterDraft.operator === 'in'"
+                                            v-model="filterDraft.valueList"
+                                            :options="valueOptionsForDraft"
+                                            option-label="label"
+                                            option-value="value"
+                                            filter
+                                            display="chip"
+                                            class="w-full"
+                                            :loading="entityOptionsLoading"
+                                            :placeholder="$t('auth.permissionSelectValues')"
+                                        />
+                                        <Select
+                                            v-else-if="draftUsesOptionValuePicker"
+                                            v-model="filterDraft.value"
+                                            :options="valueOptionsForDraft"
+                                            option-label="label"
+                                            option-value="value"
+                                            filter
+                                            show-clear
+                                            class="w-full"
+                                            :loading="entityOptionsLoading"
+                                            :placeholder="$t('auth.permissionSelectValue')"
+                                        />
                                         <InputText
+                                            v-else
                                             v-model="filterDraft.value"
                                             :placeholder="filterDraft.operator === 'exists' ? $t('auth.permissionBooleanValue') : $t('auth.permissionConditionValue')"
                                         />
@@ -238,7 +284,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
@@ -246,8 +292,11 @@ import Checkbox from 'primevue/checkbox';
 import Textarea from 'primevue/textarea';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
+import MultiSelect from 'primevue/multiselect';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
+import { useEntity } from '~/composables/useEntity';
+import { useAuthStore } from '~/stores/auth';
 
 const props = defineProps({
     permissions: { type: Object, default: () => ({}) }
@@ -255,12 +304,53 @@ const props = defineProps({
 
 const emit = defineEmits(['save']);
 const { t } = useI18n();
+const authStore = useAuthStore();
 
 const selectedFeatureKey = ref('projects');
 const selectedGrantIndex = ref(0);
 const selectedGrantJson = ref('');
 const selectedGrantError = ref('');
-const filterDraft = ref({ target: 'entity', trait: 'status', operator: 'equals', field: '', value: '' });
+const filterDraft = ref({ target: 'entity', trait: 'status', operator: 'equals', field: '', value: '', valueList: [] });
+const entityOptionsLoading = ref(false);
+const entityOptionLists = ref({});
+const entityLoaders = {
+    artifact: useEntity('artifact'),
+    catalog: useEntity('catalog'),
+    cassetteInstance: useEntity('cassetteInstance'),
+    cassetteTemplate: useEntity('cassetteTemplate'),
+    geometryCapture: useEntity('geometryCapture'),
+    material: useEntity('material'),
+    nestingRun: useEntity('nestingRun'),
+    project: useEntity('project'),
+    queue: useEntity('queue'),
+    requisition: useEntity('requisition'),
+    sheetDesign: useEntity('sheetDesign'),
+    user: useEntity('user'),
+    warehouse: useEntity('warehouse')
+};
+
+const FEATURE_ENTITY_TYPE = {
+    artifacts: 'artifact',
+    catalogs: 'catalog',
+    cassettes: 'cassetteInstance',
+    geometry_captures: 'geometryCapture',
+    materials: 'material',
+    nesting_runs: 'nestingRun',
+    projects: 'project',
+    requisitions: 'requisition',
+    queues: 'queue',
+    sheet_designs: 'sheetDesign',
+    users: 'user',
+    warehouses: 'warehouse',
+    organizations: 'organization'
+};
+
+const REFERENCE_TARGET_ENTITY_TYPE = {
+    organization: 'organization',
+    project: 'project',
+    queue: 'queue',
+    warehouse: 'warehouse'
+};
 
 const PERMISSION_LEVELS = computed(() => [
     { label: t('auth.permissionLevels.read'),  value: 'read' },
@@ -373,6 +463,15 @@ const conditionOperatorOptions = computed(() => [
     { label: t('auth.permissionOperators.exists'), value: 'exists' }
 ]);
 
+const statusOptions = computed(() => [
+    { label: t('auth.permissionStatuses.active'), value: 'ACTIVE' },
+    { label: t('auth.permissionStatuses.ready'), value: 'READY' },
+    { label: t('auth.permissionStatuses.draft'), value: 'DRAFT' },
+    { label: t('auth.permissionStatuses.pending'), value: 'PENDING' },
+    { label: t('auth.permissionStatuses.archived'), value: 'ARCHIVED' },
+    { label: t('auth.permissionStatuses.disabled'), value: 'DISABLED' }
+]);
+
 const buildLocalPermissions = (permissions = {}) => ({
     ...permissions,
     ...Object.fromEntries(
@@ -385,6 +484,8 @@ const localPermissions = ref(buildLocalPermissions(props.permissions));
 const selectedFeature = computed(() => entities.value.find(feature => feature.key === selectedFeatureKey.value) || entities.value[0]);
 const selectedGrants = computed(() => normalizeGrants(localPermissions.value[selectedFeatureKey.value]));
 const selectedGrant = computed(() => selectedGrants.value[selectedGrantIndex.value] || null);
+const valueOptionsForDraft = computed(() => valueOptionsForClause(draftClause()));
+const draftUsesOptionValuePicker = computed(() => usesOptionValuePicker(draftClause()));
 
 watch(() => props.permissions, (newVal) => {
     localPermissions.value = buildLocalPermissions(newVal);
@@ -394,13 +495,16 @@ watch(() => props.permissions, (newVal) => {
 watch(selectedFeatureKey, () => {
     selectedGrantIndex.value = 0;
     selectedGrantError.value = '';
-    filterDraft.value = { target: 'entity', trait: 'status', operator: 'equals', field: '', value: '' };
+    filterDraft.value = { target: 'entity', trait: 'status', operator: 'equals', field: '', value: '', valueList: [] };
+    loadEntityOptions();
 });
 
 watch(selectedGrant, (grant) => {
     selectedGrantJson.value = grant ? JSON.stringify(grant, null, 2) : '';
     selectedGrantError.value = '';
 }, { immediate: true, deep: true });
+
+onMounted(loadEntityOptions);
 
 const reset = () => {
     localPermissions.value = buildLocalPermissions(props.permissions);
@@ -542,10 +646,15 @@ function removeFilterClause(index) {
 }
 
 function addFilterClause() {
-    const clause = normalizeClause(filterDraft.value);
+    const clause = normalizeClause({
+        ...filterDraft.value,
+        value: filterDraft.value.operator === 'in' && draftUsesOptionValuePicker.value
+            ? filterDraft.value.valueList.join(', ')
+            : filterDraft.value.value
+    });
     if (!isCompleteClause(clause)) return;
     applyFilterClauses([...filterClauses(selectedGrant.value), clause], filterGate(selectedGrant.value));
-    filterDraft.value = { ...filterDraft.value, field: '', value: '' };
+    filterDraft.value = { ...filterDraft.value, field: '', value: '', valueList: [] };
 }
 
 function applyFilterClauses(clauses, gate = 'all') {
@@ -625,11 +734,15 @@ function isCompleteClause(clause) {
 function setDraftTarget(target) {
     filterDraft.value.trait = defaultTraitForTarget(target);
     filterDraft.value.field = '';
+    filterDraft.value.value = '';
+    filterDraft.value.valueList = [];
 }
 
 function setDraftTrait(trait) {
     filterDraft.value.trait = trait;
     if (filterDraft.value.target !== 'custom') filterDraft.value.field = '';
+    filterDraft.value.value = '';
+    filterDraft.value.valueList = [];
 }
 
 function traitOptionsForTarget(target) {
@@ -652,6 +765,117 @@ function clauseTrait(clause = {}) {
     return TARGET_TRAIT_BY_FACT[clause.fact]?.trait || (clause.fact === 'field' ? 'path' : 'id');
 }
 
+function clauseTraitLabel(clause = {}) {
+    const target = clauseTarget(clause);
+    const trait = clauseTrait(clause);
+    return traitOptionsForTarget(target).find(option => option.value === trait)?.label || trait;
+}
+
+function draftClause() {
+    return {
+        target: filterDraft.value.target,
+        trait: filterDraft.value.trait,
+        operator: filterDraft.value.operator,
+        field: filterDraft.value.field,
+        value: filterDraft.value.value
+    };
+}
+
+function usesOptionValuePicker(clause = {}) {
+    return isStatusClause(clause) || Boolean(entityTypeForClause(clause));
+}
+
+function valueOptionsForClause(clause = {}) {
+    if (isStatusClause(clause)) return statusOptions.value;
+    const entityType = entityTypeForClause(clause);
+    return entityType ? entityOptionLists.value[entityType] || [] : [];
+}
+
+function entityTypeForClause(clause = {}) {
+    if (clause.operator === 'exists') return null;
+    const target = clauseTarget(clause);
+    const trait = clauseTrait(clause);
+    if (trait !== 'id') return null;
+    if (target === 'entity') return FEATURE_ENTITY_TYPE[selectedFeatureKey.value] || null;
+    return REFERENCE_TARGET_ENTITY_TYPE[target] || null;
+}
+
+function isStatusClause(clause = {}) {
+    return clause.operator !== 'exists' && clauseTarget(clause) === 'entity' && clauseTrait(clause) === 'status';
+}
+
+function clauseValueList(clause = {}) {
+    return parseList(clause.value);
+}
+
+async function loadEntityOptions() {
+    entityOptionsLoading.value = true;
+    try {
+        const next = {
+            ...entityOptionLists.value,
+            organization: organizationOptions()
+        };
+        const requiredTypes = new Set(['project', 'queue', 'warehouse']);
+        const featureEntityType = FEATURE_ENTITY_TYPE[selectedFeatureKey.value];
+        if (featureEntityType) requiredTypes.add(featureEntityType);
+
+        await Promise.all([...requiredTypes].map(async (type) => {
+            if (type === 'organization') {
+                next.organization = organizationOptions();
+                return;
+            }
+            const loader = entityLoaders[type];
+            if (!loader) return;
+            try {
+                next[type] = mapEntityOptions(await loader.list());
+            } catch {
+                next[type] = next[type] || [];
+            }
+        }));
+        entityOptionLists.value = next;
+    } finally {
+        entityOptionsLoading.value = false;
+    }
+}
+
+function organizationOptions() {
+    const organizations = [
+        authStore.organizationData,
+        ...(authStore.userOrganizations || [])
+    ].filter(Boolean);
+    return mapEntityOptions(dedupeEntities(organizations));
+}
+
+function dedupeEntities(entities = []) {
+    const seen = new Set();
+    return entities.filter((entity) => {
+        const id = entityOptionValue(entity);
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+    });
+}
+
+function mapEntityOptions(entities = []) {
+    return (entities || []).map(entity => ({
+        label: entityOptionLabel(entity),
+        value: entityOptionValue(entity)
+    })).filter(option => option.value);
+}
+
+function entityOptionValue(entity = {}) {
+    return String(entity._id || entity.id || entity.identity?.uid || '');
+}
+
+function entityOptionLabel(entity = {}) {
+    return entity.identity?.name
+        || entity.identity?.slug
+        || entity.name
+        || entity.data?.name
+        || entity.data?.title
+        || entityOptionValue(entity);
+}
+
 function grantTransitions(grant) {
     const transitions = grant?.transitions || grant?.transition || [];
     return (Array.isArray(transitions) ? transitions : [transitions]).map(normalizeTransition).filter(Boolean);
@@ -668,10 +892,6 @@ function normalizeTransition(value) {
         to: String(value.to || '').trim()
     });
     return transition.from || transition.to ? transition : null;
-}
-
-function transitionLabel(transition) {
-    return transition.from && transition.to ? `${transition.from}->${transition.to}` : transition.to || transition.from || '';
 }
 
 function ruleGate(grant) {
@@ -700,22 +920,6 @@ function buildCondition(draft = {}) {
     if ((Array.isArray(values) && values.length === 0) || (!Array.isArray(values) && !values)) return null;
     condition[draft.operator] = values;
     return condition;
-}
-
-function conditionLabel(condition) {
-    const key = condition.fact === 'field' ? condition.field : conditionFactLabel(condition.fact);
-    const operator = ['equals', 'notEquals', 'in', 'includes', 'atLeast', 'exists'].find(name => condition[name] !== undefined);
-    const value = Array.isArray(condition[operator]) ? condition[operator].join(', ') : condition[operator];
-    return `${key} ${operator || ''} ${value ?? ''}`.trim();
-}
-
-function conditionFactLabel(value) {
-    if (value === 'field') return t('auth.permissionTargets.custom');
-    const mapping = TARGET_TRAIT_BY_FACT[value];
-    if (!mapping) return value;
-    const target = filterTargetOptions.value.find(option => option.value === mapping.target)?.label || mapping.target;
-    const trait = traitOptionsForTarget(mapping.target).find(option => option.value === mapping.trait)?.label || mapping.trait;
-    return `${target} ${trait}`;
 }
 
 function applySelectedGrantJson() {
@@ -758,36 +962,6 @@ function strongestLevel(left = 'none', right = 'none') {
 function grantModeLabel(grant) {
     if (grantHasFilters(grant)) return t('auth.permissionModes.filtered');
     return t('auth.permissionModes.unfiltered');
-}
-
-function grantExpressionSummary(grant) {
-    return t('auth.permissionExpression', {
-        level: getLevelLabel(grant?.level || 'none'),
-        feature: selectedFeature.value.label,
-        filter: grantFilterSummary(grant)
-    });
-}
-
-function grantFilterSummary(grant) {
-    const parts = [];
-    const scope = grant?.scope || {};
-    for (const field of scopeFields.value) {
-        const value = scopeValue({ scope }, field.key);
-        if (value) parts.push(`${field.label} ${t('auth.permissionOperators.equals').toLowerCase()} ${value}`);
-    }
-
-    const transitions = grantTransitions(grant);
-    if (transitions.length) {
-        parts.push(`${t('auth.permissionTransitionFilters')}: ${transitions.map(transitionLabel).join(', ')}`);
-    }
-
-    const conditions = ruleConditions(grant);
-    if (conditions.length) {
-        const joiner = ruleGate(grant) === 'any' ? ` ${t('auth.permissionOr')} ` : ` ${t('auth.permissionAnd')} `;
-        parts.push(conditions.map(conditionLabel).join(joiner));
-    }
-
-    return parts.length ? parts.join(` ${t('auth.permissionAnd')} `) : t('auth.permissionNoFilters');
 }
 
 function grantHasFilters(grant) {
