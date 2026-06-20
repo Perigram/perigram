@@ -16,6 +16,9 @@ Refactored to use standardized blocks and the centralized State Machine engine.
 - `create()`: Initializes project identity, origin, and organization lineage.
 - `update()`: Handles basic field updates and routes status changes through the `Status Engine`.
 - `getBySlug()`: Uses lineage-aware permissions to verify access.
+  Project create/read/delete checks pass the full auth context into lineage
+  access so membership-scoped grants and top-level permission fallbacks behave
+  consistently between `/api/project` list and single-project routes.
 
 ## Data Structure
 ```typescript
