@@ -1295,12 +1295,18 @@
     "permissionAddGroup": "Добавить группу",
     "permissionTargets": {
       "entity": "Сущность",
-      "organization": "Lineage-организация",
-      "project": "Lineage-проект",
-      "queue": "Lineage-очередь",
-      "warehouse": "Lineage-склад",
+      "organization": "Организация",
+      "project": "Проект",
+      "queue": "Очередь",
+      "warehouse": "Склад",
       "transition": "Переход",
       "custom": "Свое поле"
+    },
+    "permissionSubjects": {
+      "current": "Текущая сущность",
+      "related": "Связанная сущность",
+      "transition": "Переход",
+      "custom": "Путь поля"
     },
     "permissionTraits": {
       "id": "ID",

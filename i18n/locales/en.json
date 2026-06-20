@@ -1295,12 +1295,18 @@
     "permissionAddGroup": "Add group",
     "permissionTargets": {
       "entity": "Entity",
-      "organization": "Lineage organization",
-      "project": "Lineage project",
-      "queue": "Lineage queue",
-      "warehouse": "Lineage warehouse",
+      "organization": "Organization",
+      "project": "Project",
+      "queue": "Queue",
+      "warehouse": "Warehouse",
       "transition": "Transition",
       "custom": "Custom"
+    },
+    "permissionSubjects": {
+      "current": "Current entity",
+      "related": "Related entity",
+      "transition": "Transition",
+      "custom": "Custom path"
     },
     "permissionTraits": {
       "id": "ID",

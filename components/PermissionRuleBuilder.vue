@@ -33,14 +33,18 @@
                     :model-value="child"
                     :depth="depth + 1"
                     :gate-options="gateOptions"
-                    :filter-target-options="filterTargetOptions"
+                    :subject-options="subjectOptions"
+                    :entity-type-options="entityTypeOptions"
                     :condition-operator-options="conditionOperatorOptions"
                     :entity-options-loading="entityOptionsLoading"
-                    :trait-options-for-target="traitOptionsForTarget"
-                    :clause-target="clauseTarget"
-                    :clause-trait="clauseTrait"
-                    :fact-for-target-trait="factForTargetTrait"
-                    :default-trait-for-target="defaultTraitForTarget"
+                    :trait-options-for-condition="traitOptionsForCondition"
+                    :condition-subject="conditionSubject"
+                    :condition-entity-type="conditionEntityType"
+                    :condition-entity-type-label="conditionEntityTypeLabel"
+                    :condition-trait="conditionTrait"
+                    :patch-condition-subject="patchConditionSubject"
+                    :patch-condition-entity-type="patchConditionEntityType"
+                    :patch-condition-trait="patchConditionTrait"
                     :uses-option-value-picker="usesOptionValuePicker"
                     :value-options-for-clause="valueOptionsForClause"
                     :clause-value-list="clauseValueList"
@@ -51,28 +55,47 @@
                 />
                 <div
                     v-else
-                    class="grid grid-cols-1 gap-2 rounded-ui border border-content-border p-2 xl:grid-cols-[12rem_12rem_10rem_minmax(14rem,1fr)_6rem_auto]"
+                    class="grid grid-cols-1 gap-2 rounded-ui border border-content-border p-2 xl:grid-cols-[11rem_12rem_10rem_10rem_minmax(14rem,1fr)_6rem_auto]"
                 >
                     <Select
-                        :model-value="clauseTarget(child)"
-                        :options="filterTargetOptions"
+                        :model-value="conditionSubject(child)"
+                        :options="subjectOptions"
                         option-label="label"
                         option-value="value"
-                        @update:model-value="value => updateConditionTarget(index, value)"
+                        @update:model-value="value => updateConditionSubject(index, value)"
                     />
                     <Select
-                        v-if="clauseTarget(child) !== 'custom'"
-                        :model-value="clauseTrait(child)"
-                        :options="traitOptionsForTarget(clauseTarget(child))"
+                        v-if="conditionSubject(child) === 'related'"
+                        :model-value="conditionEntityType(child)"
+                        :options="entityTypeOptions"
+                        option-label="label"
+                        option-value="value"
+                        filter
+                        @update:model-value="value => updateConditionEntityType(index, value)"
+                    />
+                    <InputText
+                        v-else-if="conditionSubject(child) === 'custom'"
+                        :model-value="child.field"
+                        :placeholder="$t('auth.permissionFieldPath')"
+                        @update:model-value="value => updateChild(index, { ...child, field: value })"
+                    />
+                    <InputText
+                        v-else
+                        :model-value="conditionEntityTypeLabel(child)"
+                        disabled
+                    />
+                    <Select
+                        v-if="conditionSubject(child) !== 'custom'"
+                        :model-value="conditionTrait(child)"
+                        :options="traitOptionsForCondition(child)"
                         option-label="label"
                         option-value="value"
                         @update:model-value="value => updateConditionTrait(index, value)"
                     />
                     <InputText
                         v-else
-                        :model-value="child.field"
-                        :placeholder="$t('auth.permissionFieldPath')"
-                        @update:model-value="value => updateChild(index, { ...child, field: value })"
+                        :model-value="$t('auth.permissionTraits.path')"
+                        disabled
                     />
                     <Select
                         :model-value="child.operator"
@@ -142,14 +165,18 @@ const props = defineProps({
     modelValue: { type: Object, default: null },
     depth: { type: Number, default: 0 },
     gateOptions: { type: Array, required: true },
-    filterTargetOptions: { type: Array, required: true },
+    subjectOptions: { type: Array, required: true },
+    entityTypeOptions: { type: Array, required: true },
     conditionOperatorOptions: { type: Array, required: true },
     entityOptionsLoading: { type: Boolean, default: false },
-    traitOptionsForTarget: { type: Function, required: true },
-    clauseTarget: { type: Function, required: true },
-    clauseTrait: { type: Function, required: true },
-    factForTargetTrait: { type: Function, required: true },
-    defaultTraitForTarget: { type: Function, required: true },
+    traitOptionsForCondition: { type: Function, required: true },
+    conditionSubject: { type: Function, required: true },
+    conditionEntityType: { type: Function, required: true },
+    conditionEntityTypeLabel: { type: Function, required: true },
+    conditionTrait: { type: Function, required: true },
+    patchConditionSubject: { type: Function, required: true },
+    patchConditionEntityType: { type: Function, required: true },
+    patchConditionTrait: { type: Function, required: true },
     usesOptionValuePicker: { type: Function, required: true },
     valueOptionsForClause: { type: Function, required: true },
     clauseValueList: { type: Function, required: true },
@@ -183,25 +210,15 @@ function addGroup() {
     updateNode({ children: [...(node.value.children || []), props.createGroup()] });
 }
 
-function updateConditionTarget(index, target) {
-    const child = node.value.children[index];
-    const trait = props.defaultTraitForTarget(target);
-    updateChild(index, {
-        ...child,
-        fact: props.factForTargetTrait(target, trait),
-        field: target === 'custom' ? child.field || '' : '',
-        value: ''
-    });
+function updateConditionSubject(index, subject) {
+    updateChild(index, props.patchConditionSubject(node.value.children[index], subject));
+}
+
+function updateConditionEntityType(index, entityType) {
+    updateChild(index, props.patchConditionEntityType(node.value.children[index], entityType));
 }
 
 function updateConditionTrait(index, trait) {
-    const child = node.value.children[index];
-    const target = props.clauseTarget(child);
-    updateChild(index, {
-        ...child,
-        fact: props.factForTargetTrait(target, trait),
-        field: target === 'custom' ? child.field || '' : '',
-        value: ''
-    });
+    updateChild(index, props.patchConditionTrait(node.value.children[index], trait));
 }
 </script>

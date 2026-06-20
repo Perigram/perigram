@@ -107,14 +107,18 @@
                                 <PermissionRuleBuilder
                                     :model-value="selectedRuleTree"
                                     :gate-options="gateOptions"
-                                    :filter-target-options="filterTargetOptions"
+                                    :subject-options="subjectOptions"
+                                    :entity-type-options="entityTypeOptions"
                                     :condition-operator-options="conditionOperatorOptions"
                                     :entity-options-loading="entityOptionsLoading"
-                                    :trait-options-for-target="traitOptionsForTarget"
-                                    :clause-target="clauseTarget"
-                                    :clause-trait="clauseTrait"
-                                    :fact-for-target-trait="factForTargetTrait"
-                                    :default-trait-for-target="defaultTraitForTarget"
+                                    :trait-options-for-condition="traitOptionsForCondition"
+                                    :condition-subject="conditionSubject"
+                                    :condition-entity-type="conditionEntityType"
+                                    :condition-entity-type-label="conditionEntityTypeLabel"
+                                    :condition-trait="conditionTrait"
+                                    :patch-condition-subject="patchConditionSubject"
+                                    :patch-condition-entity-type="patchConditionEntityType"
+                                    :patch-condition-trait="patchConditionTrait"
                                     :uses-option-value-picker="usesOptionValuePicker"
                                     :value-options-for-clause="valueOptionsForClause"
                                     :clause-value-list="clauseValueList"
@@ -162,7 +166,7 @@ import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import { useEntity } from '~/composables/useEntity';
 import { useAuthStore } from '~/stores/auth';
-import { cncWorkflows } from '@cutkit/domain-cnc';
+import { cncFrontendEntities, cncWorkflows } from '@cutkit/domain-cnc';
 import PermissionRuleBuilder from './PermissionRuleBuilder.vue';
 
 const props = defineProps({
@@ -211,13 +215,6 @@ const FEATURE_ENTITY_TYPE = {
     organizations: 'organization'
 };
 
-const REFERENCE_TARGET_ENTITY_TYPE = {
-    organization: 'organization',
-    project: 'project',
-    queue: 'queue',
-    warehouse: 'warehouse'
-};
-
 const PERMISSION_LEVELS = computed(() => [
     { label: t('auth.permissionLevels.read'),  value: 'read' },
     { label: t('auth.permissionLevels.write'), value: 'write' },
@@ -256,52 +253,19 @@ const gateOptions = computed(() => [
     { label: t('auth.permissionGates.any'), value: 'any' }
 ]);
 
-const filterTargetOptions = computed(() => [
-    { label: t('auth.permissionTargets.entity'), value: 'entity' },
-    { label: t('auth.permissionTargets.organization'), value: 'organization' },
-    { label: t('auth.permissionTargets.project'), value: 'project' },
-    { label: t('auth.permissionTargets.queue'), value: 'queue' },
-    { label: t('auth.permissionTargets.warehouse'), value: 'warehouse' },
-    { label: t('auth.permissionTargets.transition'), value: 'transition' },
-    { label: t('auth.permissionTargets.custom'), value: 'custom' }
+const subjectOptions = computed(() => [
+    { label: t('auth.permissionSubjects.current'), value: 'current' },
+    { label: t('auth.permissionSubjects.related'), value: 'related' },
+    { label: t('auth.permissionSubjects.transition'), value: 'transition' },
+    { label: t('auth.permissionSubjects.custom'), value: 'custom' }
 ]);
 
-const FACT_BY_TARGET_TRAIT = {
-    entity: {
-        id: 'entityId',
-        type: 'entityType',
-        status: 'status.primary'
-    },
-    organization: {
-        id: 'lineage.organizationId',
-        type: 'lineage.organization.type'
-    },
-    project: {
-        id: 'lineage.projectId',
-        type: 'lineage.project.type',
-        status: 'lineage.project.status.primary'
-    },
-    queue: {
-        id: 'lineage.queueId',
-        type: 'lineage.queue.type',
-        status: 'lineage.queue.status.primary'
-    },
-    warehouse: {
-        id: 'lineage.warehouseId',
-        type: 'lineage.warehouse.type'
-    },
-    transition: {
-        from: 'transition.from',
-        to: 'transition.to'
-    },
-    custom: { path: 'field' }
-};
-
-const TARGET_TRAIT_BY_FACT = Object.fromEntries(
-    Object.entries(FACT_BY_TARGET_TRAIT).flatMap(([target, traits]) => (
-        Object.entries(traits).map(([trait, fact]) => [fact, { target, trait }])
-    ))
-);
+const entityTypeOptions = computed(() => (
+    uniqueEntityTypes(cncFrontendEntities.map(entity => entity.type)).map(type => ({
+        label: entityTypeLabel(type),
+        value: type
+    }))
+));
 
 const SCOPE_FACT_BY_KEY = {
     organizationId: 'lineage.organizationId',
@@ -469,8 +433,9 @@ function createConditionNode(patch = {}) {
     return normalizeClause({
         id: nextRuleNodeId(),
         type: 'condition',
-        target: 'entity',
-        trait: defaultTraitForTarget('entity'),
+        subject: 'current',
+        entityType: selectedFeatureEntityType(),
+        trait: defaultTraitForCondition({ subject: 'current', entityType: selectedFeatureEntityType() }),
         operator: 'equals',
         field: '',
         value: '',
@@ -580,12 +545,16 @@ function clauseToCondition(clause) {
 
 function normalizeClause(clause = {}) {
     const operator = clause.operator || 'equals';
-    const target = clause.target || clauseTarget(clause);
-    const trait = clause.trait || clauseTrait(clause) || defaultTraitForTarget(target);
-    const fact = clause.fact || factForTargetTrait(target, trait);
+    const subject = clause.subject || conditionSubject(clause);
+    const entityType = clause.entityType || conditionEntityType({ ...clause, subject });
+    const trait = clause.trait || conditionTrait({ ...clause, subject, entityType }) || defaultTraitForCondition({ subject, entityType });
+    const fact = clause.fact || factForCondition(subject, entityType, trait);
     return {
         id: clause.id || nextRuleNodeId(),
         type: 'condition',
+        subject,
+        entityType,
+        trait,
         fact,
         operator,
         field: fact === 'field' ? String(clause.field || '') : '',
@@ -600,9 +569,10 @@ function isCompleteClause(clause) {
     return Boolean(String(clause.value || '').trim());
 }
 
-function traitOptionsForTarget(target) {
-    if (target === 'custom') return [{ label: t('auth.permissionTraits.path'), value: 'path' }];
-    if (target === 'transition') {
+function traitOptionsForCondition(condition = {}) {
+    const subject = conditionSubject(condition);
+    if (subject === 'custom') return [{ label: t('auth.permissionTraits.path'), value: 'path' }];
+    if (subject === 'transition') {
         return [
             { label: t('auth.permissionTraits.from'), value: 'from' },
             { label: t('auth.permissionTraits.to'), value: 'to' }
@@ -613,26 +583,104 @@ function traitOptionsForTarget(target) {
         { label: t('auth.permissionTraits.id'), value: 'id' },
         { label: t('auth.permissionTraits.type'), value: 'type' }
     ];
-    if (workflowStateOptions(entityTypeForTarget(target)).length) {
+    if (workflowStateOptions(conditionEntityType(condition)).length) {
         options.push({ label: t('auth.permissionTraits.status'), value: 'status' });
     }
     return options;
 }
 
-function defaultTraitForTarget(target) {
-    return traitOptionsForTarget(target)[0]?.value || 'id';
+function defaultTraitForCondition(condition = {}) {
+    return traitOptionsForCondition(condition)[0]?.value || 'id';
 }
 
-function factForTargetTrait(target, trait) {
-    return FACT_BY_TARGET_TRAIT[target]?.[trait] || 'entityId';
+function factForCondition(subject, entityType, trait) {
+    if (subject === 'custom') return 'field';
+    if (subject === 'transition') return trait === 'from' ? 'transition.from' : 'transition.to';
+    if (subject === 'related') {
+        if (trait === 'id') return `lineage.${entityType}Id`;
+        if (trait === 'type') return `lineage.${entityType}.type`;
+        if (trait === 'status') return `lineage.${entityType}.status.primary`;
+    }
+    if (trait === 'type') return 'entityType';
+    if (trait === 'status') return 'status.primary';
+    return 'entityId';
 }
 
-function clauseTarget(clause = {}) {
-    return TARGET_TRAIT_BY_FACT[clause.fact]?.target || (clause.fact === 'field' ? 'custom' : 'entity');
+function conditionSubject(clause = {}) {
+    if (clause.subject) return clause.subject;
+    const fact = clause.fact || '';
+    if (fact === 'field') return 'custom';
+    if (fact.startsWith('transition.')) return 'transition';
+    if (fact.startsWith('lineage.')) return 'related';
+    return 'current';
 }
 
-function clauseTrait(clause = {}) {
-    return TARGET_TRAIT_BY_FACT[clause.fact]?.trait || (clause.fact === 'field' ? 'path' : 'id');
+function conditionEntityType(clause = {}) {
+    if (clause.entityType) return clause.entityType;
+    if (conditionSubject(clause) === 'current') return selectedFeatureEntityType();
+    if (conditionSubject(clause) !== 'related') return '';
+    const fact = clause.fact || '';
+    const idMatch = fact.match(/^lineage\.([^.]+)Id$/);
+    if (idMatch) return idMatch[1];
+    const traitMatch = fact.match(/^lineage\.([^.]+)\./);
+    return traitMatch?.[1] || entityTypeOptions.value[0]?.value || '';
+}
+
+function conditionEntityTypeLabel(clause = {}) {
+    if (conditionSubject(clause) === 'current') return entityTypeLabel(selectedFeatureEntityType());
+    if (conditionSubject(clause) === 'transition') return t('auth.permissionSubjects.transition');
+    if (conditionSubject(clause) === 'custom') return t('auth.permissionSubjects.custom');
+    return entityTypeLabel(conditionEntityType(clause));
+}
+
+function conditionTrait(clause = {}) {
+    if (clause.trait) return clause.trait;
+    const fact = clause.fact || '';
+    if (fact === 'field') return 'path';
+    if (fact === 'entityType' || fact.endsWith('.type')) return 'type';
+    if (fact === 'status.primary' || fact === 'primaryStatus' || fact.endsWith('.status.primary')) return 'status';
+    if (fact === 'transition.from') return 'from';
+    if (fact === 'transition.to') return 'to';
+    return 'id';
+}
+
+function patchConditionSubject(clause = {}, subject) {
+    const entityType = subject === 'related' ? entityTypeOptions.value[0]?.value || 'project' : selectedFeatureEntityType();
+    const next = {
+        ...clause,
+        subject,
+        entityType,
+        trait: defaultTraitForCondition({ subject, entityType }),
+        field: subject === 'custom' ? clause.field || '' : '',
+        value: ''
+    };
+    return normalizeClause({ ...next, fact: factForCondition(next.subject, next.entityType, next.trait) });
+}
+
+function patchConditionEntityType(clause = {}, entityType) {
+    const trait = defaultTraitForCondition({ ...clause, subject: 'related', entityType });
+    return normalizeClause({
+        ...clause,
+        subject: 'related',
+        entityType,
+        trait,
+        fact: factForCondition('related', entityType, trait),
+        value: ''
+    });
+}
+
+function patchConditionTrait(clause = {}, trait) {
+    const subject = conditionSubject(clause);
+    const entityType = conditionEntityType(clause);
+    return normalizeClause({
+        ...clause,
+        subject,
+        entityType,
+        trait,
+        fact: factForCondition(subject, entityType, trait),
+        field: subject === 'custom' ? clause.field || '' : '',
+        value: ''
+    });
 }
 
 function usesOptionValuePicker(clause = {}) {
@@ -640,31 +688,58 @@ function usesOptionValuePicker(clause = {}) {
 }
 
 function valueOptionsForClause(clause = {}) {
-    if (isStatusClause(clause)) return workflowStateOptions(entityTypeForTarget(clauseTarget(clause)));
+    if (isStatusClause(clause)) return workflowStateOptions(conditionEntityType(clause));
     const entityType = entityTypeForClause(clause);
     return entityType ? entityOptionLists.value[entityType] || [] : [];
 }
 
 function entityTypeForClause(clause = {}) {
     if (clause.operator === 'exists') return null;
-    const target = clauseTarget(clause);
-    const trait = clauseTrait(clause);
+    const subject = conditionSubject(clause);
+    const trait = conditionTrait(clause);
     if (trait !== 'id') return null;
-    if (target === 'entity') return FEATURE_ENTITY_TYPE[selectedFeatureKey.value] || null;
-    return REFERENCE_TARGET_ENTITY_TYPE[target] || null;
+    if (subject === 'current') return selectedFeatureEntityType();
+    if (subject === 'related') return conditionEntityType(clause);
+    return null;
 }
 
 function isStatusClause(clause = {}) {
-    return clause.operator !== 'exists' && clauseTrait(clause) === 'status';
+    return clause.operator !== 'exists' && conditionTrait(clause) === 'status';
 }
 
-function entityTypeForTarget(target) {
-    if (target === 'entity') return FEATURE_ENTITY_TYPE[selectedFeatureKey.value] || null;
-    return REFERENCE_TARGET_ENTITY_TYPE[target] || null;
+function selectedFeatureEntityType() {
+    return FEATURE_ENTITY_TYPE[selectedFeatureKey.value] || entityTypeOptions.value[0]?.value || 'project';
+}
+
+function entityTypeLabel(type) {
+    return t(`entities.${camelizeEntityType(type)}`, t(`features.${pluralizeEntityType(type)}`, formatEntityType(type)));
+}
+
+function uniqueEntityTypes(types = []) {
+    return [...new Set(types.filter(Boolean))];
+}
+
+function camelizeEntityType(type = '') {
+    return String(type).replace(/[-_]([a-z])/g, (_, char) => char.toUpperCase());
+}
+
+function pluralizeEntityType(type = '') {
+    const value = camelizeEntityType(type);
+    return value.endsWith('s') ? value : `${value}s`;
+}
+
+function formatEntityType(type = '') {
+    return String(type)
+        .replace(/[-_]/g, ' ')
+        .replace(/\b\w/g, char => char.toUpperCase());
+}
+
+function snakeEntityType(type = '') {
+    return String(type).replace(/[A-Z]/g, char => `_${char.toLowerCase()}`).replace(/-/g, '_');
 }
 
 function workflowStateOptions(entityType) {
-    const workflow = entityType ? cncWorkflows[entityType] : null;
+    const workflow = entityType ? cncWorkflows[entityType] || cncWorkflows[snakeEntityType(entityType)] : null;
     const primaryRegion = workflow?.primaryRegion || 'main';
     const states = workflow?.regions?.[primaryRegion]?.states || {};
     return Object.keys(states).map(state => ({ label: statusLabel(state), value: state }));
@@ -685,7 +760,7 @@ async function loadEntityOptions() {
             ...entityOptionLists.value,
             organization: organizationOptions()
         };
-        const requiredTypes = new Set(['project', 'queue', 'warehouse']);
+        const requiredTypes = new Set(['organization', 'queue', ...Object.keys(entityLoaders)]);
         const featureEntityType = FEATURE_ENTITY_TYPE[selectedFeatureKey.value];
         if (featureEntityType) requiredTypes.add(featureEntityType);
 
