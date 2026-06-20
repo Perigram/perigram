@@ -1264,6 +1264,7 @@
     "permissionFeatures": "Области доступа",
     "permissionGrantCount": "{count} грантов",
     "permissionGrantSummary": "{level} / {count} грантов",
+    "permissionGrantTitle": "Грант {index}",
     "addGrant": "Добавить грант",
     "removeGrant": "Удалить грант",
     "noAccess": "Нет доступа",
@@ -1314,6 +1315,7 @@
       "id": "ID",
       "type": "Тип",
       "status": "Статус",
+      "entityType": "Вид сущности",
       "from": "Из",
       "to": "В",
       "path": "Путь"

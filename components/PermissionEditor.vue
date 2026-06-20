@@ -40,24 +40,7 @@
                         </div>
                     </template>
 
-                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
-                        <div class="flex min-w-0 flex-col gap-2">
-                            <button
-                                v-for="(grant, index) in selectedGrants"
-                                :key="index"
-                                type="button"
-                                class="flex min-w-0 flex-col gap-2 rounded-ui border border-content-border bg-content px-3 py-2 text-left"
-                                :class="selectedGrantIndex === index ? 'border-primary' : ''"
-                                @click="selectGrant(index)"
-                            >
-                                <span class="flex min-w-0 items-center justify-between gap-2">
-                                    <strong>{{ getLevelLabel(grant.level) }}</strong>
-                                    <small class="text-muted-color">{{ grantModeLabel(grant) }}</small>
-                                </span>
-                            </button>
-                            <Message v-if="selectedGrants.length === 0" severity="info">{{ $t('auth.noPermissionGrants') }}</Message>
-                        </div>
-
+                    <div class="flex min-w-0 flex-col gap-4">
                         <div v-if="selectedGrants.length === 0" class="flex min-w-0 flex-col gap-3">
                             <Message severity="info">{{ $t('auth.permissionNoGrantSelected') }}</Message>
                             <div>
@@ -65,80 +48,90 @@
                             </div>
                         </div>
 
-                        <div v-else-if="selectedGrant" class="flex min-w-0 flex-col gap-4">
-                            <Panel v-if="selectedFeature.actions?.length" :header="$t('auth.permissionActions')">
-                                <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
-                                    <label
-                                        v-for="action in selectedFeature.actions"
-                                        :key="action"
-                                        class="flex items-center gap-2"
-                                    >
-                                        <Checkbox
-                                            :model-value="isGrantActionEnabled(selectedGrant, action)"
-                                            binary
-                                            @update:model-value="value => setGrantAction(action, value)"
-                                        />
-                                        <span>{{ getActionLabel(action) }}</span>
-                                    </label>
-                                </div>
-                            </Panel>
-
-                            <Panel :header="$t('auth.permissionFilterBuilder')">
-                                <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
-                                    <div class="flex min-w-0 flex-wrap items-end gap-2">
-                                        <div class="flex flex-col gap-1">
-                                            <label>{{ $t('auth.permissionAllow') }}</label>
-                                            <Select
-                                                :model-value="selectedGrant.level"
-                                                :options="PERMISSION_LEVELS"
-                                                option-label="label"
-                                                option-value="value"
-                                                class="w-40"
-                                                @update:model-value="value => updateGrant({ level: value })"
-                                            />
-                                        </div>
-                                        <span class="pb-2 text-muted-color">{{ $t('auth.permissionWhen') }}</span>
+                        <Accordion v-else :value="String(selectedGrantIndex)" @update:value="value => selectGrant(Number(value || 0))">
+                            <AccordionPanel v-for="(grant, index) in selectedGrants" :key="index" :value="String(index)">
+                                <AccordionHeader>
+                                    <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                                        <strong>{{ $t('auth.permissionGrantTitle', { index: index + 1 }) }}</strong>
+                                        <Tag :value="getLevelLabel(grant.level)" :severity="grantLevelSeverity(grant.level)" size="small" />
+                                        <small class="text-muted-color">{{ grantModeLabel(grant) }}</small>
                                     </div>
-                                    <Button icon="pi pi-trash" :label="$t('auth.removeGrant')" severity="danger" outlined size="small" @click="removeGrant(selectedGrantIndex)" />
-                                </div>
-                                <PermissionRuleBuilder
-                                    :model-value="selectedRuleTree"
-                                    :gate-options="gateOptions"
-                                    :subject-options="subjectOptions"
-                                    :entity-type-options="entityTypeOptions"
-                                    :condition-operator-options="conditionOperatorOptions"
-                                    :entity-options-loading="entityOptionsLoading"
-                                    :trait-options-for-condition="traitOptionsForCondition"
-                                    :condition-subject="conditionSubject"
-                                    :condition-entity-type="conditionEntityType"
-                                    :condition-entity-type-label="conditionEntityTypeLabel"
-                                    :condition-trait="conditionTrait"
-                                    :patch-condition-subject="patchConditionSubject"
-                                    :patch-condition-entity-type="patchConditionEntityType"
-                                    :patch-condition-trait="patchConditionTrait"
-                                    :uses-option-value-picker="usesOptionValuePicker"
-                                    :value-options-for-clause="valueOptionsForClause"
-                                    :clause-value-list="clauseValueList"
-                                    :create-condition="createConditionNode"
-                                    :create-group="createGroupNode"
-                                    @update:model-value="updateRuleTree"
-                                />
-                            </Panel>
+                                </AccordionHeader>
+                                <AccordionContent>
+                                    <div class="flex min-w-0 flex-col gap-4">
+                                        <div class="flex flex-wrap items-end justify-between gap-3">
+                                            <div class="flex min-w-0 flex-wrap items-end gap-2">
+                                                <span class="pb-2 font-medium">{{ $t('auth.permissionAllow') }}</span>
+                                                <Select
+                                                    :model-value="grant.level"
+                                                    :options="PERMISSION_LEVELS"
+                                                    option-label="label"
+                                                    option-value="value"
+                                                    class="w-36"
+                                                    @update:model-value="value => updateGrantAt(index, { level: value })"
+                                                />
+                                                <span class="pb-2 text-muted-color">{{ $t('auth.permissionWhen') }}</span>
+                                            </div>
+                                            <Button icon="pi pi-trash" severity="danger" text rounded :aria-label="$t('auth.removeGrant')" @click="removeGrant(index)" />
+                                        </div>
 
-                            <Panel :header="$t('auth.advancedPermissionJson')" toggleable collapsed>
-                                <Textarea
-                                    :model-value="selectedGrantJson"
-                                    rows="8"
-                                    auto-resize
-                                    class="w-full font-mono text-xs"
-                                    @update:model-value="selectedGrantJson = $event"
-                                    @blur="applySelectedGrantJson"
-                                />
-                                <small v-if="selectedGrantError" class="text-red-500">
-                                    {{ selectedGrantError }}
-                                </small>
-                            </Panel>
-                        </div>
+                                        <PermissionRuleBuilder
+                                            :model-value="ruleTreeForGrant(index)"
+                                            :gate-options="gateOptions"
+                                            :subject-options="subjectOptionsForFeature"
+                                            :entity-type-options="entityTypeOptions"
+                                            :condition-operator-options="conditionOperatorOptions"
+                                            :entity-options-loading="entityOptionsLoading"
+                                            :trait-options-for-condition="traitOptionsForCondition"
+                                            :condition-subject="conditionSubject"
+                                            :condition-entity-type="conditionEntityType"
+                                            :condition-entity-type-label="conditionEntityTypeLabel"
+                                            :condition-trait="conditionTrait"
+                                            :patch-condition-subject="patchConditionSubject"
+                                            :patch-condition-entity-type="patchConditionEntityType"
+                                            :patch-condition-trait="patchConditionTrait"
+                                            :uses-option-value-picker="usesOptionValuePicker"
+                                            :value-options-for-clause="valueOptionsForClause"
+                                            :clause-value-list="clauseValueList"
+                                            :create-condition="createConditionNode"
+                                            :create-group="createGroupNode"
+                                            @update:model-value="value => updateRuleTreeAt(index, value)"
+                                        />
+
+                                        <Panel v-if="selectedFeature.actions?.length" :header="$t('auth.permissionActions')" toggleable collapsed>
+                                            <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
+                                                <label
+                                                    v-for="action in selectedFeature.actions"
+                                                    :key="action"
+                                                    class="flex items-center gap-2"
+                                                >
+                                                    <Checkbox
+                                                        :model-value="isGrantActionEnabled(grant, action)"
+                                                        binary
+                                                        @update:model-value="value => setGrantActionAt(index, action, value)"
+                                                    />
+                                                    <span>{{ getActionLabel(action) }}</span>
+                                                </label>
+                                            </div>
+                                        </Panel>
+
+                                        <Panel :header="$t('auth.advancedPermissionJson')" toggleable collapsed>
+                                            <Textarea
+                                                :model-value="selectedGrantJson"
+                                                rows="8"
+                                                auto-resize
+                                                class="w-full font-mono text-xs"
+                                                @update:model-value="selectedGrantJson = $event"
+                                                @blur="applySelectedGrantJson"
+                                            />
+                                            <small v-if="selectedGrantError" class="text-red-500">
+                                                {{ selectedGrantError }}
+                                            </small>
+                                        </Panel>
+                                    </div>
+                                </AccordionContent>
+                            </AccordionPanel>
+                        </Accordion>
                     </div>
                 </Panel>
             </div>
@@ -156,6 +149,10 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
+import Accordion from 'primevue/accordion';
+import AccordionPanel from 'primevue/accordionpanel';
+import AccordionHeader from 'primevue/accordionheader';
+import AccordionContent from 'primevue/accordioncontent';
 import Checkbox from 'primevue/checkbox';
 import Textarea from 'primevue/textarea';
 import Select from 'primevue/select';
@@ -163,7 +160,12 @@ import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import { useEntity } from '~/composables/useEntity';
 import { useAuthStore } from '~/stores/auth';
-import { cncFrontendEntities, cncWorkflows } from '@cutkit/domain-cnc';
+import {
+    cncEntityFieldGroups,
+    cncFrontendEntities,
+    cncWorkflows,
+    getEntityFieldAccessPolicy
+} from '@cutkit/domain-cnc';
 import PermissionRuleBuilder from './PermissionRuleBuilder.vue';
 
 const props = defineProps({
@@ -248,7 +250,7 @@ const gateOptions = computed(() => [
     { label: t('auth.permissionGates.any'), value: 'any' }
 ]);
 
-const subjectOptions = computed(() => [
+const subjectOptionsForFeature = computed(() => [
     ...(selectedFeatureHasEntity() ? [{ label: entityTypeLabel(selectedFeatureEntityType()), value: 'current' }] : []),
     { label: t('auth.permissionSubjects.related'), value: 'related' },
     { label: t('auth.permissionSubjects.transition'), value: 'transition' },
@@ -348,14 +350,15 @@ function selectGrant(index) {
     hydrateRuleTree();
 }
 
-function updateGrant(patch) {
-    if (!selectedGrant.value) return;
-    replaceSelectedGrant({ ...selectedGrant.value, ...patch });
+function updateGrantAt(index, patch) {
+    const grant = selectedGrants.value[index];
+    if (!grant) return;
+    replaceGrantAt(index, { ...grant, ...patch });
 }
 
-function replaceSelectedGrant(grant) {
+function replaceGrantAt(index, grant) {
     const grants = selectedGrants.value;
-    grants[selectedGrantIndex.value] = grant;
+    grants[index] = grant;
     setFeatureGrants(selectedFeatureKey.value, grants);
 }
 
@@ -363,9 +366,14 @@ function hydrateRuleTree() {
     selectedRuleTree.value = ruleTreeFromGrant(selectedGrant.value);
 }
 
-function updateRuleTree(value) {
+function ruleTreeForGrant(index) {
+    return index === selectedGrantIndex.value ? selectedRuleTree.value : ruleTreeFromGrant(selectedGrants.value[index]);
+}
+
+function updateRuleTreeAt(index, value) {
+    selectedGrantIndex.value = index;
     selectedRuleTree.value = value;
-    applyRuleTree(value);
+    applyRuleTreeAt(index, value);
     loadEntityOptions();
 }
 
@@ -392,10 +400,12 @@ function isGrantActionEnabled(grant, action) {
     return grant.actions[action] === true;
 }
 
-function setGrantAction(action, enabled) {
-    updateGrant({
+function setGrantActionAt(index, action, enabled) {
+    const grant = selectedGrants.value[index];
+    if (!grant) return;
+    updateGrantAt(index, {
         actions: {
-            ...(selectedGrant.value.actions || {}),
+            ...(grant.actions || {}),
             [action]: enabled === true
         }
     });
@@ -490,16 +500,17 @@ function nodeFromRule(rule) {
     return createConditionNode(conditionToClause(rule));
 }
 
-function applyRuleTree(tree) {
-    if (!selectedGrant.value) return;
+function applyRuleTreeAt(index, tree) {
+    const grant = selectedGrants.value[index];
+    if (!grant) return;
     const rule = ruleFromNode(tree);
-    const nextGrant = { ...selectedGrant.value };
+    const nextGrant = { ...grant };
     delete nextGrant.scope;
     delete nextGrant.rule;
     delete nextGrant.transition;
     delete nextGrant.transitions;
     if (rule) nextGrant.rule = rule;
-    replaceSelectedGrant(nextGrant);
+    replaceGrantAt(index, nextGrant);
 }
 
 function ruleFromNode(node) {
@@ -547,6 +558,7 @@ function normalizeClause(clause = {}) {
     const entityType = clause.entityType || conditionEntityType({ ...clause, subject });
     const trait = clause.trait || conditionTrait({ ...clause, subject, entityType }) || defaultTraitForCondition({ subject, entityType });
     const fact = clause.fact || factForCondition(subject, entityType, trait);
+    const propertyPath = propertyPathForTrait(trait);
     return {
         id: clause.id || nextRuleNodeId(),
         type: 'condition',
@@ -555,7 +567,7 @@ function normalizeClause(clause = {}) {
         trait,
         fact,
         operator,
-        field: fact === 'field' ? String(clause.field || '') : '',
+        field: fact === 'field' ? String(propertyPath || clause.field || '') : '',
         value: operator === 'exists' && clause.value === '' ? 'true' : String(clause.value ?? ''),
         negated: clause.negated === true
     };
@@ -577,12 +589,14 @@ function traitOptionsForCondition(condition = {}) {
         ];
     }
 
-    const options = [
-        { label: t('auth.permissionTraits.id'), value: 'id' },
-        { label: t('auth.permissionTraits.type'), value: 'type' }
-    ];
+    const entityType = conditionEntityType(condition);
+    const options = [{ label: t('auth.permissionTraits.id'), value: 'id' }];
     if (workflowStateOptions(conditionEntityType(condition)).length) {
         options.push({ label: t('auth.permissionTraits.status'), value: 'status' });
+    }
+    options.push(...propertyTraitOptions(entityType));
+    if (conditionTrait(condition) === 'type' && !options.some(option => option.value === 'type')) {
+        options.push({ label: t('auth.permissionTraits.entityType'), value: 'type' });
     }
     return options;
 }
@@ -594,6 +608,10 @@ function defaultTraitForCondition(condition = {}) {
 function factForCondition(subject, entityType, trait) {
     if (subject === 'custom') return 'field';
     if (subject === 'transition') return trait === 'from' ? 'transition.from' : 'transition.to';
+    const propertyPath = propertyPathForTrait(trait);
+    if (propertyPath) {
+        return subject === 'related' ? `lineage.${entityType}.${propertyPath}` : `entity.${propertyPath}`;
+    }
     if (subject === 'related') {
         if (trait === 'id') return `lineage.${entityType}Id`;
         if (trait === 'type') return `lineage.${entityType}.type`;
@@ -610,6 +628,7 @@ function conditionSubject(clause = {}) {
     if (fact === 'field') return 'custom';
     if (fact.startsWith('transition.')) return 'transition';
     if (fact.startsWith('lineage.')) return 'related';
+    if (fact.startsWith('entity.')) return 'current';
     return 'current';
 }
 
@@ -639,6 +658,9 @@ function conditionTrait(clause = {}) {
     if (fact === 'status.primary' || fact === 'primaryStatus' || fact.endsWith('.status.primary')) return 'status';
     if (fact === 'transition.from') return 'from';
     if (fact === 'transition.to') return 'to';
+    const lineagePropertyMatch = fact.match(/^lineage\.[^.]+\.(.+)$/);
+    if (lineagePropertyMatch) return propertyTraitValue(lineagePropertyMatch[1]);
+    if (fact.startsWith('entity.')) return propertyTraitValue(fact.slice('entity.'.length));
     return 'id';
 }
 
@@ -670,12 +692,13 @@ function patchConditionEntityType(clause = {}, entityType) {
 function patchConditionTrait(clause = {}, trait) {
     const subject = conditionSubject(clause);
     const entityType = conditionEntityType(clause);
+    const fact = factForCondition(subject, entityType, trait);
     return normalizeClause({
         ...clause,
         subject,
         entityType,
         trait,
-        fact: factForCondition(subject, entityType, trait),
+        fact,
         field: subject === 'custom' ? clause.field || '' : '',
         value: ''
     });
@@ -750,6 +773,65 @@ function workflowStateOptions(entityType) {
     const primaryRegion = workflow?.primaryRegion || 'main';
     const states = workflow?.regions?.[primaryRegion]?.states || {};
     return Object.keys(states).map(state => ({ label: statusLabel(state), value: state }));
+}
+
+function propertyTraitOptions(entityType) {
+    const paths = new Map();
+    for (const field of entityFieldDescriptors(entityType)) {
+        if (!field.path || isUnsupportedPredicatePath(field.path)) continue;
+        paths.set(field.path, fieldLabel(field));
+        for (const fallbackPath of field.fallbackPaths || []) {
+            if (!isUnsupportedPredicatePath(fallbackPath)) paths.set(fallbackPath, fieldLabel({ ...field, path: fallbackPath }));
+        }
+    }
+    for (const path of entityAccessPaths(entityType)) {
+        if (!paths.has(path) && !isUnsupportedPredicatePath(path)) paths.set(path, formatPathLabel(path));
+    }
+    return [...paths.entries()].map(([path, label]) => ({
+        label,
+        value: propertyTraitValue(path)
+    }));
+}
+
+function entityFieldDescriptors(entityType) {
+    const groups = cncEntityFieldGroups[entityType] || {};
+    return Object.values(groups).flat();
+}
+
+function entityAccessPaths(entityType) {
+    const policy = getEntityFieldAccessPolicy(entityType);
+    if (!policy) return [];
+    return uniqueEntityTypes(['read', 'write', 'admin'].flatMap(level => policy[level] || []))
+        .filter(path => !path.endsWith('.*') && !path.includes('*'));
+}
+
+function isUnsupportedPredicatePath(path = '') {
+    return !path
+        || path === '_id'
+        || path.includes('*')
+        || path.endsWith('.length')
+        || path.includes('.preview')
+        || path.includes('.geometry');
+}
+
+function propertyTraitValue(path = '') {
+    return `field:${path}`;
+}
+
+function propertyPathForTrait(trait = '') {
+    return String(trait).startsWith('field:') ? String(trait).slice('field:'.length) : '';
+}
+
+function fieldLabel(field = {}) {
+    return t(field.i18n, formatPathLabel(field.path));
+}
+
+function formatPathLabel(path = '') {
+    return String(path)
+        .replace(/^(data|summary|specs|identity|lineage|attachments)\./, '')
+        .replace(/\./g, ' / ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/\b\w/g, char => char.toUpperCase());
 }
 
 function statusLabel(state) {
@@ -953,6 +1035,13 @@ function strongestLevel(left = 'none', right = 'none') {
 function grantModeLabel(grant) {
     if (grantHasFilters(grant)) return t('auth.permissionModes.filtered');
     return t('auth.permissionModes.unfiltered');
+}
+
+function grantLevelSeverity(level) {
+    if (level === 'admin') return 'danger';
+    if (level === 'write') return 'warn';
+    if (level === 'read') return 'info';
+    return 'secondary';
 }
 
 function grantHasFilters(grant) {

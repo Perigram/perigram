@@ -1264,6 +1264,7 @@
     "permissionFeatures": "Access areas",
     "permissionGrantCount": "{count} grants",
     "permissionGrantSummary": "{level} / {count} grants",
+    "permissionGrantTitle": "Grant {index}",
     "addGrant": "Add grant",
     "removeGrant": "Remove grant",
     "noAccess": "No access",
@@ -1314,6 +1315,7 @@
       "id": "ID",
       "type": "Type",
       "status": "Status",
+      "entityType": "Entity kind",
       "from": "From",
       "to": "To",
       "path": "Path"
