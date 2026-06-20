@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Use entity pickers in permission filters
+     Files changed: components/PermissionEditor.vue, i18n/locales/en.json,
+       i18n/locales/ru.json, components/README.md, TODO.org
+     Docs updated: components/README.md, TODO.org
+     Notes: Replaced raw value inputs for normal entity references with Select
+       and MultiSelect controls. Exact entity clauses use the selected
+       feature's canonical entity list when available; lineage clauses use
+       organization, project, queue, and warehouse entity pickers; status
+       clauses use canonical status options. Kept the canonical evaluator shape:
+       simple lineage/entity equality and list filters write to `scope`, while
+       status, transition, custom path, and non-scope operators write to
+       `rule`.
+
      [2026-06-20] Remove storage-field leakage from permission filters
      Files changed: components/PermissionEditor.vue, i18n/locales/en.json,
        i18n/locales/ru.json, components/README.md, TODO.org
