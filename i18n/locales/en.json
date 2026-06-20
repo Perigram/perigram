@@ -1291,6 +1291,8 @@
     "permissionSelectValues": "Select values",
     "permissionBooleanValue": "true or false",
     "addFilterClause": "Add filter",
+    "permissionAddCondition": "Add condition",
+    "permissionAddGroup": "Add group",
     "permissionTargets": {
       "entity": "Entity",
       "organization": "Lineage organization",

@@ -1291,6 +1291,8 @@
     "permissionSelectValues": "Выберите значения",
     "permissionBooleanValue": "true или false",
     "addFilterClause": "Добавить фильтр",
+    "permissionAddCondition": "Добавить условие",
+    "permissionAddGroup": "Добавить группу",
     "permissionTargets": {
       "entity": "Сущность",
       "organization": "Lineage-организация",

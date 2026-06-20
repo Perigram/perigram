@@ -104,161 +104,23 @@
                                 <p class="m-0 mb-3 text-sm text-muted-color">
                                     {{ $t('auth.permissionFilterBuilderHelp') }}
                                 </p>
-                                <div class="flex flex-col gap-3">
-                                    <div class="grid grid-cols-1 gap-3 md:grid-cols-[12rem_minmax(0,1fr)] md:items-end">
-                                        <div class="flex flex-col gap-1">
-                                            <label>{{ $t('auth.permissionMatch') }}</label>
-                                            <Select
-                                                :model-value="filterGate(selectedGrant)"
-                                                :options="gateOptions"
-                                                option-label="label"
-                                                option-value="value"
-                                                @update:model-value="setFilterGate"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div class="flex flex-col gap-2">
-                                        <div
-                                            v-for="(clause, index) in filterClauses(selectedGrant)"
-                                            :key="`${clause.fact}-${clause.field || ''}-${index}`"
-                                            class="grid grid-cols-1 gap-2 rounded-ui border border-content-border p-3 xl:grid-cols-[12rem_12rem_10rem_minmax(14rem,1fr)_6rem_auto]"
-                                        >
-                                            <Select
-                                                :model-value="clauseTarget(clause)"
-                                                :options="filterTargetOptions"
-                                                option-label="label"
-                                                option-value="value"
-                                                @update:model-value="value => updateClauseTarget(index, value)"
-                                            />
-                                            <Select
-                                                v-if="clauseTarget(clause) !== 'custom'"
-                                                :model-value="clauseTrait(clause)"
-                                                :options="traitOptionsForTarget(clauseTarget(clause))"
-                                                option-label="label"
-                                                option-value="value"
-                                                @update:model-value="value => updateClauseTrait(index, value)"
-                                            />
-                                            <InputText
-                                                v-else
-                                                :model-value="clause.field"
-                                                :placeholder="$t('auth.permissionFieldPath')"
-                                                @update:model-value="value => updateFilterClause(index, { field: value })"
-                                            />
-                                            <Select
-                                                :model-value="clause.operator"
-                                                :options="conditionOperatorOptions"
-                                                option-label="label"
-                                                option-value="value"
-                                                @update:model-value="value => updateFilterClause(index, { operator: value })"
-                                            />
-                                            <MultiSelect
-                                                v-if="usesOptionValuePicker(clause) && clause.operator === 'in'"
-                                                :model-value="clauseValueList(clause)"
-                                                :options="valueOptionsForClause(clause)"
-                                                option-label="label"
-                                                option-value="value"
-                                                filter
-                                                display="chip"
-                                                class="w-full"
-                                                :loading="entityOptionsLoading"
-                                                :placeholder="$t('auth.permissionSelectValues')"
-                                                @update:model-value="values => updateFilterClause(index, { value: values.join(', ') })"
-                                            />
-                                            <Select
-                                                v-else-if="usesOptionValuePicker(clause)"
-                                                :model-value="clause.value"
-                                                :options="valueOptionsForClause(clause)"
-                                                option-label="label"
-                                                option-value="value"
-                                                filter
-                                                show-clear
-                                                class="w-full"
-                                                :loading="entityOptionsLoading"
-                                                :placeholder="$t('auth.permissionSelectValue')"
-                                                @update:model-value="value => updateFilterClause(index, { value })"
-                                            />
-                                            <InputText
-                                                v-else
-                                                :model-value="clause.value"
-                                                :placeholder="clause.operator === 'exists' ? $t('auth.permissionBooleanValue') : $t('auth.permissionConditionValue')"
-                                                @update:model-value="value => updateFilterClause(index, { value })"
-                                            />
-                                            <label class="flex items-center gap-2">
-                                                <Checkbox
-                                                    :model-value="clause.negated === true"
-                                                    binary
-                                                    @update:model-value="value => updateFilterClause(index, { negated: value })"
-                                                />
-                                                <span>{{ $t('auth.permissionNot') }}</span>
-                                            </label>
-                                            <Button icon="pi pi-trash" severity="danger" text rounded :aria-label="$t('common.delete')" @click="removeFilterClause(index)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="grid grid-cols-1 gap-2 border-t pt-3 xl:grid-cols-[12rem_12rem_10rem_minmax(14rem,1fr)_6rem_auto]">
-                                        <Select
-                                            v-model="filterDraft.target"
-                                            :options="filterTargetOptions"
-                                            option-label="label"
-                                            option-value="value"
-                                            @update:model-value="setDraftTarget"
-                                        />
-                                        <Select
-                                            v-if="filterDraft.target !== 'custom'"
-                                            v-model="filterDraft.trait"
-                                            :options="traitOptionsForTarget(filterDraft.target)"
-                                            option-label="label"
-                                            option-value="value"
-                                            @update:model-value="setDraftTrait"
-                                        />
-                                        <InputText
-                                            v-else
-                                            v-model="filterDraft.field"
-                                            :placeholder="$t('auth.permissionFieldPath')"
-                                        />
-                                        <Select
-                                            v-model="filterDraft.operator"
-                                            :options="conditionOperatorOptions"
-                                            option-label="label"
-                                            option-value="value"
-                                        />
-                                        <MultiSelect
-                                            v-if="draftUsesOptionValuePicker && filterDraft.operator === 'in'"
-                                            v-model="filterDraft.valueList"
-                                            :options="valueOptionsForDraft"
-                                            option-label="label"
-                                            option-value="value"
-                                            filter
-                                            display="chip"
-                                            class="w-full"
-                                            :loading="entityOptionsLoading"
-                                            :placeholder="$t('auth.permissionSelectValues')"
-                                        />
-                                        <Select
-                                            v-else-if="draftUsesOptionValuePicker"
-                                            v-model="filterDraft.value"
-                                            :options="valueOptionsForDraft"
-                                            option-label="label"
-                                            option-value="value"
-                                            filter
-                                            show-clear
-                                            class="w-full"
-                                            :loading="entityOptionsLoading"
-                                            :placeholder="$t('auth.permissionSelectValue')"
-                                        />
-                                        <InputText
-                                            v-else
-                                            v-model="filterDraft.value"
-                                            :placeholder="filterDraft.operator === 'exists' ? $t('auth.permissionBooleanValue') : $t('auth.permissionConditionValue')"
-                                        />
-                                        <label class="flex items-center gap-2">
-                                            <Checkbox v-model="filterDraft.negated" binary />
-                                            <span>{{ $t('auth.permissionNot') }}</span>
-                                        </label>
-                                        <Button icon="pi pi-plus" :label="$t('auth.addFilterClause')" size="small" outlined @click="addFilterClause" />
-                                    </div>
-                                </div>
+                                <PermissionRuleBuilder
+                                    v-model="selectedRuleTree"
+                                    :gate-options="gateOptions"
+                                    :filter-target-options="filterTargetOptions"
+                                    :condition-operator-options="conditionOperatorOptions"
+                                    :entity-options-loading="entityOptionsLoading"
+                                    :trait-options-for-target="traitOptionsForTarget"
+                                    :clause-target="clauseTarget"
+                                    :clause-trait="clauseTrait"
+                                    :fact-for-target-trait="factForTargetTrait"
+                                    :default-trait-for-target="defaultTraitForTarget"
+                                    :uses-option-value-picker="usesOptionValuePicker"
+                                    :value-options-for-clause="valueOptionsForClause"
+                                    :clause-value-list="clauseValueList"
+                                    :create-condition="createConditionNode"
+                                    :create-group="createGroupNode"
+                                />
                             </Panel>
 
                             <Panel :header="$t('auth.advancedPermissionJson')" toggleable collapsed>
@@ -294,14 +156,13 @@ import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Checkbox from 'primevue/checkbox';
 import Textarea from 'primevue/textarea';
-import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
-import MultiSelect from 'primevue/multiselect';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import { useEntity } from '~/composables/useEntity';
 import { useAuthStore } from '~/stores/auth';
 import { cncWorkflows } from '@cutkit/domain-cnc';
+import PermissionRuleBuilder from './PermissionRuleBuilder.vue';
 
 const props = defineProps({
     permissions: { type: Object, default: () => ({}) }
@@ -315,7 +176,6 @@ const selectedFeatureKey = ref('projects');
 const selectedGrantIndex = ref(0);
 const selectedGrantJson = ref('');
 const selectedGrantError = ref('');
-const filterDraft = ref({ target: 'entity', trait: 'status', operator: 'equals', field: '', value: '', valueList: [], negated: false });
 const entityOptionsLoading = ref(false);
 const entityOptionLists = ref({});
 const entityLoaders = {
@@ -450,7 +310,6 @@ const SCOPE_FACT_BY_KEY = {
     entityId: 'entityId',
     entityType: 'entityType'
 };
-const SCOPE_KEY_BY_FACT = Object.fromEntries(Object.entries(SCOPE_FACT_BY_KEY).map(([key, fact]) => [fact, key]));
 
 const conditionOperatorOptions = computed(() => [
     { label: t('auth.permissionOperators.equals'), value: 'equals' },
@@ -473,8 +332,10 @@ const localPermissions = ref(buildLocalPermissions(props.permissions));
 const selectedFeature = computed(() => entities.value.find(feature => feature.key === selectedFeatureKey.value) || entities.value[0]);
 const selectedGrants = computed(() => normalizeGrants(localPermissions.value[selectedFeatureKey.value]));
 const selectedGrant = computed(() => selectedGrants.value[selectedGrantIndex.value] || null);
-const valueOptionsForDraft = computed(() => valueOptionsForClause(draftClause()));
-const draftUsesOptionValuePicker = computed(() => usesOptionValuePicker(draftClause()));
+const selectedRuleTree = computed({
+    get: () => ruleTreeFromGrant(selectedGrant.value),
+    set: value => applyRuleTree(value)
+});
 
 watch(() => props.permissions, (newVal) => {
     localPermissions.value = buildLocalPermissions(newVal);
@@ -484,7 +345,6 @@ watch(() => props.permissions, (newVal) => {
 watch(selectedFeatureKey, () => {
     selectedGrantIndex.value = 0;
     selectedGrantError.value = '';
-    filterDraft.value = { target: 'entity', trait: defaultTraitForTarget('entity'), operator: 'equals', field: '', value: '', valueList: [], negated: false };
     loadEntityOptions();
 });
 
@@ -567,13 +427,50 @@ function scopeValue(grant, key) {
     return Array.isArray(value) ? value.join(', ') : String(value || '');
 }
 
-function filterGate(grant) {
-    return ruleGate(grant);
+let ruleNodeId = 0;
+
+function nextRuleNodeId() {
+    ruleNodeId += 1;
+    return `rule-node-${ruleNodeId}`;
 }
 
-function filterClauses(grant) {
-    if (!grant) return [];
+function createGroupNode(patch = {}) {
+    return {
+        id: nextRuleNodeId(),
+        type: 'group',
+        gate: 'all',
+        negated: false,
+        children: [],
+        ...patch
+    };
+}
 
+function createConditionNode(patch = {}) {
+    return normalizeClause({
+        id: nextRuleNodeId(),
+        type: 'condition',
+        target: 'entity',
+        trait: defaultTraitForTarget('entity'),
+        operator: 'equals',
+        field: '',
+        value: '',
+        negated: false,
+        ...patch
+    });
+}
+
+function ruleTreeFromGrant(grant) {
+    if (!grant) return createGroupNode();
+    const legacyClauses = legacyGrantClauses(grant).map(clause => createConditionNode(clause));
+    const ruleNode = grant.rule ? nodeFromRule(grant.rule) : null;
+    if (ruleNode && legacyClauses.length === 0) return ruleNode;
+    return createGroupNode({
+        gate: 'all',
+        children: [...legacyClauses, ...(ruleNode ? [ruleNode] : [])]
+    });
+}
+
+function legacyGrantClauses(grant) {
     const clauses = [];
     const scope = grant.scope || {};
     for (const field of scopeFields.value) {
@@ -592,94 +489,48 @@ function filterClauses(grant) {
         if (transition.to) clauses.push({ fact: 'transition.to', operator: 'equals', value: transition.to, field: '' });
     }
 
-    for (const condition of ruleConditions(grant)) {
-        clauses.push(conditionToClause(condition));
-    }
-
     return clauses;
 }
 
-function setFilterGate(gate) {
-    applyFilterClauses(filterClauses(selectedGrant.value), gate);
-}
-
-function updateFilterClause(index, patch) {
-    const clauses = filterClauses(selectedGrant.value);
-    const next = { ...clauses[index], ...patch };
-    if (patch.fact && patch.fact !== 'field') next.field = '';
-    clauses[index] = normalizeClause(next);
-    applyFilterClauses(clauses, filterGate(selectedGrant.value));
-}
-
-function updateClauseTarget(index, target) {
-    const trait = defaultTraitForTarget(target);
-    updateFilterClause(index, {
-        fact: factForTargetTrait(target, trait),
-        field: target === 'custom' ? filterClauses(selectedGrant.value)[index]?.field || '' : ''
-    });
-}
-
-function updateClauseTrait(index, trait) {
-    const target = clauseTarget(filterClauses(selectedGrant.value)[index]);
-    updateFilterClause(index, {
-        fact: factForTargetTrait(target, trait),
-        field: target === 'custom' ? filterClauses(selectedGrant.value)[index]?.field || '' : ''
-    });
-}
-
-function removeFilterClause(index) {
-    applyFilterClauses(
-        filterClauses(selectedGrant.value).filter((_, clauseIndex) => clauseIndex !== index),
-        filterGate(selectedGrant.value)
-    );
-}
-
-function addFilterClause() {
-    const clause = normalizeClause({
-        ...filterDraft.value,
-        value: filterDraft.value.operator === 'in' && draftUsesOptionValuePicker.value
-            ? filterDraft.value.valueList.join(', ')
-            : filterDraft.value.value,
-        negated: filterDraft.value.negated === true
-    });
-    if (!isCompleteClause(clause)) return;
-    applyFilterClauses([...filterClauses(selectedGrant.value), clause], filterGate(selectedGrant.value));
-    filterDraft.value = { ...filterDraft.value, field: '', value: '', valueList: [], negated: false };
-}
-
-function applyFilterClauses(clauses, gate = 'all') {
-    if (!selectedGrant.value) return;
-
-    const scope = {};
-    const ruleConditions = [];
-    for (const clause of clauses.map(normalizeClause).filter(isCompleteClause)) {
-        const scopeKey = SCOPE_KEY_BY_FACT[clause.fact];
-        if (!clause.negated && scopeKey && ['equals', 'in'].includes(clause.operator)) {
-            setScopeFromClause(scope, scopeKey, clause);
-        } else {
-            const condition = clauseToCondition(clause);
-            if (condition) ruleConditions.push(condition);
-        }
+function nodeFromRule(rule) {
+    if (rule?.not) {
+        const node = nodeFromRule(rule.not);
+        return { ...node, negated: !node.negated };
     }
+    if (Array.isArray(rule?.all) || Array.isArray(rule?.any)) {
+        const gate = Array.isArray(rule.all) ? 'all' : 'any';
+        return createGroupNode({
+            gate,
+            children: (rule[gate] || []).map(nodeFromRule)
+        });
+    }
+    return createConditionNode(conditionToClause(rule));
+}
 
+function applyRuleTree(tree) {
+    if (!selectedGrant.value) return;
+    const rule = ruleFromNode(tree);
     const nextGrant = { ...selectedGrant.value };
     delete nextGrant.scope;
     delete nextGrant.rule;
     delete nextGrant.transition;
     delete nextGrant.transitions;
-
-    const cleanedScope = cleanObject(scope);
-    if (Object.keys(cleanedScope).length) nextGrant.scope = cleanedScope;
-    if (ruleConditions.length) nextGrant.rule = { [gate]: ruleConditions };
+    if (rule) nextGrant.rule = rule;
     replaceSelectedGrant(nextGrant);
 }
 
-function setScopeFromClause(scope, scopeKey, clause) {
-    const values = clause.operator === 'in' ? parseList(clause.value) : parseList(clause.value).slice(0, 1);
-    delete scope[scopeKey];
-    delete scope[`${scopeKey}s`];
-    if (values.length === 1) scope[scopeKey] = values[0];
-    if (values.length > 1) scope[`${scopeKey}s`] = values;
+function ruleFromNode(node) {
+    if (!node) return null;
+    if (node.type === 'group') {
+        const children = (node.children || []).map(ruleFromNode).filter(Boolean);
+        if (children.length === 0) return null;
+        const rule = { [node.gate === 'any' ? 'any' : 'all']: children };
+        return node.negated ? { not: rule } : rule;
+    }
+
+    const clause = normalizeClause(node);
+    if (!isCompleteClause(clause)) return null;
+    return clauseToCondition(clause);
 }
 
 function conditionToClause(condition = {}) {
@@ -713,6 +564,8 @@ function normalizeClause(clause = {}) {
     const trait = clause.trait || clauseTrait(clause) || defaultTraitForTarget(target);
     const fact = clause.fact || factForTargetTrait(target, trait);
     return {
+        id: clause.id || nextRuleNodeId(),
+        type: 'condition',
         fact,
         operator,
         field: fact === 'field' ? String(clause.field || '') : '',
@@ -725,21 +578,6 @@ function isCompleteClause(clause) {
     if (clause.fact === 'field' && !clause.field) return false;
     if (clause.operator === 'exists') return true;
     return Boolean(String(clause.value || '').trim());
-}
-
-function setDraftTarget(target) {
-    filterDraft.value.trait = defaultTraitForTarget(target);
-    filterDraft.value.field = '';
-    filterDraft.value.value = '';
-    filterDraft.value.valueList = [];
-    filterDraft.value.negated = false;
-}
-
-function setDraftTrait(trait) {
-    filterDraft.value.trait = trait;
-    if (filterDraft.value.target !== 'custom') filterDraft.value.field = '';
-    filterDraft.value.value = '';
-    filterDraft.value.valueList = [];
 }
 
 function traitOptionsForTarget(target) {
@@ -775,16 +613,6 @@ function clauseTarget(clause = {}) {
 
 function clauseTrait(clause = {}) {
     return TARGET_TRAIT_BY_FACT[clause.fact]?.trait || (clause.fact === 'field' ? 'path' : 'id');
-}
-
-function draftClause() {
-    return {
-        target: filterDraft.value.target,
-        trait: filterDraft.value.trait,
-        operator: filterDraft.value.operator,
-        field: filterDraft.value.field,
-        value: filterDraft.value.value
-    };
 }
 
 function usesOptionValuePicker(clause = {}) {
@@ -914,18 +742,6 @@ function normalizeTransition(value) {
         to: String(value.to || '').trim()
     });
     return transition.from || transition.to ? transition : null;
-}
-
-function ruleGate(grant) {
-    if (grant?.rule?.any) return 'any';
-    return 'all';
-}
-
-function ruleConditions(grant) {
-    if (!grant?.rule) return [];
-    if (Array.isArray(grant.rule.all)) return grant.rule.all;
-    if (Array.isArray(grant.rule.any)) return grant.rule.any;
-    return [grant.rule];
 }
 
 function buildCondition(draft = {}) {
