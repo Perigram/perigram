@@ -12,14 +12,11 @@ Routes under `pages/project/` render the authenticated project workspace.
 - `[slug]/queues.vue`: Active queue editor for creating queue entries, selecting
   warehouse stock, running nesting, and opening generated runs. The route
   delegates workspace actions to `QueueEditor`; it does not render a separate
-  top action bar because the editor owns the production workspace. On normal
-  desktop widths, the editor renders queue selection, the selected-queue
-  command header, setup band, cassette workspace, physical outputs, and nesting
-  runs as a bounded production workspace.
-  Queue creation controls render only when the active membership has
-  `queues:create` access, matching the backend `queues:write` check. Empty
-  states are centered inside the bounded workspace frame so the page preserves
-  the same layout contract before and after queues exist.
+  top action bar because the editor owns the production workspace. Queue
+  creation controls render only when the active membership has `queues:create`
+  access, matching the backend `queues:write` check. Empty states are centered
+  inside the bounded workspace frame so the page preserves the same layout
+  contract before and after queues exist.
 - `[slug]/sheet-designs.vue`: Project-level list of generated sheet designs for
   selected production runs. It resolves project queues, reads
   `queue.data.materialConsumption.runId`, loads sheet designs by queue, and

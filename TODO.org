@@ -4,6 +4,13 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Remove QueueEditor redesign changes
+     Files changed: components/QueueEditor.vue
+     Docs updated: components/README.md, pages/project/README.md, TODO.org
+     Notes: Restored QueueEditor to the version before the queue workspace
+       redesign attempts and restored the queue workspace documentation to the
+       prior production-lane description.
+
      [2026-06-20] Compact QueueEditor workspace rewrite
      Files changed: components/QueueEditor.vue
      Docs updated: components/README.md, TODO.org
