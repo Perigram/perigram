@@ -16,25 +16,46 @@
             </template>
         </StateBlock>
 
-        <div v-else class="flex flex-col gap-4">
-            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <InputText
-                    v-model="searchQuery"
-                    :placeholder="$t('common.search')"
-                    class="w-full md:max-w-sm"
-                />
-                <Select
-                    v-model="sortBy"
-                    :options="sortOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    class="w-full md:w-56"
-                />
+        <div v-else class="flex flex-col gap-6">
+            <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+                    <small class="text-muted-color">{{ $t('nav.projects') }}</small>
+                    <div class="mt-1 text-2xl font-semibold">{{ projectStats.total }}</div>
+                </div>
+                <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+                    <small class="text-muted-color">{{ $t('common.active') }}</small>
+                    <div class="mt-1 text-2xl font-semibold">{{ projectStats.active }}</div>
+                </div>
+                <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+                    <small class="text-muted-color">{{ $t('project.queues') }}</small>
+                    <div class="mt-1 text-2xl font-semibold">{{ projectStats.queues }}</div>
+                </div>
+                <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+                    <small class="text-muted-color">{{ $t('project.totalArea') }}</small>
+                    <div class="mt-1 text-2xl font-semibold">{{ projectStats.totalArea }} m²</div>
+                </div>
+            </section>
+
+            <div class="rounded-panel border border-content-border bg-surface-50 p-3">
+                <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_16rem]">
+                    <InputText
+                        v-model="searchQuery"
+                        :placeholder="$t('common.search')"
+                        class="w-full"
+                    />
+                    <Select
+                        v-model="sortBy"
+                        :options="sortOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        class="w-full"
+                    />
+                </div>
             </div>
 
             <StateBlock v-if="filteredProjects.length === 0" :message="$t('common.noResults')" icon="pi pi-search" />
 
-            <ResponsiveGrid v-else variant="wide">
+            <div v-else class="grid grid-cols-1 gap-4">
                 <ProjectIndexCard
                     v-for="project in filteredProjects"
                     :key="project._id"
@@ -44,7 +65,7 @@
                     @rename="renameProject"
                     @delete="confirmDeleteProject"
                 />
-            </ResponsiveGrid>
+            </div>
         </div>
 
         <!-- Create/Edit Project Dialog -->
@@ -90,7 +111,6 @@
     import Select from 'primevue/select'
     import ConfirmDialog from 'primevue/confirmdialog'
     import ProjectIndexCard from '~/components/entities/Project/ProjectIndexCard.vue'
-    import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue'
     import StandardDialog from '~/components/shared/StandardDialog.vue'
     import StandardPage from '~/components/shared/StandardPage.vue'
     import StateBlock from '~/components/shared/StateBlock.vue'
@@ -99,6 +119,7 @@
     import { useToast } from 'primevue/usetoast'
     import { useConfirm } from 'primevue/useconfirm'
     import { useEntity } from '~/composables/useEntity'
+    import { getPrimaryState } from '~/packages/core/src/index.js'
 
     definePageMeta({
         layout: 'app',
@@ -128,6 +149,16 @@
         { label: t('projects.sortNameAZ'), value: 'name-asc' },
         { label: t('projects.sortNameZA'), value: 'name-desc' },
     ])
+
+    const projectStats = computed(() => {
+        const rows = projects.value || []
+        return {
+            total: rows.length,
+            active: rows.filter(project => getPrimaryState(project.status, 'UNKNOWN') === 'ACTIVE').length,
+            queues: rows.reduce((sum, project) => sum + Number(project.summary?.queueCount || 0), 0),
+            totalArea: formatNumber(rows.reduce((sum, project) => sum + Number(project.summary?.totalArea || 0), 0)),
+        }
+    })
 
     const filteredProjects = computed(() => {
         if (!projects.value) return []
@@ -258,5 +289,10 @@
         if (status?.state) return status;
         if (status?.current) return { ...status, state: status.current };
         return { state: status || 'UNKNOWN' };
+    }
+
+    function formatNumber(value) {
+        const number = Number(value || 0)
+        return Number.isInteger(number) ? number : Number(number.toFixed(2))
     }
 </script>

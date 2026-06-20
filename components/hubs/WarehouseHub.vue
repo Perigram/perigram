@@ -41,7 +41,7 @@
       </template>
     </ActionToolbar>
 
-    <div v-if="warehouses.length" class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(16rem,22rem)_1fr] lg:items-end">
+    <div v-if="warehouses.length" class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(16rem,22rem)_1fr] lg:items-start">
       <div class="flex flex-col gap-2">
         <label>{{ $t('warehouse.activeWarehouse') }}</label>
         <Select
@@ -52,7 +52,7 @@
           class="w-full"
         />
       </div>
-      <div class="min-w-0 rounded-ui border border-content-border bg-content p-3">
+      <div class="min-w-0 rounded-ui border border-content-border bg-content p-4">
         <EntitySurfaceContent
           v-if="selectedWarehouseWithStats"
           :entity="selectedWarehouseWithStats"
@@ -62,6 +62,25 @@
         />
       </div>
     </div>
+
+    <section v-if="selectedWarehouse" class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+        <small class="text-muted-color">{{ $t('warehouse.storedBatches') }}</small>
+        <div class="mt-1 text-2xl font-semibold">{{ warehouseStats.totalBatches }}</div>
+      </div>
+      <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+        <small class="text-muted-color">{{ $t('warehouse.availableSheets') }}</small>
+        <div class="mt-1 text-2xl font-semibold">{{ warehouseStats.totalSheets }}</div>
+      </div>
+      <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+        <small class="text-muted-color">{{ $t('warehouse.remnants') }}</small>
+        <div class="mt-1 text-2xl font-semibold">{{ warehouseStats.totalRemnants }}</div>
+      </div>
+      <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+        <small class="text-muted-color">{{ $t('warehouse.cassetteInstances') }}</small>
+        <div class="mt-1 text-2xl font-semibold">{{ warehouseStats.totalCassetteInstances }}</div>
+      </div>
+    </section>
 
     <StateBlock
       v-if="!loading && !warehouses.length"

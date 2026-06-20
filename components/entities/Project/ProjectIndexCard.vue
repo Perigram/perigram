@@ -1,8 +1,11 @@
 <script setup>
 import Button from 'primevue/button';
+import Divider from 'primevue/divider';
+import Tag from 'primevue/tag';
 import { computed } from 'vue';
 import { getPrimaryState } from '~/packages/core/src/index.js';
 import EntityCard from '~/components/shared/EntityCard.vue';
+import EntityPreview from '~/components/shared/EntityPreview.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import NameEditPopover from '~/components/shared/NameEditPopover.vue';
@@ -22,6 +25,8 @@ const queuePreview = computed(() => cardProject.value.summary?.queuePreview || [
 const visibleQueues = computed(() => queuePreview.value.slice(0, 3));
 const queueCount = computed(() => Number(cardProject.value.summary?.queueCount || queuePreview.value.length || 0));
 const remainingQueueCount = computed(() => Math.max(queueCount.value - visibleQueues.value.length, 0));
+const totalArea = computed(() => Number(cardProject.value.summary?.totalArea || 0));
+const totalSheets = computed(() => visibleQueues.value.reduce((sum, queue) => sum + Number(queue.sheetCount || 0), 0));
 
 function handleCardClick(event) {
   if (isInteractiveEventTarget(event)) return;
@@ -71,37 +76,82 @@ function queueState(queue) {
         <i class="pi pi-folder"></i>
       </template>
 
-      <div class="grid min-w-0 gap-4 xl:grid-cols-[minmax(16rem,0.85fr)_minmax(22rem,1.25fr)] xl:items-start">
-        <EntitySurfaceContent
-          :entity="cardProject"
-          entity-type="project"
-          surface="workspace"
-          :display-extensions="appEntityDisplayExtensions"
-        />
+      <div class="grid min-w-0 gap-4 xl:grid-cols-[18rem_minmax(0,1fr)_14rem] xl:items-stretch">
+        <div class="flex min-w-0 flex-col gap-3">
+          <div class="overflow-hidden rounded-ui border border-content-border bg-surface-50">
+            <EntityPreview
+              v-if="cardProject.data?.thumbnailUrl"
+              :entity="cardProject"
+              entity-type="project"
+              mode="thumbnail"
+            />
+            <div v-else class="flex aspect-[16/9] items-center justify-center">
+              <i class="pi pi-folder text-3xl text-muted-color"></i>
+            </div>
+          </div>
+          <EntitySurfaceContent
+            :entity="cardProject"
+            entity-type="project"
+            surface="workspace"
+            :display-extensions="appEntityDisplayExtensions"
+          />
+        </div>
 
-        <div class="min-w-0">
-          <div v-if="visibleQueues.length" class="flex min-w-0 flex-col gap-1.5">
+        <div class="min-w-0 rounded-ui border border-content-border bg-surface-50 p-3">
+          <div class="mb-3 flex min-w-0 items-center justify-between gap-3">
+            <div class="min-w-0 text-sm font-medium">{{ $t('project.queues') }}</div>
+            <Tag :value="queueCount" severity="secondary" size="small" />
+          </div>
+          <div v-if="visibleQueues.length" class="flex min-w-0 flex-col gap-2">
             <div
               v-for="queue in visibleQueues"
               :key="queue._id"
-              class="grid min-w-0 gap-2 text-sm md:grid-cols-[minmax(9rem,1fr)_auto_auto_auto_auto] md:items-center"
+              class="rounded-ui border border-content-border bg-content px-3 py-2"
             >
-              <div class="flex min-w-0 items-center gap-2">
-                <span class="min-w-0 truncate font-medium">
+              <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                <div class="min-w-0 truncate text-sm font-medium">
                   #{{ queue.queueNumber || '-' }} {{ queue.name || $t('common.unnamed') }}
-                </span>
+                </div>
                 <StatusBadge class="shrink-0" :state="queueState(queue)" />
               </div>
-              <span class="text-muted-color">{{ queue.jobItemCount || 0 }} {{ $t('queues.cassettes') }}</span>
-              <span class="text-muted-color">{{ queue.totalQuantity || 0 }} {{ $t('queues.quantity') }}</span>
-              <span class="text-muted-color">{{ queue.runCount || 0 }} {{ $t('queue.runs') }}</span>
-              <span class="text-muted-color">{{ queue.sheetCount || 0 }} {{ $t('projectData.sheets') }}</span>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <Tag :value="`${queue.jobItemCount || 0} ${$t('queues.cassettes')}`" severity="secondary" size="small" />
+                <Tag :value="`${queue.totalQuantity || 0} ${$t('queues.quantity')}`" severity="secondary" size="small" />
+                <Tag :value="`${queue.runCount || 0} ${$t('queue.runs')}`" severity="info" size="small" />
+                <Tag :value="`${queue.sheetCount || 0} ${$t('projectData.sheets')}`" severity="secondary" size="small" />
+              </div>
             </div>
             <small v-if="remainingQueueCount" class="text-muted-color">
               +{{ remainingQueueCount }} {{ $t('project.queues') }}
             </small>
           </div>
           <small v-else class="text-muted-color">{{ $t('queue.empty') }}</small>
+        </div>
+
+        <div class="flex min-w-0 flex-col rounded-ui border border-content-border bg-content p-3">
+          <div class="grid grid-cols-2 gap-3 xl:grid-cols-1">
+            <div>
+              <small class="text-muted-color">{{ $t('project.queues') }}</small>
+              <div class="text-xl font-semibold">{{ queueCount }}</div>
+            </div>
+            <div>
+              <small class="text-muted-color">{{ $t('results.sheets') }}</small>
+              <div class="text-xl font-semibold">{{ totalSheets }}</div>
+            </div>
+            <div>
+              <small class="text-muted-color">{{ $t('project.totalArea') }}</small>
+              <div class="text-xl font-semibold">{{ totalArea }} m²</div>
+            </div>
+          </div>
+          <Divider />
+          <Button
+            v-if="authStore.can('projects', 'read')"
+            :label="$t('common.open')"
+            icon="pi pi-external-link"
+            size="small"
+            class="w-full"
+            @click.stop="$emit('view', cardProject)"
+          />
         </div>
       </div>
 
@@ -115,15 +165,6 @@ function queueState(queue) {
             :saving="renaming"
             :aria-label="$t('project.rename')"
             @save="(name, close) => $emit('rename', cardProject, name, close)"
-          />
-          <Button
-            v-if="authStore.can('projects', 'read')"
-            icon="pi pi-external-link"
-            text
-            rounded
-            size="small"
-            :aria-label="$t('common.open')"
-            @click="$emit('view', cardProject)"
           />
           <Button
             v-if="authStore.can('projects', 'delete')"
