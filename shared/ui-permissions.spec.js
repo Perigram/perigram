@@ -108,6 +108,37 @@ describe('UI Permission Matrix', () => {
             expect(hasPermissionGrant({ permissions, feature: 'projects', action: 'delete', transition: { from: 'DRAFT', to: 'READY' } })).toBe(false);
             expect(hasPermissionGrant({ permissions, feature: 'projects', action: 'admin', transition: { from: 'DRAFT', to: 'ARCHIVED' } })).toBe(false);
         });
+
+        it('should evaluate traits on resolved lineage entities', () => {
+            const permissions = {
+                queues: {
+                    level: 'write',
+                    rule: {
+                        all: [
+                            { fact: 'lineage.project.status.primary', equals: 'ACTIVE' },
+                            { not: { fact: 'lineage.project.type', equals: 'archived' } }
+                        ]
+                    }
+                }
+            };
+            const queue = { lineage: { projectId: 'project-a' }, status: { state: { primary: 'READY' } } };
+            expect(hasPermissionGrant({
+                permissions,
+                feature: 'queues',
+                level: 'write',
+                entityType: 'queue',
+                entity: queue,
+                context: { lineageEntities: { project: { _id: 'project-a', data: { type: 'production' }, status: { state: { primary: 'ACTIVE' } } } } }
+            })).toBe(true);
+            expect(hasPermissionGrant({
+                permissions,
+                feature: 'queues',
+                level: 'write',
+                entityType: 'queue',
+                entity: queue,
+                context: { lineageEntities: { project: { _id: 'project-a', data: { type: 'production' }, status: { state: { primary: 'CLOSED' } } } } }
+            })).toBe(false);
+        });
     });
 
     describe('missing grants', () => {

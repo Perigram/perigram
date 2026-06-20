@@ -1283,6 +1283,7 @@
     "permissionLogicRulesHelp": "Добавьте правила по полям сущности, статусу, действию или фактам перехода. Эти правила объединяются с фильтрами признаков выше.",
     "permissionGate": "Гейт",
     "permissionMatch": "Совпадение",
+    "permissionNot": "Не",
     "permissionCommaSeparated": "ID через запятую",
     "permissionFieldPath": "Путь поля сущности",
     "permissionConditionValue": "Значение",
@@ -1292,10 +1293,10 @@
     "addFilterClause": "Добавить фильтр",
     "permissionTargets": {
       "entity": "Сущность",
-      "organization": "Организация",
-      "project": "Проект",
-      "queue": "Очередь",
-      "warehouse": "Склад",
+      "organization": "Lineage-организация",
+      "project": "Lineage-проект",
+      "queue": "Lineage-очередь",
+      "warehouse": "Lineage-склад",
       "transition": "Переход",
       "custom": "Свое поле"
     },
@@ -1331,15 +1332,9 @@
       "equals": "Равно",
       "notEquals": "Не равно",
       "in": "В списке",
+      "includes": "Содержит",
+      "atLeast": "Не ниже",
       "exists": "Существует"
-    },
-    "permissionStatuses": {
-      "active": "Активен",
-      "ready": "Готов",
-      "draft": "Черновик",
-      "pending": "Ожидает",
-      "archived": "В архиве",
-      "disabled": "Отключен"
     },
     "scope": {
       "organizationId": "Организация",

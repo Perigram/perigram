@@ -122,7 +122,7 @@
                                         <div
                                             v-for="(clause, index) in filterClauses(selectedGrant)"
                                             :key="`${clause.fact}-${clause.field || ''}-${index}`"
-                                            class="grid grid-cols-1 gap-2 rounded-ui border border-content-border p-3 xl:grid-cols-[12rem_12rem_10rem_minmax(0,1fr)_minmax(0,1fr)_auto]"
+                                            class="grid grid-cols-1 gap-2 rounded-ui border border-content-border p-3 xl:grid-cols-[12rem_12rem_10rem_minmax(14rem,1fr)_6rem_auto]"
                                         >
                                             <Select
                                                 :model-value="clauseTarget(clause)"
@@ -132,11 +132,18 @@
                                                 @update:model-value="value => updateClauseTarget(index, value)"
                                             />
                                             <Select
+                                                v-if="clauseTarget(clause) !== 'custom'"
                                                 :model-value="clauseTrait(clause)"
                                                 :options="traitOptionsForTarget(clauseTarget(clause))"
                                                 option-label="label"
                                                 option-value="value"
                                                 @update:model-value="value => updateClauseTrait(index, value)"
+                                            />
+                                            <InputText
+                                                v-else
+                                                :model-value="clause.field"
+                                                :placeholder="$t('auth.permissionFieldPath')"
+                                                @update:model-value="value => updateFilterClause(index, { field: value })"
                                             />
                                             <Select
                                                 :model-value="clause.operator"
@@ -144,17 +151,6 @@
                                                 option-label="label"
                                                 option-value="value"
                                                 @update:model-value="value => updateFilterClause(index, { operator: value })"
-                                            />
-                                            <InputText
-                                                v-if="clauseTarget(clause) === 'custom'"
-                                                :model-value="clause.field"
-                                                :placeholder="$t('auth.permissionFieldPath')"
-                                                @update:model-value="value => updateFilterClause(index, { field: value })"
-                                            />
-                                            <InputText
-                                                v-else
-                                                :model-value="clauseTraitLabel(clause)"
-                                                disabled
                                             />
                                             <MultiSelect
                                                 v-if="usesOptionValuePicker(clause) && clause.operator === 'in'"
@@ -188,11 +184,19 @@
                                                 :placeholder="clause.operator === 'exists' ? $t('auth.permissionBooleanValue') : $t('auth.permissionConditionValue')"
                                                 @update:model-value="value => updateFilterClause(index, { value })"
                                             />
+                                            <label class="flex items-center gap-2">
+                                                <Checkbox
+                                                    :model-value="clause.negated === true"
+                                                    binary
+                                                    @update:model-value="value => updateFilterClause(index, { negated: value })"
+                                                />
+                                                <span>{{ $t('auth.permissionNot') }}</span>
+                                            </label>
                                             <Button icon="pi pi-trash" severity="danger" text rounded :aria-label="$t('common.delete')" @click="removeFilterClause(index)" />
                                         </div>
                                     </div>
 
-                                    <div class="grid grid-cols-1 gap-2 border-t pt-3 xl:grid-cols-[12rem_12rem_10rem_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                                    <div class="grid grid-cols-1 gap-2 border-t pt-3 xl:grid-cols-[12rem_12rem_10rem_minmax(14rem,1fr)_6rem_auto]">
                                         <Select
                                             v-model="filterDraft.target"
                                             :options="filterTargetOptions"
@@ -201,27 +205,23 @@
                                             @update:model-value="setDraftTarget"
                                         />
                                         <Select
+                                            v-if="filterDraft.target !== 'custom'"
                                             v-model="filterDraft.trait"
                                             :options="traitOptionsForTarget(filterDraft.target)"
                                             option-label="label"
                                             option-value="value"
                                             @update:model-value="setDraftTrait"
                                         />
+                                        <InputText
+                                            v-else
+                                            v-model="filterDraft.field"
+                                            :placeholder="$t('auth.permissionFieldPath')"
+                                        />
                                         <Select
                                             v-model="filterDraft.operator"
                                             :options="conditionOperatorOptions"
                                             option-label="label"
                                             option-value="value"
-                                        />
-                                        <InputText
-                                            v-if="filterDraft.target === 'custom'"
-                                            v-model="filterDraft.field"
-                                            :placeholder="$t('auth.permissionFieldPath')"
-                                        />
-                                        <InputText
-                                            v-else
-                                            :model-value="draftTraitLabel"
-                                            disabled
                                         />
                                         <MultiSelect
                                             v-if="draftUsesOptionValuePicker && filterDraft.operator === 'in'"
@@ -252,6 +252,10 @@
                                             v-model="filterDraft.value"
                                             :placeholder="filterDraft.operator === 'exists' ? $t('auth.permissionBooleanValue') : $t('auth.permissionConditionValue')"
                                         />
+                                        <label class="flex items-center gap-2">
+                                            <Checkbox v-model="filterDraft.negated" binary />
+                                            <span>{{ $t('auth.permissionNot') }}</span>
+                                        </label>
                                         <Button icon="pi pi-plus" :label="$t('auth.addFilterClause')" size="small" outlined @click="addFilterClause" />
                                     </div>
                                 </div>
@@ -297,6 +301,7 @@ import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import { useEntity } from '~/composables/useEntity';
 import { useAuthStore } from '~/stores/auth';
+import { cncWorkflows } from '@cutkit/domain-cnc';
 
 const props = defineProps({
     permissions: { type: Object, default: () => ({}) }
@@ -310,7 +315,7 @@ const selectedFeatureKey = ref('projects');
 const selectedGrantIndex = ref(0);
 const selectedGrantJson = ref('');
 const selectedGrantError = ref('');
-const filterDraft = ref({ target: 'entity', trait: 'status', operator: 'equals', field: '', value: '', valueList: [] });
+const filterDraft = ref({ target: 'entity', trait: 'status', operator: 'equals', field: '', value: '', valueList: [], negated: false });
 const entityOptionsLoading = ref(false);
 const entityOptionLists = ref({});
 const entityLoaders = {
@@ -400,33 +405,30 @@ const filterTargetOptions = computed(() => [
     { label: t('auth.permissionTargets.custom'), value: 'custom' }
 ]);
 
-const traitOptions = computed(() => ({
-    entity: [
-        { label: t('auth.permissionTraits.id'), value: 'id' },
-        { label: t('auth.permissionTraits.type'), value: 'type' },
-        { label: t('auth.permissionTraits.status'), value: 'status' }
-    ],
-    organization: [{ label: t('auth.permissionTraits.id'), value: 'id' }],
-    project: [{ label: t('auth.permissionTraits.id'), value: 'id' }],
-    queue: [{ label: t('auth.permissionTraits.id'), value: 'id' }],
-    warehouse: [{ label: t('auth.permissionTraits.id'), value: 'id' }],
-    transition: [
-        { label: t('auth.permissionTraits.from'), value: 'from' },
-        { label: t('auth.permissionTraits.to'), value: 'to' }
-    ],
-    custom: [{ label: t('auth.permissionTraits.path'), value: 'path' }]
-}));
-
 const FACT_BY_TARGET_TRAIT = {
     entity: {
         id: 'entityId',
         type: 'entityType',
         status: 'status.primary'
     },
-    organization: { id: 'lineage.organizationId' },
-    project: { id: 'lineage.projectId' },
-    queue: { id: 'lineage.queueId' },
-    warehouse: { id: 'lineage.warehouseId' },
+    organization: {
+        id: 'lineage.organizationId',
+        type: 'lineage.organization.type'
+    },
+    project: {
+        id: 'lineage.projectId',
+        type: 'lineage.project.type',
+        status: 'lineage.project.status.primary'
+    },
+    queue: {
+        id: 'lineage.queueId',
+        type: 'lineage.queue.type',
+        status: 'lineage.queue.status.primary'
+    },
+    warehouse: {
+        id: 'lineage.warehouseId',
+        type: 'lineage.warehouse.type'
+    },
     transition: {
         from: 'transition.from',
         to: 'transition.to'
@@ -439,12 +441,6 @@ const TARGET_TRAIT_BY_FACT = Object.fromEntries(
         Object.entries(traits).map(([trait, fact]) => [fact, { target, trait }])
     ))
 );
-
-const draftTraitLabel = computed(() => {
-    const option = traitOptionsForTarget(filterDraft.value.target)
-        .find(item => item.value === filterDraft.value.trait);
-    return option?.label || '';
-});
 
 const SCOPE_FACT_BY_KEY = {
     organizationId: 'lineage.organizationId',
@@ -460,16 +456,9 @@ const conditionOperatorOptions = computed(() => [
     { label: t('auth.permissionOperators.equals'), value: 'equals' },
     { label: t('auth.permissionOperators.notEquals'), value: 'notEquals' },
     { label: t('auth.permissionOperators.in'), value: 'in' },
+    { label: t('auth.permissionOperators.includes'), value: 'includes' },
+    { label: t('auth.permissionOperators.atLeast'), value: 'atLeast' },
     { label: t('auth.permissionOperators.exists'), value: 'exists' }
-]);
-
-const statusOptions = computed(() => [
-    { label: t('auth.permissionStatuses.active'), value: 'ACTIVE' },
-    { label: t('auth.permissionStatuses.ready'), value: 'READY' },
-    { label: t('auth.permissionStatuses.draft'), value: 'DRAFT' },
-    { label: t('auth.permissionStatuses.pending'), value: 'PENDING' },
-    { label: t('auth.permissionStatuses.archived'), value: 'ARCHIVED' },
-    { label: t('auth.permissionStatuses.disabled'), value: 'DISABLED' }
 ]);
 
 const buildLocalPermissions = (permissions = {}) => ({
@@ -495,7 +484,7 @@ watch(() => props.permissions, (newVal) => {
 watch(selectedFeatureKey, () => {
     selectedGrantIndex.value = 0;
     selectedGrantError.value = '';
-    filterDraft.value = { target: 'entity', trait: 'status', operator: 'equals', field: '', value: '', valueList: [] };
+    filterDraft.value = { target: 'entity', trait: defaultTraitForTarget('entity'), operator: 'equals', field: '', value: '', valueList: [], negated: false };
     loadEntityOptions();
 });
 
@@ -650,11 +639,12 @@ function addFilterClause() {
         ...filterDraft.value,
         value: filterDraft.value.operator === 'in' && draftUsesOptionValuePicker.value
             ? filterDraft.value.valueList.join(', ')
-            : filterDraft.value.value
+            : filterDraft.value.value,
+        negated: filterDraft.value.negated === true
     });
     if (!isCompleteClause(clause)) return;
     applyFilterClauses([...filterClauses(selectedGrant.value), clause], filterGate(selectedGrant.value));
-    filterDraft.value = { ...filterDraft.value, field: '', value: '', valueList: [] };
+    filterDraft.value = { ...filterDraft.value, field: '', value: '', valueList: [], negated: false };
 }
 
 function applyFilterClauses(clauses, gate = 'all') {
@@ -664,7 +654,7 @@ function applyFilterClauses(clauses, gate = 'all') {
     const ruleConditions = [];
     for (const clause of clauses.map(normalizeClause).filter(isCompleteClause)) {
         const scopeKey = SCOPE_KEY_BY_FACT[clause.fact];
-        if (scopeKey && ['equals', 'in'].includes(clause.operator)) {
+        if (!clause.negated && scopeKey && ['equals', 'in'].includes(clause.operator)) {
             setScopeFromClause(scope, scopeKey, clause);
         } else {
             const condition = clauseToCondition(clause);
@@ -693,23 +683,28 @@ function setScopeFromClause(scope, scopeKey, clause) {
 }
 
 function conditionToClause(condition = {}) {
+    if (condition.not) {
+        return { ...conditionToClause(condition.not), negated: true };
+    }
     const operator = ['equals', 'notEquals', 'in', 'includes', 'atLeast', 'exists'].find(name => condition[name] !== undefined) || 'equals';
     const value = Array.isArray(condition[operator]) ? condition[operator].join(', ') : String(condition[operator] ?? '');
     return normalizeClause({
         fact: condition.fact || 'field',
         operator,
         value,
-        field: condition.field || ''
+        field: condition.field || '',
+        negated: condition.negated === true
     });
 }
 
 function clauseToCondition(clause) {
-    return buildCondition({
+    const condition = buildCondition({
         fact: clause.fact,
         operator: clause.operator,
         field: clause.field,
         value: clause.value
     });
+    return clause.negated && condition ? { not: condition } : condition;
 }
 
 function normalizeClause(clause = {}) {
@@ -721,7 +716,8 @@ function normalizeClause(clause = {}) {
         fact,
         operator,
         field: fact === 'field' ? String(clause.field || '') : '',
-        value: operator === 'exists' && clause.value === '' ? 'true' : String(clause.value ?? '')
+        value: operator === 'exists' && clause.value === '' ? 'true' : String(clause.value ?? ''),
+        negated: clause.negated === true
     };
 }
 
@@ -736,6 +732,7 @@ function setDraftTarget(target) {
     filterDraft.value.field = '';
     filterDraft.value.value = '';
     filterDraft.value.valueList = [];
+    filterDraft.value.negated = false;
 }
 
 function setDraftTrait(trait) {
@@ -746,7 +743,22 @@ function setDraftTrait(trait) {
 }
 
 function traitOptionsForTarget(target) {
-    return traitOptions.value[target] || traitOptions.value.entity;
+    if (target === 'custom') return [{ label: t('auth.permissionTraits.path'), value: 'path' }];
+    if (target === 'transition') {
+        return [
+            { label: t('auth.permissionTraits.from'), value: 'from' },
+            { label: t('auth.permissionTraits.to'), value: 'to' }
+        ];
+    }
+
+    const options = [
+        { label: t('auth.permissionTraits.id'), value: 'id' },
+        { label: t('auth.permissionTraits.type'), value: 'type' }
+    ];
+    if (workflowStateOptions(entityTypeForTarget(target)).length) {
+        options.push({ label: t('auth.permissionTraits.status'), value: 'status' });
+    }
+    return options;
 }
 
 function defaultTraitForTarget(target) {
@@ -765,12 +777,6 @@ function clauseTrait(clause = {}) {
     return TARGET_TRAIT_BY_FACT[clause.fact]?.trait || (clause.fact === 'field' ? 'path' : 'id');
 }
 
-function clauseTraitLabel(clause = {}) {
-    const target = clauseTarget(clause);
-    const trait = clauseTrait(clause);
-    return traitOptionsForTarget(target).find(option => option.value === trait)?.label || trait;
-}
-
 function draftClause() {
     return {
         target: filterDraft.value.target,
@@ -786,7 +792,7 @@ function usesOptionValuePicker(clause = {}) {
 }
 
 function valueOptionsForClause(clause = {}) {
-    if (isStatusClause(clause)) return statusOptions.value;
+    if (isStatusClause(clause)) return workflowStateOptions(entityTypeForTarget(clauseTarget(clause)));
     const entityType = entityTypeForClause(clause);
     return entityType ? entityOptionLists.value[entityType] || [] : [];
 }
@@ -801,7 +807,23 @@ function entityTypeForClause(clause = {}) {
 }
 
 function isStatusClause(clause = {}) {
-    return clause.operator !== 'exists' && clauseTarget(clause) === 'entity' && clauseTrait(clause) === 'status';
+    return clause.operator !== 'exists' && clauseTrait(clause) === 'status';
+}
+
+function entityTypeForTarget(target) {
+    if (target === 'entity') return FEATURE_ENTITY_TYPE[selectedFeatureKey.value] || null;
+    return REFERENCE_TARGET_ENTITY_TYPE[target] || null;
+}
+
+function workflowStateOptions(entityType) {
+    const workflow = entityType ? cncWorkflows[entityType] : null;
+    const primaryRegion = workflow?.primaryRegion || 'main';
+    const states = workflow?.regions?.[primaryRegion]?.states || {};
+    return Object.keys(states).map(state => ({ label: statusLabel(state), value: state }));
+}
+
+function statusLabel(state) {
+    return t(`status.${String(state).toLowerCase()}`, state);
 }
 
 function clauseValueList(clause = {}) {

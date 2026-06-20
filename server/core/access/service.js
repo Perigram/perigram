@@ -23,7 +23,8 @@ export function assertCommandAccess({ command, action = command, entities = {}, 
       feature: requirement.feature,
       level: requirement.level || 'read',
       auth,
-      entityType: requirement.entityType
+      entityType: requirement.entityType,
+      context: { lineageEntities: entities }
     })) {
       throw createError({ statusCode: 403, message: `Permission denied for ${requirement.feature}:${requirement.level || 'read'}` });
     }
@@ -58,7 +59,7 @@ export function createLineageFilter(auth) {
   return orgIds.length ? { 'lineage.organizationId': { $in: orgIds } } : { 'lineage.organizationId': { $in: [] } };
 }
 
-export function hasEntityAccess({ entity, feature, level = 'read', auth, entityType = null, transition = null }) {
+export function hasEntityAccess({ entity, feature, level = 'read', auth, entityType = null, transition = null, context = {} }) {
   if (!auth || !feature) return false;
 
   const orgId = entity?.lineage?.organizationId?.toString();
@@ -66,7 +67,7 @@ export function hasEntityAccess({ entity, feature, level = 'read', auth, entityT
     ? (auth.memberships || []).find(item => item.organizationId?.toString() === orgId)
     : (auth.memberships || [])[0];
   const permissions = membership?.permissions || auth.permissions || {};
-  return hasPermissionGrant({ permissions, feature, level, entity, entityType, transition });
+  return hasPermissionGrant({ permissions, feature, level, entity, entityType, transition, context });
 }
 
 function isSystemAuth(auth = {}) {

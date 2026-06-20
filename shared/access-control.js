@@ -152,11 +152,27 @@ function resolveRuleFact(rule, context) {
   if (fact === 'transition.from') return context.transition?.from;
   if (fact === 'transition.to') return context.transition?.to;
   if (fact === 'transition.region') return context.transition?.region;
-  if (fact.startsWith('lineage.')) return getByPath(context.entity?.lineage, fact.slice('lineage.'.length));
+  if (fact.startsWith('lineage.')) return resolveLineageFact(fact.slice('lineage.'.length), context);
   if (fact === 'field') return getByPath(context.entity, rule.field || rule.entityPath || '');
   if (fact.startsWith('entity.')) return getByPath(context.entity, fact.slice('entity.'.length));
   if (fact.startsWith('context.')) return getByPath(context, fact.slice('context.'.length));
   return getByPath(context, fact);
+}
+
+function resolveLineageFact(path, context) {
+  if (!path || path.endsWith('Id')) return getByPath(context.entity?.lineage, path);
+  const [type, ...rest] = path.split('.');
+  if (!type || rest.length === 0) return getByPath(context.entity?.lineage, path);
+
+  const lineageEntity = context.lineageEntities?.[type]
+    || context.entity?.lineageEntities?.[type]
+    || context.entity?.lineage?.[type];
+  const traitPath = rest.join('.');
+
+  if (traitPath === 'id') return lineageEntity?._id || lineageEntity?.identity?.uid || context.entity?.lineage?.[`${type}Id`];
+  if (traitPath === 'type') return lineageEntity?.type || lineageEntity?.entityType || lineageEntity?.origin?.type || lineageEntity?.data?.type;
+  if (traitPath === 'status.primary') return getPrimaryStatus(lineageEntity?.status);
+  return getByPath(lineageEntity, traitPath);
 }
 
 function getPrimaryStatus(status) {

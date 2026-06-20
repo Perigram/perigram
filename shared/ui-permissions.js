@@ -19,6 +19,7 @@ export function resolveUiPermission(_role, feature, action, context = {}) {
     level: actionToLevel(action),
     entity: context.entity,
     entityType: context.entityType,
-    transition: context.transition
+    transition: context.transition,
+    context
   });
 }

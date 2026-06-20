@@ -1283,6 +1283,7 @@
     "permissionLogicRulesHelp": "Add custom rules over entity fields, status, action, or transition facts. These rules are combined with the trait filters above.",
     "permissionGate": "Gate",
     "permissionMatch": "Match",
+    "permissionNot": "Not",
     "permissionCommaSeparated": "Comma-separated IDs",
     "permissionFieldPath": "Entity field path",
     "permissionConditionValue": "Value",
@@ -1292,10 +1293,10 @@
     "addFilterClause": "Add filter",
     "permissionTargets": {
       "entity": "Entity",
-      "organization": "Organization",
-      "project": "Project",
-      "queue": "Queue",
-      "warehouse": "Warehouse",
+      "organization": "Lineage organization",
+      "project": "Lineage project",
+      "queue": "Lineage queue",
+      "warehouse": "Lineage warehouse",
       "transition": "Transition",
       "custom": "Custom"
     },
@@ -1331,15 +1332,9 @@
       "equals": "Equals",
       "notEquals": "Not equals",
       "in": "In list",
+      "includes": "Includes",
+      "atLeast": "At least",
       "exists": "Exists"
-    },
-    "permissionStatuses": {
-      "active": "Active",
-      "ready": "Ready",
-      "draft": "Draft",
-      "pending": "Pending",
-      "archived": "Archived",
-      "disabled": "Disabled"
     },
     "scope": {
       "organizationId": "Organization",
