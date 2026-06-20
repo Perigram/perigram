@@ -268,6 +268,12 @@ relationship.
 ## Layout Containers (`components/shared/`)
 
 - **`ActionToolbar.vue`**: Responsive title/subtitle/actions row for pages, sections, and tab panels. Use instead of ad hoc `flex justify-between` header markup.
+- **`MetricPanel.vue`**: Route-level summary panel for aggregate collection or
+  workflow facts. Pages pass translated metric descriptors
+  `{ key, label, value }` and may use the default slot for route actions. Use it
+  beside reusable entity cards, hub tabs, or workflow tables; do not use it as a
+  replacement for entity-specific `DataBlock`, `SpecsBlock`, or
+  `EntitySurfaceContent`.
 - **`ResponsiveGrid.vue`**: Token-backed responsive grid for cards and
   repeated item surfaces. Variants: `cards` (default), `dense`, `wide`. Grid
   children align to the start of each row so cards and panels keep natural

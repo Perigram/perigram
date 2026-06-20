@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Make page redesign visually explicit with metric panels
+     Files changed: components/shared/MetricPanel.vue,
+       pages/project/[slug]/sheet-designs.vue,
+       pages/project/[slug]/artifacts.vue, pages/project/[slug]/data.vue,
+       pages/catalog/index.vue, pages/requisitions/index.vue,
+       pages/assets/pens.vue, pages/assets/tools.vue,
+       pages/assets/layer-standards.vue
+     Docs updated: components/README.md, components/shared/README.md,
+       pages/project/README.md, pages/README.md, TODO.org
+     Notes: Replaced visually subtle metric rows with a shared route summary
+       panel and split page layouts. Project child, catalog, requisition, and
+       asset routes now show sticky route-owned context/action rails beside
+       reusable cards, hub tabs, accordions, and editor tables.
+
      [2026-06-20] Redesign project child and library pages
      Files changed: pages/project/[slug]/sheet-designs.vue,
        pages/project/[slug]/artifacts.vue, pages/project/[slug]/data.vue,

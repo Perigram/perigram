@@ -83,6 +83,7 @@ All entity-related components MUST use these patterns:
 | CRUD + status operations | `useEntity(type, id)` |
 | Card/container chrome | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout |
 | Section/page action rows | `<ActionToolbar>` |
+| Route-level aggregate facts | `<MetricPanel>` |
 | Repeated card grids | `<ResponsiveGrid>` |
 | Three-lane production workspaces | `<WorkspaceLanes>` |
 | Bounded scrolling workspace sections | `<ScrollablePanel>` |

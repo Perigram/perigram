@@ -21,9 +21,9 @@ Routes under `pages/project/` render the authenticated project workspace.
   selected production runs. It resolves project queues, reads
   `queue.data.materialConsumption.runId`, loads sheet designs by queue, and
   keeps only designs whose `lineage.runId` matches the selected run. The route
-  uses `ActionToolbar`, a compact metric strip, and `ResponsiveGrid` with
-  `SheetDesignCard` so the page owns workflow context while the entity card owns
-  the reusable sheet-design display contract.
+  uses `ActionToolbar`, a sticky `MetricPanel` summary rail, and
+  `ResponsiveGrid` with `SheetDesignCard` so the page owns workflow context
+  while the entity card owns the reusable sheet-design display contract.
 - `[slug]/sheet-design/[sheetDesignId].vue`: Sheet-design detail route opened
   from sheet design cards and nesting run results.
 - `[slug]/details.vue`: Project identity/status through `EntityPage`, a visible
@@ -33,12 +33,12 @@ Routes under `pages/project/` render the authenticated project workspace.
   Direct status changes reload the project through shared entity page/status
   events.
 - `[slug]/data.vue`: Project inventory, logs, and material data. The route keeps
-  the existing tabbed editing flows, adds a route-level metric strip for loaded
-  material/log state, and avoids nested `StandardPage` chrome inside the project
-  shell.
+  the existing tabbed editing flows, places them beside a `MetricPanel` summary
+  rail for loaded material/log state, and avoids nested `StandardPage` chrome
+  inside the project shell.
 - `[slug]/artifacts.vue`: Queue artifact browser. It renders an `ActionToolbar`,
-  aggregate queue/run/sheet/area metrics, and queue accordions whose headers
-  expose summary tags before delegating row rendering to `ArtifactsTable`.
+  a sticky aggregate `MetricPanel`, and queue accordions whose headers expose
+  summary tags before delegating row rendering to `ArtifactsTable`.
 
 ## Workflow Notes
 
