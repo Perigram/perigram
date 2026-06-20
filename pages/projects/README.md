@@ -11,6 +11,10 @@
   cards.
 - Loads project DTOs from `useGlobalStore().getProjects()` and reads them via
   `projectsList`.
+- Normalizes list items at the route boundary before search, sort, navigation,
+  and card rendering. The shared entity card contract needs canonical
+  `identity` and structured `status`; legacy/partial list DTOs may still carry
+  flat `name`, `slug`, or status strings.
 - Renders projects through the shared responsive grid. Each row reads
   `summary.queuePreview` from `/api/project` to show recent queue states,
   cassette counts, quantities, run counts, sheet counts, and selected stock
