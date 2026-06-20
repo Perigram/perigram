@@ -4,6 +4,14 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Replace queue MetricPanel with command header
+     Files changed: components/QueueEditor.vue
+     Docs updated: components/README.md, pages/project/README.md, TODO.org
+     Notes: Removed the generic MetricPanel from the selected queue workspace.
+       Added a purpose-built queue command header with queue identity, status,
+       compact job/material/run facts, and the Run nesting action. The left
+       queue rail now gives the selected queue a visible active state.
+
      [2026-06-20] Redesign project queue workspace
      Files changed: components/QueueEditor.vue,
        components/shared/WorkspaceLanes.vue
