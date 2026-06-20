@@ -1288,6 +1288,23 @@
     "permissionConditionValue": "Значение",
     "permissionBooleanValue": "true или false",
     "addFilterClause": "Добавить фильтр",
+    "permissionTargets": {
+      "entity": "Сущность",
+      "organization": "Организация",
+      "project": "Проект",
+      "queue": "Очередь",
+      "warehouse": "Склад",
+      "transition": "Переход",
+      "custom": "Свое поле"
+    },
+    "permissionTraits": {
+      "id": "ID",
+      "type": "Тип",
+      "status": "Статус",
+      "from": "Из",
+      "to": "В",
+      "path": "Путь"
+    },
     "permissionExpression": "Разрешить {level} для {feature}, когда {filter}.",
     "permissionNoFilters": "подходят все сущности этой функции",
     "permissionNoLogicRules": "Нет пользовательских правил",
@@ -1321,19 +1338,6 @@
       "warehouseId": "Склад",
       "entityId": "Сущность",
       "entityType": "Тип сущности"
-    },
-    "permissionRuleTypes": {
-      "organizationId": "ID организации",
-      "projectId": "ID проекта",
-      "queueId": "ID очереди",
-      "warehouseId": "ID склада",
-      "entityId": "ID сущности",
-      "entityType": "Тип сущности",
-      "primaryStatus": "Основной статус",
-      "transitionFrom": "Исходный переход",
-      "transitionTo": "Целевой переход",
-      "fieldEquals": "Поле равно",
-      "entityPath": "Путь поля сущности"
     },
     "advancedPermissionJson": "Расширенный JSON гранта",
     "invalidPermissionJson": "Некорректный JSON разрешения",

@@ -1288,6 +1288,23 @@
     "permissionConditionValue": "Value",
     "permissionBooleanValue": "true or false",
     "addFilterClause": "Add filter",
+    "permissionTargets": {
+      "entity": "Entity",
+      "organization": "Organization",
+      "project": "Project",
+      "queue": "Queue",
+      "warehouse": "Warehouse",
+      "transition": "Transition",
+      "custom": "Custom"
+    },
+    "permissionTraits": {
+      "id": "ID",
+      "type": "Type",
+      "status": "Status",
+      "from": "From",
+      "to": "To",
+      "path": "Path"
+    },
     "permissionExpression": "Allow {level} on {feature} when {filter}.",
     "permissionNoFilters": "all entities in this feature match",
     "permissionNoLogicRules": "No custom rules",
@@ -1321,19 +1338,6 @@
       "warehouseId": "Warehouse",
       "entityId": "Entity",
       "entityType": "Entity type"
-    },
-    "permissionRuleTypes": {
-      "organizationId": "Organization ID",
-      "projectId": "Project ID",
-      "queueId": "Queue ID",
-      "warehouseId": "Warehouse ID",
-      "entityId": "Entity ID",
-      "entityType": "Entity type",
-      "primaryStatus": "Primary status",
-      "transitionFrom": "Transition source",
-      "transitionTo": "Transition target",
-      "fieldEquals": "Field equals",
-      "entityPath": "Custom entity path"
     },
     "advancedPermissionJson": "Advanced grant JSON",
     "invalidPermissionJson": "Invalid permission JSON",
