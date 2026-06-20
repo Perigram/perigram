@@ -23,6 +23,9 @@ Routes are grouped into sub-directories corresponding to features:
 - `admin/tasks/`: Authenticated task definition and run listing for
   `task_runs`.
 - `project/`: Main project orchestration and nesting triggers.
+  The project list route returns authorized project DTOs with canonical
+  identity, status, origin, lineage, safe project data, summary fields, and
+  queue previews so shared entity cards can render directly from the response.
 - `sheet-designs/`: Lineage-scoped sheet design list/detail and direct DXF
   export.
 - `status/`: Authenticated status action and history endpoints. History
