@@ -29,6 +29,10 @@ Operational pages use shared UI shell primitives:
 - `StateBlock` owns loading/empty/error surfaces.
 - `TableFrame` owns DataTable frames.
 
+Page-local filter bars and nested panels should use `bg-content` or
+`bg-subtle`; raw PrimeVue palette utilities such as `bg-surface-50` are not
+stable enough for dark mode app chrome.
+
 Entity-heavy pages should render facts through the entity display constructor
 instead of page-local field arrays when the surface is reusable. App-specific
 surface extensions live in `utils/app-entity-surfaces.js`; current production
