@@ -21,9 +21,12 @@ This directory contains Vue components used in the Cutkit-Demo application.
   by `shared/access-control.js`: each feature has one or more explicit grants
   with level, action overrides, lineage/entity trait filters, transition
   filters, logical rule conditions, and advanced JSON for the selected grant.
-  The editor should present grants as filter expressions, for example "allow
-  write when projectId equals X and status equals READY", not as opaque role or
-  global-access chips. Do not replace it with a flat role-only selector.
+  The main editing surface is a unified filter builder: each clause selects an
+  entity fact/path, operator, and value, while the gate selects whether all or
+  any clauses must match. The editor should present grants as filter
+  expressions, for example "allow write when projectId equals X and status
+  equals READY", not as opaque role or global-access chips. Do not replace it
+  with a flat role-only selector.
 
 ## v24 Standardized Patterns
 

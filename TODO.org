@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Replace split permission controls with unified filter builder
+     Files changed: components/PermissionEditor.vue, i18n/locales/en.json,
+       i18n/locales/ru.json, components/README.md, TODO.org
+     Docs updated: components/README.md, TODO.org
+     Notes: Replaced the previous separate trait, transition, and logic panels
+       with one file-filter-style clause builder. Existing `scope`,
+       `transitions`, and `rule` grants project into editable clauses with a
+       fact selector, operator selector, optional custom entity path, value, and
+       AND/OR gate. Saving clauses writes back to the same canonical grant
+       shape, using scope fields for simple lineage/entity equality filters and
+       rule conditions for custom operators, status, transition, and entity-path
+       predicates.
+
      [2026-06-20] Reframe permission editor as filter expressions
      Files changed: components/PermissionEditor.vue, i18n/locales/en.json,
        i18n/locales/ru.json, components/README.md, TODO.org
