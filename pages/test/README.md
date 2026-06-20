@@ -29,12 +29,18 @@ UI Lab seeds the entity store with demo lineage labels before rendering so `Trac
 
 ## UI Constructor Demo
 
-`ui-constructor.vue` demonstrates the contract-driven entity UI constructor. It
-renders a core queue surface, an app-local field-group extension, a tight
-surface override, and a strictness table that compares allowed field-access
-paths with rejected paths. The page is intentionally arbitrary: it exists to
-show the design library's flexibility and guardrails rather than to model a
-production workflow.
+`ui-constructor.vue` demonstrates the contract-driven entity UI constructor as
+an app-style project workspace. It reuses the same shared entity components used
+by project screens: `EntityPage`, `WorkspaceLanes`, `QueueCard`,
+`NestingRunCard`, `SheetDesignCard`, material source cards, and
+`EntitySurfaceContent`.
+
+The page shows how an app can extend core contracts with local field groups and
+surfaces such as `projectDashboard` and `projectWorkspace` while keeping field
+access strict. The main content presents queues, selected production work,
+nesting outputs, and material sources; the guardrail panel renders only fields
+allowed by field-access policy and marks rejected app requests without exposing
+them in the data block.
 
 ## Related
 
