@@ -6,8 +6,8 @@
         </div>
 
         <div class="grid min-h-0 grid-cols-1 gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
-            <Panel :header="$t('auth.permissionFeatures')">
-                <div class="flex flex-col gap-2">
+                <Panel :header="$t('auth.permissionFeatures')">
+                    <div class="flex max-h-[18rem] flex-col gap-2 overflow-auto pr-1 xl:max-h-none">
                     <button
                         v-for="feature in entities"
                         :key="feature.key"
@@ -66,23 +66,6 @@
                         </div>
 
                         <div v-else-if="selectedGrant" class="flex min-w-0 flex-col gap-4">
-                            <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,16rem)_auto] md:items-end">
-                                <div class="flex flex-col gap-2">
-                                    <label>{{ $t('auth.permissionLevel') }}</label>
-                                    <Select
-                                        :model-value="selectedGrant.level"
-                                        :options="PERMISSION_LEVELS"
-                                        option-label="label"
-                                        option-value="value"
-                                        class="w-full"
-                                        @update:model-value="value => updateGrant({ level: value })"
-                                    />
-                                </div>
-                                <div class="flex justify-end">
-                                    <Button icon="pi pi-trash" :label="$t('auth.removeGrant')" severity="danger" outlined size="small" @click="removeGrant(selectedGrantIndex)" />
-                                </div>
-                            </div>
-
                             <Panel v-if="selectedFeature.actions?.length" :header="$t('auth.permissionActions')">
                                 <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
                                     <label
@@ -101,9 +84,23 @@
                             </Panel>
 
                             <Panel :header="$t('auth.permissionFilterBuilder')">
-                                <p class="m-0 mb-3 text-sm text-muted-color">
-                                    {{ $t('auth.permissionFilterBuilderHelp') }}
-                                </p>
+                                <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
+                                    <div class="flex min-w-0 flex-wrap items-end gap-2">
+                                        <div class="flex flex-col gap-1">
+                                            <label>{{ $t('auth.permissionAllow') }}</label>
+                                            <Select
+                                                :model-value="selectedGrant.level"
+                                                :options="PERMISSION_LEVELS"
+                                                option-label="label"
+                                                option-value="value"
+                                                class="w-40"
+                                                @update:model-value="value => updateGrant({ level: value })"
+                                            />
+                                        </div>
+                                        <span class="pb-2 text-muted-color">{{ $t('auth.permissionWhen') }}</span>
+                                    </div>
+                                    <Button icon="pi pi-trash" :label="$t('auth.removeGrant')" severity="danger" outlined size="small" @click="removeGrant(selectedGrantIndex)" />
+                                </div>
                                 <PermissionRuleBuilder
                                     :model-value="selectedRuleTree"
                                     :gate-options="gateOptions"
@@ -185,7 +182,6 @@ const entityOptionsLoading = ref(false);
 const entityOptionLists = ref({});
 const selectedRuleTree = ref(null);
 const entityLoaders = {
-    artifact: useEntity('artifact'),
     catalog: useEntity('catalog'),
     cassetteInstance: useEntity('cassetteInstance'),
     cassetteTemplate: useEntity('cassetteTemplate'),
@@ -193,7 +189,6 @@ const entityLoaders = {
     material: useEntity('material'),
     nestingRun: useEntity('nestingRun'),
     project: useEntity('project'),
-    requisition: useEntity('requisition'),
     sheetDesign: useEntity('sheetDesign'),
     user: useEntity('user'),
     warehouse: useEntity('warehouse')
@@ -254,7 +249,7 @@ const gateOptions = computed(() => [
 ]);
 
 const subjectOptions = computed(() => [
-    { label: t('auth.permissionSubjects.current'), value: 'current' },
+    ...(selectedFeatureHasEntity() ? [{ label: entityTypeLabel(selectedFeatureEntityType()), value: 'current' }] : []),
     { label: t('auth.permissionSubjects.related'), value: 'related' },
     { label: t('auth.permissionSubjects.transition'), value: 'transition' },
     { label: t('auth.permissionSubjects.custom'), value: 'custom' }
@@ -371,6 +366,7 @@ function hydrateRuleTree() {
 function updateRuleTree(value) {
     selectedRuleTree.value = value;
     applyRuleTree(value);
+    loadEntityOptions();
 }
 
 function setFeatureGrants(key, grants) {
@@ -430,12 +426,14 @@ function createGroupNode(patch = {}) {
 }
 
 function createConditionNode(patch = {}) {
+    const subject = selectedFeatureHasEntity() ? 'current' : 'related';
+    const entityType = subject === 'current' ? selectedFeatureEntityType() : entityTypeOptions.value[0]?.value || 'project';
     return normalizeClause({
         id: nextRuleNodeId(),
         type: 'condition',
-        subject: 'current',
-        entityType: selectedFeatureEntityType(),
-        trait: defaultTraitForCondition({ subject: 'current', entityType: selectedFeatureEntityType() }),
+        subject,
+        entityType,
+        trait: defaultTraitForCondition({ subject, entityType }),
         operator: 'equals',
         field: '',
         value: '',
@@ -684,7 +682,8 @@ function patchConditionTrait(clause = {}, trait) {
 }
 
 function usesOptionValuePicker(clause = {}) {
-    return isStatusClause(clause) || Boolean(entityTypeForClause(clause));
+    const entityType = entityTypeForClause(clause);
+    return isStatusClause(clause) || Boolean(entityType && canLoadEntityOptions(entityType));
 }
 
 function valueOptionsForClause(clause = {}) {
@@ -703,12 +702,20 @@ function entityTypeForClause(clause = {}) {
     return null;
 }
 
+function canLoadEntityOptions(entityType) {
+    return entityType === 'organization' || entityType === 'queue' || Boolean(entityLoaders[entityType]);
+}
+
 function isStatusClause(clause = {}) {
     return clause.operator !== 'exists' && conditionTrait(clause) === 'status';
 }
 
 function selectedFeatureEntityType() {
     return FEATURE_ENTITY_TYPE[selectedFeatureKey.value] || entityTypeOptions.value[0]?.value || 'project';
+}
+
+function selectedFeatureHasEntity() {
+    return Boolean(FEATURE_ENTITY_TYPE[selectedFeatureKey.value]);
 }
 
 function entityTypeLabel(type) {
@@ -760,7 +767,7 @@ async function loadEntityOptions() {
             ...entityOptionLists.value,
             organization: organizationOptions()
         };
-        const requiredTypes = new Set(['organization', 'queue', ...Object.keys(entityLoaders)]);
+        const requiredTypes = entityTypesRequiredByRuleTree(selectedRuleTree.value);
         const featureEntityType = FEATURE_ENTITY_TYPE[selectedFeatureKey.value];
         if (featureEntityType) requiredTypes.add(featureEntityType);
 
@@ -783,6 +790,17 @@ async function loadEntityOptions() {
     } finally {
         entityOptionsLoading.value = false;
     }
+}
+
+function entityTypesRequiredByRuleTree(node, required = new Set()) {
+    if (!node) return required;
+    if (node.type === 'group') {
+        for (const child of node.children || []) entityTypesRequiredByRuleTree(child, required);
+        return required;
+    }
+    const entityType = entityTypeForClause(node);
+    if (entityType && canLoadEntityOptions(entityType)) required.add(entityType);
+    return required;
 }
 
 async function loadEntityOptionsForType(type, next) {
