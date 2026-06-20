@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Rewrite QueueEditor production workspace
+     Files changed: components/QueueEditor.vue
+     Docs updated: components/README.md, pages/project/README.md, TODO.org
+     Notes: Replaced the old panel stack with a full queue workspace
+       composition: selected queue rail, command header, setup band,
+       cassette work area, physical outputs, and run inspector. The rewrite
+       keeps existing queue actions and stores while giving each workflow region
+       a distinct visible responsibility.
+
      [2026-06-20] Replace queue MetricPanel with command header
      Files changed: components/QueueEditor.vue
      Docs updated: components/README.md, pages/project/README.md, TODO.org

@@ -232,15 +232,16 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   payload saves must persist `id` without leaking the UI key.
 - `QueueEditor` is a production workspace: normal desktop layout uses a left
   queue lane rendered newest-first as compact queue entity rows, a center lane
-  with a selected-queue command header, nesting settings, and wide
-  cassette entry cards, and a right runs lane through `WorkspaceLanes`. The
+  with a selected-queue command header, a setup band, the cassette work area,
+  and physical outputs, and a right run inspector through `WorkspaceLanes`. The
   project queue route is rendered inside the app shell's bounded workspace
-  frame and each lane owns its own vertical scrolling, while the center lane
-  delegates scrolling to its `ScrollablePanel` sections. Nesting settings are
-  queue-local state persisted as `queue.data.nestingSettings`; the command
+  frame. The queue rail and run inspector own their own scrolling; the center
+  column gives most vertical space to the cassette work area. Nesting settings
+  are queue-local state persisted as `queue.data.nestingSettings`; the command
   header owns selected queue identity, compact job/material/run facts, and the
-  primary Run nesting action, while the settings header owns material source
-  selection (`Virtual` plus warehouse options) and tool selection. Virtual mode renders the virtual sheet dimensions as the active
+  primary Run nesting action, while the setup band owns material source
+  selection (`Virtual` plus warehouse options), tool selection, source preview,
+  and readiness/error state. Virtual mode renders the virtual sheet dimensions as the active
   material abstraction; warehouse mode adds a selected source immediately from
   the source dropdown and renders selected material sources as compact
   `QueueSourceCard` preview tiles in a horizontally scrolled row. Queue

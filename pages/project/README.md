@@ -14,7 +14,8 @@ Routes under `pages/project/` render the authenticated project workspace.
   delegates workspace actions to `QueueEditor`; it does not render a separate
   top action bar because the editor owns the production workspace. On normal
   desktop widths, the editor renders queue selection, the selected-queue
-  command header/settings/cassette workspace, and nesting runs as three visible lanes.
+  command header, setup band, cassette workspace, physical outputs, and nesting
+  runs as a bounded production workspace.
   Queue creation controls render only when the active membership has
   `queues:create` access, matching the backend `queues:write` check. Empty
   states are centered inside the bounded workspace frame so the page preserves
