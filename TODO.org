@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Replace flat permission filter rows with rule tree builder
+     Files changed: components/PermissionEditor.vue,
+       components/PermissionRuleBuilder.vue, i18n/locales/en.json,
+       i18n/locales/ru.json, components/README.md, TODO.org
+     Docs updated: components/README.md, TODO.org
+     Notes: Replaced the flat condition list with a recursive boolean
+       expression editor. Grants now project into nested groups with AND/OR
+       gates, group-level NOT, condition-level NOT, Add condition, and Add
+       group controls. Saving writes the evaluator's nested `rule` shape
+       directly instead of collapsing the UI into one flat clause list.
+
      [2026-06-20] Make permission composer expose lineage traits and NOT
      Files changed: components/PermissionEditor.vue, shared/access-control.js,
        shared/ui-permissions.js, server/core/access/service.js,

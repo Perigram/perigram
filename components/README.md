@@ -31,17 +31,20 @@ This directory contains Vue components used in the Cutkit-Demo application.
   for the selected feature entity. Lifecycle status clauses must derive their
   values from `cncWorkflows` for the selected feature entity or resolved lineage
   entity target; do not maintain a parallel hardcoded status list. The visible
-  gate selects `all`/`any`, and each clause must expose a `not` toggle that
-  saves to the shared evaluator's `{ not: ... }` rule shape. Free text is
-  reserved for custom entity paths, entity type names, transition state names,
-  and unsupported entity list sources. The editor should present grants as
-  editable horizontal filter rows, for example "Lineage project / Status equals
-  ACTIVE and Entity / Status equals READY", not as opaque role/global chips,
-  prose summaries, or raw storage fields such as `lineage.projectId`. Do not
-  replace it with a flat role-only selector. When a feature has no grants, the
-  detail area must show an explicit add-grant call to action; once a grant
-  exists, the access level must be edited through a visible control before the
-  filter builder.
+  gate selects `all`/`any`, and each group or clause must expose a `not` toggle
+  that saves to the shared evaluator's `{ not: ... }` rule shape. The editor is
+  a nested boolean expression builder: users must be able to add condition rows
+  and nested groups, producing rule trees such as `(A AND B) OR NOT (C AND D)`.
+  Do not collapse it back into a single flat clause list. Free text is reserved
+  for custom entity paths, entity type names, transition state names, and
+  unsupported entity list sources. The editor should present grants as editable
+  filter expressions, for example "Lineage project / Status equals ACTIVE and
+  Entity / Status equals READY", not as opaque role/global chips, prose
+  summaries, or raw storage fields such as `lineage.projectId`. Do not replace
+  it with a flat role-only selector. When a feature has no grants, the detail
+  area must show an explicit add-grant call to action; once a grant exists, the
+  access level must be edited through a visible control before the filter
+  builder.
 
 ## v24 Standardized Patterns
 
