@@ -42,6 +42,10 @@ This directory contains Vue components used in the Cutkit-Demo application.
   sources; do not preload every domain entity type or call missing routes such
   as artifact indexes. The rule row should wrap as a compact expression, not as
   a wide fixed grid that collapses into two unusable columns in dialogs. The
+  access-area summary and grant header must not present a filtered grant as
+  plain full access; filtered grants need a visible filtered state and a clear
+  action that removes `scope`, `rule`, `transition`, and `transitions` from that
+  grant. The
   visible gate selects `all`/`any`, and each group or clause must expose a
   `not` toggle that saves to the shared evaluator's
   `{ not: ... }` rule shape. The editor is
