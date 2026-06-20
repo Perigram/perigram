@@ -75,7 +75,7 @@
               />
             </template>
             <EntitySurfaceContent
-              v-else
+              v-if="scenario.variant !== 'compact'"
               :entity="queue"
               entity-type="queue"
               :surface="scenario.surface"
