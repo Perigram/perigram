@@ -1702,6 +1702,28 @@
     "listVariant": "List Variant",
     "minimalVariant": "Minimal Variant"
   },
+  "uiConstructor": {
+    "title": "UI Constructor Demo",
+    "subtitle": "Contract-driven examples for core surfaces, app extensions, overrides, and strict field policy.",
+    "contractMatrix": "Contract matrix",
+    "surface": "Surface",
+    "preview": "Preview",
+    "dataDisplay": "Data display",
+    "fieldGroups": "Field groups",
+    "fieldCount": "Fields",
+    "coreCard": "Core card",
+    "appExtension": "App extension",
+    "tightOverride": "Tight override",
+    "strictness": "Strictness",
+    "strictnessNote": "Allowed fields are covered by field-access policy; rejected fields are explicit examples that the constructor must not render.",
+    "path": "Path",
+    "result": "Result",
+    "reason": "Reason",
+    "allowed": "Allowed",
+    "rejected": "Rejected",
+    "policyReason": "Declared in field-access policy",
+    "missingPolicyReason": "No matching field-access policy"
+  },
   "entities": {
     "project": "Project",
     "queue": "Queue",
