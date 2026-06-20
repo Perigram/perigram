@@ -112,7 +112,7 @@
     const confirm = useConfirm()
     const { projectsList } = storeToRefs(globalStore)
     
-    const projects = projectsList
+    const projects = computed(() => projectsList.value.map(normalizeProjectListItem))
     const loading = ref(true)
     const searchQuery = ref('')
     const sortBy = ref('date-desc')
@@ -170,7 +170,7 @@
     })
 
     const navigateToProject = (project) => {
-        const slug = project.identity?.slug
+        const slug = project.identity?.slug || project.identity?.uid || project._id
         router.push(`/project/${slug}`)
     }
 
@@ -235,5 +235,28 @@
                 }
             }
         })
+    }
+
+    function normalizeProjectListItem(project = {}) {
+        const id = project._id || project.id || project.identity?.uid || project.slug || project.identity?.slug || ''
+        return {
+            ...project,
+            _id: project._id || id,
+            identity: {
+                ...(project.identity || {}),
+                uid: project.identity?.uid || id,
+                name: project.identity?.name || project.name || project.title || project.identity?.slug || project.slug || id,
+                slug: project.identity?.slug || project.slug || project.identity?.uid || id,
+            },
+            status: normalizeStatusBlock(project.status || project.state || project.currentStatus || 'UNKNOWN'),
+            data: project.data || {},
+            summary: project.summary || {},
+        }
+    }
+
+    function normalizeStatusBlock(status) {
+        if (status?.state) return status;
+        if (status?.current) return { ...status, state: status.current };
+        return { state: status || 'UNKNOWN' };
     }
 </script>

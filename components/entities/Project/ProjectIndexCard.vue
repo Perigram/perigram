@@ -1,6 +1,7 @@
 <script setup>
 import Button from 'primevue/button';
 import { computed } from 'vue';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
@@ -16,21 +17,51 @@ const props = defineProps({
 
 const emit = defineEmits(['view', 'rename', 'delete']);
 const authStore = useAuthStore();
-const queuePreview = computed(() => props.project.summary?.queuePreview || []);
+const cardProject = computed(() => normalizeProjectForCard(props.project));
+const queuePreview = computed(() => cardProject.value.summary?.queuePreview || []);
 const visibleQueues = computed(() => queuePreview.value.slice(0, 3));
-const queueCount = computed(() => Number(props.project.summary?.queueCount || queuePreview.value.length || 0));
+const queueCount = computed(() => Number(cardProject.value.summary?.queueCount || queuePreview.value.length || 0));
 const remainingQueueCount = computed(() => Math.max(queueCount.value - visibleQueues.value.length, 0));
 
 function handleCardClick(event) {
   if (isInteractiveEventTarget(event)) return;
-  emit('view', props.project);
+  emit('view', cardProject.value);
+}
+
+function normalizeProjectForCard(project = {}) {
+  const id = project._id || project.id || project.identity?.uid || project.slug || project.identity?.slug || '';
+  const identity = {
+    ...(project.identity || {}),
+    uid: project.identity?.uid || id,
+    name: project.identity?.name || project.name || project.title || project.identity?.slug || project.slug || id,
+    slug: project.identity?.slug || project.slug || project.identity?.uid || id
+  };
+
+  return {
+    ...project,
+    _id: project._id || id,
+    identity,
+    status: normalizeStatusBlock(project.status || project.state || project.currentStatus || 'UNKNOWN'),
+    summary: project.summary || {},
+    data: project.data || {}
+  };
+}
+
+function normalizeStatusBlock(status) {
+  if (status?.state) return status;
+  if (status?.current) return { ...status, state: status.current };
+  return { state: status || 'UNKNOWN' };
+}
+
+function queueState(queue) {
+  return getPrimaryState(normalizeStatusBlock(queue.status || queue.state || 'DRAFT'), 'DRAFT');
 }
 </script>
 
 <template>
   <div class="min-w-0 cursor-pointer" @click="handleCardClick">
     <EntityCard
-      :entity="project"
+      :entity="cardProject"
       entity-type="project"
       surface="workspace"
       variant="card"
@@ -42,7 +73,7 @@ function handleCardClick(event) {
 
       <div class="grid min-w-0 gap-4 xl:grid-cols-[minmax(16rem,0.85fr)_minmax(22rem,1.25fr)] xl:items-start">
         <EntitySurfaceContent
-          :entity="project"
+          :entity="cardProject"
           entity-type="project"
           surface="workspace"
           :display-extensions="appEntityDisplayExtensions"
@@ -59,7 +90,7 @@ function handleCardClick(event) {
                 <span class="min-w-0 truncate font-medium">
                   #{{ queue.queueNumber || '-' }} {{ queue.name || $t('common.unnamed') }}
                 </span>
-                <StatusBadge class="shrink-0" :state="queue.state || 'DRAFT'" />
+                <StatusBadge class="shrink-0" :state="queueState(queue)" />
               </div>
               <span class="text-muted-color">{{ queue.jobItemCount || 0 }} {{ $t('queues.cassettes') }}</span>
               <span class="text-muted-color">{{ queue.totalQuantity || 0 }} {{ $t('queues.quantity') }}</span>
@@ -78,12 +109,12 @@ function handleCardClick(event) {
         <div class="flex justify-end gap-1" @click.stop>
           <NameEditPopover
             v-if="authStore.can('projects', 'edit')"
-            :model-value="project.identity?.name || ''"
+            :model-value="cardProject.identity?.name || ''"
             :label="$t('project.name')"
             :placeholder="$t('projects.enterName')"
             :saving="renaming"
             :aria-label="$t('project.rename')"
-            @save="(name, close) => $emit('rename', project, name, close)"
+            @save="(name, close) => $emit('rename', cardProject, name, close)"
           />
           <Button
             v-if="authStore.can('projects', 'read')"
@@ -92,7 +123,7 @@ function handleCardClick(event) {
             rounded
             size="small"
             :aria-label="$t('common.open')"
-            @click="$emit('view', project)"
+            @click="$emit('view', cardProject)"
           />
           <Button
             v-if="authStore.can('projects', 'delete')"
@@ -102,7 +133,7 @@ function handleCardClick(event) {
             rounded
             size="small"
             :aria-label="$t('common.delete')"
-            @click="$emit('delete', project)"
+            @click="$emit('delete', cardProject)"
           />
         </div>
       </template>
