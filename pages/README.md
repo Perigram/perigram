@@ -42,7 +42,16 @@ warehouse inventory context.
 Asset child routes under `pages/assets/*.vue` are standalone Nuxt routes, not
 nested children of `pages/assets/index.vue`; each routed asset page owns its own
 `StandardPage` shell. `pages/assets/index.vue` is only the `/assets` redirect
-surface and must not render tabs or `NuxtPage`.
+surface and must not render tabs or `NuxtPage`. Asset list routes should expose
+route-level inventory metrics above their reusable entity cards when loaded;
+the cards remain responsible for the entity display contract and ownership
+actions.
+
+Library-style routes such as `/catalog` and `/requisitions` load their DTOs at
+the route boundary, render loading/empty state through shared primitives, and
+pass the resolved collections into hub components. Route-level metric strips
+describe the current collection; hub tabs remain the reusable implementation
+surface for list actions and cards.
 
 `pages/geometry-captures/index.vue` is the authenticated review workspace for
 photo-derived geometry. Its creation flow is camera/upload first: mode-specific

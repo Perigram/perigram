@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Redesign project child and library pages
+     Files changed: pages/project/[slug]/sheet-designs.vue,
+       pages/project/[slug]/artifacts.vue, pages/project/[slug]/data.vue,
+       pages/project/[slug]/queues.vue, pages/catalog/index.vue,
+       pages/requisitions/index.vue, pages/assets/pens.vue,
+       pages/assets/tools.vue, pages/assets/layer-standards.vue
+     Docs updated: pages/project/README.md, pages/README.md, TODO.org
+     Notes: Project child routes now expose route-owned workflow context
+       through shared toolbars, metric strips, bounded empty states, and
+       responsive grids while entity cards/tables keep reusable display
+       responsibility. Catalog, requisition, and asset library routes now load
+       collections at the route boundary and show collection metrics before
+       delegating reusable display to hub tabs or entity cards.
+
      [2026-06-20] Replace flat permission filter rows with rule tree builder
      Files changed: components/PermissionEditor.vue,
        components/PermissionRuleBuilder.vue, i18n/locales/en.json,
