@@ -16,6 +16,10 @@ revisions.
 
 - Every entity card renders a single `EntityCard :variant="variant"` and leaves
   identity, trace, status, popover, and footer chrome to the shared primitive.
+- Standard facts must resolve from the domain display constructor in
+  `@cutkit/domain-cnc` field groups. Do not add new local `DataBlock` path arrays
+  to entity cards; add or extend a field group and make sure the path is covered
+  by field access policy.
 - The default slot is the canonical operational body and is reused by card
   variants and inline/compact popovers.
 - Card bodies should represent the entity's contract data, not a generic table:

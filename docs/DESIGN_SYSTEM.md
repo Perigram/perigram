@@ -27,8 +27,16 @@ Allowed local hardcoded visual values are limited to real data, such as pen stro
 ## Component Contract
 
 Entity cards support `variant="inline"`, `variant="compact"`, and `variant="card"`.
+Those variants are compatibility aliases for constructor surfaces. The domain
+contract also declares `detail`, `table`, `picker`, and `workspace` surfaces for
+framework consumers. A surface selects preview mode, field groups, data display
+density, relation display, status/trace policy, and action placement.
 
 Card content is part of the contract, not filler. The title area owns identity and status, the body uses `SpecsBlock`/`DataBlock` for concise operational facts, and the footer owns actions. Prefer canonical DTO paths (`data.*`, `identity.*`, `lineage.*`, `attachments.*`, `summary.*`) and use flat aliases only as compatibility fallbacks where current services still emit them.
+Standard field groups live in `@cutkit/domain-cnc`; Vue cards consume resolved
+field descriptors through `utils/entity-display-contract.js`. Final apps may
+layer additional field groups and surface overrides, but access policy still
+controls whether a path can render.
 
 `cassette`, `cassetteTemplate`, `cassetteDesign`, and `cassetteInstance` are
 separate card contracts. `cassette` covers the base `cassettes` collection,

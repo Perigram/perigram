@@ -79,11 +79,24 @@ Props: `entity-type` (required), `:entity` (required), `:access-entity` (optiona
 **Field schema:** `{ path, i18n, suffix?, prefix? }` — `path` is dot-notation into entity object, `i18n` is the translation key for the label. Rows with null/undefined values are hidden automatically.
 Values are formatted through `utils/data-display.js`: scalar arrays render as comma-separated text, arrays of objects render as counts, objects render only when they expose a stable identifier (`name`, `label`, `code`, `serial`, `reference`, `uid`, or `_id`), and non-displayable nested objects are hidden.
 Default layout renders a semantic `<dl>` grid for card bodies; compact layout renders inline facts for popovers, relation rows, and tight embedded surfaces.
+Descriptors may come from the domain display constructor instead of component
+local constants. Constructor descriptors can also declare `fallbackPaths` and
+`priority`; `DataBlock` uses the first non-empty allowed path and hides rows
+that resolve to empty values.
 Rows are filtered through `shared/entity-field-access.js`. A descriptor path
 must match the domain field policy for `entity-type`, and the current auth
 grant must satisfy that policy level. Do not render sensitive or entity-specific
 facts beside `DataBlock` unless the API DTO has already been redacted for that
 same field policy.
+
+### `EntitySurfaceContent.vue`, `EntityPreview.vue`, `EntityRelationsBlock.vue`
+Contract-driven body primitives for app constructors. `EntitySurfaceContent`
+resolves an entity type plus `surface` through `utils/entity-display-contract.js`
+and renders preview, data facts, and relation rows with the shared primitives.
+`EntityPreview` dispatches to existing preview components such as
+`GeometryPreview` and `CassetteThumbnail`; `EntityRelationsBlock` renders
+relation descriptors through `EntityInlineRef`. Specialized production cards
+may still use custom slots where the workflow needs more than the default body.
 
 ### `StatusBadge.vue`
 Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.

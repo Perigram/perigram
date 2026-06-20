@@ -79,8 +79,19 @@ library profile changes.
 ## UI Boundary
 
 This package may declare UI policy: entity surface keys, status visibility,
-icons, docs, component paths, and field paths. It must not import Vue components.
-`@cutkit/vue` turns this metadata into frontend lookup helpers.
+icons, docs, component paths, field groups, surface contracts, and field paths.
+It must not import Vue components. `@cutkit/vue` turns this metadata into
+frontend lookup helpers.
+
+Display constructor metadata is split from access policy:
+
+- `ui-fields.js` declares reusable entity field groups such as summary,
+  geometry, stock, production, relations, and provenance.
+- `ui-surfaces.js` declares which groups and display modes belong to surfaces
+  such as inline, compact, card, and detail.
+- `field-access.js` remains the hard visibility boundary. A field group path
+  that is not covered by field access must fail validation instead of rendering
+  through a component-local escape hatch.
 
 Field access is also declared here. `cncEntityFieldAccess` maps each entity UI
 key to a feature permission and read/write/admin field path lists. Runtime code

@@ -101,13 +101,19 @@ destructive confirmation, or forms with multiple fields.
 ## Design System Manifest
 
 `@cutkit/domain-cnc` defines the CNC design-system contract for entity demos:
-entity key, component prop name, variants, status policy, trace policy, factory name, and docs links.
+entity key, component prop name, variants, status policy, trace policy, factory
+name, field groups, surface contracts, and docs links.
 `utils/design-system-contract.js` is a compatibility export with validation, and
 `utils/design-system.js` attaches Vue components and factories to that contract.
 
 `pages/test/ui-lab.vue` renders from this manifest. When adding or renaming an entity card, update the manifest and its DTO factory instead of hand-editing UI lab sections.
 
-`framework.manifest.json` snapshots this same contract for framework consumers. Entity card `DataBlock` paths are validated against `server/DATA_MODEL.md` fields plus explicit compatibility aliases, so avoid synthetic display-only fields unless they are represented in DTO metadata first.
+`framework.manifest.json` snapshots this same contract for framework consumers.
+Entity card `DataBlock` paths are resolved from the domain field groups instead
+of scraped from Vue source. Field groups define display semantics; field access
+remains the security boundary. App implementations may layer additional field
+groups and surface overrides only when their DTO paths are also declared in the
+field-access policy.
 
 ## Visual Tokens
 

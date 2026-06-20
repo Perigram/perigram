@@ -4,6 +4,31 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Refactor entity UI into display constructor contracts
+     Files changed: packages/domain-cnc/src/ui-fields.js,
+       packages/domain-cnc/src/ui-surfaces.js,
+       packages/domain-cnc/src/ui.js, packages/domain-cnc/src/index.js,
+       utils/entity-display-contract.js, utils/design-system-contract.js,
+       utils/design-system.js, scripts/framework-inspect.js,
+       components/shared/EntityCard.vue, components/shared/EntitySurfaceContent.vue,
+       components/shared/EntityPreview.vue,
+       components/shared/EntityRelationsBlock.vue,
+       components/shared/blocks/DataBlock.vue, components/entities/*,
+       pages/admin/workbench.vue, pages/test/ui-lab.vue,
+       shared/design-system.spec.js, shared/framework-packages.spec.js,
+       framework.manifest.json
+     Docs updated: components/README.md, components/shared/README.md,
+       components/entities/README.md, docs/DESIGN_SYSTEM.md,
+       packages/domain-cnc/README.md, utils/README.md,
+       pages/admin/README.md, pages/test/README.md, TODO.org
+     Notes: Added domain-owned field groups and surface contracts as the UI
+       constructor source of truth. Entity cards now resolve standard
+       DataBlock descriptors from the constructor contract, while specialized
+       previews, actions, and relation rows remain explicit. Workbench/UI lab
+       previews and the framework manifest now consume the same surface
+       contract; app extensions are supported through the resolver as layered
+       overrides while field-access remains the hard display boundary.
+
      [2026-06-20] Use entity pickers in permission filters
      Files changed: components/PermissionEditor.vue, i18n/locales/en.json,
        i18n/locales/ru.json, components/README.md, TODO.org

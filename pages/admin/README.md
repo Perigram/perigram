@@ -14,7 +14,8 @@ from `/api/admin/tasks`. It does not import `@cutkit/domain-cnc` directly.
 
 Sections:
 
-- Entities: design-system surface previews, extracted data-model fields,
+- Entities: design-system surface previews resolved from the domain constructor
+  contract, extracted data-model fields,
   workflow graph editing, and feedback.
 - Designer: Cassette Designer v2 OCCS layout prototype.
 - Context: generated fixture graph and test access context.

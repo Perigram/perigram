@@ -6,6 +6,10 @@ Shared frontend utility modules used by Vue pages/components.
 
 - `design-system-contract.js`: Compatibility exports and validation for the CNC design-system contract now owned by `@cutkit/domain-cnc`. It does not import Vue components.
 - `design-system.js`: Runtime binding that attaches Vue card components and DTO factories to the contract. Used by `/test/ui-lab`.
+- `entity-display-contract.js`: Pure resolver for the UI constructor. It merges
+  core domain field groups/surfaces, optional app extensions, and per-call
+  overrides, then returns the effective surface contract and ordered field
+  descriptors for cards, details, workbench previews, and generated consumers.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`.
 - `status-engine.js`: Compatibility status severity/icon mapping and entity route/icon registry used by shared status and trace components. New source-of-truth UI, artifact, and route metadata belongs in `@cutkit/domain-cnc` and is adapted by `@cutkit/vue`.
 - `status-actions.js`: Converts workflow definitions into default `EntityStatus` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows. Also exposes `hasWorkflow()` so UI primitives can avoid server action lookups for workflow-less entity types without importing the domain package directly.
@@ -111,7 +115,9 @@ component state. Cross-entity generated data belongs in `test-data/scenarios.js`
 stateful workbench flows belong in stores/composables; backend writes belong in
 server feature services and repositories.
 
-The design-system contract is the source of truth for UI lab coverage. Add new entity cards there first, then wire the component and DTO factory in `design-system.js` / `test-data/factories.js`.
+The design-system contract is the source of truth for UI lab coverage. Add new
+entity cards, field groups, and surface contracts there first, then wire the
+component and DTO factory in `design-system.js` / `test-data/factories.js`.
 
 ## Related
 

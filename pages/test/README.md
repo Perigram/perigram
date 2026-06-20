@@ -7,7 +7,10 @@ These pages remain focused visual demos and compatibility routes.
 
 ## UI Lab
 
-`ui-lab.vue` is the design-system demo. It renders entity cards and shared primitives from `utils/design-system.js`, not from a hand-maintained component list.
+`ui-lab.vue` is the design-system demo. It renders entity cards and shared
+primitives from `utils/design-system.js`, not from a hand-maintained component
+list. Entity preview rows use the domain surface contract, so field groups and
+surface display policy are visible to framework consumers and app constructors.
 
 The page demonstrates:
 - entity card variants: `card`, `compact`, `inline`
