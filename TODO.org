@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Make permission grant creation state explicit
+     Files changed: components/PermissionEditor.vue, i18n/locales/en.json,
+       i18n/locales/ru.json, components/README.md, TODO.org
+     Docs updated: components/README.md, TODO.org
+     Notes: Replaced the level segmented control with a normal PrimeVue Select
+       so the level is always visible as an explicit field. Added a detail-pane
+       empty state with an add-grant call to action, so selecting a feature with
+       no grants no longer leaves users looking at a blank editor with no level
+       or filter controls.
+
      [2026-06-20] Replace split permission controls with unified filter builder
      Files changed: components/PermissionEditor.vue, i18n/locales/en.json,
        i18n/locales/ru.json, components/README.md, TODO.org

@@ -26,7 +26,9 @@ This directory contains Vue components used in the Cutkit-Demo application.
   any clauses must match. The editor should present grants as filter
   expressions, for example "allow write when projectId equals X and status
   equals READY", not as opaque role or global-access chips. Do not replace it
-  with a flat role-only selector.
+  with a flat role-only selector. When a feature has no grants, the detail area
+  must show an explicit add-grant call to action; once a grant exists, the access
+  level must be edited through a visible control before the filter builder.
 
 ## v24 Standardized Patterns
 
