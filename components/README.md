@@ -21,22 +21,26 @@ This directory contains Vue components used in the Cutkit-Demo application.
   by `shared/access-control.js`: each feature has one or more explicit grants
   with level, action overrides, lineage/entity trait filters, transition
   filters, logical rule conditions, and advanced JSON for the selected grant.
-  The main editing surface is a unified filter builder: each predicate selects
-  a subject (`current entity`, `related entity`, `transition`, or custom path),
-  then an entity type when the subject is related, then a trait (`id`, `type`,
-  `status`, `from`, `to`, or `path`), an operator, and a value. Do not expose
-  storage terms like `lineage.organization` as user-facing targets; related
-  entity types come from the domain frontend entity registry. Exact entity ID
-  clauses and related entity ID clauses must use entity pickers when a
-  canonical list source exists; users should not type IDs for ordinary
-  project/queue/warehouse/organization filters or for the selected feature
-  entity. Lifecycle status clauses must derive their values from `cncWorkflows`
-  for the selected feature entity or resolved related entity type; do not
-  maintain a parallel hardcoded status list. Exact-entity value pickers must be
-  loaded only for the selected predicate types that have supported list sources;
-  do not preload every domain entity type or call missing routes such as
-  artifact indexes. The visible gate selects `all`/`any`, and each group or
-  clause must expose a `not` toggle that saves to the shared evaluator's
+  The main editing surface is a unified filter builder: grants render as
+  accordions in the selected access area, and the grant level is edited inline
+  as `Allow <level> when <predicate>` above the filter expression. Each
+  predicate selects a subject (the selected feature entity when it exists,
+  related entity, transition, or custom path), then an entity type when the
+  subject is related, then a trait, an operator, and a value. Entity traits must
+  come from the real domain contracts: exact `id`, workflow `status` from
+  `cncWorkflows`, and property paths from `cncEntityFieldGroups` /
+  `cncEntityFieldAccess`. Do not expose storage terms like
+  `lineage.organization` as user-facing targets; related entity types come from
+  the domain frontend entity registry. Exact entity ID clauses and related
+  entity ID clauses must use entity pickers when a canonical list source exists;
+  users should not type IDs for ordinary project/queue/warehouse/organization
+  filters or for the selected feature entity. Exact-entity value pickers must
+  be loaded only for the selected predicate types that have supported list
+  sources; do not preload every domain entity type or call missing routes such
+  as artifact indexes. The rule row should wrap as a compact expression, not as
+  a wide fixed grid that collapses into two unusable columns in dialogs. The
+  visible gate selects `all`/`any`, and each group or clause must expose a
+  `not` toggle that saves to the shared evaluator's
   `{ not: ... }` rule shape. The editor is
   a nested boolean expression builder: users must be able to add condition rows
   and nested groups, producing rule trees such as `(A AND B) OR NOT (C AND D)`.
