@@ -31,10 +31,13 @@ This directory contains Vue components used in the Cutkit-Demo application.
   `cncWorkflows`, and property paths from `cncEntityFieldGroups` /
   `cncEntityFieldAccess`. Do not expose storage terms like
   `lineage.organization` as user-facing targets; related entity types come from
-  the domain frontend entity registry. Exact entity ID clauses and related
-  entity ID clauses must use entity pickers when a canonical list source exists;
-  users should not type IDs for ordinary project/queue/warehouse/organization
-  filters or for the selected feature entity. Exact-entity value pickers must
+  the domain frontend entity registry but must be constrained to valid lineage
+  ancestors for the selected feature entity. Do not offer descendant filters
+  such as `Project / related Queue`, because projects do not carry queue
+  lineage. Exact entity ID clauses and related entity ID clauses must use entity
+  pickers when a canonical list source exists; users should not type IDs for
+  ordinary project/queue/warehouse/organization filters or for the selected
+  feature entity. Exact-entity value pickers must
   be loaded only for the selected predicate types that have supported list
   sources; do not preload every domain entity type or call missing routes such
   as artifact indexes. The rule row should wrap as a compact expression, not as

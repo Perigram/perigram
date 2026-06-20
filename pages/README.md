@@ -54,7 +54,9 @@ inside the project entity page shell. They use section primitives such as
 `ActionToolbar`, `StateBlock`, and `TableFrame`; they should not wrap their
 content in another `StandardPage`. Entity detail children that already own an
 `EntityPage`, such as queue and sheet-design details, render outside the project
-shell to avoid nested detail headers.
+shell to avoid nested detail headers. The project shell may redirect to
+`/projects` on a 403 project-context fetch; denied access should not surface as
+an uncaught route promise.
 
 Public auth/invitation pages may use full-height shells because they run
 outside the app layout, but their content chrome should still come from
