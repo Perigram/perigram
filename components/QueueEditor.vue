@@ -2,42 +2,52 @@
     <div class="flex h-full min-h-0 min-w-0 flex-col">
         <WorkspaceLanes :center-scroll="false">
             <template v-if="queues?.length > 0" #left>
-                <div class="flex shrink-0 items-center justify-between gap-2 px-1">
-                    <span class="font-medium">{{ $t('project.queues') }}</span>
-                    <Button
-                        v-if="canCreateQueue"
-                        icon="pi pi-plus"
-                        size="small"
-                        text
-                        rounded
-                        severity="secondary"
-                        :aria-label="$t('queue.create')"
-                        @click="$emit('create-queue')"
-                    />
-                </div>
-                <div class="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
-                    <div
-                        v-for="option in queueList"
-                        :key="option._id"
-                        :class="[
-                            'rounded-panel p-1',
-                            isSelectedQueue(option) ? 'bg-content shadow-card ring-1 ring-primary' : 'bg-transparent'
-                        ]"
-                    >
-                        <QueueCard
-                            :queue="option"
-                            variant="compact"
-                            :show-delete="isSelectedQueue(option)"
-                            :show-summary="false"
-                            :show-footer-actions="false"
-                            :expandable="false"
-                            density="dense"
-                            @view="$emit('select-queue', option._id)"
-                            @edit="$emit('select-queue', option._id)"
-                            @delete="confirmDeleteQueue"
+                <section class="flex h-full min-h-0 min-w-0 flex-col rounded-panel border border-content-border bg-subtle p-2">
+                    <div class="flex shrink-0 items-center justify-between gap-2 px-2 py-1">
+                        <span class="font-medium">{{ $t('project.queues') }}</span>
+                        <Button
+                            v-if="canCreateQueue"
+                            icon="pi pi-plus"
+                            size="small"
+                            text
+                            rounded
+                            severity="secondary"
+                            :aria-label="$t('queue.create')"
+                            @click="$emit('create-queue')"
                         />
                     </div>
-                </div>
+
+                    <div class="flex min-h-0 flex-col gap-2 overflow-y-auto pr-1">
+                        <div
+                            v-for="option in queueList"
+                            :key="option._id"
+                            role="button"
+                            tabindex="0"
+                            :class="[
+                                'rounded-panel border p-1 text-left transition',
+                                isSelectedQueue(option)
+                                    ? 'border-primary bg-content shadow-card'
+                                    : 'border-transparent bg-transparent hover:border-content-border hover:bg-content'
+                            ]"
+                            @click="$emit('select-queue', option._id)"
+                            @keydown.enter="$emit('select-queue', option._id)"
+                            @keydown.space.prevent="$emit('select-queue', option._id)"
+                        >
+                            <QueueCard
+                                :queue="option"
+                                variant="compact"
+                                :show-delete="isSelectedQueue(option)"
+                                :show-summary="false"
+                                :show-footer-actions="false"
+                                :expandable="false"
+                                density="dense"
+                                @view="$emit('select-queue', option._id)"
+                                @edit="$emit('select-queue', option._id)"
+                                @delete="confirmDeleteQueue"
+                            />
+                        </div>
+                    </div>
+                </section>
             </template>
 
             <div class="flex h-full min-h-0 min-w-0 flex-col gap-4">
@@ -67,8 +77,8 @@
                     />
                 </div>
 
-                <section class="shrink-0 rounded-panel border border-content-border bg-content p-4 shadow-card">
-                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+                <section class="shrink-0 rounded-panel border border-content-border bg-content shadow-card">
+                    <div class="grid grid-cols-1 gap-4 border-b border-content-border p-4 lg:grid-cols-[minmax(0,1fr)_auto]">
                         <div class="min-w-0">
                             <div class="mb-2 flex flex-wrap items-center gap-2">
                                 <Tag v-if="queueNumberLabel" :value="queueNumberLabel" severity="secondary" size="small" />
@@ -79,32 +89,31 @@
                         </div>
 
                         <div class="flex flex-wrap items-start justify-start gap-2 lg:justify-end">
-                        <Button
-                            v-if="queueState === 'DRAFT'"
-                            :label="$t('nesting.calculateLayout')"
-                            icon="pi pi-play"
-                            size="small"
-                            @click="runNesting"
-                            :loading="nestingInProgress"
-                            :disabled="!isNestingReady"
-                        />
-                        <Button
-                            v-if="canCreateQueue"
-                            :label="$t('queue.create')"
-                            icon="pi pi-plus"
-                            severity="secondary"
-                            outlined
-                            size="small"
-                            @click="$emit('create-queue')"
-                        />
+                            <Button
+                                v-if="queueState === 'DRAFT'"
+                                :label="$t('nesting.calculateLayout')"
+                                icon="pi pi-play"
+                                @click="runNesting"
+                                :loading="nestingInProgress"
+                                :disabled="!isNestingReady"
+                            />
+                            <Button
+                                v-if="canCreateQueue"
+                                :label="$t('queue.create')"
+                                icon="pi pi-plus"
+                                severity="secondary"
+                                outlined
+                                size="small"
+                                @click="$emit('create-queue')"
+                            />
                         </div>
                     </div>
 
-                    <div class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <div class="grid grid-cols-2 gap-px bg-content-border md:grid-cols-4">
                         <div
                             v-for="fact in queueOverviewFacts"
                             :key="fact.key"
-                            class="rounded-ui border border-content-border bg-subtle px-3 py-2"
+                            class="bg-subtle px-4 py-3"
                         >
                             <small class="text-muted-color">{{ fact.label }}</small>
                             <div class="mt-1 text-lg font-semibold leading-tight">{{ fact.value }}</div>
@@ -112,140 +121,148 @@
                     </div>
                 </section>
 
-                <ScrollablePanel class="shrink-0" :scroll-content="false">
-                    <template #header>
-                        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                            <SelectButton
-                                v-model="materialSourceSelection"
-                                :options="materialSourceOptions"
-                                optionLabel="label"
-                                optionValue="value"
-                                :aria-label="$t('nesting.materialSourcing')"
-                                size="small"
-                                class="min-w-0"
-                            />
-                            <Select
-                                v-model="nestingOptions.toolProfileId"
-                                :options="toolOptions"
-                                optionLabel="name"
-                                optionValue="_id"
-                                :placeholder="$t('nesting.selectTool')"
-                                class="min-w-48 flex-1"
-                                size="small"
-                            />
-                        </div>
-                    </template>
-                    <div class="flex flex-col gap-6" v-if="queueState === 'DRAFT'">
-                        <div class="flex flex-col gap-4">
-                            <!-- Virtual Mode -->
-                            <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="flex flex-col gap-3">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <InputNumber v-model="nestingOptions.virtualWidth" :min="100" :placeholder="$t('nesting.width')" size="small" />
-                                    <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" size="small" />
-                                </div>
-                                <div class="rounded-panel border border-content-border bg-content p-3">
-                                    <div class="flex items-center justify-between gap-3">
-                                        <div class="flex min-w-0 items-center gap-2">
-                                            <i class="pi pi-file"></i>
-                                            <span class="truncate font-medium">{{ $t('nesting.virtualSheet') }}</span>
-                                        </div>
-                                        <span>{{ virtualSheetLabel }}</span>
-                                    </div>
-                                </div>
+                <section class="shrink-0 rounded-panel border border-content-border bg-content shadow-card">
+                    <div class="grid grid-cols-1 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
+                        <div class="flex min-w-0 flex-col gap-4">
+                            <div class="flex min-w-0 flex-wrap items-center gap-2">
+                                <SelectButton
+                                    v-model="materialSourceSelection"
+                                    :options="materialSourceOptions"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    :aria-label="$t('nesting.materialSourcing')"
+                                    size="small"
+                                    class="min-w-0"
+                                />
+                                <Select
+                                    v-model="nestingOptions.toolProfileId"
+                                    :options="toolOptions"
+                                    optionLabel="name"
+                                    optionValue="_id"
+                                    :placeholder="$t('nesting.selectTool')"
+                                    class="min-w-48 flex-1"
+                                    size="small"
+                                />
                             </div>
 
-                            <!-- Warehouse Mode -->
-                            <div v-else class="flex flex-col gap-4">
-                                <div class="flex flex-col gap-2 sm:flex-row">
-                                    <Select
-                                        :model-value="null"
-                                        :options="unselectedInventoryOptions"
-                                        optionLabel="label"
-                                        optionValue="uniqueId"
-                                        :placeholder="$t('nesting.selectInventory')"
-                                        class="min-w-0 flex-1"
-                                        size="small"
-                                        @update:model-value="addInventoryItem"
-                                    >
-                                        <template #option="{ option }">
-                                            <div class="flex min-w-0 flex-col">
-                                                <span class="truncate">{{ option.label }}</span>
-                                                <small class="text-muted-color">{{ inventoryOptionMeta(option) }}</small>
-                                            </div>
-                                        </template>
-                                    </Select>
-                                    <FileUpload
-                                        mode="basic"
-                                        name="file"
-                                        url="/api/files/upload"
-                                        accept=".dxf"
-                                        :auto="true"
-                                        @upload="onCustomSheetUpload"
-                                        :chooseLabel="$t('nesting.customUpload')"
-                                        :choose-button-props="{ severity: 'secondary', text: true, size: 'small' }"
-                                    />
+                            <template v-if="queueState === 'DRAFT'">
+                                <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_12rem]">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <InputNumber v-model="nestingOptions.virtualWidth" :min="100" :placeholder="$t('nesting.width')" size="small" />
+                                        <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" size="small" />
+                                    </div>
+                                    <div class="rounded-ui border border-content-border bg-subtle px-3 py-2">
+                                        <small class="text-muted-color">{{ $t('nesting.virtualSheet') }}</small>
+                                        <div class="mt-1 font-semibold">{{ virtualSheetLabel }}</div>
+                                    </div>
                                 </div>
 
-                                <div v-if="nestingOptions.warehouseId" class="flex flex-col gap-2">
-                                    <div v-if="selectedInventory.length" class="flex min-w-0 gap-3 overflow-x-auto pb-1">
-                                        <QueueSourceCard
-                                            v-for="item in selectedInventory"
-                                            :key="item.uniqueId"
-                                            :source="item"
-                                            class="relative min-w-56 flex-[0_0_14rem] sm:flex-[0_0_15rem]"
-                                            @remove="removeInventoryItem(item.uniqueId)"
+                                <div v-else class="flex min-w-0 flex-col gap-3">
+                                    <div class="flex flex-col gap-2 sm:flex-row">
+                                        <Select
+                                            :model-value="null"
+                                            :options="unselectedInventoryOptions"
+                                            optionLabel="label"
+                                            optionValue="uniqueId"
+                                            :placeholder="$t('nesting.selectInventory')"
+                                            class="min-w-0 flex-1"
+                                            size="small"
+                                            @update:model-value="addInventoryItem"
+                                        >
+                                            <template #option="{ option }">
+                                                <div class="flex min-w-0 flex-col">
+                                                    <span class="truncate">{{ option.label }}</span>
+                                                    <small class="text-muted-color">{{ inventoryOptionMeta(option) }}</small>
+                                                </div>
+                                            </template>
+                                        </Select>
+                                        <FileUpload
+                                            mode="basic"
+                                            name="file"
+                                            url="/api/files/upload"
+                                            accept=".dxf"
+                                            :auto="true"
+                                            @upload="onCustomSheetUpload"
+                                            :chooseLabel="$t('nesting.customUpload')"
+                                            :choose-button-props="{ severity: 'secondary', text: true, size: 'small' }"
                                         />
                                     </div>
-                                    <small v-else class="text-muted-color">
-                                        {{ $t('nesting.selectInventory') }}
-                                    </small>
-                                    <Message v-if="selectedStockSizeConflict" severity="error">
-                                        {{ $t('nesting.mixedStockSize') }}
-                                    </Message>
+
+                                    <div v-if="nestingOptions.warehouseId" class="flex min-w-0 flex-col gap-2">
+                                        <div v-if="selectedInventory.length" class="flex min-w-0 gap-3 overflow-x-auto pb-1">
+                                            <QueueSourceCard
+                                                v-for="item in selectedInventory"
+                                                :key="item.uniqueId"
+                                                :source="item"
+                                                class="relative min-w-56 flex-[0_0_14rem] sm:flex-[0_0_15rem]"
+                                                @remove="removeInventoryItem(item.uniqueId)"
+                                            />
+                                        </div>
+                                        <small v-else class="text-muted-color">
+                                            {{ $t('nesting.selectInventory') }}
+                                        </small>
+                                    </div>
                                 </div>
-                            </div>
+                            </template>
+
+                            <StateBlock
+                                v-else
+                                :message="$t('nesting.lockedNote', { status: queueState })"
+                                icon="pi pi-lock"
+                            />
                         </div>
 
-                        <Message v-if="warehouseShortage" severity="error">
-                            <div>
-                                <p>{{ $t('nesting.shortageTitle') }}</p>
-                                <small>{{ $t('nesting.shortageNote', { needed: warehouseShortage.needed, available: warehouseShortage.available, missing: warehouseShortage.missing }) }}</small>
+                        <aside class="flex flex-col gap-2 rounded-ui border border-content-border bg-subtle p-3">
+                            <div v-for="fact in queueReadinessFacts" :key="fact.key" class="flex items-center justify-between gap-3">
+                                <small class="text-muted-color">{{ fact.label }}</small>
+                                <Tag :value="fact.value" :severity="fact.severity" size="small" />
                             </div>
-                        </Message>
+                            <Message v-if="selectedStockSizeConflict" severity="error">
+                                {{ $t('nesting.mixedStockSize') }}
+                            </Message>
+                            <Message v-if="warehouseShortage" severity="error">
+                                <div>
+                                    <p>{{ $t('nesting.shortageTitle') }}</p>
+                                    <small>{{ $t('nesting.shortageNote', { needed: warehouseShortage.needed, available: warehouseShortage.available, missing: warehouseShortage.missing }) }}</small>
+                                </div>
+                            </Message>
+                        </aside>
                     </div>
-                    <StateBlock
-                        v-else
-                        :message="$t('nesting.lockedNote', { status: queueState })"
-                        icon="pi pi-lock"
-                    />
-                </ScrollablePanel>
+                </section>
 
-                <ScrollablePanel :header="$t('queues.cassettes')" class="min-h-0 flex-1">
-                    <template #actions>
-                        <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text severity="secondary" size="small" />
-                        <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text severity="secondary" size="small" />
-                        <Button
-                            v-if="queueState === 'DRAFT'"
-                            :label="$t('queues.addFromTemplate')"
-                            icon="pi pi-plus"
-                            text
-                            severity="secondary"
-                            size="small"
-                            @click="showAddDialog = true"
-                        />
-                        <FileUpload
-                            v-if="queueState === 'DRAFT'"
-                            mode="basic"
-                            name="file"
-                            accept=".dxf"
-                            :auto="true"
-                            :customUpload="true"
-                            @select="onInstantUploadSelect"
-                            :chooseLabel="$t('queues.uploadCassette')"
-                            :choose-button-props="{ severity: 'secondary', text: true, size: 'small' }"
-                        />
-                    </template>
-                    <div class="flex flex-col gap-6">
+                <section class="flex min-h-0 flex-1 flex-col rounded-panel border border-content-border bg-content shadow-card">
+                    <div class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-content-border p-3">
+                        <div class="min-w-0">
+                            <h3 class="m-0 text-base font-semibold">{{ $t('queues.cassettes') }}</h3>
+                            <small class="text-muted-color">{{ totalEntryQuantity }} {{ $t('common.units') }}</small>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text severity="secondary" size="small" />
+                            <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text severity="secondary" size="small" />
+                            <Button
+                                v-if="queueState === 'DRAFT'"
+                                :label="$t('queues.addFromTemplate')"
+                                icon="pi pi-plus"
+                                text
+                                severity="secondary"
+                                size="small"
+                                @click="showAddDialog = true"
+                            />
+                            <FileUpload
+                                v-if="queueState === 'DRAFT'"
+                                mode="basic"
+                                name="file"
+                                accept=".dxf"
+                                :auto="true"
+                                :customUpload="true"
+                                @select="onInstantUploadSelect"
+                                :chooseLabel="$t('queues.uploadCassette')"
+                                :choose-button-props="{ severity: 'secondary', text: true, size: 'small' }"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="min-h-0 flex-1 overflow-y-auto p-4">
                         <ResponsiveGrid v-if="viewMode === 'grid'" variant="wide">
                             <template v-for="entry in entries" :key="entry?._key">
                                 <QueueEntryCard
@@ -284,22 +301,30 @@
                             </DataTable>
                         </TableFrame>
                     </div>
-                </ScrollablePanel>
+                </section>
 
-                <ScrollablePanel v-if="hasPhysicalOutputs" :header="`${$t('project.cassettes')} ${$t('cassetteInstance.instances')}`" class="flex-1">
+                <section v-if="hasPhysicalOutputs" class="shrink-0 rounded-panel border border-content-border bg-content p-3 shadow-card">
+                    <div class="mb-3 flex items-center justify-between gap-3">
+                        <h3 class="m-0 text-base font-semibold">{{ $t('project.cassettes') }} {{ $t('cassetteInstance.instances') }}</h3>
+                    </div>
                     <ResponsiveGrid>
-                        <CassetteInstanceCard 
-                            v-for="instance in instances" 
-                            :key="instance._id" 
+                        <CassetteInstanceCard
+                            v-for="instance in instances"
+                            :key="instance._id"
                             :instance="instance"
                             variant="compact"
                         />
                     </ResponsiveGrid>
-                </ScrollablePanel>
+                </section>
             </div>
+
             <template #right>
-                <Panel :header="`${$t('queue.runs')} (${queueRuns.length})`">
-                    <div v-if="queueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
+                <section class="flex min-h-0 min-w-0 flex-col rounded-panel border border-content-border bg-content p-3 shadow-card">
+                    <div class="mb-3 flex shrink-0 items-center justify-between gap-3">
+                        <h3 class="m-0 text-base font-semibold">{{ $t('queue.runs') }}</h3>
+                        <Tag :value="queueRuns.length" severity="secondary" size="small" />
+                    </div>
+                    <div v-if="queueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto">
                         <Select
                             :model-value="selectedRunId"
                             :options="runOptions"
@@ -325,7 +350,7 @@
                         />
                     </div>
                     <StateBlock v-else :message="$t('queue.nestingRuns')" icon="pi pi-list-check" />
-                </Panel>
+                </section>
             </template>
         </WorkspaceLanes>
 
@@ -364,7 +389,6 @@ import { useCassettesStore } from '~/stores/cassettes';
 import { useToolProfilesStore } from '~/stores/toolProfiles';
 import { useQueuesStore } from '~/stores/queues';
 import { storeToRefs } from 'pinia';
-import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -386,7 +410,6 @@ import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
-import ScrollablePanel from '~/components/shared/ScrollablePanel.vue';
 import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
@@ -581,6 +604,26 @@ const queueOverviewFacts = computed(() => [
     { key: 'quantity', label: t('queues.quantity'), value: totalEntryQuantity.value },
     { key: 'sources', label: t('nesting.materialSourcing'), value: materialSourceCount.value },
     { key: 'runs', label: t('queue.runs'), value: queueRuns.value.length }
+]);
+const queueReadinessFacts = computed(() => [
+    {
+        key: 'entries',
+        label: t('queues.cassettes'),
+        value: entries.value.length ? t('status.ready') : t('common.no'),
+        severity: entries.value.length ? 'success' : 'secondary'
+    },
+    {
+        key: 'material',
+        label: t('nesting.materialSourcing'),
+        value: materialSourceCount.value ? t('status.ready') : t('common.no'),
+        severity: materialSourceCount.value ? 'success' : 'secondary'
+    },
+    {
+        key: 'tool',
+        label: t('nesting.selectTool'),
+        value: nestingOptions.value.toolProfileId ? t('status.ready') : t('common.no'),
+        severity: nestingOptions.value.toolProfileId ? 'success' : 'secondary'
+    }
 ]);
 
 const newEntry = ref({
