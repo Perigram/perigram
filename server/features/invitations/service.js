@@ -59,7 +59,7 @@ export async function joinByCode(code, user) {
 async function processJoin(invitation, user) {
   if (invitation.expiresAt && new Date() > invitation.expiresAt) {
     // Log status as expired if we find it expired during access
-    await addStatus('invitations', invitation._id.toString(), 'system', 'expired', 'Detected expiration during access');
+    await addStatus('invitations', invitation._id.toString(), 'expired', 'SYSTEM', 'Detected expiration during access');
     throw createError({ statusCode: 410, message: 'Invitation expired' });
   }
 

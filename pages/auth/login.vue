@@ -23,15 +23,15 @@
 
             <div class="mt-6 text-center">
                 <span>{{ $t('auth.noAccount') }} </span>
-                <NuxtLink to="/auth/register">{{ $t('auth.signup') }}</NuxtLink>
+                <NuxtLink :to="registerTarget">{{ $t('auth.signup') }}</NuxtLink>
             </div>
         </Panel>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from 'primevue/usetoast';
@@ -45,6 +45,7 @@ definePageMeta({
 });
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 const toast = useToast();
 const { t } = useI18n();
@@ -52,16 +53,31 @@ const { t } = useI18n();
 const email = ref('');
 const password = ref('');
 const loading = ref(false);
+const redirectPath = computed(() => normalizeRedirect(route.query.redirect));
+const registerTarget = computed(() => ({
+    path: '/auth/register',
+    query: {
+        ...(redirectPath.value ? { redirect: redirectPath.value } : {}),
+        ...(route.query.invitation ? { invitation: route.query.invitation } : {})
+    }
+}));
 
 const handleLogin = async () => {
     loading.value = true;
     try {
         await authStore.login(email.value, password.value);
-        router.push('/');
+        router.push(redirectPath.value || '/');
     } catch (error) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: error.message || t('auth.loginFailed'), life: 3000 });
     } finally {
         loading.value = false;
     }
 };
+
+function normalizeRedirect(value) {
+    const candidate = Array.isArray(value) ? value[0] : value;
+    return typeof candidate === 'string' && candidate.startsWith('/') && !candidate.startsWith('//')
+        ? candidate
+        : '';
+}
 </script>

@@ -1367,6 +1367,8 @@
     "invitedToJoin": "You are invited to join",
     "joinOrganization": "Join Organization",
     "loginToJoin": "Login to Join",
+    "registerToJoin": "Register to Join",
+    "invitationSignupNote": "Create your account first, then sign in to accept this invitation.",
     "loginRequiredForInvitation": "You need to be logged in to accept this invitation.",
     "organizationJoined": "You have joined the organization",
     "loginFailed": "Login failed"

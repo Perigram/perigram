@@ -41,7 +41,15 @@
                             :label="$t('auth.loginToJoin')"
                             icon="pi pi-sign-in" 
                             class="w-full" 
-                            @click="navigateTo('/')" 
+                            @click="navigateTo(loginTarget)" 
+                        />
+                        <Button 
+                            :label="$t('auth.registerToJoin')"
+                            icon="pi pi-user-plus" 
+                            severity="secondary"
+                            outlined
+                            class="w-full" 
+                            @click="navigateTo(registerTarget)" 
                         />
                         <p class="text-center">
                             <small>{{ $t('auth.loginRequiredForInvitation') }}</small>
@@ -62,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
@@ -70,6 +78,7 @@ import { useAuthStore } from '~/stores/auth';
 import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
+import Tag from 'primevue/tag';
 import StateBlock from '~/components/shared/StateBlock.vue';
 
 definePageMeta({
@@ -86,6 +95,14 @@ const invitation = ref(null);
 const loading = ref(true);
 const error = ref(null);
 const joining = ref(false);
+const loginTarget = computed(() => ({
+    path: '/auth/login',
+    query: { redirect: route.fullPath }
+}));
+const registerTarget = computed(() => ({
+    path: '/auth/register',
+    query: { invitation: token, redirect: route.fullPath }
+}));
 
 const fetchInvitation = async () => {
     loading.value = true;

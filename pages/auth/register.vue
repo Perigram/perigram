@@ -23,12 +23,16 @@
                     <Password id="password" v-model="form.password" toggleMask class="w-full" inputClass="w-full" required />
                 </div>
 
-                <div class="flex flex-col gap-1">
+                <div v-if="invitationToken" class="flex flex-col gap-2">
+                    <Message severity="info">{{ $t('auth.invitationSignupNote') }}</Message>
+                </div>
+
+                <div v-if="!invitationToken" class="flex flex-col gap-1">
                     <label for="organization-name">{{ $t('auth.organizationName') }}</label>
                     <InputText id="organization-name" v-model="form.organizationName" class="w-full" required />
                 </div>
 
-                <div class="flex flex-col gap-1">
+                <div v-if="!invitationToken" class="flex flex-col gap-1">
                     <label for="organization-type">{{ $t('auth.organizationType') }}</label>
                     <Select 
                         id="organization-type"
@@ -45,7 +49,7 @@
 
             <div class="mt-6 text-center">
                 <span>{{ $t('auth.hasAccount') }} </span>
-                <NuxtLink to="/auth/login">{{ $t('auth.login') }}</NuxtLink>
+                <NuxtLink :to="loginTarget">{{ $t('auth.login') }}</NuxtLink>
             </div>
         </Panel>
     </div>
@@ -53,7 +57,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
@@ -62,12 +66,14 @@ import Password from 'primevue/password';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
 import Panel from 'primevue/panel';
+import Message from 'primevue/message';
 
 definePageMeta({
     layout: 'empty'
 });
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 const toast = useToast();
 const { t } = useI18n();
@@ -81,6 +87,18 @@ const form = ref({
 });
 
 const loading = ref(false);
+const invitationToken = computed(() => {
+    const value = route.query.invitation;
+    return Array.isArray(value) ? value[0] : value || '';
+});
+const redirectPath = computed(() => normalizeRedirect(route.query.redirect));
+const loginTarget = computed(() => ({
+    path: '/auth/login',
+    query: {
+        ...(redirectPath.value ? { redirect: redirectPath.value } : {}),
+        ...(invitationToken.value ? { invitation: invitationToken.value } : {})
+    }
+}));
 const orgTypeOptions = computed(() => ([
     { label: t('auth.orgTypes.manufacturer'), value: 'Manufacturer' },
     { label: t('auth.orgTypes.contractor'), value: 'Contractor' },
@@ -90,13 +108,27 @@ const orgTypeOptions = computed(() => ([
 const handleRegister = async () => {
     loading.value = true;
     try {
-        await authStore.register(form.value);
+        const payload = invitationToken.value
+            ? {
+                name: form.value.name,
+                email: form.value.email,
+                password: form.value.password
+            }
+            : form.value;
+        await authStore.register(payload);
         toast.add({ severity: 'success', summary: t('auth.welcome'), detail: t('auth.accountCreatedSuccessfully'), life: 3000 });
-        router.push('/auth/login');
+        router.push(loginTarget.value);
     } catch (error) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: error.message || t('auth.registrationFailed'), life: 3000 });
     } finally {
         loading.value = false;
     }
 };
+
+function normalizeRedirect(value) {
+    const candidate = Array.isArray(value) ? value[0] : value;
+    return typeof candidate === 'string' && candidate.startsWith('/') && !candidate.startsWith('//')
+        ? candidate
+        : '';
+}
 </script>
