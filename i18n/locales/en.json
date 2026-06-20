@@ -1740,7 +1740,21 @@
     "allowed": "Allowed",
     "rejected": "Rejected",
     "policyReason": "Declared in field-access policy",
-    "missingPolicyReason": "No matching field-access policy"
+    "missingPolicyReason": "No matching field-access policy",
+    "runNesting": "Run nesting",
+    "addQueue": "Add queue",
+    "exportPack": "Export pack",
+    "queues": "Queues",
+    "productionBoard": "Production board",
+    "contractSurface": "Contract surface",
+    "appComposition": "App composition",
+    "selectedQueue": "Selected queue",
+    "guardrails": "Guardrails",
+    "runs": "Runs",
+    "sheetOutputs": "Sheet outputs",
+    "projectFacts": "Project facts",
+    "materialSources": "Material sources",
+    "surfaceRange": "Surface range"
   },
   "entities": {
     "project": "Project",

@@ -1740,7 +1740,21 @@
     "allowed": "Разрешено",
     "rejected": "Отклонено",
     "policyReason": "Объявлено в политике field-access",
-    "missingPolicyReason": "Нет подходящей политики field-access"
+    "missingPolicyReason": "Нет подходящей политики field-access",
+    "runNesting": "Запустить раскрой",
+    "addQueue": "Добавить очередь",
+    "exportPack": "Экспортировать пакет",
+    "queues": "Очереди",
+    "productionBoard": "Производственная доска",
+    "contractSurface": "Контрактная поверхность",
+    "appComposition": "Композиция приложения",
+    "selectedQueue": "Выбранная очередь",
+    "guardrails": "Ограничения",
+    "runs": "Запуски",
+    "sheetOutputs": "Выходные листы",
+    "projectFacts": "Данные проекта",
+    "materialSources": "Источники материала",
+    "surfaceRange": "Диапазон поверхностей"
   },
   "entities": {
     "project": "Проект",
