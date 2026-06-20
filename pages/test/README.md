@@ -27,6 +27,15 @@ UI Lab seeds the entity store with demo lineage labels before rendering so `Trac
 
 `components/VariantShowcase.vue` is a compact matrix route for checking every manifest entity across all card variants in a table layout. It uses the same manifest and factories as UI lab.
 
+## UI Constructor Demo
+
+`ui-constructor.vue` demonstrates the contract-driven entity UI constructor. It
+renders a core queue surface, an app-local field-group extension, a tight
+surface override, and a strictness table that compares allowed field-access
+paths with rejected paths. The page is intentionally arbitrary: it exists to
+show the design library's flexibility and guardrails rather than to model a
+production workflow.
+
 ## Related
 
 - [components](../../components/README.md) - frontend component contract
