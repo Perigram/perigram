@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Remove storage-field leakage from permission filters
+     Files changed: components/PermissionEditor.vue, i18n/locales/en.json,
+       i18n/locales/ru.json, components/README.md, TODO.org
+     Docs updated: components/README.md, TODO.org
+     Notes: Changed the permission filter row from a raw composed fact selector
+       (`Project ID`, `Queue ID`, `transition.to`) to a target + trait grammar:
+       users now choose target (`entity`, `project`, `queue`, `warehouse`,
+       `transition`, or custom path), trait (`id`, `type`, `status`, `from`,
+       `to`, or `path`), operator, and value. Removed clause summary bubbles
+       from the builder/list and kept summaries as plain text so storage-field
+       implementation details do not dominate the editor.
+
      [2026-06-20] Make permission grant creation state explicit
      Files changed: components/PermissionEditor.vue, i18n/locales/en.json,
        i18n/locales/ru.json, components/README.md, TODO.org
