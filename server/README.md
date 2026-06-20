@@ -48,13 +48,17 @@ configured aliases such as `#utils/...`, not relative paths that climb out of
 
 ## Access Context
 
-Server access checks delegate to `shared/access-control.js`. Entity lineage IDs
-are always available from the checked entity, but lineage entity trait rules
-such as `lineage.project.status.primary` require resolved ancestors in the
-access context. Command access passes its related `entities` map as
-`context.lineageEntities`; services that need ancestor status/type based access
-must pass the relevant ancestor DTOs instead of expecting the evaluator to load
-them implicitly.
+Server access checks delegate to `shared/access-control.js`. Entity read,
+write, and admin checks must pass the loaded entity DTO/model to
+`hasLineagePermission()` or `hasEntityAccess()` whenever the entity is already
+available. Passing only `entity.lineage` is allowed only before the target
+entity exists or when the check intentionally supports lineage-id predicates
+only; status, entity-id, and property predicates need the full entity. Lineage
+entity trait rules such as `lineage.project.status.primary` require resolved
+ancestors in the access context. Command access passes its related `entities`
+map as `context.lineageEntities`; services that need ancestor status/type based
+access must pass the relevant ancestor DTOs instead of expecting the evaluator
+to load them implicitly.
 
 ## Required Checks
 
