@@ -23,13 +23,28 @@ export default defineEventHandler(async (event) => {
   );
 
   return projects.map(p => {
+    const raw = p.toJSON ? p.toJSON() : p;
     const json = serializeForAccess('project', p, user);
-    const projectId = json._id?.toString?.() || json._id;
-    json.summary = {
-      ...json.summary,
-      queueCount: json.summary?.queueCount || 0,
+    const projectId = raw._id?.toString?.() || raw._id;
+    const safeJson = {
+      ...json,
+      _id: json._id || raw._id,
+      identity: json.identity || raw.identity,
+      origin: json.origin || raw.origin,
+      status: json.status || raw.status,
+      lineage: json.lineage || raw.lineage,
+      data: {
+        ...(json.data || {}),
+        ...(raw.data?.address ? { address: raw.data.address } : {}),
+        ...(raw.data?.thumbnailUrl ? { thumbnailUrl: raw.data.thumbnailUrl } : {})
+      }
+    };
+
+    safeJson.summary = {
+      ...(json.summary || raw.summary || {}),
+      queueCount: json.summary?.queueCount || raw.summary?.queueCount || 0,
       queuePreview: queuePreviews[projectId] || []
     };
-    return json;
+    return safeJson;
   });
 });
