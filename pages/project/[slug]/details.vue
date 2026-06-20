@@ -1,40 +1,41 @@
 <template>
-    <div v-if="project" class="flex flex-col gap-6">
-        <ActionToolbar :title="$t('common.details')" :subtitle="project.identity?.slug">
-            <template #actions>
-                <NameEditPopover
-                    v-if="authStore.can('projects', 'edit')"
-                    :model-value="project.identity?.name || ''"
-                    :label="$t('project.name')"
-                    :placeholder="$t('projects.enterName')"
-                    :saving="savingProject"
-                    :aria-label="$t('project.rename')"
-                    @save="saveProject"
-                />
-                <Button icon="pi pi-refresh" text rounded :aria-label="$t('common.update')" @click="loadProject" />
-            </template>
-        </ActionToolbar>
+    <EntityPage
+        v-if="project"
+        :entity="project"
+        entity-type="project"
+        @refresh="loadProject"
+    >
+        <template #info>
+            <span v-if="project.identity?.slug">{{ project.identity.slug }}</span>
+        </template>
+        <template #actions>
+            <NameEditPopover
+                v-if="authStore.can('projects', 'edit')"
+                :model-value="project.identity?.name || ''"
+                :label="$t('project.name')"
+                :placeholder="$t('projects.enterName')"
+                :saving="savingProject"
+                :aria-label="$t('project.rename')"
+                @save="saveProject"
+            />
+            <Button icon="pi pi-refresh" text rounded :aria-label="$t('common.update')" @click="loadProject" />
+        </template>
 
-        <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
-            <Panel :header="$t('project.data')">
-                <DataBlock entity-type="project" :entity="project" :fields="PROJECT_DETAIL_FIELDS" />
-            </Panel>
+        <Panel :header="$t('project.data')">
+            <EntitySurfaceContent
+                :entity="project"
+                entity-type="project"
+                surface="detail"
+                :display-extensions="appEntityDisplayExtensions"
+            />
+        </Panel>
 
-            <Panel :header="$t('status.status')">
-                <div class="flex flex-col gap-4">
-                    <EntityStatus
-                        :entity="project"
-                        entity-type="project"
-                        variant="inline"
-                        :show-history="false"
-                        @refresh="loadProject"
-                        @transitioned="loadProject"
-                    />
-                    <StatusHistory :entity="project" entity-type="project" compact />
-                </div>
+        <template #sidebar>
+            <Panel :header="$t('project.lifecycle')">
+                <StatusHistory :entity="project" entity-type="project" compact />
             </Panel>
-        </div>
-    </div>
+        </template>
+    </EntityPage>
     <StateBlock v-else state="loading" :message="$t('common.loading')" />
 </template>
 
@@ -43,22 +44,14 @@ import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
-import ActionToolbar from '~/components/shared/ActionToolbar.vue';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import EntityPage from '~/components/shared/EntityPage.vue';
+import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import NameEditPopover from '~/components/shared/NameEditPopover.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useEntity } from '~/composables/useEntity';
-
-const PROJECT_DETAIL_FIELDS = [
-    { path: 'data.address', i18n: 'project.address' },
-    { path: 'summary.queueCount', i18n: 'project.queues' },
-    { path: 'summary.totalArea', i18n: 'project.totalArea', suffix: ' m²' },
-    { path: 'origin.timestamp', i18n: 'common.created' },
-    { path: 'updatedAt', i18n: 'common.lastUpdated' }
-];
+import { appEntityDisplayExtensions } from '~/utils/app-entity-surfaces.js';
 
 const route = useRoute();
 const authStore = useAuthStore();

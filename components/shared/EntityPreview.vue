@@ -5,6 +5,12 @@
       :cassette="entity"
       :cassette-id="cassetteId"
     />
+    <img
+      v-else-if="mode === 'thumbnail' && thumbnailUrl"
+      :src="thumbnailUrl"
+      :alt="entity.identity?.name || entity.identity?.uid || ''"
+      class="h-32 w-full rounded-ui object-cover"
+    />
     <GeometryPreview
       v-else-if="mode === 'hero' || mode === 'canvas'"
       :entity="entity"
@@ -27,4 +33,10 @@ const isCassetteLike = computed(() =>
   ['cassette', 'cassette_template', 'cassette_design', 'cassette_instance'].includes(props.entityType)
 );
 const cassetteId = computed(() => props.entity?.data?.cassetteDesignId || props.entity?._id);
+const thumbnailUrl = computed(() =>
+  props.entity?.data?.thumbnailUrl ||
+  props.entity?.attachments?.thumbnail?.url ||
+  props.entity?.attachments?.primary?.thumbnailUrl ||
+  ''
+);
 </script>

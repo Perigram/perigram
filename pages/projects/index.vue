@@ -34,29 +34,17 @@
 
             <StateBlock v-if="filteredProjects.length === 0" :message="$t('common.noResults')" icon="pi pi-search" />
 
-            <DataView
-                v-else
-                :value="filteredProjects"
-                layout="grid"
-                :paginator="filteredProjects.length > 12"
-                :rows="12"
-                dataKey="_id"
-                :loading="loading"
-            >
-                <template #grid="slotProps">
-                    <div class="grid grid-cols-1 gap-4">
-                        <ProjectIndexCard
-                            v-for="project in slotProps.items"
-                            :key="project._id"
-                            :project="project"
-                            :renaming="renamingProjectId === project._id"
-                            @view="navigateToProject"
-                            @rename="renameProject"
-                            @delete="confirmDeleteProject"
-                        />
-                    </div>
-                </template>
-            </DataView>
+            <ResponsiveGrid v-else variant="wide">
+                <ProjectIndexCard
+                    v-for="project in filteredProjects"
+                    :key="project._id"
+                    :project="project"
+                    :renaming="renamingProjectId === project._id"
+                    @view="navigateToProject"
+                    @rename="renameProject"
+                    @delete="confirmDeleteProject"
+                />
+            </ResponsiveGrid>
         </div>
 
         <!-- Create/Edit Project Dialog -->
@@ -97,12 +85,12 @@
 
 <script setup>
     import { ref, computed, onMounted } from 'vue'
-    import DataView from 'primevue/dataview'
     import Button from 'primevue/button'
     import InputText from 'primevue/inputtext'
     import Select from 'primevue/select'
     import ConfirmDialog from 'primevue/confirmdialog'
     import ProjectIndexCard from '~/components/entities/Project/ProjectIndexCard.vue'
+    import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue'
     import StandardDialog from '~/components/shared/StandardDialog.vue'
     import StandardPage from '~/components/shared/StandardPage.vue'
     import StateBlock from '~/components/shared/StateBlock.vue'

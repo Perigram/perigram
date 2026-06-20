@@ -52,32 +52,14 @@
           class="w-full"
         />
       </div>
-      <div class="flex min-w-0 flex-wrap items-center gap-2">
-        <Tag v-if="selectedWarehouse?.data?.type" :value="selectedWarehouse.data.type" severity="secondary" size="small" />
-        <Tag
-          :value="`${warehouseStats.totalBatches} ${$t('warehouse.storedBatches')}`"
-          severity="secondary"
-          size="small"
+      <div class="min-w-0 rounded-ui border border-content-border bg-content p-3">
+        <EntitySurfaceContent
+          v-if="selectedWarehouseWithStats"
+          :entity="selectedWarehouseWithStats"
+          entity-type="warehouse"
+          surface="workspace"
+          :display-extensions="appEntityDisplayExtensions"
         />
-        <Tag
-          :value="`${warehouseStats.totalSheets} ${$t('warehouse.availableSheets')}`"
-          severity="info"
-          size="small"
-        />
-        <Tag
-          :value="`${warehouseStats.totalRemnants} ${$t('warehouse.remnants')}`"
-          severity="secondary"
-          size="small"
-        />
-        <Tag
-          :value="`${warehouseStats.totalCassetteInstances} ${$t('warehouse.cassetteInstances')}`"
-          severity="secondary"
-          size="small"
-        />
-        <small v-if="selectedWarehouse?.data?.address" class="min-w-0 truncate text-muted-color">
-          <i class="pi pi-map-marker"></i>
-          {{ selectedWarehouse.data.address }}
-        </small>
       </div>
     </div>
 
@@ -241,7 +223,6 @@ import Select from 'primevue/select';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Message from 'primevue/message';
-import Tag from 'primevue/tag';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -255,8 +236,10 @@ import CassetteInstancesTab from './CassetteInstancesTab.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import { useEntity } from '~/composables/useEntity';
 import { entitySelectLabel, entitySelectValue, namedSelectOptions } from '~/utils/selectOptions';
+import { appEntityDisplayExtensions } from '~/utils/app-entity-surfaces.js';
 
 const authStore = useAuthStore();
 const toast = useToast();
@@ -313,6 +296,18 @@ const catalogOptions = computed(() => namedSelectOptions(catalogs.value, 'Catalo
 const colorOptions = computed(() => namedSelectOptions(colors.value, 'Color'));
 const selectedWarehouse = computed(() => warehouses.value.find(w => entitySelectValue(w) === selectedWarehouseId.value));
 const selectedWarehouseLabel = computed(() => selectedWarehouse.value ? entitySelectLabel(selectedWarehouse.value, 'Warehouse') : '');
+const selectedWarehouseWithStats = computed(() => selectedWarehouse.value
+  ? {
+      ...selectedWarehouse.value,
+      data: {
+        ...(selectedWarehouse.value.data || {}),
+        stats: {
+          ...(selectedWarehouse.value.data?.stats || {}),
+          ...warehouseStats.value
+        }
+      }
+    }
+  : null);
 const selectedCatalog = computed(() => catalogs.value.find(catalog => entitySelectValue(catalog) === pileForm.value.catalogId));
 const selectedColor = computed(() => colors.value.find(color => entitySelectValue(color) === pileForm.value.colorId));
 

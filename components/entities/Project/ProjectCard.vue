@@ -6,15 +6,12 @@ import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import EntityCard from '~/components/shared/EntityCard.vue';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import NameEditPopover from '~/components/shared/NameEditPopover.vue';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
-
-const PROJECT_SUMMARY_FIELDS = resolveEntityDisplayFields({ entityType: 'project', surface: 'card' });
+import { appEntityDisplayExtensions } from '~/utils/app-entity-surfaces.js';
 
 const props = defineProps({
   project: { type: Object, required: true },
@@ -24,7 +21,6 @@ const props = defineProps({
 
 const emit = defineEmits(['view', 'rename', 'delete']);
 const authStore = useAuthStore();
-const { t } = useI18n();
 
 const handleCardClick = (event) => {
     if (isInteractiveEventTarget(event)) return;
@@ -38,10 +34,13 @@ const totalArea = computed(() => props.project.summary?.totalArea || 0);
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <EntityCard :entity="project" entity-type="project" :variant="variant">
-      <template #header v-if="variant === 'card' && project.data?.thumbnailUrl">
-        <img :src="project.data.thumbnailUrl" :alt="project.identity?.name" class="h-32 w-full object-cover" />
-      </template>
+    <EntityCard
+      :entity="project"
+      entity-type="project"
+      :surface="variant === 'card' ? 'workspace' : variant"
+      :variant="variant"
+      :display-extensions="appEntityDisplayExtensions"
+    >
       <template #before-identity>
         <i class="pi pi-folder"></i>
       </template>
@@ -56,11 +55,12 @@ const totalArea = computed(() => props.project.summary?.totalArea || 0);
       </template>
       <div class="flex flex-col gap-3">
         <Divider />
-        <div v-if="project.data?.address" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('project.address') }}</small>
-          <span class="font-medium text-right">{{ project.data.address }}</span>
-        </div>
-        <DataBlock entity-type="project" :entity="project" :fields="PROJECT_SUMMARY_FIELDS" />
+        <EntitySurfaceContent
+          :entity="project"
+          entity-type="project"
+          surface="workspace"
+          :display-extensions="appEntityDisplayExtensions"
+        />
       </div>
 
       <template #footer v-if="variant === 'card'">
