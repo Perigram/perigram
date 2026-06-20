@@ -4,6 +4,25 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Audit access model and repair invitation auth handoff
+     Files changed: pages/invitation/[token].vue, pages/auth/login.vue,
+       pages/auth/register.vue, server/features/invitations/service.js,
+       i18n/locales/en.json, i18n/locales/ru.json, pages/README.md,
+       server/api/README.md, server/features/invitations/README.md,
+       server/features/users/README.md, TODO.org
+     Docs updated: pages/README.md, server/api/README.md,
+       server/features/invitations/README.md,
+       server/features/users/README.md, TODO.org
+     Notes: Verified that the access model uses the shared
+       `shared/access-control.js` evaluator for scoped grants, action
+       overrides, transition scopes, and nested rule gates. Team management
+       already composes those grant shapes through `PermissionEditor`. Fixed
+       the invitation flow so anonymous invitees can log in or register and
+       return to the invitation token; invite registration no longer asks for
+       organization details. Corrected the expired-invitation status event
+       actor/status argument order and added the missing invitation-page Tag
+       import.
+
      [2026-06-18] Make profile sketch editing responsive
      Files changed: components/ProfileSketchEditor.vue,
        i18n/locales/en.json, i18n/locales/ru.json, TODO.org

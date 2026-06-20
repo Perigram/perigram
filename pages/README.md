@@ -53,9 +53,14 @@ shell to avoid nested detail headers.
 Public auth/invitation pages may use full-height shells because they run
 outside the app layout, but their content chrome should still come from
 PrimeVue/shared primitives instead of raw bordered containers.
-`pages/auth/register.vue` is a public signup form: it collects the new user's
-credentials plus organization name/type and submits them to `/api/auth/register`.
-It must not list or create organizations through authenticated entity APIs.
+`pages/auth/register.vue` is a public signup form. Normal signup collects the
+new user's credentials plus organization name/type and submits them to
+`/api/auth/register`; invitation signup is selected by the `invitation` query
+parameter and collects only account credentials. Login and registration preserve
+a safe same-origin `redirect` query, so `/invitation/:token` can send anonymous
+users through auth and back to the invitation without asking the inviter for an
+email address. The register page must not list or create organizations through
+authenticated entity APIs.
 
 Asset management routes under `pages/assets/` consume canonical v24 DTOs. Pen
 template screens must read `identity.name` for labels and `data.stroke` for

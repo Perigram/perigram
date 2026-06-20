@@ -38,10 +38,13 @@ Inherits all `BaseEntity` fields.
 `organizationName` is supplied, creates the first organization through the
 organizations service. The new user receives an active membership, lineage
 organization, a legacy compatibility label, and copied permission grants for
-the selected organization type. `recoverSignupWithoutOrganization()` is the
-narrow recovery path for pre-fix accounts that have a password hash but no
-organization membership; it verifies the submitted password before the
-register route can attach the first organization.
+the selected organization type. Invitation signup intentionally omits
+organization fields: the account is created without a membership, then the user
+logs in and accepts `/invitation/:token` to create a pending membership for the
+inviting organization. `recoverSignupWithoutOrganization()` is the narrow
+recovery path for pre-fix accounts that have a password hash but no organization
+membership; it verifies the submitted password before the register route can
+attach the first organization.
 
 ## Persistence Notes
 - `User.toJSON()` strips `data.passwordHash` and is safe for API responses.

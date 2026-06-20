@@ -7,8 +7,18 @@ Manages organization membership invitations.
 - `service.js`: Invitation generation and processing.
 
 ## Workflows
-1. **Generate**: Create a unique token and short code for organization joining.
-2. **Join**: User accepts invitation via token or code, creating a pending membership.
+1. **Generate**: An organization user with `users` access creates a unique
+   token and short code for organization joining. The team-management UI shows
+   the generated `/invitation/:token` link for copying; invitations are not
+   addressed to a specific email.
+2. **Authenticate**: Anonymous invitees use the link to log in or register.
+   Registration from an invitation creates only the user account and preserves
+   the redirect back to the invitation instead of asking for organization
+   details.
+3. **Join**: The authenticated user accepts the invitation via token or code,
+   creating a pending membership with permissions materialized from the
+   invitation role. Organization admins approve or reject the pending
+   membership from team management.
 
 ## API / Functions
 - `generateInvitation()`: Creates new invitation.
