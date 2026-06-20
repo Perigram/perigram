@@ -105,103 +105,107 @@
                                 </div>
                             </Panel>
 
-                            <Panel :header="$t('auth.permissionTraitFilters')">
+                            <Panel :header="$t('auth.permissionFilterBuilder')">
                                 <p class="m-0 mb-3 text-sm text-muted-color">
-                                    {{ $t('auth.permissionTraitFiltersHelp') }}
-                                </p>
-                                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                    <div
-                                        v-for="scope in scopeFields"
-                                        :key="scope.key"
-                                        class="flex min-w-0 flex-col gap-1"
-                                    >
-                                        <label>{{ scope.label }}</label>
-                                        <InputText
-                                            :model-value="scopeValue(selectedGrant, scope.key)"
-                                            :placeholder="$t('auth.permissionCommaSeparated')"
-                                            @update:model-value="value => setScopeValue(scope.key, value)"
-                                        />
-                                    </div>
-                                </div>
-                            </Panel>
-
-                            <Panel :header="$t('auth.permissionTransitionFilters')">
-                                <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-                                    <InputText v-model="transitionDraft.from" :placeholder="$t('auth.transitionFrom')" />
-                                    <InputText v-model="transitionDraft.to" :placeholder="$t('auth.transitionTo')" />
-                                    <Button icon="pi pi-plus" :label="$t('common.add')" size="small" outlined @click="addTransitionScope" />
-                                </div>
-                                <div class="mt-3 flex flex-wrap gap-2">
-                                    <span
-                                        v-for="(transition, index) in grantTransitions(selectedGrant)"
-                                        :key="`${transition.from || '*'}-${transition.to || '*'}-${index}`"
-                                        class="inline-flex items-center gap-1"
-                                    >
-                                        <Tag :value="transitionLabel(transition)" severity="secondary" size="small" />
-                                        <Button icon="pi pi-times" text rounded size="small" :aria-label="$t('common.delete')" @click="removeTransitionScope(index)" />
-                                    </span>
-                                </div>
-                            </Panel>
-
-                            <Panel :header="$t('auth.permissionLogicRules')">
-                                <p class="m-0 mb-3 text-sm text-muted-color">
-                                    {{ $t('auth.permissionLogicRulesHelp') }}
+                                    {{ $t('auth.permissionFilterBuilderHelp') }}
                                 </p>
                                 <div class="flex flex-col gap-3">
                                     <div class="grid grid-cols-1 gap-3 md:grid-cols-[12rem_minmax(0,1fr)] md:items-end">
                                         <div class="flex flex-col gap-1">
                                             <label>{{ $t('auth.permissionMatch') }}</label>
                                             <Select
-                                                :model-value="ruleGate(selectedGrant)"
+                                                :model-value="filterGate(selectedGrant)"
                                                 :options="gateOptions"
                                                 option-label="label"
                                                 option-value="value"
-                                                @update:model-value="setRuleGate"
+                                                @update:model-value="setFilterGate"
                                             />
                                         </div>
                                         <div class="flex flex-wrap gap-2">
-                                            <span
-                                                v-for="(condition, index) in ruleConditions(selectedGrant)"
-                                                :key="`${condition.fact}-${index}`"
-                                                class="inline-flex items-center gap-1"
-                                            >
-                                                <Tag :value="conditionLabel(condition)" severity="info" size="small" />
-                                                <Button icon="pi pi-times" text rounded size="small" :aria-label="$t('common.delete')" @click="removeCondition(index)" />
-                                            </span>
                                             <Tag
-                                                v-if="ruleConditions(selectedGrant).length === 0"
-                                                :value="$t('auth.permissionNoLogicRules')"
+                                                v-if="filterClauses(selectedGrant).length === 0"
+                                                :value="$t('auth.permissionNoFilters')"
                                                 severity="secondary"
+                                                size="small"
+                                            />
+                                            <Tag
+                                                v-for="(clause, index) in filterClauses(selectedGrant)"
+                                                :key="`${clause.fact}-${clause.field || ''}-${index}`"
+                                                :value="clauseLabel(clause)"
+                                                severity="info"
                                                 size="small"
                                             />
                                         </div>
                                     </div>
 
-                                    <div class="grid grid-cols-1 gap-2 xl:grid-cols-[12rem_10rem_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                                    <div class="flex flex-col gap-2">
+                                        <div
+                                            v-for="(clause, index) in filterClauses(selectedGrant)"
+                                            :key="`${clause.fact}-${clause.field || ''}-${index}`"
+                                            class="grid grid-cols-1 gap-2 rounded-ui border border-content-border p-3 xl:grid-cols-[14rem_10rem_minmax(0,1fr)_minmax(0,1fr)_auto]"
+                                        >
+                                            <Select
+                                                :model-value="clause.fact"
+                                                :options="filterFactOptions"
+                                                option-label="label"
+                                                option-value="value"
+                                                @update:model-value="value => updateFilterClause(index, { fact: value, field: '' })"
+                                            />
+                                            <Select
+                                                :model-value="clause.operator"
+                                                :options="conditionOperatorOptions"
+                                                option-label="label"
+                                                option-value="value"
+                                                @update:model-value="value => updateFilterClause(index, { operator: value })"
+                                            />
+                                            <InputText
+                                                v-if="clause.fact === 'field'"
+                                                :model-value="clause.field"
+                                                :placeholder="$t('auth.permissionFieldPath')"
+                                                @update:model-value="value => updateFilterClause(index, { field: value })"
+                                            />
+                                            <InputText
+                                                v-else
+                                                :model-value="conditionFactLabel(clause.fact)"
+                                                disabled
+                                            />
+                                            <InputText
+                                                :model-value="clause.value"
+                                                :placeholder="clause.operator === 'exists' ? $t('auth.permissionBooleanValue') : $t('auth.permissionConditionValue')"
+                                                @update:model-value="value => updateFilterClause(index, { value })"
+                                            />
+                                            <Button icon="pi pi-trash" severity="danger" text rounded :aria-label="$t('common.delete')" @click="removeFilterClause(index)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 gap-2 border-t pt-3 xl:grid-cols-[14rem_10rem_minmax(0,1fr)_minmax(0,1fr)_auto]">
                                         <Select
-                                            v-model="conditionDraft.fact"
-                                            :options="conditionFactOptions"
+                                            v-model="filterDraft.fact"
+                                            :options="filterFactOptions"
                                             option-label="label"
                                             option-value="value"
                                         />
                                         <Select
-                                            v-model="conditionDraft.operator"
+                                            v-model="filterDraft.operator"
                                             :options="conditionOperatorOptions"
                                             option-label="label"
                                             option-value="value"
                                         />
                                         <InputText
-                                            v-if="conditionDraft.fact === 'field'"
-                                            v-model="conditionDraft.field"
+                                            v-if="filterDraft.fact === 'field'"
+                                            v-model="filterDraft.field"
                                             :placeholder="$t('auth.permissionFieldPath')"
                                         />
                                         <InputText
                                             v-else
-                                            :model-value="conditionFactLabel(conditionDraft.fact)"
+                                            :model-value="conditionFactLabel(filterDraft.fact)"
                                             disabled
                                         />
-                                        <InputText v-model="conditionDraft.value" :placeholder="$t('auth.permissionConditionValue')" />
-                                        <Button icon="pi pi-plus" :label="$t('common.add')" size="small" outlined @click="addCondition" />
+                                        <InputText
+                                            v-model="filterDraft.value"
+                                            :placeholder="filterDraft.operator === 'exists' ? $t('auth.permissionBooleanValue') : $t('auth.permissionConditionValue')"
+                                        />
+                                        <Button icon="pi pi-plus" :label="$t('auth.addFilterClause')" size="small" outlined @click="addFilterClause" />
                                     </div>
                                 </div>
                             </Panel>
@@ -256,8 +260,7 @@ const selectedFeatureKey = ref('projects');
 const selectedGrantIndex = ref(0);
 const selectedGrantJson = ref('');
 const selectedGrantError = ref('');
-const transitionDraft = ref({ from: '', to: '' });
-const conditionDraft = ref({ fact: 'lineage.projectId', operator: 'equals', field: '', value: '' });
+const filterDraft = ref({ fact: 'lineage.projectId', operator: 'equals', field: '', value: '' });
 
 const PERMISSION_LEVELS = computed(() => [
     { label: t('auth.permissionLevels.read'),  value: 'read' },
@@ -310,6 +313,18 @@ const conditionFactOptions = computed(() => [
     { label: t('auth.permissionRuleTypes.entityPath'), value: 'field' }
 ]);
 
+const filterFactOptions = conditionFactOptions;
+
+const SCOPE_FACT_BY_KEY = {
+    organizationId: 'lineage.organizationId',
+    projectId: 'lineage.projectId',
+    queueId: 'lineage.queueId',
+    warehouseId: 'lineage.warehouseId',
+    entityId: 'entityId',
+    entityType: 'entityType'
+};
+const SCOPE_KEY_BY_FACT = Object.fromEntries(Object.entries(SCOPE_FACT_BY_KEY).map(([key, fact]) => [fact, key]));
+
 const conditionOperatorOptions = computed(() => [
     { label: t('auth.permissionOperators.equals'), value: 'equals' },
     { label: t('auth.permissionOperators.notEquals'), value: 'notEquals' },
@@ -338,8 +353,7 @@ watch(() => props.permissions, (newVal) => {
 watch(selectedFeatureKey, () => {
     selectedGrantIndex.value = 0;
     selectedGrantError.value = '';
-    transitionDraft.value = { from: '', to: '' };
-    conditionDraft.value = { fact: 'lineage.projectId', operator: 'equals', field: '', value: '' };
+    filterDraft.value = { fact: 'lineage.projectId', operator: 'equals', field: '', value: '' };
 });
 
 watch(selectedGrant, (grant) => {
@@ -372,8 +386,12 @@ function clearFeature() {
 
 function updateGrant(patch) {
     if (!selectedGrant.value) return;
+    replaceSelectedGrant({ ...selectedGrant.value, ...patch });
+}
+
+function replaceSelectedGrant(grant) {
     const grants = selectedGrants.value;
-    grants[selectedGrantIndex.value] = { ...selectedGrant.value, ...patch };
+    grants[selectedGrantIndex.value] = grant;
     setFeatureGrants(selectedFeatureKey.value, grants);
 }
 
@@ -415,30 +433,138 @@ function scopeValue(grant, key) {
     return Array.isArray(value) ? value.join(', ') : String(value || '');
 }
 
-function setScopeValue(key, value) {
-    const values = parseList(value);
-    const scope = { ...(selectedGrant.value.scope || {}) };
-    delete scope[key];
-    delete scope[`${key}s`];
-    if (values.length === 1) scope[key] = values[0];
-    if (values.length > 1) scope[`${key}s`] = values;
-    updateGrant({ scope: cleanObject(scope) });
+function filterGate(grant) {
+    return ruleGate(grant);
+}
+
+function filterClauses(grant) {
+    if (!grant) return [];
+
+    const clauses = [];
+    const scope = grant.scope || {};
+    for (const field of scopeFields.value) {
+        const value = scopeValue({ scope }, field.key);
+        if (!value) continue;
+        clauses.push({
+            fact: SCOPE_FACT_BY_KEY[field.key],
+            operator: value.includes(',') ? 'in' : 'equals',
+            value,
+            field: ''
+        });
+    }
+
+    for (const transition of grantTransitions(grant)) {
+        if (transition.from) clauses.push({ fact: 'transition.from', operator: 'equals', value: transition.from, field: '' });
+        if (transition.to) clauses.push({ fact: 'transition.to', operator: 'equals', value: transition.to, field: '' });
+    }
+
+    for (const condition of ruleConditions(grant)) {
+        clauses.push(conditionToClause(condition));
+    }
+
+    return clauses;
+}
+
+function setFilterGate(gate) {
+    applyFilterClauses(filterClauses(selectedGrant.value), gate);
+}
+
+function updateFilterClause(index, patch) {
+    const clauses = filterClauses(selectedGrant.value);
+    const next = { ...clauses[index], ...patch };
+    if (patch.fact && patch.fact !== 'field') next.field = '';
+    clauses[index] = normalizeClause(next);
+    applyFilterClauses(clauses, filterGate(selectedGrant.value));
+}
+
+function removeFilterClause(index) {
+    applyFilterClauses(
+        filterClauses(selectedGrant.value).filter((_, clauseIndex) => clauseIndex !== index),
+        filterGate(selectedGrant.value)
+    );
+}
+
+function addFilterClause() {
+    const clause = normalizeClause(filterDraft.value);
+    if (!isCompleteClause(clause)) return;
+    applyFilterClauses([...filterClauses(selectedGrant.value), clause], filterGate(selectedGrant.value));
+    filterDraft.value = { ...filterDraft.value, field: '', value: '' };
+}
+
+function applyFilterClauses(clauses, gate = 'all') {
+    if (!selectedGrant.value) return;
+
+    const scope = {};
+    const ruleConditions = [];
+    for (const clause of clauses.map(normalizeClause).filter(isCompleteClause)) {
+        const scopeKey = SCOPE_KEY_BY_FACT[clause.fact];
+        if (scopeKey && ['equals', 'in'].includes(clause.operator)) {
+            setScopeFromClause(scope, scopeKey, clause);
+        } else {
+            const condition = clauseToCondition(clause);
+            if (condition) ruleConditions.push(condition);
+        }
+    }
+
+    const nextGrant = { ...selectedGrant.value };
+    delete nextGrant.scope;
+    delete nextGrant.rule;
+    delete nextGrant.transition;
+    delete nextGrant.transitions;
+
+    const cleanedScope = cleanObject(scope);
+    if (Object.keys(cleanedScope).length) nextGrant.scope = cleanedScope;
+    if (ruleConditions.length) nextGrant.rule = { [gate]: ruleConditions };
+    replaceSelectedGrant(nextGrant);
+}
+
+function setScopeFromClause(scope, scopeKey, clause) {
+    const values = clause.operator === 'in' ? parseList(clause.value) : parseList(clause.value).slice(0, 1);
+    delete scope[scopeKey];
+    delete scope[`${scopeKey}s`];
+    if (values.length === 1) scope[scopeKey] = values[0];
+    if (values.length > 1) scope[`${scopeKey}s`] = values;
+}
+
+function conditionToClause(condition = {}) {
+    const operator = ['equals', 'notEquals', 'in', 'includes', 'atLeast', 'exists'].find(name => condition[name] !== undefined) || 'equals';
+    const value = Array.isArray(condition[operator]) ? condition[operator].join(', ') : String(condition[operator] ?? '');
+    return normalizeClause({
+        fact: condition.fact || 'field',
+        operator,
+        value,
+        field: condition.field || ''
+    });
+}
+
+function clauseToCondition(clause) {
+    return buildCondition({
+        fact: clause.fact,
+        operator: clause.operator,
+        field: clause.field,
+        value: clause.value
+    });
+}
+
+function normalizeClause(clause = {}) {
+    const operator = clause.operator || 'equals';
+    return {
+        fact: clause.fact || 'lineage.projectId',
+        operator,
+        field: clause.fact === 'field' ? String(clause.field || '') : '',
+        value: operator === 'exists' && clause.value === '' ? 'true' : String(clause.value ?? '')
+    };
+}
+
+function isCompleteClause(clause) {
+    if (clause.fact === 'field' && !clause.field) return false;
+    if (clause.operator === 'exists') return true;
+    return Boolean(String(clause.value || '').trim());
 }
 
 function grantTransitions(grant) {
     const transitions = grant?.transitions || grant?.transition || [];
     return (Array.isArray(transitions) ? transitions : [transitions]).map(normalizeTransition).filter(Boolean);
-}
-
-function addTransitionScope() {
-    const transition = normalizeTransition(transitionDraft.value);
-    if (!transition) return;
-    updateGrant({ transitions: [...grantTransitions(selectedGrant.value), transition] });
-    transitionDraft.value = { from: '', to: '' };
-}
-
-function removeTransitionScope(index) {
-    updateGrant({ transitions: grantTransitions(selectedGrant.value).filter((_, transitionIndex) => transitionIndex !== index) });
 }
 
 function normalizeTransition(value) {
@@ -470,25 +596,6 @@ function ruleConditions(grant) {
     return [grant.rule];
 }
 
-function setRuleGate(gate) {
-    const conditions = ruleConditions(selectedGrant.value);
-    updateGrant({ rule: conditions.length ? { [gate]: conditions } : undefined });
-}
-
-function addCondition() {
-    const condition = buildCondition(conditionDraft.value);
-    if (!condition) return;
-    const gate = ruleGate(selectedGrant.value);
-    updateGrant({ rule: { [gate]: [...ruleConditions(selectedGrant.value), condition] } });
-    conditionDraft.value = { fact: conditionDraft.value.fact, operator: conditionDraft.value.operator, field: '', value: '' };
-}
-
-function removeCondition(index) {
-    const gate = ruleGate(selectedGrant.value);
-    const conditions = ruleConditions(selectedGrant.value).filter((_, conditionIndex) => conditionIndex !== index);
-    updateGrant({ rule: conditions.length ? { [gate]: conditions } : undefined });
-}
-
 function buildCondition(draft = {}) {
     const condition = { fact: draft.fact };
     if (draft.fact === 'field') {
@@ -510,6 +617,12 @@ function conditionLabel(condition) {
     const operator = ['equals', 'notEquals', 'in', 'includes', 'atLeast', 'exists'].find(name => condition[name] !== undefined);
     const value = Array.isArray(condition[operator]) ? condition[operator].join(', ') : condition[operator];
     return `${key} ${operator || ''} ${value ?? ''}`.trim();
+}
+
+function clauseLabel(clause) {
+    const fact = clause.fact === 'field' ? clause.field : conditionFactLabel(clause.fact);
+    const operator = conditionOperatorOptions.value.find(option => option.value === clause.operator)?.label || clause.operator;
+    return `${fact} ${operator} ${clause.value ?? ''}`.trim();
 }
 
 function conditionFactLabel(value) {
