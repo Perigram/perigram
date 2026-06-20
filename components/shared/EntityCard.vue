@@ -17,11 +17,11 @@
         <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
-                    <TraceChain v-if="showTrace" :entity="entity" />
+            <TraceChain v-if="effectiveShowTrace" :entity="entity" />
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <IdentityBlock :entity="entity" />
                         <EntityStatus
-                            v-if="showStatus"
+                            v-if="effectiveShowStatus"
                             :entity="entity"
                             :entity-type="entityType"
                             variant="inline"
@@ -64,7 +64,7 @@
                         <IdentityBlock :entity="entity" variant="compact" />
                     </template>
                 </div>
-                <div v-if="showStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
+                <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
                     <EntityStatus
                         :entity="entity"
                         :entity-type="entityType"
@@ -86,11 +86,11 @@
         <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
-                    <TraceChain v-if="showTrace" :entity="entity" />
+                    <TraceChain v-if="effectiveShowTrace" :entity="entity" />
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <IdentityBlock :entity="entity" />
                         <EntityStatus
-                            v-if="showStatus"
+                            v-if="effectiveShowStatus"
                             :entity="entity"
                             :entity-type="entityType"
                             variant="inline"
@@ -119,13 +119,13 @@
                     <slot name="title" />
                 </template>
                 <template v-else>
-                    <TraceChain v-if="showTrace" :entity="entity" class="mb-2" />
+                    <TraceChain v-if="effectiveShowTrace" :entity="entity" class="mb-2" />
                     <div class="flex flex-col sm:flex-row sm:flex-wrap sm:justify-between sm:items-start gap-3 min-w-0">
                         <div class="flex min-w-0 flex-1 items-start gap-2">
                             <slot name="before-identity" />
                             <IdentityBlock :entity="entity" />
                         </div>
-                        <div v-if="showStatus" class="min-w-0 max-w-full shrink self-start sm:max-w-56" @click.stop>
+                        <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink self-start sm:max-w-56" @click.stop>
                             <EntityStatus
                                 :entity="entity"
                                 :entity-type="entityType"
@@ -178,21 +178,41 @@ import Card from 'primevue/card';
 import Popover from 'primevue/popover';
 import { ENTITY_UI } from '~/utils/status-engine';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
+import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
     entity: { type: Object, required: true },
     entityType: { type: String, required: true },
     variant: { type: String, default: 'card' },
-    showStatus: { type: Boolean, default: true },
-    showTrace: { type: Boolean, default: true },
+    surface: { type: String, default: null },
+    showStatus: { type: Boolean, default: null },
+    showTrace: { type: Boolean, default: null },
     expandable: { type: Boolean, default: true },
     density: { type: String, default: 'default' },
-    statusActions: { type: Array, default: () => [] }
+    statusActions: { type: Array, default: () => [] },
+    displayExtensions: { type: Object, default: null },
+    displayOverrides: { type: Object, default: null }
 });
 
 const emit = defineEmits(['refresh']);
 
 const entityConfig = computed(() => ENTITY_UI[props.entityType] || { icon: 'pi pi-box' });
+const displayPlan = computed(() => resolveEntityDisplayContract({
+    entityType: props.entityType,
+    surface: props.surface || props.variant,
+    variant: props.variant,
+    extensions: props.displayExtensions,
+    overrides: props.displayOverrides
+}));
+const effectiveShowStatus = computed(() => {
+    if (props.showStatus !== null) return props.showStatus;
+    return displayPlan.value.surfaceContract.status === 'interactive'
+        || displayPlan.value.surfaceContract.status === 'readonly';
+});
+const effectiveShowTrace = computed(() => {
+    if (props.showTrace !== null) return props.showTrace;
+    return displayPlan.value.surfaceContract.trace !== 'hidden';
+});
 const compactDensityClass = computed(() => props.density === 'dense'
     ? '[&_.p-card-body]:!p-3 [&_.p-card-content]:!p-0'
     : ''

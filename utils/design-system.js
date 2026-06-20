@@ -27,8 +27,11 @@ import ArtifactCard from '~/components/entities/Artifact/ArtifactCard.vue';
 
 import * as factories from '~/test-data/factories.js';
 import {
+  DESIGN_SYSTEM_FIELD_GROUPS,
   DESIGN_SYSTEM_ENTITY_CONTRACTS,
-  validateDesignSystemContracts
+  DESIGN_SYSTEM_SURFACES,
+  validateDesignSystemContracts,
+  validateDesignSystemDisplayContracts
 } from '~/utils/design-system-contract.js';
 
 const components = {
@@ -62,6 +65,8 @@ const components = {
 
 export const DESIGN_SYSTEM_ENTITIES = DESIGN_SYSTEM_ENTITY_CONTRACTS.map((entry) => ({
   ...entry,
+  fieldGroups: DESIGN_SYSTEM_FIELD_GROUPS[entry.key] || {},
+  surfaces: DESIGN_SYSTEM_SURFACES[entry.key]?.surfaces || {},
   component: components[entry.key],
   factory: factories[entry.factoryName]
 }));
@@ -79,6 +84,7 @@ export function createDesignSystemDemoRows() {
 
 export function validateDesignSystemManifest(entries = DESIGN_SYSTEM_ENTITIES) {
   const contractIssues = validateDesignSystemContracts(entries);
+  const displayIssues = validateDesignSystemDisplayContracts(entries);
   const runtimeIssues = entries.flatMap((entry) => {
     const issues = [];
     if (!entry.component) issues.push('missing component');
@@ -95,5 +101,5 @@ export function validateDesignSystemManifest(entries = DESIGN_SYSTEM_ENTITIES) {
     return issues.map((issue) => ({ key: entry.key || 'unknown', issue }));
   });
 
-  return [...contractIssues, ...runtimeIssues];
+  return [...contractIssues, ...displayIssues, ...runtimeIssues];
 }

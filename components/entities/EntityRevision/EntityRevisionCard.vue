@@ -22,12 +22,10 @@ import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = [
-  { path: 'data.scope', i18n: 'revision.scope' },
-  { path: 'data.number', i18n: 'revision.number', prefix: 'v' },
-  { path: 'data.shortHash', i18n: 'revision.hash' }
-];
+const FIELDS = resolveEntityDisplayFields({ entityType: 'entityRevision', surface: 'card' })
+  .filter(field => field.display !== 'entityRef');
 
 const ENTITY_TYPE_TO_UI_TYPE = {
   cassette: 'cassetteTemplate'

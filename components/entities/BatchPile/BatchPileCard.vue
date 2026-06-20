@@ -36,12 +36,10 @@ import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import BatchPileSummary from '~/components/entities/BatchPile/BatchPileSummary.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const BATCH_PILE_FIELDS = [
-  { path: 'data.serial', i18n: 'piles.receiptId' },
-  { path: 'data.stock.total', i18n: 'piles.stockTotal' },
-  { path: 'data.stock.used', i18n: 'piles.stockUsed' }
-];
+const BATCH_PILE_FIELDS = resolveEntityDisplayFields({ entityType: 'batchPile', surface: 'card' })
+  .filter(field => field.display !== 'entityRef');
 
 const props = defineProps({
     pile: { type: Object, required: true },

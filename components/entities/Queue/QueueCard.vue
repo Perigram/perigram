@@ -11,6 +11,7 @@ import { useAuthStore } from '~/stores/auth';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   queue: { type: Object, required: true },
@@ -26,12 +27,8 @@ const props = defineProps({
 const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
 const { t } = useI18n();
-const queueSummaryFields = computed(() => [
-    { path: 'data.job.items.length', i18n: 'queue.jobItems' },
-    { path: 'summary.runCount', i18n: 'queue.nestingRuns' },
-    { path: 'summary.sheetCount', i18n: 'results.sheets' },
-    { path: 'summary.totalArea', i18n: 'common.area', suffix: ' m²' }
-]);
+const queueSummaryFields = computed(() => resolveEntityDisplayFields({ entityType: 'queue', surface: 'card' })
+    .filter(field => field.display !== 'entityRefList'));
 
 const FORM_CONTROL_SELECTOR = 'a[href],button,input,select,textarea,[contenteditable="true"]';
 

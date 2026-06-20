@@ -78,6 +78,7 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import ColorCard from '~/components/entities/Color/ColorCard.vue';
 import { useAuthStore } from '~/stores/auth';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
     catalog: { type: Object, required: true },
@@ -92,10 +93,6 @@ const foilThicknessOptions = computed(() => props.catalog.data?.options?.foilThi
 const sheetThicknessOptions = computed(() => props.catalog.data?.options?.sheetThicknesses || []);
 const widthOptions = computed(() => props.catalog.data?.options?.widths || []);
 
-const CATALOG_FIELDS = [
-    { path: 'summary.colorCount', i18n: 'catalog.colorsAvailable' },
-    { path: 'data.options.sheetThicknesses', i18n: 'catalog.sheetThicknessOptions', suffix: ' mm' },
-    { path: 'data.options.foilThicknesses', i18n: 'catalog.foilThicknessOptions', suffix: ' mm' },
-    { path: 'data.pricing.pricePerSqm', i18n: 'catalog.pricePerSqm', prefix: '$' }
-];
+const CATALOG_FIELDS = resolveEntityDisplayFields({ entityType: 'catalog', surface: 'detail' })
+    .filter(field => field.display !== 'entityRef');
 </script>

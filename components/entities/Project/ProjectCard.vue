@@ -12,11 +12,9 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import NameEditPopover from '~/components/shared/NameEditPopover.vue';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const PROJECT_SUMMARY_FIELDS = [
-    { path: 'summary.queueCount', i18n: 'project.queues' },
-    { path: 'summary.totalArea', i18n: 'project.totalArea', suffix: ' m²' }
-];
+const PROJECT_SUMMARY_FIELDS = resolveEntityDisplayFields({ entityType: 'project', surface: 'card' });
 
 const props = defineProps({
   project: { type: Object, required: true },

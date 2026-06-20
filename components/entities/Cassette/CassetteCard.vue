@@ -24,10 +24,10 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = [
-  { path: 'data.parameters.length', i18n: 'cassette.parametersTitle' }
-];
+const FIELDS = resolveEntityDisplayFields({ entityType: 'cassette', surface: 'card' })
+  .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
 
 const props = defineProps({
   cassette: { type: Object, required: true },

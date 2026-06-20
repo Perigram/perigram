@@ -38,6 +38,7 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -53,10 +54,7 @@ const email = computed(() => props.user.data?.email || props.user.identity?.refe
 const role = computed(() => props.user.data?.role || '');
 const organizationCount = computed(() => props.user.data?.memberships?.length || 0);
 
-const USER_FIELDS = [
-  { path: 'data.email', i18n: 'profile.email' },
-  { path: 'identity.reference', i18n: 'common.reference' }
-];
+const USER_FIELDS = resolveEntityDisplayFields({ entityType: 'user', surface: 'card' });
 
 const handleCardClick = (event) => {
     if (isInteractiveEventTarget(event)) return;

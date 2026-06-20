@@ -18,9 +18,20 @@ export {
   cncDesignSystemGroups,
   cncDesignSystemPrimitives,
   cncDesignSystemEntityContracts,
+  cncEntitySurfaceContracts,
   cncDesignSystem,
   cncUiSurfaces
 } from './ui.js';
+export { cncEntityFieldGroups, getEntityFieldGroups } from './ui-fields.js';
+export {
+  CNC_SURFACES,
+  CNC_PREVIEW_MODES,
+  CNC_DATA_DISPLAYS,
+  CNC_RELATION_DISPLAYS,
+  CNC_ACTION_DISPLAYS,
+  createEntitySurfaceContracts,
+  getEntitySurfaceContract
+} from './ui-surfaces.js';
 
 import { cncEntities } from './entities.js';
 import { cncWorkflows } from './workflows.js';
@@ -32,7 +43,8 @@ import { cncHookContracts } from './hooks.js';
 import { cncFrontendEntities, cncSummaries } from './summaries.js';
 import { cncAttachmentKinds } from './attachment-kinds.js';
 import { cncEntityFieldAccess } from './field-access.js';
-import { cncDesignSystem, cncStatusUi, cncUiSurfaces } from './ui.js';
+import { cncDesignSystem, cncStatusUi, cncUiSurfaces, cncEntitySurfaceContracts } from './ui.js';
+import { cncEntityFieldGroups } from './ui-fields.js';
 
 export const cncDomain = {
   id: 'cnc',
@@ -49,6 +61,8 @@ export const cncDomain = {
   attachmentKinds: cncAttachmentKinds,
   fieldAccess: cncEntityFieldAccess,
   designSystem: cncDesignSystem,
+  fieldGroups: cncEntityFieldGroups,
+  surfaceContracts: cncEntitySurfaceContracts,
   uiSurfaces: cncUiSurfaces,
   ui: {
     endpoints: cncFrontendEntities,

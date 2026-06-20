@@ -35,6 +35,7 @@ import Avatar from 'primevue/avatar';
 import Tag from 'primevue/tag';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   organization: { type: Object, required: true },
@@ -43,11 +44,7 @@ const props = defineProps({
 
 const avatarLabel = computed(() => (props.organization.identity?.name || '?').charAt(0));
 
-const ORGANIZATION_FIELDS = [
-  { path: 'data.type', i18n: 'organization.type' },
-  { path: 'data.email', i18n: 'profile.email' },
-  { path: 'data.phone', i18n: 'profile.phone' }
-];
+const ORGANIZATION_FIELDS = resolveEntityDisplayFields({ entityType: 'organization', surface: 'card' });
 
 const createdAt = computed(() => {
     const ts = props.organization.lineage?.createdAt || props.organization.origin?.timestamp;

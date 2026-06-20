@@ -11,6 +11,7 @@
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 defineProps({
   profile: {
@@ -23,9 +24,5 @@ defineProps({
   }
 });
 
-const FIELDS = [
-  { path: 'data.kind', i18n: 'cassette.v2.profileEditor.kind' },
-  { path: 'data.process', i18n: 'cassette.v2.profileEditor.process' }
-];
+const FIELDS = resolveEntityDisplayFields({ entityType: 'profileTemplate', surface: 'card' });
 </script>
-

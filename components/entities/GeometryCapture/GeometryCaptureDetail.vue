@@ -12,6 +12,7 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { getPrimaryState } from '~/packages/core/src/index.js';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   capture: { type: Object, required: true },
@@ -188,14 +189,8 @@ function closeRing(ring = []) {
 
 resetEditor();
 
-const FIELDS = [
-  { path: 'data.mode', i18n: 'geometryCapture.mode' },
-  { path: 'data.extraction.preset', i18n: 'geometryCapture.detectorPreset' },
-  { path: 'data.extraction.confidence', i18n: 'geometryCapture.confidence' },
-  { path: 'specs.area', i18n: 'results.area', suffix: ' m²' },
-  { path: 'specs.width', i18n: 'geometryCapture.width', suffix: ' mm' },
-  { path: 'specs.height', i18n: 'geometryCapture.height', suffix: ' mm' }
-];
+const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surface: 'detail' })
+  .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
 </script>
 
 <template>

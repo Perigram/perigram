@@ -48,7 +48,8 @@ const props = defineProps({
     entity: { type: Object, required: true },
     accessEntity: { type: Object, default: null },
     fields: { type: Array, required: true },
-    variant: { type: String, default: 'default' }
+    variant: { type: String, default: 'default' },
+    fieldLimit: { type: Number, default: null }
 });
 
 const { t } = useI18n();
@@ -64,7 +65,7 @@ const policyFields = computed(() => filterEntityFields({
 const visibleRows = computed(() =>
     policyFields.value
         .map(field => {
-            const raw = resolveDataPath(props.entity, field.path);
+            const raw = resolveFirstDisplayPath(props.entity, field);
             const display = decorateDataValue(raw, {
                 ...field,
                 trueLabel: t('common.yes'),
@@ -73,6 +74,16 @@ const visibleRows = computed(() =>
             if (!display) return null;
             return { label: t(field.i18n), display };
         })
+        .slice(0, props.fieldLimit || undefined)
         .filter(Boolean)
 );
+
+function resolveFirstDisplayPath(entity, field) {
+    const paths = [field.path, ...(field.fallbackPaths || [])].filter(Boolean);
+    for (const path of paths) {
+        const value = resolveDataPath(entity, path);
+        if (value !== null && value !== undefined && value !== '') return value;
+    }
+    return undefined;
+}
 </script>

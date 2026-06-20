@@ -5,6 +5,8 @@ import { designTokens, cssVariableTokens, tailwindThemeExtension } from '../asse
 import {
   cncAttachmentKinds,
   cncDesignSystemEntityContracts,
+  cncEntityFieldGroups,
+  cncEntitySurfaceContracts,
   cncDesignSystemGroups,
   cncDesignSystemPrimitives,
   cncDesignSystemVariants,
@@ -280,14 +282,21 @@ function createComponentInventory() {
     key,
     {
       componentPath,
-      fieldPaths: existsSync(componentPath) ? extractDataBlockFieldPaths(readFileSync(componentPath, 'utf8')) : []
+      fieldPaths: contractFieldPaths(key)
     }
   ]));
 }
 
-function extractDataBlockFieldPaths(source) {
-  return Array.from(source.matchAll(/path:\s*['"]([^'"]+)['"]/g))
-    .map(match => match[1])
+function contractFieldPaths(key) {
+  const groups = cncEntityFieldGroups[key] || {};
+  const surfaceGroups = Object.values(cncEntitySurfaceContracts[key]?.surfaces || {})
+    .flatMap(surface => surface.fieldGroups || []);
+
+  return surfaceGroups
+    .flatMap(group => groups[group] || [])
+    .filter(field => field.role !== 'previewSource' && field.display !== 'entityRef' && field.display !== 'entityRefList')
+    .map(field => field.path)
+    .filter(Boolean)
     .filter((path, index, paths) => paths.indexOf(path) === index)
     .sort();
 }

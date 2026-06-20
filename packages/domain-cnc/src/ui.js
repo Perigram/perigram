@@ -1,5 +1,7 @@
 import { cncFrontendEntities } from './summaries.js';
 import { cncWorkflows } from './workflows.js';
+import { cncEntityFieldGroups } from './ui-fields.js';
+import { createEntitySurfaceContracts } from './ui-surfaces.js';
 
 export const cncStatusUi = {
   DRAFT: { label: 'status.draft', severity: 'info', icon: 'pi pi-pencil' },
@@ -102,11 +104,15 @@ export const cncDesignSystemEntityContracts = [
   docs
 }));
 
+export const cncEntitySurfaceContracts = createEntitySurfaceContracts(cncDesignSystemEntityContracts);
+
 export const cncDesignSystem = {
   variants: cncDesignSystemVariants,
   groups: cncDesignSystemGroups,
   primitives: cncDesignSystemPrimitives,
-  contracts: cncDesignSystemEntityContracts
+  contracts: cncDesignSystemEntityContracts,
+  fieldGroups: cncEntityFieldGroups,
+  surfaces: cncEntitySurfaceContracts
 };
 
 export const cncUiSurfaces = cncFrontendEntities.map(definition => ({

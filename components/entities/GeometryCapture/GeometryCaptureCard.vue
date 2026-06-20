@@ -6,6 +6,7 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   capture: { type: Object, required: true },
@@ -19,13 +20,8 @@ const hasGeometry = computed(() => Boolean(props.capture.data?.geometry?.polygon
 const warehouseId = computed(() => props.capture.lineage?.warehouseId || null);
 const projectId = computed(() => props.capture.lineage?.projectId || null);
 
-const FIELDS = [
-  { path: 'data.mode', i18n: 'geometryCapture.mode' },
-  { path: 'data.extraction.confidence', i18n: 'geometryCapture.confidence' },
-  { path: 'specs.area', i18n: 'results.area', suffix: ' m²' },
-  { path: 'specs.width', i18n: 'geometryCapture.width', suffix: ' mm' },
-  { path: 'specs.height', i18n: 'geometryCapture.height', suffix: ' mm' }
-];
+const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surface: 'card' })
+  .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
 </script>
 
 <template>

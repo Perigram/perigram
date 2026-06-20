@@ -88,6 +88,7 @@ import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import { cassetteDesignCountsForSheetDesign } from '~/utils/sheetDesigns.js';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
     design: { type: Object, required: true }
@@ -96,12 +97,8 @@ const { t } = useI18n();
 const toast = useToast();
 const generatingDxf = ref(false);
 
-const SHEET_DESIGN_FIELDS = [
-    { path: 'summary.efficiency', i18n: 'sheetDesign.utilization', suffix: '%' },
-    { path: 'summary.placedCount', i18n: 'sheetDesign.parts' },
-    { path: 'specs.cuttingLength', i18n: 'sheetDesign.cuttingLength', suffix: ' m' },
-    { path: 'specs.estimatedTime', i18n: 'sheetDesign.estimatedTime', suffix: ' min' }
-];
+const SHEET_DESIGN_FIELDS = resolveEntityDisplayFields({ entityType: 'sheetDesign', surface: 'detail' })
+    .filter(field => field.role !== 'previewSource');
 
 const cassetteDesigns = computed(() => cassetteDesignCountsForSheetDesign(props.design).map(item => ({
     ...item,

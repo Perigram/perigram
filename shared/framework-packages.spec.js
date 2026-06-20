@@ -180,7 +180,7 @@ describe('Framework package contracts', () => {
       expect.objectContaining({ type: 'pen_template', collection: 'pen_templates' }),
       expect.objectContaining({ type: 'tool_profile', collection: 'tool_profiles' })
     ]));
-    expect(cncWorkflows.queue.initial).toBe('DRAFT');
+    expect(cncWorkflows.queue.regions.main.initial).toBe('DRAFT');
     expect(cncCommands.solveNesting).toMatchObject({
       service: 'nesting',
       action: 'solve',
@@ -206,7 +206,7 @@ describe('Framework package contracts', () => {
       service: 'configBot',
       action: 'reindexKnowledge'
     });
-    expect(cncWorkflows.queue.transitions.every(transition => !transition.roles)).toBe(true);
+    expect(cncWorkflows.queue.regions.main.transitions.every(transition => !transition.roles)).toBe(true);
     expect(cncDomain).toMatchObject({ id: 'cnc', commands: cncCommands, tasks: cncTasks, attachmentKinds: cncAttachmentKinds });
     expect(cncDomain.ui.designSystem).toBe(cncDesignSystem);
     expect(cncDesignSystemEntityContracts).toContainEqual(expect.objectContaining({ key: 'cassette', entityType: 'cassette' }));

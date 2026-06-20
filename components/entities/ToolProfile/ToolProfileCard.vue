@@ -28,12 +28,9 @@ import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = [
-    { path: 'data.diameter', i18n: 'toolProfile.diameter', suffix: ' mm' },
-    { path: 'data.angle',    i18n: 'toolProfile.angle',    suffix: '°' },
-    { path: 'data.kerf',     i18n: 'toolProfile.kerf',     suffix: ' mm' }
-];
+const FIELDS = resolveEntityDisplayFields({ entityType: 'toolProfile', surface: 'card' });
 
 const props = defineProps({
   tool: { type: Object, required: true },

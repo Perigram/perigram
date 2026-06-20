@@ -12,11 +12,10 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const REQUISITION_FIELDS = [
-    { path: 'data.items.length', i18n: 'requisition.items' },
-    { path: 'data.totalPrice', i18n: 'common.subtotal', prefix: '$' }
-];
+const REQUISITION_FIELDS = resolveEntityDisplayFields({ entityType: 'requisition', surface: 'card' })
+  .filter(field => field.display !== 'entityRef');
 
 const props = defineProps({
   requisition: { type: Object, required: true },

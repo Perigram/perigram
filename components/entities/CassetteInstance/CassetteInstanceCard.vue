@@ -46,6 +46,7 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { useEntity } from '~/composables/useEntity';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   instance: { type: Object, required: true },
@@ -83,7 +84,6 @@ watch(queueId, async (id) => {
   queue.value = await queueEntity.fetch(normalizedId, { silent: true }).catch(() => null);
 }, { immediate: true });
 
-const INSTANCE_FIELDS = [
-  { path: 'identity.reference', i18n: 'common.reference' }
-];
+const INSTANCE_FIELDS = resolveEntityDisplayFields({ entityType: 'cassetteInstance', surface: 'card' })
+  .filter(field => field.display !== 'entityRef');
 </script>

@@ -11,6 +11,7 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   catalog: { type: Object, required: true },
@@ -28,12 +29,8 @@ const material = computed(() => props.catalog.data?.material || '');
 const sheetOptionCount = computed(() => props.catalog.data?.options?.sheetThicknesses?.length || 0);
 const foilOptionCount = computed(() => props.catalog.data?.options?.foilThicknesses?.length || 0);
 
-const CATALOG_FIELDS = [
-  { path: 'summary.colorCount', i18n: 'catalog.colorsAvailable' },
-  { path: 'data.options.sheetThicknesses', i18n: 'catalog.sheetThicknessOptions', suffix: ' mm' },
-  { path: 'data.options.foilThicknesses', i18n: 'catalog.foilThicknessOptions', suffix: ' mm' },
-  { path: 'data.pricing.pricePerSqm', i18n: 'catalog.pricePerSqm', prefix: '$' }
-];
+const CATALOG_FIELDS = resolveEntityDisplayFields({ entityType: 'catalog', surface: 'card' })
+  .filter(field => field.display !== 'entityRef');
 
 </script>
 

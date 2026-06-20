@@ -99,9 +99,8 @@
       "action": "solve",
       "attachments": [],
       "events": [
-        "nesting.solveStarted",
-        "nesting.solveCompleted",
-        "nesting.solveFailed"
+        "queue.nestingRequested",
+        "nesting.solveStarted"
       ],
       "id": "solveNesting",
       "inputs": [
@@ -229,6 +228,7 @@
         "entityType": "queue",
         "fieldPaths": [
           "data.job.items.length",
+          "data.queueNumber",
           "summary.runCount",
           "summary.sheetCount",
           "summary.totalArea"
@@ -264,7 +264,12 @@
           "server/features/sheet-designs/README.md"
         ],
         "entityType": "sheet_design",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "specs.cuttingLength",
+          "specs.estimatedTime",
+          "summary.efficiency",
+          "summary.placedCount"
+        ],
         "group": "production",
         "key": "sheetDesign",
         "labelKey": "entities.sheetDesign",
@@ -295,7 +300,9 @@
           "server/features/cassette-designs/README.md"
         ],
         "entityType": "cassette_design",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "data.parameters"
+        ],
         "group": "production",
         "key": "cassetteDesign",
         "labelKey": "entities.cassetteDesign",
@@ -378,7 +385,10 @@
           "server/features/material-piles/README.md"
         ],
         "entityType": "material_pile",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "data.stock.total",
+          "data.stock.used"
+        ],
         "group": "material",
         "key": "materialPile",
         "labelKey": "entities.materialPile",
@@ -411,7 +421,11 @@
           "server/features/sheets/README.md"
         ],
         "entityType": "sheet",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "specs.area",
+          "specs.length",
+          "specs.width"
+        ],
         "group": "material",
         "key": "sheet",
         "labelKey": "entities.sheet",
@@ -497,6 +511,20 @@
         "trace": true
       },
       {
+        "componentPath": null,
+        "docs": [
+          "server/features/profile-templates/README.md"
+        ],
+        "entityType": "profile_template",
+        "fieldPaths": [],
+        "group": "master",
+        "key": "profileTemplate",
+        "labelKey": "entities.profileTemplate",
+        "propName": "profile",
+        "status": "hidden",
+        "trace": false
+      },
+      {
         "componentPath": "components/entities/Warehouse/WarehouseCard.vue",
         "docs": [
           "server/features/warehouses/README.md"
@@ -558,7 +586,10 @@
           "server/features/layer-standards/README.md"
         ],
         "entityType": "layer_standard",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "data.category",
+          "data.code"
+        ],
         "group": "master",
         "key": "layerStandard",
         "labelKey": "entities.layerStandard",
@@ -1152,6 +1183,19 @@
         "origin",
         "status",
         "attachments",
+        "data"
+      ],
+      "collection": "profile_templates",
+      "lineage": {},
+      "type": "profile_template"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
         "data",
         "summary"
       ],
@@ -1316,6 +1360,12 @@
     {
       "kind": "lineage",
       "source": "organization",
+      "target": "profile_template",
+      "via": "lineage.organizationId"
+    },
+    {
+      "kind": "lineage",
+      "source": "organization",
       "target": "project",
       "via": "lineage.organizationId"
     },
@@ -1333,6 +1383,12 @@
     },
     {
       "kind": "lineage",
+      "source": "organization",
+      "target": "workflow_override",
+      "via": "lineage.organizationId"
+    },
+    {
+      "kind": "lineage",
       "source": "project",
       "target": "requisition",
       "via": "lineage.projectId"
@@ -1341,6 +1397,12 @@
       "kind": "lineage",
       "source": "user",
       "target": "pen_template",
+      "via": "lineage.userId"
+    },
+    {
+      "kind": "lineage",
+      "source": "user",
+      "target": "profile_template",
       "via": "lineage.userId"
     },
     {
@@ -1488,6 +1550,12 @@
       "list": "/api/geometry-captures",
       "single": "/api/geometry-captures/:id",
       "type": "geometryCapture"
+    },
+    {
+      "collection": "profile-templates",
+      "list": "/api/profile-templates",
+      "single": "/api/profile-templates/:id",
+      "type": "profileTemplate"
     },
     {
       "collection": "warehouses",
@@ -1675,6 +1743,9 @@
   "workflows": [
     {
       "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
       "states": [
         "DRAFT",
         "ACTIVE",
@@ -1685,18 +1756,25 @@
     },
     {
       "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
       "states": [
         "DRAFT",
         "NESTING",
         "READY",
+        "ERROR",
         "CLOSED",
         "ARCHIVED"
       ],
-      "transitionCount": 16,
+      "transitionCount": 18,
       "type": "queue"
     },
     {
       "initial": "NESTING",
+      "regions": [
+        "main"
+      ],
       "states": [
         "NESTING",
         "COMPLETE",
@@ -1709,6 +1787,9 @@
     },
     {
       "initial": "ACTIVE",
+      "regions": [
+        "main"
+      ],
       "states": [
         "ACTIVE",
         "ARCHIVED"
@@ -1718,6 +1799,9 @@
     },
     {
       "initial": "AVAILABLE",
+      "regions": [
+        "main"
+      ],
       "states": [
         "AVAILABLE",
         "IN-CUTTING",
@@ -1729,6 +1813,9 @@
     },
     {
       "initial": "STOCKED",
+      "regions": [
+        "main"
+      ],
       "states": [
         "STOCKED",
         "DEPLETED"
@@ -1738,6 +1825,9 @@
     },
     {
       "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
       "states": [
         "DRAFT",
         "PROCESSING",
@@ -1745,11 +1835,14 @@
         "COMPLETE",
         "FAILED"
       ],
-      "transitionCount": 8,
+      "transitionCount": 11,
       "type": "geometry_capture"
     },
     {
       "initial": "AVAILABLE",
+      "regions": [
+        "main"
+      ],
       "states": [
         "AVAILABLE",
         "USED"
@@ -1759,6 +1852,9 @@
     },
     {
       "initial": "CUT",
+      "regions": [
+        "main"
+      ],
       "states": [
         "CUT",
         "PRODUCED",
@@ -1770,6 +1866,9 @@
     },
     {
       "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
       "states": [
         "DRAFT",
         "SENT",

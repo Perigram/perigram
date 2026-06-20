@@ -31,12 +31,9 @@ import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = [
-    { path: 'data.stroke.color',   i18n: 'penTemplate.color' },
-    { path: 'data.stroke.weight',  i18n: 'penTemplate.weight',  suffix: ' mm' },
-    { path: 'data.stroke.pattern', i18n: 'penTemplate.pattern' }
-];
+const FIELDS = resolveEntityDisplayFields({ entityType: 'penTemplate', surface: 'card' });
 
 const props = defineProps({
   pen: { type: Object, required: true },

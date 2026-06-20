@@ -23,11 +23,9 @@ import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = [
-  { path: 'data.code', i18n: 'common.code' },
-  { path: 'data.description', i18n: 'common.description' }
-];
+const FIELDS = resolveEntityDisplayFields({ entityType: 'material', surface: 'card' });
 
 defineProps({
   material: { type: Object, required: true },

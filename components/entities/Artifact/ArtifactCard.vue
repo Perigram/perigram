@@ -7,6 +7,7 @@ import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   artifact: { type: Object, required: true },
@@ -28,10 +29,8 @@ const icon = computed(() => {
   return 'pi-file';
 });
 
-const ARTIFACT_FIELDS = [
-  { path: 'data.type', i18n: 'file.type' },
-  { path: 'attachments.primary.name', i18n: 'file.name' }
-];
+const ARTIFACT_FIELDS = resolveEntityDisplayFields({ entityType: 'artifact', surface: 'card' })
+  .filter(field => field.display !== 'entityRef');
 
 const isChildControl = (event) => {
   const target = event?.target;

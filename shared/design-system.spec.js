@@ -3,9 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import {
   DESIGN_SYSTEM_ENTITY_CONTRACTS,
+  DESIGN_SYSTEM_FIELD_GROUPS,
+  DESIGN_SYSTEM_SURFACES,
   DESIGN_SYSTEM_VARIANTS,
   DESIGN_SYSTEM_PRIMITIVES,
-  validateDesignSystemContracts
+  validateDesignSystemContracts,
+  validateDesignSystemDisplayContracts
 } from '../utils/design-system-contract.js';
 import * as factories from '../test-data/factories.js';
 import {
@@ -231,6 +234,30 @@ describe('Design system manifest', () => {
     expect(cassetteTemplate.fieldPaths).toEqual(['data.parameters.length']);
     expect(cassetteTemplate.fieldPaths).not.toContain('type');
     expect(cassetteTemplate.fieldPaths).not.toContain('parameterCount');
+  });
+
+  it('declares constructor surfaces and field groups in the domain contract', () => {
+    expect(validateDesignSystemDisplayContracts()).toEqual([]);
+
+    for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {
+      expect(DESIGN_SYSTEM_SURFACES[entry.key]?.surfaces).toEqual(expect.objectContaining({
+        inline: expect.any(Object),
+        compact: expect.any(Object),
+        card: expect.any(Object),
+        detail: expect.any(Object)
+      }));
+      expect(DESIGN_SYSTEM_FIELD_GROUPS[entry.key] || {}).toBeTruthy();
+    }
+  });
+
+  it('keeps standard entity DataBlock fields out of component-local arrays', () => {
+    const offenders = walkFiles(
+      path.join(REPO_ROOT, 'components/entities'),
+      (file) => file.endsWith('.vue') && !file.endsWith('.old.vue') && !file.endsWith('.v23.vue')
+    ).filter((file) => /path:\s*['"][^'"]+['"]/.test(fs.readFileSync(file, 'utf8')))
+      .map((file) => path.relative(REPO_ROOT, file));
+
+    expect(offenders).toEqual([]);
   });
 
   it('keeps entity full-card subtitles from duplicating body facts', () => {

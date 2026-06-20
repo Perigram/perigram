@@ -17,6 +17,7 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { getPrimaryState } from '~/packages/core/src/index.js';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   run: { type: Object, required: true },
@@ -53,11 +54,8 @@ const relatedSheetDesigns = computed(() => uniqueById([
     ...props.sheetDesigns.filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value)),
     ...contextEntities('sheet_design').filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value))
 ]));
-const RUN_FIELDS = [
-    { path: 'data.results.sheetCount', i18n: 'results.sheets' },
-    { path: 'data.results.efficiency', i18n: 'sheetDesign.utilization', suffix: '%' },
-    { path: 'data.results.remnantArea', i18n: 'results.area', suffix: ' m²' }
-];
+const RUN_FIELDS = resolveEntityDisplayFields({ entityType: 'nestingRun', surface: 'card' })
+    .filter(field => field.display !== 'entityRefList');
 
 function contextEntities(type) {
     const context = unref(entityContext);

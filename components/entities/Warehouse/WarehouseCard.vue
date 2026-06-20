@@ -31,14 +31,9 @@ import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = [
-    { path: 'data.type',          i18n: 'warehouse.type' },
-    { path: 'data.address',       i18n: 'warehouse.address' },
-    { path: 'data.contactPerson', i18n: 'warehouse.contactPerson' },
-    { path: 'data.stats.totalSheets', i18n: 'warehouse.rawSheets' },
-    { path: 'data.stats.totalRemnants', i18n: 'warehouse.remnants' }
-];
+const FIELDS = resolveEntityDisplayFields({ entityType: 'warehouse', surface: 'card' });
 
 const props = defineProps({
   warehouse: { type: Object, required: true },
