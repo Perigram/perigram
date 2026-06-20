@@ -60,6 +60,11 @@ map as `context.lineageEntities`; services that need ancestor status/type based
 access must pass the relevant ancestor DTOs instead of expecting the evaluator
 to load them implicitly.
 
+List endpoints must not return entities that their matching detail endpoint
+would deny. Organization lineage filters are only a coarse database prefilter;
+services that return entity lists must also apply the same grant evaluator to
+each loaded entity before serializing response DTOs.
+
 ## Required Checks
 
 ```bash
