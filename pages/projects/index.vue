@@ -36,7 +36,7 @@
                 </div>
             </section>
 
-            <div class="rounded-panel border border-content-border bg-surface-50 p-3">
+            <div class="rounded-panel border border-content-border bg-subtle p-3">
                 <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_16rem]">
                     <InputText
                         v-model="searchQuery"

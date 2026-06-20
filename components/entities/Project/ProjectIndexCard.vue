@@ -78,7 +78,7 @@ function queueState(queue) {
 
       <div class="grid min-w-0 gap-4 xl:grid-cols-[18rem_minmax(0,1fr)_14rem] xl:items-stretch">
         <div class="flex min-w-0 flex-col gap-3">
-          <div class="overflow-hidden rounded-ui border border-content-border bg-surface-50">
+          <div class="overflow-hidden rounded-ui border border-content-border bg-subtle">
             <EntityPreview
               v-if="cardProject.data?.thumbnailUrl"
               :entity="cardProject"
@@ -97,7 +97,7 @@ function queueState(queue) {
           />
         </div>
 
-        <div class="min-w-0 rounded-ui border border-content-border bg-surface-50 p-3">
+        <div class="min-w-0 rounded-ui border border-content-border bg-subtle p-3">
           <div class="mb-3 flex min-w-0 items-center justify-between gap-3">
             <div class="min-w-0 text-sm font-medium">{{ $t('project.queues') }}</div>
             <Tag :value="queueCount" severity="secondary" size="small" />
