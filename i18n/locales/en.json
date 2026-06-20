@@ -1271,12 +1271,23 @@
     "permissionLevel": "Level",
     "permissionActions": "Actions",
     "permissionScope": "Scope",
+    "permissionTraitFilters": "Entity trait filters",
+    "permissionTraitFiltersHelp": "Limit this grant to entities with matching lineage or identity traits. Leave empty to match every entity in this feature.",
     "permissionTransitions": "Transitions",
+    "permissionTransitionFilters": "Transition filters",
     "permissionConditions": "Conditions",
+    "permissionLogicRules": "Logic rules",
+    "permissionLogicRulesHelp": "Add custom rules over entity fields, status, action, or transition facts. These rules are combined with the trait filters above.",
     "permissionGate": "Gate",
+    "permissionMatch": "Match",
     "permissionCommaSeparated": "Comma-separated IDs",
     "permissionFieldPath": "Entity field path",
     "permissionConditionValue": "Value",
+    "permissionExpression": "Allow {level} on {feature} when {filter}.",
+    "permissionNoFilters": "all entities in this feature match",
+    "permissionNoLogicRules": "No custom rules",
+    "permissionAnd": "AND",
+    "permissionOr": "OR",
     "permissionTransitionCount": "{count} transitions",
     "permissionConditionCount": "{count} conditions",
     "transitionFrom": "From state",
@@ -1284,7 +1295,9 @@
     "permissionModes": {
       "global": "Global",
       "scoped": "Scoped",
-      "conditional": "Conditional"
+      "conditional": "Conditional",
+      "filtered": "Filtered",
+      "unfiltered": "No filters"
     },
     "permissionGates": {
       "all": "All conditions",
@@ -1305,11 +1318,17 @@
       "entityType": "Entity type"
     },
     "permissionRuleTypes": {
+      "organizationId": "Organization ID",
       "projectId": "Project ID",
+      "queueId": "Queue ID",
+      "warehouseId": "Warehouse ID",
+      "entityId": "Entity ID",
       "entityType": "Entity type",
       "primaryStatus": "Primary status",
+      "transitionFrom": "Transition source",
       "transitionTo": "Transition target",
-      "fieldEquals": "Field equals"
+      "fieldEquals": "Field equals",
+      "entityPath": "Custom entity path"
     },
     "advancedPermissionJson": "Advanced grant JSON",
     "invalidPermissionJson": "Invalid permission JSON",

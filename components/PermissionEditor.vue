@@ -68,6 +68,10 @@
                         </div>
 
                         <div v-if="selectedGrant" class="flex min-w-0 flex-col gap-4">
+                            <Message severity="info">
+                                {{ grantExpressionSummary(selectedGrant) }}
+                            </Message>
+
                             <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,16rem)_auto] md:items-end">
                                 <div class="flex flex-col gap-2">
                                     <label>{{ $t('auth.permissionLevel') }}</label>
@@ -101,7 +105,10 @@
                                 </div>
                             </Panel>
 
-                            <Panel :header="$t('auth.permissionScope')">
+                            <Panel :header="$t('auth.permissionTraitFilters')">
+                                <p class="m-0 mb-3 text-sm text-muted-color">
+                                    {{ $t('auth.permissionTraitFiltersHelp') }}
+                                </p>
                                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                                     <div
                                         v-for="scope in scopeFields"
@@ -118,7 +125,7 @@
                                 </div>
                             </Panel>
 
-                            <Panel :header="$t('auth.permissionTransitions')">
+                            <Panel :header="$t('auth.permissionTransitionFilters')">
                                 <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                                     <InputText v-model="transitionDraft.from" :placeholder="$t('auth.transitionFrom')" />
                                     <InputText v-model="transitionDraft.to" :placeholder="$t('auth.transitionTo')" />
@@ -136,11 +143,14 @@
                                 </div>
                             </Panel>
 
-                            <Panel :header="$t('auth.permissionConditions')">
+                            <Panel :header="$t('auth.permissionLogicRules')">
+                                <p class="m-0 mb-3 text-sm text-muted-color">
+                                    {{ $t('auth.permissionLogicRulesHelp') }}
+                                </p>
                                 <div class="flex flex-col gap-3">
                                     <div class="grid grid-cols-1 gap-3 md:grid-cols-[12rem_minmax(0,1fr)] md:items-end">
                                         <div class="flex flex-col gap-1">
-                                            <label>{{ $t('auth.permissionGate') }}</label>
+                                            <label>{{ $t('auth.permissionMatch') }}</label>
                                             <Select
                                                 :model-value="ruleGate(selectedGrant)"
                                                 :options="gateOptions"
@@ -158,6 +168,12 @@
                                                 <Tag :value="conditionLabel(condition)" severity="info" size="small" />
                                                 <Button icon="pi pi-times" text rounded size="small" :aria-label="$t('common.delete')" @click="removeCondition(index)" />
                                             </span>
+                                            <Tag
+                                                v-if="ruleConditions(selectedGrant).length === 0"
+                                                :value="$t('auth.permissionNoLogicRules')"
+                                                severity="secondary"
+                                                size="small"
+                                            />
                                         </div>
                                     </div>
 
@@ -282,11 +298,16 @@ const gateOptions = computed(() => [
 ]);
 
 const conditionFactOptions = computed(() => [
+    { label: t('auth.permissionRuleTypes.organizationId'), value: 'lineage.organizationId' },
     { label: t('auth.permissionRuleTypes.projectId'), value: 'lineage.projectId' },
+    { label: t('auth.permissionRuleTypes.queueId'), value: 'lineage.queueId' },
+    { label: t('auth.permissionRuleTypes.warehouseId'), value: 'lineage.warehouseId' },
+    { label: t('auth.permissionRuleTypes.entityId'), value: 'entityId' },
     { label: t('auth.permissionRuleTypes.entityType'), value: 'entityType' },
     { label: t('auth.permissionRuleTypes.primaryStatus'), value: 'status.primary' },
+    { label: t('auth.permissionRuleTypes.transitionFrom'), value: 'transition.from' },
     { label: t('auth.permissionRuleTypes.transitionTo'), value: 'transition.to' },
-    { label: t('auth.permissionRuleTypes.fieldEquals'), value: 'field' }
+    { label: t('auth.permissionRuleTypes.entityPath'), value: 'field' }
 ]);
 
 const conditionOperatorOptions = computed(() => [
@@ -533,21 +554,50 @@ function strongestLevel(left = 'none', right = 'none') {
 }
 
 function grantModeLabel(grant) {
-    if (grant.rule) return t('auth.permissionModes.conditional');
-    if (grant.scope && Object.keys(grant.scope).length) return t('auth.permissionModes.scoped');
-    return t('auth.permissionModes.global');
+    if (grantHasFilters(grant)) return t('auth.permissionModes.filtered');
+    return t('auth.permissionModes.unfiltered');
 }
 
 function grantChips(grant) {
-    const chips = [];
-    const scope = grant.scope || {};
+    return [grantFilterSummary(grant)];
+}
+
+function grantExpressionSummary(grant) {
+    return t('auth.permissionExpression', {
+        level: getLevelLabel(grant?.level || 'none'),
+        feature: selectedFeature.value.label,
+        filter: grantFilterSummary(grant)
+    });
+}
+
+function grantFilterSummary(grant) {
+    const parts = [];
+    const scope = grant?.scope || {};
     for (const field of scopeFields.value) {
         const value = scopeValue({ scope }, field.key);
-        if (value) chips.push(`${field.label}: ${value}`);
+        if (value) parts.push(`${field.label} ${t('auth.permissionOperators.equals').toLowerCase()} ${value}`);
     }
-    if (grantTransitions(grant).length) chips.push(t('auth.permissionTransitionCount', { count: grantTransitions(grant).length }));
-    if (ruleConditions(grant).length) chips.push(t('auth.permissionConditionCount', { count: ruleConditions(grant).length }));
-    return chips.slice(0, 5);
+
+    const transitions = grantTransitions(grant);
+    if (transitions.length) {
+        parts.push(`${t('auth.permissionTransitionFilters')}: ${transitions.map(transitionLabel).join(', ')}`);
+    }
+
+    const conditions = ruleConditions(grant);
+    if (conditions.length) {
+        const joiner = ruleGate(grant) === 'any' ? ` ${t('auth.permissionOr')} ` : ` ${t('auth.permissionAnd')} `;
+        parts.push(conditions.map(conditionLabel).join(joiner));
+    }
+
+    return parts.length ? parts.join(` ${t('auth.permissionAnd')} `) : t('auth.permissionNoFilters');
+}
+
+function grantHasFilters(grant) {
+    return Boolean(
+        grant?.rule
+        || (grant?.scope && Object.keys(grant.scope).length)
+        || grantTransitions(grant).length
+    );
 }
 
 function getIcon(key) {

@@ -1271,12 +1271,23 @@
     "permissionLevel": "Уровень",
     "permissionActions": "Действия",
     "permissionScope": "Область",
+    "permissionTraitFilters": "Фильтры признаков сущности",
+    "permissionTraitFiltersHelp": "Ограничивают грант сущностями с указанными признаками lineage или identity. Оставьте пустым, чтобы грант подходил ко всем сущностям этой функции.",
     "permissionTransitions": "Переходы",
+    "permissionTransitionFilters": "Фильтры переходов",
     "permissionConditions": "Условия",
+    "permissionLogicRules": "Логические правила",
+    "permissionLogicRulesHelp": "Добавьте правила по полям сущности, статусу, действию или фактам перехода. Эти правила объединяются с фильтрами признаков выше.",
     "permissionGate": "Гейт",
+    "permissionMatch": "Совпадение",
     "permissionCommaSeparated": "ID через запятую",
     "permissionFieldPath": "Путь поля сущности",
     "permissionConditionValue": "Значение",
+    "permissionExpression": "Разрешить {level} для {feature}, когда {filter}.",
+    "permissionNoFilters": "подходят все сущности этой функции",
+    "permissionNoLogicRules": "Нет пользовательских правил",
+    "permissionAnd": "И",
+    "permissionOr": "ИЛИ",
     "permissionTransitionCount": "{count} переходов",
     "permissionConditionCount": "{count} условий",
     "transitionFrom": "Из статуса",
@@ -1284,7 +1295,9 @@
     "permissionModes": {
       "global": "Глобально",
       "scoped": "С областью",
-      "conditional": "С условиями"
+      "conditional": "С условиями",
+      "filtered": "С фильтрами",
+      "unfiltered": "Без фильтров"
     },
     "permissionGates": {
       "all": "Все условия",
@@ -1305,11 +1318,17 @@
       "entityType": "Тип сущности"
     },
     "permissionRuleTypes": {
+      "organizationId": "ID организации",
       "projectId": "ID проекта",
+      "queueId": "ID очереди",
+      "warehouseId": "ID склада",
+      "entityId": "ID сущности",
       "entityType": "Тип сущности",
       "primaryStatus": "Основной статус",
+      "transitionFrom": "Исходный переход",
       "transitionTo": "Целевой переход",
-      "fieldEquals": "Поле равно"
+      "fieldEquals": "Поле равно",
+      "entityPath": "Путь поля сущности"
     },
     "advancedPermissionJson": "Расширенный JSON гранта",
     "invalidPermissionJson": "Некорректный JSON разрешения",
