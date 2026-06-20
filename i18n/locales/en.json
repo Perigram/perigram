@@ -1268,6 +1268,7 @@
     "removeGrant": "Remove grant",
     "noAccess": "No access",
     "noPermissionGrants": "No grants for this feature.",
+    "permissionNoGrantSelected": "This feature has no grants yet. Add a grant to choose the level and filters.",
     "permissionLevel": "Level",
     "permissionActions": "Actions",
     "permissionScope": "Scope",

@@ -1268,6 +1268,7 @@
     "removeGrant": "Удалить грант",
     "noAccess": "Нет доступа",
     "noPermissionGrants": "Для этой функции нет грантов.",
+    "permissionNoGrantSelected": "Для этой функции пока нет грантов. Добавьте грант, чтобы выбрать уровень и фильтры.",
     "permissionLevel": "Уровень",
     "permissionActions": "Действия",
     "permissionScope": "Область",

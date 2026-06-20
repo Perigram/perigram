@@ -67,7 +67,14 @@
                             <Message v-if="selectedGrants.length === 0" severity="info">{{ $t('auth.noPermissionGrants') }}</Message>
                         </div>
 
-                        <div v-if="selectedGrant" class="flex min-w-0 flex-col gap-4">
+                        <div v-if="selectedGrants.length === 0" class="flex min-w-0 flex-col gap-3">
+                            <Message severity="info">{{ $t('auth.permissionNoGrantSelected') }}</Message>
+                            <div>
+                                <Button icon="pi pi-plus" :label="$t('auth.addGrant')" @click="addGrant" />
+                            </div>
+                        </div>
+
+                        <div v-else-if="selectedGrant" class="flex min-w-0 flex-col gap-4">
                             <Message severity="info">
                                 {{ grantExpressionSummary(selectedGrant) }}
                             </Message>
@@ -75,11 +82,12 @@
                             <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,16rem)_auto] md:items-end">
                                 <div class="flex flex-col gap-2">
                                     <label>{{ $t('auth.permissionLevel') }}</label>
-                                    <SelectButton
+                                    <Select
                                         :model-value="selectedGrant.level"
                                         :options="PERMISSION_LEVELS"
                                         option-label="label"
                                         option-value="value"
+                                        class="w-full"
                                         @update:model-value="value => updateGrant({ level: value })"
                                     />
                                 </div>
@@ -239,7 +247,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import SelectButton from 'primevue/selectbutton';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Checkbox from 'primevue/checkbox';
