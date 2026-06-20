@@ -16,20 +16,27 @@
                     />
                 </div>
                 <div class="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
-                    <QueueCard
+                    <div
                         v-for="option in queueList"
                         :key="option._id"
-                        :queue="option"
-                        variant="compact"
-                        :show-delete="isSelectedQueue(option)"
-                        :show-summary="false"
-                        :show-footer-actions="false"
-                        :expandable="false"
-                        density="dense"
-                        @view="$emit('select-queue', option._id)"
-                        @edit="$emit('select-queue', option._id)"
-                        @delete="confirmDeleteQueue"
-                    />
+                        :class="[
+                            'rounded-panel p-1',
+                            isSelectedQueue(option) ? 'bg-content shadow-card ring-1 ring-primary' : 'bg-transparent'
+                        ]"
+                    >
+                        <QueueCard
+                            :queue="option"
+                            variant="compact"
+                            :show-delete="isSelectedQueue(option)"
+                            :show-summary="false"
+                            :show-footer-actions="false"
+                            :expandable="false"
+                            density="dense"
+                            @view="$emit('select-queue', option._id)"
+                            @edit="$emit('select-queue', option._id)"
+                            @delete="confirmDeleteQueue"
+                        />
+                    </div>
                 </div>
             </template>
 
@@ -60,13 +67,18 @@
                     />
                 </div>
 
-                <MetricPanel
-                    class="shrink-0"
-                    :title="queueName"
-                    :subtitle="queue.identity?.slug || ''"
-                    :metrics="queueOverviewMetrics"
-                >
-                    <div class="flex flex-wrap gap-2">
+                <section class="shrink-0 rounded-panel border border-content-border bg-content p-4 shadow-card">
+                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+                        <div class="min-w-0">
+                            <div class="mb-2 flex flex-wrap items-center gap-2">
+                                <Tag v-if="queueNumberLabel" :value="queueNumberLabel" severity="secondary" size="small" />
+                                <Tag :value="queueState" severity="info" size="small" />
+                            </div>
+                            <h2 class="m-0 truncate text-xl font-semibold">{{ queueName }}</h2>
+                            <small v-if="queue.identity?.slug" class="text-muted-color">{{ queue.identity.slug }}</small>
+                        </div>
+
+                        <div class="flex flex-wrap items-start justify-start gap-2 lg:justify-end">
                         <Button
                             v-if="queueState === 'DRAFT'"
                             :label="$t('nesting.calculateLayout')"
@@ -85,8 +97,20 @@
                             size="small"
                             @click="$emit('create-queue')"
                         />
+                        </div>
                     </div>
-                </MetricPanel>
+
+                    <div class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                        <div
+                            v-for="fact in queueOverviewFacts"
+                            :key="fact.key"
+                            class="rounded-ui border border-content-border bg-subtle px-3 py-2"
+                        >
+                            <small class="text-muted-color">{{ fact.label }}</small>
+                            <div class="mt-1 text-lg font-semibold leading-tight">{{ fact.value }}</div>
+                        </div>
+                    </div>
+                </section>
 
                 <ScrollablePanel class="shrink-0" :scroll-content="false">
                     <template #header>
@@ -348,6 +372,7 @@ import Select from 'primevue/select';
 import SelectButton from 'primevue/selectbutton';
 import Message from 'primevue/message';
 import InputNumber from 'primevue/inputnumber';
+import Tag from 'primevue/tag';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FileUpload from 'primevue/fileupload';
 import ConfirmDialog from 'primevue/confirmdialog';
@@ -357,7 +382,6 @@ import QueueCard from '~/components/entities/Queue/QueueCard.vue';
 import QueueSourceCard from '~/components/entities/Queue/QueueSourceCard.vue';
 import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
 import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
-import MetricPanel from '~/components/shared/MetricPanel.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
@@ -382,6 +406,7 @@ const authStore = useAuthStore();
 
 const queueState = computed(() => getPrimaryState(props.queue.status, 'UNKNOWN'));
 const queueName = computed(() => props.queue.identity?.name || props.queue.identity?.slug || t('common.unnamed'));
+const queueNumberLabel = computed(() => props.queue.data?.queueNumber ? `#${props.queue.data.queueNumber}` : '');
 
 const queuesStore = useQueuesStore();
 const cassettesStore = useCassettesStore();
@@ -550,10 +575,11 @@ const removeInventoryItem = (uniqueId) => {
 };
 
 const totalEntryQuantity = computed(() => entries.value.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0));
-const queueOverviewMetrics = computed(() => [
+const materialSourceCount = computed(() => nestingOptions.value.materialMode === 'WAREHOUSE' ? selectedInventory.value.length : 1);
+const queueOverviewFacts = computed(() => [
     { key: 'entries', label: t('queue.jobItems'), value: entries.value.length },
     { key: 'quantity', label: t('queues.quantity'), value: totalEntryQuantity.value },
-    { key: 'sources', label: t('nesting.materialSourcing'), value: nestingOptions.value.materialMode === 'WAREHOUSE' ? selectedInventory.value.length : 1 },
+    { key: 'sources', label: t('nesting.materialSourcing'), value: materialSourceCount.value },
     { key: 'runs', label: t('queue.runs'), value: queueRuns.value.length }
 ]);
 
