@@ -51,7 +51,9 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 export async function list(userId, userOrg, userRole, userPermissions) {
   const filter = getLineageFilter({ memberships: userPermissions.memberships });
   const raws = await repository.find(filter);
-  return raws.map(raw => new Project(raw));
+  return raws
+    .map(raw => new Project(raw))
+    .filter(project => hasLineagePermission(userPermissions, project, 'projects', 'read'));
 }
 
 export async function getById(uid) {

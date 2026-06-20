@@ -107,4 +107,30 @@ describe('Projects & Multi-tenant Ownership', () => {
     const list = await projectService.list('observer', null, null, { memberships: [] });
     expect(list).toHaveLength(0);
   });
+
+  it('should filter project lists through grant rules used by project detail', async () => {
+    const visible = await projectService.create({ name: 'Visible Project' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    const hidden = await projectService.create({ name: 'Hidden Project' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    await db.collection('projects').updateOne(
+      { _id: hidden._id },
+      { $set: { 'status.state': 'CLOSED' } }
+    );
+
+    const permissions = {
+      memberships: [{
+        organizationId: contractor1.organizationId,
+        permissions: {
+          projects: {
+            level: 'read',
+            rule: { all: [{ fact: 'status.primary', equals: 'DRAFT' }] }
+          }
+        }
+      }]
+    };
+
+    const list = await projectService.list(contractor1.userId, contractor1.organizationId, null, permissions);
+    expect(list.map(project => project._id)).toEqual([visible._id]);
+    await expect(projectService.getBySlug(hidden._id, contractor1.userId, contractor1.organizationId, null, permissions))
+      .rejects.toThrow(/Permission denied/);
+  });
 });

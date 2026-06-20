@@ -29,7 +29,7 @@
 
     onMounted(async () => {
         try {
-            await loadProject()
+            await loadProject(undefined, { silent: true })
         } catch (error) {
             if (error?.statusCode === 403 || error?.status === 403) {
                 router.replace('/projects')
