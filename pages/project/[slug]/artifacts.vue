@@ -16,9 +16,9 @@
     />
 
     <template v-else>
-      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <MetricPanel
-          class="xl:sticky xl:top-4 xl:self-start"
+          class="lg:sticky lg:top-4 lg:self-start"
           :title="$t('project.artifacts')"
           :subtitle="$t('artifacts.createQueueFirst')"
           :metrics="artifactMetrics"

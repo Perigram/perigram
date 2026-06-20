@@ -40,7 +40,7 @@
             </div>
         </section>
 
-        <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
             <Panel :header="$t('project.data')">
                 <EntitySurfaceContent
                     :entity="project"

@@ -47,7 +47,7 @@ const props = defineProps({
 
 const metricGridClass = computed(() => (
   props.orientation === 'vertical'
-    ? 'grid grid-cols-2 gap-3 xl:grid-cols-1'
+    ? 'grid grid-cols-2 gap-3 lg:grid-cols-1'
     : 'grid grid-cols-2 gap-3 lg:grid-cols-4'
 ));
 </script>
