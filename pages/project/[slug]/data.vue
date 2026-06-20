@@ -10,27 +10,18 @@
             </template>
         </ActionToolbar>
 
-        <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-                <small class="text-muted-color">{{ $t('metadata.materials') }}</small>
-                <div class="mt-1 text-2xl font-semibold">{{ projectDataStats.materials }}</div>
-            </div>
-            <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-                <small class="text-muted-color">{{ $t('projectData.sheets') }}</small>
-                <div class="mt-1 text-2xl font-semibold">{{ projectDataStats.sheets }}</div>
-            </div>
-            <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-                <small class="text-muted-color">{{ $t('projectData.logs') }}</small>
-                <div class="mt-1 text-2xl font-semibold">{{ projectDataStats.logs }}</div>
-            </div>
-            <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-                <small class="text-muted-color">{{ $t('projectData.wastePolygons') }}</small>
-                <div class="mt-1 text-2xl font-semibold">{{ projectDataStats.waste }}</div>
-            </div>
-        </section>
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
+            <MetricPanel
+                class="xl:sticky xl:top-4 xl:self-start"
+                :title="$t('project.data')"
+                :metrics="projectDataMetrics"
+                orientation="vertical"
+            >
+                <Button :label="$t('projectData.addMaterial')" icon="pi pi-plus" size="small" class="w-full" @click="showAddMaterialDialog = true" />
+            </MetricPanel>
 
         <!-- Inventory and Logs Tabs -->
-        <Tabs value="0">
+        <Tabs value="0" class="min-w-0">
             <TabList>
                 <Tab value="0">
                     <div class="flex items-center gap-2">
@@ -164,6 +155,7 @@
                 </TabPanel>
             </TabPanels>
         </Tabs>
+        </div>
 
         <!-- Add Material Dialog -->
         <StandardDialog
@@ -295,6 +287,7 @@ import ConfirmDialog from 'primevue/confirmdialog';
 
 import { useEntity } from '~/composables/useEntity';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import MetricPanel from '~/components/shared/MetricPanel.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
@@ -326,6 +319,12 @@ const projectDataStats = computed(() => ({
     logs: cutLogs.value.length,
     waste: projectMaterials.value.reduce((sum, material) => sum + Number(material.wastePolygons?.length || 0), 0)
 }));
+const projectDataMetrics = computed(() => [
+    { key: 'materials', label: t('metadata.materials'), value: projectDataStats.value.materials },
+    { key: 'sheets', label: t('projectData.sheets'), value: projectDataStats.value.sheets },
+    { key: 'logs', label: t('projectData.logs'), value: projectDataStats.value.logs },
+    { key: 'waste', label: t('projectData.wastePolygons'), value: projectDataStats.value.waste }
+]);
 
 const showAddMaterialDialog = ref(false);
 const showCreateMaterialDialog = ref(false);

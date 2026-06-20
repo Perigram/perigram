@@ -16,42 +16,37 @@
     />
 
     <template v-else>
-      <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('entities.sheetDesign') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ sheetDesignStats.total }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('sheetDesign.parts') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ sheetDesignStats.parts }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('queue.runs') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ sheetDesignStats.runs }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('sheetDesign.materialSources') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ sheetDesignStats.materialSources }}</div>
-        </div>
-      </section>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
+        <MetricPanel
+          class="xl:sticky xl:top-4 xl:self-start"
+          :title="$t('entities.sheetDesign')"
+          :subtitle="$t('sheetDesign.runNestingFirst')"
+          :metrics="sheetDesignMetrics"
+          orientation="vertical"
+        >
+          <Button icon="pi pi-refresh" :label="$t('common.update')" severity="secondary" outlined size="small" class="w-full" @click="loadSheetDesigns" />
+        </MetricPanel>
 
-      <ResponsiveGrid variant="wide">
-        <SheetDesignCard
-          v-for="design in sheetDesigns"
-          :key="design._id"
-          :design="design"
-        />
-      </ResponsiveGrid>
+        <ResponsiveGrid variant="wide">
+          <SheetDesignCard
+            v-for="design in sheetDesigns"
+            :key="design._id"
+            :design="design"
+          />
+        </ResponsiveGrid>
+      </div>
     </template>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import Button from 'primevue/button';
 import SheetDesignCard from '~/components/entities/SheetDesign/SheetDesignCard.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import MetricPanel from '~/components/shared/MetricPanel.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useEntity } from '~/composables/useEntity';
@@ -62,6 +57,7 @@ definePageMeta({
 });
 
 const route = useRoute();
+const { t } = useI18n();
 const slug = route.params.slug;
 const { entity: project, loading: projectLoading, fetch: loadProject } = useEntity('project', slug);
 const selectedRunSheetDesigns = ref([]);
@@ -80,6 +76,12 @@ const sheetDesignStats = computed(() => {
     materialSources: rows.reduce((sum, design) => sum + Number(design.data?.materialPool?.length || 0), 0)
   };
 });
+const sheetDesignMetrics = computed(() => [
+  { key: 'total', label: t('entities.sheetDesign'), value: sheetDesignStats.value.total },
+  { key: 'parts', label: t('sheetDesign.parts'), value: sheetDesignStats.value.parts },
+  { key: 'runs', label: t('queue.runs'), value: sheetDesignStats.value.runs },
+  { key: 'materialSources', label: t('sheetDesign.materialSources'), value: sheetDesignStats.value.materialSources }
+]);
 
 const loadSheetDesigns = async () => {
   const loadedProject = project.value || await loadProject();

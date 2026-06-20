@@ -16,49 +16,43 @@
     />
 
     <template v-else>
-      <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('project.queues') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ artifactStats.queues }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('queue.runs') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ artifactStats.runs }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('results.sheets') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ artifactStats.sheets }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('common.area') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ artifactStats.area }} m²</div>
-        </div>
-      </section>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
+        <MetricPanel
+          class="xl:sticky xl:top-4 xl:self-start"
+          :title="$t('project.artifacts')"
+          :subtitle="$t('artifacts.createQueueFirst')"
+          :metrics="artifactMetrics"
+          orientation="vertical"
+        >
+          <Button icon="pi pi-refresh" :label="$t('common.update')" severity="secondary" outlined size="small" class="w-full" @click="loadQueues" />
+        </MetricPanel>
 
-      <Accordion :multiple="true" :value="['0']" class="flex flex-col gap-4">
-        <AccordionPanel v-for="(queue, index) in queues" :key="queue._id" :value="index.toString()">
-          <AccordionHeader>
-            <div class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
-              <span class="min-w-0 truncate">{{ queue.identity?.name || `${$t('queue.title')} ${queue.data?.queueNumber}` }}</span>
-              <div class="flex shrink-0 flex-wrap gap-2">
-                <Tag :value="`${queue.summary?.runCount || 0} ${$t('queue.runs')}`" severity="secondary" size="small" />
-                <Tag :value="`${queue.summary?.sheetCount || 0} ${$t('results.sheets')}`" severity="info" size="small" />
+        <Accordion :multiple="true" :value="['0']" class="flex min-w-0 flex-col gap-4">
+          <AccordionPanel v-for="(queue, index) in queues" :key="queue._id" :value="index.toString()">
+            <AccordionHeader>
+              <div class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
+                <span class="min-w-0 truncate">{{ queue.identity?.name || `${$t('queue.title')} ${queue.data?.queueNumber}` }}</span>
+                <div class="flex shrink-0 flex-wrap gap-2">
+                  <Tag :value="`${queue.summary?.runCount || 0} ${$t('queue.runs')}`" severity="secondary" size="small" />
+                  <Tag :value="`${queue.summary?.sheetCount || 0} ${$t('results.sheets')}`" severity="info" size="small" />
+                </div>
               </div>
-            </div>
-          </AccordionHeader>
-        <AccordionContent>
-          <div class="pt-4">
-            <ArtifactsTable :batch-id="queue._id" />
-          </div>
-        </AccordionContent>
-        </AccordionPanel>
-      </Accordion>
+            </AccordionHeader>
+            <AccordionContent>
+              <div class="pt-4">
+                <ArtifactsTable :batch-id="queue._id" />
+              </div>
+            </AccordionContent>
+          </AccordionPanel>
+        </Accordion>
+      </div>
     </template>
   </div>
 </template>
 
 <script setup>
 import { computed, ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
@@ -68,6 +62,7 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ArtifactsTable from '~/components/ArtifactsTable.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import MetricPanel from '~/components/shared/MetricPanel.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 
 definePageMeta({
@@ -76,6 +71,7 @@ definePageMeta({
 });
 
 const route = useRoute();
+const { t } = useI18n();
 const slug = route.params.slug;
 
 const queues = ref([]);
@@ -86,6 +82,12 @@ const artifactStats = computed(() => ({
   sheets: queues.value.reduce((sum, queue) => sum + Number(queue.summary?.sheetCount || 0), 0),
   area: formatNumber(queues.value.reduce((sum, queue) => sum + Number(queue.summary?.totalArea || 0), 0))
 }));
+const artifactMetrics = computed(() => [
+  { key: 'queues', label: t('project.queues'), value: artifactStats.value.queues },
+  { key: 'runs', label: t('queue.runs'), value: artifactStats.value.runs },
+  { key: 'sheets', label: t('results.sheets'), value: artifactStats.value.sheets },
+  { key: 'area', label: t('common.area'), value: `${artifactStats.value.area} m²` }
+]);
 
 const loadQueues = async () => {
   loading.value = true;

@@ -16,50 +16,43 @@
     <StateBlock v-else-if="!tools.length" :message="$t('assets.noTools')" icon="pi pi-wrench" />
 
     <template v-else>
-      <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('assets.tools') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ toolStats.total }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('common.user') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ toolStats.userOwned }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('assets.diameter') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ toolStats.averageDiameter }} mm</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('assets.angle') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ toolStats.maxAngle }}°</div>
-        </div>
-      </section>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
+        <MetricPanel
+          class="xl:sticky xl:top-4 xl:self-start"
+          :title="$t('assets.tools')"
+          :subtitle="$t('assets.toolsSubtitle')"
+          :metrics="toolMetrics"
+          orientation="vertical"
+        >
+          <Button :label="$t('assets.newTool')" icon="pi pi-plus" size="small" class="w-full" @click="showDialog = true" />
+        </MetricPanel>
 
-      <ResponsiveGrid>
-        <div v-for="tool in tools" :key="tool._id" class="flex flex-col gap-2">
-          <ToolProfileCard :tool="tool" variant="card" />
-          <div class="flex justify-end gap-2" v-if="tool.lineage?.userId">
-              <Button
-                icon="pi pi-pencil"
-                severity="secondary"
-                text
-                rounded
-                size="small"
-                @click="editTool(tool)"
-                v-tooltip.top="$t('common.edit')"
-              />
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                rounded
-                size="small"
-                @click="deleteToolConfirm(tool)"
-                v-tooltip.top="$t('common.delete')"
-              />
+        <ResponsiveGrid>
+          <div v-for="tool in tools" :key="tool._id" class="flex flex-col gap-2">
+            <ToolProfileCard :tool="tool" variant="card" />
+            <div class="flex justify-end gap-2" v-if="tool.lineage?.userId">
+                <Button
+                  icon="pi pi-pencil"
+                  severity="secondary"
+                  text
+                  rounded
+                  size="small"
+                  @click="editTool(tool)"
+                  v-tooltip.top="$t('common.edit')"
+                />
+                <Button
+                  icon="pi pi-trash"
+                  severity="danger"
+                  text
+                  rounded
+                  size="small"
+                  @click="deleteToolConfirm(tool)"
+                  v-tooltip.top="$t('common.delete')"
+                />
+            </div>
           </div>
-        </div>
-      </ResponsiveGrid>
+        </ResponsiveGrid>
+      </div>
     </template>
 
     <StandardDialog
@@ -110,6 +103,7 @@ import ConfirmDialog from 'primevue/confirmdialog';
 import Message from 'primevue/message';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import MetricPanel from '~/components/shared/MetricPanel.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import ToolProfileCard from '~/components/entities/ToolProfile/ToolProfileCard.vue';
@@ -136,6 +130,12 @@ const toolStats = computed(() => {
     maxAngle: rows.reduce((max, tool) => Math.max(max, Number(tool.data?.angle || 0)), 0)
   };
 });
+const toolMetrics = computed(() => [
+  { key: 'total', label: t('assets.tools'), value: toolStats.value.total },
+  { key: 'userOwned', label: t('common.user'), value: toolStats.value.userOwned },
+  { key: 'averageDiameter', label: t('assets.diameter'), value: `${toolStats.value.averageDiameter} mm` },
+  { key: 'maxAngle', label: t('assets.angle'), value: `${toolStats.value.maxAngle}°` }
+]);
 
 const showDialog = ref(false);
 const editingTool = ref(null);

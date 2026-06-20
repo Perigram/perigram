@@ -5,34 +5,24 @@
       <Message severity="error">{{ error }}</Message>
     </div>
     <template v-else>
-      <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('assets.layerStandards') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ standardStats.total }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('entities.penTemplate') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ standardStats.withPens }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('common.default') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ standardStats.defaultPens }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('common.type') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ standardStats.categories }}</div>
-        </div>
-      </section>
-
-      <ResponsiveGrid>
-        <LayerStandardCard
-          v-for="std in standards"
-          :key="std._id"
-          :standard="std"
-          @set-pen="openPenDialog"
-          @revert="revert"
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
+        <MetricPanel
+          class="xl:sticky xl:top-4 xl:self-start"
+          :title="$t('assets.layerStandards')"
+          :metrics="standardMetrics"
+          orientation="vertical"
         />
-      </ResponsiveGrid>
+
+        <ResponsiveGrid>
+          <LayerStandardCard
+            v-for="std in standards"
+            :key="std._id"
+            :standard="std"
+            @set-pen="openPenDialog"
+            @revert="revert"
+          />
+        </ResponsiveGrid>
+      </div>
     </template>
 
     <!-- Pen assignment dialog -->
@@ -57,6 +47,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { storeToRefs } from 'pinia';
@@ -66,6 +57,7 @@ import Select from 'primevue/select';
 import Button from 'primevue/button';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import MetricPanel from '~/components/shared/MetricPanel.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { namedSelectOptions } from '~/utils/selectOptions';
@@ -77,6 +69,7 @@ definePageMeta({
 
 const layerStandardsStore = useLayerStandardsStore();
 const penTemplatesStore = usePenTemplatesStore();
+const { t } = useI18n();
 
 const { standards, loading, error } = storeToRefs(layerStandardsStore);
 const { pens } = storeToRefs(penTemplatesStore);
@@ -91,6 +84,12 @@ const standardStats = computed(() => ({
   defaultPens: standards.value.filter(standard => standard.data?.defaultPenId || standard.defaultPenId).length,
   categories: new Set(standards.value.map(standard => standard.data?.category).filter(Boolean)).size
 }));
+const standardMetrics = computed(() => [
+  { key: 'total', label: t('assets.layerStandards'), value: standardStats.value.total },
+  { key: 'withPens', label: t('entities.penTemplate'), value: standardStats.value.withPens },
+  { key: 'defaultPens', label: t('common.default'), value: standardStats.value.defaultPens },
+  { key: 'categories', label: t('common.type'), value: standardStats.value.categories }
+]);
 
 function openPenDialog(std) {
   activeStandard.value = std;

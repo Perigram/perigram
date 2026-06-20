@@ -16,51 +16,43 @@
     <StateBlock v-else-if="!pens.length" :message="$t('assets.noPens')" icon="pi pi-pencil" />
 
     <template v-else>
-      <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('assets.pens') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ penStats.total }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('common.user') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ penStats.userOwned }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('assets.pattern') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ penStats.patterns }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('assets.weight') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ penStats.averageWeight }} mm</div>
-        </div>
-      </section>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
+        <MetricPanel
+          class="xl:sticky xl:top-4 xl:self-start"
+          :title="$t('assets.pens')"
+          :metrics="penMetrics"
+          orientation="vertical"
+        >
+          <Button :label="$t('assets.newPen')" icon="pi pi-plus" size="small" class="w-full" @click="showDialog = true" />
+        </MetricPanel>
 
-      <ResponsiveGrid>
-        <PenTemplateCard v-for="pen in pens" :key="pen._id" :pen="pen">
-          <template #footer>
-            <div class="flex justify-end gap-2" v-if="isUserOwnedPen(pen)">
-              <Button
-                icon="pi pi-pencil"
-                severity="secondary"
-                text
-                rounded
-                size="small"
-                @click="editPen(pen)"
-                v-tooltip.top="$t('common.edit')"
-              />
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                rounded
-                size="small"
-                @click="deletePenConfirm(pen)"
-                v-tooltip.top="$t('common.delete')"
-              />
-            </div>
-          </template>
-        </PenTemplateCard>
-      </ResponsiveGrid>
+        <ResponsiveGrid>
+          <PenTemplateCard v-for="pen in pens" :key="pen._id" :pen="pen">
+            <template #footer>
+              <div class="flex justify-end gap-2" v-if="isUserOwnedPen(pen)">
+                <Button
+                  icon="pi pi-pencil"
+                  severity="secondary"
+                  text
+                  rounded
+                  size="small"
+                  @click="editPen(pen)"
+                  v-tooltip.top="$t('common.edit')"
+                />
+                <Button
+                  icon="pi pi-trash"
+                  severity="danger"
+                  text
+                  rounded
+                  size="small"
+                  @click="deletePenConfirm(pen)"
+                  v-tooltip.top="$t('common.delete')"
+                />
+              </div>
+            </template>
+          </PenTemplateCard>
+        </ResponsiveGrid>
+      </div>
     </template>
 
     <!-- Pen Dialog -->
@@ -127,6 +119,7 @@ import ConfirmDialog from 'primevue/confirmdialog';
 import Message from 'primevue/message';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import MetricPanel from '~/components/shared/MetricPanel.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
@@ -159,6 +152,12 @@ const penStats = computed(() => {
     averageWeight: Number(average.toFixed(2))
   };
 });
+const penMetrics = computed(() => [
+  { key: 'total', label: t('assets.pens'), value: penStats.value.total },
+  { key: 'userOwned', label: t('common.user'), value: penStats.value.userOwned },
+  { key: 'patterns', label: t('assets.pattern'), value: penStats.value.patterns },
+  { key: 'averageWeight', label: t('assets.weight'), value: `${penStats.value.averageWeight} mm` }
+]);
 
 const isUserOwnedPen = (pen) => Boolean(pen?.lineage?.userId || pen?.ownerId);
 

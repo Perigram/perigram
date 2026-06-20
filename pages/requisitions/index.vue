@@ -1,25 +1,13 @@
 <template>
   <StandardPage :title="$t('features.requisitions')">
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
-    <div v-else class="flex flex-col gap-6">
-      <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('features.requisitions') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ requisitionStats.total }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('requisition.items') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ requisitionStats.items }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('common.subtotal') }}</small>
-          <div class="mt-1 text-2xl font-semibold">${{ requisitionStats.totalPrice }}</div>
-        </div>
-        <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-          <small class="text-muted-color">{{ $t('common.active') }}</small>
-          <div class="mt-1 text-2xl font-semibold">{{ requisitionStats.active }}</div>
-        </div>
-      </section>
+    <div v-else class="grid grid-cols-1 gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
+      <MetricPanel
+        class="xl:sticky xl:top-4 xl:self-start"
+        :title="$t('features.requisitions')"
+        :metrics="requisitionMetrics"
+        orientation="vertical"
+      />
       <RequisitionsTab :requisitions="requisitions" :loading="loading" />
     </div>
   </StandardPage>
@@ -27,7 +15,9 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import RequisitionsTab from '~/components/hubs/RequisitionsTab.vue';
+import MetricPanel from '~/components/shared/MetricPanel.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useEntity } from '~/composables/useEntity';
@@ -39,6 +29,7 @@ definePageMeta({
 });
 
 const { list } = useEntity('requisition');
+const { t } = useI18n();
 const requisitions = ref([]);
 const loading = ref(true);
 const requisitionStats = computed(() => ({
@@ -47,6 +38,12 @@ const requisitionStats = computed(() => ({
   totalPrice: formatNumber(requisitions.value.reduce((sum, requisition) => sum + Number(requisition.data?.totalPrice || 0), 0)),
   active: requisitions.value.filter(requisition => getPrimaryState(requisition.status, 'UNKNOWN') !== 'CLOSED').length
 }));
+const requisitionMetrics = computed(() => [
+  { key: 'total', label: t('features.requisitions'), value: requisitionStats.value.total },
+  { key: 'items', label: t('requisition.items'), value: requisitionStats.value.items },
+  { key: 'totalPrice', label: t('common.subtotal'), value: `$${requisitionStats.value.totalPrice}` },
+  { key: 'active', label: t('common.active'), value: requisitionStats.value.active }
+]);
 
 onMounted(async () => {
   loading.value = true;
