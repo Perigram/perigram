@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Reframe permission editor as filter expressions
+     Files changed: components/PermissionEditor.vue, i18n/locales/en.json,
+       i18n/locales/ru.json, components/README.md, TODO.org
+     Docs updated: components/README.md, TODO.org
+     Notes: Kept the existing access grant model and evaluator contract, but
+       changed the editor language and summaries so a grant reads like an
+       entity filter expression. The grant list now distinguishes filtered vs
+       unfiltered grants and shows the effective trait/transition/rule summary,
+       while the selected grant opens with a sentence describing the rule being
+       authored. Added common lineage/entity facts to the logic-rule selector
+       so users can compose filters around organization, project, queue,
+       warehouse, entity id/type, status, transitions, and custom entity paths.
+
      [2026-06-20] Audit access model and repair invitation auth handoff
      Files changed: pages/invitation/[token].vue, pages/auth/login.vue,
        pages/auth/register.vue, server/features/invitations/service.js,
