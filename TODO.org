@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+     [2026-06-20] Compact QueueEditor workspace rewrite
+     Files changed: components/QueueEditor.vue
+     Docs updated: components/README.md, TODO.org
+     Notes: Removed the oversized selected-queue header and readiness
+       checklist from the previous queue rewrite. QueueEditor now keeps a
+       compact command bar, a compact setup strip for material/tool/source
+       controls, and gives the main vertical space back to cassette entries and
+       the run inspector.
+
      [2026-06-20] Rewrite QueueEditor production workspace
      Files changed: components/QueueEditor.vue
      Docs updated: components/README.md, pages/project/README.md, TODO.org

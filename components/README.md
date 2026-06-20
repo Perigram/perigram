@@ -240,8 +240,8 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   are queue-local state persisted as `queue.data.nestingSettings`; the command
   header owns selected queue identity, compact job/material/run facts, and the
   primary Run nesting action, while the setup band owns material source
-  selection (`Virtual` plus warehouse options), tool selection, source preview,
-  and readiness/error state. Virtual mode renders the virtual sheet dimensions as the active
+  selection (`Virtual` plus warehouse options), tool selection, selected source
+  preview, and inline error state. Virtual mode renders the virtual sheet dimensions as the active
   material abstraction; warehouse mode adds a selected source immediately from
   the source dropdown and renders selected material sources as compact
   `QueueSourceCard` preview tiles in a horizontally scrolled row. Queue
