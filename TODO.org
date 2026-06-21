@@ -4,6 +4,13 @@
   :END:
 
 *** Agent Notes
+    [2026-06-21] Make process properties panel scrollable
+    Files changed: pages/organization/process.vue
+    Docs updated: pages/organization/README.md, TODO.org
+    Notes: Replaced the right properties PrimeVue panel wrapper with a bounded
+      floating aside so inspector, roles, and assignments tabs own a real
+      vertical scroll region while the canvas remains fixed.
+
     [2026-06-21] Restore process canvas content after role node removal
     Files changed: pages/organization/process.vue
     Docs updated: pages/organization/README.md, TODO.org

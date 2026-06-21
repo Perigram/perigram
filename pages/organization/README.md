@@ -21,6 +21,9 @@ services, sockets, and field policies. The route uses the authenticated app
 layout with a full canvas workspace and floating palette, toolbar, properties,
 and validation panels over it. The graph palette creates only process object
 nodes: entities, services, and sockets.
+The properties pane is a bounded floating aside; its tab body owns vertical
+scrolling so long entity lifecycle, role, or assignment forms remain reachable
+without moving the canvas.
 When older saved graphs still contain role/user layout nodes, the route filters
 those non-canvas nodes out and reconstructs entity/service/socket nodes from
 the process records so active definitions do not open to a blank canvas. Truly
