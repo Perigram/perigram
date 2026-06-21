@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+     [2026-06-21] Add process starter templates and migration helper
+     Files changed: packages/processes/src/templates.js,
+       packages/processes/src/index.js,
+       packages/processes/src/index.spec.js,
+       server/scripts/migrate-org-types-to-processes.js
+     Docs updated: packages/processes/README.md,
+       server/scripts/README.md, TODO.org
+     Notes: Added compatibility starter process templates for legacy
+       organization labels and a migration script that creates active compiled
+       process definitions for existing organizations without adding new
+       runtime organization-type branches.
+
      [2026-06-21] Add organization process designer runtime slice
      Files changed: packages/processes/src/index.js,
        packages/processes/src/index.spec.js,

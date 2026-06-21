@@ -16,6 +16,7 @@ node server/scripts/seed-system-pens.js      # OCCS/default system pens
 node server/scripts/seed-system-tools.js     # 6 common tools
 node server/scripts/migrate-entity-revisions.js # Backfill cassette geometry revisions and design provenance
 node server/scripts/repair-system-data-permissions.js # Floor stored user grants so system pens/layers/tools stay visible
+node server/scripts/migrate-org-types-to-processes.js # Backfill active process definitions from legacy organization type labels
 ```
 
 ## What Gets Created
@@ -111,6 +112,12 @@ permissions in place, keeping stronger grants intact while flooring
 that can import the repo's `shared/`, `server/db/`, and `server/utils/`
 modules; the production app image does not include those standalone source
 dependencies for direct script execution.
+
+Use `server/scripts/migrate-org-types-to-processes.js` once when introducing
+process definitions to existing data. It maps legacy `organization.data.type`
+labels to starter process templates, creates an active compiled
+`process_definition` for organizations without `data.activeProcessDefinitionId`,
+and leaves `data.type` in place as compatibility-only data.
 
 ## Entity Revision Migration
 
