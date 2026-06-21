@@ -88,11 +88,12 @@ Asset management routes under `pages/assets/` consume canonical v24 DTOs. Pen
 template screens must read `identity.name` for labels and `data.stroke` for
 rendered style; legacy flat `name` / `stroke` fields are compatibility only.
 
-`pages/organization/process.vue` is the organization process designer. It uses
-Vue Flow for composition nodes and persists graph drafts through
-`/api/process-definitions`; lifecycle editing stays in `WorkflowDesignerV2`
-inside the entity-node inspector so designed lifecycles compile into runtime
-status machines.
+Organization routes are first-class app areas. `/organization` is the
+workspace hub linked from the user menu and profile organization cards;
+`/organization/users` owns team management; `/organization/process` owns the
+Vue Flow process designer. Breadcrumbs expose these routes as organization
+siblings so users can move between overview, team management, and process
+design without going through profile/admin pages.
 
 UI cleanup classifies components by route reachability plus architectural
 registries (`utils/design-system.js`, `framework.manifest.json`,

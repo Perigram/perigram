@@ -19,6 +19,10 @@ owns that text.
 Project queue workspaces use a viewport-bounded main area so scrolling remains
 inside queue lanes and panels rather than the page body.
 
+The authenticated user menu links the current organization to `/organization`
+and exposes team management and process designer actions when the active grants
+allow them. It should not reduce the organization area to disabled status text.
+
 ## Related
 
 - [stores](../stores/README.md)

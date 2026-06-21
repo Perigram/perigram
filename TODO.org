@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+     [2026-06-21] Expose organization workspace navigation
+     Files changed: layouts/app.vue, stores/navigation.js,
+       pages/organization/index.vue, pages/organization/users.vue,
+       pages/organization/process.vue, pages/profile/index.vue,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: pages/README.md, pages/organization/README.md,
+       layouts/README.md, TODO.org
+     Notes: Added `/organization` as a first-class workspace route,
+       linked it from the user menu and profile organization cards, exposed
+       team management and process designer actions, and added organization
+       breadcrumb siblings for overview/team/process routes.
+
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,
        packages/processes/src/index.js,
