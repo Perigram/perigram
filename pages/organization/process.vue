@@ -55,14 +55,17 @@
         </div>
       </div>
 
-      <Panel class="absolute bottom-3 right-3 top-3 z-10 w-[28rem] overflow-hidden" :header="$t('processDesigner.properties')">
-        <Tabs value="inspector" class="flex h-full min-h-0 flex-col">
+      <aside class="absolute bottom-3 right-3 top-3 z-10 flex w-[28rem] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card">
+        <div class="shrink-0 border-b border-content-border px-4 py-3">
+          <strong>{{ $t('processDesigner.properties') }}</strong>
+        </div>
+        <Tabs value="inspector" class="flex min-h-0 flex-1 flex-col">
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
             <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
             <Tab value="assignments">{{ $t('processDesigner.assignments') }}</Tab>
           </TabList>
-          <TabPanels class="min-h-0 flex-1 overflow-auto">
+          <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
                 <div class="flex flex-col gap-1">
@@ -263,7 +266,7 @@
             </TabPanel>
           </TabPanels>
         </Tabs>
-      </Panel>
+      </aside>
 
       <Panel v-if="validation" class="absolute bottom-3 left-3 z-10 max-w-xl" :header="$t('processDesigner.validation')">
         <div class="flex flex-col gap-2">
