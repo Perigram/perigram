@@ -17,8 +17,8 @@ permissions as compatibility fallback data.
 process definitions with Vue Flow, persists drafts through
 `/api/process-definitions`, validates them through the process compiler, and
 activates compiled runtime contracts for access, navigation, entity workflows,
-services, sockets, and field policies. The route uses a real `StandardPage`
-header/action surface, process metrics, a typed palette, and
+services, sockets, and field policies. The route uses the authenticated app
+layout, a compact designer toolbar, a compact typed palette, and
 domain-specific node components from
 [components/process-designer](../../components/process-designer/README.md).
 

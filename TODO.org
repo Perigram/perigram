@@ -16,8 +16,8 @@
       components/process-designer/README.md,
       pages/organization/README.md, TODO.org
     Notes: Reworked the designer from generic identical cards into a process
-      workspace with a StandardPage header, process metrics, typed palette,
-      connection legend, semantic Vue Flow handles, domain-specific node
+      workspace with the authenticated app layout, compact toolbar, compact
+      typed palette, connection legend, semantic Vue Flow handles, domain-specific node
       summaries, and inspectors for role navigation/grants, entity lifecycle
       and field policy, service command I/O, socket projection, and assignment
       bindings. Saving from an active process now forks a draft instead of
