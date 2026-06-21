@@ -337,7 +337,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { VueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -455,7 +455,11 @@ const lifecycleTransitions = computed(() => lifecycleRegion.value?.transitions |
 
 watch(selectedRoleRecord, () => syncSelectedRoleEditors(), { immediate: true });
 
-onMounted(loadActiveOrCreateLocal);
+onMounted(() => {
+  loadActiveOrCreateLocal();
+  window.addEventListener('keydown', handleCanvasKeydown);
+});
+onBeforeUnmount(() => window.removeEventListener('keydown', handleCanvasKeydown));
 
 async function loadActiveOrCreateLocal() {
   const active = await $fetch('/api/process-definitions/active').catch(() => null);
@@ -555,6 +559,28 @@ function selectNode(node) {
   selectedNodeId.value = node.id;
 }
 
+function handleCanvasKeydown(event) {
+  if (!['Delete', 'Backspace'].includes(event.key) || !selectedNodeId.value) return;
+  if (isTextEditingTarget(event.target)) return;
+  event.preventDefault();
+  deleteSelectedNode();
+}
+
+function isTextEditingTarget(target) {
+  const tagName = target?.tagName?.toLowerCase();
+  return target?.isContentEditable || ['input', 'textarea', 'select'].includes(tagName);
+}
+
+function deleteSelectedNode() {
+  const node = selectedNode.value;
+  if (!node) return;
+  const refId = node.data?.refId;
+  nodes.value = nodes.value.filter(item => item.id !== node.id);
+  edges.value = edges.value.filter(edge => edge.source !== node.id && edge.target !== node.id);
+  if (refId && draft.value?.data) delete draft.value.data[recordKeyForType(node.type)]?.[refId];
+  selectedNodeId.value = null;
+}
+
 function serializeProcess() {
   syncNodeData();
   return {
@@ -579,6 +605,7 @@ function syncNodeData() {
     node.data.entityType = record.entityType;
     node.data.commandId = record.commandId;
     node.data.triggerMode = record.trigger?.mode;
+    node.data.triggerRoleLabels = roleLabels(record.trigger?.roleIds || []);
     node.data.statusFrom = record.status?.from;
     node.data.statusTo = record.status?.to;
     node.data.direction = record.direction;
@@ -589,6 +616,8 @@ function syncNodeData() {
     node.data.transitionCount = workflowTransitionCount(record);
     node.data.inputCount = record.inputs?.length || 0;
     node.data.outputCount = record.outputs?.length || 0;
+    node.data.inputLabels = (record.inputs || []).map(ioLabel);
+    node.data.outputLabels = (record.outputs || []).map(ioLabel);
   }
 }
 
@@ -800,6 +829,10 @@ function actionKindLabel(actionKind) {
 
 function ioLabel(io) {
   return [io.entityType || io.id, io.status].filter(Boolean).join(' ');
+}
+
+function roleLabels(roleIds = []) {
+  return roleIds.map(roleId => roles.value[roleId]?.label || roleId).filter(Boolean);
 }
 
 function addLifecycleTransition() {

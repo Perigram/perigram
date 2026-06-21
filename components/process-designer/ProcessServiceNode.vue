@@ -15,17 +15,25 @@
       <Badge :value="data.roleCount || 0" severity="warning" />
     </div>
 
-    <div class="mt-3 flex flex-wrap gap-2">
-      <Tag :value="$t('processDesigner.inputsCount', { count: data.inputCount || 0 })" size="small" />
-      <Tag :value="$t('processDesigner.outputsCount', { count: data.outputCount || 0 })" size="small" severity="success" />
+    <div class="mt-3 grid grid-cols-1 gap-2">
+      <div v-if="inputLabels.length" class="flex flex-wrap gap-1">
+        <Tag v-for="input in inputLabels" :key="input" :value="input" size="small" />
+      </div>
+      <div v-if="outputLabels.length" class="flex flex-wrap gap-1">
+        <Tag v-for="output in outputLabels" :key="output" :value="output" size="small" severity="success" />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import Badge from 'primevue/badge';
 import Tag from 'primevue/tag';
 
-defineProps({ data: { type: Object, default: () => ({}) } });
+const props = defineProps({ data: { type: Object, default: () => ({}) } });
+
+const inputLabels = computed(() => props.data.inputLabels || []);
+const outputLabels = computed(() => props.data.outputLabels || []);
 </script>
