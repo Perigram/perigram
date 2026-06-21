@@ -99,15 +99,17 @@ workbench and organization workflow overrides page. It normalizes flat legacy
 workflows into a `regions` contract, edits the selected region's states and
 transitions, and keeps lifecycle metadata, transition capabilities, access JSON,
 and hooks JSON editable.
-The organization process designer embeds this same editor inside entity node
-inspectors. Entity node lifecycle data must save as a workflow draft that
-compiles into a runtime status machine; the process canvas itself remains the
-composition surface for roles, entities, services, sockets, and assignments.
+The organization process designer keeps lifecycle design inside the same Vue
+Flow workspace: entity node inspectors edit inline status-machine states and
+transitions, and entity nodes summarize those states directly on the canvas.
+Entity lifecycle data must save as a workflow draft that compiles into a runtime
+status machine. Abstract roles and user assignments are process-panel records,
+not graph nodes; roles are assigned onto nodes and lifecycle transitions.
 Process designer nodes live under `components/process-designer/` and must show
-typed Vue Flow handles that match the process compiler contract: assignments,
-role access, service input/output, and socket projection/transfer. Do not reduce
-these nodes to generic cards; their surface should expose the role/entity/
-service/socket semantics that the active process runtime consumes.
+typed Vue Flow handles that match the process compiler contract: role access,
+service input/output, and socket projection/transfer. Do not reduce these nodes
+to generic cards; their surface should expose the entity/service/socket
+semantics that the active process runtime consumes.
 
 Lifecycle transitions belong in `EntityStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,

@@ -18,17 +18,23 @@ process definitions with Vue Flow, persists drafts through
 `/api/process-definitions`, validates them through the process compiler, and
 activates compiled runtime contracts for access, navigation, entity workflows,
 services, sockets, and field policies. The route uses the authenticated app
-layout, a compact designer toolbar, a compact typed palette, and
-domain-specific node components from
-[components/process-designer](../../components/process-designer/README.md).
+layout with a full canvas workspace and floating palette, toolbar, properties,
+and validation panels over it. The graph palette creates only process object
+nodes: entities, services, and sockets.
 
 The inspector edits compiler-owned fields directly:
 
-- role nodes own kind, explicit grant JSON, and app navigation routes;
-- entity nodes own entity type, lifecycle mode, role access, and public/write/private field policy;
+- the roles tab owns abstract process role kind, explicit grant JSON, and app navigation routes;
+- entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
 - service nodes own command selection, run/view roles, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
-- assignment nodes own user id, process roles, and binding JSON.
+- the assignments tab owns concrete user ids and their process role ids.
+
+Role and user assignment records are intentionally not Vue Flow nodes. Roles are
+reusable process metadata assigned onto entity access rules, service/socket
+access rules, and status-machine transitions; user assignments bind actual
+users to those abstract roles without forcing user records into the canvas
+layout.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched

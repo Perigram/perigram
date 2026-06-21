@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-21] Integrate roles and lifecycles into process canvas
+    Files changed: pages/organization/process.vue,
+      components/process-designer/ProcessEntityNode.vue,
+      server/core/access/service.js,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: components/README.md,
+      components/process-designer/README.md,
+      pages/organization/README.md, TODO.org
+    Notes: Removed role and user creation from the Vue Flow palette so roles
+      and assignments are managed as process records in floating side-panel
+      tabs. Entity inspectors now edit lifecycle states and transitions inline
+      on the same canvas, entity nodes show lifecycle badges and transition
+      counts, and transition access enforces assigned process role ids at
+      runtime.
+
     [2026-06-21] Replace generic process designer surface
     Files changed: pages/organization/process.vue,
       components/process-designer/ProcessRoleNode.vue,
