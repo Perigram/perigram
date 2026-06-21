@@ -454,9 +454,6 @@ const lifecycleStateOptions = computed(() => lifecycleStateIds.value.map(value =
 const lifecycleTransitions = computed(() => lifecycleRegion.value?.transitions || []);
 
 watch(selectedRoleRecord, () => syncSelectedRoleEditors(), { immediate: true });
-watch(() => draft.value?.data, () => {
-  if (draft.value) syncNodeData();
-}, { deep: true });
 
 onMounted(loadActiveOrCreateLocal);
 
