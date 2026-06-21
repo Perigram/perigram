@@ -88,6 +88,12 @@ Asset management routes under `pages/assets/` consume canonical v24 DTOs. Pen
 template screens must read `identity.name` for labels and `data.stroke` for
 rendered style; legacy flat `name` / `stroke` fields are compatibility only.
 
+`pages/organization/process.vue` is the organization process designer. It uses
+Vue Flow for composition nodes and persists graph drafts through
+`/api/process-definitions`; lifecycle editing stays in `WorkflowDesignerV2`
+inside the entity-node inspector so designed lifecycles compile into runtime
+status machines.
+
 UI cleanup classifies components by route reachability plus architectural
 registries (`utils/design-system.js`, `framework.manifest.json`,
 `EntityInlineRef`, and framework tooling). Components that are dormant but
@@ -96,4 +102,5 @@ architecturally meaningful are not deleted during UI refactors.
 ## Related
 
 - [admin pages](./admin/README.md)
+- [organization pages](./organization/README.md)
 - [marketing components](../components/marketing/README.md)

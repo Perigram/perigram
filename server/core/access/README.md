@@ -44,6 +44,12 @@ Preset labels are compatibility labels only. User records store copied
 membership permissions produced from access presets, and test surfaces such as
 the admin workbench can submit custom permission grants for a single run.
 
+When the active organization has an active process definition, auth middleware
+adds `effectivePermissions` compiled from the user's process role assignments.
+The evaluator consumes those grants before membership permissions. No separate
+process-specific access engine exists; process roles compile into the same
+grant shape documented here.
+
 ## Related
 
 - [State machine engine](../machines/README.md)

@@ -180,6 +180,11 @@ Used by `<TraceChain>` component.
 | `cassettes.js` | User templates and designs |
 | `global.js` | Layout, notifications, shared lookup lists |
 
+`auth.js` prefers server-provided `effectivePermissions` and `navigation` when
+the active organization has an active process definition. Membership
+permissions remain the fallback for organizations that have not activated a
+process.
+
 ---
 
 ## Usage Examples

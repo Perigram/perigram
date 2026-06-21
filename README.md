@@ -44,6 +44,7 @@ flowchart LR
 | Attachment | Persisted file/blob metadata linked to an entity. |
 | AttachmentKind | Declared file content/preview/storage contract. |
 | Adapter | App binding between pure domain definitions and infrastructure. |
+| Process Definition | Organization-owned graph that compiles abstract roles, entity workflows, field policy, services, sockets, and navigation into runtime contracts. |
 
 Commands and tasks are not duplicates: commands decide "what business action is
 allowed and requested"; tasks execute retryable background work created by those
@@ -111,6 +112,7 @@ against the configured `E2E_BASE_URL`.
 | Commands | [server/core/commands/README.md](./server/core/commands/README.md) |
 | Tasks | [server/core/tasks/README.md](./server/core/tasks/README.md) |
 | Domain package | [packages/domain-cnc/README.md](./packages/domain-cnc/README.md) |
+| Process compiler | [packages/processes/README.md](./packages/processes/README.md) |
 | Core package | [packages/core/README.md](./packages/core/README.md) |
 | Pages and public entry | [pages/README.md](./pages/README.md) |
 | Workers | [workers/README.md](./workers/README.md) |

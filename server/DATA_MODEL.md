@@ -266,6 +266,28 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.stroke` | String | stroke field |
 | `lineage.userId` | ObjectId \| string | Lineage link to userId |
 
+### process_definitions
+*Process-definitions - manages process definitions*
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | Object | Standard Identity Block (uid, name) |
+| `origin` | Object | Standard Origin Block (creation state) |
+| `status` | Object | Standard Status Block (current state) |
+| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `attachments` | Object | Standard Attachments Block (files) |
+| `data.activeProcessDefinitionId` | String | active process definition id field |
+| `data.assignments` | Array | assignments field |
+| `data.compiled` | String | compiled field |
+| `data.entityProfiles` | Array | entity profiles field |
+| `data.graph` | String | graph field |
+| `data.roles` | Array | roles field |
+| `data.schemaVersion` | String | schema version field |
+| `data.services` | Array | services field |
+| `data.sockets` | Array | sockets field |
+| `data.sourceTemplateId` | String | source template id field |
+| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
+
 ### profile_templates
 *Profile-templates - manages profile templates*
 

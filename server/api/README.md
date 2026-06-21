@@ -26,6 +26,10 @@ Routes are grouped into sub-directories corresponding to features:
   The project list route returns authorized project DTOs with canonical
   identity, status, origin, lineage, safe project data, summary fields, and
   queue previews so shared entity cards can render directly from the response.
+- `process-definitions/`: Authenticated organization process definition CRUD,
+  validation, activation, and archive endpoints. Activation compiles the visual
+  graph into runtime access, navigation, workflow, field-policy, service, and
+  socket contracts.
 - `sheet-designs/`: Lineage-scoped sheet design list/detail and direct DXF
   export.
 - `status/`: Authenticated status action and history endpoints. History

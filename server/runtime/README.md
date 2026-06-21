@@ -31,6 +31,9 @@ should call `getAppRegistry()`.
   registered feature hook handlers such as queue physical-cut processing.
 - Domain definitions: entities, workflows, commands, tasks, hooks,
   attachment kinds, summaries, and UI metadata.
+- Process definition services are registered as persisted entities. Active
+  process compiled workflows are resolved by the workflow runtime before
+  organization workflow overrides and domain defaults.
 
 ## Related
 

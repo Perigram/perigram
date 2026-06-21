@@ -4,6 +4,33 @@
   :END:
 
 *** Agent Notes
+     [2026-06-21] Add organization process designer runtime slice
+     Files changed: packages/processes/src/index.js,
+       packages/processes/src/index.spec.js,
+       server/features/process-definitions/*,
+       server/api/process-definitions/*,
+       server/core/access/service.js,
+       server/features/workflow-overrides/service.js,
+       server/middleware/auth.js,
+       stores/auth.js,
+       pages/organization/process.vue,
+       components/process-designer/*,
+       utils/process-navigation.js
+     Docs updated: README.md, packages/README.md,
+       packages/processes/README.md, packages/domain-cnc/README.md,
+       server/README.md, server/api/README.md,
+       server/features/README.md,
+       server/features/process-definitions/README.md,
+       server/core/access/README.md,
+       server/core/machines/README.md, server/runtime/README.md,
+       components/README.md, composables/README.md,
+       pages/README.md, pages/organization/README.md, TODO.org
+     Notes: Added a process compiler package, process-definitions entity
+       feature, activation APIs, active-process auth/access integration,
+       process-first workflow resolution, and a Vue Flow process designer
+       whose entity nodes embed WorkflowDesignerV2 so lifecycle drafts compile
+       into real v2 status machines.
+
      [2026-06-20] Remove QueueEditor redesign changes
      Files changed: components/QueueEditor.vue
      Docs updated: components/README.md, pages/project/README.md, TODO.org

@@ -15,6 +15,7 @@ Nuxt/Nitro backend for the CutKit modular monolith.
 | Tasks | `server/core/tasks/` | Async queue and `task_runs`. |
 | Effects | `server/core/effects/` | Declared cross-entity effect execution. |
 | Runtime registry | `server/runtime/` | Explicit app registry binding domain contracts to services/handlers. |
+| Process definitions | `server/features/process-definitions/` | Organization-owned process graph drafts and compiled active runtime contracts. |
 
 ## Golden Path
 
@@ -64,6 +65,11 @@ List endpoints must not return entities that their matching detail endpoint
 would deny. Organization lineage filters are only a coarse database prefilter;
 services that return entity lists must also apply the same grant evaluator to
 each loaded entity before serializing response DTOs.
+
+Active organization process definitions can provide `auth.effectivePermissions`
+and navigation for the current user. The access engine still evaluates the same
+shared grant shape; process activation changes the grant source, not the
+permission evaluator.
 
 ## Required Checks
 

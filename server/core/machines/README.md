@@ -12,6 +12,11 @@ The system consists of three main parts: the transition engine, the dynamic hook
   entity's organization-scoped active override from
   `server/features/workflow-overrides` before falling back to the registered
   domain workflow.
+- **Process workflows**: When the target organization has an active process
+  definition, compiled entity profile workflows resolve before workflow
+  overrides. Process lifecycle profiles are normalized v2 machines and drive
+  real entity status, action lookup, lifecycle validation, hooks, and audit
+  events.
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and
   resolves collections through the runtime/domain entity registry.
 

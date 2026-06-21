@@ -99,6 +99,10 @@ workbench and organization workflow overrides page. It normalizes flat legacy
 workflows into a `regions` contract, edits the selected region's states and
 transitions, and keeps lifecycle metadata, transition capabilities, access JSON,
 and hooks JSON editable.
+The organization process designer embeds this same editor inside entity node
+inspectors. Entity node lifecycle data must save as a workflow draft that
+compiles into a runtime status machine; the process canvas itself remains the
+composition surface for roles, entities, services, sockets, and assignments.
 
 Lifecycle transitions belong in `EntityStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,
