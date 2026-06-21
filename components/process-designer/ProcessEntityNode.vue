@@ -19,13 +19,38 @@
       <Tag :value="data.lifecycleMode || $t('processDesigner.defaultCreated')" size="small" />
       <Tag :value="$t('processDesigner.fieldsCount', { count: data.fieldCount || 0 })" size="small" severity="info" />
     </div>
+
+    <div class="mt-3 flex flex-wrap gap-1">
+      <Tag
+        v-for="state in visibleStates"
+        :key="state"
+        :value="state"
+        size="small"
+        severity="secondary"
+      />
+      <Tag
+        v-if="hiddenStateCount > 0"
+        :value="`+${hiddenStateCount}`"
+        size="small"
+        severity="secondary"
+      />
+      <Tag
+        :value="$t('processDesigner.transitionsCount', { count: data.transitionCount || 0 })"
+        size="small"
+        severity="success"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import Badge from 'primevue/badge';
 import Tag from 'primevue/tag';
 
-defineProps({ data: { type: Object, default: () => ({}) } });
+const props = defineProps({ data: { type: Object, default: () => ({}) } });
+
+const visibleStates = computed(() => (props.data.stateLabels || []).slice(0, 4));
+const hiddenStateCount = computed(() => Math.max((props.data.stateLabels || []).length - visibleStates.value.length, 0));
 </script>

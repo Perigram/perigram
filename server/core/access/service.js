@@ -37,6 +37,15 @@ export function assertTransitionAccess({ transition, entity, auth }) {
   const access = transition?.access || {};
   if (isSystemAuth(auth) && access.system === true) return true;
 
+  const processRoleIds = access.processRoleIds || transition?.processRoleIds || [];
+  if (processRoleIds.length) {
+    const assignedRoleIds = auth.roleAssignments?.roleIds || [];
+    const hasRequiredRole = assignedRoleIds.some(roleId => processRoleIds.includes(roleId));
+    if (!hasRequiredRole) {
+      throw createError({ statusCode: 403, message: 'Permission denied for process transition role' });
+    }
+  }
+
   for (const requirement of access.permissions || []) {
     if (!hasEntityAccess({
       entity,

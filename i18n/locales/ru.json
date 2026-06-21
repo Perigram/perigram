@@ -2217,3 +2217,13 @@
     "validationOk": "Определение процесса корректно"
   }
 }
+    "properties": "Свойства",
+    "roles": "Роли",
+    "assignments": "Назначения",
+    "statusMachine": "Машина статусов",
+    "stateId": "ID статуса",
+    "addState": "Добавить статус",
+    "addTransition": "Добавить переход",
+    "transitionsCount": "{count} переходов",
+    "addRole": "Добавить роль",
+    "addAssignment": "Добавить назначение",

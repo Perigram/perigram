@@ -2217,3 +2217,13 @@
     "validationOk": "Process definition is valid"
   }
 }
+    "properties": "Properties",
+    "roles": "Roles",
+    "assignments": "Assignments",
+    "statusMachine": "Status machine",
+    "stateId": "Status ID",
+    "addState": "Add status",
+    "addTransition": "Add transition",
+    "transitionsCount": "{count} transitions",
+    "addRole": "Add role",
+    "addAssignment": "Add assignment",
