@@ -20,10 +20,10 @@ Inherits all `BaseEntity` fields.
 **Data Block:**
 - `email`: User's email (lowercase)
 - `passwordHash`: Argon2id hash
-- `role`: Legacy compatibility label copied from the selected preset. Runtime
-  authorization must use copied permission grants, not this label.
+- `role`: Compatibility label. When an active organization process exists,
+  runtime authorization uses the process assignment instead of this label.
 - `permissions`: Per-entity access levels (none/read/write/admin)
-- `memberships`: Array of organization memberships `{ organizationId, role, permissions, status }`; `role` is a preset label only
+- `memberships`: Array of organization memberships `{ organizationId, role, roleIds?, permissions, status }`; memberships establish tenant relationship and approval state
 - `isActive`: Boolean flag
 
 ## Authentication Flow
@@ -37,8 +37,8 @@ Inherits all `BaseEntity` fields.
 `POST /api/auth/register` creates a password-backed user and, when
 `organizationName` is supplied, creates the first organization through the
 organizations service. The new user receives an active membership, lineage
-organization, a legacy compatibility label, and copied permission grants for
-the selected organization type. Invitation signup intentionally omits
+organization, and an active process assignment in the selected starter process.
+Invitation signup intentionally omits
 organization fields: the account is created without a membership, then the user
 logs in and accepts `/invitation/:token` to create a pending membership for the
 inviting organization. `recoverSignupWithoutOrganization()` is the narrow
@@ -55,7 +55,10 @@ attach the first organization.
 
 ## Permission System
 - Organization context via `user.lineage.organizationId`
-- Per-organization permissions in `memberships`
+- Per-organization permissions in `memberships` are compatibility fallback data.
+- When `server/middleware/auth.js` resolves an active process, the user's
+  `effectivePermissions`, navigation, field policies, and role assignment come
+  from the compiled process definition.
 - Default access presets live in [shared permission templates](../../../shared/README.md)
   so browser dev tools and server user creation read the same grant contract.
 - Presets are materialized when registering users or accepting invitations.

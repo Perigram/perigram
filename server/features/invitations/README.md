@@ -16,9 +16,10 @@ Manages organization membership invitations.
    the redirect back to the invitation instead of asking for organization
    details.
 3. **Join**: The authenticated user accepts the invitation via token or code,
-   creating a pending membership with permissions materialized from the
-   invitation role. Organization admins approve or reject the pending
-   membership from team management.
+   creating a pending membership with the invited process role ids. Organization
+   admins approve or reject the pending membership from team management.
+   Approval activates the matching assignment in the organization's active
+   process definition.
 
 ## API / Functions
 - `generateInvitation()`: Creates new invitation.

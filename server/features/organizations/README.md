@@ -1,6 +1,8 @@
 # COMPONENT: Organizations
 
-Multi-tenant organization management with type-specific settings.
+Multi-tenant organization management. Organization records are abstract tenant
+roots; runtime behavior comes from the active process definition linked from
+organization data, not from hardcoded organization type branches.
 
 ## Core Files
 - `repository.js`: Database operations on `organizations` collection
@@ -11,8 +13,9 @@ Multi-tenant organization management with type-specific settings.
 Collection: `organizations`
 
 Key fields:
-- `type`: "Manufacturer" | "Contractor" | "Customer" | "ServiceProvider"
-- `settings`: Type-specific object (contractor.canCut, contractor.balance, etc.)
+- `processTemplateId`: Starter process id used at creation time.
+- `activeProcessDefinitionId`: Active compiled process definition id.
+- `settings`: Organization settings that are not role/type branches.
 
 ## ID Handling
 - Organization `_id` values may be Mongo ObjectIds or string UIDs such as `org-xxxxxxxx`.
@@ -24,9 +27,10 @@ Key fields:
 - `admin` can delete organization records.
 - List queries are scoped by membership lineage.
 - `createInitialForUser()` is the narrow public-signup helper. It creates the
-  first organization for a newly registered user, assigns the initial copied
-  permissions derived from organization type, and writes the user's initial
-  membership/lineage.
+  first organization for a newly registered user, creates and activates a
+  starter process definition, assigns the creator to the process admin role,
+  and writes the user's initial membership/lineage. Membership permissions are
+  compatibility data; active process assignments provide runtime access.
 
 ## API Behavior
 - `GET /api/organizations/:id` returns the serialized organization when found.

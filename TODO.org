@@ -4,6 +4,38 @@
   :END:
 
 *** Agent Notes
+    [2026-06-21] Complete process-defined organization runtime
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/templates.js,
+      server/features/process-definitions/service.js,
+      server/features/process-definitions/runtime.js,
+      server/api/process-definitions/active/assignments.patch.js,
+      server/api/process-definitions/sockets/[id]/project.post.js,
+      server/features/organizations/service.js,
+      server/features/users/service.js,
+      server/features/invitations/service.js,
+      server/core/commands/service.js,
+      shared/entity-field-access.js,
+      components/shared/blocks/DataBlock.vue,
+      components/shared/blocks/SpecsBlock.vue,
+      stores/auth.js, stores/navigation.js,
+      pages/auth/register.vue, pages/profile/index.vue,
+      pages/organization/users.vue,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: packages/processes/README.md,
+      server/features/process-definitions/README.md,
+      server/features/organizations/README.md,
+      server/features/users/README.md,
+      server/features/invitations/README.md,
+      server/api/README.md, server/core/commands/README.md,
+      shared/README.md, components/shared/README.md,
+      stores/README.md, pages/README.md,
+      pages/organization/README.md, TODO.org
+    Notes: Organization creation now activates starter process templates,
+      team management assigns active process roles, auth exposes process field
+      policies/navigation, command services are process-gated, entity fields
+      are redacted by process policies, and socket projection has a runtime API.
+
      [2026-06-21] Expose organization workspace navigation
      Files changed: layouts/app.vue, stores/navigation.js,
        pages/organization/index.vue, pages/organization/users.vue,

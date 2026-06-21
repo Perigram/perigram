@@ -29,7 +29,9 @@ Routes are grouped into sub-directories corresponding to features:
 - `process-definitions/`: Authenticated organization process definition CRUD,
   validation, activation, and archive endpoints. Activation compiles the visual
   graph into runtime access, navigation, workflow, field-policy, service, and
-  socket contracts.
+  socket contracts. Active assignment updates patch the compiled process role
+  mapping for a user. Socket projection endpoints return selected entity fields
+  and receiver lifecycle metadata for cross-organization transfer flows.
 - `sheet-designs/`: Lineage-scoped sheet design list/detail and direct DXF
   export.
 - `status/`: Authenticated status action and history endpoints. History
@@ -54,9 +56,11 @@ Responsibilities:
 is secure in production by default, but `SESSION_COOKIE_SECURE=false` can be set
 for plain HTTP LAN deployments so browsers keep the session cookie.
 `auth/register.post.js` is the public signup boundary. It accepts user
-credentials and, when `organizationName`/`organizationType` are provided,
-creates the user's initial organization membership without calling protected
-organization CRUD routes. Invitation-driven signup omits organization fields;
+credentials and, when `organizationName`/`processTemplateId` are provided,
+creates the user's initial organization membership and active starter process
+without calling protected organization CRUD routes. Legacy
+`organizationType` input is accepted only as a template fallback.
+Invitation-driven signup omits organization fields;
 the user creates only an account, then logs in and accepts the invitation link.
 If a previous signup created a password-backed user before the organization step
 existed, submitting the same email/password with organization details recovers

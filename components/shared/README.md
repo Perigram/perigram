@@ -85,9 +85,11 @@ local constants. Constructor descriptors can also declare `fallbackPaths` and
 that resolve to empty values.
 Rows are filtered through `shared/entity-field-access.js`. A descriptor path
 must match the domain field policy for `entity-type`, and the current auth
-grant must satisfy that policy level. Do not render sensitive or entity-specific
-facts beside `DataBlock` unless the API DTO has already been redacted for that
-same field policy.
+grant must satisfy that policy level. When the active organization process
+provides field policies, `DataBlock` applies those process policies before the
+domain defaults. Do not render sensitive or entity-specific facts beside
+`DataBlock` unless the API DTO has already been redacted for that same field
+policy.
 
 ### `EntitySurfaceContent.vue`, `EntityPreview.vue`, `EntityRelationsBlock.vue`
 Contract-driven body primitives for app constructors. `EntitySurfaceContent`

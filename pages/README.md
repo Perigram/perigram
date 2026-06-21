@@ -76,7 +76,7 @@ Public auth/invitation pages may use full-height shells because they run
 outside the app layout, but their content chrome should still come from
 PrimeVue/shared primitives instead of raw bordered containers.
 `pages/auth/register.vue` is a public signup form. Normal signup collects the
-new user's credentials plus organization name/type and submits them to
+new user's credentials plus organization name and starter process and submits them to
 `/api/auth/register`; invitation signup is selected by the `invitation` query
 parameter and collects only account credentials. Login and registration preserve
 a safe same-origin `redirect` query, so `/invitation/:token` can send anonymous
@@ -93,7 +93,10 @@ workspace hub linked from the user menu and profile organization cards;
 `/organization/users` owns team management; `/organization/process` owns the
 Vue Flow process designer. Breadcrumbs expose these routes as organization
 siblings so users can move between overview, team management, and process
-design without going through profile/admin pages.
+design without going through profile/admin pages. Team management assigns users
+to active process roles; the process designer activation defines available
+services, field policies, navigation, and lifecycle machines for the current
+organization.
 
 UI cleanup classifies components by route reachability plus architectural
 registries (`utils/design-system.js`, `framework.manifest.json`,

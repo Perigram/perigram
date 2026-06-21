@@ -100,8 +100,11 @@ permission shape.
 Entity field display is stricter than entity read access. Entity read access
 decides whether the record may be fetched; `entity-field-access.js` decides
 which DTO paths may be shown. A path must be declared in
-`cncEntityFieldAccess` and the active membership must satisfy the policy level.
-No field policy means no display and no API serialization for auth-bound DTOs.
+`cncEntityFieldAccess` and the active membership or process grant must satisfy
+the policy level. Active process field policies can narrow the domain policy
+per organization: `read` fields display with read grants, `write` fields with
+write grants, and `private` fields with admin grants. No field policy means no
+display and no API serialization for auth-bound DTOs.
 
 ## Related
 - [users feature](../server/features/users/README.md) - Stores membership and

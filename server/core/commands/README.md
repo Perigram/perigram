@@ -7,6 +7,10 @@ Generic runtime for declared domain commands.
 - Loads command definitions from `server/runtime/app-registry.js`.
 - Resolves declared entity inputs through registered entity services.
 - Runs `assertCommandAccess()` before invoking the handler.
+- Checks active process service availability before command access when the
+  organization process declares command-backed services. If a process gates
+  services, commands not represented by enabled service nodes are denied; run
+  roles on the service node further constrain execution by process role id.
 - Invokes only handlers registered in the app registry.
 - Persists run history in `command_runs`.
 - Returns normalized `createCommandResult()` output.
