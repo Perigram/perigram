@@ -8,6 +8,7 @@ import { statusService } from '../../core/machines/service.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { ObjectId } from 'mongodb';
 import { hasEntityAccess } from '../../core/access/service.js';
+import * as processDefinitionsService from '../process-definitions/service.js';
 
 /**
  * Users Service - v24 Absolute Final
@@ -52,6 +53,17 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
     user.applyStatus('ACTIVE', creatorUserId || 'SYSTEM', { note: 'User registered' });
 
     const createdRaw = await usersRepository.create(user);
+    if (data.organizationId) {
+      await assignProcessRolesFromInput({
+        userId: createdRaw._id,
+        organizationId: data.organizationId,
+        role,
+        roleIds: data.roleIds,
+        bindings: data.bindings,
+        status: 'active',
+        actorId: creatorUserId || 'SYSTEM'
+      });
+    }
     return new User(createdRaw);
   } catch (err) {
     console.error('[AUTH] Registration error:', err);
@@ -155,6 +167,17 @@ export async function confirmMembership(userId, organizationId, action, updaterU
 
   if (action === 'approve') {
     await usersRepository.setMembershipStatus(userId, organizationId, 'active');
+    const approvedRaw = await usersRepository.findById(userId);
+    const membership = approvedRaw?.data?.memberships?.find(item => item.organizationId?.toString() === organizationId.toString());
+    await assignProcessRolesFromInput({
+      userId,
+      organizationId,
+      role: membership?.role,
+      roleIds: membership?.roleIds,
+      bindings: membership?.bindings,
+      status: 'active',
+      actorId: updaterUser.userId || 'SYSTEM'
+    });
   } else {
     await usersRepository.removeMembership(userId, organizationId);
   }
@@ -240,4 +263,21 @@ function normalizeAuthFromArgs(userId, organizationId, role, auth = {}) {
     organizationId: auth.organizationId || organizationId,
     memberships: auth.memberships || []
   };
+}
+
+async function assignProcessRolesFromInput({ userId, organizationId, role, roleIds, bindings, status, actorId } = {}) {
+  if (!organizationId || !userId) return;
+  try {
+    await processDefinitionsService.assignUserToActiveProcessInternal({
+      organizationId,
+      userId,
+      roleIds: roleIds?.length ? roleIds : [role || 'role_viewer'],
+      bindings: bindings || {},
+      status,
+      actorId
+    });
+  } catch (error) {
+    if (error.statusCode === 404 || error.status === 404) return;
+    throw error;
+  }
 }

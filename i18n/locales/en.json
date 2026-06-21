@@ -1241,6 +1241,13 @@
     "organization": "Organization",
     "organizationName": "Organization name",
     "organizationType": "Organization type",
+    "processTemplate": "Starter process",
+    "processTemplates": {
+      "contractor": "Contractor process",
+      "manufacturer": "Supplier process",
+      "customer": "Customer process",
+      "serviceProvider": "Service provider process"
+    },
     "createOrg": "Create Organization",
     "accessPreset": "Access preset",
     "selectAccessPreset": "Select access preset",
@@ -2124,6 +2131,7 @@
     "teamManagement": "Team management",
     "teamManagementHint": "Invite users, approve memberships, and edit access grants.",
     "processDesignerHint": "Compose roles, entity lifecycles, services, and sockets for this organization.",
+    "processRoles": "Process roles",
     "openTeam": "Open team",
     "openProcessDesigner": "Open designer"
   },
@@ -2177,6 +2185,7 @@
     "projectionJson": "Projection JSON",
     "userId": "User ID",
     "roleIds": "Role IDs",
+    "bindingsJson": "Bindings JSON",
     "selectNode": "Select a process node",
     "validation": "Validation",
     "validationOk": "Process definition is valid"

@@ -53,8 +53,21 @@ export function getEntityFieldPolicyEntries(entityType) {
   );
 }
 
-export function findEntityFieldPolicy(entityType, path) {
-  const matches = getEntityFieldPolicyEntries(entityType)
+export function getActiveEntityFieldPolicyEntries(entityType, auth = null) {
+  const baseEntries = getEntityFieldPolicyEntries(entityType);
+  const processPolicy = auth?.fieldPolicies?.[entityType];
+  if (!processPolicy) return baseEntries;
+
+  const baseFeature = baseEntries[0]?.feature || getEntityFieldAccessPolicy(entityType)?.feature || entityType;
+  return [
+    ...(processPolicy.read || []).map(path => ({ path, feature: baseFeature, level: 'read' })),
+    ...(processPolicy.write || []).map(path => ({ path, feature: baseFeature, level: 'write' })),
+    ...(processPolicy.private || []).map(path => ({ path, feature: baseFeature, level: 'admin' }))
+  ];
+}
+
+export function findEntityFieldPolicy(entityType, path, auth = null) {
+  const matches = getActiveEntityFieldPolicyEntries(entityType, auth)
     .filter(entry => fieldPathMatches(entry.path, path))
     .sort((a, b) => {
       const levelDelta = ACCESS_LEVELS.indexOf(a.level) - ACCESS_LEVELS.indexOf(b.level);
@@ -77,7 +90,7 @@ export function canDisplayEntityField({
   const requestedPath = path || descriptor.path;
   if (!entityType || !requestedPath) return false;
 
-  const policy = findEntityFieldPolicy(entityType, requestedPath);
+  const policy = findEntityFieldPolicy(entityType, requestedPath, auth);
   if (!policy) return false;
 
   const activePermissions = auth
@@ -114,7 +127,7 @@ export function allowedEntityFieldPolicies({ entityType, permissions = {}, auth 
     ? getActivePermissionsFromAuth(auth, entity)
     : permissions;
 
-  return getEntityFieldPolicyEntries(entityType).filter(entry =>
+  return getActiveEntityFieldPolicyEntries(entityType, auth).filter(entry =>
     hasPermissionGrant({
       permissions: activePermissions,
       feature: entry.feature,

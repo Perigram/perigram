@@ -6,6 +6,7 @@ import { createStatusState } from '~/server/core/blocks/index.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import {
   compileProcessDefinition,
+  createProcessFromTemplate,
   normalizeProcessDefinition,
   validateProcessDefinition
 } from '~/packages/processes/src/index.js';
@@ -95,11 +96,134 @@ export async function activate(id, auth) {
   return new ProcessDefinition(updated).toJSON();
 }
 
+export async function createActiveFromTemplate({ organizationId, userId, templateId, actorId } = {}) {
+  if (!organizationId) throw createError({ statusCode: 400, message: 'Organization id is required' });
+
+  const process = new ProcessDefinition(createProcessFromTemplate({
+    templateId,
+    organizationId: toFlexibleId(organizationId),
+    userId
+  }));
+
+  const validation = validateProcessDefinition(process.data, getDomain());
+  if (!validation.ok) {
+    throw createError({ statusCode: 400, message: validation.errors.join('; '), data: validation });
+  }
+
+  process.data = {
+    ...process.data,
+    compiled: compileProcessDefinition(process.data, getDomain())
+  };
+  applyProcessStatus(process, 'ACTIVE', actorId || userId || 'SYSTEM', 'Process activated from starter template');
+
+  await repository.archiveActiveByOrganization(organizationId, actorId || userId || 'SYSTEM');
+  const created = await repository.create(process);
+  await organizationsRepository.updateById(organizationId, {
+    data: {
+      ...(await organizationsRepository.findById(organizationId))?.data,
+      activeProcessDefinitionId: created._id
+    }
+  });
+
+  return new ProcessDefinition(created).toJSON();
+}
+
+export async function assignUserToActiveProcess({ userId, roleIds = [], bindings = {}, status = 'active' } = {}, auth = {}) {
+  const organizationId = resolveOrganizationId(auth);
+  assertOrgAccess(auth, organizationId, 'admin');
+  return await assignUserToActiveProcessInternal({
+    organizationId,
+    userId,
+    roleIds,
+    bindings,
+    status,
+    actorId: auth.userId
+  });
+}
+
+export async function assignUserToActiveProcessInternal({
+  organizationId,
+  userId,
+  roleIds = [],
+  bindings = {},
+  status = 'active',
+  actorId = 'SYSTEM'
+} = {}) {
+  if (!organizationId) throw createError({ statusCode: 400, message: 'Organization id is required' });
+  if (!userId) throw createError({ statusCode: 400, message: 'User id is required' });
+
+  const raw = await repository.findActiveByOrganization(organizationId);
+  if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
+
+  const process = new ProcessDefinition(raw);
+  const normalizedRoleIds = normalizeRoleIds(roleIds, process.data.roles);
+  process.data.assignments = {
+    ...(process.data.assignments || {}),
+    [String(userId)]: {
+      userId: String(userId),
+      roleIds: normalizedRoleIds,
+      bindings: bindings && typeof bindings === 'object' ? bindings : {},
+      status
+    }
+  };
+  process.data.compiled = compileProcessDefinition(process.data, getDomain());
+  process.status = {
+    ...(process.status || {}),
+    timestamp: new Date(),
+    userId: actorId,
+    metadata: {
+      ...(process.status?.metadata || {}),
+      note: `Assigned process roles to ${userId}`
+    }
+  };
+
+  const updated = await repository.updateById(process.id, process);
+  return new ProcessDefinition(updated).toJSON();
+}
+
 export async function archive(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
   applyProcessStatus(process, 'ARCHIVED', auth.userId, 'Process archived');
   const updated = await repository.updateById(id, process);
   return new ProcessDefinition(updated).toJSON();
+}
+
+export async function projectEntityThroughSocket({ socketId, entityId, targetOrganizationId } = {}, auth = {}) {
+  const organizationId = resolveOrganizationId(auth);
+  assertOrgAccess(auth, organizationId, 'read');
+  if (!socketId) throw createError({ statusCode: 400, message: 'Socket id is required' });
+  if (!entityId) throw createError({ statusCode: 400, message: 'Entity id is required' });
+
+  const raw = await repository.findActiveByOrganization(organizationId);
+  if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
+  const process = new ProcessDefinition(raw);
+  const socket = process.data.sockets?.[socketId];
+  if (!socket) throw createError({ statusCode: 404, message: 'Socket not found in active process' });
+
+  const registry = getCutkitRegistry();
+  const service = registry.getEntityService(socket.entityType);
+  if (!service?.getById) throw createError({ statusCode: 500, message: `Entity service missing for ${socket.entityType}` });
+  const entity = await service.getById(entityId);
+  if (!entity) throw createError({ statusCode: 404, message: `${socket.entityType} not found` });
+
+  const domainEntity = (getDomain().entities || []).find(item => item.type === socket.entityType);
+  assertEntityAccess({
+    entity,
+    entityType: socket.entityType,
+    feature: socket.feature || domainEntity?.collection || `${socket.entityType}s`,
+    level: 'read',
+    auth
+  });
+
+  return {
+    socketId,
+    entityType: socket.entityType,
+    sourceOrganizationId: organizationId,
+    targetOrganizationId: targetOrganizationId || null,
+    projection: projectEntityFields(entity.toJSON ? entity.toJSON() : entity, socket.projection || {}),
+    receiverLifecycle: socket.receiverLifecycle || { mode: 'defaultCreated' },
+    visibility: socket.visibility || {}
+  };
 }
 
 export async function getByIdInternal(id) {
@@ -137,4 +261,42 @@ function resolveOrganizationId(auth = {}) {
 
 function getDomain() {
   return getCutkitRegistry().getDomain('cnc');
+}
+
+function normalizeRoleIds(roleIds, roles = {}) {
+  const list = Array.isArray(roleIds) ? roleIds : [roleIds].filter(Boolean);
+  const valid = list.filter(roleId => roles[roleId]);
+  if (valid.length) return [...new Set(valid)];
+  if (roles.role_viewer) return ['role_viewer'];
+  return Object.keys(roles).slice(0, 1);
+}
+
+function projectEntityFields(entity, projection = {}) {
+  const fields = projection.fields?.length ? projection.fields : ['identity.*', 'status.*'];
+  const excluded = projection.excludeFields || [];
+  const projected = {};
+  for (const field of fields) copyProjectionPath(entity, projected, field);
+  for (const field of excluded) deleteProjectionPath(projected, field);
+  return projected;
+}
+
+function copyProjectionPath(source, target, path) {
+  const sourcePath = path.endsWith('.*') ? path.slice(0, -2) : path;
+  const value = sourcePath.split('.').reduce((current, segment) => current?.[segment], source);
+  if (value === undefined) return;
+  const segments = sourcePath.split('.');
+  const last = segments.pop();
+  const parent = segments.reduce((current, segment) => {
+    if (!current[segment] || typeof current[segment] !== 'object') current[segment] = {};
+    return current[segment];
+  }, target);
+  parent[last] = value;
+}
+
+function deleteProjectionPath(target, path) {
+  const sourcePath = path.endsWith('.*') ? path.slice(0, -2) : path;
+  const segments = sourcePath.split('.');
+  const last = segments.pop();
+  const parent = segments.reduce((current, segment) => current?.[segment], target);
+  if (parent && Object.prototype.hasOwnProperty.call(parent, last)) delete parent[last];
 }

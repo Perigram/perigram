@@ -4,6 +4,7 @@ import { useAuthStore } from './auth';
 import { useGlobalStore } from './global';
 import { useI18n } from 'vue-i18n';
 import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions';
+import { resolveVisibleNavigation } from '~/utils/process-navigation';
 
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
@@ -56,9 +57,19 @@ export const useNavigationStore = defineStore('navigation', () => {
         { id: 'admin', entity: 'organizations', level: 'admin', nameKey: 'nav.admin', to: '/admin', icon: 'pi pi-cog' },
     ];
 
+    const visibleProcessNavigation = computed(() => resolveVisibleNavigation(
+        authStore.navigationManifest,
+        authStore.activePermissions
+    ));
+
+    const processAllowsRoute = (route) => {
+        if (!visibleProcessNavigation.value.length) return true;
+        return visibleProcessNavigation.value.some(item => item.route === route || item.route?.startsWith(`${route}/`) || route.startsWith(`${item.route}/`));
+    };
+
     const hubs = computed(() => {
         return hubConfigs
-            .filter(config => authStore.hasPermission(config.entity, config.level))
+            .filter(config => authStore.hasPermission(config.entity, config.level) && processAllowsRoute(config.to))
             .map(config => ({
                 id: config.id,
                 name: t(config.nameKey),
@@ -73,7 +84,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         { id: '/assets/layer-standards', name: t('nav.layerStandards'), to: '/assets/layer-standards', entity: 'cassettes' },
         { id: '/assets/tools', name: t('nav.tools'), to: '/assets/tools', entity: 'cassettes' },
         { id: '/assets/templates', name: t('nav.templates'), to: '/assets/templates', entity: 'cassettes' },
-    ].filter(a => authStore.hasPermission(a.entity, 'read')));
+    ].filter(a => authStore.hasPermission(a.entity, 'read') && processAllowsRoute(a.to)));
 
     const projectSectionSiblings = (projectSlug) => [
         { id: 'queues', name: t('project.queues'), to: `/project/${projectSlug}/queues` },
@@ -158,7 +169,7 @@ export const useNavigationStore = defineStore('navigation', () => {
                 { id: 'overview', name: t('organization.overview'), to: '/organization', entity: 'organizations', level: 'read' },
                 { id: 'users', name: t('organization.teamManagement'), to: '/organization/users', entity: 'users', level: 'admin' },
                 { id: 'process', name: t('processDesigner.title'), to: '/organization/process', entity: 'organizations', level: 'admin' },
-            ].filter(item => authStore.hasPermission(item.entity, item.level));
+            ].filter(item => authStore.hasPermission(item.entity, item.level) && processAllowsRoute(item.to));
             const currentTabId = parts[1] || 'overview';
             const currentTab = organizationTabs.find(tab => tab.id === currentTabId) || organizationTabs[0];
             if (currentTab) {

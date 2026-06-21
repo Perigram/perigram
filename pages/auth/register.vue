@@ -33,11 +33,11 @@
                 </div>
 
                 <div v-if="!invitationToken" class="flex flex-col gap-1">
-                    <label for="organization-type">{{ $t('auth.organizationType') }}</label>
+                    <label for="organization-template">{{ $t('auth.processTemplate') }}</label>
                     <Select 
-                        id="organization-type"
-                        v-model="form.organizationType"
-                        :options="orgTypeOptions"
+                        id="organization-template"
+                        v-model="form.processTemplateId"
+                        :options="processTemplateOptions"
                         optionLabel="label"
                         optionValue="value"
                         class="w-full"
@@ -83,7 +83,7 @@ const form = ref({
     email: '',
     password: '',
     organizationName: '',
-    organizationType: 'Contractor'
+    processTemplateId: 'contractor'
 });
 
 const loading = ref(false);
@@ -99,10 +99,11 @@ const loginTarget = computed(() => ({
         ...(invitationToken.value ? { invitation: invitationToken.value } : {})
     }
 }));
-const orgTypeOptions = computed(() => ([
-    { label: t('auth.orgTypes.manufacturer'), value: 'Manufacturer' },
-    { label: t('auth.orgTypes.contractor'), value: 'Contractor' },
-    { label: t('auth.orgTypes.customer'), value: 'Customer' }
+const processTemplateOptions = computed(() => ([
+    { label: t('auth.processTemplates.contractor'), value: 'contractor' },
+    { label: t('auth.processTemplates.manufacturer'), value: 'manufacturer' },
+    { label: t('auth.processTemplates.customer'), value: 'customer' },
+    { label: t('auth.processTemplates.serviceProvider'), value: 'serviceProvider' }
 ]));
 
 const handleRegister = async () => {

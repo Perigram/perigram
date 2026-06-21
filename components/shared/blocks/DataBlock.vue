@@ -57,7 +57,7 @@ const authStore = useAuthStore();
 
 const policyFields = computed(() => filterEntityFields({
     fields: props.fields,
-    permissions: authStore.activePermissions,
+    auth: { permissions: authStore.activePermissions, fieldPolicies: authStore.fieldPolicies },
     entity: props.accessEntity || props.entity,
     entityType: props.entityType
 }));

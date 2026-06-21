@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const organizationName = body.organizationName || body.organization?.name;
-    const organizationType = body.organizationType || body.organization?.type || 'Contractor';
+    const processTemplateId = body.processTemplateId || body.organization?.processTemplateId || body.organizationType || body.organization?.type || 'contractor';
     let recoveredExistingUser = false;
     let user;
 
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     const organization = organizationName
       ? await organizationsService.createInitialForUser(user.id, {
         name: organizationName,
-        type: organizationType
+        processTemplateId
       })
       : null;
     

@@ -1,6 +1,7 @@
 import { normalizeWorkflow } from '../../workflows/src/index.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
+const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
 
 export {
   PROCESS_TEMPLATES,
@@ -118,6 +119,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
   }
 
   const process = validation.definition;
+  const compiledRoles = compileRoles(process, domain);
   const workflows = {};
   for (const profile of Object.values(process.entityProfiles)) {
     workflows[profile.entityType] = compileLifecycle(profile, domain);
@@ -126,13 +128,13 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
   const userAccess = {};
   for (const [userId, assignment] of Object.entries(process.assignments)) {
     if (assignment.status && assignment.status !== 'active') continue;
-    userAccess[userId] = compileAssignmentAccess({ assignment, roles: process.roles });
+    userAccess[userId] = compileAssignmentAccess({ assignment, roles: compiledRoles });
   }
 
   return {
     schemaVersion: PROCESS_SCHEMA_VERSION,
     activatedAt: new Date().toISOString(),
-    roles: process.roles,
+    roles: compiledRoles,
     userAccess,
     workflows,
     fieldPolicies: compileFieldPolicies(process.entityProfiles),
@@ -237,6 +239,52 @@ function compileAssignmentAccess({ assignment = {}, roles = {} } = {}) {
     }
   }
   return { roleIds, permissions, navigation, incompleteBindings };
+}
+
+function compileRoles(process = {}, domain = {}) {
+  const roles = JSON.parse(JSON.stringify(process.roles || {}));
+  for (const profile of Object.values(process.entityProfiles || {})) {
+    const feature = resolveEntityFeature(domain, profile.entityType);
+    for (const level of ['read', 'write', 'admin']) {
+      for (const roleId of profile.allowedRoles?.[level] || []) {
+        if (!roles[roleId]) continue;
+        roles[roleId].grants ||= [];
+        upsertGrant(roles[roleId].grants, { feature, level });
+      }
+    }
+  }
+  for (const service of Object.values(process.services || {})) {
+    for (const roleId of service.access?.runRoles || []) {
+      if (!roles[roleId]) continue;
+      roles[roleId].serviceAccess ||= [];
+      upsertServiceAccess(roles[roleId].serviceAccess, { serviceId: service.id, commandId: service.commandId, level: 'run' });
+    }
+    for (const roleId of service.access?.viewRoles || []) {
+      if (!roles[roleId]) continue;
+      roles[roleId].serviceAccess ||= [];
+      upsertServiceAccess(roles[roleId].serviceAccess, { serviceId: service.id, commandId: service.commandId, level: 'view' });
+    }
+  }
+  return roles;
+}
+
+function upsertGrant(grants, next) {
+  const existing = grants.find(grant => grant.feature === next.feature && !grant.rule && !grant.scope && !grant.transitions);
+  if (!existing) {
+    grants.push(next);
+    return;
+  }
+  if (ACCESS_ORDER[next.level] > ACCESS_ORDER[existing.level || 'read']) existing.level = next.level;
+}
+
+function upsertServiceAccess(items, next) {
+  const exists = items.some(item => item.serviceId === next.serviceId && item.level === next.level);
+  if (!exists) items.push(next);
+}
+
+function resolveEntityFeature(domain = {}, entityType) {
+  const entity = (domain.entities || []).find(item => item.type === entityType);
+  return entity?.collection || entityType;
 }
 
 function compileGrantForAssignment(grant = {}, assignment = {}) {

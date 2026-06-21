@@ -1241,6 +1241,13 @@
     "organization": "Организация",
     "organizationName": "Название организации",
     "organizationType": "Тип организации",
+    "processTemplate": "Стартовый процесс",
+    "processTemplates": {
+      "contractor": "Процесс подрядчика",
+      "manufacturer": "Процесс поставщика",
+      "customer": "Процесс заказчика",
+      "serviceProvider": "Процесс сервисной организации"
+    },
     "createOrg": "Создать организацию",
     "accessPreset": "Пресет доступа",
     "selectAccessPreset": "Выберите пресет доступа",
@@ -2124,6 +2131,7 @@
     "teamManagement": "Команда",
     "teamManagementHint": "Приглашение пользователей, подтверждение участников и настройка доступов.",
     "processDesignerHint": "Композиция ролей, жизненных циклов сущностей, сервисов и сокетов организации.",
+    "processRoles": "Роли процесса",
     "openTeam": "Открыть команду",
     "openProcessDesigner": "Открыть дизайнер"
   },
@@ -2177,6 +2185,7 @@
     "projectionJson": "JSON проекции",
     "userId": "ID пользователя",
     "roleIds": "ID ролей",
+    "bindingsJson": "JSON привязок",
     "selectNode": "Выберите узел процесса",
     "validation": "Проверка",
     "validationOk": "Определение процесса корректно"

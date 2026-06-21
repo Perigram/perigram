@@ -129,8 +129,8 @@
                                         </div>
                                         <div v-else class="flex justify-between items-center mt-2 pt-2 border-t border-muted border-dashed">
                                             <Button :label="$t('profile.viewOrganization')" icon="pi pi-building" text size="small" @click.stop="router.push('/organization')" />
-                                            <Button v-if="membership.role.includes('Admin')" :label="$t('profile.manageTeam')" icon="pi pi-users" text size="small" @click.stop="router.push('/organization/users')" />
-                                            <Button v-if="membership.role.includes('Admin')" :label="$t('processDesigner.title')" icon="pi pi-sitemap" text size="small" @click.stop="router.push('/organization/process')" />
+                                            <Button v-if="authStore.hasPermission('users', 'admin')" :label="$t('profile.manageTeam')" icon="pi pi-users" text size="small" @click.stop="router.push('/organization/users')" />
+                                            <Button v-if="authStore.hasPermission('organizations', 'admin')" :label="$t('processDesigner.title')" icon="pi pi-sitemap" text size="small" @click.stop="router.push('/organization/process')" />
                                         </div>
                                     </div>
                             </Panel>
@@ -157,8 +157,8 @@
                     <InputText v-model="orgForm.name" required class="w-full" autofocus />
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label>{{ $t('queue.status') }} *</label>
-                    <Select v-model="orgForm.type" :options="orgTypeOptions" optionLabel="label" optionValue="value" class="w-full" />
+                    <label>{{ $t('auth.processTemplate') }} *</label>
+                    <Select v-model="orgForm.processTemplateId" :options="processTemplateOptions" optionLabel="label" optionValue="value" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
                     <label>{{ $t('profile.email') }} *</label>
@@ -225,14 +225,15 @@ const getOrgName = (orgId) => {
 
 const orgForm = ref({
     name: '',
-    type: 'Contractor',
+    processTemplateId: 'contractor',
     email: user.value.email || '',
 });
 
-const orgTypeOptions = [
-    { label: t('auth.orgTypes.contractor'), value: 'Contractor' },
-    { label: t('auth.orgTypes.manufacturer'), value: 'Manufacturer' },
-    { label: t('auth.orgTypes.customer'), value: 'Customer' },
+const processTemplateOptions = [
+    { label: t('auth.processTemplates.contractor'), value: 'contractor' },
+    { label: t('auth.processTemplates.manufacturer'), value: 'manufacturer' },
+    { label: t('auth.processTemplates.customer'), value: 'customer' },
+    { label: t('auth.processTemplates.serviceProvider'), value: 'serviceProvider' },
 ];
 
 const createOrganization = async () => {

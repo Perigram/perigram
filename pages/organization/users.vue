@@ -12,13 +12,15 @@
       <Column field="data.email" :header="$t('profile.email')" sortable />
       <Column field="data.role" :header="$t('queue.status')">
         <template #body="{ data }">
-          <Tag :value="$t(`roles.${data.data?.role}`)" severity="info" />
+          <div class="flex flex-wrap gap-1">
+            <Tag v-for="role in getUserProcessRoles(data)" :key="role.id" :value="role.label" severity="info" />
+          </div>
         </template>
       </Column>
       <Column :header="$t('common.actions.title')" class="text-right">
         <template #body="{ data }">
           <div class="flex justify-end gap-2">
-            <Button icon="pi pi-shield" text @click="editPermissions(data)" v-tooltip.top="$t('auth.permissions')" />
+            <Button icon="pi pi-shield" text @click="editProcessRoles(data)" v-tooltip.top="$t('organization.processRoles')" />
             <Button icon="pi pi-trash" text severity="danger" @click="confirmDelete(data)" v-tooltip.top="$t('common.delete')" />
           </div>
         </template>
@@ -126,15 +128,22 @@
       </form>
     </StandardDialog>
 
-    <!-- Permissions Dialog -->
-    <StandardDialog v-model:visible="showPermissionsDialog" :header="`${$t('auth.permissions')}: ${selectedUser?.identity?.name}`" size="lg">
-        <div class="pt-4">
-            <PermissionEditor 
-                v-if="selectedUser" 
-                :permissions="selectedUser.data?.permissions" 
-                @save="savePermissions" 
-            />
+    <!-- Process Roles Dialog -->
+    <StandardDialog v-model:visible="showPermissionsDialog" :header="`${$t('organization.processRoles')}: ${selectedUser?.identity?.name}`" size="md">
+        <div class="flex flex-col gap-4 pt-4">
+            <div class="flex flex-col gap-2">
+                <label>{{ $t('organization.processRoles') }}</label>
+                <MultiSelect v-model="roleAssignment.roleIds" :options="roleOptions" optionLabel="label" optionValue="value" display="chip" class="w-full" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label>{{ $t('processDesigner.bindingsJson') }}</label>
+                <Textarea v-model="roleAssignment.bindingsJson" rows="6" class="w-full font-mono text-xs" />
+            </div>
         </div>
+        <template #footer>
+            <Button :label="$t('common.cancel')" text severity="secondary" @click="showPermissionsDialog = false" />
+            <Button :label="$t('common.save')" icon="pi pi-check" :loading="savingRoleAssignment" @click="saveProcessRoles" />
+        </template>
     </StandardDialog>
   </StandardPage>
 </template>
@@ -150,9 +159,10 @@ import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Select from 'primevue/select';
+import MultiSelect from 'primevue/multiselect';
+import Textarea from 'primevue/textarea';
 import Tag from 'primevue/tag';
 import Panel from 'primevue/panel';
-import PermissionEditor from '~/components/PermissionEditor.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
@@ -176,10 +186,13 @@ const showCreateDialog = ref(false);
 const showPermissionsDialog = ref(false);
 const showInviteDialog = ref(false);
 const generatingInvite = ref(false);
+const savingRoleAssignment = ref(false);
 const selectedUser = ref(null);
 const generatedUrl = ref(null);
 const invitations = ref([]);
 const pendingUsers = ref([]);
+const activeProcess = ref(null);
+const roleAssignment = ref({ roleIds: [], bindingsJson: '{}' });
 
 const getInvitationUrl = (token) => {
     if (process.client) {
@@ -204,25 +217,27 @@ const form = ref({
   name: '',
   email: '',
   password: '',
-  role: 'IndividualUser'
+  role: 'role_viewer'
 });
 
 const inviteForm = ref({
-    role: 'IndividualUser'
+    role: 'role_viewer'
 });
 
 const roleOptions = computed(() => {
-  const baseType = authStore.organizationData?.data?.type || 'Individual';
-  return [
-    { label: t(`roles.${baseType}Admin`), value: `${baseType}Admin` },
-    { label: t('roles.IndividualUser'), value: 'IndividualUser' }
-  ];
+  const roles = activeProcess.value?.data?.roles || {};
+  const options = Object.values(roles).map(role => ({
+    label: role.label || role.id,
+    value: role.id
+  }));
+  return options.length ? options : [{ label: t('roles.IndividualUser'), value: 'role_viewer' }];
 });
 
 async function loadUsers() {
   loading.value = true;
   try {
     const allUsers = await usersEntity.list();
+    await loadActiveProcess();
     users.value = allUsers.filter(u => 
         u.data?.memberships?.some(m => m.organizationId.toString() === authStore.userData.organizationId.toString() && m.status === 'active')
     );
@@ -245,12 +260,20 @@ async function loadInvitations() {
     } catch (e) { console.error(e); }
 }
 
+async function loadActiveProcess() {
+    try {
+        activeProcess.value = await $fetch('/api/process-definitions/active');
+    } catch (e) {
+        activeProcess.value = null;
+    }
+}
+
 async function generateInvite() {
     generatingInvite.value = true;
     try {
         const res = await $fetch(`/api/organizations/${authStore.userData.organizationId}/invitations`, {
             method: 'POST',
-            body: inviteForm.value
+            body: { ...inviteForm.value, roleIds: [inviteForm.value.role] }
         });
         generatedUrl.value = getInvitationUrl(res.token);
         await loadInvitations();
@@ -284,11 +307,12 @@ async function createUser() {
   try {
     await usersEntity.create({
         ...form.value,
+        roleIds: [form.value.role],
         organizationId: authStore.userData.organizationId
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.userCreated'), life: 3000 });
     showCreateDialog.value = false;
-    form.value = { name: '', email: '', password: '', role: 'IndividualUser' };
+    form.value = { name: '', email: '', password: '', role: 'role_viewer' };
     await loadUsers();
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 });
@@ -297,23 +321,54 @@ async function createUser() {
   }
 }
 
-function editPermissions(user) {
+function editProcessRoles(user) {
   selectedUser.value = user;
+  const assignment = getProcessAssignment(user);
+  roleAssignment.value = {
+    roleIds: assignment?.roleIds?.length ? [...assignment.roleIds] : [roleOptions.value[0]?.value].filter(Boolean),
+    bindingsJson: JSON.stringify(assignment?.bindings || {}, null, 2)
+  };
   showPermissionsDialog.value = true;
 }
 
-async function savePermissions(permissions) {
+async function saveProcessRoles() {
+  savingRoleAssignment.value = true;
   try {
-    await $fetch(`/api/users/${selectedUser.value._id}/permissions`, {
+    const bindings = JSON.parse(roleAssignment.value.bindingsJson || '{}');
+    await $fetch('/api/process-definitions/active/assignments', {
       method: 'PATCH',
-      body: { permissions }
+      body: {
+        userId: selectedUser.value._id,
+        roleIds: roleAssignment.value.roleIds,
+        bindings,
+        status: 'active'
+      }
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.permissionsUpdated'), life: 3000 });
     showPermissionsDialog.value = false;
     await loadUsers();
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 });
+  } finally {
+    savingRoleAssignment.value = false;
   }
+}
+
+function getProcessAssignment(user) {
+    const assignments = activeProcess.value?.data?.assignments || {};
+    return assignments[String(user?._id)] || assignments[String(user?.id)] || null;
+}
+
+function getUserProcessRoles(user) {
+    const roles = activeProcess.value?.data?.roles || {};
+    const assignment = getProcessAssignment(user);
+    const roleIds = assignment?.roleIds?.length
+        ? assignment.roleIds
+        : user.data?.memberships?.find(m => m.organizationId?.toString() === authStore.userData.organizationId?.toString())?.roleIds || [user.data?.role].filter(Boolean);
+    return roleIds.map(roleId => ({
+        id: roleId,
+        label: roles[roleId]?.label || roleId
+    }));
 }
 
 async function confirmDelete(user) {

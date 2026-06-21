@@ -159,6 +159,9 @@ export function legacyTypeToTemplateId(type = '') {
 }
 
 function createTemplate({ id, label, adminLabel, grants, entities, services }) {
+  const adminNavigation = Object.entries(grants)
+    .map(([feature, level]) => createNavigationItem(feature, level))
+    .filter(Boolean);
   const roles = {
     role_admin: {
       id: 'role_admin',
@@ -166,10 +169,7 @@ function createTemplate({ id, label, adminLabel, grants, entities, services }) {
       kind: 'orgRole',
       capabilities: [],
       grants: Object.entries(grants).map(([feature, level]) => ({ feature, level })),
-      navigation: [
-        { id: 'projects.list', route: '/projects', requires: { feature: 'projects', level: 'read' } },
-        { id: 'organization.process', route: '/organization/process', requires: { feature: 'organizations', level: 'admin' } }
-      ]
+      navigation: adminNavigation
     },
     role_viewer: {
       id: 'role_viewer',
@@ -212,6 +212,31 @@ function createTemplate({ id, label, adminLabel, grants, entities, services }) {
       sockets: {},
       assignments: {},
       compiled: null
+    }
+  };
+}
+
+function createNavigationItem(feature, level) {
+  const routeByFeature = {
+    projects: '/projects',
+    warehouses: '/warehouses',
+    catalogs: '/catalog',
+    requisitions: '/requisitions',
+    cassettes: '/assets/cassettes',
+    users: '/organization/users',
+    organizations: level === 'admin' ? '/organization/process' : '/organization',
+    config_bot: '/admin/config-bot',
+    domain_builder: '/admin',
+    workbench: '/admin'
+  };
+  const route = routeByFeature[feature];
+  if (!route) return null;
+  return {
+    id: `${feature}.${route.split('/').filter(Boolean).join('.') || 'home'}`,
+    route,
+    requires: {
+      feature,
+      level: level === 'none' ? 'read' : level
     }
   };
 }

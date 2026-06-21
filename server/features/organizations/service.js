@@ -5,7 +5,8 @@ import { getLineageFilter } from '../../utils/permissions.js';
 import { Organization } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
-import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
+import { legacyTypeToTemplateId } from '~/packages/processes/src/index.js';
+import * as processDefinitionsService from '../process-definitions/service.js';
 
 /**
  * Organizations Service - v24 Absolute Final
@@ -13,7 +14,7 @@ import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
 
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
-  if (!hasPermission({ permissions: userPermissions.permissions }, 'organizations', 'write')) {
+  if (!hasPermission({ permissions: userPermissions.effectivePermissions || userPermissions.permissions }, 'organizations', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -31,20 +32,23 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   org.applyStatus('ACTIVE', userId, { note: 'Organization created' });
 
   const createdRaw = await repository.create(org);
-  
-  const orgRole = `${data.type}Admin`;
-  const orgPermissions = PERMISSION_TEMPLATES[orgRole] || PERMISSION_TEMPLATES['IndividualUser'];
+  await processDefinitionsService.createActiveFromTemplate({
+    organizationId: createdRaw._id,
+    userId,
+    templateId: data.processTemplateId || legacyTypeToTemplateId(data.type),
+    actorId: userId
+  });
   
   const membership = {
     organizationId: createdRaw._id,
-    role: orgRole,
-    permissions: orgPermissions,
+    role: 'role_admin',
+    permissions: {},
     status: 'active'
   };
 
   await repository.addUserMembership(userId, membership, {
-    role: orgRole,
-    permissions: orgPermissions,
+    role: 'role_admin',
+    permissions: {},
     organizationId: createdRaw._id
   });
 
@@ -55,11 +59,11 @@ export async function createInitialForUser(userId, data = {}) {
   if (!userId) throw createError({ statusCode: 400, message: 'Missing user id' });
   if (!data.name) throw createError({ statusCode: 400, message: 'Missing organization name' });
 
-  const orgType = data.type || 'Contractor';
+  const processTemplateId = data.processTemplateId || legacyTypeToTemplateId(data.type || 'contractor');
   const org = new Organization({
     identity: { uid: `org-${new ObjectId().toString().substring(0, 8)}`, name: data.name },
     data: {
-      type: orgType,
+      processTemplateId,
       email: data.email || '',
       phone: data.phone || '',
       address: data.address || '',
@@ -70,17 +74,21 @@ export async function createInitialForUser(userId, data = {}) {
   org.applyStatus('ACTIVE', userId, { note: 'Organization created during signup' });
 
   const createdRaw = await repository.create(org);
-  const orgRole = `${orgType}Admin`;
-  const orgPermissions = PERMISSION_TEMPLATES[orgRole] || PERMISSION_TEMPLATES['IndividualUser'];
+  await processDefinitionsService.createActiveFromTemplate({
+    organizationId: createdRaw._id,
+    userId,
+    templateId: processTemplateId,
+    actorId: userId
+  });
 
   await repository.addUserMembership(userId, {
     organizationId: createdRaw._id,
-    role: orgRole,
-    permissions: orgPermissions,
+    role: 'role_admin',
+    permissions: {},
     status: 'active'
   }, {
-    role: orgRole,
-    permissions: orgPermissions,
+    role: 'role_admin',
+    permissions: {},
     organizationId: createdRaw._id
   });
 

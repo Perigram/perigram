@@ -30,6 +30,7 @@ export async function generateInvitation(organizationId, role, creatorUser) {
     organizationId: new ObjectId(organizationId),
     organizationName: org.name,
     role: role || 'IndividualUser',
+    roleIds: normalizeRoleIds(role),
     isActive: true,
     createdBy: creatorUser.userId
   });
@@ -78,6 +79,7 @@ async function processJoin(invitation, user) {
   const newMembership = {
     organizationId: invitation.organizationId,
     role,
+    roleIds: normalizeRoleIds(invitation.roleIds || role),
     permissions,
     status: 'pending'
   };
@@ -94,4 +96,10 @@ async function processJoin(invitation, user) {
 
 export async function listByOrg(organizationId) {
   return await repository.findByOrg(organizationId);
+}
+
+function normalizeRoleIds(role) {
+  if (Array.isArray(role)) return role.filter(Boolean);
+  if (role && String(role).startsWith('role_')) return [String(role)];
+  return ['role_viewer'];
 }

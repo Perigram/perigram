@@ -4,6 +4,7 @@ import { assertCommandAccess } from '../access/service.js';
 import { getAppRegistry } from '../../runtime/app-registry.js';
 import * as commandRunsRepository from './repository.js';
 import { processEffects, processEvents } from '../effects/service.js';
+import { resolveProcessCommandService } from '../../features/process-definitions/runtime.js';
 
 export async function executeCommand(commandId, input = {}, auth = {}) {
   const registry = getAppRegistry();
@@ -25,6 +26,7 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
 
   try {
     const entities = await loadCommandEntities(registry, command, normalizedInput.entities || {});
+    await assertProcessServiceAvailable(commandId, auth);
     assertCommandAccess({ command, entities, auth });
 
     const handler = registry.getCommandHandler(commandId);
@@ -71,6 +73,23 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
       finishedAt: new Date()
     });
     throw error;
+  }
+}
+
+async function assertProcessServiceAvailable(commandId, auth = {}) {
+  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
+  const serviceState = await resolveProcessCommandService({ organizationId, commandId });
+  if (!serviceState.processActive || !serviceState.gated) return;
+  if (!serviceState.service) {
+    throw createError({ statusCode: 403, message: `Command ${commandId} is not available in the active process` });
+  }
+
+  const allowedRoleIds = serviceState.service.roles?.run || [];
+  if (!allowedRoleIds.length) return;
+  const actualRoleIds = auth.roleAssignments?.roleIds || [];
+  const allowed = actualRoleIds.some(roleId => allowedRoleIds.includes(roleId));
+  if (!allowed) {
+    throw createError({ statusCode: 403, message: `Command ${commandId} is not assigned to the current process role` });
   }
 }
 

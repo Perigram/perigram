@@ -19,7 +19,7 @@ const authStore = useAuthStore();
 const { specs, formattedDimensions, formattedArea } = useSpecs(toRef(props, 'entity'));
 
 const canDisplayPath = (path) => canDisplayEntityField({
-  permissions: authStore.activePermissions,
+  auth: { permissions: authStore.activePermissions, fieldPolicies: authStore.fieldPolicies },
   entity: props.accessEntity || props.entity,
   entityType: props.entityType,
   path
