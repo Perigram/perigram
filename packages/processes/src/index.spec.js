@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   compileProcessDefinition,
+  createProcessFromTemplate,
   createDefaultCreatedWorkflow,
+  legacyTypeToTemplateId,
   validateProcessDefinition
 } from './index.js';
 
 const domain = {
   entities: [
     { type: 'project' },
-    { type: 'queue' }
+    { type: 'queue' },
+    { type: 'catalog' }
   ],
   commands: {
     solveNesting: { id: 'solveNesting' }
@@ -34,6 +37,11 @@ const domain = {
     },
     queue: {
       read: ['identity.*', 'status.*', 'lineage.*'],
+      write: ['data.*'],
+      admin: ['attachments.*']
+    },
+    catalog: {
+      read: ['identity.*', 'status.*', 'lineage.*', 'data.material', 'data.options'],
       write: ['data.*'],
       admin: ['attachments.*']
     }
@@ -151,5 +159,17 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.userAccess.user_a.permissions.projects).toBeUndefined();
     expect(compiled.userAccess.user_a.incompleteBindings[0]).toMatchObject({ binding: 'projectId' });
+  });
+
+  it('creates compilable starter process definitions from legacy organization types', () => {
+    const process = createProcessFromTemplate({
+      templateId: legacyTypeToTemplateId('Manufacturer'),
+      organizationId: 'org-1',
+      userId: 'user-1'
+    });
+    const compiled = compileProcessDefinition(process.data, domain);
+
+    expect(process.data.sourceTemplateId).toBe('manufacturer');
+    expect(compiled.userAccess['user-1'].permissions.organizations[0].level).toBe('admin');
   });
 });

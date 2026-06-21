@@ -2,6 +2,13 @@ import { normalizeWorkflow } from '../../workflows/src/index.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 
+export {
+  PROCESS_TEMPLATES,
+  createProcessFromTemplate,
+  getProcessTemplate,
+  legacyTypeToTemplateId
+} from './templates.js';
+
 export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
   return normalizeWorkflow({
     schemaVersion: 2,
