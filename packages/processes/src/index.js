@@ -33,6 +33,7 @@ export function normalizeProcessDefinition(definition = {}) {
     graph: normalizeGraph(data.graph),
     roles: normalizeRecord(data.roles),
     entityProfiles: normalizeRecord(data.entityProfiles),
+    actions: normalizeRecord(data.actions),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
     assignments: normalizeRecord(data.assignments),
@@ -58,6 +59,7 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
     if (!refId) continue;
     if (node.type === 'role' && !process.roles[refId]) errors.push(`Role node ${node.id} references missing role ${refId}`);
     if (node.type === 'entity' && !process.entityProfiles[refId]) errors.push(`Entity node ${node.id} references missing entity profile ${refId}`);
+    if (node.type === 'action' && !process.actions[refId]) errors.push(`Action node ${node.id} references missing action ${refId}`);
     if (node.type === 'service' && !process.services[refId]) errors.push(`Service node ${node.id} references missing service ${refId}`);
     if (node.type === 'socket' && !process.sockets[refId]) errors.push(`Socket node ${node.id} references missing socket ${refId}`);
     if (node.type === 'user' && !process.assignments[refId]) errors.push(`User node ${node.id} references missing assignment ${refId}`);
@@ -83,6 +85,10 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
     for (const output of service.outputs || []) {
       if (output.entityType && !entities.has(output.entityType)) errors.push(`Service ${serviceId} output ${output.id} uses unknown entity type ${output.entityType}`);
     }
+  }
+
+  for (const [actionId, action] of Object.entries(process.actions)) {
+    validateAction(actionId, action, { entities, commands, roles: process.roles, errors });
   }
 
   for (const [socketId, socket] of Object.entries(process.sockets)) {
@@ -138,6 +144,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
     userAccess,
     workflows,
     fieldPolicies: compileFieldPolicies(process.entityProfiles),
+    actions: compileActions(process.actions),
     services: compileServices(process.services),
     sockets: process.sockets,
     warnings: validation.warnings
@@ -352,6 +359,49 @@ function compileServices(services = {}) {
     inputs: service.inputs || [],
     outputs: service.outputs || []
   }]));
+}
+
+function compileActions(actions = {}) {
+  return Object.fromEntries(Object.entries(actions).map(([id, action]) => [id, {
+    id: action.id || id,
+    label: action.label || action.actionKind || id,
+    actionKind: action.actionKind || 'createEntity',
+    entityType: action.entityType || null,
+    commandId: action.commandId || null,
+    status: action.status || {},
+    trigger: {
+      mode: action.trigger?.mode || 'user',
+      roleIds: action.trigger?.roleIds || []
+    },
+    inputs: action.inputs || [],
+    outputs: action.outputs || []
+  }]));
+}
+
+function validateAction(actionId, action = {}, { entities, commands, roles, errors }) {
+  const kind = action.actionKind || 'createEntity';
+  if (!['createEntity', 'changeStatus', 'archiveEntity', 'runCommand'].includes(kind)) {
+    errors.push(`Action ${actionId} uses unknown action kind ${kind}`);
+    return;
+  }
+  if (kind === 'runCommand') {
+    if (!action.commandId) errors.push(`Action ${actionId} must select a command`);
+    if (action.commandId && !commands.has(action.commandId)) errors.push(`Action ${actionId} uses unknown command ${action.commandId}`);
+  } else {
+    if (!action.entityType) errors.push(`Action ${actionId} must select an entity type`);
+    if (action.entityType && !entities.has(action.entityType)) errors.push(`Action ${actionId} uses unknown entity type ${action.entityType}`);
+  }
+  if (kind === 'changeStatus' && (!action.status?.from || !action.status?.to)) {
+    errors.push(`Action ${actionId} must define source and target statuses`);
+  }
+  if (['createEntity', 'archiveEntity'].includes(kind) && !action.status?.to) {
+    errors.push(`Action ${actionId} must define target status`);
+  }
+  if ((action.trigger?.mode || 'user') === 'user') {
+    for (const roleId of action.trigger?.roleIds || []) {
+      if (!roles[roleId]) errors.push(`Action ${actionId} references missing trigger role ${roleId}`);
+    }
+  }
 }
 
 function validateFieldList(fields = [], domain = {}, entityType, label, errors) {

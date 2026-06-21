@@ -161,6 +161,48 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.userAccess.user_a.incompleteBindings[0]).toMatchObject({ binding: 'projectId' });
   });
 
+  it('compiles user-triggered action contracts', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_admin: { id: 'role_admin', grants: [] }
+      },
+      actions: {
+        create_project: {
+          id: 'create_project',
+          label: 'Create project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: 'CREATED' },
+          trigger: { mode: 'user', roleIds: ['role_admin'] },
+          inputs: [],
+          outputs: [{ id: 'created', entityType: 'project', status: 'CREATED' }]
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.create_project).toMatchObject({
+      actionKind: 'createEntity',
+      entityType: 'project',
+      trigger: { mode: 'user', roleIds: ['role_admin'] }
+    });
+  });
+
+  it('rejects user-triggered actions with missing roles', () => {
+    const validation = validateProcessDefinition({
+      actions: {
+        activate_project: {
+          actionKind: 'changeStatus',
+          entityType: 'project',
+          status: { from: 'DRAFT', to: 'ACTIVE' },
+          trigger: { mode: 'user', roleIds: ['missing_role'] }
+        }
+      }
+    }, domain);
+
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.join('\n')).toContain('missing trigger role');
+  });
+
   it('creates compilable starter process definitions from legacy organization types', () => {
     const process = createProcessFromTemplate({
       templateId: legacyTypeToTemplateId('Manufacturer'),

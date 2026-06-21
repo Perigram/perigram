@@ -12,6 +12,7 @@
         @connect="onConnect"
       >
         <template #node-entity="props"><ProcessEntityNode v-bind="props" /></template>
+        <template #node-action="props"><ProcessActionNode v-bind="props" /></template>
         <template #node-service="props"><ProcessServiceNode v-bind="props" /></template>
         <template #node-socket="props"><ProcessSocketNode v-bind="props" /></template>
       </VueFlow>
@@ -21,9 +22,9 @@
         class="absolute left-[15rem] right-[30rem] top-24 z-10 flex justify-center"
       >
         <div class="flex items-center gap-2 rounded-ui border border-content-border bg-content px-3 py-2 shadow-card">
-          <Button icon="pi pi-box" :label="$t('processDesigner.entity')" size="small" @click="addNode('entity')" />
-          <Button icon="pi pi-cog" :label="$t('processDesigner.service')" size="small" severity="secondary" outlined @click="addNode('service')" />
-          <Button icon="pi pi-share-alt" :label="$t('processDesigner.socket')" size="small" severity="secondary" outlined @click="addNode('socket')" />
+          <Button icon="pi pi-plus-circle" :label="actionKindLabel('createEntity')" size="small" @click="addNode({ type: 'action', actionKind: 'createEntity' })" />
+          <Button icon="pi pi-sync" :label="actionKindLabel('changeStatus')" size="small" severity="secondary" outlined @click="addNode({ type: 'action', actionKind: 'changeStatus' })" />
+          <Button icon="pi pi-play-circle" :label="actionKindLabel('runCommand')" size="small" severity="secondary" outlined @click="addNode({ type: 'action', actionKind: 'runCommand' })" />
         </div>
       </div>
 
@@ -33,10 +34,10 @@
             v-for="item in palette"
             :key="item.type"
             :icon="item.icon"
-            :label="$t(item.label)"
+            :label="paletteLabel(item)"
             size="small"
             outlined
-            @click="addNode(item.type)"
+            @click="addNode(item)"
           />
         </div>
       </Panel>
@@ -135,6 +136,61 @@
                       <label>{{ $t('processDesigner.privateFields') }}</label>
                       <MultiSelect v-model="selectedEntity.fields.private" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
                     </div>
+                  </div>
+                </template>
+
+                <template v-else-if="selectedNode.type === 'action'">
+                  <div class="flex flex-col gap-1">
+                    <label>{{ $t('common.type') }}</label>
+                    <Select v-model="selectedAction.actionKind" :options="actionKindOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
+                  </div>
+                  <div v-if="selectedAction.actionKind !== 'runCommand'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.entityType') }}</label>
+                    <Select v-model="selectedAction.entityType" :options="entityTypeOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
+                  </div>
+                  <div v-if="selectedAction.actionKind === 'changeStatus'" class="grid grid-cols-2 gap-2">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('status.status') }}</label>
+                      <InputText v-model="selectedAction.status.from" @blur="syncSelectedAction" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.addState') }}</label>
+                      <InputText v-model="selectedAction.status.to" @blur="syncSelectedAction" />
+                    </div>
+                  </div>
+                  <div v-else-if="selectedAction.actionKind === 'archiveEntity'" class="flex flex-col gap-1">
+                    <label>{{ $t('status.status') }}</label>
+                    <InputText v-model="selectedAction.status.to" @blur="syncSelectedAction" />
+                  </div>
+                  <div v-else-if="selectedAction.actionKind === 'createEntity'" class="flex flex-col gap-1">
+                    <label>{{ $t('status.status') }}</label>
+                    <InputText v-model="selectedAction.status.to" @blur="syncSelectedAction" />
+                  </div>
+                  <div v-else-if="selectedAction.actionKind === 'runCommand'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.commandId') }}</label>
+                    <Select v-model="selectedAction.commandId" :options="commandOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
+                  </div>
+                  <div class="grid grid-cols-1 gap-3">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('common.user') }}</label>
+                      <Select v-model="selectedAction.trigger.mode" :options="triggerModeOptions" option-label="label" option-value="value" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.roleIds') }}</label>
+                      <MultiSelect v-model="selectedAction.trigger.roleIds" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 gap-3">
+                    <Panel :header="$t('processDesigner.inputs')">
+                      <div class="flex flex-wrap gap-2">
+                        <Tag v-for="input in selectedAction.inputs" :key="input.id" :value="ioLabel(input)" size="small" />
+                      </div>
+                    </Panel>
+                    <Panel :header="$t('processDesigner.outputs')">
+                      <div class="flex flex-wrap gap-2">
+                        <Tag v-for="output in selectedAction.outputs" :key="output.id" :value="ioLabel(output)" size="small" severity="success" />
+                      </div>
+                    </Panel>
                   </div>
                 </template>
 
@@ -303,6 +359,7 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncEntityFieldAccess, cncWorkflows } from '@cutkit/domain-cnc';
+import ProcessActionNode from '~/components/process-designer/ProcessActionNode.vue';
 import ProcessEntityNode from '~/components/process-designer/ProcessEntityNode.vue';
 import ProcessServiceNode from '~/components/process-designer/ProcessServiceNode.vue';
 import ProcessSocketNode from '~/components/process-designer/ProcessSocketNode.vue';
@@ -324,9 +381,23 @@ const selectedRoleGrantsJson = ref('[]');
 const newStateId = ref('');
 
 const palette = [
-  { type: 'entity', icon: 'pi pi-box', label: 'processDesigner.entity' },
+  { type: 'action', actionKind: 'createEntity', icon: 'pi pi-plus-circle', label: 'Create entity' },
+  { type: 'action', actionKind: 'changeStatus', icon: 'pi pi-sync', label: 'Change status' },
+  { type: 'action', actionKind: 'archiveEntity', icon: 'pi pi-inbox', label: 'Archive entity' },
+  { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play-circle', label: 'Run command' },
   { type: 'service', icon: 'pi pi-cog', label: 'processDesigner.service' },
   { type: 'socket', icon: 'pi pi-share-alt', label: 'processDesigner.socket' }
+];
+const actionKindOptions = [
+  { label: 'Create entity', value: 'createEntity' },
+  { label: 'Change status', value: 'changeStatus' },
+  { label: 'Archive entity', value: 'archiveEntity' },
+  { label: 'Run command', value: 'runCommand' }
+];
+const triggerModeOptions = [
+  { label: 'User', value: 'user' },
+  { label: 'System', value: 'system' },
+  { label: 'Event', value: 'event' }
 ];
 const roleKinds = [
   { label: 'orgRole', value: 'orgRole' },
@@ -352,6 +423,7 @@ const selectedRecord = computed(() => {
   return ensureRecord(recordKeyForType(selectedNode.value.type), selectedNode.value, factoryForType(selectedNode.value.type));
 });
 const selectedEntity = computed(() => selectedNode.value?.type === 'entity' ? ensureRecord('entityProfiles', selectedNode.value, createEntityProfile) : {});
+const selectedAction = computed(() => selectedNode.value?.type === 'action' ? ensureRecord('actions', selectedNode.value, createAction) : {});
 const selectedService = computed(() => selectedNode.value?.type === 'service' ? ensureRecord('services', selectedNode.value, createService) : {});
 const selectedSocket = computed(() => selectedNode.value?.type === 'socket' ? ensureRecord('sockets', selectedNode.value, createSocket) : {});
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType?.replace(/_/g, 's') || 'projects');
@@ -438,13 +510,16 @@ function createNodesFromProcessRecords(data = {}) {
   const entityNodes = Object.values(data.entityProfiles || {}).map((record, index) =>
     enrichNodeData(createRecordNode({ type: 'entity', record, x: 260, y: 140 + index * 140 }))
   );
+  const actionNodes = Object.values(data.actions || {}).map((record, index) =>
+    enrichNodeData(createRecordNode({ type: 'action', record, x: 520, y: 140 + index * 140 }))
+  );
   const serviceNodes = Object.values(data.services || {}).map((record, index) =>
-    enrichNodeData(createRecordNode({ type: 'service', record, x: 600, y: 140 + index * 140 }))
+    enrichNodeData(createRecordNode({ type: 'service', record, x: 780, y: 140 + index * 140 }))
   );
   const socketNodes = Object.values(data.sockets || {}).map((record, index) =>
-    enrichNodeData(createRecordNode({ type: 'socket', record, x: 940, y: 140 + index * 140 }))
+    enrichNodeData(createRecordNode({ type: 'socket', record, x: 1040, y: 140 + index * 140 }))
   );
-  return [...entityNodes, ...serviceNodes, ...socketNodes];
+  return [...entityNodes, ...actionNodes, ...serviceNodes, ...socketNodes];
 }
 
 function createRecordNode({ type, record, x, y }) {
@@ -460,7 +535,9 @@ function createRecordNode({ type, record, x, y }) {
   };
 }
 
-function addNode(type) {
+function addNode(item) {
+  const type = typeof item === 'string' ? item : item.type;
+  const actionKind = typeof item === 'object' ? item.actionKind : null;
   const id = `${type}_${Date.now()}`;
   const refId = id;
   const node = {
@@ -469,7 +546,10 @@ function addNode(type) {
     position: { x: 260 + nodes.value.length * 32, y: 140 + nodes.value.length * 24 },
     data: { refId, label: refId }
   };
-  ensureRecord(recordKeyForType(type), { data: { refId }, type }, factoryForType(type));
+  const record = ensureRecord(recordKeyForType(type), { data: { refId }, type }, factoryForType(type));
+  if (type === 'action' && actionKind) {
+    Object.assign(record, createAction(refId, actionKind));
+  }
   nodes.value.push(enrichNodeData(node));
   selectedNodeId.value = id;
 }
@@ -485,6 +565,7 @@ function serializeProcess() {
     graph: { nodes: nodes.value, edges: edges.value, viewport: { x: 0, y: 0, zoom: 1 } },
     roles: draft.value?.data?.roles || {},
     entityProfiles: draft.value?.data?.entityProfiles || {},
+    actions: draft.value?.data?.actions || {},
     services: draft.value?.data?.services || {},
     sockets: draft.value?.data?.sockets || {},
     assignments: draft.value?.data?.assignments || {}
@@ -495,12 +576,17 @@ function syncNodeData() {
   for (const node of nodes.value) {
     if (!node.data?.refId) continue;
     const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
-    node.data.label = record.label || record.entityType || record.commandId || node.data.label;
+    if (node.type === 'action') syncActionIo(record);
+    node.data.label = record.label || actionKindLabel(record.actionKind) || record.entityType || record.commandId || node.data.label;
+    node.data.actionKind = record.actionKind;
     node.data.entityType = record.entityType;
     node.data.commandId = record.commandId;
+    node.data.triggerMode = record.trigger?.mode;
+    node.data.statusFrom = record.status?.from;
+    node.data.statusTo = record.status?.to;
     node.data.direction = record.direction;
     node.data.lifecycleMode = record.lifecycle?.mode;
-    node.data.roleCount = record.allowedRoles ? countRoleBindings(record.allowedRoles) : 0;
+    node.data.roleCount = record.allowedRoles ? countRoleBindings(record.allowedRoles) : (record.trigger?.roleIds?.length || 0);
     node.data.fieldCount = record.fields ? countFieldBindings(record.fields) : (record.projection?.fields?.length || 0);
     node.data.stateLabels = workflowStateLabels(record);
     node.data.transitionCount = workflowTransitionCount(record);
@@ -518,15 +604,19 @@ function ensureRecord(key, node, factory) {
 }
 
 function recordKeyForType(type) {
-  return ({ entity: 'entityProfiles', service: 'services', socket: 'sockets' })[type] || 'entityProfiles';
+  return ({ entity: 'entityProfiles', action: 'actions', service: 'services', socket: 'sockets' })[type] || 'entityProfiles';
 }
 
 function factoryForType(type) {
-  return ({ entity: createEntityProfile, service: createService, socket: createSocket })[type] || createEntityProfile;
+  return ({ entity: createEntityProfile, action: createAction, service: createService, socket: createSocket })[type] || createEntityProfile;
 }
 
 function createRole(id) {
   return { id, label: id, kind: 'userRole', capabilities: [], grants: [], navigation: [] };
+}
+
+function paletteLabel(item) {
+  return item.label?.startsWith('processDesigner.') ? t(item.label) : item.label;
 }
 
 function createEntityProfile(id) {
@@ -544,6 +634,22 @@ function createEntityProfile(id) {
 
 function createService(id) {
   return { id, label: id, serviceType: '', commandId: '', inputs: [], outputs: [], access: { runRoles: [], viewRoles: [] } };
+}
+
+function createAction(id, actionKind = 'createEntity') {
+  const action = {
+    id,
+    label: actionKindLabel(actionKind),
+    actionKind,
+    entityType: 'project',
+    commandId: '',
+    status: { from: '', to: actionKind === 'archiveEntity' ? 'ARCHIVED' : 'CREATED' },
+    trigger: { mode: 'user', roleIds: [] },
+    inputs: [],
+    outputs: []
+  };
+  syncActionIo(action);
+  return action;
 }
 
 function createSocket(id) {
@@ -587,6 +693,10 @@ function removeSelectedRole() {
   for (const socket of Object.values(draft.value.data.sockets || {})) {
     socket.access ||= {};
     for (const key of ['sendRoles', 'receiveRoles']) socket.access[key] = (socket.access[key] || []).filter(roleId => roleId !== removedRoleId);
+  }
+  for (const action of Object.values(draft.value.data.actions || {})) {
+    action.trigger ||= { mode: 'user', roleIds: [] };
+    action.trigger.roleIds = (action.trigger.roleIds || []).filter(roleId => roleId !== removedRoleId);
   }
   for (const assignment of Object.values(draft.value.data.assignments || {})) {
     assignment.roleIds = (assignment.roleIds || []).filter(roleId => roleId !== removedRoleId);
@@ -641,6 +751,58 @@ function addLifecycleState() {
   region.states[id] ||= { canUpdateMeta: true };
   if (!region.initial) region.initial = id;
   newStateId.value = '';
+}
+
+function syncSelectedAction() {
+  syncActionIo(selectedAction.value);
+  selectedAction.value.label = actionKindLabel(selectedAction.value.actionKind);
+  syncNodeData();
+}
+
+function syncActionIo(action = {}) {
+  action.trigger ||= { mode: 'user', roleIds: [] };
+  action.status ||= {};
+  if (action.actionKind === 'createEntity') {
+    action.status.to ||= 'CREATED';
+    action.inputs = [];
+    action.outputs = [{ id: 'created', entityType: action.entityType, status: action.status.to }];
+    return;
+  }
+  if (action.actionKind === 'changeStatus') {
+    action.status.from ||= 'CREATED';
+    action.status.to ||= 'ACTIVE';
+    action.inputs = [{ id: 'entity', entityType: action.entityType, status: action.status.from }];
+    action.outputs = [{ id: 'entity', entityType: action.entityType, status: action.status.to }];
+    return;
+  }
+  if (action.actionKind === 'archiveEntity') {
+    action.status.to ||= 'ARCHIVED';
+    action.inputs = [{ id: 'entity', entityType: action.entityType }];
+    action.outputs = [{ id: 'archived', entityType: action.entityType, status: action.status.to }];
+    return;
+  }
+  if (action.actionKind === 'runCommand') {
+    const command = cncDomain.commands?.[action.commandId];
+    action.inputs = (command?.input?.entities || []).map(input => ({
+      id: input.name || input.type,
+      entityType: input.type,
+      required: Boolean(input.required),
+      multiple: Boolean(input.multiple)
+    }));
+    action.outputs = (command?.output?.entities || []).map(entityType => ({
+      id: entityType,
+      entityType,
+      multiple: true
+    }));
+  }
+}
+
+function actionKindLabel(actionKind) {
+  return actionKindOptions.find(option => option.value === actionKind)?.label || 'Action';
+}
+
+function ioLabel(io) {
+  return [io.entityType || io.id, io.status].filter(Boolean).join(' ');
 }
 
 function addLifecycleTransition() {

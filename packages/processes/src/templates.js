@@ -208,6 +208,7 @@ function createTemplate({ id, label, adminLabel, grants, entities, services }) {
       graph,
       roles,
       entityProfiles: entities,
+      actions: {},
       services,
       sockets: {},
       assignments: {},
