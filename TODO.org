@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-06-21] Restore process canvas content after role node removal
+    Files changed: pages/organization/process.vue
+    Docs updated: pages/organization/README.md, TODO.org
+    Notes: The process designer now projects entity, service, and socket records
+      back into Vue Flow nodes when a saved graph becomes empty after filtering
+      legacy role/user nodes. Empty processes show compact canvas add controls
+      instead of a blank workspace, and the Vue Flow surface now has a definite
+      viewport height so loaded nodes are not hidden by a zero-height canvas.
+
     [2026-06-21] Integrate roles and lifecycles into process canvas
     Files changed: pages/organization/process.vue,
       components/process-designer/ProcessEntityNode.vue,
