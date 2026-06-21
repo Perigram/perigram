@@ -1,35 +1,64 @@
 <template>
-  <StandardPage>
-    <template #header>
-        <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
-        <div class="min-w-0">
-          <h1 class="m-0 truncate">{{ $t('processDesigner.title') }}</h1>
-          <small class="text-muted-color">{{ activeName }}</small>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <Button icon="pi pi-plus" :label="$t('processDesigner.newDraft')" size="small" @click="createDraft" />
-          <Button icon="pi pi-check-circle" :label="$t('processDesigner.validate')" size="small" severity="secondary" outlined :disabled="!draft?._id" @click="validateDraft" />
-          <Button icon="pi pi-bolt" :label="$t('processDesigner.activate')" size="small" :disabled="!draft?._id" @click="activateDraft" />
-        </div>
-        <Button icon="pi pi-users" :label="$t('organization.teamManagement')" size="small" severity="secondary" outlined @click="navigateTo('/organization/users')" />
-      </div>
+  <StandardPage :title="$t('processDesigner.title')" :subtitle="activeName || $t('processDesigner.noActiveDraft')">
+    <template #actions>
+      <Button icon="pi pi-users" :label="$t('organization.teamManagement')" size="small" severity="secondary" outlined @click="navigateTo('/organization/users')" />
+      <Button icon="pi pi-plus" :label="$t('processDesigner.newDraft')" size="small" @click="createDraft" />
+      <Button icon="pi pi-check-circle" :label="$t('processDesigner.validate')" size="small" severity="secondary" outlined :disabled="!draft?._id" @click="validateDraft" />
+      <Button icon="pi pi-bolt" :label="$t('processDesigner.activate')" size="small" :disabled="!draft?._id" @click="activateDraft" />
     </template>
 
-    <div class="grid min-h-[calc(100vh-12rem)] grid-cols-1 gap-4 xl:grid-cols-[16rem_minmax(0,1fr)_24rem]">
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <Panel v-for="metric in processMetrics" :key="metric.key">
+        <div class="flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <small class="text-muted-color">{{ $t(metric.label) }}</small>
+            <div class="mt-1 text-2xl font-semibold">{{ metric.value }}</div>
+          </div>
+          <i :class="metric.icon" class="text-xl text-primary" aria-hidden="true"></i>
+        </div>
+      </Panel>
+    </div>
+
+    <div class="grid min-h-[calc(100vh-16rem)] grid-cols-1 gap-4 xl:grid-cols-[18rem_minmax(0,1fr)_28rem]">
       <Panel :header="$t('processDesigner.palette')">
-        <div class="flex flex-col gap-2">
-          <Button v-for="item in palette" :key="item.type" :icon="item.icon" :label="$t(item.label)" size="small" outlined @click="addNode(item.type)" />
+        <div class="flex flex-col gap-3">
+          <button
+            v-for="item in palette"
+            :key="item.type"
+            type="button"
+            class="flex w-full items-start gap-3 rounded-ui border border-content-border bg-content px-3 py-3 text-left"
+            @click="addNode(item.type)"
+          >
+            <i :class="item.icon" class="mt-1 text-primary" aria-hidden="true"></i>
+            <span class="min-w-0">
+              <span class="block font-medium">{{ $t(item.label) }}</span>
+              <small class="text-muted-color">{{ $t(item.description) }}</small>
+            </span>
+          </button>
         </div>
       </Panel>
 
-      <Panel :header="$t('processDesigner.canvas')">
-        <div class="h-[42rem] min-h-0 overflow-hidden rounded-ui border border-content-border">
+      <Panel>
+        <template #header>
+          <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+            <div class="min-w-0">
+              <span class="font-medium">{{ $t('processDesigner.canvas') }}</span>
+              <div class="mt-1 flex flex-wrap gap-2">
+                <Tag v-for="legend in connectionLegend" :key="legend.key" :value="$t(legend.label)" :severity="legend.severity" size="small" />
+              </div>
+            </div>
+            <Button icon="pi pi-save" :label="$t('common.save')" size="small" severity="secondary" outlined @click="saveDraft" />
+          </div>
+        </template>
+        <div class="h-[46rem] min-h-0 overflow-hidden rounded-ui border border-content-border bg-subtle">
           <VueFlow
             v-model:nodes="nodes"
             v-model:edges="edges"
             fit-view-on-init
+            :default-edge-options="defaultEdgeOptions"
             @node-click="event => selectNode(event.node)"
             @pane-click="selectedNodeId = null"
+            @connect="onConnect"
           >
             <template #node-role="props"><ProcessRoleNode v-bind="props" /></template>
             <template #node-entity="props"><ProcessEntityNode v-bind="props" /></template>
@@ -41,10 +70,10 @@
       </Panel>
 
       <Panel :header="$t('processDesigner.inspector')">
-        <div v-if="selectedNode" class="flex min-w-0 flex-col gap-3">
+        <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
           <div class="flex flex-col gap-1">
             <label>{{ $t('processDesigner.label') }}</label>
-            <InputText v-model="selectedNode.data.label" />
+            <InputText v-model="selectedRecord.label" />
           </div>
 
           <template v-if="selectedNode.type === 'role'">
@@ -53,19 +82,51 @@
               <Select v-model="selectedRole.kind" :options="roleKinds" option-label="label" option-value="value" />
             </div>
             <div class="flex flex-col gap-1">
-              <label>{{ $t('processDesigner.grantsJson') }}</label>
-              <Textarea v-model="selectedRoleGrantsJson" rows="8" class="font-mono text-xs" @blur="applyRoleGrantsJson" />
+              <label>{{ $t('processDesigner.navigationRoutes') }}</label>
+              <MultiSelect v-model="selectedRoleNavigationRoutes" :options="navigationRouteOptions" option-label="label" option-value="value" display="chip" class="w-full" @change="applyRoleNavigationRoutes" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label>{{ $t('processDesigner.explicitGrants') }}</label>
+              <Textarea v-model="selectedRoleGrantsJson" rows="5" class="font-mono text-xs" @blur="applyRoleGrantsJson" />
             </div>
           </template>
 
           <template v-else-if="selectedNode.type === 'entity'">
             <div class="flex flex-col gap-1">
               <label>{{ $t('processDesigner.entityType') }}</label>
-              <InputText v-model="selectedEntity.entityType" />
+              <Select v-model="selectedEntity.entityType" :options="entityTypeOptions" option-label="label" option-value="value" @change="syncEntityDefaults" />
             </div>
             <div class="flex flex-col gap-1">
               <label>{{ $t('processDesigner.lifecycleMode') }}</label>
               <Select v-model="selectedEntity.lifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
+            </div>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.readRoles') }}</label>
+                <MultiSelect v-model="selectedEntity.allowedRoles.read" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.writeRoles') }}</label>
+                <MultiSelect v-model="selectedEntity.allowedRoles.write" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.adminRoles') }}</label>
+                <MultiSelect v-model="selectedEntity.allowedRoles.admin" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.publicFields') }}</label>
+                <MultiSelect v-model="selectedEntity.fields.read" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.writeFields') }}</label>
+                <MultiSelect v-model="selectedEntity.fields.write" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.privateFields') }}</label>
+                <MultiSelect v-model="selectedEntity.fields.private" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
             </div>
             <WorkflowDesignerV2
               v-if="selectedEntity.lifecycle.mode === 'custom'"
@@ -77,7 +138,29 @@
           <template v-else-if="selectedNode.type === 'service'">
             <div class="flex flex-col gap-1">
               <label>{{ $t('processDesigner.commandId') }}</label>
-              <InputText v-model="selectedService.commandId" />
+              <Select v-model="selectedService.commandId" :options="commandOptions" option-label="label" option-value="value" @change="syncServiceFromCommand" />
+            </div>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.runRoles') }}</label>
+                <MultiSelect v-model="selectedService.access.runRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.viewRoles') }}</label>
+                <MultiSelect v-model="selectedService.access.viewRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <Panel :header="$t('processDesigner.inputs')">
+                <div class="flex flex-wrap gap-2">
+                  <Tag v-for="input in selectedService.inputs" :key="input.id" :value="input.entityType || input.id" size="small" />
+                </div>
+              </Panel>
+              <Panel :header="$t('processDesigner.outputs')">
+                <div class="flex flex-wrap gap-2">
+                  <Tag v-for="output in selectedService.outputs" :key="output.id" :value="output.entityType || output.id" size="small" severity="success" />
+                </div>
+              </Panel>
             </div>
           </template>
 
@@ -87,8 +170,32 @@
               <Select v-model="selectedSocket.direction" :options="socketDirections" option-label="label" option-value="value" />
             </div>
             <div class="flex flex-col gap-1">
-              <label>{{ $t('processDesigner.projectionJson') }}</label>
-              <Textarea v-model="selectedSocketProjectionJson" rows="8" class="font-mono text-xs" @blur="applySocketProjectionJson" />
+              <label>{{ $t('processDesigner.entityType') }}</label>
+              <Select v-model="selectedSocket.entityType" :options="entityTypeOptions" option-label="label" option-value="value" />
+            </div>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.projectedFields') }}</label>
+                <MultiSelect v-model="selectedSocket.projection.fields" :options="fieldOptionsForSelectedSocket" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.excludedFields') }}</label>
+                <MultiSelect v-model="selectedSocket.projection.excludeFields" :options="fieldOptionsForSelectedSocket" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.sendRoles') }}</label>
+                <MultiSelect v-model="selectedSocket.access.sendRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.receiveRoles') }}</label>
+                <MultiSelect v-model="selectedSocket.access.receiveRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label>{{ $t('processDesigner.receiverLifecycle') }}</label>
+              <Select v-model="selectedSocket.receiverLifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
             </div>
           </template>
 
@@ -99,7 +206,11 @@
             </div>
             <div class="flex flex-col gap-1">
               <label>{{ $t('processDesigner.roleIds') }}</label>
-              <Textarea v-model="selectedAssignmentRolesText" rows="3" @blur="applyAssignmentRoles" />
+              <MultiSelect v-model="selectedAssignment.roleIds" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label>{{ $t('processDesigner.bindingsJson') }}</label>
+              <Textarea v-model="selectedAssignmentBindingsJson" rows="5" class="font-mono text-xs" @blur="applyAssignmentBindingsJson" />
             </div>
           </template>
 
@@ -128,18 +239,23 @@ import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
+import MultiSelect from 'primevue/multiselect';
 import Panel from 'primevue/panel';
 import Select from 'primevue/select';
+import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
+import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import WorkflowDesignerV2 from '~/components/WorkflowDesignerV2.vue';
+import { cncDomain, cncEntityFieldAccess } from '@cutkit/domain-cnc';
 import ProcessRoleNode from '~/components/process-designer/ProcessRoleNode.vue';
 import ProcessEntityNode from '~/components/process-designer/ProcessEntityNode.vue';
 import ProcessServiceNode from '~/components/process-designer/ProcessServiceNode.vue';
 import ProcessSocketNode from '~/components/process-designer/ProcessSocketNode.vue';
 import ProcessUserNode from '~/components/process-designer/ProcessUserNode.vue';
 
+const { t } = useI18n();
 const draft = ref(null);
 const nodes = ref([]);
 const edges = ref([]);
@@ -147,11 +263,11 @@ const selectedNodeId = ref(null);
 const validation = ref(null);
 
 const palette = [
-  { type: 'role', icon: 'pi pi-shield', label: 'processDesigner.role' },
-  { type: 'entity', icon: 'pi pi-box', label: 'processDesigner.entity' },
-  { type: 'service', icon: 'pi pi-cog', label: 'processDesigner.service' },
-  { type: 'socket', icon: 'pi pi-share-alt', label: 'processDesigner.socket' },
-  { type: 'user', icon: 'pi pi-user', label: 'processDesigner.assignment' }
+  { type: 'role', icon: 'pi pi-shield', label: 'processDesigner.role', description: 'processDesigner.roleDescription' },
+  { type: 'entity', icon: 'pi pi-box', label: 'processDesigner.entity', description: 'processDesigner.entityDescription' },
+  { type: 'service', icon: 'pi pi-cog', label: 'processDesigner.service', description: 'processDesigner.serviceDescription' },
+  { type: 'socket', icon: 'pi pi-share-alt', label: 'processDesigner.socket', description: 'processDesigner.socketDescription' },
+  { type: 'user', icon: 'pi pi-user', label: 'processDesigner.assignment', description: 'processDesigner.assignmentDescription' }
 ];
 const roleKinds = [
   { label: 'orgRole', value: 'orgRole' },
@@ -167,25 +283,65 @@ const socketDirections = [
   { label: 'outbound', value: 'outbound' },
   { label: 'inbound', value: 'inbound' }
 ];
+const connectionLegend = [
+  { key: 'assignment', label: 'processDesigner.assignmentEdge', severity: 'info' },
+  { key: 'access', label: 'processDesigner.accessEdge', severity: 'success' },
+  { key: 'service', label: 'processDesigner.serviceEdge', severity: 'warning' },
+  { key: 'socket', label: 'processDesigner.socketEdge', severity: 'secondary' }
+];
+const defaultEdgeOptions = { type: 'smoothstep' };
 
 const activeName = computed(() => draft.value?.identity?.name || '');
+const isActiveProcess = computed(() => draft.value?.status?.state?.primary === 'ACTIVE');
 const selectedNode = computed(() => nodes.value.find(node => node.id === selectedNodeId.value) || null);
-const selectedRole = computed(() => ensureRecord('roles', selectedNode.value, createRole));
-const selectedEntity = computed(() => ensureRecord('entityProfiles', selectedNode.value, createEntityProfile));
-const selectedService = computed(() => ensureRecord('services', selectedNode.value, createService));
-const selectedSocket = computed(() => ensureRecord('sockets', selectedNode.value, createSocket));
-const selectedAssignment = computed(() => ensureRecord('assignments', selectedNode.value, createAssignment));
+const selectedRecord = computed(() => {
+  if (!selectedNode.value) return {};
+  return ensureRecord(recordKeyForType(selectedNode.value.type), selectedNode.value, factoryForType(selectedNode.value.type));
+});
+const selectedRole = computed(() => selectedNode.value?.type === 'role' ? ensureRecord('roles', selectedNode.value, createRole) : {});
+const selectedEntity = computed(() => selectedNode.value?.type === 'entity' ? ensureRecord('entityProfiles', selectedNode.value, createEntityProfile) : {});
+const selectedService = computed(() => selectedNode.value?.type === 'service' ? ensureRecord('services', selectedNode.value, createService) : {});
+const selectedSocket = computed(() => selectedNode.value?.type === 'socket' ? ensureRecord('sockets', selectedNode.value, createSocket) : {});
+const selectedAssignment = computed(() => selectedNode.value?.type === 'user' ? ensureRecord('assignments', selectedNode.value, createAssignment) : {});
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType?.replace(/_/g, 's') || 'projects');
 
+const roles = computed(() => draft.value?.data?.roles || {});
+const entityProfiles = computed(() => draft.value?.data?.entityProfiles || {});
+const services = computed(() => draft.value?.data?.services || {});
+const sockets = computed(() => draft.value?.data?.sockets || {});
+const roleOptions = computed(() => Object.values(roles.value).map(role => ({ label: role.label || role.id, value: role.id })));
+const entityTypeOptions = computed(() => (cncDomain.entities || []).map(entity => ({ label: entity.type, value: entity.type })));
+const commandOptions = computed(() => Object.values(cncDomain.commands || {}).map(command => ({ label: command.label || command.id, value: command.id })));
+const navigationRouteOptions = computed(() => [
+  { label: t('features.projects'), value: '/projects', feature: 'projects' },
+  { label: t('features.warehouses'), value: '/warehouses', feature: 'warehouses' },
+  { label: t('features.catalogs'), value: '/catalog', feature: 'catalogs' },
+  { label: t('features.requisitions'), value: '/requisitions', feature: 'requisitions' },
+  { label: t('features.assets'), value: '/assets/cassettes', feature: 'cassettes' },
+  { label: t('organization.teamManagement'), value: '/organization/users', feature: 'users' },
+  { label: t('processDesigner.title'), value: '/organization/process', feature: 'organizations' }
+]);
+const selectedRoleNavigationRoutes = ref([]);
 const selectedRoleGrantsJson = ref('[]');
-const selectedSocketProjectionJson = ref('{}');
-const selectedAssignmentRolesText = ref('');
+const selectedAssignmentBindingsJson = ref('{}');
+const processMetrics = computed(() => [
+  { key: 'roles', label: 'processDesigner.rolesMetric', value: Object.keys(roles.value).length, icon: 'pi pi-shield' },
+  { key: 'entities', label: 'processDesigner.entitiesMetric', value: Object.keys(entityProfiles.value).length, icon: 'pi pi-box' },
+  { key: 'services', label: 'processDesigner.servicesMetric', value: Object.keys(services.value).length, icon: 'pi pi-cog' },
+  { key: 'sockets', label: 'processDesigner.socketsMetric', value: Object.keys(sockets.value).length, icon: 'pi pi-share-alt' }
+]);
+const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
+const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocket.value.entityType));
 
 watch(selectedNode, () => {
+  if (!selectedNode.value) return;
   selectedRoleGrantsJson.value = JSON.stringify(selectedRole.value.grants || [], null, 2);
-  selectedSocketProjectionJson.value = JSON.stringify(selectedSocket.value.projection || {}, null, 2);
-  selectedAssignmentRolesText.value = (selectedAssignment.value.roleIds || []).join('\n');
+  selectedRoleNavigationRoutes.value = (selectedRole.value.navigation || []).map(item => item.route).filter(Boolean);
+  selectedAssignmentBindingsJson.value = JSON.stringify(selectedAssignment.value.bindings || {}, null, 2);
 });
+watch(() => draft.value?.data, () => {
+  if (draft.value) syncNodeData();
+}, { deep: true });
 
 onMounted(loadActiveOrCreateLocal);
 
@@ -204,7 +360,7 @@ async function createDraft() {
 
 async function saveDraft() {
   syncNodeData();
-  if (!draft.value?._id) return createDraft();
+  if (!draft.value?._id || isActiveProcess.value) return createDraft();
   const updated = await $fetch(`/api/process-definitions/${draft.value._id}`, {
     method: 'PATCH',
     body: { data: serializeProcess() }
@@ -225,20 +381,21 @@ async function activateDraft() {
 
 function setDraft(value) {
   draft.value = value;
-  nodes.value = value?.data?.graph?.nodes || [];
+  nodes.value = (value?.data?.graph?.nodes || []).map(enrichNodeData);
   edges.value = value?.data?.graph?.edges || [];
 }
 
 function addNode(type) {
   const id = `${type}_${Date.now()}`;
   const refId = id;
-  nodes.value.push({
+  const node = {
     id,
     type,
     position: { x: 80 + nodes.value.length * 32, y: 80 + nodes.value.length * 24 },
     data: { refId, label: refId }
-  });
+  };
   ensureRecord(recordKeyForType(type), { data: { refId }, type }, factoryForType(type));
+  nodes.value.push(enrichNodeData(node));
   selectedNodeId.value = id;
 }
 
@@ -268,6 +425,11 @@ function syncNodeData() {
     node.data.commandId = record.commandId;
     node.data.direction = record.direction;
     node.data.lifecycleMode = record.lifecycle?.mode;
+    node.data.grantCount = record.grants?.length || 0;
+    node.data.roleCount = record.allowedRoles ? countRoleBindings(record.allowedRoles) : (record.roleIds?.length || 0);
+    node.data.fieldCount = record.fields ? countFieldBindings(record.fields) : (record.projection?.fields?.length || 0);
+    node.data.inputCount = record.inputs?.length || 0;
+    node.data.outputCount = record.outputs?.length || 0;
   }
 }
 
@@ -332,19 +494,15 @@ function createSocket(id) {
 }
 
 function createAssignment(id) {
-  return { userId: id, roleIds: [], bindings: {}, status: 'active' };
+  return { userId: id, label: id, roleIds: [], bindings: {}, status: 'active' };
 }
 
 function applyRoleGrantsJson() {
   selectedRole.value.grants = parseJson(selectedRoleGrantsJson.value, []);
 }
 
-function applySocketProjectionJson() {
-  selectedSocket.value.projection = parseJson(selectedSocketProjectionJson.value, {});
-}
-
-function applyAssignmentRoles() {
-  selectedAssignment.value.roleIds = selectedAssignmentRolesText.value.split(/\s+/).map(value => value.trim()).filter(Boolean);
+function applyAssignmentBindingsJson() {
+  selectedAssignment.value.bindings = parseJson(selectedAssignmentBindingsJson.value, {});
 }
 
 function parseJson(source, fallback) {
@@ -353,5 +511,93 @@ function parseJson(source, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function enrichNodeData(node) {
+  const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
+  return {
+    ...node,
+    data: {
+      ...(node.data || {}),
+      label: record.label || record.userId || record.entityType || record.commandId || node.data?.label,
+      entityType: record.entityType,
+      commandId: record.commandId,
+      direction: record.direction,
+      lifecycleMode: record.lifecycle?.mode,
+      grantCount: record.grants?.length || 0,
+      roleCount: record.allowedRoles ? countRoleBindings(record.allowedRoles) : (record.roleIds?.length || 0),
+      fieldCount: record.fields ? countFieldBindings(record.fields) : (record.projection?.fields?.length || 0),
+      inputCount: record.inputs?.length || 0,
+      outputCount: record.outputs?.length || 0
+    }
+  };
+}
+
+function countRoleBindings(access = {}) {
+  return ['read', 'write', 'admin', 'runRoles', 'viewRoles', 'sendRoles', 'receiveRoles']
+    .reduce((total, key) => total + (access[key]?.length || 0), 0);
+}
+
+function countFieldBindings(fields = {}) {
+  return (fields.read?.length || 0) + (fields.write?.length || 0) + (fields.private?.length || 0);
+}
+
+function fieldOptions(entityType) {
+  const policy = fieldPolicyForEntity(entityType);
+  const paths = [...(policy.read || []), ...(policy.write || []), ...(policy.admin || [])];
+  return [...new Set(paths)].map(path => ({ label: path, value: path }));
+}
+
+function fieldPolicyForEntity(entityType) {
+  if (!entityType) return {};
+  const camel = entityType.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
+  return cncEntityFieldAccess[entityType] || cncEntityFieldAccess[camel] || {};
+}
+
+function syncEntityDefaults() {
+  selectedEntity.value.label = selectedEntity.value.entityType;
+  selectedEntity.value.fields ||= { read: [], write: [], private: [] };
+  if (!selectedEntity.value.fields.read?.length) {
+    selectedEntity.value.fields.read = ['identity.*', 'status.*', 'lineage.*']
+      .filter(path => fieldOptionsForSelectedEntity.value.some(item => item.value === path));
+  }
+}
+
+function syncServiceFromCommand() {
+  const command = cncDomain.commands?.[selectedService.value.commandId];
+  if (!command) return;
+  selectedService.value.label = command.label || command.id;
+  selectedService.value.serviceType = command.service;
+  selectedService.value.inputs = (command.input?.entities || []).map(input => ({
+    id: input.name || input.type,
+    entityType: input.type,
+    required: Boolean(input.required),
+    multiple: Boolean(input.multiple)
+  }));
+  selectedService.value.outputs = (command.output?.entities || []).map(entityType => ({
+    id: entityType,
+    entityType,
+    multiple: true
+  }));
+}
+
+function applyRoleNavigationRoutes() {
+  selectedRole.value.navigation = selectedRoleNavigationRoutes.value.map(route => {
+    const option = navigationRouteOptions.value.find(item => item.value === route);
+    return {
+      id: `${option?.feature || 'route'}.${route.replace(/^\//, '').replaceAll('/', '.')}`,
+      route,
+      requires: { feature: option?.feature || 'organizations', level: route.includes('/process') ? 'admin' : 'read' }
+    };
+  });
+}
+
+function onConnect(connection) {
+  edges.value.push({
+    ...connection,
+    id: `${connection.source}-${connection.sourceHandle}-${connection.target}-${connection.targetHandle}-${Date.now()}`,
+    type: 'smoothstep',
+    data: { kind: connection.sourceHandle || connection.targetHandle || 'link' }
+  });
 }
 </script>
