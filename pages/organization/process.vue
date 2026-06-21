@@ -16,6 +16,17 @@
         <template #node-socket="props"><ProcessSocketNode v-bind="props" /></template>
       </VueFlow>
 
+      <div
+        v-if="!nodes.length"
+        class="absolute left-[15rem] right-[30rem] top-24 z-10 flex justify-center"
+      >
+        <div class="flex items-center gap-2 rounded-ui border border-content-border bg-content px-3 py-2 shadow-card">
+          <Button icon="pi pi-box" :label="$t('processDesigner.entity')" size="small" @click="addNode('entity')" />
+          <Button icon="pi pi-cog" :label="$t('processDesigner.service')" size="small" severity="secondary" outlined @click="addNode('service')" />
+          <Button icon="pi pi-share-alt" :label="$t('processDesigner.socket')" size="small" severity="secondary" outlined @click="addNode('socket')" />
+        </div>
+      </div>
+
       <Panel class="absolute left-3 top-3 z-10 w-[13rem]" :header="$t('processDesigner.palette')">
         <div class="grid grid-cols-1 gap-2">
           <Button
@@ -410,13 +421,40 @@ async function activateDraft() {
 
 function setDraft(value) {
   draft.value = value;
-  nodes.value = (value?.data?.graph?.nodes || [])
+  const processNodes = (value?.data?.graph?.nodes || [])
     .filter(node => !['role', 'user'].includes(node.type))
     .map(enrichNodeData);
+  nodes.value = processNodes.length ? processNodes : createNodesFromProcessRecords(value?.data || {});
   edges.value = (value?.data?.graph?.edges || []).filter(edge =>
     nodes.value.some(node => node.id === edge.source) && nodes.value.some(node => node.id === edge.target)
   );
   selectedRoleId.value = Object.keys(value?.data?.roles || {})[0] || null;
+}
+
+function createNodesFromProcessRecords(data = {}) {
+  const entityNodes = Object.values(data.entityProfiles || {}).map((record, index) =>
+    enrichNodeData(createRecordNode({ type: 'entity', record, x: 260, y: 140 + index * 140 }))
+  );
+  const serviceNodes = Object.values(data.services || {}).map((record, index) =>
+    enrichNodeData(createRecordNode({ type: 'service', record, x: 600, y: 140 + index * 140 }))
+  );
+  const socketNodes = Object.values(data.sockets || {}).map((record, index) =>
+    enrichNodeData(createRecordNode({ type: 'socket', record, x: 940, y: 140 + index * 140 }))
+  );
+  return [...entityNodes, ...serviceNodes, ...socketNodes];
+}
+
+function createRecordNode({ type, record, x, y }) {
+  const refId = record.id || `${type}_${Date.now()}`;
+  return {
+    id: refId,
+    type,
+    position: { x, y },
+    data: {
+      refId,
+      label: record.label || record.entityType || record.commandId || refId
+    }
+  };
 }
 
 function addNode(type) {
