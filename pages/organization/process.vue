@@ -1,40 +1,30 @@
 <template>
-  <StandardPage :title="$t('processDesigner.title')" :subtitle="activeName || $t('processDesigner.noActiveDraft')">
-    <template #actions>
-      <Button icon="pi pi-users" :label="$t('organization.teamManagement')" size="small" severity="secondary" outlined @click="navigateTo('/organization/users')" />
-      <Button icon="pi pi-plus" :label="$t('processDesigner.newDraft')" size="small" @click="createDraft" />
-      <Button icon="pi pi-check-circle" :label="$t('processDesigner.validate')" size="small" severity="secondary" outlined :disabled="!draft?._id" @click="validateDraft" />
-      <Button icon="pi pi-bolt" :label="$t('processDesigner.activate')" size="small" :disabled="!draft?._id" @click="activateDraft" />
-    </template>
-
-    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <Panel v-for="metric in processMetrics" :key="metric.key">
-        <div class="flex items-center justify-between gap-3">
-          <div class="min-w-0">
-            <small class="text-muted-color">{{ $t(metric.label) }}</small>
-            <div class="mt-1 text-2xl font-semibold">{{ metric.value }}</div>
-          </div>
-          <i :class="metric.icon" class="text-xl text-primary" aria-hidden="true"></i>
-        </div>
-      </Panel>
+  <StandardPage>
+    <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
+      <div class="min-w-0">
+        <strong class="block truncate">{{ $t('processDesigner.title') }}</strong>
+        <small class="text-muted-color">{{ activeName || $t('processDesigner.noActiveDraft') }}</small>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <Button icon="pi pi-users" :aria-label="$t('organization.teamManagement')" size="small" severity="secondary" outlined @click="navigateTo('/organization/users')" />
+        <Button icon="pi pi-plus" :label="$t('processDesigner.newDraft')" size="small" @click="createDraft" />
+        <Button icon="pi pi-check-circle" :label="$t('processDesigner.validate')" size="small" severity="secondary" outlined :disabled="!draft?._id" @click="validateDraft" />
+        <Button icon="pi pi-bolt" :label="$t('processDesigner.activate')" size="small" :disabled="!draft?._id" @click="activateDraft" />
+      </div>
     </div>
 
-    <div class="grid min-h-[calc(100vh-16rem)] grid-cols-1 gap-4 xl:grid-cols-[18rem_minmax(0,1fr)_28rem]">
+    <div class="grid min-h-[calc(100vh-12rem)] grid-cols-1 gap-4 xl:grid-cols-[12rem_minmax(0,1fr)_28rem]">
       <Panel :header="$t('processDesigner.palette')">
-        <div class="flex flex-col gap-3">
-          <button
+        <div class="grid grid-cols-2 gap-2 xl:grid-cols-1">
+          <Button
             v-for="item in palette"
             :key="item.type"
-            type="button"
-            class="flex w-full items-start gap-3 rounded-ui border border-content-border bg-content px-3 py-3 text-left"
+            :icon="item.icon"
+            :label="$t(item.label)"
+            size="small"
+            outlined
             @click="addNode(item.type)"
-          >
-            <i :class="item.icon" class="mt-1 text-primary" aria-hidden="true"></i>
-            <span class="min-w-0">
-              <span class="block font-medium">{{ $t(item.label) }}</span>
-              <small class="text-muted-color">{{ $t(item.description) }}</small>
-            </span>
-          </button>
+          />
         </div>
       </Panel>
 
@@ -256,6 +246,11 @@ import ProcessSocketNode from '~/components/process-designer/ProcessSocketNode.v
 import ProcessUserNode from '~/components/process-designer/ProcessUserNode.vue';
 
 const { t } = useI18n();
+definePageMeta({
+  layout: 'app',
+  middleware: 'auth'
+});
+
 const draft = ref(null);
 const nodes = ref([]);
 const edges = ref([]);
@@ -263,11 +258,11 @@ const selectedNodeId = ref(null);
 const validation = ref(null);
 
 const palette = [
-  { type: 'role', icon: 'pi pi-shield', label: 'processDesigner.role', description: 'processDesigner.roleDescription' },
-  { type: 'entity', icon: 'pi pi-box', label: 'processDesigner.entity', description: 'processDesigner.entityDescription' },
-  { type: 'service', icon: 'pi pi-cog', label: 'processDesigner.service', description: 'processDesigner.serviceDescription' },
-  { type: 'socket', icon: 'pi pi-share-alt', label: 'processDesigner.socket', description: 'processDesigner.socketDescription' },
-  { type: 'user', icon: 'pi pi-user', label: 'processDesigner.assignment', description: 'processDesigner.assignmentDescription' }
+  { type: 'role', icon: 'pi pi-shield', label: 'processDesigner.role' },
+  { type: 'entity', icon: 'pi pi-box', label: 'processDesigner.entity' },
+  { type: 'service', icon: 'pi pi-cog', label: 'processDesigner.service' },
+  { type: 'socket', icon: 'pi pi-share-alt', label: 'processDesigner.socket' },
+  { type: 'user', icon: 'pi pi-user', label: 'processDesigner.assignment' }
 ];
 const roleKinds = [
   { label: 'orgRole', value: 'orgRole' },
@@ -324,12 +319,6 @@ const navigationRouteOptions = computed(() => [
 const selectedRoleNavigationRoutes = ref([]);
 const selectedRoleGrantsJson = ref('[]');
 const selectedAssignmentBindingsJson = ref('{}');
-const processMetrics = computed(() => [
-  { key: 'roles', label: 'processDesigner.rolesMetric', value: Object.keys(roles.value).length, icon: 'pi pi-shield' },
-  { key: 'entities', label: 'processDesigner.entitiesMetric', value: Object.keys(entityProfiles.value).length, icon: 'pi pi-box' },
-  { key: 'services', label: 'processDesigner.servicesMetric', value: Object.keys(services.value).length, icon: 'pi pi-cog' },
-  { key: 'sockets', label: 'processDesigner.socketsMetric', value: Object.keys(sockets.value).length, icon: 'pi pi-share-alt' }
-]);
 const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
 const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocket.value.entityType));
 
