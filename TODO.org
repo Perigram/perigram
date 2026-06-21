@@ -4,6 +4,25 @@
   :END:
 
 *** Agent Notes
+    [2026-06-21] Replace generic process designer surface
+    Files changed: pages/organization/process.vue,
+      components/process-designer/ProcessRoleNode.vue,
+      components/process-designer/ProcessEntityNode.vue,
+      components/process-designer/ProcessServiceNode.vue,
+      components/process-designer/ProcessSocketNode.vue,
+      components/process-designer/ProcessUserNode.vue,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: components/README.md,
+      components/process-designer/README.md,
+      pages/organization/README.md, TODO.org
+    Notes: Reworked the designer from generic identical cards into a process
+      workspace with a StandardPage header, process metrics, typed palette,
+      connection legend, semantic Vue Flow handles, domain-specific node
+      summaries, and inspectors for role navigation/grants, entity lifecycle
+      and field policy, service command I/O, socket projection, and assignment
+      bindings. Saving from an active process now forks a draft instead of
+      patching the active definition.
+
     [2026-06-21] Complete process-defined organization runtime
     Files changed: packages/processes/src/index.js,
       packages/processes/src/templates.js,

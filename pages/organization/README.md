@@ -13,10 +13,23 @@ active process definition, writes assignments through
 `/api/process-definitions/active/assignments`, and treats copied membership
 permissions as compatibility fallback data.
 
-`process.vue` is the first visual process-designer surface. It edits
-organization process definitions with Vue Flow, persists drafts through
+`process.vue` is the visual process-designer surface. It edits organization
+process definitions with Vue Flow, persists drafts through
 `/api/process-definitions`, validates them through the process compiler, and
-activates compiled runtime contracts for access, navigation, and entity
-workflows. Entity lifecycle profiles in the inspector compile directly into
-runtime status machines; service nodes gate command execution; socket nodes can
-project selected entity fields through the socket runtime API.
+activates compiled runtime contracts for access, navigation, entity workflows,
+services, sockets, and field policies. The route uses a real `StandardPage`
+header/action surface, process metrics, a typed palette, and
+domain-specific node components from
+[components/process-designer](../../components/process-designer/README.md).
+
+The inspector edits compiler-owned fields directly:
+
+- role nodes own kind, explicit grant JSON, and app navigation routes;
+- entity nodes own entity type, lifecycle mode, role access, and public/write/private field policy;
+- service nodes own command selection, run/view roles, and command-derived inputs/outputs;
+- socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
+- assignment nodes own user id, process roles, and binding JSON.
+
+Loading an active process is read-only. Saving changes forks the current graph
+into a draft first, because active process definitions cannot be patched
+directly.

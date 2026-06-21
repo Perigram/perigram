@@ -103,6 +103,11 @@ The organization process designer embeds this same editor inside entity node
 inspectors. Entity node lifecycle data must save as a workflow draft that
 compiles into a runtime status machine; the process canvas itself remains the
 composition surface for roles, entities, services, sockets, and assignments.
+Process designer nodes live under `components/process-designer/` and must show
+typed Vue Flow handles that match the process compiler contract: assignments,
+role access, service input/output, and socket projection/transfer. Do not reduce
+these nodes to generic cards; their surface should expose the role/entity/
+service/socket semantics that the active process runtime consumes.
 
 Lifecycle transitions belong in `EntityStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,
