@@ -163,6 +163,7 @@
     "logout": "Logout",
     "login": "Login / Sign Up",
     "admin": "Administration",
+    "organization": "Organization",
     "settings": "Settings"
   },
   "status": {
@@ -2117,7 +2118,14 @@
     "selectPen": "Select pen..."
   },
   "organization": {
-    "type": "Organization Type"
+    "type": "Organization Type",
+    "workspace": "Organization",
+    "overview": "Overview",
+    "teamManagement": "Team management",
+    "teamManagementHint": "Invite users, approve memberships, and edit access grants.",
+    "processDesignerHint": "Compose roles, entity lifecycles, services, and sockets for this organization.",
+    "openTeam": "Open team",
+    "openProcessDesigner": "Open designer"
   },
   "sheetDesign": {
     "sheetDesigns": "Sheet designs",

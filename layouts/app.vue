@@ -165,12 +165,24 @@
         // 1. Current Organization & Context
         if (authStore.organizationData) {
             items.push({
-                label: authStore.organizationData.identity?.name,
+                label: authStore.organizationData.identity?.name || authStore.organizationData.name || t('organization.workspace'),
                 items: [
                     {
-                        label: `${t('queue.status')}: ${authStore.organizationData.data?.type}`,
-                        icon: 'pi pi-info-circle',
-                        disabled: true
+                        label: t('organization.workspace'),
+                        icon: 'pi pi-building',
+                        command: () => router.push('/organization')
+                    },
+                    {
+                        label: t('organization.teamManagement'),
+                        icon: 'pi pi-users',
+                        visible: authStore.hasPermission('users', 'admin'),
+                        command: () => router.push('/organization/users')
+                    },
+                    {
+                        label: t('processDesigner.title'),
+                        icon: 'pi pi-sitemap',
+                        visible: authStore.hasPermission('organizations', 'admin'),
+                        command: () => router.push('/organization/process')
                     }
                 ]
             });

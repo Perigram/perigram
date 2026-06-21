@@ -128,8 +128,9 @@
                                             {{ $t('profile.membershipPending') }}
                                         </div>
                                         <div v-else class="flex justify-between items-center mt-2 pt-2 border-t border-muted border-dashed">
+                                            <Button :label="$t('profile.viewOrganization')" icon="pi pi-building" text size="small" @click.stop="router.push('/organization')" />
                                             <Button v-if="membership.role.includes('Admin')" :label="$t('profile.manageTeam')" icon="pi pi-users" text size="small" @click.stop="router.push('/organization/users')" />
-                                            <Button v-else :label="$t('profile.viewOrganization')" icon="pi pi-building" text size="small" />
+                                            <Button v-if="membership.role.includes('Admin')" :label="$t('processDesigner.title')" icon="pi pi-sitemap" text size="small" @click.stop="router.push('/organization/process')" />
                                         </div>
                                     </div>
                             </Panel>

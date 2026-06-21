@@ -1,7 +1,7 @@
 <template>
   <StandardPage>
     <template #header>
-      <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <div class="min-w-0">
           <h1 class="m-0 truncate">{{ $t('processDesigner.title') }}</h1>
           <small class="text-muted-color">{{ activeName }}</small>
@@ -11,6 +11,7 @@
           <Button icon="pi pi-check-circle" :label="$t('processDesigner.validate')" size="small" severity="secondary" outlined :disabled="!draft?._id" @click="validateDraft" />
           <Button icon="pi pi-bolt" :label="$t('processDesigner.activate')" size="small" :disabled="!draft?._id" @click="activateDraft" />
         </div>
+        <Button icon="pi pi-users" :label="$t('organization.teamManagement')" size="small" severity="secondary" outlined @click="navigateTo('/organization/users')" />
       </div>
     </template>
 

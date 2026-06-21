@@ -1,6 +1,7 @@
 <template>
-  <StandardPage :title="$t('features.users')">
+  <StandardPage :title="$t('organization.teamManagement')">
     <template #actions>
+        <Button :label="$t('processDesigner.title')" icon="pi pi-sitemap" severity="secondary" outlined @click="navigateTo('/organization/process')" />
         <Button :label="$t('auth.inviteMember')" icon="pi pi-link" severity="secondary" @click="showInviteDialog = true" />
         <Button :label="$t('common.create')" icon="pi pi-user-plus" @click="showCreateDialog = true" />
     </template>

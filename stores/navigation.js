@@ -52,6 +52,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         { id: 'catalog', entity: 'catalogs', level: 'read', nameKey: 'features.catalogs', to: '/catalog', icon: 'pi pi-palette' },
         { id: 'requisitions', entity: 'requisitions', level: 'read', nameKey: 'features.requisitions', to: '/requisitions', icon: 'pi pi-shopping-cart' },
         { id: 'assets', entity: 'cassettes', level: 'read', nameKey: 'features.assets', to: '/assets/cassettes', icon: 'pi pi-objects-column' },
+        { id: 'organization', entity: 'organizations', level: 'read', nameKey: 'organization.workspace', to: '/organization', icon: 'pi pi-building' },
         { id: 'admin', entity: 'organizations', level: 'admin', nameKey: 'nav.admin', to: '/admin', icon: 'pi pi-cog' },
     ];
 
@@ -147,6 +148,24 @@ export const useNavigationStore = defineStore('navigation', () => {
                     name: currentAssetTab.name,
                     to: currentAssetTab.to,
                     siblings: assetSiblings.value.map((t) => siblingOption(t.name, t.to)),
+                });
+            }
+        }
+
+        // --- Level 2: Admin Context ---
+        if (parts[0] === 'organization') {
+            const organizationTabs = [
+                { id: 'overview', name: t('organization.overview'), to: '/organization', entity: 'organizations', level: 'read' },
+                { id: 'users', name: t('organization.teamManagement'), to: '/organization/users', entity: 'users', level: 'admin' },
+                { id: 'process', name: t('processDesigner.title'), to: '/organization/process', entity: 'organizations', level: 'admin' },
+            ].filter(item => authStore.hasPermission(item.entity, item.level));
+            const currentTabId = parts[1] || 'overview';
+            const currentTab = organizationTabs.find(tab => tab.id === currentTabId) || organizationTabs[0];
+            if (currentTab) {
+                nav.push({
+                    name: currentTab.name,
+                    to: currentTab.to,
+                    siblings: organizationTabs.map(tab => siblingOption(tab.name, tab.to))
                 });
             }
         }
