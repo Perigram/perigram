@@ -11,6 +11,7 @@ const cutkitAliases = {
     '@cutkit/vue': resolveRoot('./packages/vue/src/index.js'),
     '@cutkit/devtools': resolveRoot('./packages/devtools/src/index.js'),
     '@cutkit/mcp': resolveRoot('./packages/mcp/src/index.js'),
+    '@cutkit/processes': resolveRoot('./packages/processes/src/index.js'),
     '@cutkit/domain-cnc': resolveRoot('./packages/domain-cnc/src/index.js')
 }
 const portableAliases = {

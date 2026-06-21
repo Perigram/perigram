@@ -3,6 +3,7 @@ import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 import { normalizeEntityType } from '~/server/runtime/entities.js';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
+import { resolveProcessWorkflow } from '~/server/features/process-definitions/runtime.js';
 import * as repository from './repository.js';
 
 export async function getByEntity(entityType, auth) {
@@ -39,6 +40,13 @@ export async function resolveActiveWorkflow({ entityType, organizationId }) {
   const normalizedEntityType = normalizeEntityType(entityType);
   const defaultWorkflow = getDefaultWorkflow(normalizedEntityType);
   if (!organizationId) return defaultWorkflow;
+
+  const processWorkflow = await resolveProcessWorkflow({
+    organizationId,
+    entityType: normalizedEntityType,
+    fallbackWorkflow: null
+  });
+  if (processWorkflow) return normalizeWorkflowPayload(processWorkflow);
 
   const override = await repository.findActiveByEntity({ organizationId, entityType: normalizedEntityType });
   return override?.workflow ? normalizeWorkflowPayload(override.workflow) : defaultWorkflow;

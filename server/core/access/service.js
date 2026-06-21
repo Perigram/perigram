@@ -66,8 +66,12 @@ export function hasEntityAccess({ entity, feature, level = 'read', auth, entityT
   const membership = orgId
     ? (auth.memberships || []).find(item => item.organizationId?.toString() === orgId)
     : (auth.memberships || [])[0];
-  const permissions = membership?.permissions || auth.permissions || {};
+  const permissions = getEffectivePermissions(auth, membership);
   return hasPermissionGrant({ permissions, feature, level, entity, entityType, transition, context });
+}
+
+export function getEffectivePermissions(auth = {}, membership = null) {
+  return auth.effectivePermissions || membership?.permissions || auth.permissions || {};
 }
 
 function isSystemAuth(auth = {}) {

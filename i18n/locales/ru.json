@@ -2144,5 +2144,33 @@
   },
   "nestingRun": {
     "sheetDesigns": "Дизайны листов"
+  },
+  "processDesigner": {
+    "title": "Дизайнер процессов",
+    "newDraft": "Новый черновик",
+    "validate": "Проверить",
+    "activate": "Активировать",
+    "palette": "Палитра",
+    "canvas": "Холст",
+    "inspector": "Инспектор",
+    "role": "Роль",
+    "entity": "Сущность",
+    "service": "Сервис",
+    "socket": "Сокет",
+    "assignment": "Назначение",
+    "defaultCreated": "Только создано",
+    "label": "Название",
+    "roleKind": "Тип роли",
+    "grantsJson": "JSON доступов",
+    "entityType": "Тип сущности",
+    "lifecycleMode": "Режим жизненного цикла",
+    "commandId": "Команда",
+    "direction": "Направление",
+    "projectionJson": "JSON проекции",
+    "userId": "ID пользователя",
+    "roleIds": "ID ролей",
+    "selectNode": "Выберите узел процесса",
+    "validation": "Проверка",
+    "validationOk": "Определение процесса корректно"
   }
 }

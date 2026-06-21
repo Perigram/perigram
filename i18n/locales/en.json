@@ -2144,5 +2144,33 @@
   },
   "nestingRun": {
     "sheetDesigns": "Sheet designs"
+  },
+  "processDesigner": {
+    "title": "Process designer",
+    "newDraft": "New draft",
+    "validate": "Validate",
+    "activate": "Activate",
+    "palette": "Palette",
+    "canvas": "Canvas",
+    "inspector": "Inspector",
+    "role": "Role",
+    "entity": "Entity",
+    "service": "Service",
+    "socket": "Socket",
+    "assignment": "Assignment",
+    "defaultCreated": "Created only",
+    "label": "Label",
+    "roleKind": "Role kind",
+    "grantsJson": "Grants JSON",
+    "entityType": "Entity type",
+    "lifecycleMode": "Lifecycle mode",
+    "commandId": "Command",
+    "direction": "Direction",
+    "projectionJson": "Projection JSON",
+    "userId": "User ID",
+    "roleIds": "Role IDs",
+    "selectNode": "Select a process node",
+    "validation": "Validation",
+    "validationOk": "Process definition is valid"
   }
 }

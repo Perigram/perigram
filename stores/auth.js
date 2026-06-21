@@ -20,8 +20,9 @@ export const useAuthStore = defineStore('auth', () => {
         const activeMembership = activeOrgId
             ? memberships.value.find(membership => membership.organizationId?.toString() === activeOrgId.toString())
             : memberships.value[0];
-        return activeMembership?.permissions || user.value?.permissions || user.value?.data?.permissions || {};
+        return user.value?.effectivePermissions || activeMembership?.permissions || user.value?.permissions || user.value?.data?.permissions || {};
     });
+    const navigationManifest = computed(() => user.value?.navigation || []);
 
     const canManagePlatform = computed(() => hasPermission('organizations', 'admin') || hasPermission('users', 'admin') || hasPermission('workbench', 'admin') || hasPermission('domain_builder', 'admin') || hasPermission('config_bot', 'admin'));
 
@@ -167,6 +168,7 @@ export const useAuthStore = defineStore('auth', () => {
         userOrganizations,
         memberships,
         activePermissions,
+        navigationManifest,
         canManagePlatform,
         setUser,
         fetchUserOrgs,

@@ -68,6 +68,18 @@ export const cncEntityFieldAccess = {
     write: ['data.*', 'specs.*'],
     admin: ['data.*', 'attachments.*']
   },
+  processDefinition: {
+    feature: 'organizations',
+    read: [...COMMON_READ_FIELDS, 'data.schemaVersion', 'data.graph.*', 'data.roles.*', 'data.entityProfiles.*', 'data.services.*', 'data.sockets.*', 'data.assignments.*', 'data.compiled.*'],
+    write: ['data.*'],
+    admin: ['data.*', 'attachments.*']
+  },
+  process_definition: {
+    feature: 'organizations',
+    read: [...COMMON_READ_FIELDS, 'data.schemaVersion', 'data.graph.*', 'data.roles.*', 'data.entityProfiles.*', 'data.services.*', 'data.sockets.*', 'data.assignments.*', 'data.compiled.*'],
+    write: ['data.*'],
+    admin: ['data.*', 'attachments.*']
+  },
   batchPile: {
     feature: 'materials',
     read: [...COMMON_READ_FIELDS, 'specs.*', 'data.serial', 'data.stock', 'data.batch', 'data.supplier', 'data.receivedAt'],
@@ -177,6 +189,7 @@ const ENTITY_ALIASES = {
   entity_revision: 'entityRevision',
   geometry_capture: 'geometryCapture',
   profile_template: 'profileTemplate',
+  process_definition: 'processDefinition',
   tool_profile: 'toolProfile',
   pen_template: 'penTemplate',
   layer_standard: 'layerStandard'

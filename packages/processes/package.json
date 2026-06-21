@@ -1,0 +1,7 @@
+{
+  "name": "@cutkit/processes",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.js",
+  "private": true
+}

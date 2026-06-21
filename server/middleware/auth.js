@@ -3,6 +3,7 @@ import { verifyAccessToken } from '../utils/auth-helpers.js';
 import { getUserBySessionId } from '../features/users/service.js';
 import * as usersRepository from '../features/users/repository.js';
 import * as organizationsRepository from '../features/organizations/repository.js';
+import { resolveProcessAuth } from '../features/process-definitions/runtime.js';
 import { User } from '../features/users/model.js';
 
 export default defineEventHandler(async (event) => {
@@ -58,6 +59,6 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    event.context.auth = authContext;
+    event.context.auth = await resolveProcessAuth(authContext);
   }
 });

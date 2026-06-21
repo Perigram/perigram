@@ -128,6 +128,18 @@ const workflowDefinitions = {
       { from: 'USED', to: 'USED', access: { permissions: [{ feature: 'materials', level: 'write' }] } }
     ]
   },
+  process_definition: {
+    initial: 'DRAFT',
+    states: {
+      DRAFT: { canUpdateMeta: true },
+      ACTIVE: { canUpdateMeta: true },
+      ARCHIVED: { isTerminal: true, canUpdateMeta: false }
+    },
+    transitions: [
+      { from: 'DRAFT', to: 'ACTIVE', intent: 'activateProcessDefinition', access: { permissions: [{ feature: 'organizations', level: 'admin' }] } },
+      { from: 'ACTIVE', to: 'ARCHIVED', intent: 'archiveProcessDefinition', access: { permissions: [{ feature: 'organizations', level: 'admin' }] } }
+    ]
+  },
   cassette_instance: {
     initial: 'CUT',
     states: {
