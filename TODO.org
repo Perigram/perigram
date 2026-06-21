@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-21] Add action-based process designer nodes
+    Files changed: pages/organization/process.vue,
+      components/process-designer/ProcessActionNode.vue,
+      packages/processes/src/index.js,
+      packages/processes/src/templates.js,
+      packages/processes/src/index.spec.js
+    Docs updated: packages/processes/README.md,
+      components/process-designer/README.md,
+      pages/organization/README.md, TODO.org
+    Notes: Added executable action nodes for entity creation, status changes,
+      archive operations, and command runs. Action records derive typed
+      inputs/outputs from entity/status/command settings, support user/system/event
+      triggers, carry user-trigger role ids, and compile into active process
+      runtime contracts.
+
     [2026-06-21] Make process properties panel scrollable
     Files changed: pages/organization/process.vue
     Docs updated: pages/organization/README.md, TODO.org

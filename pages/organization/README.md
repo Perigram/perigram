@@ -19,8 +19,9 @@ process definitions with Vue Flow, persists drafts through
 activates compiled runtime contracts for access, navigation, entity workflows,
 services, sockets, and field policies. The route uses the authenticated app
 layout with a full canvas workspace and floating palette, toolbar, properties,
-and validation panels over it. The graph palette creates only process object
-nodes: entities, services, and sockets.
+and validation panels over it. The graph palette creates action nodes for
+entity creation, status changes, archive operations, and command runs, plus
+compatibility service/socket nodes.
 The properties pane is a bounded floating aside; its tab body owns vertical
 scrolling so long entity lifecycle, role, or assignment forms remain reachable
 without moving the canvas.
@@ -34,6 +35,7 @@ The inspector edits compiler-owned fields directly:
 
 - the roles tab owns abstract process role kind, explicit grant JSON, and app navigation routes;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
+- action nodes own action kind, target entity or command, status source/target, trigger mode, trigger roles, and derived typed inputs/outputs;
 - service nodes own command selection, run/view roles, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
 - the assignments tab owns concrete user ids and their process role ids.
@@ -43,6 +45,10 @@ reusable process metadata assigned onto entity access rules, service/socket
 access rules, and status-machine transitions; user assignments bind actual
 users to those abstract roles without forcing user records into the canvas
 layout.
+Action nodes are the preferred process-design surface for new behavior because
+they describe what happens. Entity profiles remain process resources for
+lifecycle and field-policy contracts, while action nodes reference those
+resources and compile into runtime trigger contracts.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched

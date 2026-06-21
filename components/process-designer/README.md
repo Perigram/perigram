@@ -1,15 +1,20 @@
 # COMPONENT: Process Designer Nodes
 
-Vue Flow node components for the organization process designer. The canvas
-contains process objects only: entities, services, and sockets. Abstract roles
+Vue Flow node components for the organization process designer. The canvas is
+moving toward executable process steps: action nodes describe creation, status
+changes, archive operations, and command runs. Entity contracts, abstract roles,
 and concrete user assignments are edited as process records in the route-level
-side panel, then assigned onto nodes and lifecycle transitions.
+side panel, then assigned onto action nodes, service/socket access rules, and
+lifecycle transitions.
 
 Each node type is visually and functionally distinct:
 
 - `ProcessEntityNode.vue` represents an entity contract. It exposes access,
   service-input, and socket-projection handles and summarizes lifecycle mode,
   selected field policy count, inline lifecycle states, and transition count.
+- `ProcessActionNode.vue` represents an executable process step. It exposes
+  trigger, input, and output handles and summarizes action kind, trigger mode,
+  role count, and typed I/O derived from entity/status/command settings.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
   run-role, typed input, and output handles and summarizes command inputs and
   outputs.
@@ -18,8 +23,8 @@ Each node type is visually and functionally distinct:
   direction plus projected fields.
 
 The node components remain display-only. The route-level designer owns the
-process record mutation, role and user assignment records, inline lifecycle
-workflow mutation, compiler fields, and Vue Flow edge persistence. Legacy role
-or user node components should not be added to the palette; active drafts load
-without those nodes so roles can stay reusable process metadata instead of
-layout objects.
+process record mutation, role and user assignment records, action records,
+inline lifecycle workflow mutation, compiler fields, and Vue Flow edge
+persistence. Legacy role or user node components should not be added to the
+palette; active drafts load without those nodes so roles can stay reusable
+process metadata instead of layout objects.
