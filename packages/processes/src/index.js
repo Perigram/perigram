@@ -88,7 +88,7 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
   }
 
   for (const [actionId, action] of Object.entries(process.actions)) {
-    validateAction(actionId, action, { entities, commands, roles: process.roles, errors });
+    validateAction(actionId, action, { entities, commands, roles: process.roles, domain, errors });
   }
 
   for (const [socketId, socket] of Object.entries(process.sockets)) {
@@ -367,8 +367,10 @@ function compileActions(actions = {}) {
     label: action.label || action.actionKind || id,
     actionKind: action.actionKind || 'createEntity',
     entityType: action.entityType || null,
+    parentEntityType: action.parentEntityType || null,
     commandId: action.commandId || null,
     status: action.status || {},
+    projection: action.projection || null,
     trigger: {
       mode: action.trigger?.mode || 'user',
       roleIds: action.trigger?.roleIds || []
@@ -378,9 +380,9 @@ function compileActions(actions = {}) {
   }]));
 }
 
-function validateAction(actionId, action = {}, { entities, commands, roles, errors }) {
+function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors }) {
   const kind = action.actionKind || 'createEntity';
-  if (!['createEntity', 'changeStatus', 'archiveEntity', 'runCommand'].includes(kind)) {
+  if (!['createEntity', 'changeStatus', 'archiveEntity', 'runCommand', 'sendToOrganization'].includes(kind)) {
     errors.push(`Action ${actionId} uses unknown action kind ${kind}`);
     return;
   }
@@ -391,11 +393,18 @@ function validateAction(actionId, action = {}, { entities, commands, roles, erro
     if (!action.entityType) errors.push(`Action ${actionId} must select an entity type`);
     if (action.entityType && !entities.has(action.entityType)) errors.push(`Action ${actionId} uses unknown entity type ${action.entityType}`);
   }
+  if (action.parentEntityType && !entities.has(action.parentEntityType)) {
+    errors.push(`Action ${actionId} uses unknown parent entity type ${action.parentEntityType}`);
+  }
   if (kind === 'changeStatus' && (!action.status?.from || !action.status?.to)) {
     errors.push(`Action ${actionId} must define source and target statuses`);
   }
   if (['createEntity', 'archiveEntity'].includes(kind) && !action.status?.to) {
     errors.push(`Action ${actionId} must define target status`);
+  }
+  if (kind === 'sendToOrganization') {
+    validateFieldList(action.projection?.fields, domain, action.entityType, `action ${actionId} projection fields`, errors);
+    validateFieldList(action.projection?.excludeFields, domain, action.entityType, `action ${actionId} excluded fields`, errors);
   }
   if ((action.trigger?.mode || 'user') === 'user') {
     for (const roleId of action.trigger?.roleIds || []) {

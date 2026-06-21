@@ -59,6 +59,7 @@ const iconClass = computed(() => ({
   createEntity: 'pi pi-plus-circle text-primary',
   changeStatus: 'pi pi-sync text-primary',
   archiveEntity: 'pi pi-inbox text-primary',
-  runCommand: 'pi pi-play-circle text-primary'
+  runCommand: 'pi pi-play-circle text-primary',
+  sendToOrganization: 'pi pi-send text-primary'
 })[props.data.actionKind] || 'pi pi-bolt text-primary');
 </script>

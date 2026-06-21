@@ -148,6 +148,10 @@
                     <label>{{ $t('processDesigner.entityType') }}</label>
                     <Select v-model="selectedAction.entityType" :options="entityTypeOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
                   </div>
+                  <div v-if="selectedAction.actionKind === 'createEntity'" class="flex flex-col gap-1">
+                    <label>Parent entity</label>
+                    <Select v-model="selectedAction.parentEntityType" :options="optionalEntityTypeOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
+                  </div>
                   <div v-if="selectedAction.actionKind === 'changeStatus'" class="grid grid-cols-2 gap-2">
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('status.status') }}</label>
@@ -158,13 +162,19 @@
                       <InputText v-model="selectedAction.status.to" @blur="syncSelectedAction" />
                     </div>
                   </div>
-                  <div v-else-if="selectedAction.actionKind === 'archiveEntity'" class="flex flex-col gap-1">
-                    <label>{{ $t('status.status') }}</label>
-                    <InputText v-model="selectedAction.status.to" @blur="syncSelectedAction" />
-                  </div>
                   <div v-else-if="selectedAction.actionKind === 'createEntity'" class="flex flex-col gap-1">
                     <label>{{ $t('status.status') }}</label>
                     <InputText v-model="selectedAction.status.to" @blur="syncSelectedAction" />
+                  </div>
+                  <div v-else-if="selectedAction.actionKind === 'sendToOrganization'" class="grid grid-cols-1 gap-3">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.projectedFields') }}</label>
+                      <MultiSelect v-model="selectedAction.projection.fields" :options="fieldOptionsForSelectedAction" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedAction" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.excludedFields') }}</label>
+                      <MultiSelect v-model="selectedAction.projection.excludeFields" :options="fieldOptionsForSelectedAction" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedAction" />
+                    </div>
                   </div>
                   <div v-else-if="selectedAction.actionKind === 'runCommand'" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.commandId') }}</label>
@@ -383,16 +393,14 @@ const newStateId = ref('');
 const palette = [
   { type: 'action', actionKind: 'createEntity', icon: 'pi pi-plus-circle', label: 'Create entity' },
   { type: 'action', actionKind: 'changeStatus', icon: 'pi pi-sync', label: 'Change status' },
-  { type: 'action', actionKind: 'archiveEntity', icon: 'pi pi-inbox', label: 'Archive entity' },
   { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play-circle', label: 'Run command' },
-  { type: 'service', icon: 'pi pi-cog', label: 'processDesigner.service' },
-  { type: 'socket', icon: 'pi pi-share-alt', label: 'processDesigner.socket' }
+  { type: 'action', actionKind: 'sendToOrganization', icon: 'pi pi-send', label: 'Send to organization' }
 ];
 const actionKindOptions = [
   { label: 'Create entity', value: 'createEntity' },
   { label: 'Change status', value: 'changeStatus' },
-  { label: 'Archive entity', value: 'archiveEntity' },
-  { label: 'Run command', value: 'runCommand' }
+  { label: 'Run command', value: 'runCommand' },
+  { label: 'Send to organization', value: 'sendToOrganization' }
 ];
 const triggerModeOptions = [
   { label: 'User', value: 'user' },
@@ -435,6 +443,7 @@ const assignmentList = computed(() => Object.values(assignments.value));
 const selectedRoleRecord = computed(() => selectedRoleId.value ? roles.value[selectedRoleId.value] : null);
 const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
 const entityTypeOptions = computed(() => (cncDomain.entities || []).map(entity => ({ label: entity.type, value: entity.type })));
+const optionalEntityTypeOptions = computed(() => [{ label: 'None', value: '' }, ...entityTypeOptions.value]);
 const commandOptions = computed(() => Object.values(cncDomain.commands || {}).map(command => ({ label: command.label || command.id, value: command.id })));
 const navigationRouteOptions = computed(() => [
   { label: t('features.projects'), value: '/projects', feature: 'projects' },
@@ -446,6 +455,7 @@ const navigationRouteOptions = computed(() => [
   { label: t('processDesigner.title'), value: '/organization/process', feature: 'organizations' }
 ]);
 const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
+const fieldOptionsForSelectedAction = computed(() => fieldOptions(selectedAction.value.entityType));
 const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocket.value.entityType));
 const lifecycleWorkflow = computed(() => workflowForEntity(selectedEntity.value));
 const lifecycleRegion = computed(() => lifecycleWorkflow.value.regions?.main || lifecycleWorkflow.value.regions?.[lifecycleWorkflow.value.primaryRegion] || null);
@@ -669,7 +679,9 @@ function createAction(id, actionKind = 'createEntity') {
     actionKind,
     entityType: 'project',
     commandId: '',
+    parentEntityType: '',
     status: { from: '', to: actionKind === 'archiveEntity' ? 'ARCHIVED' : 'CREATED' },
+    projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
     trigger: { mode: 'user', roleIds: [] },
     inputs: [],
     outputs: []
@@ -790,7 +802,7 @@ function syncActionIo(action = {}) {
   action.status ||= {};
   if (action.actionKind === 'createEntity') {
     action.status.to ||= 'CREATED';
-    action.inputs = [];
+    action.inputs = action.parentEntityType ? [{ id: 'parent', entityType: action.parentEntityType }] : [];
     action.outputs = [{ id: 'created', entityType: action.entityType, status: action.status.to }];
     return;
   }
@@ -801,10 +813,10 @@ function syncActionIo(action = {}) {
     action.outputs = [{ id: 'entity', entityType: action.entityType, status: action.status.to }];
     return;
   }
-  if (action.actionKind === 'archiveEntity') {
-    action.status.to ||= 'ARCHIVED';
+  if (action.actionKind === 'sendToOrganization') {
+    action.projection ||= { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } };
     action.inputs = [{ id: 'entity', entityType: action.entityType }];
-    action.outputs = [{ id: 'archived', entityType: action.entityType, status: action.status.to }];
+    action.outputs = [{ id: 'projection', entityType: action.entityType, projection: true }];
     return;
   }
   if (action.actionKind === 'runCommand') {

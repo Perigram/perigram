@@ -187,6 +187,47 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('compiles create actions with explicit parent inputs', () => {
+    const compiled = compileProcessDefinition({
+      actions: {
+        create_queue: {
+          id: 'create_queue',
+          actionKind: 'createEntity',
+          entityType: 'queue',
+          parentEntityType: 'project',
+          status: { to: 'CREATED' },
+          trigger: { mode: 'system', roleIds: [] },
+          inputs: [{ id: 'parent', entityType: 'project' }],
+          outputs: [{ id: 'created', entityType: 'queue', status: 'CREATED' }]
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.create_queue.parentEntityType).toBe('project');
+    expect(compiled.actions.create_queue.inputs[0]).toMatchObject({ id: 'parent', entityType: 'project' });
+  });
+
+  it('compiles send-to-organization projection actions', () => {
+    const compiled = compileProcessDefinition({
+      actions: {
+        send_project: {
+          id: 'send_project',
+          actionKind: 'sendToOrganization',
+          entityType: 'project',
+          projection: { fields: ['identity.*'], excludeFields: [] },
+          trigger: { mode: 'event', roleIds: [] },
+          inputs: [{ id: 'entity', entityType: 'project' }],
+          outputs: [{ id: 'projection', entityType: 'project', projection: true }]
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.send_project).toMatchObject({
+      actionKind: 'sendToOrganization',
+      projection: { fields: ['identity.*'] }
+    });
+  });
+
   it('rejects user-triggered actions with missing roles', () => {
     const validation = validateProcessDefinition({
       actions: {
