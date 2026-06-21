@@ -1,10 +1,10 @@
 <template>
   <StandardPage>
-    <div class="relative min-h-[calc(100vh-8rem)] overflow-hidden rounded-ui border border-content-border bg-subtle">
+    <div class="relative h-[calc(100vh-8rem)] min-h-[36rem] overflow-hidden rounded-ui border border-content-border bg-subtle">
       <VueFlow
         v-model:nodes="nodes"
         v-model:edges="edges"
-        class="absolute inset-0"
+        class="absolute inset-0 h-full w-full"
         fit-view-on-init
         :default-edge-options="defaultEdgeOptions"
         @node-click="event => selectNode(event.node)"
