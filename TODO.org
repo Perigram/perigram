@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-21] Tighten process action node interactions
+    Files changed: pages/organization/process.vue,
+      components/process-designer/ProcessActionNode.vue,
+      components/process-designer/ProcessServiceNode.vue
+    Docs updated: components/process-designer/README.md, TODO.org
+    Notes: Added Delete/Backspace removal for the selected canvas node and its
+      backing process record, preserved form editing safety, replaced action
+      trigger-mode chips with assigned role names, and rendered exact action
+      and service input/output labels on nodes instead of counts.
+
     [2026-06-21] Add action-based process designer nodes
     Files changed: pages/organization/process.vue,
       components/process-designer/ProcessActionNode.vue,

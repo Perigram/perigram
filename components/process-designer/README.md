@@ -14,10 +14,11 @@ Each node type is visually and functionally distinct:
   selected field policy count, inline lifecycle states, and transition count.
 - `ProcessActionNode.vue` represents an executable process step. It exposes
   trigger, input, and output handles and summarizes action kind, trigger mode,
-  role count, and typed I/O derived from entity/status/command settings.
+  assigned trigger role names, and exact typed I/O derived from
+  entity/status/command settings.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
-  run-role, typed input, and output handles and summarizes command inputs and
-  outputs.
+  run-role, typed input, and output handles and summarizes exact command inputs
+  and outputs.
 - `ProcessSocketNode.vue` represents cross-organization entity projection. It
   exposes entity-projection, transfer, and receiver-role handles and summarizes
   direction plus projected fields.
