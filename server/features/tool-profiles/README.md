@@ -27,6 +27,13 @@ Key fields:
 ## Seeding
 `server/scripts/seed-system-tools.js` imports this feature directly from Node, so service imports must use relative server paths rather than the Nuxt `~` alias.
 
+## Access
+
+System tools use `lineage.userId: null`, are read-only, and are available to
+all users. `GET /api/templates/tools` is public-read; unauthenticated callers
+receive only system tools, while authenticated callers also receive their own
+tool profiles. Create/update/delete remain authenticated ownership operations.
+
 ## Related
 - [Layer Standards](../layer-standards/README.md) - Layer categories map to tool and pen behavior.
 - [Pen Templates](../pen-templates/README.md) - Visual layer styling.

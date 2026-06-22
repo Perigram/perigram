@@ -14,6 +14,9 @@ Refactored to use standardized blocks and the centralized State Machine engine.
 
 ## Core Services
 - `create()`: Initializes project identity, origin, and organization lineage.
+  The permission check asks the shared access engine for the explicit
+  `create` action on `projects`, so process action grants can authorize entity
+  creation before the created project has a status-scoped read/write grant.
 - `update()`: Handles basic field updates and routes status changes through the `Status Engine`.
 - `getBySlug()`: Uses lineage-aware permissions to verify access.
   Project create/read/delete checks pass the full auth context into lineage

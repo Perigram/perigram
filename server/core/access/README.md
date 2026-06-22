@@ -33,7 +33,9 @@ logical rule:
 Rules are additive filters on otherwise valid grants. The shared evaluator
 supports nested `all` / `any` / `not` gates and predicates over feature, level,
 action, entity type/id, lineage fields, primary status, transition fields, and
-entity field paths.
+entity field paths. Entity access callers can also pass an explicit action such
+as `create`; grants with `actions.create === false` then deny the create
+operation even when their level would otherwise satisfy `write`.
 
 Workflow transitions and command definitions declare required feature
 permissions; the engine evaluates those requirements against the current entity

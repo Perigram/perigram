@@ -42,13 +42,14 @@ Throws 401 if not authenticated. Returns `event.context.auth`.
 const user = requireAuth(event);
 ```
 
-### `hasLineagePermission(user, lineage, entityType, level)` → `boolean`
+### `hasLineagePermission(user, lineage, entityType, level, options?)` → `boolean`
 Checks if user has the required access level for an entity based on its `lineage.organizationId`.
 
 ```js
 // entityType: 'projects' | 'queues' | 'sheets' | 'material-piles' | ...
 // level: 'read' | 'write' | 'admin'
 if (!hasLineagePermission(user, entity.lineage, 'queues', 'write')) { ... }
+if (!hasLineagePermission(user, entity, 'projects', 'write', { action: 'create' })) { ... }
 ```
 Levels are ordered: `none < read < write < admin`.
 

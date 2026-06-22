@@ -20,6 +20,7 @@ node server/scripts/migrate-org-types-to-processes.js # Backfill active process 
 node server/scripts/migrate-process-action-access-grants.js # Move process action role grants from trigger records to access records
 node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize stored screens into generated UI contracts
 node server/scripts/migrate-process-role-memberships.js # Clear preset permissions from process-role memberships and recover tenant admins
+node server/scripts/migrate-process-create-status-grants.js # Recompile process contracts for status-scoped create grants and action workflows
 ```
 
 ## What Gets Created
@@ -142,6 +143,13 @@ preserving the process role assignment data. It also promotes an active
 team-management member to explicit `organizations:admin` when an organization
 has no tenant admin, so creator/admin recovery does not depend on membership
 role labels.
+
+Use `server/scripts/migrate-process-create-status-grants.js` after compiler
+changes that affect create-action status grants or action-derived workflows. It
+recompiles stored process definitions that already have compiled runtime
+contracts and create actions with target statuses, so existing active processes
+pick up `primaryStatus`-scoped create grants and synthesized workflows without
+editing their semantic graph records.
 
 ## Entity Revision Migration
 

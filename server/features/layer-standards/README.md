@@ -40,6 +40,10 @@ Important `data` fields:
 
 ## Patterns
 
+- `GET /api/layer-standards` is public-read. Unauthenticated callers receive
+  the system/default catalogue without organization pen overrides; authenticated
+  organization users receive the same standards with their org override merged
+  into `data.orgPenId`.
 - `repository.findByCode()` and the unique database index use `data.code`.
 - Services return `Model.toJSON()` results and do not expose raw Mongo documents.
 - Default layer standards are seeded from the OCCS registry through

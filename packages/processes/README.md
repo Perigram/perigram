@@ -14,9 +14,12 @@ assignment records.
 not change process semantics before activation. Vue Flow node positions are
 presentation data; runtime behavior must come from the semantic records.
 
-Process lifecycle profiles compile directly to normalized `@cutkit/workflows`
-v2 state machines. Runtime adapters must not treat lifecycle data as visual-only
-metadata.
+Process lifecycle profiles and action nodes compile directly to normalized
+`@cutkit/workflows` v2 state machines. Entity profiles may provide a full
+workflow, but action-only graphs also synthesize workflows: create actions add
+their target status as a state, and change-status actions add transitions with
+the process role ids and entity access requirements from the action grant.
+Runtime adapters must not treat lifecycle data as visual-only metadata.
 
 `src/templates.js` contains starter process templates for organization
 bootstrap. They create process graphs and role assignments; runtime behavior is
@@ -66,10 +69,14 @@ the designer derives the entity type and source status from the incoming graph
 socket, carries the type to the output socket, and stores
 `action.access.statusFrom` / `action.access.statusTo` from that graph context
 and target status input. Compilation emits transition metadata plus a
-`primaryStatus = statusTo` rule on that concrete entity feature. Manual
-execution remains controlled by the action availability contract; the access
-grant itself describes which entity type the role may access after the status
-change.
+`primaryStatus = statusTo` rule on that concrete entity feature, and the same
+transition is written into the compiled workflow with `processRoleIds` and
+`access.permissions`. Manual execution remains controlled by the action
+availability contract; the access grant itself describes which entity type the
+role may access after the status change. Create-action access grants are
+conditioned by the created status in the same way, so `admin` on "create project
+as NEW" means admin over `project` entities whose current primary status is
+`NEW`, not global project admin.
 
 Screen records are route-level UI entries attached to roles and are the source
 for process-composed app navigation. They compile into generated screen
@@ -90,7 +97,12 @@ manifest before delegating to entity, status, socket, or command services.
 Navigation is compiled from the screen manifest. When a role has access grants
 but no authored screen for that entity feature, the compiler creates a generated
 entity-list screen for that role/feature so process-active users do not fall
-back to static app routes.
+back to static app routes. If that role has multiple grants for the same entity
+feature, for example access to `project` in both `CREATED` and `NEW`, the
+inferred screen aggregates them into one feature-level source instead of
+pinning the source to the first status rule. The entity API still enforces the
+individual status-scoped grants when it filters returned records, so the screen
+shows every entity state that the composed role can actually read.
 
 Compiled field policies replace the base domain field set for an organization
 when present. `read` fields are public display fields, `write` fields require

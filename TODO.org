@@ -4,6 +4,70 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Fix generated process create actions and multi-status screens
+    Files changed: components/generated/GeneratedActionButton.vue,
+      components/generated/GeneratedEntityCollection.vue,
+      packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      server/core/access/service.js, server/features/projects/service.js,
+      server/utils/permissions.js, server/utils/permissions.spec.js
+    Docs updated: components/README.md, packages/processes/README.md,
+      server/core/access/README.md, server/features/projects/README.md,
+      server/utils/README.md, TODO.org
+    Notes: Collection-level generated create actions now emit the compiled
+      action manifest item instead of a null entity payload, generated action
+      buttons derive semantic labels/icons from action kind/entity/status, and
+      project creation checks explicit `create` action grants. Inferred
+      role/entity screens now aggregate multiple status-scoped grants for the
+      same feature so a role with project `CREATED` and `NEW` access receives
+      one project screen whose API source is filtered by the shared access
+      engine instead of by the first status rule. Existing active process
+      definitions were recompiled with
+      `migrate-process-create-status-grants.js`.
+
+    [2026-06-22] Fix process grant persistence and generated source endpoints
+    Files changed: components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedRegion.vue,
+      components/generated/GeneratedScreen.vue, composables/useEntity.js,
+      packages/domain-cnc/src/summaries.js, packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      server/api/cassettes/index.get.js, server/api/project/index.get.js,
+      server/api/queue/index.get.js,
+      server/api/templates/pens/index.get.js,
+      server/api/templates/tools/index.get.js,
+      server/api/layer-standards/index.get.js,
+      server/core/machines/service.js,
+      server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js,
+      server/features/projects/service.js, server/features/queues/service.js,
+      server/features/tool-profiles/repository.js,
+      server/scripts/migrate-process-create-status-grants.js,
+      components/process-designer/ProcessActionNode.vue,
+      pages/organization/process.vue, utils/domain-builder.spec.js,
+      utils/process-navigation.js,
+      utils/process-navigation.spec.js, e2e/process-generated-screen.spec.js
+    Docs updated: components/process-designer/README.md,
+      composables/README.md, e2e/README.md,
+      packages/processes/README.md,
+      server/features/pen-templates/README.md,
+      server/features/tool-profiles/README.md,
+      server/features/layer-standards/README.md,
+      server/core/machines/README.md,
+      server/features/process-definitions/README.md,
+      server/features/queues/README.md, server/scripts/README.md, TODO.org
+    Notes: Designer activation now preserves active team assignments, create
+      action grants are scoped to the created primary status, action-only
+      graphs synthesize process workflows with transition access, create actions
+      apply their process target status after entity creation, generated
+      screens inherit screen-level actions into regions, queue collection
+      sources use `GET /api/queue`, and `useEntity` forwards SSR cookies to
+      authenticated internal fetches. Create actions now authorize the create
+      operation before status-scoped entity access exists, status-change nodes
+      inherit access from their incoming parent node with a reset control, and
+      system pens/layer standards/tools are public-read. Existing process
+      definitions were recompiled with
+      `migrate-process-create-status-grants.js`.
+
     [2026-06-22] Preserve multi-role process screens and tenant management grants
     Files changed: packages/processes/src/index.spec.js,
       pages/organization/users.vue, stores/auth.js, stores/navigation.js,

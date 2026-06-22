@@ -27,9 +27,11 @@ validation and activation so operators do not edit a guessed reconstruction.
 Current process edits should fork the active definition into a draft and
 activate that draft when validation succeeds.
 
-Entity lifecycle profiles compile directly into normalized `@cutkit/workflows`
-v2 machines. Runtime status resolution uses the active process workflow before
-organization workflow overrides and domain defaults.
+Entity lifecycle profiles and action nodes compile directly into normalized
+`@cutkit/workflows` v2 machines. Runtime status resolution uses the active
+process workflow before organization workflow overrides and domain defaults, so
+action-only process graphs still define the statuses and transitions exposed by
+the status runtime.
 
 `createActiveFromTemplate()` is the organization-bootstrap path used by signup
 and organization creation. It creates the starter process, assigns the creator
@@ -43,6 +45,10 @@ navigation available on the next auth hydration. Assignment updates preserve the
 process status value object and only touch its audit metadata, so repository
 serialization continues through the shared entity model. Memberships remain the
 tenant relationship; process assignments are the runtime role source.
+When a draft is activated, the service preserves the current active process
+assignments for the organization before compiling. Team Management owns user to
+process-role assignment, so an older designer draft cannot erase assignments
+that were changed after the draft was forked.
 
 Manual generated-screen actions execute through the active process definition,
 not through client-selected entity routes. `executeActiveProcessAction()` loads
@@ -51,7 +57,13 @@ contains that action id, and then delegates by action kind: entity creation,
 entity update, status transition, command execution, or outbound organization
 projection. The process graph remains the source for whether the button exists;
 the delegated entity/status/command service remains the access and business
-logic boundary.
+logic boundary. Create-entity actions are authorized as create operations by
+the process action itself before the created entity exists; the delegated
+entity service receives a temporary action-scoped create grant for that feature
+instead of requiring an already-existing status-scoped entity grant. After the
+record is created, create actions apply `action.status.to` through the status
+runtime, treating it as the process initial state for that new record rather
+than a transition from the feature service default.
 
 Socket projection is exposed as a runtime operation for outbound sockets. The
 socket API loads the source entity through the app registry, enforces read

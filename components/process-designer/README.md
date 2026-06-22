@@ -62,13 +62,17 @@ the incoming data edge, not generic entity access and not status access. During
 node sync the designer derives the entity type and existing status from the
 wired source socket, stores `action.access.statusFrom` and
 `action.access.statusTo`, carries that same entity type to the output socket,
-and labels both data sockets with the concrete type. Unwired status-change nodes
-do not invent a generic access target. The compiler emits transition metadata
-plus a target-state rule on the entity grant. The role selector lists process
-roles directly because selecting a role on an action creates the entity grant;
+and labels both data sockets with the concrete type. By default the node
+inherits access level and roles from the incoming entity-producing node; editing
+the access controls marks the node as explicitly modified, and the reset button
+restores the inherited parent access. Unwired status-change nodes do not invent
+a generic access target. The compiler emits transition metadata plus a
+target-state rule on the entity grant. The role selector lists process roles
+directly because selecting a role on an action creates the entity grant;
 entity-profile grants must not hide roles from action grant authoring. Action
-nodes also render compact role/level chips for roles that already have matching
-entity access from entity profiles or other status/action grants.
+nodes also render compact role/level chips for inherited access and roles that
+already have matching entity access from entity profiles or other status/action
+grants.
 
 Canvas wires are selectable edges. `Delete` / `Backspace` removes the selected
 node or selected wire, and runtime edge selection styling is stripped before

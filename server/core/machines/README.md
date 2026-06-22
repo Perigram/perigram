@@ -13,10 +13,10 @@ The system consists of three main parts: the transition engine, the dynamic hook
   `server/features/workflow-overrides` before falling back to the registered
   domain workflow.
 - **Process workflows**: When the target organization has an active process
-  definition, compiled entity profile workflows resolve before workflow
-  overrides. Process lifecycle profiles are normalized v2 machines and drive
-  real entity status, action lookup, lifecycle validation, hooks, and audit
-  events.
+  definition, compiled process workflows resolve before workflow overrides.
+  Process lifecycle profiles and action-only graph status changes are
+  normalized v2 machines and drive real entity status, action lookup, lifecycle
+  validation, hooks, and audit events.
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and
   resolves collections through the runtime/domain entity registry.
 
@@ -102,6 +102,12 @@ workflow transitions. Runtime callers that know the business meaning of a
 transition should call `statusService.applyIntent(entityType, id, intent, auth,
 metadata)` instead of naming a target state. Raw `statusService.transition(...)`
 is retained for the status API/runtime adapter and focused tests.
+Process create actions use
+`statusService.setInitialStateForOrganization(type, id, state, organizationId,
+actor, metadata)` after the entity service creates the record. This helper is
+creation-only: it validates that the target state exists in the active process
+workflow, writes the entity status snapshot and history event, and does not run
+transition validation from the feature service default state.
 Entity types without a registered workflow return an empty action list from the
 actions endpoint; transitions for those types still remain invalid.
 Action lookup runs only `phase: 'before'` hooks and does not write status events

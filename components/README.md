@@ -122,7 +122,11 @@ registered templates, sources, regions, surfaces, and action ids; it must not
 select arbitrary Vue component names or inject page-local markup. Generated
 action buttons post to the active process action endpoint and then refresh the
 screen's entity sources; they do not call arbitrary entity URLs from the
-browser.
+browser. Collection-level generated actions must emit the compiled action
+manifest item itself, not an entity placeholder, because create actions do not
+have an existing entity row. Buttons derive semantic labels and icons from the
+compiled action kind, entity type, and target status when an old manifest still
+contains a generic label such as `Create`.
 
 Lifecycle transitions belong in `EntityStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,

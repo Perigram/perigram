@@ -45,6 +45,9 @@ blocked by unrelated shell noise.
   transition against a project workflow, sheet-design DXF action downloads the
   generated artifact, cassette-template creation uses OCCS defaults, and the
   seeded sheet/template/design DXF export routes return real DXF content.
+- `process-generated-screen.spec.js`: verifies generated process screens have a
+  live canonical queue collection endpoint at `/api/queue` and that the removed
+  `/api/queues` route is not treated as valid.
 
 The queue nesting regression intentionally stops before the worker-backed
 solve. Full nesting tests need explicit fixture cassette geometry and a running

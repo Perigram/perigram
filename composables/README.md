@@ -76,12 +76,16 @@ onMounted(() => list({ 'lineage.projectId': projectId }));
 Endpoint metadata is supplied by the injected CutKit domain UI adapter from
 `plugins/cutkit-domain.js`; `useEntity` remains the app-facing compatibility
 composable and does not import the CNC domain package directly.
+During server-side rendering, `useEntity` forwards the incoming request cookie
+to internal `$fetch` calls. Generated process screens can therefore load
+authenticated entity sources during SSR without receiving false 401s from
+server API routes.
 
 | Type key | Single endpoint | List / create endpoint |
 |---|---|---|
 | `material` | `/api/materials/:id` | `/api/materials` |
 | `project` | `/api/project/:id` | `/api/project` |
-| `queue` | `/api/queue/:id` | `/api/queues` |
+| `queue` | `/api/queue/:id` | `/api/queue` |
 | `requisition` | `/api/requisitions/:id` | `/api/requisitions` |
 | `materialPile` / `pile` / `batch` | `/api/material-piles/:id` | `/api/material-piles` |
 | `sheet` | `/api/sheets/:id` | `/api/sheets` |
@@ -103,7 +107,11 @@ entity aliases, so `materialPile` and `material_pile` resolve to the same
 endpoint. New UI code should use surface keys because they identify the
 intended card contract.
 
-> **Note:** Queue listing for a project uses the project-scoped sub-resource `/api/project/:slug/queues` (not the generic queue list) since queues are always project-scoped.
+> **Note:** Queue listing for a project should use the project-scoped
+> sub-resource `/api/project/:slug/queues` when the screen is already inside a
+> project workspace. Generated process screens that need an organization-level
+> queue source use the canonical collection endpoint `/api/queue`; the app does
+> not expose `/api/queues`.
 
 ---
 
