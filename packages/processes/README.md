@@ -67,12 +67,18 @@ grant itself describes which entity type the role may access after the status
 change.
 
 Screen records are route-level UI entries attached to roles and are the source
-for process-composed app navigation. Assignment
-bindings replace `$assignment.*` placeholders in screen routes and scopes, so
-one user can receive overloaded copies of the same screen for different
+for process-composed app navigation. They compile into generated screen
+manifests, not arbitrary Vue component names. A screen declares a fixed
+template (`entityList`, `entityDetail`, `workspaceLanes`, `table`, or
+`formAction`), typed entity sources, template regions, required access, and
+manual process action ids. Assignment bindings replace `$assignment.*`
+placeholders in screen routes, scopes, source identifiers, and source filters,
+so one user can receive overloaded copies of the same screen for different
 projects or entities. Screens with incomplete bindings are skipped with
-compiler warnings. Navigation is compiled from the screen manifest only;
-process role records are not a route source.
+compiler warnings. User-specific compiled screens use canonical generated
+routes under `/screens/:screenKey`; the original semantic route is preserved as
+`sourceRoute` for audit/debug context. Navigation is compiled from the screen
+manifest only; process role records are not a route source.
 
 Compiled field policies replace the base domain field set for an organization
 when present. `read` fields are public display fields, `write` fields require

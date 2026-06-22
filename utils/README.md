@@ -29,6 +29,11 @@ Shared frontend utility modules used by Vue pages/components.
 - `selectOptions.js`: Pure helpers for PrimeVue Select option arrays. Use it to
   normalize canonical DTOs (`identity.name`, `identity.slug`, `_id`) into flat
   string `name`/id values before passing them to `optionLabel="name"` controls.
+- `process-navigation.js`: Pure helpers for filtering process-compiled
+  navigation and screen manifests by the active permission grants. Scoped
+  screen requirements are matched against scoped grants structurally because
+  generated screen visibility is decided before a concrete entity DTO has been
+  loaded; entity API access remains the backend enforcement boundary.
 - `drawingPreview.js`: Pure drawing preview helpers for `DrawingCanvas`. It normalizes entity geometry previews, baked cassette `data.layerData` / `data.polygonParts` (including migration fallback under `data.geometry.data`), polygon-only remnant geometry, and cassette render results into the shared `{ viewBox, layers }` drawing contract, extracts designer edge overlays, and resolves layer pens by explicit source mapping, caller-provided `standardCode`, layer-name standard fallback, source layer styling, then default pen. If a matched layer standard points to a pen that is not loaded or no longer exists, normalization preserves the source layer `color` and `weight` before falling back to the default pen. It must not hardcode production layer standard codes; source/caller data owns layer semantics.
 - `occs/`: Canonical OCCS helpers for semantic layer ids, parameter
   extraction, arithmetic expression evaluation, Clipper-backed production

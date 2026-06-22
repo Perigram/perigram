@@ -4,6 +4,28 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Add process-generated screen runtime
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/screen-contract.js,
+      packages/processes/src/index.spec.js, pages/screens/[screenKey].vue,
+      components/generated/GeneratedScreen.vue,
+      components/generated/GeneratedRegion.vue,
+      components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedEntityDetail.vue,
+      components/generated/GeneratedActionButton.vue,
+      composables/useGeneratedScreen.js, utils/process-navigation.js,
+      utils/process-navigation.spec.js, pages/organization/process.vue,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: packages/processes/README.md, pages/README.md,
+      components/README.md, composables/README.md, utils/README.md,
+      pages/organization/README.md, TODO.org
+    Notes: Process screens now compile into generated UI contracts with fixed
+      templates, typed entity sources, regions, surfaces, and action ids.
+      User-specific screens route through `/screens/:screenKey`, preserve the
+      original route as `sourceRoute`, and render through shared entity UI
+      primitives. Scoped screen visibility now matches assignment-scoped grants
+      before fetching source data.
+
     [2026-06-22] Add update actions and inbound organization sockets
     Files changed: components/process-designer/ProcessActionNode.vue,
       components/process-designer/ProcessSocketNode.vue,

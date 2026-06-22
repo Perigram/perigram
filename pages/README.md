@@ -19,6 +19,12 @@ redirect gate for authenticated users.
 Authenticated route groups continue to use `layout: 'app'` and `middleware:
 'auth'` locally in their page components.
 
+`pages/screens/[screenKey].vue` is the generated operational screen route for
+active organization processes. It looks up the current user's compiled screen
+manifest from the auth store and renders it through the fixed generated screen
+runtime. Process navigation points to `/screens/:screenKey`; the route does not
+load arbitrary Vue components from process data.
+
 Operational pages use shared UI shell primitives:
 
 - `StandardPage` owns route title/action spacing and width; the `app` layout

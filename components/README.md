@@ -114,6 +114,12 @@ typed Vue Flow handles that match the process compiler contract: role access,
 service input/output, and socket projection/transfer. Do not reduce these nodes
 to generic cards; their surface should expose the entity/service/socket
 semantics that the active process runtime consumes.
+Generated operational screens live under `components/generated/`. They render
+compiled process screen manifests through a fixed template registry and shared
+entity primitives (`EntityCard`, `EntityPage`, `EntitySurfaceContent`,
+`ResponsiveGrid`, `WorkspaceLanes`, and `TableFrame`). Process data may select
+registered templates, sources, regions, surfaces, and action ids; it must not
+select arbitrary Vue component names or inject page-local markup.
 
 Lifecycle transitions belong in `EntityStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,

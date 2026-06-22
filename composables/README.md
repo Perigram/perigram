@@ -159,6 +159,20 @@ Used by `<StatusHistory>` component.
 
 ---
 
+## useGeneratedScreen
+
+Loads process-compiled screen manifests for `pages/screens/[screenKey].vue`.
+The composable normalizes the screen contract, checks source-level process
+requirements against the active permission grants before fetching, and then
+loads entity data through `useEntity()`. It supports list and single-entity
+sources, assignment-bound filters/identifiers, and exposes source states to the
+generated renderer.
+
+Generated screens are UI composition only. They decide which regions, sources,
+and action buttons are visible, while API routes still enforce real access.
+
+---
+
 ## useTraceability
 
 Resolves ancestry and descendants via the lineage block.
