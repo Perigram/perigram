@@ -17,15 +17,8 @@
         <template #node-socket="props"><ProcessSocketNode v-bind="props" /></template>
       </VueFlow>
 
-      <div
-        v-if="!nodes.length"
-        class="absolute left-[15rem] right-[30rem] top-24 z-10 flex justify-center"
-      >
-        <div class="flex items-center gap-2 rounded-ui border border-content-border bg-content px-3 py-2 shadow-card">
-          <Button icon="pi pi-plus-circle" :label="actionKindLabel('createEntity')" size="small" @click="addNode({ type: 'action', actionKind: 'createEntity' })" />
-          <Button icon="pi pi-sync" :label="actionKindLabel('changeStatus')" size="small" severity="secondary" outlined @click="addNode({ type: 'action', actionKind: 'changeStatus' })" />
-          <Button icon="pi pi-play-circle" :label="actionKindLabel('runCommand')" size="small" severity="secondary" outlined @click="addNode({ type: 'action', actionKind: 'runCommand' })" />
-        </div>
+      <div v-if="!nodes.length" class="absolute left-[15rem] right-[30rem] top-24 z-10 flex justify-center">
+        <StateBlock :message="emptyCanvasMessage" />
       </div>
 
       <Panel class="absolute left-3 top-3 z-10 w-[13rem]" :header="$t('processDesigner.palette')">
@@ -48,6 +41,16 @@
           <small class="text-muted-color">{{ activeName || $t('processDesigner.noActiveDraft') }}</small>
         </div>
         <div class="flex flex-wrap items-center gap-2">
+          <Select
+            v-if="processOptions.length"
+            v-model="selectedProcessId"
+            :options="processOptions"
+            option-label="label"
+            option-value="value"
+            class="w-56"
+            size="small"
+            @change="selectProcessDefinition"
+          />
           <Button icon="pi pi-users" :aria-label="$t('organization.teamManagement')" size="small" severity="secondary" outlined @click="navigateTo('/organization/users')" />
           <Button icon="pi pi-plus" :label="$t('processDesigner.newDraft')" size="small" @click="createDraft" />
           <Button icon="pi pi-check-circle" :label="$t('processDesigner.validate')" size="small" severity="secondary" outlined :disabled="!draft?._id" @click="validateDraft" />
@@ -382,6 +385,10 @@ definePageMeta({
 });
 
 const draft = ref(null);
+const processDefinitions = ref([]);
+const selectedProcessId = ref(null);
+const loadingProcess = ref(false);
+const processLoadError = ref('');
 const nodes = ref([]);
 const edges = ref([]);
 const selectedNodeId = ref(null);
@@ -426,6 +433,18 @@ const defaultEdgeOptions = { type: 'smoothstep' };
 
 const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.status?.state?.primary === 'ACTIVE');
+const processOptions = computed(() => processDefinitions.value.map(process => ({
+  label: [
+    process.identity?.name || process.identity?.uid || process._id,
+    process.status?.state?.primary
+  ].filter(Boolean).join(' · '),
+  value: String(process._id)
+})));
+const emptyCanvasMessage = computed(() => {
+  if (loadingProcess.value) return t('common.loading');
+  if (processLoadError.value) return processLoadError.value;
+  return t('processDesigner.noActiveDraft');
+});
 const selectedNode = computed(() => nodes.value.find(node => node.id === selectedNodeId.value) || null);
 const selectedRecord = computed(() => {
   if (!selectedNode.value) return {};
@@ -473,8 +492,70 @@ onMounted(() => {
 onBeforeUnmount(() => window.removeEventListener('keydown', handleCanvasKeydown));
 
 async function loadActiveOrCreateLocal() {
-  const active = await $fetch('/api/process-definitions/active').catch(() => null);
-  if (active) setDraft(active);
+  loadingProcess.value = true;
+  processLoadError.value = '';
+  try {
+    const [active, all] = await Promise.all([
+      $fetch('/api/process-definitions/active').catch(() => null),
+      $fetch('/api/process-definitions').catch(() => [])
+    ]);
+    processDefinitions.value = normalizeProcessList(active, all);
+    const initial = pickInitialProcess(active, processDefinitions.value);
+    if (initial) {
+      setDraft(initial);
+      return;
+    }
+    processLoadError.value = t('processDesigner.noActiveDraft');
+  } finally {
+    loadingProcess.value = false;
+  }
+}
+
+function normalizeProcessList(active, all = []) {
+  const byId = new Map();
+  for (const process of [active, ...(Array.isArray(all) ? all : [])].filter(Boolean)) {
+    byId.set(String(process._id), process);
+  }
+  return [...byId.values()].sort(compareProcessDefinitions);
+}
+
+function pickInitialProcess(active, processes = []) {
+  if (active && canProjectProcess(active)) return active;
+  return processes.find(process => process.status?.state?.primary === 'ACTIVE' && canProjectProcess(process))
+    || processes.find(process => process.status?.state?.primary === 'DRAFT' && canProjectProcess(process))
+    || processes.find(canProjectProcess)
+    || active
+    || processes[0]
+    || null;
+}
+
+function canProjectProcess(process) {
+  try {
+    definitionToCanvas(process?.data || {});
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function compareProcessDefinitions(left, right) {
+  const statusRank = { ACTIVE: 0, DRAFT: 1, ARCHIVED: 2 };
+  const leftRank = statusRank[left?.status?.state?.primary] ?? 3;
+  const rightRank = statusRank[right?.status?.state?.primary] ?? 3;
+  if (leftRank !== rightRank) return leftRank - rightRank;
+  return new Date(right?.status?.timestamp || 0) - new Date(left?.status?.timestamp || 0);
+}
+
+function selectProcessDefinition() {
+  const selected = processDefinitions.value.find(process => String(process._id) === selectedProcessId.value);
+  if (selected) setDraft(selected);
+}
+
+function upsertProcessDefinition(process) {
+  if (!process?._id) return;
+  const next = processDefinitions.value.filter(item => String(item._id) !== String(process._id));
+  next.push(process);
+  processDefinitions.value = next.sort(compareProcessDefinitions);
 }
 
 async function createDraft() {
@@ -490,6 +571,7 @@ async function createDraft() {
       }
     }
   });
+  upsertProcessDefinition(created);
   setDraft(created);
 }
 
@@ -500,6 +582,7 @@ async function saveDraft() {
     method: 'PATCH',
     body: { data: serializeProcess() }
   });
+  upsertProcessDefinition(updated);
   setDraft(updated);
 }
 
@@ -511,11 +594,13 @@ async function validateDraft() {
 async function activateDraft() {
   await saveDraft();
   const activated = await $fetch(`/api/process-definitions/${draft.value._id}/activate`, { method: 'POST' });
+  upsertProcessDefinition(activated);
   setDraft(activated);
 }
 
 function setDraft(value) {
   draft.value = value;
+  selectedProcessId.value = value?._id ? String(value._id) : null;
   let canvas;
   try {
     canvas = definitionToCanvas(value?.data || {});
