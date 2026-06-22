@@ -252,13 +252,35 @@ async function loadAuthorized(id, auth, level) {
 }
 
 function assertOrgAccess(auth, organizationId, level) {
-  assertEntityAccess({
-    entity: { lineage: { organizationId } },
-    entityType: 'organization',
-    feature: 'organizations',
-    level,
-    auth
-  });
+  try {
+    assertEntityAccess({
+      entity: { lineage: { organizationId } },
+      entityType: 'organization',
+      feature: 'organizations',
+      level,
+      auth
+    });
+  } catch (error) {
+    if (hasProcessDefinitionMembershipAccess(auth, organizationId, level)) return;
+    throw error;
+  }
+}
+
+export function hasProcessDefinitionMembershipAccess(auth = {}, organizationId, level = 'read') {
+  const membership = findOrganizationMembership(auth, organizationId);
+  if (!membership || membership.status === 'pending' || membership.status === 'rejected') return false;
+  const roleIds = [
+    membership.role,
+    ...(membership.roleIds || []),
+    auth.role
+  ].filter(Boolean).map(value => String(value).toLowerCase());
+  const adminRoles = new Set(['role_admin', 'admin', 'owner', 'creator', 'organization_admin']);
+  return ['read', 'write', 'admin'].includes(level) && roleIds.some(role => adminRoles.has(role));
+}
+
+function findOrganizationMembership(auth = {}, organizationId) {
+  const target = organizationId?.toString();
+  return (auth.memberships || []).find(item => item.organizationId?.toString() === target);
 }
 
 function resolveOrganizationId(auth = {}) {
