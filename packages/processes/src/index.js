@@ -179,7 +179,9 @@ export function resolveNavigation({ compiled, userId } = {}) {
 }
 
 export function resolveScreens({ compiled, userId } = {}) {
-  return compiled?.userAccess?.[String(userId)]?.screens || [];
+  const access = compiled?.userAccess?.[String(userId)] || {};
+  if (access.screens?.length) return access.screens;
+  return navigationToScreens(access.navigation || []);
 }
 
 export function resolveWorkflow({ compiled, entityType, fallbackWorkflow = null } = {}) {
@@ -456,6 +458,25 @@ function screenToNavigation(screen = {}) {
     screenId: screen.id,
     screenKey: screen.screenKey
   };
+}
+
+function navigationToScreens(navigation = []) {
+  return navigation
+    .filter(item => item?.route)
+    .map(item => ({
+      id: item.screenId || item.id || item.route,
+      screenKey: item.screenKey || item.id || item.route,
+      label: item.label || item.id || item.route,
+      labelKey: item.labelKey || null,
+      kind: item.kind || 'route',
+      route: item.route,
+      placement: item.placement || 'hub',
+      entityType: item.entityType || null,
+      required: item.requires || item.required || null,
+      scope: item.scope || {},
+      actions: item.actions || [],
+      sourceRoleIds: item.roleId ? [item.roleId] : (item.sourceRoleIds || [])
+    }));
 }
 
 function dedupeNavigation(items = []) {

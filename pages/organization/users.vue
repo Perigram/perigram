@@ -157,6 +157,10 @@
                             <span v-if="!selectedUserScreens.length" class="text-sm text-muted-color">{{ $t('common.notAvailable') }}</span>
                         </div>
                     </div>
+                    <Message v-if="selectedUserIncompleteBindings.length" severity="warn">
+                        {{ $t('organization.incompleteBindings') }}:
+                        {{ selectedUserIncompleteBindings.map(item => item.binding).join(', ') }}
+                    </Message>
                 </div>
             </Panel>
         </div>
@@ -183,6 +187,7 @@ import MultiSelect from 'primevue/multiselect';
 import Textarea from 'primevue/textarea';
 import Tag from 'primevue/tag';
 import Panel from 'primevue/panel';
+import Message from 'primevue/message';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
@@ -219,6 +224,7 @@ const selectedUserAccess = computed(() => {
 });
 const selectedUserPermissionSummary = computed(() => permissionSummary(selectedUserAccess.value?.permissions || {}));
 const selectedUserScreens = computed(() => selectedUserAccess.value?.screens || []);
+const selectedUserIncompleteBindings = computed(() => selectedUserAccess.value?.incompleteBindings || []);
 
 const getInvitationUrl = (token) => {
     if (process.client) {

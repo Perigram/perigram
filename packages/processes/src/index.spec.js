@@ -244,6 +244,40 @@ describe('@cutkit/processes compiler', () => {
     );
   });
 
+  it('resolves legacy role navigation as screen manifest fallback', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: {
+          id: 'role_operator',
+          grants: [],
+          navigation: [{
+            id: 'projects',
+            route: '/projects',
+            requires: { feature: 'projects', level: 'read' }
+          }]
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_operator'],
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.userAccess.user_a.screens).toEqual([]);
+    expect(resolveScreens({ compiled, userId: 'user_a' })).toEqual([
+      expect.objectContaining({
+        id: 'projects',
+        screenKey: 'projects',
+        route: '/projects',
+        required: { feature: 'projects', level: 'read' },
+        sourceRoleIds: ['role_operator']
+      })
+    ]);
+  });
+
   it('compiles user-triggered action contracts', () => {
     const compiled = compileProcessDefinition({
       roles: {

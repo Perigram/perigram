@@ -67,6 +67,7 @@
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
             <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
+            <Tab value="screens">{{ $t('organization.screens') }}</Tab>
           </TabList>
           <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="inspector">
@@ -151,7 +152,7 @@
                     <Select v-model="selectedAction.entityType" :options="entityTypeOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
                   </div>
                   <div v-if="selectedAction.actionKind === 'createEntity'" class="flex flex-col gap-1">
-                    <label>Parent entity</label>
+                    <label>{{ $t('processDesigner.parentEntity') }}</label>
                     <Select v-model="selectedAction.parentEntityType" :options="optionalEntityTypeOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
                   </div>
                   <div v-if="selectedAction.actionKind === 'changeStatus'" class="grid grid-cols-2 gap-2">
@@ -312,6 +313,80 @@
                 </div>
               </div>
             </TabPanel>
+
+            <TabPanel value="screens">
+              <div class="flex flex-col gap-4">
+                <div class="flex justify-end">
+                  <Button icon="pi pi-plus" :label="$t('processDesigner.addScreen')" size="small" @click="addScreen" />
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <Tag
+                    v-for="screen in screenList"
+                    :key="screen.id"
+                    :value="screen.label || screen.id"
+                    :severity="selectedScreenId === screen.id ? 'success' : 'secondary'"
+                    class="cursor-pointer"
+                    @click="selectedScreenId = screen.id"
+                  />
+                </div>
+                <div v-if="selectedScreenRecord" class="flex flex-col gap-3">
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.screenId') }}</label>
+                      <InputText :model-value="selectedScreenRecord.id" disabled />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.label') }}</label>
+                      <InputText v-model="selectedScreenRecord.label" />
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.screenKind') }}</label>
+                      <Select v-model="selectedScreenRecord.kind" :options="screenKindOptions" option-label="label" option-value="value" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.screenPlacement') }}</label>
+                      <Select v-model="selectedScreenRecord.placement" :options="screenPlacementOptions" option-label="label" option-value="value" />
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.screenRoute') }}</label>
+                    <InputText v-model="selectedScreenRecord.route" />
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.entityType') }}</label>
+                      <Select v-model="selectedScreenRecord.entityType" :options="optionalEntityTypeOptions" option-label="label" option-value="value" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.roleIds') }}</label>
+                      <MultiSelect v-model="selectedScreenRecord.roleIds" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.requiredFeature') }}</label>
+                      <Select v-model="selectedScreenRecord.required.feature" :options="screenFeatureOptions" option-label="label" option-value="value" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.requiredLevel') }}</label>
+                      <Select v-model="selectedScreenRecord.required.level" :options="accessLevelOptions" option-label="label" option-value="value" />
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.bindingsJson') }}</label>
+                    <Textarea v-model="selectedScreenBindingsJson" rows="4" class="font-mono text-xs" @blur="applySelectedScreenBindingsJson" />
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.actionsJson') }}</label>
+                    <Textarea v-model="selectedScreenActionsJson" rows="3" class="font-mono text-xs" @blur="applySelectedScreenActionsJson" />
+                  </div>
+                  <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedScreen" />
+                </div>
+                <StateBlock v-else :message="$t('processDesigner.selectScreen')" />
+              </div>
+            </TabPanel>
           </TabPanels>
         </Tabs>
       </aside>
@@ -375,6 +450,9 @@ const validation = ref(null);
 const selectedRoleId = ref(null);
 const selectedRoleNavigationRoutes = ref([]);
 const selectedRoleGrantsJson = ref('[]');
+const selectedScreenId = ref(null);
+const selectedScreenBindingsJson = ref('{}');
+const selectedScreenActionsJson = ref('[]');
 const newStateId = ref('');
 
 const palette = [
@@ -408,6 +486,21 @@ const socketDirections = [
   { label: 'outbound', value: 'outbound' },
   { label: 'inbound', value: 'inbound' }
 ];
+const screenKindOptions = [
+  { label: 'workspace', value: 'workspace' },
+  { label: 'entityDetail', value: 'entityDetail' },
+  { label: 'route', value: 'route' }
+];
+const screenPlacementOptions = [
+  { label: 'hub', value: 'hub' },
+  { label: 'detail', value: 'detail' },
+  { label: 'hidden', value: 'hidden' }
+];
+const accessLevelOptions = [
+  { label: 'read', value: 'read' },
+  { label: 'write', value: 'write' },
+  { label: 'admin', value: 'admin' }
+];
 const defaultEdgeOptions = { type: 'smoothstep' };
 
 const activeName = computed(() => draft.value?.identity?.name || '');
@@ -438,7 +531,9 @@ const selectedEntityFeature = computed(() => selectedEntity.value.entityType?.re
 const roles = computed(() => draft.value?.data?.roles || {});
 const screens = computed(() => draft.value?.data?.screens || {});
 const roleList = computed(() => Object.values(roles.value));
+const screenList = computed(() => Object.values(screens.value));
 const selectedRoleRecord = computed(() => selectedRoleId.value ? roles.value[selectedRoleId.value] : null);
+const selectedScreenRecord = computed(() => selectedScreenId.value ? screens.value[selectedScreenId.value] : null);
 const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
 const entityTypeOptions = computed(() => (cncDomain.entities || []).map(entity => ({ label: entity.type, value: entity.type })));
 const optionalEntityTypeOptions = computed(() => [{ label: 'None', value: '' }, ...entityTypeOptions.value]);
@@ -452,6 +547,7 @@ const navigationRouteOptions = computed(() => [
   { label: t('organization.teamManagement'), value: '/organization/users', feature: 'users' },
   { label: t('processDesigner.title'), value: '/organization/process', feature: 'organizations' }
 ]);
+const screenFeatureOptions = computed(() => [...new Map(navigationRouteOptions.value.map(item => [item.feature, { label: item.label, value: item.feature }])).values()]);
 const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
 const fieldOptionsForSelectedAction = computed(() => fieldOptions(selectedAction.value.entityType));
 const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocket.value.entityType));
@@ -462,6 +558,7 @@ const lifecycleStateOptions = computed(() => lifecycleStateIds.value.map(value =
 const lifecycleTransitions = computed(() => lifecycleRegion.value?.transitions || []);
 
 watch(selectedRoleRecord, () => syncSelectedRoleEditors(), { immediate: true });
+watch(selectedScreenRecord, () => syncSelectedScreenEditors(), { immediate: true });
 
 onMounted(() => {
   loadActiveOrCreateLocal();
@@ -590,6 +687,7 @@ function setDraft(value) {
   nodes.value = canvas.nodes.map(enrichNodeData);
   edges.value = canvas.edges;
   selectedRoleId.value = Object.keys(value?.data?.roles || {})[0] || null;
+  selectedScreenId.value = Object.keys(value?.data?.screens || {})[0] || null;
 }
 
 function addNode(item) {
@@ -668,6 +766,10 @@ function syncNodeData() {
     node.data.outputCount = record.outputs?.length || 0;
     node.data.inputLabels = (record.inputs || []).map(ioLabel);
     node.data.outputLabels = (record.outputs || []).map(ioLabel);
+    node.data.inputSpecs = (record.inputs || []).map(ioSpec);
+    node.data.outputSpecs = (record.outputs || []).map(ioSpec);
+    node.data.fieldPolicy = record.fields || null;
+    node.data.projection = record.projection || null;
   }
 }
 
@@ -786,15 +888,70 @@ function removeSelectedRole() {
   selectedRoleId.value = Object.keys(draft.value.data.roles)[0] || null;
 }
 
+function addScreen() {
+  const id = `screen_${Date.now()}`;
+  draft.value ||= { data: {} };
+  draft.value.data.screens ||= {};
+  draft.value.data.screens[id] = createScreen(id);
+  selectedScreenId.value = id;
+}
+
+function createScreen(id) {
+  return {
+    id,
+    label: id,
+    kind: 'workspace',
+    route: '/projects',
+    placement: 'hub',
+    entityType: 'project',
+    roleIds: selectedRoleId.value ? [selectedRoleId.value] : [],
+    required: { feature: 'projects', level: 'read' },
+    bindings: {},
+    actions: []
+  };
+}
+
+function removeSelectedScreen() {
+  if (!selectedScreenId.value || !draft.value?.data?.screens) return;
+  delete draft.value.data.screens[selectedScreenId.value];
+  selectedScreenId.value = Object.keys(draft.value.data.screens)[0] || null;
+}
+
 function syncSelectedRoleEditors() {
+  const quickScreenIds = new Set(navigationRouteOptions.value.map(routeScreenId));
   const screenRoutes = Object.values(screens.value)
-    .filter(screen => (screen.roleIds || []).includes(selectedRoleId.value))
+    .filter(screen => quickScreenIds.has(screen.id) && (screen.roleIds || []).includes(selectedRoleId.value))
     .map(screen => screen.route)
     .filter(Boolean);
   selectedRoleNavigationRoutes.value = screenRoutes.length
     ? screenRoutes
     : (selectedRoleRecord.value?.navigation || []).map(item => item.route).filter(Boolean);
   selectedRoleGrantsJson.value = JSON.stringify(selectedRoleRecord.value?.grants || [], null, 2);
+}
+
+function syncSelectedScreenEditors() {
+  if (!selectedScreenRecord.value) {
+    selectedScreenBindingsJson.value = '{}';
+    selectedScreenActionsJson.value = '[]';
+    return;
+  }
+  selectedScreenRecord.value.required ||= { feature: 'projects', level: 'read' };
+  selectedScreenRecord.value.roleIds ||= [];
+  selectedScreenRecord.value.bindings ||= {};
+  selectedScreenRecord.value.actions ||= [];
+  selectedScreenBindingsJson.value = JSON.stringify(selectedScreenRecord.value.bindings || {}, null, 2);
+  selectedScreenActionsJson.value = JSON.stringify(selectedScreenRecord.value.actions || [], null, 2);
+}
+
+function applySelectedScreenBindingsJson() {
+  if (!selectedScreenRecord.value) return;
+  selectedScreenRecord.value.bindings = parseJson(selectedScreenBindingsJson.value, {});
+}
+
+function applySelectedScreenActionsJson() {
+  if (!selectedScreenRecord.value) return;
+  const parsed = parseJson(selectedScreenActionsJson.value, []);
+  selectedScreenRecord.value.actions = Array.isArray(parsed) ? parsed : [];
 }
 
 function applySelectedRoleNavigationRoutes() {
@@ -814,14 +971,16 @@ function syncRoleScreens(roleId, routes = []) {
   if (!roleId) return;
   draft.value ||= { data: {} };
   draft.value.data.screens ||= {};
+  const quickScreenIds = new Set(navigationRouteOptions.value.map(routeScreenId));
   for (const [screenId, screen] of Object.entries(draft.value.data.screens)) {
+    if (!quickScreenIds.has(screenId)) continue;
     if (!(screen.roleIds || []).includes(roleId)) continue;
     screen.roleIds = screen.roleIds.filter(item => item !== roleId);
     if (!screen.roleIds.length) delete draft.value.data.screens[screenId];
   }
   for (const route of routes) {
     const option = navigationRouteOptions.value.find(item => item.value === route);
-    const id = `${option?.feature || 'route'}.${route.replace(/^\//, '').replaceAll('/', '.')}`;
+    const id = routeScreenId(option || { value: route, feature: 'route' });
     const level = route.includes('/process') ? 'admin' : 'read';
     draft.value.data.screens[id] = {
       id,
@@ -836,6 +995,11 @@ function syncRoleScreens(roleId, routes = []) {
       actions: []
     };
   }
+}
+
+function routeScreenId(option = {}) {
+  const route = option.value || '';
+  return `${option.feature || 'route'}.${route.replace(/^\//, '').replaceAll('/', '.')}`;
 }
 
 function featureEntityType(feature) {
@@ -889,7 +1053,7 @@ function syncActionIo(action = {}) {
   if (action.actionKind === 'sendToOrganization') {
     action.projection ||= { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } };
     action.inputs = [{ id: 'entity', entityType: action.entityType }];
-    action.outputs = [{ id: 'projection', entityType: action.entityType, projection: true }];
+    action.outputs = [{ id: 'projection', entityType: action.entityType, projection: true, fields: action.projection.fields || [] }];
     return;
   }
   if (action.actionKind === 'runCommand') {
@@ -913,7 +1077,21 @@ function actionKindLabel(actionKind) {
 }
 
 function ioLabel(io) {
-  return [io.entityType || io.id, io.status].filter(Boolean).join(' ');
+  return [io.entityType || io.id, io.status].filter(Boolean).join(' @ ');
+}
+
+function ioSpec(io = {}) {
+  const detail = [
+    io.required ? t('processDesigner.required') : '',
+    io.multiple ? t('processDesigner.multiple') : '',
+    io.projection ? t('processDesigner.projectedFields') : '',
+    io.fields?.length ? io.fields.join(', ') : ''
+  ].filter(Boolean).join(' · ');
+  return {
+    id: io.id || io.entityType || detail,
+    label: ioLabel(io),
+    detail
+  };
 }
 
 function roleLabels(roleIds = []) {
@@ -1009,7 +1187,13 @@ function enrichNodeData(node) {
       stateLabels: workflowStateLabels(record),
       transitionCount: workflowTransitionCount(record),
       inputCount: record.inputs?.length || 0,
-      outputCount: record.outputs?.length || 0
+      outputCount: record.outputs?.length || 0,
+      inputLabels: (record.inputs || []).map(ioLabel),
+      outputLabels: (record.outputs || []).map(ioLabel),
+      inputSpecs: (record.inputs || []).map(ioSpec),
+      outputSpecs: (record.outputs || []).map(ioSpec),
+      fieldPolicy: record.fields || null,
+      projection: record.projection || null
     }
   };
 }

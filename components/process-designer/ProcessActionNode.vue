@@ -1,7 +1,5 @@
 <template>
   <div class="relative min-w-72 rounded-ui border border-emerald-300 bg-content px-3 py-3 shadow-card">
-    <Handle id="input" type="target" :position="Position.Left" class="!border-emerald-500 !bg-emerald-500" />
-    <Handle id="output" type="source" :position="Position.Right" class="!border-emerald-500 !bg-emerald-500" />
     <Handle id="trigger" type="target" :position="Position.Top" class="!border-sky-500 !bg-sky-500" />
 
     <div class="flex items-start justify-between gap-3">
@@ -24,12 +22,34 @@
       />
     </div>
 
-    <div class="mt-3 grid grid-cols-1 gap-2">
-      <div v-if="inputLabels.length" class="flex flex-wrap gap-1">
-        <Tag v-for="input in inputLabels" :key="input" :value="input" size="small" />
+    <div class="mt-3 grid grid-cols-2 gap-3">
+      <div class="flex flex-col gap-1">
+        <small class="mb-1 block text-muted-color">{{ $t('processDesigner.inputs') }}</small>
+        <div
+          v-for="(input, index) in inputSpecs"
+          :key="input.id"
+          class="relative min-w-0 rounded-ui border border-content-border py-1 pl-3 pr-2"
+        >
+          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" class="!left-[-0.55rem] !border-emerald-500 !bg-emerald-500" />
+          <div class="min-w-0">
+            <Tag :value="input.label" size="small" />
+            <div v-if="input.detail" class="truncate text-xs text-muted-color">{{ input.detail }}</div>
+          </div>
+        </div>
       </div>
-      <div v-if="outputLabels.length" class="flex flex-wrap gap-1">
-        <Tag v-for="output in outputLabels" :key="output" :value="output" size="small" severity="success" />
+      <div class="flex flex-col gap-1">
+        <small class="mb-1 block text-muted-color">{{ $t('processDesigner.outputs') }}</small>
+        <div
+          v-for="(output, index) in outputSpecs"
+          :key="output.id"
+          class="relative min-w-0 rounded-ui border border-content-border py-1 pl-2 pr-3 text-right"
+        >
+          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" class="!right-[-0.55rem] !border-emerald-500 !bg-emerald-500" />
+          <div class="min-w-0">
+            <Tag :value="output.label" size="small" severity="success" />
+            <div v-if="output.detail" class="truncate text-xs text-muted-color">{{ output.detail }}</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -45,11 +65,11 @@ const props = defineProps({ data: { type: Object, default: () => ({}) } });
 const { t } = useI18n();
 
 const triggerLabels = computed(() => {
-  if (props.data.triggerMode === 'user') return props.data.triggerRoleLabels?.length ? props.data.triggerRoleLabels : ['No role'];
+  if (props.data.triggerMode === 'user') return props.data.triggerRoleLabels?.length ? props.data.triggerRoleLabels : [t('common.notAvailable')];
   return [props.data.triggerMode || t('common.user')];
 });
-const inputLabels = computed(() => props.data.inputLabels || []);
-const outputLabels = computed(() => props.data.outputLabels || []);
+const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || props.data.inputLabels || []));
+const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || props.data.outputLabels || []));
 const subtitle = computed(() => {
   if (props.data.actionKind === 'runCommand') return props.data.commandId || t('processDesigner.commandId');
   if (props.data.statusTo) return `${props.data.entityType || t('processDesigner.entityType')} -> ${props.data.statusTo}`;
@@ -62,4 +82,20 @@ const iconClass = computed(() => ({
   runCommand: 'pi pi-play-circle text-primary',
   sendToOrganization: 'pi pi-send text-primary'
 })[props.data.actionKind] || 'pi pi-bolt text-primary');
+
+function normalizeSpecs(items = []) {
+  return items.map((item, index) => {
+    if (typeof item === 'string') return { id: `${item}-${index}`, label: item, detail: '' };
+    return {
+      id: item.id || item.label || index,
+      label: item.label || item.entityType || item.id,
+      detail: item.detail || ''
+    };
+  });
+}
+
+function socketHandleId(kind, item, index, items) {
+  if (items.length === 1) return kind;
+  return `${kind}:${item.id || index}`;
+}
 </script>
