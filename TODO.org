@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Ban compatibility bridges in agent protocol
+    Files changed: AGENTS.md,
+      .codex/skills/cutkit-project-workflow/SKILL.md,
+      .codex/skills/cutkit-backend-v24/SKILL.md
+    Docs updated: TODO.org
+    Notes: Added a hard rule that changed data structures, permissions,
+      routes, APIs, and process protocols must replace the old contract and
+      migrate existing data in the same task. Compatibility bridges, legacy
+      fallbacks, dual-read paths, and adapter shims are forbidden.
+
     [2026-06-22] Rename process service access tab
     Files changed: i18n/locales/en.json, i18n/locales/ru.json
     Docs updated: pages/organization/README.md,

@@ -24,6 +24,10 @@ inspection for context.
 - Keep edits surgical and scoped to the requested task.
 - Preserve unrelated user or agent changes in the worktree.
 - Prefer existing project patterns, helpers, and documented workflows.
+- Do not introduce compatibility bridges, legacy fallbacks, dual-read paths, or
+  adapter shims for changed data structures, permissions, routes, APIs, or
+  process protocols. Replace the old contract and include the migration for
+  existing data in the same task.
 - Do not run `npm run build` or start dev servers unless the user asks.
 - Use focused validation for the touched area.
 - When committing, stay on `local` and keep implementation commits separate from

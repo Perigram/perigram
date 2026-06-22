@@ -37,6 +37,10 @@ first or in the same task before relying on implementation details.
 - Follow existing project structures, helpers, names, and conventions.
 - Do not add speculative abstractions, features, or future-proofing.
 - Do not refactor unrelated code.
+- Do not add compatibility bridges, legacy fallbacks, dual-read paths, or
+  adapter shims when changing data structures, permissions, routes, APIs, or
+  process protocols. Replace the old contract and migrate existing data in the
+  same task.
 - Do not revert or overwrite unrelated user/agent changes.
 - Do not run `npm run build` or start dev servers unless explicitly asked.
 - Continue until the task is implemented, documented, validated, and committed,

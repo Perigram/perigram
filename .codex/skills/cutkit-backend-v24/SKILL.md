@@ -32,6 +32,10 @@ local README before editing.
   layer and do not add business logic to `server/core/machines/hooks.js`.
 - Treat authenticated `userId` values as strings, not MongoDB ObjectIds.
 - Use service calls for cross-module behavior instead of direct database access.
+- When changing stored data, API payloads, permissions, process definitions, or
+  runtime protocols, remove the old contract and migrate existing records in
+  the same task. Do not add compatibility bridges, legacy fallbacks, dual-read
+  paths, or adapter shims.
 
 ## API And Runtime Boundaries
 
