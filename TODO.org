@@ -4,6 +4,22 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Expose process node I/O and screen editing
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      components/process-designer/ProcessEntityNode.vue,
+      components/process-designer/ProcessServiceNode.vue,
+      components/process-designer/ProcessSocketNode.vue,
+      pages/organization/process.vue, pages/organization/users.vue,
+      packages/processes/src/index.js, packages/processes/src/index.spec.js,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: components/process-designer/README.md,
+      pages/organization/README.md, packages/processes/README.md, TODO.org
+    Notes: Process canvas nodes now show explicit expected inputs and produced
+      outputs/data contracts, the designer has a screen-source tab for screen
+      records, Team management surfaces missing assignment bindings, and
+      resolveScreens falls back from legacy navigation for active processes
+      without explicit screens.
+
     [2026-06-22] Add process-composed screen manifests
     Files changed: packages/processes/src/index.js,
       packages/processes/src/templates.js,

@@ -48,7 +48,10 @@ one user can receive overloaded copies of the same screen for different
 projects or entities. Screens with incomplete bindings are skipped with
 compiler warnings. Navigation remains as compatibility output derived from role
 routes and compiled screens; clients should prefer the screen manifest when it
-is present.
+is present. `resolveScreens()` falls back from legacy compiled navigation to
+route-shaped screen records when an active process predates explicit `screens`
+records, so current organizations remain viewable until their process is edited
+and reactivated.
 
 Compiled field policies replace the base domain field set for an organization
 when present. `read` fields are public display fields, `write` fields require

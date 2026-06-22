@@ -13,7 +13,9 @@ active process definition, writes assignments through
 `/api/process-definitions/active/assignments`, and treats copied membership
 permissions as compatibility fallback data. It is the operational owner for
 assigning actual users to abstract process roles and shows the compiled access
-and screen preview from the active process contract.
+and screen preview from the active process contract. Missing assignment
+bindings are surfaced in the role dialog so overloaded/scoped screens do not
+silently disappear when a user lacks a required project or entity binding.
 
 `process.vue` is the visual process-designer surface. It edits organization
 process definitions with Vue Flow, persists drafts through
@@ -49,7 +51,8 @@ workspace.
 
 The inspector edits compiler-owned fields directly:
 
-- the roles tab owns abstract process role kind, explicit grant JSON, and app screen routes;
+- the roles tab owns abstract process role kind, explicit grant JSON, and quick app screen routes;
+- the screens tab owns screen id, label, kind, route, placement, required access, role ids, assignment bindings, and screen actions;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
 - action nodes own action kind, target entity or command, status source/target, trigger mode, trigger roles, and derived typed inputs/outputs;
 - service nodes own command selection, run/view roles, and command-derived inputs/outputs;
@@ -67,6 +70,11 @@ Entity creation actions may declare a parent entity type, which appears as an
 explicit parent input on the node. Archive is modeled as a status target on a
 change-status action, and cross-organization transfer is modeled as a
 send-to-organization action with projection fields.
+Canvas nodes show explicit expected input and produced output socket labels
+instead of input/output counts: action and service node handles are labeled
+with typed entity/status contracts, socket node handles are labeled with the
+transfer input and projected output fields, and entity nodes render their field
+policy as the process data contract.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched
