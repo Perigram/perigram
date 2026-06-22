@@ -8,11 +8,10 @@
         </div>
         <small class="text-muted-color">{{ data.entityType || $t('processDesigner.entityType') }}</small>
       </div>
-      <Badge :value="data.fieldCount || 0" severity="secondary" />
     </div>
 
     <div class="relative mt-3 rounded-ui border border-content-border px-2 py-1">
-      <Handle id="receive-role" type="target" :position="Position.Top" class="!top-[-0.55rem] !border-violet-500 !bg-violet-500" />
+      <Handle id="receive-role" type="target" :position="Position.Top" class="!top-0 !-translate-y-1/2 !border-violet-500 !bg-violet-500" />
       <div class="flex min-w-0 flex-wrap items-center gap-1">
         <Tag :value="$t('processDesigner.receiveAccess')" size="small" severity="secondary" />
         <Tag
@@ -27,11 +26,11 @@
 
     <div class="mt-3 grid grid-cols-2 gap-2">
       <div class="relative rounded-ui border border-content-border py-1 pl-3 pr-2">
-        <Handle id="entity-projection" type="target" :position="Position.Left" class="!left-[-0.55rem] !border-violet-500 !bg-violet-500" />
+        <Handle id="entity-projection" type="target" :position="Position.Left" class="!left-0 !-translate-x-1/2 !border-violet-500 !bg-violet-500" />
         <Tag :value="inputLabel" size="small" severity="secondary" />
       </div>
       <div class="relative rounded-ui border border-content-border py-1 pl-2 pr-3 text-right">
-        <Handle id="transfer" type="source" :position="Position.Right" class="!right-[-0.55rem] !border-violet-500 !bg-violet-500" />
+        <Handle id="transfer" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-violet-500 !bg-violet-500" />
         <div class="flex flex-wrap gap-1">
           <Tag v-for="field in visibleProjectedFields" :key="field" :value="field" size="small" />
           <Tag v-if="hiddenProjectedFieldCount > 0" :value="`+${hiddenProjectedFieldCount}`" size="small" />
@@ -45,7 +44,6 @@
 <script setup>
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
-import Badge from 'primevue/badge';
 import Tag from 'primevue/tag';
 
 const props = defineProps({ data: { type: Object, default: () => ({}) } });

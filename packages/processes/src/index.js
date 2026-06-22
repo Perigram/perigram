@@ -528,7 +528,8 @@ function compileActions(actions = {}) {
       roleIds: action.trigger?.roleIds || []
     },
     inputs: action.inputs || [],
-    outputs: action.outputs || []
+    outputs: action.outputs || [],
+    events: action.events || []
   }]));
 }
 
@@ -541,15 +542,15 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
   if (kind === 'runCommand') {
     if (!action.commandId) errors.push(`Action ${actionId} must select a command`);
     if (action.commandId && !commands.has(action.commandId)) errors.push(`Action ${actionId} uses unknown command ${action.commandId}`);
-  } else {
+  } else if (kind !== 'changeStatus') {
     if (!action.entityType) errors.push(`Action ${actionId} must select an entity type`);
     if (action.entityType && !entities.has(action.entityType)) errors.push(`Action ${actionId} uses unknown entity type ${action.entityType}`);
   }
   if (action.parentEntityType && !entities.has(action.parentEntityType)) {
     errors.push(`Action ${actionId} uses unknown parent entity type ${action.parentEntityType}`);
   }
-  if (kind === 'changeStatus' && (!action.status?.from || !action.status?.to)) {
-    errors.push(`Action ${actionId} must define source and target statuses`);
+  if (kind === 'changeStatus' && !action.status?.to) {
+    errors.push(`Action ${actionId} must define a target status`);
   }
   if (['createEntity', 'archiveEntity'].includes(kind) && !action.status?.to) {
     errors.push(`Action ${actionId} must define target status`);

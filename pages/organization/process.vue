@@ -143,68 +143,7 @@
                 </template>
 
                 <template v-else-if="selectedNode.type === 'action'">
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('common.type') }}</label>
-                    <Select v-model="selectedAction.actionKind" :options="actionKindOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind !== 'runCommand'" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.entityType') }}</label>
-                    <Select v-model="selectedAction.entityType" :options="entityTypeOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'createEntity'" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.parentEntity') }}</label>
-                    <Select v-model="selectedAction.parentEntityType" :options="optionalEntityTypeOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'changeStatus'" class="grid grid-cols-2 gap-2">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('status.status') }}</label>
-                      <InputText v-model="selectedAction.status.from" @blur="syncSelectedAction" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.addState') }}</label>
-                      <InputText v-model="selectedAction.status.to" @blur="syncSelectedAction" />
-                    </div>
-                  </div>
-                  <div v-else-if="selectedAction.actionKind === 'createEntity'" class="flex flex-col gap-1">
-                    <label>{{ $t('status.status') }}</label>
-                    <InputText v-model="selectedAction.status.to" @blur="syncSelectedAction" />
-                  </div>
-                  <div v-else-if="selectedAction.actionKind === 'sendToOrganization'" class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.projectedFields') }}</label>
-                      <MultiSelect v-model="selectedAction.projection.fields" :options="fieldOptionsForSelectedAction" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedAction" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.excludedFields') }}</label>
-                      <MultiSelect v-model="selectedAction.projection.excludeFields" :options="fieldOptionsForSelectedAction" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedAction" />
-                    </div>
-                  </div>
-                  <div v-else-if="selectedAction.actionKind === 'runCommand'" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.commandId') }}</label>
-                    <Select v-model="selectedAction.commandId" :options="commandOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('common.user') }}</label>
-                      <Select v-model="selectedAction.trigger.mode" :options="triggerModeOptions" option-label="label" option-value="value" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.roleIds') }}</label>
-                      <MultiSelect v-model="selectedAction.trigger.roleIds" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <Panel :header="$t('processDesigner.inputs')">
-                      <div class="flex flex-wrap gap-2">
-                        <Tag v-for="input in selectedAction.inputs" :key="input.id" :value="ioLabel(input)" size="small" />
-                      </div>
-                    </Panel>
-                    <Panel :header="$t('processDesigner.outputs')">
-                      <div class="flex flex-wrap gap-2">
-                        <Tag v-for="output in selectedAction.outputs" :key="output.id" :value="ioLabel(output)" size="small" severity="success" />
-                      </div>
-                    </Panel>
-                  </div>
+                  <StateBlock :message="$t('processDesigner.editActionOnNode')" />
                 </template>
 
                 <template v-else-if="selectedNode.type === 'service'">
@@ -468,6 +407,7 @@ const actionKindOptions = [
   { label: 'Send to organization', value: 'sendToOrganization' }
 ];
 const triggerModeOptions = [
+  { label: 'Manual', value: 'manual' },
   { label: 'User', value: 'user' },
   { label: 'System', value: 'system' },
   { label: 'Event', value: 'event' }
@@ -738,7 +678,7 @@ function deleteSelectedNode() {
 function serializeProcess() {
   syncNodeData();
   return canvasToDefinition(
-    { nodes: nodes.value, edges: edges.value, viewport: draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 } },
+    { nodes: nodes.value.map(stripRuntimeNodeData), edges: edges.value, viewport: draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 } },
     draft.value?.data || {}
   );
 }
@@ -754,6 +694,16 @@ function syncNodeData() {
     node.data.commandId = record.commandId;
     node.data.triggerMode = record.trigger?.mode;
     node.data.triggerRoleLabels = roleLabels(record.trigger?.roleIds || []);
+    node.data.actionKindLabel = node.type === 'action' ? actionKindLabel(record.actionKind) : null;
+    node.data.eventLabel = node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null;
+    node.data.actionRecord = node.type === 'action' ? record : null;
+    node.data.entityTypeOptions = node.type === 'action' ? entityTypeOptions.value : [];
+    node.data.optionalEntityTypeOptions = node.type === 'action' ? optionalEntityTypeOptions.value : [];
+    node.data.commandOptions = node.type === 'action' ? commandOptions.value : [];
+    node.data.roleOptions = node.type === 'action' ? roleOptions.value : [];
+    node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
+    node.data.fieldOptions = node.type === 'action' ? fieldOptions(record.entityType) : [];
+    node.data.onActionUpdate = node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data.refId, updates, options) : null;
     node.data.statusFrom = record.status?.from;
     node.data.statusTo = record.status?.to;
     node.data.direction = record.direction;
@@ -821,14 +771,15 @@ function createAction(id, actionKind = 'createEntity') {
     id,
     label: actionKindLabel(actionKind),
     actionKind,
-    entityType: 'project',
+    entityType: ['changeStatus', 'runCommand'].includes(actionKind) ? '' : 'project',
     commandId: '',
     parentEntityType: '',
-    status: { from: '', to: actionKind === 'archiveEntity' ? 'ARCHIVED' : 'CREATED' },
+    status: { from: '', to: actionKind === 'createEntity' ? 'CREATED' : '' },
     projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
-    trigger: { mode: 'user', roleIds: [] },
+    trigger: { mode: 'manual', roleIds: [] },
     inputs: [],
-    outputs: []
+    outputs: [],
+    events: []
   };
   syncActionIo(action);
   return action;
@@ -1032,13 +983,13 @@ function addLifecycleState() {
 
 function syncSelectedAction() {
   syncActionIo(selectedAction.value);
-  selectedAction.value.label = actionKindLabel(selectedAction.value.actionKind);
   syncNodeData();
 }
 
 function syncActionIo(action = {}) {
-  action.trigger ||= { mode: 'user', roleIds: [] };
+  action.trigger ||= { mode: 'manual', roleIds: [] };
   action.status ||= {};
+  action.events = actionEventOutputs(action);
   if (action.actionKind === 'createEntity') {
     action.status.to ||= 'CREATED';
     action.inputs = action.parentEntityType ? [{ id: 'parent', entityType: action.parentEntityType }] : [];
@@ -1046,10 +997,10 @@ function syncActionIo(action = {}) {
     return;
   }
   if (action.actionKind === 'changeStatus') {
-    action.status.from ||= 'CREATED';
-    action.status.to ||= 'ACTIVE';
-    action.inputs = [{ id: 'entity', entityType: action.entityType, status: action.status.from }];
-    action.outputs = [{ id: 'entity', entityType: action.entityType, status: action.status.to }];
+    action.entityType = '';
+    action.status.to ||= '';
+    action.inputs = [{ id: 'entity', label: t('processDesigner.incomingEntity'), status: action.status.from || t('processDesigner.currentStatus') }];
+    action.outputs = [{ id: 'entity', label: t('processDesigner.sameEntity'), status: action.status.to || t('processDesigner.targetStatus') }];
     return;
   }
   if (action.actionKind === 'sendToOrganization') {
@@ -1067,6 +1018,26 @@ function syncActionIo(action = {}) {
 
 function actionKindLabel(actionKind) {
   return actionKindOptions.find(option => option.value === actionKind)?.label || 'Action';
+}
+
+function localizedTriggerModeOptions() {
+  return triggerModeOptions.map(option => ({
+    ...option,
+    label: ({
+      manual: t('processDesigner.manualTrigger'),
+      user: t('processDesigner.userTrigger'),
+      system: t('processDesigner.systemTrigger'),
+      event: t('processDesigner.eventTrigger')
+    })[option.value] || option.label
+  }));
+}
+
+function actionEventOutputs(action = {}) {
+  return [{
+    id: 'completed',
+    label: action.label ? `${action.label} ${t('processDesigner.completedEvent')}` : t('processDesigner.actionCompleted'),
+    kind: 'event'
+  }];
 }
 
 function ioLabel(io) {
@@ -1204,6 +1175,7 @@ function parseJson(source, fallback) {
 
 function enrichNodeData(node) {
   const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
+  if (node.type === 'action') syncActionIo(record);
   return {
     ...node,
     data: {
@@ -1211,6 +1183,18 @@ function enrichNodeData(node) {
       label: record.label || record.entityType || record.commandId || node.data?.label,
       entityType: record.entityType,
       commandId: record.commandId,
+      actionKindLabel: node.type === 'action' ? actionKindLabel(record.actionKind) : null,
+      actionRecord: node.type === 'action' ? record : null,
+      entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
+      optionalEntityTypeOptions: node.type === 'action' ? optionalEntityTypeOptions.value : [],
+      commandOptions: node.type === 'action' ? commandOptions.value : [],
+      roleOptions: node.type === 'action' ? roleOptions.value : [],
+      triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
+      fieldOptions: node.type === 'action' ? fieldOptions(record.entityType) : [],
+      onActionUpdate: node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data?.refId, updates, options) : null,
+      triggerMode: record.trigger?.mode,
+      triggerRoleLabels: roleLabels(record.trigger?.roleIds || []),
+      eventLabel: node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null,
       direction: record.direction,
       lifecycleMode: record.lifecycle?.mode,
       roleCount: record.allowedRoles ? countRoleBindings(record.allowedRoles) : 0,
@@ -1229,6 +1213,31 @@ function enrichNodeData(node) {
       projection: record.projection || null
     }
   };
+}
+
+function updateActionRecord(actionId, updates = {}, options = {}) {
+  const action = draft.value?.data?.actions?.[actionId];
+  if (!action) return;
+  Object.assign(action, updates);
+  if (options.syncIo) syncActionIo(action);
+  syncNodeData();
+}
+
+function stripRuntimeNodeData(node) {
+  const data = { ...(node.data || {}) };
+  for (const key of [
+    'actionRecord',
+    'entityTypeOptions',
+    'optionalEntityTypeOptions',
+    'commandOptions',
+    'roleOptions',
+    'triggerModeOptions',
+    'fieldOptions',
+    'onActionUpdate'
+  ]) {
+    delete data[key];
+  }
+  return { ...node, data };
 }
 
 function workflowStateLabels(record) {

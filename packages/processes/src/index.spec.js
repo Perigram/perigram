@@ -304,6 +304,31 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('compiles input-driven status actions with event outputs', () => {
+    const compiled = compileProcessDefinition({
+      actions: {
+        activate_incoming: {
+          id: 'activate_incoming',
+          label: 'Activate incoming',
+          actionKind: 'changeStatus',
+          status: { to: 'ACTIVE' },
+          trigger: { mode: 'manual', roleIds: [] },
+          inputs: [{ id: 'entity', label: 'Incoming entity', status: 'Current status' }],
+          outputs: [{ id: 'entity', label: 'Same entity', status: 'ACTIVE' }],
+          events: [{ id: 'completed', label: 'Activate incoming completed', kind: 'event' }]
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.activate_incoming).toMatchObject({
+      actionKind: 'changeStatus',
+      entityType: null,
+      status: { to: 'ACTIVE' },
+      trigger: { mode: 'manual', roleIds: [] },
+      events: [{ id: 'completed', kind: 'event' }]
+    });
+  });
+
   it('compiles create actions with explicit parent inputs', () => {
     const compiled = compileProcessDefinition({
       actions: {

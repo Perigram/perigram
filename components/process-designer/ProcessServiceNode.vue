@@ -8,11 +8,10 @@
         </div>
         <small class="text-muted-color">{{ data.commandId || $t('processDesigner.commandId') }}</small>
       </div>
-      <Badge :value="data.roleCount || 0" severity="warning" />
     </div>
 
     <div class="relative mt-3 rounded-ui border border-content-border px-2 py-1">
-      <Handle id="run-role" type="target" :position="Position.Top" class="!top-[-0.55rem] !border-amber-500 !bg-amber-500" />
+      <Handle id="run-role" type="target" :position="Position.Top" class="!top-0 !-translate-y-1/2 !border-amber-500 !bg-amber-500" />
       <div class="flex min-w-0 flex-wrap items-center gap-1">
         <Tag :value="$t('processDesigner.runAccess')" size="small" severity="warning" />
         <Tag
@@ -32,7 +31,7 @@
           :key="input.id"
           class="relative min-w-0 rounded-ui border border-content-border py-1 pl-3 pr-2"
         >
-          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" class="!left-[-0.55rem] !border-amber-500 !bg-amber-500" />
+          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" class="!left-0 !-translate-x-1/2 !border-amber-500 !bg-amber-500" />
           <div class="min-w-0">
             <Tag :value="input.label" size="small" />
             <div v-if="input.detail" class="truncate text-xs text-muted-color">{{ input.detail }}</div>
@@ -45,7 +44,7 @@
           :key="output.id"
           class="relative min-w-0 rounded-ui border border-content-border py-1 pl-2 pr-3 text-right"
         >
-          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" class="!right-[-0.55rem] !border-emerald-500 !bg-emerald-500" />
+          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-emerald-500 !bg-emerald-500" />
           <div class="min-w-0">
             <Tag :value="output.label" size="small" severity="success" />
             <div v-if="output.detail" class="truncate text-xs text-muted-color">{{ output.detail }}</div>
@@ -59,7 +58,6 @@
 <script setup>
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
-import Badge from 'primevue/badge';
 import Tag from 'primevue/tag';
 
 const props = defineProps({ data: { type: Object, default: () => ({}) } });
