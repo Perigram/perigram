@@ -61,7 +61,7 @@
           size="small"
           @update:model-value="value => updateAccess({ roleIds: value })"
         />
-        <div v-if="accessDetail" class="col-span-2 truncate px-1 text-xs text-muted-color">{{ accessDetail }}</div>
+        <div v-if="accessContractLabel" class="col-span-2 truncate px-1 text-xs text-muted-color">{{ accessContractLabel }}</div>
         <div v-if="effectiveAccessLabels.length" class="col-span-2 flex min-w-0 flex-wrap gap-1 px-1">
           <span
             v-for="item in effectiveAccessLabels"
@@ -90,6 +90,7 @@
         :placeholder="$t('processDesigner.targetStatus')"
         @update:model-value="value => updateStatus({ to: value })"
       />
+      <div v-if="transitionLabel" class="col-span-2 truncate px-1 text-xs text-muted-color">{{ transitionLabel }}</div>
       <MultiSelect
         v-if="action.actionKind === 'sendToOrganization'"
         :model-value="action.projection?.fields || []"
@@ -179,12 +180,13 @@ const action = computed(() => props.data.actionRecord || {});
 const triggerMode = computed(() => action.value.trigger?.mode || props.data.triggerMode || 'manual');
 const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || props.data.inputLabels || []));
 const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || props.data.outputLabels || []));
+const accessContractLabel = computed(() => props.data.accessContractLabel || '');
 const effectiveAccessLabels = computed(() => props.data.effectiveAccessLabels || []);
 const eventLabel = computed(() => props.data.eventLabel || t('processDesigner.actionCompleted'));
 const actionKindLabel = computed(() => props.data.actionKindLabel || props.data.actionKind || t('common.actions.title'));
 const showEntitySelector = computed(() => ['createEntity', 'sendToOrganization'].includes(action.value.actionKind));
 const hasInlineControls = computed(() => ['createEntity', 'changeStatus', 'runCommand', 'sendToOrganization'].includes(action.value.actionKind));
-const accessDetail = computed(() => {
+const transitionLabel = computed(() => {
   if (action.value.actionKind !== 'changeStatus') return '';
   const from = action.value.access?.statusFrom || action.value.status?.from || '';
   const to = action.value.access?.statusTo || action.value.status?.to || '';

@@ -462,10 +462,13 @@ function derivedRoleAccessSummary(roleIds = []) {
 }
 
 function actionAccessSummary(action = {}) {
+    const entityType = actionEntityType(action);
+    const status = actionTargetStatus(action);
+    const subject = entityType || (action.actionKind === 'changeStatus' ? 'entity' : (action.label || action.id || action.actionKind));
     return [
-        [actionEntityType(action), actionTargetStatus(action)].filter(Boolean).join('@') || action.label || action.id || action.actionKind,
-        normalizeAccessLevel(action.access?.level)
-    ].filter(Boolean).join(':');
+        [subject, normalizeAccessLevel(action.access?.level)].filter(Boolean).join(':'),
+        status ? `when ${status}` : ''
+    ].filter(Boolean).join(' ');
 }
 
 function actionEntityType(action = {}) {

@@ -723,6 +723,7 @@ function syncNodeData() {
     node.data.entityTypeOptions = node.type === 'action' ? entityTypeOptions.value : [];
     node.data.commandOptions = node.type === 'action' ? commandOptions.value : [];
     node.data.roleOptions = node.type === 'action' ? actionRoleOptions(record, node) : [];
+    node.data.accessContractLabel = node.type === 'action' ? actionAccessContractLabel(record, node) : '';
     node.data.effectiveAccessLabels = node.type === 'action' ? effectiveActionAccessLabels(record, node) : [];
     node.data.accessLevelOptions = node.type === 'action' ? accessLevelOptions : [];
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
@@ -1000,7 +1001,7 @@ function syncActionIo(action = {}) {
     action.access.statusFrom = action.status.from || '';
     action.access.statusTo = action.status.to || '';
     action.inputs = [{ id: 'entity', label: t('processDesigner.incomingEntity'), entityType: incomingEntityType, status: action.status.from || '' }];
-    action.outputs = [{ id: 'entity', label: t('processDesigner.sameEntity'), status: action.status.to || '' }];
+    action.outputs = [{ id: 'entity', label: t('processDesigner.sameEntity'), entityType: incomingEntityType, status: action.status.to || '' }];
     return;
   }
   if (action.actionKind === 'sendToOrganization') {
@@ -1219,6 +1220,7 @@ function enrichNodeData(node) {
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
       commandOptions: node.type === 'action' ? commandOptions.value : [],
       roleOptions: node.type === 'action' ? actionRoleOptions(record, node) : [],
+      accessContractLabel: node.type === 'action' ? actionAccessContractLabel(record, node) : '',
       effectiveAccessLabels: node.type === 'action' ? effectiveActionAccessLabels(record, node) : [],
       accessLevelOptions: node.type === 'action' ? accessLevelOptions : [],
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
@@ -1266,6 +1268,7 @@ function stripRuntimeNodeData(node) {
     'entityTypeOptions',
     'commandOptions',
     'roleOptions',
+    'accessContractLabel',
     'effectiveAccessLabels',
     'accessLevelOptions',
     'triggerModeOptions',
@@ -1404,7 +1407,6 @@ function effectiveActionAccessLabels(action = {}, node = {}) {
   const entityType = actionEntityType(action) || inferIncomingEntityContract(node.id).entityType;
   if (!entityType) return [];
   const targetStatus = actionTargetStatus(action);
-  const requiredLevel = normalizeAccessLevel(action.access?.level);
   const currentRoleIds = new Set(action.access?.roleIds || []);
   const accessByRole = new Map();
 
@@ -1429,8 +1431,7 @@ function effectiveActionAccessLabels(action = {}, node = {}) {
 
   return [...accessByRole.values()]
     .filter(item => !currentRoleIds.has(item.roleId))
-    .filter(item => accessLevelRank[item.level] >= accessLevelRank[requiredLevel])
-    .map(item => [item.label, item.level, item.status].filter(Boolean).join(' · '));
+    .map(item => [item.label, item.level, item.status ? `when ${item.status}` : ''].filter(Boolean).join(' · '));
 }
 
 function addEffectiveRoleAccess(accessByRole, roleId, level, status) {
@@ -1447,10 +1448,19 @@ function addEffectiveRoleAccess(accessByRole, roleId, level, status) {
 }
 
 function actionAccessSummary(action = {}) {
+  const entityType = actionEntityType(action);
+  const status = actionTargetStatus(action);
+  const subject = entityType || (action.actionKind === 'changeStatus' ? 'entity' : (action.label || action.id || action.actionKind));
   return [
-    [actionEntityType(action), actionTargetStatus(action)].filter(Boolean).join('@') || action.label || action.id || action.actionKind,
-    normalizeAccessLevel(action.access?.level)
-  ].filter(Boolean).join(':');
+    [subject, normalizeAccessLevel(action.access?.level)].filter(Boolean).join(':'),
+    status ? `when ${status}` : ''
+  ].filter(Boolean).join(' ');
+}
+
+function actionAccessContractLabel(action = {}, node = {}) {
+  const entityType = actionEntityType(action) || inferIncomingEntityContract(node.id).entityType;
+  const status = actionTargetStatus(action);
+  return [entityType || (action.actionKind === 'changeStatus' ? 'entity' : ''), status ? `when ${status}` : ''].filter(Boolean).join(' · ');
 }
 
 function actionEntityType(action = {}) {
