@@ -59,11 +59,11 @@ workspace.
 The inspector edits compiler-owned fields directly:
 
 - the roles tab owns human process role labels and derived access summaries;
-- the principals tab owns service principals used by service run/view access;
+- the automation tab owns service automation identities used by service run/view access;
 - the screens tab owns screen id, label, kind, route, placement, required access, role ids, assignment bindings, and screen actions;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
 - action nodes own fixed action kind, trigger mode, trigger roles, target entity or command, target status, projection fields, derived typed data sockets, and completion event socket;
-- service nodes own command selection, run/view service principals, and command-derived inputs/outputs;
+- service nodes own command selection, run/view automation identities, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
 
 Role and user assignment records are intentionally not Vue Flow nodes. Roles are
@@ -71,10 +71,10 @@ reusable human process responsibilities assigned onto entity access rules,
 screens, manual action triggers, socket access rules, and status-machine
 transitions. They do not own navigation routes or raw grant JSON. The role tab
 therefore edits labels and shows a derived access summary from the graph.
-Service execution identities are edited as separate service principals and are
-assigned to service run/view access; they are not user roles and cannot trigger
-manual actions. Concrete user assignment editing belongs to Team management,
-not the process designer.
+Service execution identities are edited as separate automation identities and
+are assigned to service run/view access; they are not user roles and cannot
+trigger manual actions. Concrete user assignment editing belongs to Team
+management, not the process designer.
 Action nodes are the preferred process-design surface for new behavior because
 they describe what happens. Entity profiles remain process resources for
 lifecycle and field-policy contracts, while action nodes reference those
@@ -97,7 +97,7 @@ event on the left side and emit completion from the right side, so unlabeled
 top/bottom control sockets do not appear on process nodes. Action nodes expose
 only `manual` triggers, which are gated by human process roles and become
 user-facing actions, and `event` triggers, which run automatically from another
-node's event output. Service principals stay in service access controls rather
+node's event output. Automation identities stay in service access controls rather
 than manual trigger selectors.
 
 Loading an active process is read-only. Saving changes forks the current graph

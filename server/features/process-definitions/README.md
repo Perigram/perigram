@@ -5,8 +5,8 @@ compiled runtime contract for roles, user assignments, entity workflows, field
 policies, service availability, sockets, screen manifests, and navigation.
 Runtime role permissions are derived from the graph during compilation:
 entity-profile access and screen requirements create grants, screen manifests
-create navigation, and service run/view access uses service principals instead
-of user roles.
+create navigation, and service run/view access uses automation identities
+instead of user roles.
 
 Activation is the only path that affects runtime behavior. The service
 requires canonical semantic process records, validates the draft, verifies the
@@ -14,10 +14,11 @@ process transpiler round-trip, compiles the runtime contract, archives the
 previous active process for the organization, marks the selected process
 `ACTIVE`, and stores its id on the organization.
 Process definition management also accepts the active organization membership's
-admin/owner/creator role labels as a narrow recovery path. This prevents the
-only tenant administrator from being locked out when the currently active
-process no longer grants `organizations:admin`; the fallback is local to process
-definition operations and does not grant general entity access.
+admin/owner/creator role labels, or the sole active organization member, as a
+narrow recovery path. This prevents the only tenant operator from being locked
+out when the currently active process no longer grants `organizations:admin`;
+the fallback is local to process definition operations and does not grant
+general entity access.
 
 The compiled runtime contract is not a design source. Stored definitions that
 only contain `data.compiled` without semantic records are rejected during

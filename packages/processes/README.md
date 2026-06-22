@@ -8,7 +8,7 @@ sockets.
 Process definitions use canonical semantic records as the editing source of
 truth. `definitionToCanvas()` projects those records into deterministic Vue
 Flow nodes and `canvasToDefinition()` writes canvas layout/edges back while
-preserving role, service-principal, lifecycle, action, service, socket, and
+preserving role, automation-identity, lifecycle, action, service, socket, and
 assignment records.
 `validateRoundTrip()` verifies that `definition -> canvas -> definition` does
 not change process semantics before activation. Vue Flow node positions are
@@ -29,8 +29,9 @@ navigation routes or hand-maintained grant JSON. The compiler derives role
 grants from entity-profile `allowedRoles` and screen `required` contracts.
 Assignments compile against those derived roles and produce effective
 permissions, screens, and navigation for each user. Services use separate
-`servicePrincipals` plus `access.runPrincipals` / `access.viewPrincipals`;
-service principals are not selectable as manual user triggers.
+automation identities stored in `servicePrincipals` plus
+`access.runPrincipals` / `access.viewPrincipals`; those automation identities
+are not selectable as manual user triggers.
 At runtime those compiled permissions are the organization's active access
 source. Membership/user permissions remain compatibility fallback data; they
 are not a second process model.

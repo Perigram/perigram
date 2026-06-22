@@ -10,9 +10,9 @@
     Docs updated: server/features/process-definitions/README.md, TODO.org
     Notes: Process definition admin/write/read checks now have a narrow
       membership-role recovery path for active organization admin/owner/creator
-      memberships, so the sole tenant admin can fix and reactivate a process
-      even when the current compiled process grants are missing
-      `organizations:admin`.
+      memberships plus the sole active organization member, so the only tenant
+      operator can fix and reactivate a process even when the current compiled
+      process grants are missing `organizations:admin`.
 
     [2026-06-22] Split process roles from service principals
     Files changed: components/process-designer/ProcessActionNode.vue,
@@ -28,7 +28,8 @@
     Notes: Process roles now represent human responsibilities only. Navigation
       comes from screen records, access grants are derived from entity/screen
       graph contracts, services use separate principals, Team management uses
-      active process roles without raw binding JSON, and action event
+      active process roles without raw binding JSON, service principals are
+      presented as automation identities in the UI, and action event
       triggers/completion sockets sit on node sides instead of top/bottom
       handles.
 
