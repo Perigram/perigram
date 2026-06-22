@@ -5,9 +5,16 @@ compiled runtime contract for roles, user assignments, entity workflows, field
 policies, service availability, sockets, and navigation.
 
 Activation is the only path that affects runtime behavior. The service
-validates and compiles the draft, archives the previous active process for the
-organization, marks the selected process `ACTIVE`, and stores its id on the
-organization.
+requires canonical semantic process records, validates the draft, verifies the
+process transpiler round-trip, compiles the runtime contract, archives the
+previous active process for the organization, marks the selected process
+`ACTIVE`, and stores its id on the organization.
+
+The compiled runtime contract is not a design source. Stored definitions that
+only contain `data.compiled` without semantic records are rejected during
+validation and activation so operators do not edit a guessed reconstruction.
+Current process edits should fork the active definition into a draft and
+activate that draft when validation succeeds.
 
 Entity lifecycle profiles compile directly into normalized `@cutkit/workflows`
 v2 machines. Runtime status resolution uses the active process workflow before

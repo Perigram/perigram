@@ -4,6 +4,14 @@ Declarative organization process compiler. It turns visual process definitions
 into runtime contracts for role-derived permissions, navigation, entity
 workflows, field policies, action nodes, services, and sockets.
 
+Process definitions use canonical semantic records as the editing source of
+truth. `definitionToCanvas()` projects those records into deterministic Vue
+Flow nodes and `canvasToDefinition()` writes canvas layout/edges back while
+preserving role, lifecycle, action, service, socket, and assignment records.
+`validateRoundTrip()` verifies that `definition -> canvas -> definition` does
+not change process semantics before activation. Vue Flow node positions are
+presentation data; runtime behavior must come from the semantic records.
+
 Process lifecycle profiles compile directly to normalized `@cutkit/workflows`
 v2 state machines. Runtime adapters must not treat lifecycle data as visual-only
 metadata.
@@ -35,3 +43,8 @@ write grants, and `private` fields require admin grants. Socket definitions are
 compiled as runtime contracts and can be used by the backend to project only
 selected entity fields plus receiver lifecycle metadata for another
 organization.
+
+Compiled-only runtime contracts are not editable process sources. If a stored
+process definition has `data.compiled` but no canonical semantic records, the
+designer and activation path fail clearly instead of inferring a visual design
+from runtime output.

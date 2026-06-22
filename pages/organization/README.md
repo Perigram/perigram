@@ -31,6 +31,14 @@ those non-canvas nodes out and reconstructs entity/service/socket nodes from
 the process records so active definitions do not open to a blank canvas. Truly
 empty processes render compact canvas add controls for the same three object
 types.
+The route now delegates process round-tripping to `@cutkit/processes`:
+canonical semantic records project into Vue Flow nodes through
+`definitionToCanvas()`, and saving writes the visible canvas back through
+`canvasToDefinition()`. Canvas layout is therefore presentation state; roles,
+entity lifecycles, action definitions, services, organization sends, and user
+assignments remain the process source of truth. If a stored process contains
+only compiled runtime data and no semantic records, the designer shows a clear
+validation error instead of guessing a canvas.
 
 The inspector edits compiler-owned fields directly:
 
@@ -58,3 +66,6 @@ send-to-organization action with projection fields.
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched
 directly.
+Drafts created from active processes keep `sourceProcessDefinitionId` so the
+activation path can replace the current runtime contract without mutating the
+active source in place.

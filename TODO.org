@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Add canonical process canvas transpiler
+    Files changed: packages/processes/src/transpiler.js,
+      packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      server/features/process-definitions/service.js,
+      pages/organization/process.vue
+    Docs updated: packages/processes/README.md,
+      server/features/process-definitions/README.md,
+      pages/organization/README.md, TODO.org
+    Notes: Added canonical definition-to-canvas and canvas-to-definition
+      transpiler APIs, wired the organization designer save/load path through
+      them, required round-trip validation before activation, and made
+      compiled-only process definitions fail explicitly instead of decompiling.
+
     [2026-06-21] Replace service socket archive palette concepts
     Files changed: pages/organization/process.vue,
       components/process-designer/ProcessActionNode.vue,
