@@ -179,6 +179,40 @@ describe('User Management & Auth', () => {
     }, orgId)).toBe(true);
   });
 
+  it('allows stored membership user-admin grants to recover user management when process grants are missing', async () => {
+    const orgId = new ObjectId();
+    const userId = new ObjectId();
+    await db.collection('users').insertMany([{
+      _id: userId,
+      identity: { uid: userId.toString(), name: 'Admin User' },
+      data: {
+        memberships: [{
+          organizationId: orgId,
+          role: 'ContractorAdmin',
+          permissions: { users: { level: 'admin' } },
+          status: 'active'
+        }]
+      }
+    }, {
+      _id: new ObjectId(),
+      identity: { uid: 'other-user', name: 'Other User' },
+      data: {
+        memberships: [{ organizationId: orgId, role: 'role_viewer', permissions: {}, status: 'active' }]
+      }
+    }]);
+
+    expect(await userService.canManageUsersInOrganization({
+      userId: userId.toString(),
+      effectivePermissions: {},
+      memberships: [{
+        organizationId: orgId,
+        role: 'ContractorAdmin',
+        permissions: { users: { level: 'admin' } },
+        status: 'active'
+      }]
+    }, orgId)).toBe(true);
+  });
+
   it('allows the sole active organization member to recover user management', async () => {
     const orgId = new ObjectId();
     const userId = new ObjectId();

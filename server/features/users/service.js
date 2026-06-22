@@ -9,6 +9,7 @@ import { toFlexibleId } from '../../utils/objectid.js';
 import { ObjectId } from 'mongodb';
 import { hasEntityAccess } from '../../core/access/service.js';
 import * as processDefinitionsService from '../process-definitions/service.js';
+import { hasPermissionGrant } from '~/shared/access-control.js';
 
 /**
  * Users Service - v24 Absolute Final
@@ -258,6 +259,7 @@ export async function canManageUsersInOrganization(auth = {}, organizationId) {
 
   const membership = findOrganizationMembership(auth, organizationId);
   if (!membership || membership.status === 'pending' || membership.status === 'rejected') return false;
+  if (hasPermissionGrant({ permissions: membership.permissions || {}, feature: 'users', level: 'admin' })) return true;
 
   const roleIds = [
     membership.role,

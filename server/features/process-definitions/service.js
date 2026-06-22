@@ -19,6 +19,7 @@ import {
 } from '~/packages/processes/src/index.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 import { toFlexibleId } from '~/server/utils/objectid.js';
+import { hasPermissionGrant } from '~/shared/access-control.js';
 import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
 
@@ -382,6 +383,7 @@ export async function hasProcessDefinitionMembershipAccess(auth = {}, organizati
   if (!['read', 'write', 'admin'].includes(level)) return false;
   const membership = findOrganizationMembership(auth, organizationId);
   if (!membership || membership.status === 'pending' || membership.status === 'rejected') return false;
+  if (hasPermissionGrant({ permissions: membership.permissions || {}, feature: 'organizations', level })) return true;
   const roleIds = [
     membership.role,
     ...(membership.roleIds || []),

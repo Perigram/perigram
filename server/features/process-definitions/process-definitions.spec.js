@@ -33,6 +33,36 @@ describe('process definitions access fallback', () => {
     }, 'org-1', 'admin')).toBe(true);
   });
 
+  it('allows stored membership organization grants to recover process reads when process grants are missing', async () => {
+    usersRepository.find.mockResolvedValue([{
+      _id: 'creator',
+      data: {
+        memberships: [{
+          organizationId: 'org-1',
+          role: 'ContractorAdmin',
+          permissions: { organizations: { level: 'write' } },
+          status: 'active'
+        }]
+      }
+    }, {
+      _id: 'other',
+      data: {
+        memberships: [{ organizationId: 'org-1', role: 'role_viewer', permissions: {}, status: 'active' }]
+      }
+    }]);
+
+    expect(await hasProcessDefinitionMembershipAccess({
+      userId: 'creator',
+      effectivePermissions: {},
+      memberships: [{
+        organizationId: 'org-1',
+        role: 'ContractorAdmin',
+        permissions: { organizations: { level: 'write' } },
+        status: 'active'
+      }]
+    }, 'org-1', 'read')).toBe(true);
+  });
+
   it('allows the sole active organization member to recover process management', async () => {
     usersRepository.find.mockResolvedValueOnce([{
       _id: 'solo-user',
