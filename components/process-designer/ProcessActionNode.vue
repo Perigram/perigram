@@ -40,24 +40,7 @@
       />
     </div>
 
-    <div class="relative mt-2 rounded-ui border border-content-border p-1">
-      <Handle
-        v-if="triggerMode === 'event'"
-        id="trigger"
-        type="target"
-        :position="Position.Left"
-        class="!left-0 !-translate-x-1/2 !border-sky-500 !bg-sky-500"
-      />
-      <div class="nodrag grid grid-cols-[minmax(0,0.75fr)_minmax(0,0.65fr)_minmax(0,1.35fr)] gap-1">
-        <Select
-          :model-value="triggerMode"
-          :options="data.triggerModeOptions || []"
-          option-label="label"
-          option-value="value"
-          class="nodrag min-w-0"
-          size="small"
-          @update:model-value="value => updateTrigger({ mode: value })"
-        />
+    <div class="nodrag mt-2 grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] gap-1 rounded-ui border border-content-border p-1">
         <Select
           :model-value="action.access?.level || 'write'"
           :options="data.accessLevelOptions || []"
@@ -77,10 +60,18 @@
           size="small"
           @update:model-value="value => updateAccess({ roleIds: value })"
         />
-      </div>
+        <div v-if="accessDetail" class="col-span-2 truncate px-1 text-xs text-muted-color">{{ accessDetail }}</div>
     </div>
 
     <div v-if="hasInlineControls" class="nodrag mt-2 grid grid-cols-2 gap-1">
+      <InputText
+        v-if="action.actionKind === 'changeStatus'"
+        :model-value="action.status?.from || ''"
+        class="min-w-0"
+        size="small"
+        :placeholder="$t('processDesigner.currentStatus')"
+        @update:model-value="value => updateStatus({ from: value })"
+      />
       <InputText
         v-if="action.actionKind === 'changeStatus'"
         :model-value="action.status?.to || ''"
@@ -131,9 +122,27 @@
       </div>
     </div>
 
-    <div class="relative mt-2 rounded-ui border border-content-border px-2 py-0.5 text-right">
-      <Handle id="event" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-sky-500 !bg-sky-500" />
-      <span class="text-xs">{{ eventLabel }}</span>
+    <div class="relative mt-2 grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-1 rounded-ui border border-content-border p-1">
+      <Handle
+        v-if="triggerMode === 'event'"
+        id="trigger"
+        type="target"
+        :position="Position.Left"
+        class="!left-0 !-translate-x-1/2 !border-sky-500 !bg-sky-500"
+      />
+      <Select
+        :model-value="triggerMode"
+        :options="data.triggerModeOptions || []"
+        option-label="label"
+        option-value="value"
+        class="nodrag min-w-0"
+        size="small"
+        @update:model-value="value => updateTrigger({ mode: value })"
+      />
+      <div class="relative min-w-0 rounded-ui border border-content-border px-2 py-0.5 pr-3 text-right">
+        <Handle id="event" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-sky-500 !bg-sky-500" />
+        <span class="block truncate text-xs">{{ eventLabel }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -157,6 +166,13 @@ const eventLabel = computed(() => props.data.eventLabel || t('processDesigner.ac
 const actionKindLabel = computed(() => props.data.actionKindLabel || props.data.actionKind || t('common.actions.title'));
 const showEntitySelector = computed(() => ['createEntity', 'sendToOrganization'].includes(action.value.actionKind));
 const hasInlineControls = computed(() => ['createEntity', 'changeStatus', 'runCommand', 'sendToOrganization'].includes(action.value.actionKind));
+const accessDetail = computed(() => {
+  if (action.value.actionKind !== 'changeStatus') return '';
+  const from = action.value.access?.statusFrom || action.value.status?.from || '';
+  const to = action.value.access?.statusTo || action.value.status?.to || '';
+  if (!from && !to) return '';
+  return [from, to].filter(Boolean).join(' -> ');
+});
 
 function normalizeSpecs(items = []) {
   return items.map((item, index) => {

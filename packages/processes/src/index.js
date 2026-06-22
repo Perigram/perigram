@@ -351,10 +351,17 @@ function grantFromAction(action = {}, access = {}, domain = {}) {
   const entityType = action.entityType || action.inputs?.find(input => input.entityType)?.entityType;
   const feature = entityType ? resolveEntityFeature(domain, entityType) : null;
   if (!feature || !access.roleIds?.length) return null;
-  return {
+  const grant = {
     feature,
     level: access.level || 'write'
   };
+  if (action.actionKind === 'changeStatus') {
+    const from = access.statusFrom || action.status?.from || '';
+    const to = access.statusTo || action.status?.to || '';
+    if (from || to) grant.transitions = [{ from: from || undefined, to: to || undefined }];
+    if (from) grant.rule = { fact: 'primaryStatus', equals: from };
+  }
+  return grant;
 }
 
 function upsertGrant(grants, next) {
@@ -554,7 +561,9 @@ function compileActions(actions = {}) {
 function normalizeActionAccess(access = {}) {
   return {
     level: ['read', 'write', 'admin'].includes(access.level) ? access.level : 'write',
-    roleIds: Array.isArray(access.roleIds) ? access.roleIds : []
+    roleIds: Array.isArray(access.roleIds) ? access.roleIds : [],
+    statusFrom: typeof access.statusFrom === 'string' ? access.statusFrom : '',
+    statusTo: typeof access.statusTo === 'string' ? access.statusTo : ''
   };
 }
 

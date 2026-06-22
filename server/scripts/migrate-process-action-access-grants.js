@@ -17,7 +17,9 @@ function normalizeAction(action = {}) {
     },
     access: {
       level: ['read', 'write', 'admin'].includes(action.access?.level) ? action.access.level : 'write',
-      roleIds: accessRoleIds
+      roleIds: accessRoleIds,
+      statusFrom: action.actionKind === 'changeStatus' ? (action.access?.statusFrom || action.status?.from || '') : (action.access?.statusFrom || ''),
+      statusTo: action.actionKind === 'changeStatus' ? (action.access?.statusTo || action.status?.to || '') : (action.access?.statusTo || '')
     }
   };
 }

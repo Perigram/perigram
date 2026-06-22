@@ -11,6 +11,11 @@ import {
   validateRoundTrip
 } from './index.js';
 
+const SOURCE_STATE = 'SOURCE_STATE';
+const TARGET_STATE = 'TARGET_STATE';
+const INITIAL_STATE = 'INITIAL_STATE';
+const NEXT_STATE = 'NEXT_STATE';
+
 const domain = {
   entities: [
     { type: 'project' },
@@ -26,9 +31,9 @@ const domain = {
       primaryRegion: 'main',
       regions: {
         main: {
-          initial: 'DRAFT',
-          states: { DRAFT: {}, ACTIVE: {} },
-          transitions: [{ from: 'DRAFT', to: 'ACTIVE' }]
+          initial: SOURCE_STATE,
+          states: { [SOURCE_STATE]: {}, [TARGET_STATE]: {} },
+          transitions: [{ from: SOURCE_STATE, to: TARGET_STATE }]
         }
       }
     }
@@ -68,9 +73,9 @@ describe('@cutkit/processes compiler', () => {
               primaryRegion: 'main',
               regions: {
                 main: {
-                  initial: 'CREATED',
-                  states: { CREATED: {}, REVIEW: {} },
-                  transitions: [{ from: 'CREATED', to: 'REVIEW' }]
+                  initial: INITIAL_STATE,
+                  states: { [INITIAL_STATE]: {}, [NEXT_STATE]: {} },
+                  transitions: [{ from: INITIAL_STATE, to: NEXT_STATE }]
                 }
               }
             }
@@ -80,8 +85,8 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.workflows.project.regions.main.initial).toBe('CREATED');
-    expect(compiled.workflows.project.regions.main.transitions[0]).toMatchObject({ from: 'CREATED', to: 'REVIEW' });
+    expect(compiled.workflows.project.regions.main.initial).toBe(INITIAL_STATE);
+    expect(compiled.workflows.project.regions.main.transitions[0]).toMatchObject({ from: INITIAL_STATE, to: NEXT_STATE });
   });
 
   it('creates a CREATED-only workflow for defaultCreated lifecycle mode', () => {
@@ -294,11 +299,11 @@ describe('@cutkit/processes compiler', () => {
           label: 'Create project',
           actionKind: 'createEntity',
           entityType: 'project',
-          status: { to: 'CREATED' },
+          status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_admin'] },
           inputs: [],
-          outputs: [{ id: 'created', entityType: 'project', status: 'CREATED' }]
+          outputs: [{ id: 'created', entityType: 'project', status: INITIAL_STATE }]
         }
       }
     }, domain);
@@ -318,11 +323,11 @@ describe('@cutkit/processes compiler', () => {
           id: 'activate_incoming',
           label: 'Activate incoming',
           actionKind: 'changeStatus',
-          status: { to: 'ACTIVE' },
+          status: { to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: [] },
-          inputs: [{ id: 'entity', label: 'Incoming entity', status: 'Current status' }],
-          outputs: [{ id: 'entity', label: 'Same entity', status: 'ACTIVE' }],
+          inputs: [{ id: 'entity', label: 'Incoming entity' }],
+          outputs: [{ id: 'entity', label: 'Same entity', status: TARGET_STATE }],
           events: [{ id: 'completed', label: 'Activate incoming completed', kind: 'event' }]
         }
       }
@@ -331,7 +336,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions.activate_incoming).toMatchObject({
       actionKind: 'changeStatus',
       entityType: null,
-      status: { to: 'ACTIVE' },
+      status: { to: TARGET_STATE },
       trigger: { mode: 'manual' },
       events: [{ id: 'completed', kind: 'event' }]
     });
@@ -345,11 +350,11 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'createEntity',
           entityType: 'queue',
           parentEntityType: 'project',
-          status: { to: 'CREATED' },
+          status: { to: INITIAL_STATE },
           trigger: { mode: 'event' },
           access: { level: 'write', roleIds: [] },
           inputs: [{ id: 'parent', entityType: 'project' }],
-          outputs: [{ id: 'created', entityType: 'queue', status: 'CREATED' }]
+          outputs: [{ id: 'created', entityType: 'queue', status: INITIAL_STATE }]
         }
       }
     }, domain);
@@ -424,11 +429,11 @@ describe('@cutkit/processes compiler', () => {
           label: 'Create project',
           actionKind: 'createEntity',
           entityType: 'project',
-          status: { to: 'CREATED' },
+          status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_admin'] },
           inputs: [],
-          outputs: [{ id: 'created', entityType: 'project', status: 'CREATED' }]
+          outputs: [{ id: 'created', entityType: 'project', status: INITIAL_STATE }]
         }
       }
     };
@@ -448,7 +453,7 @@ describe('@cutkit/processes compiler', () => {
           id: 'create_project',
           actionKind: 'createEntity',
           entityType: 'project',
-          status: { to: 'CREATED' },
+          status: { to: INITIAL_STATE },
           trigger: { mode: 'event' },
           access: { level: 'write', roleIds: [] }
         },
@@ -484,7 +489,7 @@ describe('@cutkit/processes compiler', () => {
         activate_project: {
           actionKind: 'changeStatus',
           entityType: 'project',
-          status: { from: 'DRAFT', to: 'ACTIVE' },
+          status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['missing_role'] }
         }
@@ -505,11 +510,11 @@ describe('@cutkit/processes compiler', () => {
           id: 'create_project',
           actionKind: 'createEntity',
           entityType: 'project',
-          status: { to: 'CREATED' },
+          status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_creator'] },
           inputs: [],
-          outputs: [{ id: 'created', entityType: 'project', status: 'CREATED' }]
+          outputs: [{ id: 'created', entityType: 'project', status: INITIAL_STATE }]
         }
       },
       assignments: {
@@ -523,6 +528,43 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.userAccess.user_creator.permissions.projects[0]).toMatchObject({ level: 'write' });
     expect(compiled.roles.role_creator.actions[0]).toMatchObject({ actionId: 'create_project', level: 'run' });
+  });
+
+  it('derives status action grants from incoming status contracts', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator' }
+      },
+      actions: {
+        activate_project: {
+          id: 'activate_project',
+          actionKind: 'changeStatus',
+          status: { from: SOURCE_STATE, to: TARGET_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_operator'], statusFrom: SOURCE_STATE, statusTo: TARGET_STATE },
+          inputs: [{ id: 'entity', entityType: 'project', status: SOURCE_STATE }],
+          outputs: [{ id: 'entity', entityType: 'project', status: TARGET_STATE }]
+        }
+      },
+      assignments: {
+        user_operator: {
+          userId: 'user_operator',
+          roleIds: ['role_operator'],
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.roles.role_operator.grants[0]).toMatchObject({
+      feature: 'projects',
+      level: 'write',
+      transitions: [{ from: SOURCE_STATE, to: TARGET_STATE }],
+      rule: { fact: 'primaryStatus', equals: SOURCE_STATE }
+    });
+    expect(compiled.userAccess.user_operator.permissions.projects[0]).toMatchObject({
+      transitions: [{ from: SOURCE_STATE, to: TARGET_STATE }],
+      rule: { fact: 'primaryStatus', equals: SOURCE_STATE }
+    });
   });
 
   it('creates compilable starter process definitions from legacy organization types', () => {

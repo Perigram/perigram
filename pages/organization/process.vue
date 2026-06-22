@@ -800,7 +800,7 @@ function createAction(id, actionKind = 'createEntity') {
     entityType: ['changeStatus', 'runCommand'].includes(actionKind) ? '' : 'project',
     commandId: '',
     parentEntityType: '',
-    status: { from: '', to: actionKind === 'createEntity' ? 'CREATED' : '' },
+    status: { from: '', to: '' },
     projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
     access: { level: 'write', roleIds: [] },
     trigger: { mode: 'manual' },
@@ -981,7 +981,7 @@ function syncActionIo(action = {}) {
   action.status ||= {};
   action.events = actionEventOutputs(action);
   if (action.actionKind === 'createEntity') {
-    action.status.to ||= 'CREATED';
+    action.status.to ||= initialStatusForEntity(action.entityType);
     action.parentEntityType = '';
     action.inputs = [
       { id: 'parent', label: t('processDesigner.parentEntity'), required: false },
@@ -992,10 +992,13 @@ function syncActionIo(action = {}) {
   }
   if (action.actionKind === 'changeStatus') {
     const incomingEntityType = action.inputs?.find(input => input.id === 'entity')?.entityType || '';
+    action.status.from ||= action.access.statusFrom || '';
     action.entityType = '';
     action.status.to ||= '';
-    action.inputs = [{ id: 'entity', label: t('processDesigner.incomingEntity'), entityType: incomingEntityType, status: action.status.from || t('processDesigner.currentStatus') }];
-    action.outputs = [{ id: 'entity', label: t('processDesigner.sameEntity'), status: action.status.to || t('processDesigner.targetStatus') }];
+    action.access.statusFrom = action.status.from || '';
+    action.access.statusTo = action.status.to || '';
+    action.inputs = [{ id: 'entity', label: t('processDesigner.incomingEntity'), entityType: incomingEntityType, status: action.status.from || '' }];
+    action.outputs = [{ id: 'entity', label: t('processDesigner.sameEntity'), status: action.status.to || '' }];
     return;
   }
   if (action.actionKind === 'sendToOrganization') {
@@ -1009,6 +1012,14 @@ function syncActionIo(action = {}) {
     action.inputs = commandInputs(command);
     action.outputs = commandOutputs(command);
   }
+}
+
+function initialStatusForEntity(entityType) {
+  const profile = Object.values(draft.value?.data?.entityProfiles || {}).find(item => item.entityType === entityType);
+  if (!profile) return '';
+  const workflow = workflowForEntity(profile);
+  const region = workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0];
+  return region?.initial || '';
 }
 
 function actionKindLabel(actionKind) {
@@ -1236,6 +1247,11 @@ function updateActionRecord(actionId, updates = {}, options = {}) {
   const action = draft.value?.data?.actions?.[actionId];
   if (!action) return;
   Object.assign(action, updates);
+  if (updates.status && action.actionKind === 'changeStatus') {
+    action.access ||= { level: 'write', roleIds: [] };
+    action.access.statusFrom = action.status?.from || '';
+    action.access.statusTo = action.status?.to || '';
+  }
   if (options.syncIo) syncActionIo(action);
   syncNodeData();
 }
@@ -1345,23 +1361,30 @@ function syncInferredActionInputs() {
   for (const node of nodes.value.filter(item => item.type === 'action')) {
     const action = draft.value?.data?.actions?.[node.data?.refId];
     if (!action || action.actionKind !== 'changeStatus') continue;
-    const inferredEntityType = inferIncomingEntityType(node.id);
+    const inferred = inferIncomingEntityContract(node.id);
     const entityInput = action.inputs?.find(input => input.id === 'entity');
-    if (entityInput && inferredEntityType) entityInput.entityType = inferredEntityType;
+    if (entityInput && inferred.entityType) entityInput.entityType = inferred.entityType;
+    if (!action.status?.from && inferred.status) {
+      action.status ||= {};
+      action.status.from = inferred.status;
+    }
   }
   syncNodeData();
 }
 
-function inferIncomingEntityType(nodeId) {
+function inferIncomingEntityContract(nodeId) {
   const edge = edges.value.find(item => item.target === nodeId && String(item.targetHandle || '').startsWith('input'));
-  if (!edge) return '';
+  if (!edge) return {};
   const source = nodes.value.find(item => item.id === edge.source);
   const sourceRecord = source?.data?.refId ? draft.value?.data?.[recordKeyForType(source.type)]?.[source.data.refId] : null;
   const sourceOutputs = sourceRecord?.outputs || [];
   const handleId = String(edge.sourceHandle || '');
   const match = sourceOutputs.find((output, index) => socketHandleIdForRecord('output', output, index, sourceOutputs) === handleId)
     || sourceOutputs.find(output => output.entityType);
-  return match?.entityType || '';
+  return {
+    entityType: match?.entityType || '',
+    status: typeof match?.status === 'string' ? match.status : ''
+  };
 }
 
 function socketHandleIdForRecord(kind, item, index, items) {
@@ -1383,6 +1406,6 @@ function actionRoleOptions(action = {}, node = {}) {
 
 function effectiveActionEntityType(action = {}, node = {}) {
   if (action.entityType) return action.entityType;
-  return action.inputs?.find(input => input.entityType)?.entityType || inferIncomingEntityType(node.id);
+  return action.inputs?.find(input => input.entityType)?.entityType || inferIncomingEntityContract(node.id).entityType;
 }
 </script>
