@@ -54,7 +54,9 @@ Status action grants use the same access row as create actions. The grant is
 conditioned by the incoming entity status and target status: the designer
 stores `action.access.statusFrom` and `action.access.statusTo` from the graph
 or explicit status fields, and the compiler emits matching transition/rule
-filters.
+filters. The role selector lists process roles directly because selecting a
+role on an action creates the grant; entity-profile grants must not hide roles
+from action grant authoring.
 
 Command sockets should expose abstract domain contracts when a command is
 polymorphic. For example, `generateAttachment` presents one `Attachment source`

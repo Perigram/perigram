@@ -44,7 +44,10 @@ events, and emits trigger contracts. `trigger.mode` is only the execution mode:
 `manual` means a user starts the action from UI, and `event` means another
 node's completion event starts it automatically. Role ids and access levels are
 stored under `action.access` and compile into grants plus manual action
-availability. Entity creation exposes an optional parent input socket and
+availability. Designers select from process roles directly when authoring
+action grants; pre-existing entity-profile grants are an independent grant
+source, not a filter for action grant creation. Entity creation exposes an
+optional parent input socket and
 domain-declared data sockets from `cncEntityCreateInputs`; the visual designer
 derives the parent from the incoming edge instead of a parent-type selector.
 Change-status actions consume their entity from the incoming data socket and

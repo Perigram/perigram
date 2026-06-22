@@ -4,6 +4,14 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Show process roles in action grant selectors
+    Files changed: pages/organization/process.vue
+    Docs updated: components/process-designer/README.md,
+      packages/processes/README.md, TODO.org
+    Notes: Action-node role selectors now list process roles directly. Action
+      access rows create grants, so existing entity-profile grants are not used
+      as a prerequisite filter for selecting a role on create/status actions.
+
     [2026-06-22] Scope action grants by graph-derived status contracts
     Files changed: components/process-designer/ProcessActionNode.vue,
       pages/organization/process.vue, packages/processes/src/index.js,
