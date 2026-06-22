@@ -1,4 +1,4 @@
-import { defineEventHandler } from "h3";
+import { defineEventHandler, getQuery } from "h3";
 import * as projectsService from "../../features/projects/service.js";
 import * as queuesService from "../../features/queues/service.js";
 import { requireAuth } from "../../utils/permissions.js";
@@ -6,12 +6,17 @@ import { serializeForAccess } from "../../utils/entity-redaction.js";
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
+  const query = getQuery(event);
 
   const projects = await projectsService.list(
     user.userId,
     user.organizationId,
     user.role,
-    user
+    user,
+    {
+      status: query.status,
+      primaryStatus: query.primaryStatus
+    }
   );
   const queuePreviews = await queuesService.listPreviewByProjects(
     projects.map(project => project._id),

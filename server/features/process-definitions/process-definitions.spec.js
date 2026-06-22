@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { activate, assignUserToActiveProcessInternal, hasProcessDefinitionMembershipAccess } from './service.js';
+import { activate, assignUserToActiveProcessInternal, executeActiveProcessAction, hasProcessDefinitionMembershipAccess } from './service.js';
 import * as processRepository from './repository.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import { statusService } from '~/server/core/machines/service.js';
 
 vi.mock('./repository.js', () => ({
   find: vi.fn(),
@@ -15,6 +17,18 @@ vi.mock('./repository.js', () => ({
 vi.mock('~/server/features/organizations/repository.js', () => ({
   findById: vi.fn(),
   updateById: vi.fn()
+}));
+
+vi.mock('~/server/runtime/app-registry.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  getAppRegistry: vi.fn()
+}));
+
+vi.mock('~/server/core/machines/service.js', () => ({
+  statusService: {
+    setInitialStateForOrganization: vi.fn(),
+    transitionWithResult: vi.fn()
+  }
 }));
 
 describe('process definitions access fallback', () => {
@@ -190,5 +204,76 @@ describe('process definitions access fallback', () => {
         })
       })
     }));
+  });
+
+  it('authorizes create actions as create operations before status-scoped entity access exists', async () => {
+    const create = vi.fn(async () => ({
+      toJSON: () => ({
+        _id: 'project-created',
+        identity: { uid: 'project-created', name: 'Created project' },
+        lineage: { organizationId: 'org-1' },
+        status: { state: { primary: 'DRAFT' } }
+      })
+    }));
+    getAppRegistry.mockReturnValueOnce({
+      getEntityService: () => ({ create })
+    });
+    statusService.setInitialStateForOrganization.mockResolvedValueOnce({
+      state: { primary: 'NEW', active: { main: 'NEW' } }
+    });
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        actions: {},
+        compiled: {
+          actions: {
+            create_project: {
+              id: 'create_project',
+              actionKind: 'createEntity',
+              entityType: 'project',
+              status: { to: 'NEW' },
+              access: { level: 'admin', roleIds: ['role_creator'] }
+            }
+          }
+        }
+      }
+    });
+
+    const result = await executeActiveProcessAction({ actionId: 'create_project', data: { name: 'Created project' } }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      effectivePermissions: {
+        projects: [{ level: 'admin', rule: { fact: 'primaryStatus', equals: 'NEW' } }]
+      },
+      roleAssignments: {
+        actions: [{ actionId: 'create_project' }]
+      }
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      { name: 'Created project' },
+      'user-1',
+      'org-1',
+      undefined,
+      expect.objectContaining({
+        effectivePermissions: expect.objectContaining({
+          projects: expect.arrayContaining([
+            expect.objectContaining({ level: 'admin', actions: { create: true } })
+          ])
+        })
+      })
+    );
+    expect(statusService.setInitialStateForOrganization).toHaveBeenCalledWith(
+      'project',
+      'project-created',
+      'NEW',
+      'org-1',
+      'user-1',
+      expect.any(Object)
+    );
+    expect(result.status.state.primary).toBe('NEW');
   });
 });

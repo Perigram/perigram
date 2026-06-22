@@ -81,6 +81,24 @@
             {{ item }}
           </span>
         </div>
+        <div v-if="inheritedAccessLabels.length" class="col-span-2 flex min-w-0 items-center gap-1 px-1">
+          <span
+            v-for="item in inheritedAccessLabels"
+            :key="item"
+            class="min-w-0 truncate text-xs text-muted-color"
+          >
+            {{ item }}
+          </span>
+          <Button
+            icon="pi pi-refresh"
+            text
+            rounded
+            size="small"
+            class="ml-auto !h-6 !w-6"
+            :aria-label="$t('common.reset')"
+            @click="resetAccess"
+          />
+        </div>
     </div>
 
     <div v-if="hasInlineControls" class="nodrag mt-2 grid grid-cols-2 gap-1">
@@ -162,6 +180,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
+import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import MultiSelect from 'primevue/multiselect';
 import Select from 'primevue/select';
@@ -182,6 +201,7 @@ const triggerMode = computed(() => action.value.trigger?.mode || props.data.trig
 const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || props.data.inputLabels || []));
 const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || props.data.outputLabels || []));
 const effectiveAccessLabels = computed(() => props.data.effectiveAccessLabels || []);
+const inheritedAccessLabels = computed(() => props.data.inheritedAccessLabels || []);
 const eventLabel = computed(() => props.data.eventLabel || t('processDesigner.actionCompleted'));
 const actionKindLabel = computed(() => props.data.actionKindLabel || props.data.actionKind || t('common.actions.title'));
 const showEntitySelector = computed(() => ['createEntity', 'sendToOrganization'].includes(action.value.actionKind));
@@ -226,6 +246,10 @@ function updateAccess(updates) {
       ...updates
     }
   }, { syncIo: true });
+}
+
+function resetAccess() {
+  props.data.onActionResetAccess?.();
 }
 
 function updateStatus(updates) {

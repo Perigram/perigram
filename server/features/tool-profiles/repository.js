@@ -22,6 +22,7 @@ export async function findSystem() {
 }
 
 export async function findByOwner(ownerId) {
+  if (!ownerId) return [];
   const db = await connectDB();
   // Handle OAuth userId strings (e.g., "google:12345") - use as-is, not as ObjectId
   const query = { 'lineage.userId': ownerId };

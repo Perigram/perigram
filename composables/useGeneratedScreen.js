@@ -87,7 +87,16 @@ function resolveSourceIdentifier(source = {}, screen = {}) {
 }
 
 function resolveSourceFilters(source = {}, screen = {}) {
-  return resolveValue(source.filters || {}, screen) || {};
+  const filters = resolveValue(source.filters || {}, screen) || {};
+  const status = statusFilterFromRequirement(source.required || screen.required || {});
+  return status ? { ...filters, primaryStatus: status } : filters;
+}
+
+function statusFilterFromRequirement(requirement = {}) {
+  const rule = requirement.rule;
+  if (!rule || Array.isArray(rule) || typeof rule !== 'object') return '';
+  if ((rule.fact === 'primaryStatus' || rule.fact === 'status.primary') && rule.equals) return rule.equals;
+  return '';
 }
 
 function resolveValue(value, screen = {}) {

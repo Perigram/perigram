@@ -4,12 +4,11 @@
  */
 
 import { service } from '~/server/features/layer-standards';
-import { requireAuth } from '~/server/utils/permissions.js';
 import { serializeManyForAccess } from '~/server/utils/entity-redaction.js';
 
 export default defineEventHandler(async (event) => {
-  const auth = requireAuth(event);
-  const organizationId = auth.organizationId || null;
+  const auth = event.context.auth || null;
+  const organizationId = auth?.organizationId || null;
   const standards = await service.getAll();
 
   if (!organizationId) return serializeManyForAccess('layerStandard', standards, auth);

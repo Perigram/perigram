@@ -458,7 +458,7 @@ function compileRoles(process = {}, domain = {}) {
       if (!roles[roleId]) continue;
       roles[roleId].actions.push({
         actionId: action.id || actionId,
-        label: action.label || action.actionKind || action.id || actionId,
+        label: displayActionLabel(action, actionId),
         level: 'run',
         actionKind: action.actionKind || 'createEntity',
         feature: grant?.feature || null,
@@ -787,7 +787,7 @@ function initialSocketStatus(socket = {}) {
 function compileActions(actions = {}) {
   return Object.fromEntries(Object.entries(actions).map(([id, action]) => [id, {
     id: action.id || id,
-    label: action.label || action.actionKind || id,
+    label: displayActionLabel(action, id),
     actionKind: action.actionKind || 'createEntity',
     entityType: action.entityType || null,
     parentEntityType: action.parentEntityType || null,
@@ -803,6 +803,42 @@ function compileActions(actions = {}) {
     outputs: action.outputs || [],
     events: action.events || []
   }]));
+}
+
+function displayActionLabel(action = {}, id = '') {
+  const explicit = String(action.label || '').trim();
+  if (explicit && !isGenericActionLabel(explicit, action.actionKind)) return explicit;
+
+  const entityType = action.entityType
+    || action.inputs?.find(input => input.entityType)?.entityType
+    || action.outputs?.find(output => output.entityType)?.entityType
+    || '';
+  if ((action.actionKind || 'createEntity') === 'createEntity') {
+    return ['Create', entityTypeLabel(entityType), action.status?.to].filter(Boolean).join(' ');
+  }
+  if (action.actionKind === 'changeStatus') {
+    return ['Move', entityTypeLabel(entityType), action.status?.to].filter(Boolean).join(' ');
+  }
+  if (action.actionKind === 'updateEntity') {
+    return ['Update', entityTypeLabel(entityType)].filter(Boolean).join(' ');
+  }
+  if (action.actionKind === 'runCommand') {
+    return ['Run', action.commandId].filter(Boolean).join(' ');
+  }
+  if (action.actionKind === 'sendToOrganization') {
+    return ['Send', entityTypeLabel(entityType)].filter(Boolean).join(' ');
+  }
+  return action.actionKind || id;
+}
+
+function isGenericActionLabel(label, actionKind = '') {
+  const normalized = label.trim().toLowerCase();
+  const generic = new Set(['create', 'status', 'service', 'update', 'send', 'action', actionKind?.toLowerCase?.()].filter(Boolean));
+  return generic.has(normalized);
+}
+
+function entityTypeLabel(entityType = '') {
+  return entityType ? entityType.replace(/_/g, ' ') : '';
 }
 
 function normalizeActionAccess(access = {}) {

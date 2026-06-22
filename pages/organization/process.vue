@@ -1199,11 +1199,16 @@ function syncActionIo(action = {}, node = null) {
   if (action.actionKind === 'changeStatus') {
     const incoming = node?.id ? inferIncomingEntityContract(node.id) : {};
     const incomingEntityType = node ? (incoming.entityType || '') : (action.inputs?.find(input => input.id === 'entity')?.entityType || '');
+    const inheritedAccess = incoming.access || {};
     if (node) action.status.from = incoming.status || '';
     else if (incoming.status && !action.status.from) action.status.from = incoming.status;
     action.status.from ||= action.access.statusFrom || '';
     action.entityType = '';
     action.status.to ||= '';
+    if (node && !action.access.modified && inheritedAccess.roleIds?.length) {
+      action.access.level = inheritedAccess.level || action.access.level;
+      action.access.roleIds = [...inheritedAccess.roleIds];
+    }
     action.access.statusFrom = action.status.from || '';
     action.access.statusTo = action.status.to || '';
     action.inputs = [{ id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: action.status.from || '' }];
@@ -1468,10 +1473,12 @@ function enrichNodeData(node) {
       commandOptions: node.type === 'action' ? commandOptions.value : [],
       roleOptions: node.type === 'action' ? actionRoleOptions(record, node) : [],
       effectiveAccessLabels: node.type === 'action' ? effectiveActionAccessLabels(record, node) : [],
+      inheritedAccessLabels: node.type === 'action' ? inheritedActionAccessLabels(record, node) : [],
       accessLevelOptions: node.type === 'action' ? accessLevelOptions : [],
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
       fieldOptions: node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [],
       onActionUpdate: node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data?.refId, updates, options) : null,
+      onActionResetAccess: node.type === 'action' ? () => resetActionAccess(record.id || node.data?.refId) : null,
       triggerMode: record.trigger?.mode,
       eventLabel: node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null,
       direction: record.direction,
@@ -1499,12 +1506,32 @@ function updateActionRecord(actionId, updates = {}, options = {}) {
   const action = draft.value?.data?.actions?.[actionId];
   if (!action) return;
   Object.assign(action, updates);
+  if (updates.access && !options.inheritAccess) {
+    action.access ||= { level: 'write', roleIds: [] };
+    action.access.modified = true;
+  }
   if (updates.status && action.actionKind === 'changeStatus') {
     action.access ||= { level: 'write', roleIds: [] };
     action.access.statusFrom = action.status?.from || '';
     action.access.statusTo = action.status?.to || '';
   }
   if (options.syncIo) syncActionIo(action, selectedNode.value);
+  syncNodeData();
+}
+
+function resetActionAccess(actionId) {
+  const action = draft.value?.data?.actions?.[actionId];
+  if (!action || action.actionKind !== 'changeStatus') return;
+  const node = nodes.value.find(item => item.data?.refId === actionId);
+  const inherited = node ? inferIncomingEntityContract(node.id).access : null;
+  if (!inherited?.roleIds?.length) return;
+  action.access = {
+    ...(action.access || {}),
+    level: inherited.level || 'write',
+    roleIds: [...inherited.roleIds],
+    modified: false
+  };
+  syncActionIo(action, node);
   syncNodeData();
 }
 
@@ -1516,10 +1543,12 @@ function stripRuntimeNodeData(node) {
     'commandOptions',
     'roleOptions',
     'effectiveAccessLabels',
+    'inheritedAccessLabels',
     'accessLevelOptions',
     'triggerModeOptions',
     'fieldOptions',
-    'onActionUpdate'
+    'onActionUpdate',
+    'onActionResetAccess'
   ]) {
     delete data[key];
   }
@@ -1646,7 +1675,11 @@ function inferIncomingEntityContract(nodeId) {
     || sourceOutputs.find(output => output.entityType);
   return {
     entityType: match?.entityType || '',
-    status: typeof match?.status === 'string' ? match.status : ''
+    status: typeof match?.status === 'string' ? match.status : '',
+    access: sourceRecord?.access ? {
+      level: normalizeAccessLevel(sourceRecord.access.level),
+      roleIds: [...(sourceRecord.access.roleIds || [])]
+    } : null
   };
 }
 
@@ -1688,6 +1721,16 @@ function effectiveActionAccessLabels(action = {}, node = {}) {
   return [...accessByRole.values()]
     .filter(item => !currentRoleIds.has(item.roleId))
     .map(item => [item.label, item.level].filter(Boolean).join(' · '));
+}
+
+function inheritedActionAccessLabels(action = {}, node = {}) {
+  if (action.actionKind !== 'changeStatus') return [];
+  const inherited = inferIncomingEntityContract(node.id).access;
+  if (!inherited?.roleIds?.length) return [];
+  return inherited.roleIds.map(roleId => [
+    roles.value[roleId]?.label || roleId,
+    inherited.level || 'write'
+  ].join(' · '));
 }
 
 function addEffectiveRoleAccess(accessByRole, roleId, level, status) {

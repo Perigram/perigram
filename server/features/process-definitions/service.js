@@ -18,7 +18,7 @@ import {
 } from '~/packages/processes/src/index.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 import { toFlexibleId } from '~/server/utils/objectid.js';
-import { hasPermissionGrant } from '~/shared/access-control.js';
+import { hasPermissionGrant, normalizePermissionGrants } from '~/shared/access-control.js';
 import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
 
@@ -283,7 +283,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   const service = getEntityServiceForAction(action);
   if (action.actionKind === 'createEntity') {
     if (!service.create) throw createError({ statusCode: 500, message: `Entity service cannot create ${action.entityType}` });
-    const created = await service.create(data || {}, auth.userId, organizationId, auth.role, auth);
+    const created = await service.create(data || {}, auth.userId, organizationId, auth.role, createActionExecutionAuth(auth, action));
     const targetState = action.status?.to;
     if (!targetState) return created;
     const createdDto = created?.toJSON ? created.toJSON() : created;
@@ -352,6 +352,34 @@ function getEntityServiceForAction(action = {}) {
   const service = getAppRegistry().getEntityService(entityType);
   if (!service) throw createError({ statusCode: 500, message: `Entity service missing for ${entityType}` });
   return service;
+}
+
+function createActionExecutionAuth(auth = {}, action = {}) {
+  const feature = resolveActionFeature(action);
+  if (!feature) return auth;
+  const permissions = {
+    ...(auth.effectivePermissions || {})
+  };
+  permissions[feature] = [
+    ...normalizePermissionGrants(permissions[feature]),
+    {
+      level: action.access?.level || 'write',
+      actions: { create: true }
+    }
+  ];
+  return {
+    ...auth,
+    effectivePermissions: permissions
+  };
+}
+
+function resolveActionFeature(action = {}) {
+  const entityType = resolveActionEntityType(action);
+  const domain = getDomain();
+  const fieldPolicy = domain?.fieldAccess?.[entityType];
+  if (fieldPolicy?.feature) return fieldPolicy.feature;
+  const entity = (domain?.entities || []).find(item => item.type === entityType);
+  return entity?.collection || entityType;
 }
 
 function pickMutationData(data = {}, action = {}) {

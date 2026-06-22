@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     auth.role,
     auth,
     {
-      status: query.status,
+      status: query.status || query.primaryStatus,
       limit: query.limit ? parseInt(query.limit) : 100,
       skip: query.skip ? parseInt(query.skip) : 0
     }

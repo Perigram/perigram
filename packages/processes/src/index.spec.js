@@ -761,6 +761,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.roles.role_creator.actions[0]).toMatchObject({ actionId: 'create_project', level: 'run' });
     expect(compiled.userAccess.user_creator.actions[0]).toMatchObject({
       actionId: 'create_project',
+      label: `Create project ${INITIAL_STATE}`,
       actionKind: 'createEntity',
       feature: 'projects',
       sourceRoleIds: ['role_creator']

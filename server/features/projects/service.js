@@ -48,8 +48,11 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   return new Project(createdRaw);
 }
 
-export async function list(userId, userOrg, userRole, userPermissions) {
-  const filter = getLineageFilter(userPermissions);
+export async function list(userId, userOrg, userRole, userPermissions, query = {}) {
+  const filter = {
+    ...getLineageFilter(userPermissions)
+  };
+  if (query.status || query.primaryStatus) filter['status.state.primary'] = query.status || query.primaryStatus;
   const raws = await repository.find(filter);
   return raws
     .map(raw => new Project(raw))
