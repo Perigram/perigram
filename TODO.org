@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Scope status-change access to target status
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      pages/organization/process.vue, pages/organization/users.vue,
+      packages/processes/src/index.js, packages/processes/src/index.spec.js
+    Docs updated: components/process-designer/README.md,
+      packages/processes/README.md, TODO.org
+    Notes: Status-change action access now compiles as access to the resulting
+      entity status with `primaryStatus = statusTo`. Process/team access
+      summaries show entity/status grants instead of action labels, and action
+      nodes show compact chips for roles that already have matching access.
+
     [2026-06-22] Add process node selection and type styling
     Files changed: components/process-designer/ProcessActionNode.vue,
       components/process-designer/ProcessEntityNode.vue,
