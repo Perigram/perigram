@@ -2,9 +2,13 @@ import { createError } from 'h3';
 import standardSlugify from 'standard-slugify';
 import { ObjectId } from 'mongodb';
 import { assertEntityAccess } from '~/server/core/access/service.js';
+import { executeCommand } from '~/server/core/commands/service.js';
 import { createStatusState } from '~/server/core/blocks/index.js';
+import { statusService } from '~/server/core/machines/service.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import * as usersRepository from '~/server/features/users/repository.js';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import { normalizeEntityType } from '~/server/runtime/entities.js';
 import {
   compileProcessDefinition,
   createProcessFromTemplate,
@@ -238,6 +242,60 @@ export async function projectEntityThroughSocket({ socketId, entityId, targetOrg
   };
 }
 
+export async function executeActiveProcessAction({ actionId, entityId, data = {}, parameters = {}, entities = {}, targetOrganizationId = null } = {}, auth = {}) {
+  const organizationId = resolveOrganizationId(auth);
+  if (!actionId) throw createError({ statusCode: 400, message: 'Action id is required' });
+  const raw = await repository.findActiveByOrganization(organizationId);
+  if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
+
+  const process = new ProcessDefinition(raw);
+  const action = process.data.compiled?.actions?.[actionId] || process.data.actions?.[actionId];
+  if (!action) throw createError({ statusCode: 404, message: 'Action not found in active process' });
+  assertCompiledActionAvailable(actionId, auth);
+
+  if (action.actionKind === 'runCommand') {
+    if (!action.commandId) throw createError({ statusCode: 400, message: `Action ${actionId} has no command` });
+    return await executeCommand(action.commandId, { entities, parameters }, auth);
+  }
+
+  if (action.actionKind === 'changeStatus') {
+    const targetId = entityId || entities?.entity || entities?.[action.entityType];
+    if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
+    const targetState = action.status?.to || action.access?.statusTo;
+    if (!targetState) throw createError({ statusCode: 400, message: `Action ${actionId} has no target status` });
+    return await statusService.transitionWithResult({
+      entityType: resolveActionEntityType(action),
+      targetId,
+      targetState,
+      auth,
+      context: data?.statusMeta || data?.context || {}
+    });
+  }
+
+  if (action.actionKind === 'sendToOrganization') {
+    return await projectEntityThroughSocket({
+      socketId: action.socketId || action.projection?.socketId || action.targetSocketId,
+      entityId,
+      targetOrganizationId
+    }, auth);
+  }
+
+  const service = getEntityServiceForAction(action);
+  if (action.actionKind === 'createEntity') {
+    if (!service.create) throw createError({ statusCode: 500, message: `Entity service cannot create ${action.entityType}` });
+    return await service.create(data || {}, auth.userId, organizationId, auth.role, auth);
+  }
+
+  if (action.actionKind === 'updateEntity') {
+    const targetId = entityId || entities?.entity || entities?.[action.entityType];
+    if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
+    if (!service.update) throw createError({ statusCode: 500, message: `Entity service cannot update ${resolveActionEntityType(action)}` });
+    return await service.update(targetId, pickMutationData(data, action), auth.userId, organizationId, auth.role, auth);
+  }
+
+  throw createError({ statusCode: 400, message: `Unsupported action kind ${action.actionKind}` });
+}
+
 export async function getByIdInternal(id) {
   const raw = await repository.findById(id);
   return raw ? new ProcessDefinition(raw).toJSON() : null;
@@ -245,6 +303,51 @@ export async function getByIdInternal(id) {
 
 function applyProcessStatus(process, primary, userId, note) {
   process.applyStatus(createStatusState(primary), userId || 'SYSTEM', { note });
+}
+
+function assertCompiledActionAvailable(actionId, auth = {}) {
+  const available = auth.roleAssignments?.actions || [];
+  if (!available.some(action => action.actionId === actionId)) {
+    throw createError({ statusCode: 403, message: `Action ${actionId} is not available to the current process role` });
+  }
+}
+
+function resolveActionEntityType(action = {}) {
+  return normalizeEntityType(action.entityType || action.inputs?.find(input => input.entityType)?.entityType || '');
+}
+
+function getEntityServiceForAction(action = {}) {
+  const entityType = resolveActionEntityType(action);
+  if (!entityType) throw createError({ statusCode: 400, message: `Action ${action.id} has no entity type` });
+  const service = getAppRegistry().getEntityService(entityType);
+  if (!service) throw createError({ statusCode: 500, message: `Entity service missing for ${entityType}` });
+  return service;
+}
+
+function pickMutationData(data = {}, action = {}) {
+  const fields = action.mutation?.fields || [];
+  if (!fields.length) return data || {};
+  const picked = {};
+  for (const field of fields) {
+    const value = getByPath(data, field);
+    if (value !== undefined) setByPath(picked, field, value);
+  }
+  return picked;
+}
+
+function getByPath(source, path) {
+  return String(path || '').split('.').filter(Boolean).reduce((value, key) => value?.[key], source);
+}
+
+function setByPath(target, path, value) {
+  const parts = String(path || '').split('.').filter(Boolean);
+  let cursor = target;
+  while (parts.length > 1) {
+    const key = parts.shift();
+    cursor[key] ||= {};
+    cursor = cursor[key];
+  }
+  if (parts[0]) cursor[parts[0]] = value;
 }
 
 async function loadAuthorized(id, auth, level) {

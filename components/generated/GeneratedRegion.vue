@@ -6,7 +6,7 @@
     :surface="region.surface || 'detail'"
     :actions="region.actions || []"
     @refresh="$emit('refresh')"
-    @execute-action="$emit('execute-action', $event)"
+    @execute-action="(action, entity) => $emit('execute-action', action, entity)"
   />
   <GeneratedEntityCollection
     v-else
@@ -16,7 +16,7 @@
     :template="template"
     :actions="region.actions || []"
     @refresh="$emit('refresh')"
-    @execute-action="$emit('execute-action', $event)"
+    @execute-action="(action, entity) => $emit('execute-action', action, entity)"
   />
 </template>
 

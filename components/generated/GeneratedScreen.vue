@@ -9,6 +9,7 @@
           :source-state="sourceState(regionBySlot.left.sourceId)"
           :template="screen.template"
           @refresh="load"
+          @execute-action="executeAction"
         />
       </template>
       <GeneratedRegion
@@ -17,6 +18,7 @@
         :source-state="sourceState((regionBySlot.center || regionBySlot.main).sourceId)"
         :template="screen.template"
         @refresh="load"
+        @execute-action="executeAction"
       />
       <template v-if="regionBySlot.right" #right>
         <GeneratedRegion
@@ -24,6 +26,7 @@
           :source-state="sourceState(regionBySlot.right.sourceId)"
           :template="screen.template"
           @refresh="load"
+          @execute-action="executeAction"
         />
       </template>
     </WorkspaceLanes>
@@ -35,6 +38,7 @@
         :source-state="sourceState(region.sourceId)"
         :template="screen.template"
         @refresh="load"
+        @execute-action="executeAction"
       />
     </div>
   </StandardPage>
@@ -42,6 +46,8 @@
 
 <script setup>
 import { computed, toRef } from 'vue';
+import { useToast } from 'primevue/usetoast';
+import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
@@ -52,10 +58,36 @@ const props = defineProps({
   screen: { type: Object, required: true }
 });
 
+const toast = useToast();
+const { t } = useI18n();
 const screenRef = toRef(props, 'screen');
 const { screen, loading, error, load, sourceState } = useGeneratedScreen(screenRef);
 
 const regionBySlot = computed(() => Object.fromEntries(
   screen.value.regions.map(region => [region.slot || 'main', region])
 ));
+
+async function executeAction(action, entity = null) {
+  const actionId = action?.actionId || action?.id;
+  if (!actionId) return;
+  try {
+    await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`, {
+      method: 'POST',
+      body: {
+        entityId: entity?._id || entity?.identity?.uid || null,
+        entities: entity ? { [entity.origin?.type || entity.type || 'entity']: entity._id || entity.identity?.uid } : {},
+        data: {}
+      }
+    });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
+    await load();
+  } catch (err) {
+    toast.add({
+      severity: 'error',
+      summary: t('common.error'),
+      detail: err?.data?.message || err?.message,
+      life: 4000
+    });
+  }
+}
 </script>

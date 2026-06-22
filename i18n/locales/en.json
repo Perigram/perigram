@@ -2252,6 +2252,10 @@
     "screenPlacement": "Placement",
     "screenRoute": "Route",
     "sourceMode": "Source mode",
+    "sources": "Sources",
+    "addSource": "Add source",
+    "regions": "Regions",
+    "addRegion": "Add region",
     "surface": "Surface",
     "entityBinding": "Entity binding",
     "requiredFeature": "Required feature",
@@ -2266,6 +2270,7 @@
   },
   "generatedScreen": {
     "loadFailed": "Screen failed to load",
-    "notFound": "Screen is not available"
+    "notFound": "Screen is not available",
+    "actionCompleted": "Action completed"
   }
 }

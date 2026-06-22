@@ -30,7 +30,7 @@
             v-for="actionId in actions"
             :key="actionId"
             :action-id="actionId"
-            @execute="$emit('execute-action', $event, entity)"
+            @execute="action => $emit('execute-action', action, entity)"
           />
         </div>
       </template>

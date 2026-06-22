@@ -307,14 +307,28 @@
                       <MultiSelect v-model="selectedScreenRecord.roleIds" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
                     </div>
                   </div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.sourceMode') }}</label>
-                      <Select v-model="selectedScreenSource.mode" :options="screenSourceModeOptions" option-label="label" option-value="value" />
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <label>{{ $t('processDesigner.sources') }}</label>
+                      <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addSource')" size="small" text @click="addSelectedScreenSource" />
                     </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.surface') }}</label>
-                      <Select v-model="selectedScreenRegion.surface" :options="screenSurfaceOptions" option-label="label" option-value="value" />
+                    <div v-for="(source, index) in selectedScreenRecord.sources" :key="source.id || index" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
+                      <InputText v-model="source.id" size="small" />
+                      <Select v-model="source.entityType" :options="entityTypeOptions" option-label="label" option-value="value" size="small" @change="syncSelectedScreenUi" />
+                      <Select v-model="source.mode" :options="screenSourceModeOptions" option-label="label" option-value="value" size="small" />
+                      <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenSource(index)" />
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <label>{{ $t('processDesigner.regions') }}</label>
+                      <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addRegion')" size="small" text @click="addSelectedScreenRegion" />
+                    </div>
+                    <div v-for="(region, index) in selectedScreenRecord.regions" :key="region.id || index" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
+                      <Select v-model="region.slot" :options="screenSlotOptions" option-label="label" option-value="value" size="small" />
+                      <Select v-model="region.sourceId" :options="selectedScreenSourceOptions" option-label="label" option-value="value" size="small" />
+                      <Select v-model="region.surface" :options="screenSurfaceOptions" option-label="label" option-value="value" size="small" />
+                      <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenRegion(index)" />
                     </div>
                   </div>
                   <div class="grid grid-cols-2 gap-2">
@@ -378,7 +392,7 @@ import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { canvasToDefinition, definitionToCanvas } from '~/packages/processes/src/index.js';
-import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES } from '~/packages/processes/src/screen-contract.js';
+import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncEntityCreateInputs, cncEntityFieldAccess, cncWorkflows } from '@cutkit/domain-cnc';
 import ProcessActionNode from '~/components/process-designer/ProcessActionNode.vue';
@@ -439,6 +453,7 @@ const socketDirections = [
 ];
 const screenTemplateOptions = SCREEN_TEMPLATES.map(value => ({ label: value, value }));
 const screenSourceModeOptions = SCREEN_SOURCE_MODES.map(value => ({ label: value, value }));
+const screenSlotOptions = SCREEN_REGION_SLOTS.map(value => ({ label: value, value }));
 const screenSurfaceOptions = ['card', 'compact', 'detail', 'table', 'workspace'].map(value => ({ label: value, value }));
 const screenPlacementOptions = [
   { label: 'hub', value: 'hub' },
@@ -497,6 +512,10 @@ const commandOptions = computed(() => Object.values(cncDomain.commands || {}).ma
 const screenActionOptions = computed(() => Object.values(draft.value?.data?.actions || {}).map(action => ({
   label: action.label || action.id,
   value: action.id
+})));
+const selectedScreenSourceOptions = computed(() => (selectedScreenRecord.value?.sources || []).map(source => ({
+  label: source.id || source.entityType,
+  value: source.id
 })));
 const navigationRouteOptions = computed(() => [
   { label: t('features.projects'), value: '/projects', feature: 'projects' },
@@ -1019,16 +1038,18 @@ function syncSelectedScreenUi() {
     const feature = featureForEntityType(entityType);
     selectedScreenRecord.value.required.feature = feature;
     for (const source of selectedScreenRecord.value.sources) {
-      source.entityType = entityType;
-      source.required = { ...(source.required || {}), feature, level: source.required?.level || selectedScreenRecord.value.required.level || 'read' };
+      const sourceFeature = featureForEntityType(source.entityType || entityType);
+      source.required = { ...(source.required || {}), feature: sourceFeature, level: source.required?.level || selectedScreenRecord.value.required.level || 'read' };
     }
   }
   const source = ensureSelectedScreenSource();
   const region = ensureSelectedScreenRegion();
   if (source && region) {
     source.mode = selectedScreenRecord.value.template === 'entityDetail' || selectedScreenRecord.value.template === 'formAction' ? 'single' : source.mode || 'list';
-    region.sourceId = source.id;
-    region.actions = selectedScreenRecord.value.actions || [];
+    for (const screenRegion of selectedScreenRecord.value.regions || []) {
+      if (!selectedScreenRecord.value.sources.some(item => item.id === screenRegion.sourceId)) screenRegion.sourceId = source.id;
+      screenRegion.actions = selectedScreenRecord.value.actions || [];
+    }
   }
 }
 
@@ -1066,6 +1087,51 @@ function ensureSelectedScreenRegion() {
   return screen.regions[0];
 }
 
+function addSelectedScreenSource() {
+  const screen = selectedScreenRecord.value;
+  if (!screen) return;
+  screen.sources ||= [];
+  const entityType = screen.entityType || 'project';
+  const id = uniqueRecordId('source', Object.fromEntries(screen.sources.map(source => [source.id, source])));
+  screen.sources.push({
+    id,
+    entityType,
+    mode: screen.template === 'entityDetail' ? 'single' : 'list',
+    required: { feature: featureForEntityType(entityType), level: screen.required?.level || 'read' },
+    filters: {}
+  });
+}
+
+function removeSelectedScreenSource(index) {
+  const screen = selectedScreenRecord.value;
+  if (!screen?.sources || screen.sources.length <= 1) return;
+  const [removed] = screen.sources.splice(index, 1);
+  for (const region of screen.regions || []) {
+    if (region.sourceId === removed?.id) region.sourceId = screen.sources[0]?.id || '';
+  }
+}
+
+function addSelectedScreenRegion() {
+  const screen = selectedScreenRecord.value;
+  if (!screen) return;
+  const source = ensureSelectedScreenSource();
+  screen.regions ||= [];
+  const id = uniqueRecordId('region', Object.fromEntries(screen.regions.map(region => [region.id, region])));
+  screen.regions.push({
+    id,
+    slot: screen.template === 'workspaceLanes' ? 'right' : 'main',
+    sourceId: source.id,
+    surface: screen.template === 'entityDetail' ? 'detail' : 'card',
+    actions: screen.actions || []
+  });
+}
+
+function removeSelectedScreenRegion(index) {
+  const screen = selectedScreenRecord.value;
+  if (!screen?.regions || screen.regions.length <= 1) return;
+  screen.regions.splice(index, 1);
+}
+
 function routeScreenId(option = {}) {
   const route = option.value || '';
   return `${option.feature || 'route'}.${route.replace(/^\//, '').replaceAll('/', '.')}`;
@@ -1086,6 +1152,16 @@ function featureEntityType(feature) {
 function featureForEntityType(entityType) {
   const entity = (cncDomain.entities || []).find(item => item.type === entityType);
   return entity?.collection || `${entityType}s`;
+}
+
+function uniqueRecordId(prefix, records = {}) {
+  let index = Object.keys(records).length + 1;
+  let id = `${prefix}_${index}`;
+  while (records[id]) {
+    index += 1;
+    id = `${prefix}_${index}`;
+  }
+  return id;
 }
 
 function addLifecycleState() {
