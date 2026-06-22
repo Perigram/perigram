@@ -30,7 +30,7 @@ const COMMON_SERVICES = {
       { id: 'nestingRun', entityType: 'nesting_run', multiple: false },
       { id: 'sheetDesign', entityType: 'sheet_design', multiple: true }
     ],
-    access: { runRoles: ['role_admin'], viewRoles: ['role_admin', 'role_viewer'] }
+    access: { runPrincipals: ['principal_nesting'], viewPrincipals: ['principal_nesting'] }
   }
 };
 
@@ -175,25 +175,28 @@ function createTemplate({ id, label, adminLabel, grants, entities, services }) {
   const adminScreens = Object.entries(grants)
     .map(([feature, level]) => createScreenItem(feature, level, ['role_admin']))
     .filter(Boolean);
-  const adminNavigation = adminScreens.map(screenToNavigation);
   const roles = {
     role_admin: {
       id: 'role_admin',
       label: adminLabel,
-      kind: 'orgRole',
-      capabilities: [],
-      grants: Object.entries(grants).map(([feature, level]) => ({ feature, level })),
-      navigation: adminNavigation
+      capabilities: []
     },
     role_viewer: {
       id: 'role_viewer',
       label: 'Viewer',
-      kind: 'userRole',
-      capabilities: [],
-      grants: [],
-      navigation: []
+      capabilities: []
     }
   };
+  const servicePrincipals = Object.fromEntries(Object.values(services)
+    .flatMap(service => [
+      ...(service.access?.runPrincipals || []),
+      ...(service.access?.viewPrincipals || [])
+    ])
+    .map(principalId => [principalId, {
+      id: principalId,
+      label: principalId.replace(/^principal_/, '').replace(/_/g, ' '),
+      kind: 'service'
+    }]));
   const graph = {
     nodes: [
       { id: 'role_admin', type: 'role', position: { x: 80, y: 80 }, data: { refId: 'role_admin', label: adminLabel } },
@@ -221,6 +224,7 @@ function createTemplate({ id, label, adminLabel, grants, entities, services }) {
       sourceTemplateId: id,
       graph,
       roles,
+      servicePrincipals,
       entityProfiles: entities,
       actions: {},
       services,

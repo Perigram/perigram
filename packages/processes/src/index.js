@@ -41,6 +41,7 @@ export function normalizeProcessDefinition(definition = {}) {
     sourceProcessDefinitionId: data.sourceProcessDefinitionId || null,
     graph: normalizeGraph(data.graph),
     roles: normalizeRecord(data.roles),
+    servicePrincipals: normalizeRecord(data.servicePrincipals),
     entityProfiles: normalizeRecord(data.entityProfiles),
     actions: normalizeRecord(data.actions),
     services: normalizeRecord(data.services),
@@ -89,6 +90,9 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
 
   for (const [serviceId, service] of Object.entries(process.services)) {
     if (service.commandId && !commands.has(service.commandId)) errors.push(`Service ${serviceId} uses unknown command ${service.commandId}`);
+    for (const principalId of [...(service.access?.runPrincipals || []), ...(service.access?.viewPrincipals || [])]) {
+      if (!process.servicePrincipals[principalId]) errors.push(`Service ${serviceId} references missing service principal ${principalId}`);
+    }
     for (const input of service.inputs || []) {
       if (input.entityType && !entities.has(input.entityType)) errors.push(`Service ${serviceId} input ${input.id} uses unknown entity type ${input.entityType}`);
     }
@@ -159,6 +163,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
     schemaVersion: PROCESS_SCHEMA_VERSION,
     activatedAt: new Date().toISOString(),
     roles: compiledRoles,
+    servicePrincipals: process.servicePrincipals,
     userAccess,
     workflows,
     fieldPolicies: compileFieldPolicies(process.entityProfiles),
@@ -251,7 +256,6 @@ function compileLifecycle(profile = {}, domain = {}) {
 
 function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {} } = {}) {
   const permissions = {};
-  const navigation = [];
   const screenMap = new Map();
   const incompleteBindings = [];
   const roleIds = assignment.roleIds || [];
@@ -266,9 +270,6 @@ function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {} } =
       }
       permissions[grant.feature] ||= [];
       permissions[grant.feature].push(compiledGrant.grant);
-    }
-    for (const item of role.navigation || []) {
-      navigation.push({ ...item, roleId });
     }
     for (const screen of Object.values(screens)) {
       if (!screenAppliesToRole(screen, roleId)) continue;
@@ -285,14 +286,19 @@ function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {} } =
   return {
     roleIds,
     permissions,
-    navigation: dedupeNavigation([...navigation, ...screenNavigation]),
+    navigation: dedupeNavigation(screenNavigation),
     screens: screensList,
     incompleteBindings
   };
 }
 
 function compileRoles(process = {}, domain = {}) {
-  const roles = JSON.parse(JSON.stringify(process.roles || {}));
+  const roles = Object.fromEntries(Object.entries(process.roles || {}).map(([roleId, role]) => [roleId, {
+    id: role.id || roleId,
+    label: role.label || role.id || roleId,
+    grants: [],
+    actions: []
+  }]));
   for (const profile of Object.values(process.entityProfiles || {})) {
     const feature = resolveEntityFeature(domain, profile.entityType);
     for (const level of ['read', 'write', 'admin']) {
@@ -303,19 +309,34 @@ function compileRoles(process = {}, domain = {}) {
       }
     }
   }
-  for (const service of Object.values(process.services || {})) {
-    for (const roleId of service.access?.runRoles || []) {
+  for (const screen of Object.values(process.screens || {})) {
+    const grant = grantFromScreenRequired(screen.required);
+    if (!grant) continue;
+    for (const roleId of screen.roleIds || []) {
       if (!roles[roleId]) continue;
-      roles[roleId].serviceAccess ||= [];
-      upsertServiceAccess(roles[roleId].serviceAccess, { serviceId: service.id, commandId: service.commandId, level: 'run' });
+      upsertGrant(roles[roleId].grants, grant);
     }
-    for (const roleId of service.access?.viewRoles || []) {
+  }
+  for (const [actionId, action] of Object.entries(process.actions || {})) {
+    if (!['manual', 'user'].includes(action.trigger?.mode || 'manual')) continue;
+    for (const roleId of action.trigger?.roleIds || []) {
       if (!roles[roleId]) continue;
-      roles[roleId].serviceAccess ||= [];
-      upsertServiceAccess(roles[roleId].serviceAccess, { serviceId: service.id, commandId: service.commandId, level: 'view' });
+      roles[roleId].actions.push({ actionId: action.id || actionId, label: action.label || action.actionKind || action.id || actionId, level: 'run' });
     }
   }
   return roles;
+}
+
+function grantFromScreenRequired(required = null) {
+  if (!required?.feature || !required?.level) return null;
+  return {
+    feature: required.feature,
+    level: required.level,
+    actions: required.actions,
+    scope: required.scope,
+    transitions: required.transitions,
+    rule: required.rule
+  };
 }
 
 function upsertGrant(grants, next) {
@@ -325,11 +346,6 @@ function upsertGrant(grants, next) {
     return;
   }
   if (ACCESS_ORDER[next.level] > ACCESS_ORDER[existing.level || 'read']) existing.level = next.level;
-}
-
-function upsertServiceAccess(items, next) {
-  const exists = items.some(item => item.serviceId === next.serviceId && item.level === next.level);
-  if (!exists) items.push(next);
 }
 
 function resolveEntityFeature(domain = {}, entityType) {
@@ -381,8 +397,9 @@ function replacePlaceholders(value, bindings, incomplete) {
 function collectIncompleteBindingWarnings(process) {
   const warnings = [];
   const compiledScreens = compileScreens(process.screens || {});
+  const compiledRoles = compileRoles(process);
   for (const [userId, assignment] of Object.entries(process.assignments)) {
-    const access = compileAssignmentAccess({ assignment, roles: process.roles, screens: compiledScreens });
+    const access = compileAssignmentAccess({ assignment, roles: compiledRoles, screens: compiledScreens });
     for (const item of access.incompleteBindings) {
       warnings.push(`Assignment ${userId} role ${item.roleId}${item.screenId ? ` screen ${item.screenId}` : ''} missing binding ${item.binding}`);
     }
@@ -504,9 +521,9 @@ function compileServices(services = {}) {
   return Object.fromEntries(Object.entries(services).map(([id, service]) => [id, {
     enabled: true,
     commandId: service.commandId || null,
-    roles: {
-      run: service.access?.runRoles || [],
-      view: service.access?.viewRoles || []
+    principals: {
+      run: service.access?.runPrincipals || service.access?.runRoles || [],
+      view: service.access?.viewPrincipals || service.access?.viewRoles || []
     },
     inputs: service.inputs || [],
     outputs: service.outputs || []

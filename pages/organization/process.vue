@@ -45,7 +45,7 @@
             @change="selectProcessDefinition"
           />
           <Button icon="pi pi-users" :aria-label="$t('organization.teamManagement')" size="small" severity="secondary" outlined @click="navigateTo('/organization/users')" />
-          <Button icon="pi pi-check" :aria-label="$t('processDesigner.apply')" size="small" :disabled="!draft?._id" @click="applyProcess" />
+          <Button icon="pi pi-check" :aria-label="$t('processDesigner.apply')" size="small" :loading="applyingProcess" :disabled="!draft?._id" @click="applyProcess" />
       </div>
 
       <aside class="absolute bottom-3 right-3 top-3 z-10 flex w-[28rem] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card">
@@ -53,6 +53,7 @@
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
             <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
+            <Tab value="principals">{{ $t('processDesigner.principals') }}</Tab>
             <Tab value="screens">{{ $t('organization.screens') }}</Tab>
           </TabList>
           <TabPanels class="min-h-0 flex-1 overflow-y-auto">
@@ -139,12 +140,12 @@
                   </div>
                   <div class="grid grid-cols-1 gap-3">
                     <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.runRoles') }}</label>
-                      <MultiSelect v-model="selectedService.access.runRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                      <label>{{ $t('processDesigner.runPrincipals') }}</label>
+                      <MultiSelect v-model="selectedService.access.runPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
                     </div>
                     <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.viewRoles') }}</label>
-                      <MultiSelect v-model="selectedService.access.viewRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                      <label>{{ $t('processDesigner.viewPrincipals') }}</label>
+                      <MultiSelect v-model="selectedService.access.viewPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
                     </div>
                   </div>
                   <div class="grid grid-cols-1 gap-3">
@@ -221,20 +222,36 @@
                     <label>{{ $t('processDesigner.label') }}</label>
                     <InputText v-model="selectedRoleRecord.label" />
                   </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.roleKind') }}</label>
-                    <Select v-model="selectedRoleRecord.kind" :options="roleKinds" option-label="label" option-value="value" />
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.navigationRoutes') }}</label>
-                    <MultiSelect v-model="selectedRoleNavigationRoutes" :options="navigationRouteOptions" option-label="label" option-value="value" display="chip" class="w-full" @change="applySelectedRoleNavigationRoutes" />
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.explicitGrants') }}</label>
-                    <Textarea v-model="selectedRoleGrantsJson" rows="5" class="font-mono text-xs" @blur="applySelectedRoleGrantsJson" />
+                  <div class="flex flex-wrap gap-1">
+                    <Tag v-for="item in selectedRoleAccessSummary" :key="item" :value="item" size="small" />
                   </div>
                   <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedRole" />
                   <Button icon="pi pi-users" :label="$t('organization.openTeam')" severity="secondary" outlined size="small" @click="navigateTo('/organization/users')" />
+                </div>
+              </div>
+            </TabPanel>
+
+            <TabPanel value="principals">
+              <div class="flex flex-col gap-4">
+                <div class="flex justify-end">
+                  <Button icon="pi pi-plus" :label="$t('processDesigner.addPrincipal')" size="small" @click="addServicePrincipal" />
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <Tag
+                    v-for="principal in servicePrincipalList"
+                    :key="principal.id"
+                    :value="principal.label || principal.id"
+                    :severity="selectedPrincipalId === principal.id ? 'success' : 'secondary'"
+                    class="cursor-pointer"
+                    @click="selectedPrincipalId = principal.id"
+                  />
+                </div>
+                <div v-if="selectedPrincipalRecord" class="flex flex-col gap-3">
+                  <div class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.label') }}</label>
+                    <InputText v-model="selectedPrincipalRecord.label" />
+                  </div>
+                  <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedPrincipal" />
                 </div>
               </div>
             </TabPanel>
@@ -319,7 +336,7 @@
       <Panel v-if="validation" class="absolute bottom-3 left-3 z-10 max-w-xl" :header="$t('processDesigner.validation')">
         <div class="flex flex-col gap-2">
           <Message :severity="validation.ok ? 'success' : 'error'">
-            {{ validation.ok ? $t('processDesigner.validationOk') : validation.errors.join('; ') }}
+            {{ validation.ok ? (validation.message || $t('processDesigner.validationOk')) : validation.errors.join('; ') }}
           </Message>
           <Message v-for="warning in validation.warnings || []" :key="warning" severity="warn">{{ warning }}</Message>
         </div>
@@ -372,9 +389,9 @@ const nodes = ref([]);
 const edges = ref([]);
 const selectedNodeId = ref(null);
 const validation = ref(null);
+const applyingProcess = ref(false);
 const selectedRoleId = ref(null);
-const selectedRoleNavigationRoutes = ref([]);
-const selectedRoleGrantsJson = ref('[]');
+const selectedPrincipalId = ref(null);
 const selectedScreenId = ref(null);
 const selectedScreenBindingsJson = ref('{}');
 const selectedScreenActionsJson = ref('[]');
@@ -395,11 +412,6 @@ const actionKindOptions = [
 const triggerModeOptions = [
   { label: 'Manual', value: 'manual' },
   { label: 'Event', value: 'event' }
-];
-const roleKinds = [
-  { label: 'orgRole', value: 'orgRole' },
-  { label: 'userRole', value: 'userRole' },
-  { label: 'serviceRole', value: 'serviceRole' }
 ];
 const lifecycleModes = [
   { label: 'defaultCreated', value: 'defaultCreated' },
@@ -453,15 +465,16 @@ const selectedSocket = computed(() => selectedNode.value?.type === 'socket' ? en
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType?.replace(/_/g, 's') || 'projects');
 
 const roles = computed(() => draft.value?.data?.roles || {});
+const servicePrincipals = computed(() => draft.value?.data?.servicePrincipals || {});
 const screens = computed(() => draft.value?.data?.screens || {});
 const roleList = computed(() => Object.values(roles.value));
+const servicePrincipalList = computed(() => Object.values(servicePrincipals.value));
 const screenList = computed(() => Object.values(screens.value));
 const selectedRoleRecord = computed(() => selectedRoleId.value ? roles.value[selectedRoleId.value] : null);
+const selectedPrincipalRecord = computed(() => selectedPrincipalId.value ? servicePrincipals.value[selectedPrincipalId.value] : null);
 const selectedScreenRecord = computed(() => selectedScreenId.value ? screens.value[selectedScreenId.value] : null);
 const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
-const manualTriggerRoleOptions = computed(() => roleList.value
-  .filter(role => role.kind !== 'serviceRole')
-  .map(role => ({ label: role.label || role.id, value: role.id })));
+const servicePrincipalOptions = computed(() => servicePrincipalList.value.map(principal => ({ label: principal.label || principal.id, value: principal.id })));
 const entityTypeOptions = computed(() => (cncDomain.entities || []).map(entity => ({ label: entity.type, value: entity.type })));
 const optionalEntityTypeOptions = computed(() => [{ label: 'None', value: '' }, ...entityTypeOptions.value]);
 const commandOptions = computed(() => Object.values(cncDomain.commands || {}).map(command => ({ label: command.label || command.id, value: command.id })));
@@ -483,8 +496,8 @@ const lifecycleRegion = computed(() => lifecycleWorkflow.value.regions?.main || 
 const lifecycleStateIds = computed(() => Object.keys(lifecycleRegion.value?.states || {}).filter(key => !key.includes('.')));
 const lifecycleStateOptions = computed(() => lifecycleStateIds.value.map(value => ({ label: value, value })));
 const lifecycleTransitions = computed(() => lifecycleRegion.value?.transitions || []);
+const selectedRoleAccessSummary = computed(() => selectedRoleId.value ? roleAccessSummary(selectedRoleId.value) : []);
 
-watch(selectedRoleRecord, () => syncSelectedRoleEditors(), { immediate: true });
 watch(selectedScreenRecord, () => syncSelectedScreenEditors(), { immediate: true });
 
 onMounted(() => {
@@ -598,10 +611,28 @@ async function activateDraft() {
   const activated = await $fetch(`/api/process-definitions/${draft.value._id}/activate`, { method: 'POST' });
   upsertProcessDefinition(activated);
   setDraft(activated);
+  return activated;
 }
 
 async function applyProcess() {
-  await activateDraft();
+  applyingProcess.value = true;
+  try {
+    const activated = await activateDraft();
+    validation.value = {
+      ok: true,
+      errors: [],
+      warnings: activated?.data?.compiled?.warnings || [],
+      message: t('processDesigner.applySuccess')
+    };
+  } catch (error) {
+    validation.value = {
+      ok: false,
+      errors: [error.data?.message || error.message],
+      warnings: []
+    };
+  } finally {
+    applyingProcess.value = false;
+  }
 }
 
 function setDraft(value) {
@@ -618,6 +649,7 @@ function setDraft(value) {
   nodes.value = canvas.nodes.map(enrichNodeData);
   edges.value = canvas.edges;
   selectedRoleId.value = Object.keys(value?.data?.roles || {})[0] || null;
+  selectedPrincipalId.value = Object.keys(value?.data?.servicePrincipals || {})[0] || null;
   selectedScreenId.value = Object.keys(value?.data?.screens || {})[0] || null;
 }
 
@@ -690,7 +722,7 @@ function syncNodeData() {
     node.data.actionRecord = node.type === 'action' ? record : null;
     node.data.entityTypeOptions = node.type === 'action' ? entityTypeOptions.value : [];
     node.data.commandOptions = node.type === 'action' ? commandOptions.value : [];
-    node.data.roleOptions = node.type === 'action' ? manualTriggerRoleOptions.value : [];
+    node.data.roleOptions = node.type === 'action' ? roleOptions.value : [];
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
     node.data.fieldOptions = node.type === 'action' ? fieldOptions(record.entityType) : [];
     node.data.onActionUpdate = node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data.refId, updates, options) : null;
@@ -699,7 +731,7 @@ function syncNodeData() {
     node.data.direction = record.direction;
     node.data.lifecycleMode = record.lifecycle?.mode;
     node.data.roleCount = record.allowedRoles ? countRoleBindings(record.allowedRoles) : (record.trigger?.roleIds?.length || 0);
-    node.data.runRoleLabels = roleLabels(record.access?.runRoles || []);
+    node.data.runPrincipalLabels = principalLabels(record.access?.runPrincipals || record.access?.runRoles || []);
     node.data.receiveRoleLabels = roleLabels(record.access?.receiveRoles || []);
     node.data.fieldCount = record.fields ? countFieldBindings(record.fields) : (record.projection?.fields?.length || 0);
     node.data.stateLabels = workflowStateLabels(record);
@@ -732,7 +764,11 @@ function factoryForType(type) {
 }
 
 function createRole(id) {
-  return { id, label: id, kind: 'userRole', capabilities: [], grants: [], navigation: [] };
+  return { id, label: id };
+}
+
+function createServicePrincipal(id) {
+  return { id, label: id };
 }
 
 function paletteLabel(item) {
@@ -753,7 +789,7 @@ function createEntityProfile(id) {
 }
 
 function createService(id) {
-  return { id, label: id, serviceType: '', commandId: '', inputs: [], outputs: [], access: { runRoles: [], viewRoles: [] } };
+  return { id, label: id, serviceType: '', commandId: '', inputs: [], outputs: [], access: { runPrincipals: [], viewPrincipals: [] } };
 }
 
 function createAction(id, actionKind = 'createEntity') {
@@ -811,7 +847,6 @@ function removeSelectedRole() {
   }
   for (const service of Object.values(draft.value.data.services || {})) {
     service.access ||= {};
-    for (const key of ['runRoles', 'viewRoles']) service.access[key] = (service.access[key] || []).filter(roleId => roleId !== removedRoleId);
   }
   for (const socket of Object.values(draft.value.data.sockets || {})) {
     socket.access ||= {};
@@ -829,6 +864,25 @@ function removeSelectedRole() {
     if (!screen.roleIds.length) delete draft.value.data.screens[screenId];
   }
   selectedRoleId.value = Object.keys(draft.value.data.roles)[0] || null;
+}
+
+function addServicePrincipal() {
+  const id = `principal_${Date.now()}`;
+  draft.value ||= { data: {} };
+  draft.value.data.servicePrincipals ||= {};
+  draft.value.data.servicePrincipals[id] = createServicePrincipal(id);
+  selectedPrincipalId.value = id;
+}
+
+function removeSelectedPrincipal() {
+  if (!selectedPrincipalId.value || !draft.value?.data?.servicePrincipals) return;
+  const removedPrincipalId = selectedPrincipalId.value;
+  delete draft.value.data.servicePrincipals[removedPrincipalId];
+  for (const service of Object.values(draft.value.data.services || {})) {
+    service.access ||= {};
+    for (const key of ['runPrincipals', 'viewPrincipals']) service.access[key] = (service.access[key] || []).filter(principalId => principalId !== removedPrincipalId);
+  }
+  selectedPrincipalId.value = Object.keys(draft.value.data.servicePrincipals)[0] || null;
 }
 
 function addScreen() {
@@ -860,18 +914,6 @@ function removeSelectedScreen() {
   selectedScreenId.value = Object.keys(draft.value.data.screens)[0] || null;
 }
 
-function syncSelectedRoleEditors() {
-  const quickScreenIds = new Set(navigationRouteOptions.value.map(routeScreenId));
-  const screenRoutes = Object.values(screens.value)
-    .filter(screen => quickScreenIds.has(screen.id) && (screen.roleIds || []).includes(selectedRoleId.value))
-    .map(screen => screen.route)
-    .filter(Boolean);
-  selectedRoleNavigationRoutes.value = screenRoutes.length
-    ? screenRoutes
-    : (selectedRoleRecord.value?.navigation || []).map(item => item.route).filter(Boolean);
-  selectedRoleGrantsJson.value = JSON.stringify(selectedRoleRecord.value?.grants || [], null, 2);
-}
-
 function syncSelectedScreenEditors() {
   if (!selectedScreenRecord.value) {
     selectedScreenBindingsJson.value = '{}';
@@ -897,49 +939,6 @@ function applySelectedScreenActionsJson() {
   selectedScreenRecord.value.actions = Array.isArray(parsed) ? parsed : [];
 }
 
-function applySelectedRoleNavigationRoutes() {
-  if (!selectedRoleRecord.value) return;
-  selectedRoleRecord.value.navigation = selectedRoleNavigationRoutes.value.map(route => {
-    const option = navigationRouteOptions.value.find(item => item.value === route);
-    return {
-      id: `${option?.feature || 'route'}.${route.replace(/^\//, '').replaceAll('/', '.')}`,
-      route,
-      requires: { feature: option?.feature || 'organizations', level: route.includes('/process') ? 'admin' : 'read' }
-    };
-  });
-  syncRoleScreens(selectedRoleRecord.value.id, selectedRoleNavigationRoutes.value);
-}
-
-function syncRoleScreens(roleId, routes = []) {
-  if (!roleId) return;
-  draft.value ||= { data: {} };
-  draft.value.data.screens ||= {};
-  const quickScreenIds = new Set(navigationRouteOptions.value.map(routeScreenId));
-  for (const [screenId, screen] of Object.entries(draft.value.data.screens)) {
-    if (!quickScreenIds.has(screenId)) continue;
-    if (!(screen.roleIds || []).includes(roleId)) continue;
-    screen.roleIds = screen.roleIds.filter(item => item !== roleId);
-    if (!screen.roleIds.length) delete draft.value.data.screens[screenId];
-  }
-  for (const route of routes) {
-    const option = navigationRouteOptions.value.find(item => item.value === route);
-    const id = routeScreenId(option || { value: route, feature: 'route' });
-    const level = route.includes('/process') ? 'admin' : 'read';
-    draft.value.data.screens[id] = {
-      id,
-      label: option?.label || route,
-      kind: route.includes('/project/') ? 'entityDetail' : 'workspace',
-      route,
-      placement: 'hub',
-      entityType: featureEntityType(option?.feature),
-      roleIds: [roleId],
-      required: { feature: option?.feature || 'organizations', level },
-      bindings: {},
-      actions: []
-    };
-  }
-}
-
 function routeScreenId(option = {}) {
   const route = option.value || '';
   return `${option.feature || 'route'}.${route.replace(/^\//, '').replaceAll('/', '.')}`;
@@ -955,11 +954,6 @@ function featureEntityType(feature) {
     users: 'user',
     organizations: 'organization'
   })[feature] || null;
-}
-
-function applySelectedRoleGrantsJson() {
-  if (!selectedRoleRecord.value) return;
-  selectedRoleRecord.value.grants = parseJson(selectedRoleGrantsJson.value, []);
 }
 
 function addLifecycleState() {
@@ -1096,6 +1090,10 @@ function roleLabels(roleIds = []) {
   return roleIds.map(roleId => roles.value[roleId]?.label || roleId).filter(Boolean);
 }
 
+function principalLabels(principalIds = []) {
+  return principalIds.map(principalId => servicePrincipals.value[principalId]?.label || principalId).filter(Boolean);
+}
+
 function addLifecycleTransition() {
   const region = ensureCustomLifecycleRegion();
   const states = Object.keys(region.states);
@@ -1183,7 +1181,7 @@ function enrichNodeData(node) {
       actionRecord: node.type === 'action' ? record : null,
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
       commandOptions: node.type === 'action' ? commandOptions.value : [],
-      roleOptions: node.type === 'action' ? manualTriggerRoleOptions.value : [],
+      roleOptions: node.type === 'action' ? roleOptions.value : [],
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
       fieldOptions: node.type === 'action' ? fieldOptions(record.entityType) : [],
       onActionUpdate: node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data?.refId, updates, options) : null,
@@ -1193,7 +1191,7 @@ function enrichNodeData(node) {
       direction: record.direction,
       lifecycleMode: record.lifecycle?.mode,
       roleCount: record.allowedRoles ? countRoleBindings(record.allowedRoles) : 0,
-      runRoleLabels: roleLabels(record.access?.runRoles || []),
+      runPrincipalLabels: principalLabels(record.access?.runPrincipals || record.access?.runRoles || []),
       receiveRoleLabels: roleLabels(record.access?.receiveRoles || []),
       fieldCount: record.fields ? countFieldBindings(record.fields) : (record.projection?.fields?.length || 0),
       stateLabels: workflowStateLabels(record),
@@ -1247,7 +1245,7 @@ function workflowTransitionCount(record) {
 }
 
 function countRoleBindings(access = {}) {
-  return ['read', 'write', 'admin', 'runRoles', 'viewRoles', 'sendRoles', 'receiveRoles']
+  return ['read', 'write', 'admin', 'sendRoles', 'receiveRoles']
     .reduce((total, key) => total + (access[key]?.length || 0), 0);
 }
 
@@ -1283,6 +1281,29 @@ function syncServiceFromCommand() {
   selectedService.value.serviceType = command.service;
   selectedService.value.inputs = commandInputs(command);
   selectedService.value.outputs = commandOutputs(command);
+}
+
+function roleAccessSummary(roleId) {
+  const items = [];
+  for (const profile of Object.values(draft.value?.data?.entityProfiles || {})) {
+    for (const level of ['read', 'write', 'admin']) {
+      if ((profile.allowedRoles?.[level] || []).includes(roleId)) items.push(`${profile.entityType}:${level}`);
+    }
+  }
+  for (const action of Object.values(draft.value?.data?.actions || {})) {
+    if (action.trigger?.mode === 'manual' && (action.trigger.roleIds || []).includes(roleId)) items.push(`${action.label || action.id}:manual`);
+  }
+  for (const screen of Object.values(draft.value?.data?.screens || {})) {
+    if ((screen.roleIds || []).includes(roleId)) items.push(`${screen.label || screen.id}:screen`);
+  }
+  for (const profile of Object.values(draft.value?.data?.entityProfiles || {})) {
+    for (const region of Object.values(workflowForEntity(profile).regions || {})) {
+      for (const transition of region.transitions || []) {
+        if ((transition.access?.processRoleIds || []).includes(roleId)) items.push(`${profile.entityType}:${transition.from}->${transition.to}`);
+      }
+    }
+  }
+  return [...new Set(items)];
 }
 
 function onConnect(connection) {

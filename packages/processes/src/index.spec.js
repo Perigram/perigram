@@ -114,23 +114,29 @@ describe('@cutkit/processes compiler', () => {
     expect(validation.errors.join('\n')).toContain('billing.secret');
   });
 
-  it('compiles assignment placeholders into user-specific grants', () => {
+  it('compiles screen requirements into user-specific grants', () => {
     const compiled = compileProcessDefinition({
       roles: {
-        role_project_viewer: {
-          id: 'role_project_viewer',
-          grants: [{
+        role_project_viewer: { id: 'role_project_viewer' }
+      },
+      screens: {
+        assigned_project: {
+          id: 'assigned_project',
+          route: '/project/$assignment.projectSlug/details',
+          roleIds: ['role_project_viewer'],
+          bindings: { projectId: '$assignment.projectId' },
+          required: {
             feature: 'projects',
             level: 'read',
             scope: { entityId: '$assignment.projectId' }
-          }]
+          }
         }
       },
       assignments: {
         user_a: {
           userId: 'user_a',
           roleIds: ['role_project_viewer'],
-          bindings: { projectId: 'project-123' },
+          bindings: { projectId: 'project-123', projectSlug: 'p-123' },
           status: 'active'
         }
       }
@@ -139,16 +145,21 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.userAccess.user_a.permissions.projects[0].scope.entityId).toBe('project-123');
   });
 
-  it('skips grants with incomplete assignment bindings', () => {
+  it('skips screen-derived grants with incomplete assignment bindings', () => {
     const compiled = compileProcessDefinition({
       roles: {
-        role_project_viewer: {
-          id: 'role_project_viewer',
-          grants: [{
+        role_project_viewer: { id: 'role_project_viewer' }
+      },
+      screens: {
+        assigned_project: {
+          id: 'assigned_project',
+          route: '/project/$assignment.projectSlug/details',
+          roleIds: ['role_project_viewer'],
+          required: {
             feature: 'projects',
             level: 'read',
             scope: { entityId: '$assignment.projectId' }
-          }]
+          }
         }
       },
       assignments: {
@@ -162,20 +173,19 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.userAccess.user_a.permissions.projects).toBeUndefined();
-    expect(compiled.userAccess.user_a.incompleteBindings[0]).toMatchObject({ binding: 'projectId' });
+    expect(compiled.userAccess.user_a.incompleteBindings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ binding: 'projectId' }),
+        expect.objectContaining({ binding: 'projectSlug' })
+      ])
+    );
   });
 
   it('compiles role screens with assignment overload bindings', () => {
     const compiled = compileProcessDefinition({
       roles: {
-        role_operator: {
-          id: 'role_operator',
-          grants: [{ feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } }]
-        },
-        role_supervisor: {
-          id: 'role_supervisor',
-          grants: [{ feature: 'projects', level: 'write', scope: { entityId: '$assignment.projectId' } }]
-        }
+        role_operator: { id: 'role_operator' },
+        role_supervisor: { id: 'role_supervisor' }
       },
       screens: {
         assigned_project: {
@@ -185,7 +195,7 @@ describe('@cutkit/processes compiler', () => {
           route: '/project/$assignment.projectSlug/details',
           placement: 'hub',
           entityType: 'project',
-          required: { feature: 'projects', level: 'read' },
+          required: { feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } },
           roleIds: ['role_operator', 'role_supervisor'],
           bindings: { projectId: '$assignment.projectId' },
           actions: ['viewProject']
@@ -209,12 +219,13 @@ describe('@cutkit/processes compiler', () => {
       scope: { projectId: 'project-123' },
       sourceRoleIds: ['role_operator', 'role_supervisor']
     });
+    expect(compiled.userAccess.user_a.permissions.projects[0].scope.entityId).toBe('project-123');
   });
 
   it('skips screens with incomplete assignment bindings', () => {
     const compiled = compileProcessDefinition({
       roles: {
-        role_operator: { id: 'role_operator', grants: [] }
+        role_operator: { id: 'role_operator' }
       },
       screens: {
         assigned_project: {
@@ -244,12 +255,11 @@ describe('@cutkit/processes compiler', () => {
     );
   });
 
-  it('resolves legacy role navigation as screen manifest fallback', () => {
+  it('ignores role navigation and derives screens only from screen records', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_operator: {
           id: 'role_operator',
-          grants: [],
           navigation: [{
             id: 'projects',
             route: '/projects',
@@ -267,21 +277,13 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.userAccess.user_a.screens).toEqual([]);
-    expect(resolveScreens({ compiled, userId: 'user_a' })).toEqual([
-      expect.objectContaining({
-        id: 'projects',
-        screenKey: 'projects',
-        route: '/projects',
-        required: { feature: 'projects', level: 'read' },
-        sourceRoleIds: ['role_operator']
-      })
-    ]);
+    expect(resolveScreens({ compiled, userId: 'user_a' })).toEqual([]);
   });
 
   it('compiles user-triggered action contracts', () => {
     const compiled = compileProcessDefinition({
       roles: {
-        role_admin: { id: 'role_admin', grants: [] }
+        role_admin: { id: 'role_admin' }
       },
       actions: {
         create_project: {
@@ -370,10 +372,35 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('compiles service access through service principals instead of roles', () => {
+    const compiled = compileProcessDefinition({
+      servicePrincipals: {
+        principal_nesting: { id: 'principal_nesting', label: 'Nesting service' }
+      },
+      services: {
+        service_nesting: {
+          id: 'service_nesting',
+          commandId: 'solveNesting',
+          access: {
+            runPrincipals: ['principal_nesting'],
+            viewPrincipals: ['principal_nesting']
+          }
+        }
+      }
+    }, domain);
+
+    expect(compiled.servicePrincipals.principal_nesting.label).toBe('Nesting service');
+    expect(compiled.services.service_nesting.principals.run).toEqual(['principal_nesting']);
+    expect(compiled.services.service_nesting.roles).toBeUndefined();
+  });
+
   it('projects semantic process records to canvas nodes and round-trips them', () => {
     const definition = {
       roles: {
-        role_admin: { id: 'role_admin', label: 'Admin', grants: [] }
+        role_admin: { id: 'role_admin', label: 'Admin' }
+      },
+      servicePrincipals: {
+        principal_nesting: { id: 'principal_nesting', label: 'Nesting service' }
       },
       entityProfiles: {
         project_profile: {

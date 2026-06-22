@@ -9,7 +9,7 @@ const RECORD_NODE_TYPES = Object.keys(CANVAS_RECORD_KEYS);
 
 export function hasCanonicalProcessSource(definition = {}) {
   const data = definition.data || definition;
-  return ['roles', 'entityProfiles', 'actions', 'services', 'sockets', 'screens', 'assignments']
+  return ['roles', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'screens', 'assignments']
     .some(key => data[key] && typeof data[key] === 'object' && Object.keys(data[key]).length > 0);
 }
 
@@ -114,6 +114,7 @@ function normalizeProcessLike(definition = {}) {
     sourceProcessDefinitionId: data.sourceProcessDefinitionId || null,
     graph: normalizeGraph(data.graph),
     roles: normalizeRecord(data.roles),
+    servicePrincipals: normalizeRecord(data.servicePrincipals),
     entityProfiles: normalizeRecord(data.entityProfiles),
     actions: normalizeRecord(data.actions),
     services: normalizeRecord(data.services),
@@ -175,7 +176,7 @@ function collectCanvasRefs(nodes = []) {
 
 function compareSemanticRecords(source, next) {
   const errors = [];
-  for (const key of ['roles', 'entityProfiles', 'actions', 'services', 'sockets', 'screens', 'assignments']) {
+  for (const key of ['roles', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'screens', 'assignments']) {
     const sourceJson = JSON.stringify(sortObject(source[key] || {}));
     const nextJson = JSON.stringify(sortObject(next[key] || {}));
     if (sourceJson !== nextJson) errors.push(`Round-trip changed ${key}`);

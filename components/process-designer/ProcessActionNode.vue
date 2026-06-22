@@ -1,5 +1,5 @@
 <template>
-  <div class="relative min-w-72 rounded-ui border border-emerald-300 bg-content px-2 py-2 shadow-card">
+  <div class="relative min-w-72 rounded-ui border border-content-border bg-content px-2 py-2 shadow-card">
     <div class="nodrag grid grid-cols-[auto_minmax(0,1fr)_minmax(0,0.8fr)] items-center gap-1">
       <span class="text-xs font-semibold uppercase">{{ actionKindLabel }}</span>
       <Select
@@ -41,7 +41,13 @@
     </div>
 
     <div class="relative mt-2 rounded-ui border border-content-border p-1">
-      <Handle id="trigger" type="target" :position="Position.Top" class="!top-0 !-translate-y-1/2 !border-sky-500 !bg-sky-500" />
+      <Handle
+        v-if="triggerMode === 'event'"
+        id="trigger"
+        type="target"
+        :position="Position.Left"
+        class="!left-0 !-translate-x-1/2 !border-sky-500 !bg-sky-500"
+      />
       <div class="nodrag grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-1">
         <Select
           :model-value="triggerMode"
@@ -118,8 +124,8 @@
       </div>
     </div>
 
-    <div class="relative mt-2 rounded-ui border border-content-border px-2 py-0.5 text-center">
-      <Handle id="event" type="source" :position="Position.Bottom" class="!bottom-0 !translate-y-1/2 !border-sky-500 !bg-sky-500" />
+    <div class="relative mt-2 rounded-ui border border-content-border px-2 py-0.5 text-right">
+      <Handle id="event" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-sky-500 !bg-sky-500" />
       <span class="text-xs">{{ eventLabel }}</span>
     </div>
   </div>

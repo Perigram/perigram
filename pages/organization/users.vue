@@ -10,7 +10,7 @@
     <DataTable :value="users" :loading="loading" stripedRows>
       <Column field="identity.name" :header="$t('profile.name')" sortable />
       <Column field="data.email" :header="$t('profile.email')" sortable />
-      <Column field="data.role" :header="$t('queue.status')">
+      <Column field="data.role" :header="$t('organization.processRoles')">
         <template #body="{ data }">
           <div class="flex flex-wrap gap-1">
             <Tag v-for="role in getUserProcessRoles(data)" :key="role.id" :value="role.label" severity="info" />
@@ -42,7 +42,7 @@
                     </div>
                 </template>
             </Column>
-            <Column field="role" :header="$t('billing.role')" />
+            <Column field="role" :header="$t('organization.processRoles')" />
             <Column field="expiresAt" :header="$t('auth.expires')">
                 <template #body="{ data }">
                     {{ new Date(data.expiresAt).toLocaleDateString() }}
@@ -81,7 +81,7 @@
         <div class="flex flex-col gap-4 pt-4">
             <p>{{ $t('auth.inviteMemberNote') }}</p>
             <div class="flex flex-col gap-2">
-                <label>{{ $t('billing.role') }} *</label>
+                <label>{{ $t('organization.processRoles') }} *</label>
                 <Select v-model="inviteForm.role" :options="roleOptions" optionLabel="label" optionValue="value" class="w-full" />
             </div>
             <div v-if="generatedUrl" class="mt-4">
@@ -118,7 +118,7 @@
           <Password v-model="form.password" required toggleMask class="w-full" :inputStyle="{ width: '100%' }" />
         </div>
         <div class="flex flex-col gap-2">
-          <label>{{ $t('billing.role') }} *</label>
+          <label>{{ $t('organization.processRoles') }} *</label>
           <Select v-model="form.role" :options="roleOptions" optionLabel="label" optionValue="value" required class="w-full" />
         </div>
         <div class="flex justify-end gap-2 mt-4">
@@ -135,17 +135,19 @@
                 <label>{{ $t('organization.processRoles') }}</label>
                 <MultiSelect v-model="roleAssignment.roleIds" :options="roleOptions" optionLabel="label" optionValue="value" display="chip" class="w-full" />
             </div>
-            <div class="flex flex-col gap-2">
-                <label>{{ $t('processDesigner.bindingsJson') }}</label>
-                <Textarea v-model="roleAssignment.bindingsJson" rows="6" class="w-full font-mono text-xs" />
+            <div v-if="assignmentBindingFields.length" class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div v-for="field in assignmentBindingFields" :key="field.key" class="flex flex-col gap-2">
+                    <label>{{ field.label }}</label>
+                    <InputText v-model="roleAssignment.bindings[field.key]" class="w-full" />
+                </div>
             </div>
             <Panel :header="$t('organization.compiledAccessPreview')">
                 <div class="flex flex-col gap-3">
                     <div>
                         <small class="text-muted-color">{{ $t('auth.permissions') }}</small>
                         <div class="mt-1 flex flex-wrap gap-1">
-                            <Tag v-for="item in selectedUserPermissionSummary" :key="item" :value="item" severity="secondary" size="small" />
-                            <Tag v-if="!selectedUserPermissionSummary.length" :value="$t('common.notAvailable')" severity="secondary" size="small" />
+                            <Tag v-for="item in selectedUserAccessSummary" :key="item" :value="item" severity="secondary" size="small" />
+                            <Tag v-if="!selectedUserAccessSummary.length" :value="$t('organization.noProcessAccess')" severity="secondary" size="small" />
                         </div>
                     </div>
                     <div>
@@ -154,7 +156,7 @@
                             <span v-for="screen in selectedUserScreens" :key="screen.screenKey || screen.id" class="truncate text-sm">
                                 {{ screen.labelKey ? $t(screen.labelKey) : (screen.label || screen.route) }} · {{ screen.route }}
                             </span>
-                            <span v-if="!selectedUserScreens.length" class="text-sm text-muted-color">{{ $t('common.notAvailable') }}</span>
+                            <span v-if="!selectedUserScreens.length" class="text-sm text-muted-color">{{ $t('organization.noProcessScreens') }}</span>
                         </div>
                     </div>
                     <Message v-if="selectedUserIncompleteBindings.length" severity="warn">
@@ -184,7 +186,6 @@ import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Select from 'primevue/select';
 import MultiSelect from 'primevue/multiselect';
-import Textarea from 'primevue/textarea';
 import Tag from 'primevue/tag';
 import Panel from 'primevue/panel';
 import Message from 'primevue/message';
@@ -217,14 +218,16 @@ const generatedUrl = ref(null);
 const invitations = ref([]);
 const pendingUsers = ref([]);
 const activeProcess = ref(null);
-const roleAssignment = ref({ roleIds: [], bindingsJson: '{}' });
+const roleAssignment = ref({ roleIds: [], bindings: {} });
 const selectedUserAccess = computed(() => {
     const userId = String(selectedUser.value?._id || selectedUser.value?.id || '');
     return activeProcess.value?.data?.compiled?.userAccess?.[userId] || null;
 });
-const selectedUserPermissionSummary = computed(() => permissionSummary(selectedUserAccess.value?.permissions || {}));
-const selectedUserScreens = computed(() => selectedUserAccess.value?.screens || []);
+const selectedRoleDerivedAccessSummary = computed(() => derivedRoleAccessSummary(roleAssignment.value.roleIds));
+const selectedUserAccessSummary = computed(() => selectedRoleDerivedAccessSummary.value);
+const selectedUserScreens = computed(() => previewScreensForRoles(roleAssignment.value.roleIds, roleAssignment.value.bindings));
 const selectedUserIncompleteBindings = computed(() => selectedUserAccess.value?.incompleteBindings || []);
+const assignmentBindingFields = computed(() => requiredAssignmentBindings(roleAssignment.value.roleIds));
 
 const getInvitationUrl = (token) => {
     if (process.client) {
@@ -258,11 +261,10 @@ const inviteForm = ref({
 
 const roleOptions = computed(() => {
   const roles = activeProcess.value?.data?.roles || {};
-  const options = Object.values(roles).map(role => ({
+  return Object.values(roles).map(role => ({
     label: role.label || role.id,
     value: role.id
   }));
-  return options.length ? options : [{ label: t('roles.IndividualUser'), value: 'role_viewer' }];
 });
 
 async function loadUsers() {
@@ -358,7 +360,7 @@ function editProcessRoles(user) {
   const assignment = getProcessAssignment(user);
   roleAssignment.value = {
     roleIds: assignment?.roleIds?.length ? [...assignment.roleIds] : [roleOptions.value[0]?.value].filter(Boolean),
-    bindingsJson: JSON.stringify(assignment?.bindings || {}, null, 2)
+    bindings: { ...(assignment?.bindings || {}) }
   };
   showPermissionsDialog.value = true;
 }
@@ -366,13 +368,12 @@ function editProcessRoles(user) {
 async function saveProcessRoles() {
   savingRoleAssignment.value = true;
   try {
-    const bindings = JSON.parse(roleAssignment.value.bindingsJson || '{}');
     await $fetch('/api/process-definitions/active/assignments', {
       method: 'PATCH',
       body: {
         userId: selectedUser.value._id,
         roleIds: roleAssignment.value.roleIds,
-        bindings,
+        bindings: roleAssignment.value.bindings,
         status: 'active'
       }
     });
@@ -388,12 +389,6 @@ async function saveProcessRoles() {
   }
 }
 
-function permissionSummary(permissions = {}) {
-    return Object.entries(permissions)
-        .filter(([, grants]) => grants && grants !== 'none')
-        .map(([feature, grants]) => `${feature}:${Array.isArray(grants) ? grants.map(grant => grant.level || 'custom').join(',') : (grants.level || grants)}`);
-}
-
 function getProcessAssignment(user) {
     const assignments = activeProcess.value?.data?.assignments || {};
     return assignments[String(user?._id)] || assignments[String(user?.id)] || null;
@@ -402,13 +397,82 @@ function getProcessAssignment(user) {
 function getUserProcessRoles(user) {
     const roles = activeProcess.value?.data?.roles || {};
     const assignment = getProcessAssignment(user);
-    const roleIds = assignment?.roleIds?.length
-        ? assignment.roleIds
-        : user.data?.memberships?.find(m => m.organizationId?.toString() === authStore.userData.organizationId?.toString())?.roleIds || [user.data?.role].filter(Boolean);
+    const roleIds = assignment?.roleIds || [];
     return roleIds.map(roleId => ({
         id: roleId,
         label: roles[roleId]?.label || roleId
     }));
+}
+
+function requiredAssignmentBindings(roleIds = []) {
+    const keys = new Set();
+    for (const screen of Object.values(activeProcess.value?.data?.screens || {})) {
+        if (!screenAppliesToRoles(screen, roleIds)) continue;
+        collectAssignmentKeys(screen.route, keys);
+        collectAssignmentKeys(screen.bindings, keys);
+        collectAssignmentKeys(screen.required, keys);
+    }
+    return [...keys].sort().map(key => ({
+        key,
+        label: key.replace(/([A-Z])/g, ' $1').replace(/[._-]+/g, ' ').trim() || key
+    }));
+}
+
+function collectAssignmentKeys(value, keys) {
+    if (Array.isArray(value)) {
+        for (const item of value) collectAssignmentKeys(item, keys);
+        return;
+    }
+    if (value && typeof value === 'object') {
+        for (const item of Object.values(value)) collectAssignmentKeys(item, keys);
+        return;
+    }
+    if (typeof value !== 'string') return;
+    for (const match of value.matchAll(/\$assignment\.([A-Za-z0-9_.-]+)/g)) keys.add(match[1]);
+}
+
+function screenAppliesToRoles(screen = {}, roleIds = []) {
+    return !screen.roleIds?.length || roleIds.some(roleId => screen.roleIds.includes(roleId));
+}
+
+function derivedRoleAccessSummary(roleIds = []) {
+    const items = [];
+    const roleSet = new Set(roleIds);
+    for (const profile of Object.values(activeProcess.value?.data?.entityProfiles || {})) {
+        for (const level of ['read', 'write', 'admin']) {
+            if ((profile.allowedRoles?.[level] || []).some(roleId => roleSet.has(roleId))) items.push(`${profile.entityType}:${level}`);
+        }
+    }
+    for (const screen of Object.values(activeProcess.value?.data?.screens || {})) {
+        if (screenAppliesToRoles(screen, roleIds)) items.push(`${screen.required?.feature || screen.id}:${screen.required?.level || 'screen'}`);
+    }
+    for (const action of Object.values(activeProcess.value?.data?.actions || {})) {
+        if (action.trigger?.mode === 'manual' && (action.trigger.roleIds || []).some(roleId => roleSet.has(roleId))) {
+            items.push(`${action.label || action.id}:manual`);
+        }
+    }
+    return [...new Set(items)];
+}
+
+function previewScreensForRoles(roleIds = [], bindings = {}) {
+    return Object.values(activeProcess.value?.data?.screens || {})
+        .filter(screen => screenAppliesToRoles(screen, roleIds))
+        .map(screen => ({
+            ...screen,
+            screenKey: screen.id,
+            route: replaceAssignmentValues(screen.route, bindings)
+        }));
+}
+
+function replaceAssignmentValues(value = '', bindings = {}) {
+    return String(value || '').replace(/\$assignment\.([A-Za-z0-9_.-]+)/g, (match, key) => {
+        const resolved = getByPath(bindings, key);
+        return resolved === undefined || resolved === null || resolved === '' ? match : String(resolved);
+    });
+}
+
+function getByPath(source = {}, path = '') {
+    return String(path).split('.').filter(Boolean).reduce((value, key) => value?.[key], source);
 }
 
 async function confirmDelete(user) {
