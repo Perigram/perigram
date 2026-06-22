@@ -1392,20 +1392,7 @@ function socketHandleIdForRecord(kind, item, index, items) {
   return `${kind}:${item.id || index}`;
 }
 
-function actionRoleOptions(action = {}, node = {}) {
-  const entityType = effectiveActionEntityType(action, node);
-  if (!entityType) return roleOptions.value;
-  const entityProfile = Object.values(draft.value?.data?.entityProfiles || {}).find(profile => profile.entityType === entityType);
-  if (!entityProfile) return [];
-  const allowedRoleIds = new Set([
-    ...(entityProfile.allowedRoles?.write || []),
-    ...(entityProfile.allowedRoles?.admin || [])
-  ]);
-  return roleOptions.value.filter(role => allowedRoleIds.has(role.value));
-}
-
-function effectiveActionEntityType(action = {}, node = {}) {
-  if (action.entityType) return action.entityType;
-  return action.inputs?.find(input => input.entityType)?.entityType || inferIncomingEntityContract(node.id).entityType;
+function actionRoleOptions() {
+  return roleOptions.value;
 }
 </script>
