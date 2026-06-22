@@ -7,8 +7,10 @@ import * as organizationsRepository from '~/server/features/organizations/reposi
 import {
   compileProcessDefinition,
   createProcessFromTemplate,
+  hasCanonicalProcessSource,
   normalizeProcessDefinition,
-  validateProcessDefinition
+  validateProcessDefinition,
+  validateRoundTrip
 } from '~/packages/processes/src/index.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 import { toFlexibleId } from '~/server/utils/objectid.js';
@@ -71,14 +73,20 @@ export async function update(id, payload = {}, auth) {
 
 export async function validate(id, auth) {
   const process = await loadAuthorized(id, auth, 'write');
+  assertCanonicalProcessSource(process.data);
   return validateProcessDefinition(process.data, getDomain());
 }
 
 export async function activate(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
+  assertCanonicalProcessSource(process.data);
   const validation = validateProcessDefinition(process.data, getDomain());
   if (!validation.ok) {
     throw createError({ statusCode: 400, message: validation.errors.join('; '), data: validation });
+  }
+  const roundTrip = validateRoundTrip(process.data);
+  if (!roundTrip.ok) {
+    throw createError({ statusCode: 400, message: roundTrip.errors.join('; '), data: roundTrip });
   }
   process.data = {
     ...process.data,
@@ -261,6 +269,15 @@ function resolveOrganizationId(auth = {}) {
 
 function getDomain() {
   return getCutkitRegistry().getDomain('cnc');
+}
+
+function assertCanonicalProcessSource(data = {}) {
+  if (data.compiled && !hasCanonicalProcessSource(data)) {
+    throw createError({
+      statusCode: 409,
+      message: 'Process definition has only a compiled runtime contract; canonical semantic records are required for editing'
+    });
+  }
 }
 
 function normalizeRoleIds(roleIds, roles = {}) {

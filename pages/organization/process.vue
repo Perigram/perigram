@@ -367,6 +367,7 @@ import Textarea from 'primevue/textarea';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import { canvasToDefinition, definitionToCanvas } from '~/packages/processes/src/index.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncEntityFieldAccess, cncWorkflows } from '@cutkit/domain-cnc';
 import ProcessActionNode from '~/components/process-designer/ProcessActionNode.vue';
@@ -393,13 +394,13 @@ const newStateId = ref('');
 const palette = [
   { type: 'action', actionKind: 'createEntity', icon: 'pi pi-plus-circle', label: 'Create entity' },
   { type: 'action', actionKind: 'changeStatus', icon: 'pi pi-sync', label: 'Change status' },
-  { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play-circle', label: 'Run command' },
+  { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play-circle', label: 'Run service' },
   { type: 'action', actionKind: 'sendToOrganization', icon: 'pi pi-send', label: 'Send to organization' }
 ];
 const actionKindOptions = [
   { label: 'Create entity', value: 'createEntity' },
   { label: 'Change status', value: 'changeStatus' },
-  { label: 'Run command', value: 'runCommand' },
+  { label: 'Run service', value: 'runCommand' },
   { label: 'Send to organization', value: 'sendToOrganization' }
 ];
 const triggerModeOptions = [
@@ -477,9 +478,17 @@ async function loadActiveOrCreateLocal() {
 }
 
 async function createDraft() {
+  const sourceId = draft.value?._id || null;
+  const name = isActiveProcess.value && activeName.value ? `${activeName.value} draft` : 'Organization process';
   const created = await $fetch('/api/process-definitions', {
     method: 'POST',
-    body: { name: 'Organization process', data: serializeProcess() }
+    body: {
+      name,
+      data: {
+        ...serializeProcess(),
+        sourceProcessDefinitionId: isActiveProcess.value ? sourceId : null
+      }
+    }
   });
   setDraft(created);
 }
@@ -507,43 +516,17 @@ async function activateDraft() {
 
 function setDraft(value) {
   draft.value = value;
-  const processNodes = (value?.data?.graph?.nodes || [])
-    .filter(node => !['role', 'user'].includes(node.type))
-    .map(enrichNodeData);
-  nodes.value = processNodes.length ? processNodes : createNodesFromProcessRecords(value?.data || {});
-  edges.value = (value?.data?.graph?.edges || []).filter(edge =>
-    nodes.value.some(node => node.id === edge.source) && nodes.value.some(node => node.id === edge.target)
-  );
+  let canvas;
+  try {
+    canvas = definitionToCanvas(value?.data || {});
+    validation.value = null;
+  } catch (error) {
+    canvas = { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
+    validation.value = { ok: false, errors: [error.message], warnings: [] };
+  }
+  nodes.value = canvas.nodes.map(enrichNodeData);
+  edges.value = canvas.edges;
   selectedRoleId.value = Object.keys(value?.data?.roles || {})[0] || null;
-}
-
-function createNodesFromProcessRecords(data = {}) {
-  const entityNodes = Object.values(data.entityProfiles || {}).map((record, index) =>
-    enrichNodeData(createRecordNode({ type: 'entity', record, x: 260, y: 140 + index * 140 }))
-  );
-  const actionNodes = Object.values(data.actions || {}).map((record, index) =>
-    enrichNodeData(createRecordNode({ type: 'action', record, x: 520, y: 140 + index * 140 }))
-  );
-  const serviceNodes = Object.values(data.services || {}).map((record, index) =>
-    enrichNodeData(createRecordNode({ type: 'service', record, x: 780, y: 140 + index * 140 }))
-  );
-  const socketNodes = Object.values(data.sockets || {}).map((record, index) =>
-    enrichNodeData(createRecordNode({ type: 'socket', record, x: 1040, y: 140 + index * 140 }))
-  );
-  return [...entityNodes, ...actionNodes, ...serviceNodes, ...socketNodes];
-}
-
-function createRecordNode({ type, record, x, y }) {
-  const refId = record.id || `${type}_${Date.now()}`;
-  return {
-    id: refId,
-    type,
-    position: { x, y },
-    data: {
-      refId,
-      label: record.label || record.entityType || record.commandId || refId
-    }
-  };
 }
 
 function addNode(item) {
@@ -593,16 +576,10 @@ function deleteSelectedNode() {
 
 function serializeProcess() {
   syncNodeData();
-  return {
-    schemaVersion: 1,
-    graph: { nodes: nodes.value, edges: edges.value, viewport: { x: 0, y: 0, zoom: 1 } },
-    roles: draft.value?.data?.roles || {},
-    entityProfiles: draft.value?.data?.entityProfiles || {},
-    actions: draft.value?.data?.actions || {},
-    services: draft.value?.data?.services || {},
-    sockets: draft.value?.data?.sockets || {},
-    assignments: draft.value?.data?.assignments || {}
-  };
+  return canvasToDefinition(
+    { nodes: nodes.value, edges: edges.value, viewport: draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 } },
+    draft.value?.data || {}
+  );
 }
 
 function syncNodeData() {

@@ -4,6 +4,14 @@ export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
 
 export {
+  canvasToDefinition,
+  definitionToCanvas,
+  hasCanonicalProcessSource,
+  validateCanvasSemantics,
+  validateRoundTrip
+} from './transpiler.js';
+
+export {
   PROCESS_TEMPLATES,
   createProcessFromTemplate,
   getProcessTemplate,
@@ -30,6 +38,7 @@ export function normalizeProcessDefinition(definition = {}) {
   return {
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
     sourceTemplateId: data.sourceTemplateId || null,
+    sourceProcessDefinitionId: data.sourceProcessDefinitionId || null,
     graph: normalizeGraph(data.graph),
     roles: normalizeRecord(data.roles),
     entityProfiles: normalizeRecord(data.entityProfiles),

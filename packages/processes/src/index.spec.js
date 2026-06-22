@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canvasToDefinition,
   compileProcessDefinition,
   createProcessFromTemplate,
   createDefaultCreatedWorkflow,
+  definitionToCanvas,
   legacyTypeToTemplateId,
-  validateProcessDefinition
+  validateProcessDefinition,
+  validateRoundTrip
 } from './index.js';
 
 const domain = {
@@ -226,6 +229,76 @@ describe('@cutkit/processes compiler', () => {
       actionKind: 'sendToOrganization',
       projection: { fields: ['identity.*'] }
     });
+  });
+
+  it('projects semantic process records to canvas nodes and round-trips them', () => {
+    const definition = {
+      roles: {
+        role_admin: { id: 'role_admin', label: 'Admin', grants: [] }
+      },
+      entityProfiles: {
+        project_profile: {
+          id: 'project_profile',
+          entityType: 'project',
+          lifecycle: { mode: 'defaultCreated' },
+          fields: { read: ['identity.*'], write: [], private: [] }
+        }
+      },
+      actions: {
+        create_project: {
+          id: 'create_project',
+          label: 'Create project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: 'CREATED' },
+          trigger: { mode: 'user', roleIds: ['role_admin'] },
+          inputs: [],
+          outputs: [{ id: 'created', entityType: 'project', status: 'CREATED' }]
+        }
+      }
+    };
+
+    const canvas = definitionToCanvas(definition);
+    const roundTrip = validateRoundTrip(definition);
+
+    expect(canvas.nodes.map(node => node.id)).toEqual(['project_profile', 'create_project']);
+    expect(canvas.nodes[0].data.semanticId).toBe('entity:project_profile');
+    expect(roundTrip.ok).toBe(true);
+  });
+
+  it('converts canvas deletion back into semantic record deletion', () => {
+    const definition = {
+      actions: {
+        create_project: {
+          id: 'create_project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: 'CREATED' },
+          trigger: { mode: 'system', roleIds: [] }
+        },
+        send_project: {
+          id: 'send_project',
+          actionKind: 'sendToOrganization',
+          entityType: 'project',
+          projection: { fields: ['identity.*'], excludeFields: [] },
+          trigger: { mode: 'event', roleIds: [] }
+        }
+      }
+    };
+
+    const canvas = definitionToCanvas(definition);
+    const next = canvasToDefinition({ ...canvas, nodes: canvas.nodes.filter(node => node.id !== 'send_project') }, definition);
+
+    expect(Object.keys(next.actions)).toEqual(['create_project']);
+  });
+
+  it('rejects compiled-only process definitions as editable sources', () => {
+    const roundTrip = validateRoundTrip({
+      compiled: { schemaVersion: 1, actions: {}, workflows: {} }
+    });
+
+    expect(roundTrip.ok).toBe(false);
+    expect(roundTrip.errors.join('\n')).toContain('canonical semantic records');
   });
 
   it('rejects user-triggered actions with missing roles', () => {
