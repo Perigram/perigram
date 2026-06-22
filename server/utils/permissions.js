@@ -16,11 +16,11 @@ export function requireAuth(event) {
  * @param {string} entityType - e.g., 'projects', 'queues'
  * @param {string} level - 'read', 'write', 'admin'
  */
-export function hasLineagePermission(user, lineageOrEntity, entityType, level) {
+export function hasLineagePermission(user, lineageOrEntity, entityType, level, options = {}) {
   const entity = lineageOrEntity?.lineage
     ? lineageOrEntity
     : { lineage: lineageOrEntity || {} };
-  return hasEntityAccess({ entity, feature: entityType, level, auth: user });
+  return hasEntityAccess({ entity, feature: entityType, level, action: options.action || null, auth: user });
 }
 
 export function requireLineagePermission(event, lineageOrEntity, entityType, level) {

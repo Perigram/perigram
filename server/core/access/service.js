@@ -2,9 +2,9 @@ import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { hasPermissionGrant } from '~/shared/access-control.js';
 
-export function assertEntityAccess({ entity, entityType, feature = entityType, level = 'read', auth }) {
+export function assertEntityAccess({ entity, entityType, feature = entityType, level = 'read', action = null, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
-  if (!hasEntityAccess({ entity, feature, level, auth, entityType })) {
+  if (!hasEntityAccess({ entity, feature, level, action, auth, entityType })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return true;
@@ -68,7 +68,7 @@ export function createLineageFilter(auth) {
   return orgIds.length ? { 'lineage.organizationId': { $in: orgIds } } : { 'lineage.organizationId': { $in: [] } };
 }
 
-export function hasEntityAccess({ entity, feature, level = 'read', auth, entityType = null, transition = null, context = {} }) {
+export function hasEntityAccess({ entity, feature, level = 'read', action = null, auth, entityType = null, transition = null, context = {} }) {
   if (!auth || !feature) return false;
 
   const orgId = entity?.lineage?.organizationId?.toString();
@@ -76,7 +76,7 @@ export function hasEntityAccess({ entity, feature, level = 'read', auth, entityT
     ? (auth.memberships || []).find(item => item.organizationId?.toString() === orgId)
     : (auth.memberships || [])[0];
   const permissions = getEffectivePermissions(auth, membership);
-  return hasPermissionGrant({ permissions, feature, level, entity, entityType, transition, context });
+  return hasPermissionGrant({ permissions, feature, level, action, entity, entityType, transition, context });
 }
 
 export function getEffectivePermissions(auth = {}, membership = null) {

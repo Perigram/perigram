@@ -69,4 +69,23 @@ describe('Permissions Utility', () => {
       expect(() => requirePermission(event, 'projects', 'admin')).toThrow(/Permission denied/);
     });
   });
+
+  describe('hasLineagePermission', () => {
+    it('checks create action grants explicitly when requested', async () => {
+      const { hasLineagePermission } = await import('./permissions');
+      const auth = {
+        effectivePermissions: {
+          projects: [{ level: 'write', actions: { create: true } }]
+        }
+      };
+      const project = { lineage: { organizationId: 'org-1' } };
+
+      expect(hasLineagePermission(auth, project, 'projects', 'write', { action: 'create' })).toBe(true);
+      expect(hasLineagePermission({
+        effectivePermissions: {
+          projects: [{ level: 'write', actions: { create: false } }]
+        }
+      }, project, 'projects', 'write', { action: 'create' })).toBe(false);
+    });
+  });
 });

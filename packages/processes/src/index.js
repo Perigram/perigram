@@ -611,11 +611,13 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
   }));
 
   for (const [roleId, role] of Object.entries(roles)) {
-    for (const grant of role.grants || []) {
-      const entityType = entityTypeFromFeature(domain, grant.feature)
-        || entityTypeFromProfiles(entityProfiles, domain, grant.feature);
-      if (!entityType || existingKeys.has(`${roleId}:${grant.feature}`)) continue;
+    const grantsByFeature = groupGrantsByFeature(role.grants || []);
+    for (const [feature, grants] of grantsByFeature) {
+      const entityType = entityTypeFromFeature(domain, feature)
+        || entityTypeFromProfiles(entityProfiles, domain, feature);
+      if (!entityType || existingKeys.has(`${roleId}:${feature}`)) continue;
       const id = `auto_${roleId}_${entityType}`;
+      const required = aggregateScreenRequirement(feature, grants);
       inferred[id] = {
         id,
         label: `${role.label || roleId} ${entityType}`,
@@ -623,23 +625,50 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
         template: 'entityList',
         placement: 'hub',
         entityType,
-        required: {
-          feature: grant.feature,
-          level: grant.level || 'read',
-          scope: grant.scope,
-          transitions: grant.transitions,
-          rule: grant.rule
-        },
+        required,
         roleIds: [roleId],
         actions: (role.actions || [])
-          .filter(action => action.feature === grant.feature)
+          .filter(action => action.feature === feature)
           .map(action => action.actionId)
       };
-      existingKeys.add(`${roleId}:${grant.feature}`);
+      existingKeys.add(`${roleId}:${feature}`);
     }
   }
 
   return inferred;
+}
+
+function groupGrantsByFeature(grants = []) {
+  const map = new Map();
+  for (const grant of grants) {
+    if (!grant?.feature) continue;
+    if (!map.has(grant.feature)) map.set(grant.feature, []);
+    map.get(grant.feature).push(grant);
+  }
+  return map;
+}
+
+function aggregateScreenRequirement(feature, grants = []) {
+  if (grants.length === 1) {
+    const grant = grants[0];
+    return {
+      feature,
+      level: grant.level || 'read',
+      scope: grant.scope,
+      transitions: grant.transitions,
+      rule: grant.rule
+    };
+  }
+  return {
+    feature,
+    level: maxAccessLevel(grants.map(grant => grant.level || 'read'))
+  };
+}
+
+function maxAccessLevel(levels = []) {
+  return levels.reduce((current, level) => (
+    ACCESS_ORDER[level] > ACCESS_ORDER[current] ? level : current
+  ), 'read');
 }
 
 function entityTypeFromFeature(domain = {}, feature) {

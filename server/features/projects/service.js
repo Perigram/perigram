@@ -38,7 +38,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   });
   
   // Verify permissions
-  if (!hasLineagePermission(userPermissions, project, 'projects', 'write')) {
+  if (!hasLineagePermission(userPermissions, project, 'projects', 'write', { action: 'create' })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 

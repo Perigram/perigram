@@ -245,6 +245,49 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('does not pin inferred screens to one status when a role has multiple grants for the same entity', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_project: { id: 'role_project', label: 'Project role' }
+      },
+      actions: {
+        create_project_created: {
+          id: 'create_project_created',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: 'CREATED' },
+          access: { level: 'write', roleIds: ['role_project'] }
+        },
+        create_project_new: {
+          id: 'create_project_new',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: 'NEW' },
+          access: { level: 'admin', roleIds: ['role_project'] }
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_project'],
+          bindings: {},
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.screens.auto_role_project_project.required).toEqual({
+      feature: 'projects',
+      level: 'admin'
+    });
+    expect(compiled.userAccess.user_a.screens[0]).toMatchObject({
+      screenKey: 'auto_role_project_project',
+      entityType: 'project',
+      required: { feature: 'projects', level: 'admin' },
+      actions: ['create_project_created', 'create_project_new']
+    });
+  });
+
   it('skips screen-derived grants with incomplete assignment bindings', () => {
     const compiled = compileProcessDefinition({
       roles: {

@@ -4,7 +4,7 @@
       v-for="action in collectionActions"
       :key="action.actionId"
       :action-id="action.actionId"
-      @execute="item => $emit('execute-action', item, null)"
+      @execute="selectedAction => $emit('execute-action', selectedAction, null)"
     />
   </div>
   <TableFrame v-if="template === 'table'">
