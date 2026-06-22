@@ -4,7 +4,7 @@ import { useAuthStore } from './auth';
 import { useGlobalStore } from './global';
 import { useI18n } from 'vue-i18n';
 import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions';
-import { resolveVisibleNavigation } from '~/utils/process-navigation';
+import { resolveVisibleNavigation, resolveVisibleScreens } from '~/utils/process-navigation';
 
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
@@ -61,13 +61,38 @@ export const useNavigationStore = defineStore('navigation', () => {
         authStore.navigationManifest,
         authStore.activePermissions
     ));
+    const visibleProcessScreens = computed(() => resolveVisibleScreens(
+        authStore.screenManifest,
+        authStore.activePermissions
+    ));
+    const hasProcessScreens = computed(() => visibleProcessScreens.value.length > 0);
+
+    const routeMatches = (candidate, route) => Boolean(candidate && route)
+        && (candidate === route || candidate.startsWith(`${route}/`) || route.startsWith(`${candidate}/`));
+
+    const screenName = (screen) => screen.labelKey ? t(screen.labelKey) : (screen.label || screen.id);
+
+    const routeIcon = (route) => hubConfigs.find(config => routeMatches(config.to, route))?.icon || 'pi pi-th-large';
 
     const processAllowsRoute = (route) => {
+        if (hasProcessScreens.value) {
+            return visibleProcessScreens.value.some(screen => routeMatches(screen.route, route));
+        }
         if (!visibleProcessNavigation.value.length) return true;
-        return visibleProcessNavigation.value.some(item => item.route === route || item.route?.startsWith(`${route}/`) || route.startsWith(`${item.route}/`));
+        return visibleProcessNavigation.value.some(item => routeMatches(item.route, route));
     };
 
     const hubs = computed(() => {
+        if (hasProcessScreens.value) {
+            return visibleProcessScreens.value
+                .filter(screen => (screen.placement || 'hub') === 'hub')
+                .map(screen => ({
+                    id: screen.screenKey || screen.id || screen.route,
+                    name: screenName(screen),
+                    to: screen.route,
+                    icon: routeIcon(screen.route)
+                }));
+        }
         return hubConfigs
             .filter(config => authStore.hasPermission(config.entity, config.level) && processAllowsRoute(config.to))
             .map(config => ({
@@ -92,7 +117,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         { id: 'data', name: t('project.data'), to: `/project/${projectSlug}/data` },
         { id: 'artifacts', name: t('queues.artifacts'), to: `/project/${projectSlug}/artifacts` },
         { id: 'details', name: t('common.details'), to: `/project/${projectSlug}/details` },
-    ];
+    ].filter(item => processAllowsRoute(item.to));
 
     const resolveProjectSectionId = (parts) => {
         if (parts[2] === 'queue') return 'queues';
@@ -141,12 +166,14 @@ export const useNavigationStore = defineStore('navigation', () => {
 
             const sectionSiblings = projectSectionSiblings(projectSlug);
             const currentSection = sectionSiblings.find(section => section.id === resolveProjectSectionId(parts)) || sectionSiblings[0];
-            nav.push({
-                id: currentSection.id,
-                name: currentSection.name,
-                to: currentSection.to,
-                siblings: sectionSiblings.map(section => siblingOption(section.name, section.to)),
-            });
+            if (currentSection) {
+                nav.push({
+                    id: currentSection.id,
+                    name: currentSection.name,
+                    to: currentSection.to,
+                    siblings: sectionSiblings.map(section => siblingOption(section.name, section.to)),
+                });
+            }
         }
 
         // --- Level 2: Library Context ---

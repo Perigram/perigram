@@ -23,6 +23,7 @@ export const useAuthStore = defineStore('auth', () => {
         return user.value?.effectivePermissions || activeMembership?.permissions || user.value?.permissions || user.value?.data?.permissions || {};
     });
     const navigationManifest = computed(() => user.value?.navigation || []);
+    const screenManifest = computed(() => user.value?.screens || []);
     const fieldPolicies = computed(() => user.value?.fieldPolicies || {});
 
     const canManagePlatform = computed(() => hasPermission('organizations', 'admin') || hasPermission('users', 'admin') || hasPermission('workbench', 'admin') || hasPermission('domain_builder', 'admin') || hasPermission('config_bot', 'admin'));
@@ -170,6 +171,7 @@ export const useAuthStore = defineStore('auth', () => {
         memberships,
         activePermissions,
         navigationManifest,
+        screenManifest,
         fieldPolicies,
         canManagePlatform,
         setUser,

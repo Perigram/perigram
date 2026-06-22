@@ -139,6 +139,26 @@
                 <label>{{ $t('processDesigner.bindingsJson') }}</label>
                 <Textarea v-model="roleAssignment.bindingsJson" rows="6" class="w-full font-mono text-xs" />
             </div>
+            <Panel :header="$t('organization.compiledAccessPreview')">
+                <div class="flex flex-col gap-3">
+                    <div>
+                        <small class="text-muted-color">{{ $t('auth.permissions') }}</small>
+                        <div class="mt-1 flex flex-wrap gap-1">
+                            <Tag v-for="item in selectedUserPermissionSummary" :key="item" :value="item" severity="secondary" size="small" />
+                            <Tag v-if="!selectedUserPermissionSummary.length" :value="$t('common.notAvailable')" severity="secondary" size="small" />
+                        </div>
+                    </div>
+                    <div>
+                        <small class="text-muted-color">{{ $t('organization.screens') }}</small>
+                        <div class="mt-1 flex flex-col gap-1">
+                            <span v-for="screen in selectedUserScreens" :key="screen.screenKey || screen.id" class="truncate text-sm">
+                                {{ screen.labelKey ? $t(screen.labelKey) : (screen.label || screen.route) }} · {{ screen.route }}
+                            </span>
+                            <span v-if="!selectedUserScreens.length" class="text-sm text-muted-color">{{ $t('common.notAvailable') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </Panel>
         </div>
         <template #footer>
             <Button :label="$t('common.cancel')" text severity="secondary" @click="showPermissionsDialog = false" />
@@ -193,6 +213,12 @@ const invitations = ref([]);
 const pendingUsers = ref([]);
 const activeProcess = ref(null);
 const roleAssignment = ref({ roleIds: [], bindingsJson: '{}' });
+const selectedUserAccess = computed(() => {
+    const userId = String(selectedUser.value?._id || selectedUser.value?.id || '');
+    return activeProcess.value?.data?.compiled?.userAccess?.[userId] || null;
+});
+const selectedUserPermissionSummary = computed(() => permissionSummary(selectedUserAccess.value?.permissions || {}));
+const selectedUserScreens = computed(() => selectedUserAccess.value?.screens || []);
 
 const getInvitationUrl = (token) => {
     if (process.client) {
@@ -346,12 +372,20 @@ async function saveProcessRoles() {
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.permissionsUpdated'), life: 3000 });
     showPermissionsDialog.value = false;
+    await loadActiveProcess();
+    await authStore.setUser();
     await loadUsers();
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 });
   } finally {
     savingRoleAssignment.value = false;
   }
+}
+
+function permissionSummary(permissions = {}) {
+    return Object.entries(permissions)
+        .filter(([, grants]) => grants && grants !== 'none')
+        .map(([feature, grants]) => `${feature}:${Array.isArray(grants) ? grants.map(grant => grant.level || 'custom').join(',') : (grants.level || grants)}`);
 }
 
 function getProcessAssignment(user) {

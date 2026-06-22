@@ -6,6 +6,7 @@ import {
   createDefaultCreatedWorkflow,
   definitionToCanvas,
   legacyTypeToTemplateId,
+  resolveScreens,
   validateProcessDefinition,
   validateRoundTrip
 } from './index.js';
@@ -162,6 +163,85 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.userAccess.user_a.permissions.projects).toBeUndefined();
     expect(compiled.userAccess.user_a.incompleteBindings[0]).toMatchObject({ binding: 'projectId' });
+  });
+
+  it('compiles role screens with assignment overload bindings', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: {
+          id: 'role_operator',
+          grants: [{ feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } }]
+        },
+        role_supervisor: {
+          id: 'role_supervisor',
+          grants: [{ feature: 'projects', level: 'write', scope: { entityId: '$assignment.projectId' } }]
+        }
+      },
+      screens: {
+        assigned_project: {
+          id: 'assigned_project',
+          label: 'Assigned project',
+          kind: 'entityDetail',
+          route: '/project/$assignment.projectSlug/details',
+          placement: 'hub',
+          entityType: 'project',
+          required: { feature: 'projects', level: 'read' },
+          roleIds: ['role_operator', 'role_supervisor'],
+          bindings: { projectId: '$assignment.projectId' },
+          actions: ['viewProject']
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_operator', 'role_supervisor'],
+          bindings: { projectId: 'project-123', projectSlug: 'p-123' },
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    const screens = resolveScreens({ compiled, userId: 'user_a' });
+    expect(screens).toHaveLength(1);
+    expect(screens[0]).toMatchObject({
+      screenKey: 'assigned_project:project-123',
+      route: '/project/p-123/details',
+      scope: { projectId: 'project-123' },
+      sourceRoleIds: ['role_operator', 'role_supervisor']
+    });
+  });
+
+  it('skips screens with incomplete assignment bindings', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator', grants: [] }
+      },
+      screens: {
+        assigned_project: {
+          id: 'assigned_project',
+          label: 'Assigned project',
+          route: '/project/$assignment.projectSlug/details',
+          roleIds: ['role_operator'],
+          bindings: { projectId: '$assignment.projectId' }
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_operator'],
+          bindings: {},
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(resolveScreens({ compiled, userId: 'user_a' })).toEqual([]);
+    expect(compiled.userAccess.user_a.incompleteBindings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ screenId: 'assigned_project', binding: 'projectId' }),
+        expect.objectContaining({ screenId: 'assigned_project', binding: 'projectSlug' })
+      ])
+    );
   });
 
   it('compiles user-triggered action contracts', () => {
@@ -327,5 +407,6 @@ describe('@cutkit/processes compiler', () => {
 
     expect(process.data.sourceTemplateId).toBe('manufacturer');
     expect(compiled.userAccess['user-1'].permissions.organizations[0].level).toBe('admin');
+    expect(compiled.userAccess['user-1'].screens.length).toBeGreaterThan(0);
   });
 });

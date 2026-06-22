@@ -12,3 +12,16 @@ export function resolveVisibleNavigation(navigation = [], permissions = {}) {
     });
   });
 }
+
+export function resolveVisibleScreens(screens = [], permissions = {}) {
+  return (screens || []).filter(screen => {
+    const requirement = screen.required || screen.requires || {};
+    if (!requirement.feature) return true;
+    return hasPermissionGrant({
+      permissions,
+      feature: requirement.feature,
+      level: requirement.level || 'read',
+      action: requirement.action || null
+    });
+  });
+}

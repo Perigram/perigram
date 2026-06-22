@@ -1,6 +1,7 @@
 import {
   resolveEffectiveAccess,
   resolveNavigation,
+  resolveScreens,
   resolveWorkflow
 } from '~/packages/processes/src/index.js';
 import * as repository from './repository.js';
@@ -27,6 +28,7 @@ export async function resolveProcessAuth(auth = {}) {
     effectivePermissions: resolveEffectiveAccess({ compiled, userId }),
     fieldPolicies: compiled.fieldPolicies || {},
     navigation: resolveNavigation({ compiled, userId }),
+    screens: resolveScreens({ compiled, userId }),
     roleAssignments: compiled.userAccess?.[userId] || null
   };
 }

@@ -34,6 +34,19 @@ const COMMON_SERVICES = {
   }
 };
 
+const SCREEN_BY_FEATURE = {
+  projects: { route: '/projects', label: 'Projects', labelKey: 'features.projects', kind: 'entityList', entityType: 'project' },
+  warehouses: { route: '/warehouses', label: 'Warehouses', labelKey: 'features.warehouses', kind: 'entityList', entityType: 'warehouse' },
+  catalogs: { route: '/catalog', label: 'Catalog', labelKey: 'features.catalogs', kind: 'entityList', entityType: 'catalog' },
+  requisitions: { route: '/requisitions', label: 'Requisitions', labelKey: 'features.requisitions', kind: 'entityList', entityType: 'requisition' },
+  cassettes: { route: '/assets/cassettes', label: 'Assets', labelKey: 'features.assets', kind: 'workspace', entityType: 'cassette' },
+  users: { route: '/organization/users', label: 'Team management', labelKey: 'organization.teamManagement', kind: 'workspace', entityType: 'user' },
+  organizations: { route: '/organization', label: 'Organization', labelKey: 'organization.workspace', kind: 'workspace', entityType: 'organization' },
+  config_bot: { route: '/admin/config-bot', label: 'ConfigBot', labelKey: 'admin.configBot.title', kind: 'workspace' },
+  domain_builder: { route: '/admin', label: 'Admin', labelKey: 'nav.admin', kind: 'workspace' },
+  workbench: { route: '/admin', label: 'Admin', labelKey: 'nav.admin', kind: 'workspace' }
+};
+
 export const PROCESS_TEMPLATES = {
   contractor: createTemplate({
     id: 'contractor',
@@ -159,9 +172,10 @@ export function legacyTypeToTemplateId(type = '') {
 }
 
 function createTemplate({ id, label, adminLabel, grants, entities, services }) {
-  const adminNavigation = Object.entries(grants)
-    .map(([feature, level]) => createNavigationItem(feature, level))
+  const adminScreens = Object.entries(grants)
+    .map(([feature, level]) => createScreenItem(feature, level, ['role_admin']))
     .filter(Boolean);
+  const adminNavigation = adminScreens.map(screenToNavigation);
   const roles = {
     role_admin: {
       id: 'role_admin',
@@ -211,33 +225,38 @@ function createTemplate({ id, label, adminLabel, grants, entities, services }) {
       actions: {},
       services,
       sockets: {},
+      screens: Object.fromEntries(adminScreens.map(screen => [screen.id, screen])),
       assignments: {},
       compiled: null
     }
   };
 }
 
-function createNavigationItem(feature, level) {
-  const routeByFeature = {
-    projects: '/projects',
-    warehouses: '/warehouses',
-    catalogs: '/catalog',
-    requisitions: '/requisitions',
-    cassettes: '/assets/cassettes',
-    users: '/organization/users',
-    organizations: level === 'admin' ? '/organization/process' : '/organization',
-    config_bot: '/admin/config-bot',
-    domain_builder: '/admin',
-    workbench: '/admin'
-  };
-  const route = routeByFeature[feature];
-  if (!route) return null;
+function createScreenItem(feature, level, roleIds = []) {
+  const config = SCREEN_BY_FEATURE[feature];
+  if (!config) return null;
+  const route = feature === 'organizations' && level === 'admin' ? '/organization/process' : config.route;
   return {
     id: `${feature}.${route.split('/').filter(Boolean).join('.') || 'home'}`,
+    label: config.label,
+    labelKey: feature === 'organizations' && level === 'admin' ? 'processDesigner.title' : config.labelKey,
+    kind: config.kind,
     route,
-    requires: {
+    placement: 'hub',
+    entityType: config.entityType || null,
+    roleIds,
+    required: {
       feature,
       level: level === 'none' ? 'read' : level
-    }
+    },
+    actions: []
+  };
+}
+
+function screenToNavigation(screen) {
+  return {
+    id: screen.id,
+    route: screen.route,
+    requires: screen.required
   };
 }

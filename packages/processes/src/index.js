@@ -45,6 +45,7 @@ export function normalizeProcessDefinition(definition = {}) {
     actions: normalizeRecord(data.actions),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
+    screens: normalizeRecord(data.screens),
     assignments: normalizeRecord(data.assignments),
     compiled: data.compiled || null
   };
@@ -113,6 +114,13 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
     }
   }
 
+  for (const [screenId, screen] of Object.entries(process.screens)) {
+    if (!screen.route) errors.push(`Screen ${screenId} must define a route`);
+    for (const roleId of screen.roleIds || []) {
+      if (!process.roles[roleId]) errors.push(`Screen ${screenId} references missing role ${roleId}`);
+    }
+  }
+
   for (const [userId, assignment] of Object.entries(process.assignments)) {
     for (const roleId of assignment.roleIds || []) {
       if (!process.roles[roleId]) errors.push(`Assignment ${userId} references missing role ${roleId}`);
@@ -135,6 +143,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
 
   const process = validation.definition;
   const compiledRoles = compileRoles(process, domain);
+  const compiledScreens = compileScreens(process.screens);
   const workflows = {};
   for (const profile of Object.values(process.entityProfiles)) {
     workflows[profile.entityType] = compileLifecycle(profile, domain);
@@ -143,7 +152,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
   const userAccess = {};
   for (const [userId, assignment] of Object.entries(process.assignments)) {
     if (assignment.status && assignment.status !== 'active') continue;
-    userAccess[userId] = compileAssignmentAccess({ assignment, roles: compiledRoles });
+    userAccess[userId] = compileAssignmentAccess({ assignment, roles: compiledRoles, screens: compiledScreens });
   }
 
   return {
@@ -156,6 +165,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
     actions: compileActions(process.actions),
     services: compileServices(process.services),
     sockets: process.sockets,
+    screens: compiledScreens,
     warnings: validation.warnings
   };
 }
@@ -166,6 +176,10 @@ export function resolveEffectiveAccess({ compiled, userId } = {}) {
 
 export function resolveNavigation({ compiled, userId } = {}) {
   return compiled?.userAccess?.[String(userId)]?.navigation || [];
+}
+
+export function resolveScreens({ compiled, userId } = {}) {
+  return compiled?.userAccess?.[String(userId)]?.screens || [];
 }
 
 export function resolveWorkflow({ compiled, entityType, fallbackWorkflow = null } = {}) {
@@ -233,9 +247,10 @@ function compileLifecycle(profile = {}, domain = {}) {
   throw new Error(`Unknown lifecycle mode ${lifecycle.mode}`);
 }
 
-function compileAssignmentAccess({ assignment = {}, roles = {} } = {}) {
+function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {} } = {}) {
   const permissions = {};
   const navigation = [];
+  const screenMap = new Map();
   const incompleteBindings = [];
   const roleIds = assignment.roleIds || [];
   for (const roleId of roleIds) {
@@ -253,8 +268,25 @@ function compileAssignmentAccess({ assignment = {}, roles = {} } = {}) {
     for (const item of role.navigation || []) {
       navigation.push({ ...item, roleId });
     }
+    for (const screen of Object.values(screens)) {
+      if (!screenAppliesToRole(screen, roleId)) continue;
+      const compiledScreen = compileScreenForAssignment(screen, assignment, roleId);
+      if (compiledScreen.incomplete.length) {
+        incompleteBindings.push(...compiledScreen.incomplete.map(binding => ({ roleId, screenId: screen.id, binding })));
+        continue;
+      }
+      mergeCompiledScreen(screenMap, compiledScreen.screen);
+    }
   }
-  return { roleIds, permissions, navigation, incompleteBindings };
+  const screensList = [...screenMap.values()];
+  const screenNavigation = screensList.map(screenToNavigation);
+  return {
+    roleIds,
+    permissions,
+    navigation: dedupeNavigation([...navigation, ...screenNavigation]),
+    screens: screensList,
+    incompleteBindings
+  };
 }
 
 function compileRoles(process = {}, domain = {}) {
@@ -327,22 +359,112 @@ function replacePlaceholders(value, bindings, incomplete) {
     for (const [key, child] of Object.entries(value)) value[key] = replacePlaceholders(child, bindings, incomplete);
     return value;
   }
-  if (typeof value !== 'string' || !value.startsWith('$assignment.')) return value;
-  const binding = value.slice('$assignment.'.length);
-  const resolved = getByPath(bindings, binding);
-  if (resolved === undefined || resolved === null || resolved === '') incomplete.push(binding);
-  return resolved;
+  if (typeof value !== 'string' || !value.includes('$assignment.')) return value;
+  if (value.startsWith('$assignment.') && value.match(/\$assignment\./g)?.length === 1) {
+    const binding = value.slice('$assignment.'.length);
+    const resolved = getByPath(bindings, binding);
+    if (resolved === undefined || resolved === null || resolved === '') incomplete.push(binding);
+    return resolved;
+  }
+  return value.replace(/\$assignment\.([A-Za-z0-9_.-]+)/g, (match, binding) => {
+    const resolved = getByPath(bindings, binding);
+    if (resolved === undefined || resolved === null || resolved === '') {
+      incomplete.push(binding);
+      return match;
+    }
+    return String(resolved);
+  });
 }
 
 function collectIncompleteBindingWarnings(process) {
   const warnings = [];
+  const compiledScreens = compileScreens(process.screens || {});
   for (const [userId, assignment] of Object.entries(process.assignments)) {
-    const access = compileAssignmentAccess({ assignment, roles: process.roles });
+    const access = compileAssignmentAccess({ assignment, roles: process.roles, screens: compiledScreens });
     for (const item of access.incompleteBindings) {
-      warnings.push(`Assignment ${userId} role ${item.roleId} missing binding ${item.binding}`);
+      warnings.push(`Assignment ${userId} role ${item.roleId}${item.screenId ? ` screen ${item.screenId}` : ''} missing binding ${item.binding}`);
     }
   }
   return warnings;
+}
+
+function compileScreens(screens = {}) {
+  return Object.fromEntries(Object.entries(screens).map(([id, screen]) => [id, {
+    id: screen.id || id,
+    label: screen.label || screen.id || id,
+    labelKey: screen.labelKey || null,
+    kind: screen.kind || 'route',
+    route: screen.route || '',
+    placement: screen.placement || 'hub',
+    entityType: screen.entityType || null,
+    required: screen.required || null,
+    roleIds: screen.roleIds || [],
+    bindings: screen.bindings || {},
+    actions: screen.actions || []
+  }]));
+}
+
+function screenAppliesToRole(screen = {}, roleId) {
+  return !screen.roleIds?.length || screen.roleIds.includes(roleId);
+}
+
+function compileScreenForAssignment(screen = {}, assignment = {}, roleId = null) {
+  const incomplete = [];
+  const scoped = JSON.parse(JSON.stringify({
+    id: screen.id,
+    label: screen.label,
+    labelKey: screen.labelKey,
+    kind: screen.kind,
+    route: screen.route,
+    placement: screen.placement,
+    entityType: screen.entityType,
+    required: screen.required,
+    scope: screen.bindings || {},
+    actions: screen.actions || [],
+    sourceRoleIds: roleId ? [roleId] : []
+  }));
+  replacePlaceholders(scoped, assignment.bindings || {}, incomplete);
+  return {
+    incomplete,
+    screen: {
+      ...scoped,
+      screenKey: scoped.screenKey || makeScreenKey(scoped)
+    }
+  };
+}
+
+function makeScreenKey(screen = {}) {
+  const scopeValues = Object.values(screen.scope || {}).filter(value => value !== undefined && value !== null && value !== '');
+  return [screen.id, ...(scopeValues.length ? scopeValues : [screen.route])].filter(Boolean).map(String).join(':');
+}
+
+function mergeCompiledScreen(screenMap, screen) {
+  const existing = screenMap.get(screen.screenKey);
+  if (!existing) {
+    screenMap.set(screen.screenKey, screen);
+    return;
+  }
+  existing.actions = [...new Set([...(existing.actions || []), ...(screen.actions || [])])];
+  existing.sourceRoleIds = [...new Set([...(existing.sourceRoleIds || []), ...(screen.sourceRoleIds || [])])];
+}
+
+function screenToNavigation(screen = {}) {
+  return {
+    id: screen.screenKey || screen.id,
+    route: screen.route,
+    requires: screen.required || null,
+    screenId: screen.id,
+    screenKey: screen.screenKey
+  };
+}
+
+function dedupeNavigation(items = []) {
+  const byKey = new Map();
+  for (const item of items) {
+    if (!item?.route) continue;
+    byKey.set(item.id || item.route, item);
+  }
+  return [...byKey.values()];
 }
 
 function compileFieldPolicies(entityProfiles = {}) {

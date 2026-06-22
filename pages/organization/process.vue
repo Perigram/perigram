@@ -67,7 +67,6 @@
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
             <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
-            <Tab value="assignments">{{ $t('processDesigner.assignments') }}</Tab>
           </TabList>
           <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="inspector">
@@ -309,27 +308,7 @@
                     <Textarea v-model="selectedRoleGrantsJson" rows="5" class="font-mono text-xs" @blur="applySelectedRoleGrantsJson" />
                   </div>
                   <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedRole" />
-                </div>
-              </div>
-            </TabPanel>
-
-            <TabPanel value="assignments">
-              <div class="flex flex-col gap-4">
-                <div class="flex justify-end">
-                  <Button icon="pi pi-plus" :label="$t('processDesigner.addAssignment')" size="small" @click="addAssignment" />
-                </div>
-                <div v-for="assignment in assignmentList" :key="assignment.userId" class="rounded-ui border border-content-border p-3">
-                  <div class="flex flex-col gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.userId') }}</label>
-                      <InputText v-model="assignment.userId" @blur="normalizeAssignmentKey(assignment)" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.roleIds') }}</label>
-                      <MultiSelect v-model="assignment.roleIds" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <Button icon="pi pi-trash" :aria-label="$t('common.delete')" severity="danger" text size="small" @click="removeAssignment(assignment.userId)" />
-                  </div>
+                  <Button icon="pi pi-users" :label="$t('organization.openTeam')" severity="secondary" outlined size="small" @click="navigateTo('/organization/users')" />
                 </div>
               </div>
             </TabPanel>
@@ -457,9 +436,8 @@ const selectedSocket = computed(() => selectedNode.value?.type === 'socket' ? en
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType?.replace(/_/g, 's') || 'projects');
 
 const roles = computed(() => draft.value?.data?.roles || {});
-const assignments = computed(() => draft.value?.data?.assignments || {});
+const screens = computed(() => draft.value?.data?.screens || {});
 const roleList = computed(() => Object.values(roles.value));
-const assignmentList = computed(() => Object.values(assignments.value));
 const selectedRoleRecord = computed(() => selectedRoleId.value ? roles.value[selectedRoleId.value] : null);
 const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
 const entityTypeOptions = computed(() => (cncDomain.entities || []).map(entity => ({ label: entity.type, value: entity.type })));
@@ -801,11 +779,21 @@ function removeSelectedRole() {
   for (const assignment of Object.values(draft.value.data.assignments || {})) {
     assignment.roleIds = (assignment.roleIds || []).filter(roleId => roleId !== removedRoleId);
   }
+  for (const [screenId, screen] of Object.entries(draft.value.data.screens || {})) {
+    screen.roleIds = (screen.roleIds || []).filter(roleId => roleId !== removedRoleId);
+    if (!screen.roleIds.length) delete draft.value.data.screens[screenId];
+  }
   selectedRoleId.value = Object.keys(draft.value.data.roles)[0] || null;
 }
 
 function syncSelectedRoleEditors() {
-  selectedRoleNavigationRoutes.value = (selectedRoleRecord.value?.navigation || []).map(item => item.route).filter(Boolean);
+  const screenRoutes = Object.values(screens.value)
+    .filter(screen => (screen.roleIds || []).includes(selectedRoleId.value))
+    .map(screen => screen.route)
+    .filter(Boolean);
+  selectedRoleNavigationRoutes.value = screenRoutes.length
+    ? screenRoutes
+    : (selectedRoleRecord.value?.navigation || []).map(item => item.route).filter(Boolean);
   selectedRoleGrantsJson.value = JSON.stringify(selectedRoleRecord.value?.grants || [], null, 2);
 }
 
@@ -819,29 +807,52 @@ function applySelectedRoleNavigationRoutes() {
       requires: { feature: option?.feature || 'organizations', level: route.includes('/process') ? 'admin' : 'read' }
     };
   });
+  syncRoleScreens(selectedRoleRecord.value.id, selectedRoleNavigationRoutes.value);
+}
+
+function syncRoleScreens(roleId, routes = []) {
+  if (!roleId) return;
+  draft.value ||= { data: {} };
+  draft.value.data.screens ||= {};
+  for (const [screenId, screen] of Object.entries(draft.value.data.screens)) {
+    if (!(screen.roleIds || []).includes(roleId)) continue;
+    screen.roleIds = screen.roleIds.filter(item => item !== roleId);
+    if (!screen.roleIds.length) delete draft.value.data.screens[screenId];
+  }
+  for (const route of routes) {
+    const option = navigationRouteOptions.value.find(item => item.value === route);
+    const id = `${option?.feature || 'route'}.${route.replace(/^\//, '').replaceAll('/', '.')}`;
+    const level = route.includes('/process') ? 'admin' : 'read';
+    draft.value.data.screens[id] = {
+      id,
+      label: option?.label || route,
+      kind: route.includes('/project/') ? 'entityDetail' : 'workspace',
+      route,
+      placement: 'hub',
+      entityType: featureEntityType(option?.feature),
+      roleIds: [roleId],
+      required: { feature: option?.feature || 'organizations', level },
+      bindings: {},
+      actions: []
+    };
+  }
+}
+
+function featureEntityType(feature) {
+  return ({
+    projects: 'project',
+    warehouses: 'warehouse',
+    catalogs: 'catalog',
+    requisitions: 'requisition',
+    cassettes: 'cassette',
+    users: 'user',
+    organizations: 'organization'
+  })[feature] || null;
 }
 
 function applySelectedRoleGrantsJson() {
   if (!selectedRoleRecord.value) return;
   selectedRoleRecord.value.grants = parseJson(selectedRoleGrantsJson.value, []);
-}
-
-function addAssignment() {
-  const userId = `user_${Date.now()}`;
-  draft.value ||= { data: {} };
-  draft.value.data.assignments ||= {};
-  draft.value.data.assignments[userId] = { userId, roleIds: [], bindings: {}, status: 'active' };
-}
-
-function removeAssignment(userId) {
-  if (draft.value?.data?.assignments) delete draft.value.data.assignments[userId];
-}
-
-function normalizeAssignmentKey(assignment) {
-  const oldKey = Object.entries(assignments.value).find(([, value]) => value === assignment)?.[0];
-  if (!oldKey || !assignment.userId || oldKey === assignment.userId) return;
-  draft.value.data.assignments[assignment.userId] = assignment;
-  delete draft.value.data.assignments[oldKey];
 }
 
 function addLifecycleState() {

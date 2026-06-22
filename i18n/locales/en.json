@@ -2132,6 +2132,9 @@
     "teamManagementHint": "Invite users, approve memberships, and edit access grants.",
     "processDesignerHint": "Compose roles, entity lifecycles, services, and sockets for this organization.",
     "processRoles": "Process roles",
+    "compiledAccessPreview": "Compiled access preview",
+    "screens": "Screens",
+    "legacyPermissionsReadOnly": "Direct permissions are legacy fallback data. Active organization access is composed from process roles in Team management.",
     "openTeam": "Open team",
     "openProcessDesigner": "Open designer"
   },
