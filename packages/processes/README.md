@@ -53,13 +53,14 @@ derives the parent from the incoming edge instead of a parent-type selector.
 Change-status actions consume their entity from the incoming data socket and
 only require a target status; they do not need a separate entity-type selector.
 Their access grants are entity-type grants conditioned by the resulting state:
-the designer derives the entity type from the incoming socket, carries it to the
-output socket, derives `action.access.statusFrom` from the incoming status when
-possible, and stores `action.access.statusTo` from the target status.
-Compilation emits transition metadata plus a `primaryStatus = statusTo` rule on
-that concrete entity feature. Manual execution remains controlled by the action
-availability contract; the access grant itself describes which entity type the
-role may access after the status change.
+the designer derives the entity type and source status from the incoming graph
+socket, carries the type to the output socket, and stores
+`action.access.statusFrom` / `action.access.statusTo` from that graph context
+and target status input. Compilation emits transition metadata plus a
+`primaryStatus = statusTo` rule on that concrete entity feature. Manual
+execution remains controlled by the action availability contract; the access
+grant itself describes which entity type the role may access after the status
+change.
 
 Screen records are route-level UI entries attached to roles and are the source
 for process-composed app navigation. Assignment

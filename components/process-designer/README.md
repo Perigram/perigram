@@ -24,9 +24,9 @@ scanned without adding explanatory chrome:
   palette item that created the node and is displayed as a compact verb such as
   `create` or `service`. Create actions derive their parent from the incoming
   data socket instead of a parent-type selector, status-change actions consume
-  an incoming entity without selecting an entity type, command actions show
-  command entity inputs/outputs, and organization-send actions show the
-  projected output fields.
+  an incoming entity without selecting an entity type or editing the existing
+  status, command actions show command entity inputs/outputs, and
+  organization-send actions show the projected output fields.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
   service-identity access, typed input, and output handles and summarizes
   exact command inputs and outputs as labeled sockets in the same
@@ -55,16 +55,20 @@ nodes derive handle ids from the socket contract.
 
 Status-change action grants edit access for the exact entity type carried by
 the incoming data edge, not generic entity access and not status access. During
-node sync the designer derives the entity type from the wired source socket,
-stores `action.access.statusFrom` and `action.access.statusTo`, carries that
-same entity type to the output socket, and displays the access target as
-`project · when ACTIVE` only when the type is known. Unwired status-change nodes
+node sync the designer derives the entity type and existing status from the
+wired source socket, stores `action.access.statusFrom` and
+`action.access.statusTo`, carries that same entity type to the output socket,
+and labels both data sockets with the concrete type. Unwired status-change nodes
 do not invent a generic access target. The compiler emits transition metadata
 plus a target-state rule on the entity grant. The role selector lists process
 roles directly because selecting a role on an action creates the entity grant;
 entity-profile grants must not hide roles from action grant authoring. Action
-nodes also render compact effective-access chips for roles that already have
-matching entity access from entity profiles or other status/action grants.
+nodes also render compact role/level chips for roles that already have matching
+entity access from entity profiles or other status/action grants.
+
+Canvas wires are selectable edges. `Delete` / `Backspace` removes the selected
+node or selected wire, and runtime edge selection styling is stripped before
+process serialization.
 
 Command sockets should expose abstract domain contracts when a command is
 polymorphic. For example, `generateAttachment` presents one `Attachment source`

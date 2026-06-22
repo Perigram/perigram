@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Simplify status node access and wire deletion
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      pages/organization/process.vue
+    Docs updated: components/process-designer/README.md,
+      packages/processes/README.md, TODO.org
+    Notes: Removed the visible existing-status input from change-status nodes,
+      replaced static entity socket labels with the concrete type derived from
+      the incoming wire, shortened existing-access chips to role/level, and
+      added selected-wire deletion via Delete/Backspace.
+
     [2026-06-22] Derive change-status access entity type from graph
     Files changed: pages/organization/process.vue,
       pages/organization/users.vue
