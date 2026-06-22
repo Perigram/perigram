@@ -21,48 +21,34 @@
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
-      <Panel class="absolute left-3 top-3 z-10 w-[13rem]" :header="$t('processDesigner.palette')">
-        <div class="grid grid-cols-1 gap-2">
-          <Button
-            v-for="item in palette"
-            :key="item.type"
-            :icon="item.icon"
-            :label="paletteLabel(item)"
-            size="small"
-            outlined
-            @click="addNode(item)"
-          />
-        </div>
-      </Panel>
+      <div class="absolute left-3 top-3 z-10 flex gap-1 rounded-ui border border-content-border bg-content p-1 shadow-card">
+        <Button
+          v-for="item in palette"
+          :key="item.actionKind"
+          :icon="item.icon"
+          :aria-label="paletteLabel(item)"
+          size="small"
+          text
+          @click="addNode(item)"
+        />
+      </div>
 
-      <div class="absolute left-[15rem] right-[30rem] top-3 z-10 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-ui border border-content-border bg-content px-3 py-2 shadow-card">
-        <div class="min-w-0">
-          <strong class="block truncate">{{ $t('processDesigner.title') }}</strong>
-          <small class="text-muted-color">{{ activeName || $t('processDesigner.noActiveDraft') }}</small>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
+      <div class="absolute left-[14rem] right-[30rem] top-3 z-10 flex min-w-0 items-center justify-end gap-1 rounded-ui border border-content-border bg-content p-1 shadow-card">
           <Select
             v-if="processOptions.length"
             v-model="selectedProcessId"
             :options="processOptions"
             option-label="label"
             option-value="value"
-            class="w-56"
+            class="w-52"
             size="small"
             @change="selectProcessDefinition"
           />
           <Button icon="pi pi-users" :aria-label="$t('organization.teamManagement')" size="small" severity="secondary" outlined @click="navigateTo('/organization/users')" />
-          <Button icon="pi pi-plus" :label="$t('processDesigner.newDraft')" size="small" @click="createDraft" />
-          <Button icon="pi pi-check-circle" :label="$t('processDesigner.validate')" size="small" severity="secondary" outlined :disabled="!draft?._id" @click="validateDraft" />
-          <Button icon="pi pi-bolt" :label="$t('processDesigner.activate')" size="small" :disabled="!draft?._id" @click="activateDraft" />
-          <Button icon="pi pi-save" :label="$t('common.save')" size="small" severity="secondary" outlined @click="saveDraft" />
-        </div>
+          <Button icon="pi pi-check" :aria-label="$t('processDesigner.apply')" size="small" :disabled="!draft?._id" @click="applyProcess" />
       </div>
 
       <aside class="absolute bottom-3 right-3 top-3 z-10 flex w-[28rem] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card">
-        <div class="shrink-0 border-b border-content-border px-4 py-3">
-          <strong>{{ $t('processDesigner.properties') }}</strong>
-        </div>
         <Tabs value="inspector" class="flex min-h-0 flex-1 flex-col">
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
@@ -72,7 +58,7 @@
           <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
-                <div class="flex flex-col gap-1">
+                <div v-if="selectedNode.type !== 'action'" class="flex flex-col gap-1">
                   <label>{{ $t('processDesigner.label') }}</label>
                   <InputText v-model="selectedRecord.label" />
                 </div>
@@ -143,7 +129,7 @@
                 </template>
 
                 <template v-else-if="selectedNode.type === 'action'">
-                  <StateBlock :message="$t('processDesigner.editActionOnNode')" />
+                  <div></div>
                 </template>
 
                 <template v-else-if="selectedNode.type === 'service'">
@@ -395,21 +381,19 @@ const selectedScreenActionsJson = ref('[]');
 const newStateId = ref('');
 
 const palette = [
-  { type: 'action', actionKind: 'createEntity', icon: 'pi pi-plus-circle', label: 'Create entity' },
-  { type: 'action', actionKind: 'changeStatus', icon: 'pi pi-sync', label: 'Change status' },
-  { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play-circle', label: 'Run service' },
-  { type: 'action', actionKind: 'sendToOrganization', icon: 'pi pi-send', label: 'Send to organization' }
+  { type: 'action', actionKind: 'createEntity', icon: 'pi pi-plus-circle', label: 'create' },
+  { type: 'action', actionKind: 'changeStatus', icon: 'pi pi-sync', label: 'status' },
+  { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play-circle', label: 'service' },
+  { type: 'action', actionKind: 'sendToOrganization', icon: 'pi pi-send', label: 'send' }
 ];
 const actionKindOptions = [
-  { label: 'Create entity', value: 'createEntity' },
-  { label: 'Change status', value: 'changeStatus' },
-  { label: 'Run service', value: 'runCommand' },
-  { label: 'Send to organization', value: 'sendToOrganization' }
+  { label: 'create', value: 'createEntity' },
+  { label: 'status', value: 'changeStatus' },
+  { label: 'service', value: 'runCommand' },
+  { label: 'send', value: 'sendToOrganization' }
 ];
 const triggerModeOptions = [
   { label: 'Manual', value: 'manual' },
-  { label: 'User', value: 'user' },
-  { label: 'System', value: 'system' },
   { label: 'Event', value: 'event' }
 ];
 const roleKinds = [
@@ -613,6 +597,10 @@ async function activateDraft() {
   setDraft(activated);
 }
 
+async function applyProcess() {
+  await activateDraft();
+}
+
 function setDraft(value) {
   draft.value = value;
   selectedProcessId.value = value?._id ? String(value._id) : null;
@@ -698,7 +686,6 @@ function syncNodeData() {
     node.data.eventLabel = node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null;
     node.data.actionRecord = node.type === 'action' ? record : null;
     node.data.entityTypeOptions = node.type === 'action' ? entityTypeOptions.value : [];
-    node.data.optionalEntityTypeOptions = node.type === 'action' ? optionalEntityTypeOptions.value : [];
     node.data.commandOptions = node.type === 'action' ? commandOptions.value : [];
     node.data.roleOptions = node.type === 'action' ? roleOptions.value : [];
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
@@ -988,11 +975,14 @@ function syncSelectedAction() {
 
 function syncActionIo(action = {}) {
   action.trigger ||= { mode: 'manual', roleIds: [] };
+  action.trigger.mode = normalizeTriggerMode(action.trigger.mode);
+  if (action.trigger.mode === 'event') action.trigger.roleIds = [];
   action.status ||= {};
   action.events = actionEventOutputs(action);
   if (action.actionKind === 'createEntity') {
     action.status.to ||= 'CREATED';
-    action.inputs = action.parentEntityType ? [{ id: 'parent', entityType: action.parentEntityType }] : [];
+    action.parentEntityType = '';
+    action.inputs = [{ id: 'parent', label: t('processDesigner.parentEntity'), required: false }];
     action.outputs = [{ id: 'created', entityType: action.entityType, status: action.status.to }];
     return;
   }
@@ -1025,11 +1015,14 @@ function localizedTriggerModeOptions() {
     ...option,
     label: ({
       manual: t('processDesigner.manualTrigger'),
-      user: t('processDesigner.userTrigger'),
-      system: t('processDesigner.systemTrigger'),
       event: t('processDesigner.eventTrigger')
     })[option.value] || option.label
   }));
+}
+
+function normalizeTriggerMode(mode) {
+  if (mode === 'event' || mode === 'system') return 'event';
+  return 'manual';
 }
 
 function actionEventOutputs(action = {}) {
@@ -1186,7 +1179,6 @@ function enrichNodeData(node) {
       actionKindLabel: node.type === 'action' ? actionKindLabel(record.actionKind) : null,
       actionRecord: node.type === 'action' ? record : null,
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
-      optionalEntityTypeOptions: node.type === 'action' ? optionalEntityTypeOptions.value : [],
       commandOptions: node.type === 'action' ? commandOptions.value : [],
       roleOptions: node.type === 'action' ? roleOptions.value : [],
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
@@ -1228,7 +1220,6 @@ function stripRuntimeNodeData(node) {
   for (const key of [
     'actionRecord',
     'entityTypeOptions',
-    'optionalEntityTypeOptions',
     'commandOptions',
     'roleOptions',
     'triggerModeOptions',

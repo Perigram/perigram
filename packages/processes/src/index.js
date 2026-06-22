@@ -559,7 +559,7 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
     validateFieldList(action.projection?.fields, domain, action.entityType, `action ${actionId} projection fields`, errors);
     validateFieldList(action.projection?.excludeFields, domain, action.entityType, `action ${actionId} excluded fields`, errors);
   }
-  if ((action.trigger?.mode || 'user') === 'user') {
+  if (['user', 'manual'].includes(action.trigger?.mode || 'user')) {
     for (const roleId of action.trigger?.roleIds || []) {
       if (!roles[roleId]) errors.push(`Action ${actionId} references missing trigger role ${roleId}`);
     }
