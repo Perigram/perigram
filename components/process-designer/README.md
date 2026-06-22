@@ -7,7 +7,10 @@ roles, and concrete user assignments are edited as process records in the
 route-level side panel, then assigned onto action nodes, service/socket access
 rules, and lifecycle transitions.
 
-Each node type is visually and functionally distinct:
+Each node type is visually and functionally distinct. All node components render
+the Vue Flow selected state as a primary border/ring, and each process node type
+uses a compact colored top stripe plus matching icon tint so the canvas can be
+scanned without adding explanatory chrome:
 
 - `ProcessEntityNode.vue` represents an entity contract. It exposes access,
   service-input, and socket-projection handles and summarizes lifecycle mode,

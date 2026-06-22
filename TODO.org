@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Add process node selection and type styling
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      components/process-designer/ProcessEntityNode.vue,
+      components/process-designer/ProcessServiceNode.vue,
+      components/process-designer/ProcessSocketNode.vue
+    Docs updated: components/process-designer/README.md, TODO.org
+    Notes: Process canvas nodes now consume Vue Flow selected state for a
+      primary border/ring and use compact type stripes plus matching icon tint
+      for action, entity, service, and socket node distinction.
+
     [2026-06-22] Show process roles in action grant selectors
     Files changed: pages/organization/process.vue
     Docs updated: components/process-designer/README.md,
