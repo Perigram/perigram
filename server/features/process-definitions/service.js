@@ -4,6 +4,7 @@ import { ObjectId } from 'mongodb';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { createStatusState } from '~/server/core/blocks/index.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
+import * as usersRepository from '~/server/features/users/repository.js';
 import {
   compileProcessDefinition,
   createProcessFromTemplate,
@@ -19,14 +20,14 @@ import * as repository from './repository.js';
 
 export async function list(auth) {
   const organizationId = resolveOrganizationId(auth);
-  assertOrgAccess(auth, organizationId, 'read');
+  await assertOrgAccess(auth, organizationId, 'read');
   const raws = await repository.find({ 'lineage.organizationId': toFlexibleId(organizationId) });
   return raws.map(raw => new ProcessDefinition(raw).toJSON());
 }
 
 export async function getActive(auth) {
   const organizationId = resolveOrganizationId(auth);
-  assertOrgAccess(auth, organizationId, 'read');
+  await assertOrgAccess(auth, organizationId, 'read');
   const raw = await repository.findActiveByOrganization(organizationId);
   return raw ? new ProcessDefinition(raw).toJSON() : null;
 }
@@ -38,7 +39,7 @@ export async function getById(id, auth) {
 
 export async function create(payload = {}, auth) {
   const organizationId = payload.organizationId || resolveOrganizationId(auth);
-  assertOrgAccess(auth, organizationId, 'write');
+  await assertOrgAccess(auth, organizationId, 'write');
   const name = payload.name || payload.identity?.name || 'Organization process';
   const process = new ProcessDefinition({
     identity: {
@@ -138,7 +139,7 @@ export async function createActiveFromTemplate({ organizationId, userId, templat
 
 export async function assignUserToActiveProcess({ userId, roleIds = [], bindings = {}, status = 'active' } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
-  assertOrgAccess(auth, organizationId, 'admin');
+  await assertOrgAccess(auth, organizationId, 'admin');
   return await assignUserToActiveProcessInternal({
     organizationId,
     userId,
@@ -198,7 +199,7 @@ export async function archive(id, auth) {
 
 export async function projectEntityThroughSocket({ socketId, entityId, targetOrganizationId } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
-  assertOrgAccess(auth, organizationId, 'read');
+  await assertOrgAccess(auth, organizationId, 'read');
   if (!socketId) throw createError({ statusCode: 400, message: 'Socket id is required' });
   if (!entityId) throw createError({ statusCode: 400, message: 'Entity id is required' });
 
@@ -247,11 +248,11 @@ async function loadAuthorized(id, auth, level) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Process definition not found' });
   const process = new ProcessDefinition(raw);
-  assertOrgAccess(auth, process.lineage.organizationId, level);
+  await assertOrgAccess(auth, process.lineage.organizationId, level);
   return process;
 }
 
-function assertOrgAccess(auth, organizationId, level) {
+async function assertOrgAccess(auth, organizationId, level) {
   try {
     assertEntityAccess({
       entity: { lineage: { organizationId } },
@@ -261,12 +262,13 @@ function assertOrgAccess(auth, organizationId, level) {
       auth
     });
   } catch (error) {
-    if (hasProcessDefinitionMembershipAccess(auth, organizationId, level)) return;
+    if (await hasProcessDefinitionMembershipAccess(auth, organizationId, level)) return;
     throw error;
   }
 }
 
-export function hasProcessDefinitionMembershipAccess(auth = {}, organizationId, level = 'read') {
+export async function hasProcessDefinitionMembershipAccess(auth = {}, organizationId, level = 'read') {
+  if (!['read', 'write', 'admin'].includes(level)) return false;
   const membership = findOrganizationMembership(auth, organizationId);
   if (!membership || membership.status === 'pending' || membership.status === 'rejected') return false;
   const roleIds = [
@@ -275,12 +277,24 @@ export function hasProcessDefinitionMembershipAccess(auth = {}, organizationId, 
     auth.role
   ].filter(Boolean).map(value => String(value).toLowerCase());
   const adminRoles = new Set(['role_admin', 'admin', 'owner', 'creator', 'organization_admin']);
-  return ['read', 'write', 'admin'].includes(level) && roleIds.some(role => adminRoles.has(role));
+  if (roleIds.some(role => adminRoles.has(role))) return true;
+  return await isSoleActiveOrganizationMember(auth.userId, organizationId);
 }
 
 function findOrganizationMembership(auth = {}, organizationId) {
   const target = organizationId?.toString();
   return (auth.memberships || []).find(item => item.organizationId?.toString() === target);
+}
+
+async function isSoleActiveOrganizationMember(userId, organizationId) {
+  if (!userId || !organizationId) return false;
+  const users = await usersRepository.find({ 'data.memberships.organizationId': toFlexibleId(organizationId) });
+  const activeMembers = users.filter(user => (user.data?.memberships || []).some(membership =>
+    membership.organizationId?.toString() === organizationId.toString() &&
+    membership.status !== 'pending' &&
+    membership.status !== 'rejected'
+  ));
+  return activeMembers.length === 1 && activeMembers[0]._id?.toString() === userId.toString();
 }
 
 function resolveOrganizationId(auth = {}) {
