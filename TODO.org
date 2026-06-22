@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Add status-scoped process access windows
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: packages/processes/README.md,
+      server/features/process-definitions/README.md, TODO.org
+    Notes: Process action access now compiles through graph-derived status
+      windows. Create actions open the initial window, status-change actions
+      inherit it until explicitly modified, and modified status-change nodes
+      replace the complete target-status role set instead of appending grants.
+      Parent-scoped windows convert parent entity scopes into child lineage
+      scopes so access on one project branch does not grant queues under other
+      projects.
+
     [2026-06-22] Recompile all stored process runtime contracts
     Files changed: server/scripts/migrate-process-create-status-grants.js
     Docs updated: server/scripts/README.md, TODO.org

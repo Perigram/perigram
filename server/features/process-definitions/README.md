@@ -64,6 +64,12 @@ instead of requiring an already-existing status-scoped entity grant. After the
 record is created, create actions apply `action.status.to` through the status
 runtime, treating it as the process initial state for that new record rather
 than a transition from the feature service default.
+Compiled process access is windowed by graph state. Status-change nodes do not
+append permanent grants; they inherit the incoming entity access until edited,
+then replace the target-status role set with the node's selected grants. Parent
+lineage scopes are preserved by the compiler, so child actions created from a
+scoped parent branch emit lineage-scoped grants such as `scope.projectId`
+instead of global child-entity permissions.
 
 Socket projection is exposed as a runtime operation for outbound sockets. The
 socket API loads the source entity through the app registry, enforces read

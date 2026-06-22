@@ -77,6 +77,16 @@ role may access after the status change. Create-action access grants are
 conditioned by the created status in the same way, so `admin` on "create project
 as NEW" means admin over `project` entities whose current primary status is
 `NEW`, not global project admin.
+Action access compiles through status-scoped access windows. A create action
+opens the first window for the created entity state. A status-change action
+inherits the incoming entity window until its `action.access.modified` flag is
+set; once modified, the selected role ids on that node become the complete
+grant set for the target state. Removing a role from a modified status-change
+node therefore removes that role's access to entities in the resulting status
+instead of leaving an older additive grant behind. Parent-scoped windows carry
+lineage scope forward: a queue created from a project window scoped to
+`$assignment.projectId` receives a `scope.projectId` grant, so access for one
+project branch does not apply to queues under another project branch.
 
 Screen records are route-level UI entries attached to roles and are the source
 for process-composed app navigation. They compile into generated screen
