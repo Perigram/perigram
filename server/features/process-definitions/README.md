@@ -38,8 +38,10 @@ process id on the organization.
 Active process assignment changes are allowed through
 `assignUserToActiveProcess()`. This updates `data.assignments`, recompiles the
 active process in place, and makes the new effective permissions, screens, and
-navigation available on the next auth hydration. Memberships remain the tenant
-relationship; process assignments are the runtime role source.
+navigation available on the next auth hydration. Assignment updates preserve the
+process status value object and only touch its audit metadata, so repository
+serialization continues through the shared entity model. Memberships remain the
+tenant relationship; process assignments are the runtime role source.
 
 Manual generated-screen actions execute through the active process definition,
 not through client-selected entity routes. `executeActiveProcessAction()` loads

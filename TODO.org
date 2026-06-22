@@ -4,6 +4,14 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Fix active process assignment status serialization
+    Files changed: server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js
+    Docs updated: server/features/process-definitions/README.md, TODO.org
+    Notes: Active process assignment updates now preserve the shared Status
+      value object while updating audit metadata, so repository serialization
+      still calls `status.toJSON()` after recompiling role assignments.
+
     [2026-06-22] Complete generated UI plan execution
     Files changed: AGENTS.md, components/generated/GeneratedScreen.vue,
       components/generated/GeneratedRegion.vue,
