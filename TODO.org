@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Rename process service access tab
+    Files changed: i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: pages/organization/README.md,
+      components/process-designer/README.md, packages/processes/README.md,
+      server/features/process-definitions/README.md, TODO.org
+    Notes: Removed the misleading "automation" tab wording from the process
+      designer. The graph is the automation; the separate process panel now
+      names service runtime identities as service access, with run/view
+      identity labels kept as compatibility UI around `servicePrincipals`.
+
     [2026-06-22] Restore team user DTOs and recovery access
     Files changed: pages/organization/users.vue,
       server/api/users/index.get.js, server/features/users/service.js,

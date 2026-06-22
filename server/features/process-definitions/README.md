@@ -5,7 +5,7 @@ compiled runtime contract for roles, user assignments, entity workflows, field
 policies, service availability, sockets, screen manifests, and navigation.
 Runtime role permissions are derived from the graph during compilation:
 entity-profile access and screen requirements create grants, screen manifests
-create navigation, and service run/view access uses automation identities
+create navigation, and service run/view access uses service identities
 instead of user roles.
 
 Activation is the only path that affects runtime behavior. The service

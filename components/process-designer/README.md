@@ -25,7 +25,7 @@ Each node type is visually and functionally distinct:
   command entity inputs/outputs, and organization-send actions show the
   projected output fields.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
-  automation-identity access, typed input, and output handles and summarizes
+  service-identity access, typed input, and output handles and summarizes
   exact command inputs and outputs as labeled sockets in the same
   expected/produced visual contract as action nodes.
 - `ProcessSocketNode.vue` represents cross-organization entity projection. It
@@ -47,7 +47,7 @@ Event flow also uses side sockets: an `event` trigger enters the left side of
 an action and the action completion event leaves the right side. Action nodes
 expose only two trigger modes: `manual`, which uses human process roles to make
 a user-facing action available, and `event`, which runs automatically from
-another node's event edge. Automation identities remain service access records,
+another node's event edge. Service identities remain service access records,
 not manual trigger choices.
 Single data socket nodes keep `input`/`output` handle ids for saved-edge
 compatibility; multi-socket command nodes derive handle ids from the socket
