@@ -24,7 +24,9 @@ export const useAuthStore = defineStore('auth', () => {
     });
     const navigationManifest = computed(() => user.value?.navigation || []);
     const screenManifest = computed(() => user.value?.screens || []);
+    const actionManifest = computed(() => user.value?.roleAssignments?.actions || []);
     const fieldPolicies = computed(() => user.value?.fieldPolicies || {});
+    const processActive = computed(() => user.value?.process?.active === true);
 
     const canManagePlatform = computed(() => hasPermission('organizations', 'admin') || hasPermission('users', 'admin') || hasPermission('workbench', 'admin') || hasPermission('domain_builder', 'admin') || hasPermission('config_bot', 'admin'));
 
@@ -153,6 +155,9 @@ export const useAuthStore = defineStore('auth', () => {
      * Uses the centralized UI Permission Matrix.
      */
     function can(feature, action, context = {}) {
+        if (processActive.value && context.actionId) {
+            return actionManifest.value.some(item => item.actionId === context.actionId);
+        }
         return resolveUiPermission(null, feature, action, {
             ...context,
             permissions: context.permissions || activePermissions.value
@@ -172,7 +177,9 @@ export const useAuthStore = defineStore('auth', () => {
         activePermissions,
         navigationManifest,
         screenManifest,
+        actionManifest,
         fieldPolicies,
+        processActive,
         canManagePlatform,
         setUser,
         fetchUserOrgs,

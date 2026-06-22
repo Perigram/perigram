@@ -169,7 +169,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
     fieldPolicies: compileFieldPolicies(process.entityProfiles),
     actions: compileActions(process.actions),
     services: compileServices(process.services),
-    sockets: process.sockets,
+    sockets: compileSockets(process.sockets),
     screens: compiledScreens,
     warnings: validation.warnings
   };
@@ -256,6 +256,7 @@ function compileLifecycle(profile = {}, domain = {}) {
 function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {} } = {}) {
   const permissions = {};
   const screenMap = new Map();
+  const actionMap = new Map();
   const incompleteBindings = [];
   const roleIds = assignment.roleIds || [];
   for (const roleId of roleIds) {
@@ -269,6 +270,14 @@ function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {} } =
       }
       permissions[grant.feature] ||= [];
       permissions[grant.feature].push(compiledGrant.grant);
+    }
+    for (const action of role.actions || []) {
+      const existing = actionMap.get(action.actionId) || {};
+      actionMap.set(action.actionId, {
+        ...existing,
+        ...action,
+        sourceRoleIds: [...new Set([...(existing.sourceRoleIds || []), roleId])]
+      });
     }
     for (const screen of Object.values(screens)) {
       if (!screenAppliesToRole(screen, roleId)) continue;
@@ -287,6 +296,7 @@ function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {} } =
     permissions,
     navigation: dedupeNavigation(screenNavigation),
     screens: screensList,
+    actions: [...actionMap.values()],
     incompleteBindings
   };
 }
@@ -329,7 +339,14 @@ function compileRoles(process = {}, domain = {}) {
     if ((action.trigger?.mode || 'manual') !== 'manual') continue;
     for (const roleId of access.roleIds || []) {
       if (!roles[roleId]) continue;
-      roles[roleId].actions.push({ actionId: action.id || actionId, label: action.label || action.actionKind || action.id || actionId, level: 'run' });
+      roles[roleId].actions.push({
+        actionId: action.id || actionId,
+        label: action.label || action.actionKind || action.id || actionId,
+        level: 'run',
+        actionKind: action.actionKind || 'createEntity',
+        feature: grant?.feature || null,
+        entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || null
+      });
     }
   }
   return roles;
@@ -538,6 +555,37 @@ function compileServices(services = {}) {
   }]));
 }
 
+function compileSockets(sockets = {}) {
+  return Object.fromEntries(Object.entries(sockets).map(([id, socket]) => [id, {
+    id: socket.id || id,
+    label: socket.label || socket.id || id,
+    direction: socket.direction === 'inbound' ? 'inbound' : 'outbound',
+    entityType: socket.entityType || null,
+    projection: socket.projection || { fields: [], excludeFields: [] },
+    receiverLifecycle: socket.receiverLifecycle || { mode: 'defaultCreated', workflow: null },
+    access: {
+      sendRoles: socket.access?.sendRoles || [],
+      receiveRoles: socket.access?.receiveRoles || []
+    },
+    inputs: socket.direction === 'inbound'
+      ? []
+      : [{ id: 'entity', entityType: socket.entityType, required: true }],
+    outputs: socket.direction === 'inbound'
+      ? [{ id: 'received', entityType: socket.entityType, status: initialSocketStatus(socket) }]
+      : [{ id: 'projection', entityType: socket.entityType, projection: true, fields: socket.projection?.fields || [] }]
+  }]));
+}
+
+function initialSocketStatus(socket = {}) {
+  const lifecycle = socket.receiverLifecycle || {};
+  if (lifecycle.mode === 'custom') {
+    const workflow = normalizeWorkflow(lifecycle.workflow || createDefaultCreatedWorkflow(socket.entityType));
+    const region = workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0];
+    return region?.initial || '';
+  }
+  return '';
+}
+
 function compileActions(actions = {}) {
   return Object.fromEntries(Object.entries(actions).map(([id, action]) => [id, {
     id: action.id || id,
@@ -547,6 +595,7 @@ function compileActions(actions = {}) {
     parentEntityType: action.parentEntityType || null,
     commandId: action.commandId || null,
     status: action.status || {},
+    mutation: action.mutation || { fields: [] },
     projection: action.projection || null,
     access: normalizeActionAccess(action.access),
     trigger: {
@@ -569,14 +618,14 @@ function normalizeActionAccess(access = {}) {
 
 function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors }) {
   const kind = action.actionKind || 'createEntity';
-  if (!['createEntity', 'changeStatus', 'archiveEntity', 'runCommand', 'sendToOrganization'].includes(kind)) {
+  if (!['createEntity', 'updateEntity', 'changeStatus', 'runCommand', 'sendToOrganization'].includes(kind)) {
     errors.push(`Action ${actionId} uses unknown action kind ${kind}`);
     return;
   }
   if (kind === 'runCommand') {
     if (!action.commandId) errors.push(`Action ${actionId} must select a command`);
     if (action.commandId && !commands.has(action.commandId)) errors.push(`Action ${actionId} uses unknown command ${action.commandId}`);
-  } else if (kind !== 'changeStatus') {
+  } else if (!['changeStatus', 'updateEntity'].includes(kind)) {
     if (!action.entityType) errors.push(`Action ${actionId} must select an entity type`);
     if (action.entityType && !entities.has(action.entityType)) errors.push(`Action ${actionId} uses unknown entity type ${action.entityType}`);
   }
@@ -586,8 +635,14 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
   if (kind === 'changeStatus' && !action.status?.to) {
     errors.push(`Action ${actionId} must define a target status`);
   }
-  if (['createEntity', 'archiveEntity'].includes(kind) && !action.status?.to) {
+  if (kind === 'createEntity' && !action.status?.to) {
     errors.push(`Action ${actionId} must define target status`);
+  }
+  if (kind === 'updateEntity') {
+    const entityType = action.inputs?.find(input => input.entityType)?.entityType || action.entityType;
+    if (!entityType) errors.push(`Action ${actionId} must receive an entity input`);
+    if (entityType && !entities.has(entityType)) errors.push(`Action ${actionId} input uses unknown entity type ${entityType}`);
+    validateFieldList(action.mutation?.fields, domain, entityType, `action ${actionId} update fields`, errors);
   }
   if (!action.access || !Array.isArray(action.access.roleIds) || !['read', 'write', 'admin'].includes(action.access.level)) {
     errors.push(`Action ${actionId} must define access with level and roleIds`);

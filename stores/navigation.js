@@ -65,7 +65,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         authStore.screenManifest,
         authStore.activePermissions
     ));
-    const hasProcessScreens = computed(() => visibleProcessScreens.value.length > 0);
+    const hasProcessScreens = computed(() => authStore.processActive || visibleProcessScreens.value.length > 0);
 
     const routeMatches = (candidate, route) => Boolean(candidate && route)
         && (candidate === route || candidate.startsWith(`${route}/`) || route.startsWith(`${candidate}/`));

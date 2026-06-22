@@ -208,6 +208,9 @@ export async function projectEntityThroughSocket({ socketId, entityId, targetOrg
   const process = new ProcessDefinition(raw);
   const socket = process.data.sockets?.[socketId];
   if (!socket) throw createError({ statusCode: 404, message: 'Socket not found in active process' });
+  if (socket.direction === 'inbound') {
+    throw createError({ statusCode: 400, message: 'Inbound sockets receive projected entities and cannot project source entities' });
+  }
 
   const registry = getCutkitRegistry();
   const service = registry.getEntityService(socket.entityType);

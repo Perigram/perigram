@@ -363,6 +363,45 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions.create_queue.inputs[0]).toMatchObject({ id: 'parent', entityType: 'project' });
   });
 
+  it('compiles update actions with field mutation sockets', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_editor: { id: 'role_editor' }
+      },
+      actions: {
+        update_project_data: {
+          id: 'update_project_data',
+          actionKind: 'updateEntity',
+          mutation: { fields: ['data.metadata'] },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_editor'] },
+          inputs: [
+            { id: 'entity', entityType: 'project' },
+            { id: 'field:data.metadata', dataPath: 'data.metadata', kind: 'data' }
+          ],
+          outputs: [{ id: 'entity', entityType: 'project' }]
+        }
+      },
+      assignments: {
+        user_editor: {
+          userId: 'user_editor',
+          roleIds: ['role_editor'],
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.update_project_data).toMatchObject({
+      actionKind: 'updateEntity',
+      mutation: { fields: ['data.metadata'] },
+      inputs: [
+        { id: 'entity', entityType: 'project' },
+        { id: 'field:data.metadata', dataPath: 'data.metadata' }
+      ]
+    });
+    expect(compiled.userAccess.user_editor.permissions.projects[0]).toMatchObject({ level: 'write' });
+  });
+
   it('compiles send-to-organization projection actions', () => {
     const compiled = compileProcessDefinition({
       actions: {
@@ -382,6 +421,27 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions.send_project).toMatchObject({
       actionKind: 'sendToOrganization',
       projection: { fields: ['identity.*'] }
+    });
+  });
+
+  it('compiles inbound organization sockets as received entity outputs', () => {
+    const compiled = compileProcessDefinition({
+      sockets: {
+        receive_project: {
+          id: 'receive_project',
+          direction: 'inbound',
+          entityType: 'project',
+          projection: { fields: ['identity.*'], excludeFields: [] },
+          receiverLifecycle: { mode: 'defaultCreated', workflow: null },
+          access: { receiveRoles: [] }
+        }
+      }
+    }, domain);
+
+    expect(compiled.sockets.receive_project).toMatchObject({
+      direction: 'inbound',
+      inputs: [],
+      outputs: [{ id: 'received', entityType: 'project' }]
     });
   });
 
@@ -528,6 +588,12 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.userAccess.user_creator.permissions.projects[0]).toMatchObject({ level: 'write' });
     expect(compiled.roles.role_creator.actions[0]).toMatchObject({ actionId: 'create_project', level: 'run' });
+    expect(compiled.userAccess.user_creator.actions[0]).toMatchObject({
+      actionId: 'create_project',
+      actionKind: 'createEntity',
+      feature: 'projects',
+      sourceRoleIds: ['role_creator']
+    });
   });
 
   it('derives status action grants for the resulting status contract', () => {

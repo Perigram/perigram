@@ -25,7 +25,7 @@
       <div class="absolute left-3 top-3 z-10 flex gap-1 rounded-ui border border-content-border bg-content p-1 shadow-card">
         <Button
           v-for="item in palette"
-          :key="item.actionKind"
+          :key="`${item.type}-${item.actionKind || item.direction}`"
           :icon="item.icon"
           :aria-label="paletteLabel(item)"
           size="small"
@@ -401,12 +401,16 @@ const newStateId = ref('');
 
 const palette = [
   { type: 'action', actionKind: 'createEntity', icon: 'pi pi-plus-circle', label: 'create' },
+  { type: 'action', actionKind: 'updateEntity', icon: 'pi pi-pencil', label: 'update' },
   { type: 'action', actionKind: 'changeStatus', icon: 'pi pi-sync', label: 'status' },
   { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play-circle', label: 'service' },
-  { type: 'action', actionKind: 'sendToOrganization', icon: 'pi pi-send', label: 'send' }
+  { type: 'action', actionKind: 'sendToOrganization', icon: 'pi pi-send', label: 'send' },
+  { type: 'socket', direction: 'inbound', icon: 'pi pi-sign-in', label: 'receive' },
+  { type: 'socket', direction: 'outbound', icon: 'pi pi-sign-out', label: 'send socket' }
 ];
 const actionKindOptions = [
   { label: 'create', value: 'createEntity' },
+  { label: 'update', value: 'updateEntity' },
   { label: 'status', value: 'changeStatus' },
   { label: 'service', value: 'runCommand' },
   { label: 'send', value: 'sendToOrganization' }
@@ -661,6 +665,7 @@ function setDraft(value) {
 function addNode(item) {
   const type = typeof item === 'string' ? item : item.type;
   const actionKind = typeof item === 'object' ? item.actionKind : null;
+  const socketDirection = typeof item === 'object' ? item.direction : null;
   const id = `${type}_${Date.now()}`;
   const refId = id;
   const node = {
@@ -672,6 +677,9 @@ function addNode(item) {
   const record = ensureRecord(recordKeyForType(type), { data: { refId }, type }, factoryForType(type));
   if (type === 'action' && actionKind) {
     Object.assign(record, createAction(refId, actionKind));
+  }
+  if (type === 'socket' && socketDirection) {
+    Object.assign(record, createSocket(refId, socketDirection));
   }
   nodes.value.push(enrichNodeData(node));
   selectedNodeId.value = id;
@@ -758,6 +766,7 @@ function syncNodeData() {
     if (!node.data?.refId) continue;
     const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
     if (node.type === 'action') syncActionIo(record, node);
+    if (node.type === 'socket') syncSocketIo(record);
     node.data.label = record.label || actionKindLabel(record.actionKind) || record.entityType || record.commandId || node.data.label;
     node.data.actionKind = record.actionKind;
     node.data.entityType = record.entityType;
@@ -772,7 +781,7 @@ function syncNodeData() {
     node.data.effectiveAccessLabels = node.type === 'action' ? effectiveActionAccessLabels(record, node) : [];
     node.data.accessLevelOptions = node.type === 'action' ? accessLevelOptions : [];
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
-    node.data.fieldOptions = node.type === 'action' ? fieldOptions(record.entityType) : [];
+    node.data.fieldOptions = node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [];
     node.data.onActionUpdate = node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data.refId, updates, options) : null;
     node.data.statusFrom = record.status?.from;
     node.data.statusTo = record.status?.to;
@@ -780,6 +789,7 @@ function syncNodeData() {
     node.data.lifecycleMode = record.lifecycle?.mode;
     node.data.roleCount = record.allowedRoles ? countRoleBindings(record.allowedRoles) : (record.access?.roleIds?.length || 0);
     node.data.runPrincipalLabels = principalLabels(record.access?.runPrincipals || []);
+    node.data.sendRoleLabels = roleLabels(record.access?.sendRoles || []);
     node.data.receiveRoleLabels = roleLabels(record.access?.receiveRoles || []);
     node.data.fieldCount = record.fields ? countFieldBindings(record.fields) : (record.projection?.fields?.length || 0);
     node.data.stateLabels = workflowStateLabels(record);
@@ -845,10 +855,11 @@ function createAction(id, actionKind = 'createEntity') {
     id,
     label: actionKindLabel(actionKind),
     actionKind,
-    entityType: ['changeStatus', 'runCommand'].includes(actionKind) ? '' : 'project',
+    entityType: ['changeStatus', 'runCommand', 'updateEntity'].includes(actionKind) ? '' : 'project',
     commandId: '',
     parentEntityType: '',
     status: { from: '', to: '' },
+    mutation: { fields: [] },
     projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
     access: { level: 'write', roleIds: [] },
     trigger: { mode: 'manual' },
@@ -860,11 +871,11 @@ function createAction(id, actionKind = 'createEntity') {
   return action;
 }
 
-function createSocket(id) {
+function createSocket(id, direction = 'outbound') {
   return {
     id,
     label: id,
-    direction: 'outbound',
+    direction,
     entityType: 'project',
     projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
     receiverLifecycle: { mode: 'defaultCreated', workflow: null },
@@ -1052,6 +1063,25 @@ function syncActionIo(action = {}, node = null) {
     action.outputs = [{ id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: action.status.to || '' }];
     return;
   }
+  if (action.actionKind === 'updateEntity') {
+    const incoming = node?.id ? inferIncomingEntityContract(node.id) : {};
+    const incomingEntityType = node ? (incoming.entityType || '') : (action.inputs?.find(input => input.id === 'entity')?.entityType || '');
+    action.entityType = '';
+    action.mutation ||= { fields: [] };
+    const fieldInputs = (action.mutation.fields || []).map(path => ({
+      id: `field:${path}`,
+      label: path,
+      dataPath: path,
+      kind: 'data',
+      required: false
+    }));
+    action.inputs = [
+      { id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: incoming.status || '' },
+      ...fieldInputs
+    ];
+    action.outputs = [{ id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: incoming.status || '' }];
+    return;
+  }
   if (action.actionKind === 'sendToOrganization') {
     action.projection ||= { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } };
     action.inputs = [{ id: 'entity', entityType: action.entityType }];
@@ -1063,6 +1093,27 @@ function syncActionIo(action = {}, node = null) {
     action.inputs = commandInputs(command);
     action.outputs = commandOutputs(command);
   }
+}
+
+function syncSocketIo(socket = {}) {
+  socket.direction = socket.direction === 'inbound' ? 'inbound' : 'outbound';
+  socket.projection ||= { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } };
+  socket.receiverLifecycle ||= { mode: 'defaultCreated', workflow: null };
+  socket.access ||= { sendRoles: [], receiveRoles: [] };
+  if (socket.direction === 'inbound') {
+    socket.inputs = [];
+    socket.outputs = [{ id: 'received', label: socket.entityType, entityType: socket.entityType, status: initialSocketStatus(socket) }];
+    return;
+  }
+  socket.inputs = [{ id: 'entity', label: socket.entityType, entityType: socket.entityType, required: true }];
+  socket.outputs = [{ id: 'projection', label: socket.entityType, entityType: socket.entityType, projection: true, fields: socket.projection.fields || [] }];
+}
+
+function initialSocketStatus(socket = {}) {
+  if (socket.receiverLifecycle?.mode !== 'custom') return '';
+  const workflow = socket.receiverLifecycle.workflow;
+  const region = workflow?.regions?.[workflow.primaryRegion] || Object.values(workflow?.regions || {})[0];
+  return region?.initial || '';
 }
 
 function initialStatusForEntity(entityType) {
@@ -1256,6 +1307,7 @@ function parseJson(source, fallback) {
 function enrichNodeData(node) {
   const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
   if (node.type === 'action') syncActionIo(record, node);
+  if (node.type === 'socket') syncSocketIo(record);
   return {
     ...node,
     data: {
@@ -1271,7 +1323,7 @@ function enrichNodeData(node) {
       effectiveAccessLabels: node.type === 'action' ? effectiveActionAccessLabels(record, node) : [],
       accessLevelOptions: node.type === 'action' ? accessLevelOptions : [],
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
-      fieldOptions: node.type === 'action' ? fieldOptions(record.entityType) : [],
+      fieldOptions: node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [],
       onActionUpdate: node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data?.refId, updates, options) : null,
       triggerMode: record.trigger?.mode,
       eventLabel: node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null,
@@ -1279,6 +1331,7 @@ function enrichNodeData(node) {
       lifecycleMode: record.lifecycle?.mode,
       roleCount: record.allowedRoles ? countRoleBindings(record.allowedRoles) : (record.access?.roleIds?.length || 0),
       runPrincipalLabels: principalLabels(record.access?.runPrincipals || []),
+      sendRoleLabels: roleLabels(record.access?.sendRoles || []),
       receiveRoleLabels: roleLabels(record.access?.receiveRoles || []),
       fieldCount: record.fields ? countFieldBindings(record.fields) : (record.projection?.fields?.length || 0),
       stateLabels: workflowStateLabels(record),

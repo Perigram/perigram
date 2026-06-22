@@ -31,6 +31,17 @@
         size="small"
         @update:model-value="value => updateAndSync({ commandId: value })"
       />
+      <MultiSelect
+        v-else-if="action.actionKind === 'updateEntity'"
+        :model-value="action.mutation?.fields || []"
+        :options="data.fieldOptions || []"
+        option-label="label"
+        option-value="value"
+        display="chip"
+        class="min-w-0"
+        size="small"
+        @update:model-value="value => updateMutation({ fields: value })"
+      />
       <InputText
         v-else
         :model-value="action.label || data.label || data.refId"
@@ -174,7 +185,7 @@ const effectiveAccessLabels = computed(() => props.data.effectiveAccessLabels ||
 const eventLabel = computed(() => props.data.eventLabel || t('processDesigner.actionCompleted'));
 const actionKindLabel = computed(() => props.data.actionKindLabel || props.data.actionKind || t('common.actions.title'));
 const showEntitySelector = computed(() => ['createEntity', 'sendToOrganization'].includes(action.value.actionKind));
-const hasInlineControls = computed(() => ['createEntity', 'changeStatus', 'runCommand', 'sendToOrganization'].includes(action.value.actionKind));
+const hasInlineControls = computed(() => ['changeStatus', 'sendToOrganization'].includes(action.value.actionKind));
 function normalizeSpecs(items = []) {
   return items.map((item, index) => {
     if (typeof item === 'string') return { id: `${item}-${index}`, label: item, detail: '' };
@@ -230,6 +241,15 @@ function updateProjection(updates) {
   props.data.onActionUpdate?.({
     projection: {
       ...(action.value.projection || {}),
+      ...updates
+    }
+  }, { syncIo: true });
+}
+
+function updateMutation(updates) {
+  props.data.onActionUpdate?.({
+    mutation: {
+      ...(action.value.mutation || {}),
       ...updates
     }
   }, { syncIo: true });

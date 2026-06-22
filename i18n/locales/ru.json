@@ -2237,6 +2237,8 @@
     "sameEntity": "Та же сущность",
     "currentStatus": "Текущий статус",
     "targetStatus": "Целевой статус",
+    "send": "Отправка",
+    "receive": "Получение",
     "editActionOnNode": "Редактируйте это действие прямо в узле.",
     "runAccess": "Доступ запуска",
     "receiveAccess": "Доступ получения",

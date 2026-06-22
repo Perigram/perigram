@@ -2237,6 +2237,8 @@
     "sameEntity": "Same entity",
     "currentStatus": "Current status",
     "targetStatus": "Target status",
+    "send": "Send",
+    "receive": "Receive",
     "editActionOnNode": "Edit this action directly on the node.",
     "runAccess": "Run access",
     "receiveAccess": "Receive access",
