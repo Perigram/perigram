@@ -37,7 +37,8 @@ Inherits all `BaseEntity` fields.
 `POST /api/auth/register` creates a password-backed user and, when
 `organizationName` is supplied, creates the first organization through the
 organizations service. The new user receives an active membership, lineage
-organization, and an active process assignment in the selected starter process.
+organization, explicit tenant-management membership grants, and an active
+process assignment in the selected starter process.
 Invitation signup intentionally omits
 organization fields: the account is created without a membership, then the user
 logs in and accepts `/invitation/:token` to create a pending membership for the
@@ -55,21 +56,23 @@ attach the first organization.
 
 ## Permission System
 - Organization context via `user.lineage.organizationId`
-- Per-organization permissions in `memberships` are compatibility fallback data.
+- Per-organization permissions in `memberships` are explicit stored grants used
+  only by tenant-management recovery paths.
 - When `server/middleware/auth.js` resolves an active process, the user's
   `effectivePermissions`, navigation, field policies, and role assignment come
   from the compiled process definition.
 - User management checks use the compiled `users:admin` grant first, then a
-  narrow recovery path for active membership `users:admin` grants, active
-  admin/owner/creator membership labels, or the sole active organization member.
-  The recovery path is local to team management operations so a broken active
-  process does not lock out the organization operator after the team gains a
-  second active member.
+  narrow recovery path for active membership `users:admin` grants. Membership
+  role labels and sole-member status do not imply management access.
 - Default access presets live in [shared permission templates](../../../shared/README.md)
   so browser dev tools and server user creation read the same grant contract.
-- Presets are materialized when registering users or accepting invitations.
-  `User` model reads do not expand permissions from `data.role`; persisted
-  memberships must carry the explicit grant object used by authorization.
+- Permission presets are materialized only when a caller explicitly creates a
+  non-process user role. Process-role invitation memberships store no copied
+  permissions and rely on active process assignments for runtime access.
+  Creator memberships store explicit `organizations:admin` and `users:admin`
+  recovery grants. `User` model reads do not expand permissions from
+  `data.role`; persisted memberships must carry the explicit grant object used
+  by authorization.
 - All presets guarantee at least `read` access to `materials` and
   `layer_standards`, which keeps system tools, pens, and layer catalogs
   available for basic app use.

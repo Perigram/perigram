@@ -29,8 +29,11 @@ Key fields:
 - `createInitialForUser()` is the narrow public-signup helper. It creates the
   first organization for a newly registered user, creates and activates a
   starter process definition, assigns the creator to the process admin role,
-  and writes the user's initial membership/lineage. Membership permissions are
-  compatibility data; active process assignments provide runtime access.
+  and writes the user's initial membership/lineage. The creator membership
+  stores explicit `organizations:admin` and `users:admin` grants so tenant
+  management remains reachable even if the active process graph later removes
+  operational organization screens. Active process assignments provide runtime
+  app access.
 
 ## API Behavior
 - `GET /api/organizations/:id` returns the serialized organization when found.

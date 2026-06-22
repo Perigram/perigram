@@ -19,16 +19,23 @@ Pinia stores for client state and API orchestration.
 - `auth.js` accepts optional `$fetch` options in `setUser()` and
   `fetchUserOrgs()` so route middleware can forward SSR request cookies during
   direct page loads. `setUser()` owns organization hydration; app layouts should
-  not re-fetch organizations after a successful auth hydration.
+  not re-fetch organizations after a successful auth hydration. Runtime app
+  access comes from `activePermissions`, which prefers the active process
+  compiled permissions. Tenant-management chrome can also check
+  `tenantPermissions` through `hasTenantPermission()`, which reads explicit
+  active membership grants for organization/team/process management recovery.
 - `navigation.js` owns project breadcrumb context. SSR callers must pass request
   headers through `fetchProjectContext(slug, fetchOptions)` so protected project
   lookups use the same session cookie as auth middleware. Breadcrumb sibling
   options normalize canonical DTO labels before passing them to PrimeVue Select.
-  When auth includes a process screen manifest, hubs and breadcrumbs are built
-  from those screens plus the active permission evaluator, so a user's app menu
-  follows their compiled process assignment and scoped bindings. Legacy process
-  navigation and hardcoded hub/tab lists remain fallback behavior for active
-  process definitions that have not been reactivated with screens.
+  When auth includes an active process, hubs and breadcrumbs are built only from
+  the compiled process screen manifest plus the active permission evaluator, so
+  a user's app menu follows their compiled process assignment and scoped
+  bindings. Static hub/tab lists are used only when no active process is
+  present. Organization management breadcrumbs are not generated operational
+  screens; they use `hasTenantPermission()` so admins can still reach team
+  management and process design while ordinary process roles only see their
+  compiled screens.
   Project routes include a store-resolved section breadcrumb for queues, sheet
   designs, data, artifacts, and details.
   Admin pages use a store-owned sibling list that includes workbench,

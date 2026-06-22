@@ -4,6 +4,27 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Preserve multi-role process screens and tenant management grants
+    Files changed: packages/processes/src/index.spec.js,
+      pages/organization/users.vue, stores/auth.js, stores/navigation.js,
+      layouts/app.vue, server/features/invitations/service.js,
+      server/features/invitations/invitations.spec.js,
+      server/features/organizations/service.js,
+      server/features/users/users.spec.js,
+      server/scripts/migrate-process-role-memberships.js
+    Docs updated: packages/processes/README.md,
+      pages/organization/README.md, stores/README.md, layouts/README.md,
+      server/features/invitations/README.md,
+      server/features/organizations/README.md,
+      server/features/users/README.md, server/scripts/README.md, TODO.org
+    Notes: Team management now preserves multiple process role ids for
+      invites, user creation, and assignment previews. Runtime compilation is
+      covered for multi-role generated screens. Process-role invitation
+      memberships no longer copy permission presets, tenant-management chrome
+      reads explicit membership grants, new organization creators receive
+      explicit tenant admin grants, and the migration clears stale process-role
+      membership permissions while recovering missing tenant admins.
+
     [2026-06-22] Recover team and process management from stored membership grants
     Files changed: server/features/users/service.js,
       server/features/users/users.spec.js,

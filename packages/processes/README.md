@@ -23,10 +23,10 @@ bootstrap. They create process graphs and role assignments; runtime behavior is
 driven only by the activated process definition, not by organization type
 branching.
 
-Role access is compositional and graph-derived. Process role records represent
-human responsibilities and store identity/labels only; they do not own
-navigation routes or hand-maintained grant JSON. The compiler derives role
-grants from entity-profile `allowedRoles`, action access grants, and screen
+Role access is compositional. Process role records represent human
+responsibilities and may store explicit access grants, but they do not own
+navigation routes. The compiler combines explicit role grants with grants
+derived from entity-profile `allowedRoles`, action access grants, and screen
 `required` contracts.
 Assignments compile against those derived roles and produce effective
 permissions, screens, and navigation for each user. Services use separate
@@ -35,6 +35,11 @@ service identities stored in `servicePrincipals` plus
 not selectable as manual user triggers.
 At runtime those compiled permissions are the organization's active access
 source.
+When an assignment contains multiple role ids, generated and authored screens
+from every selected role are merged into that user's screen manifest. Explicit
+screen records that name several roles still compile to one shared screen key;
+compiler-inferred role/entity screens stay separate per role and entity so a
+multi-role user receives every matching operational screen.
 
 Action records represent executable process steps on the visual canvas. The
 compiler validates `createEntity`, `updateEntity`, `changeStatus`,
@@ -82,8 +87,10 @@ routes under `/screens/:screenKey`; the original semantic route is preserved as
 `sourceRoute` for audit/debug context. Manual screen actions execute through the
 active process action runtime, which verifies the user's compiled action
 manifest before delegating to entity, status, socket, or command services.
-Navigation is compiled from the screen manifest only; process role records are
-not a route source.
+Navigation is compiled from the screen manifest. When a role has access grants
+but no authored screen for that entity feature, the compiler creates a generated
+entity-list screen for that role/feature so process-active users do not fall
+back to static app routes.
 
 Compiled field policies replace the base domain field set for an organization
 when present. `read` fields are public display fields, `write` fields require

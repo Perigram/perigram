@@ -19,6 +19,7 @@ node server/scripts/repair-system-data-permissions.js # Floor stored user grants
 node server/scripts/migrate-org-types-to-processes.js # Backfill active process definitions from stored organization type labels
 node server/scripts/migrate-process-action-access-grants.js # Move process action role grants from trigger records to access records
 node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize stored screens into generated UI contracts
+node server/scripts/migrate-process-role-memberships.js # Clear preset permissions from process-role memberships and recover tenant admins
 ```
 
 ## What Gets Created
@@ -131,7 +132,16 @@ Use `server/scripts/migrate-process-screens-to-generated-ui.js` after adopting
 generated operational screens. It normalizes stored screen records into fixed
 template/source/region contracts, filters stale screen action ids that are not
 defined in the process actions, preserves the previous route as `sourceRoute`,
-and recompiles active process contracts.
+recompiles active process contracts, and picks up compiler-inferred screens
+from role grants for processes that have role access but no authored screens.
+
+Use `server/scripts/migrate-process-role-memberships.js` after changing
+membership/process role separation. It clears copied permission presets from
+memberships whose `role` or `roleIds` are process role ids (`role_*`) while
+preserving the process role assignment data. It also promotes an active
+team-management member to explicit `organizations:admin` when an organization
+has no tenant admin, so creator/admin recovery does not depend on membership
+role labels.
 
 ## Entity Revision Migration
 

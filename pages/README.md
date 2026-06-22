@@ -8,8 +8,9 @@ Nuxt route components for public, authenticated, and admin surfaces.
 redirect gate for authenticated users.
 
 - On mount, it calls `authStore.setUser()` to hydrate an existing session.
-- Authenticated platform admins go to `/admin`; all other authenticated users
-  go to `/projects`.
+- Authenticated users with an active process go to their first compiled process
+  screen. Authenticated users without an active process use the static projects
+  workspace.
 - Anonymous visitors stay on the landing page, which embeds
   `CassetteMarketingAnimation` as the first-viewport visual and links to login
   and registration.

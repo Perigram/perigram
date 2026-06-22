@@ -6,7 +6,9 @@ policies, service availability, sockets, screen manifests, and navigation.
 Runtime role permissions are derived from the graph during compilation:
 entity-profile access and screen requirements create grants, screen manifests
 create navigation, and service run/view access uses service identities
-instead of user roles.
+instead of user roles. If a role has grants but no authored screen for the
+granted entity feature, compilation creates a generated entity-list screen for
+that role/feature instead of relying on static app navigation.
 
 Activation is the only path that affects runtime behavior. The service
 requires canonical semantic process records, validates the draft, verifies the
@@ -14,11 +16,10 @@ process transpiler round-trip, compiles the runtime contract, archives the
 previous active process for the organization, marks the selected process
 `ACTIVE`, and stores its id on the organization.
 Process definition management also accepts the active organization membership's
-stored `organizations` grants, admin/owner/creator role labels, or the sole
-active organization member, as a narrow recovery path. This prevents the tenant
-operator from being locked out when the currently active process no longer
-grants process management access; the fallback is local to process definition
-operations and does not grant general entity access.
+stored `organizations` grants as a narrow recovery path. Membership role labels
+and sole-member status do not imply process management access; the recovery path
+is local to process definition operations and does not grant general entity
+access.
 
 The compiled runtime contract is not a design source. Stored definitions that
 only contain `data.compiled` without semantic records are rejected during

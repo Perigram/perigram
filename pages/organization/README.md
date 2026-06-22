@@ -12,12 +12,13 @@ user creation, and process role assignment. The page reads roles from the
 active process definition, and writes assignments through
 `/api/process-definitions/active/assignments`. It is the operational owner for
 assigning actual users to abstract process roles. It does not expose membership
-role labels as process roles. The role
-dialog derives assignment binding fields from selected process screens instead
-of showing raw JSON, and previews graph-derived access plus screen routes from
-the current role selection before saving. Missing assignment bindings are still
-surfaced from the compiled active process so overloaded/scoped screens do not
-silently disappear when a user lacks a required project or entity binding.
+role labels as process roles. Invites, user creation, and assignment editing all
+preserve multiple selected process role ids. The role dialog derives assignment
+binding fields from selected process screens instead of showing raw JSON, and
+previews graph-derived access plus compiled screen routes from the current role
+selection before saving. Missing assignment bindings are still surfaced from the
+compiled active process so overloaded/scoped screens do not silently disappear
+when a user lacks a required project or entity binding.
 The route expects `/api/users` to return canonical user DTO blocks with
 `identity.name`, `data.email`, and membership summary fields visible under
 `users:read`; it derives the active organization id from the loaded organization
