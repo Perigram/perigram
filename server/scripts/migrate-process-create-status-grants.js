@@ -2,16 +2,8 @@ import { connectDB } from '../db/mongo.js';
 import { compileProcessDefinition } from '../../packages/processes/src/index.js';
 import { cncDomain } from '../../packages/domain-cnc/src/index.js';
 
-function hasCreateActionWithTargetStatus(data = {}) {
-  return Object.values(data.actions || {}).some(action => (
-    (action.actionKind || 'createEntity') === 'createEntity'
-    && action.status?.to
-    && action.access?.roleIds?.length
-  ));
-}
-
 function migrateProcessData(data = {}) {
-  if (!data.compiled || !hasCreateActionWithTargetStatus(data)) return data;
+  if (!data.compiled) return data;
   return {
     ...data,
     compiled: compileProcessDefinition({
@@ -41,7 +33,7 @@ async function main() {
     updated++;
   }
 
-  console.log(`Scanned ${scanned} process definitions; recompiled ${updated} create-status grants.`);
+  console.log(`Scanned ${scanned} process definitions; recompiled ${updated} process definitions.`);
   process.exit(0);
 }
 
