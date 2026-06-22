@@ -1,9 +1,10 @@
 <template>
-  <div class="relative min-w-72 rounded-ui border border-content-border bg-content px-2 py-2 shadow-card">
+  <div :class="nodeFrameClass">
+    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-amber-500"></div>
     <div class="flex items-start justify-between gap-2">
       <div class="min-w-0">
         <div class="flex items-center gap-1">
-          <i class="pi pi-cog text-primary" aria-hidden="true"></i>
+          <i class="pi pi-cog text-amber-600" aria-hidden="true"></i>
           <strong class="truncate text-sm">{{ data.label || data.commandId || data.refId }}</strong>
         </div>
         <small class="text-muted-color">{{ data.commandId || $t('processDesigner.commandId') }}</small>
@@ -55,8 +56,15 @@
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 
-const props = defineProps({ data: { type: Object, default: () => ({}) } });
+const props = defineProps({
+  data: { type: Object, default: () => ({}) },
+  selected: { type: Boolean, default: false }
+});
 
+const nodeFrameClass = computed(() => [
+  'relative min-w-72 rounded-ui border bg-content px-2 py-2 pt-3 shadow-card transition-colors',
+  props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
+]);
 const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || props.data.inputLabels || []));
 const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || props.data.outputLabels || []));
 const runPrincipalLabels = computed(() => props.data.runPrincipalLabels || []);

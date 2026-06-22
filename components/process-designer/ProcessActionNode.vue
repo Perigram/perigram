@@ -1,7 +1,8 @@
 <template>
-  <div class="relative min-w-72 rounded-ui border border-content-border bg-content px-2 py-2 shadow-card">
+  <div :class="nodeFrameClass">
+    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-emerald-500"></div>
     <div class="nodrag grid grid-cols-[auto_minmax(0,1fr)_minmax(0,0.8fr)] items-center gap-1">
-      <span class="text-xs font-semibold uppercase">{{ actionKindLabel }}</span>
+      <span class="text-xs font-semibold uppercase text-emerald-700">{{ actionKindLabel }}</span>
       <Select
         v-if="showEntitySelector"
         :model-value="action.entityType || ''"
@@ -155,9 +156,16 @@ import MultiSelect from 'primevue/multiselect';
 import Select from 'primevue/select';
 import { useI18n } from 'vue-i18n';
 
-const props = defineProps({ data: { type: Object, default: () => ({}) } });
+const props = defineProps({
+  data: { type: Object, default: () => ({}) },
+  selected: { type: Boolean, default: false }
+});
 const { t } = useI18n();
 
+const nodeFrameClass = computed(() => [
+  'relative min-w-72 rounded-ui border bg-content px-2 py-2 pt-3 shadow-card transition-colors',
+  props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
+]);
 const action = computed(() => props.data.actionRecord || {});
 const triggerMode = computed(() => action.value.trigger?.mode || props.data.triggerMode || 'manual');
 const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || props.data.inputLabels || []));

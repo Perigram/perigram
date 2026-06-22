@@ -1,9 +1,10 @@
 <template>
-  <div class="relative min-w-72 rounded-ui border border-violet-300 bg-content px-3 py-3 shadow-card">
+  <div :class="nodeFrameClass">
+    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-violet-500"></div>
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
         <div class="flex items-center gap-2">
-          <i class="pi pi-share-alt text-primary" aria-hidden="true"></i>
+          <i class="pi pi-share-alt text-violet-600" aria-hidden="true"></i>
           <strong class="truncate">{{ data.label || data.entityType || data.refId }}</strong>
         </div>
         <small class="text-muted-color">{{ data.entityType || $t('processDesigner.entityType') }}</small>
@@ -46,8 +47,15 @@ import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import Tag from 'primevue/tag';
 
-const props = defineProps({ data: { type: Object, default: () => ({}) } });
+const props = defineProps({
+  data: { type: Object, default: () => ({}) },
+  selected: { type: Boolean, default: false }
+});
 
+const nodeFrameClass = computed(() => [
+  'relative min-w-72 rounded-ui border bg-content px-3 py-3 pt-4 shadow-card transition-colors',
+  props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
+]);
 const inputLabel = computed(() => [props.data.direction || 'transfer', props.data.entityType].filter(Boolean).join(' · '));
 const projectedFields = computed(() => props.data.projection?.fields || []);
 const visibleProjectedFields = computed(() => projectedFields.value.slice(0, 4));
