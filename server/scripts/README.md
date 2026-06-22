@@ -16,7 +16,8 @@ node server/scripts/seed-system-pens.js      # OCCS/default system pens
 node server/scripts/seed-system-tools.js     # 6 common tools
 node server/scripts/migrate-entity-revisions.js # Backfill cassette geometry revisions and design provenance
 node server/scripts/repair-system-data-permissions.js # Floor stored user grants so system pens/layers/tools stay visible
-node server/scripts/migrate-org-types-to-processes.js # Backfill active process definitions from legacy organization type labels
+node server/scripts/migrate-org-types-to-processes.js # Backfill active process definitions from stored organization type labels
+node server/scripts/migrate-process-action-access-grants.js # Move process action role grants from trigger records to access records
 ```
 
 ## What Gets Created
@@ -114,10 +115,15 @@ modules; the production app image does not include those standalone source
 dependencies for direct script execution.
 
 Use `server/scripts/migrate-org-types-to-processes.js` once when introducing
-process definitions to existing data. It maps legacy `organization.data.type`
+process definitions to existing data. It maps stored `organization.data.type`
 labels to starter process templates, creates an active compiled
 `process_definition` for organizations without `data.activeProcessDefinitionId`,
-and leaves `data.type` in place as compatibility-only data.
+and removes organization type branching from runtime behavior.
+
+Use `server/scripts/migrate-process-action-access-grants.js` after adopting
+action access grants. It rewrites stored process actions so `trigger` contains
+only execution mode, moves role ids to `access.roleIds`, defaults action access
+to `write`, and recompiles active process contracts.
 
 ## Entity Revision Migration
 

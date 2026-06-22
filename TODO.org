@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Split process action triggers from access grants
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      pages/organization/process.vue, pages/organization/users.vue,
+      packages/processes/src/index.js, packages/processes/src/index.spec.js,
+      packages/domain-cnc/src/entity-create-inputs.js,
+      packages/domain-cnc/src/index.js,
+      server/scripts/migrate-process-action-access-grants.js
+    Docs updated: components/process-designer/README.md,
+      packages/processes/README.md, packages/domain-cnc/README.md,
+      pages/organization/README.md, server/scripts/README.md, TODO.org
+    Notes: Trigger mode now only describes execution mode. Roles and levels
+      live in action access grants, manual actions are exposed from those
+      grants, create nodes derive data sockets from domain create-input
+      contracts, and stored process definitions have a migration path.
+
     [2026-06-22] Ban compatibility bridges in agent protocol
     Files changed: AGENTS.md,
       .codex/skills/cutkit-project-workflow/SKILL.md,

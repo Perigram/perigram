@@ -75,8 +75,12 @@ write generated Vue/domain files to the repository.
 File behavior is declared by `AttachmentKind`.
 `generateAttachment` is a polymorphic command: its process-designer contract is
 one abstract `Attachment source` input with `attachments.generate` capability
-and accepted source types, while concrete `sheetDesign` and `nestingRun` inputs
-remain as compatibility runtime refs.
+and accepted source types.
+
+`entity-create-inputs.js` declares create-action data sockets. These contracts
+are operation inputs, not display fields: process create nodes use them to show
+which data must arrive to create an entity, while post-creation data mutation
+belongs in a separate action contract.
 
 `profile_template` is reusable master data for OCCS profile-section sketches.
 Cassette templates insert profile workpieces as snapshots with a

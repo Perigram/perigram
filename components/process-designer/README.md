@@ -15,9 +15,9 @@ Each node type is visually and functionally distinct:
   the explicit public/write data contract exposed by the entity profile.
 - `ProcessActionNode.vue` represents an executable process step. It exposes
   event trigger input, data input/output, and completion event output handles on
-  the node sides. The node owns inline
-  editing for trigger mode, trigger roles, command selection, target status,
-  creation target, and projection fields. The action kind is fixed by the
+  the node sides. The node owns inline editing for trigger mode, action access
+  level, access-granted roles, command selection, target status, creation
+  target, and projection fields. The action kind is fixed by the
   palette item that created the node and is displayed as a compact verb such as
   `create` or `service`. Create actions derive their parent from the incoming
   data socket instead of a parent-type selector, status-change actions consume
@@ -32,35 +32,29 @@ Each node type is visually and functionally distinct:
   exposes entity-projection, transfer, and receiver-role handles and summarizes
   direction plus the expected entity input and produced projected field set.
 
-Entity, service, and socket nodes remain display-first compatibility surfaces,
-while action nodes are directly editable because most process behavior belongs
-on the executable step itself. The route-level designer still owns process
-record mutation, role and user assignment records, inline lifecycle workflow
-mutation, compiler fields, and Vue Flow edge persistence. Legacy role or user
-node components should not be added to the palette; active drafts load without
-those nodes so roles can stay reusable process metadata instead of layout
-objects.
+Entity, service, and socket nodes remain process-resource surfaces, while
+action nodes are directly editable because most process behavior belongs on the
+executable step itself. The route-level designer still owns process record
+mutation, role and user assignment records, inline lifecycle workflow mutation,
+compiler fields, and Vue Flow edge persistence. Role or user node components
+should not be added to the palette; roles stay reusable process metadata
+instead of layout objects.
 Input and output data is not rendered as a detached summary and nodes do not
 label columns as "inputs" or "outputs". Data flow is left-to-right: expected
 data is labeled on left handles, and produced data is labeled on right handles.
 Event flow also uses side sockets: an `event` trigger enters the left side of
 an action and the action completion event leaves the right side. Action nodes
-expose only two trigger modes: `manual`, which uses human process roles to make
-a user-facing action available, and `event`, which runs automatically from
-another node's event edge. Service identities remain service access records,
-not manual trigger choices.
-Single data socket nodes keep `input`/`output` handle ids for saved-edge
-compatibility; multi-socket command nodes derive handle ids from the socket
-contract.
+expose only two trigger modes: `manual`, which creates a user-facing action for
+roles granted through `action.access`, and `event`, which runs automatically
+from another node's event edge. Service identities remain service access
+records, not manual trigger choices. Multi-socket command nodes derive handle
+ids from the socket contract.
 
 Command sockets should expose abstract domain contracts when a command is
 polymorphic. For example, `generateAttachment` presents one `Attachment source`
 socket with `attachments.generate` capability and accepted source types instead
-of separate `sheet_design` and `nesting_run` sockets. Concrete runtime inputs
-may remain in the command definition for compatibility, but the designer should
-prefer abstract socket metadata.
+of separate `sheet_design` and `nesting_run` sockets.
 
-Service and socket node components remain for compatibility with saved drafts,
-but new process behavior should use `runCommand` and `sendToOrganization`
-action nodes. Archive is represented as a `changeStatus` action targeting an
-archive status, not as a separate preferred node type.
+New process behavior should use `runCommand` and `sendToOrganization` action
+nodes. Archive is represented as a `changeStatus` action targeting an archive
+status, not as a separate node type.

@@ -9,11 +9,10 @@ routes.
 
 `users.vue` is the team management route for invitations, membership approval,
 user creation, and process role assignment. The page reads roles from the
-active process definition, writes assignments through
-`/api/process-definitions/active/assignments`, and treats copied membership
-permissions as compatibility fallback data. It is the operational owner for
-assigning actual users to abstract process roles. It does not expose the legacy
-permission editor or fallback membership role labels as process roles. The role
+active process definition, and writes assignments through
+`/api/process-definitions/active/assignments`. It is the operational owner for
+assigning actual users to abstract process roles. It does not expose membership
+role labels as process roles. The role
 dialog derives assignment binding fields from selected process screens instead
 of showing raw JSON, and previews graph-derived access plus screen routes from
 the current role selection before saving. Missing assignment bindings are still
@@ -66,13 +65,13 @@ The inspector edits compiler-owned fields directly:
 - the service access tab owns service runtime identities used by service run/view access;
 - the screens tab owns screen id, label, kind, route, placement, required access, role ids, assignment bindings, and screen actions;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
-- action nodes own fixed action kind, trigger mode, trigger roles, target entity or command, target status, projection fields, derived typed data sockets, and completion event socket;
+- action nodes own fixed action kind, trigger mode, access level, access-granted roles, target entity or command, target status, projection fields, derived typed data sockets, and completion event socket;
 - service nodes own command selection, run/view service identities, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
 
 Role and user assignment records are intentionally not Vue Flow nodes. Roles are
 reusable human process responsibilities assigned onto entity access rules,
-screens, manual action triggers, socket access rules, and status-machine
+action access grants, screens, socket access rules, and status-machine
 transitions. They do not own navigation routes or raw grant JSON. The role tab
 therefore edits labels and shows a derived access summary from the graph.
 Service execution identities are edited as separate service identities and
@@ -99,10 +98,11 @@ Left and right data handles are not headed with literal "inputs" or "outputs";
 the socket label itself is the contract. Event-triggered actions receive the
 event on the left side and emit completion from the right side, so unlabeled
 top/bottom control sockets do not appear on process nodes. Action nodes expose
-only `manual` triggers, which are gated by human process roles and become
-user-facing actions, and `event` triggers, which run automatically from another
-node's event output. Service identities stay in service access controls rather
-than manual trigger selectors.
+only `manual` and `event` trigger modes. `manual` means the action is
+user-started; access level and role grants live under `action.access` and
+decide which process roles see the user-facing action. `event` runs
+automatically from another node's event output. Service identities stay in
+service access controls rather than manual trigger selectors.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched
