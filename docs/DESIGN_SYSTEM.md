@@ -20,6 +20,11 @@ Use PrimeVue semantic variables for color and component state. Use CutKit `--ck-
 
 The active visual language is a quiet operational UI: zinc-neutral surfaces, teal primary actions, compact 8-10px radii, subtle card elevation, and visible focus rings. Avoid adding decorative gradients, large ornamental backgrounds, or page-local theme colors; promote durable visual decisions to `assets/tokens/index.js`.
 
+Do not add page or panel headers, descriptions, helper bubbles, notes, tips, or
+empty-state prose unless the workflow would be ambiguous or blocked without
+them. Prefer compact controls, clear placement, icons, typed labels, and
+domain-specific data surfaces over explanatory text.
+
 The production app shell (`layouts/app.vue`), UI lab shell, and shared entity cards consume the same `--ck-*` CSS variables directly for page background, chrome background, and elevation. This makes visual changes verifiable through CSS variable updates even when Tailwind alias generation requires a dev-server restart.
 
 Allowed local hardcoded visual values are limited to real data, such as pen stroke colors, DXF layer colors, or uploaded asset metadata. Page-local decorative colors, radii, animation durations, chat/dialog dimensions, swatch sizes, and max-widths must be promoted to tokens or removed.

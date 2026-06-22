@@ -6,6 +6,10 @@ This directory contains Vue components used in the Cutkit-Demo application.
 - **PrimeVue:** All components MUST use PrimeVue for UI elements (buttons, inputs, tables, dialogs).
 - **Zero Styling Policy:** Components MUST avoid manual styling (colors, text sizes, backgrounds, etc.). Rely on PrimeVue theme presets and `assets/tokens/` projections. No custom CSS except for layout purposes.
 - **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).
+- **Minimal Text Chrome:** Do not add page/panel headers, descriptions,
+  helper bubbles, notes, tips, or empty-state prose unless the user workflow is
+  otherwise ambiguous or blocked. Controls, placement, icons, and typed data
+  labels should carry the interface before explanatory copy is added.
 - **Standard Components:** Create reusable components for common UI patterns (cards, modals, forms, tables) and use them consistently across the app. See [components/shared/README.md](./shared/README.md) for the full list.
 - **Use Variants:** Components should support different visual variants (`inline`, `compact`, `card`) to ensure flexibility in different contexts.
 - **Localization:** User-facing static template copy and visible component

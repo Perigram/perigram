@@ -39,6 +39,10 @@ of primitives, tokens, DTO paths, and validation commands.
   tokens, or `--ck-*` variables.
 - Treat entity UI as operational, not decorative: identity/status in the title
   area, concise DTO-backed facts in the body, and actions in the footer.
+- Do not add headers, descriptions, note bubbles, helper text, tips, empty-state
+  prose, or explanatory chrome unless the workflow is otherwise unclear or
+  blocked. Prefer labels, icons, control placement, and typed data surfaces that
+  make the purpose obvious.
 - Use canonical DTO blocks: root `_id` plus `identity`, `origin`, `status`,
   `lineage`, `specs`, `attachments`, `data`, and `summary`. Flat aliases are
   only compatibility fallbacks when current APIs still emit them.

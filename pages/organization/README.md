@@ -21,12 +21,12 @@ silently disappear when a user lacks a required project or entity binding.
 process definitions with Vue Flow, persists drafts through
 `/api/process-definitions`, validates them through the process compiler, and
 activates compiled runtime contracts for access, screen manifests, navigation,
-entity workflows, services, sockets, and field policies. The route uses the authenticated app
-layout with a full canvas workspace and floating palette, toolbar, properties,
-and validation panels over it. The graph palette creates action nodes for
-entity creation, status changes, command runs, and sending projected entity
-data to another organization. Service/socket nodes can still load from older
-drafts, but new graphs should use action nodes.
+entity workflows, services, sockets, and field policies. The route uses the
+authenticated app layout with a full canvas workspace and compact floating
+controls over it. The graph palette is a one-line icon button set that creates
+action nodes for entity creation, status changes, command runs, and sending
+projected entity data to another organization. Service/socket nodes can still
+load from older drafts, but new graphs should use action nodes.
 The properties pane is a bounded floating aside; its tab body owns vertical
 scrolling so long entity lifecycle and role forms remain reachable without
 moving the canvas.
@@ -54,7 +54,7 @@ The inspector edits compiler-owned fields directly:
 - the roles tab owns abstract process role kind, explicit grant JSON, and quick app screen routes;
 - the screens tab owns screen id, label, kind, route, placement, required access, role ids, assignment bindings, and screen actions;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
-- action nodes own their inline name, fixed action kind, trigger mode, trigger roles, target entity or command, target status, projection fields, derived typed data sockets, and completion event socket;
+- action nodes own fixed action kind, trigger mode, trigger roles, target entity or command, target status, projection fields, derived typed data sockets, and completion event socket;
 - service nodes own command selection, run/view roles, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
 
@@ -66,12 +66,12 @@ Action nodes are the preferred process-design surface for new behavior because
 they describe what happens. Entity profiles remain process resources for
 lifecycle and field-policy contracts, while action nodes reference those
 resources and compile into runtime trigger contracts.
-Entity creation actions may declare a parent entity type, which appears as an
-explicit parent input on the node. Change-status actions do not select an
-entity type; the entity arrives through the left data socket and only the
-target status is configured on the node. Archive is modeled as that target
-status, and cross-organization transfer is modeled as a send-to-organization
-action with projection fields.
+Entity creation actions expose an optional parent input socket and derive the
+parent contract from the incoming edge instead of a parent-type dropdown.
+Change-status actions do not select an entity type; the entity arrives through
+the left data socket and only the target status is configured on the node.
+Archive is modeled as that target status, and cross-organization transfer is
+modeled as a send-to-organization action with projection fields.
 Canvas nodes show explicit expected input and produced output socket labels
 instead of input/output counts: action and service node handles are labeled
 with typed entity/status contracts, socket node handles are labeled with the
@@ -82,9 +82,13 @@ flow.
 Left and right data handles are not headed with literal "inputs" or "outputs";
 the socket label itself is the contract. Top handles are explicitly labeled as
 user/system/event triggers, service run access, or receiver access so unlabeled
-control sockets do not appear on process nodes. Action nodes also expose a
-bottom completion-event handle so every executable process step can trigger
-downstream event-driven actions.
+control sockets do not appear on process nodes. Action nodes expose only
+`manual` triggers, which are gated by non-service process roles and become
+user-facing actions, and `event` triggers, which run automatically from another
+node's event output. Service roles stay in service access controls rather than
+manual trigger selectors. Action nodes also expose a bottom completion-event
+handle so every executable process step can trigger downstream event-driven
+actions.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched

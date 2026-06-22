@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Minimize process designer action UI
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      pages/organization/process.vue, packages/processes/src/index.js,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: .codex/skills/cutkit-vue-design-system/SKILL.md,
+      components/README.md, docs/DESIGN_SYSTEM.md,
+      components/process-designer/README.md, pages/organization/README.md,
+      packages/processes/README.md, TODO.org
+    Notes: Process designer chrome now uses a one-line icon palette and one
+      apply action. Action nodes were reduced to compact controls, create
+      parent is derived from the incoming socket, and designer trigger modes
+      are limited to manual role-gated actions or automatic event-driven
+      actions. Added a project design rule against unnecessary headers,
+      descriptions, helper bubbles, notes, and tips.
+
     [2026-06-22] Move action editing into process nodes
     Files changed: components/process-designer/ProcessActionNode.vue,
       components/process-designer/ProcessServiceNode.vue,

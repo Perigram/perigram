@@ -38,12 +38,13 @@ compiler validates `createEntity`, `changeStatus`, `runCommand`, and
 command registries, preserves their typed inputs/outputs, preserves completion
 events, and emits trigger contracts. User-triggered actions carry process role
 ids so runtime adapters can expose only the actions assigned to the current
-user's process roles; manual, system, and event actions remain available for
-direct or backend orchestration. Entity creation can declare a
-`parentEntityType`, which compiles as an explicit parent input instead of being
-inferred silently. Change-status actions consume their entity from the incoming
-data socket and only require a target status; they do not need a separate
-entity-type selector.
+user's process roles. The designer exposes this as `manual` trigger mode.
+`event` trigger mode represents automatic execution from another node's event
+output. Entity creation exposes an optional parent input socket; the visual
+designer derives the parent from the incoming edge instead of a parent-type
+selector. Change-status actions consume their entity from the incoming data
+socket and only require a target status; they do not need a separate entity-type
+selector.
 
 Screen records are route-level UI entries attached to roles. Assignment
 bindings replace `$assignment.*` placeholders in screen routes and scopes, so
