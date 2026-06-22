@@ -12,16 +12,23 @@ user creation, and process role assignment. The page reads roles from the
 active process definition, writes assignments through
 `/api/process-definitions/active/assignments`, and treats copied membership
 permissions as compatibility fallback data. It is the operational owner for
-assigning actual users to abstract process roles and shows the compiled access
-and screen preview from the active process contract. Missing assignment
-bindings are surfaced in the role dialog so overloaded/scoped screens do not
+assigning actual users to abstract process roles. It does not expose the legacy
+permission editor or fallback membership role labels as process roles. The role
+dialog derives assignment binding fields from selected process screens instead
+of showing raw JSON, and previews graph-derived access plus screen routes from
+the current role selection before saving. Missing assignment bindings are still
+surfaced from the compiled active process so overloaded/scoped screens do not
 silently disappear when a user lacks a required project or entity binding.
 
 `process.vue` is the visual process-designer surface. It edits organization
 process definitions with Vue Flow, persists drafts through
 `/api/process-definitions`, validates them through the process compiler, and
 activates compiled runtime contracts for access, screen manifests, navigation,
-entity workflows, services, sockets, and field policies. The route uses the
+entity workflows, services, sockets, and field policies. The checkmark apply
+button saves or forks the visible graph, activates the resulting process
+definition, and surfaces activation warnings/errors in the validation panel so
+operators can tell when the graph became the organization's active process.
+The route uses the
 authenticated app layout with a full canvas workspace and compact floating
 controls over it. The graph palette is a one-line icon button set that creates
 action nodes for entity creation, status changes, command runs, and sending
@@ -51,17 +58,23 @@ workspace.
 
 The inspector edits compiler-owned fields directly:
 
-- the roles tab owns abstract process role kind, explicit grant JSON, and quick app screen routes;
+- the roles tab owns human process role labels and derived access summaries;
+- the principals tab owns service principals used by service run/view access;
 - the screens tab owns screen id, label, kind, route, placement, required access, role ids, assignment bindings, and screen actions;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
 - action nodes own fixed action kind, trigger mode, trigger roles, target entity or command, target status, projection fields, derived typed data sockets, and completion event socket;
-- service nodes own command selection, run/view roles, and command-derived inputs/outputs;
+- service nodes own command selection, run/view service principals, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
 
 Role and user assignment records are intentionally not Vue Flow nodes. Roles are
-reusable process metadata assigned onto entity access rules, screen routes,
-service/socket access rules, and status-machine transitions. Concrete user
-assignment editing belongs to Team management, not the process designer.
+reusable human process responsibilities assigned onto entity access rules,
+screens, manual action triggers, socket access rules, and status-machine
+transitions. They do not own navigation routes or raw grant JSON. The role tab
+therefore edits labels and shows a derived access summary from the graph.
+Service execution identities are edited as separate service principals and are
+assigned to service run/view access; they are not user roles and cannot trigger
+manual actions. Concrete user assignment editing belongs to Team management,
+not the process designer.
 Action nodes are the preferred process-design surface for new behavior because
 they describe what happens. Entity profiles remain process resources for
 lifecycle and field-policy contracts, while action nodes reference those
@@ -77,18 +90,15 @@ instead of input/output counts: action and service node handles are labeled
 with typed entity/status contracts, socket node handles are labeled with the
 transfer input and projected output fields, and entity nodes render their field
 policy as the process data contract.
-The canvas uses left-to-right data flow and top-to-bottom trigger/access/event
-flow.
+The canvas uses left-to-right side sockets for both data and events.
 Left and right data handles are not headed with literal "inputs" or "outputs";
-the socket label itself is the contract. Top handles are explicitly labeled as
-user/system/event triggers, service run access, or receiver access so unlabeled
-control sockets do not appear on process nodes. Action nodes expose only
-`manual` triggers, which are gated by non-service process roles and become
+the socket label itself is the contract. Event-triggered actions receive the
+event on the left side and emit completion from the right side, so unlabeled
+top/bottom control sockets do not appear on process nodes. Action nodes expose
+only `manual` triggers, which are gated by human process roles and become
 user-facing actions, and `event` triggers, which run automatically from another
-node's event output. Service roles stay in service access controls rather than
-manual trigger selectors. Action nodes also expose a bottom completion-event
-handle so every executable process step can trigger downstream event-driven
-actions.
+node's event output. Service principals stay in service access controls rather
+than manual trigger selectors.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched

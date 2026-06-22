@@ -1,14 +1,15 @@
 # COMPONENT: @cutkit/processes
 
 Declarative organization process compiler. It turns visual process definitions
-into runtime contracts for role-derived permissions, screen manifests,
+into runtime contracts for graph-derived role permissions, screen manifests,
 navigation, entity workflows, field policies, action nodes, services, and
 sockets.
 
 Process definitions use canonical semantic records as the editing source of
 truth. `definitionToCanvas()` projects those records into deterministic Vue
 Flow nodes and `canvasToDefinition()` writes canvas layout/edges back while
-preserving role, lifecycle, action, service, socket, and assignment records.
+preserving role, service-principal, lifecycle, action, service, socket, and
+assignment records.
 `validateRoundTrip()` verifies that `definition -> canvas -> definition` does
 not change process semantics before activation. Vue Flow node positions are
 presentation data; runtime behavior must come from the semantic records.
@@ -22,12 +23,14 @@ organization labels such as contractor, manufacturer, customer, and service
 provider. These templates create process graphs and role assignments; they do
 not reintroduce organization-type branching at runtime.
 
-Role access is compositional. Explicit `role.grants` remain supported, but the
-compiler also enriches roles from entity-profile `allowedRoles` and service
-`access.runRoles` / `access.viewRoles` so the visual graph can produce runtime
-permissions without hand-maintained grant JSON. Assignments compile against the
-enriched roles and produce effective permissions, screens, and navigation for
-each user.
+Role access is compositional and graph-derived. Process role records represent
+human responsibilities and store identity/labels only; they do not own
+navigation routes or hand-maintained grant JSON. The compiler derives role
+grants from entity-profile `allowedRoles` and screen `required` contracts.
+Assignments compile against those derived roles and produce effective
+permissions, screens, and navigation for each user. Services use separate
+`servicePrincipals` plus `access.runPrincipals` / `access.viewPrincipals`;
+service principals are not selectable as manual user triggers.
 At runtime those compiled permissions are the organization's active access
 source. Membership/user permissions remain compatibility fallback data; they
 are not a second process model.
@@ -46,13 +49,14 @@ selector. Change-status actions consume their entity from the incoming data
 socket and only require a target status; they do not need a separate entity-type
 selector.
 
-Screen records are route-level UI entries attached to roles. Assignment
+Screen records are route-level UI entries attached to roles and are the source
+for process-composed app navigation. Assignment
 bindings replace `$assignment.*` placeholders in screen routes and scopes, so
 one user can receive overloaded copies of the same screen for different
 projects or entities. Screens with incomplete bindings are skipped with
-compiler warnings. Navigation remains as compatibility output derived from role
-routes and compiled screens; clients should prefer the screen manifest when it
-is present. `resolveScreens()` falls back from legacy compiled navigation to
+compiler warnings. Navigation remains as compatibility output derived from the
+compiled screen manifest only; process role records are not a route source.
+`resolveScreens()` still falls back from legacy compiled navigation to
 route-shaped screen records when an active process predates explicit `screens`
 records, so current organizations remain viewable until their process is edited
 and reactivated.

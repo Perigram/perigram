@@ -14,7 +14,8 @@ Each node type is visually and functionally distinct:
   selected field policy count, inline lifecycle states, transition count, and
   the explicit public/write data contract exposed by the entity profile.
 - `ProcessActionNode.vue` represents an executable process step. It exposes
-  trigger, data input/output, and event output handles. The node owns inline
+  event trigger input, data input/output, and completion event output handles on
+  the node sides. The node owns inline
   editing for trigger mode, trigger roles, command selection, target status,
   creation target, and projection fields. The action kind is fixed by the
   palette item that created the node and is displayed as a compact verb such as
@@ -24,9 +25,9 @@ Each node type is visually and functionally distinct:
   command entity inputs/outputs, and organization-send actions show the
   projected output fields.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
-  run-role, typed input, and output handles and summarizes exact command inputs
-  and outputs as labeled sockets in the same expected/produced visual contract
-  as action nodes.
+  service-principal access, typed input, and output handles and summarizes exact
+  command inputs and outputs as labeled sockets in the same expected/produced
+  visual contract as action nodes.
 - `ProcessSocketNode.vue` represents cross-organization entity projection. It
   exposes entity-projection, transfer, and receiver-role handles and summarizes
   direction plus the expected entity input and produced projected field set.
@@ -42,12 +43,12 @@ objects.
 Input and output data is not rendered as a detached summary and nodes do not
 label columns as "inputs" or "outputs". Data flow is left-to-right: expected
 data is labeled on left handles, and produced data is labeled on right handles.
-Trigger/access/event flow is top-to-bottom. Action nodes expose only two
-trigger modes: `manual`, which uses non-service process roles to make a
-user-facing action available, and `event`, which runs automatically from
-another node's event edge. Service roles remain service access records, not
-manual trigger choices. Service run access and receiver access remain top
-handles, while action completion events leave through a bottom event handle.
+Event flow also uses side sockets: an `event` trigger enters the left side of
+an action and the action completion event leaves the right side. Action nodes
+expose only two trigger modes: `manual`, which uses human process roles to make
+a user-facing action available, and `event`, which runs automatically from
+another node's event edge. Service principals remain service access records,
+not manual trigger choices.
 Single data socket nodes keep `input`/`output` handle ids for saved-edge
 compatibility; multi-socket command nodes derive handle ids from the socket
 contract.

@@ -4,6 +4,24 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Split process roles from service principals
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      components/process-designer/ProcessServiceNode.vue,
+      pages/organization/process.vue, packages/processes/src/index.js,
+      packages/processes/src/templates.js,
+      packages/processes/src/transpiler.js,
+      packages/processes/src/index.spec.js, pages/organization/users.vue,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: components/process-designer/README.md,
+      pages/organization/README.md, packages/processes/README.md,
+      server/features/process-definitions/README.md, TODO.org
+    Notes: Process roles now represent human responsibilities only. Navigation
+      comes from screen records, access grants are derived from entity/screen
+      graph contracts, services use separate principals, Team management uses
+      active process roles without raw binding JSON, and action event
+      triggers/completion sockets sit on node sides instead of top/bottom
+      handles.
+
     [2026-06-22] Minimize process designer action UI
     Files changed: components/process-designer/ProcessActionNode.vue,
       pages/organization/process.vue, packages/processes/src/index.js,
