@@ -180,15 +180,7 @@ export async function assignUserToActiveProcessInternal({
     }
   };
   process.data.compiled = compileProcessDefinition(process.data, getDomain());
-  process.status = {
-    ...(process.status || {}),
-    timestamp: new Date(),
-    userId: actorId,
-    metadata: {
-      ...(process.status?.metadata || {}),
-      note: `Assigned process roles to ${userId}`
-    }
-  };
+  touchProcessStatus(process, actorId, `Assigned process roles to ${userId}`);
 
   const updated = await repository.updateById(process.id, process);
   return new ProcessDefinition(updated).toJSON();
@@ -303,6 +295,19 @@ export async function getByIdInternal(id) {
 
 function applyProcessStatus(process, primary, userId, note) {
   process.applyStatus(createStatusState(primary), userId || 'SYSTEM', { note });
+}
+
+function touchProcessStatus(process, userId, note) {
+  if (!process.status?.toJSON) {
+    applyProcessStatus(process, 'ACTIVE', userId, note);
+    return;
+  }
+  process.status.userId = userId || 'SYSTEM';
+  process.status.timestamp = new Date();
+  process.status.metadata = {
+    ...(process.status.metadata || {}),
+    note
+  };
 }
 
 function assertCompiledActionAvailable(actionId, auth = {}) {
