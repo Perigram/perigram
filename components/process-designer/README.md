@@ -2,10 +2,10 @@
 
 Vue Flow node components for the organization process designer. The canvas is
 moving toward executable process steps: action nodes describe creation, status
-changes, archive operations, and command runs. Entity contracts, abstract roles,
-and concrete user assignments are edited as process records in the route-level
-side panel, then assigned onto action nodes, service/socket access rules, and
-lifecycle transitions.
+changes, command runs, and organization sends. Entity contracts, abstract
+roles, and concrete user assignments are edited as process records in the
+route-level side panel, then assigned onto action nodes, service/socket access
+rules, and lifecycle transitions.
 
 Each node type is visually and functionally distinct:
 
@@ -29,3 +29,7 @@ inline lifecycle workflow mutation, compiler fields, and Vue Flow edge
 persistence. Legacy role or user node components should not be added to the
 palette; active drafts load without those nodes so roles can stay reusable
 process metadata instead of layout objects.
+Service and socket node components remain for compatibility with saved drafts,
+but new process behavior should use `runCommand` and `sendToOrganization`
+action nodes. Archive is represented as a `changeStatus` action targeting an
+archive status, not as a separate preferred node type.

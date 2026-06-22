@@ -20,12 +20,14 @@ permissions without hand-maintained grant JSON. Assignments compile against the
 enriched roles and produce effective permissions plus navigation for each user.
 
 Action records represent executable process steps on the visual canvas. The
-compiler validates `createEntity`, `changeStatus`, `archiveEntity`, and
-`runCommand` actions against the domain entity and command registries, preserves
-their typed inputs/outputs, and emits trigger contracts. User-triggered actions
-carry process role ids so runtime adapters can expose only the actions assigned
-to the current user's process roles; system and event actions remain available
-for backend orchestration.
+compiler validates `createEntity`, `changeStatus`, `runCommand`, and
+`sendToOrganization` actions against the domain entity, field-policy, and
+command registries, preserves their typed inputs/outputs, and emits trigger
+contracts. User-triggered actions carry process role ids so runtime adapters can
+expose only the actions assigned to the current user's process roles; system and
+event actions remain available for backend orchestration. Entity creation can
+declare a `parentEntityType`, which compiles as an explicit parent input instead
+of being inferred silently.
 
 Compiled field policies replace the base domain field set for an organization
 when present. `read` fields are public display fields, `write` fields require

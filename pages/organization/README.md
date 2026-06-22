@@ -20,8 +20,9 @@ activates compiled runtime contracts for access, navigation, entity workflows,
 services, sockets, and field policies. The route uses the authenticated app
 layout with a full canvas workspace and floating palette, toolbar, properties,
 and validation panels over it. The graph palette creates action nodes for
-entity creation, status changes, archive operations, and command runs, plus
-compatibility service/socket nodes.
+entity creation, status changes, command runs, and sending projected entity
+data to another organization. Service/socket nodes can still load from older
+drafts, but new graphs should use action nodes.
 The properties pane is a bounded floating aside; its tab body owns vertical
 scrolling so long entity lifecycle, role, or assignment forms remain reachable
 without moving the canvas.
@@ -49,6 +50,10 @@ Action nodes are the preferred process-design surface for new behavior because
 they describe what happens. Entity profiles remain process resources for
 lifecycle and field-policy contracts, while action nodes reference those
 resources and compile into runtime trigger contracts.
+Entity creation actions may declare a parent entity type, which appears as an
+explicit parent input on the node. Archive is modeled as a status target on a
+change-status action, and cross-organization transfer is modeled as a
+send-to-organization action with projection fields.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched

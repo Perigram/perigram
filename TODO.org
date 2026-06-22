@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+    [2026-06-21] Replace service socket archive palette concepts
+    Files changed: pages/organization/process.vue,
+      components/process-designer/ProcessActionNode.vue,
+      packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: packages/processes/README.md,
+      components/process-designer/README.md,
+      pages/organization/README.md, TODO.org
+    Notes: Removed service, socket, and archive from new node creation. New
+      process graphs use run-command, send-to-organization, and change-status
+      actions instead; create actions can declare explicit parent entity inputs
+      and send actions carry projection field settings.
+
     [2026-06-21] Tighten process action node interactions
     Files changed: pages/organization/process.vue,
       components/process-designer/ProcessActionNode.vue,
