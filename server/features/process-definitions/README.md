@@ -14,11 +14,11 @@ process transpiler round-trip, compiles the runtime contract, archives the
 previous active process for the organization, marks the selected process
 `ACTIVE`, and stores its id on the organization.
 Process definition management also accepts the active organization membership's
-admin/owner/creator role labels, or the sole active organization member, as a
-narrow recovery path. This prevents the only tenant operator from being locked
-out when the currently active process no longer grants `organizations:admin`;
-the fallback is local to process definition operations and does not grant
-general entity access.
+stored `organizations` grants, admin/owner/creator role labels, or the sole
+active organization member, as a narrow recovery path. This prevents the tenant
+operator from being locked out when the currently active process no longer
+grants process management access; the fallback is local to process definition
+operations and does not grant general entity access.
 
 The compiled runtime contract is not a design source. Stored definitions that
 only contain `data.compiled` without semantic records are rejected during

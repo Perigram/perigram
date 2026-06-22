@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Recover team and process management from stored membership grants
+    Files changed: server/features/users/service.js,
+      server/features/users/users.spec.js,
+      server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js
+    Docs updated: server/features/users/README.md,
+      server/features/process-definitions/README.md, TODO.org
+    Notes: User-management and process-definition recovery checks now accept
+      active membership grants for `users:admin` and `organizations` when
+      process-derived permissions are missing, preventing an admin from losing
+      team/process access after approving a second active member.
+
     [2026-06-22] Fix organization invitation team-management access
     Files changed: server/api/organizations/[id]/invitations.get.js,
       server/api/organizations/[id]/invitations.post.js,
