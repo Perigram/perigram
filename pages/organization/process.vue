@@ -285,8 +285,8 @@
                   </div>
                   <div class="grid grid-cols-2 gap-2">
                     <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.screenKind') }}</label>
-                      <Select v-model="selectedScreenRecord.kind" :options="screenKindOptions" option-label="label" option-value="value" />
+                      <label>{{ $t('processDesigner.screenTemplate') }}</label>
+                      <Select v-model="selectedScreenRecord.template" :options="screenTemplateOptions" option-label="label" option-value="value" @change="syncSelectedScreenUi" />
                     </div>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('processDesigner.screenPlacement') }}</label>
@@ -300,11 +300,21 @@
                   <div class="grid grid-cols-2 gap-2">
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('processDesigner.entityType') }}</label>
-                      <Select v-model="selectedScreenRecord.entityType" :options="optionalEntityTypeOptions" option-label="label" option-value="value" />
+                      <Select v-model="selectedScreenRecord.entityType" :options="optionalEntityTypeOptions" option-label="label" option-value="value" @change="syncSelectedScreenUi" />
                     </div>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('processDesigner.roleIds') }}</label>
                       <MultiSelect v-model="selectedScreenRecord.roleIds" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.sourceMode') }}</label>
+                      <Select v-model="selectedScreenSource.mode" :options="screenSourceModeOptions" option-label="label" option-value="value" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.surface') }}</label>
+                      <Select v-model="selectedScreenRegion.surface" :options="screenSurfaceOptions" option-label="label" option-value="value" />
                     </div>
                   </div>
                   <div class="grid grid-cols-2 gap-2">
@@ -318,12 +328,12 @@
                     </div>
                   </div>
                   <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.bindingsJson') }}</label>
-                    <Textarea v-model="selectedScreenBindingsJson" rows="4" class="font-mono text-xs" @blur="applySelectedScreenBindingsJson" />
+                    <label>{{ $t('processDesigner.entityBinding') }}</label>
+                    <InputText v-model="selectedScreenRecord.bindings.entityId" />
                   </div>
                   <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.actionsJson') }}</label>
-                    <Textarea v-model="selectedScreenActionsJson" rows="3" class="font-mono text-xs" @blur="applySelectedScreenActionsJson" />
+                    <label>{{ $t('common.actions.title') }}</label>
+                    <MultiSelect v-model="selectedScreenRecord.actions" :options="screenActionOptions" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedScreenUi" />
                   </div>
                   <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedScreen" />
                 </div>
@@ -368,6 +378,7 @@ import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { canvasToDefinition, definitionToCanvas } from '~/packages/processes/src/index.js';
+import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncEntityCreateInputs, cncEntityFieldAccess, cncWorkflows } from '@cutkit/domain-cnc';
 import ProcessActionNode from '~/components/process-designer/ProcessActionNode.vue';
@@ -395,8 +406,6 @@ const applyingProcess = ref(false);
 const selectedRoleId = ref(null);
 const selectedPrincipalId = ref(null);
 const selectedScreenId = ref(null);
-const selectedScreenBindingsJson = ref('{}');
-const selectedScreenActionsJson = ref('[]');
 const newStateId = ref('');
 
 const palette = [
@@ -428,11 +437,9 @@ const socketDirections = [
   { label: 'outbound', value: 'outbound' },
   { label: 'inbound', value: 'inbound' }
 ];
-const screenKindOptions = [
-  { label: 'workspace', value: 'workspace' },
-  { label: 'entityDetail', value: 'entityDetail' },
-  { label: 'route', value: 'route' }
-];
+const screenTemplateOptions = SCREEN_TEMPLATES.map(value => ({ label: value, value }));
+const screenSourceModeOptions = SCREEN_SOURCE_MODES.map(value => ({ label: value, value }));
+const screenSurfaceOptions = ['card', 'compact', 'detail', 'table', 'workspace'].map(value => ({ label: value, value }));
 const screenPlacementOptions = [
   { label: 'hub', value: 'hub' },
   { label: 'detail', value: 'detail' },
@@ -480,11 +487,17 @@ const screenList = computed(() => Object.values(screens.value));
 const selectedRoleRecord = computed(() => selectedRoleId.value ? roles.value[selectedRoleId.value] : null);
 const selectedPrincipalRecord = computed(() => selectedPrincipalId.value ? servicePrincipals.value[selectedPrincipalId.value] : null);
 const selectedScreenRecord = computed(() => selectedScreenId.value ? screens.value[selectedScreenId.value] : null);
+const selectedScreenSource = computed(() => ensureSelectedScreenSource());
+const selectedScreenRegion = computed(() => ensureSelectedScreenRegion());
 const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
 const servicePrincipalOptions = computed(() => servicePrincipalList.value.map(principal => ({ label: principal.label || principal.id, value: principal.id })));
 const entityTypeOptions = computed(() => (cncDomain.entities || []).map(entity => ({ label: entity.type, value: entity.type })));
 const optionalEntityTypeOptions = computed(() => [{ label: 'None', value: '' }, ...entityTypeOptions.value]);
 const commandOptions = computed(() => Object.values(cncDomain.commands || {}).map(command => ({ label: command.label || command.id, value: command.id })));
+const screenActionOptions = computed(() => Object.values(draft.value?.data?.actions || {}).map(action => ({
+  label: action.label || action.id,
+  value: action.id
+})));
 const navigationRouteOptions = computed(() => [
   { label: t('features.projects'), value: '/projects', feature: 'projects' },
   { label: t('features.warehouses'), value: '/warehouses', feature: 'warehouses' },
@@ -505,7 +518,7 @@ const lifecycleStateOptions = computed(() => lifecycleStateIds.value.map(value =
 const lifecycleTransitions = computed(() => lifecycleRegion.value?.transitions || []);
 const selectedRoleAccessSummary = computed(() => selectedRoleId.value ? roleAccessSummary(selectedRoleId.value) : []);
 
-watch(selectedScreenRecord, () => syncSelectedScreenEditors(), { immediate: true });
+watch(selectedScreenRecord, () => syncSelectedScreenUi(), { immediate: true });
 
 onMounted(() => {
   loadActiveOrCreateLocal();
@@ -958,13 +971,28 @@ function createScreen(id) {
   return {
     id,
     label: id,
-    kind: 'workspace',
-    route: '/projects',
+    kind: 'route',
+    template: 'entityList',
+    route: `/screens/${id}`,
     placement: 'hub',
     entityType: 'project',
     roleIds: selectedRoleId.value ? [selectedRoleId.value] : [],
     required: { feature: 'projects', level: 'read' },
     bindings: {},
+    sources: [{
+      id: 'project',
+      entityType: 'project',
+      mode: 'list',
+      required: { feature: 'projects', level: 'read' },
+      filters: {}
+    }],
+    regions: [{
+      id: 'main',
+      slot: 'main',
+      sourceId: 'project',
+      surface: 'card',
+      actions: []
+    }],
     actions: []
   };
 }
@@ -975,29 +1003,67 @@ function removeSelectedScreen() {
   selectedScreenId.value = Object.keys(draft.value.data.screens)[0] || null;
 }
 
-function syncSelectedScreenEditors() {
-  if (!selectedScreenRecord.value) {
-    selectedScreenBindingsJson.value = '{}';
-    selectedScreenActionsJson.value = '[]';
-    return;
-  }
+function syncSelectedScreenUi() {
+  if (!selectedScreenRecord.value) return;
   selectedScreenRecord.value.required ||= { feature: 'projects', level: 'read' };
   selectedScreenRecord.value.roleIds ||= [];
   selectedScreenRecord.value.bindings ||= {};
   selectedScreenRecord.value.actions ||= [];
-  selectedScreenBindingsJson.value = JSON.stringify(selectedScreenRecord.value.bindings || {}, null, 2);
-  selectedScreenActionsJson.value = JSON.stringify(selectedScreenRecord.value.actions || [], null, 2);
+  const normalized = normalizeScreenContract(selectedScreenRecord.value);
+  selectedScreenRecord.value.kind = 'route';
+  selectedScreenRecord.value.template = normalized.template;
+  selectedScreenRecord.value.sources = normalized.sources;
+  selectedScreenRecord.value.regions = normalized.regions;
+  const entityType = selectedScreenRecord.value.entityType || selectedScreenRecord.value.sources[0]?.entityType || '';
+  if (entityType) {
+    const feature = featureForEntityType(entityType);
+    selectedScreenRecord.value.required.feature = feature;
+    for (const source of selectedScreenRecord.value.sources) {
+      source.entityType = entityType;
+      source.required = { ...(source.required || {}), feature, level: source.required?.level || selectedScreenRecord.value.required.level || 'read' };
+    }
+  }
+  const source = ensureSelectedScreenSource();
+  const region = ensureSelectedScreenRegion();
+  if (source && region) {
+    source.mode = selectedScreenRecord.value.template === 'entityDetail' || selectedScreenRecord.value.template === 'formAction' ? 'single' : source.mode || 'list';
+    region.sourceId = source.id;
+    region.actions = selectedScreenRecord.value.actions || [];
+  }
 }
 
-function applySelectedScreenBindingsJson() {
-  if (!selectedScreenRecord.value) return;
-  selectedScreenRecord.value.bindings = parseJson(selectedScreenBindingsJson.value, {});
+function ensureSelectedScreenSource() {
+  const screen = selectedScreenRecord.value;
+  if (!screen) return {};
+  screen.sources ||= [];
+  if (!screen.sources.length) {
+    const entityType = screen.entityType || 'project';
+    screen.sources.push({
+      id: entityType,
+      entityType,
+      mode: screen.template === 'entityDetail' ? 'single' : 'list',
+      required: screen.required || { feature: featureForEntityType(entityType), level: 'read' },
+      filters: {}
+    });
+  }
+  return screen.sources[0];
 }
 
-function applySelectedScreenActionsJson() {
-  if (!selectedScreenRecord.value) return;
-  const parsed = parseJson(selectedScreenActionsJson.value, []);
-  selectedScreenRecord.value.actions = Array.isArray(parsed) ? parsed : [];
+function ensureSelectedScreenRegion() {
+  const screen = selectedScreenRecord.value;
+  if (!screen) return {};
+  const source = ensureSelectedScreenSource();
+  screen.regions ||= [];
+  if (!screen.regions.length) {
+    screen.regions.push({
+      id: 'main',
+      slot: screen.template === 'workspaceLanes' ? 'center' : 'main',
+      sourceId: source.id,
+      surface: screen.template === 'entityDetail' ? 'detail' : 'card',
+      actions: screen.actions || []
+    });
+  }
+  return screen.regions[0];
 }
 
 function routeScreenId(option = {}) {
@@ -1015,6 +1081,11 @@ function featureEntityType(feature) {
     users: 'user',
     organizations: 'organization'
   })[feature] || null;
+}
+
+function featureForEntityType(entityType) {
+  const entity = (cncDomain.entities || []).find(item => item.type === entityType);
+  return entity?.collection || `${entityType}s`;
 }
 
 function addLifecycleState() {

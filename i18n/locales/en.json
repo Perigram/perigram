@@ -2247,9 +2247,13 @@
     "addScreen": "Add screen",
     "addAssignment": "Add assignment",
     "screenId": "Screen ID",
+    "screenTemplate": "Template",
     "screenKind": "Screen kind",
     "screenPlacement": "Placement",
     "screenRoute": "Route",
+    "sourceMode": "Source mode",
+    "surface": "Surface",
+    "entityBinding": "Entity binding",
     "requiredFeature": "Required feature",
     "requiredLevel": "Required level",
     "required": "Required",
@@ -2259,5 +2263,9 @@
     "validation": "Validation",
     "applySuccess": "Process activated for this organization.",
     "validationOk": "Process definition is valid"
+  },
+  "generatedScreen": {
+    "loadFailed": "Screen failed to load",
+    "notFound": "Screen is not available"
   }
 }

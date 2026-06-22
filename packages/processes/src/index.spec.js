@@ -20,7 +20,11 @@ const domain = {
   entities: [
     { type: 'project' },
     { type: 'queue' },
-    { type: 'catalog' }
+    { type: 'catalog' },
+    { type: 'warehouse' },
+    { type: 'requisition' },
+    { type: 'organization' },
+    { type: 'user' }
   ],
   commands: {
     solveNesting: { id: 'solveNesting' }
@@ -206,7 +210,7 @@ describe('@cutkit/processes compiler', () => {
           required: { feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } },
           roleIds: ['role_operator', 'role_supervisor'],
           bindings: { projectId: '$assignment.projectId' },
-          actions: ['viewProject']
+          actions: []
         }
       },
       assignments: {
@@ -223,7 +227,8 @@ describe('@cutkit/processes compiler', () => {
     expect(screens).toHaveLength(1);
     expect(screens[0]).toMatchObject({
       screenKey: 'assigned_project:project-123',
-      route: '/project/p-123/details',
+      route: '/screens/assigned_project%3Aproject-123',
+      sourceRoute: '/project/p-123/details',
       scope: { projectId: 'project-123' },
       sourceRoleIds: ['role_operator', 'role_supervisor']
     });
@@ -286,6 +291,81 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.userAccess.user_a.screens).toEqual([]);
     expect(resolveScreens({ compiled, userId: 'user_a' })).toEqual([]);
+  });
+
+  it('validates generated screen sources and action references', () => {
+    const validation = validateProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator' }
+      },
+      screens: {
+        project_workspace: {
+          id: 'project_workspace',
+          route: '/projects',
+          roleIds: ['role_operator'],
+          template: 'workspaceLanes',
+          entityType: 'missingEntity',
+          sources: [{ id: 'missing', entityType: 'missingEntity', mode: 'list' }],
+          regions: [{ id: 'main', slot: 'center', sourceId: 'missing', surface: 'card' }],
+          actions: ['missing_action']
+        }
+      }
+    }, domain);
+
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.join('\n')).toContain('unknown entity type missingEntity');
+    expect(validation.errors.join('\n')).toContain('references missing action missing_action');
+  });
+
+  it('compiles generated screen template, sources, regions, and actions', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator' }
+      },
+      actions: {
+        create_project: {
+          id: 'create_project',
+          label: 'Create project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: INITIAL_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_operator'] }
+        }
+      },
+      screens: {
+        projects: {
+          id: 'projects',
+          label: 'Projects',
+          route: '/projects',
+          roleIds: ['role_operator'],
+          template: 'entityList',
+          entityType: 'project',
+          bindings: { projectId: '$assignment.projectId' },
+          sources: [{ id: 'project', entityType: 'project', mode: 'list', filters: { projectId: '$assignment.projectId' } }],
+          regions: [{ id: 'main', slot: 'main', sourceId: 'project', surface: 'card', actions: ['create_project'] }],
+          actions: ['create_project']
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_operator'],
+          bindings: { projectId: 'project-123' },
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    const [screen] = resolveScreens({ compiled, userId: 'user_a' });
+    expect(screen).toMatchObject({
+      template: 'entityList',
+      route: '/screens/projects%3Aproject-123',
+      sourceRoute: '/projects',
+      sources: [{ id: 'project', entityType: 'project', mode: 'list', filters: { projectId: 'project-123' } }],
+      regions: [{ id: 'main', slot: 'main', sourceId: 'project', surface: 'card', actions: ['create_project'] }],
+      actions: ['create_project']
+    });
   });
 
   it('compiles user-triggered action contracts', () => {

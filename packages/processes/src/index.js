@@ -1,4 +1,9 @@
 import { normalizeWorkflow } from '../../workflows/src/index.js';
+import {
+  generatedScreenRoute,
+  normalizeScreenContract,
+  validateScreenContract
+} from './screen-contract.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -123,6 +128,7 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
     for (const roleId of screen.roleIds || []) {
       if (!process.roles[roleId]) errors.push(`Screen ${screenId} references missing role ${roleId}`);
     }
+    validateScreenContract(screen, { screenId, entities, actions: process.actions, errors });
   }
 
   for (const [userId, assignment] of Object.entries(process.assignments)) {
@@ -452,19 +458,26 @@ function collectIncompleteBindingWarnings(process) {
 }
 
 function compileScreens(screens = {}) {
-  return Object.fromEntries(Object.entries(screens).map(([id, screen]) => [id, {
-    id: screen.id || id,
-    label: screen.label || screen.id || id,
-    labelKey: screen.labelKey || null,
-    kind: screen.kind || 'route',
-    route: screen.route || '',
-    placement: screen.placement || 'hub',
-    entityType: screen.entityType || null,
-    required: screen.required || null,
-    roleIds: screen.roleIds || [],
-    bindings: screen.bindings || {},
-    actions: screen.actions || []
-  }]));
+  return Object.fromEntries(Object.entries(screens).map(([id, screen]) => {
+    const normalized = normalizeScreenContract(screen);
+    return [id, {
+      id: normalized.id || id,
+      label: normalized.label || normalized.id || id,
+      labelKey: normalized.labelKey || null,
+      kind: normalized.kind || 'route',
+      template: normalized.template,
+      route: normalized.route || '',
+      sourceRoute: normalized.sourceRoute || normalized.route || '',
+      placement: normalized.placement || 'hub',
+      entityType: normalized.entityType || null,
+      required: normalized.required || null,
+      roleIds: normalized.roleIds || [],
+      bindings: normalized.bindings || {},
+      sources: normalized.sources,
+      regions: normalized.regions,
+      actions: normalized.actions || []
+    }];
+  }));
 }
 
 function screenAppliesToRole(screen = {}, roleId) {
@@ -478,20 +491,26 @@ function compileScreenForAssignment(screen = {}, assignment = {}, roleId = null)
     label: screen.label,
     labelKey: screen.labelKey,
     kind: screen.kind,
+    template: screen.template,
     route: screen.route,
+    sourceRoute: screen.sourceRoute || screen.route,
     placement: screen.placement,
     entityType: screen.entityType,
     required: screen.required,
     scope: screen.bindings || {},
+    sources: screen.sources || [],
+    regions: screen.regions || [],
     actions: screen.actions || [],
     sourceRoleIds: roleId ? [roleId] : []
   }));
   replacePlaceholders(scoped, assignment.bindings || {}, incomplete);
+  const screenKey = scoped.screenKey || makeScreenKey(scoped);
   return {
     incomplete,
     screen: {
       ...scoped,
-      screenKey: scoped.screenKey || makeScreenKey(scoped)
+      screenKey,
+      route: generatedScreenRoute(screenKey)
     }
   };
 }
