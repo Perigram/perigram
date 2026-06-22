@@ -130,7 +130,22 @@ export const cncEntityFieldAccess = {
   },
   user: {
     feature: 'users',
-    read: ['_id', 'identity.uid', 'identity.name', 'identity.reference', 'origin.*', 'status.*', 'lineage.*', 'data.role', 'data.avatarUrl'],
+    read: [
+      '_id',
+      'identity.uid',
+      'identity.name',
+      'identity.reference',
+      'origin.*',
+      'status.*',
+      'lineage.*',
+      'data.email',
+      'data.role',
+      'data.avatarUrl',
+      'data.memberships.organizationId',
+      'data.memberships.role',
+      'data.memberships.roleIds',
+      'data.memberships.status'
+    ],
     write: ['data.email'],
     admin: ['identity.*', 'data.*', 'summary.*', 'attachments.*']
   },

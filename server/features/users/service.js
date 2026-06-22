@@ -158,7 +158,7 @@ export async function switchOrganization(userId, organizationId) {
 }
 
 export async function confirmMembership(userId, organizationId, action, updaterUser) {
-  if (!canManageUsersInOrganization(updaterUser, organizationId)) {
+  if (!await canManageUsersInOrganization(updaterUser, organizationId)) {
     throw createError({ statusCode: 403, message: 'Forbidden' });
   }
 
@@ -191,7 +191,7 @@ export async function updatePermissions(userId, newPermissions, updaterAuth = {}
   const targetOrgId = getActiveOrganizationId(updaterAuth);
   const isInSameOrg = targetOrgId && userRaw.data.memberships?.some(m => m.organizationId.toString() === targetOrgId.toString());
 
-  if (!targetOrgId || !isInSameOrg || !canManageUsersInOrganization(updaterAuth, targetOrgId)) {
+  if (!targetOrgId || !isInSameOrg || !await canManageUsersInOrganization(updaterAuth, targetOrgId)) {
     throw createError({ statusCode: 403, message: 'Forbidden' });
   }
 
@@ -235,7 +235,7 @@ export async function remove(uid, deleterAuth = {}) {
   const targetOrgId = getActiveOrganizationId(deleterAuth);
   const isInSameOrg = targetOrgId && userRaw.data.memberships?.some(m => m.organizationId.toString() === targetOrgId.toString());
 
-  if (!targetOrgId || !isInSameOrg || !canManageUsersInOrganization(deleterAuth, targetOrgId)) {
+  if (!targetOrgId || !isInSameOrg || !await canManageUsersInOrganization(deleterAuth, targetOrgId)) {
     throw createError({ statusCode: 403, message: 'Forbidden' });
   }
 
@@ -247,13 +247,27 @@ function getActiveOrganizationId(auth = {}) {
   return auth.organizationId || auth.memberships?.[0]?.organizationId || null;
 }
 
-function canManageUsersInOrganization(auth = {}, organizationId) {
-  return hasEntityAccess({
+export async function canManageUsersInOrganization(auth = {}, organizationId) {
+  if (!organizationId) return false;
+  if (hasEntityAccess({
     entity: { lineage: { organizationId } },
     feature: 'users',
     level: 'admin',
     auth
-  });
+  })) return true;
+
+  const membership = findOrganizationMembership(auth, organizationId);
+  if (!membership || membership.status === 'pending' || membership.status === 'rejected') return false;
+
+  const roleIds = [
+    membership.role,
+    ...(membership.roleIds || []),
+    auth.role
+  ].filter(Boolean).map(value => String(value).toLowerCase());
+  const adminRoles = new Set(['role_admin', 'admin', 'owner', 'creator', 'organization_admin']);
+  if (roleIds.some(role => adminRoles.has(role))) return true;
+
+  return await isSoleActiveOrganizationMember(auth.userId, organizationId);
 }
 
 function normalizeAuthFromArgs(userId, organizationId, role, auth = {}) {
@@ -263,6 +277,22 @@ function normalizeAuthFromArgs(userId, organizationId, role, auth = {}) {
     organizationId: auth.organizationId || organizationId,
     memberships: auth.memberships || []
   };
+}
+
+function findOrganizationMembership(auth = {}, organizationId) {
+  const target = organizationId?.toString();
+  return (auth.memberships || []).find(item => item.organizationId?.toString() === target);
+}
+
+async function isSoleActiveOrganizationMember(userId, organizationId) {
+  if (!userId || !organizationId) return false;
+  const users = await usersRepository.find({ 'data.memberships.organizationId': toFlexibleId(organizationId) });
+  const activeMembers = users.filter(user => (user.data?.memberships || []).some(membership =>
+    membership.organizationId?.toString() === organizationId.toString() &&
+    membership.status !== 'pending' &&
+    membership.status !== 'rejected'
+  ));
+  return activeMembers.length === 1 && activeMembers[0]._id?.toString() === userId.toString();
 }
 
 async function assignProcessRolesFromInput({ userId, organizationId, role, roleIds, bindings, status, actorId } = {}) {

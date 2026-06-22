@@ -100,8 +100,8 @@ describe('User Management & Auth', () => {
     const rawUser = await db.collection('users').findOne({ 'data.email': 'owner@example.com' });
     expect(organization.toJSON().identity.name).toBe('Owner Workshop');
     expect(rawUser.lineage.organizationId.toString()).toBe(organization.id);
-    expect(rawUser.data.role).toBe('ContractorAdmin');
-    expect(rawUser.data.permissions.projects).toBe('admin');
+    expect(rawUser.data.role).toBe('role_admin');
+    expect(rawUser.data.permissions).toEqual({});
     expect(rawUser.data.memberships[0].organizationId.toString()).toBe(organization.id);
     expect(rawUser.data.memberships[0].status).toBe('active');
   });
@@ -163,6 +163,60 @@ describe('User Management & Auth', () => {
     expect(user.permissions.artifacts).toBeUndefined();
     expect(user.memberships[0].permissions.nesting_runs).toBeUndefined();
     expect(user.memberships[0].permissions.artifacts).toBe('none');
+  });
+
+  it('allows organization admin membership to manage users when process grants are missing', async () => {
+    const orgId = new ObjectId();
+
+    expect(await userService.canManageUsersInOrganization({
+      userId: 'admin-user',
+      memberships: [{
+        organizationId: orgId,
+        role: 'role_admin',
+        permissions: {},
+        status: 'active'
+      }]
+    }, orgId)).toBe(true);
+  });
+
+  it('allows the sole active organization member to recover user management', async () => {
+    const orgId = new ObjectId();
+    const userId = new ObjectId();
+    await db.collection('users').insertOne({
+      _id: userId,
+      identity: { uid: 'solo-user', name: 'Solo User' },
+      data: {
+        memberships: [{ organizationId: orgId, role: 'IndividualUser', permissions: {}, status: 'active' }]
+      }
+    });
+
+    expect(await userService.canManageUsersInOrganization({
+      userId: userId.toString(),
+      memberships: [{ organizationId: orgId, role: 'IndividualUser', permissions: {}, status: 'active' }]
+    }, orgId)).toBe(true);
+  });
+
+  it('does not allow ordinary members through user management recovery when another active member exists', async () => {
+    const orgId = new ObjectId();
+    const memberId = new ObjectId();
+    await db.collection('users').insertMany([{
+      _id: memberId,
+      identity: { uid: 'member-user', name: 'Member User' },
+      data: {
+        memberships: [{ organizationId: orgId, role: 'IndividualUser', permissions: {}, status: 'active' }]
+      }
+    }, {
+      _id: new ObjectId(),
+      identity: { uid: 'other-user', name: 'Other User' },
+      data: {
+        memberships: [{ organizationId: orgId, role: 'IndividualUser', permissions: {}, status: 'active' }]
+      }
+    }]);
+
+    expect(await userService.canManageUsersInOrganization({
+      userId: memberId.toString(),
+      memberships: [{ organizationId: orgId, role: 'IndividualUser', permissions: {}, status: 'active' }]
+    }, orgId)).toBe(false);
   });
 
   it('should deny switching to an organization without membership', async () => {

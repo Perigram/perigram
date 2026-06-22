@@ -62,8 +62,8 @@
         <ActionToolbar :title="$t('auth.joinRequests')" />
         <TableFrame>
         <DataTable :value="pendingUsers">
-            <Column field="name" :header="$t('profile.name')" sortable />
-            <Column field="email" :header="$t('profile.email')" />
+            <Column field="identity.name" :header="$t('profile.name')" sortable />
+            <Column field="data.email" :header="$t('profile.email')" />
             <Column :header="$t('common.actions.title')" class="text-right">
                 <template #body="{ data }">
                     <div class="flex justify-end gap-2">
@@ -228,6 +228,12 @@ const selectedUserAccessSummary = computed(() => selectedRoleDerivedAccessSummar
 const selectedUserScreens = computed(() => previewScreensForRoles(roleAssignment.value.roleIds, roleAssignment.value.bindings));
 const selectedUserIncompleteBindings = computed(() => selectedUserAccess.value?.incompleteBindings || []);
 const assignmentBindingFields = computed(() => requiredAssignmentBindings(roleAssignment.value.roleIds));
+const activeOrganizationId = computed(() =>
+    authStore.organizationData?._id ||
+    authStore.userData.organizationId ||
+    authStore.memberships?.[0]?.organizationId ||
+    null
+);
 
 const getInvitationUrl = (token) => {
     if (process.client) {
@@ -239,7 +245,7 @@ const getInvitationUrl = (token) => {
 const revokeInvite = async (id) => {
     if (confirm(t('auth.revokeInvitationConfirm'))) {
         try {
-            await $fetch(`/api/organizations/${authStore.userData.organizationId}/invitations/${id}`, { method: 'DELETE' });
+            await $fetch(`/api/organizations/${activeOrganizationId.value}/invitations/${id}`, { method: 'DELETE' });
             await loadInvitations();
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.invitationRevoked'), life: 3000 });
         } catch (e) {
@@ -272,11 +278,12 @@ async function loadUsers() {
   try {
     const allUsers = await usersEntity.list();
     await loadActiveProcess();
+    const organizationId = activeOrganizationId.value?.toString();
     users.value = allUsers.filter(u => 
-        u.data?.memberships?.some(m => m.organizationId.toString() === authStore.userData.organizationId.toString() && m.status === 'active')
+        u.data?.memberships?.some(m => m.organizationId?.toString() === organizationId && m.status === 'active')
     );
     pendingUsers.value = allUsers.filter(u => 
-        u.data?.memberships?.some(m => m.organizationId.toString() === authStore.userData.organizationId.toString() && m.status === 'pending')
+        u.data?.memberships?.some(m => m.organizationId?.toString() === organizationId && m.status === 'pending')
     );
     await loadInvitations();
   } catch (error) {
@@ -290,7 +297,7 @@ async function loadUsers() {
 
 async function loadInvitations() {
     try {
-        invitations.value = await $fetch(`/api/organizations/${authStore.userData.organizationId}/invitations`);
+        invitations.value = await $fetch(`/api/organizations/${activeOrganizationId.value}/invitations`);
     } catch (e) { console.error(e); }
 }
 
@@ -305,7 +312,7 @@ async function loadActiveProcess() {
 async function generateInvite() {
     generatingInvite.value = true;
     try {
-        const res = await $fetch(`/api/organizations/${authStore.userData.organizationId}/invitations`, {
+        const res = await $fetch(`/api/organizations/${activeOrganizationId.value}/invitations`, {
             method: 'POST',
             body: { ...inviteForm.value, roleIds: [inviteForm.value.role] }
         });
@@ -322,7 +329,7 @@ async function confirmMembership(userId, action) {
     try {
         await $fetch(`/api/users/${userId}/membership-confirmation`, {
             method: 'POST',
-            body: { action, organizationId: authStore.userData.organizationId }
+            body: { action, organizationId: activeOrganizationId.value }
         });
         toast.add({ severity: 'success', summary: t('common.success'), detail: t(`auth.membership.${action}`), life: 3000 });
         await loadUsers();
@@ -342,7 +349,7 @@ async function createUser() {
     await usersEntity.create({
         ...form.value,
         roleIds: [form.value.role],
-        organizationId: authStore.userData.organizationId
+        organizationId: activeOrganizationId.value
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.userCreated'), life: 3000 });
     showCreateDialog.value = false;

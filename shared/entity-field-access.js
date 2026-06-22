@@ -165,24 +165,32 @@ export function redactEntityForAccess(entity, entityType, authOrPermissions = nu
 
 function copyPolicyPath(source, target, policyPath) {
   const sourcePath = policyPath.endsWith('.*') ? policyPath.slice(0, -2) : policyPath;
-  const value = getValueAtPath(source, sourcePath);
+  copyAllowedPath(source, target, sourcePath.split('.').filter(Boolean));
+}
+
+function copyAllowedPath(source, target, segments) {
+  if (!source || !target || !segments.length) return;
+  const [segment, ...rest] = segments;
+  const value = source[segment];
   if (value === undefined) return;
-  setValueAtPath(target, sourcePath, value);
-}
 
-function getValueAtPath(source, path) {
-  if (!path) return undefined;
-  return path.split('.').reduce((current, segment) => current?.[segment], source);
-}
+  if (!rest.length) {
+    target[segment] = value;
+    return;
+  }
 
-function setValueAtPath(target, path, value) {
-  const segments = path.split('.');
-  const last = segments.pop();
-  const parent = segments.reduce((current, segment) => {
-    if (!current[segment] || typeof current[segment] !== 'object') current[segment] = {};
-    return current[segment];
-  }, target);
-  parent[last] = value;
+  if (Array.isArray(value)) {
+    if (!Array.isArray(target[segment])) target[segment] = [];
+    value.forEach((item, index) => {
+      if (item === undefined || item === null) return;
+      if (!target[segment][index] || typeof target[segment][index] !== 'object') target[segment][index] = {};
+      copyAllowedPath(item, target[segment][index], rest);
+    });
+    return;
+  }
+
+  if (!target[segment] || typeof target[segment] !== 'object') target[segment] = {};
+  copyAllowedPath(value, target[segment], rest);
 }
 
 export function hasFieldPolicyLevel(entityType, path, level = 'read') {

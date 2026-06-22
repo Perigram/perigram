@@ -17,6 +17,24 @@ const project = {
   }
 };
 
+const user = {
+  _id: 'user-1',
+  identity: { uid: 'u-1', name: 'Team Member' },
+  lineage: { organizationId: 'org-1' },
+  data: {
+    email: 'member@example.com',
+    role: 'role_viewer',
+    permissions: { users: 'admin' },
+    memberships: [{
+      organizationId: 'org-1',
+      role: 'role_viewer',
+      roleIds: ['role_viewer'],
+      status: 'active',
+      permissions: { projects: 'read' }
+    }]
+  }
+};
+
 describe('entity field access', () => {
   it('denies fields without a registered entity policy', () => {
     expect(canDisplayEntityField({
@@ -110,5 +128,23 @@ describe('entity field access', () => {
     expect(redacted.identity.name).toBe('Project One');
     expect(redacted.summary).toBeUndefined();
     expect(redacted.data).toBeUndefined();
+  });
+
+  it('keeps team list identity fields under user read access without exposing legacy permission JSON', () => {
+    const redacted = redactEntityForAccess(user, 'user', {
+      organizationId: 'org-1',
+      effectivePermissions: { users: 'read' }
+    });
+
+    expect(redacted.identity.name).toBe('Team Member');
+    expect(redacted.data.email).toBe('member@example.com');
+    expect(redacted.data.memberships[0]).toEqual({
+      organizationId: 'org-1',
+      role: 'role_viewer',
+      roleIds: ['role_viewer'],
+      status: 'active'
+    });
+    expect(redacted.data.permissions).toBeUndefined();
+    expect(redacted.data.memberships[0].permissions).toBeUndefined();
   });
 });
