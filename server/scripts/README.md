@@ -145,11 +145,11 @@ has no tenant admin, so creator/admin recovery does not depend on membership
 role labels.
 
 Use `server/scripts/migrate-process-create-status-grants.js` after compiler
-changes that affect create-action status grants or action-derived workflows. It
-recompiles stored process definitions that already have compiled runtime
-contracts and create actions with target statuses, so existing active processes
-pick up `primaryStatus`-scoped create grants and synthesized workflows without
-editing their semantic graph records.
+changes that affect generated screens, create-action status grants,
+action-derived workflows, or other compiled runtime contracts. It recompiles
+every stored process definition that already has a compiled runtime contract, so
+existing active processes pick up compiler fixes without editing their semantic
+graph records.
 
 ## Entity Revision Migration
 

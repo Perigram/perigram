@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Recompile all stored process runtime contracts
+    Files changed: server/scripts/migrate-process-create-status-grants.js
+    Docs updated: server/scripts/README.md, TODO.org
+    Notes: The process recompile migration now recompiles every stored
+      definition that already has a compiled runtime contract instead of
+      filtering only create-action status cases. This prevents active process
+      screen manifests from staying stale after compiler behavior changes, such
+      as multi-status generated screen aggregation.
+
     [2026-06-22] Fix generated process create actions and multi-status screens
     Files changed: components/generated/GeneratedActionButton.vue,
       components/generated/GeneratedEntityCollection.vue,
