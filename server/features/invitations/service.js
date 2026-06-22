@@ -2,35 +2,28 @@ import * as repository from './repository.js';
 import * as usersRepository from '../users/repository.js';
 import * as organizationsRepository from '../organizations/repository.js';
 import { createError } from 'h3';
-import { ObjectId } from 'mongodb';
 import crypto from 'node:crypto';
 import { materializeRolePermissions } from '../users/permission-templates.js';
-import { hasEntityAccess } from '../../core/access/service.js';
+import { canManageUsersInOrganization } from '../users/service.js';
 import { addStatus, initializeStatus } from '~/server/features/statuses/service';
+import { toFlexibleId } from '~/server/utils/objectid.js';
 
-export async function generateInvitation(organizationId, role, creatorUser) {
+export async function generateInvitation(organizationId, role, creatorUser, roleIds = null) {
   const org = await organizationsRepository.findById(organizationId);
   if (!org) throw createError({ statusCode: 404, message: 'Organization not found' });
-
-  if (!hasEntityAccess({
-    entity: { lineage: { organizationId } },
-    feature: 'users',
-    level: 'write',
-    auth: creatorUser
-  })) {
-    throw createError({ statusCode: 403, message: 'Forbidden' });
-  }
+  await assertCanManageInvitations(organizationId, creatorUser);
 
   const token = crypto.randomBytes(32).toString('hex');
   const code = `INV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`; // Keep short code as fallback
+  const invitedRoleIds = normalizeRoleIds(roleIds?.length ? roleIds : role);
   
   const id = await repository.create({
     token,
     code,
-    organizationId: new ObjectId(organizationId),
-    organizationName: org.name,
+    organizationId: toFlexibleId(organizationId),
+    organizationName: org.identity?.name || org.name || '',
     role: role || 'IndividualUser',
-    roleIds: normalizeRoleIds(role),
+    roleIds: invitedRoleIds,
     isActive: true,
     createdBy: creatorUser.userId
   });
@@ -94,8 +87,21 @@ async function processJoin(invitation, user) {
   return { success: true };
 }
 
-export async function listByOrg(organizationId) {
+export async function listByOrgForUser(organizationId, auth = {}) {
+  await assertCanManageInvitations(organizationId, auth);
   return await repository.findByOrg(organizationId);
+}
+
+export async function revokeInvitation(organizationId, invitationId, auth = {}) {
+  await assertCanManageInvitations(organizationId, auth);
+  await repository.revoke(invitationId);
+  return { success: true };
+}
+
+async function assertCanManageInvitations(organizationId, auth = {}) {
+  if (!await canManageUsersInOrganization(auth, organizationId)) {
+    throw createError({ statusCode: 403, message: 'Forbidden' });
+  }
 }
 
 function normalizeRoleIds(role) {

@@ -1,5 +1,6 @@
 import { connectDB } from '~/server/db/mongo';
 import { ObjectId } from 'mongodb';
+import { toFlexibleId } from '~/server/utils/objectid.js';
 
 const COLLECTION = 'invitations';
 
@@ -50,6 +51,6 @@ export async function revoke(id) {
 export async function findByOrg(organizationId) {
   const db = await connectDB();
   return await db.collection(COLLECTION)
-    .find({ organizationId: new ObjectId(organizationId), isActive: true })
+    .find({ organizationId: toFlexibleId(organizationId), isActive: true })
     .toArray();
 }
