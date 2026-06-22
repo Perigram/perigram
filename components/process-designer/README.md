@@ -14,12 +14,14 @@ Each node type is visually and functionally distinct:
   selected field policy count, inline lifecycle states, transition count, and
   the explicit public/write data contract exposed by the entity profile.
 - `ProcessActionNode.vue` represents an executable process step. It exposes
-  trigger, input, and output handles and summarizes action kind, trigger mode,
-  assigned trigger role names, and exact typed socket labels derived from
-  entity/status/command settings. Create actions show parent inputs when
-  configured, status-change actions show source and target status contracts,
-  command actions show command entity inputs/outputs, and organization-send
-  actions show the projected output fields.
+  trigger, data input/output, and event output handles. The node owns inline
+  editing for its user-facing name, trigger mode, trigger roles, command
+  selection, target status, creation target, parent input, and projection
+  fields. The action kind is fixed by the palette item that created the node.
+  Create actions show parent inputs when configured, status-change actions
+  consume an incoming entity without selecting an entity type, command actions
+  show command entity inputs/outputs, and organization-send actions show the
+  projected output fields.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
   run-role, typed input, and output handles and summarizes exact command inputs
   and outputs as labeled sockets in the same expected/produced visual contract
@@ -28,17 +30,20 @@ Each node type is visually and functionally distinct:
   exposes entity-projection, transfer, and receiver-role handles and summarizes
   direction plus the expected entity input and produced projected field set.
 
-The node components remain display-only. The route-level designer owns the
-process record mutation, role and user assignment records, action records,
-inline lifecycle workflow mutation, compiler fields, and Vue Flow edge
-persistence. Legacy role or user node components should not be added to the
-palette; active drafts load without those nodes so roles can stay reusable
-process metadata instead of layout objects.
+Entity, service, and socket nodes remain display-first compatibility surfaces,
+while action nodes are directly editable because most process behavior belongs
+on the executable step itself. The route-level designer still owns process
+record mutation, role and user assignment records, inline lifecycle workflow
+mutation, compiler fields, and Vue Flow edge persistence. Legacy role or user
+node components should not be added to the palette; active drafts load without
+those nodes so roles can stay reusable process metadata instead of layout
+objects.
 Input and output data is not rendered as a detached summary and nodes do not
 label columns as "inputs" or "outputs". Data flow is left-to-right: expected
 data is labeled on left handles, and produced data is labeled on right handles.
-Trigger/access/event flow is top-to-bottom: user/system/event triggers,
-service run access, and receiver access are labeled on top handles. Single data
+Trigger/access/event flow is top-to-bottom: manual/user/system/event triggers,
+service run access, and receiver access are labeled on top handles, while
+action completion events leave through a bottom event handle. Single data
 socket nodes keep `input`/`output` handle ids for saved-edge compatibility;
 multi-socket command nodes derive handle ids from the socket contract.
 

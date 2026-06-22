@@ -54,7 +54,7 @@ The inspector edits compiler-owned fields directly:
 - the roles tab owns abstract process role kind, explicit grant JSON, and quick app screen routes;
 - the screens tab owns screen id, label, kind, route, placement, required access, role ids, assignment bindings, and screen actions;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
-- action nodes own action kind, target entity or command, status source/target, trigger mode, trigger roles, and derived typed inputs/outputs;
+- action nodes own their inline name, fixed action kind, trigger mode, trigger roles, target entity or command, target status, projection fields, derived typed data sockets, and completion event socket;
 - service nodes own command selection, run/view roles, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
 
@@ -67,19 +67,24 @@ they describe what happens. Entity profiles remain process resources for
 lifecycle and field-policy contracts, while action nodes reference those
 resources and compile into runtime trigger contracts.
 Entity creation actions may declare a parent entity type, which appears as an
-explicit parent input on the node. Archive is modeled as a status target on a
-change-status action, and cross-organization transfer is modeled as a
-send-to-organization action with projection fields.
+explicit parent input on the node. Change-status actions do not select an
+entity type; the entity arrives through the left data socket and only the
+target status is configured on the node. Archive is modeled as that target
+status, and cross-organization transfer is modeled as a send-to-organization
+action with projection fields.
 Canvas nodes show explicit expected input and produced output socket labels
 instead of input/output counts: action and service node handles are labeled
 with typed entity/status contracts, socket node handles are labeled with the
 transfer input and projected output fields, and entity nodes render their field
 policy as the process data contract.
-The canvas uses left-to-right data flow and top-to-bottom trigger/access flow.
+The canvas uses left-to-right data flow and top-to-bottom trigger/access/event
+flow.
 Left and right data handles are not headed with literal "inputs" or "outputs";
 the socket label itself is the contract. Top handles are explicitly labeled as
 user/system/event triggers, service run access, or receiver access so unlabeled
-control sockets do not appear on process nodes.
+control sockets do not appear on process nodes. Action nodes also expose a
+bottom completion-event handle so every executable process step can trigger
+downstream event-driven actions.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched

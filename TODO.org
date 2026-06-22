@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Move action editing into process nodes
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      components/process-designer/ProcessServiceNode.vue,
+      components/process-designer/ProcessSocketNode.vue,
+      pages/organization/process.vue, packages/processes/src/index.js,
+      packages/processes/src/index.spec.js, i18n/locales/en.json,
+      i18n/locales/ru.json
+    Docs updated: components/process-designer/README.md,
+      pages/organization/README.md, packages/processes/README.md, TODO.org
+    Notes: Action nodes now own inline naming, trigger mode, role selection,
+      command/status/projection configuration, and bottom completion-event
+      sockets. Change-status actions consume an incoming entity instead of
+      selecting an entity type, and action kind is fixed by palette choice.
+
     [2026-06-22] Clarify process node socket flow
     Files changed: components/process-designer/ProcessActionNode.vue,
       components/process-designer/ProcessServiceNode.vue,

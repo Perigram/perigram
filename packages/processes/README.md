@@ -35,12 +35,15 @@ are not a second process model.
 Action records represent executable process steps on the visual canvas. The
 compiler validates `createEntity`, `changeStatus`, `runCommand`, and
 `sendToOrganization` actions against the domain entity, field-policy, and
-command registries, preserves their typed inputs/outputs, and emits trigger
-contracts. User-triggered actions carry process role ids so runtime adapters can
-expose only the actions assigned to the current user's process roles; system and
-event actions remain available for backend orchestration. Entity creation can
-declare a `parentEntityType`, which compiles as an explicit parent input instead
-of being inferred silently.
+command registries, preserves their typed inputs/outputs, preserves completion
+events, and emits trigger contracts. User-triggered actions carry process role
+ids so runtime adapters can expose only the actions assigned to the current
+user's process roles; manual, system, and event actions remain available for
+direct or backend orchestration. Entity creation can declare a
+`parentEntityType`, which compiles as an explicit parent input instead of being
+inferred silently. Change-status actions consume their entity from the incoming
+data socket and only require a target status; they do not need a separate
+entity-type selector.
 
 Screen records are route-level UI entries attached to roles. Assignment
 bindings replace `$assignment.*` placeholders in screen routes and scopes, so
