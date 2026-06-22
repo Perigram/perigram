@@ -185,8 +185,7 @@ export function resolveNavigation({ compiled, userId } = {}) {
 
 export function resolveScreens({ compiled, userId } = {}) {
   const access = compiled?.userAccess?.[String(userId)] || {};
-  if (access.screens?.length) return access.screens;
-  return navigationToScreens(access.navigation || []);
+  return access.screens || [];
 }
 
 export function resolveWorkflow({ compiled, entityType, fallbackWorkflow = null } = {}) {
@@ -318,8 +317,17 @@ function compileRoles(process = {}, domain = {}) {
     }
   }
   for (const [actionId, action] of Object.entries(process.actions || {})) {
-    if (!['manual', 'user'].includes(action.trigger?.mode || 'manual')) continue;
-    for (const roleId of action.trigger?.roleIds || []) {
+    const access = normalizeActionAccess(action.access);
+    const grant = grantFromAction(action, access, domain);
+    if (grant) {
+      for (const roleId of access.roleIds) {
+        if (!roles[roleId]) continue;
+        roles[roleId].grants ||= [];
+        upsertGrant(roles[roleId].grants, grant);
+      }
+    }
+    if ((action.trigger?.mode || 'manual') !== 'manual') continue;
+    for (const roleId of access.roleIds || []) {
       if (!roles[roleId]) continue;
       roles[roleId].actions.push({ actionId: action.id || actionId, label: action.label || action.actionKind || action.id || actionId, level: 'run' });
     }
@@ -339,6 +347,16 @@ function grantFromScreenRequired(required = null) {
   };
 }
 
+function grantFromAction(action = {}, access = {}, domain = {}) {
+  const entityType = action.entityType || action.inputs?.find(input => input.entityType)?.entityType;
+  const feature = entityType ? resolveEntityFeature(domain, entityType) : null;
+  if (!feature || !access.roleIds?.length) return null;
+  return {
+    feature,
+    level: access.level || 'write'
+  };
+}
+
 function upsertGrant(grants, next) {
   const existing = grants.find(grant => grant.feature === next.feature && !grant.rule && !grant.scope && !grant.transitions);
   if (!existing) {
@@ -349,6 +367,8 @@ function upsertGrant(grants, next) {
 }
 
 function resolveEntityFeature(domain = {}, entityType) {
+  const fieldPolicy = getFieldPolicy(domain.fieldAccess || {}, entityType);
+  if (fieldPolicy?.feature) return fieldPolicy.feature;
   const entity = (domain.entities || []).find(item => item.type === entityType);
   return entity?.collection || entityType;
 }
@@ -477,25 +497,6 @@ function screenToNavigation(screen = {}) {
   };
 }
 
-function navigationToScreens(navigation = []) {
-  return navigation
-    .filter(item => item?.route)
-    .map(item => ({
-      id: item.screenId || item.id || item.route,
-      screenKey: item.screenKey || item.id || item.route,
-      label: item.label || item.id || item.route,
-      labelKey: item.labelKey || null,
-      kind: item.kind || 'route',
-      route: item.route,
-      placement: item.placement || 'hub',
-      entityType: item.entityType || null,
-      required: item.requires || item.required || null,
-      scope: item.scope || {},
-      actions: item.actions || [],
-      sourceRoleIds: item.roleId ? [item.roleId] : (item.sourceRoleIds || [])
-    }));
-}
-
 function dedupeNavigation(items = []) {
   const byKey = new Map();
   for (const item of items) {
@@ -522,8 +523,8 @@ function compileServices(services = {}) {
     enabled: true,
     commandId: service.commandId || null,
     principals: {
-      run: service.access?.runPrincipals || service.access?.runRoles || [],
-      view: service.access?.viewPrincipals || service.access?.viewRoles || []
+      run: service.access?.runPrincipals || [],
+      view: service.access?.viewPrincipals || []
     },
     inputs: service.inputs || [],
     outputs: service.outputs || []
@@ -540,14 +541,21 @@ function compileActions(actions = {}) {
     commandId: action.commandId || null,
     status: action.status || {},
     projection: action.projection || null,
+    access: normalizeActionAccess(action.access),
     trigger: {
-      mode: action.trigger?.mode || 'user',
-      roleIds: action.trigger?.roleIds || []
+      mode: action.trigger?.mode || 'manual'
     },
     inputs: action.inputs || [],
     outputs: action.outputs || [],
     events: action.events || []
   }]));
+}
+
+function normalizeActionAccess(access = {}) {
+  return {
+    level: ['read', 'write', 'admin'].includes(access.level) ? access.level : 'write',
+    roleIds: Array.isArray(access.roleIds) ? access.roleIds : []
+  };
 }
 
 function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors }) {
@@ -572,14 +580,19 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
   if (['createEntity', 'archiveEntity'].includes(kind) && !action.status?.to) {
     errors.push(`Action ${actionId} must define target status`);
   }
+  if (!action.access || !Array.isArray(action.access.roleIds) || !['read', 'write', 'admin'].includes(action.access.level)) {
+    errors.push(`Action ${actionId} must define access with level and roleIds`);
+  }
   if (kind === 'sendToOrganization') {
     validateFieldList(action.projection?.fields, domain, action.entityType, `action ${actionId} projection fields`, errors);
     validateFieldList(action.projection?.excludeFields, domain, action.entityType, `action ${actionId} excluded fields`, errors);
   }
-  if (['user', 'manual'].includes(action.trigger?.mode || 'user')) {
-    for (const roleId of action.trigger?.roleIds || []) {
-      if (!roles[roleId]) errors.push(`Action ${actionId} references missing trigger role ${roleId}`);
-    }
+  const triggerMode = action.trigger?.mode || 'manual';
+  if (!['manual', 'event'].includes(triggerMode)) {
+    errors.push(`Action ${actionId} uses unknown trigger mode ${triggerMode}`);
+  }
+  for (const roleId of normalizeActionAccess(action.access).roleIds) {
+    if (!roles[roleId]) errors.push(`Action ${actionId} references missing access role ${roleId}`);
   }
 }
 

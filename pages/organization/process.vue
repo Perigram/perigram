@@ -368,7 +368,7 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { canvasToDefinition, definitionToCanvas } from '~/packages/processes/src/index.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
-import { cncDomain, cncEntityFieldAccess, cncWorkflows } from '@cutkit/domain-cnc';
+import { cncDomain, cncEntityCreateInputs, cncEntityFieldAccess, cncWorkflows } from '@cutkit/domain-cnc';
 import ProcessActionNode from '~/components/process-designer/ProcessActionNode.vue';
 import ProcessEntityNode from '~/components/process-designer/ProcessEntityNode.vue';
 import ProcessServiceNode from '~/components/process-designer/ProcessServiceNode.vue';
@@ -716,13 +716,13 @@ function syncNodeData() {
     node.data.entityType = record.entityType;
     node.data.commandId = record.commandId;
     node.data.triggerMode = record.trigger?.mode;
-    node.data.triggerRoleLabels = roleLabels(record.trigger?.roleIds || []);
     node.data.actionKindLabel = node.type === 'action' ? actionKindLabel(record.actionKind) : null;
     node.data.eventLabel = node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null;
     node.data.actionRecord = node.type === 'action' ? record : null;
     node.data.entityTypeOptions = node.type === 'action' ? entityTypeOptions.value : [];
     node.data.commandOptions = node.type === 'action' ? commandOptions.value : [];
-    node.data.roleOptions = node.type === 'action' ? roleOptions.value : [];
+    node.data.roleOptions = node.type === 'action' ? actionRoleOptions(record, node) : [];
+    node.data.accessLevelOptions = node.type === 'action' ? accessLevelOptions : [];
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
     node.data.fieldOptions = node.type === 'action' ? fieldOptions(record.entityType) : [];
     node.data.onActionUpdate = node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data.refId, updates, options) : null;
@@ -730,8 +730,8 @@ function syncNodeData() {
     node.data.statusTo = record.status?.to;
     node.data.direction = record.direction;
     node.data.lifecycleMode = record.lifecycle?.mode;
-    node.data.roleCount = record.allowedRoles ? countRoleBindings(record.allowedRoles) : (record.trigger?.roleIds?.length || 0);
-    node.data.runPrincipalLabels = principalLabels(record.access?.runPrincipals || record.access?.runRoles || []);
+    node.data.roleCount = record.allowedRoles ? countRoleBindings(record.allowedRoles) : (record.access?.roleIds?.length || 0);
+    node.data.runPrincipalLabels = principalLabels(record.access?.runPrincipals || []);
     node.data.receiveRoleLabels = roleLabels(record.access?.receiveRoles || []);
     node.data.fieldCount = record.fields ? countFieldBindings(record.fields) : (record.projection?.fields?.length || 0);
     node.data.stateLabels = workflowStateLabels(record);
@@ -802,7 +802,8 @@ function createAction(id, actionKind = 'createEntity') {
     parentEntityType: '',
     status: { from: '', to: actionKind === 'createEntity' ? 'CREATED' : '' },
     projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
-    trigger: { mode: 'manual', roleIds: [] },
+    access: { level: 'write', roleIds: [] },
+    trigger: { mode: 'manual' },
     inputs: [],
     outputs: [],
     events: []
@@ -853,8 +854,9 @@ function removeSelectedRole() {
     for (const key of ['sendRoles', 'receiveRoles']) socket.access[key] = (socket.access[key] || []).filter(roleId => roleId !== removedRoleId);
   }
   for (const action of Object.values(draft.value.data.actions || {})) {
-    action.trigger ||= { mode: 'user', roleIds: [] };
-    action.trigger.roleIds = (action.trigger.roleIds || []).filter(roleId => roleId !== removedRoleId);
+    action.trigger ||= { mode: 'manual' };
+    action.access ||= { level: 'write', roleIds: [] };
+    action.access.roleIds = (action.access.roleIds || []).filter(roleId => roleId !== removedRoleId);
   }
   for (const assignment of Object.values(draft.value.data.assignments || {})) {
     assignment.roleIds = (assignment.roleIds || []).filter(roleId => roleId !== removedRoleId);
@@ -971,22 +973,28 @@ function syncSelectedAction() {
 }
 
 function syncActionIo(action = {}) {
-  action.trigger ||= { mode: 'manual', roleIds: [] };
+  action.trigger ||= { mode: 'manual' };
+  action.access ||= { level: 'write', roleIds: [] };
   action.trigger.mode = normalizeTriggerMode(action.trigger.mode);
-  if (action.trigger.mode === 'event') action.trigger.roleIds = [];
+  delete action.trigger.roleIds;
+  action.access.level = normalizeAccessLevel(action.access.level);
   action.status ||= {};
   action.events = actionEventOutputs(action);
   if (action.actionKind === 'createEntity') {
     action.status.to ||= 'CREATED';
     action.parentEntityType = '';
-    action.inputs = [{ id: 'parent', label: t('processDesigner.parentEntity'), required: false }];
+    action.inputs = [
+      { id: 'parent', label: t('processDesigner.parentEntity'), required: false },
+      ...createInputSockets(action.entityType)
+    ];
     action.outputs = [{ id: 'created', entityType: action.entityType, status: action.status.to }];
     return;
   }
   if (action.actionKind === 'changeStatus') {
+    const incomingEntityType = action.inputs?.find(input => input.id === 'entity')?.entityType || '';
     action.entityType = '';
     action.status.to ||= '';
-    action.inputs = [{ id: 'entity', label: t('processDesigner.incomingEntity'), status: action.status.from || t('processDesigner.currentStatus') }];
+    action.inputs = [{ id: 'entity', label: t('processDesigner.incomingEntity'), entityType: incomingEntityType, status: action.status.from || t('processDesigner.currentStatus') }];
     action.outputs = [{ id: 'entity', label: t('processDesigner.sameEntity'), status: action.status.to || t('processDesigner.targetStatus') }];
     return;
   }
@@ -1018,8 +1026,22 @@ function localizedTriggerModeOptions() {
 }
 
 function normalizeTriggerMode(mode) {
-  if (mode === 'event' || mode === 'system') return 'event';
+  if (mode === 'event') return 'event';
   return 'manual';
+}
+
+function normalizeAccessLevel(level) {
+  return ['read', 'write', 'admin'].includes(level) ? level : 'write';
+}
+
+function createInputSockets(entityType) {
+  return (cncEntityCreateInputs[entityType] || []).map(input => ({
+    ...input,
+    id: `data:${input.id || input.path}`,
+    label: input.label || input.path,
+    dataPath: input.path,
+    kind: input.type || 'data'
+  }));
 }
 
 function actionEventOutputs(action = {}) {
@@ -1036,7 +1058,9 @@ function ioLabel(io) {
 
 function ioSpec(io = {}) {
   const detail = [
+    io.dataPath || '',
     io.capability || '',
+    io.entityType || '',
     io.accepts?.length ? io.accepts.join(', ') : '',
     io.required ? t('processDesigner.required') : '',
     io.multiple ? t('processDesigner.multiple') : '',
@@ -1181,17 +1205,17 @@ function enrichNodeData(node) {
       actionRecord: node.type === 'action' ? record : null,
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
       commandOptions: node.type === 'action' ? commandOptions.value : [],
-      roleOptions: node.type === 'action' ? roleOptions.value : [],
+      roleOptions: node.type === 'action' ? actionRoleOptions(record, node) : [],
+      accessLevelOptions: node.type === 'action' ? accessLevelOptions : [],
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
       fieldOptions: node.type === 'action' ? fieldOptions(record.entityType) : [],
       onActionUpdate: node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data?.refId, updates, options) : null,
       triggerMode: record.trigger?.mode,
-      triggerRoleLabels: roleLabels(record.trigger?.roleIds || []),
       eventLabel: node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null,
       direction: record.direction,
       lifecycleMode: record.lifecycle?.mode,
-      roleCount: record.allowedRoles ? countRoleBindings(record.allowedRoles) : 0,
-      runPrincipalLabels: principalLabels(record.access?.runPrincipals || record.access?.runRoles || []),
+      roleCount: record.allowedRoles ? countRoleBindings(record.allowedRoles) : (record.access?.roleIds?.length || 0),
+      runPrincipalLabels: principalLabels(record.access?.runPrincipals || []),
       receiveRoleLabels: roleLabels(record.access?.receiveRoles || []),
       fieldCount: record.fields ? countFieldBindings(record.fields) : (record.projection?.fields?.length || 0),
       stateLabels: workflowStateLabels(record),
@@ -1223,6 +1247,7 @@ function stripRuntimeNodeData(node) {
     'entityTypeOptions',
     'commandOptions',
     'roleOptions',
+    'accessLevelOptions',
     'triggerModeOptions',
     'fieldOptions',
     'onActionUpdate'
@@ -1291,7 +1316,7 @@ function roleAccessSummary(roleId) {
     }
   }
   for (const action of Object.values(draft.value?.data?.actions || {})) {
-    if (action.trigger?.mode === 'manual' && (action.trigger.roleIds || []).includes(roleId)) items.push(`${action.label || action.id}:manual`);
+    if ((action.access?.roleIds || []).includes(roleId)) items.push(`${action.label || action.id}:${action.access?.level || 'write'}`);
   }
   for (const screen of Object.values(draft.value?.data?.screens || {})) {
     if ((screen.roleIds || []).includes(roleId)) items.push(`${screen.label || screen.id}:screen`);
@@ -1313,5 +1338,51 @@ function onConnect(connection) {
     type: 'smoothstep',
     data: { kind: connection.sourceHandle || connection.targetHandle || 'link' }
   });
+  syncInferredActionInputs();
+}
+
+function syncInferredActionInputs() {
+  for (const node of nodes.value.filter(item => item.type === 'action')) {
+    const action = draft.value?.data?.actions?.[node.data?.refId];
+    if (!action || action.actionKind !== 'changeStatus') continue;
+    const inferredEntityType = inferIncomingEntityType(node.id);
+    const entityInput = action.inputs?.find(input => input.id === 'entity');
+    if (entityInput && inferredEntityType) entityInput.entityType = inferredEntityType;
+  }
+  syncNodeData();
+}
+
+function inferIncomingEntityType(nodeId) {
+  const edge = edges.value.find(item => item.target === nodeId && String(item.targetHandle || '').startsWith('input'));
+  if (!edge) return '';
+  const source = nodes.value.find(item => item.id === edge.source);
+  const sourceRecord = source?.data?.refId ? draft.value?.data?.[recordKeyForType(source.type)]?.[source.data.refId] : null;
+  const sourceOutputs = sourceRecord?.outputs || [];
+  const handleId = String(edge.sourceHandle || '');
+  const match = sourceOutputs.find((output, index) => socketHandleIdForRecord('output', output, index, sourceOutputs) === handleId)
+    || sourceOutputs.find(output => output.entityType);
+  return match?.entityType || '';
+}
+
+function socketHandleIdForRecord(kind, item, index, items) {
+  if (items.length === 1) return kind;
+  return `${kind}:${item.id || index}`;
+}
+
+function actionRoleOptions(action = {}, node = {}) {
+  const entityType = effectiveActionEntityType(action, node);
+  if (!entityType) return roleOptions.value;
+  const entityProfile = Object.values(draft.value?.data?.entityProfiles || {}).find(profile => profile.entityType === entityType);
+  if (!entityProfile) return [];
+  const allowedRoleIds = new Set([
+    ...(entityProfile.allowedRoles?.write || []),
+    ...(entityProfile.allowedRoles?.admin || [])
+  ]);
+  return roleOptions.value.filter(role => allowedRoleIds.has(role.value));
+}
+
+function effectiveActionEntityType(action = {}, node = {}) {
+  if (action.entityType) return action.entityType;
+  return action.inputs?.find(input => input.entityType)?.entityType || inferIncomingEntityType(node.id);
 }
 </script>

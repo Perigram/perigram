@@ -7,6 +7,7 @@ export { cncTasks } from './tasks.js';
 export { cncHookContracts } from './hooks.js';
 export { cncSummaries, cncFrontendEntities } from './summaries.js';
 export { cncAttachmentKinds } from './attachment-kinds.js';
+export { cncEntityCreateInputs, getEntityCreateInputs } from './entity-create-inputs.js';
 export {
   cncEntityFieldAccess,
   getEntityFieldAccessPolicy,
@@ -42,6 +43,7 @@ import { cncTasks } from './tasks.js';
 import { cncHookContracts } from './hooks.js';
 import { cncFrontendEntities, cncSummaries } from './summaries.js';
 import { cncAttachmentKinds } from './attachment-kinds.js';
+import { cncEntityCreateInputs } from './entity-create-inputs.js';
 import { cncEntityFieldAccess } from './field-access.js';
 import { cncDesignSystem, cncStatusUi, cncUiSurfaces, cncEntitySurfaceContracts } from './ui.js';
 import { cncEntityFieldGroups } from './ui-fields.js';
@@ -59,6 +61,7 @@ export const cncDomain = {
   hooks: cncHookContracts,
   summaries: cncSummaries,
   attachmentKinds: cncAttachmentKinds,
+  createInputs: cncEntityCreateInputs,
   fieldAccess: cncEntityFieldAccess,
   designSystem: cncDesignSystem,
   fieldGroups: cncEntityFieldGroups,

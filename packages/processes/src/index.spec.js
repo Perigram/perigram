@@ -35,16 +35,19 @@ const domain = {
   },
   fieldAccess: {
     project: {
+      feature: 'projects',
       read: ['identity.*', 'status.*', 'lineage.*', 'data.name'],
       write: ['data.metadata'],
       admin: ['data.*']
     },
     queue: {
+      feature: 'queues',
       read: ['identity.*', 'status.*', 'lineage.*'],
       write: ['data.*'],
       admin: ['attachments.*']
     },
     catalog: {
+      feature: 'catalogs',
       read: ['identity.*', 'status.*', 'lineage.*', 'data.material', 'data.options'],
       write: ['data.*'],
       admin: ['attachments.*']
@@ -292,7 +295,8 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'createEntity',
           entityType: 'project',
           status: { to: 'CREATED' },
-          trigger: { mode: 'user', roleIds: ['role_admin'] },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_admin'] },
           inputs: [],
           outputs: [{ id: 'created', entityType: 'project', status: 'CREATED' }]
         }
@@ -302,7 +306,8 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions.create_project).toMatchObject({
       actionKind: 'createEntity',
       entityType: 'project',
-      trigger: { mode: 'user', roleIds: ['role_admin'] }
+      trigger: { mode: 'manual' },
+      access: { level: 'write', roleIds: ['role_admin'] }
     });
   });
 
@@ -314,7 +319,8 @@ describe('@cutkit/processes compiler', () => {
           label: 'Activate incoming',
           actionKind: 'changeStatus',
           status: { to: 'ACTIVE' },
-          trigger: { mode: 'manual', roleIds: [] },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: [] },
           inputs: [{ id: 'entity', label: 'Incoming entity', status: 'Current status' }],
           outputs: [{ id: 'entity', label: 'Same entity', status: 'ACTIVE' }],
           events: [{ id: 'completed', label: 'Activate incoming completed', kind: 'event' }]
@@ -326,7 +332,7 @@ describe('@cutkit/processes compiler', () => {
       actionKind: 'changeStatus',
       entityType: null,
       status: { to: 'ACTIVE' },
-      trigger: { mode: 'manual', roleIds: [] },
+      trigger: { mode: 'manual' },
       events: [{ id: 'completed', kind: 'event' }]
     });
   });
@@ -340,7 +346,8 @@ describe('@cutkit/processes compiler', () => {
           entityType: 'queue',
           parentEntityType: 'project',
           status: { to: 'CREATED' },
-          trigger: { mode: 'system', roleIds: [] },
+          trigger: { mode: 'event' },
+          access: { level: 'write', roleIds: [] },
           inputs: [{ id: 'parent', entityType: 'project' }],
           outputs: [{ id: 'created', entityType: 'queue', status: 'CREATED' }]
         }
@@ -359,7 +366,8 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'sendToOrganization',
           entityType: 'project',
           projection: { fields: ['identity.*'], excludeFields: [] },
-          trigger: { mode: 'event', roleIds: [] },
+          trigger: { mode: 'event' },
+          access: { level: 'write', roleIds: [] },
           inputs: [{ id: 'entity', entityType: 'project' }],
           outputs: [{ id: 'projection', entityType: 'project', projection: true }]
         }
@@ -417,7 +425,8 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'createEntity',
           entityType: 'project',
           status: { to: 'CREATED' },
-          trigger: { mode: 'user', roleIds: ['role_admin'] },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_admin'] },
           inputs: [],
           outputs: [{ id: 'created', entityType: 'project', status: 'CREATED' }]
         }
@@ -440,14 +449,16 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'createEntity',
           entityType: 'project',
           status: { to: 'CREATED' },
-          trigger: { mode: 'system', roleIds: [] }
+          trigger: { mode: 'event' },
+          access: { level: 'write', roleIds: [] }
         },
         send_project: {
           id: 'send_project',
           actionKind: 'sendToOrganization',
           entityType: 'project',
           projection: { fields: ['identity.*'], excludeFields: [] },
-          trigger: { mode: 'event', roleIds: [] }
+          trigger: { mode: 'event' },
+          access: { level: 'write', roleIds: [] }
         }
       }
     };
@@ -474,13 +485,44 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'changeStatus',
           entityType: 'project',
           status: { from: 'DRAFT', to: 'ACTIVE' },
-          trigger: { mode: 'user', roleIds: ['missing_role'] }
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['missing_role'] }
         }
       }
     }, domain);
 
     expect(validation.ok).toBe(false);
-    expect(validation.errors.join('\n')).toContain('missing trigger role');
+    expect(validation.errors.join('\n')).toContain('missing access role');
+  });
+
+  it('derives role grants from action access', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_creator: { id: 'role_creator' }
+      },
+      actions: {
+        create_project: {
+          id: 'create_project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: 'CREATED' },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_creator'] },
+          inputs: [],
+          outputs: [{ id: 'created', entityType: 'project', status: 'CREATED' }]
+        }
+      },
+      assignments: {
+        user_creator: {
+          userId: 'user_creator',
+          roleIds: ['role_creator'],
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.userAccess.user_creator.permissions.projects[0]).toMatchObject({ level: 'write' });
+    expect(compiled.roles.role_creator.actions[0]).toMatchObject({ actionId: 'create_project', level: 'run' });
   });
 
   it('creates compilable starter process definitions from legacy organization types', () => {

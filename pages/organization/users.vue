@@ -454,8 +454,8 @@ function derivedRoleAccessSummary(roleIds = []) {
         if (screenAppliesToRoles(screen, roleIds)) items.push(`${screen.required?.feature || screen.id}:${screen.required?.level || 'screen'}`);
     }
     for (const action of Object.values(activeProcess.value?.data?.actions || {})) {
-        if (action.trigger?.mode === 'manual' && (action.trigger.roleIds || []).some(roleId => roleSet.has(roleId))) {
-            items.push(`${action.label || action.id}:manual`);
+        if ((action.access?.roleIds || []).some(roleId => roleSet.has(roleId))) {
+            items.push(`${action.label || action.id}:${action.access?.level || 'write'}`);
         }
     }
     return [...new Set(items)];

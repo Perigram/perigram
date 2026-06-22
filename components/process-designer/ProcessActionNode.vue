@@ -48,7 +48,7 @@
         :position="Position.Left"
         class="!left-0 !-translate-x-1/2 !border-sky-500 !bg-sky-500"
       />
-      <div class="nodrag grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-1">
+      <div class="nodrag grid grid-cols-[minmax(0,0.75fr)_minmax(0,0.65fr)_minmax(0,1.35fr)] gap-1">
         <Select
           :model-value="triggerMode"
           :options="data.triggerModeOptions || []"
@@ -58,18 +58,25 @@
           size="small"
           @update:model-value="value => updateTrigger({ mode: value })"
         />
+        <Select
+          :model-value="action.access?.level || 'write'"
+          :options="data.accessLevelOptions || []"
+          option-label="label"
+          option-value="value"
+          class="nodrag min-w-0"
+          size="small"
+          @update:model-value="value => updateAccess({ level: value })"
+        />
         <MultiSelect
-          v-if="triggerMode === 'manual'"
-          :model-value="action.trigger?.roleIds || []"
+          :model-value="action.access?.roleIds || []"
           :options="data.roleOptions || []"
           option-label="label"
           option-value="value"
           display="chip"
           class="nodrag min-w-0"
           size="small"
-          @update:model-value="value => updateTrigger({ roleIds: value })"
+          @update:model-value="value => updateAccess({ roleIds: value })"
         />
-        <span v-else class="min-w-0"></span>
       </div>
     </div>
 
@@ -179,6 +186,15 @@ function updateTrigger(updates) {
   props.data.onActionUpdate?.({
     trigger: {
       ...(action.value.trigger || {}),
+      ...updates
+    }
+  }, { syncIo: true });
+}
+
+function updateAccess(updates) {
+  props.data.onActionUpdate?.({
+    access: {
+      ...(action.value.access || {}),
       ...updates
     }
   }, { syncIo: true });
