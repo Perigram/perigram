@@ -8,7 +8,8 @@
         fit-view-on-init
         :default-edge-options="defaultEdgeOptions"
         @node-click="event => selectNode(event.node)"
-        @pane-click="selectedNodeId = null"
+        @edge-click="event => selectEdge(event.edge)"
+        @pane-click="clearGraphSelection"
         @connect="onConnect"
       >
         <template #node-entity="props"><ProcessEntityNode v-bind="props" /></template>
@@ -388,6 +389,7 @@ const processLoadError = ref('');
 const nodes = ref([]);
 const edges = ref([]);
 const selectedNodeId = ref(null);
+const selectedEdgeId = ref(null);
 const validation = ref(null);
 const applyingProcess = ref(false);
 const selectedRoleId = ref(null);
@@ -647,8 +649,10 @@ function setDraft(value) {
     canvas = { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
     validation.value = { ok: false, errors: [error.message], warnings: [] };
   }
+  selectedNodeId.value = null;
+  selectedEdgeId.value = null;
   nodes.value = canvas.nodes.map(enrichNodeData);
-  edges.value = canvas.edges;
+  edges.value = decorateEdges(canvas.edges);
   selectedRoleId.value = Object.keys(value?.data?.roles || {})[0] || null;
   selectedPrincipalId.value = Object.keys(value?.data?.servicePrincipals || {})[0] || null;
   selectedScreenId.value = Object.keys(value?.data?.screens || {})[0] || null;
@@ -671,17 +675,34 @@ function addNode(item) {
   }
   nodes.value.push(enrichNodeData(node));
   selectedNodeId.value = id;
+  selectedEdgeId.value = null;
+  syncEdgeSelection();
 }
 
 function selectNode(node) {
   selectedNodeId.value = node.id;
+  selectedEdgeId.value = null;
+  syncEdgeSelection();
+}
+
+function selectEdge(edge) {
+  selectedEdgeId.value = edge.id;
+  selectedNodeId.value = null;
+  syncEdgeSelection();
+}
+
+function clearGraphSelection() {
+  selectedNodeId.value = null;
+  selectedEdgeId.value = null;
+  syncEdgeSelection();
 }
 
 function handleCanvasKeydown(event) {
-  if (!['Delete', 'Backspace'].includes(event.key) || !selectedNodeId.value) return;
+  if (!['Delete', 'Backspace'].includes(event.key) || (!selectedNodeId.value && !selectedEdgeId.value)) return;
   if (isTextEditingTarget(event.target)) return;
   event.preventDefault();
-  deleteSelectedNode();
+  if (selectedNodeId.value) deleteSelectedNode();
+  else deleteSelectedEdge();
 }
 
 function isTextEditingTarget(target) {
@@ -697,12 +718,37 @@ function deleteSelectedNode() {
   edges.value = edges.value.filter(edge => edge.source !== node.id && edge.target !== node.id);
   if (refId && draft.value?.data) delete draft.value.data[recordKeyForType(node.type)]?.[refId];
   selectedNodeId.value = null;
+  selectedEdgeId.value = null;
+}
+
+function deleteSelectedEdge() {
+  if (!selectedEdgeId.value) return;
+  edges.value = edges.value.filter(edge => edge.id !== selectedEdgeId.value);
+  selectedEdgeId.value = null;
+  syncInferredActionInputs();
+}
+
+function decorateEdges(items = []) {
+  return items.map(edge => decorateEdge(edge));
+}
+
+function decorateEdge(edge = {}) {
+  const selected = edge.id === selectedEdgeId.value;
+  return {
+    ...edge,
+    animated: selected,
+    style: selected ? { stroke: 'var(--p-primary-color)', strokeWidth: 3 } : undefined
+  };
+}
+
+function syncEdgeSelection() {
+  edges.value = decorateEdges(edges.value);
 }
 
 function serializeProcess() {
   syncNodeData();
   return canvasToDefinition(
-    { nodes: nodes.value.map(stripRuntimeNodeData), edges: edges.value, viewport: draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 } },
+    { nodes: nodes.value.map(stripRuntimeNodeData), edges: edges.value.map(stripRuntimeEdgeData), viewport: draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 } },
     draft.value?.data || {}
   );
 }
@@ -723,7 +769,6 @@ function syncNodeData() {
     node.data.entityTypeOptions = node.type === 'action' ? entityTypeOptions.value : [];
     node.data.commandOptions = node.type === 'action' ? commandOptions.value : [];
     node.data.roleOptions = node.type === 'action' ? actionRoleOptions(record, node) : [];
-    node.data.accessContractLabel = node.type === 'action' ? actionAccessContractLabel(record, node) : '';
     node.data.effectiveAccessLabels = node.type === 'action' ? effectiveActionAccessLabels(record, node) : [];
     node.data.accessLevelOptions = node.type === 'action' ? accessLevelOptions : [];
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
@@ -995,15 +1040,16 @@ function syncActionIo(action = {}, node = null) {
   }
   if (action.actionKind === 'changeStatus') {
     const incoming = node?.id ? inferIncomingEntityContract(node.id) : {};
-    const incomingEntityType = incoming.entityType || action.inputs?.find(input => input.id === 'entity')?.entityType || '';
-    if (incoming.status && !action.status.from) action.status.from = incoming.status;
+    const incomingEntityType = node ? (incoming.entityType || '') : (action.inputs?.find(input => input.id === 'entity')?.entityType || '');
+    if (node) action.status.from = incoming.status || '';
+    else if (incoming.status && !action.status.from) action.status.from = incoming.status;
     action.status.from ||= action.access.statusFrom || '';
     action.entityType = '';
     action.status.to ||= '';
     action.access.statusFrom = action.status.from || '';
     action.access.statusTo = action.status.to || '';
-    action.inputs = [{ id: 'entity', label: t('processDesigner.incomingEntity'), entityType: incomingEntityType, status: action.status.from || '' }];
-    action.outputs = [{ id: 'entity', label: t('processDesigner.sameEntity'), entityType: incomingEntityType, status: action.status.to || '' }];
+    action.inputs = [{ id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: action.status.from || '' }];
+    action.outputs = [{ id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: action.status.to || '' }];
     return;
   }
   if (action.actionKind === 'sendToOrganization') {
@@ -1222,7 +1268,6 @@ function enrichNodeData(node) {
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
       commandOptions: node.type === 'action' ? commandOptions.value : [],
       roleOptions: node.type === 'action' ? actionRoleOptions(record, node) : [],
-      accessContractLabel: node.type === 'action' ? actionAccessContractLabel(record, node) : '',
       effectiveAccessLabels: node.type === 'action' ? effectiveActionAccessLabels(record, node) : [],
       accessLevelOptions: node.type === 'action' ? accessLevelOptions : [],
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
@@ -1270,7 +1315,6 @@ function stripRuntimeNodeData(node) {
     'entityTypeOptions',
     'commandOptions',
     'roleOptions',
-    'accessContractLabel',
     'effectiveAccessLabels',
     'accessLevelOptions',
     'triggerModeOptions',
@@ -1280,6 +1324,11 @@ function stripRuntimeNodeData(node) {
     delete data[key];
   }
   return { ...node, data };
+}
+
+function stripRuntimeEdgeData(edge) {
+  const { animated, style, selected, ...rest } = edge;
+  return rest;
 }
 
 function workflowStateLabels(record) {
@@ -1360,12 +1409,14 @@ function roleAccessSummary(roleId) {
 }
 
 function onConnect(connection) {
-  edges.value.push({
+  selectedEdgeId.value = null;
+  edges.value.push(decorateEdge({
     ...connection,
     id: `${connection.source}-${connection.sourceHandle}-${connection.target}-${connection.targetHandle}-${Date.now()}`,
     type: 'smoothstep',
     data: { kind: connection.sourceHandle || connection.targetHandle || 'link' }
-  });
+  }));
+  syncEdgeSelection();
   syncInferredActionInputs();
 }
 
@@ -1436,7 +1487,7 @@ function effectiveActionAccessLabels(action = {}, node = {}) {
 
   return [...accessByRole.values()]
     .filter(item => !currentRoleIds.has(item.roleId))
-    .map(item => [item.label, item.level, item.status ? `when ${item.status}` : ''].filter(Boolean).join(' · '));
+    .map(item => [item.label, item.level].filter(Boolean).join(' · '));
 }
 
 function addEffectiveRoleAccess(accessByRole, roleId, level, status) {
@@ -1461,12 +1512,6 @@ function actionAccessSummary(action = {}) {
     [subject, normalizeAccessLevel(action.access?.level)].filter(Boolean).join(':'),
     status ? `when ${status}` : ''
   ].filter(Boolean).join(' ');
-}
-
-function actionAccessContractLabel(action = {}, node = {}) {
-  const entityType = actionEntityType(action) || inferIncomingEntityContract(node.id).entityType;
-  const status = actionTargetStatus(action);
-  return [entityType, status ? `when ${status}` : ''].filter(Boolean).join(' · ');
 }
 
 function actionEntityType(action = {}) {
