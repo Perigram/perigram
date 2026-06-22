@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Fix organization invitation team-management access
+    Files changed: server/api/organizations/[id]/invitations.get.js,
+      server/api/organizations/[id]/invitations.post.js,
+      server/api/organizations/[id]/invitations/[invId].delete.js,
+      server/features/invitations/service.js,
+      server/features/invitations/repository.js,
+      server/features/invitations/invitations.spec.js
+    Docs updated: server/api/README.md,
+      server/features/invitations/README.md, TODO.org
+    Notes: Invitation list/create/revoke now authorize through the same
+      process-derived team-management contract, preserve invited process role
+      ids, and use flexible organization ids so string organization ids can own
+      invitations.
+
     [2026-06-22] Fix active process assignment status serialization
     Files changed: server/features/process-definitions/service.js,
       server/features/process-definitions/process-definitions.spec.js

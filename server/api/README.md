@@ -35,6 +35,10 @@ Routes are grouped into sub-directories corresponding to features:
   process roles, and delegate to entity, status, socket, or command runtimes.
   Socket projection endpoints return selected entity fields and receiver
   lifecycle metadata for cross-organization transfer flows.
+- `organizations/:id/invitations`: Authenticated team-management invitation
+  listing, creation, and revocation. Handlers delegate authorization to the
+  invitations feature so all invitation operations use the same process-derived
+  user-management access contract and support string organization ids.
 - `sheet-designs/`: Lineage-scoped sheet design list/detail and direct DXF
   export.
 - `status/`: Authenticated status action and history endpoints. History

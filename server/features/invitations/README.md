@@ -7,10 +7,13 @@ Manages organization membership invitations.
 - `service.js`: Invitation generation and processing.
 
 ## Workflows
-1. **Generate**: An organization user with `users` access creates a unique
-   token and short code for organization joining. The team-management UI shows
-   the generated `/invitation/:token` link for copying; invitations are not
-   addressed to a specific email.
+1. **Generate**: A user who can manage team members in the organization creates
+   a unique token and short code for organization joining. The same
+   team-management access check is used for listing, creating, and revoking
+   invitations: active process `users:admin` grants pass first, with the narrow
+   admin/sole-member recovery path from the users feature. The team-management
+   UI shows the generated `/invitation/:token` link for copying; invitations are
+   not addressed to a specific email.
 2. **Authenticate**: Anonymous invitees use the link to log in or register.
    Registration from an invitation creates only the user account and preserves
    the redirect back to the invitation instead of asking for organization
@@ -21,7 +24,16 @@ Manages organization membership invitations.
    Approval activates the matching assignment in the organization's active
    process definition.
 
+Invitation organization ids use the repository `toFlexibleId()` convention so
+both string organization ids such as `org-...` and Mongo ObjectIds can own and
+query invitations.
+
 ## API / Functions
-- `generateInvitation()`: Creates new invitation.
+- `generateInvitation()`: Creates a new invitation after team-management
+  authorization and stores invited process role ids.
+- `listByOrgForUser()`: Lists active organization invitations after
+  team-management authorization.
+- `revokeInvitation()`: Revokes an invitation after team-management
+  authorization.
 - `joinByToken()`: Process join using secret token.
 - `joinByCode()`: Process join using short alphanumeric code.
