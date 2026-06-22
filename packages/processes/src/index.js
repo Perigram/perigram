@@ -443,11 +443,12 @@ function compileRoles(process = {}, domain = {}) {
       upsertGrant(roles[roleId].grants, grant);
     }
   }
+  const actionWindows = compileActionAccessWindows(process, domain);
   for (const [actionId, action] of Object.entries(process.actions || {})) {
     const access = normalizeActionAccess(action.access);
-    const grant = grantFromAction(action, access, domain);
-    if (grant) {
-      for (const roleId of access.roleIds) {
+    const actionWindow = actionWindows.get(actionId);
+    for (const grant of actionWindow?.grants || []) {
+      for (const roleId of grant.roleIds || []) {
         if (!roles[roleId]) continue;
         roles[roleId].grants ||= [];
         upsertGrant(roles[roleId].grants, grant);
@@ -456,12 +457,13 @@ function compileRoles(process = {}, domain = {}) {
     if ((action.trigger?.mode || 'manual') !== 'manual') continue;
     for (const roleId of access.roleIds || []) {
       if (!roles[roleId]) continue;
+      const feature = actionWindow?.primaryGrant?.feature || grantFromAction(action, access, domain)?.feature || null;
       roles[roleId].actions.push({
         actionId: action.id || actionId,
         label: displayActionLabel(action, actionId),
         level: 'run',
         actionKind: action.actionKind || 'createEntity',
-        feature: grant?.feature || null,
+        feature,
         entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || null
       });
     }
@@ -503,12 +505,193 @@ function grantFromAction(action = {}, access = {}, domain = {}) {
 }
 
 function upsertGrant(grants, next) {
-  const existing = grants.find(grant => grant.feature === next.feature && !grant.rule && !grant.scope && !grant.transitions);
+  const normalized = normalizeCompiledGrant(next);
+  const existing = grants.find(grant => grantKey(grant) === grantKey(normalized));
   if (!existing) {
-    grants.push(next);
+    grants.push(normalized);
     return;
   }
-  if (ACCESS_ORDER[next.level] > ACCESS_ORDER[existing.level || 'read']) existing.level = next.level;
+  if (ACCESS_ORDER[normalized.level] > ACCESS_ORDER[existing.level || 'read']) existing.level = normalized.level;
+}
+
+function normalizeCompiledGrant(grant = {}) {
+  const { roleIds, sourceActionId, sourcePath, ...rest } = grant;
+  return JSON.parse(JSON.stringify(rest));
+}
+
+function grantKey(grant = {}) {
+  return JSON.stringify({
+    feature: grant.feature,
+    scope: grant.scope || null,
+    transitions: grant.transitions || null,
+    rule: grant.rule || null,
+    actions: grant.actions || null
+  });
+}
+
+function compileActionAccessWindows(process = {}, domain = {}) {
+  const actionEntries = Object.entries(process.actions || {});
+  const graphContext = buildActionGraphContext(process);
+  const windows = new Map();
+  const pending = new Map(actionEntries);
+
+  while (pending.size) {
+    let progressed = false;
+    for (const [actionId, action] of [...pending.entries()]) {
+      const incoming = incomingWindowForAction(actionId, action, graphContext, windows);
+      const hasGraphInput = graphContext.incomingByActionId.has(actionId);
+      if (hasGraphInput && !incoming) continue;
+      const window = compileActionWindow(actionId, action, incoming, domain);
+      windows.set(actionId, window);
+      pending.delete(actionId);
+      progressed = true;
+    }
+    if (!progressed) {
+      for (const [actionId, action] of pending) {
+        windows.set(actionId, compileActionWindow(actionId, action, null, domain));
+      }
+      break;
+    }
+  }
+
+  return windows;
+}
+
+function buildActionGraphContext(process = {}) {
+  const actionNodeById = new Map();
+  const actionIdByNodeId = new Map();
+  for (const node of process.graph?.nodes || []) {
+    if (node.type !== 'action') continue;
+    const actionId = String(node.data?.refId || node.id || '');
+    if (!actionId) continue;
+    actionNodeById.set(actionId, node);
+    actionIdByNodeId.set(String(node.id), actionId);
+  }
+
+  const incomingByActionId = new Map();
+  for (const edge of process.graph?.edges || []) {
+    const targetActionId = actionIdByNodeId.get(String(edge.target));
+    const sourceActionId = actionIdByNodeId.get(String(edge.source));
+    if (!targetActionId || !sourceActionId) continue;
+    incomingByActionId.set(targetActionId, {
+      sourceActionId,
+      sourceHandle: edge.sourceHandle || null,
+      targetHandle: edge.targetHandle || null
+    });
+  }
+
+  return { actionNodeById, actionIdByNodeId, incomingByActionId };
+}
+
+function incomingWindowForAction(actionId, action = {}, graphContext, windows) {
+  const edge = graphContext.incomingByActionId.get(actionId);
+  if (edge) return outputWindowForHandle(windows.get(edge.sourceActionId), edge.sourceHandle);
+  const input = action.inputs?.find(item => item.entityType);
+  if (!input) return null;
+  return {
+    entityType: input.entityType,
+    status: input.status || '',
+    level: normalizeActionAccess(action.access).level,
+    roleIds: [],
+    scope: null,
+    sourcePath: `input:${actionId}:${input.id || 'entity'}`
+  };
+}
+
+function outputWindowForHandle(actionWindow, sourceHandle) {
+  if (!actionWindow) return null;
+  if (!sourceHandle || sourceHandle === 'output') return actionWindow.outputs[0] || null;
+  const id = String(sourceHandle).replace(/^output:/, '');
+  return actionWindow.outputs.find(output => output.handleId === sourceHandle || output.id === id) || actionWindow.outputs[0] || null;
+}
+
+function compileActionWindow(actionId, action = {}, incoming = null, domain = {}) {
+  const kind = action.actionKind || 'createEntity';
+  const access = normalizeActionAccess(action.access);
+  const entityType = actionEntityType(action) || incoming?.entityType || '';
+  const statusTo = action.status?.to || access.statusTo || action.outputs?.find(output => output.status)?.status || incoming?.status || '';
+  const feature = entityType ? resolveEntityFeature(domain, entityType) : null;
+  const inheritedRoles = incoming?.roleIds || [];
+  const explicitRoles = access.roleIds || [];
+  const useInherited = kind === 'changeStatus' && !access.modified && inheritedRoles.length;
+  const roleIds = useInherited ? inheritedRoles : explicitRoles;
+  const level = useInherited ? (incoming.level || access.level) : access.level;
+  const scope = deriveActionWindowScope(action, incoming);
+  const outputs = [];
+  const grants = [];
+
+  if (['createEntity', 'changeStatus', 'updateEntity'].includes(kind) && feature && entityType) {
+    const status = kind === 'updateEntity' ? (incoming?.status || action.inputs?.find(input => input.status)?.status || '') : statusTo;
+    const window = {
+      id: outputSocketId(action, kind),
+      handleId: outputHandleId(action, kind),
+      entityType,
+      feature,
+      status,
+      level,
+      roleIds: [...new Set(roleIds)],
+      scope,
+      sourcePath: [incoming?.sourcePath, actionId, status].filter(Boolean).join('>')
+    };
+    outputs.push(window);
+    if (window.roleIds.length) {
+      grants.push(windowGrant(window, action, access));
+    }
+  }
+
+  return {
+    actionId,
+    kind,
+    input: incoming,
+    outputs,
+    grants,
+    primaryGrant: grants[0] || null
+  };
+}
+
+function outputSocketId(action = {}, kind = '') {
+  return action.outputs?.find(output => output.entityType)?.id || (kind === 'createEntity' ? 'created' : 'entity');
+}
+
+function outputHandleId(action = {}, kind = '') {
+  const outputs = action.outputs || [];
+  if (outputs.length <= 1) return 'output';
+  const id = outputSocketId(action, kind);
+  const index = outputs.findIndex(output => output.id === id);
+  return `output:${id || Math.max(index, 0)}`;
+}
+
+function deriveActionWindowScope(action = {}, incoming = null) {
+  const access = normalizeActionAccess(action.access);
+  if (access.scope) return { ...access.scope };
+  const inheritedScope = incoming?.scope ? { ...incoming.scope } : null;
+  if ((action.actionKind || 'createEntity') !== 'createEntity') return inheritedScope;
+  const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || incoming?.entityType || '';
+  if (!parentType || !incoming) return inheritedScope;
+  const parentKey = `${parentType}Id`;
+  if (inheritedScope?.entityId && !inheritedScope[parentKey]) {
+    const { entityId, ...lineageScope } = inheritedScope;
+    return { ...lineageScope, [parentKey]: entityId };
+  }
+  return inheritedScope;
+}
+
+function windowGrant(window = {}, action = {}, access = {}) {
+  const grant = {
+    feature: window.feature,
+    level: window.level || 'read',
+    roleIds: window.roleIds || [],
+    sourceActionId: action.id,
+    sourcePath: window.sourcePath
+  };
+  if (window.scope) grant.scope = window.scope;
+  if (window.status) grant.rule = { fact: 'primaryStatus', equals: window.status };
+  if ((action.actionKind || 'createEntity') === 'changeStatus') {
+    const from = access.statusFrom || action.status?.from || '';
+    const to = access.statusTo || action.status?.to || window.status || '';
+    if (from || to) grant.transitions = [{ from: from || undefined, to: to || undefined }];
+  }
+  return grant;
 }
 
 function resolveEntityFeature(domain = {}, entityType) {
@@ -874,6 +1057,8 @@ function normalizeActionAccess(access = {}) {
   return {
     level: ['read', 'write', 'admin'].includes(access.level) ? access.level : 'write',
     roleIds: Array.isArray(access.roleIds) ? access.roleIds : [],
+    modified: Boolean(access.modified),
+    scope: access.scope && typeof access.scope === 'object' && !Array.isArray(access.scope) ? { ...access.scope } : null,
     statusFrom: typeof access.statusFrom === 'string' ? access.statusFrom : '',
     statusTo: typeof access.statusTo === 'string' ? access.statusTo : ''
   };

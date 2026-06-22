@@ -848,6 +848,132 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('replaces inherited role grants when a status-change access window is modified', () => {
+    const compiled = compileProcessDefinition({
+      graph: {
+        nodes: [
+          { id: 'create_project', type: 'action', position: {}, data: { refId: 'create_project' } },
+          { id: 'activate_project', type: 'action', position: {}, data: { refId: 'activate_project' } }
+        ],
+        edges: [
+          {
+            id: 'create_project-activate_project',
+            source: 'create_project',
+            target: 'activate_project',
+            sourceHandle: 'output',
+            targetHandle: 'input'
+          }
+        ]
+      },
+      roles: {
+        role_source: { id: 'role_source' },
+        role_target: { id: 'role_target' }
+      },
+      actions: {
+        create_project: {
+          id: 'create_project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: SOURCE_STATE },
+          access: { level: 'admin', roleIds: ['role_source'] },
+          outputs: [{ id: 'created', entityType: 'project', status: SOURCE_STATE }]
+        },
+        activate_project: {
+          id: 'activate_project',
+          actionKind: 'changeStatus',
+          status: { to: TARGET_STATE },
+          access: {
+            level: 'write',
+            roleIds: ['role_target'],
+            modified: true,
+            statusFrom: SOURCE_STATE,
+            statusTo: TARGET_STATE
+          },
+          inputs: [{ id: 'entity', entityType: 'project', status: SOURCE_STATE }],
+          outputs: [{ id: 'entity', entityType: 'project', status: TARGET_STATE }]
+        }
+      },
+      assignments: {
+        user_source: { userId: 'user_source', roleIds: ['role_source'], status: 'active' },
+        user_target: { userId: 'user_target', roleIds: ['role_target'], status: 'active' }
+      }
+    }, domain);
+
+    expect(compiled.userAccess.user_source.permissions.projects).toEqual([
+      { level: 'admin', rule: { fact: 'primaryStatus', equals: SOURCE_STATE } }
+    ]);
+    expect(compiled.userAccess.user_target.permissions.projects).toEqual([
+      {
+        level: 'write',
+        transitions: [{ from: SOURCE_STATE, to: TARGET_STATE }],
+        rule: { fact: 'primaryStatus', equals: TARGET_STATE }
+      }
+    ]);
+  });
+
+  it('carries scoped parent lineage into child entity action grants', () => {
+    const compiled = compileProcessDefinition({
+      graph: {
+        nodes: [
+          { id: 'create_project', type: 'action', position: {}, data: { refId: 'create_project' } },
+          { id: 'create_queue', type: 'action', position: {}, data: { refId: 'create_queue' } }
+        ],
+        edges: [
+          {
+            id: 'create_project-create_queue',
+            source: 'create_project',
+            target: 'create_queue',
+            sourceHandle: 'output',
+            targetHandle: 'input:parent'
+          }
+        ]
+      },
+      roles: {
+        role_project: { id: 'role_project' },
+        role_queue: { id: 'role_queue' }
+      },
+      actions: {
+        create_project: {
+          id: 'create_project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: SOURCE_STATE },
+          access: {
+            level: 'admin',
+            roleIds: ['role_project'],
+            scope: { entityId: '$assignment.projectId' }
+          },
+          outputs: [{ id: 'created', entityType: 'project', status: SOURCE_STATE }]
+        },
+        create_queue: {
+          id: 'create_queue',
+          actionKind: 'createEntity',
+          entityType: 'queue',
+          status: { to: INITIAL_STATE },
+          access: { level: 'write', roleIds: ['role_queue'] },
+          inputs: [{ id: 'parent', entityType: 'project' }],
+          outputs: [{ id: 'created', entityType: 'queue', status: INITIAL_STATE }]
+        }
+      },
+      assignments: {
+        user_queue: {
+          userId: 'user_queue',
+          roleIds: ['role_queue'],
+          bindings: { projectId: 'project-a' },
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.userAccess.user_queue.permissions.queues).toEqual([
+      {
+        level: 'write',
+        scope: { projectId: 'project-a' },
+        rule: { fact: 'primaryStatus', equals: INITIAL_STATE }
+      }
+    ]);
+  });
+
   it('synthesizes workflows and transition access from action nodes', () => {
     const compiled = compileProcessDefinition({
       roles: {
