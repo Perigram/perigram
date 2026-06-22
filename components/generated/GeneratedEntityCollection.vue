@@ -1,4 +1,12 @@
 <template>
+  <div v-if="collectionActions.length" class="flex justify-end gap-2">
+    <GeneratedActionButton
+      v-for="action in collectionActions"
+      :key="action.actionId"
+      :action-id="action.actionId"
+      @execute="item => $emit('execute-action', item, null)"
+    />
+  </div>
   <TableFrame v-if="template === 'table'">
     <DataTable :value="items" size="small" responsive-layout="scroll">
       <Column
@@ -27,9 +35,9 @@
       <template v-if="actions.length" #footer>
         <div class="flex flex-wrap justify-end gap-2">
           <GeneratedActionButton
-            v-for="actionId in actions"
-            :key="actionId"
-            :action-id="actionId"
+            v-for="action in entityActions"
+            :key="action.actionId"
+            :action-id="action.actionId"
             @execute="action => $emit('execute-action', action, entity)"
           />
         </div>
@@ -47,6 +55,7 @@ import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import { useAuthStore } from '~/stores/auth';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
@@ -59,6 +68,12 @@ const props = defineProps({
 
 defineEmits(['refresh', 'execute-action']);
 
+const authStore = useAuthStore();
+const resolvedActions = computed(() => props.actions
+  .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
+  .filter(Boolean));
+const collectionActions = computed(() => resolvedActions.value.filter(action => action.actionKind === 'createEntity'));
+const entityActions = computed(() => resolvedActions.value.filter(action => action.actionKind !== 'createEntity'));
 const tableFields = computed(() => resolveEntityDisplayContract({
   entityType: props.entityType,
   surface: props.surface || 'table'

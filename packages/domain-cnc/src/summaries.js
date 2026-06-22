@@ -9,7 +9,7 @@ export const cncSummaries = [
 export const cncFrontendEntities = [
   { type: 'material', collection: 'materials', routes: { single: '/api/materials/:id', list: '/api/materials' } },
   { type: 'project', collection: 'projects', routes: { single: '/api/project/:id', list: '/api/project' } },
-  { type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queues' } },
+  { type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' } },
   { type: 'requisition', collection: 'requisitions', routes: { single: '/api/requisitions/:id', list: '/api/requisitions' } },
   { type: 'batch', collection: 'material-piles', routes: { single: '/api/material-piles/:id', list: '/api/material-piles' } },
   { type: 'pile', collection: 'material-piles', routes: { single: '/api/material-piles/:id', list: '/api/material-piles' } },

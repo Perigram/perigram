@@ -33,4 +33,20 @@ describe('process navigation', () => {
 
     expect(resolveVisibleScreens(screens, permissions)).toEqual([]);
   });
+
+  it('keeps status-conditioned screens visible before an entity context exists', () => {
+    const screens = [{
+      id: 'new_projects',
+      required: {
+        feature: 'projects',
+        level: 'admin',
+        rule: { fact: 'primaryStatus', equals: 'NEW' }
+      }
+    }];
+    const permissions = {
+      projects: [{ level: 'admin', rule: { fact: 'primaryStatus', equals: 'NEW' } }]
+    };
+
+    expect(resolveVisibleScreens(screens, permissions)).toHaveLength(1);
+  });
 });

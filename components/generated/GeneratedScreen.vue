@@ -8,6 +8,7 @@
           :region="regionBySlot.left"
           :source-state="sourceState(regionBySlot.left.sourceId)"
           :template="screen.template"
+          :screen-actions="screen.actions || []"
           @refresh="load"
           @execute-action="executeAction"
         />
@@ -17,6 +18,7 @@
         :region="regionBySlot.center || regionBySlot.main"
         :source-state="sourceState((regionBySlot.center || regionBySlot.main).sourceId)"
         :template="screen.template"
+        :screen-actions="screen.actions || []"
         @refresh="load"
         @execute-action="executeAction"
       />
@@ -25,6 +27,7 @@
           :region="regionBySlot.right"
           :source-state="sourceState(regionBySlot.right.sourceId)"
           :template="screen.template"
+          :screen-actions="screen.actions || []"
           @refresh="load"
           @execute-action="executeAction"
         />
@@ -37,6 +40,7 @@
         :region="region"
         :source-state="sourceState(region.sourceId)"
         :template="screen.template"
+        :screen-actions="screen.actions || []"
         @refresh="load"
         @execute-action="executeAction"
       />

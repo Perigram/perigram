@@ -154,10 +154,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
   const process = validation.definition;
   const compiledRoles = compileRoles(process, domain);
   const compiledScreens = compileScreens(process, domain, compiledRoles);
-  const workflows = {};
-  for (const profile of Object.values(process.entityProfiles)) {
-    workflows[profile.entityType] = compileLifecycle(profile, domain);
-  }
+  const workflows = compileWorkflows(process, domain);
 
   const userAccess = {};
   for (const [userId, assignment] of Object.entries(process.assignments)) {
@@ -257,6 +254,120 @@ function compileLifecycle(profile = {}, domain = {}) {
   }
   if (lifecycle.mode === 'custom') return normalizeWorkflow(lifecycle.workflow);
   throw new Error(`Unknown lifecycle mode ${lifecycle.mode}`);
+}
+
+function compileWorkflows(process = {}, domain = {}) {
+  const workflows = {};
+  for (const profile of Object.values(process.entityProfiles || {})) {
+    workflows[profile.entityType] = compileLifecycle(profile, domain);
+  }
+
+  const builders = new Map(Object.entries(workflows).map(([entityType, workflow]) => [
+    entityType,
+    workflowBuilderFromWorkflow(workflow)
+  ]));
+
+  for (const action of Object.values(process.actions || {})) {
+    const kind = action.actionKind || 'createEntity';
+    if (!['createEntity', 'changeStatus'].includes(kind)) continue;
+    const entityType = actionEntityType(action);
+    if (!entityType) continue;
+    const builder = ensureWorkflowBuilder(builders, entityType);
+
+    if (kind === 'createEntity') {
+      const targetState = action.status?.to || action.outputs?.find(output => output.status)?.status;
+      if (targetState) addWorkflowState(builder, targetState);
+      continue;
+    }
+
+    const from = action.status?.from || action.access?.statusFrom || action.inputs?.find(input => input.status)?.status || '';
+    const to = action.status?.to || action.access?.statusTo || action.outputs?.find(output => output.status)?.status || '';
+    if (!from || !to) continue;
+    addWorkflowState(builder, from);
+    addWorkflowState(builder, to);
+    const access = normalizeActionAccess(action.access);
+    const transition = {
+      from,
+      to,
+      processRoleIds: [...(access.roleIds || [])]
+    };
+    const feature = resolveEntityFeature(domain, entityType);
+    if (feature && access.roleIds?.length) {
+      transition.access = {
+        permissions: [{ feature, entityType, level: access.level || 'write' }]
+      };
+    }
+    upsertWorkflowTransition(builder, transition);
+  }
+
+  for (const [entityType, builder] of builders) {
+    if (!Object.keys(builder.states).length) continue;
+    workflows[entityType] = normalizeWorkflow({
+      schemaVersion: 2,
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: builder.initial || Object.keys(builder.states)[0],
+          states: builder.states,
+          transitions: builder.transitions
+        }
+      }
+    });
+  }
+
+  return workflows;
+}
+
+function workflowBuilderFromWorkflow(workflow = {}) {
+  const regionId = workflow.primaryRegion || 'main';
+  const region = workflow.regions?.[regionId] || {};
+  return {
+    initial: region.initial || '',
+    states: { ...(region.states || {}) },
+    transitions: [...(region.transitions || [])]
+  };
+}
+
+function ensureWorkflowBuilder(builders, entityType) {
+  if (!builders.has(entityType)) {
+    builders.set(entityType, { initial: '', states: {}, transitions: [] });
+  }
+  return builders.get(entityType);
+}
+
+function addWorkflowState(builder, state) {
+  if (!state) return;
+  builder.states[state] ||= { canUpdateMeta: true };
+  builder.initial ||= state;
+}
+
+function upsertWorkflowTransition(builder, transition) {
+  const existing = builder.transitions.find(item => item.from === transition.from && item.to === transition.to);
+  if (existing) {
+    existing.processRoleIds = [...new Set([...(existing.processRoleIds || []), ...(transition.processRoleIds || [])])];
+    if (transition.access?.permissions?.length) {
+      existing.access ||= {};
+      existing.access.permissions = mergeTransitionPermissions(existing.access.permissions || [], transition.access.permissions);
+    }
+    return;
+  }
+  builder.transitions.push(transition);
+}
+
+function mergeTransitionPermissions(existing = [], next = []) {
+  const merged = [...existing];
+  for (const permission of next) {
+    if (merged.some(item => item.feature === permission.feature && item.level === permission.level && item.entityType === permission.entityType)) continue;
+    merged.push(permission);
+  }
+  return merged;
+}
+
+function actionEntityType(action = {}) {
+  return action.entityType
+    || action.inputs?.find(input => input.entityType)?.entityType
+    || action.outputs?.find(output => output.entityType)?.entityType
+    || '';
 }
 
 function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {} } = {}) {
@@ -378,6 +489,10 @@ function grantFromAction(action = {}, access = {}, domain = {}) {
     feature,
     level: access.level || 'write'
   };
+  if (action.actionKind === 'createEntity') {
+    const to = action.status?.to || '';
+    if (to) grant.rule = { fact: 'primaryStatus', equals: to };
+  }
   if (action.actionKind === 'changeStatus') {
     const from = access.statusFrom || action.status?.from || '';
     const to = access.statusTo || action.status?.to || '';

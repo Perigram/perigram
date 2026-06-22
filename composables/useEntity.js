@@ -1,3 +1,4 @@
+import { useRequestHeaders } from '#app';
 import { ref, computed } from 'vue';
 import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 import { useStatusController } from './useStatusController';
@@ -42,7 +43,7 @@ export const useEntity = (type, identifier = null) => {
     loading.value = true;
     error.value = null;
     try {
-      const data = await $fetch(getSingleEndpoint(id));
+      const data = await $fetch(getSingleEndpoint(id), entityFetchOptions());
       entity.value = data;
       return data;
     } catch (err) {
@@ -65,7 +66,7 @@ export const useEntity = (type, identifier = null) => {
     loading.value = true;
     error.value = null;
     try {
-      const data = await $fetch(getListEndpoint(filters));
+      const data = await $fetch(getListEndpoint(filters), entityFetchOptions());
       items.value = Array.isArray(data) ? data : data.items ?? data.projects ?? data.data ?? [];
       return items.value;
     } catch (err) {
@@ -83,10 +84,10 @@ export const useEntity = (type, identifier = null) => {
   const update = async (updates, id = identifier || entity.value?._id) => {
     loading.value = true;
     try {
-      const data = await $fetch(getSingleEndpoint(id), {
+      const data = await $fetch(getSingleEndpoint(id), entityFetchOptions({
         method: 'PATCH',
         body: updates
-      });
+      }));
       entity.value = data;
       return data;
     } catch (err) {
@@ -105,7 +106,7 @@ export const useEntity = (type, identifier = null) => {
       error.value = null;
     try {
       const url = domainUi.getListEndpoint(type);
-      const result = await $fetch(url, { method: 'POST', body: data });
+      const result = await $fetch(url, entityFetchOptions({ method: 'POST', body: data }));
       entity.value = result;
       return result;
     } catch (err) {
@@ -123,7 +124,7 @@ export const useEntity = (type, identifier = null) => {
     loading.value = true;
     error.value = null;
     try {
-      await $fetch(getSingleEndpoint(id), { method: 'DELETE' });
+      await $fetch(getSingleEndpoint(id), entityFetchOptions({ method: 'DELETE' }));
       entity.value = null;
     } catch (err) {
       error.value = err.data?.message || `Failed to delete ${type}`;
@@ -184,3 +185,14 @@ export const useEntity = (type, identifier = null) => {
     getAncestorId
   };
 };
+
+function entityFetchOptions(options = {}) {
+  if (!import.meta.server) return options;
+  return {
+    ...options,
+    headers: {
+      ...useRequestHeaders(['cookie']),
+      ...(options.headers || {})
+    }
+  };
+}

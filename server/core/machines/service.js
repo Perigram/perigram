@@ -66,6 +66,55 @@ export const statusService = {
     return createStatus(createWorkflowState(machine), actorId || 'SYSTEM', metadata);
   },
 
+  async setInitialStateForOrganization(entityType, targetId, targetState, organizationId, actor = 'SYSTEM', metadata = {}) {
+    const normalizedEntityType = normalizeEntityType(entityType);
+    const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId });
+    if (!machine) {
+      throw createError({
+        statusCode: 400,
+        message: `No state machine defined for entity type: ${normalizedEntityType}`
+      });
+    }
+    const normalizedMachine = normalizeWorkflow(machine);
+    const regionId = normalizedMachine.primaryRegion || 'main';
+    const region = getWorkflowRegion(normalizedMachine, regionId);
+    if (!region?.states?.[targetState]) {
+      throw createError({
+        statusCode: 400,
+        message: `State ${targetState} is not defined for ${normalizedEntityType}`
+      });
+    }
+    const { collection, flexId } = await loadEntityForWorkflow(normalizedEntityType, targetId);
+    const actorId = typeof actor === 'object' ? actor.userId : actor;
+    const eventId = new ObjectId();
+    const status = createStatus(
+      createWorkflowState(normalizedMachine, { active: { [regionId]: targetState }, primary: targetState }),
+      actorId || 'SYSTEM',
+      metadata,
+      eventId,
+      normalizeLifecycle()
+    );
+    const statusData = JSON.parse(JSON.stringify(status));
+    const db = await connectDB();
+    await db.collection('status_events').insertOne({
+      _id: eventId,
+      targetId: flexId,
+      targetType: normalizedEntityType,
+      fromState: null,
+      toState: targetState,
+      fromStatePrimary: null,
+      toStatePrimary: targetState,
+      region: regionId,
+      status: statusData,
+      timestamp: new Date()
+    });
+    await db.collection(collection).updateOne(
+      { _id: flexId },
+      { $set: { status: statusData } }
+    );
+    return statusData;
+  },
+
   async applyIntent(entityType, targetId, intent, authContext = {}, metadata = {}, transitionContext = {}) {
     const normalizedEntityType = normalizeEntityType(entityType);
     const { entity, machine } = await loadEntityForWorkflow(normalizedEntityType, targetId);

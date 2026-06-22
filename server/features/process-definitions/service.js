@@ -85,6 +85,7 @@ export async function validate(id, auth) {
 export async function activate(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
   assertCanonicalProcessSource(process.data);
+  await preserveActiveAssignments(process);
   const validation = validateProcessDefinition(process.data, getDomain());
   if (!validation.ok) {
     throw createError({ statusCode: 400, message: validation.errors.join('; '), data: validation });
@@ -107,6 +108,13 @@ export async function activate(id, auth) {
     }
   });
   return new ProcessDefinition(updated).toJSON();
+}
+
+async function preserveActiveAssignments(process) {
+  const activeRaw = await repository.findActiveByOrganization(process.lineage.organizationId);
+  if (!activeRaw || String(activeRaw._id) === String(process.id)) return;
+  const active = new ProcessDefinition(activeRaw);
+  process.data.assignments = { ...(active.data?.assignments || {}) };
 }
 
 export async function createActiveFromTemplate({ organizationId, userId, templateId, actorId } = {}) {
@@ -275,7 +283,24 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   const service = getEntityServiceForAction(action);
   if (action.actionKind === 'createEntity') {
     if (!service.create) throw createError({ statusCode: 500, message: `Entity service cannot create ${action.entityType}` });
-    return await service.create(data || {}, auth.userId, organizationId, auth.role, auth);
+    const created = await service.create(data || {}, auth.userId, organizationId, auth.role, auth);
+    const targetState = action.status?.to;
+    if (!targetState) return created;
+    const createdDto = created?.toJSON ? created.toJSON() : created;
+    const targetId = createdDto?._id || createdDto?.identity?.uid;
+    if (!targetId) return created;
+    const status = await statusService.setInitialStateForOrganization(
+      resolveActionEntityType(action),
+      targetId,
+      targetState,
+      organizationId,
+      auth.userId,
+      { note: `Created by process action ${action.id || actionId}` }
+    );
+    return {
+      ...createdDto,
+      status
+    };
   }
 
   if (action.actionKind === 'updateEntity') {

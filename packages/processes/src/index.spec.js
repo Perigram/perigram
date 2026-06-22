@@ -754,7 +754,10 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.userAccess.user_creator.permissions.projects[0]).toMatchObject({ level: 'write' });
+    expect(compiled.userAccess.user_creator.permissions.projects[0]).toMatchObject({
+      level: 'write',
+      rule: { fact: 'primaryStatus', equals: INITIAL_STATE }
+    });
     expect(compiled.roles.role_creator.actions[0]).toMatchObject({ actionId: 'create_project', level: 'run' });
     expect(compiled.userAccess.user_creator.actions[0]).toMatchObject({
       actionId: 'create_project',
@@ -798,6 +801,47 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.userAccess.user_operator.permissions.projects[0]).toMatchObject({
       transitions: [{ from: SOURCE_STATE, to: TARGET_STATE }],
       rule: { fact: 'primaryStatus', equals: TARGET_STATE }
+    });
+  });
+
+  it('synthesizes workflows and transition access from action nodes', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator' }
+      },
+      actions: {
+        create_project: {
+          id: 'create_project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: SOURCE_STATE },
+          trigger: { mode: 'event' },
+          access: { level: 'write', roleIds: ['role_operator'] },
+          outputs: [{ id: 'created', entityType: 'project', status: SOURCE_STATE }]
+        },
+        activate_project: {
+          id: 'activate_project',
+          actionKind: 'changeStatus',
+          status: { from: SOURCE_STATE, to: TARGET_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_operator'], statusFrom: SOURCE_STATE, statusTo: TARGET_STATE },
+          inputs: [{ id: 'entity', entityType: 'project', status: SOURCE_STATE }],
+          outputs: [{ id: 'entity', entityType: 'project', status: TARGET_STATE }]
+        }
+      }
+    }, domain);
+
+    const workflow = compiled.workflows.project;
+    expect(workflow.regions.main.initial).toBe(SOURCE_STATE);
+    expect(workflow.regions.main.states).toHaveProperty(SOURCE_STATE);
+    expect(workflow.regions.main.states).toHaveProperty(TARGET_STATE);
+    expect(workflow.regions.main.transitions[0]).toMatchObject({
+      from: SOURCE_STATE,
+      to: TARGET_STATE,
+      processRoleIds: ['role_operator'],
+      access: {
+        permissions: [{ feature: 'projects', entityType: 'project', level: 'write' }]
+      }
     });
   });
 

@@ -48,7 +48,7 @@ describe('domain builder utilities', () => {
   it('validates typed command parameters and hook params', () => {
     const draft = createDomainDraft({
       entities: [{ type: 'queue', collection: 'queues', blocks: ['identity', 'status'] }],
-      frontendEntities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queues' } }],
+      frontendEntities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' } }],
       workflows: {
         queue: {
           initial: 'DRAFT',
@@ -84,7 +84,7 @@ describe('domain builder utilities', () => {
   it('generates deterministic domain-cnc source exports', () => {
     const source = generateDomainCncSource({
       entities: [{ type: 'queue', collection: 'queues', blocks: ['identity', 'status'] }],
-      frontendEntities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queues' } }],
+      frontendEntities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' } }],
       workflows: { queue: { initial: 'DRAFT', states: { DRAFT: {} }, transitions: [] } },
       summaries: []
     });

@@ -133,13 +133,28 @@ export async function getById(uid, userId, userOrg, userRole, userPermissions) {
   return serializeForAccess('queue', queue, userPermissions);
 }
 
+export async function list(filters = {}, userId, userOrg, userRole, userPermissions) {
+  const filter = {
+    ...getLineageFilter(userPermissions)
+  };
+  if (filters.projectId) filter['lineage.projectId'] = toFlexibleId(filters.projectId);
+  if (filters.status || filters.primaryStatus) filter['status.state.primary'] = filters.status || filters.primaryStatus;
+
+  const raws = await repository.find(filter);
+  const queues = raws.map(raw => new Queue(raw))
+    .filter(queue => hasLineagePermission(userPermissions, queue, 'queues', 'read'));
+  return serializeManyForAccess('queue', queues, userPermissions);
+}
+
 export async function listByProject(projectId, userId, userOrg, userRole, userPermissions) {
   const filter = {
     ...getLineageFilter(userPermissions),
     'lineage.projectId': toFlexibleId(projectId)
   };
   const raws = await repository.find(filter);
-  return serializeManyForAccess('queue', raws.map(raw => new Queue(raw)), userPermissions);
+  const queues = raws.map(raw => new Queue(raw))
+    .filter(queue => hasLineagePermission(userPermissions, queue, 'queues', 'read'));
+  return serializeManyForAccess('queue', queues, userPermissions);
 }
 
 export async function listPreviewByProjects(projectIds = [], userId, userOrg, userRole, userPermissions, options = {}) {
