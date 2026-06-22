@@ -4,6 +4,14 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Load current process definitions by default
+    Files changed: pages/organization/process.vue
+    Docs updated: pages/organization/README.md, TODO.org
+    Notes: The process designer now loads the active process plus the current
+      process list, falls back to the newest usable definition when active is
+      unavailable, exposes a process selector in the toolbar, and no longer
+      renders starter action proposal buttons over an empty canvas.
+
     [2026-06-22] Add canonical process canvas transpiler
     Files changed: packages/processes/src/transpiler.js,
       packages/processes/src/index.js,

@@ -39,6 +39,11 @@ entity lifecycles, action definitions, services, organization sends, and user
 assignments remain the process source of truth. If a stored process contains
 only compiled runtime data and no semantic records, the designer shows a clear
 validation error instead of guessing a canvas.
+On load, the route fetches the active process and the current process list,
+selects the active process first, and falls back to the newest usable draft or
+saved definition only when active is unavailable. Empty canvases show a passive
+current-process state; they do not propose starter action buttons over the
+workspace.
 
 The inspector edits compiler-owned fields directly:
 
