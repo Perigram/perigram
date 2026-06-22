@@ -153,7 +153,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
 
   const process = validation.definition;
   const compiledRoles = compileRoles(process, domain);
-  const compiledScreens = compileScreens(process.screens);
+  const compiledScreens = compileScreens(process, domain, compiledRoles);
   const workflows = {};
   for (const profile of Object.values(process.entityProfiles)) {
     workflows[profile.entityType] = compileLifecycle(profile, domain);
@@ -311,8 +311,8 @@ function compileRoles(process = {}, domain = {}) {
   const roles = Object.fromEntries(Object.entries(process.roles || {}).map(([roleId, role]) => [roleId, {
     id: role.id || roleId,
     label: role.label || role.id || roleId,
-    grants: [],
-    actions: []
+    grants: Array.isArray(role.grants) ? [...role.grants] : [],
+    actions: Array.isArray(role.actions) ? [...role.actions] : []
   }]));
   for (const profile of Object.values(process.entityProfiles || {})) {
     const feature = resolveEntityFeature(domain, profile.entityType);
@@ -446,8 +446,8 @@ function replacePlaceholders(value, bindings, incomplete) {
 
 function collectIncompleteBindingWarnings(process) {
   const warnings = [];
-  const compiledScreens = compileScreens(process.screens || {});
   const compiledRoles = compileRoles(process);
+  const compiledScreens = compileScreens(process, {}, compiledRoles);
   for (const [userId, assignment] of Object.entries(process.assignments)) {
     const access = compileAssignmentAccess({ assignment, roles: compiledRoles, screens: compiledScreens });
     for (const item of access.incompleteBindings) {
@@ -457,8 +457,15 @@ function collectIncompleteBindingWarnings(process) {
   return warnings;
 }
 
-function compileScreens(screens = {}) {
-  return Object.fromEntries(Object.entries(screens).map(([id, screen]) => {
+function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) {
+  const screens = processOrScreens.screens || processOrScreens;
+  const inferredScreens = inferScreensFromRoleGrants({
+    screens,
+    roles: compiledRoles,
+    domain,
+    entityProfiles: processOrScreens.entityProfiles || {}
+  });
+  return Object.fromEntries(Object.entries({ ...screens, ...inferredScreens }).map(([id, screen]) => {
     const normalized = normalizeScreenContract(screen);
     return [id, {
       id: normalized.id || id,
@@ -478,6 +485,63 @@ function compileScreens(screens = {}) {
       actions: normalized.actions || []
     }];
   }));
+}
+
+function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, entityProfiles = {} } = {}) {
+  const inferred = {};
+  const existingKeys = new Set(Object.values(screens).flatMap(screen => {
+    const roleIds = screen.roleIds?.length ? screen.roleIds : Object.keys(roles);
+    const feature = screen.required?.feature || featureFromEntityType(domain, screen.entityType);
+    return roleIds.map(roleId => `${roleId}:${feature || ''}`).filter(key => !key.endsWith(':'));
+  }));
+
+  for (const [roleId, role] of Object.entries(roles)) {
+    for (const grant of role.grants || []) {
+      const entityType = entityTypeFromFeature(domain, grant.feature)
+        || entityTypeFromProfiles(entityProfiles, domain, grant.feature);
+      if (!entityType || existingKeys.has(`${roleId}:${grant.feature}`)) continue;
+      const id = `auto_${roleId}_${entityType}`;
+      inferred[id] = {
+        id,
+        label: `${role.label || roleId} ${entityType}`,
+        kind: 'entityList',
+        template: 'entityList',
+        placement: 'hub',
+        entityType,
+        required: {
+          feature: grant.feature,
+          level: grant.level || 'read',
+          scope: grant.scope,
+          transitions: grant.transitions,
+          rule: grant.rule
+        },
+        roleIds: [roleId],
+        actions: (role.actions || [])
+          .filter(action => action.feature === grant.feature)
+          .map(action => action.actionId)
+      };
+      existingKeys.add(`${roleId}:${grant.feature}`);
+    }
+  }
+
+  return inferred;
+}
+
+function entityTypeFromFeature(domain = {}, feature) {
+  return (domain.entities || []).find(entity =>
+    entity.collection === feature ||
+    entity.type === feature ||
+    `${entity.type}s` === feature
+  )?.type || null;
+}
+
+function entityTypeFromProfiles(entityProfiles = {}, domain = {}, feature) {
+  return Object.values(entityProfiles).find(profile => resolveEntityFeature(domain, profile.entityType) === feature)?.entityType || null;
+}
+
+function featureFromEntityType(domain = {}, entityType) {
+  if (!entityType) return null;
+  return resolveEntityFeature(domain, entityType);
 }
 
 function screenAppliesToRole(screen = {}, roleId) {

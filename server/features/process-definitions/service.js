@@ -6,7 +6,6 @@ import { executeCommand } from '~/server/core/commands/service.js';
 import { createStatusState } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
-import * as usersRepository from '~/server/features/users/repository.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeEntityType } from '~/server/runtime/entities.js';
 import {
@@ -384,30 +383,12 @@ export async function hasProcessDefinitionMembershipAccess(auth = {}, organizati
   const membership = findOrganizationMembership(auth, organizationId);
   if (!membership || membership.status === 'pending' || membership.status === 'rejected') return false;
   if (hasPermissionGrant({ permissions: membership.permissions || {}, feature: 'organizations', level })) return true;
-  const roleIds = [
-    membership.role,
-    ...(membership.roleIds || []),
-    auth.role
-  ].filter(Boolean).map(value => String(value).toLowerCase());
-  const adminRoles = new Set(['role_admin', 'admin', 'owner', 'creator', 'organization_admin']);
-  if (roleIds.some(role => adminRoles.has(role))) return true;
-  return await isSoleActiveOrganizationMember(auth.userId, organizationId);
+  return false;
 }
 
 function findOrganizationMembership(auth = {}, organizationId) {
   const target = organizationId?.toString();
   return (auth.memberships || []).find(item => item.organizationId?.toString() === target);
-}
-
-async function isSoleActiveOrganizationMember(userId, organizationId) {
-  if (!userId || !organizationId) return false;
-  const users = await usersRepository.find({ 'data.memberships.organizationId': toFlexibleId(organizationId) });
-  const activeMembers = users.filter(user => (user.data?.memberships || []).some(membership =>
-    membership.organizationId?.toString() === organizationId.toString() &&
-    membership.status !== 'pending' &&
-    membership.status !== 'rejected'
-  ));
-  return activeMembers.length === 1 && activeMembers[0]._id?.toString() === userId.toString();
 }
 
 function resolveOrganizationId(auth = {}) {
@@ -433,8 +414,7 @@ function normalizeRoleIds(roleIds, roles = {}) {
   const list = Array.isArray(roleIds) ? roleIds : [roleIds].filter(Boolean);
   const valid = list.filter(roleId => roles[roleId]);
   if (valid.length) return [...new Set(valid)];
-  if (roles.role_viewer) return ['role_viewer'];
-  return Object.keys(roles).slice(0, 1);
+  throw createError({ statusCode: 400, message: 'At least one valid process role is required' });
 }
 
 function projectEntityFields(entity, projection = {}) {

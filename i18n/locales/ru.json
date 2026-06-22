@@ -2271,6 +2271,7 @@
   "generatedScreen": {
     "loadFailed": "Не удалось загрузить экран",
     "notFound": "Экран недоступен",
+    "noScreens": "Экраны процесса недоступны",
     "actionCompleted": "Действие выполнено"
   }
 }

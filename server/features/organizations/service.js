@@ -12,6 +12,10 @@ import * as processDefinitionsService from '../process-definitions/service.js';
  * Organizations Service - v24 Absolute Final
  */
 
+const TENANT_CREATOR_PERMISSIONS = {
+  organizations: { level: 'admin' },
+  users: { level: 'admin' }
+};
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   if (!hasPermission({ permissions: userPermissions.effectivePermissions || userPermissions.permissions }, 'organizations', 'write')) {
@@ -42,13 +46,13 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const membership = {
     organizationId: createdRaw._id,
     role: 'role_admin',
-    permissions: {},
+    permissions: TENANT_CREATOR_PERMISSIONS,
     status: 'active'
   };
 
   await repository.addUserMembership(userId, membership, {
     role: 'role_admin',
-    permissions: {},
+    permissions: TENANT_CREATOR_PERMISSIONS,
     organizationId: createdRaw._id
   });
 
@@ -84,11 +88,11 @@ export async function createInitialForUser(userId, data = {}) {
   await repository.addUserMembership(userId, {
     organizationId: createdRaw._id,
     role: 'role_admin',
-    permissions: {},
+    permissions: TENANT_CREATOR_PERMISSIONS,
     status: 'active'
   }, {
     role: 'role_admin',
-    permissions: {},
+    permissions: TENANT_CREATOR_PERMISSIONS,
     organizationId: createdRaw._id
   });
 

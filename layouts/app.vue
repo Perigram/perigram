@@ -161,30 +161,33 @@
 
     const userMenuItems = computed(() => {
         const items = [];
+        const canOpenGeneratedRoute = (route) => !authStore.processActive || navStore.processAllowsRoute(route);
 
         // 1. Current Organization & Context
         if (authStore.organizationData) {
-            items.push({
+            const organizationItems = [
+                {
+                    label: t('organization.workspace'),
+                    icon: 'pi pi-building',
+                    visible: authStore.hasTenantPermission('organizations', 'read') || authStore.hasTenantPermission('users', 'admin'),
+                    command: () => router.push('/organization')
+                },
+                {
+                    label: t('organization.teamManagement'),
+                    icon: 'pi pi-users',
+                    visible: authStore.hasTenantPermission('users', 'admin'),
+                    command: () => router.push('/organization/users')
+                },
+                {
+                    label: t('processDesigner.title'),
+                    icon: 'pi pi-sitemap',
+                    visible: authStore.hasTenantPermission('organizations', 'admin'),
+                    command: () => router.push('/organization/process')
+                }
+            ].filter(item => item.visible !== false);
+            if (organizationItems.length) items.push({
                 label: authStore.organizationData.identity?.name || authStore.organizationData.name || t('organization.workspace'),
-                items: [
-                    {
-                        label: t('organization.workspace'),
-                        icon: 'pi pi-building',
-                        command: () => router.push('/organization')
-                    },
-                    {
-                        label: t('organization.teamManagement'),
-                        icon: 'pi pi-users',
-                        visible: authStore.hasPermission('users', 'admin'),
-                        command: () => router.push('/organization/users')
-                    },
-                    {
-                        label: t('processDesigner.title'),
-                        icon: 'pi pi-sitemap',
-                        visible: authStore.hasPermission('organizations', 'admin'),
-                        command: () => router.push('/organization/process')
-                    }
-                ]
+                items: organizationItems
             });
         }
 
@@ -227,21 +230,21 @@
 
         // 4. Admin sections
         const adminItems = [];
-        if (authStore.hasPermission('workbench', 'admin')) {
+        if (authStore.hasPermission('workbench', 'admin') && canOpenGeneratedRoute('/admin')) {
             adminItems.push({
                 label: t('admin.workbench.title'),
                 icon: 'pi pi-wrench',
                 command: () => router.push('/admin')
             });
         }
-        if (authStore.hasPermission('users', 'admin')) {
+        if (authStore.hasTenantPermission('users', 'admin') && canOpenGeneratedRoute('/admin/users')) {
             adminItems.push({
                 label: t('features.users'),
                 icon: 'pi pi-users',
                 command: () => router.push('/admin/users')
             });
         }
-        if (authStore.hasPermission('config_bot', 'admin')) {
+        if (authStore.hasPermission('config_bot', 'admin') && canOpenGeneratedRoute('/admin/config-bot')) {
             adminItems.push({
                 label: t('admin.configBot.title'),
                 icon: 'pi pi-sparkles',

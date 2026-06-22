@@ -65,8 +65,6 @@ export const useNavigationStore = defineStore('navigation', () => {
         authStore.screenManifest,
         authStore.activePermissions
     ));
-    const hasProcessScreens = computed(() => authStore.processActive || visibleProcessScreens.value.length > 0);
-
     const routeMatches = (candidate, route) => Boolean(candidate && route)
         && (candidate === route || candidate.startsWith(`${route}/`) || route.startsWith(`${candidate}/`));
 
@@ -75,7 +73,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     const routeIcon = (route) => hubConfigs.find(config => routeMatches(config.to, route))?.icon || 'pi pi-th-large';
 
     const processAllowsRoute = (route) => {
-        if (hasProcessScreens.value) {
+        if (authStore.processActive) {
             return visibleProcessScreens.value.some(screen => routeMatches(screen.route, route));
         }
         if (!visibleProcessNavigation.value.length) return true;
@@ -83,7 +81,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     };
 
     const hubs = computed(() => {
-        if (hasProcessScreens.value) {
+        if (authStore.processActive) {
             return visibleProcessScreens.value
                 .filter(screen => (screen.placement || 'hub') === 'hub')
                 .map(screen => ({
@@ -196,7 +194,7 @@ export const useNavigationStore = defineStore('navigation', () => {
                 { id: 'overview', name: t('organization.overview'), to: '/organization', entity: 'organizations', level: 'read' },
                 { id: 'users', name: t('organization.teamManagement'), to: '/organization/users', entity: 'users', level: 'admin' },
                 { id: 'process', name: t('processDesigner.title'), to: '/organization/process', entity: 'organizations', level: 'admin' },
-            ].filter(item => authStore.hasPermission(item.entity, item.level) && processAllowsRoute(item.to));
+            ].filter(item => authStore.hasTenantPermission(item.entity, item.level));
             const currentTabId = parts[1] || 'overview';
             const currentTab = organizationTabs.find(tab => tab.id === currentTabId) || organizationTabs[0];
             if (currentTab) {
@@ -216,7 +214,7 @@ export const useNavigationStore = defineStore('navigation', () => {
                 { id: 'users', name: t('features.users'), to: '/admin/users' },
                 { id: 'config-bot', name: t('admin.configBot.title'), to: '/admin/config-bot' },
                 { id: 'support', name: t('admin.workbench.short.support'), to: '/admin/support' },
-             ];
+             ].filter(item => processAllowsRoute(item.to));
              const currentTabId = parts[1] || 'workbench';
              const currentTab = adminTabs.find(t => t.id === currentTabId);
              if (currentTab) {
@@ -249,6 +247,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         hubs,
         currentProject,
         fetchProjectContext,
-        resolveBreadcrumbs
+        resolveBreadcrumbs,
+        processAllowsRoute
     };
 });

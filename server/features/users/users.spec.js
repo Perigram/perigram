@@ -101,8 +101,15 @@ describe('User Management & Auth', () => {
     expect(organization.toJSON().identity.name).toBe('Owner Workshop');
     expect(rawUser.lineage.organizationId.toString()).toBe(organization.id);
     expect(rawUser.data.role).toBe('role_admin');
-    expect(rawUser.data.permissions).toEqual({});
+    expect(rawUser.data.permissions).toEqual({
+      organizations: { level: 'admin' },
+      users: { level: 'admin' }
+    });
     expect(rawUser.data.memberships[0].organizationId.toString()).toBe(organization.id);
+    expect(rawUser.data.memberships[0].permissions).toEqual({
+      organizations: { level: 'admin' },
+      users: { level: 'admin' }
+    });
     expect(rawUser.data.memberships[0].status).toBe('active');
   });
 
@@ -165,7 +172,7 @@ describe('User Management & Auth', () => {
     expect(user.memberships[0].permissions.artifacts).toBe('none');
   });
 
-  it('allows organization admin membership to manage users when process grants are missing', async () => {
+  it('does not treat membership role labels as user-management grants', async () => {
     const orgId = new ObjectId();
 
     expect(await userService.canManageUsersInOrganization({
@@ -176,7 +183,7 @@ describe('User Management & Auth', () => {
         permissions: {},
         status: 'active'
       }]
-    }, orgId)).toBe(true);
+    }, orgId)).toBe(false);
   });
 
   it('allows stored membership user-admin grants to recover user management when process grants are missing', async () => {
@@ -213,7 +220,7 @@ describe('User Management & Auth', () => {
     }, orgId)).toBe(true);
   });
 
-  it('allows the sole active organization member to recover user management', async () => {
+  it('does not treat sole active membership as user-management access', async () => {
     const orgId = new ObjectId();
     const userId = new ObjectId();
     await db.collection('users').insertOne({
@@ -227,7 +234,7 @@ describe('User Management & Auth', () => {
     expect(await userService.canManageUsersInOrganization({
       userId: userId.toString(),
       memberships: [{ organizationId: orgId, role: 'IndividualUser', permissions: {}, status: 'active' }]
-    }, orgId)).toBe(true);
+    }, orgId)).toBe(false);
   });
 
   it('does not allow ordinary members through user management recovery when another active member exists', async () => {

@@ -8,7 +8,6 @@ export class User extends BaseEntity {
     
     this.data = this.data || {};
     if (raw._id) {
-      this.data.role = this.data.role || 'IndividualUser';
       this.data.permissions = this.data.permissions || {};
       this.data.memberships = (this.data.memberships || []).map(membership => ({
         ...membership,

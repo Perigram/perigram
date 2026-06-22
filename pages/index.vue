@@ -80,6 +80,13 @@ onMounted(async () => {
   }
 
   if (authStore.userIsSet) {
+    if (authStore.processActive) {
+      const processRoute = authStore.screenManifest[0]?.route
+        || authStore.navigationManifest[0]?.route
+        || '/screens';
+      await navigateTo(processRoute);
+      return;
+    }
     await navigateTo('/projects');
     return;
   }

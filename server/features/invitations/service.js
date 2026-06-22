@@ -3,7 +3,6 @@ import * as usersRepository from '../users/repository.js';
 import * as organizationsRepository from '../organizations/repository.js';
 import { createError } from 'h3';
 import crypto from 'node:crypto';
-import { materializeRolePermissions } from '../users/permission-templates.js';
 import { canManageUsersInOrganization } from '../users/service.js';
 import { addStatus, initializeStatus } from '~/server/features/statuses/service';
 import { toFlexibleId } from '~/server/utils/objectid.js';
@@ -16,13 +15,14 @@ export async function generateInvitation(organizationId, role, creatorUser, role
   const token = crypto.randomBytes(32).toString('hex');
   const code = `INV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`; // Keep short code as fallback
   const invitedRoleIds = normalizeRoleIds(roleIds?.length ? roleIds : role);
+  if (!invitedRoleIds.length) throw createError({ statusCode: 400, message: 'Invitation requires at least one process role' });
   
   const id = await repository.create({
     token,
     code,
     organizationId: toFlexibleId(organizationId),
     organizationName: org.identity?.name || org.name || '',
-    role: role || 'IndividualUser',
+    role: invitedRoleIds[0],
     roleIds: invitedRoleIds,
     isActive: true,
     createdBy: creatorUser.userId
@@ -65,15 +65,16 @@ async function processJoin(invitation, user) {
     throw createError({ statusCode: 409, message: 'You already have a relationship with this organization' });
   }
 
-  const role = invitation.role;
-  const permissions = materializeRolePermissions(role);
+  const invitedRoleIds = normalizeRoleIds(invitation.roleIds || invitation.role);
+  if (!invitedRoleIds.length) throw createError({ statusCode: 400, message: 'Invitation has no process role' });
+  const role = invitedRoleIds[0];
 
   // Add membership as PENDING
   const newMembership = {
     organizationId: invitation.organizationId,
     role,
-    roleIds: normalizeRoleIds(invitation.roleIds || role),
-    permissions,
+    roleIds: invitedRoleIds,
+    permissions: {},
     status: 'pending'
   };
 
@@ -107,5 +108,5 @@ async function assertCanManageInvitations(organizationId, auth = {}) {
 function normalizeRoleIds(role) {
   if (Array.isArray(role)) return role.filter(Boolean);
   if (role && String(role).startsWith('role_')) return [String(role)];
-  return ['role_viewer'];
+  return [];
 }

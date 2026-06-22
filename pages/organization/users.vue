@@ -2,8 +2,8 @@
   <StandardPage :title="$t('organization.teamManagement')">
     <template #actions>
         <Button :label="$t('processDesigner.title')" icon="pi pi-sitemap" severity="secondary" outlined @click="navigateTo('/organization/process')" />
-        <Button :label="$t('auth.inviteMember')" icon="pi pi-link" severity="secondary" @click="showInviteDialog = true" />
-        <Button :label="$t('common.create')" icon="pi pi-user-plus" @click="showCreateDialog = true" />
+        <Button :label="$t('auth.inviteMember')" icon="pi pi-link" severity="secondary" :disabled="!roleOptions.length" @click="showInviteDialog = true" />
+        <Button :label="$t('common.create')" icon="pi pi-user-plus" :disabled="!roleOptions.length" @click="showCreateDialog = true" />
     </template>
 
     <TableFrame>
@@ -42,7 +42,19 @@
                     </div>
                 </template>
             </Column>
-            <Column field="role" :header="$t('organization.processRoles')" />
+            <Column :header="$t('organization.processRoles')">
+                <template #body="{ data }">
+                    <div class="flex flex-wrap gap-1">
+                        <Tag
+                            v-for="role in invitationRoles(data)"
+                            :key="role.id"
+                            :value="role.label"
+                            severity="info"
+                            size="small"
+                        />
+                    </div>
+                </template>
+            </Column>
             <Column field="expiresAt" :header="$t('auth.expires')">
                 <template #body="{ data }">
                     {{ new Date(data.expiresAt).toLocaleDateString() }}
@@ -82,7 +94,7 @@
             <p>{{ $t('auth.inviteMemberNote') }}</p>
             <div class="flex flex-col gap-2">
                 <label>{{ $t('organization.processRoles') }} *</label>
-                <Select v-model="inviteForm.role" :options="roleOptions" optionLabel="label" optionValue="value" class="w-full" />
+                <MultiSelect v-model="inviteForm.roleIds" :options="roleOptions" optionLabel="label" optionValue="value" display="chip" class="w-full" />
             </div>
             <div v-if="generatedUrl" class="mt-4">
                 <Panel>
@@ -98,7 +110,7 @@
         </div>
         <template #footer>
             <Button :label="$t('common.close')" text severity="secondary" @click="showInviteDialog = false; generatedUrl = null" />
-            <Button :label="$t('auth.generateLink')" icon="pi pi-link" @click="generateInvite" :loading="generatingInvite" v-if="!generatedUrl" />
+            <Button :label="$t('auth.generateLink')" icon="pi pi-link" @click="generateInvite" :loading="generatingInvite" :disabled="!inviteForm.roleIds.length" v-if="!generatedUrl" />
         </template>
     </StandardDialog>
 
@@ -119,7 +131,7 @@
         </div>
         <div class="flex flex-col gap-2">
           <label>{{ $t('organization.processRoles') }} *</label>
-          <Select v-model="form.role" :options="roleOptions" optionLabel="label" optionValue="value" required class="w-full" />
+          <MultiSelect v-model="form.roleIds" :options="roleOptions" optionLabel="label" optionValue="value" display="chip" required class="w-full" />
         </div>
         <div class="flex justify-end gap-2 mt-4">
           <Button type="button" :label="$t('common.cancel')" text severity="secondary" @click="showCreateDialog = false" />
@@ -175,7 +187,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
@@ -184,7 +196,6 @@ import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
-import Select from 'primevue/select';
 import MultiSelect from 'primevue/multiselect';
 import Tag from 'primevue/tag';
 import Panel from 'primevue/panel';
@@ -258,11 +269,11 @@ const form = ref({
   name: '',
   email: '',
   password: '',
-  role: 'role_viewer'
+  roleIds: []
 });
 
 const inviteForm = ref({
-    role: 'role_viewer'
+    roleIds: []
 });
 
 const roleOptions = computed(() => {
@@ -272,6 +283,12 @@ const roleOptions = computed(() => {
     value: role.id
   }));
 });
+
+watch(roleOptions, (options) => {
+  const firstRole = options[0]?.value || '';
+  form.value.roleIds = normalizeSelectedRoleIds(form.value.roleIds, options, firstRole);
+  inviteForm.value.roleIds = normalizeSelectedRoleIds(inviteForm.value.roleIds, options, firstRole);
+}, { immediate: true });
 
 async function loadUsers() {
   loading.value = true;
@@ -314,7 +331,7 @@ async function generateInvite() {
     try {
         const res = await $fetch(`/api/organizations/${activeOrganizationId.value}/invitations`, {
             method: 'POST',
-            body: { ...inviteForm.value, roleIds: [inviteForm.value.role] }
+            body: { roleIds: normalizeSelectedRoleIds(inviteForm.value.roleIds, roleOptions.value) }
         });
         generatedUrl.value = getInvitationUrl(res.token);
         await loadInvitations();
@@ -348,12 +365,13 @@ async function createUser() {
   try {
     await usersEntity.create({
         ...form.value,
-        roleIds: [form.value.role],
+        role: form.value.roleIds[0] || '',
+        roleIds: normalizeSelectedRoleIds(form.value.roleIds, roleOptions.value),
         organizationId: activeOrganizationId.value
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.userCreated'), life: 3000 });
     showCreateDialog.value = false;
-    form.value = { name: '', email: '', password: '', role: 'role_viewer' };
+    form.value = { name: '', email: '', password: '', roleIds: roleOptions.value[0]?.value ? [roleOptions.value[0].value] : [] };
     await loadUsers();
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 });
@@ -409,6 +427,22 @@ function getUserProcessRoles(user) {
         id: roleId,
         label: roles[roleId]?.label || roleId
     }));
+}
+
+function invitationRoles(invitation = {}) {
+    const roles = activeProcess.value?.data?.roles || {};
+    const roleIds = invitation.roleIds?.length ? invitation.roleIds : [invitation.role].filter(Boolean);
+    return roleIds.map(roleId => ({
+        id: roleId,
+        label: roles[roleId]?.label || roleId
+    }));
+}
+
+function normalizeSelectedRoleIds(roleIds = [], options = roleOptions.value, fallback = '') {
+    const selected = new Set(Array.isArray(roleIds) ? roleIds : [roleIds].filter(Boolean));
+    const valid = options.map(option => option.value).filter(value => selected.has(value));
+    if (!valid.length && fallback) return [fallback];
+    return valid;
 }
 
 function requiredAssignmentBindings(roleIds = []) {
@@ -492,12 +526,13 @@ function normalizeAccessLevel(level) {
 }
 
 function previewScreensForRoles(roleIds = [], bindings = {}) {
-    return Object.values(activeProcess.value?.data?.screens || {})
+    const screens = activeProcess.value?.data?.compiled?.screens || activeProcess.value?.data?.screens || {};
+    return Object.values(screens)
         .filter(screen => screenAppliesToRoles(screen, roleIds))
         .map(screen => ({
             ...screen,
-            screenKey: screen.id,
-            route: replaceAssignmentValues(screen.route, bindings)
+            screenKey: screen.screenKey || screen.id,
+            route: replaceAssignmentValues(screen.route || `/screens/${screen.id}`, bindings)
         }));
 }
 

@@ -157,6 +157,94 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.userAccess.user_a.permissions.projects[0].scope.entityId).toBe('project-123');
   });
 
+  it('infers generated screens from role grants when no explicit screen is authored', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator', label: 'Operator' }
+      },
+      entityProfiles: {
+        queue_profile: {
+          id: 'queue_profile',
+          entityType: 'queue',
+          allowedRoles: { read: ['role_operator'], write: ['role_operator'] }
+        }
+      },
+      actions: {
+        action_accept: {
+          id: 'action_accept',
+          label: 'Accept',
+          actionKind: 'changeStatus',
+          entityType: 'queue',
+          status: { to: 'NEXT_STATUS' },
+          access: { roleIds: ['role_operator'], level: 'write' }
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_operator'],
+          bindings: {},
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.screens.auto_role_operator_queue).toMatchObject({
+      entityType: 'queue',
+      roleIds: ['role_operator'],
+      required: { feature: 'queues', level: 'write' },
+      actions: ['action_accept']
+    });
+    expect(compiled.userAccess.user_a.screens[0]).toMatchObject({
+      screenKey: 'auto_role_operator_queue',
+      route: '/screens/auto_role_operator_queue',
+      entityType: 'queue',
+      actions: ['action_accept']
+    });
+    expect(compiled.userAccess.user_a.navigation[0]).toMatchObject({
+      route: '/screens/auto_role_operator_queue',
+      screenKey: 'auto_role_operator_queue'
+    });
+  });
+
+  it('includes generated screens for every assigned role grant', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_queue: { id: 'role_queue', label: 'Queue role' },
+        role_project: { id: 'role_project', label: 'Project role' }
+      },
+      entityProfiles: {
+        queue_profile: {
+          id: 'queue_profile',
+          entityType: 'queue',
+          allowedRoles: { read: ['role_queue'] }
+        },
+        project_profile: {
+          id: 'project_profile',
+          entityType: 'project',
+          allowedRoles: { read: ['role_project'] }
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_queue', 'role_project'],
+          bindings: {},
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(resolveScreens({ compiled, userId: 'user_a' }).map(screen => screen.screenKey).sort()).toEqual([
+      'auto_role_project_project',
+      'auto_role_queue_queue'
+    ]);
+    expect(compiled.userAccess.user_a.permissions).toMatchObject({
+      projects: [{ level: 'read' }],
+      queues: [{ level: 'read' }]
+    });
+  });
+
   it('skips screen-derived grants with incomplete assignment bindings', () => {
     const compiled = compileProcessDefinition({
       roles: {

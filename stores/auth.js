@@ -15,20 +15,23 @@ export const useAuthStore = defineStore('auth', () => {
     const organizationData = computed(() => organization.value);
     const userOrganizations = computed(() => userOrgs.value);
     const memberships = computed(() => user.value?.memberships || user.value?.data?.memberships || []);
-    const activePermissions = computed(() => {
+    const activeMembership = computed(() => {
         const activeOrgId = user.value?.organizationId || organization.value?._id;
-        const activeMembership = activeOrgId
+        return activeOrgId
             ? memberships.value.find(membership => membership.organizationId?.toString() === activeOrgId.toString())
             : memberships.value[0];
-        return user.value?.effectivePermissions || activeMembership?.permissions || user.value?.permissions || user.value?.data?.permissions || {};
     });
+    const activePermissions = computed(() => {
+        return user.value?.effectivePermissions || activeMembership.value?.permissions || user.value?.permissions || user.value?.data?.permissions || {};
+    });
+    const tenantPermissions = computed(() => activeMembership.value?.permissions || {});
     const navigationManifest = computed(() => user.value?.navigation || []);
     const screenManifest = computed(() => user.value?.screens || []);
     const actionManifest = computed(() => user.value?.roleAssignments?.actions || []);
     const fieldPolicies = computed(() => user.value?.fieldPolicies || {});
     const processActive = computed(() => user.value?.process?.active === true);
 
-    const canManagePlatform = computed(() => hasPermission('organizations', 'admin') || hasPermission('users', 'admin') || hasPermission('workbench', 'admin') || hasPermission('domain_builder', 'admin') || hasPermission('config_bot', 'admin'));
+    const canManagePlatform = computed(() => hasTenantPermission('organizations', 'admin') || hasTenantPermission('users', 'admin') || hasPermission('workbench', 'admin') || hasPermission('domain_builder', 'admin') || hasPermission('config_bot', 'admin'));
 
     async function setUser(fetchOptions = {}) {
         try {
@@ -150,6 +153,11 @@ export const useAuthStore = defineStore('auth', () => {
         return hasPermissionGrant({ permissions: activePermissions.value, feature: entity, level });
     }
 
+    function hasTenantPermission(entity, level) {
+        return hasPermission(entity, level)
+            || hasPermissionGrant({ permissions: tenantPermissions.value, feature: entity, level });
+    }
+
     /**
      * Checks if the current user has permission for a specific UI action.
      * Uses the centralized UI Permission Matrix.
@@ -175,6 +183,7 @@ export const useAuthStore = defineStore('auth', () => {
         userOrganizations,
         memberships,
         activePermissions,
+        tenantPermissions,
         navigationManifest,
         screenManifest,
         actionManifest,
@@ -187,6 +196,7 @@ export const useAuthStore = defineStore('auth', () => {
         register,
         logout,
         hasPermission,
+        hasTenantPermission,
         can,
         switchOrganization
     };

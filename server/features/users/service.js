@@ -26,8 +26,8 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
     if (existing) throw createError({ statusCode: 409, message: 'Email already registered' });
     
     const passwordHash = await hashPassword(data.password);
-    const role = data.role || 'IndividualUser';
-    const permissions = materializeRolePermissions(role, data.permissions);
+    const role = data.role || data.roleIds?.[0] || '';
+    const permissions = role ? materializeRolePermissions(role, data.permissions) : (data.permissions || {});
     
     const memberships = [];
     if (data.organizationId) {
@@ -260,16 +260,7 @@ export async function canManageUsersInOrganization(auth = {}, organizationId) {
   const membership = findOrganizationMembership(auth, organizationId);
   if (!membership || membership.status === 'pending' || membership.status === 'rejected') return false;
   if (hasPermissionGrant({ permissions: membership.permissions || {}, feature: 'users', level: 'admin' })) return true;
-
-  const roleIds = [
-    membership.role,
-    ...(membership.roleIds || []),
-    auth.role
-  ].filter(Boolean).map(value => String(value).toLowerCase());
-  const adminRoles = new Set(['role_admin', 'admin', 'owner', 'creator', 'organization_admin']);
-  if (roleIds.some(role => adminRoles.has(role))) return true;
-
-  return await isSoleActiveOrganizationMember(auth.userId, organizationId);
+  return false;
 }
 
 function normalizeAuthFromArgs(userId, organizationId, role, auth = {}) {
@@ -286,24 +277,13 @@ function findOrganizationMembership(auth = {}, organizationId) {
   return (auth.memberships || []).find(item => item.organizationId?.toString() === target);
 }
 
-async function isSoleActiveOrganizationMember(userId, organizationId) {
-  if (!userId || !organizationId) return false;
-  const users = await usersRepository.find({ 'data.memberships.organizationId': toFlexibleId(organizationId) });
-  const activeMembers = users.filter(user => (user.data?.memberships || []).some(membership =>
-    membership.organizationId?.toString() === organizationId.toString() &&
-    membership.status !== 'pending' &&
-    membership.status !== 'rejected'
-  ));
-  return activeMembers.length === 1 && activeMembers[0]._id?.toString() === userId.toString();
-}
-
 async function assignProcessRolesFromInput({ userId, organizationId, role, roleIds, bindings, status, actorId } = {}) {
   if (!organizationId || !userId) return;
   try {
     await processDefinitionsService.assignUserToActiveProcessInternal({
       organizationId,
       userId,
-      roleIds: roleIds?.length ? roleIds : [role || 'role_viewer'],
+      roleIds: roleIds?.length ? roleIds : [],
       bindings: bindings || {},
       status,
       actorId

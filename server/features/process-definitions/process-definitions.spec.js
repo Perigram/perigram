@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { assignUserToActiveProcessInternal, hasProcessDefinitionMembershipAccess } from './service.js';
 import * as processRepository from './repository.js';
-import * as usersRepository from '~/server/features/users/repository.js';
 
 vi.mock('./repository.js', () => ({
   find: vi.fn(),
@@ -12,16 +11,12 @@ vi.mock('./repository.js', () => ({
   archiveActiveByOrganization: vi.fn()
 }));
 
-vi.mock('~/server/features/users/repository.js', () => ({
-  find: vi.fn()
-}));
-
 describe('process definitions access fallback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('allows organization admin membership to manage process definitions when process grants are missing', async () => {
+  it('does not treat membership role labels as process-definition grants', async () => {
     expect(await hasProcessDefinitionMembershipAccess({
       userId: 'creator',
       memberships: [{
@@ -30,27 +25,10 @@ describe('process definitions access fallback', () => {
         permissions: {},
         status: 'active'
       }]
-    }, 'org-1', 'admin')).toBe(true);
+    }, 'org-1', 'admin')).toBe(false);
   });
 
   it('allows stored membership organization grants to recover process reads when process grants are missing', async () => {
-    usersRepository.find.mockResolvedValue([{
-      _id: 'creator',
-      data: {
-        memberships: [{
-          organizationId: 'org-1',
-          role: 'ContractorAdmin',
-          permissions: { organizations: { level: 'write' } },
-          status: 'active'
-        }]
-      }
-    }, {
-      _id: 'other',
-      data: {
-        memberships: [{ organizationId: 'org-1', role: 'role_viewer', permissions: {}, status: 'active' }]
-      }
-    }]);
-
     expect(await hasProcessDefinitionMembershipAccess({
       userId: 'creator',
       effectivePermissions: {},
@@ -63,32 +41,14 @@ describe('process definitions access fallback', () => {
     }, 'org-1', 'read')).toBe(true);
   });
 
-  it('allows the sole active organization member to recover process management', async () => {
-    usersRepository.find.mockResolvedValueOnce([{
-      _id: 'solo-user',
-      data: {
-        memberships: [{ organizationId: 'org-1', role: 'IndividualUser', status: 'active' }]
-      }
-    }]);
-
+  it('does not treat sole active membership as process-definition access', async () => {
     expect(await hasProcessDefinitionMembershipAccess({
       userId: 'solo-user',
       memberships: [{ organizationId: 'org-1', role: 'IndividualUser', status: 'active' }]
-    }, 'org-1', 'admin')).toBe(true);
+    }, 'org-1', 'admin')).toBe(false);
   });
 
   it('does not allow ordinary members or other organizations through the fallback', async () => {
-    usersRepository.find.mockResolvedValue([{
-      _id: 'member',
-      data: {
-        memberships: [{ organizationId: 'org-1', role: 'role_viewer', status: 'active' }]
-      }
-    }, {
-      _id: 'other',
-      data: {
-        memberships: [{ organizationId: 'org-1', role: 'role_viewer', status: 'active' }]
-      }
-    }]);
     const auth = {
       userId: 'member',
       memberships: [{

@@ -6,7 +6,7 @@ const COMMON_ENTITY_PROFILES = {
     lifecycle: { mode: 'domainDefault', workflow: null },
     fields: { read: ['identity.*', 'status.*', 'lineage.*', 'data.address'], write: ['data.metadata'], private: [] },
     stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
-    allowedRoles: { read: ['role_admin', 'role_viewer'], write: ['role_admin'], admin: ['role_admin'] }
+    allowedRoles: { read: ['role_admin'], write: ['role_admin'], admin: ['role_admin'] }
   },
   entity_queue: {
     id: 'entity_queue',
@@ -15,7 +15,7 @@ const COMMON_ENTITY_PROFILES = {
     lifecycle: { mode: 'domainDefault', workflow: null },
     fields: { read: ['identity.*', 'status.*', 'lineage.*', 'data.queueNumber'], write: ['data.job.*'], private: [] },
     stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
-    allowedRoles: { read: ['role_admin', 'role_viewer'], write: ['role_admin'], admin: ['role_admin'] }
+    allowedRoles: { read: ['role_admin'], write: ['role_admin'], admin: ['role_admin'] }
   }
 };
 
@@ -32,19 +32,6 @@ const COMMON_SERVICES = {
     ],
     access: { runPrincipals: ['principal_nesting'], viewPrincipals: ['principal_nesting'] }
   }
-};
-
-const SCREEN_BY_FEATURE = {
-  projects: { route: '/projects', label: 'Projects', labelKey: 'features.projects', kind: 'entityList', entityType: 'project' },
-  warehouses: { route: '/warehouses', label: 'Warehouses', labelKey: 'features.warehouses', kind: 'entityList', entityType: 'warehouse' },
-  catalogs: { route: '/catalog', label: 'Catalog', labelKey: 'features.catalogs', kind: 'entityList', entityType: 'catalog' },
-  requisitions: { route: '/requisitions', label: 'Requisitions', labelKey: 'features.requisitions', kind: 'entityList', entityType: 'requisition' },
-  cassettes: { route: '/assets/cassettes', label: 'Assets', labelKey: 'features.assets', kind: 'workspace', entityType: 'cassette' },
-  users: { route: '/organization/users', label: 'Team management', labelKey: 'organization.teamManagement', kind: 'workspace', entityType: 'user' },
-  organizations: { route: '/organization', label: 'Organization', labelKey: 'organization.workspace', kind: 'workspace', entityType: 'organization' },
-  config_bot: { route: '/admin/config-bot', label: 'ConfigBot', labelKey: 'admin.configBot.title', kind: 'workspace' },
-  domain_builder: { route: '/admin', label: 'Admin', labelKey: 'nav.admin', kind: 'workspace' },
-  workbench: { route: '/admin', label: 'Admin', labelKey: 'nav.admin', kind: 'workspace' }
 };
 
 export const PROCESS_TEMPLATES = {
@@ -88,7 +75,7 @@ export const PROCESS_TEMPLATES = {
         lifecycle: { mode: 'defaultCreated', workflow: null },
         fields: { read: ['identity.*', 'status.*', 'lineage.*', 'data.material', 'data.options'], write: ['data.*'], private: [] },
         stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
-        allowedRoles: { read: ['role_admin', 'role_viewer'], write: ['role_admin'], admin: ['role_admin'] }
+        allowedRoles: { read: ['role_admin'], write: ['role_admin'], admin: ['role_admin'] }
       }
     },
     services: {}
@@ -107,7 +94,7 @@ export const PROCESS_TEMPLATES = {
     entities: {
       entity_project: {
         ...COMMON_ENTITY_PROFILES.entity_project,
-        allowedRoles: { read: ['role_admin', 'role_viewer'], write: [], admin: ['role_admin'] }
+        allowedRoles: { read: ['role_admin'], write: [], admin: ['role_admin'] }
       }
     },
     services: {}
@@ -172,18 +159,13 @@ export function legacyTypeToTemplateId(type = '') {
 }
 
 function createTemplate({ id, label, adminLabel, grants, entities, services }) {
-  const adminScreens = Object.entries(grants)
-    .map(([feature, level]) => createScreenItem(feature, level, ['role_admin']))
-    .filter(Boolean);
   const roles = {
     role_admin: {
       id: 'role_admin',
       label: adminLabel,
-      capabilities: []
-    },
-    role_viewer: {
-      id: 'role_viewer',
-      label: 'Viewer',
+      grants: Object.entries(grants)
+        .filter(([, level]) => level && level !== 'none')
+        .map(([feature, level]) => ({ feature, level })),
       capabilities: []
     }
   };
@@ -229,38 +211,9 @@ function createTemplate({ id, label, adminLabel, grants, entities, services }) {
       actions: {},
       services,
       sockets: {},
-      screens: Object.fromEntries(adminScreens.map(screen => [screen.id, screen])),
+      screens: {},
       assignments: {},
       compiled: null
     }
-  };
-}
-
-function createScreenItem(feature, level, roleIds = []) {
-  const config = SCREEN_BY_FEATURE[feature];
-  if (!config) return null;
-  const route = feature === 'organizations' && level === 'admin' ? '/organization/process' : config.route;
-  return {
-    id: `${feature}.${route.split('/').filter(Boolean).join('.') || 'home'}`,
-    label: config.label,
-    labelKey: feature === 'organizations' && level === 'admin' ? 'processDesigner.title' : config.labelKey,
-    kind: config.kind,
-    route,
-    placement: 'hub',
-    entityType: config.entityType || null,
-    roleIds,
-    required: {
-      feature,
-      level: level === 'none' ? 'read' : level
-    },
-    actions: []
-  };
-}
-
-function screenToNavigation(screen) {
-  return {
-    id: screen.id,
-    route: screen.route,
-    requires: screen.required
   };
 }

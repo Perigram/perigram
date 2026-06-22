@@ -2271,6 +2271,7 @@
   "generatedScreen": {
     "loadFailed": "Screen failed to load",
     "notFound": "Screen is not available",
+    "noScreens": "No process screens are available",
     "actionCompleted": "Action completed"
   }
 }

@@ -58,17 +58,17 @@ describe('invitations', () => {
       _id: userId,
       identity: { uid: userId, name: 'Admin User' },
       data: {
-        memberships: [{ organizationId, role: 'role_admin', permissions: {}, status: 'active' }]
+        memberships: [{ organizationId, role: 'team-manager', permissions: { users: { level: 'admin' } }, status: 'active' }]
       }
     });
 
     const invitation = await invitationsService.generateInvitation(organizationId, 'role_operator', {
       userId,
-      memberships: [{ organizationId, role: 'role_admin', permissions: {}, status: 'active' }]
+      memberships: [{ organizationId, role: 'team-manager', permissions: { users: { level: 'admin' } }, status: 'active' }]
     }, ['role_operator']);
     const rows = await invitationsService.listByOrgForUser(organizationId, {
       userId,
-      memberships: [{ organizationId, role: 'role_admin', permissions: {}, status: 'active' }]
+      memberships: [{ organizationId, role: 'team-manager', permissions: { users: { level: 'admin' } }, status: 'active' }]
     });
 
     expect(invitation.token).toBeTruthy();
@@ -103,5 +103,45 @@ describe('invitations', () => {
       userId: memberId.toString(),
       memberships: [{ organizationId, role: 'role_viewer', permissions: {}, status: 'active' }]
     })).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it('accepts invitations with multiple process roles without materializing membership permissions', async () => {
+    const organizationId = 'org-6a05940e';
+    const creatorId = 'admin-user';
+    const invitedUserId = 'invited-user';
+    await db.collection('organizations').insertOne({
+      _id: organizationId,
+      identity: { uid: organizationId, name: 'Cutkit Org' },
+      data: {}
+    });
+    await db.collection('users').insertMany([{
+      _id: creatorId,
+      identity: { uid: creatorId, name: 'Admin User' },
+      data: {
+        memberships: [{ organizationId, role: 'team-manager', permissions: { users: { level: 'admin' } }, status: 'active' }]
+      }
+    }, {
+      _id: invitedUserId,
+      identity: { uid: invitedUserId, name: 'Invited User' },
+      data: {
+        memberships: []
+      }
+    }]);
+
+    const invitation = await invitationsService.generateInvitation(organizationId, 'role_operator', {
+      userId: creatorId,
+      memberships: [{ organizationId, role: 'team-manager', permissions: { users: { level: 'admin' } }, status: 'active' }]
+    }, ['role_operator', 'role_reviewer']);
+
+    await invitationsService.joinByToken(invitation.token, { userId: invitedUserId });
+
+    const user = await db.collection('users').findOne({ _id: invitedUserId });
+    expect(user.data.memberships[0]).toMatchObject({
+      organizationId,
+      role: 'role_operator',
+      roleIds: ['role_operator', 'role_reviewer'],
+      permissions: {},
+      status: 'pending'
+    });
   });
 });
