@@ -93,16 +93,18 @@ instead of input/output counts: action and service node handles are labeled
 with typed entity/status contracts, socket node handles are labeled with the
 transfer input and projected output fields, and entity nodes render their field
 policy as the process data contract.
-The canvas uses left-to-right side sockets for both data and events.
-Left and right data handles are not headed with literal "inputs" or "outputs";
-the socket label itself is the contract. Event-triggered actions receive the
-event on the left side and emit completion from the right side, so unlabeled
-top/bottom control sockets do not appear on process nodes. Action nodes expose
-only `manual` and `event` trigger modes. `manual` means the action is
-user-started; access level and role grants live under `action.access` and
-decide which process roles see the user-facing action. `event` runs
-automatically from another node's event output. Service identities stay in
-service access controls rather than manual trigger selectors.
+The canvas keeps data and event contracts visually separate. Left and right data
+handles are not headed with literal "inputs" or "outputs"; the socket label
+itself is the contract. Event-triggered actions receive the event on the left
+side of a separated bottom band and emit completion from the right side of that
+same band. Action nodes expose only `manual` and `event` trigger modes.
+`manual` means the action is user-started; access level and role grants live
+under `action.access` and decide which process roles see the user-facing
+action. `event` runs automatically from another node's event output. Service
+identities stay in service access controls rather than manual trigger
+selectors. Change-status action grants also store the status transition
+condition under `action.access.statusFrom/statusTo`, derived from the incoming
+entity socket and target status.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched

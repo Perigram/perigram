@@ -15,9 +15,9 @@ Each node type is visually and functionally distinct:
   the explicit public/write data contract exposed by the entity profile.
 - `ProcessActionNode.vue` represents an executable process step. It exposes
   event trigger input, data input/output, and completion event output handles on
-  the node sides. The node owns inline editing for trigger mode, action access
-  level, access-granted roles, command selection, target status, creation
-  target, and projection fields. The action kind is fixed by the
+  the node sides. The node owns inline editing for action access level,
+  access-granted roles, trigger mode, command selection, target status,
+  creation target, and projection fields. The action kind is fixed by the
   palette item that created the node and is displayed as a compact verb such as
   `create` or `service`. Create actions derive their parent from the incoming
   data socket instead of a parent-type selector, status-change actions consume
@@ -43,12 +43,18 @@ Input and output data is not rendered as a detached summary and nodes do not
 label columns as "inputs" or "outputs". Data flow is left-to-right: expected
 data is labeled on left handles, and produced data is labeled on right handles.
 Event flow also uses side sockets: an `event` trigger enters the left side of
-an action and the action completion event leaves the right side. Action nodes
-expose only two trigger modes: `manual`, which creates a user-facing action for
-roles granted through `action.access`, and `event`, which runs automatically
-from another node's event edge. Service identities remain service access
-records, not manual trigger choices. Multi-socket command nodes derive handle
-ids from the socket contract.
+an action and the action completion event leaves the right side in a separated
+bottom band. Action nodes expose only two trigger modes: `manual`, which creates
+a user-facing action for roles granted through `action.access`, and `event`,
+which runs automatically from another node's event edge. Service identities
+remain service access records, not manual trigger choices. Multi-socket command
+nodes derive handle ids from the socket contract.
+
+Status action grants use the same access row as create actions. The grant is
+conditioned by the incoming entity status and target status: the designer
+stores `action.access.statusFrom` and `action.access.statusTo` from the graph
+or explicit status fields, and the compiler emits matching transition/rule
+filters.
 
 Command sockets should expose abstract domain contracts when a command is
 polymorphic. For example, `generateAttachment` presents one `Attachment source`

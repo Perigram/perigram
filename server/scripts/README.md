@@ -123,7 +123,8 @@ and removes organization type branching from runtime behavior.
 Use `server/scripts/migrate-process-action-access-grants.js` after adopting
 action access grants. It rewrites stored process actions so `trigger` contains
 only execution mode, moves role ids to `access.roleIds`, defaults action access
-to `write`, and recompiles active process contracts.
+to `write`, derives status-action access conditions into
+`access.statusFrom/statusTo`, and recompiles active process contracts.
 
 ## Entity Revision Migration
 

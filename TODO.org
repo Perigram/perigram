@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Scope action grants by graph-derived status contracts
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      pages/organization/process.vue, packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      server/scripts/migrate-process-action-access-grants.js
+    Docs updated: components/process-designer/README.md,
+      packages/processes/README.md, pages/organization/README.md,
+      server/scripts/README.md, TODO.org
+    Notes: Removed action-node status defaults and placeholder status values.
+      Create action status now derives from the selected entity profile
+      workflow initial state when available. Change-status grants store and
+      compile statusFrom/statusTo conditions derived from the incoming socket
+      and target status, while trigger/event sockets render in a separated
+      bottom band.
+
     [2026-06-22] Split process action triggers from access grants
     Files changed: components/process-designer/ProcessActionNode.vue,
       pages/organization/process.vue, pages/organization/users.vue,
