@@ -105,6 +105,9 @@ the policy level. Active process field policies can narrow the domain policy
 per organization: `read` fields display with read grants, `write` fields with
 write grants, and `private` fields with admin grants. No field policy means no
 display and no API serialization for auth-bound DTOs.
+Field policies may target subfields inside arrays, such as
+`data.memberships.organizationId`; redaction preserves only those allowed keys
+on each array item instead of copying the whole object.
 
 ## Related
 - [users feature](../server/features/users/README.md) - Stores membership and

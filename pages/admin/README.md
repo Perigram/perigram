@@ -96,7 +96,10 @@ the same override endpoint.
 `users.vue` is the platform/admin user list. It shows copied membership
 permissions as read-only legacy fallback data and links access changes to
 organization Team management, because active organization access is composed
-from process role assignments rather than direct permission JSON edits.
+from process role assignments rather than direct permission JSON edits. The
+table reads canonical user DTO blocks (`identity.name`, `data.email`, and
+`data.memberships`) instead of flat legacy fields; permission JSON is shown only
+when the current user list response is serialized with user-admin access.
 
 ## Domain Builder
 

@@ -59,6 +59,11 @@ attach the first organization.
 - When `server/middleware/auth.js` resolves an active process, the user's
   `effectivePermissions`, navigation, field policies, and role assignment come
   from the compiled process definition.
+- User management checks use the compiled `users:admin` grant first, then a
+  narrow recovery path for active admin/owner/creator membership labels or the
+  sole active organization member. The recovery path is local to team
+  management operations so a broken active process does not lock out the only
+  organization operator.
 - Default access presets live in [shared permission templates](../../../shared/README.md)
   so browser dev tools and server user creation read the same grant contract.
 - Presets are materialized when registering users or accepting invitations.

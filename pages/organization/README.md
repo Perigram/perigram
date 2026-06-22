@@ -19,6 +19,10 @@ of showing raw JSON, and previews graph-derived access plus screen routes from
 the current role selection before saving. Missing assignment bindings are still
 surfaced from the compiled active process so overloaded/scoped screens do not
 silently disappear when a user lacks a required project or entity binding.
+The route expects `/api/users` to return canonical user DTO blocks with
+`identity.name`, `data.email`, and membership summary fields visible under
+`users:read`; it derives the active organization id from the loaded organization
+store first and falls back to the auth membership list.
 
 `process.vue` is the visual process-designer surface. It edits organization
 process definitions with Vue Flow, persists drafts through

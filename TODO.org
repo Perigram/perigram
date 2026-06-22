@@ -4,6 +4,22 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Restore team user DTOs and recovery access
+    Files changed: pages/organization/users.vue,
+      server/api/users/index.get.js, server/features/users/service.js,
+      server/features/users/users.spec.js, shared/entity-field-access.js,
+      shared/entity-field-access.spec.js,
+      packages/domain-cnc/src/field-access.js
+    Docs updated: server/features/users/README.md,
+      pages/organization/README.md, pages/admin/README.md, shared/README.md,
+      packages/domain-cnc/README.md, TODO.org
+    Notes: User-list redaction now keeps canonical name/email and membership
+      summary fields under `users:read` while keeping copied permission JSON
+      admin-only. User management checks now recover through active
+      admin/owner/creator membership labels or the sole active organization
+      member, and organization Team management filters by a robust active
+      organization id instead of a single auth-store path.
+
     [2026-06-22] Restore process activation for organization admins
     Files changed: server/features/process-definitions/service.js,
       server/features/process-definitions/process-definitions.spec.js
