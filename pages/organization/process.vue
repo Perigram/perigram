@@ -711,7 +711,7 @@ function syncNodeData() {
   for (const node of nodes.value) {
     if (!node.data?.refId) continue;
     const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
-    if (node.type === 'action') syncActionIo(record);
+    if (node.type === 'action') syncActionIo(record, node);
     node.data.label = record.label || actionKindLabel(record.actionKind) || record.entityType || record.commandId || node.data.label;
     node.data.actionKind = record.actionKind;
     node.data.entityType = record.entityType;
@@ -971,11 +971,11 @@ function addLifecycleState() {
 }
 
 function syncSelectedAction() {
-  syncActionIo(selectedAction.value);
+  syncActionIo(selectedAction.value, selectedNode.value);
   syncNodeData();
 }
 
-function syncActionIo(action = {}) {
+function syncActionIo(action = {}, node = null) {
   action.trigger ||= { mode: 'manual' };
   action.access ||= { level: 'write', roleIds: [] };
   action.trigger.mode = normalizeTriggerMode(action.trigger.mode);
@@ -994,7 +994,9 @@ function syncActionIo(action = {}) {
     return;
   }
   if (action.actionKind === 'changeStatus') {
-    const incomingEntityType = action.inputs?.find(input => input.id === 'entity')?.entityType || '';
+    const incoming = node?.id ? inferIncomingEntityContract(node.id) : {};
+    const incomingEntityType = incoming.entityType || action.inputs?.find(input => input.id === 'entity')?.entityType || '';
+    if (incoming.status && !action.status.from) action.status.from = incoming.status;
     action.status.from ||= action.access.statusFrom || '';
     action.entityType = '';
     action.status.to ||= '';
@@ -1207,7 +1209,7 @@ function parseJson(source, fallback) {
 
 function enrichNodeData(node) {
   const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
-  if (node.type === 'action') syncActionIo(record);
+  if (node.type === 'action') syncActionIo(record, node);
   return {
     ...node,
     data: {
@@ -1257,7 +1259,7 @@ function updateActionRecord(actionId, updates = {}, options = {}) {
     action.access.statusFrom = action.status?.from || '';
     action.access.statusTo = action.status?.to || '';
   }
-  if (options.syncIo) syncActionIo(action);
+  if (options.syncIo) syncActionIo(action, selectedNode.value);
   syncNodeData();
 }
 
@@ -1339,7 +1341,10 @@ function roleAccessSummary(roleId) {
     }
   }
   for (const action of Object.values(draft.value?.data?.actions || {})) {
-    if ((action.access?.roleIds || []).includes(roleId)) items.push(actionAccessSummary(action));
+    if ((action.access?.roleIds || []).includes(roleId)) {
+      const summary = actionAccessSummary(action);
+      if (summary) items.push(summary);
+    }
   }
   for (const screen of Object.values(draft.value?.data?.screens || {})) {
     if ((screen.roleIds || []).includes(roleId)) items.push(`${screen.label || screen.id}:screen`);
@@ -1449,8 +1454,9 @@ function addEffectiveRoleAccess(accessByRole, roleId, level, status) {
 
 function actionAccessSummary(action = {}) {
   const entityType = actionEntityType(action);
+  if (action.actionKind === 'changeStatus' && !entityType) return '';
   const status = actionTargetStatus(action);
-  const subject = entityType || (action.actionKind === 'changeStatus' ? 'entity' : (action.label || action.id || action.actionKind));
+  const subject = entityType || action.label || action.id || action.actionKind;
   return [
     [subject, normalizeAccessLevel(action.access?.level)].filter(Boolean).join(':'),
     status ? `when ${status}` : ''
@@ -1460,7 +1466,7 @@ function actionAccessSummary(action = {}) {
 function actionAccessContractLabel(action = {}, node = {}) {
   const entityType = actionEntityType(action) || inferIncomingEntityContract(node.id).entityType;
   const status = actionTargetStatus(action);
-  return [entityType || (action.actionKind === 'changeStatus' ? 'entity' : ''), status ? `when ${status}` : ''].filter(Boolean).join(' · ');
+  return [entityType, status ? `when ${status}` : ''].filter(Boolean).join(' · ');
 }
 
 function actionEntityType(action = {}) {

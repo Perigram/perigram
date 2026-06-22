@@ -455,7 +455,8 @@ function derivedRoleAccessSummary(roleIds = []) {
     }
     for (const action of Object.values(activeProcess.value?.data?.actions || {})) {
         if ((action.access?.roleIds || []).some(roleId => roleSet.has(roleId))) {
-            items.push(actionAccessSummary(action));
+            const summary = actionAccessSummary(action);
+            if (summary) items.push(summary);
         }
     }
     return [...new Set(items)];
@@ -463,8 +464,9 @@ function derivedRoleAccessSummary(roleIds = []) {
 
 function actionAccessSummary(action = {}) {
     const entityType = actionEntityType(action);
+    if (action.actionKind === 'changeStatus' && !entityType) return '';
     const status = actionTargetStatus(action);
-    const subject = entityType || (action.actionKind === 'changeStatus' ? 'entity' : (action.label || action.id || action.actionKind));
+    const subject = entityType || action.label || action.id || action.actionKind;
     return [
         [subject, normalizeAccessLevel(action.access?.level)].filter(Boolean).join(':'),
         status ? `when ${status}` : ''
