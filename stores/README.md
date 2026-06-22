@@ -27,6 +27,13 @@ Pinia stores for client state and API orchestration.
   When auth includes a process navigation manifest, hubs and organization/asset
   siblings are filtered through that manifest plus the active permission
   evaluator, so a user's app menu follows their compiled process assignment.
+  This is still a registry-filtering model: hub, organization, asset, admin,
+  and project-section route lists are declared in the store and process
+  navigation can hide or expose those known routes. It is not yet a fully
+  process-rendered screen manifest. The next architecture step is a canonical
+  screen/action registry emitted by the process compiler, where role
+  assignments compose screens from entity views, services, commands, and
+  scoped bindings before the client renders menus or route affordances.
   Project routes include a store-resolved section breadcrumb for queues, sheet
   designs, data, artifacts, and details.
   Admin pages use a store-owned sibling list that includes workbench,

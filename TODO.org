@@ -4,6 +4,23 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Make active process permissions canonical in access checks
+    Files changed: server/utils/auth-helpers.js,
+      server/core/machines/service.js,
+      server/features/*/service.js,
+      shared/entity-field-access.js,
+      server/utils/permissions.spec.js,
+      server/core/access/service.spec.js,
+      shared/entity-field-access.spec.js
+    Docs updated: server/core/access/README.md,
+      packages/processes/README.md, stores/README.md, TODO.org
+    Notes: Legacy permission helpers now delegate to the shared grant
+      evaluator and prefer auth.effectivePermissions. Feature services pass the
+      full auth context into lineage checks so active process role assignments
+      are not dropped, transition auth preserves process grants, and docs now
+      distinguish current route-registry filtering from a future
+      compiler-emitted screen manifest.
+
     [2026-06-22] Load current process definitions by default
     Files changed: pages/organization/process.vue
     Docs updated: pages/organization/README.md, TODO.org

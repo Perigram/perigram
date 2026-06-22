@@ -50,6 +50,14 @@ The evaluator consumes those grants before membership permissions. No separate
 process-specific access engine exists; process roles compile into the same
 grant shape documented here.
 
+Legacy helpers such as `requirePermission()` and service-level
+`hasLineagePermission()` callers must pass the full auth context, not a reduced
+`{ memberships }` object. The shared evaluator then uses
+`auth.effectivePermissions` first and falls back to membership/user permissions
+only when the organization has no active process-derived grants for the user.
+Status transition auth preserves `effectivePermissions` so lifecycle access
+compiled from process roles is checked during transition execution as well.
+
 ## Related
 
 - [State machine engine](../machines/README.md)
