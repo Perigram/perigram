@@ -359,7 +359,7 @@ function grantFromAction(action = {}, access = {}, domain = {}) {
     const from = access.statusFrom || action.status?.from || '';
     const to = access.statusTo || action.status?.to || '';
     if (from || to) grant.transitions = [{ from: from || undefined, to: to || undefined }];
-    if (from) grant.rule = { fact: 'primaryStatus', equals: from };
+    if (to) grant.rule = { fact: 'primaryStatus', equals: to };
   }
   return grant;
 }

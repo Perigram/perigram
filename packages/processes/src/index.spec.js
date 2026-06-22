@@ -530,7 +530,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.roles.role_creator.actions[0]).toMatchObject({ actionId: 'create_project', level: 'run' });
   });
 
-  it('derives status action grants from incoming status contracts', () => {
+  it('derives status action grants for the resulting status contract', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_operator: { id: 'role_operator' }
@@ -559,11 +559,11 @@ describe('@cutkit/processes compiler', () => {
       feature: 'projects',
       level: 'write',
       transitions: [{ from: SOURCE_STATE, to: TARGET_STATE }],
-      rule: { fact: 'primaryStatus', equals: SOURCE_STATE }
+      rule: { fact: 'primaryStatus', equals: TARGET_STATE }
     });
     expect(compiled.userAccess.user_operator.permissions.projects[0]).toMatchObject({
       transitions: [{ from: SOURCE_STATE, to: TARGET_STATE }],
-      rule: { fact: 'primaryStatus', equals: SOURCE_STATE }
+      rule: { fact: 'primaryStatus', equals: TARGET_STATE }
     });
   });
 

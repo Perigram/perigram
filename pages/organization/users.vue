@@ -455,10 +455,35 @@ function derivedRoleAccessSummary(roleIds = []) {
     }
     for (const action of Object.values(activeProcess.value?.data?.actions || {})) {
         if ((action.access?.roleIds || []).some(roleId => roleSet.has(roleId))) {
-            items.push(`${action.label || action.id}:${action.access?.level || 'write'}`);
+            items.push(actionAccessSummary(action));
         }
     }
     return [...new Set(items)];
+}
+
+function actionAccessSummary(action = {}) {
+    return [
+        [actionEntityType(action), actionTargetStatus(action)].filter(Boolean).join('@') || action.label || action.id || action.actionKind,
+        normalizeAccessLevel(action.access?.level)
+    ].filter(Boolean).join(':');
+}
+
+function actionEntityType(action = {}) {
+    return action.entityType
+        || action.outputs?.find(output => output.entityType)?.entityType
+        || action.inputs?.find(input => input.entityType)?.entityType
+        || '';
+}
+
+function actionTargetStatus(action = {}) {
+    return action.access?.statusTo
+        || action.status?.to
+        || action.outputs?.find(output => typeof output.status === 'string')?.status
+        || '';
+}
+
+function normalizeAccessLevel(level) {
+    return ['read', 'write', 'admin'].includes(level) ? level : 'write';
 }
 
 function previewScreensForRoles(roleIds = [], bindings = {}) {

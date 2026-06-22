@@ -437,6 +437,7 @@ const accessLevelOptions = [
   { label: 'write', value: 'write' },
   { label: 'admin', value: 'admin' }
 ];
+const accessLevelRank = { read: 1, write: 2, admin: 3 };
 const defaultEdgeOptions = { type: 'smoothstep' };
 
 const activeName = computed(() => draft.value?.identity?.name || '');
@@ -722,6 +723,7 @@ function syncNodeData() {
     node.data.entityTypeOptions = node.type === 'action' ? entityTypeOptions.value : [];
     node.data.commandOptions = node.type === 'action' ? commandOptions.value : [];
     node.data.roleOptions = node.type === 'action' ? actionRoleOptions(record, node) : [];
+    node.data.effectiveAccessLabels = node.type === 'action' ? effectiveActionAccessLabels(record, node) : [];
     node.data.accessLevelOptions = node.type === 'action' ? accessLevelOptions : [];
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
     node.data.fieldOptions = node.type === 'action' ? fieldOptions(record.entityType) : [];
@@ -1217,6 +1219,7 @@ function enrichNodeData(node) {
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
       commandOptions: node.type === 'action' ? commandOptions.value : [],
       roleOptions: node.type === 'action' ? actionRoleOptions(record, node) : [],
+      effectiveAccessLabels: node.type === 'action' ? effectiveActionAccessLabels(record, node) : [],
       accessLevelOptions: node.type === 'action' ? accessLevelOptions : [],
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
       fieldOptions: node.type === 'action' ? fieldOptions(record.entityType) : [],
@@ -1263,6 +1266,7 @@ function stripRuntimeNodeData(node) {
     'entityTypeOptions',
     'commandOptions',
     'roleOptions',
+    'effectiveAccessLabels',
     'accessLevelOptions',
     'triggerModeOptions',
     'fieldOptions',
@@ -1332,7 +1336,7 @@ function roleAccessSummary(roleId) {
     }
   }
   for (const action of Object.values(draft.value?.data?.actions || {})) {
-    if ((action.access?.roleIds || []).includes(roleId)) items.push(`${action.label || action.id}:${action.access?.level || 'write'}`);
+    if ((action.access?.roleIds || []).includes(roleId)) items.push(actionAccessSummary(action));
   }
   for (const screen of Object.values(draft.value?.data?.screens || {})) {
     if ((screen.roleIds || []).includes(roleId)) items.push(`${screen.label || screen.id}:screen`);
@@ -1394,5 +1398,72 @@ function socketHandleIdForRecord(kind, item, index, items) {
 
 function actionRoleOptions() {
   return roleOptions.value;
+}
+
+function effectiveActionAccessLabels(action = {}, node = {}) {
+  const entityType = actionEntityType(action) || inferIncomingEntityContract(node.id).entityType;
+  if (!entityType) return [];
+  const targetStatus = actionTargetStatus(action);
+  const requiredLevel = normalizeAccessLevel(action.access?.level);
+  const currentRoleIds = new Set(action.access?.roleIds || []);
+  const accessByRole = new Map();
+
+  for (const profile of Object.values(draft.value?.data?.entityProfiles || {})) {
+    if (profile.entityType !== entityType) continue;
+    for (const level of ['read', 'write', 'admin']) {
+      for (const roleId of profile.allowedRoles?.[level] || []) {
+        addEffectiveRoleAccess(accessByRole, roleId, level, '');
+      }
+    }
+  }
+
+  for (const otherAction of Object.values(draft.value?.data?.actions || {})) {
+    if ((otherAction.id || '') === (action.id || '')) continue;
+    if (actionEntityType(otherAction) !== entityType) continue;
+    const otherStatus = actionTargetStatus(otherAction);
+    if (targetStatus && otherStatus && targetStatus !== otherStatus) continue;
+    for (const roleId of otherAction.access?.roleIds || []) {
+      addEffectiveRoleAccess(accessByRole, roleId, normalizeAccessLevel(otherAction.access?.level), otherStatus);
+    }
+  }
+
+  return [...accessByRole.values()]
+    .filter(item => !currentRoleIds.has(item.roleId))
+    .filter(item => accessLevelRank[item.level] >= accessLevelRank[requiredLevel])
+    .map(item => [item.label, item.level, item.status].filter(Boolean).join(' · '));
+}
+
+function addEffectiveRoleAccess(accessByRole, roleId, level, status) {
+  const normalizedLevel = normalizeAccessLevel(level);
+  const existing = accessByRole.get(roleId);
+  if (!existing || accessLevelRank[normalizedLevel] > accessLevelRank[existing.level]) {
+    accessByRole.set(roleId, {
+      roleId,
+      label: roles.value[roleId]?.label || roleId,
+      level: normalizedLevel,
+      status: status || existing?.status || ''
+    });
+  }
+}
+
+function actionAccessSummary(action = {}) {
+  return [
+    [actionEntityType(action), actionTargetStatus(action)].filter(Boolean).join('@') || action.label || action.id || action.actionKind,
+    normalizeAccessLevel(action.access?.level)
+  ].filter(Boolean).join(':');
+}
+
+function actionEntityType(action = {}) {
+  return action.entityType
+    || action.outputs?.find(output => output.entityType)?.entityType
+    || action.inputs?.find(input => input.entityType)?.entityType
+    || '';
+}
+
+function actionTargetStatus(action = {}) {
+  return action.access?.statusTo
+    || action.status?.to
+    || action.outputs?.find(output => typeof output.status === 'string')?.status
+    || '';
 }
 </script>

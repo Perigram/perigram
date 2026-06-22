@@ -62,6 +62,15 @@
           @update:model-value="value => updateAccess({ roleIds: value })"
         />
         <div v-if="accessDetail" class="col-span-2 truncate px-1 text-xs text-muted-color">{{ accessDetail }}</div>
+        <div v-if="effectiveAccessLabels.length" class="col-span-2 flex min-w-0 flex-wrap gap-1 px-1">
+          <span
+            v-for="item in effectiveAccessLabels"
+            :key="item"
+            class="max-w-full truncate rounded-ui border border-content-border px-1.5 py-0.5 text-xs text-muted-color"
+          >
+            {{ item }}
+          </span>
+        </div>
     </div>
 
     <div v-if="hasInlineControls" class="nodrag mt-2 grid grid-cols-2 gap-1">
@@ -170,6 +179,7 @@ const action = computed(() => props.data.actionRecord || {});
 const triggerMode = computed(() => action.value.trigger?.mode || props.data.triggerMode || 'manual');
 const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || props.data.inputLabels || []));
 const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || props.data.outputLabels || []));
+const effectiveAccessLabels = computed(() => props.data.effectiveAccessLabels || []);
 const eventLabel = computed(() => props.data.eventLabel || t('processDesigner.actionCompleted'));
 const actionKindLabel = computed(() => props.data.actionKindLabel || props.data.actionKind || t('common.actions.title'));
 const showEntitySelector = computed(() => ['createEntity', 'sendToOrganization'].includes(action.value.actionKind));
