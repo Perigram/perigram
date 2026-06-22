@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Restore process activation for organization admins
+    Files changed: server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js
+    Docs updated: server/features/process-definitions/README.md, TODO.org
+    Notes: Process definition admin/write/read checks now have a narrow
+      membership-role recovery path for active organization admin/owner/creator
+      memberships, so the sole tenant admin can fix and reactivate a process
+      even when the current compiled process grants are missing
+      `organizations:admin`.
+
     [2026-06-22] Split process roles from service principals
     Files changed: components/process-designer/ProcessActionNode.vue,
       components/process-designer/ProcessServiceNode.vue,
