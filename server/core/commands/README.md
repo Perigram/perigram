@@ -6,6 +6,9 @@ Generic runtime for declared domain commands.
 
 - Loads command definitions from `server/runtime/app-registry.js`.
 - Resolves declared entity inputs through registered entity services.
+- Resolves abstract entity inputs through registered entity services when a
+  caller passes `{ type, id }`, allowing polymorphic command sockets without
+  feature-specific runtime branches.
 - Runs `assertCommandAccess()` before invoking the handler.
 - Checks active process service availability before command access when the
   organization process declares command-backed services. If a process gates

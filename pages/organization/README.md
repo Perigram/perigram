@@ -75,6 +75,11 @@ instead of input/output counts: action and service node handles are labeled
 with typed entity/status contracts, socket node handles are labeled with the
 transfer input and projected output fields, and entity nodes render their field
 policy as the process data contract.
+The canvas uses left-to-right data flow and top-to-bottom trigger/access flow.
+Left and right data handles are not headed with literal "inputs" or "outputs";
+the socket label itself is the contract. Top handles are explicitly labeled as
+user/system/event triggers, service run access, or receiver access so unlabeled
+control sockets do not appear on process nodes.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched

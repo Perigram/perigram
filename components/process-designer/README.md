@@ -34,11 +34,20 @@ inline lifecycle workflow mutation, compiler fields, and Vue Flow edge
 persistence. Legacy role or user node components should not be added to the
 palette; active drafts load without those nodes so roles can stay reusable
 process metadata instead of layout objects.
-Input and output data is not rendered as a detached summary. Each expected or
-produced contract is the label for the actual Vue Flow socket/handle that can
-be wired on the canvas. Single-socket nodes keep `input`/`output` handle ids
-for saved-edge compatibility; multi-socket command nodes derive handle ids from
-the socket contract.
+Input and output data is not rendered as a detached summary and nodes do not
+label columns as "inputs" or "outputs". Data flow is left-to-right: expected
+data is labeled on left handles, and produced data is labeled on right handles.
+Trigger/access/event flow is top-to-bottom: user/system/event triggers,
+service run access, and receiver access are labeled on top handles. Single data
+socket nodes keep `input`/`output` handle ids for saved-edge compatibility;
+multi-socket command nodes derive handle ids from the socket contract.
+
+Command sockets should expose abstract domain contracts when a command is
+polymorphic. For example, `generateAttachment` presents one `Attachment source`
+socket with `attachments.generate` capability and accepted source types instead
+of separate `sheet_design` and `nesting_run` sockets. Concrete runtime inputs
+may remain in the command definition for compatibility, but the designer should
+prefer abstract socket metadata.
 
 Service and socket node components remain for compatibility with saved drafts,
 but new process behavior should use `runCommand` and `sendToOrganization`

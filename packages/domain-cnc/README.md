@@ -73,6 +73,10 @@ write generated Vue/domain files to the repository.
 
 `artifact` remains the current persisted entity type for generated file records.
 File behavior is declared by `AttachmentKind`.
+`generateAttachment` is a polymorphic command: its process-designer contract is
+one abstract `Attachment source` input with `attachments.generate` capability
+and accepted source types, while concrete `sheetDesign` and `nestingRun` inputs
+remain as compatibility runtime refs.
 
 `profile_template` is reusable master data for OCCS profile-section sketches.
 Cassette templates insert profile workpieces as snapshots with a

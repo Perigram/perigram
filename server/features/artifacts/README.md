@@ -32,6 +32,9 @@ current app entity type that stores file metadata and GridFS references.
 - `entities.nestingRun` attaches the latest completed worker DXF when the
   nesting job already produced one; otherwise it creates a pending
   `GENERATING` artifact.
+The command also accepts the standardized abstract source socket as
+`entities.source` when command runtime receives `{ type, id }` for a source
+whose type is accepted by the domain command contract.
 
 ## Related
 

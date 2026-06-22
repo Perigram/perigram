@@ -4,6 +4,26 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Clarify process node socket flow
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      components/process-designer/ProcessServiceNode.vue,
+      components/process-designer/ProcessSocketNode.vue,
+      pages/organization/process.vue, packages/domain-cnc/src/commands.js,
+      packages/devtools/src/index.js, framework.manifest.json,
+      server/core/commands/service.js, server/features/artifacts/operations.js,
+      server/features/artifacts/operations.spec.js,
+      shared/framework-packages.spec.js, i18n/locales/en.json,
+      i18n/locales/ru.json
+    Docs updated: components/process-designer/README.md,
+      pages/organization/README.md, packages/domain-cnc/README.md,
+      server/core/commands/README.md, server/features/artifacts/README.md,
+      TODO.org
+    Notes: Process nodes now use left-to-right data sockets and top-down
+      trigger/access sockets without literal input/output headings. Service and
+      socket top handles are labeled. `generateAttachment` now exposes one
+      abstract attachment-source socket with concrete source refs retained for
+      compatibility.
+
     [2026-06-22] Expose process node I/O and screen editing
     Files changed: components/process-designer/ProcessActionNode.vue,
       components/process-designer/ProcessEntityNode.vue,
