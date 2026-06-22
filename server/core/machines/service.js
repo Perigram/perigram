@@ -315,6 +315,7 @@ export function createTransitionAuth(userId, userRoleOrAuth, userPermissions = {
       ...userRoleOrAuth,
       userId: userRoleOrAuth.userId || userId,
       memberships: userRoleOrAuth.memberships || userPermissions?.memberships || [],
+      effectivePermissions: userRoleOrAuth.effectivePermissions || userPermissions?.effectivePermissions || null,
       permissions: userRoleOrAuth.permissions || userPermissions?.permissions || {}
     };
   }
@@ -326,6 +327,7 @@ export function createTransitionAuth(userId, userRoleOrAuth, userPermissions = {
     role: system ? 'SYSTEM' : userRoleOrAuth || userPermissions?.role || null,
     organizationId: userPermissions?.organizationId,
     memberships: userPermissions?.memberships || [],
+    effectivePermissions: userPermissions?.effectivePermissions || null,
     permissions: userPermissions?.permissions || {}
   };
 }

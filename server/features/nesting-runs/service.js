@@ -73,7 +73,7 @@ export async function getById(uid, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(uid);
   if (!raw) return null;
   const run = new NestingRun(raw);
-  if (userPermissions?.memberships && !hasLineagePermission({ memberships: userPermissions.memberships }, run.lineage, 'queues', 'read')) {
+  if (userPermissions?.memberships && !hasLineagePermission(userPermissions, run.lineage, 'queues', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return run.toJSON();
@@ -84,7 +84,7 @@ export async function updateStatus(id, newState, userId, userRole, metadata = {}
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships });
+  const lineageFilter = getLineageFilter(userPermissions);
   
   // Explicitly map common IDs in filters to lineage block
   const processedFilter = { ...filter };
@@ -115,7 +115,7 @@ export async function chooseRun(queueId, runId, userId, userOrg, userRole, userP
     throw createError({ statusCode: 400, message: 'Nesting run does not belong to this queue' });
   }
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, run.lineage, 'queues', 'write')) {
+  if (!hasLineagePermission(userPermissions, run.lineage, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -141,7 +141,7 @@ export async function remove(queueId, runId, userId, userOrg, userRole, userPerm
   if (!raw) throw createError({ statusCode: 404, message: 'Nesting run not found' });
   const run = new NestingRun(raw);
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, run.lineage, 'queues', 'write')) {
+  if (!hasLineagePermission(userPermissions, run.lineage, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   

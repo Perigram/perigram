@@ -1,6 +1,7 @@
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import { createError } from 'h3';
+import { hasPermissionGrant } from '../../shared/access-control.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
 const JWT_EXPIRY = '15m';
@@ -35,15 +36,17 @@ export function verifyAccessToken(token) {
   }
 }
 
+export function resolveAuthPermissions(user = {}) {
+  return user.effectivePermissions || user.permissions || {};
+}
+
 // Permission checks
 export function hasPermission(user, entity, requiredLevel) {
-  const userLevel = user.permissions?.[entity] || 'none';
-  
-  const levels = ['none', 'read', 'write', 'admin'];
-  const userLevelIndex = levels.indexOf(userLevel);
-  const requiredLevelIndex = levels.indexOf(requiredLevel);
-  
-  return userLevelIndex >= requiredLevelIndex;
+  return hasPermissionGrant({
+    permissions: resolveAuthPermissions(user),
+    feature: entity,
+    level: requiredLevel
+  });
 }
 
 export function canAccessEntity(user, entityType, entityId) {

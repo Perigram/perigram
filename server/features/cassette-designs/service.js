@@ -29,7 +29,7 @@ function toDTO(design, userPermissions = null) {
 }
 
 function hasCassetteDesignPermission(userPermissions, lineage, level) {
-  const user = { memberships: userPermissions?.memberships || [] };
+  const user = userPermissions || {};
   return hasLineagePermission(user, lineage, 'cassettes', level) ||
     hasLineagePermission(user, lineage, 'projects', level);
 }
@@ -46,7 +46,7 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
   if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
 
   // 1. Permission Check
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, queue.lineage, 'projects', 'write')) {
+  if (!hasLineagePermission(userPermissions, queue.lineage, 'projects', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -148,7 +148,7 @@ export async function getById(id, userId, userRole, userPermissions) {
 
 export async function getByTemplateId(templateId, userId, userOrg, userRole, userPermissions) {
   const filter = {
-    ...getLineageFilter({ memberships: userPermissions?.memberships || [] }),
+    ...getLineageFilter(userPermissions || {}),
     'lineage.templateId': toFlexibleId(templateId)
   };
 
@@ -187,7 +187,7 @@ export async function exportDxf(id, userId, userRole, userPermissions) {
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships });
+  const lineageFilter = getLineageFilter(userPermissions);
 
   const processedFilter = { ...filter };
   if (processedFilter.queueId) {

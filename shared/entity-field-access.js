@@ -12,6 +12,7 @@ const POLICY_LEVELS = ['read', 'write', 'admin'];
 
 export function getActivePermissionsFromAuth(auth = {}, entity = null) {
   if (!auth) return {};
+  if (auth.effectivePermissions) return auth.effectivePermissions;
   if (auth.permissions) return auth.permissions;
 
   const entityOrgId = entity?.lineage?.organizationId?.toString?.() || entity?.lineage?.organizationId;
@@ -141,12 +142,21 @@ export function allowedEntityFieldPolicies({ entityType, permissions = {}, auth 
 export function redactEntityForAccess(entity, entityType, authOrPermissions = null) {
   if (!entity || !entityType || !authOrPermissions) return entity;
 
-  const permissions = authOrPermissions.memberships || authOrPermissions.permissions || authOrPermissions.organizationId
+  const isAuthContext = authOrPermissions.memberships
+    || authOrPermissions.permissions
+    || authOrPermissions.effectivePermissions
+    || authOrPermissions.organizationId;
+  const permissions = isAuthContext
     ? getActivePermissionsFromAuth(authOrPermissions, entity)
     : authOrPermissions;
 
   const redacted = {};
-  const policies = allowedEntityFieldPolicies({ entityType, permissions, entity });
+  const policies = allowedEntityFieldPolicies({
+    entityType,
+    permissions,
+    auth: isAuthContext ? authOrPermissions : null,
+    entity
+  });
   for (const policy of policies) {
     copyPolicyPath(entity, redacted, policy.path);
   }

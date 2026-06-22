@@ -49,7 +49,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 }
 
 export async function list(userId, userOrg, userRole, userPermissions) {
-  const filter = getLineageFilter({ memberships: userPermissions.memberships });
+  const filter = getLineageFilter(userPermissions);
   const raws = await repository.find(filter);
   return raws
     .map(raw => new Project(raw))

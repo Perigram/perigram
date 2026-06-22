@@ -22,6 +22,30 @@ describe('access engine', () => {
     expect(hasEntityAccess({ entity, feature: 'queues', level: 'write', auth })).toBe(true);
   });
 
+  it('prefers active process effective permissions over membership fallback', () => {
+    expect(hasEntityAccess({
+      entity,
+      feature: 'queues',
+      level: 'admin',
+      auth: {
+        userId: 'u-process',
+        effectivePermissions: { queues: 'admin' },
+        memberships: [{ organizationId: 'org-1', permissions: { queues: 'read' } }]
+      }
+    })).toBe(true);
+
+    expect(hasEntityAccess({
+      entity,
+      feature: 'queues',
+      level: 'write',
+      auth: {
+        userId: 'u-process',
+        effectivePermissions: { queues: 'none' },
+        memberships: [{ organizationId: 'org-1', permissions: { queues: 'admin' } }]
+      }
+    })).toBe(false);
+  });
+
   it('denies missing org membership or insufficient permission level', () => {
     expect(hasEntityAccess({ entity, feature: 'queues', level: 'admin', auth })).toBe(false);
     expect(hasEntityAccess({

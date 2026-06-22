@@ -103,7 +103,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const finalFilter = mapLineageQuery({ ...getLineageFilter({ memberships: userPermissions.memberships }), ...filter });
+  const finalFilter = mapLineageQuery({ ...getLineageFilter(userPermissions), ...filter });
   const captures = await repository.find(finalFilter);
   return captures.map(toDTO);
 }
@@ -457,7 +457,7 @@ async function resolveLineage(mode, data, auth, level) {
 }
 
 function requireLineageAccess(lineage, feature, level, userPermissions = {}) {
-  if (!hasLineagePermission({ memberships: userPermissions.memberships || [] }, lineage, feature, level)) {
+  if (!hasLineagePermission(userPermissions, lineage, feature, level)) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 }

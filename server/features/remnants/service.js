@@ -44,7 +44,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   }
 
   // Permission Check
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, lineage, 'materials', 'write')) {
+  if (!hasLineagePermission(userPermissions, lineage, 'materials', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -83,7 +83,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships });
+  const lineageFilter = getLineageFilter(userPermissions);
   const rawFilter = { ...lineageFilter, ...filter };
   
   // Use centralized mapper for ID -> Lineage
@@ -99,7 +99,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
   const remnant = await repository.findById(id);
   if (!remnant) throw createError({ statusCode: 404, message: 'Remnant not found' });
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, remnant.lineage, 'materials', 'read')) {
+  if (!hasLineagePermission(userPermissions, remnant.lineage, 'materials', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -110,7 +110,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   const remnant = await repository.findById(id); // Raw for permission
   if (!remnant) throw createError({ statusCode: 404, message: 'Remnant not found' });
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, remnant.lineage, 'materials', 'write')) {
+  if (!hasLineagePermission(userPermissions, remnant.lineage, 'materials', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -136,7 +136,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
 export async function searchReusable(userId, organizationId, userRole, userPermissions) {
   const filter = {
-    ...getLineageFilter({ memberships: userPermissions.memberships }),
+    ...getLineageFilter(userPermissions),
     isReusable: true,
     'status.state.primary': 'AVAILABLE'
   };
@@ -182,7 +182,7 @@ export async function createFromCutSheet(sheet, { area = 0, width = 0, height = 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const remnant = await getById(id, userId, userOrg, userRole, userPermissions);
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, remnant.lineage, 'materials', 'admin')) {
+  if (!hasLineagePermission(userPermissions, remnant.lineage, 'materials', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   

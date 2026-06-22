@@ -38,7 +38,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 }
 
 function canCreateColor({ color, data = {}, userPermissions }) {
-  const auth = { memberships: userPermissions.memberships };
+  const auth = userPermissions;
   if (hasLineagePermission(auth, color.lineage, 'catalogs', 'write')) return true;
   if (data.source !== 'WAREHOUSE_STOCK') return false;
   return hasLineagePermission(auth, color.lineage, 'materials', 'write');
@@ -52,7 +52,7 @@ export async function getById(uid) {
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const finalFilter = mapLineageQuery({
-    ...getLineageFilter({ memberships: userPermissions.memberships }),
+    ...getLineageFilter(userPermissions),
     ...filter
   });
   const raws = await repository.find(finalFilter);
@@ -64,7 +64,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   if (!raw) throw createError({ statusCode: 404, message: 'Color not found' });
   const color = new Color(raw);
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, color.lineage, 'catalogs', 'write')) {
+  if (!hasLineagePermission(userPermissions, color.lineage, 'catalogs', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -79,7 +79,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   const color = await getById(uid);
   if (!color) throw createError({ statusCode: 404, message: 'Color not found' });
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, color.lineage, 'catalogs', 'admin')) {
+  if (!hasLineagePermission(userPermissions, color.lineage, 'catalogs', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return await repository.deleteById(uid);

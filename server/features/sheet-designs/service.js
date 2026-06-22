@@ -410,7 +410,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Sheet design not found' });
   const design = new SheetDesign(raw);
-  if (userPermissions?.memberships && !hasLineagePermission({ memberships: userPermissions.memberships }, design.lineage, 'queues', 'read')) {
+  if (userPermissions?.memberships && !hasLineagePermission(userPermissions, design.lineage, 'queues', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return serializeForAccess('sheetDesign', design, userPermissions);
@@ -449,7 +449,7 @@ export async function generateAndStoreDxf(id, userId, userOrg, userRole, userPer
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships });
+  const lineageFilter = getLineageFilter(userPermissions);
   const queryFilter = mapLineageQuery(filter);
   if (queryFilter.queueId) {
     queryFilter['lineage.queueId'] = toFlexibleId(queryFilter.queueId);

@@ -45,7 +45,7 @@ function revisionIdentity(entityType, scope, number) {
 
 function canReadRevision(userPermissions, revision) {
   if (!userPermissions) return true;
-  const user = { memberships: userPermissions.memberships || [] };
+  const user = userPermissions;
   const lineage = revision?.lineage || {};
   const sourceFeature = pluralize(revision?.data?.entityType || '');
   if (sourceFeature && hasLineagePermission(user, lineage, sourceFeature, 'read')) {
@@ -141,7 +141,7 @@ export async function getById(id, userId, userRole, userPermissions) {
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = userPermissions?.memberships
-    ? getLineageFilter({ memberships: userPermissions.memberships })
+    ? getLineageFilter(userPermissions)
     : {};
   const processed = { ...filter };
   if (processed.entityId) {

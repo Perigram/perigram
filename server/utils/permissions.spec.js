@@ -39,4 +39,34 @@ describe('Permissions Utility', () => {
       expect(checkEntityAccess(user, {}, null)).toBe(false);
     });
   });
+
+  describe('requirePermission', () => {
+    it('uses active process effective permissions before stored user permissions', () => {
+      const event = {
+        context: {
+          auth: {
+            permissions: { organizations: 'none' },
+            effectivePermissions: { organizations: 'admin' }
+          }
+        }
+      };
+
+      expect(() => requirePermission(event, 'organizations', 'write')).not.toThrow();
+    });
+
+    it('supports granular process grants through the shared evaluator', () => {
+      const event = {
+        context: {
+          auth: {
+            effectivePermissions: {
+              projects: [{ level: 'write', actions: { create: true } }]
+            }
+          }
+        }
+      };
+
+      expect(() => requirePermission(event, 'projects', 'read')).not.toThrow();
+      expect(() => requirePermission(event, 'projects', 'admin')).toThrow(/Permission denied/);
+    });
+  });
 });

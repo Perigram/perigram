@@ -39,7 +39,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 }
 
 function canCreateCatalog({ catalog, data = {}, userPermissions }) {
-  const auth = { memberships: userPermissions.memberships };
+  const auth = userPermissions;
   if (hasLineagePermission(auth, catalog.lineage, 'catalogs', 'admin')) return true;
   if (data.source !== 'WAREHOUSE_STOCK') return false;
   return hasLineagePermission(auth, catalog.lineage, 'materials', 'write');
@@ -52,8 +52,9 @@ export async function getById(uid) {
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships });
-  const canViewAll = normalizePermissionGrants(userPermissions.permissions?.catalogs)
+  const lineageFilter = getLineageFilter(userPermissions);
+  const permissions = userPermissions.effectivePermissions || userPermissions.permissions || {};
+  const canViewAll = normalizePermissionGrants(permissions.catalogs)
     .some(grant => grant.actions?.view_all === true);
   const finalFilter = canViewAll ? mapLineageQuery(filter) : mapLineageQuery({ ...lineageFilter, ...filter });
   
@@ -66,7 +67,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   if (!raw) throw createError({ statusCode: 404, message: 'Catalog not found' });
   const catalog = new Catalog(raw);
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, catalog.lineage, 'catalogs', 'write')) {
+  if (!hasLineagePermission(userPermissions, catalog.lineage, 'catalogs', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -86,7 +87,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   const catalog = await getById(uid);
   if (!catalog) throw createError({ statusCode: 404, message: 'Catalog not found' });
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, catalog.lineage, 'catalogs', 'admin')) {
+  if (!hasLineagePermission(userPermissions, catalog.lineage, 'catalogs', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return await repository.deleteById(uid);

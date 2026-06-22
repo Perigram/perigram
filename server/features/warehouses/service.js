@@ -31,7 +31,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     }
   });
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, warehouse.lineage, 'warehouses', 'write')) {
+  if (!hasLineagePermission(userPermissions, warehouse.lineage, 'warehouses', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -48,7 +48,7 @@ export async function getById(uid) {
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const finalFilter = mapLineageQuery({ ...getLineageFilter({ memberships: userPermissions.memberships }), ...filter });
+  const finalFilter = mapLineageQuery({ ...getLineageFilter(userPermissions), ...filter });
   const raws = await repository.find(finalFilter);
   return raws.map(raw => new Warehouse(raw));
 }
@@ -58,7 +58,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   if (!raw) throw createError({ statusCode: 404, message: 'Warehouse not found' });
   const warehouse = new Warehouse(raw);
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, warehouse.lineage, 'warehouses', 'write')) {
+  if (!hasLineagePermission(userPermissions, warehouse.lineage, 'warehouses', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -73,7 +73,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   const warehouse = await getById(uid);
   if (!warehouse) throw createError({ statusCode: 404, message: 'Warehouse not found' });
-  if (!hasLineagePermission({ memberships: userPermissions.memberships }, warehouse.lineage, 'warehouses', 'admin')) {
+  if (!hasLineagePermission(userPermissions, warehouse.lineage, 'warehouses', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   const stats = warehouse.data?.stats || {};

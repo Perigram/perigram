@@ -92,4 +92,23 @@ describe('entity field access', () => {
     expect(redacted.data.metadata).toBeUndefined();
     expect(redacted.data.internalCost).toBeUndefined();
   });
+
+  it('uses active process permissions and field policies for redaction', () => {
+    const redacted = redactEntityForAccess(project, 'project', {
+      organizationId: 'org-1',
+      effectivePermissions: { projects: 'read' },
+      permissions: { projects: 'admin' },
+      fieldPolicies: {
+        project: {
+          read: ['identity.name'],
+          write: [],
+          private: ['data.internalCost']
+        }
+      }
+    });
+
+    expect(redacted.identity.name).toBe('Project One');
+    expect(redacted.summary).toBeUndefined();
+    expect(redacted.data).toBeUndefined();
+  });
 });

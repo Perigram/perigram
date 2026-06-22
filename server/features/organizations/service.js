@@ -1,6 +1,6 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { hasPermission } from '../../utils/auth-helpers.js';
+import { hasPermission, resolveAuthPermissions } from '../../utils/auth-helpers.js';
 import { getLineageFilter } from '../../utils/permissions.js';
 import { Organization } from './model.js';
 import { statusService } from '../../core/machines/service.js';
@@ -102,7 +102,7 @@ export async function getById(uid) {
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const finalFilter = { ...filter, ...getLineageFilter({ memberships: userPermissions.memberships }) };
+  const finalFilter = { ...filter, ...getLineageFilter(userPermissions) };
   const raws = await repository.find(finalFilter);
   return raws.map(raw => new Organization(raw));
 }
@@ -112,7 +112,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   if (!raw) throw createError({ statusCode: 404, message: 'Organization not found' });
   const org = new Organization(raw);
   
-  if (!hasPermission({ permissions: userPermissions.permissions }, 'organizations', 'write')) {
+  if (!hasPermission({ permissions: resolveAuthPermissions(userPermissions) }, 'organizations', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -125,7 +125,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 }
 
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
-  if (!hasPermission({ permissions: userPermissions.permissions }, 'organizations', 'admin')) {
+  if (!hasPermission({ permissions: resolveAuthPermissions(userPermissions) }, 'organizations', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return await repository.deleteById(uid);
