@@ -37,10 +37,10 @@ At runtime those compiled permissions are the organization's active access
 source.
 
 Action records represent executable process steps on the visual canvas. The
-compiler validates `createEntity`, `changeStatus`, `runCommand`, and
-`sendToOrganization` actions against the domain entity, field-policy, and
-command registries, preserves their typed inputs/outputs, preserves completion
-events, and emits trigger contracts. `trigger.mode` is only the execution mode:
+compiler validates `createEntity`, `updateEntity`, `changeStatus`,
+`runCommand`, and `sendToOrganization` actions against the domain entity,
+field-policy, and command registries, preserves their typed inputs/outputs,
+preserves completion events, and emits trigger contracts. `trigger.mode` is only the execution mode:
 `manual` means a user starts the action from UI, and `event` means another
 node's completion event starts it automatically. Role ids and access levels are
 stored under `action.access` and compile into grants plus manual action
@@ -50,6 +50,10 @@ source, not a filter for action grant creation. Entity creation exposes an
 optional parent input socket and
 domain-declared data sockets from `cncEntityCreateInputs`; the visual designer
 derives the parent from the incoming edge instead of a parent-type selector.
+Update actions consume an entity from the incoming data socket, expose one data
+input socket per selected mutable field, validate those fields against the
+active domain field-access policy, and compile into write/admin grants on the
+concrete incoming entity feature.
 Change-status actions consume their entity from the incoming data socket and
 only require a target status; they do not need a separate entity-type selector.
 Their access grants are entity-type grants conditioned by the resulting state:
@@ -73,9 +77,10 @@ process role records are not a route source.
 Compiled field policies replace the base domain field set for an organization
 when present. `read` fields are public display fields, `write` fields require
 write grants, and `private` fields require admin grants. Socket definitions are
-compiled as runtime contracts and can be used by the backend to project only
-selected entity fields plus receiver lifecycle metadata for another
-organization.
+compiled as runtime contracts. Outbound sockets consume a concrete entity and
+produce a projected payload for another organization. Inbound sockets represent
+receiver inputs from another organization and produce a received entity into the
+local process graph with the socket receiver lifecycle contract.
 
 Compiled-only runtime contracts are not editable process sources. If a stored
 process definition has `data.compiled` but no canonical semantic records, the

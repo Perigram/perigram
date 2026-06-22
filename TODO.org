@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Add update actions and inbound organization sockets
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      components/process-designer/ProcessSocketNode.vue,
+      pages/organization/process.vue, packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      server/features/process-definitions/service.js, stores/auth.js,
+      stores/navigation.js, i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: components/process-designer/README.md,
+      pages/organization/README.md, packages/processes/README.md,
+      server/features/process-definitions/README.md, TODO.org
+    Notes: Added update-entity action nodes with field-derived data sockets,
+      inbound/outbound organization socket nodes, compiled manual action
+      manifests, and active-process-only navigation when a process is active.
+      Outbound socket projection now rejects inbound receiver sockets.
+
     [2026-06-22] Simplify status node access and wire deletion
     Files changed: components/process-designer/ProcessActionNode.vue,
       pages/organization/process.vue

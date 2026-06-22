@@ -34,9 +34,9 @@ operators can tell when the graph became the organization's active process.
 The route uses the
 authenticated app layout with a full canvas workspace and compact floating
 controls over it. The graph palette is a one-line icon button set that creates
-action nodes for entity creation, status changes, command runs, and sending
-projected entity data to another organization. Service/socket nodes can still
-load from older drafts, but new graphs should use action nodes.
+action nodes for entity creation, entity data updates, status changes, command
+runs, sending projected entity data to another organization, and inbound or
+outbound organization socket nodes.
 The properties pane is a bounded floating aside; its tab body owns vertical
 scrolling so long entity lifecycle and role forms remain reachable without
 moving the canvas.
@@ -65,7 +65,7 @@ The inspector edits compiler-owned fields directly:
 - the service access tab owns service runtime identities used by service run/view access;
 - the screens tab owns screen id, label, kind, route, placement, required access, role ids, assignment bindings, and screen actions;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
-- action nodes own fixed action kind, trigger mode, access level, access-granted roles, target entity or command, target status, projection fields, derived typed data sockets, and completion event socket;
+- action nodes own fixed action kind, trigger mode, access level, access-granted roles, target entity or command, target status, update fields, projection fields, derived typed data sockets, and completion event socket;
 - service nodes own command selection, run/view service identities, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
 
@@ -84,10 +84,17 @@ lifecycle and field-policy contracts, while action nodes reference those
 resources and compile into runtime trigger contracts.
 Entity creation actions expose an optional parent input socket and derive the
 parent contract from the incoming edge instead of a parent-type dropdown.
+Update-entity actions consume their entity from the incoming edge, expose one
+left-side data socket per selected mutable field, and compile those selected
+fields against the domain field policy for the concrete incoming entity type.
 Change-status actions do not select an entity type; the entity arrives through
 the left data socket and only the target status is configured on the node.
 Archive is modeled as that target status, and cross-organization transfer is
 modeled as a send-to-organization action with projection fields.
+Inbound organization socket nodes model receiver inputs from other
+organizations and produce received entities into the local graph. Outbound
+socket nodes consume local entities and produce projected payloads for another
+organization.
 Canvas nodes show explicit expected input and produced output socket labels
 instead of input/output counts: action and service node handles are labeled
 with typed entity/status contracts, socket node handles are labeled with the

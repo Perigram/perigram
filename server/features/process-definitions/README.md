@@ -41,7 +41,9 @@ active process in place, and makes the new effective permissions, screens, and
 navigation available on the next auth hydration. Memberships remain the tenant
 relationship; process assignments are the runtime role source.
 
-Socket projection is exposed as a runtime operation. The socket API loads the
-source entity through the app registry, enforces read access, copies only the
-socket projection fields, applies excluded fields, and returns receiver
-lifecycle metadata for the target organization to interpret.
+Socket projection is exposed as a runtime operation for outbound sockets. The
+socket API loads the source entity through the app registry, enforces read
+access, copies only the socket projection fields, applies excluded fields, and
+returns receiver lifecycle metadata for the target organization to interpret.
+Inbound sockets are receiver contracts in the active process graph and cannot
+be used by the outbound projection API.

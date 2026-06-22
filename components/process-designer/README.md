@@ -20,10 +20,12 @@ scanned without adding explanatory chrome:
   event trigger input, data input/output, and completion event output handles on
   the node sides. The node owns inline editing for action access level,
   access-granted roles, trigger mode, command selection, target status,
-  creation target, and projection fields. The action kind is fixed by the
+  creation target, update fields, and projection fields. The action kind is fixed by the
   palette item that created the node and is displayed as a compact verb such as
-  `create` or `service`. Create actions derive their parent from the incoming
-  data socket instead of a parent-type selector, status-change actions consume
+  `create`, `update`, or `service`. Create actions derive their parent from the incoming
+  data socket instead of a parent-type selector, update actions consume an
+  incoming entity and expose selected mutable data fields as left-side data
+  sockets, status-change actions consume
   an incoming entity without selecting an entity type or editing the existing
   status, command actions show command entity inputs/outputs, and
   organization-send actions show the projected output fields.
@@ -31,9 +33,11 @@ scanned without adding explanatory chrome:
   service-identity access, typed input, and output handles and summarizes
   exact command inputs and outputs as labeled sockets in the same
   expected/produced visual contract as action nodes.
-- `ProcessSocketNode.vue` represents cross-organization entity projection. It
-  exposes entity-projection, transfer, and receiver-role handles and summarizes
-  direction plus the expected entity input and produced projected field set.
+- `ProcessSocketNode.vue` represents cross-organization entity transfer.
+  Outbound socket nodes consume an entity on the left and produce a projected
+  payload on the right. Inbound socket nodes represent receiver inputs from
+  another organization and produce the received entity on the right. Direction
+  decides whether send-role or receive-role access is summarized.
 
 Entity, service, and socket nodes remain process-resource surfaces, while
 action nodes are directly editable because most process behavior belongs on the
@@ -75,6 +79,7 @@ polymorphic. For example, `generateAttachment` presents one `Attachment source`
 socket with `attachments.generate` capability and accepted source types instead
 of separate `sheet_design` and `nesting_run` sockets.
 
-New process behavior should use `runCommand` and `sendToOrganization` action
-nodes. Archive is represented as a `changeStatus` action targeting an archive
-status, not as a separate node type.
+New process behavior should use `createEntity`, `updateEntity`, `changeStatus`,
+`runCommand`, `sendToOrganization`, and inbound/outbound socket nodes. Archive
+is represented as a `changeStatus` action targeting an archive status, not as a
+separate node type.
