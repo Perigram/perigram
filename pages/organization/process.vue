@@ -759,6 +759,8 @@ function syncNodeData() {
     node.data.direction = record.direction;
     node.data.lifecycleMode = record.lifecycle?.mode;
     node.data.roleCount = record.allowedRoles ? countRoleBindings(record.allowedRoles) : (record.trigger?.roleIds?.length || 0);
+    node.data.runRoleLabels = roleLabels(record.access?.runRoles || []);
+    node.data.receiveRoleLabels = roleLabels(record.access?.receiveRoles || []);
     node.data.fieldCount = record.fields ? countFieldBindings(record.fields) : (record.projection?.fields?.length || 0);
     node.data.stateLabels = workflowStateLabels(record);
     node.data.transitionCount = workflowTransitionCount(record);
@@ -1058,17 +1060,8 @@ function syncActionIo(action = {}) {
   }
   if (action.actionKind === 'runCommand') {
     const command = cncDomain.commands?.[action.commandId];
-    action.inputs = (command?.input?.entities || []).map(input => ({
-      id: input.name || input.type,
-      entityType: input.type,
-      required: Boolean(input.required),
-      multiple: Boolean(input.multiple)
-    }));
-    action.outputs = (command?.output?.entities || []).map(entityType => ({
-      id: entityType,
-      entityType,
-      multiple: true
-    }));
+    action.inputs = commandInputs(command);
+    action.outputs = commandOutputs(command);
   }
 }
 
@@ -1077,11 +1070,13 @@ function actionKindLabel(actionKind) {
 }
 
 function ioLabel(io) {
-  return [io.entityType || io.id, io.status].filter(Boolean).join(' @ ');
+  return [io.label || io.entityType || io.kind || io.id, io.status].filter(Boolean).join(' @ ');
 }
 
 function ioSpec(io = {}) {
   const detail = [
+    io.capability || '',
+    io.accepts?.length ? io.accepts.join(', ') : '',
     io.required ? t('processDesigner.required') : '',
     io.multiple ? t('processDesigner.multiple') : '',
     io.projection ? t('processDesigner.projectedFields') : '',
@@ -1092,6 +1087,42 @@ function ioSpec(io = {}) {
     label: ioLabel(io),
     detail
   };
+}
+
+function commandInputs(command = {}) {
+  const abstractInputs = command?.input?.abstractEntities || [];
+  const source = abstractInputs.length ? abstractInputs : (command?.input?.entities || []);
+  return source.map(input => ({
+    id: input.name || input.type || input.capability,
+    label: input.label,
+    entityType: input.type,
+    capability: input.capability,
+    accepts: input.accepts || [],
+    required: Boolean(input.required),
+    multiple: Boolean(input.multiple),
+    abstract: Boolean(input.capability || input.accepts?.length)
+  }));
+}
+
+function commandOutputs(command = {}) {
+  return [
+    ...(command?.output?.entities || []).map(entityType => ({
+      id: entityType,
+      entityType,
+      multiple: true
+    })),
+    ...(command?.output?.attachments || []).map(kind => ({
+      id: `attachment:${kind}`,
+      label: kind,
+      kind: 'attachment',
+      multiple: true
+    })),
+    ...(command?.output?.tasks || []).map(task => ({
+      id: `task:${task}`,
+      label: task,
+      kind: 'task'
+    }))
+  ];
 }
 
 function roleLabels(roleIds = []) {
@@ -1183,6 +1214,8 @@ function enrichNodeData(node) {
       direction: record.direction,
       lifecycleMode: record.lifecycle?.mode,
       roleCount: record.allowedRoles ? countRoleBindings(record.allowedRoles) : 0,
+      runRoleLabels: roleLabels(record.access?.runRoles || []),
+      receiveRoleLabels: roleLabels(record.access?.receiveRoles || []),
       fieldCount: record.fields ? countFieldBindings(record.fields) : (record.projection?.fields?.length || 0),
       stateLabels: workflowStateLabels(record),
       transitionCount: workflowTransitionCount(record),
@@ -1245,17 +1278,8 @@ function syncServiceFromCommand() {
   if (!command) return;
   selectedService.value.label = command.label || command.id;
   selectedService.value.serviceType = command.service;
-  selectedService.value.inputs = (command.input?.entities || []).map(input => ({
-    id: input.name || input.type,
-    entityType: input.type,
-    required: Boolean(input.required),
-    multiple: Boolean(input.multiple)
-  }));
-  selectedService.value.outputs = (command.output?.entities || []).map(entityType => ({
-    id: entityType,
-    entityType,
-    multiple: true
-  }));
+  selectedService.value.inputs = commandInputs(command);
+  selectedService.value.outputs = commandOutputs(command);
 }
 
 function onConnect(connection) {

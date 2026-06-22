@@ -1,6 +1,5 @@
 <template>
   <div class="relative min-w-72 rounded-ui border border-amber-300 bg-content px-3 py-3 shadow-card">
-    <Handle id="run-role" type="target" :position="Position.Top" class="!border-amber-500 !bg-amber-500" />
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
         <div class="flex items-center gap-2">
@@ -12,9 +11,22 @@
       <Badge :value="data.roleCount || 0" severity="warning" />
     </div>
 
+    <div class="relative mt-3 rounded-ui border border-content-border px-2 py-1">
+      <Handle id="run-role" type="target" :position="Position.Top" class="!top-[-0.55rem] !border-amber-500 !bg-amber-500" />
+      <div class="flex min-w-0 flex-wrap items-center gap-1">
+        <Tag :value="$t('processDesigner.runAccess')" size="small" severity="warning" />
+        <Tag
+          v-for="role in runRoleLabels"
+          :key="role"
+          :value="role"
+          size="small"
+          severity="secondary"
+        />
+      </div>
+    </div>
+
     <div class="mt-3 grid grid-cols-2 gap-3">
       <div class="flex flex-col gap-1">
-        <small class="mb-1 block text-muted-color">{{ $t('processDesigner.inputs') }}</small>
         <div
           v-for="(input, index) in inputSpecs"
           :key="input.id"
@@ -28,7 +40,6 @@
         </div>
       </div>
       <div class="flex flex-col gap-1">
-        <small class="mb-1 block text-muted-color">{{ $t('processDesigner.outputs') }}</small>
         <div
           v-for="(output, index) in outputSpecs"
           :key="output.id"
@@ -55,6 +66,7 @@ const props = defineProps({ data: { type: Object, default: () => ({}) } });
 
 const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || props.data.inputLabels || []));
 const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || props.data.outputLabels || []));
+const runRoleLabels = computed(() => props.data.runRoleLabels || []);
 
 function normalizeSpecs(items = []) {
   return items.map((item, index) => {

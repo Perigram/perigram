@@ -140,8 +140,7 @@
       ],
       "id": "generateAttachment",
       "inputs": [
-        "sheet_design",
-        "nesting_run"
+        "attachments.generate"
       ],
       "label": "Generate attachment",
       "outputs": [],
@@ -1707,8 +1706,7 @@
       },
       "id": "attachment.generate",
       "inputs": [
-        "sheet_design",
-        "nesting_run"
+        "attachments.generate"
       ],
       "key": "attachmentGenerate",
       "label": "Generate attachment",

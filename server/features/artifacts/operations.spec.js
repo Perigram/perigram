@@ -63,4 +63,35 @@ describe('artifact operations', () => {
       status: 'READY'
     });
   });
+
+  it('accepts an abstract attachment source entity for layout DXF generation', async () => {
+    generateAndStoreDxfMock.mockResolvedValue({ fileId: 'file-2' });
+    createMock.mockResolvedValue({
+      _id: 'artifact-2',
+      data: { type: 'LAYOUT_DXF' },
+      status: { state: 'READY' }
+    });
+
+    await generateAttachment({
+      entities: {
+        source: {
+          _id: 'sheet-2',
+          type: 'sheet_design',
+          identity: { name: 'Sheet 2' },
+          lineage: { queueId: 'queue-2' }
+        }
+      },
+      parameters: { kind: 'LAYOUT_DXF' },
+      auth: {
+        userId: 'user-2',
+        organizationId: 'org-2',
+        role: 'member'
+      }
+    });
+
+    expect(generateAndStoreDxfMock).toHaveBeenCalledWith('sheet-2', 'user-2', 'org-2', 'member', expect.any(Object));
+    expect(createMock).toHaveBeenCalledWith(expect.objectContaining({
+      lineage: expect.objectContaining({ sheetDesignId: 'sheet-2' })
+    }), 'user-2');
+  });
 });

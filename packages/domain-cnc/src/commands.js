@@ -104,6 +104,15 @@ export const cncCommands = {
     action: 'generate',
     label: 'Generate attachment',
     input: {
+      abstractEntities: [
+        {
+          name: 'source',
+          label: 'Attachment source',
+          capability: 'attachments.generate',
+          accepts: ['sheet_design', 'nesting_run'],
+          required: true
+        }
+      ],
       entities: [
         { name: 'sheetDesign', type: 'sheet_design' },
         { name: 'nestingRun', type: 'nesting_run' }

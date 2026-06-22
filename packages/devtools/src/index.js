@@ -43,7 +43,7 @@ export function summarizeCommands(commands = {}) {
     service: action.service,
     action: action.action,
     label: action.label || id,
-    inputs: (action.input?.entities || []).map(input => input.type),
+    inputs: summarizeInputs(action.input),
     outputs: action.output?.entities || [],
     attachments: action.output?.attachments || [],
     tasks: action.output?.tasks || [],
@@ -60,12 +60,20 @@ export function summarizeTasks(tasks = {}) {
     service: task.service,
     label: task.label || task.id,
     executor: task.executor || null,
-    inputs: (task.input?.entities || []).map(input => input.type),
+    inputs: summarizeInputs(task.input),
     outputs: task.output?.entities || [],
     attachments: task.output?.attachments || [],
     tasks: task.output?.tasks || [],
     events: task.output?.events || []
   }));
+}
+
+function summarizeInputs(input = {}) {
+  const abstractInputs = input.abstractEntities || [];
+  if (abstractInputs.length) {
+    return abstractInputs.map(item => item.capability || item.label || item.name);
+  }
+  return (input.entities || []).map(item => item.type);
 }
 
 export function summarizeAttachmentKinds(attachmentKinds = {}) {

@@ -1,7 +1,5 @@
 <template>
   <div class="relative min-w-72 rounded-ui border border-emerald-300 bg-content px-3 py-3 shadow-card">
-    <Handle id="trigger" type="target" :position="Position.Top" class="!border-sky-500 !bg-sky-500" />
-
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
         <div class="flex items-center gap-2">
@@ -12,19 +10,22 @@
       </div>
     </div>
 
-    <div class="mt-3 flex flex-wrap gap-1">
-      <Tag
-        v-for="role in triggerLabels"
-        :key="role"
-        :value="role"
-        size="small"
-        severity="info"
-      />
+    <div class="relative mt-3 rounded-ui border border-content-border px-2 py-1">
+      <Handle id="trigger" type="target" :position="Position.Top" class="!top-[-0.55rem] !border-sky-500 !bg-sky-500" />
+      <div class="flex min-w-0 flex-wrap items-center gap-1">
+        <Tag :value="triggerSocketLabel" size="small" severity="info" />
+        <Tag
+          v-for="role in triggerLabels"
+          :key="role"
+          :value="role"
+          size="small"
+          severity="secondary"
+        />
+      </div>
     </div>
 
     <div class="mt-3 grid grid-cols-2 gap-3">
       <div class="flex flex-col gap-1">
-        <small class="mb-1 block text-muted-color">{{ $t('processDesigner.inputs') }}</small>
         <div
           v-for="(input, index) in inputSpecs"
           :key="input.id"
@@ -38,7 +39,6 @@
         </div>
       </div>
       <div class="flex flex-col gap-1">
-        <small class="mb-1 block text-muted-color">{{ $t('processDesigner.outputs') }}</small>
         <div
           v-for="(output, index) in outputSpecs"
           :key="output.id"
@@ -66,8 +66,13 @@ const { t } = useI18n();
 
 const triggerLabels = computed(() => {
   if (props.data.triggerMode === 'user') return props.data.triggerRoleLabels?.length ? props.data.triggerRoleLabels : [t('common.notAvailable')];
-  return [props.data.triggerMode || t('common.user')];
+  return [];
 });
+const triggerSocketLabel = computed(() => ({
+  user: t('processDesigner.userTrigger'),
+  system: t('processDesigner.systemTrigger'),
+  event: t('processDesigner.eventTrigger')
+})[props.data.triggerMode] || t('processDesigner.trigger'));
 const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || props.data.inputLabels || []));
 const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || props.data.outputLabels || []));
 const subtitle = computed(() => {

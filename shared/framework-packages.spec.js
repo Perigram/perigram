@@ -195,6 +195,13 @@ describe('Framework package contracts', () => {
     expect(cncCommands.generateAttachment).toMatchObject({
       service: 'artifacts',
       action: 'generate',
+      input: {
+        abstractEntities: [expect.objectContaining({
+          name: 'source',
+          capability: 'attachments.generate',
+          accepts: ['sheet_design', 'nesting_run']
+        })]
+      },
       access: { permissions: [expect.objectContaining({ feature: 'artifacts', level: 'write' })] }
     });
     expect(cncCommands.generateConfigBotDraft).toMatchObject({

@@ -136,7 +136,32 @@ async function loadCommandEntities(registry, command, refs) {
     if (!entity) throw createError({ statusCode: 404, message: `${input.type} not found` });
     loaded[input.name] = entity;
   }
+  for (const input of command.input?.abstractEntities || []) {
+    const ref = refs[input.name];
+    if (!ref && input.required) throw createError({ statusCode: 400, message: `Command ${command.id} requires ${input.name}` });
+    if (!ref) continue;
+
+    const { type, id } = normalizeAbstractEntityRef(ref);
+    if (!type || !id) throw createError({ statusCode: 400, message: `Command ${command.id} requires ${input.name} as { type, id }` });
+    if (input.accepts?.length && !input.accepts.includes(type)) {
+      throw createError({ statusCode: 400, message: `Command ${command.id} ${input.name} does not accept ${type}` });
+    }
+
+    const service = registry.getEntityService(type);
+    if (!service?.getById) throw createError({ statusCode: 500, message: `Entity service missing for ${type}` });
+    const entity = await service.getById(id);
+    if (!entity) throw createError({ statusCode: 404, message: `${type} not found` });
+    loaded[input.name] = entity;
+  }
   return loaded;
+}
+
+function normalizeAbstractEntityRef(ref) {
+  if (!ref || typeof ref !== 'object') return {};
+  return {
+    type: ref.type || ref.entityType,
+    id: ref.id || ref._id
+  };
 }
 
 function sanitizeCommandInput(input = {}) {
