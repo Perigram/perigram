@@ -153,7 +153,6 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
 
 ### layer_standards
 *Layer-standards - manages layer standards*
@@ -250,6 +249,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.address` | String | address field |
 | `data.email` | String | email field |
 | `data.phone` | String | phone field |
+| `data.processTemplateId` | String | process template id field |
 | `data.settings` | Array | settings field |
 | `data.type` | String | type field |
 

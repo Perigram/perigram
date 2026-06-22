@@ -262,9 +262,9 @@ describe('cassette v2 trapezoid renderer', () => {
       profile: {
         section: {
           type: 'polygon',
-          holes: [{ type: 'circle', center: ['W / 2', 'H / 2'], diameter: 'D' }]
+          holes: [{ type: 'circle', center: ['21', '14'], diameter: '6' }]
         },
-        sweep: { type: 'linear', length: 'L' }
+        sweep: { type: 'linear', length: '100' }
       },
       manufacturing: { process: 'extruded' }
     });

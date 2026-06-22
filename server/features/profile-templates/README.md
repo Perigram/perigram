@@ -19,8 +19,8 @@ Key fields:
 - `lineage.userId` / `lineage.organizationId`: owner scope; both null means system profile.
 - `data.kind`: `hanger`, `extruded_profile`, or `generic_profile`.
 - `data.process`: `extruded`, `roll_formed`, `brake_formed`, or `machined`.
-- `data.parameters`: expression defaults used by the sketch.
-- `data.sketch`: editable point/line/circle/modifier graph.
+- `data.parameters`: simple profile metadata such as sweep length.
+- `data.sketch`: editable numeric point/polyline/circle/modifier graph.
 - `data.occsProfile`: normalized OCCS `profile.section` and `profile.sweep` snapshot.
 
 ## Related

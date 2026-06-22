@@ -480,10 +480,16 @@
         "defaultName": "Hanger profile",
         "loadTemplate": "Load profile template",
         "preview": "Profile sketch preview",
-        "parameters": "Parameters",
         "points": "Points",
         "holes": "Holes",
+        "polyline": "Polyline",
+        "selection": "Selection",
+        "noSelection": "Select a point or circle.",
         "filletRadius": "Fillet radius",
+        "addPoint": "Add point",
+        "addCircle": "Add circle",
+        "importDxf": "Import DXF",
+        "importFailed": "DXF import failed.",
         "insert": "Insert into cassette",
         "saved": "Profile template saved",
         "saveFailed": "Failed to save profile template",
@@ -491,8 +497,8 @@
         "process": "Process",
         "tools": {
           "select": "Select",
-          "point": "Point",
-          "hole": "Hole"
+          "polyline": "Polyline",
+          "circle": "Circle"
         }
       },
       "placementModes": {

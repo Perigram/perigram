@@ -259,24 +259,25 @@ OCCS does not distinguish sheet and plate at the core level. Both are encoded as
 
 ### 7.3 Profile workpiece
 
-A profile workpiece contains a declarative cross-section and a sweep. Template
-profiles SHOULD preserve expression text instead of evaluated numeric values.
+A profile workpiece contains a declarative cross-section and a sweep. The
+current profile sketch editor stores direct CAD-like numeric geometry; full
+parametric solving is intentionally outside this draft.
 
 ```jsonc
 {
   "id": "hanger_profile_def",
   "type": "profile",
   "role": "hanger",
-  "parameters": { "W": "42", "H": "28", "R": "3", "D": "6", "L": "120" },
+  "parameters": { "L": 120 },
   "profile": {
     "section": {
       "type": "polygon",
-      "vertices": [["0", "0"], ["W", "0"], ["W", "H"], ["0", "H"]],
+      "vertices": [["0", "0"], ["42", "0"], ["42", "28"], ["0", "28"]],
       "edges": [{ "type": "line" }, { "type": "line" }, { "type": "line" }, { "type": "line" }],
-      "holes": [{ "type": "circle", "center": ["W / 2", "H / 2"], "diameter": "D" }],
-      "modifiers": [{ "type": "fillet", "vertices": ["p0", "p1", "p2", "p3"], "radius": "R" }]
+      "holes": [{ "type": "circle", "center": ["21", "14"], "diameter": "6" }],
+      "modifiers": [{ "type": "fillet", "vertices": ["p0", "p1", "p2", "p3"], "radius": "3" }]
     },
-    "sweep": { "type": "linear", "length": "L" }
+    "sweep": { "type": "linear", "length": "120" }
   },
   "manufacturing": { "process": "extruded" }
 }
@@ -285,7 +286,8 @@ profiles SHOULD preserve expression text instead of evaluated numeric values.
 `profile.section.modifiers` is a CutKit draft extension for non-destructive
 rounding/chamfer intent. Editable sketch source MAY be carried under
 `extensions.cutkit.sketch`; consumers that do not understand it can still use
-the normalized `profile.section`.
+the normalized `profile.section`. Sketch import MAY come from DXF closed
+polylines and circles.
 
 ### 7.4 Sheet workpiece
 

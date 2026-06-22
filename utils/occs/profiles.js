@@ -1,4 +1,4 @@
-import { resolveOccsExpression } from './expressions.js';
+import DxfParser from 'dxf-parser';
 
 export const OCCS_PROFILE_KINDS = Object.freeze([
   'hanger',
@@ -14,11 +14,11 @@ export const OCCS_PROFILE_PROCESSES = Object.freeze([
 ]);
 
 export const DEFAULT_OCCS_PROFILE_PARAMETERS = Object.freeze({
-  W: '42',
-  H: '28',
-  R: '3',
-  D: '6',
-  L: '120'
+  W: 42,
+  H: 28,
+  R: 3,
+  D: 6,
+  L: 120
 });
 
 export const createDefaultOccsProfileSketch = (parameters = {}) => ({
@@ -29,10 +29,10 @@ export const createDefaultOccsProfileSketch = (parameters = {}) => ({
     ...parameters
   },
   points: [
-    { id: 'p0', x: '0', y: '0' },
-    { id: 'p1', x: 'W', y: '0' },
-    { id: 'p2', x: 'W', y: 'H' },
-    { id: 'p3', x: '0', y: 'H' }
+    { id: 'p0', x: 0, y: 0 },
+    { id: 'p1', x: 42, y: 0 },
+    { id: 'p2', x: 42, y: 28 },
+    { id: 'p3', x: 0, y: 28 }
   ],
   edges: [
     { id: 'e0', type: 'line', from: 'p0', to: 'p1' },
@@ -41,21 +41,12 @@ export const createDefaultOccsProfileSketch = (parameters = {}) => ({
     { id: 'e3', type: 'line', from: 'p3', to: 'p0' }
   ],
   holes: [
-    { id: 'h0', type: 'circle', center: ['W / 2', 'H / 2'], diameter: 'D' }
+    { id: 'h0', type: 'circle', center: [21, 14], diameter: 6 }
   ],
   modifiers: [
-    { type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 'R' }
+    { type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 3 }
   ],
-  constraints: [
-    { type: 'coincident', entities: ['e0.to', 'e1.from'] },
-    { type: 'coincident', entities: ['e1.to', 'e2.from'] },
-    { type: 'coincident', entities: ['e2.to', 'e3.from'] },
-    { type: 'coincident', entities: ['e3.to', 'e0.from'] },
-    { type: 'horizontal', entity: 'e0' },
-    { type: 'horizontal', entity: 'e2' },
-    { type: 'vertical', entity: 'e1' },
-    { type: 'vertical', entity: 'e3' }
-  ]
+  constraints: []
 });
 
 export const createDefaultOccsProfileTemplateData = (overrides = {}) => ({
@@ -69,15 +60,15 @@ export const createDefaultOccsProfileTemplateData = (overrides = {}) => ({
   occsProfile: null
 });
 
-const stringifyExpression = (value, fallback = '0') => {
-  if (value === null || value === undefined || value === '') return String(fallback);
-  return String(value);
+const numericValue = (value, fallback = 0) => {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : fallback;
 };
 
 const normalizePoint = (point = {}, index = 0) => ({
   id: point.id || `p${index}`,
-  x: stringifyExpression(point.x),
-  y: stringifyExpression(point.y)
+  x: numericValue(point.x),
+  y: numericValue(point.y)
 });
 
 const normalizeLineEdge = (edge = {}, index = 0) => ({
@@ -107,17 +98,17 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
       id: hole.id || `h${index}`,
       type: 'circle',
       center: Array.isArray(hole.center) ? [
-        stringifyExpression(hole.center[0], '0'),
-        stringifyExpression(hole.center[1], '0')
-      ] : ['0', '0'],
-      diameter: stringifyExpression(hole.diameter, '0')
+        numericValue(hole.center[0]),
+        numericValue(hole.center[1])
+      ] : [0, 0],
+      diameter: numericValue(hole.diameter)
     }));
   const modifiers = (Array.isArray(sketch.modifiers) ? sketch.modifiers : fallback.modifiers)
     .filter(modifier => modifier?.type === 'fillet')
     .map(modifier => ({
       type: 'fillet',
       vertices: Array.isArray(modifier.vertices) ? modifier.vertices.filter(id => pointIds.has(id)) : [],
-      radius: stringifyExpression(modifier.radius, '0')
+      radius: numericValue(modifier.radius)
     }))
     .filter(modifier => modifier.vertices.length);
 
@@ -143,14 +134,14 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
     if (!vertexIds.includes(edge.from) && pointById.has(edge.from)) {
       vertexIds.push(edge.from);
       const point = pointById.get(edge.from);
-      vertices.push([point.x, point.y]);
+      vertices.push([String(point.x), String(point.y)]);
     }
   }
 
   if (!vertices.length) {
     for (const point of normalized.points) {
       vertexIds.push(point.id);
-      vertices.push([point.x, point.y]);
+      vertices.push([String(point.x), String(point.y)]);
     }
   }
 
@@ -161,14 +152,14 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
       edges: vertices.map(() => ({ type: 'line' })),
       holes: normalized.holes.map(hole => ({
         type: 'circle',
-        center: hole.center,
-        diameter: hole.diameter
+        center: hole.center.map(value => String(value)),
+        diameter: String(hole.diameter)
       })),
       modifiers: normalized.modifiers.map(modifier => ({ ...modifier }))
     },
     sweep: {
       type: 'linear',
-      length: stringifyExpression(options.length || 'L', 'L')
+      length: String(options.length || normalized.parameters.L || 120)
     },
     sketch: normalized
   };
@@ -176,20 +167,19 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
 
 export const evaluateOccsProfileSketchPreview = (sketch = {}, parameters = {}) => {
   const normalized = normalizeOccsProfileSketch(sketch, parameters);
-  const scope = { ...normalized.parameters, ...(parameters || {}) };
   const points = normalized.points.map(point => ({
     ...point,
-    xValue: resolveOccsExpression(point.x, scope, 0),
-    yValue: resolveOccsExpression(point.y, scope, 0)
+    xValue: numericValue(point.x),
+    yValue: numericValue(point.y)
   }));
   const pointById = new Map(points.map(point => [point.id, point]));
   const holes = normalized.holes.map(hole => ({
     ...hole,
     centerValue: [
-      resolveOccsExpression(hole.center[0], scope, 0),
-      resolveOccsExpression(hole.center[1], scope, 0)
+      numericValue(hole.center[0]),
+      numericValue(hole.center[1])
     ],
-    diameterValue: Math.max(0, resolveOccsExpression(hole.diameter, scope, 0))
+    diameterValue: Math.max(0, numericValue(hole.diameter))
   }));
 
   return {
@@ -198,4 +188,108 @@ export const evaluateOccsProfileSketchPreview = (sketch = {}, parameters = {}) =
     pointById,
     holes
   };
+};
+
+const entityLayer = (entity = {}) => entity.layer || entity.layerName || '';
+
+const pointFromDxf = (point = {}) => ({
+  x: numericValue(point.x ?? point[0]),
+  y: numericValue(point.y ?? point[1])
+});
+
+const polylinePointsFromEntity = (entity = {}) => {
+  if (Array.isArray(entity.vertices)) return entity.vertices.map(pointFromDxf);
+  if (Array.isArray(entity.points)) return entity.points.map(pointFromDxf);
+  return [];
+};
+
+const isClosedDxfPolyline = (entity = {}, points = []) => {
+  if (entity.closed || entity.shape) return true;
+  if (entity.type === 'LWPOLYLINE' || entity.type === 'POLYLINE') {
+    const flags = Number(entity.flags || 0);
+    if ((flags & 1) === 1) return true;
+  }
+  if (points.length < 3) return false;
+  const first = points[0];
+  const last = points[points.length - 1];
+  return Math.hypot(first.x - last.x, first.y - last.y) < 0.001;
+};
+
+const sketchFromPointsAndCircles = ({ points = [], circles = [] } = {}) => {
+  const uniquePoints = points.slice();
+  if (uniquePoints.length > 1) {
+    const first = uniquePoints[0];
+    const last = uniquePoints[uniquePoints.length - 1];
+    if (Math.hypot(first.x - last.x, first.y - last.y) < 0.001) uniquePoints.pop();
+  }
+  const normalizedPoints = uniquePoints.map((point, index) => ({
+    id: `p${index}`,
+    x: Math.round(point.x * 1000) / 1000,
+    y: Math.round(point.y * 1000) / 1000
+  }));
+  const edges = normalizedPoints.map((point, index) => ({
+    id: `e${index}`,
+    type: 'line',
+    from: point.id,
+    to: normalizedPoints[(index + 1) % normalizedPoints.length]?.id || point.id
+  })).filter(edge => edge.from !== edge.to);
+
+  return normalizeOccsProfileSketch({
+    version: '0.1',
+    units: 'mm',
+    parameters: { ...DEFAULT_OCCS_PROFILE_PARAMETERS },
+    points: normalizedPoints,
+    edges,
+    holes: circles.map((circle, index) => ({
+      id: `h${index}`,
+      type: 'circle',
+      center: [
+        Math.round(circle.center[0] * 1000) / 1000,
+        Math.round(circle.center[1] * 1000) / 1000
+      ],
+      diameter: Math.round(circle.diameter * 1000) / 1000
+    })),
+    modifiers: [],
+    constraints: []
+  });
+};
+
+export const profileSketchFromDxfText = (dxfText = '') => {
+  const parser = new DxfParser();
+  const dxf = parser.parseSync(dxfText);
+  const entities = Array.isArray(dxf?.entities) ? dxf.entities : [];
+  const polylines = [];
+  const lines = [];
+  const circles = [];
+
+  for (const entity of entities) {
+    if (entity.type === 'CIRCLE') {
+      const center = pointFromDxf(entity.center || entity);
+      const radius = numericValue(entity.radius);
+      if (radius > 0) circles.push({ center: [center.x, center.y], diameter: radius * 2, layer: entityLayer(entity) });
+      continue;
+    }
+    if (entity.type === 'LWPOLYLINE' || entity.type === 'POLYLINE') {
+      const points = polylinePointsFromEntity(entity);
+      if (points.length >= 3 && isClosedDxfPolyline(entity, points)) {
+        polylines.push({ points, layer: entityLayer(entity) });
+      }
+      continue;
+    }
+    if (entity.type === 'LINE') {
+      const start = pointFromDxf(entity.startPoint || entity.start || entity.vertices?.[0]);
+      const end = pointFromDxf(entity.endPoint || entity.end || entity.vertices?.[1]);
+      lines.push({ start, end, layer: entityLayer(entity) });
+    }
+  }
+
+  const sourcePoints = polylines
+    .sort((left, right) => right.points.length - left.points.length)[0]?.points ||
+    lines.flatMap(line => [line.start, line.end]);
+
+  if (!sourcePoints.length) {
+    throw new Error('DXF does not contain a closed polyline or line geometry for a profile.');
+  }
+
+  return sketchFromPointsAndCircles({ points: sourcePoints, circles });
 };

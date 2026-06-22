@@ -537,16 +537,16 @@ export function createMockProfileTemplate(overrides = {}) {
       data: {
         kind: 'hanger',
         process: 'extruded',
-        parameters: { W: '42', H: '28', R: '3', D: '6', L: '120' },
+        parameters: { W: 42, H: 28, R: 3, D: 6, L: 120 },
         sketch: {
           version: '0.1',
           units: 'mm',
-          parameters: { W: '42', H: '28', R: '3', D: '6', L: '120' },
+          parameters: { W: 42, H: 28, R: 3, D: 6, L: 120 },
           points: [
-            { id: 'p0', x: '0', y: '0' },
-            { id: 'p1', x: 'W', y: '0' },
-            { id: 'p2', x: 'W', y: 'H' },
-            { id: 'p3', x: '0', y: 'H' }
+            { id: 'p0', x: 0, y: 0 },
+            { id: 'p1', x: 42, y: 0 },
+            { id: 'p2', x: 42, y: 28 },
+            { id: 'p3', x: 0, y: 28 }
           ],
           edges: [
             { id: 'e0', type: 'line', from: 'p0', to: 'p1' },
@@ -554,18 +554,18 @@ export function createMockProfileTemplate(overrides = {}) {
             { id: 'e2', type: 'line', from: 'p2', to: 'p3' },
             { id: 'e3', type: 'line', from: 'p3', to: 'p0' }
           ],
-          holes: [{ id: 'h0', type: 'circle', center: ['W / 2', 'H / 2'], diameter: 'D' }],
-          modifiers: [{ type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 'R' }]
+          holes: [{ id: 'h0', type: 'circle', center: [21, 14], diameter: 6 }],
+          modifiers: [{ type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 3 }]
         },
         occsProfile: {
           section: {
             type: 'polygon',
-            vertices: [['0', '0'], ['W', '0'], ['W', 'H'], ['0', 'H']],
+            vertices: [['0', '0'], ['42', '0'], ['42', '28'], ['0', '28']],
             edges: [{ type: 'line' }, { type: 'line' }, { type: 'line' }, { type: 'line' }],
-            holes: [{ type: 'circle', center: ['W / 2', 'H / 2'], diameter: 'D' }],
-            modifiers: [{ type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 'R' }]
+            holes: [{ type: 'circle', center: ['21', '14'], diameter: '6' }],
+            modifiers: [{ type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 3 }]
           },
-          sweep: { type: 'linear', length: 'L' }
+          sweep: { type: 'linear', length: '120' }
         }
       }
     }),
