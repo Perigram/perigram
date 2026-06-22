@@ -53,16 +53,16 @@ which runs automatically from another node's event edge. Service identities
 remain service access records, not manual trigger choices. Multi-socket command
 nodes derive handle ids from the socket contract.
 
-Status action grants use the same access row as create actions. The grant is
-conditioned by the incoming entity status and target status: the designer stores
-`action.access.statusFrom` and `action.access.statusTo` from the graph or
-explicit status fields, and the compiler emits transition metadata plus a
-target-status access rule. The access row grants access to the resulting entity
-status, not to the trigger. The role selector lists process roles directly
-because selecting a role on an action creates the grant; entity-profile grants
-must not hide roles from action grant authoring. Action nodes also render
-compact effective-access chips for roles that already have matching entity
-access from entity profiles or other status/action grants.
+Status-change action grants edit entity access, not status access. The designer
+stores `action.access.statusFrom` and `action.access.statusTo` from the graph or
+explicit status fields, carries the same entity type from the input socket to the
+output socket, and displays the access target as `entity · when STATE`. The
+compiler emits transition metadata plus a target-state rule on the entity grant.
+The role selector lists process roles directly because selecting a role on an
+action creates the entity grant; entity-profile grants must not hide roles from
+action grant authoring. Action nodes also render compact effective-access chips
+for roles that already have matching entity access from entity profiles or other
+status/action grants.
 
 Command sockets should expose abstract domain contracts when a command is
 polymorphic. For example, `generateAttachment` presents one `Attachment source`

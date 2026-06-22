@@ -52,12 +52,13 @@ domain-declared data sockets from `cncEntityCreateInputs`; the visual designer
 derives the parent from the incoming edge instead of a parent-type selector.
 Change-status actions consume their entity from the incoming data socket and
 only require a target status; they do not need a separate entity-type selector.
-Their access grants are status-scoped to the resulting entity state:
+Their access grants are entity grants conditioned by the resulting state:
 `action.access.statusFrom` is derived from the incoming entity socket when
 possible, `action.access.statusTo` follows the target status, and compilation
-emits transition metadata plus a `primaryStatus = statusTo` rule. Manual
-execution remains controlled by the action availability contract; the access
-grant itself describes what the role may access after the status change.
+emits transition metadata plus a `primaryStatus = statusTo` rule on the entity
+feature. Manual execution remains controlled by the action availability
+contract; the access grant itself describes which entity the role may access
+after the status change.
 
 Screen records are route-level UI entries attached to roles and are the source
 for process-composed app navigation. Assignment

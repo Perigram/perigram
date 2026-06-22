@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Make change-status node access entity-scoped
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      pages/organization/process.vue, pages/organization/users.vue
+    Docs updated: components/process-designer/README.md,
+      packages/processes/README.md, TODO.org
+    Notes: Change-status nodes now carry the entity type through the output
+      socket, display access as entity access conditioned by the target state,
+      avoid `status:write` action-label fallbacks, and show existing entity
+      access grants without filtering lower access levels out of the node.
+
     [2026-06-22] Scope status-change access to target status
     Files changed: components/process-designer/ProcessActionNode.vue,
       pages/organization/process.vue, pages/organization/users.vue,
