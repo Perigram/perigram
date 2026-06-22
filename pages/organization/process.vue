@@ -459,6 +459,9 @@ const screenList = computed(() => Object.values(screens.value));
 const selectedRoleRecord = computed(() => selectedRoleId.value ? roles.value[selectedRoleId.value] : null);
 const selectedScreenRecord = computed(() => selectedScreenId.value ? screens.value[selectedScreenId.value] : null);
 const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
+const manualTriggerRoleOptions = computed(() => roleList.value
+  .filter(role => role.kind !== 'serviceRole')
+  .map(role => ({ label: role.label || role.id, value: role.id })));
 const entityTypeOptions = computed(() => (cncDomain.entities || []).map(entity => ({ label: entity.type, value: entity.type })));
 const optionalEntityTypeOptions = computed(() => [{ label: 'None', value: '' }, ...entityTypeOptions.value]);
 const commandOptions = computed(() => Object.values(cncDomain.commands || {}).map(command => ({ label: command.label || command.id, value: command.id })));
@@ -687,7 +690,7 @@ function syncNodeData() {
     node.data.actionRecord = node.type === 'action' ? record : null;
     node.data.entityTypeOptions = node.type === 'action' ? entityTypeOptions.value : [];
     node.data.commandOptions = node.type === 'action' ? commandOptions.value : [];
-    node.data.roleOptions = node.type === 'action' ? roleOptions.value : [];
+    node.data.roleOptions = node.type === 'action' ? manualTriggerRoleOptions.value : [];
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
     node.data.fieldOptions = node.type === 'action' ? fieldOptions(record.entityType) : [];
     node.data.onActionUpdate = node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data.refId, updates, options) : null;
@@ -1180,7 +1183,7 @@ function enrichNodeData(node) {
       actionRecord: node.type === 'action' ? record : null,
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
       commandOptions: node.type === 'action' ? commandOptions.value : [],
-      roleOptions: node.type === 'action' ? roleOptions.value : [],
+      roleOptions: node.type === 'action' ? manualTriggerRoleOptions.value : [],
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
       fieldOptions: node.type === 'action' ? fieldOptions(record.entityType) : [],
       onActionUpdate: node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data?.refId, updates, options) : null,
