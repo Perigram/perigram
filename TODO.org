@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Derive change-status access entity type from graph
+    Files changed: pages/organization/process.vue,
+      pages/organization/users.vue
+    Docs updated: components/process-designer/README.md,
+      packages/processes/README.md, TODO.org
+    Notes: Change-status nodes now derive the concrete entity type from the
+      incoming wired source during node sync and carry it to the output socket.
+      Unwired change-status access no longer falls back to generic `entity`;
+      summaries omit the grant target until the graph provides an entity type.
+
     [2026-06-22] Make change-status node access entity-scoped
     Files changed: components/process-designer/ProcessActionNode.vue,
       pages/organization/process.vue, pages/organization/users.vue
