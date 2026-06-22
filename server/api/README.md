@@ -30,8 +30,11 @@ Routes are grouped into sub-directories corresponding to features:
   validation, activation, and archive endpoints. Activation compiles the visual
   graph into runtime access, navigation, workflow, field-policy, service, and
   socket contracts. Active assignment updates patch the compiled process role
-  mapping for a user. Socket projection endpoints return selected entity fields
-  and receiver lifecycle metadata for cross-organization transfer flows.
+  mapping for a user. Active action execution endpoints resolve the action from
+  the active compiled process, verify that it is available to the current
+  process roles, and delegate to entity, status, socket, or command runtimes.
+  Socket projection endpoints return selected entity fields and receiver
+  lifecycle metadata for cross-organization transfer flows.
 - `sheet-designs/`: Lineage-scoped sheet design list/detail and direct DXF
   export.
 - `status/`: Authenticated status action and history endpoints. History

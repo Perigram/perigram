@@ -45,6 +45,10 @@ first or in the same task before relying on implementation details.
 - Do not run `npm run build` or start dev servers unless explicitly asked.
 - Continue until the task is implemented, documented, validated, and committed,
   or clearly report the blocker.
+- When a user asks to implement a plan, execute the whole accepted plan. Do not
+  intentionally ship a partial plan slice unless the user explicitly narrows
+  scope or an external blocker makes completion impossible; report any blocker
+  before committing partial work.
 
 ## Documentation Rules
 

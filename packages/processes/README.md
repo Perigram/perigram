@@ -71,14 +71,19 @@ for process-composed app navigation. They compile into generated screen
 manifests, not arbitrary Vue component names. A screen declares a fixed
 template (`entityList`, `entityDetail`, `workspaceLanes`, `table`, or
 `formAction`), typed entity sources, template regions, required access, and
-manual process action ids. Assignment bindings replace `$assignment.*`
+manual process action ids. A source describes an entity type plus list/single
+loading mode; a region binds a template slot to one source and a domain display
+surface. Assignment bindings replace `$assignment.*`
 placeholders in screen routes, scopes, source identifiers, and source filters,
 so one user can receive overloaded copies of the same screen for different
 projects or entities. Screens with incomplete bindings are skipped with
 compiler warnings. User-specific compiled screens use canonical generated
 routes under `/screens/:screenKey`; the original semantic route is preserved as
-`sourceRoute` for audit/debug context. Navigation is compiled from the screen
-manifest only; process role records are not a route source.
+`sourceRoute` for audit/debug context. Manual screen actions execute through the
+active process action runtime, which verifies the user's compiled action
+manifest before delegating to entity, status, socket, or command services.
+Navigation is compiled from the screen manifest only; process role records are
+not a route source.
 
 Compiled field policies replace the base domain field set for an organization
 when present. `read` fields are public display fields, `write` fields require

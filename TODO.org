@@ -4,6 +4,25 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Complete generated UI plan execution
+    Files changed: AGENTS.md, components/generated/GeneratedScreen.vue,
+      components/generated/GeneratedRegion.vue,
+      components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedEntityDetail.vue,
+      pages/organization/process.vue,
+      server/api/process-definitions/active/actions/[id]/execute.post.js,
+      server/features/process-definitions/service.js,
+      server/scripts/migrate-process-screens-to-generated-ui.js,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: AGENTS.md, components/README.md, composables/README.md,
+      packages/processes/README.md, pages/organization/README.md,
+      server/api/README.md, server/features/process-definitions/README.md,
+      server/scripts/README.md, TODO.org
+    Notes: Added the no-partial-plan execution rule, wired generated action
+      buttons to an active-process action endpoint, added multi-source and
+      multi-region screen authoring controls, and added a stored process screen
+      migration that recompiles active process contracts.
+
     [2026-06-22] Add process-generated screen runtime
     Files changed: packages/processes/src/index.js,
       packages/processes/src/screen-contract.js,

@@ -119,7 +119,10 @@ compiled process screen manifests through a fixed template registry and shared
 entity primitives (`EntityCard`, `EntityPage`, `EntitySurfaceContent`,
 `ResponsiveGrid`, `WorkspaceLanes`, and `TableFrame`). Process data may select
 registered templates, sources, regions, surfaces, and action ids; it must not
-select arbitrary Vue component names or inject page-local markup.
+select arbitrary Vue component names or inject page-local markup. Generated
+action buttons post to the active process action endpoint and then refresh the
+screen's entity sources; they do not call arbitrary entity URLs from the
+browser.
 
 Lifecycle transitions belong in `EntityStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,

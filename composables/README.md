@@ -170,6 +170,9 @@ generated renderer.
 
 Generated screens are UI composition only. They decide which regions, sources,
 and action buttons are visible, while API routes still enforce real access.
+Manual generated-screen actions post to the active process action endpoint,
+which verifies the compiled action manifest before delegating to the relevant
+entity, status, socket, or command runtime.
 
 ---
 

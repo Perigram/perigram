@@ -59,17 +59,17 @@ saved definition only when active is unavailable. Empty canvases show a passive
 current-process state; they do not propose starter action buttons over the
 workspace.
 The screens tab authors the generated UI manifest for operational user screens:
-fixed templates, typed entity sources, display regions, entity display
-surfaces, required access, assignment binding, and process action ids. It does
-not expose raw JSON as the normal authoring surface. When activated, compiled
-user screens are routed through `/screens/:screenKey`; the semantic route
-entered in the designer is retained as process metadata.
+fixed templates, one or more typed entity sources, one or more display regions,
+entity display surfaces, required access, assignment binding, and process
+action ids. It does not expose raw JSON as the normal authoring surface. When
+activated, compiled user screens are routed through `/screens/:screenKey`; the
+semantic route entered in the designer is retained as process metadata.
 
 The inspector edits compiler-owned fields directly:
 
 - the roles tab owns human process role labels and derived access summaries;
 - the service access tab owns service runtime identities used by service run/view access;
-- the screens tab owns screen id, label, generated UI template, source entity/mode, display surface, route, placement, required access, role ids, assignment binding, and screen action ids;
+- the screens tab owns screen id, label, generated UI template, source entity/mode rows, display region rows, route, placement, required access, role ids, assignment binding, and screen action ids;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
 - action nodes own fixed action kind, trigger mode, access level, access-granted roles, target entity or command, target status, update fields, projection fields, derived typed data sockets, and completion event socket;
 - service nodes own command selection, run/view service identities, and command-derived inputs/outputs;

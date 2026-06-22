@@ -18,6 +18,7 @@ node server/scripts/migrate-entity-revisions.js # Backfill cassette geometry rev
 node server/scripts/repair-system-data-permissions.js # Floor stored user grants so system pens/layers/tools stay visible
 node server/scripts/migrate-org-types-to-processes.js # Backfill active process definitions from stored organization type labels
 node server/scripts/migrate-process-action-access-grants.js # Move process action role grants from trigger records to access records
+node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize stored screens into generated UI contracts
 ```
 
 ## What Gets Created
@@ -125,6 +126,12 @@ action access grants. It rewrites stored process actions so `trigger` contains
 only execution mode, moves role ids to `access.roleIds`, defaults action access
 to `write`, derives status-action access conditions into
 `access.statusFrom/statusTo`, and recompiles active process contracts.
+
+Use `server/scripts/migrate-process-screens-to-generated-ui.js` after adopting
+generated operational screens. It normalizes stored screen records into fixed
+template/source/region contracts, filters stale screen action ids that are not
+defined in the process actions, preserves the previous route as `sourceRoute`,
+and recompiles active process contracts.
 
 ## Entity Revision Migration
 
