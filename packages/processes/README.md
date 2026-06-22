@@ -1,8 +1,9 @@
 # COMPONENT: @cutkit/processes
 
 Declarative organization process compiler. It turns visual process definitions
-into runtime contracts for role-derived permissions, navigation, entity
-workflows, field policies, action nodes, services, and sockets.
+into runtime contracts for role-derived permissions, screen manifests,
+navigation, entity workflows, field policies, action nodes, services, and
+sockets.
 
 Process definitions use canonical semantic records as the editing source of
 truth. `definitionToCanvas()` projects those records into deterministic Vue
@@ -25,7 +26,8 @@ Role access is compositional. Explicit `role.grants` remain supported, but the
 compiler also enriches roles from entity-profile `allowedRoles` and service
 `access.runRoles` / `access.viewRoles` so the visual graph can produce runtime
 permissions without hand-maintained grant JSON. Assignments compile against the
-enriched roles and produce effective permissions plus navigation for each user.
+enriched roles and produce effective permissions, screens, and navigation for
+each user.
 At runtime those compiled permissions are the organization's active access
 source. Membership/user permissions remain compatibility fallback data; they
 are not a second process model.
@@ -40,12 +42,13 @@ event actions remain available for backend orchestration. Entity creation can
 declare a `parentEntityType`, which compiles as an explicit parent input instead
 of being inferred silently.
 
-Navigation records are currently route-level screen entries attached to roles.
-They let an assignment compose several role menus and scoped bindings, but the
-Nuxt app still resolves those entries against its known route registry. A fully
-process-composed screen model should promote actions, services, and entity views
-into canonical screen records during compilation, then let the client render
-that screen manifest instead of hardcoded hub and tab lists.
+Screen records are route-level UI entries attached to roles. Assignment
+bindings replace `$assignment.*` placeholders in screen routes and scopes, so
+one user can receive overloaded copies of the same screen for different
+projects or entities. Screens with incomplete bindings are skipped with
+compiler warnings. Navigation remains as compatibility output derived from role
+routes and compiled screens; clients should prefer the screen manifest when it
+is present.
 
 Compiled field policies replace the base domain field set for an organization
 when present. `read` fields are public display fields, `write` fields require

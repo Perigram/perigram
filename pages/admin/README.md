@@ -91,6 +91,13 @@ workflows from `/api/admin/domain`, fetches an organization override from
 `/api/workflow-overrides/:entityType`, and saves edited workflow JSON through
 the same override endpoint.
 
+## Users
+
+`users.vue` is the platform/admin user list. It shows copied membership
+permissions as read-only legacy fallback data and links access changes to
+organization Team management, because active organization access is composed
+from process role assignments rather than direct permission JSON edits.
+
 ## Domain Builder
 
 `domain-builder.vue` is a browser-local editor for CNC domain source drafts. It

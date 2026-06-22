@@ -4,6 +4,23 @@
   :END:
 
 *** Agent Notes
+    [2026-06-22] Add process-composed screen manifests
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/templates.js,
+      packages/processes/src/transpiler.js,
+      server/features/process-definitions/runtime.js,
+      utils/process-navigation.js, stores/auth.js, stores/navigation.js,
+      pages/organization/process.vue, pages/organization/users.vue,
+      pages/admin/users.vue, i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: README.md, packages/processes/README.md,
+      server/features/process-definitions/README.md, stores/README.md,
+      pages/organization/README.md, pages/admin/README.md, TODO.org
+    Notes: Active processes now compile role-owned screen manifests with
+      assignment binding substitution and overloaded scoped screen keys. Auth
+      exposes screens, navigation prefers them with legacy route fallback, Team
+      management owns concrete user role assignment, and admin user permissions
+      are read-only fallback/debug data.
+
     [2026-06-22] Make active process permissions canonical in access checks
     Files changed: server/utils/auth-helpers.js,
       server/core/machines/service.js,

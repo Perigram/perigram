@@ -2,7 +2,7 @@
 
 Organization-owned process definitions store the visual process graph and the
 compiled runtime contract for roles, user assignments, entity workflows, field
-policies, service availability, sockets, and navigation.
+policies, service availability, sockets, screen manifests, and navigation.
 
 Activation is the only path that affects runtime behavior. The service
 requires canonical semantic process records, validates the draft, verifies the
@@ -27,8 +27,8 @@ process id on the organization.
 
 Active process assignment changes are allowed through
 `assignUserToActiveProcess()`. This updates `data.assignments`, recompiles the
-active process in place, and makes the new effective permissions/navigation
-available on the next auth hydration. Memberships remain the tenant
+active process in place, and makes the new effective permissions, screens, and
+navigation available on the next auth hydration. Memberships remain the tenant
 relationship; process assignments are the runtime role source.
 
 Socket projection is exposed as a runtime operation. The socket API loads the

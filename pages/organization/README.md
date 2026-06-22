@@ -11,21 +11,23 @@ routes.
 user creation, and process role assignment. The page reads roles from the
 active process definition, writes assignments through
 `/api/process-definitions/active/assignments`, and treats copied membership
-permissions as compatibility fallback data.
+permissions as compatibility fallback data. It is the operational owner for
+assigning actual users to abstract process roles and shows the compiled access
+and screen preview from the active process contract.
 
 `process.vue` is the visual process-designer surface. It edits organization
 process definitions with Vue Flow, persists drafts through
 `/api/process-definitions`, validates them through the process compiler, and
-activates compiled runtime contracts for access, navigation, entity workflows,
-services, sockets, and field policies. The route uses the authenticated app
+activates compiled runtime contracts for access, screen manifests, navigation,
+entity workflows, services, sockets, and field policies. The route uses the authenticated app
 layout with a full canvas workspace and floating palette, toolbar, properties,
 and validation panels over it. The graph palette creates action nodes for
 entity creation, status changes, command runs, and sending projected entity
 data to another organization. Service/socket nodes can still load from older
 drafts, but new graphs should use action nodes.
 The properties pane is a bounded floating aside; its tab body owns vertical
-scrolling so long entity lifecycle, role, or assignment forms remain reachable
-without moving the canvas.
+scrolling so long entity lifecycle and role forms remain reachable without
+moving the canvas.
 When older saved graphs still contain role/user layout nodes, the route filters
 those non-canvas nodes out and reconstructs entity/service/socket nodes from
 the process records so active definitions do not open to a blank canvas. Truly
@@ -35,8 +37,8 @@ The route now delegates process round-tripping to `@cutkit/processes`:
 canonical semantic records project into Vue Flow nodes through
 `definitionToCanvas()`, and saving writes the visible canvas back through
 `canvasToDefinition()`. Canvas layout is therefore presentation state; roles,
-entity lifecycles, action definitions, services, organization sends, and user
-assignments remain the process source of truth. If a stored process contains
+entity lifecycles, action definitions, services, organization sends, screens,
+and assignments remain the process source of truth. If a stored process contains
 only compiled runtime data and no semantic records, the designer shows a clear
 validation error instead of guessing a canvas.
 On load, the route fetches the active process and the current process list,
@@ -47,18 +49,16 @@ workspace.
 
 The inspector edits compiler-owned fields directly:
 
-- the roles tab owns abstract process role kind, explicit grant JSON, and app navigation routes;
+- the roles tab owns abstract process role kind, explicit grant JSON, and app screen routes;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
 - action nodes own action kind, target entity or command, status source/target, trigger mode, trigger roles, and derived typed inputs/outputs;
 - service nodes own command selection, run/view roles, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
-- the assignments tab owns concrete user ids and their process role ids.
 
 Role and user assignment records are intentionally not Vue Flow nodes. Roles are
-reusable process metadata assigned onto entity access rules, service/socket
-access rules, and status-machine transitions; user assignments bind actual
-users to those abstract roles without forcing user records into the canvas
-layout.
+reusable process metadata assigned onto entity access rules, screen routes,
+service/socket access rules, and status-machine transitions. Concrete user
+assignment editing belongs to Team management, not the process designer.
 Action nodes are the preferred process-design surface for new behavior because
 they describe what happens. Entity profiles remain process resources for
 lifecycle and field-policy contracts, while action nodes reference those
