@@ -491,11 +491,9 @@ const palette = [
   { type: 'action', actionKind: 'updateEntity', icon: 'pi pi-pencil', label: 'modify' },
   { type: 'action', actionKind: 'changeStatus', icon: 'pi pi-sync', label: 'status' },
   { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play-circle', label: 'service' },
-  { type: 'action', actionKind: 'sendToOrganization', icon: 'pi pi-send', label: 'send' },
   { type: 'statusDefinition', icon: 'pi pi-circle-fill', label: 'status' },
   { type: 'valueInput', icon: 'pi pi-id-card', label: 'block' },
-  { type: 'socket', direction: 'inbound', icon: 'pi pi-sign-in', label: 'receive' },
-  { type: 'socket', direction: 'outbound', icon: 'pi pi-sign-out', label: 'send socket' }
+  { type: 'socket', direction: 'outbound', icon: 'pi pi-send', label: 'transfer' }
 ];
 const actionKindOptions = [
   { label: 'create', value: 'createEntity' },
@@ -892,6 +890,7 @@ function syncNodeData() {
     if (!node.data?.refId) continue;
     const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
     if (node.type === 'action') syncActionIo(record, node);
+    if (node.type === 'entity') syncEntityProfileIo(record);
     if (node.type === 'socket') syncSocketIo(record);
     if (node.type === 'statusDefinition') syncStatusDefinition(record);
     if (node.type === 'valueInput') syncValueInput(record);
@@ -972,7 +971,7 @@ function paletteLabel(item) {
 
 function createEntityProfile(id) {
   const workflow = createCreatedWorkflow();
-  return {
+  const profile = {
     id,
     entityType: 'project',
     label: id,
@@ -981,6 +980,8 @@ function createEntityProfile(id) {
     stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
     allowedRoles: { read: [], write: [], admin: [] }
   };
+  syncEntityProfileIo(profile);
+  return profile;
 }
 
 function createService(id) {
@@ -1340,12 +1341,12 @@ function syncActionIo(action = {}, node = null) {
     const fieldInputs = (action.mutation.fields || []).length
       ? (action.mutation.fields || []).map(path => ({
           id: `field:${path}`,
-          label: path,
+          label: fieldLabel(incomingEntityType, path),
           dataPath: path,
           kind: 'data',
           required: false
         }))
-      : [{ id: 'field', label: t('processDesigner.path'), dataPath: '', kind: 'data', required: false }];
+      : [{ id: 'field', label: t('processDesigner.field'), dataPath: '', kind: 'data', required: false }];
     action.inputs = [
       { id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: incoming.status || '' },
       ...fieldInputs
@@ -1440,6 +1441,49 @@ function syncSocketIo(socket = {}) {
   socket.outputs = [{ id: 'projection', label: socket.entityType, entityType: socket.entityType, projection: true, fields: socket.projection.fields || [] }];
 }
 
+function syncEntityProfileIo(profile = {}) {
+  const entityType = profile.entityType || 'entity';
+  profile.inputs = [
+    { id: 'status', label: t('processDesigner.statusMachine'), kind: 'status' },
+    ...standardBlockSockets(entityType, 'input')
+  ];
+  profile.outputs = [
+    { id: 'entity', label: entityType, entityType, status: initialStatusForProfile(profile) },
+    ...standardBlockSockets(entityType, 'output')
+  ];
+}
+
+function standardBlockSockets(entityType = '', direction = 'output') {
+  return standardBlocksForEntity(entityType).map(block => ({
+    id: block.id,
+    label: block.label,
+    block: block.id,
+    dataPath: block.defaultPath,
+    kind: 'block',
+    direction
+  }));
+}
+
+function standardBlocksForEntity(entityType = '') {
+  const policy = fieldPolicyForEntity(entityType);
+  const roots = new Set(['identity', 'status', 'lineage', 'data']);
+  for (const path of [...(policy.read || []), ...(policy.write || []), ...(policy.admin || [])]) {
+    const root = String(path || '').split('.')[0];
+    if (['identity', 'data', 'specs', 'summary', 'attachments'].includes(root)) roots.add(root);
+  }
+  return [...roots].map(block => ({
+    id: block,
+    label: block,
+    defaultPath: defaultPathForBlock(block)
+  }));
+}
+
+function initialStatusForProfile(profile = {}) {
+  const workflow = workflowForEntity(profile);
+  const region = workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0];
+  return region?.initial || '';
+}
+
 function syncStatusDefinition(status = {}) {
   status.entityType ||= 'project';
   status.statusId ||= String(status.label || status.id || 'CREATED').trim().toUpperCase().replace(/\s+/g, '_');
@@ -1465,6 +1509,10 @@ function syncValueInput(input = {}) {
   }];
 }
 
+function fieldLabel(entityType = '', path = '') {
+  return fieldOptions(entityType).find(option => option.value === path)?.label || path || t('processDesigner.field');
+}
+
 function blockForPath(path = '') {
   const root = String(path || '').split('.')[0];
   if (['identity', 'data', 'specs', 'summary', 'attachments'].includes(root)) return root;
@@ -1475,6 +1523,8 @@ function blockForPath(path = '') {
 function defaultPathForBlock(block = 'data') {
   return ({
     identity: 'identity.name',
+    status: 'status.state.primary',
+    lineage: 'lineage.organizationId',
     data: 'data.value',
     specs: 'specs.value',
     summary: 'summary.value',
@@ -1632,6 +1682,18 @@ function principalLabels(principalIds = []) {
   return principalIds.map(principalId => servicePrincipals.value[principalId]?.label || principalId).filter(Boolean);
 }
 
+function statusOptionsForAction(action = {}, node = {}) {
+  const entityType = action.actionKind === 'createEntity'
+    ? action.entityType
+    : (inferIncomingEntityContract(node.id).entityType || actionEntityType(action));
+  return Object.values(draft.value?.data?.statusDefinitions || {})
+    .filter(status => !entityType || !status.entityType || status.entityType === entityType)
+    .map(status => ({
+      label: status.label || status.statusId || status.id,
+      value: status.statusId || status.id
+    }));
+}
+
 function addLifecycleTransition() {
   const region = ensureCustomLifecycleRegion();
   const states = Object.keys(region.states);
@@ -1708,6 +1770,7 @@ function parseJson(source, fallback) {
 function enrichNodeData(node) {
   const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
   if (node.type === 'action') syncActionIo(record, node);
+  if (node.type === 'entity') syncEntityProfileIo(record);
   if (node.type === 'socket') syncSocketIo(record);
   if (node.type === 'statusDefinition') syncStatusDefinition(record);
   if (node.type === 'valueInput') syncValueInput(record);
@@ -1722,6 +1785,7 @@ function enrichNodeData(node) {
       actionRecord: node.type === 'action' ? record : null,
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
       commandOptions: node.type === 'action' ? commandOptions.value : [],
+      statusOptions: node.type === 'action' ? statusOptionsForAction(record, node) : [],
       roleOptions: node.type === 'action' ? actionRoleOptions(record, node) : [],
       effectiveAccessLabels: node.type === 'action' ? effectiveActionAccessLabels(record, node) : [],
       inheritedAccessLabels: node.type === 'action' ? inheritedActionAccessLabels(record, node) : [],
@@ -1858,6 +1922,8 @@ function syncEntityDefaults() {
     selectedEntity.value.fields.read = ['identity.*', 'status.*', 'lineage.*']
       .filter(path => fieldOptionsForSelectedEntity.value.some(item => item.value === path));
   }
+  syncEntityProfileIo(selectedEntity.value);
+  syncNodeData();
 }
 
 function syncServiceFromCommand() {
@@ -1911,14 +1977,21 @@ function onConnect(connection) {
 function applySemanticConnection(connection = {}) {
   const source = nodes.value.find(item => item.id === connection.source);
   const target = nodes.value.find(item => item.id === connection.target);
-  if (!source || !target || target.type !== 'action') return;
-  const action = draft.value?.data?.actions?.[target.data?.refId];
-  if (!action) return;
+  if (!source || !target) return;
+  const action = target.type === 'action' ? draft.value?.data?.actions?.[target.data?.refId] : null;
+  const entityProfile = target.type === 'entity' ? draft.value?.data?.entityProfiles?.[target.data?.refId] : null;
 
   if (source.type === 'statusDefinition') {
     const status = draft.value?.data?.statusDefinitions?.[source.data?.refId];
     if (!status) return;
     syncStatusDefinition(status);
+    if (entityProfile) {
+      applyStatusDefinitionToEntity(status, entityProfile);
+      syncEntityProfileIo(entityProfile);
+      syncNodeData();
+      return;
+    }
+    if (!action) return;
     action.statusRef = status.id || source.data?.refId;
     action.status ||= {};
     action.status.to = status.statusId;
@@ -1933,9 +2006,56 @@ function applySemanticConnection(connection = {}) {
     const input = draft.value?.data?.valueInputs?.[source.data?.refId];
     if (!input) return;
     syncValueInput(input);
+    if (entityProfile) {
+      applyValueInputToEntity(input, entityProfile);
+      syncEntityProfileIo(entityProfile);
+      syncNodeData();
+      return;
+    }
+    if (!action) return;
     applyValueInputToAction(input, action, source.data?.refId, connection);
     syncActionIo(action, target);
+    return;
   }
+
+  if (source.type === 'entity' && action) {
+    syncActionIo(action, target);
+  }
+}
+
+function applyStatusDefinitionToEntity(status = {}, profile = {}) {
+  profile.entityType = status.entityType || profile.entityType;
+  profile.lifecycle = {
+    mode: 'custom',
+    workflow: workflowForEntity(profile)
+  };
+  const region = ensureLifecycleRegion(profile);
+  region.states[status.statusId] = {
+    ...(region.states[status.statusId] || {}),
+    label: status.label || status.statusId,
+    color: status.color || status.severity || 'info',
+    severity: status.severity || status.color || 'info',
+    icon: status.icon || 'pi pi-circle-fill',
+    canUpdateMeta: true
+  };
+  if (!region.initial) region.initial = status.statusId;
+}
+
+function applyValueInputToEntity(input = {}, profile = {}) {
+  const path = input.path || defaultPathForBlock(input.block);
+  profile.fields ||= { read: [], write: [], private: [] };
+  const target = input.block === 'attachments' ? 'private' : 'write';
+  if (!profile.fields.read.includes(path)) profile.fields.read.push(path);
+  if (!profile.fields[target].includes(path)) profile.fields[target].push(path);
+}
+
+function ensureLifecycleRegion(profile = {}) {
+  const workflow = normalizeWorkflow(profile.lifecycle?.workflow || createCreatedWorkflow());
+  profile.lifecycle ||= {};
+  profile.lifecycle.workflow = workflow;
+  const regionId = workflow.primaryRegion || 'main';
+  workflow.regions[regionId] ||= { id: regionId, label: 'Lifecycle', initial: '', states: {}, transitions: [] };
+  return workflow.regions[regionId];
 }
 
 function applyValueInputToAction(input = {}, action = {}, inputId = '', connection = {}) {
@@ -2057,7 +2177,7 @@ function inferIncomingEntityContract(nodeId) {
   const match = sourceOutputs.find((output, index) => socketHandleIdForRecord('output', output, index, sourceOutputs) === handleId)
     || sourceOutputs.find(output => output.entityType);
   return {
-    entityType: match?.entityType || '',
+    entityType: match?.entityType || sourceRecord?.entityType || '',
     status: typeof match?.status === 'string' ? match.status : '',
     access: sourceRecord?.access ? {
       level: normalizeAccessLevel(sourceRecord.access.level),

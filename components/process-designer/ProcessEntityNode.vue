@@ -1,10 +1,6 @@
 <template>
   <div :class="nodeFrameClass">
     <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-sky-500"></div>
-    <Handle id="access" type="target" :position="Position.Left" class="!border-sky-500 !bg-sky-500" />
-    <Handle id="service-input" type="source" :position="Position.Right" class="!border-amber-500 !bg-amber-500" />
-    <Handle id="socket-source" type="source" :position="Position.Bottom" class="!border-violet-500 !bg-violet-500" />
-
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
         <div class="flex items-center gap-2">
@@ -17,8 +13,26 @@
     </div>
 
     <div class="mt-3 grid grid-cols-2 gap-2">
-      <Tag :value="data.lifecycleMode || $t('processDesigner.defaultCreated')" size="small" />
-      <Tag :value="$t('processDesigner.fieldsCount', { count: data.fieldCount || 0 })" size="small" severity="info" />
+      <div class="flex flex-col gap-1">
+        <div
+          v-for="(input, index) in inputSpecs"
+          :key="input.id"
+          class="relative min-w-0 rounded-ui border border-content-border px-2 py-0.5 pl-3"
+        >
+          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" class="!left-0 !-translate-x-1/2 !border-sky-500 !bg-sky-500" />
+          <span class="block truncate text-xs">{{ input.label }}</span>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1">
+        <div
+          v-for="(output, index) in outputSpecs"
+          :key="output.id"
+          class="relative min-w-0 rounded-ui border border-content-border px-2 py-0.5 pr-3 text-right"
+        >
+          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-sky-500 !bg-sky-500" />
+          <span class="block truncate text-xs">{{ output.label }}</span>
+        </div>
+      </div>
     </div>
 
     <div class="mt-3 flex flex-wrap gap-1">
@@ -84,4 +98,18 @@ const visibleReadFields = computed(() => (props.data.fieldPolicy?.read || []).sl
 const visibleWriteFields = computed(() => (props.data.fieldPolicy?.write || []).slice(0, 3));
 const hiddenReadFieldCount = computed(() => Math.max((props.data.fieldPolicy?.read || []).length - visibleReadFields.value.length, 0));
 const hiddenWriteFieldCount = computed(() => Math.max((props.data.fieldPolicy?.write || []).length - visibleWriteFields.value.length, 0));
+const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || []));
+const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || []));
+
+function normalizeSpecs(items = []) {
+  return items.map((item, index) => ({
+    id: item.id || item.label || index,
+    label: item.label || item.entityType || item.block || item.id
+  }));
+}
+
+function socketHandleId(kind, item, index, items) {
+  if (items.length === 1) return kind;
+  return `${kind}:${item.id || index}`;
+}
 </script>

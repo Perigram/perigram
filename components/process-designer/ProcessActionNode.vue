@@ -13,9 +13,12 @@
         size="small"
         @update:model-value="value => updateAndSync({ entityType: value })"
       />
-      <InputText
+      <Select
         v-if="action.actionKind === 'createEntity'"
         :model-value="action.status?.to || ''"
+        :options="statusOptions"
+        option-label="label"
+        option-value="value"
         class="min-w-0"
         size="small"
         :placeholder="$t('processDesigner.targetStatus')"
@@ -102,9 +105,12 @@
     </div>
 
     <div v-if="hasInlineControls" class="nodrag mt-2 grid grid-cols-2 gap-1">
-      <InputText
+      <Select
         v-if="action.actionKind === 'changeStatus'"
         :model-value="action.status?.to || ''"
+        :options="statusOptions"
+        option-label="label"
+        option-value="value"
         class="col-span-2 min-w-0"
         size="small"
         :placeholder="$t('processDesigner.targetStatus')"
@@ -204,6 +210,7 @@ const effectiveAccessLabels = computed(() => props.data.effectiveAccessLabels ||
 const inheritedAccessLabels = computed(() => props.data.inheritedAccessLabels || []);
 const eventLabel = computed(() => props.data.eventLabel || t('processDesigner.actionCompleted'));
 const actionKindLabel = computed(() => props.data.actionKindLabel || props.data.actionKind || t('common.actions.title'));
+const statusOptions = computed(() => props.data.statusOptions || []);
 const showEntitySelector = computed(() => ['createEntity', 'sendToOrganization'].includes(action.value.actionKind));
 const hasInlineControls = computed(() => ['changeStatus', 'sendToOrganization'].includes(action.value.actionKind));
 function normalizeSpecs(items = []) {

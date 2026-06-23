@@ -348,7 +348,8 @@ function camelCase(value = '') {
 }
 
 async function executeBakeCassetteDesign(action = {}, data = {}, organizationId, auth = {}) {
-  const templateId = data.templateId || data.cassetteId || data.data?.derivedFrom?.templateId;
+  const templateId = data.templateId || data.cassetteId || data.data?.derivedFrom?.templateId
+    || await defaultCassetteTemplateId(auth, organizationId, action);
   if (!templateId) throw createError({ statusCode: 400, message: 'Cassette template is required' });
   const created = await cassetteService.createDesignFromTemplate(
     templateId,
@@ -372,6 +373,16 @@ async function executeBakeCassetteDesign(action = {}, data = {}, organizationId,
     { note: `Created by process action ${action.id}` }
   );
   return { ...created, status };
+}
+
+async function defaultCassetteTemplateId(auth = {}, organizationId, action = {}) {
+  const template = await cassetteService.findDefaultConstructableTemplate?.(
+    auth.userId,
+    organizationId,
+    auth.role,
+    createActionExecutionAuth(auth, action)
+  );
+  return template?._id || template?.identity?.uid || null;
 }
 
 export async function getByIdInternal(id) {

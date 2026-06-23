@@ -2245,6 +2245,7 @@
     "targetStatus": "Target status",
     "severity": "Severity",
     "block": "Block",
+    "field": "Field",
     "icon": "Icon",
     "path": "Path",
     "send": "Send",

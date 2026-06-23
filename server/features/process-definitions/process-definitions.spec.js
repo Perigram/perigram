@@ -22,7 +22,8 @@ vi.mock('~/server/features/organizations/repository.js', () => ({
 
 vi.mock('~/server/features/cassettes/service.js', async (importOriginal) => ({
   ...(await importOriginal()),
-  createDesignFromTemplate: vi.fn()
+  createDesignFromTemplate: vi.fn(),
+  findDefaultConstructableTemplate: vi.fn()
 }));
 
 vi.mock('~/server/runtime/app-registry.js', async (importOriginal) => ({
@@ -360,6 +361,68 @@ describe('process definitions access fallback', () => {
       expect.any(Object)
     );
     expect(result.status.state.primary).toBe('REVIEW');
+  });
+
+  it('uses the default constructable cassette template when process input omits template id', async () => {
+    cassetteService.findDefaultConstructableTemplate.mockResolvedValueOnce({
+      _id: 'default-template',
+      identity: { uid: 'default-template', name: 'Default OCCS' },
+      data: { type: 'PARAMETRIC' }
+    });
+    cassetteService.createDesignFromTemplate.mockResolvedValueOnce({
+      _id: 'design-created',
+      identity: { uid: 'design-created', name: 'Facade B' },
+      lineage: { organizationId: 'org-1', templateId: 'default-template' },
+      status: { state: { primary: 'DRAFT' } },
+      data: { geometry: { dxfId: 'dxf-1' } }
+    });
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        actions: {},
+        compiled: {
+          actions: {
+            create_design: {
+              id: 'create_design',
+              actionKind: 'createEntity',
+              entityType: 'cassette_design',
+              construction: { mode: 'bakeCassetteDesignFromTemplate' },
+              access: { level: 'admin', roleIds: ['role_designer'] }
+            }
+          }
+        }
+      }
+    });
+
+    await executeActiveProcessAction({
+      actionId: 'create_design',
+      data: { identity: { name: 'Facade B' } }
+    }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: {
+        actions: [{ actionId: 'create_design' }]
+      }
+    });
+
+    expect(cassetteService.findDefaultConstructableTemplate).toHaveBeenCalledWith(
+      'user-1',
+      'org-1',
+      undefined,
+      expect.any(Object)
+    );
+    expect(cassetteService.createDesignFromTemplate).toHaveBeenCalledWith(
+      'default-template',
+      {},
+      'user-1',
+      'org-1',
+      undefined,
+      expect.any(Object),
+      { name: 'Facade B' }
+    );
   });
 
   it('derives create parent ids from graph entity inputs', async () => {

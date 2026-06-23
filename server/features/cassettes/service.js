@@ -286,6 +286,27 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
   return cassette.toJSON();
 }
 
+export async function findDefaultConstructableTemplate(userId, userOrg, userRole, userPermissions) {
+  const templates = await list(userId, userOrg, userRole, userPermissions, { limit: 100 });
+  return templates.find(isParametricConstructableTemplate)
+    || templates.find(isStandardTemplate)
+    || null;
+}
+
+function isParametricConstructableTemplate(template = {}) {
+  if (template.data?.type !== 'PARAMETRIC') return false;
+  try {
+    assertEvaluatableParametricTemplate(template);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isStandardTemplate(template = {}) {
+  return template.data?.type === 'STANDARD';
+}
+
 export async function exportDxf(id, dimensions, userId, userOrg, userRole, userPermissions) {
   const template = await getById(id, userId, userOrg, userRole, userPermissions);
 

@@ -197,7 +197,11 @@ async function loadPromptOptions(fields = []) {
   await Promise.all(fields
     .filter(field => field.type === 'entity')
     .map(async (field) => {
-      promptOptions[field.id] = await entityOptions(field.entityType);
+      const options = await entityOptions(field.entityType);
+      promptOptions[field.id] = options;
+      if (field.required && !promptValues[field.id] && options[0]?.value) {
+        promptValues[field.id] = options[0].value;
+      }
     }));
 }
 
