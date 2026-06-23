@@ -47,23 +47,36 @@ multi-role user receives every matching operational screen.
 Action records represent executable process steps on the visual canvas. The
 compiler validates `createEntity`, `updateEntity`, `changeStatus`,
 `runCommand`, and `sendToOrganization` actions against the domain entity,
-field-policy, and command registries, preserves their typed inputs/outputs,
-preserves completion events, and emits trigger contracts. `trigger.mode` is only the execution mode:
+construction, field-policy, status-definition, value-input, and command
+registries, preserves their typed inputs/outputs, preserves completion events,
+and emits trigger contracts. `trigger.mode` is only the execution mode:
 `manual` means a user starts the action from UI, and `event` means another
 node's completion event starts it automatically. Role ids and access levels are
 stored under `action.access` and compile into grants plus manual action
 availability. Designers select from process roles directly when authoring
 action grants; pre-existing entity-profile grants are an independent grant
 source, not a filter for action grant creation. Entity creation exposes an
-optional parent input socket and
-domain-declared data sockets from `cncEntityCreateInputs`; the visual designer
-derives the parent from the incoming edge instead of a parent-type selector.
+optional parent input socket plus domain-declared construction sockets from
+`cncEntityConstruction`; the visual designer derives the parent from the
+incoming edge instead of a parent-type selector. Generated screens prompt for
+construction fields declared by `action.inputPolicy` and post those values to
+the active process action endpoint. Derived entities must use typed
+construction modes. For example, `cassette_design` creation compiles as
+`bakeCassetteDesignFromTemplate` and runtime execution delegates to the
+cassette template construction service, preserving baked geometry and editor
+contracts instead of creating a generic row.
 Update actions consume an entity from the incoming data socket, expose one data
 input socket per selected mutable field, validate those fields against the
 active domain field-access policy, and compile into write/admin grants on the
-concrete incoming entity feature.
+concrete incoming entity feature. Manual generated screens prompt for the
+selected mutation fields through `action.inputPolicy`, while event-driven
+updates can receive the same field payload from wired value/data nodes.
 Change-status actions consume their entity from the incoming data socket and
 only require a target status; they do not need a separate entity-type selector.
+The target may be a literal `action.status.to` or a `statusRef` produced by a
+status-definition node. Status definitions compile into workflow state metadata
+(`label`, `color`, `severity`, `icon`) and into the compiled action target
+state, so runtime execution and UI status rendering use the same value.
 Their access grants are entity-type grants conditioned by the resulting state:
 the designer derives the entity type and source status from the incoming graph
 socket, carries the type to the output socket, and stores

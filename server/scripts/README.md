@@ -20,7 +20,7 @@ node server/scripts/migrate-org-types-to-processes.js # Backfill active process 
 node server/scripts/migrate-process-action-access-grants.js # Move process action role grants from trigger records to access records
 node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize stored screens into generated UI contracts
 node server/scripts/migrate-process-role-memberships.js # Clear preset permissions from process-role memberships and recover tenant admins
-node server/scripts/migrate-process-create-status-grants.js # Recompile process contracts for status-scoped create grants and action workflows
+node server/scripts/migrate-process-create-status-grants.js # Normalize create construction/input policies and recompile process contracts
 ```
 
 ## What Gets Created
@@ -146,10 +146,11 @@ role labels.
 
 Use `server/scripts/migrate-process-create-status-grants.js` after compiler
 changes that affect generated screens, create-action status grants,
-action-derived workflows, or other compiled runtime contracts. It recompiles
-every stored process definition that already has a compiled runtime contract, so
-existing active processes pick up compiler fixes without editing their semantic
-graph records.
+action-derived workflows, construction contracts, or other compiled runtime
+contracts. It rewrites stored create actions to include the current domain
+`construction` and `inputPolicy` records, then recompiles every stored process
+definition that already has a compiled runtime contract, so existing active
+processes pick up compiler fixes without editing their semantic graph records.
 
 ## Entity Revision Migration
 

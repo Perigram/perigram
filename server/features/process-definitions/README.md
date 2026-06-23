@@ -64,6 +64,15 @@ instead of requiring an already-existing status-scoped entity grant. After the
 record is created, create actions apply `action.status.to` through the status
 runtime, treating it as the process initial state for that new record rather
 than a transition from the feature service default.
+Create actions also carry a construction contract. Generic construction passes
+prompted values to the registered entity service and derives parent ids from
+the incoming graph entity input, for example a queue create action wired from a
+project output sends `projectId` to the queue service. Typed construction modes
+delegate to the domain constructor instead of generic entity creation:
+`bakeCassetteDesignFromTemplate` calls the cassette template service, requires a
+template id, accepts concrete parameters and a name, creates a real
+`cassette_design` with geometry/editor provenance, then applies the process
+target status.
 Compiled process access is windowed by graph state. Status-change nodes do not
 append permanent grants; they inherit the incoming entity access until edited,
 then replace the target-status role set with the node's selected grants. Parent

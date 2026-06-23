@@ -28,7 +28,21 @@ scanned without adding explanatory chrome:
   sockets, status-change actions consume
   an incoming entity without selecting an entity type or editing the existing
   status, command actions show command entity inputs/outputs, and
-  organization-send actions show the projected output fields.
+  organization-send actions show the projected output fields. Create actions
+  derive their left-side data sockets from the domain construction contract:
+  promptable constructor inputs become generated-screen dialog fields, and
+  typed derived entities such as `cassette_design` keep their construction mode
+  on the action record instead of pretending they are generic inserts.
+  Update actions derive promptable editor fields from the selected mutation
+  paths, so a manual modify action can collect the new data values before it
+  calls the active process action runtime.
+- `ProcessStatusDefinitionNode.vue` represents a reusable status value for the
+  same canvas. Connecting it to a create or status-change action writes the
+  action target state and lets the compiler apply status label/color/icon
+  metadata to the generated workflow.
+- `ProcessValueInputNode.vue` represents a scalar/object default value. Wiring
+  it into a construction data socket binds that value as the generated action
+  prompt default for the matching construction field.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
   service-identity access, typed input, and output handles and summarizes
   exact command inputs and outputs as labeled sockets in the same
@@ -84,6 +98,9 @@ socket with `attachments.generate` capability and accepted source types instead
 of separate `sheet_design` and `nesting_run` sockets.
 
 New process behavior should use `createEntity`, `updateEntity`, `changeStatus`,
-`runCommand`, `sendToOrganization`, and inbound/outbound socket nodes. Archive
-is represented as a `changeStatus` action targeting an archive status, not as a
-separate node type.
+`runCommand`, `sendToOrganization`, status-definition nodes, value-input nodes,
+and inbound/outbound socket nodes. Archive is represented as a `changeStatus`
+action targeting an archive status, not as a separate node type. Entity naming
+is a construction input: generated create actions prompt for the domain
+contract's name field or consume a connected value-input default; they should
+not create unnamed records unless the entity contract explicitly allows it.

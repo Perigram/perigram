@@ -18,6 +18,8 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
 - `summaries.js` - aggregate summary contracts and frontend route metadata.
 - `field-access.js` - per-entity field visibility policy consumed by backend
   DTO redaction and frontend shared blocks.
+- `entity-construction.js` - create-time construction contracts used by process
+  action nodes and generated action dialogs.
 - `ui.js` - design-system policy metadata, not Vue components.
 - `index.js` - public exports and aggregate `cncDomain`.
 
@@ -77,10 +79,16 @@ File behavior is declared by `AttachmentKind`.
 one abstract `Attachment source` input with `attachments.generate` capability
 and accepted source types.
 
-`entity-create-inputs.js` declares create-action data sockets. These contracts
-are operation inputs, not display fields: process create nodes use them to show
-which data must arrive to create an entity, while post-creation data mutation
-belongs in a separate action contract.
+`entity-construction.js` declares create-time construction contracts. These are
+not authorization rules and not display fields. A construction contract names
+the supported construction modes and required inputs for each entity type:
+ordinary entities use `genericCreate`, while derived entities such as
+`cassette_design` use a typed mode (`bakeCassetteDesignFromTemplate`) so the
+runtime can call the correct construction service and preserve editor
+contracts. `entity-create-inputs.js` projects those construction contracts into
+process-designer data sockets for older imports; new code should read
+`cncEntityConstruction` directly. Post-creation data mutation belongs in an
+`updateEntity` process action.
 
 `profile_template` is reusable master data for OCCS profile-section sketches.
 Cassette templates insert profile workpieces as snapshots with a

@@ -124,9 +124,13 @@ action buttons post to the active process action endpoint and then refresh the
 screen's entity sources; they do not call arbitrary entity URLs from the
 browser. Collection-level generated actions must emit the compiled action
 manifest item itself, not an entity placeholder, because create actions do not
-have an existing entity row. Buttons derive semantic labels and icons from the
-compiled action kind, entity type, and target status when an old manifest still
-contains a generic label such as `Create`.
+have an existing entity row. Create and update actions read
+`inputPolicy.fields` from the compiled action manifest; create actions also
+read `construction.inputs`. Promptable fields open a `StandardDialog`, default
+values can come from process value-input nodes, and the submitted payload is
+posted to the active process action endpoint. Buttons derive semantic labels
+and icons from the compiled action kind, entity type, and target status when an
+old manifest still contains a generic label such as `Create`.
 
 Lifecycle transitions belong in `EntityStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,

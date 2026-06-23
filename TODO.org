@@ -4,6 +4,36 @@
   :END:
 
 *** Agent Notes
+    [2026-06-23] Separate process construction and editor contracts
+    Files changed: packages/domain-cnc/src/entity-construction.js,
+      packages/domain-cnc/src/entity-create-inputs.js,
+      packages/domain-cnc/src/index.js,
+      packages/processes/src/index.js,
+      packages/processes/src/transpiler.js,
+      packages/processes/src/index.spec.js,
+      server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js,
+      server/features/cassettes/service.js,
+      server/scripts/migrate-process-create-status-grants.js,
+      components/generated/GeneratedScreen.vue,
+      components/process-designer/ProcessStatusDefinitionNode.vue,
+      components/process-designer/ProcessValueInputNode.vue,
+      pages/organization/process.vue, i18n/locales/en.json,
+      i18n/locales/ru.json
+    Docs updated: packages/domain-cnc/README.md,
+      packages/processes/README.md,
+      components/process-designer/README.md, components/README.md,
+      server/features/process-definitions/README.md,
+      server/features/cassettes/README.md, server/scripts/README.md,
+      TODO.org
+    Notes: Process create actions now use domain construction contracts
+      separately from access grants and editor contracts. The designer projects
+      construction inputs into real sockets, supports status-definition and
+      value-input nodes, derives parent ids from graph input, and generated
+      screens prompt for constructor fields. Runtime cassette design creation
+      uses the typed template bake path, and existing stored process contracts
+      were migrated/recompiled.
+
     [2026-06-23] Scope generated process screens to role-local status windows
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js, composables/useGeneratedScreen.js,

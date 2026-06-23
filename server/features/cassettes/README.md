@@ -52,6 +52,14 @@ or returns a `cassette_design` for the selected template.
   upload. The route returns that existing design when available instead of
   duplicating the uploaded DXF.
 
+The same constructor is used by process `createEntity` actions whose
+construction mode is `bakeCassetteDesignFromTemplate`. Process execution passes
+the prompted template id, parameter object, and optional design name into
+`createDesignFromTemplate()` so a process-created `cassette_design` has the
+same baked geometry, `data.derivedFrom`, DXF/gridfs references, and editor
+contract as a design created from the cassette UI. Process runtime status is
+applied after construction by the process-definition service.
+
 `GET /api/cassettes/:id/export` remains a template-level DXF export. Parametric
 exports use evaluated `layerData` when available, so folds, marks, dimensions,
 and cut layers are preserved instead of emitting only the nestable contour. For
