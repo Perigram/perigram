@@ -618,16 +618,19 @@ describe('@cutkit/processes compiler', () => {
           entityType: 'cassette_design',
           statusId: 'REVIEW',
           label: 'Review',
-          color: 'warning',
+          severity: 'warn',
+          color: 'warn',
           icon: 'pi pi-eye'
         }
       },
       valueInputs: {
         design_name: {
           id: 'design_name',
+          block: 'identity',
           valueType: 'string',
-          path: 'name',
-          value: 'Named design'
+          path: 'identity.name',
+          value: 'Named design',
+          icon: 'pi pi-id-card'
         }
       },
       actions: {
@@ -659,11 +662,17 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.actions.create_design.status).toMatchObject({ to: 'REVIEW' });
     expect(compiled.actions.create_design.construction.mode).toBe('bakeCassetteDesignFromTemplate');
-    expect(compiled.statusDefinitions.status_review).toMatchObject({ statusId: 'REVIEW', color: 'warning' });
-    expect(compiled.valueInputs.design_name).toMatchObject({ path: 'name', value: 'Named design' });
+    expect(compiled.statusDefinitions.status_review).toMatchObject({ statusId: 'REVIEW', severity: 'warn', color: 'warn' });
+    expect(compiled.valueInputs.design_name).toMatchObject({
+      block: 'identity',
+      path: 'identity.name',
+      value: 'Named design',
+      icon: 'pi pi-id-card'
+    });
     expect(compiled.workflows.cassette_design.regions.main.states.REVIEW).toMatchObject({
       label: 'Review',
-      color: 'warning',
+      color: 'warn',
+      severity: 'warn',
       icon: 'pi pi-eye'
     });
   });

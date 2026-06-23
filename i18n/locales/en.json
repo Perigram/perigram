@@ -2243,6 +2243,8 @@
     "sameEntity": "Same entity",
     "currentStatus": "Current status",
     "targetStatus": "Target status",
+    "severity": "Severity",
+    "block": "Block",
     "icon": "Icon",
     "path": "Path",
     "send": "Send",

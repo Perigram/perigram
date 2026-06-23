@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { activate, assignUserToActiveProcessInternal, executeActiveProcessAction, hasProcessDefinitionMembershipAccess } from './service.js';
 import * as processRepository from './repository.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
+import * as cassetteService from '~/server/features/cassettes/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { statusService } from '~/server/core/machines/service.js';
 
@@ -17,6 +18,11 @@ vi.mock('./repository.js', () => ({
 vi.mock('~/server/features/organizations/repository.js', () => ({
   findById: vi.fn(),
   updateById: vi.fn()
+}));
+
+vi.mock('~/server/features/cassettes/service.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  createDesignFromTemplate: vi.fn()
 }));
 
 vi.mock('~/server/runtime/app-registry.js', async (importOriginal) => ({
@@ -242,7 +248,13 @@ describe('process definitions access fallback', () => {
       }
     });
 
-    const result = await executeActiveProcessAction({ actionId: 'create_project', data: { name: 'Created project' } }, {
+    const result = await executeActiveProcessAction({
+      actionId: 'create_project',
+      data: {
+        identity: { name: 'Created project' },
+        data: { metadata: { priority: 'high' } }
+      }
+    }, {
       userId: 'user-1',
       organizationId: 'org-1',
       effectivePermissions: {
@@ -254,7 +266,12 @@ describe('process definitions access fallback', () => {
     });
 
     expect(create).toHaveBeenCalledWith(
-      { name: 'Created project' },
+      {
+        identity: { name: 'Created project' },
+        data: { metadata: { priority: 'high' } },
+        name: 'Created project',
+        metadata: { priority: 'high' }
+      },
       'user-1',
       'org-1',
       undefined,
@@ -275,6 +292,74 @@ describe('process definitions access fallback', () => {
       expect.any(Object)
     );
     expect(result.status.state.primary).toBe('NEW');
+  });
+
+  it('executes typed cassette design construction with canonical identity payloads', async () => {
+    cassetteService.createDesignFromTemplate.mockResolvedValueOnce({
+      _id: 'design-created',
+      identity: { uid: 'design-created', name: 'Facade A' },
+      lineage: { organizationId: 'org-1', templateId: 'cassette-template-1' },
+      status: { state: { primary: 'DRAFT' } },
+      data: { geometry: { dxfId: 'dxf-1' } }
+    });
+    statusService.setInitialStateForOrganization.mockResolvedValueOnce({
+      state: { primary: 'REVIEW', active: { main: 'REVIEW' } }
+    });
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        actions: {},
+        compiled: {
+          actions: {
+            create_design: {
+              id: 'create_design',
+              actionKind: 'createEntity',
+              entityType: 'cassette_design',
+              construction: { mode: 'bakeCassetteDesignFromTemplate' },
+              status: { to: 'REVIEW' },
+              access: { level: 'admin', roleIds: ['role_designer'] }
+            }
+          }
+        }
+      }
+    });
+
+    const result = await executeActiveProcessAction({
+      actionId: 'create_design',
+      data: {
+        identity: { name: 'Facade A' },
+        templateId: 'cassette-template-1',
+        parameters: { width: 1200 }
+      }
+    }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: {
+        actions: [{ actionId: 'create_design' }]
+      }
+    });
+
+    expect(cassetteService.createDesignFromTemplate).toHaveBeenCalledWith(
+      'cassette-template-1',
+      { width: 1200 },
+      'user-1',
+      'org-1',
+      undefined,
+      expect.any(Object),
+      { name: 'Facade A' }
+    );
+    expect(statusService.setInitialStateForOrganization).toHaveBeenCalledWith(
+      'cassette_design',
+      'design-created',
+      'REVIEW',
+      'org-1',
+      'user-1',
+      expect.any(Object)
+    );
+    expect(result.status.state.primary).toBe('REVIEW');
   });
 
   it('derives create parent ids from graph entity inputs', async () => {

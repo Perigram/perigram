@@ -282,7 +282,6 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     }, auth);
   }
 
-  const service = getEntityServiceForAction(action);
   if (action.actionKind === 'createEntity') {
     if (action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
       return await executeBakeCassetteDesign(action, data, organizationId, auth);
@@ -290,6 +289,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     if (resolveActionEntityType(action) === 'cassette_design') {
       throw createError({ statusCode: 400, message: 'cassette_design requires typed construction' });
     }
+    const service = getEntityServiceForAction(action);
     if (!service.create) throw createError({ statusCode: 500, message: `Entity service cannot create ${action.entityType}` });
     const created = await service.create(createActionPayload(action, data, entities), auth.userId, organizationId, auth.role, createActionExecutionAuth(auth, action));
     const targetState = action.status?.to;
@@ -314,6 +314,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   if (action.actionKind === 'updateEntity') {
     const targetId = entityId || entities?.entity || entities?.[action.entityType];
     if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
+    const service = getEntityServiceForAction(action);
     if (!service.update) throw createError({ statusCode: 500, message: `Entity service cannot update ${resolveActionEntityType(action)}` });
     return await service.update(targetId, pickMutationData(data, action), auth.userId, organizationId, auth.role, auth);
   }
@@ -326,7 +327,20 @@ function createActionPayload(action = {}, data = {}, entities = {}) {
   if (action.parentEntityType && entities?.[action.parentEntityType]) {
     payload[`${camelCase(action.parentEntityType)}Id`] ||= entities[action.parentEntityType];
   }
-  return payload;
+  return normalizeCreationPayload(payload);
+}
+
+function normalizeCreationPayload(payload = {}) {
+  const normalized = { ...payload };
+  if (normalized.identity?.name && !normalized.name) normalized.name = normalized.identity.name;
+  if (normalized.identity?.slug && !normalized.slug) normalized.slug = normalized.identity.slug;
+  for (const block of ['data', 'specs', 'summary']) {
+    if (!normalized[block] || typeof normalized[block] !== 'object' || Array.isArray(normalized[block])) continue;
+    for (const [key, value] of Object.entries(normalized[block])) {
+      if (normalized[key] === undefined) normalized[key] = value;
+    }
+  }
+  return normalized;
 }
 
 function camelCase(value = '') {

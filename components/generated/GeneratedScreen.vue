@@ -117,6 +117,7 @@ const promptOptions = reactive({});
 const regionBySlot = computed(() => Object.fromEntries(
   screen.value.regions.map(region => [region.slot || 'main', region])
 ));
+const actionInputFields = computed(() => collectActionInputFields(pendingAction.value));
 const promptFields = computed(() => promptedFields(pendingAction.value));
 const pendingActionLabel = computed(() => pendingAction.value?.label || t('common.create'));
 const dialogSaveLabel = computed(() => pendingAction.value?.actionKind === 'createEntity' ? t('common.create') : t('common.save'));
@@ -128,7 +129,7 @@ async function executeAction(action, entity = null) {
     await openInputDialog(action, entity);
     return;
   }
-  await postAction(action, entity, {});
+  await postAction(action, entity, promptData(collectActionInputFields(action), {}));
 }
 
 async function openInputDialog(action, entity = null) {
@@ -136,7 +137,8 @@ async function openInputDialog(action, entity = null) {
   pendingEntity.value = entity;
   for (const key of Object.keys(promptValues)) delete promptValues[key];
   for (const key of Object.keys(promptOptions)) delete promptOptions[key];
-  for (const field of promptedFields(action)) {
+  const fields = collectActionInputFields(action);
+  for (const field of fields) {
     promptValues[field.id] = initialPromptValue(field);
   }
   await loadPromptOptions(promptedFields(action));
@@ -153,7 +155,7 @@ async function submitPromptedAction() {
   if (!pendingAction.value) return;
   submittingAction.value = true;
   try {
-    await postAction(pendingAction.value, pendingEntity.value, promptData(promptFields.value, promptValues));
+    await postAction(pendingAction.value, pendingEntity.value, promptData(actionInputFields.value, promptValues));
     closeInputDialog();
   } finally {
     submittingAction.value = false;
@@ -222,18 +224,21 @@ function entityOption(entity = {}) {
   };
 }
 
-function promptedFields(action = {}) {
+function collectActionInputFields(action = {}) {
   const policyFields = action.inputPolicy?.fields || [];
   const constructionFields = action.construction?.inputs || action.inputs || [];
   return [...policyFields, ...constructionFields]
-    .filter(field => field?.prompt || field?.required)
     .filter((field, index, fields) => fields.findIndex(item => item.id === field.id) === index);
+}
+
+function promptedFields(action = {}) {
+  return collectActionInputFields(action).filter(field => field?.prompt || field?.required);
 }
 
 function promptData(fields = [], values = {}) {
   const data = {};
   for (const field of fields) {
-    const value = normalizePromptValue(field, values[field.id]);
+    const value = normalizePromptValue(field, values[field.id] ?? field.default);
     if (value === undefined || value === '') continue;
     setByPath(data, field.path || field.id, value);
   }

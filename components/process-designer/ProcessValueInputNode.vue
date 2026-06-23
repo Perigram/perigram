@@ -2,10 +2,10 @@
   <div :class="nodeFrameClass">
     <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-violet-500"></div>
     <div class="flex items-center gap-2">
-      <i class="pi pi-code text-violet-600"></i>
+      <i :class="data.icon || 'pi pi-code'" class="text-violet-600"></i>
       <div class="min-w-0 flex-1">
-        <div class="truncate text-xs font-semibold uppercase text-violet-700">{{ data.valueType || 'string' }}</div>
-        <div class="truncate text-xs text-muted-color">{{ data.label || data.refId }}</div>
+        <div class="truncate text-xs font-semibold uppercase text-violet-700">{{ data.block || data.valueType || 'string' }}</div>
+        <div class="truncate text-xs text-muted-color">{{ data.path || data.label || data.refId }}</div>
       </div>
     </div>
     <Handle id="value" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-violet-500 !bg-violet-500" />

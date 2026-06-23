@@ -1,15 +1,15 @@
 <template>
   <div :class="nodeFrameClass">
-    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-amber-500"></div>
+    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui" :style="{ backgroundColor: toneColor }"></div>
     <div class="flex items-center gap-2">
-      <i :class="data.icon || 'pi pi-circle-fill'" class="text-amber-600"></i>
+      <i :class="data.icon || 'pi pi-circle-fill'" :style="{ color: toneColor }"></i>
       <div class="min-w-0 flex-1">
-        <div class="truncate text-xs font-semibold uppercase text-amber-700">{{ data.statusId || data.refId }}</div>
-        <div class="truncate text-xs text-muted-color">{{ data.entityType }}</div>
+        <div class="truncate text-xs font-semibold uppercase" :style="{ color: toneColor }">{{ data.statusId || data.refId }}</div>
+        <div class="truncate text-xs text-muted-color">{{ data.label || data.entityType }}</div>
       </div>
-      <Tag v-if="data.color" :value="data.color" size="small" />
+      <Tag v-if="data.severity" :severity="data.severity" :value="data.severity" size="small" />
     </div>
-    <Handle id="status" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-amber-500 !bg-amber-500" />
+    <Handle id="status" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2" :style="{ borderColor: toneColor, backgroundColor: toneColor }" />
   </div>
 </template>
 
@@ -23,6 +23,16 @@ const props = defineProps({
   selected: { type: Boolean, default: false }
 });
 
+const toneColor = computed(() => ({
+  success: 'var(--p-green-500)',
+  info: 'var(--p-blue-500)',
+  warn: 'var(--p-amber-500)',
+  warning: 'var(--p-amber-500)',
+  danger: 'var(--p-red-500)',
+  error: 'var(--p-red-500)',
+  secondary: 'var(--p-surface-500)',
+  contrast: 'var(--p-surface-700)'
+})[props.data.severity || props.data.color] || 'var(--p-amber-500)');
 const nodeFrameClass = computed(() => [
   'relative min-w-56 rounded-ui border bg-content px-2 py-2 pt-3 shadow-card transition-colors',
   props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'

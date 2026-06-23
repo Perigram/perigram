@@ -1084,10 +1084,19 @@ function compileValueInputs(valueInputs = {}) {
   return Object.fromEntries(Object.entries(valueInputs).map(([id, input]) => [id, {
     id: input.id || id,
     label: input.label || input.id || id,
+    block: input.block || blockForValueInput(input.path),
     valueType: input.valueType || 'string',
     path: input.path || '',
-    value: input.value ?? ''
+    value: input.value ?? '',
+    icon: input.icon || ''
   }]));
+}
+
+function blockForValueInput(path = '') {
+  const root = String(path || '').split('.')[0];
+  if (['identity', 'data', 'specs', 'summary', 'attachments'].includes(root)) return root;
+  if (String(path || '').startsWith('statusMeta')) return 'statusMeta';
+  return '';
 }
 
 function normalizeConstruction(construction = {}, entityType = '') {

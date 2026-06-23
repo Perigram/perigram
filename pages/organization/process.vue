@@ -215,18 +215,35 @@
                       <InputText v-model="selectedStatusDefinition.label" />
                     </div>
                     <div class="flex flex-col gap-1">
-                      <label>{{ $t('common.type') }}</label>
-                      <InputText v-model="selectedStatusDefinition.color" />
+                      <label>{{ $t('processDesigner.severity') }}</label>
+                      <Select v-model="selectedStatusDefinition.severity" :options="statusSeverityOptions" option-label="label" option-value="value" />
                     </div>
                     <div class="col-span-2 flex flex-col gap-1">
                       <label>{{ $t('processDesigner.icon') }}</label>
-                      <InputText v-model="selectedStatusDefinition.icon" />
+                      <Select v-model="selectedStatusDefinition.icon" :options="statusIconOptions" option-label="label" option-value="value">
+                        <template #option="{ option }">
+                          <div class="flex items-center gap-2">
+                            <i :class="option.value"></i>
+                            <span>{{ option.label }}</span>
+                          </div>
+                        </template>
+                        <template #value="{ value }">
+                          <div class="flex items-center gap-2">
+                            <i :class="value || selectedStatusDefinition.icon"></i>
+                            <span>{{ iconLabel(value || selectedStatusDefinition.icon) }}</span>
+                          </div>
+                        </template>
+                      </Select>
                     </div>
                   </div>
                 </template>
 
                 <template v-else-if="selectedNode.type === 'valueInput'">
                   <div class="grid grid-cols-2 gap-3">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.block') }}</label>
+                      <Select v-model="selectedValueInput.block" :options="blockOptions" option-label="label" option-value="value" @change="syncSelectedValueInputPath" />
+                    </div>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('common.type') }}</label>
                       <Select v-model="selectedValueInput.valueType" :options="valueTypeOptions" option-label="label" option-value="value" />
@@ -475,8 +492,8 @@ const palette = [
   { type: 'action', actionKind: 'changeStatus', icon: 'pi pi-sync', label: 'status' },
   { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play-circle', label: 'service' },
   { type: 'action', actionKind: 'sendToOrganization', icon: 'pi pi-send', label: 'send' },
-  { type: 'statusDefinition', icon: 'pi pi-circle-fill', label: 'status def' },
-  { type: 'valueInput', icon: 'pi pi-code', label: 'value' },
+  { type: 'statusDefinition', icon: 'pi pi-circle-fill', label: 'status' },
+  { type: 'valueInput', icon: 'pi pi-id-card', label: 'block' },
   { type: 'socket', direction: 'inbound', icon: 'pi pi-sign-in', label: 'receive' },
   { type: 'socket', direction: 'outbound', icon: 'pi pi-sign-out', label: 'send socket' }
 ];
@@ -515,6 +532,31 @@ const accessLevelOptions = [
   { label: 'admin', value: 'admin' }
 ];
 const valueTypeOptions = ['string', 'number', 'object', 'entity'].map(value => ({ label: value, value }));
+const blockOptions = [
+  { label: 'identity', value: 'identity' },
+  { label: 'data', value: 'data' },
+  { label: 'specs', value: 'specs' },
+  { label: 'summary', value: 'summary' },
+  { label: 'attachments', value: 'attachments' },
+  { label: 'status meta', value: 'statusMeta' }
+];
+const statusSeverityOptions = [
+  { label: 'info', value: 'info' },
+  { label: 'success', value: 'success' },
+  { label: 'warning', value: 'warn' },
+  { label: 'danger', value: 'danger' },
+  { label: 'secondary', value: 'secondary' }
+];
+const statusIconOptions = [
+  { label: 'circle', value: 'pi pi-circle-fill' },
+  { label: 'draft', value: 'pi pi-file-edit' },
+  { label: 'active', value: 'pi pi-play-circle' },
+  { label: 'review', value: 'pi pi-eye' },
+  { label: 'ready', value: 'pi pi-check-circle' },
+  { label: 'blocked', value: 'pi pi-ban' },
+  { label: 'warning', value: 'pi pi-exclamation-triangle' },
+  { label: 'archived', value: 'pi pi-box' }
+];
 const accessLevelRank = { read: 1, write: 2, admin: 3 };
 const defaultEdgeOptions = { type: 'smoothstep' };
 
@@ -892,8 +934,11 @@ function syncNodeData() {
     node.data.projection = record.projection || null;
     node.data.statusId = record.statusId;
     node.data.color = record.color;
+    node.data.severity = record.severity;
     node.data.icon = record.icon;
     node.data.valueType = record.valueType;
+    node.data.block = record.block;
+    node.data.path = record.path;
   }
 }
 
@@ -976,11 +1021,11 @@ function createSocket(id, direction = 'outbound') {
 }
 
 function createStatusDefinition(id) {
-  return { id, label: id, entityType: 'project', statusId: 'CREATED', color: 'info', icon: 'pi pi-circle-fill' };
+  return { id, label: 'Created', entityType: 'project', statusId: 'CREATED', severity: 'info', color: 'info', icon: 'pi pi-circle-fill' };
 }
 
 function createValueInput(id) {
-  return { id, label: id, valueType: 'string', path: 'name', value: '' };
+  return { id, label: 'Name', block: 'identity', valueType: 'string', path: 'identity.name', value: '' };
 }
 
 function addRole() {
@@ -1292,13 +1337,15 @@ function syncActionIo(action = {}, node = null) {
     action.entityType = '';
     action.mutation ||= { fields: [] };
     syncMutationInputPolicy(action);
-    const fieldInputs = (action.mutation.fields || []).map(path => ({
-      id: `field:${path}`,
-      label: path,
-      dataPath: path,
-      kind: 'data',
-      required: false
-    }));
+    const fieldInputs = (action.mutation.fields || []).length
+      ? (action.mutation.fields || []).map(path => ({
+          id: `field:${path}`,
+          label: path,
+          dataPath: path,
+          kind: 'data',
+          required: false
+        }))
+      : [{ id: 'field', label: t('processDesigner.path'), dataPath: '', kind: 'data', required: false }];
     action.inputs = [
       { id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: incoming.status || '' },
       ...fieldInputs
@@ -1397,15 +1444,68 @@ function syncStatusDefinition(status = {}) {
   status.entityType ||= 'project';
   status.statusId ||= String(status.label || status.id || 'CREATED').trim().toUpperCase().replace(/\s+/g, '_');
   status.label ||= status.statusId;
-  status.color ||= 'info';
+  status.severity ||= status.color || 'info';
+  status.color = status.severity;
   status.icon ||= 'pi pi-circle-fill';
 }
 
 function syncValueInput(input = {}) {
+  input.block ||= blockForPath(input.path);
   input.valueType ||= 'string';
-  input.path ||= 'name';
+  input.path = normalizeBlockPath(input.block, input.path || defaultPathForBlock(input.block));
   input.label ||= input.path || input.id;
+  input.icon ||= iconForBlock(input.block);
   input.value ??= '';
+  input.outputs = [{
+    id: 'value',
+    label: input.label || input.path,
+    dataPath: input.path,
+    kind: input.valueType,
+    block: input.block
+  }];
+}
+
+function blockForPath(path = '') {
+  const root = String(path || '').split('.')[0];
+  if (['identity', 'data', 'specs', 'summary', 'attachments'].includes(root)) return root;
+  if (String(path || '').startsWith('statusMeta')) return 'statusMeta';
+  return 'data';
+}
+
+function defaultPathForBlock(block = 'data') {
+  return ({
+    identity: 'identity.name',
+    data: 'data.value',
+    specs: 'specs.value',
+    summary: 'summary.value',
+    attachments: 'attachments.primary',
+    statusMeta: 'statusMeta.note'
+  })[block] || 'data.value';
+}
+
+function normalizeBlockPath(block = 'data', path = '') {
+  const clean = String(path || '').trim();
+  if (!clean) return defaultPathForBlock(block);
+  if (clean.startsWith(`${block}.`) || (block === 'statusMeta' && clean.startsWith('statusMeta.'))) return clean;
+  if (['identity', 'data', 'specs', 'summary', 'attachments'].some(prefix => clean.startsWith(`${prefix}.`))) return clean;
+  return `${block}.${clean}`;
+}
+
+function iconForBlock(block = 'data') {
+  return ({
+    identity: 'pi pi-id-card',
+    data: 'pi pi-database',
+    specs: 'pi pi-list-check',
+    summary: 'pi pi-chart-bar',
+    attachments: 'pi pi-paperclip',
+    statusMeta: 'pi pi-comment'
+  })[block] || 'pi pi-database';
+}
+
+function syncSelectedValueInputPath() {
+  selectedValueInput.value.path = defaultPathForBlock(selectedValueInput.value.block);
+  selectedValueInput.value.icon = iconForBlock(selectedValueInput.value.block);
+  selectedValueInput.value.label = selectedValueInput.value.path;
 }
 
 function initialSocketStatus(socket = {}) {
@@ -1650,9 +1750,12 @@ function enrichNodeData(node) {
       fieldPolicy: record.fields || null,
       projection: record.projection || null,
       statusId: record.statusId,
+      severity: record.severity,
       color: record.color,
       icon: record.icon,
-      valueType: record.valueType
+      valueType: record.valueType,
+      block: record.block,
+      path: record.path
     }
   };
 }
@@ -1830,15 +1933,90 @@ function applySemanticConnection(connection = {}) {
     const input = draft.value?.data?.valueInputs?.[source.data?.refId];
     if (!input) return;
     syncValueInput(input);
-    const targetId = String(connection.targetHandle || '').replace(/^input:/, '').replace(/^data:/, '');
-    const fields = action.inputPolicy?.fields || [];
-    const field = fields.find(item => item.id === targetId || item.id === targetId.replace(/^data:/, '') || item.path === targetId);
-    if (!field) return;
-    field.default = parseValueInput(input);
-    field.valueRef = input.id || source.data?.refId;
-    action.inputPolicy.fields = [...fields];
+    applyValueInputToAction(input, action, source.data?.refId, connection);
     syncActionIo(action, target);
   }
+}
+
+function applyValueInputToAction(input = {}, action = {}, inputId = '', connection = {}) {
+  const targetId = String(connection.targetHandle || '').replace(/^input:/, '').replace(/^data:/, '');
+  const field = fieldContractFromValueInput(input, inputId);
+
+  if (action.actionKind === 'updateEntity') {
+    action.mutation ||= { fields: [] };
+    if (!action.mutation.fields.includes(field.path)) action.mutation.fields = [...action.mutation.fields, field.path];
+    upsertInputPolicyField(action, field);
+    return;
+  }
+
+  if (action.actionKind === 'createEntity') {
+    const targetField = findConstructionField(action, targetId);
+    upsertInputPolicyField(action, fieldForTargetSocket(field, targetField, targetId));
+    return;
+  }
+
+  if (action.actionKind === 'changeStatus') {
+    upsertInputPolicyField(action, {
+      ...field,
+      path: field.path.startsWith('statusMeta.') ? field.path : `statusMeta.${field.path.split('.').pop()}`,
+      id: field.id.startsWith('statusMeta.') ? field.id : `statusMeta:${field.id}`
+    });
+  }
+}
+
+function findConstructionField(action = {}, targetId = '') {
+  const inputs = [
+    ...(action.construction?.inputs || []),
+    ...(constructionContractForEntity(action.entityType).inputs || [])
+  ];
+  return inputs.find(input =>
+    input.id === targetId ||
+    input.path === targetId ||
+    `data:${input.id}` === targetId ||
+    `data:${input.path}` === targetId
+  ) || null;
+}
+
+function fieldForTargetSocket(field = {}, targetField = null, targetId = '') {
+  if (!targetField) return { ...field, id: targetId || field.id };
+  return {
+    ...field,
+    ...targetField,
+    id: targetField.id || targetId || field.id,
+    label: targetField.label || field.label,
+    path: targetField.path || field.path,
+    type: targetField.type || field.type,
+    prompt: false,
+    required: Boolean(targetField.required && field.default === undefined),
+    default: field.default,
+    valueRef: field.valueRef
+  };
+}
+
+function fieldContractFromValueInput(input = {}, inputId = '') {
+  return {
+    id: input.id || inputId || input.path,
+    label: input.label || input.path,
+    path: input.path,
+    type: input.valueType || 'string',
+    prompt: false,
+    required: false,
+    default: parseValueInput(input),
+    valueRef: input.id || inputId || ''
+  };
+}
+
+function upsertInputPolicyField(action = {}, field = {}) {
+  action.inputPolicy ||= { prompt: true, fields: [] };
+  const fields = action.inputPolicy.fields || [];
+  const index = fields.findIndex(item => item.id === field.id || item.path === field.path);
+  if (index >= 0) fields[index] = { ...fields[index], ...field };
+  else fields.push(field);
+  action.inputPolicy = {
+    ...action.inputPolicy,
+    prompt: fields.some(item => item.prompt !== false),
+    fields: [...fields]
+  };
 }
 
 function parseValueInput(input = {}) {
@@ -1848,6 +2026,10 @@ function parseValueInput(input = {}) {
   }
   if (input.valueType === 'object') return parseJson(input.value || '{}', {});
   return input.value ?? '';
+}
+
+function iconLabel(value = '') {
+  return statusIconOptions.find(option => option.value === value)?.label || value || '';
 }
 
 function syncInferredActionInputs() {
