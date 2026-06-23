@@ -16,6 +16,8 @@
         <template #node-action="props"><ProcessActionNode v-bind="props" /></template>
         <template #node-service="props"><ProcessServiceNode v-bind="props" /></template>
         <template #node-socket="props"><ProcessSocketNode v-bind="props" /></template>
+        <template #node-statusDefinition="props"><ProcessStatusDefinitionNode v-bind="props" /></template>
+        <template #node-valueInput="props"><ProcessValueInputNode v-bind="props" /></template>
       </VueFlow>
 
       <div v-if="!nodes.length" class="absolute left-[15rem] right-[30rem] top-24 z-10 flex justify-center">
@@ -195,6 +197,49 @@
                   <div class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.receiverLifecycle') }}</label>
                     <Select v-model="selectedSocket.receiverLifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
+                  </div>
+                </template>
+
+                <template v-else-if="selectedNode.type === 'statusDefinition'">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.entityType') }}</label>
+                      <Select v-model="selectedStatusDefinition.entityType" :options="entityTypeOptions" option-label="label" option-value="value" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.stateId') }}</label>
+                      <InputText v-model="selectedStatusDefinition.statusId" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('common.label') }}</label>
+                      <InputText v-model="selectedStatusDefinition.label" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('common.type') }}</label>
+                      <InputText v-model="selectedStatusDefinition.color" />
+                    </div>
+                    <div class="col-span-2 flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.icon') }}</label>
+                      <InputText v-model="selectedStatusDefinition.icon" />
+                    </div>
+                  </div>
+                </template>
+
+                <template v-else-if="selectedNode.type === 'valueInput'">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('common.type') }}</label>
+                      <Select v-model="selectedValueInput.valueType" :options="valueTypeOptions" option-label="label" option-value="value" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.path') }}</label>
+                      <InputText v-model="selectedValueInput.path" />
+                    </div>
+                    <div class="col-span-2 flex flex-col gap-1">
+                      <label>{{ $t('common.default') }}</label>
+                      <Textarea v-if="selectedValueInput.valueType === 'object'" v-model="selectedValueInput.value" rows="3" auto-resize />
+                      <InputText v-else v-model="selectedValueInput.value" />
+                    </div>
                   </div>
                 </template>
 
@@ -394,11 +439,13 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import { canvasToDefinition, definitionToCanvas } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
-import { cncDomain, cncEntityCreateInputs, cncEntityFieldAccess, cncWorkflows } from '@cutkit/domain-cnc';
+import { cncDomain, cncEntityConstruction, cncEntityFieldAccess, cncWorkflows } from '@cutkit/domain-cnc';
 import ProcessActionNode from '~/components/process-designer/ProcessActionNode.vue';
 import ProcessEntityNode from '~/components/process-designer/ProcessEntityNode.vue';
 import ProcessServiceNode from '~/components/process-designer/ProcessServiceNode.vue';
 import ProcessSocketNode from '~/components/process-designer/ProcessSocketNode.vue';
+import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
+import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
 
 const { t } = useI18n();
 definePageMeta({
@@ -424,16 +471,18 @@ const newStateId = ref('');
 
 const palette = [
   { type: 'action', actionKind: 'createEntity', icon: 'pi pi-plus-circle', label: 'create' },
-  { type: 'action', actionKind: 'updateEntity', icon: 'pi pi-pencil', label: 'update' },
+  { type: 'action', actionKind: 'updateEntity', icon: 'pi pi-pencil', label: 'modify' },
   { type: 'action', actionKind: 'changeStatus', icon: 'pi pi-sync', label: 'status' },
   { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play-circle', label: 'service' },
   { type: 'action', actionKind: 'sendToOrganization', icon: 'pi pi-send', label: 'send' },
+  { type: 'statusDefinition', icon: 'pi pi-circle-fill', label: 'status def' },
+  { type: 'valueInput', icon: 'pi pi-code', label: 'value' },
   { type: 'socket', direction: 'inbound', icon: 'pi pi-sign-in', label: 'receive' },
   { type: 'socket', direction: 'outbound', icon: 'pi pi-sign-out', label: 'send socket' }
 ];
 const actionKindOptions = [
   { label: 'create', value: 'createEntity' },
-  { label: 'update', value: 'updateEntity' },
+  { label: 'modify', value: 'updateEntity' },
   { label: 'status', value: 'changeStatus' },
   { label: 'service', value: 'runCommand' },
   { label: 'send', value: 'sendToOrganization' }
@@ -465,6 +514,7 @@ const accessLevelOptions = [
   { label: 'write', value: 'write' },
   { label: 'admin', value: 'admin' }
 ];
+const valueTypeOptions = ['string', 'number', 'object', 'entity'].map(value => ({ label: value, value }));
 const accessLevelRank = { read: 1, write: 2, admin: 3 };
 const defaultEdgeOptions = { type: 'smoothstep' };
 
@@ -491,6 +541,8 @@ const selectedEntity = computed(() => selectedNode.value?.type === 'entity' ? en
 const selectedAction = computed(() => selectedNode.value?.type === 'action' ? ensureRecord('actions', selectedNode.value, createAction) : {});
 const selectedService = computed(() => selectedNode.value?.type === 'service' ? ensureRecord('services', selectedNode.value, createService) : {});
 const selectedSocket = computed(() => selectedNode.value?.type === 'socket' ? ensureRecord('sockets', selectedNode.value, createSocket) : {});
+const selectedStatusDefinition = computed(() => selectedNode.value?.type === 'statusDefinition' ? ensureRecord('statusDefinitions', selectedNode.value, createStatusDefinition) : {});
+const selectedValueInput = computed(() => selectedNode.value?.type === 'valueInput' ? ensureRecord('valueInputs', selectedNode.value, createValueInput) : {});
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType?.replace(/_/g, 's') || 'projects');
 
 const roles = computed(() => draft.value?.data?.roles || {});
@@ -799,6 +851,8 @@ function syncNodeData() {
     const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
     if (node.type === 'action') syncActionIo(record, node);
     if (node.type === 'socket') syncSocketIo(record);
+    if (node.type === 'statusDefinition') syncStatusDefinition(record);
+    if (node.type === 'valueInput') syncValueInput(record);
     node.data.label = record.label || actionKindLabel(record.actionKind) || record.entityType || record.commandId || node.data.label;
     node.data.actionKind = record.actionKind;
     node.data.entityType = record.entityType;
@@ -811,10 +865,12 @@ function syncNodeData() {
     node.data.commandOptions = node.type === 'action' ? commandOptions.value : [];
     node.data.roleOptions = node.type === 'action' ? actionRoleOptions(record, node) : [];
     node.data.effectiveAccessLabels = node.type === 'action' ? effectiveActionAccessLabels(record, node) : [];
+    node.data.inheritedAccessLabels = node.type === 'action' ? inheritedActionAccessLabels(record, node) : [];
     node.data.accessLevelOptions = node.type === 'action' ? accessLevelOptions : [];
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
     node.data.fieldOptions = node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [];
     node.data.onActionUpdate = node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data.refId, updates, options) : null;
+    node.data.onActionResetAccess = node.type === 'action' ? () => resetActionAccess(record.id || node.data.refId) : null;
     node.data.statusFrom = record.status?.from;
     node.data.statusTo = record.status?.to;
     node.data.direction = record.direction;
@@ -834,6 +890,10 @@ function syncNodeData() {
     node.data.outputSpecs = (record.outputs || []).map(ioSpec);
     node.data.fieldPolicy = record.fields || null;
     node.data.projection = record.projection || null;
+    node.data.statusId = record.statusId;
+    node.data.color = record.color;
+    node.data.icon = record.icon;
+    node.data.valueType = record.valueType;
   }
 }
 
@@ -846,11 +906,11 @@ function ensureRecord(key, node, factory) {
 }
 
 function recordKeyForType(type) {
-  return ({ entity: 'entityProfiles', action: 'actions', service: 'services', socket: 'sockets' })[type] || 'entityProfiles';
+  return ({ entity: 'entityProfiles', action: 'actions', service: 'services', socket: 'sockets', statusDefinition: 'statusDefinitions', valueInput: 'valueInputs' })[type] || 'entityProfiles';
 }
 
 function factoryForType(type) {
-  return ({ entity: createEntityProfile, action: createAction, service: createService, socket: createSocket })[type] || createEntityProfile;
+  return ({ entity: createEntityProfile, action: createAction, service: createService, socket: createSocket, statusDefinition: createStatusDefinition, valueInput: createValueInput })[type] || createEntityProfile;
 }
 
 function createRole(id) {
@@ -913,6 +973,14 @@ function createSocket(id, direction = 'outbound') {
     receiverLifecycle: { mode: 'defaultCreated', workflow: null },
     access: { sendRoles: [], receiveRoles: [] }
   };
+}
+
+function createStatusDefinition(id) {
+  return { id, label: id, entityType: 'project', statusId: 'CREATED', color: 'info', icon: 'pi pi-circle-fill' };
+}
+
+function createValueInput(id) {
+  return { id, label: id, valueType: 'string', path: 'name', value: '' };
 }
 
 function addRole() {
@@ -1185,12 +1253,15 @@ function syncActionIo(action = {}, node = null) {
   delete action.trigger.roleIds;
   action.access.level = normalizeAccessLevel(action.access.level);
   action.status ||= {};
+  applyStatusDefinitionToAction(action);
   action.events = actionEventOutputs(action);
   if (action.actionKind === 'createEntity') {
+    const incoming = node?.id ? inferIncomingEntityContract(node.id) : {};
+    syncActionConstruction(action);
     action.status.to ||= initialStatusForEntity(action.entityType);
-    action.parentEntityType = '';
+    action.parentEntityType = incoming.entityType || '';
     action.inputs = [
-      { id: 'parent', label: t('processDesigner.parentEntity'), required: false },
+      { id: 'parent', label: incoming.entityType || t('processDesigner.parentEntity'), entityType: incoming.entityType || '', status: incoming.status || '', required: false },
       ...createInputSockets(action.entityType)
     ];
     action.outputs = [{ id: 'created', entityType: action.entityType, status: action.status.to }];
@@ -1220,6 +1291,7 @@ function syncActionIo(action = {}, node = null) {
     const incomingEntityType = node ? (incoming.entityType || '') : (action.inputs?.find(input => input.id === 'entity')?.entityType || '');
     action.entityType = '';
     action.mutation ||= { fields: [] };
+    syncMutationInputPolicy(action);
     const fieldInputs = (action.mutation.fields || []).map(path => ({
       id: `field:${path}`,
       label: path,
@@ -1247,6 +1319,66 @@ function syncActionIo(action = {}, node = null) {
   }
 }
 
+function syncMutationInputPolicy(action = {}) {
+  const existingFields = new Map((action.inputPolicy?.fields || []).map(field => [field.id || field.path, field]));
+  const fields = (action.mutation?.fields || []).map(path => {
+    const id = `field:${path}`;
+    const existing = existingFields.get(id) || existingFields.get(path) || {};
+    return {
+      ...existing,
+      id,
+      label: path,
+      path,
+      type: existing.type || 'string',
+      prompt: existing.prompt !== false,
+      required: false
+    };
+  });
+  action.inputPolicy = {
+    ...(action.inputPolicy || {}),
+    prompt: fields.length > 0,
+    fields
+  };
+}
+
+function syncActionConstruction(action = {}) {
+  const contract = constructionContractForEntity(action.entityType);
+  action.construction ||= {};
+  action.construction.mode = action.construction.mode || contract.defaultMode || 'genericCreate';
+  action.construction.inputs = contract.inputs.map(input => ({ ...input }));
+  const promptFields = contract.inputs.filter(input => input.prompt || input.required);
+  const existingFields = new Map((action.inputPolicy?.fields || []).map(field => [field.id || field.path, field]));
+  action.inputPolicy = {
+    ...(action.inputPolicy || {}),
+    prompt: promptFields.length > 0,
+    fields: promptFields.map(input => ({
+      ...(existingFields.get(input.id || input.path) || {}),
+      ...input,
+      default: existingFields.get(input.id || input.path)?.default,
+      valueRef: existingFields.get(input.id || input.path)?.valueRef
+    }))
+  };
+}
+
+function applyStatusDefinitionToAction(action = {}) {
+  if (!action.statusRef) return;
+  const status = draft.value?.data?.statusDefinitions?.[action.statusRef];
+  if (!status) return;
+  syncStatusDefinition(status);
+  action.status ||= {};
+  action.status.to = status.statusId;
+  action.access ||= { level: 'write', roleIds: [] };
+  action.access.statusTo = status.statusId;
+}
+
+function constructionContractForEntity(entityType) {
+  return cncEntityConstruction[entityType] || {
+    modes: ['genericCreate'],
+    defaultMode: 'genericCreate',
+    inputs: []
+  };
+}
+
 function syncSocketIo(socket = {}) {
   socket.direction = socket.direction === 'inbound' ? 'inbound' : 'outbound';
   socket.projection ||= { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } };
@@ -1259,6 +1391,21 @@ function syncSocketIo(socket = {}) {
   }
   socket.inputs = [{ id: 'entity', label: socket.entityType, entityType: socket.entityType, required: true }];
   socket.outputs = [{ id: 'projection', label: socket.entityType, entityType: socket.entityType, projection: true, fields: socket.projection.fields || [] }];
+}
+
+function syncStatusDefinition(status = {}) {
+  status.entityType ||= 'project';
+  status.statusId ||= String(status.label || status.id || 'CREATED').trim().toUpperCase().replace(/\s+/g, '_');
+  status.label ||= status.statusId;
+  status.color ||= 'info';
+  status.icon ||= 'pi pi-circle-fill';
+}
+
+function syncValueInput(input = {}) {
+  input.valueType ||= 'string';
+  input.path ||= 'name';
+  input.label ||= input.path || input.id;
+  input.value ??= '';
 }
 
 function initialSocketStatus(socket = {}) {
@@ -1300,12 +1447,14 @@ function normalizeAccessLevel(level) {
 }
 
 function createInputSockets(entityType) {
-  return (cncEntityCreateInputs[entityType] || []).map(input => ({
+  const contract = constructionContractForEntity(entityType);
+  return (contract.inputs || []).map(input => ({
     ...input,
     id: `data:${input.id || input.path}`,
     label: input.label || input.path,
     dataPath: input.path,
-    kind: input.type || 'data'
+    kind: input.type || 'data',
+    constructionInputId: input.id || input.path
   }));
 }
 
@@ -1460,6 +1609,8 @@ function enrichNodeData(node) {
   const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
   if (node.type === 'action') syncActionIo(record, node);
   if (node.type === 'socket') syncSocketIo(record);
+  if (node.type === 'statusDefinition') syncStatusDefinition(record);
+  if (node.type === 'valueInput') syncValueInput(record);
   return {
     ...node,
     data: {
@@ -1497,7 +1648,11 @@ function enrichNodeData(node) {
       inputSpecs: (record.inputs || []).map(ioSpec),
       outputSpecs: (record.outputs || []).map(ioSpec),
       fieldPolicy: record.fields || null,
-      projection: record.projection || null
+      projection: record.projection || null,
+      statusId: record.statusId,
+      color: record.color,
+      icon: record.icon,
+      valueType: record.valueType
     }
   };
 }
@@ -1645,8 +1800,54 @@ function onConnect(connection) {
     type: 'smoothstep',
     data: { kind: connection.sourceHandle || connection.targetHandle || 'link' }
   }));
+  applySemanticConnection(connection);
   syncEdgeSelection();
   syncInferredActionInputs();
+}
+
+function applySemanticConnection(connection = {}) {
+  const source = nodes.value.find(item => item.id === connection.source);
+  const target = nodes.value.find(item => item.id === connection.target);
+  if (!source || !target || target.type !== 'action') return;
+  const action = draft.value?.data?.actions?.[target.data?.refId];
+  if (!action) return;
+
+  if (source.type === 'statusDefinition') {
+    const status = draft.value?.data?.statusDefinitions?.[source.data?.refId];
+    if (!status) return;
+    syncStatusDefinition(status);
+    action.statusRef = status.id || source.data?.refId;
+    action.status ||= {};
+    action.status.to = status.statusId;
+    if (action.actionKind === 'createEntity') action.entityType = status.entityType || action.entityType;
+    action.access ||= { level: 'write', roleIds: [] };
+    action.access.statusTo = status.statusId;
+    syncActionIo(action, target);
+    return;
+  }
+
+  if (source.type === 'valueInput') {
+    const input = draft.value?.data?.valueInputs?.[source.data?.refId];
+    if (!input) return;
+    syncValueInput(input);
+    const targetId = String(connection.targetHandle || '').replace(/^input:/, '').replace(/^data:/, '');
+    const fields = action.inputPolicy?.fields || [];
+    const field = fields.find(item => item.id === targetId || item.id === targetId.replace(/^data:/, '') || item.path === targetId);
+    if (!field) return;
+    field.default = parseValueInput(input);
+    field.valueRef = input.id || source.data?.refId;
+    action.inputPolicy.fields = [...fields];
+    syncActionIo(action, target);
+  }
+}
+
+function parseValueInput(input = {}) {
+  if (input.valueType === 'number') {
+    const value = Number(input.value);
+    return Number.isFinite(value) ? value : null;
+  }
+  if (input.valueType === 'object') return parseJson(input.value || '{}', {});
+  return input.value ?? '';
 }
 
 function syncInferredActionInputs() {

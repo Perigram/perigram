@@ -45,14 +45,47 @@
         @execute-action="executeAction"
       />
     </div>
+    <StandardDialog
+      v-model:visible="inputDialogVisible"
+      size="sm"
+      :show-default-footer="true"
+      :save-label="dialogSaveLabel"
+      :cancel-label="$t('common.cancel')"
+      :loading="submittingAction"
+      @save="submitPromptedAction"
+      @cancel="closeInputDialog"
+    >
+      <template #header>
+        <span>{{ pendingActionLabel }}</span>
+      </template>
+      <div class="flex flex-col gap-3">
+        <label v-for="field in promptFields" :key="field.id" class="flex flex-col gap-1">
+          <span class="text-xs text-muted-color">{{ field.label || field.id }}</span>
+          <Textarea
+            v-if="field.type === 'object'"
+            v-model="promptValues[field.id]"
+            rows="3"
+            auto-resize
+          />
+          <InputText
+            v-else
+            v-model="promptValues[field.id]"
+            :type="field.type === 'number' ? 'number' : 'text'"
+          />
+        </label>
+      </div>
+    </StandardDialog>
   </StandardPage>
 </template>
 
 <script setup>
-import { computed, toRef } from 'vue';
+import { computed, reactive, ref, toRef } from 'vue';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
@@ -66,12 +99,57 @@ const toast = useToast();
 const { t } = useI18n();
 const screenRef = toRef(props, 'screen');
 const { screen, loading, error, load, sourceState } = useGeneratedScreen(screenRef);
+const inputDialogVisible = ref(false);
+const submittingAction = ref(false);
+const pendingAction = ref(null);
+const pendingEntity = ref(null);
+const promptValues = reactive({});
 
 const regionBySlot = computed(() => Object.fromEntries(
   screen.value.regions.map(region => [region.slot || 'main', region])
 ));
+const promptFields = computed(() => promptedFields(pendingAction.value));
+const pendingActionLabel = computed(() => pendingAction.value?.label || t('common.create'));
+const dialogSaveLabel = computed(() => pendingAction.value?.actionKind === 'createEntity' ? t('common.create') : t('common.save'));
 
 async function executeAction(action, entity = null) {
+  const actionId = action?.actionId || action?.id;
+  if (!actionId) return;
+  if (['createEntity', 'updateEntity'].includes(action.actionKind) && promptedFields(action).length) {
+    openInputDialog(action, entity);
+    return;
+  }
+  await postAction(action, entity, {});
+}
+
+function openInputDialog(action, entity = null) {
+  pendingAction.value = action;
+  pendingEntity.value = entity;
+  for (const key of Object.keys(promptValues)) delete promptValues[key];
+  for (const field of promptedFields(action)) {
+    promptValues[field.id] = initialPromptValue(field);
+  }
+  inputDialogVisible.value = true;
+}
+
+function closeInputDialog() {
+  inputDialogVisible.value = false;
+  pendingAction.value = null;
+  pendingEntity.value = null;
+}
+
+async function submitPromptedAction() {
+  if (!pendingAction.value) return;
+  submittingAction.value = true;
+  try {
+    await postAction(pendingAction.value, pendingEntity.value, promptData(promptFields.value, promptValues));
+    closeInputDialog();
+  } finally {
+    submittingAction.value = false;
+  }
+}
+
+async function postAction(action, entity = null, data = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
@@ -80,7 +158,7 @@ async function executeAction(action, entity = null) {
       body: {
         entityId: entity?._id || entity?.identity?.uid || null,
         entities: entity ? { [entity.origin?.type || entity.type || 'entity']: entity._id || entity.identity?.uid } : {},
-        data: {}
+        data
       }
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
@@ -92,6 +170,55 @@ async function executeAction(action, entity = null) {
       detail: err?.data?.message || err?.message,
       life: 4000
     });
+    throw err;
   }
+}
+
+function initialPromptValue(field = {}) {
+  const value = field.default ?? '';
+  if (field.type === 'object' && value && typeof value !== 'string') return JSON.stringify(value, null, 2);
+  return value;
+}
+
+function promptedFields(action = {}) {
+  const policyFields = action.inputPolicy?.fields || [];
+  const constructionFields = action.construction?.inputs || action.inputs || [];
+  return [...policyFields, ...constructionFields]
+    .filter(field => field?.prompt || field?.required)
+    .filter((field, index, fields) => fields.findIndex(item => item.id === field.id) === index);
+}
+
+function promptData(fields = [], values = {}) {
+  const data = {};
+  for (const field of fields) {
+    const value = normalizePromptValue(field, values[field.id]);
+    if (value === undefined || value === '') continue;
+    setByPath(data, field.path || field.id, value);
+  }
+  return data;
+}
+
+function normalizePromptValue(field = {}, value) {
+  if (field.type === 'number') return value === '' ? undefined : Number(value);
+  if (field.type === 'object') {
+    if (!value) return {};
+    try {
+      return typeof value === 'string' ? JSON.parse(value) : value;
+    } catch {
+      return {};
+    }
+  }
+  return value;
+}
+
+function setByPath(target, path, value) {
+  const parts = String(path || '').split('.').filter(Boolean);
+  if (!parts.length) return;
+  let cursor = target;
+  for (const part of parts.slice(0, -1)) {
+    cursor[part] ||= {};
+    cursor = cursor[part];
+  }
+  cursor[parts[parts.length - 1]] = value;
 }
 </script>

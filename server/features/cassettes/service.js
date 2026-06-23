@@ -258,7 +258,7 @@ export async function exportDxf(id, dimensions, userId, userOrg, userRole, userP
   }
 }
 
-export async function createDesignFromTemplate(id, parameters, userId, userOrg, userRole, userPermissions) {
+export async function createDesignFromTemplate(id, parameters, userId, userOrg, userRole, userPermissions, options = {}) {
   const template = await getById(id, userId, userOrg, userRole, userPermissions);
 
   if (!hasLineagePermission(userPermissions || {}, template.lineage, 'cassettes', 'write')) {
@@ -315,7 +315,7 @@ export async function createDesignFromTemplate(id, parameters, userId, userOrg, 
   });
 
   return await cassetteDesignService.createFromTemplateUpload({
-    name: `${templateName} Design`,
+    name: options.name || `${templateName} Design`,
     lineage: template.lineage,
     templateId: id,
     polygonParts: nestingPolygons?.length ? nestingPolygons : [polygons[0]],

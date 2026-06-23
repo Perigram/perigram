@@ -20,6 +20,7 @@ const domain = {
   entities: [
     { type: 'project' },
     { type: 'queue' },
+    { type: 'cassette_design' },
     { type: 'catalog' },
     { type: 'warehouse' },
     { type: 'requisition' },
@@ -55,11 +56,28 @@ const domain = {
       write: ['data.*'],
       admin: ['attachments.*']
     },
+    cassette_design: {
+      feature: 'cassettes',
+      read: ['identity.*', 'status.*', 'lineage.*', 'data.*'],
+      write: ['data.*'],
+      admin: ['attachments.*']
+    },
     catalog: {
       feature: 'catalogs',
       read: ['identity.*', 'status.*', 'lineage.*', 'data.material', 'data.options'],
       write: ['data.*'],
       admin: ['attachments.*']
+    }
+  },
+  construction: {
+    cassette_design: {
+      modes: ['bakeCassetteDesignFromTemplate'],
+      defaultMode: 'bakeCassetteDesignFromTemplate',
+      derived: true,
+      inputs: [
+        { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
+        { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }
+      ]
     }
   }
 };
@@ -587,6 +605,87 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.actions.create_queue.parentEntityType).toBe('project');
     expect(compiled.actions.create_queue.inputs[0]).toMatchObject({ id: 'parent', entityType: 'project' });
+  });
+
+  it('compiles typed construction and status definitions into actions and workflows', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_admin: { id: 'role_admin' }
+      },
+      statusDefinitions: {
+        status_review: {
+          id: 'status_review',
+          entityType: 'cassette_design',
+          statusId: 'REVIEW',
+          label: 'Review',
+          color: 'warning',
+          icon: 'pi pi-eye'
+        }
+      },
+      valueInputs: {
+        design_name: {
+          id: 'design_name',
+          valueType: 'string',
+          path: 'name',
+          value: 'Named design'
+        }
+      },
+      actions: {
+        create_design: {
+          id: 'create_design',
+          actionKind: 'createEntity',
+          entityType: 'cassette_design',
+          statusRef: 'status_review',
+          construction: {
+            mode: 'bakeCassetteDesignFromTemplate',
+            inputs: [
+              { id: 'name', path: 'name' },
+              { id: 'templateId', path: 'templateId' }
+            ]
+          },
+          inputPolicy: {
+            prompt: true,
+            fields: [
+              { id: 'name', path: 'name', default: 'Named design' },
+              { id: 'templateId', path: 'templateId' }
+            ]
+          },
+          trigger: { mode: 'manual' },
+          access: { level: 'admin', roleIds: ['role_admin'] },
+          outputs: [{ id: 'created', entityType: 'cassette_design' }]
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.create_design.status).toMatchObject({ to: 'REVIEW' });
+    expect(compiled.actions.create_design.construction.mode).toBe('bakeCassetteDesignFromTemplate');
+    expect(compiled.statusDefinitions.status_review).toMatchObject({ statusId: 'REVIEW', color: 'warning' });
+    expect(compiled.valueInputs.design_name).toMatchObject({ path: 'name', value: 'Named design' });
+    expect(compiled.workflows.cassette_design.regions.main.states.REVIEW).toMatchObject({
+      label: 'Review',
+      color: 'warning',
+      icon: 'pi pi-eye'
+    });
+  });
+
+  it('rejects generic creation for derived construction contracts', () => {
+    const validation = validateProcessDefinition({
+      actions: {
+        create_design: {
+          id: 'create_design',
+          actionKind: 'createEntity',
+          entityType: 'cassette_design',
+          status: { to: 'CREATED' },
+          construction: { mode: 'genericCreate', inputs: [] },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: [] },
+          outputs: [{ id: 'created', entityType: 'cassette_design', status: 'CREATED' }]
+        }
+      }
+    }, domain);
+
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.join(' ')).toContain('typed construction mode');
   });
 
   it('compiles update actions with field mutation sockets', () => {

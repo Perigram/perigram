@@ -2243,6 +2243,8 @@
     "sameEntity": "Same entity",
     "currentStatus": "Current status",
     "targetStatus": "Target status",
+    "icon": "Icon",
+    "path": "Path",
     "send": "Send",
     "receive": "Receive",
     "editActionOnNode": "Edit this action directly on the node.",

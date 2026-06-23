@@ -1,16 +1,46 @@
 import { connectDB } from '../db/mongo.js';
 import { compileProcessDefinition } from '../../packages/processes/src/index.js';
-import { cncDomain } from '../../packages/domain-cnc/src/index.js';
+import { cncDomain, cncEntityConstruction } from '../../packages/domain-cnc/src/index.js';
 
 function migrateProcessData(data = {}) {
+  const normalized = normalizeProcessConstruction(data);
   if (!data.compiled) return data;
   return {
-    ...data,
+    ...normalized,
     compiled: compileProcessDefinition({
-      ...data,
+      ...normalized,
       compiled: null
     }, cncDomain)
   };
+}
+
+function normalizeProcessConstruction(data = {}) {
+  const actions = Object.fromEntries(Object.entries(data.actions || {}).map(([id, action]) => {
+    if ((action.actionKind || 'createEntity') !== 'createEntity') return [id, action];
+    const contract = cncEntityConstruction[action.entityType] || null;
+    if (!contract) return [id, action];
+    const promptFields = (contract.inputs || []).filter(input => input.prompt || input.required);
+    const existingFields = new Map((action.inputPolicy?.fields || []).map(field => [field.id || field.path, field]));
+    return [id, {
+      ...action,
+      construction: {
+        ...(action.construction || {}),
+        mode: action.construction?.mode || contract.defaultMode || 'genericCreate',
+        inputs: contract.inputs || []
+      },
+      inputPolicy: {
+        ...(action.inputPolicy || {}),
+        prompt: promptFields.length > 0,
+        fields: promptFields.map(field => ({
+          ...(existingFields.get(field.id || field.path) || {}),
+          ...field,
+          default: existingFields.get(field.id || field.path)?.default,
+          valueRef: existingFields.get(field.id || field.path)?.valueRef
+        }))
+      }
+    }];
+  }));
+  return { ...data, actions };
 }
 
 async function main() {

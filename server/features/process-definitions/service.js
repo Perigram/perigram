@@ -6,6 +6,7 @@ import { executeCommand } from '~/server/core/commands/service.js';
 import { createStatusState } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
+import * as cassetteService from '~/server/features/cassettes/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeEntityType } from '~/server/runtime/entities.js';
 import {
@@ -16,6 +17,7 @@ import {
   validateProcessDefinition,
   validateRoundTrip
 } from '~/packages/processes/src/index.js';
+import { getEntityFieldAccessPolicy } from '~/packages/domain-cnc/src/index.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 import { hasPermissionGrant, normalizePermissionGrants } from '~/shared/access-control.js';
@@ -282,8 +284,14 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
 
   const service = getEntityServiceForAction(action);
   if (action.actionKind === 'createEntity') {
+    if (action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
+      return await executeBakeCassetteDesign(action, data, organizationId, auth);
+    }
+    if (resolveActionEntityType(action) === 'cassette_design') {
+      throw createError({ statusCode: 400, message: 'cassette_design requires typed construction' });
+    }
     if (!service.create) throw createError({ statusCode: 500, message: `Entity service cannot create ${action.entityType}` });
-    const created = await service.create(data || {}, auth.userId, organizationId, auth.role, createActionExecutionAuth(auth, action));
+    const created = await service.create(createActionPayload(action, data, entities), auth.userId, organizationId, auth.role, createActionExecutionAuth(auth, action));
     const targetState = action.status?.to;
     if (!targetState) return created;
     const createdDto = created?.toJSON ? created.toJSON() : created;
@@ -311,6 +319,45 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   }
 
   throw createError({ statusCode: 400, message: `Unsupported action kind ${action.actionKind}` });
+}
+
+function createActionPayload(action = {}, data = {}, entities = {}) {
+  const payload = { ...(data || {}) };
+  if (action.parentEntityType && entities?.[action.parentEntityType]) {
+    payload[`${camelCase(action.parentEntityType)}Id`] ||= entities[action.parentEntityType];
+  }
+  return payload;
+}
+
+function camelCase(value = '') {
+  return String(value).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
+}
+
+async function executeBakeCassetteDesign(action = {}, data = {}, organizationId, auth = {}) {
+  const templateId = data.templateId || data.cassetteId || data.data?.derivedFrom?.templateId;
+  if (!templateId) throw createError({ statusCode: 400, message: 'Cassette template is required' });
+  const created = await cassetteService.createDesignFromTemplate(
+    templateId,
+    data.parameters || {},
+    auth.userId,
+    organizationId,
+    auth.role,
+    createActionExecutionAuth(auth, action),
+    { name: data.name || data.identity?.name || '' }
+  );
+  const targetState = action.status?.to;
+  if (!targetState) return created;
+  const targetId = created?._id || created?.identity?.uid;
+  if (!targetId) return created;
+  const status = await statusService.setInitialStateForOrganization(
+    resolveActionEntityType(action),
+    targetId,
+    targetState,
+    organizationId,
+    auth.userId,
+    { note: `Created by process action ${action.id}` }
+  );
+  return { ...created, status };
 }
 
 export async function getByIdInternal(id) {
@@ -376,7 +423,7 @@ function createActionExecutionAuth(auth = {}, action = {}) {
 function resolveActionFeature(action = {}) {
   const entityType = resolveActionEntityType(action);
   const domain = getDomain();
-  const fieldPolicy = domain?.fieldAccess?.[entityType];
+  const fieldPolicy = getEntityFieldAccessPolicy(entityType) || domain?.fieldAccess?.[entityType];
   if (fieldPolicy?.feature) return fieldPolicy.feature;
   const entity = (domain?.entities || []).find(item => item.type === entityType);
   return entity?.collection || entityType;
@@ -390,6 +437,7 @@ function pickMutationData(data = {}, action = {}) {
     const value = getByPath(data, field);
     if (value !== undefined) setByPath(picked, field, value);
   }
+  if (picked.identity?.name && !picked.name) picked.name = picked.identity.name;
   return picked;
 }
 

@@ -276,4 +276,63 @@ describe('process definitions access fallback', () => {
     );
     expect(result.status.state.primary).toBe('NEW');
   });
+
+  it('derives create parent ids from graph entity inputs', async () => {
+    const create = vi.fn(async () => ({
+      toJSON: () => ({
+        _id: 'queue-created',
+        identity: { uid: 'queue-created', name: 'Queue A' },
+        lineage: { organizationId: 'org-1', projectId: 'project-1' },
+        status: { state: { primary: 'DRAFT' } }
+      })
+    }));
+    getAppRegistry.mockReturnValueOnce({
+      getDomain: () => ({ fieldAccess: { queue: { feature: 'queues' } }, entities: [{ type: 'queue', collection: 'queues' }] }),
+      getEntityService: () => ({ create })
+    });
+    statusService.setInitialStateForOrganization.mockResolvedValueOnce({
+      state: { primary: 'READY', active: { main: 'READY' } }
+    });
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        actions: {},
+        compiled: {
+          actions: {
+            create_queue: {
+              id: 'create_queue',
+              actionKind: 'createEntity',
+              entityType: 'queue',
+              parentEntityType: 'project',
+              status: { to: 'READY' },
+              access: { level: 'write', roleIds: ['role_planner'] }
+            }
+          }
+        }
+      }
+    });
+
+    await executeActiveProcessAction({
+      actionId: 'create_queue',
+      entities: { project: 'project-1' },
+      data: { name: 'Queue A' }
+    }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: {
+        actions: [{ actionId: 'create_queue' }]
+      }
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      { name: 'Queue A', projectId: 'project-1' },
+      'user-1',
+      'org-1',
+      undefined,
+      expect.any(Object)
+    );
+  });
 });

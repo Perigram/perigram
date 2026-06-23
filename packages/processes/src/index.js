@@ -51,6 +51,8 @@ export function normalizeProcessDefinition(definition = {}) {
     actions: normalizeRecord(data.actions),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
+    statusDefinitions: normalizeRecord(data.statusDefinitions),
+    valueInputs: normalizeRecord(data.valueInputs),
     screens: normalizeRecord(data.screens),
     assignments: normalizeRecord(data.assignments),
     compiled: data.compiled || null
@@ -78,6 +80,8 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
     if (node.type === 'action' && !process.actions[refId]) errors.push(`Action node ${node.id} references missing action ${refId}`);
     if (node.type === 'service' && !process.services[refId]) errors.push(`Service node ${node.id} references missing service ${refId}`);
     if (node.type === 'socket' && !process.sockets[refId]) errors.push(`Socket node ${node.id} references missing socket ${refId}`);
+    if (node.type === 'statusDefinition' && !process.statusDefinitions[refId]) errors.push(`Status node ${node.id} references missing status definition ${refId}`);
+    if (node.type === 'valueInput' && !process.valueInputs[refId]) errors.push(`Value node ${node.id} references missing value input ${refId}`);
     if (node.type === 'user' && !process.assignments[refId]) errors.push(`User node ${node.id} references missing assignment ${refId}`);
   }
 
@@ -107,7 +111,12 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
   }
 
   for (const [actionId, action] of Object.entries(process.actions)) {
-    validateAction(actionId, action, { entities, commands, roles: process.roles, domain, errors });
+    validateAction(actionId, action, { entities, commands, roles: process.roles, domain, errors, statusDefinitions: process.statusDefinitions });
+  }
+
+  for (const [statusId, status] of Object.entries(process.statusDefinitions)) {
+    if (!status.statusId) errors.push(`Status definition ${statusId} must define statusId`);
+    if (status.entityType && !entities.has(status.entityType)) errors.push(`Status definition ${statusId} uses unknown entity type ${status.entityType}`);
   }
 
   for (const [socketId, socket] of Object.entries(process.sockets)) {
@@ -170,7 +179,9 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
     userAccess,
     workflows,
     fieldPolicies: compileFieldPolicies(process.entityProfiles),
-    actions: compileActions(process.actions),
+    actions: compileActions(process.actions, process),
+    statusDefinitions: compileStatusDefinitions(process.statusDefinitions),
+    valueInputs: compileValueInputs(process.valueInputs),
     services: compileServices(process.services),
     sockets: compileSockets(process.sockets),
     screens: compiledScreens,
@@ -275,13 +286,13 @@ function compileWorkflows(process = {}, domain = {}) {
     const builder = ensureWorkflowBuilder(builders, entityType);
 
     if (kind === 'createEntity') {
-      const targetState = action.status?.to || action.outputs?.find(output => output.status)?.status;
+      const targetState = actionTargetState(action, process);
       if (targetState) addWorkflowState(builder, targetState);
       continue;
     }
 
     const from = action.status?.from || action.access?.statusFrom || action.inputs?.find(input => input.status)?.status || '';
-    const to = action.status?.to || action.access?.statusTo || action.outputs?.find(output => output.status)?.status || '';
+    const to = actionTargetState(action, process);
     if (!from || !to) continue;
     addWorkflowState(builder, from);
     addWorkflowState(builder, to);
@@ -302,6 +313,7 @@ function compileWorkflows(process = {}, domain = {}) {
 
   for (const [entityType, builder] of builders) {
     if (!Object.keys(builder.states).length) continue;
+    applyStatusDefinitionMetadata(builder, entityType, process.statusDefinitions);
     workflows[entityType] = normalizeWorkflow({
       schemaVersion: 2,
       primaryRegion: 'main',
@@ -316,6 +328,21 @@ function compileWorkflows(process = {}, domain = {}) {
   }
 
   return workflows;
+}
+
+function applyStatusDefinitionMetadata(builder, entityType, statusDefinitions = {}) {
+  for (const definition of Object.values(statusDefinitions || {})) {
+    if (definition.entityType && definition.entityType !== entityType) continue;
+    const statusId = definition.statusId || definition.id;
+    if (!statusId || !builder.states[statusId]) continue;
+    builder.states[statusId] = {
+      ...(builder.states[statusId] || {}),
+      label: definition.label || statusId,
+      color: definition.color || definition.severity || '',
+      severity: definition.severity || definition.color || '',
+      icon: definition.icon || ''
+    };
+  }
 }
 
 function workflowBuilderFromWorkflow(workflow = {}) {
@@ -464,7 +491,11 @@ function compileRoles(process = {}, domain = {}) {
         level: 'run',
         actionKind: action.actionKind || 'createEntity',
         feature,
-        entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || null
+        entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || null,
+        status: action.status || {},
+        construction: normalizeConstruction(action.construction, action.entityType),
+        inputPolicy: normalizeInputPolicy(action.inputPolicy),
+        inputs: action.inputs || []
       });
     }
   }
@@ -541,14 +572,14 @@ function compileActionAccessWindows(process = {}, domain = {}) {
       const incoming = incomingWindowForAction(actionId, action, graphContext, windows);
       const hasGraphInput = graphContext.incomingByActionId.has(actionId);
       if (hasGraphInput && !incoming) continue;
-      const window = compileActionWindow(actionId, action, incoming, domain);
+      const window = compileActionWindow(actionId, action, incoming, domain, process);
       windows.set(actionId, window);
       pending.delete(actionId);
       progressed = true;
     }
     if (!progressed) {
       for (const [actionId, action] of pending) {
-        windows.set(actionId, compileActionWindow(actionId, action, null, domain));
+        windows.set(actionId, compileActionWindow(actionId, action, null, domain, process));
       }
       break;
     }
@@ -605,11 +636,11 @@ function outputWindowForHandle(actionWindow, sourceHandle) {
   return actionWindow.outputs.find(output => output.handleId === sourceHandle || output.id === id) || actionWindow.outputs[0] || null;
 }
 
-function compileActionWindow(actionId, action = {}, incoming = null, domain = {}) {
+function compileActionWindow(actionId, action = {}, incoming = null, domain = {}, process = {}) {
   const kind = action.actionKind || 'createEntity';
   const access = normalizeActionAccess(action.access);
   const entityType = actionEntityType(action) || incoming?.entityType || '';
-  const statusTo = action.status?.to || access.statusTo || action.outputs?.find(output => output.status)?.status || incoming?.status || '';
+  const statusTo = actionTargetState(action, process) || access.statusTo || incoming?.status || '';
   const feature = entityType ? resolveEntityFeature(domain, entityType) : null;
   const inheritedRoles = incoming?.roleIds || [];
   const explicitRoles = access.roleIds || [];
@@ -1000,7 +1031,7 @@ function initialSocketStatus(socket = {}) {
   return '';
 }
 
-function compileActions(actions = {}) {
+function compileActions(actions = {}, process = {}) {
   return Object.fromEntries(Object.entries(actions).map(([id, action]) => [id, {
     id: action.id || id,
     label: displayActionLabel(action, id),
@@ -1008,9 +1039,15 @@ function compileActions(actions = {}) {
     entityType: action.entityType || null,
     parentEntityType: action.parentEntityType || null,
     commandId: action.commandId || null,
-    status: action.status || {},
+    status: {
+      ...(action.status || {}),
+      ...(actionTargetState(action, process) ? { to: actionTargetState(action, process) } : {})
+    },
     mutation: action.mutation || { fields: [] },
     projection: action.projection || null,
+    construction: normalizeConstruction(action.construction, action.entityType),
+    inputPolicy: normalizeInputPolicy(action.inputPolicy),
+    statusRef: action.statusRef || null,
     access: normalizeActionAccess(action.access),
     trigger: {
       mode: action.trigger?.mode || 'manual'
@@ -1019,6 +1056,57 @@ function compileActions(actions = {}) {
     outputs: action.outputs || [],
     events: action.events || []
   }]));
+}
+
+function actionTargetState(action = {}, process = {}) {
+  const statusRef = action.statusRef;
+  const referenced = statusRef ? process.statusDefinitions?.[statusRef] : null;
+  return referenced?.statusId
+    || action.status?.to
+    || action.access?.statusTo
+    || action.outputs?.find(output => output.status)?.status
+    || '';
+}
+
+function compileStatusDefinitions(statusDefinitions = {}) {
+  return Object.fromEntries(Object.entries(statusDefinitions).map(([id, definition]) => [id, {
+    id: definition.id || id,
+    entityType: definition.entityType || '',
+    statusId: definition.statusId || definition.id || id,
+    label: definition.label || definition.statusId || id,
+    color: definition.color || '',
+    severity: definition.severity || definition.color || '',
+    icon: definition.icon || ''
+  }]));
+}
+
+function compileValueInputs(valueInputs = {}) {
+  return Object.fromEntries(Object.entries(valueInputs).map(([id, input]) => [id, {
+    id: input.id || id,
+    label: input.label || input.id || id,
+    valueType: input.valueType || 'string',
+    path: input.path || '',
+    value: input.value ?? ''
+  }]));
+}
+
+function normalizeConstruction(construction = {}, entityType = '') {
+  return {
+    mode: construction.mode || defaultConstructionMode(entityType),
+    inputs: Array.isArray(construction.inputs) ? construction.inputs : []
+  };
+}
+
+function normalizeInputPolicy(inputPolicy = {}) {
+  return {
+    prompt: inputPolicy.prompt !== false,
+    fields: Array.isArray(inputPolicy.fields) ? inputPolicy.fields : []
+  };
+}
+
+function defaultConstructionMode(entityType = '') {
+  if (entityType === 'cassette_design') return 'bakeCassetteDesignFromTemplate';
+  return 'genericCreate';
 }
 
 function displayActionLabel(action = {}, id = '') {
@@ -1068,7 +1156,7 @@ function normalizeActionAccess(access = {}) {
   };
 }
 
-function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors }) {
+function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors, statusDefinitions = {} }) {
   const kind = action.actionKind || 'createEntity';
   if (!['createEntity', 'updateEntity', 'changeStatus', 'runCommand', 'sendToOrganization'].includes(kind)) {
     errors.push(`Action ${actionId} uses unknown action kind ${kind}`);
@@ -1084,11 +1172,15 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
   if (action.parentEntityType && !entities.has(action.parentEntityType)) {
     errors.push(`Action ${actionId} uses unknown parent entity type ${action.parentEntityType}`);
   }
-  if (kind === 'changeStatus' && !action.status?.to) {
+  const hasTargetStatus = Boolean(action.status?.to || (action.statusRef && statusDefinitions[action.statusRef]));
+  if (kind === 'changeStatus' && !hasTargetStatus) {
     errors.push(`Action ${actionId} must define a target status`);
   }
-  if (kind === 'createEntity' && !action.status?.to) {
+  if (kind === 'createEntity' && !hasTargetStatus) {
     errors.push(`Action ${actionId} must define target status`);
+  }
+  if (kind === 'createEntity') {
+    validateConstruction(actionId, action, domain, errors);
   }
   if (kind === 'updateEntity') {
     const entityType = action.inputs?.find(input => input.entityType)?.entityType || action.entityType;
@@ -1110,6 +1202,34 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
   for (const roleId of normalizeActionAccess(action.access).roleIds) {
     if (!roles[roleId]) errors.push(`Action ${actionId} references missing access role ${roleId}`);
   }
+  if (action.statusRef && !statusDefinitions[action.statusRef]) {
+    errors.push(`Action ${actionId} references missing status definition ${action.statusRef}`);
+  }
+}
+
+function validateConstruction(actionId, action = {}, domain = {}, errors = []) {
+  const entityType = action.entityType || '';
+  const contract = constructionContract(domain, entityType);
+  const construction = normalizeConstruction(action.construction, entityType);
+  if (!contract.modes.includes(construction.mode)) {
+    errors.push(`Action ${actionId} cannot create ${entityType} with construction mode ${construction.mode}`);
+  }
+  if (contract.derived && construction.mode === 'genericCreate') {
+    errors.push(`Action ${actionId} must use a typed construction mode for derived entity ${entityType}`);
+  }
+  const requiredIds = new Set((contract.inputs || []).filter(input => input.required).map(input => input.id));
+  const presentIds = new Set([...(construction.inputs || []), ...(action.inputs || [])].map(input => input.id));
+  for (const inputId of requiredIds) {
+    if (!presentIds.has(inputId)) errors.push(`Action ${actionId} missing construction input ${inputId}`);
+  }
+}
+
+function constructionContract(domain = {}, entityType = '') {
+  return domain.construction?.[entityType] || {
+    modes: ['genericCreate'],
+    defaultMode: 'genericCreate',
+    inputs: []
+  };
 }
 
 function validateFieldList(fields = [], domain = {}, entityType, label, errors) {
