@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-23] Guard process cassette design construction
+    Files changed: components/generated/GeneratedScreen.vue,
+      server/features/cassettes/service.js,
+      server/features/cassettes/cassettes.spec.js
+    Docs updated: components/README.md,
+      server/features/cassettes/README.md, TODO.org
+    Notes: Process-generated cassette design creation now rejects incomplete
+      parametric draft templates before WASM evaluation, normalizes constructor
+      parameters from template defaults, and generated process dialogs render
+      cassette template construction inputs as a selector filtered to
+      construction-ready templates.
+
     [2026-06-23] Separate process construction and editor contracts
     Files changed: packages/domain-cnc/src/entity-construction.js,
       packages/domain-cnc/src/entity-create-inputs.js,

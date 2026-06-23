@@ -128,9 +128,12 @@ have an existing entity row. Create and update actions read
 `inputPolicy.fields` from the compiled action manifest; create actions also
 read `construction.inputs`. Promptable fields open a `StandardDialog`, default
 values can come from process value-input nodes, and the submitted payload is
-posted to the active process action endpoint. Buttons derive semantic labels
-and icons from the compiled action kind, entity type, and target status when an
-old manifest still contains a generic label such as `Create`.
+posted to the active process action endpoint. Entity construction fields render
+as entity selectors when the domain has a canonical list source; cassette
+template fields list only construction-ready templates so process-created
+designs do not select empty draft templates. Buttons derive semantic labels and
+icons from the compiled action kind, entity type, and target status when an old
+manifest still contains a generic label such as `Create`.
 
 Lifecycle transitions belong in `EntityStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,

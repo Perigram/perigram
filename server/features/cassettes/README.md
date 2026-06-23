@@ -58,7 +58,12 @@ the prompted template id, parameter object, and optional design name into
 `createDesignFromTemplate()` so a process-created `cassette_design` has the
 same baked geometry, `data.derivedFrom`, DXF/gridfs references, and editor
 contract as a design created from the cassette UI. Process runtime status is
-applied after construction by the process-definition service.
+applied after construction by the process-definition service. Parametric
+templates must be construction-ready before this path runs: OCCS templates need
+`data.definition.extensions.cutkit.graphTree`, and legacy parametric templates
+need the required `A` and `B` graph parameters. Incomplete draft templates are
+rejected before WASM evaluation so the renderer never receives a graph with
+null string fields.
 
 `GET /api/cassettes/:id/export` remains a template-level DXF export. Parametric
 exports use evaluated `layerData` when available, so folds, marks, dimensions,
