@@ -37,12 +37,17 @@ scanned without adding explanatory chrome:
   paths, so a manual modify action can collect the new data values before it
   calls the active process action runtime.
 - `ProcessStatusDefinitionNode.vue` represents a reusable status value for the
-  same canvas. Connecting it to a create or status-change action writes the
-  action target state and lets the compiler apply status label/color/icon
-  metadata to the generated workflow.
-- `ProcessValueInputNode.vue` represents a scalar/object default value. Wiring
-  it into a construction data socket binds that value as the generated action
-  prompt default for the matching construction field.
+  same canvas. Its inspector edits status id, label, PrimeVue severity, and an
+  icon selected from the supported process icon set. Connecting it to a create
+  or status-change action writes the action target state and lets the compiler
+  apply status label/color/severity/icon metadata to the generated workflow.
+- `ProcessValueInputNode.vue` represents a canonical block value
+  (`identity`, `data`, `specs`, `summary`, `attachments`, or status metadata).
+  Wiring it into a construction data socket binds that value to the matched
+  construction field, while wiring it into an update action adds the block path
+  as a concrete mutation field. Empty update actions expose a generic mutable
+  field socket until the first block is connected; after that the node displays
+  the exact mutation sockets.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
   service-identity access, typed input, and output handles and summarizes
   exact command inputs and outputs as labeled sockets in the same
@@ -102,5 +107,9 @@ New process behavior should use `createEntity`, `updateEntity`, `changeStatus`,
 and inbound/outbound socket nodes. Archive is represented as a `changeStatus`
 action targeting an archive status, not as a separate node type. Entity naming
 is a construction input: generated create actions prompt for the domain
-contract's name field or consume a connected value-input default; they should
-not create unnamed records unless the entity contract explicitly allows it.
+contract's name field or consume a connected block/value default. A block node
+wired to a named construction socket uses that socket's contract path (`name`,
+`templateId`, `parameters`, etc.) instead of the block node's display path, so
+typed constructors such as cassette-design baking receive the domain payload
+they require. They should not create unnamed records unless the entity contract
+explicitly allows it.

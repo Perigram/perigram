@@ -67,8 +67,14 @@ than a transition from the feature service default.
 Create actions also carry a construction contract. Generic construction passes
 prompted values to the registered entity service and derives parent ids from
 the incoming graph entity input, for example a queue create action wired from a
-project output sends `projectId` to the queue service. Typed construction modes
-delegate to the domain constructor instead of generic entity creation:
+project output sends `projectId` to the queue service. The active action
+runtime normalizes canonical creation blocks before delegating: `identity.name`
+and `identity.slug` become the service `name`/`slug` fields, and `data`,
+`specs`, and `summary` entries are projected to top-level constructor keys when
+that key is not already present. This keeps block/value nodes aligned with the
+entity service contracts without adding compatibility routes or generic blob
+creation. Typed construction modes delegate to the domain constructor instead
+of generic entity creation:
 `bakeCassetteDesignFromTemplate` calls the cassette template service, requires a
 template id, accepts concrete parameters and a name, creates a real
 `cassette_design` with geometry/editor provenance, then applies the process

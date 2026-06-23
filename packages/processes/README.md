@@ -71,6 +71,15 @@ active domain field-access policy, and compile into write/admin grants on the
 concrete incoming entity feature. Manual generated screens prompt for the
 selected mutation fields through `action.inputPolicy`, while event-driven
 updates can receive the same field payload from wired value/data nodes.
+Process value inputs are canonical block values, not detached notes. A value
+input may identify `identity`, `data`, `specs`, `summary`, `attachments`, or
+status metadata, carries the exact path and optional default, and compiles that
+metadata for round-trip editing. When a value input is connected to a
+construction socket, the socket's construction field id/path wins so the active
+runtime receives domain payload keys such as `name`, `templateId`, and
+`parameters`. When a value input is connected to an update action, its block
+path becomes a mutation field and a non-prompt `inputPolicy` field, so generated
+screens submit the graph-provided default without adding useless dialog chrome.
 Change-status actions consume their entity from the incoming data socket and
 only require a target status; they do not need a separate entity-type selector.
 The target may be a literal `action.status.to` or a `statusRef` produced by a

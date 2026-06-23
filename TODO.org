@@ -4,6 +4,27 @@
   :END:
 
 *** Agent Notes
+    [2026-06-23] Wire process block and status nodes into action contracts
+    Files changed: components/generated/GeneratedScreen.vue,
+      components/process-designer/ProcessStatusDefinitionNode.vue,
+      components/process-designer/ProcessValueInputNode.vue,
+      pages/organization/process.vue, packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: components/README.md,
+      components/process-designer/README.md,
+      packages/processes/README.md,
+      server/features/process-definitions/README.md, TODO.org
+    Notes: Status nodes now use severity and preset icons, block/value nodes
+      carry canonical DTO block paths, update actions expose a mutable field
+      socket before fields are selected, and wired block values compile into
+      non-prompt action input fields. Generated screens submit those non-prompt
+      defaults, and active process execution normalizes canonical create
+      blocks before calling generic or typed constructors so cassette design
+      creation receives template/name/parameter payloads.
+
     [2026-06-23] Guard process cassette design construction
     Files changed: components/generated/GeneratedScreen.vue,
       server/features/cassettes/service.js,
