@@ -17,6 +17,7 @@ import { toFlexibleId } from '../../utils/objectid.js';
 import { Cassette } from './model.js';
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../utils/dxf-extractor.js';
 import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
+import { isOccsDocument, occsQueueParameters } from '#utils/occs/parameters.js';
 import { generateLayeredDxf } from '../../utils/dxf-writer.js';
 
 /**
@@ -101,6 +102,55 @@ export async function ensureCurrentGeometryRevision(cassetteOrId, userId = 'SYST
 
 export function derivedFromGeometryRevision(revision, parameters = {}) {
   return entityRevisionsService.derivedFromRevision(revision, parameters);
+}
+
+function resolveTemplateDefinition(template = {}) {
+  const candidates = [
+    template.data?.definition,
+    template.data?.definition?.definition,
+    template.data?.definition?.occs,
+    template.definition?.data,
+    template.definition
+  ].filter(candidate => candidate && typeof candidate === 'object');
+
+  return candidates.find(isOccsDocument) ||
+    candidates.find(candidate => (
+      candidate.params ||
+      candidate.extrusions ||
+      candidate.extensions ||
+      (candidate.parameters && !Array.isArray(candidate.parameters))
+    )) ||
+    null;
+}
+
+function assertEvaluatableParametricTemplate(template = {}) {
+  const definition = resolveTemplateDefinition(template);
+  if (!definition) {
+    throw createError({ statusCode: 400, message: 'Cassette template has no construction definition' });
+  }
+  if (isOccsDocument(definition)) {
+    if (!definition.extensions?.cutkit?.graphTree) {
+      throw createError({ statusCode: 400, message: 'Cassette template has no OCCS graph tree' });
+    }
+    return definition;
+  }
+  const params = definition.params || {};
+  if (!Object.prototype.hasOwnProperty.call(params, 'A') || !Object.prototype.hasOwnProperty.call(params, 'B')) {
+    throw createError({ statusCode: 400, message: 'Cassette template requires A and B parameters for construction' });
+  }
+  return definition;
+}
+
+function normalizeConstructionParameters(template = {}, supplied = {}) {
+  const definition = assertEvaluatableParametricTemplate(template);
+  const defaults = occsQueueParameters(definition);
+  const declaredNames = Array.isArray(template.data?.parameters) ? template.data.parameters : [];
+  const declaredDefaults = Object.fromEntries(declaredNames.map(name => [name, defaults[name] ?? 1]));
+  return {
+    ...declaredDefaults,
+    ...defaults,
+    ...(supplied || {})
+  };
 }
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
@@ -265,9 +315,15 @@ export async function createDesignFromTemplate(id, parameters, userId, userOrg, 
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
+  if (template.data?.type === 'PARAMETRIC') {
+    assertEvaluatableParametricTemplate(template);
+  }
+  const constructionParameters = template.data?.type === 'PARAMETRIC'
+    ? normalizeConstructionParameters(template, parameters || {})
+    : (parameters || {});
   const templateName = template.identity?.name || 'Cassette Template';
   const revisionResult = await ensureCurrentGeometryRevision(template, userId, 'design-created');
-  const derivedFrom = derivedFromGeometryRevision(revisionResult.revision, parameters || {});
+  const derivedFrom = derivedFromGeometryRevision(revisionResult.revision, constructionParameters);
 
   if (template.data?.type !== 'PARAMETRIC') {
     const existing = await cassetteDesignService.getByTemplateId(
@@ -288,7 +344,7 @@ export async function createDesignFromTemplate(id, parameters, userId, userOrg, 
     dimensions,
     nestingPolygons,
     layerData: evaluatedLayerData
-  } = await evaluateTemplate(id, parameters || {});
+  } = await evaluateTemplate(id, constructionParameters);
   if (!polygons?.length) {
     throw createError({ statusCode: 400, message: 'Template evaluation produced no geometry' });
   }
@@ -326,7 +382,7 @@ export async function createDesignFromTemplate(id, parameters, userId, userOrg, 
       dimensions
     },
     dxfId,
-    parameters: dimensions || parameters || {},
+    parameters: dimensions || constructionParameters,
     derivedFrom
   }, userId, userPermissions);
 }

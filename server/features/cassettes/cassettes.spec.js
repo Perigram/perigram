@@ -110,6 +110,23 @@ describe('Cassette Management & Ownership', () => {
     expect(updated.data.occs).toBeUndefined();
   });
 
+  it('rejects design construction from incomplete parametric templates', async () => {
+    const cassette = await cassetteService.create({
+      name: 'Incomplete Template',
+      type: 'PARAMETRIC'
+    }, user1.userId, user1.organizationId, null, user1.permissions);
+
+    await expect(cassetteService.createDesignFromTemplate(
+      cassette._id.toString(),
+      {},
+      user1.userId,
+      user1.organizationId,
+      null,
+      user1.permissions,
+      { name: 'Design from incomplete template' }
+    )).rejects.toThrow(/no construction definition/);
+  });
+
   it('should deny access to cassettes owned by other users', async () => {
     const cassette = await cassetteService.create({ name: 'Private Template' }, user1.userId, user1.organizationId, null, user1.permissions);
 

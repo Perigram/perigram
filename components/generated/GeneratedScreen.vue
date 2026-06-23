@@ -67,6 +67,13 @@
             rows="3"
             auto-resize
           />
+          <Select
+            v-else-if="field.type === 'entity'"
+            v-model="promptValues[field.id]"
+            :options="promptOptions[field.id] || []"
+            option-label="label"
+            option-value="value"
+          />
           <InputText
             v-else
             v-model="promptValues[field.id]"
@@ -81,6 +88,7 @@
 <script setup>
 import { computed, reactive, ref, toRef } from 'vue';
 import InputText from 'primevue/inputtext';
+import Select from 'primevue/select';
 import Textarea from 'primevue/textarea';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
@@ -104,6 +112,7 @@ const submittingAction = ref(false);
 const pendingAction = ref(null);
 const pendingEntity = ref(null);
 const promptValues = reactive({});
+const promptOptions = reactive({});
 
 const regionBySlot = computed(() => Object.fromEntries(
   screen.value.regions.map(region => [region.slot || 'main', region])
@@ -116,19 +125,21 @@ async function executeAction(action, entity = null) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   if (['createEntity', 'updateEntity'].includes(action.actionKind) && promptedFields(action).length) {
-    openInputDialog(action, entity);
+    await openInputDialog(action, entity);
     return;
   }
   await postAction(action, entity, {});
 }
 
-function openInputDialog(action, entity = null) {
+async function openInputDialog(action, entity = null) {
   pendingAction.value = action;
   pendingEntity.value = entity;
   for (const key of Object.keys(promptValues)) delete promptValues[key];
+  for (const key of Object.keys(promptOptions)) delete promptOptions[key];
   for (const field of promptedFields(action)) {
     promptValues[field.id] = initialPromptValue(field);
   }
+  await loadPromptOptions(promptedFields(action));
   inputDialogVisible.value = true;
 }
 
@@ -178,6 +189,37 @@ function initialPromptValue(field = {}) {
   const value = field.default ?? '';
   if (field.type === 'object' && value && typeof value !== 'string') return JSON.stringify(value, null, 2);
   return value;
+}
+
+async function loadPromptOptions(fields = []) {
+  await Promise.all(fields
+    .filter(field => field.type === 'entity')
+    .map(async (field) => {
+      promptOptions[field.id] = await entityOptions(field.entityType);
+    }));
+}
+
+async function entityOptions(entityType) {
+  if (entityType === 'cassette') {
+    const items = await $fetch('/api/cassettes').catch(() => []);
+    return items
+      .filter(isConstructableCassetteTemplate)
+      .map(entityOption);
+  }
+  return [];
+}
+
+function isConstructableCassetteTemplate(template = {}) {
+  if (template.data?.type === 'STANDARD') return true;
+  const definition = template.data?.definition || {};
+  return Boolean(definition.extensions?.cutkit?.graphTree);
+}
+
+function entityOption(entity = {}) {
+  return {
+    label: entity.identity?.name || entity.identity?.uid || entity._id,
+    value: entity._id || entity.identity?.uid
+  };
 }
 
 function promptedFields(action = {}) {
