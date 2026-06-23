@@ -4,7 +4,7 @@ import { cncDomain, cncEntityConstruction } from '../../packages/domain-cnc/src/
 
 function migrateProcessData(data = {}) {
   const normalized = normalizeProcessConstruction(data);
-  if (!data.compiled) return data;
+  if (!data.compiled) return normalized;
   return {
     ...normalized,
     compiled: compileProcessDefinition({
@@ -51,11 +51,11 @@ function normalizeProcessConstruction(data = {}) {
 async function main() {
   const db = await connectDB();
   const cursor = db.collection('process_definitions').find({
-    'data.compiled': { $exists: true, $ne: null },
     'data.actions': { $exists: true }
   });
   let scanned = 0;
   let updated = 0;
+  let recompiled = 0;
 
   for await (const process of cursor) {
     scanned++;
@@ -66,9 +66,10 @@ async function main() {
       { $set: { data: nextData } }
     );
     updated++;
+    if (process.data?.compiled) recompiled++;
   }
 
-  console.log(`Scanned ${scanned} process definitions; recompiled ${updated} process definitions.`);
+  console.log(`Scanned ${scanned} process definitions; updated ${updated} process definitions; recompiled ${recompiled} process definitions.`);
   process.exit(0);
 }
 
