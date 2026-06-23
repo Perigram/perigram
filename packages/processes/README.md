@@ -65,6 +65,11 @@ construction modes. For example, `cassette_design` creation compiles as
 `bakeCassetteDesignFromTemplate` and runtime execution delegates to the
 cassette template construction service, preserving baked geometry and editor
 contracts instead of creating a generic row.
+Compilation hydrates create-action construction and prompt policy from the
+domain construction contract. A sparse visual action for `cassette_design`
+therefore still compiles with required `name` and `templateId` prompt fields,
+so generated screens open the input dialog even when the draft did not persist
+`construction.inputs` or `inputPolicy.fields`.
 Update actions consume an entity from the incoming data socket, expose one data
 input socket per selected mutable field, validate those fields against the
 active domain field-access policy, and compile into write/admin grants on the

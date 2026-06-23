@@ -20,7 +20,7 @@ scanned without adding explanatory chrome:
 - `ProcessActionNode.vue` represents an executable process step. It exposes
   event trigger input, data input/output, and completion event output handles on
   the node sides. The node owns inline editing for action access level,
-  access-granted roles, trigger mode, command selection, target status selection,
+  access-granted roles, trigger mode, and command selection,
   creation target, update fields, and projection fields. The action kind is fixed by the
   palette item that created the node and is displayed as a compact verb such as
   `create`, `update`, or `service`. Create actions derive their parent from the incoming
@@ -105,8 +105,8 @@ socket with `attachments.generate` capability and accepted source types instead
 of separate `sheet_design` and `nesting_run` sockets.
 
 New process behavior should use `createEntity`, `updateEntity`, `changeStatus`,
-`runCommand`, status-definition nodes, value-input nodes, and transfer socket
-nodes. Archive is represented as a `changeStatus`
+`runCommand`, status-definition nodes, value-input nodes, and inbound/outbound
+socket nodes. Archive is represented as a `changeStatus`
 action targeting an archive status, not as a separate node type. Entity naming
 is a construction input: generated create actions prompt for the domain
 contract's name field or consume a connected block/value default. A block node

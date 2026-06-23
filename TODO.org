@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-23] Fix process status inputs and construction prompt compilation
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      pages/organization/process.vue, packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: components/process-designer/README.md,
+      packages/processes/README.md, TODO.org
+    Notes: Removed the incorrect in-node target-status dropdowns; create and
+      change-status actions now expose target status as graph input sockets
+      that are set by status-definition node wiring. Restored separate receive
+      and send socket palette entries. Process compilation now hydrates
+      create-action construction inputs and prompt policy from the domain
+      construction contract, so cassette design creation prompts for required
+      name/template inputs even when the visual draft did not persist those
+      fields.
+
     [2026-06-23] Correct process node sockets and cassette construction defaults
     Files changed: components/generated/GeneratedScreen.vue,
       components/process-designer/ProcessActionNode.vue,
