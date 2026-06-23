@@ -63,7 +63,11 @@ templates must be construction-ready before this path runs: OCCS templates need
 `data.definition.extensions.cutkit.graphTree`, and legacy parametric templates
 need the required `A` and `B` graph parameters. Incomplete draft templates are
 rejected before WASM evaluation so the renderer never receives a graph with
-null string fields.
+null string fields. `findDefaultConstructableTemplate()` returns the first
+construction-ready parametric template visible to the caller, falling back to a
+standard template only when no parametric template is available. Process
+construction uses that selector when a graph action is executed without an
+explicit template id.
 
 `GET /api/cassettes/:id/export` remains a template-level DXF export. Parametric
 exports use evaluated `layerData` when available, so folds, marks, dimensions,

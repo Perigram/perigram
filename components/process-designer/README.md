@@ -2,7 +2,7 @@
 
 Vue Flow node components for the organization process designer. The canvas is
 moving toward executable process steps: action nodes describe creation, status
-changes, command runs, and organization sends. Entity contracts, abstract
+changes, and command runs. Entity contracts, transfer ports, abstract
 roles, and concrete user assignments are edited as process records in the
 route-level side panel, then assigned onto action nodes, service/socket access
 rules, and lifecycle transitions.
@@ -12,14 +12,15 @@ the Vue Flow selected state as a primary border/ring, and each process node type
 uses a compact colored top stripe plus matching icon tint so the canvas can be
 scanned without adding explanatory chrome:
 
-- `ProcessEntityNode.vue` represents an entity contract. It exposes access,
-  service-input, and socket-projection handles and summarizes lifecycle mode,
-  selected field policy count, inline lifecycle states, transition count, and
-  the explicit public/write data contract exposed by the entity profile.
+- `ProcessEntityNode.vue` represents an entity contract. It exposes left-side
+  standard block/status sockets that can accept status and block nodes, and
+  right-side entity/block sockets that downstream action nodes can consume. The
+  node summarizes lifecycle states, transition count, and the explicit
+  public/write data contract exposed by the entity profile.
 - `ProcessActionNode.vue` represents an executable process step. It exposes
   event trigger input, data input/output, and completion event output handles on
   the node sides. The node owns inline editing for action access level,
-  access-granted roles, trigger mode, command selection, target status,
+  access-granted roles, trigger mode, command selection, target status selection,
   creation target, update fields, and projection fields. The action kind is fixed by the
   palette item that created the node and is displayed as a compact verb such as
   `create`, `update`, or `service`. Create actions derive their parent from the incoming
@@ -27,27 +28,28 @@ scanned without adding explanatory chrome:
   incoming entity and expose selected mutable data fields as left-side data
   sockets, status-change actions consume
   an incoming entity without selecting an entity type or editing the existing
-  status, command actions show command entity inputs/outputs, and
-  organization-send actions show the projected output fields. Create actions
+  status, and command actions show command entity inputs/outputs. Create actions
   derive their left-side data sockets from the domain construction contract:
   promptable constructor inputs become generated-screen dialog fields, and
   typed derived entities such as `cassette_design` keep their construction mode
   on the action record instead of pretending they are generic inserts.
-  Update actions derive promptable editor fields from the selected mutation
-  paths, so a manual modify action can collect the new data values before it
-  calls the active process action runtime.
+  Update actions derive promptable editor fields from selected domain field
+  policy entries, so a manual modify action collects values for concrete fields
+  instead of free-form paths before it calls the active process action runtime.
 - `ProcessStatusDefinitionNode.vue` represents a reusable status value for the
   same canvas. Its inspector edits status id, label, PrimeVue severity, and an
-  icon selected from the supported process icon set. Connecting it to a create
-  or status-change action writes the action target state and lets the compiler
+  icon selected from the supported process icon set. Connecting it to an entity
+  node adds the state to that entity lifecycle; connecting it to a create or
+  status-change action writes the action target state and lets the compiler
   apply status label/color/severity/icon metadata to the generated workflow.
 - `ProcessValueInputNode.vue` represents a canonical block value
   (`identity`, `data`, `specs`, `summary`, `attachments`, or status metadata).
-  Wiring it into a construction data socket binds that value to the matched
-  construction field, while wiring it into an update action adds the block path
-  as a concrete mutation field. Empty update actions expose a generic mutable
+  Wiring it into an entity node adds that canonical path to the entity field
+  policy. Wiring it into a construction data socket binds that value to the
+  matched construction field, while wiring it into an update action adds the
+  block path as a concrete mutation field. Empty update actions expose a generic
   field socket until the first block is connected; after that the node displays
-  the exact mutation sockets.
+  exact mutation sockets using domain field labels.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
   service-identity access, typed input, and output handles and summarizes
   exact command inputs and outputs as labeled sockets in the same
@@ -103,8 +105,8 @@ socket with `attachments.generate` capability and accepted source types instead
 of separate `sheet_design` and `nesting_run` sockets.
 
 New process behavior should use `createEntity`, `updateEntity`, `changeStatus`,
-`runCommand`, `sendToOrganization`, status-definition nodes, value-input nodes,
-and inbound/outbound socket nodes. Archive is represented as a `changeStatus`
+`runCommand`, status-definition nodes, value-input nodes, and transfer socket
+nodes. Archive is represented as a `changeStatus`
 action targeting an archive status, not as a separate node type. Entity naming
 is a construction input: generated create actions prompt for the domain
 contract's name field or consume a connected block/value default. A block node

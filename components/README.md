@@ -132,8 +132,9 @@ wired defaults are still included in the submitted payload. This lets the
 visual graph provide constructor/editor data without forcing a dialog field for
 every wired input. Entity construction fields render as entity selectors when
 the domain has a canonical list source; cassette template fields list only
-construction-ready templates so process-created designs do not select empty
-draft templates. Buttons derive semantic labels and icons from the compiled
+construction-ready templates and preselect the first available required
+template so process-created designs do not select empty draft templates or
+submit missing template ids. Buttons derive semantic labels and icons from the compiled
 action kind, entity type, and target status when an old manifest still contains
 a generic label such as `Create`.
 

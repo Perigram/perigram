@@ -4,6 +4,29 @@
   :END:
 
 *** Agent Notes
+    [2026-06-23] Correct process node sockets and cassette construction defaults
+    Files changed: components/generated/GeneratedScreen.vue,
+      components/process-designer/ProcessActionNode.vue,
+      components/process-designer/ProcessEntityNode.vue,
+      pages/organization/process.vue, i18n/locales/en.json,
+      i18n/locales/ru.json, server/features/cassettes/service.js,
+      server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js
+    Docs updated: components/README.md,
+      components/process-designer/README.md,
+      server/features/cassettes/README.md,
+      server/features/process-definitions/README.md, TODO.org
+    Notes: Entity nodes now expose standard block/status input sockets and
+      entity/block output sockets. Status definitions connected to entity nodes
+      add lifecycle states, block nodes connected to entity nodes add field
+      policy paths, action status selection comes from status-definition nodes,
+      modify sockets use domain field labels instead of free-form path wording,
+      the palette exposes one transfer socket concept, generated required
+      cassette-template selectors preselect the first construction-ready
+      template, and typed process cassette construction falls back to the
+      visible default construction-ready template when no template id is
+      supplied.
+
     [2026-06-23] Wire process block and status nodes into action contracts
     Files changed: components/generated/GeneratedScreen.vue,
       components/process-designer/ProcessStatusDefinitionNode.vue,

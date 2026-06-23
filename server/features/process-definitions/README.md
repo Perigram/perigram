@@ -76,9 +76,9 @@ entity service contracts without adding compatibility routes or generic blob
 creation. Typed construction modes delegate to the domain constructor instead
 of generic entity creation:
 `bakeCassetteDesignFromTemplate` calls the cassette template service, requires a
-template id, accepts concrete parameters and a name, creates a real
-`cassette_design` with geometry/editor provenance, then applies the process
-target status.
+template id or resolves the default construction-ready template visible to the
+caller, accepts concrete parameters and a name, creates a real `cassette_design`
+with geometry/editor provenance, then applies the process target status.
 Compiled process access is windowed by graph state. Status-change nodes do not
 append permanent grants; they inherit the incoming entity access until edited,
 then replace the target-status role set with the node's selected grants. Parent
