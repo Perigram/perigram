@@ -493,7 +493,8 @@ const palette = [
   { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play-circle', label: 'service' },
   { type: 'statusDefinition', icon: 'pi pi-circle-fill', label: 'status' },
   { type: 'valueInput', icon: 'pi pi-id-card', label: 'block' },
-  { type: 'socket', direction: 'outbound', icon: 'pi pi-send', label: 'transfer' }
+  { type: 'socket', direction: 'inbound', icon: 'pi pi-sign-in', label: 'receive' },
+  { type: 'socket', direction: 'outbound', icon: 'pi pi-sign-out', label: 'send' }
 ];
 const actionKindOptions = [
   { label: 'create', value: 'createEntity' },
@@ -1308,6 +1309,7 @@ function syncActionIo(action = {}, node = null) {
     action.parentEntityType = incoming.entityType || '';
     action.inputs = [
       { id: 'parent', label: incoming.entityType || t('processDesigner.parentEntity'), entityType: incoming.entityType || '', status: incoming.status || '', required: false },
+      { id: 'status', label: t('processDesigner.targetStatus'), kind: 'status', required: true },
       ...createInputSockets(action.entityType)
     ];
     action.outputs = [{ id: 'created', entityType: action.entityType, status: action.status.to }];
@@ -1328,7 +1330,10 @@ function syncActionIo(action = {}, node = null) {
     }
     action.access.statusFrom = action.status.from || '';
     action.access.statusTo = action.status.to || '';
-    action.inputs = [{ id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: action.status.from || '' }];
+    action.inputs = [
+      { id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: action.status.from || '' },
+      { id: 'status', label: t('processDesigner.targetStatus'), kind: 'status', required: true }
+    ];
     action.outputs = [{ id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: action.status.to || '' }];
     return;
   }
@@ -1682,18 +1687,6 @@ function principalLabels(principalIds = []) {
   return principalIds.map(principalId => servicePrincipals.value[principalId]?.label || principalId).filter(Boolean);
 }
 
-function statusOptionsForAction(action = {}, node = {}) {
-  const entityType = action.actionKind === 'createEntity'
-    ? action.entityType
-    : (inferIncomingEntityContract(node.id).entityType || actionEntityType(action));
-  return Object.values(draft.value?.data?.statusDefinitions || {})
-    .filter(status => !entityType || !status.entityType || status.entityType === entityType)
-    .map(status => ({
-      label: status.label || status.statusId || status.id,
-      value: status.statusId || status.id
-    }));
-}
-
 function addLifecycleTransition() {
   const region = ensureCustomLifecycleRegion();
   const states = Object.keys(region.states);
@@ -1785,7 +1778,6 @@ function enrichNodeData(node) {
       actionRecord: node.type === 'action' ? record : null,
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
       commandOptions: node.type === 'action' ? commandOptions.value : [],
-      statusOptions: node.type === 'action' ? statusOptionsForAction(record, node) : [],
       roleOptions: node.type === 'action' ? actionRoleOptions(record, node) : [],
       effectiveAccessLabels: node.type === 'action' ? effectiveActionAccessLabels(record, node) : [],
       inheritedAccessLabels: node.type === 'action' ? inheritedActionAccessLabels(record, node) : [],

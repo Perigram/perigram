@@ -179,7 +179,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
     userAccess,
     workflows,
     fieldPolicies: compileFieldPolicies(process.entityProfiles),
-    actions: compileActions(process.actions, process),
+    actions: compileActions(process.actions, process, domain),
     statusDefinitions: compileStatusDefinitions(process.statusDefinitions),
     valueInputs: compileValueInputs(process.valueInputs),
     services: compileServices(process.services),
@@ -493,8 +493,8 @@ function compileRoles(process = {}, domain = {}) {
         feature,
         entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || null,
         status: action.status || {},
-        construction: normalizeConstruction(action.construction, action.entityType),
-        inputPolicy: normalizeInputPolicy(action.inputPolicy),
+        construction: normalizeConstruction(action.construction, action.entityType, domain),
+        inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
         inputs: action.inputs || []
       });
     }
@@ -1031,7 +1031,7 @@ function initialSocketStatus(socket = {}) {
   return '';
 }
 
-function compileActions(actions = {}, process = {}) {
+function compileActions(actions = {}, process = {}, domain = {}) {
   return Object.fromEntries(Object.entries(actions).map(([id, action]) => [id, {
     id: action.id || id,
     label: displayActionLabel(action, id),
@@ -1045,8 +1045,8 @@ function compileActions(actions = {}, process = {}) {
     },
     mutation: action.mutation || { fields: [] },
     projection: action.projection || null,
-    construction: normalizeConstruction(action.construction, action.entityType),
-    inputPolicy: normalizeInputPolicy(action.inputPolicy),
+    construction: normalizeConstruction(action.construction, action.entityType, domain),
+    inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
     statusRef: action.statusRef || null,
     access: normalizeActionAccess(action.access),
     trigger: {
@@ -1099,10 +1099,19 @@ function blockForValueInput(path = '') {
   return '';
 }
 
-function normalizeConstruction(construction = {}, entityType = '') {
+function normalizeConstruction(construction = {}, entityType = '', domain = {}) {
+  const contract = constructionContract(domain, entityType);
+  const declaredInputs = Array.isArray(construction.inputs) ? construction.inputs : [];
+  const inputsById = new Map((contract.inputs || []).map(input => [input.id || input.path, { ...input }]));
+  for (const input of declaredInputs) {
+    inputsById.set(input.id || input.path, {
+      ...(inputsById.get(input.id || input.path) || {}),
+      ...input
+    });
+  }
   return {
-    mode: construction.mode || defaultConstructionMode(entityType),
-    inputs: Array.isArray(construction.inputs) ? construction.inputs : []
+    mode: construction.mode || contract.defaultMode || defaultConstructionMode(entityType),
+    inputs: [...inputsById.values()]
   };
 }
 
@@ -1110,6 +1119,27 @@ function normalizeInputPolicy(inputPolicy = {}) {
   return {
     prompt: inputPolicy.prompt !== false,
     fields: Array.isArray(inputPolicy.fields) ? inputPolicy.fields : []
+  };
+}
+
+function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityType = '', domain = {}) {
+  const normalizedConstruction = normalizeConstruction(construction, entityType, domain);
+  const policyFields = Array.isArray(inputPolicy.fields) ? inputPolicy.fields : [];
+  const fieldsById = new Map(
+    normalizedConstruction.inputs
+      .filter(input => input.prompt || input.required)
+      .map(input => [input.id || input.path, { ...input }])
+  );
+  for (const field of policyFields) {
+    fieldsById.set(field.id || field.path, {
+      ...(fieldsById.get(field.id || field.path) || {}),
+      ...field
+    });
+  }
+  const fields = [...fieldsById.values()];
+  return {
+    prompt: inputPolicy.prompt !== false && fields.some(field => field.prompt || field.required),
+    fields
   };
 }
 
@@ -1219,7 +1249,7 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
 function validateConstruction(actionId, action = {}, domain = {}, errors = []) {
   const entityType = action.entityType || '';
   const contract = constructionContract(domain, entityType);
-  const construction = normalizeConstruction(action.construction, entityType);
+  const construction = normalizeConstruction(action.construction, entityType, domain);
   if (!contract.modes.includes(construction.mode)) {
     errors.push(`Action ${actionId} cannot create ${entityType} with construction mode ${construction.mode}`);
   }

@@ -14,18 +14,7 @@
         @update:model-value="value => updateAndSync({ entityType: value })"
       />
       <Select
-        v-if="action.actionKind === 'createEntity'"
-        :model-value="action.status?.to || ''"
-        :options="statusOptions"
-        option-label="label"
-        option-value="value"
-        class="min-w-0"
-        size="small"
-        :placeholder="$t('processDesigner.targetStatus')"
-        @update:model-value="value => updateStatus({ to: value })"
-      />
-      <Select
-        v-else-if="action.actionKind === 'runCommand'"
+        v-if="action.actionKind === 'runCommand'"
         :model-value="action.commandId || ''"
         :options="data.commandOptions || []"
         option-label="label"
@@ -105,17 +94,6 @@
     </div>
 
     <div v-if="hasInlineControls" class="nodrag mt-2 grid grid-cols-2 gap-1">
-      <Select
-        v-if="action.actionKind === 'changeStatus'"
-        :model-value="action.status?.to || ''"
-        :options="statusOptions"
-        option-label="label"
-        option-value="value"
-        class="col-span-2 min-w-0"
-        size="small"
-        :placeholder="$t('processDesigner.targetStatus')"
-        @update:model-value="value => updateStatus({ to: value })"
-      />
       <MultiSelect
         v-if="action.actionKind === 'sendToOrganization'"
         :model-value="action.projection?.fields || []"
@@ -210,9 +188,8 @@ const effectiveAccessLabels = computed(() => props.data.effectiveAccessLabels ||
 const inheritedAccessLabels = computed(() => props.data.inheritedAccessLabels || []);
 const eventLabel = computed(() => props.data.eventLabel || t('processDesigner.actionCompleted'));
 const actionKindLabel = computed(() => props.data.actionKindLabel || props.data.actionKind || t('common.actions.title'));
-const statusOptions = computed(() => props.data.statusOptions || []);
 const showEntitySelector = computed(() => ['createEntity', 'sendToOrganization'].includes(action.value.actionKind));
-const hasInlineControls = computed(() => ['changeStatus', 'sendToOrganization'].includes(action.value.actionKind));
+const hasInlineControls = computed(() => ['sendToOrganization'].includes(action.value.actionKind));
 function normalizeSpecs(items = []) {
   return items.map((item, index) => {
     if (typeof item === 'string') return { id: `${item}-${index}`, label: item, detail: '' };
@@ -257,15 +234,6 @@ function updateAccess(updates) {
 
 function resetAccess() {
   props.data.onActionResetAccess?.();
-}
-
-function updateStatus(updates) {
-  props.data.onActionUpdate?.({
-    status: {
-      ...(action.value.status || {}),
-      ...updates
-    }
-  }, { syncIo: true });
 }
 
 function updateProjection(updates) {

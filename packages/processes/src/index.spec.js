@@ -697,6 +697,44 @@ describe('@cutkit/processes compiler', () => {
     expect(validation.errors.join(' ')).toContain('typed construction mode');
   });
 
+  it('hydrates create prompts from the domain construction contract', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_admin: { id: 'role_admin' }
+      },
+      actions: {
+        create_design: {
+          id: 'create_design',
+          actionKind: 'createEntity',
+          entityType: 'cassette_design',
+          status: { to: 'CREATED' },
+          trigger: { mode: 'manual' },
+          access: { level: 'admin', roleIds: ['role_admin'] },
+          outputs: [{ id: 'created', entityType: 'cassette_design', status: 'CREATED' }]
+        }
+      },
+      assignments: {
+        user_admin: {
+          userId: 'user_admin',
+          roleIds: ['role_admin'],
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.create_design.construction).toMatchObject({
+      mode: 'bakeCassetteDesignFromTemplate',
+      inputs: expect.arrayContaining([
+        expect.objectContaining({ id: 'name', prompt: true, required: true }),
+        expect.objectContaining({ id: 'templateId', prompt: true, required: true })
+      ])
+    });
+    expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'name', prompt: true, required: true }),
+      expect.objectContaining({ id: 'templateId', prompt: true, required: true })
+    ]));
+  });
+
   it('compiles update actions with field mutation sockets', () => {
     const compiled = compileProcessDefinition({
       roles: {
