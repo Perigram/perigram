@@ -19,13 +19,18 @@ function normalizeProcessConstruction(data = {}) {
     if ((action.actionKind || 'createEntity') !== 'createEntity') return [id, action];
     const contract = cncEntityConstruction[action.entityType] || null;
     if (!contract) return [id, action];
+    const modes = Array.isArray(contract.modes) ? contract.modes : [];
+    const requestedMode = action.construction?.mode || contract.defaultMode || 'genericCreate';
+    const mode = modes.includes(requestedMode)
+      ? requestedMode
+      : (contract.defaultMode || modes[0] || 'genericCreate');
     const promptFields = (contract.inputs || []).filter(input => input.prompt || input.required);
     const existingFields = new Map((action.inputPolicy?.fields || []).map(field => [field.id || field.path, field]));
     return [id, {
       ...action,
       construction: {
         ...(action.construction || {}),
-        mode: action.construction?.mode || contract.defaultMode || 'genericCreate',
+        mode,
         inputs: contract.inputs || []
       },
       inputPolicy: {

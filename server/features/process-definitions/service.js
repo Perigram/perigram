@@ -283,10 +283,14 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   }
 
   if (action.actionKind === 'createEntity') {
-    if (action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
+    const entityType = resolveActionEntityType(action);
+    if (entityType === 'cassette_design' && action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
       return await executeBakeCassetteDesign(action, data, organizationId, auth);
     }
-    if (resolveActionEntityType(action) === 'cassette_design') {
+    if (entityType === 'cassette' && action.construction?.mode === 'createDefaultOccsTemplate') {
+      return await executeCreateDefaultCassetteTemplate(action, data, organizationId, auth);
+    }
+    if (entityType === 'cassette_design') {
       throw createError({ statusCode: 400, message: 'cassette_design requires typed construction' });
     }
     const service = getEntityServiceForAction(action);
@@ -298,7 +302,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     const targetId = createdDto?._id || createdDto?.identity?.uid;
     if (!targetId) return created;
     const status = await statusService.setInitialStateForOrganization(
-      resolveActionEntityType(action),
+      entityType,
       targetId,
       targetState,
       organizationId,
@@ -366,6 +370,29 @@ async function executeBakeCassetteDesign(action = {}, data = {}, organizationId,
   if (!targetId) return created;
   const status = await statusService.setInitialStateForOrganization(
     resolveActionEntityType(action),
+    targetId,
+    targetState,
+    organizationId,
+    auth.userId,
+    { note: `Created by process action ${action.id}` }
+  );
+  return { ...created, status };
+}
+
+async function executeCreateDefaultCassetteTemplate(action = {}, data = {}, organizationId, auth = {}) {
+  const created = await cassetteService.createDefaultOccsTemplate(
+    createActionPayload(action, data, {}),
+    auth.userId,
+    organizationId,
+    auth.role,
+    createActionExecutionAuth(auth, action)
+  );
+  const targetState = action.status?.to;
+  if (!targetState) return created;
+  const targetId = created?._id || created?.identity?.uid;
+  if (!targetId) return created;
+  const status = await statusService.setInitialStateForOrganization(
+    'cassette',
     targetId,
     targetState,
     organizationId,

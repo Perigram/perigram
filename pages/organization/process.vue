@@ -1397,7 +1397,11 @@ function syncMutationInputPolicy(action = {}) {
 function syncActionConstruction(action = {}) {
   const contract = constructionContractForEntity(action.entityType);
   action.construction ||= {};
-  action.construction.mode = action.construction.mode || contract.defaultMode || 'genericCreate';
+  const modes = Array.isArray(contract.modes) ? contract.modes : [];
+  const requestedMode = action.construction.mode || contract.defaultMode || 'genericCreate';
+  action.construction.mode = modes.includes(requestedMode)
+    ? requestedMode
+    : (contract.defaultMode || modes[0] || 'genericCreate');
   action.construction.inputs = contract.inputs.map(input => ({ ...input }));
   const promptFields = contract.inputs.filter(input => input.prompt || input.required);
   const existingFields = new Map((action.inputPolicy?.fields || []).map(field => [field.id || field.path, field]));

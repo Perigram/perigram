@@ -18,6 +18,7 @@ import { Cassette } from './model.js';
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../utils/dxf-extractor.js';
 import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 import { isOccsDocument, occsQueueParameters } from '#utils/occs/parameters.js';
+import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
 import { generateLayeredDxf } from '../../utils/dxf-writer.js';
 
 /**
@@ -180,6 +181,18 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const cassette = await repository.create(cassetteData);
   const { cassette: updated } = await ensureGeometryRevision(cassette, userId, 'template-created');
   return toDTO(updated);
+}
+
+export async function createDefaultOccsTemplate(data = {}, userId, userOrg, userRole, userPermissions) {
+  const name = data.name || data.identity?.name;
+  if (!name) throw createError({ statusCode: 400, message: 'Cassette template name is required' });
+  const definition = createDefaultOccsCassetteTemplateDefinition();
+  return await create({
+    name,
+    type: 'PARAMETRIC',
+    definition,
+    parameters: Object.keys(definition.parameters || {})
+  }, userId, userOrg, userRole, userPermissions);
 }
 
 export async function upload(fileBuffer, fileName, name, userId, userOrg, userRole, userPermissions, mapping, parameters) {

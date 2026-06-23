@@ -20,6 +20,7 @@ const domain = {
   entities: [
     { type: 'project' },
     { type: 'queue' },
+    { type: 'cassette' },
     { type: 'cassette_design' },
     { type: 'catalog' },
     { type: 'warehouse' },
@@ -70,6 +71,13 @@ const domain = {
     }
   },
   construction: {
+    cassette: {
+      modes: ['createDefaultOccsTemplate'],
+      defaultMode: 'createDefaultOccsTemplate',
+      inputs: [
+        { id: 'name', path: 'name', type: 'string', required: true, prompt: true }
+      ]
+    },
     cassette_design: {
       modes: ['bakeCassetteDesignFromTemplate'],
       defaultMode: 'bakeCassetteDesignFromTemplate',
@@ -677,7 +685,7 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
-  it('rejects generic creation for derived construction contracts', () => {
+  it('normalizes generic creation for derived construction contracts to the typed mode', () => {
     const validation = validateProcessDefinition({
       actions: {
         create_design: {
@@ -693,8 +701,22 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(validation.ok).toBe(false);
-    expect(validation.errors.join(' ')).toContain('typed construction mode');
+    expect(validation.ok).toBe(true);
+    const compiled = compileProcessDefinition({
+      actions: {
+        create_design: {
+          id: 'create_design',
+          actionKind: 'createEntity',
+          entityType: 'cassette_design',
+          status: { to: 'CREATED' },
+          construction: { mode: 'genericCreate', inputs: [] },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: [] },
+          outputs: [{ id: 'created', entityType: 'cassette_design', status: 'CREATED' }]
+        }
+      }
+    }, domain);
+    expect(compiled.actions.create_design.construction.mode).toBe('bakeCassetteDesignFromTemplate');
   });
 
   it('hydrates create prompts from the domain construction contract', () => {
@@ -733,6 +755,41 @@ describe('@cutkit/processes compiler', () => {
       expect.objectContaining({ id: 'name', prompt: true, required: true }),
       expect.objectContaining({ id: 'templateId', prompt: true, required: true })
     ]));
+  });
+
+  it('normalizes stale construction modes when an action entity type changes', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_admin: { id: 'role_admin' }
+      },
+      actions: {
+        create_template: {
+          id: 'create_template',
+          actionKind: 'createEntity',
+          entityType: 'cassette',
+          status: { to: 'ACTIVE' },
+          construction: { mode: 'bakeCassetteDesignFromTemplate' },
+          trigger: { mode: 'manual' },
+          access: { level: 'admin', roleIds: ['role_admin'] },
+          outputs: [{ id: 'created', entityType: 'cassette', status: 'ACTIVE' }]
+        }
+      },
+      assignments: {
+        user_admin: {
+          userId: 'user_admin',
+          roleIds: ['role_admin'],
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.create_template.construction).toMatchObject({
+      mode: 'createDefaultOccsTemplate',
+      inputs: [expect.objectContaining({ id: 'name', required: true, prompt: true })]
+    });
+    expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual([
+      expect.objectContaining({ id: 'name', required: true, prompt: true })
+    ]);
   });
 
   it('compiles update actions with field mutation sockets', () => {

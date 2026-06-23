@@ -82,6 +82,24 @@ describe('Cassette Management & Ownership', () => {
     expect(result.data.definition.params.height).toBe(200);
   });
 
+  it('creates a named default OCCS cassette template for process construction', async () => {
+    const result = await cassetteService.createDefaultOccsTemplate(
+      { name: 'Generated Template' },
+      user1.userId,
+      user1.organizationId,
+      null,
+      user1.permissions
+    );
+
+    expect(result.identity.name).toBe('Generated Template');
+    expect(result.data.type).toBe('PARAMETRIC');
+    expect(result.data.definition.extensions.cutkit.graphTree.nodes[0]).toMatchObject({
+      id: 'face_1',
+      operation: 'face.trapezoid'
+    });
+    expect(result.data.parameters).toEqual(['A', 'B', 'R']);
+  });
+
   it('should update an OCCS cassette definition under the canonical definition field', async () => {
     const cassette = await cassetteService.create({
       name: 'OCCS Template',

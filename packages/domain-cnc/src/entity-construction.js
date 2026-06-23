@@ -15,6 +15,13 @@ export const cncEntityConstruction = {
       { id: 'nestingParams', label: 'Nesting parameters', path: 'nestingParams', type: 'object', required: false }
     ]
   },
+  cassette: {
+    modes: ['createDefaultOccsTemplate'],
+    defaultMode: 'createDefaultOccsTemplate',
+    inputs: [
+      { id: 'name', label: 'Template name', path: 'name', type: 'string', required: true, prompt: true }
+    ]
+  },
   cassette_design: {
     modes: ['bakeCassetteDesignFromTemplate'],
     defaultMode: 'bakeCassetteDesignFromTemplate',

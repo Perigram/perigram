@@ -1109,8 +1109,12 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
       ...input
     });
   }
+  const requestedMode = construction.mode || contract.defaultMode || defaultConstructionMode(entityType);
+  const modes = Array.isArray(contract.modes) ? contract.modes : [];
   return {
-    mode: construction.mode || contract.defaultMode || defaultConstructionMode(entityType),
+    mode: modes.includes(requestedMode)
+      ? requestedMode
+      : (contract.defaultMode || modes[0] || defaultConstructionMode(entityType)),
     inputs: [...inputsById.values()]
   };
 }
