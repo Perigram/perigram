@@ -148,7 +148,8 @@ Use `server/scripts/migrate-process-create-status-grants.js` after compiler
 changes that affect generated screens, create-action status grants,
 action-derived workflows, construction contracts, or other compiled runtime
 contracts. It rewrites stored create actions to include the current domain
-`construction` and `inputPolicy` records, then recompiles every stored process
+`construction` and `inputPolicy` records, resets stale invalid construction
+modes to the current entity-type default, then recompiles every stored process
 definition that already has a compiled runtime contract, so existing active
 processes pick up compiler fixes without editing their semantic graph records.
 

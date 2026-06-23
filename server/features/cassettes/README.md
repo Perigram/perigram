@@ -69,6 +69,13 @@ standard template only when no parametric template is available. Process
 construction uses that selector when a graph action is executed without an
 explicit template id.
 
+Process `createEntity` actions that target `cassette` use
+`createDefaultOccsTemplate`. The service requires a prompted template name and
+stores the default OCCS v2 graph-tree document from `utils/occs/templates.js`,
+including the standard parameter list and geometry revision pointer. A
+process-created template therefore opens in `CassetteDesignerV2` with an
+editable OCCS document instead of `data.definition: null`.
+
 `GET /api/cassettes/:id/export` remains a template-level DXF export. Parametric
 exports use evaluated `layerData` when available, so folds, marks, dimensions,
 and cut layers are preserved instead of emitting only the nestable contour. For

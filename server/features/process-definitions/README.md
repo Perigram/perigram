@@ -75,10 +75,15 @@ that key is not already present. This keeps block/value nodes aligned with the
 entity service contracts without adding compatibility routes or generic blob
 creation. Typed construction modes delegate to the domain constructor instead
 of generic entity creation:
+`createDefaultOccsTemplate` calls the cassette template service to create a
+named OCCS `cassette` template with the default graph-tree document;
 `bakeCassetteDesignFromTemplate` calls the cassette template service, requires a
 template id or resolves the default construction-ready template visible to the
 caller, accepts concrete parameters and a name, creates a real `cassette_design`
 with geometry/editor provenance, then applies the process target status.
+Activation and the process-construction migration normalize stored create
+actions whose construction mode no longer belongs to the selected entity type
+before recompiling the active runtime contract.
 Compiled process access is windowed by graph state. Status-change nodes do not
 append permanent grants; they inherit the incoming entity access until edited,
 then replace the target-status role set with the node's selected grants. Parent

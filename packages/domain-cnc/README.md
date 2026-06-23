@@ -85,7 +85,10 @@ the supported construction modes and required inputs for each entity type:
 ordinary entities use `genericCreate`, while derived entities such as
 `cassette_design` use a typed mode (`bakeCassetteDesignFromTemplate`) so the
 runtime can call the correct construction service and preserve editor
-contracts. `entity-create-inputs.js` projects those construction contracts into
+contracts. `cassette` templates also use a typed constructor,
+`createDefaultOccsTemplate`, which requires a prompted name and creates a full
+default OCCS template document instead of an empty generic row.
+`entity-create-inputs.js` projects those construction contracts into
 process-designer data sockets for older imports; new code should read
 `cncEntityConstruction` directly. Post-creation data mutation belongs in an
 `updateEntity` process action.
