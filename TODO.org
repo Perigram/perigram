@@ -22,8 +22,9 @@
       migration normalize stale invalid construction modes, so a `cassette`
       action no longer carries the cassette-design bake mode. Runtime execution
       creates a full default OCCS template through the cassette service instead
-      of a generic row with an empty definition. The migration was run inside
-      `cutkit_app_dev` and recompiled 35 process definitions.
+      of a generic row with an empty definition. The migration rewrites both
+      drafts and active compiled definitions; it was run inside `cutkit_app_dev`
+      and updated 36 process definitions, recompiling 35 of them.
 
     [2026-06-23] Fix process status inputs and construction prompt compilation
     Files changed: components/process-designer/ProcessActionNode.vue,
