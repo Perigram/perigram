@@ -110,9 +110,11 @@ entity-list screen for that role/feature so process-active users do not fall
 back to static app routes. If that role has multiple grants for the same entity
 feature, for example access to `project` in both `CREATED` and `NEW`, the
 inferred screen aggregates them into one feature-level source instead of
-pinning the source to the first status rule. The entity API still enforces the
-individual status-scoped grants when it filters returned records, so the screen
-shows every entity state that the composed role can actually read.
+pinning the source to the first status rule. The generated source keeps the
+role-local grant rules as `rule.any`; frontend loading turns those rules into
+`primaryStatuses` filters so a multi-role user does not see another role's
+states inside this role's screen. The entity API still enforces the individual
+status-scoped grants when it filters returned records.
 
 Compiled field policies replace the base domain field set for an organization
 when present. `read` fields are public display fields, `write` fields require

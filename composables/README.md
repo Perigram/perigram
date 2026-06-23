@@ -181,6 +181,11 @@ and action buttons are visible, while API routes still enforce real access.
 Manual generated-screen actions post to the active process action endpoint,
 which verifies the compiled action manifest before delegating to the relevant
 entity, status, socket, or command runtime.
+When a generated source comes from a role with several status-scoped grants for
+the same entity feature, `useGeneratedScreen` derives a role-local
+`primaryStatuses` list from the source requirement and passes it to
+`useEntity.list()`. This keeps a multi-role user's role-specific screen from
+showing records that are only visible through another assigned role.
 
 ---
 

@@ -54,6 +54,9 @@ Defines a specific nesting job, bridging the digital production intent with phys
   endpoint `GET /api/queue`. It applies organization lineage filtering and then
   per-queue `queues:read` access before field redaction, so generated process
   screens can load queue collections without calling missing plural routes.
+  `primaryStatus` filters one queue state and comma-separated
+  `primaryStatuses` filters several role-local status windows for generated
+  process screens.
 - `listPreviewByProjects(projectIds, ..., { limit })` returns access-redacted,
   summary-oriented queue previews keyed by parent project id. `/api/project`
   uses this to attach `summary.queuePreview` for the `/projects` route without

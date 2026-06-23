@@ -22,6 +22,10 @@ Refactored to use standardized blocks and the centralized State Machine engine.
   Project create/read/delete checks pass the full auth context into lineage
   access so membership-scoped grants and top-level permission fallbacks behave
   consistently between `/api/project` list and single-project routes.
+- `list()`: Accepts `primaryStatus` for one status or comma-separated
+  `primaryStatuses` for generated process screens that aggregate several
+  role-local status windows. The database filter narrows the collection before
+  the shared access evaluator performs the final per-project read check.
 
 ## Data Structure
 ```typescript

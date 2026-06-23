@@ -4,6 +4,23 @@
   :END:
 
 *** Agent Notes
+    [2026-06-23] Scope generated process screens to role-local status windows
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js, composables/useGeneratedScreen.js,
+      server/api/project/index.get.js, server/api/queue/index.get.js,
+      server/features/projects/service.js,
+      server/features/projects/projects.spec.js,
+      server/features/queues/service.js
+    Docs updated: packages/processes/README.md, composables/README.md,
+      server/api/README.md, server/features/projects/README.md,
+      server/features/queues/README.md, TODO.org
+    Notes: Inferred role/entity screens now preserve multi-grant status rules
+      as source `rule.any` requirements. Generated screen loading converts
+      those role-local status rules into `primaryStatuses` list filters so a
+      multi-role user does not see records granted only through another role's
+      screen. Project and queue collection services accept the explicit
+      multi-status filter before applying the normal access evaluator.
+
     [2026-06-22] Add status-scoped process access windows
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js

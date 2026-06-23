@@ -26,6 +26,9 @@ Routes are grouped into sub-directories corresponding to features:
   The project list route returns authorized project DTOs with canonical
   identity, status, origin, lineage, safe project data, summary fields, and
   queue previews so shared entity cards can render directly from the response.
+  Collection routes for process-generated screens accept `primaryStatus` or
+  comma-separated `primaryStatuses` when a role screen is scoped to one or more
+  lifecycle windows.
 - `process-definitions/`: Authenticated organization process definition CRUD,
   validation, activation, and archive endpoints. Activation compiles the visual
   graph into runtime access, navigation, workflow, field-policy, service, and
