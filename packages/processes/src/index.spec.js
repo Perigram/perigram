@@ -278,12 +278,27 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.screens.auto_role_project_project.required).toEqual({
       feature: 'projects',
-      level: 'admin'
+      level: 'admin',
+      rule: {
+        any: [
+          { fact: 'primaryStatus', equals: 'CREATED' },
+          { fact: 'primaryStatus', equals: 'NEW' }
+        ]
+      }
     });
     expect(compiled.userAccess.user_a.screens[0]).toMatchObject({
       screenKey: 'auto_role_project_project',
       entityType: 'project',
-      required: { feature: 'projects', level: 'admin' },
+      required: {
+        feature: 'projects',
+        level: 'admin',
+        rule: {
+          any: [
+            { fact: 'primaryStatus', equals: 'CREATED' },
+            { fact: 'primaryStatus', equals: 'NEW' }
+          ]
+        }
+      },
       actions: ['create_project_created', 'create_project_new']
     });
   });

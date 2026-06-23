@@ -88,15 +88,25 @@ function resolveSourceIdentifier(source = {}, screen = {}) {
 
 function resolveSourceFilters(source = {}, screen = {}) {
   const filters = resolveValue(source.filters || {}, screen) || {};
-  const status = statusFilterFromRequirement(source.required || screen.required || {});
-  return status ? { ...filters, primaryStatus: status } : filters;
+  const statuses = statusFiltersFromRequirement(source.required || screen.required || {});
+  if (!statuses.length) return filters;
+  if (statuses.length === 1) return { ...filters, primaryStatus: statuses[0] };
+  return { ...filters, primaryStatuses: statuses.join(',') };
 }
 
-function statusFilterFromRequirement(requirement = {}) {
-  const rule = requirement.rule;
-  if (!rule || Array.isArray(rule) || typeof rule !== 'object') return '';
-  if ((rule.fact === 'primaryStatus' || rule.fact === 'status.primary') && rule.equals) return rule.equals;
-  return '';
+function statusFiltersFromRequirement(requirement = {}) {
+  return [...new Set(statusesFromRule(requirement.rule))];
+}
+
+function statusesFromRule(rule) {
+  if (!rule || typeof rule !== 'object') return [];
+  if (Array.isArray(rule)) return rule.flatMap(statusesFromRule);
+  if (Array.isArray(rule.any)) return rule.any.flatMap(statusesFromRule);
+  if (Array.isArray(rule.all)) return rule.all.flatMap(statusesFromRule);
+  if (rule.not) return [];
+  if ((rule.fact === 'primaryStatus' || rule.fact === 'status.primary') && rule.equals) return [String(rule.equals)];
+  if ((rule.fact === 'primaryStatus' || rule.fact === 'status.primary') && Array.isArray(rule.in)) return rule.in.map(String);
+  return [];
 }
 
 function resolveValue(value, screen = {}) {

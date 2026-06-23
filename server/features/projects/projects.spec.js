@@ -133,4 +133,28 @@ describe('Projects & Multi-tenant Ownership', () => {
     await expect(projectService.getBySlug(hidden._id, contractor1.userId, contractor1.organizationId, null, permissions))
       .rejects.toThrow(/Permission denied/);
   });
+
+  it('should accept multi-status list filters for generated process screens', async () => {
+    const draft = await projectService.create({ name: 'Draft Project' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    const closed = await projectService.create({ name: 'Closed Project' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    const archived = await projectService.create({ name: 'Archived Project' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    await db.collection('projects').updateOne(
+      { _id: closed._id },
+      { $set: { 'status.state.primary': 'CLOSED' } }
+    );
+    await db.collection('projects').updateOne(
+      { _id: archived._id },
+      { $set: { 'status.state.primary': 'ARCHIVED' } }
+    );
+
+    const list = await projectService.list(
+      contractor1.userId,
+      contractor1.organizationId,
+      null,
+      contractor1.permissions,
+      { primaryStatuses: 'DRAFT,CLOSED' }
+    );
+
+    expect(list.map(project => project._id).sort()).toEqual([closed._id, draft._id].sort());
+  });
 });

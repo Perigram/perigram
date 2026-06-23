@@ -9,7 +9,8 @@ export default defineEventHandler(async (event) => {
     {
       projectId: query.projectId,
       status: query.status,
-      primaryStatus: query.primaryStatus
+      primaryStatus: query.primaryStatus,
+      primaryStatuses: query.primaryStatuses
     },
     auth.userId,
     auth.organizationId,

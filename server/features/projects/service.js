@@ -52,11 +52,19 @@ export async function list(userId, userOrg, userRole, userPermissions, query = {
   const filter = {
     ...getLineageFilter(userPermissions)
   };
-  if (query.status || query.primaryStatus) filter['status.state.primary'] = query.status || query.primaryStatus;
+  const primaryStatuses = normalizePrimaryStatuses(query.primaryStatuses);
+  if (primaryStatuses.length) filter['status.state.primary'] = { $in: primaryStatuses };
+  else if (query.status || query.primaryStatus) filter['status.state.primary'] = query.status || query.primaryStatus;
   const raws = await repository.find(filter);
   return raws
     .map(raw => new Project(raw))
     .filter(project => hasLineagePermission(userPermissions, project, 'projects', 'read'));
+}
+
+function normalizePrimaryStatuses(value) {
+  if (Array.isArray(value)) return value.flatMap(normalizePrimaryStatuses);
+  if (typeof value !== 'string') return [];
+  return value.split(',').map(item => item.trim()).filter(Boolean);
 }
 
 export async function getById(uid) {

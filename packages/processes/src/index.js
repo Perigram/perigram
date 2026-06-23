@@ -842,9 +842,13 @@ function aggregateScreenRequirement(feature, grants = []) {
       rule: grant.rule
     };
   }
+  const rules = grants.map(grant => grant.rule).filter(Boolean);
+  const scopes = grants.map(grant => grant.scope).filter(Boolean);
   return {
     feature,
-    level: maxAccessLevel(grants.map(grant => grant.level || 'read'))
+    level: maxAccessLevel(grants.map(grant => grant.level || 'read')),
+    ...(rules.length ? { rule: { any: rules } } : {}),
+    ...(scopes.length === 1 ? { scope: scopes[0] } : {})
   };
 }
 

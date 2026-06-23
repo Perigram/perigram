@@ -15,7 +15,8 @@ export default defineEventHandler(async (event) => {
     user,
     {
       status: query.status,
-      primaryStatus: query.primaryStatus
+      primaryStatus: query.primaryStatus,
+      primaryStatuses: query.primaryStatuses
     }
   );
   const queuePreviews = await queuesService.listPreviewByProjects(
