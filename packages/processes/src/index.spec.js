@@ -221,6 +221,17 @@ describe('@cutkit/processes compiler', () => {
       required: { feature: 'queues', level: 'write' },
       actions: ['action_accept']
     });
+    expect(compiled.screens.auto_role_operator_queue_detail).toMatchObject({
+      entityType: 'queue',
+      roleIds: ['role_operator'],
+      template: 'entityDetail',
+      sources: [expect.objectContaining({
+        entityType: 'queue',
+        mode: 'single',
+        identifier: '$screen.scope.entityId'
+      })],
+      actions: ['action_accept']
+    });
     expect(compiled.userAccess.user_a.screens[0]).toMatchObject({
       screenKey: 'auto_role_operator_queue',
       route: '/screens/auto_role_operator_queue',
@@ -262,9 +273,11 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(resolveScreens({ compiled, userId: 'user_a' }).map(screen => screen.screenKey).sort()).toEqual([
+      'auto_role_project_project_detail',
       'auto_role_project_project',
+      'auto_role_queue_queue_detail',
       'auto_role_queue_queue'
-    ]);
+    ].sort());
     expect(compiled.userAccess.user_a.permissions).toMatchObject({
       projects: [{ level: 'read' }],
       queues: [{ level: 'read' }]
@@ -327,6 +340,56 @@ describe('@cutkit/processes compiler', () => {
       },
       actions: ['create_project_created', 'create_project_new']
     });
+  });
+
+  it('exposes manual status actions through inherited access windows', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_project: { id: 'role_project', label: 'Project role' }
+      },
+      actions: {
+        create_project: {
+          id: 'create_project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: 'NEW' },
+          access: { level: 'admin', roleIds: ['role_project'] }
+        },
+        approve_project: {
+          id: 'approve_project',
+          actionKind: 'changeStatus',
+          status: { to: 'APPROVED' },
+          access: { level: 'admin', roleIds: [] }
+        }
+      },
+      graph: {
+        nodes: [
+          { id: 'create_node', type: 'action', data: { refId: 'create_project' } },
+          { id: 'approve_node', type: 'action', data: { refId: 'approve_project' } }
+        ],
+        edges: [{ id: 'edge_create_approve', source: 'create_node', target: 'approve_node' }]
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_project'],
+          bindings: {},
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.userAccess.user_a.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        actionId: 'approve_project',
+        actionKind: 'changeStatus',
+        feature: 'projects',
+        entityType: 'project',
+        status: { from: 'NEW', to: 'APPROVED' }
+      })
+    ]));
+    expect(compiled.userAccess.user_a.screens.find(screen => screen.entityType === 'project').actions)
+      .toEqual(expect.arrayContaining(['approve_project']));
   });
 
   it('skips screen-derived grants with incomplete assignment bindings', () => {

@@ -482,7 +482,8 @@ function compileRoles(process = {}, domain = {}) {
       }
     }
     if ((action.trigger?.mode || 'manual') !== 'manual') continue;
-    for (const roleId of access.roleIds || []) {
+    const exposedRoleIds = actionExposureRoleIds(access, actionWindow);
+    for (const roleId of exposedRoleIds) {
       if (!roles[roleId]) continue;
       const feature = actionWindow?.primaryGrant?.feature || grantFromAction(action, access, domain)?.feature || null;
       roles[roleId].actions.push({
@@ -491,8 +492,8 @@ function compileRoles(process = {}, domain = {}) {
         level: 'run',
         actionKind: action.actionKind || 'createEntity',
         feature,
-        entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || null,
-        status: action.status || {},
+        entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || actionWindow?.outputs?.[0]?.entityType || null,
+        status: actionStatusForExposure(action, actionWindow, access),
         construction: normalizeConstruction(action.construction, action.entityType, domain),
         inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
         inputs: action.inputs || []
@@ -500,6 +501,21 @@ function compileRoles(process = {}, domain = {}) {
     }
   }
   return roles;
+}
+
+function actionExposureRoleIds(access = {}, actionWindow = null) {
+  const explicit = access.roleIds || [];
+  if (explicit.length) return explicit;
+  return [...new Set((actionWindow?.outputs || []).flatMap(output => output.roleIds || []))];
+}
+
+function actionStatusForExposure(action = {}, actionWindow = null, access = {}) {
+  const status = { ...(action.status || {}) };
+  const inputStatus = actionWindow?.input?.status || '';
+  if (!status.from && inputStatus) status.from = inputStatus;
+  const targetStatus = actionTargetState(action) || access.statusTo || actionWindow?.outputs?.[0]?.status || '';
+  if (!status.to && targetStatus) status.to = targetStatus;
+  return status;
 }
 
 function grantFromScreenRequired(required = null) {
@@ -831,6 +847,7 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
         || entityTypeFromProfiles(entityProfiles, domain, feature);
       if (!entityType || existingKeys.has(`${roleId}:${feature}`)) continue;
       const id = `auto_${roleId}_${entityType}`;
+      const detailId = `${id}_detail`;
       const required = aggregateScreenRequirement(feature, grants);
       inferred[id] = {
         id,
@@ -841,6 +858,35 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
         entityType,
         required,
         roleIds: [roleId],
+        actions: (role.actions || [])
+          .filter(action => action.feature === feature)
+          .map(action => action.actionId)
+      };
+      inferred[detailId] = {
+        id: detailId,
+        label: `${role.label || roleId} ${entityType} detail`,
+        kind: 'entityDetail',
+        template: 'entityDetail',
+        placement: 'detail',
+        entityType,
+        required,
+        roleIds: [roleId],
+        sources: [{
+          id: entityType,
+          entityType,
+          mode: 'single',
+          required,
+          identifier: '$screen.scope.entityId'
+        }],
+        regions: [{
+          id: 'main',
+          slot: 'main',
+          sourceId: entityType,
+          surface: 'detail',
+          actions: (role.actions || [])
+            .filter(action => action.feature === feature)
+            .map(action => action.actionId)
+        }],
         actions: (role.actions || [])
           .filter(action => action.feature === feature)
           .map(action => action.actionId)
