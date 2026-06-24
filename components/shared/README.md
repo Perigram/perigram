@@ -140,6 +140,11 @@ raw lifecycle state names.
 Additional active workflow regions render as compact status chips and actions
 carry `region` / `path` metadata back to the status API so parallel machines can
 transition independently.
+When an entity status carries process-authored display metadata under
+`status.metadata.display`, `EntityStatus` passes it to `StatusBadge` so the
+badge uses the process status label, severity/color, and icon instead of only
+the global raw-state mapping. Generated screens rely on this same DTO metadata;
+they must not synthesize local status labels or icons from action manifests.
 Development surfaces with custom workflow drafts derive lifecycle actions from
 workflow definitions through `utils/status-actions.js`. Card and page command
 actions must live outside `EntityStatus` in the card footer or page action

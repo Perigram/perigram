@@ -279,6 +279,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.activeProcessDefinitionId` | String | active process definition id field |
 | `data.assignments` | Array | assignments field |
 | `data.compiled` | String | compiled field |
+| `data.display` | String | display field |
 | `data.entityProfiles` | Array | entity profiles field |
 | `data.graph` | String | graph field |
 | `data.roles` | Array | roles field |

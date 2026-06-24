@@ -54,13 +54,16 @@ construction, field-policy, status-definition, value-input, and command
 registries, preserves their typed inputs/outputs, preserves completion events,
 and emits trigger contracts. `trigger.mode` is only the execution mode:
 `manual` means a user starts the action from UI, and `event` means another
-node's completion event starts it automatically. Role ids and access levels are
-stored under `action.access` and compile into grants plus manual action
-availability. Manual action availability uses the same status-scoped access
-window as grants: a change-status action with unmodified access inherits role
-ids from the incoming action output, so a status step placed after a create step
-appears for users who received access to the created state. Designers select
-from process roles directly when authoring action grants; pre-existing
+node's completion event starts it automatically. Role access is stored under
+`action.access.grants` as `{ roleId, level }` rows and compiles into entity
+grants plus manual action availability. `write` permits create/edit/update/run
+actions, while `admin` includes write/read and is required for destructive or
+approval-style operations. Manual action availability uses the same
+status-scoped access window as grants: a change-status action with unmodified
+access inherits role-level grants from the incoming action output, so a status
+step placed after a create step appears for users who received access to the
+created state. Designers select from process roles directly when authoring
+action grants; pre-existing
 entity-profile grants are an independent grant source, not a filter for action
 grant creation. Entity creation exposes an
 optional parent input socket plus domain-declared construction sockets from
@@ -123,11 +126,11 @@ as NEW" means admin over `project` entities whose current primary status is
 Action access compiles through status-scoped access windows. A create action
 opens the first window for the created entity state. A status-change action
 inherits the incoming entity window until its `action.access.modified` flag is
-set; once modified, the selected role ids on that node become the complete
-grant set for the target state. Removing a role from a modified status-change
-node therefore removes that role's access to entities in the resulting status
-instead of leaving an older additive grant behind. Parent-scoped windows carry
-lineage scope forward: a queue created from a project window scoped to
+set; once modified, the selected role grant rows on that node become the
+complete grant set for the target state. Removing a role from a modified
+status-change node therefore removes that role's access to entities in the
+resulting status instead of leaving an older additive grant behind. Parent-scoped
+windows carry lineage scope forward: a queue created from a project window scoped to
 `$assignment.projectId` receives a `scope.projectId` grant, so access for one
 project branch does not apply to queues under another project branch.
 Stored active process definitions keep compiled runtime contracts in MongoDB.

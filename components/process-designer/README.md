@@ -23,8 +23,8 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   public/write data contract exposed by the entity profile.
 - `ProcessActionNode.vue` represents an executable process step. It exposes
   event trigger input, data input/output, and completion event output handles on
-  the node sides. The node owns inline editing for action access level,
-  access-granted roles, trigger mode, and command selection,
+  the node sides. The node owns inline editing for action access grants,
+  trigger mode, command selection,
   creation target, update fields, and projection fields. The action kind is fixed by the
   palette item that created the node and is displayed as a compact verb such as
   `create`, `update`, or `service`. Create actions derive their parent from the incoming
@@ -48,9 +48,11 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   `Created`. Connecting it to an entity node adds the state to that entity
   lifecycle; connecting it to a create or status-change action writes the action
   target state and lets the compiler apply status label/color/severity/icon
-  metadata to the generated workflow and compiled action status. The inspector
+  metadata to the generated workflow, compiled action status, and runtime
+  `status.metadata.display` payload used by generated screens. The inspector
   does not render the generic node label for status-definition nodes; the
-  explicit status label field is the only display label.
+  explicit status label field is the only display label, and the node itself
+  renders a single badge with no separate socket text.
 - `ProcessValueInputNode.vue` represents a canonical block value
   (`identity`, `data`, `specs`, `summary`, `attachments`, or status metadata).
   Wiring it into an entity node adds that canonical path to the entity field
@@ -97,16 +99,26 @@ node sync the designer derives the entity type and existing status from the
 wired source socket, stores `action.access.statusFrom` and
 `action.access.statusTo`, carries that same entity type to the output socket,
 and labels both data sockets with the concrete type. By default the node
-inherits access level and roles from the incoming entity-producing node; editing
+inherits role-level grants from the incoming entity-producing node; editing
 the access controls marks the node as explicitly modified, and the reset button
-restores the inherited parent access. Unwired status-change nodes do not invent
-a generic access target. The compiler emits transition metadata plus a
-target-state rule on the entity grant. The role selector lists process roles
-directly because selecting a role on an action creates the entity grant;
+restores the inherited parent access. Each action access row is a process-role
+dropdown plus an access level (`read`, `write`, or `admin`), so one action can
+grant different levels to different roles without promoting all roles to the
+highest level. Unwired status-change nodes do not invent a generic access
+target. The compiler emits transition metadata plus a target-state rule on the
+entity grant. The role selector lists process roles directly because selecting
+a role on an action creates the entity grant;
 entity-profile grants must not hide roles from action grant authoring. Action
 nodes also render compact role/level chips for inherited access and roles that
 already have matching entity access from entity profiles or other status/action
 grants.
+
+The route-level process designer computes a live compiled preview from the
+current graph after node, edge, role, and screen edits. The service-identity
+editor is not a top-level tab; service principals remain internal records edited
+only where command-backed service nodes need them. The screens tab shows the
+actual compiled screens, including compiler-inferred role/entity screens, before
+the lower authored-screen editor.
 
 Canvas wires are selectable curved edges. `Delete` / `Backspace` removes the
 selected node or selected wire, and runtime edge selection styling is stripped

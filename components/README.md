@@ -154,6 +154,10 @@ in the card footer. The action must be present in the user's compiled action
 manifest and match the current entity status before the footer renders it.
 `EntityStatus` remains owned by the canonical workflow/status API and must not
 receive locally synthesized process actions.
+Generated action setup and execution failures must be visible in the screen:
+prompt option loading errors, missing required entity options, and execution
+errors all surface through `StateBlock` and PrimeVue toast feedback instead of
+being converted to empty controls.
 
 Lifecycle transitions belong in `EntityStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,
@@ -163,7 +167,12 @@ Geometry-capable entity cards should render the visual source, not tags that
 state a file type or preview flag. Use `GeometryPreview` for entities with
 `data.geometry.preview`/points and `CassetteThumbnail` for cassette DTOs because
 it resolves DXF, stored geometry previews, OCCS definitions, and legacy
-parametric definitions in the correct order.
+parametric definitions in the correct order. Cassette-like entities
+(`cassette`, `cassette_design`, and `cassette_instance`) must use
+`CassetteThumbnail` on detail surfaces as well as cards; do not route detail
+previews through generic `GeometryPreview`, because baked designs commonly store
+their renderable source as `data.geometry.dxfId`, `data.layerData`, or
+`data.polygonParts`.
 Parent-level card click handlers must ignore nested interactive targets through
 `utils/interactive-target.js` so embedded statuses, links, artifacts, geometry
 previews, and nested inline cards remain clickable.

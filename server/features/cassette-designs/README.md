@@ -32,7 +32,8 @@ Aligned with `@PROPOSED_DATA_MODEL.md` Section 5:
 
 ### API Surface
 - `GET /api/cassette-designs` lists accessible designs and supports lineage
-  filters such as `queueId` and `templateId`.
+  filters such as `queueId` and `templateId`, plus generated-screen lifecycle
+  filters `primaryStatus` / `primaryStatuses`.
 - `GET /api/cassette-designs/:id` returns one `cassette_design` DTO by
   ObjectId/string id. Entity UI uses this canonical endpoint through
   `useEntity('cassetteDesign')`; cards must not fetch cassette designs through
@@ -73,9 +74,12 @@ provenance matters.
 `CassetteDesignCard` resolves that template and renders a compact embedded
 template identity row plus the immutable source revision when present.
 
-Cassette designs are cassette assets, so service read/update/delete permission
-checks accept `cassettes` grants and retain `projects` grants as compatibility
-for queue-derived designs with project lineage.
+Cassette designs use the concrete `cassette_designs` feature for
+read/update/delete permission checks. Services pass the full design DTO/model to
+the access evaluator, not only `lineage`, so status-scoped process grants such
+as `primaryStatus = RECEIVED` authorize both list and detail reads. Collection
+responses are filtered with the same evaluator used by the detail endpoint; a
+generated list must not show a design whose detail endpoint would deny.
 
 ## Related
 - [cassettes](../cassettes/README.md) - The source templates.

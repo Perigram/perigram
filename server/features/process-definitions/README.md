@@ -63,7 +63,12 @@ entity service receives a temporary action-scoped create grant for that feature
 instead of requiring an already-existing status-scoped entity grant. After the
 record is created, create actions apply `action.status.to` through the status
 runtime, treating it as the process initial state for that new record rather
-than a transition from the feature service default.
+than a transition from the feature service default. When the compiled action
+status includes process-authored `label`, `color`/`severity`, or `icon`
+metadata, create and change-status execution stores that display contract under
+`status.metadata.display` so generated screens and shared entity cards render
+the actual process status badge instead of falling back to global raw-state
+labels.
 Create actions also carry a construction contract. Generic construction passes
 prompted values to the registered entity service and derives parent ids from
 the incoming graph entity input, for example a queue create action wired from a

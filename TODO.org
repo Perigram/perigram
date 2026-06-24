@@ -4,6 +4,24 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Refactor process action access grants and screens preview
+    Files changed: pages/organization/process.vue,
+      components/process-designer/ProcessActionNode.vue,
+      packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      server/scripts/migrate-process-action-access-grants.js,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: components/process-designer/README.md,
+      packages/processes/README.md, server/scripts/README.md, TODO.org
+    Notes: Action nodes now edit per-role access grant rows with an access
+      level per selected role. The process compiler preserves those levels as
+      separate status-scoped entity grants and manual action exposure. The
+      designer recomputes a compiled process preview from the current graph and
+      the screens tab shows actual compiled/inferred screens. The service
+      access tab was removed; service identities remain internal service-node
+      records. The process action access migration now rewrites old role ids
+      into `access.grants`.
+
     [2026-06-24] Fix process status definition labels and metadata
     Files changed: pages/organization/process.vue,
       packages/processes/src/index.js,
@@ -41,6 +59,25 @@
       and single-line labels, status definition nodes are entity agnostic and
       render the resulting status tag directly, new palette nodes are placed at
       the active viewport center, and canvas edges use curved routing.
+
+    [2026-06-24] Fix cassette-design generated screens and detail previews
+    Files changed: server/features/cassette-designs/service.js,
+      server/features/cassette-designs/service.spec.js,
+      components/shared/EntityPreview.vue,
+      components/generated/GeneratedScreen.vue,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: server/features/cassette-designs/README.md,
+      components/README.md, TODO.org
+    Notes: Cassette designs now authorize against the concrete
+      `cassette_designs` feature with the full design entity, translate
+      generated-screen `primaryStatus` / `primaryStatuses` filters to
+      `status.state.primary`, and filter list rows through the same evaluator
+      as detail reads. Cassette-like detail previews now use
+      `CassetteThumbnail`, preserving the card preview path for baked DXF and
+      layer data. Generated action prompt setup failures now surface as screen
+      and toast errors instead of silently producing empty controls. The live
+      installer `/api/cassette-designs?primaryStatuses=RECEIVED` endpoint was
+      verified with a temporary session, which was removed.
 
     [2026-06-24] Fix status-scoped cassette detail reads
     Files changed: server/features/cassettes/service.js,
