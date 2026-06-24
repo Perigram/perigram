@@ -21,7 +21,7 @@ const domain = {
     { type: 'project' },
     { type: 'queue' },
     { type: 'cassette' },
-    { type: 'cassette_design' },
+    { type: 'cassette_design', collection: 'cassette_designs' },
     { type: 'catalog' },
     { type: 'warehouse' },
     { type: 'requisition' },
@@ -390,6 +390,45 @@ describe('@cutkit/processes compiler', () => {
     ]));
     expect(compiled.userAccess.user_a.screens.find(screen => screen.entityType === 'project').actions)
       .toEqual(expect.arrayContaining(['approve_project']));
+  });
+
+  it('uses canonical entity collections for derived process action screens', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_designer: { id: 'role_designer', label: 'Designer' }
+      },
+      actions: {
+        create_design: {
+          id: 'create_design',
+          actionKind: 'createEntity',
+          entityType: 'cassette_design',
+          status: { to: 'RECEIVED' },
+          access: { level: 'write', roleIds: ['role_designer'] }
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_designer'],
+          bindings: {},
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.userAccess.user_a.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        actionId: 'create_design',
+        feature: 'cassette_designs',
+        entityType: 'cassette_design'
+      })
+    ]));
+    expect(compiled.userAccess.user_a.screens).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        entityType: 'cassette_design',
+        required: expect.objectContaining({ feature: 'cassette_designs' })
+      })
+    ]));
   });
 
   it('skips screen-derived grants with incomplete assignment bindings', () => {

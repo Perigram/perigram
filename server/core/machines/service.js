@@ -212,6 +212,12 @@ export const statusService = {
       }
     }
 
+    appendProcessStatusActions(actions, {
+      auth,
+      entityType: normalizedEntityType,
+      primaryState
+    });
+
     return { entityType: normalizedEntityType, targetId, state: entity.status?.state || createWorkflowState(normalizedMachine), primaryState, actions };
   },
 
@@ -225,6 +231,30 @@ export const statusService = {
     return { entity, status, actions: actions.actions, effects };
   }
 };
+
+function appendProcessStatusActions(actions = [], { auth = {}, entityType = '', primaryState = '' } = {}) {
+  const existingTargets = new Set(actions.map(action => `${action.from || ''}->${action.to || ''}`));
+  for (const action of auth.roleAssignments?.actions || []) {
+    if (action.actionKind !== 'changeStatus') continue;
+    if (normalizeEntityType(action.entityType) !== entityType) continue;
+    const from = action.status?.from || action.access?.statusFrom || '';
+    const to = action.status?.to || action.access?.statusTo || '';
+    if (!to) continue;
+    if (from && from !== primaryState) continue;
+    const key = `${from || primaryState}->${to}`;
+    if (existingTargets.has(key)) continue;
+    actions.push({
+      region: 'main',
+      path: [to],
+      from: from || primaryState,
+      to,
+      intent: null,
+      display: 'menu',
+      label: action.label || ''
+    });
+    existingTargets.add(key);
+  }
+}
 
 async function performTransition(entityType, targetId, targetState, userId, userRole, metadata = {}) {
     const normalizedEntityType = normalizeEntityType(entityType);

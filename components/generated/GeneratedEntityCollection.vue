@@ -115,7 +115,19 @@ function detailRouteFor(entity) {
   const screen = authStore.screenManifest
     .map(item => normalizeScreenContract(item))
     .find(item => item.template === 'entityDetail' && item.sources.some(source => source.entityType === props.entityType));
-  if (!screen) return null;
+  if (!screen) {
+    const baseScreen = authStore.screenManifest
+      .map(item => normalizeScreenContract(item))
+      .find(item => item.template !== 'entityDetail' && item.sources.some(source => source.entityType === props.entityType));
+    if (!baseScreen) return null;
+    return {
+      path: generatedScreenRoute(`${baseScreen.screenKey || baseScreen.id}_detail`),
+      query: {
+        entityId: identifier,
+        [`${props.entityType}Id`]: identifier
+      }
+    };
+  }
   return {
     path: screen.route || generatedScreenRoute(screen.screenKey || screen.id),
     query: {

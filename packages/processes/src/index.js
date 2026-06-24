@@ -742,10 +742,11 @@ function windowGrant(window = {}, action = {}, access = {}) {
 }
 
 function resolveEntityFeature(domain = {}, entityType) {
+  const entity = (domain.entities || []).find(item => item.type === entityType);
+  if (entity?.collection) return entity.collection;
   const fieldPolicy = getFieldPolicy(domain.fieldAccess || {}, entityType);
   if (fieldPolicy?.feature) return fieldPolicy.feature;
-  const entity = (domain.entities || []).find(item => item.type === entityType);
-  return entity?.collection || entityType;
+  return entityType;
 }
 
 function compileGrantForAssignment(grant = {}, assignment = {}) {

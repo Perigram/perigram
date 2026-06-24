@@ -113,6 +113,44 @@ describe('status service lifecycle payloads', () => {
     }
   });
 
+  it('includes compiled process status actions for the matching entity status', async () => {
+    await db.collection('projects').insertOne({
+      _id: 'project-process-1',
+      identity: { uid: 'project-process-1', name: 'Process Project' },
+      lineage: { organizationId: 'org-1' },
+      status: {
+        state: { primary: 'NEWS', active: { main: 'NEWS' }, regions: { main: { state: 'NEWS', path: ['NEWS'] } } },
+        userId: 'creator',
+        timestamp: new Date(),
+        metadata: {}
+      }
+    });
+
+    const actions = await statusService.getActions('project', 'project-process-1', {
+      userId: 'operator-1',
+      memberships: [{ organizationId: 'org-1', permissions: { projects: 'admin' } }],
+      roleAssignments: {
+        roleIds: ['role_operator'],
+        actions: [{
+          actionId: 'move_old',
+          label: 'Move project OLD',
+          actionKind: 'changeStatus',
+          entityType: 'project',
+          status: { from: 'NEWS', to: 'OLD' }
+        }]
+      }
+    });
+
+    expect(actions.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        from: 'NEWS',
+        to: 'OLD',
+        display: 'menu',
+        label: 'Move project OLD'
+      })
+    ]));
+  });
+
   it('returns no actions for entity types without workflows', async () => {
     const actions = await statusService.getActions('warehouse', 'warehouse-1', {
       userId: 'admin-1',

@@ -1,7 +1,8 @@
 <template>
   <StandardPage :title="screen.labelKey ? $t(screen.labelKey) : screen.label">
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
-    <StateBlock v-else-if="error" state="error" :message="$t('generatedScreen.loadFailed')" />
+    <StateBlock v-else-if="error" state="error" :message="errorMessage" />
+    <StateBlock v-else-if="actionError" state="error" :message="actionError" />
     <WorkspaceLanes v-else-if="screen.template === 'workspaceLanes'" class="min-h-[32rem]">
       <template v-if="regionBySlot.left" #left>
         <GeneratedRegion
@@ -111,6 +112,7 @@ const inputDialogVisible = ref(false);
 const submittingAction = ref(false);
 const pendingAction = ref(null);
 const pendingEntity = ref(null);
+const actionError = ref('');
 const promptValues = reactive({});
 const promptOptions = reactive({});
 
@@ -121,8 +123,10 @@ const actionInputFields = computed(() => collectActionInputFields(pendingAction.
 const promptFields = computed(() => promptedFields(pendingAction.value));
 const pendingActionLabel = computed(() => pendingAction.value?.label || t('common.create'));
 const dialogSaveLabel = computed(() => pendingAction.value?.actionKind === 'createEntity' ? t('common.create') : t('common.save'));
+const errorMessage = computed(() => error.value?.data?.message || error.value?.message || t('generatedScreen.loadFailed'));
 
 async function executeAction(action, entity = null) {
+  actionError.value = '';
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   if (['createEntity', 'updateEntity'].includes(action.actionKind) && promptedFields(action).length) {
@@ -177,13 +181,13 @@ async function postAction(action, entity = null, data = {}) {
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
     await load();
   } catch (err) {
+    actionError.value = err?.data?.message || err?.message || t('generatedScreen.actionFailed');
     toast.add({
       severity: 'error',
       summary: t('common.error'),
-      detail: err?.data?.message || err?.message,
+      detail: actionError.value,
       life: 4000
     });
-    throw err;
   }
 }
 

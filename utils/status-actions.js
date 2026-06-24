@@ -37,7 +37,7 @@ export function resolveActionDisplay(transition = {}) {
 export function createStatusAction(transition = {}, mappings = STATUS_MAPPINGS, t = value => value) {
   const mapping = mappings[transition.to] || mappings[String(transition.to).toLowerCase()] || {};
   return {
-    label: translateStatusLabel(transition.to, mapping.label, t),
+    label: transition.label || translateStatusLabel(transition.to, mapping.label, t),
     to: transition.to,
     region: transition.region || 'main',
     path: transition.path || [transition.to],
