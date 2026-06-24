@@ -7,7 +7,8 @@ Defines a specific nesting job, bridging the digital production intent with phys
 - **Nesting Settings**: Stores queue-local nesting configuration in
   `data.nestingSettings`; each `nesting_run` stores the immutable execution
   snapshot under `data.params`.
-- **Inheritance**: Inherits lineage from the parent `Project`.
+- **Inheritance**: Queues may be organization-root or inherit lineage from a
+  parent `Project` when a project id is provided.
 - **Status**: Governed by `QueueMachine` (`DRAFT -> NESTING -> READY -> CLOSED`,
   with `ARCHIVED` available from any queue state).
 
@@ -57,6 +58,11 @@ Defines a specific nesting job, bridging the digital production intent with phys
   `primaryStatus` filters one queue state and comma-separated
   `primaryStatuses` filters several role-local status windows for generated
   process screens.
+- `create(data, ...)` accepts an optional `projectId`. When present, the queue
+  inherits project lineage and updates project queue summaries. When absent,
+  the queue is created under organization lineage only, which lets
+  process-authored organizations use queues without introducing a project
+  entity into the process graph.
 - `listPreviewByProjects(projectIds, ..., { limit })` returns access-redacted,
   summary-oriented queue previews keyed by parent project id. `/api/project`
   uses this to attach `summary.queuePreview` for the `/projects` route without
@@ -70,7 +76,7 @@ Defines a specific nesting job, bridging the digital production intent with phys
   identity: { name, queueNumber },
   origin: StatusBlock,
   status: StatusBlock,
-  lineage: { organizationId, projectId },
+  lineage: { organizationId, projectId? },
   job: {
     items: Array<{ designId, quantity, parameters }>,
     materialPool: Array<{ type, id, label, specs, dimensions, available, sheetPolygon? }>

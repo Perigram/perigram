@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Support organization-root queue creation from process actions
+    Files changed: server/features/queues/service.js,
+      server/features/queues/repository.js,
+      server/features/queues/queues.spec.js, packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: server/features/queues/README.md,
+      packages/processes/README.md, TODO.org
+    Notes: Current active process has queues but no projects. Queue creation
+      now accepts missing projectId and creates organization-root lineage while
+      keeping project-scoped queues when projectId is provided. Queue numbering
+      counts within either project scope or organization-root scope. Process
+      compilation again exposes root queue create actions after stripping stale
+      invalid parents, and active process definitions were recompiled so
+      Montage can run the queue create action without a project prompt.
+
     [2026-06-24] Hide create actions with unresolved lineage parents
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js
@@ -16,7 +31,8 @@
       construction sockets still normalize through the domain construction
       contract. Recompiled active process definitions after the change; the
       stale queue create action is no longer assigned to Montage or any user
-      action manifest.
+      action manifest. Superseded later the same day by organization-root queue
+      creation support, which makes root queue actions valid again.
 
     [2026-06-24] Make queue creation independent from queue composition inputs
     Files changed: packages/domain-cnc/src/entity-construction.js,
