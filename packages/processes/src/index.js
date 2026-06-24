@@ -500,7 +500,7 @@ function compileRoles(process = {}, domain = {}) {
         status: actionStatusForExposure(action, actionWindow, access, process),
         construction: normalizeConstruction(action.construction, action.entityType, domain),
         inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
-        inputs: actionInputsForExposure(action, parentEntityType)
+        inputs: actionInputsForExposure(action, parentEntityType, domain)
       });
     }
   }
@@ -781,18 +781,24 @@ function outputHandleId(action = {}, kind = '') {
 
 function rawActionParentEntityType(action = {}, incoming = null) {
   return action.parentEntityType
-    || action.inputs?.find(input => input.id === 'parent')?.entityType
+    || action.inputs?.find(input => input.id === 'parent' && input.entityType)?.entityType
     || incoming?.entityType
     || '';
 }
 
 function effectiveActionParentEntityType(action = {}, domain = {}, incoming = null) {
   const parentType = rawActionParentEntityType(action, incoming);
-  if (!parentType) return '';
   const entityType = action.entityType || action.outputs?.find(output => output.entityType)?.entityType || '';
-  if (parentType === entityType && !incoming && !parentRelationForChild(domain, entityType, parentType)) return '';
-  if (!incoming && !parentSupportedByDomain(domain, entityType, parentType)) return '';
+  if (!parentType) return inferredLineageParentType(action, domain, entityType);
+  const inferredParentType = inferredLineageParentType(action, domain, entityType);
+  if (parentType === entityType && !incoming && !parentRelationForChild(domain, entityType, parentType)) return inferredParentType;
+  if (!incoming && !parentSupportedByDomain(domain, entityType, parentType)) return inferredParentType;
   return parentType;
+}
+
+function inferredLineageParentType(action = {}, domain = {}, entityType = '') {
+  if ((action.actionKind || 'createEntity') !== 'createEntity') return '';
+  return parentRelationForChild(domain, entityType)?.parentType || '';
 }
 
 function parentSupportedByDomain(domain = {}, entityType = '', parentType = '') {
@@ -802,15 +808,41 @@ function parentSupportedByDomain(domain = {}, entityType = '', parentType = '') 
   return inputs.some(input => input.type === 'entity' && input.entityType === parentType);
 }
 
-function actionInputsForExposure(action = {}, parentEntityType = '') {
+function actionInputsForExposure(action = {}, parentEntityType = '', domain = {}) {
   if ((action.actionKind || 'createEntity') !== 'createEntity') return action.inputs || [];
-  return (action.inputs || []).map(input => {
+  const inputs = (action.inputs || []).map(input => {
     if (input.id !== 'parent') return input;
     return {
       ...input,
       label: parentEntityType || 'Parent entity',
       entityType: parentEntityType || '',
+      required: Boolean(parentEntityType),
       status: parentEntityType ? input.status || '' : ''
+    };
+  });
+  if (parentEntityType && !inputs.some(input => input.id === 'parent')) {
+    inputs.unshift({
+      id: 'parent',
+      label: parentEntityType,
+      entityType: parentEntityType,
+      required: true
+    });
+  }
+  const construction = normalizeConstruction(action.construction, action.entityType, domain);
+  const constructionInputs = new Map((construction.inputs || []).map(input => [input.id || input.path, input]));
+  return inputs.map(input => {
+    const constructionInput = constructionInputs.get(input.constructionInputId)
+      || constructionInputs.get(input.id)
+      || constructionInputs.get(String(input.id || '').replace(/^data:/, ''))
+      || constructionInputs.get(input.path);
+    if (!constructionInput) return input;
+    return {
+      ...input,
+      ...constructionInput,
+      id: input.id,
+      dataPath: input.dataPath || constructionInput.path,
+      kind: input.kind || constructionInput.type,
+      constructionInputId: input.constructionInputId || constructionInput.id
     };
   });
 }
@@ -1122,7 +1154,7 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
 function parentRelationForChild(domain = {}, childEntityType = '', parentEntityType = '') {
   return (domain.summaries || []).find(summary => (
     summary.entityType === childEntityType
-    && summary.parentType === parentEntityType
+    && (!parentEntityType || summary.parentType === parentEntityType)
     && summary.parentIdKey
   )) || null;
 }
@@ -1320,7 +1352,7 @@ function compileActions(actions = {}, process = {}, domain = {}) {
       trigger: {
         mode: action.trigger?.mode || 'manual'
       },
-      inputs: actionInputsForExposure(action, parentEntityType),
+      inputs: actionInputsForExposure(action, parentEntityType, domain),
       outputs: action.outputs || [],
       events: action.events || []
     }];

@@ -396,7 +396,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.screens.auto_role_cassette_cassette_detail.actions).not.toContain('create_cassette');
   });
 
-  it('strips create parent inputs unsupported by domain relations or construction inputs', () => {
+  it('replaces unsupported create parents with required domain lineage parents', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_queue: { id: 'role_queue', label: 'Queue role' }
@@ -422,8 +422,11 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_queue.parentEntityType).toBeNull();
-    expect(compiled.roles.role_queue.actions[0].parentEntityType).toBeNull();
+    expect(compiled.actions.create_queue.parentEntityType).toBe('project');
+    expect(compiled.actions.create_queue.inputs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'parent', entityType: 'project', required: true })
+    ]));
+    expect(compiled.roles.role_queue.actions[0].parentEntityType).toBe('project');
     expect(compiled.screens.auto_role_queue_queue.actions).toContain('create_queue');
     expect(compiled.screens.auto_role_queue_cassette).toBeUndefined();
   });
@@ -1160,6 +1163,7 @@ describe('@cutkit/processes compiler', () => {
           id: 'create_queue',
           actionKind: 'createEntity',
           entityType: 'queue',
+          parentEntityType: 'cassette',
           status: { to: 'DRAFT' },
           construction: {
             inputs: [
@@ -1171,6 +1175,10 @@ describe('@cutkit/processes compiler', () => {
               { id: 'jobItems', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: true }
             ]
           },
+          inputs: [
+            { id: 'parent', label: 'cassette', entityType: 'cassette', required: false },
+            { id: 'data:jobItems', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: true, constructionInputId: 'jobItems' }
+          ],
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_admin'] },
           outputs: [{ id: 'created', entityType: 'queue', status: 'DRAFT' }]
@@ -1189,7 +1197,17 @@ describe('@cutkit/processes compiler', () => {
       expect.objectContaining({ id: 'jobItems', required: false }),
       expect.objectContaining({ id: 'materialPool', required: false })
     ]));
+    expect(compiled.actions.create_queue.parentEntityType).toBe('project');
+    expect(compiled.actions.create_queue.inputs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'parent', entityType: 'project', required: true }),
+      expect.objectContaining({ id: 'data:jobItems', required: false })
+    ]));
     const exposedQueueAction = compiled.userAccess.user_admin.actions[0];
+    expect(exposedQueueAction.parentEntityType).toBe('project');
+    expect(exposedQueueAction.inputs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'parent', entityType: 'project', required: true }),
+      expect.objectContaining({ id: 'data:jobItems', required: false })
+    ]));
     expect(exposedQueueAction.construction.inputs).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 'jobItems', required: false })
     ]));
