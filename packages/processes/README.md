@@ -118,6 +118,9 @@ visual metadata. Status definitions are entity agnostic by default: when a
 referenced action creates or transitions a concrete entity type, the compiler
 adds that target state to the entity workflow and applies the referenced
 severity/icon/color/label there.
+The same display metadata is preserved on each compiled role action manifest
+entry, because generated screens read `role.actions[].status` when filtering
+and rendering process action buttons.
 Status-change action labels are also derived from that target status
 definition label, or the target state id when no label exists, whenever the
 authored label is only a generic palette placeholder such as `Action`, `status`,

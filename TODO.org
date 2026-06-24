@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Preserve process status metadata in generated action manifests
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js, packages/processes/README.md,
+      TODO.org
+    Docs updated: packages/processes/README.md, TODO.org
+    Notes: Direct compiler tracing showed status-definition severity and icon
+      reached compiled actions and workflows, but were dropped from
+      `compiled.roles.*.actions[].status`, which generated screens consume.
+      Role action exposure now uses compiled action status metadata so process
+      buttons and follow-up status execution retain the authored display
+      contract.
+
     [2026-06-24] Standardize generated entity workspace layout
     Files changed: components/shared/EntityWorkspace.vue,
       components/shared/WorkspaceLanes.vue, components/QueueEditor.vue
