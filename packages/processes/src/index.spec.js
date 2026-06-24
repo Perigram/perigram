@@ -1369,7 +1369,7 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'changeStatus',
           status: { to: TARGET_STATE },
           access: {
-            level: 'write',
+            level: 'admin',
             roleIds: ['role_target'],
             modified: true,
             statusFrom: SOURCE_STATE,
@@ -1390,7 +1390,7 @@ describe('@cutkit/processes compiler', () => {
     ]);
     expect(compiled.userAccess.user_target.permissions.projects).toEqual([
       {
-        level: 'write',
+        level: 'admin',
         transitions: [{ from: SOURCE_STATE, to: TARGET_STATE }],
         rule: { fact: 'primaryStatus', equals: TARGET_STATE }
       }
@@ -1398,6 +1398,9 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.userAccess.user_source.actions.map(action => action.actionId)).toContain('activate_project');
     expect(compiled.userAccess.user_target.actions.map(action => action.actionId)).not.toContain('activate_project');
     expect(compiled.workflows.project.regions.main.transitions[0].processRoleIds).toEqual(['role_source']);
+    expect(compiled.workflows.project.regions.main.transitions[0].access.permissions).toEqual([
+      { feature: 'projects', entityType: 'project', level: 'write' }
+    ]);
   });
 
   it('carries scoped parent lineage into child entity action grants', () => {
