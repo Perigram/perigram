@@ -121,6 +121,11 @@ Lineage query aliases such as `projectId`, `queueId`, `warehouseId`, and
 `cassetteId` are normalized to `lineage.*` filters before repository access.
 This keeps generated or authored screen filters scoped to actual lineage
 fields instead of accidentally matching root-level compatibility fields.
+Mutation paths such as template update, layer mapping, parameter update, and
+delete must pass the full cassette DTO/model to `hasLineagePermission()`, not
+only `cassette.lineage`, because process grants can be scoped by current
+status. A generated cassette designer save for a `CREATED` template therefore
+uses the same status-scoped grant as the detail read.
 
 ## Related
 - [cassette-designs](../cassette-designs/README.md) - Stores baked geometry and DXF references.

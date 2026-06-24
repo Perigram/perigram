@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Fix generated queue detail assumptions and cassette designer save access
+    Files changed: components/QueueEditor.vue,
+      components/generated/GeneratedQueueDetail.vue,
+      server/features/cassettes/service.js,
+      server/features/cassettes/cassettes.spec.js
+    Docs updated: components/README.md,
+      server/features/cassettes/README.md, TODO.org
+    Notes: Generated queue detail now uses QueueEditor as an entity-local
+      editor with sibling navigation hidden and process `queues:write` access
+      controlling editability instead of route-era DRAFT checks. Cassette
+      mutation access checks pass the full cassette entity to the access engine
+      so status-scoped process grants authorize designer saves.
+
     [2026-06-24] Add generated queue and cassette editor integration
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js,
