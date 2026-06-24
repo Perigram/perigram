@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Fix process status definition labels and metadata
+    Files changed: pages/organization/process.vue,
+      packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: components/process-designer/README.md,
+      packages/processes/README.md, TODO.org
+    Notes: Status-definition nodes no longer show the generic node label
+      editor, stale default `Created` labels are cleared when the status id is
+      changed, and compiled actions now carry referenced status
+      label/color/severity/icon metadata in addition to the target state.
+
     [2026-06-24] Correct process-designer socket and status visuals
     Files changed: pages/organization/process.vue,
       components/process-designer/ProcessActionNode.vue,

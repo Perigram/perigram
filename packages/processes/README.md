@@ -102,7 +102,11 @@ only require a target status; they do not need a separate entity-type selector.
 The target may be a literal `action.status.to` or a `statusRef` produced by a
 status-definition node. Status definitions compile into workflow state metadata
 (`label`, `color`, `severity`, `icon`) and into the compiled action target
-state, so runtime execution and UI status rendering use the same value.
+state, so runtime execution and UI status rendering use the same value and
+visual metadata. Status definitions are entity agnostic by default: when a
+referenced action creates or transitions a concrete entity type, the compiler
+adds that target state to the entity workflow and applies the referenced
+severity/icon/color/label there.
 Their access grants are entity-type grants conditioned by the resulting state:
 the designer derives the entity type and source status from the incoming graph
 socket, carries the type to the output socket, and stores

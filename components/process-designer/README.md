@@ -48,7 +48,9 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   `Created`. Connecting it to an entity node adds the state to that entity
   lifecycle; connecting it to a create or status-change action writes the action
   target state and lets the compiler apply status label/color/severity/icon
-  metadata to the generated workflow.
+  metadata to the generated workflow and compiled action status. The inspector
+  does not render the generic node label for status-definition nodes; the
+  explicit status label field is the only display label.
 - `ProcessValueInputNode.vue` represents a canonical block value
   (`identity`, `data`, `specs`, `summary`, `attachments`, or status metadata).
   Wiring it into an entity node adds that canonical path to the entity field
