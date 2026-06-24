@@ -352,6 +352,42 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('treats stale same-entity create parent inputs as root create actions', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_cassette: { id: 'role_cassette', label: 'Cassette role' }
+      },
+      actions: {
+        create_cassette: {
+          id: 'create_cassette',
+          actionKind: 'createEntity',
+          entityType: 'cassette',
+          parentEntityType: 'cassette',
+          status: { to: 'CREATED' },
+          access: { level: 'write', roleIds: ['role_cassette'] },
+          inputs: [{ id: 'parent', label: 'cassette', entityType: 'cassette', required: false }]
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_cassette'],
+          bindings: {},
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.create_cassette.parentEntityType).toBeNull();
+    expect(compiled.roles.role_cassette.actions[0]).toMatchObject({
+      actionId: 'create_cassette',
+      parentEntityType: null,
+      inputs: [expect.objectContaining({ id: 'parent', entityType: '' })]
+    });
+    expect(compiled.screens.auto_role_cassette_cassette.actions).toContain('create_cassette');
+    expect(compiled.screens.auto_role_cassette_cassette_detail.actions).toContain('create_cassette');
+  });
+
   it('exposes manual status actions through inherited access windows', () => {
     const compiled = compileProcessDefinition({
       roles: {

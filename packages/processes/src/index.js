@@ -488,6 +488,7 @@ function compileRoles(process = {}, domain = {}) {
     for (const roleId of exposedRoleIds) {
       if (!roles[roleId]) continue;
       const feature = actionWindow?.primaryGrant?.feature || grantFromAction(action, access, domain)?.feature || null;
+      const parentEntityType = effectiveActionParentEntityType(action, domain);
       roles[roleId].actions.push({
         actionId: action.id || actionId,
         label: displayActionLabel(action, actionId, process),
@@ -495,11 +496,11 @@ function compileRoles(process = {}, domain = {}) {
         actionKind: action.actionKind || 'createEntity',
         feature,
         entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || actionWindow?.outputs?.[0]?.entityType || null,
-        parentEntityType: action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || null,
+        parentEntityType: parentEntityType || null,
         status: actionStatusForExposure(action, actionWindow, access, process),
         construction: normalizeConstruction(action.construction, action.entityType, domain),
         inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
-        inputs: action.inputs || []
+        inputs: actionInputsForExposure(action, parentEntityType)
       });
     }
   }
@@ -681,7 +682,7 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
   const roleGrants = useInherited ? inheritedRoleGrants : explicitRoleGrants;
   const roleIds = [...new Set(roleGrants.map(grant => grant.roleId).filter(Boolean))];
   const level = maxGrantLevel(roleGrants, useInherited ? (incoming.level || access.level) : access.level);
-  const scope = deriveActionWindowScope(action, incoming);
+  const scope = deriveActionWindowScope(action, incoming, domain);
   const outputs = [];
   const grants = [];
 
@@ -768,12 +769,40 @@ function outputHandleId(action = {}, kind = '') {
   return `output:${id || Math.max(index, 0)}`;
 }
 
-function deriveActionWindowScope(action = {}, incoming = null) {
+function rawActionParentEntityType(action = {}, incoming = null) {
+  return action.parentEntityType
+    || action.inputs?.find(input => input.id === 'parent')?.entityType
+    || incoming?.entityType
+    || '';
+}
+
+function effectiveActionParentEntityType(action = {}, domain = {}, incoming = null) {
+  const parentType = rawActionParentEntityType(action, incoming);
+  if (!parentType) return '';
+  const entityType = action.entityType || action.outputs?.find(output => output.entityType)?.entityType || '';
+  if (parentType === entityType && !incoming && !parentRelationForChild(domain, entityType, parentType)) return '';
+  return parentType;
+}
+
+function actionInputsForExposure(action = {}, parentEntityType = '') {
+  if ((action.actionKind || 'createEntity') !== 'createEntity') return action.inputs || [];
+  return (action.inputs || []).map(input => {
+    if (input.id !== 'parent') return input;
+    return {
+      ...input,
+      label: parentEntityType || 'Parent entity',
+      entityType: parentEntityType || '',
+      status: parentEntityType ? input.status || '' : ''
+    };
+  });
+}
+
+function deriveActionWindowScope(action = {}, incoming = null, domain = {}) {
   const access = normalizeActionAccess(action.access);
   if (access.scope) return { ...access.scope };
   const inheritedScope = incoming?.scope ? { ...incoming.scope } : null;
   if ((action.actionKind || 'createEntity') !== 'createEntity') return inheritedScope;
-  const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || incoming?.entityType || '';
+  const parentType = effectiveActionParentEntityType(action, domain, incoming);
   if (!parentType || !incoming) return inheritedScope;
   const parentKey = `${parentType}Id`;
   if (inheritedScope?.entityId && !inheritedScope[parentKey]) {
@@ -939,7 +968,7 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
       const id = `auto_${roleId}_${entityType}`;
       const detailId = `${id}_detail`;
       const required = aggregateScreenRequirement(feature, grants);
-      const directActions = inferredScreenActions(role.actions || [], feature, actions);
+      const directActions = inferredScreenActions(role.actions || [], feature, actions, domain);
       const childRegions = childRegionsForParentDetail({
         role,
         parentEntityType: entityType,
@@ -990,10 +1019,10 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
   return inferred;
 }
 
-function inferredScreenActions(roleActions = [], feature, processActions = {}) {
+function inferredScreenActions(roleActions = [], feature, processActions = {}, domain = {}) {
   return roleActions
     .filter(action => action.feature === feature)
-    .filter(action => !isParentBoundCreateAction(action, processActions[action.actionId || action.id]))
+    .filter(action => !isParentBoundCreateAction(action, processActions[action.actionId || action.id], domain))
     .map(action => action.actionId);
 }
 
@@ -1001,8 +1030,8 @@ function contextualParentActions(roleActions = [], parentEntityType = '', domain
   return roleActions
     .filter((roleAction) => {
       const processAction = processActions[roleAction.actionId || roleAction.id] || {};
-      if (!isParentBoundCreateAction(roleAction, processAction)) return false;
-      const actionParent = roleAction.parentEntityType || processAction.parentEntityType || processAction.inputs?.find(input => input.id === 'parent')?.entityType || '';
+      if (!isParentBoundCreateAction(roleAction, processAction, domain)) return false;
+      const actionParent = effectiveActionParentEntityType({ ...processAction, ...roleAction }, domain);
       if (actionParent !== parentEntityType) return false;
       const childEntityType = roleAction.entityType || processAction.entityType || '';
       return !parentRelationForChild(domain, childEntityType, parentEntityType);
@@ -1010,12 +1039,9 @@ function contextualParentActions(roleActions = [], parentEntityType = '', domain
     .map(action => action.actionId);
 }
 
-function isParentBoundCreateAction(roleAction = {}, processAction = {}) {
+function isParentBoundCreateAction(roleAction = {}, processAction = {}, domain = {}) {
   const kind = roleAction.actionKind || processAction.actionKind || 'createEntity';
-  const parentEntityType = roleAction.parentEntityType
-    || processAction.parentEntityType
-    || processAction.inputs?.find(input => input.id === 'parent')?.entityType
-    || '';
+  const parentEntityType = effectiveActionParentEntityType({ ...processAction, ...roleAction }, domain);
   return kind === 'createEntity' && Boolean(parentEntityType);
 }
 
@@ -1027,10 +1053,7 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
     const actionId = action.actionId || action.id;
     const processAction = actions[actionId] || {};
     const kind = action.actionKind || processAction.actionKind || 'createEntity';
-    const actionParent = action.parentEntityType
-      || processAction.parentEntityType
-      || processAction.inputs?.find(input => input.id === 'parent')?.entityType
-      || '';
+    const actionParent = effectiveActionParentEntityType({ ...processAction, ...action }, domain);
     if (kind !== 'createEntity' || actionParent !== parentEntityType) continue;
     const childEntityType = action.entityType || processAction.entityType || '';
     if (!childEntityType) continue;
@@ -1253,27 +1276,30 @@ function initialSocketStatus(socket = {}) {
 }
 
 function compileActions(actions = {}, process = {}, domain = {}) {
-  return Object.fromEntries(Object.entries(actions).map(([id, action]) => [id, {
-    id: action.id || id,
-    label: displayActionLabel(action, id, process),
-    actionKind: action.actionKind || 'createEntity',
-    entityType: action.entityType || null,
-    parentEntityType: action.parentEntityType || null,
-    commandId: action.commandId || null,
-    status: compileActionStatus(action, process),
-    mutation: action.mutation || { fields: [] },
-    projection: action.projection || null,
-    construction: normalizeConstruction(action.construction, action.entityType, domain),
-    inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
-    statusRef: action.statusRef || null,
-    access: normalizeActionAccess(action.access),
-    trigger: {
-      mode: action.trigger?.mode || 'manual'
-    },
-    inputs: action.inputs || [],
-    outputs: action.outputs || [],
-    events: action.events || []
-  }]));
+  return Object.fromEntries(Object.entries(actions).map(([id, action]) => {
+    const parentEntityType = effectiveActionParentEntityType(action, domain);
+    return [id, {
+      id: action.id || id,
+      label: displayActionLabel(action, id, process),
+      actionKind: action.actionKind || 'createEntity',
+      entityType: action.entityType || null,
+      parentEntityType: parentEntityType || null,
+      commandId: action.commandId || null,
+      status: compileActionStatus(action, process),
+      mutation: action.mutation || { fields: [] },
+      projection: action.projection || null,
+      construction: normalizeConstruction(action.construction, action.entityType, domain),
+      inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
+      statusRef: action.statusRef || null,
+      access: normalizeActionAccess(action.access),
+      trigger: {
+        mode: action.trigger?.mode || 'manual'
+      },
+      inputs: actionInputsForExposure(action, parentEntityType),
+      outputs: action.outputs || [],
+      events: action.events || []
+    }];
+  }));
 }
 
 function compileActionStatus(action = {}, process = {}) {
