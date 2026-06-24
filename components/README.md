@@ -146,6 +146,11 @@ source for the same entity type and routes to `/screens/:screenKey` with
 `entityId` and `{entityType}Id` query scope. The screen page merges that query
 scope into the screen contract before the single-source loader runs. Do not
 hardcode generated rows to legacy feature routes.
+Generated collection cards render visible process actions as generated buttons
+in the card footer. The action must be present in the user's compiled action
+manifest and match the current entity status before the footer renders it.
+`EntityStatus` remains owned by the canonical workflow/status API and must not
+receive locally synthesized process actions.
 
 Lifecycle transitions belong in `EntityStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,

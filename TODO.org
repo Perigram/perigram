@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Expose inherited status actions and generated detail screens
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      components/generated/GeneratedEntityCollection.vue,
+      server/scripts/migrate-process-compiled-runtime.js
+    Docs updated: packages/processes/README.md, components/README.md,
+      server/scripts/README.md, TODO.org
+    Notes: Manual change-status actions now use graph-derived access windows
+      for action exposure, so a status node after a create node appears for
+      roles that received access from the create node when access was not
+      modified. Inferred role/entity list screens now get paired detail screens
+      so entity name clicks can open generated entity pages. Existing compiled
+      process definitions must be recompiled from canonical process data.
+
     [2026-06-24] Use package imports for public entity helpers
     Files changed: server/features/materials/service.js,
       server/features/layer-standards/service.js,

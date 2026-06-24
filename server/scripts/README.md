@@ -21,6 +21,7 @@ node server/scripts/migrate-process-action-access-grants.js # Move process actio
 node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize stored screens into generated UI contracts
 node server/scripts/migrate-process-role-memberships.js # Clear preset permissions from process-role memberships and recover tenant admins
 node server/scripts/migrate-process-create-status-grants.js # Normalize create construction/input policies and recompile process contracts
+node server/scripts/migrate-process-compiled-runtime.js # Recompile active process runtime contracts after compiler changes
 ```
 
 ## What Gets Created

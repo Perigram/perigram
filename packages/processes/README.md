@@ -42,7 +42,10 @@ When an assignment contains multiple role ids, generated and authored screens
 from every selected role are merged into that user's screen manifest. Explicit
 screen records that name several roles still compile to one shared screen key;
 compiler-inferred role/entity screens stay separate per role and entity so a
-multi-role user receives every matching operational screen.
+multi-role user receives every matching operational screen. Each inferred
+role/entity list screen also gets a paired `entityDetail` screen with the same
+required access and action set, so generated collection names can open an
+entity page through `screen.scope.entityId`.
 
 Action records represent executable process steps on the visual canvas. The
 compiler validates `createEntity`, `updateEntity`, `changeStatus`,
@@ -53,9 +56,13 @@ and emits trigger contracts. `trigger.mode` is only the execution mode:
 `manual` means a user starts the action from UI, and `event` means another
 node's completion event starts it automatically. Role ids and access levels are
 stored under `action.access` and compile into grants plus manual action
-availability. Designers select from process roles directly when authoring
-action grants; pre-existing entity-profile grants are an independent grant
-source, not a filter for action grant creation. Entity creation exposes an
+availability. Manual action availability uses the same status-scoped access
+window as grants: a change-status action with unmodified access inherits role
+ids from the incoming action output, so a status step placed after a create step
+appears for users who received access to the created state. Designers select
+from process roles directly when authoring action grants; pre-existing
+entity-profile grants are an independent grant source, not a filter for action
+grant creation. Entity creation exposes an
 optional parent input socket plus domain-declared construction sockets from
 `cncEntityConstruction`; the visual designer derives the parent from the
 incoming edge instead of a parent-type selector. Generated screens prompt for
@@ -119,6 +126,11 @@ instead of leaving an older additive grant behind. Parent-scoped windows carry
 lineage scope forward: a queue created from a project window scoped to
 `$assignment.projectId` receives a `scope.projectId` grant, so access for one
 project branch does not apply to queues under another project branch.
+Stored active process definitions keep compiled runtime contracts in MongoDB.
+After compiler changes that alter generated screens, action exposure, workflow
+output, or grants, run
+`server/scripts/migrate-process-compiled-runtime.js` to recompile existing
+active definitions from their canonical process data.
 
 Screen records are route-level UI entries attached to roles and are the source
 for process-composed app navigation. They compile into generated screen
