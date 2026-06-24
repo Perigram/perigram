@@ -37,6 +37,28 @@
         />
       </template>
     </WorkspaceLanes>
+    <GeneratedRegion
+      v-else-if="screen.template === 'entityDetail' && detailMainRegion"
+      :region="detailMainRegion"
+      :screen-key="screen.screenKey || screen.id"
+      :source-state="sourceState(detailMainRegion.sourceId)"
+      :template="screen.template"
+      :screen-actions="screen.actions || []"
+      @refresh="load"
+      @execute-action="executeAction"
+    >
+      <GeneratedRegion
+        v-for="region in detailChildRegions"
+        :key="region.id"
+        :region="region"
+        :screen-key="screen.screenKey || screen.id"
+        :source-state="sourceState(region.sourceId)"
+        :template="screen.template"
+        :screen-actions="[]"
+        @refresh="load"
+        @execute-action="executeAction"
+      />
+    </GeneratedRegion>
     <div v-else class="flex flex-col gap-4">
       <GeneratedRegion
         v-for="region in screen.regions"
@@ -79,6 +101,15 @@
             option-label="label"
             option-value="value"
           />
+          <MultiSelect
+            v-else-if="field.type === 'entityList'"
+            v-model="promptValues[field.id]"
+            :options="promptOptions[field.id] || []"
+            option-label="label"
+            option-value="value"
+            display="chip"
+            class="w-full"
+          />
           <InputText
             v-else
             v-model="promptValues[field.id]"
@@ -93,6 +124,7 @@
 <script setup>
 import { computed, reactive, ref, toRef } from 'vue';
 import InputText from 'primevue/inputtext';
+import MultiSelect from 'primevue/multiselect';
 import Select from 'primevue/select';
 import Textarea from 'primevue/textarea';
 import { useToast } from 'primevue/usetoast';
@@ -103,6 +135,7 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
+import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -110,6 +143,7 @@ const props = defineProps({
 
 const toast = useToast();
 const { t } = useI18n();
+const domainUi = useCutkitDomainUi();
 const screenRef = toRef(props, 'screen');
 const { screen, loading, error, load, sourceState } = useGeneratedScreen(screenRef);
 const inputDialogVisible = ref(false);
@@ -123,6 +157,8 @@ const promptOptions = reactive({});
 const regionBySlot = computed(() => Object.fromEntries(
   screen.value.regions.map(region => [region.slot || 'main', region])
 ));
+const detailMainRegion = computed(() => screen.value.regions.find(region => sourceState(region.sourceId).source?.mode === 'single') || screen.value.regions[0] || null);
+const detailChildRegions = computed(() => screen.value.regions.filter(region => region !== detailMainRegion.value));
 const actionInputFields = computed(() => collectActionInputFields(pendingAction.value));
 const promptFields = computed(() => promptedFields(pendingAction.value));
 const pendingActionLabel = computed(() => pendingAction.value?.label || t('common.create'));
@@ -199,13 +235,14 @@ async function postAction(action, entity = null, data = {}, context = {}) {
 }
 
 function actionEntities(action = {}, entity = null, context = {}) {
+  const resolvedContext = context?.value || context || {};
   const entities = {};
   const entityId = entity?._id || entity?.identity?.uid || '';
-  const entityType = entity?.origin?.type || entity?.type || context?.entityType || '';
+  const entityType = entity?.origin?.type || entity?.type || resolvedContext?.entityType || '';
   if (entityId && entityType) entities[entityType] = entityId;
   const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || '';
   const parentId = parentType
-    ? screen.value.scope?.[`${parentType}Id`] || screen.value.scope?.entityId || resolveParentIdFromFilters(parentType, context?.source?.filters)
+    ? screen.value.scope?.[`${parentType}Id`] || screen.value.scope?.entityId || resolveParentIdFromFilters(parentType, resolvedContext?.source?.filters)
     : '';
   if (parentType && parentId) entities[parentType] = parentId;
   return entities;
@@ -227,9 +264,9 @@ function initialPromptValue(field = {}) {
 
 async function loadPromptOptions(fields = []) {
   await Promise.all(fields
-    .filter(field => field.type === 'entity')
+    .filter(field => ['entity', 'entityList'].includes(field.type))
     .map(async (field) => {
-      const options = await entityOptions(field.entityType);
+      const options = await entityOptions(field.entityType || field.accepts?.[0]);
       promptOptions[field.id] = options;
       if (field.required && !options.length) {
         throw new Error(t('generatedScreen.noOptions', { field: field.label || field.id }));
@@ -247,7 +284,16 @@ async function entityOptions(entityType) {
       .filter(isConstructableCassetteTemplate)
       .map(entityOption);
   }
-  return [];
+  if (!entityType) return [];
+  const items = await $fetch(domainUi.getListEndpoint(uiEntityType(entityType)));
+  return (Array.isArray(items) ? items : items.items || items.data || [])
+    .map(entity => entityOption(entity, entityType));
+}
+
+function uiEntityType(entityType = '') {
+  if (domainUi.endpointMap?.[entityType]) return entityType;
+  const camel = String(entityType).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
+  return domainUi.endpointMap?.[camel] ? camel : entityType;
 }
 
 function showActionError(err) {
@@ -266,10 +312,11 @@ function isConstructableCassetteTemplate(template = {}) {
   return Boolean(definition.extensions?.cutkit?.graphTree);
 }
 
-function entityOption(entity = {}) {
+function entityOption(entity = {}, entityType = '') {
   return {
     label: entity.identity?.name || entity.identity?.uid || entity._id,
-    value: entity._id || entity.identity?.uid
+    value: entity._id || entity.identity?.uid,
+    entityType
   };
 }
 
@@ -296,6 +343,7 @@ function promptData(fields = [], values = {}) {
 
 function normalizePromptValue(field = {}, value) {
   if (field.type === 'number') return value === '' ? undefined : Number(value);
+  if (field.type === 'entityList') return normalizeEntityListValue(field, value);
   if (field.type === 'object') {
     if (!value) return {};
     try {
@@ -305,6 +353,18 @@ function normalizePromptValue(field = {}, value) {
     }
   }
   return value;
+}
+
+function normalizeEntityListValue(field = {}, value = []) {
+  const ids = Array.isArray(value) ? value.filter(Boolean) : [value].filter(Boolean);
+  if (field.path === 'job.items' || field.accepts?.includes('cassette_design')) {
+    return ids.map((id, index) => ({
+      entryId: `${field.id || 'entry'}_${index + 1}`,
+      cassetteDesignId: id,
+      quantity: 1
+    }));
+  }
+  return ids.map(id => ({ id }));
 }
 
 function setByPath(target, path, value) {

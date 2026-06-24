@@ -6,6 +6,7 @@
     @refresh="$emit('refresh')"
   >
     <EntitySurfaceContent :entity="entity" :entity-type="entityType" :surface="surface" />
+    <slot />
     <template v-if="visibleActions.length" #actions>
       <GeneratedActionButton
         v-for="actionId in visibleActions"

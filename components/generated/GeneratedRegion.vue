@@ -7,7 +7,9 @@
     :actions="effectiveActions"
     @refresh="$emit('refresh')"
     @execute-action="(action, entity, context) => $emit('execute-action', action, entity, context)"
-  />
+  >
+    <slot />
+  </GeneratedEntityDetail>
   <GeneratedEntityCollection
     v-else
     :items="sourceState.items"
