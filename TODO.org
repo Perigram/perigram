@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Correct process-designer socket and status visuals
+    Files changed: pages/organization/process.vue,
+      components/process-designer/ProcessActionNode.vue,
+      components/process-designer/ProcessEntityNode.vue,
+      components/process-designer/ProcessServiceNode.vue,
+      components/process-designer/ProcessSocketNode.vue
+    Docs updated: components/process-designer/README.md,
+      pages/organization/README.md, TODO.org
+    Notes: Socket rows now use theme surfaces with colored handles instead of
+      hue backgrounds, send/receive access is summarized as chips rather than a
+      top graph socket, and new status nodes start from a neutral `STATUS` id
+      with no invented label.
+
     [2026-06-24] Tighten process-designer node contracts
     Files changed: pages/organization/process.vue,
       components/process-designer/ProcessActionNode.vue,

@@ -106,12 +106,12 @@ Canvas nodes show explicit expected input and produced output socket labels
 instead of input/output counts: action and service node handles are labeled
 with typed entity/status contracts, socket node handles are labeled with the
 transfer input and projected output fields, and entity nodes render their field
-policy as the process data contract. Socket rows and handles use stable contract
-colors for entity, block, data, status, event, projection, attachment, and task
-ports, and the canvas keeps only the contract label visible so path/required
-metadata does not duplicate the socket name. New palette nodes are placed at the
-center of the current viewport, and wires use curved Vue Flow edges rather than
-orthogonal step routing.
+policy as the process data contract. Socket rows use theme surfaces while
+handles use stable contract colors for entity, block, data, status, event,
+projection, attachment, and task ports, and the canvas keeps only the contract
+label visible so path/required metadata does not duplicate the socket name. New
+palette nodes are placed at the center of the current viewport, and wires use
+curved Vue Flow edges rather than orthogonal step routing.
 The canvas keeps data and event contracts visually separate. Left and right data
 handles are not headed with literal "inputs" or "outputs"; the socket label
 itself is the contract. Event-triggered actions receive the event on the left
@@ -126,7 +126,9 @@ condition under `action.access.statusFrom/statusTo`, derived from the incoming
 entity socket and target status.
 Status-definition nodes are entity agnostic. They render the final status tag
 directly on the node, edit only status id, label, severity, and icon, and apply
-to whichever entity lifecycle or action target they are wired into.
+to whichever entity lifecycle or action target they are wired into. New status
+nodes start from a neutral `STATUS` id with no label, so lifecycle meaning is
+authored by the process designer rather than guessed by the palette.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched
