@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Use package shared imports in Nitro server modules
+    Files changed: server/core/access/service.js,
+      server/utils/auth-helpers.js, server/features/catalogs/service.js,
+      server/features/requisitions/service.js,
+      server/features/users/service.js,
+      server/features/process-definitions/service.js
+    Docs updated: server/README.md, shared/README.md, TODO.org
+    Notes: Replaced deep relative shared imports with `#shared/...` in server
+      modules. Nitro preserved the relative imports inside `.nuxt/dev/index.mjs`,
+      where they resolved outside the workspace as `/shared/access-control.js`.
+
     [2026-06-24] Fix server shared imports for Nuxt dev
     Files changed: server/core/access/service.js,
       server/utils/auth-helpers.js, server/features/catalogs/service.js,

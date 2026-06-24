@@ -78,9 +78,10 @@ layer standards, system pens, and system tools carry
 read-level access to those marked records directly. Write/admin access still
 requires explicit grants or ownership.
 Server modules that are imported by Nitro dev must import shared contracts with
-repository-relative paths. Do not use `~/shared/...` from those files, because
-the generated dev server can resolve it to `/shared/...` instead of the
-workspace path.
+the package import alias, such as `#shared/access-control.js`. Do not use
+`~/shared/...`, because that can compile to `file:///src//shared/...`, and do
+not use deep relative paths, because Nitro preserves them inside
+`.nuxt/dev/index.mjs` where they can escape the workspace to `/shared/...`.
 
 ## Required Checks
 

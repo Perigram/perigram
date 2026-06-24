@@ -5,10 +5,10 @@ server features.
 
 Modules in this directory are portable runtime contracts. They must not import
 other repo files through Nuxt-only `~/` or `~~/` aliases because server scripts,
-workers, and direct Node imports do not own that resolver. Imports between
-files in this directory should stay relative, such as `./public-entities.js`,
-so Nuxt dev, Node scripts, and Vitest resolve the same file. Nuxt code may
-still import shared modules through its root alias at the call site.
+workers, and direct Node imports do not own that resolver. Use package imports
+such as `#shared/access-control.js` when the imported contract may be bundled
+by Nitro dev; sibling-only helpers may use `./file.js` only when they are not
+imported through server modules that Nitro externalizes.
 
 ## Core Files
 - `access-control.js`: Shared permission grant evaluator for feature levels,
