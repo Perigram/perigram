@@ -95,9 +95,9 @@ lifecycle and field-policy contracts, while action nodes reference those
 resources and compile into runtime trigger contracts.
 Entity creation actions expose an optional parent input socket and derive the
 parent contract from the incoming edge instead of a parent-type dropdown.
-The designer renders that parent socket only when an incoming entity edge
-actually exists; root create actions such as creating a cassette template must
-not show a same-entity parent input.
+The designer always renders that optional socket so a parent can be wired. Until
+an entity edge is connected it is a generic parent target and compiles as a root
+create; after wiring it relabels to the concrete parent entity type.
 Update-entity actions consume their entity from the incoming edge, expose one
 left-side data socket per selected mutable field, and compile those selected
 fields against the domain field policy for the concrete incoming entity type.

@@ -28,8 +28,9 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   creation target, update fields, and projection fields. The action kind is fixed by the
   palette item that created the node and is displayed as a compact verb such as
   `create`, `update`, or `service`. Create actions derive their parent from the incoming
-  data socket instead of a parent-type selector, and root create actions do not
-  render a parent input row when no incoming entity edge exists. Update actions consume an
+  data socket instead of a parent-type selector. The optional parent socket is
+  always visible so it can be connected; root create actions keep it generic and
+  compile without a parent until a concrete entity edge is wired. Update actions consume an
   incoming entity and expose selected mutable data fields as left-side data
   sockets, status-change actions consume
   an incoming entity without selecting an entity type or editing the existing

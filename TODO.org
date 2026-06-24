@@ -22,10 +22,11 @@
     Files changed: pages/organization/process.vue
     Docs updated: pages/organization/README.md,
       components/process-designer/README.md, TODO.org
-    Notes: CreateEntity action sync now renders the parent input only when an
-      incoming entity edge provides a real parent contract. Root create actions
-      such as cassette template creation no longer show a same-entity input
-      after stale or absent parent wiring.
+    Notes: CreateEntity action sync now keeps a generic optional parent socket
+      visible so a real parent can be wired, then relabels it to the incoming
+      entity contract. Root create actions such as cassette template creation no
+      longer persist a same-entity parent contract after stale or absent parent
+      wiring.
 
     [2026-06-24] Move parent-bound create actions to generated collection toolbar
     Files changed: components/generated/GeneratedEntityCollection.vue,
