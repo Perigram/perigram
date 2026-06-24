@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Preserve generated card status and paired detail routing
+    Files changed: components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedRegion.vue,
+      components/generated/GeneratedScreen.vue
+    Docs updated: components/README.md, TODO.org
+    Notes: Generated collection name links now prefer the detail screen paired
+      with the current generated screen key instead of the first manifest detail
+      screen for the entity type. Generated cards keep the shared title chrome
+      by rendering the status control alongside the clickable identity, so card
+      statuses are not dropped when names become links.
+
     [2026-06-24] Align generated cassette lists and construction action grants
     Files changed: server/api/cassettes/index.get.js,
       server/features/cassettes/service.js,
