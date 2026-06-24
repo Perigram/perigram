@@ -24,8 +24,16 @@
         @update:model-value="value => updateAndSync({ commandId: value })"
       />
       <InputText
-        v-else
-        :model-value="action.label || data.label || data.refId"
+        v-if="action.actionKind === 'changeStatus'"
+        :model-value="actionTitleLabel"
+        class="min-w-0"
+        size="small"
+        readonly
+        :aria-label="$t('processDesigner.targetStatus')"
+      />
+      <InputText
+        v-else-if="action.actionKind !== 'runCommand'"
+        :model-value="actionTitleLabel"
         class="min-w-0"
         size="small"
         :aria-label="$t('processDesigner.label')"
@@ -213,7 +221,21 @@ const accessGrants = computed(() => {
 const selectedGrantRoleIds = computed(() => new Set(accessGrants.value.map(grant => grant.roleId).filter(Boolean)));
 const availableRoleOptions = computed(() => (props.data.roleOptions || []).filter(option => !selectedGrantRoleIds.value.has(option.value)));
 const eventLabel = computed(() => props.data.eventLabel || t('processDesigner.actionCompleted'));
-const actionKindLabel = computed(() => props.data.actionKindLabel || props.data.actionKind || t('common.actions.title'));
+const actionTitleLabel = computed(() => {
+  if (action.value.actionKind === 'changeStatus') {
+    return props.data.actionTitleLabel
+      || action.value.status?.label
+      || props.data.statusLabel
+      || action.value.status?.to
+      || props.data.statusTo
+      || t('processDesigner.targetStatus');
+  }
+  return action.value.label || props.data.label || props.data.refId || '';
+});
+const actionKindLabel = computed(() => {
+  if (action.value.actionKind === 'changeStatus') return actionTitleLabel.value;
+  return props.data.actionKindLabel || props.data.actionKind || '';
+});
 const showEntitySelector = computed(() => ['createEntity', 'sendToOrganization'].includes(action.value.actionKind));
 const hasInlineControls = computed(() => ['sendToOrganization', 'updateEntity'].includes(action.value.actionKind));
 function normalizeSpecs(items = []) {

@@ -488,7 +488,7 @@ function compileRoles(process = {}, domain = {}) {
       const feature = actionWindow?.primaryGrant?.feature || grantFromAction(action, access, domain)?.feature || null;
       roles[roleId].actions.push({
         actionId: action.id || actionId,
-        label: displayActionLabel(action, actionId),
+        label: displayActionLabel(action, actionId, process),
         level: 'run',
         actionKind: action.actionKind || 'createEntity',
         feature,
@@ -1101,7 +1101,7 @@ function initialSocketStatus(socket = {}) {
 function compileActions(actions = {}, process = {}, domain = {}) {
   return Object.fromEntries(Object.entries(actions).map(([id, action]) => [id, {
     id: action.id || id,
-    label: displayActionLabel(action, id),
+    label: displayActionLabel(action, id, process),
     actionKind: action.actionKind || 'createEntity',
     entityType: action.entityType || null,
     parentEntityType: action.parentEntityType || null,
@@ -1236,7 +1236,7 @@ function defaultConstructionMode(entityType = '') {
   return 'genericCreate';
 }
 
-function displayActionLabel(action = {}, id = '') {
+function displayActionLabel(action = {}, id = '', process = {}) {
   const explicit = String(action.label || '').trim();
   if (explicit && !isGenericActionLabel(explicit, action.actionKind)) return explicit;
 
@@ -1248,7 +1248,7 @@ function displayActionLabel(action = {}, id = '') {
     return ['Create', entityTypeLabel(entityType), action.status?.to].filter(Boolean).join(' ');
   }
   if (action.actionKind === 'changeStatus') {
-    return ['Move', entityTypeLabel(entityType), action.status?.to].filter(Boolean).join(' ');
+    return statusTargetLabel(action, process) || ['Move', entityTypeLabel(entityType), action.status?.to].filter(Boolean).join(' ');
   }
   if (action.actionKind === 'updateEntity') {
     return ['Update', entityTypeLabel(entityType)].filter(Boolean).join(' ');
@@ -1260,6 +1260,17 @@ function displayActionLabel(action = {}, id = '') {
     return ['Send', entityTypeLabel(entityType)].filter(Boolean).join(' ');
   }
   return action.actionKind || id;
+}
+
+function statusTargetLabel(action = {}, process = {}) {
+  const referenced = action.statusRef ? process.statusDefinitions?.[action.statusRef] : null;
+  return referenced?.label
+    || referenced?.statusId
+    || action.status?.label
+    || action.status?.to
+    || action.access?.statusTo
+    || action.outputs?.find(output => output.status)?.status
+    || '';
 }
 
 function isGenericActionLabel(label, actionKind = '') {

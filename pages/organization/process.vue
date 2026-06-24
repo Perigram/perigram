@@ -498,6 +498,7 @@ const actionKindOptions = [
   { label: 'service', value: 'runCommand' },
   { label: 'send', value: 'sendToOrganization' }
 ];
+const genericActionLabels = new Set(['action', 'create', 'modify', 'status', 'service', 'send', 'update']);
 const triggerModeOptions = [
   { label: 'Manual', value: 'manual' },
   { label: 'Event', value: 'event' }
@@ -932,12 +933,13 @@ function syncNodeData() {
     if (node.type === 'socket') syncSocketIo(record);
     if (node.type === 'statusDefinition') syncStatusDefinition(record);
     if (node.type === 'valueInput') syncValueInput(record);
-    node.data.label = record.label || actionKindLabel(record.actionKind) || record.entityType || record.commandId || node.data.label;
+    node.data.label = nodeDisplayLabel(record, node);
     node.data.actionKind = record.actionKind;
     node.data.entityType = record.entityType;
     node.data.commandId = record.commandId;
     node.data.triggerMode = record.trigger?.mode;
-    node.data.actionKindLabel = node.type === 'action' ? actionKindLabel(record.actionKind) : null;
+    node.data.actionKindLabel = node.type === 'action' ? actionHeaderLabel(record) : null;
+    node.data.actionTitleLabel = node.type === 'action' ? actionTitleLabel(record) : null;
     node.data.eventLabel = node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null;
     node.data.actionRecord = node.type === 'action' ? record : null;
     node.data.entityTypeOptions = node.type === 'action' ? entityTypeOptions.value : [];
@@ -1029,7 +1031,7 @@ function createService(id) {
 function createAction(id, actionKind = 'createEntity') {
   const action = {
     id,
-    label: actionKindLabel(actionKind),
+    label: actionKind === 'changeStatus' ? '' : actionKindLabel(actionKind),
     actionKind,
     entityType: ['changeStatus', 'runCommand', 'updateEntity'].includes(actionKind) ? '' : 'project',
     commandId: '',
@@ -1339,6 +1341,9 @@ function syncActionIo(action = {}, node = null) {
   action.access.level = normalizeAccessLevel(action.access.level);
   action.status ||= {};
   applyStatusDefinitionToAction(action);
+  if (action.actionKind === 'changeStatus' && isGenericDesignerActionLabel(action.label, action.actionKind)) {
+    action.label = '';
+  }
   action.events = actionEventOutputs(action);
   if (action.actionKind === 'createEntity') {
     const incoming = node?.id ? inferIncomingEntityContract(node.id) : {};
@@ -1628,7 +1633,43 @@ function initialStatusForEntity(entityType) {
 }
 
 function actionKindLabel(actionKind) {
-  return actionKindOptions.find(option => option.value === actionKind)?.label || 'Action';
+  return actionKindOptions.find(option => option.value === actionKind)?.label || '';
+}
+
+function nodeDisplayLabel(record = {}, node = {}) {
+  if (node.type === 'action') return actionTitleLabel(record) || actionKindLabel(record.actionKind) || record.entityType || record.commandId || node.data?.label || '';
+  return record.label || record.entityType || record.commandId || node.data?.label || '';
+}
+
+function actionHeaderLabel(action = {}) {
+  if (action.actionKind === 'changeStatus') return actionTitleLabel(action) || t('processDesigner.targetStatus');
+  return actionKindLabel(action.actionKind);
+}
+
+function actionTitleLabel(action = {}) {
+  if (action.actionKind === 'changeStatus') {
+    return statusTargetLabel(action) || t('processDesigner.targetStatus');
+  }
+  const explicit = String(action.label || '').trim();
+  if (explicit && !isGenericDesignerActionLabel(explicit, action.actionKind)) return explicit;
+  return actionKindLabel(action.actionKind) || action.entityType || action.commandId || action.id || '';
+}
+
+function statusTargetLabel(action = {}) {
+  const definition = action.statusRef ? draft.value?.data?.statusDefinitions?.[action.statusRef] : null;
+  return definition?.label
+    || definition?.statusId
+    || action.status?.label
+    || action.status?.to
+    || action.access?.statusTo
+    || action.outputs?.find(output => output.status)?.status
+    || '';
+}
+
+function isGenericDesignerActionLabel(label, actionKind = '') {
+  const normalized = String(label || '').trim().toLowerCase();
+  if (!normalized) return false;
+  return genericActionLabels.has(normalized) || normalized === String(actionKind || '').toLowerCase();
 }
 
 function localizedTriggerModeOptions() {
@@ -1852,10 +1893,11 @@ function enrichNodeData(node) {
     ...node,
     data: {
       ...(node.data || {}),
-      label: record.label || record.entityType || record.commandId || node.data?.label,
+      label: nodeDisplayLabel(record, node),
       entityType: record.entityType,
       commandId: record.commandId,
-      actionKindLabel: node.type === 'action' ? actionKindLabel(record.actionKind) : null,
+      actionKindLabel: node.type === 'action' ? actionHeaderLabel(record) : null,
+      actionTitleLabel: node.type === 'action' ? actionTitleLabel(record) : null,
       actionRecord: node.type === 'action' ? record : null,
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
       commandOptions: node.type === 'action' ? commandOptions.value : [],

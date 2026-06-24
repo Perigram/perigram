@@ -792,6 +792,40 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('labels status-change actions from their target status definition', () => {
+    const compiled = compileProcessDefinition({
+      statusDefinitions: {
+        status_deleted: {
+          id: 'status_deleted',
+          statusId: 'DELETED',
+          label: 'Deleted',
+          severity: 'danger',
+          icon: 'pi pi-ban'
+        }
+      },
+      actions: {
+        delete_queue: {
+          id: 'delete_queue',
+          label: 'Action',
+          actionKind: 'changeStatus',
+          statusRef: 'status_deleted',
+          status: { from: 'CREATED' },
+          access: { level: 'admin', roleIds: [] },
+          inputs: [{ id: 'entity', entityType: 'queue', status: 'CREATED' }],
+          outputs: [{ id: 'entity', entityType: 'queue', status: 'DELETED' }]
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.delete_queue.label).toBe('Deleted');
+    expect(compiled.actions.delete_queue.status).toMatchObject({
+      to: 'DELETED',
+      label: 'Deleted',
+      severity: 'danger',
+      icon: 'pi pi-ban'
+    });
+  });
+
   it('normalizes generic creation for derived construction contracts to the typed mode', () => {
     const validation = validateProcessDefinition({
       actions: {
