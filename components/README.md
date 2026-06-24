@@ -127,18 +127,18 @@ registered templates, sources, regions, surfaces, and action ids; it must not
 select arbitrary Vue component names or inject page-local markup. Generated
 action buttons post to the active process action endpoint and then refresh the
 screen's entity sources; they do not call arbitrary entity URLs from the
-browser. Collection-level generated actions are limited to the action ids
-compiled onto the current screen or region; collection components must not scan
-the whole user action manifest and inject every parent-bound action that happens
-to match the row entity type. Collection actions emit the compiled action
-manifest item itself, not an entity placeholder, because create actions do not
-have an existing entity row. Parent-bound collection actions also emit the
-source and region context so the generated screen can pass the active parent id
-from screen scope to the process action endpoint, or open a parent selector when
-the target entity list is not already scoped to that parent. Entity-detail
-templates render child collection regions inside the `EntityPage` body so
-parent-child graph flows, such as project-to-queue creation, stay in the opened
-parent context.
+browser. Collection-level and detail-level generated actions are limited to the
+action ids compiled onto the current screen or region; generated components must
+not scan the whole user action manifest and inject every parent-bound action
+that happens to match the row or detail entity type. Collection actions emit the
+compiled action manifest item itself, not an entity placeholder, because create
+actions do not have an existing entity row. Parent-bound collection actions also
+emit the source and region context so the generated screen can pass the active
+parent id from screen scope to the process action endpoint, or open a parent
+selector when the target entity list is not already scoped to that parent.
+Entity-detail templates render child collection regions inside the `EntityPage`
+body so parent-child graph flows, such as project-to-queue creation, stay in the
+opened parent context.
 Generated entity details may provide registered entity-specific bodies when
 the domain has a real operational editor contract. Queue details mount the
 queue editor workspace inside the generated detail page as an entity-local

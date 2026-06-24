@@ -4,6 +4,14 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Stop generated details from injecting global parent actions
+    Files changed: components/generated/GeneratedEntityDetail.vue
+    Docs updated: components/README.md, TODO.org
+    Notes: Generated entity detail pages now render only action ids compiled
+      onto the current screen or region. They no longer scan the whole user
+      action manifest for parent-bound create actions, preventing queue or other
+      unrelated create dialogs from appearing on cassette detail pages.
+
     [2026-06-24] Require write access for runnable manual actions
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js
