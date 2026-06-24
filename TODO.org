@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Infer required lineage parents for generated create actions
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: packages/processes/README.md, TODO.org
+    Notes: Queue creation failed with "Project ID is required" because the
+      active action still stored a stale cassette parent; compilation stripped
+      that unsupported parent to a root queue action instead of replacing it
+      with the domain queue->project lineage parent. Create actions now infer
+      required lineage parents from domain summaries and normalize stale
+      exposed construction sockets. Recompiled active process definitions after
+      the change; the active queue create action now has parentEntityType
+      project and no required jobItems prompt.
+
     [2026-06-24] Make queue creation independent from queue composition inputs
     Files changed: packages/domain-cnc/src/entity-construction.js,
       packages/processes/src/index.js, packages/processes/src/index.spec.js

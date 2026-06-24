@@ -102,6 +102,12 @@ chrome when the parent contract is valid. Entity detail screens do not inherit
 root create actions for their own entity type; detail actions are for the
 opened entity, such as status/update transitions, plus valid contextual
 parent-child creation.
+If a create action targets an entity with a domain lineage parent and the graph
+contains no valid parent, compilation infers that required parent from the
+domain relation instead of exposing a root create. This prevents stored stale
+parents, such as `cassette -> queue`, from producing queue actions that fail at
+runtime without `projectId`; the generated action receives `parentEntityType:
+project` and the UI must provide the project id.
 Compilation hydrates create-action construction and prompt policy from the
 domain construction contract. A sparse visual action for `cassette_design`
 therefore still compiles with required `name` and `templateId` prompt fields,
