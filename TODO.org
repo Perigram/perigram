@@ -4,6 +4,24 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Add generated queue and cassette editor integration
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      components/generated/GeneratedEntityDetail.vue,
+      components/generated/GeneratedRegion.vue,
+      components/generated/GeneratedScreen.vue,
+      components/generated/GeneratedQueueDetail.vue,
+      components/generated/GeneratedCassetteDesignerAction.vue,
+      components/generated/action-visibility.js,
+      components/generated/action-visibility.spec.js
+    Docs updated: components/README.md, packages/processes/README.md, TODO.org
+    Notes: Parent-bound create actions without a declared child lineage
+      relation now attach to the parent detail region. Generated queue details
+      mount the existing queue editor workspace, cassette details expose
+      CassetteDesignerV2 through an access-gated action, and parent-bound
+      create actions can render on matching entity detail pages without
+      duplicating child-region actions.
+
     [2026-06-24] Separate status transition execution from target grants
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js

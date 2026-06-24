@@ -133,6 +133,13 @@ source and region context so the generated screen can pass the active parent id
 from screen scope to the process action endpoint. Entity-detail templates render
 child collection regions inside the `EntityPage` body so parent-child graph
 flows, such as project-to-queue creation, stay in the opened parent context.
+Generated entity details may provide registered entity-specific bodies when
+the domain has a real operational editor contract. Queue details mount the
+queue editor workspace inside the generated detail page, preserving nesting
+settings, cassette-design job items, nesting runs, and generated outputs under
+process navigation and access. Cassette details expose `CassetteDesignerV2` as
+an access-gated entity editor action instead of routing users to a static
+asset page.
 Entity-bound generated actions are filtered before
 rendering: the action entity type must match the region source, and
 status-change actions render only when the entity's current primary status

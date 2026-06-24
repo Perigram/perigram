@@ -179,6 +179,12 @@ to that child region instead of the unscoped queue list screen. A
 project-to-create-cassette graph does not create a cassette child collection
 unless the domain summary registry explicitly declares cassette as a project
 child.
+Parent-bound create actions that do not have a domain child relation are still
+valid parent-context actions. The compiler attaches them to the parent
+`entityDetail` main region instead of dropping them or inventing a child list.
+For example, a cassette-to-create-cassette-design action can render on the
+cassette detail page even though cassette designs are constructed from a
+template rather than listed as cassette lineage children.
 Navigation is compiled from the screen manifest. When a role has access grants
 but no authored screen for that entity feature, the compiler creates a generated
 entity-list screen for that role/feature so process-active users do not fall
