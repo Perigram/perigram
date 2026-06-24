@@ -1357,6 +1357,8 @@ describe('@cutkit/processes compiler', () => {
         rule: { fact: 'primaryStatus', equals: TARGET_STATE }
       }
     ]);
+    expect(compiled.userAccess.user_source.actions.map(action => action.actionId)).toContain('activate_project');
+    expect(compiled.userAccess.user_target.actions.map(action => action.actionId)).not.toContain('activate_project');
   });
 
   it('carries scoped parent lineage into child entity action grants', () => {

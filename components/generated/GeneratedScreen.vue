@@ -257,6 +257,7 @@ function resolveParentIdFromFilters(parentType = '', filters = {}) {
 }
 
 function initialPromptValue(field = {}) {
+  if (field.type === 'entityList') return Array.isArray(field.default) ? field.default : [];
   const value = field.default ?? '';
   if (field.type === 'object' && value && typeof value !== 'string') return JSON.stringify(value, null, 2);
   return value;
@@ -271,7 +272,7 @@ async function loadPromptOptions(fields = []) {
       if (field.required && !options.length) {
         throw new Error(t('generatedScreen.noOptions', { field: field.label || field.id }));
       }
-      if (field.required && !promptValues[field.id] && options[0]?.value) {
+      if (field.type !== 'entityList' && field.required && !promptValues[field.id] && options[0]?.value) {
         promptValues[field.id] = options[0].value;
       }
     }));

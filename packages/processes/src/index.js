@@ -482,7 +482,7 @@ function compileRoles(process = {}, domain = {}) {
       }
     }
     if ((action.trigger?.mode || 'manual') !== 'manual') continue;
-    const exposedRoleIds = actionExposureRoleIds(access, actionWindow);
+    const exposedRoleIds = actionExposureRoleIds(action, access, actionWindow);
     for (const roleId of exposedRoleIds) {
       if (!roles[roleId]) continue;
       const feature = actionWindow?.primaryGrant?.feature || grantFromAction(action, access, domain)?.feature || null;
@@ -504,7 +504,16 @@ function compileRoles(process = {}, domain = {}) {
   return roles;
 }
 
-function actionExposureRoleIds(access = {}, actionWindow = null) {
+function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
+  if ((action.actionKind || 'createEntity') === 'changeStatus') {
+    const incoming = actionWindow?.input;
+    const incomingRoleGrants = incoming?.roleGrants || grantsFromRoleIds(incoming?.roleIds || [], incoming?.level || access.level);
+    const executable = incomingRoleGrants
+      .filter(grant => ACCESS_ORDER[normalizeAccessLevel(grant.level)] >= ACCESS_ORDER.write)
+      .map(grant => grant.roleId)
+      .filter(Boolean);
+    if (executable.length) return [...new Set(executable)];
+  }
   const explicit = access.grants?.map(grant => grant.roleId).filter(Boolean) || access.roleIds || [];
   if (explicit.length) return explicit;
   return [...new Set((actionWindow?.outputs || []).flatMap(output => output.roleGrants?.map(grant => grant.roleId) || output.roleIds || []))];
