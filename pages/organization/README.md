@@ -98,6 +98,11 @@ Change-status actions do not select an entity type; the entity arrives through
 the left data socket and only the target status is configured on the node.
 Archive is modeled as that target status, and cross-organization transfer is
 modeled as a send-to-organization action with projection fields.
+The node title for a change-status action is the actual target status label
+from the connected status definition, falling back only to the target state id.
+Designer sync treats generic action labels such as `Action` or `status` as
+empty for status actions so generated screens and the canvas do not show
+placeholder verbs where a lifecycle state is required.
 Inbound organization socket nodes model receiver inputs from other
 organizations and produce received entities into the local graph. Outbound
 socket nodes consume local entities and produce projected payloads for another

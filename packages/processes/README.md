@@ -110,6 +110,10 @@ visual metadata. Status definitions are entity agnostic by default: when a
 referenced action creates or transitions a concrete entity type, the compiler
 adds that target state to the entity workflow and applies the referenced
 severity/icon/color/label there.
+Status-change action labels are also derived from that target status
+definition label, or the target state id when no label exists, whenever the
+authored label is only a generic palette placeholder such as `Action`, `status`,
+or the raw action kind.
 Their access grants are entity-type grants conditioned by the resulting state:
 the designer derives the entity type and source status from the incoming graph
 socket, carries the type to the output socket, and stores

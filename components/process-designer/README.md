@@ -40,6 +40,10 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   Update actions derive promptable editor fields from selected domain field
   policy entries, so a manual modify action collects values for concrete fields
   instead of free-form paths before it calls the active process action runtime.
+  Status-change actions use the target status definition label, or the target
+  state id when no label exists, as the node's primary title. Generic palette
+  labels such as `status` or stale `Action` values are ignored in this mode so
+  the canvas reads as the actual transition being authored.
 - `ProcessStatusDefinitionNode.vue` represents an entity-agnostic reusable
   status value for the same canvas. The node renders the same PrimeVue status
   tag shape that the resulting status uses, and its inspector edits only status

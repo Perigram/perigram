@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Fix status-action labels in process designer and compiled actions
+    Files changed: components/process-designer/ProcessActionNode.vue,
+      pages/organization/process.vue, packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      components/process-designer/README.md,
+      pages/organization/README.md, packages/processes/README.md,
+      TODO.org
+    Docs updated: components/process-designer/README.md,
+      pages/organization/README.md, packages/processes/README.md,
+      TODO.org
+    Notes: Removed the generic `Action` fallback from change-status node
+      display. Status actions now render and compile with the target status
+      definition label or target state id, while generic palette labels are
+      ignored for status transitions.
+
     [2026-06-24] Backfill process status badge visuals from workflow state
     Files changed: server/core/machines/service.js,
       server/core/machines/service.spec.js
