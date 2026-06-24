@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Compile inferred screens as read surfaces
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: packages/processes/README.md, TODO.org
+    Notes: Inferred generated list/detail screens now compile route-level
+      requirements as read requirements while preserving role-local status
+      rules. A role with admin access to one status and write access to another
+      no longer produces one over-strict admin read screen. The active process
+      runtime was recompiled with `server/scripts/migrate-process-compiled-runtime.js`,
+      updating 44 stored process definitions.
+
     [2026-06-24] Preserve generated card status and paired detail routing
     Files changed: components/generated/GeneratedEntityCollection.vue,
       components/generated/GeneratedRegion.vue,
