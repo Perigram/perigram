@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Require write access for runnable manual actions
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: packages/processes/README.md, TODO.org
+    Notes: Process action exposure now filters explicit and inherited action
+      grants by access level. Read-only grants can describe entity visibility
+      windows, but they no longer expose runnable create/update/run actions in
+      generated user action manifests.
+
     [2026-06-24] Fix generated create action placement
     Files changed: components/generated/GeneratedEntityCollection.vue,
       components/generated/GeneratedScreen.vue, packages/processes/src/index.js,

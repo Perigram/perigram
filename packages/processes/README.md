@@ -58,7 +58,9 @@ node's completion event starts it automatically. Role access is stored under
 `action.access.grants` as `{ roleId, level }` rows and compiles into entity
 grants plus manual action availability. `write` permits create/edit/update/run
 actions, while `admin` includes write/read and is required for destructive or
-approval-style operations. Manual action availability uses the same
+approval-style operations. `read` grants describe access to the resulting entity
+window but must not expose a runnable manual create/update/run action. Manual
+action availability uses the same
 status-scoped access window as grants: a change-status action with unmodified
 access inherits role-level grants from the incoming action output, so a status
 step placed after a create step appears for users who received access to the
