@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Standardize generated entity workspace layout
+    Files changed: components/shared/EntityWorkspace.vue,
+      components/shared/WorkspaceLanes.vue, components/QueueEditor.vue
+    Docs updated: components/README.md, components/shared/README.md, TODO.org
+    Notes: Added EntityWorkspace as the canonical entity-local operational
+      layout with main/supporting regions. QueueEditor now uses WorkspaceLanes
+      only for route-level queue navigation and EntityWorkspace when embedded
+      in generated entity detail pages.
+
     [2026-06-24] Inherit command output access and standardize generated queue layout
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js,

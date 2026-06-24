@@ -89,6 +89,7 @@ All entity-related components MUST use these patterns:
 | Section/page action rows | `<ActionToolbar>` |
 | Route-level aggregate facts | `<MetricPanel>` |
 | Repeated card grids | `<ResponsiveGrid>` |
+| Entity-local workspaces | `<EntityWorkspace>` |
 | Three-lane production workspaces | `<WorkspaceLanes>` |
 | Bounded scrolling workspace sections | `<ScrollablePanel>` |
 | Loading/empty/error surfaces | `<StateBlock>` |
@@ -137,10 +138,12 @@ Generated entity details may provide registered entity-specific bodies when
 the domain has a real operational editor contract. Queue details mount the
 queue editor workspace inside the generated detail page as an entity-local
 editor: sibling queue navigation and project-route creation controls stay
-hidden, the editor requests the stacked `WorkspaceLanes` layout instead of the
-route-level three-lane workspace, and editability comes from the active process
+hidden, the editor renders through `EntityWorkspace` instead of the route-level
+three-lane workspace, and editability comes from the active process
 `queues:write` grant on the current queue rather than hardcoded workflow states
-such as `DRAFT`.
+such as `DRAFT`. Entity-local operational editors should use the canonical
+main/supporting proportions from `EntityWorkspace` rather than inventing local
+stacked or sidebar grids.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page.
 Entity-bound generated actions are filtered before

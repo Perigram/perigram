@@ -102,6 +102,14 @@ entities. `EntityRelationsBlock` renders relation descriptors through
 `EntityInlineRef`. Specialized production cards may still use custom slots
 where the workflow needs more than the default body.
 
+### `EntityWorkspace.vue`
+Canonical entity-detail workspace layout for operational editors embedded
+inside `EntityPage`. Use it when an entity detail needs a primary working
+region plus a supporting/status/results region, such as queue composition with
+nesting runs. The layout uses one column on small screens and a stable 8/4
+main/support split on large screens. Route-level production pages that need
+navigation, center work area, and right rail still use `WorkspaceLanes`.
+
 ### `StatusBadge.vue`
 Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.
 
