@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Fix status-scoped cassette detail reads
+    Files changed: server/features/cassettes/service.js,
+      server/features/cassettes/cassettes.spec.js
+    Docs updated: server/features/cassettes/README.md, TODO.org
+    Notes: `cassetteService.getById()` now passes the full cassette entity to
+      `hasLineagePermission()` instead of only `cassette.lineage`, allowing
+      process grants scoped by `primaryStatus` to authorize detail reads. The
+      live `/api/cassettes/2-GQE6r7` endpoint was reproduced as 403 before the
+      fix and verified as 200 after the change with a temporary local session,
+      which was then removed.
+
     [2026-06-24] Compile inferred screens as read surfaces
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js

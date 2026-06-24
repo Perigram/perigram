@@ -114,7 +114,9 @@ so rules such as `primaryStatus = ACTIVE` apply to both collection and detail
 reads. `GET /api/cassettes` accepts the generated-screen `primaryStatuses`
 filter and then prunes results through the same read check used by
 `GET /api/cassettes/:id`; a generated list must not show a template whose
-detail page would return 403.
+detail page would return 403. Single-template reads must also pass the full
+cassette entity to the access evaluator; passing only `cassette.lineage` drops
+status data and breaks process grants scoped to statuses such as `CREATED2`.
 
 ## Related
 - [cassette-designs](../cassette-designs/README.md) - Stores baked geometry and DXF references.
