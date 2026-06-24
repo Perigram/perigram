@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Make queue creation independent from queue composition inputs
+    Files changed: packages/domain-cnc/src/entity-construction.js,
+      packages/processes/src/index.js, packages/processes/src/index.spec.js
+    Docs updated: packages/domain-cnc/README.md, packages/processes/README.md,
+      TODO.org
+    Notes: Queue construction now treats job items, material pool, and nesting
+      parameters as optional shell-creation inputs. The process compiler now
+      lets the domain construction contract own structural input metadata, so
+      stale stored action construction/inputPolicy snapshots cannot reintroduce
+      required queue item prompts. Recompiled active process definitions after
+      the change; the active queue create action now has an empty inputPolicy.
+
     [2026-06-24] Refresh process manifests before generated screens render
     Files changed: pages/screens/[screenKey].vue
     Docs updated: pages/README.md, TODO.org

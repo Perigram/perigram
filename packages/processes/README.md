@@ -112,6 +112,13 @@ a complete OCCS template. When stored actions carry a construction mode that no
 longer belongs to the selected entity type, compilation normalizes the mode to
 the current domain default and the process-construction migration persists that
 normalization before recompiling active runtime contracts.
+Domain construction contracts own structural input metadata during compilation:
+field id, label, path, type, accepted entity types, and `required` status come
+from the current domain registry, not from stale action snapshots. Stored graph
+inputs may keep non-structural values such as defaults, but they cannot make a
+now-optional domain input required again. Queue creation relies on this rule so
+old processes that stored `jobItems.required: true` compile to an empty queue
+shell action instead of blocking on cassette-design selection.
 The compiler fallback construction mode is only `genericCreate`; any
 entity-specific constructor such as baked cassette designs or OCCS template
 creation must be declared by the domain construction registry. This keeps the

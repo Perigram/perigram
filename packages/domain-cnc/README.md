@@ -93,6 +93,10 @@ runtime can call the correct construction service and preserve editor
 contracts. `cassette` templates also use a typed constructor,
 `createDefaultOccsTemplate`, which requires a prompted name and creates a full
 default OCCS template document instead of an empty generic row.
+Queue creation is intentionally a shell creation contract: `jobItems`,
+`materialPool`, and nesting parameters are optional construction inputs because
+queue composition belongs to the queue editor and nesting command readiness
+checks, not to the initial create action dialog.
 `entity-create-inputs.js` projects those construction contracts into
 process-designer data sockets for older imports; new code should read
 `cncEntityConstruction` directly. Post-creation data mutation belongs in an
