@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Show parent-bound create actions on generated collection rows
+    Files changed: components/generated/GeneratedEntityCollection.vue,
+      components/generated/action-visibility.js,
+      components/generated/action-visibility.spec.js
+    Docs updated: components/README.md, TODO.org
+    Notes: Parent-bound create actions now appear in matching entity collection
+      row footers by reading the active action manifest, while collection
+      toolbar create buttons remain limited to non-parent-bound creates.
+
     [2026-06-24] Preserve process status metadata in generated action manifests
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js, packages/processes/README.md,

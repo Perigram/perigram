@@ -178,6 +178,10 @@ clickable; generated cards must keep the standard identity/status row.
 Generated collection cards render visible process actions as generated buttons
 in the card footer. The action must be present in the user's compiled action
 manifest and match the current entity status before the footer renders it.
+Parent-bound create actions are row-level actions on matching entity
+collections because the row supplies the parent entity; they must not render in
+the collection toolbar where no parent entity is selected. The same actions
+also render in matching entity-detail action areas.
 `EntityStatus` remains owned by the canonical workflow/status API and must not
 receive locally synthesized process actions.
 Generated action setup and execution failures must be visible in the screen:
