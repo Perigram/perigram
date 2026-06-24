@@ -1,6 +1,6 @@
 <template>
     <div class="flex h-full min-h-0 min-w-0 flex-col">
-        <WorkspaceLanes :center-scroll="false" :layout="showQueueNavigation ? 'lanes' : 'stack'">
+        <component :is="workspaceComponent" :center-scroll="false">
             <template v-if="showQueueNavigation && queues?.length > 0" #left>
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>
@@ -256,7 +256,7 @@
                     </ResponsiveGrid>
                 </ScrollablePanel>
             </div>
-            <template #right>
+            <template #[supportSlot]>
                 <Panel :header="`${$t('queue.runs')} (${queueRuns.length})`">
                     <div v-if="queueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
                         <Select
@@ -286,7 +286,7 @@
                     <StateBlock v-else :message="$t('queue.nestingRuns')" icon="pi pi-list-check" />
                 </Panel>
             </template>
-        </WorkspaceLanes>
+        </component>
 
 
         <!-- Add Entry Dialog -->
@@ -344,6 +344,7 @@ import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
+import EntityWorkspace from '~/components/shared/EntityWorkspace.vue';
 import ScrollablePanel from '~/components/shared/ScrollablePanel.vue';
 import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
 import { onEntityChanged } from '~/utils/entity-events.js';
@@ -368,6 +369,8 @@ const authStore = useAuthStore();
 const queueState = computed(() => getPrimaryState(props.queue.status, 'UNKNOWN'));
 const queueName = computed(() => props.queue.identity?.name || props.queue.identity?.slug || t('common.unnamed'));
 const showQueueNavigation = computed(() => props.showQueueNavigation);
+const workspaceComponent = computed(() => showQueueNavigation.value ? WorkspaceLanes : EntityWorkspace);
+const supportSlot = computed(() => showQueueNavigation.value ? 'right' : 'support');
 
 const queuesStore = useQueuesStore();
 const cassettesStore = useCassettesStore();
