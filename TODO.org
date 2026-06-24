@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Separate status transition execution from target grants
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: packages/processes/README.md, TODO.org
+    Notes: Compiled workflow transitions for process status-change actions now
+      require write access on the source entity state while target-state grant
+      rows still define access after the transition. This prevents a node that
+      grants admin in the target status from making execution require admin
+      before the transition.
+
     [2026-06-24] Fix generated child collection detail routing
     Files changed: components/generated/GeneratedEntityCollection.vue,
       components/generated/entity-detail-routing.js,

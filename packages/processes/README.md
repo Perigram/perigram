@@ -66,8 +66,11 @@ created state. For status-change actions, run availability is derived from the
 incoming entity window: roles with write/admin access to the current state can
 execute the transition, while the action's grant rows define access after the
 target state is reached. The compiled workflow transition uses those same
-incoming run roles in `processRoleIds`, so generated process actions and the
-status engine enforce the same rule. Designers select from process roles directly when authoring
+incoming run roles in `processRoleIds` and requires write access on the source
+entity, so generated process actions and the status engine enforce the same
+rule. It must not use the target-state grant level as the execution
+permission: a status node can grant admin access after the transition without
+requiring admin access before it. Designers select from process roles directly when authoring
 action grants; pre-existing
 entity-profile grants are an independent grant source, not a filter for action
 grant creation. Entity creation exposes an
