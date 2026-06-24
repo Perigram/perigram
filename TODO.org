@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Filter generated process row actions by entity status
+    Files changed: components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedEntityDetail.vue,
+      components/generated/action-visibility.js,
+      components/generated/action-visibility.spec.js
+    Docs updated: components/README.md, TODO.org
+    Notes: Generated entity lists and detail screens now render entity-bound
+      process actions only when the action's entity type matches the source and
+      the entity current primary status matches the compiled source status. A
+      `CREATED -> DELETED` action is no longer shown for already `DELETED`
+      cassette rows, preventing generated screens from posting invalid status
+      actions.
+
     [2026-06-23] Fix process cassette template construction
     Files changed: packages/domain-cnc/src/entity-construction.js,
       packages/processes/src/index.js, packages/processes/src/index.spec.js,
