@@ -94,7 +94,7 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import { useAuthStore } from '~/stores/auth';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
-import { generatedScreenRoute, normalizeScreenContract } from '~/packages/processes/src/screen-contract.js';
+import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 
 const props = defineProps({
   entityType: { type: String, required: true },
@@ -136,47 +136,12 @@ function openEntity(entity) {
 }
 
 function detailRouteFor(entity) {
-  const identifier = entityIdentifier(entity);
-  if (!identifier) return null;
-  const manifest = authStore.screenManifest.map(item => normalizeScreenContract(item));
-  const pairedScreenKey = props.screenKey ? `${props.screenKey}_detail` : '';
-  const pairedScreen = pairedScreenKey
-    ? manifest.find(item => item.screenKey === pairedScreenKey && item.template === 'entityDetail' && item.sources.some(source => source.entityType === props.entityType))
-    : null;
-  if (pairedScreen || pairedScreenKey) {
-    return {
-      path: pairedScreen?.route || generatedScreenRoute(pairedScreenKey),
-      query: {
-        entityId: identifier,
-        [`${props.entityType}Id`]: identifier
-      }
-    };
-  }
-  const screen = manifest
-    .find(item => item.template === 'entityDetail' && item.sources.some(source => source.entityType === props.entityType));
-  if (!screen) {
-    const baseScreen = manifest
-      .find(item => item.template !== 'entityDetail' && item.sources.some(source => source.entityType === props.entityType));
-    if (!baseScreen) return null;
-    return {
-      path: generatedScreenRoute(`${baseScreen.screenKey || baseScreen.id}_detail`),
-      query: {
-        entityId: identifier,
-        [`${props.entityType}Id`]: identifier
-      }
-    };
-  }
-  return {
-    path: screen.route || generatedScreenRoute(screen.screenKey || screen.id),
-    query: {
-      entityId: identifier,
-      [`${props.entityType}Id`]: identifier
-    }
-  };
-}
-
-function entityIdentifier(entity) {
-  return entity?._id || entity?.id || entity?.identity?.uid || '';
+  return detailRouteForEntity({
+    entity,
+    entityType: props.entityType,
+    screenKey: props.screenKey,
+    manifest: authStore.screenManifest
+  });
 }
 
 function isIdentityNameField(path) {
