@@ -242,7 +242,7 @@ describe('process definitions access fallback', () => {
               id: 'create_project',
               actionKind: 'createEntity',
               entityType: 'project',
-              status: { to: 'NEW' },
+              status: { to: 'NEW', label: 'New', severity: 'success', color: 'success', icon: 'pi pi-check-circle' },
               access: { level: 'admin', roleIds: ['role_creator'] }
             }
           }
@@ -291,9 +291,72 @@ describe('process definitions access fallback', () => {
       'NEW',
       'org-1',
       'user-1',
-      expect.any(Object)
+      expect.objectContaining({
+        note: 'Created by process action create_project',
+        display: {
+          label: 'New',
+          color: 'success',
+          severity: 'success',
+          icon: 'pi pi-check-circle'
+        }
+      })
     );
     expect(result.status.state.primary).toBe('NEW');
+  });
+
+  it('passes process status display metadata to status-change transitions', async () => {
+    statusService.transitionWithResult.mockResolvedValueOnce({
+      status: {
+        state: { primary: 'DELETED', active: { main: 'DELETED' } },
+        metadata: {
+          display: { label: 'Deleted', severity: 'danger', color: 'danger', icon: 'pi pi-trash' }
+        }
+      }
+    });
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        compiled: {
+          actions: {
+            delete_project: {
+              id: 'delete_project',
+              actionKind: 'changeStatus',
+              entityType: 'project',
+              status: { to: 'DELETED', label: 'Deleted', severity: 'danger', color: 'danger', icon: 'pi pi-trash' },
+              access: { level: 'admin', roleIds: ['role_creator'], statusTo: 'DELETED' }
+            }
+          }
+        }
+      }
+    });
+
+    await executeActiveProcessAction({
+      actionId: 'delete_project',
+      entityId: 'project-1'
+    }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: {
+        actions: [{ actionId: 'delete_project' }]
+      }
+    });
+
+    expect(statusService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
+      entityType: 'project',
+      targetId: 'project-1',
+      targetState: 'DELETED',
+      context: {
+        display: {
+          label: 'Deleted',
+          color: 'danger',
+          severity: 'danger',
+          icon: 'pi pi-trash'
+        }
+      }
+    }));
   });
 
   it('executes typed cassette design construction with canonical identity payloads', async () => {
