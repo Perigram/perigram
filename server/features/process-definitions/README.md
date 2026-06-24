@@ -69,6 +69,12 @@ metadata, create and change-status execution stores that display contract under
 `status.metadata.display` so generated screens and shared entity cards render
 the actual process status badge instead of falling back to global raw-state
 labels.
+If an already-active compiled action was produced before that metadata was
+embedded, execution resolves the action `statusRef` or target status against
+the semantic `data.statusDefinitions` record and writes the same display
+contract at runtime. This keeps existing active process definitions rendering
+the authored severity and icon without requiring an immediate compiled-runtime
+rebuild.
 Create actions also carry a construction contract. Generic construction passes
 prompted values to the registered entity service and derives parent ids from
 the incoming graph entity input, for example a queue create action wired from a

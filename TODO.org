@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Resolve process status display metadata at runtime
+    Files changed: server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js,
+      server/features/process-definitions/README.md, TODO.org
+    Docs updated: server/features/process-definitions/README.md, TODO.org
+    Notes: Active process action execution now resolves status display
+      metadata from semantic status definitions when compiled actions only
+      carry `statusRef` or target status. This preserves authored severity and
+      icon for existing active process definitions without requiring an
+      immediate compiled runtime migration.
+
     [2026-06-24] Fix status-action labels in process designer and compiled actions
     Files changed: components/process-designer/ProcessActionNode.vue,
       pages/organization/process.vue, packages/processes/src/index.js,
