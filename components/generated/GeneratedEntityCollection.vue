@@ -32,10 +32,10 @@
       @refresh="$emit('refresh')"
     >
       <EntitySurfaceContent :entity="entity" :entity-type="entityType" :surface="surface" />
-      <template v-if="actions.length" #footer>
+      <template v-if="entityActionsFor(entity).length" #footer>
         <div class="flex flex-wrap justify-end gap-2">
           <GeneratedActionButton
-            v-for="action in entityActions"
+            v-for="action in entityActionsFor(entity)"
             :key="action.actionId"
             :action-id="action.actionId"
             @execute="action => $emit('execute-action', action, entity)"
@@ -57,6 +57,7 @@ import TableFrame from '~/components/shared/TableFrame.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
+import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
 
 const props = defineProps({
   entityType: { type: String, required: true },
@@ -73,11 +74,14 @@ const resolvedActions = computed(() => props.actions
   .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
   .filter(Boolean));
 const collectionActions = computed(() => resolvedActions.value.filter(action => action.actionKind === 'createEntity'));
-const entityActions = computed(() => resolvedActions.value.filter(action => action.actionKind !== 'createEntity'));
 const tableFields = computed(() => resolveEntityDisplayContract({
   entityType: props.entityType,
   surface: props.surface || 'table'
 }).fields.slice(0, 6));
+
+function entityActionsFor(entity) {
+  return resolvedActions.value.filter(action => actionAppliesToEntity(action, entity, props.entityType));
+}
 
 function formatCell(entity, path) {
   const value = String(path || '').split('.').filter(Boolean).reduce((item, key) => item?.[key], entity);

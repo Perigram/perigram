@@ -6,9 +6,9 @@
     @refresh="$emit('refresh')"
   >
     <EntitySurfaceContent :entity="entity" :entity-type="entityType" :surface="surface" />
-    <template v-if="actions.length" #actions>
+    <template v-if="visibleActions.length" #actions>
       <GeneratedActionButton
-        v-for="actionId in actions"
+        v-for="actionId in visibleActions"
         :key="actionId"
         :action-id="actionId"
         @execute="action => $emit('execute-action', action, entity)"
@@ -18,11 +18,14 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import { useAuthStore } from '~/stores/auth';
+import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
 
-defineProps({
+const props = defineProps({
   entityType: { type: String, required: true },
   entity: { type: Object, default: null },
   surface: { type: String, default: 'detail' },
@@ -30,4 +33,10 @@ defineProps({
 });
 
 defineEmits(['refresh', 'execute-action']);
+
+const authStore = useAuthStore();
+const visibleActions = computed(() => props.actions.filter((actionId) => {
+  const action = authStore.actionManifest.find(item => item.actionId === actionId);
+  return actionAppliesToEntity(action, props.entity, props.entityType);
+}));
 </script>
