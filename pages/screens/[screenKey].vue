@@ -25,5 +25,22 @@ const screenKey = computed(() => Array.isArray(route.params.screenKey)
   ? route.params.screenKey.join('/')
   : route.params.screenKey
 );
-const screen = computed(() => authStore.screenManifest.find(item => item.screenKey === screenKey.value));
+const screen = computed(() => {
+  const base = authStore.screenManifest.find(item => item.screenKey === screenKey.value);
+  if (!base) return null;
+  return {
+    ...base,
+    scope: {
+      ...(base.scope || {}),
+      ...scopeFromQuery(route.query)
+    }
+  };
+});
+
+function scopeFromQuery(query = {}) {
+  return Object.fromEntries(Object.entries(query)
+    .filter(([key]) => key === 'entityId' || key.endsWith('Id'))
+    .map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])
+    .filter(([, value]) => value !== undefined && value !== null && value !== ''));
+}
 </script>

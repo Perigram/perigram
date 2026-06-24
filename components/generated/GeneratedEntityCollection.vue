@@ -16,7 +16,17 @@
         :header="$t(field.i18n || field.path)"
       >
         <template #body="{ data }">
-          {{ formatCell(data, field.path) }}
+          <button
+            v-if="isIdentityNameField(field.path) && detailRouteFor(data)"
+            type="button"
+            class="min-w-0 max-w-full truncate text-left font-medium text-primary underline-offset-4 hover:underline"
+            @click="openEntity(data)"
+          >
+            {{ formatCell(data, field.path) }}
+          </button>
+          <template v-else>
+            {{ formatCell(data, field.path) }}
+          </template>
         </template>
       </Column>
     </DataTable>
@@ -31,6 +41,15 @@
       variant="card"
       @refresh="$emit('refresh')"
     >
+      <template v-if="detailRouteFor(entity)" #title>
+        <button
+          type="button"
+          class="min-w-0 max-w-full text-left text-primary underline-offset-4 hover:underline"
+          @click.stop="openEntity(entity)"
+        >
+          <IdentityBlock :entity="entity" />
+        </button>
+      </template>
       <EntitySurfaceContent :entity="entity" :entity-type="entityType" :surface="surface" />
       <template v-if="entityActionsFor(entity).length" #footer>
         <div class="flex flex-wrap justify-end gap-2">
@@ -52,12 +71,14 @@ import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
+import { generatedScreenRoute, normalizeScreenContract } from '~/packages/processes/src/screen-contract.js';
 
 const props = defineProps({
   entityType: { type: String, required: true },
@@ -81,6 +102,35 @@ const tableFields = computed(() => resolveEntityDisplayContract({
 
 function entityActionsFor(entity) {
   return resolvedActions.value.filter(action => actionAppliesToEntity(action, entity, props.entityType));
+}
+
+function openEntity(entity) {
+  const route = detailRouteFor(entity);
+  if (route) navigateTo(route);
+}
+
+function detailRouteFor(entity) {
+  const identifier = entityIdentifier(entity);
+  if (!identifier) return null;
+  const screen = authStore.screenManifest
+    .map(item => normalizeScreenContract(item))
+    .find(item => item.template === 'entityDetail' && item.sources.some(source => source.entityType === props.entityType));
+  if (!screen) return null;
+  return {
+    path: screen.route || generatedScreenRoute(screen.screenKey || screen.id),
+    query: {
+      entityId: identifier,
+      [`${props.entityType}Id`]: identifier
+    }
+  };
+}
+
+function entityIdentifier(entity) {
+  return entity?._id || entity?.id || entity?.identity?.uid || '';
+}
+
+function isIdentityNameField(path) {
+  return path === 'identity.name';
 }
 
 function formatCell(entity, path) {
