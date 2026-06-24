@@ -108,6 +108,12 @@ actor, metadata)` after the entity service creates the record. This helper is
 creation-only: it validates that the target state exists in the active process
 workflow, writes the entity status snapshot and history event, and does not run
 transition validation from the feature service default state.
+Status writes merge process workflow-state display metadata (`label`, `color`,
+`severity`, and `icon`) into `status.metadata.display`. Caller-provided display
+fields win, but missing severity/icon/color are backfilled from the resolved
+workflow state so generated screens and shared entity cards render the actual
+process-authored status badge instead of falling back to the global unknown
+status style.
 Entity types without a registered workflow return an empty action list from the
 actions endpoint; transitions for those types still remain invalid.
 Action lookup runs only `phase: 'before'` hooks and does not write status events

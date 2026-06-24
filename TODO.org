@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Backfill process status badge visuals from workflow state
+    Files changed: server/core/machines/service.js,
+      server/core/machines/service.spec.js
+    Docs updated: server/core/machines/README.md, TODO.org
+    Notes: Status writes now merge display metadata from the resolved workflow
+      target state into `status.metadata.display`, preserving caller-provided
+      labels while filling missing severity/color/icon so generated screens do
+      not render process statuses as gray unknown badges.
+
     [2026-06-24] Fix process status badges in generated screens
     Files changed: components/process-designer/ProcessStatusDefinitionNode.vue,
       pages/organization/process.vue,
