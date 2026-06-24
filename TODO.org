@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Constrain generated child regions to domain lineage
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js, server/features/cassettes/service.js,
+      server/features/cassettes/cassettes.spec.js
+    Docs updated: packages/processes/README.md,
+      server/features/cassettes/README.md, TODO.org
+    Notes: Generated parent detail screens now add child collection regions
+      only when the domain summary registry declares the child-parent lineage
+      relation. Cassette list filters normalize `projectId` and related aliases
+      to `lineage.*` fields, preventing stale generated filters from matching
+      unrelated root fields.
+
     [2026-06-24] Align workflow transition run roles with process action exposure
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js,

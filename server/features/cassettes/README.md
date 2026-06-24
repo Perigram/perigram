@@ -117,6 +117,10 @@ filter and then prunes results through the same read check used by
 detail page would return 403. Single-template reads must also pass the full
 cassette entity to the access evaluator; passing only `cassette.lineage` drops
 status data and breaks process grants scoped to statuses such as `CREATED2`.
+Lineage query aliases such as `projectId`, `queueId`, `warehouseId`, and
+`cassetteId` are normalized to `lineage.*` filters before repository access.
+This keeps generated or authored screen filters scoped to actual lineage
+fields instead of accidentally matching root-level compatibility fields.
 
 ## Related
 - [cassette-designs](../cassette-designs/README.md) - Stores baked geometry and DXF references.
