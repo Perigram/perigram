@@ -1328,11 +1328,15 @@ function syncActionIo(action = {}, node = null) {
     syncActionConstruction(action);
     action.status.to ||= initialStatusForEntity(action.entityType);
     action.parentEntityType = incoming.entityType || '';
-    const parentInput = incoming.entityType
-      ? [{ id: 'parent', label: incoming.entityType, entityType: incoming.entityType, status: incoming.status || '', required: false }]
-      : [];
+    const parentInput = {
+      id: 'parent',
+      label: incoming.entityType || t('processDesigner.parentEntity'),
+      entityType: incoming.entityType || '',
+      status: incoming.status || '',
+      required: false
+    };
     action.inputs = [
-      ...parentInput,
+      parentInput,
       { id: 'status', label: t('processDesigner.targetStatus'), kind: 'status', required: true },
       ...createInputSockets(action.entityType)
     ];
