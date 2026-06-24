@@ -87,10 +87,11 @@ export const statusService = {
     const { collection, flexId } = await loadEntityForWorkflow(normalizedEntityType, targetId);
     const actorId = typeof actor === 'object' ? actor.userId : actor;
     const eventId = new ObjectId();
+    const statusMetadata = mergeStatusDisplayMetadata(metadata, region.states[targetState]);
     const status = createStatus(
       createWorkflowState(normalizedMachine, { active: { [regionId]: targetState }, primary: targetState }),
       actorId || 'SYSTEM',
-      metadata,
+      statusMetadata,
       eventId,
       normalizeLifecycle()
     );
@@ -269,6 +270,8 @@ async function performTransition(entityType, targetId, targetState, userId, user
     const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
     const workflowRegion = getWorkflowRegion(normalizedMachine, regionId);
     const currentState = getRegionState(entity.status, regionId, workflowRegion?.initial);
+    const targetStateDefinition = workflowRegion?.states?.[targetState] || {};
+    const transitionMetadata = mergeStatusDisplayMetadata(transitionContext.metadata, targetStateDefinition);
     const targetLifecycleSchema = workflowRegion?.states?.[targetState]?.lifecycle;
     const lifecycleForValidation = targetLifecycleSchema
       ? mergeLifecycle(entity.status?.lifecycle, transitionContext.lifecycle)
@@ -335,7 +338,7 @@ async function performTransition(entityType, targetId, targetState, userId, user
       transition || { region: regionId },
       targetState
     );
-    const newStatus = createStatus(nextState, actorId, transitionContext.metadata, eventId, lifecycleForStatus);
+    const newStatus = createStatus(nextState, actorId, transitionMetadata, eventId, lifecycleForStatus);
     
     // Ensure we store a plain object in DB, not a class instance
     const statusData = JSON.parse(JSON.stringify(newStatus));
@@ -434,6 +437,28 @@ function normalizeTransitionScope(context = {}) {
     region: context?.region || context?.metadata?.region || context?.machineRegion || context?.machine || null,
     path: Array.isArray(context?.path) ? context.path : null
   };
+}
+
+function mergeStatusDisplayMetadata(metadata = {}, stateDefinition = {}) {
+  const display = statusDisplayMetadata(stateDefinition);
+  if (!display) return metadata || {};
+  return {
+    ...(metadata || {}),
+    display: {
+      ...display,
+      ...((metadata || {}).display || {})
+    }
+  };
+}
+
+function statusDisplayMetadata(stateDefinition = {}) {
+  const display = {
+    ...(stateDefinition.label ? { label: stateDefinition.label } : {}),
+    ...(stateDefinition.color || stateDefinition.severity ? { color: stateDefinition.color || stateDefinition.severity } : {}),
+    ...(stateDefinition.severity || stateDefinition.color ? { severity: stateDefinition.severity || stateDefinition.color } : {}),
+    ...(stateDefinition.icon ? { icon: stateDefinition.icon } : {})
+  };
+  return Object.keys(display).length ? display : null;
 }
 
 function normalizeAuthContext(userId, userRole, metadata = {}) {

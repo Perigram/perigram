@@ -16,6 +16,7 @@ vi.mock('h3', () => ({
 }));
 
 import { statusService } from './service.js';
+import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 
 const transitionAuth = {
   userId: 'operator-1',
@@ -220,6 +221,49 @@ describe('status service lifecycle payloads', () => {
     const entity = await db.collection('cassette_instances').findOne({ _id: id });
     expect(entity.status.metadata.note).toBe('Legacy call shape');
     expect(entity.status.lifecycle).toEqual({ actors: [], attachments: {}, data: {} });
+  });
+
+  it('fills status display metadata from the active workflow state', async () => {
+    const id = new ObjectId();
+    const workflowSpy = vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
+      schemaVersion: 2,
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'DRAFT',
+          states: {
+            DRAFT: { canUpdateMeta: true },
+            DELETED: {
+              label: 'Deleted',
+              severity: 'danger',
+              color: 'danger',
+              icon: 'pi pi-trash',
+              canUpdateMeta: true
+            }
+          },
+          transitions: []
+        }
+      }
+    });
+    await db.collection('projects').insertOne({
+      _id: id,
+      identity: { uid: id, name: 'Project' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} }
+    });
+
+    await statusService.setInitialStateForOrganization('project', id, 'DELETED', 'org-1', 'operator-1', {
+      display: { label: 'Removed' }
+    });
+
+    const entity = await db.collection('projects').findOne({ _id: id });
+    expect(entity.status.metadata.display).toEqual({
+      label: 'Removed',
+      color: 'danger',
+      severity: 'danger',
+      icon: 'pi pi-trash'
+    });
+    workflowSpy.mockRestore();
   });
 
   it('carries current lifecycle facts forward when the target state allows them', async () => {
