@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Fix generated child collection detail routing
+    Files changed: components/generated/GeneratedEntityCollection.vue,
+      components/generated/entity-detail-routing.js,
+      components/generated/entity-detail-routing.spec.js
+    Docs updated: components/README.md, TODO.org
+    Notes: Generated collection name links now resolve detail targets through a
+      shared helper that requires an entity-detail screen to have a single
+      source for the clicked entity type. Child list sources inside a parent
+      detail screen no longer make that parent screen look like the child's
+      detail page.
+
     [2026-06-24] Constrain generated child regions to domain lineage
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js, server/features/cassettes/service.js,

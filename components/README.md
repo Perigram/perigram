@@ -153,13 +153,15 @@ action kind, entity type, and target status when an old manifest still contains
 a generic label such as `Create`.
 Generated collections may turn `identity.name` into a link only through the
 screen manifest: the collection looks for an `entityDetail` screen with a
-source for the same entity type, preferring the detail screen paired with the
-current screen key (`<screenKey>_detail`), and routes to `/screens/:screenKey`
-with `entityId` and `{entityType}Id` query scope. The screen page merges that
-query scope into the screen contract before the single-source loader runs. Do
-not hardcode generated rows to legacy feature routes, and do not replace the
-shared card title chrome just to make the name clickable; generated cards must
-keep the standard identity/status row.
+single source for the same entity type, preferring the detail screen paired
+with the current screen key (`<screenKey>_detail`) only when that paired screen
+exists for the same entity. Parent detail screens that include child collection
+sources are not valid detail targets for those child rows. The route uses
+`/screens/:screenKey` with `entityId` and `{entityType}Id` query scope. The
+screen page merges that query scope into the screen contract before the
+single-source loader runs. Do not hardcode generated rows to legacy feature
+routes, and do not replace the shared card title chrome just to make the name
+clickable; generated cards must keep the standard identity/status row.
 Generated collection cards render visible process actions as generated buttons
 in the card footer. The action must be present in the user's compiled action
 manifest and match the current entity status before the footer renders it.
