@@ -62,7 +62,10 @@ approval-style operations. Manual action availability uses the same
 status-scoped access window as grants: a change-status action with unmodified
 access inherits role-level grants from the incoming action output, so a status
 step placed after a create step appears for users who received access to the
-created state. Designers select from process roles directly when authoring
+created state. For status-change actions, run availability is derived from the
+incoming entity window: roles with write/admin access to the current state can
+execute the transition, while the action's grant rows define access after the
+target state is reached. Designers select from process roles directly when authoring
 action grants; pre-existing
 entity-profile grants are an independent grant source, not a filter for action
 grant creation. Entity creation exposes an

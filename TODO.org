@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Separate status transition run access from target grants
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js, components/generated/GeneratedScreen.vue
+    Docs updated: packages/processes/README.md, TODO.org
+    Notes: Entity-list generated inputs now stay empty by default so PrimeVue
+      `MultiSelect` receives an array. Manual status-change actions are exposed
+      from incoming write/admin entity access, while modified node grants still
+      define target-state entity access.
+
     [2026-06-24] Make graph-derived child actions executable in detail screens
     Files changed: components/generated/GeneratedScreen.vue,
       components/generated/GeneratedRegion.vue,
