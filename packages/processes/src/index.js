@@ -484,6 +484,7 @@ function compileRoles(process = {}, domain = {}) {
       }
     }
     if ((action.trigger?.mode || 'manual') !== 'manual') continue;
+    if (actionHasUnresolvedRequiredParent(action, domain)) continue;
     const exposedRoleIds = actionExposureRoleIds(action, access, actionWindow);
     for (const roleId of exposedRoleIds) {
       if (!roles[roleId]) continue;
@@ -789,16 +790,22 @@ function rawActionParentEntityType(action = {}, incoming = null) {
 function effectiveActionParentEntityType(action = {}, domain = {}, incoming = null) {
   const parentType = rawActionParentEntityType(action, incoming);
   const entityType = action.entityType || action.outputs?.find(output => output.entityType)?.entityType || '';
-  if (!parentType) return inferredLineageParentType(action, domain, entityType);
-  const inferredParentType = inferredLineageParentType(action, domain, entityType);
-  if (parentType === entityType && !incoming && !parentRelationForChild(domain, entityType, parentType)) return inferredParentType;
-  if (!incoming && !parentSupportedByDomain(domain, entityType, parentType)) return inferredParentType;
+  if (!parentType) return '';
+  if (parentType === entityType && !incoming && !parentRelationForChild(domain, entityType, parentType)) return '';
+  if (!incoming && !parentSupportedByDomain(domain, entityType, parentType)) return '';
   return parentType;
 }
 
-function inferredLineageParentType(action = {}, domain = {}, entityType = '') {
+function requiredLineageParentType(action = {}, domain = {}, entityType = '') {
   if ((action.actionKind || 'createEntity') !== 'createEntity') return '';
   return parentRelationForChild(domain, entityType)?.parentType || '';
+}
+
+function actionHasUnresolvedRequiredParent(action = {}, domain = {}) {
+  const entityType = action.entityType || action.outputs?.find(output => output.entityType)?.entityType || '';
+  const requiredParentType = requiredLineageParentType(action, domain, entityType);
+  if (!requiredParentType) return false;
+  return effectiveActionParentEntityType(action, domain) !== requiredParentType;
 }
 
 function parentSupportedByDomain(domain = {}, entityType = '', parentType = '') {

@@ -396,7 +396,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.screens.auto_role_cassette_cassette_detail.actions).not.toContain('create_cassette');
   });
 
-  it('replaces unsupported create parents with required domain lineage parents', () => {
+  it('does not expose create actions with missing required lineage parents', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_queue: { id: 'role_queue', label: 'Queue role' }
@@ -422,12 +422,11 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_queue.parentEntityType).toBe('project');
+    expect(compiled.actions.create_queue.parentEntityType).toBeNull();
     expect(compiled.actions.create_queue.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'parent', entityType: 'project', required: true })
+      expect.objectContaining({ id: 'parent', entityType: '', required: false })
     ]));
-    expect(compiled.roles.role_queue.actions[0].parentEntityType).toBe('project');
-    expect(compiled.screens.auto_role_queue_queue.actions).toContain('create_queue');
+    expect(compiled.roles.role_queue.actions).toEqual([]);
     expect(compiled.screens.auto_role_queue_cassette).toBeUndefined();
   });
 
@@ -1197,21 +1196,13 @@ describe('@cutkit/processes compiler', () => {
       expect.objectContaining({ id: 'jobItems', required: false }),
       expect.objectContaining({ id: 'materialPool', required: false })
     ]));
-    expect(compiled.actions.create_queue.parentEntityType).toBe('project');
+    expect(compiled.actions.create_queue.parentEntityType).toBeNull();
     expect(compiled.actions.create_queue.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'parent', entityType: 'project', required: true }),
+      expect.objectContaining({ id: 'parent', entityType: '', required: false }),
       expect.objectContaining({ id: 'data:jobItems', required: false })
     ]));
-    const exposedQueueAction = compiled.userAccess.user_admin.actions[0];
-    expect(exposedQueueAction.parentEntityType).toBe('project');
-    expect(exposedQueueAction.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'parent', entityType: 'project', required: true }),
-      expect.objectContaining({ id: 'data:jobItems', required: false })
-    ]));
-    expect(exposedQueueAction.construction.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'jobItems', required: false })
-    ]));
-    expect(exposedQueueAction.inputPolicy.fields).not.toContainEqual(expect.objectContaining({ id: 'jobItems' }));
+    expect(compiled.roles.role_admin.actions).toEqual([]);
+    expect(compiled.userAccess.user_admin.actions).toEqual([]);
   });
 
   it('normalizes stale construction modes when an action entity type changes', () => {
