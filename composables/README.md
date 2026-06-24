@@ -181,6 +181,10 @@ and action buttons are visible, while API routes still enforce real access.
 Manual generated-screen actions post to the active process action endpoint,
 which verifies the compiled action manifest before delegating to the relevant
 entity, status, socket, or command runtime.
+Collection actions also receive the current screen/region context. If an action
+declares a parent entity type, the generated screen sends the active parent id
+from `$screen.scope` in the `entities` map, so child constructors such as queue
+creation inside a project detail page receive their lineage parent.
 When a generated source comes from a role with several status-scoped grants for
 the same entity feature, `useGeneratedScreen` derives a role-local
 `primaryStatuses` list from the source requirement and passes it to

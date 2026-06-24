@@ -159,6 +159,12 @@ routes under `/screens/:screenKey`; the original semantic route is preserved as
 `sourceRoute` for audit/debug context. Manual screen actions execute through the
 active process action runtime, which verifies the user's compiled action
 manifest before delegating to entity, status, socket, or command services.
+When a create action is wired from a parent entity input, the inferred parent
+detail screen receives a child collection source and region for the created
+entity type. For example, a project-to-create-queue graph compiles the project
+detail screen with a queue source filtered by
+`projectId: '$screen.scope.entityId'`, and the create-queue action is attached
+to that child region instead of the unscoped queue list screen.
 Navigation is compiled from the screen manifest. When a role has access grants
 but no authored screen for that entity feature, the compiler creates a generated
 entity-list screen for that role/feature so process-active users do not fall

@@ -4,6 +4,25 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Add graph-derived child screens and designer screen previews
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      components/generated/GeneratedScreen.vue,
+      components/generated/GeneratedRegion.vue,
+      components/generated/GeneratedEntityCollection.vue,
+      components/process-designer/ProcessScreenPreview.vue,
+      pages/organization/process.vue, packages/domain-cnc/src/ui-surfaces.js,
+      utils/app-entity-surfaces.js, framework.manifest.json,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: components/README.md,
+      components/process-designer/README.md, composables/README.md,
+      packages/processes/README.md, TODO.org
+    Notes: Parent-bound create actions now compile into child collection
+      regions on parent detail screens. Generated action execution passes
+      parent scope to the active process runtime, project previews are disabled,
+      and the process designer screens tab renders simplified role-grouped
+      manifest previews without fetching live data.
+
     [2026-06-24] Resolve process status display metadata at runtime
     Files changed: server/features/process-definitions/service.js,
       server/features/process-definitions/process-definitions.spec.js,

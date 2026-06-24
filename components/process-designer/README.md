@@ -122,7 +122,11 @@ current graph after node, edge, role, and screen edits. The service-identity
 editor is not a top-level tab; service principals remain internal records edited
 only where command-backed service nodes need them. The screens tab shows the
 actual compiled screens, including compiler-inferred role/entity screens, before
-the lower authored-screen editor.
+the lower authored-screen editor. `ProcessScreenPreview.vue` renders those
+compiled screens as simplified role-grouped layouts: it shows the screen
+template, regions, sources, filters, and actions from the normalized manifest,
+but it must not fetch live entities or mount the runtime generated-screen
+renderer.
 
 Canvas wires are selectable curved edges. `Delete` / `Backspace` removes the
 selected node or selected wire, and runtime edge selection styling is stripped

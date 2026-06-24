@@ -114,6 +114,10 @@ typed Vue Flow handles that match the process compiler contract: role access,
 service input/output, and socket projection/transfer. Do not reduce these nodes
 to generic cards; their surface should expose the entity/service/socket
 semantics that the active process runtime consumes.
+The designer's screens tab renders a structural preview of the compiled screen
+manifest grouped by process role. That preview shows templates, regions,
+sources, filters, and action buttons from normalized screen contracts without
+fetching live entity data.
 Generated operational screens live under `components/generated/`. They render
 compiled process screen manifests through a fixed template registry and shared
 entity primitives (`EntityCard`, `EntityPage`, `EntitySurfaceContent`,
@@ -124,7 +128,9 @@ action buttons post to the active process action endpoint and then refresh the
 screen's entity sources; they do not call arbitrary entity URLs from the
 browser. Collection-level generated actions must emit the compiled action
 manifest item itself, not an entity placeholder, because create actions do not
-have an existing entity row. Entity-bound generated actions are filtered before
+have an existing entity row. Parent-bound collection actions also emit the
+source and region context so the generated screen can pass the active parent id
+from screen scope to the process action endpoint. Entity-bound generated actions are filtered before
 rendering: the action entity type must match the region source, and
 status-change actions render only when the entity's current primary status
 matches the compiled `status.from` / `access.statusFrom`. Create and update actions read
