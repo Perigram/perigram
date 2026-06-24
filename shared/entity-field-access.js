@@ -7,7 +7,7 @@ import {
   getEntityFieldAccessPolicy,
   normalizeFieldAccessEntityType
 } from '@cutkit/domain-cnc';
-import { isPublicReadEntity } from '#shared/public-entities.js';
+import { isPublicReadEntity } from './public-entities.js';
 
 const POLICY_LEVELS = ['read', 'write', 'admin'];
 
