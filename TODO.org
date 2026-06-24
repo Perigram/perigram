@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Fix process status badges in generated screens
+    Files changed: components/process-designer/ProcessStatusDefinitionNode.vue,
+      pages/organization/process.vue,
+      components/shared/blocks/StatusBadge.vue,
+      components/shared/status/EntityStatus.vue,
+      server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js
+    Docs updated: components/process-designer/README.md,
+      components/shared/README.md,
+      server/features/process-definitions/README.md, TODO.org
+    Notes: Status-definition nodes now render one badge from the actual status
+      id/explicit label, legacy entity labels are ignored, process action
+      execution stores status display metadata under `status.metadata.display`,
+      and shared status badges consume that metadata in generated screens.
+
     [2026-06-24] Refactor process action access grants and screens preview
     Files changed: pages/organization/process.vue,
       components/process-designer/ProcessActionNode.vue,
