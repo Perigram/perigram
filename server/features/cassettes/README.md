@@ -107,7 +107,14 @@ not the template id.
   helper to backfill old templates.
 
 ### Permission Model
-Access is governed by `lineage.organizationId`. Multi-tenant isolation is enforced at the service layer using `hasLineagePermission`.
+Access is governed by `lineage.organizationId` and status-scoped process
+grants. Multi-tenant isolation is enforced at the service layer using
+`hasLineagePermission` with the full cassette DTO, not only its lineage block,
+so rules such as `primaryStatus = ACTIVE` apply to both collection and detail
+reads. `GET /api/cassettes` accepts the generated-screen `primaryStatuses`
+filter and then prunes results through the same read check used by
+`GET /api/cassettes/:id`; a generated list must not show a template whose
+detail page would return 403.
 
 ## Related
 - [cassette-designs](../cassette-designs/README.md) - Stores baked geometry and DXF references.

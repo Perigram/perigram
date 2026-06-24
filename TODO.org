@@ -4,6 +4,22 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Align generated cassette lists and construction action grants
+    Files changed: server/api/cassettes/index.get.js,
+      server/features/cassettes/service.js,
+      server/features/cassettes/cassettes.spec.js,
+      server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js
+    Docs updated: server/features/cassettes/README.md,
+      server/features/process-definitions/README.md, TODO.org
+    Notes: Cassette collection reads now accept generated-screen
+      `primaryStatuses` filters and prune rows with the same full-entity access
+      check used by detail reads, so generated lists cannot link to rows that
+      detail rejects. Process create actions now add action-scoped construction
+      source grants; cassette-design baking can read/update the source cassette
+      template while still creating the target design through the target
+      feature grant.
+
     [2026-06-24] Fix generated runtime action visibility and cassette-design screens
     Files changed: server/core/machines/service.js,
       server/core/machines/service.spec.js, utils/status-actions.js,

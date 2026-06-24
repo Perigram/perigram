@@ -81,6 +81,13 @@ named OCCS `cassette` template with the default graph-tree document;
 template id or resolves the default construction-ready template visible to the
 caller, accepts concrete parameters and a name, creates a real `cassette_design`
 with geometry/editor provenance, then applies the process target status.
+Typed construction actions receive action-scoped grants for the target entity
+they create and for the source entities declared by the construction contract.
+For cassette-design baking this includes a temporary `cassettes:write` grant so
+the constructor can read the selected template and refresh its geometry
+revision pointer before creating the design. These execution grants do not
+become role permissions after the request; ordinary list/detail APIs still use
+the compiled role grants.
 Activation and the process-construction migration normalize stored create
 actions whose construction mode no longer belongs to the selected entity type
 before recompiling the active runtime contract.
