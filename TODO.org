@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Tighten process-designer node contracts
+    Files changed: pages/organization/process.vue,
+      components/process-designer/ProcessActionNode.vue,
+      components/process-designer/ProcessEntityNode.vue,
+      components/process-designer/ProcessServiceNode.vue,
+      components/process-designer/ProcessSocketNode.vue,
+      components/process-designer/ProcessStatusDefinitionNode.vue
+    Docs updated: components/process-designer/README.md,
+      pages/organization/README.md, TODO.org
+    Notes: Process nodes now render typed sockets with stable contract colors
+      and single-line labels, status definition nodes are entity agnostic and
+      render the resulting status tag directly, new palette nodes are placed at
+      the active viewport center, and canvas edges use curved routing.
+
     [2026-06-24] Fix status-scoped cassette detail reads
     Files changed: server/features/cassettes/service.js,
       server/features/cassettes/cassettes.spec.js

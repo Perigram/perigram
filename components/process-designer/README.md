@@ -9,8 +9,12 @@ rules, and lifecycle transitions.
 
 Each node type is visually and functionally distinct. All node components render
 the Vue Flow selected state as a primary border/ring, and each process node type
-uses a compact colored top stripe plus matching icon tint so the canvas can be
-scanned without adding explanatory chrome:
+uses a compact colored top stripe plus typed socket rows/handles so the canvas
+can be scanned without adding explanatory chrome. Socket colors are contract
+colors, not decoration: entity sockets are blue, canonical block sockets are
+cyan, data/value sockets are green, status sockets are amber, event sockets are
+violet, projected transfer payloads are fuchsia, attachments are orange, and
+task outputs are neutral.
 
 - `ProcessEntityNode.vue` represents an entity contract. It exposes left-side
   standard block/status sockets that can accept status and block nodes, and
@@ -36,12 +40,13 @@ scanned without adding explanatory chrome:
   Update actions derive promptable editor fields from selected domain field
   policy entries, so a manual modify action collects values for concrete fields
   instead of free-form paths before it calls the active process action runtime.
-- `ProcessStatusDefinitionNode.vue` represents a reusable status value for the
-  same canvas. Its inspector edits status id, label, PrimeVue severity, and an
-  icon selected from the supported process icon set. Connecting it to an entity
-  node adds the state to that entity lifecycle; connecting it to a create or
-  status-change action writes the action target state and lets the compiler
-  apply status label/color/severity/icon metadata to the generated workflow.
+- `ProcessStatusDefinitionNode.vue` represents an entity-agnostic reusable
+  status value for the same canvas. The node renders the same PrimeVue status
+  tag shape that the resulting status uses, and its inspector edits only status
+  id, label, severity, and icon. Connecting it to an entity node adds the state
+  to that entity lifecycle; connecting it to a create or status-change action
+  writes the action target state and lets the compiler apply status
+  label/color/severity/icon metadata to the generated workflow.
 - `ProcessValueInputNode.vue` represents a canonical block value
   (`identity`, `data`, `specs`, `summary`, `attachments`, or status metadata).
   Wiring it into an entity node adds that canonical path to the entity field
@@ -70,6 +75,9 @@ instead of layout objects.
 Input and output data is not rendered as a detached summary and nodes do not
 label columns as "inputs" or "outputs". Data flow is left-to-right: expected
 data is labeled on left handles, and produced data is labeled on right handles.
+Sockets render a single contract label; required/multiple/path metadata belongs
+to the semantic record and generated runtime contract, not duplicate second-line
+canvas text.
 Event flow also uses side sockets: an `event` trigger enters the left side of
 an action and the action completion event leaves the right side in a separated
 bottom band. Action nodes expose only two trigger modes: `manual`, which creates
@@ -95,9 +103,11 @@ nodes also render compact role/level chips for inherited access and roles that
 already have matching entity access from entity profiles or other status/action
 grants.
 
-Canvas wires are selectable edges. `Delete` / `Backspace` removes the selected
-node or selected wire, and runtime edge selection styling is stripped before
-process serialization.
+Canvas wires are selectable curved edges. `Delete` / `Backspace` removes the
+selected node or selected wire, and runtime edge selection styling is stripped
+before process serialization. Palette-created nodes are positioned at the
+center of the active viewport so adding a node while zoomed or panned does not
+drop it back near the original canvas origin.
 
 Command sockets should expose abstract domain contracts when a command is
 polymorphic. For example, `generateAttachment` presents one `Attachment source`
