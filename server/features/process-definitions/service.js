@@ -20,7 +20,7 @@ import {
 import { getEntityFieldAccessPolicy } from '~/packages/domain-cnc/src/index.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 import { toFlexibleId } from '~/server/utils/objectid.js';
-import { hasPermissionGrant, normalizePermissionGrants } from '~/shared/access-control.js';
+import { hasPermissionGrant, normalizePermissionGrants } from '../../../shared/access-control.js';
 import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
 

@@ -3,7 +3,7 @@ import * as catalogRepository from '../catalogs/repository.js';
 import * as colorRepository from '../colors/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { hasPermissionGrant } from '~/shared/access-control.js';
+import { hasPermissionGrant } from '../../../shared/access-control.js';
 import { ObjectId } from 'mongodb';
 import { createIdentity, createStatus, inheritLineage, createData } from '~/server/core/blocks/index.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';

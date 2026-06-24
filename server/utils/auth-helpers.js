@@ -1,7 +1,7 @@
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import { createError } from 'h3';
-import { hasPermissionGrant } from '~/shared/access-control.js';
+import { hasPermissionGrant } from '../../shared/access-control.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
 const JWT_EXPIRY = '15m';
