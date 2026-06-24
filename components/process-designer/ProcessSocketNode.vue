@@ -11,8 +11,7 @@
       </div>
     </div>
 
-    <div class="relative mt-3 rounded-ui border border-content-border px-2 py-1">
-      <Handle id="receive-role" type="target" :position="Position.Top" class="!top-0 !-translate-y-1/2 !border-violet-500 !bg-violet-500" />
+    <div class="mt-3 rounded-ui border border-content-border bg-content px-2 py-1">
       <div class="flex min-w-0 flex-wrap items-center gap-1">
         <Tag :value="accessLabel" size="small" severity="secondary" />
         <Tag
@@ -26,11 +25,14 @@
     </div>
 
     <div class="mt-3 grid grid-cols-2 gap-2">
+      <div v-if="isInbound" :class="socketClass('projection', 'left')">
+        <span class="block truncate text-xs">{{ accessLabel }}</span>
+      </div>
       <div v-if="!isInbound" :class="socketClass('entity', 'left')">
         <Handle id="entity-projection" type="target" :position="Position.Left" :class="handleClass('entity', 'left')" />
         <Tag :value="inputLabel" size="small" severity="secondary" />
       </div>
-      <div v-else :class="[socketClass('entity', 'right'), 'col-span-2']">
+      <div v-else :class="socketClass('entity', 'right')">
         <Handle id="output" type="source" :position="Position.Right" :class="handleClass('entity', 'right')" />
         <Tag :value="receivedLabel" size="small" severity="success" />
       </div>
@@ -90,8 +92,8 @@ function handleClass(kind, side) {
 
 function socketTone(kind) {
   return ({
-    entity: { row: 'border-sky-300 bg-sky-50/60', handle: '!border-sky-500 !bg-sky-500' },
-    projection: { row: 'border-fuchsia-300 bg-fuchsia-50/60', handle: '!border-fuchsia-500 !bg-fuchsia-500' }
+    entity: { row: 'border-content-border bg-content', handle: '!border-sky-500 !bg-sky-500' },
+    projection: { row: 'border-content-border bg-content', handle: '!border-fuchsia-500 !bg-fuchsia-500' }
   })[kind] || { row: 'border-content-border', handle: '!border-violet-500 !bg-violet-500' };
 }
 </script>

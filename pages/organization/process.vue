@@ -1035,7 +1035,7 @@ function createSocket(id, direction = 'outbound') {
 }
 
 function createStatusDefinition(id) {
-  return { id, label: 'Created', statusId: 'CREATED', severity: 'info', color: 'info', icon: 'pi pi-circle-fill' };
+  return { id, label: '', statusId: 'STATUS', severity: 'info', color: 'info', icon: 'pi pi-circle-fill' };
 }
 
 function createValueInput(id) {
@@ -1506,8 +1506,8 @@ function initialStatusForProfile(profile = {}) {
 }
 
 function syncStatusDefinition(status = {}) {
-  status.statusId ||= String(status.label || status.id || 'CREATED').trim().toUpperCase().replace(/\s+/g, '_');
-  status.label ||= status.statusId;
+  status.statusId ||= String(status.label || 'STATUS').trim().toUpperCase().replace(/\s+/g, '_');
+  status.label ??= '';
   status.severity ||= status.color || 'info';
   status.color = status.severity;
   status.icon ||= 'pi pi-circle-fill';

@@ -131,10 +131,10 @@ function handleClass(item, side) {
 
 function socketTone(item = {}) {
   return ({
-    entity: { row: 'border-sky-300 bg-sky-50/60', handle: '!border-sky-500 !bg-sky-500' },
-    block: { row: 'border-cyan-300 bg-cyan-50/60', handle: '!border-cyan-500 !bg-cyan-500' },
-    status: { row: 'border-amber-300 bg-amber-50/60', handle: '!border-amber-500 !bg-amber-500' },
-    data: { row: 'border-emerald-300 bg-emerald-50/60', handle: '!border-emerald-500 !bg-emerald-500' }
+    entity: { row: 'border-content-border bg-content', handle: '!border-sky-500 !bg-sky-500' },
+    block: { row: 'border-content-border bg-content', handle: '!border-cyan-500 !bg-cyan-500' },
+    status: { row: 'border-content-border bg-content', handle: '!border-amber-500 !bg-amber-500' },
+    data: { row: 'border-content-border bg-content', handle: '!border-emerald-500 !bg-emerald-500' }
   })[item.kind] || { row: 'border-content-border', handle: '!border-sky-500 !bg-sky-500' };
 }
 </script>

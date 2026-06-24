@@ -266,14 +266,14 @@ function handleClass(item, side) {
 
 function socketTone(item = {}) {
   return ({
-    entity: { row: 'border-sky-300 bg-sky-50/60', handle: '!border-sky-500 !bg-sky-500' },
-    block: { row: 'border-cyan-300 bg-cyan-50/60', handle: '!border-cyan-500 !bg-cyan-500' },
-    data: { row: 'border-emerald-300 bg-emerald-50/60', handle: '!border-emerald-500 !bg-emerald-500' },
-    status: { row: 'border-amber-300 bg-amber-50/60', handle: '!border-amber-500 !bg-amber-500' },
-    event: { row: 'border-violet-300 bg-violet-50/60', handle: '!border-violet-500 !bg-violet-500' },
-    projection: { row: 'border-fuchsia-300 bg-fuchsia-50/60', handle: '!border-fuchsia-500 !bg-fuchsia-500' },
-    attachment: { row: 'border-orange-300 bg-orange-50/60', handle: '!border-orange-500 !bg-orange-500' },
-    task: { row: 'border-slate-300 bg-slate-50/60', handle: '!border-slate-500 !bg-slate-500' }
+    entity: { row: 'border-content-border bg-content', handle: '!border-sky-500 !bg-sky-500' },
+    block: { row: 'border-content-border bg-content', handle: '!border-cyan-500 !bg-cyan-500' },
+    data: { row: 'border-content-border bg-content', handle: '!border-emerald-500 !bg-emerald-500' },
+    status: { row: 'border-content-border bg-content', handle: '!border-amber-500 !bg-amber-500' },
+    event: { row: 'border-content-border bg-content', handle: '!border-violet-500 !bg-violet-500' },
+    projection: { row: 'border-content-border bg-content', handle: '!border-fuchsia-500 !bg-fuchsia-500' },
+    attachment: { row: 'border-content-border bg-content', handle: '!border-orange-500 !bg-orange-500' },
+    task: { row: 'border-content-border bg-content', handle: '!border-surface-500 !bg-surface-500' }
   })[item.kind] || { row: 'border-content-border', handle: '!border-emerald-500 !bg-emerald-500' };
 }
 </script>
