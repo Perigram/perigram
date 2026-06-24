@@ -1184,6 +1184,19 @@
         "attachments",
         "data"
       ],
+      "collection": "process_definitions",
+      "lineage": {},
+      "type": "process_definition"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data"
+      ],
       "collection": "profile_templates",
       "lineage": {},
       "type": "profile_template"
@@ -1353,7 +1366,7 @@
     {
       "kind": "lineage",
       "source": "organization",
-      "target": "invitation",
+      "target": "process_definition",
       "via": "lineage.organizationId"
     },
     {
@@ -1456,7 +1469,7 @@
     },
     {
       "collection": "queues",
-      "list": "/api/queues",
+      "list": "/api/queue",
       "single": "/api/queue/:id",
       "type": "queue"
     },
@@ -1847,6 +1860,19 @@
       ],
       "transitionCount": 3,
       "type": "remnant"
+    },
+    {
+      "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "DRAFT",
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "transitionCount": 2,
+      "type": "process_definition"
     },
     {
       "initial": "CUT",

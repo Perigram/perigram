@@ -28,7 +28,7 @@ export const appEntityDisplayExtensions = {
     project: {
       surfaces: {
         workspace: {
-          preview: 'thumbnail',
+          preview: 'none',
           fieldGroups: ['workspace'],
           dataDisplay: 'compact',
           relations: 'summary',
@@ -37,7 +37,7 @@ export const appEntityDisplayExtensions = {
           trace: 'hidden'
         },
         detail: {
-          preview: 'thumbnail',
+          preview: 'none',
           fieldGroups: ['detailFacts'],
           dataDisplay: 'sectioned',
           relations: 'expanded',

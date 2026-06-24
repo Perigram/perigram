@@ -292,26 +292,13 @@
             <TabPanel value="screens">
               <div class="flex flex-col gap-4">
                 <Message v-if="compiledPreviewError" severity="error">{{ compiledPreviewError }}</Message>
-                <div class="flex flex-col gap-2">
-                  <div
-                    v-for="screen in compiledScreenPreview"
-                    :key="screen.id"
-                    class="rounded-ui border border-content-border p-2"
-                  >
-                    <div class="flex min-w-0 items-center justify-between gap-2">
-                      <span class="min-w-0 truncate text-sm font-medium">{{ screen.label }}</span>
-                      <Tag :value="screen.template" size="small" />
-                    </div>
-                    <div class="mt-2 flex flex-wrap gap-1">
-                      <Tag v-if="screen.entityType" :value="screen.entityType" size="small" severity="info" />
-                      <Tag v-if="screen.requiredLabel" :value="screen.requiredLabel" size="small" severity="secondary" />
-                      <Tag v-for="role in screen.roleLabels" :key="role" :value="role" size="small" severity="success" />
-                      <Tag v-if="screen.actions?.length" :value="$t('processDesigner.actionsCount', { count: screen.actions.length })" size="small" severity="warn" />
-                    </div>
-                    <small class="mt-1 block truncate text-muted-color">{{ screen.route || screen.id }}</small>
-                  </div>
-                  <StateBlock v-if="!compiledScreenPreview.length && !compiledPreviewError" :message="$t('processDesigner.noCompiledScreens')" />
-                </div>
+                <ProcessScreenPreview
+                  v-if="compiledScreenPreview.length"
+                  :screens="compiledScreenPreview"
+                  :roles="roles"
+                  :actions="draft?.data?.actions || {}"
+                />
+                <StateBlock v-if="!compiledScreenPreview.length && !compiledPreviewError" :message="$t('processDesigner.noCompiledScreens')" />
                 <div class="flex justify-end">
                   <Button icon="pi pi-plus" :label="$t('processDesigner.addScreen')" size="small" @click="addScreen" />
                 </div>
@@ -452,6 +439,7 @@ import ProcessActionNode from '~/components/process-designer/ProcessActionNode.v
 import ProcessEntityNode from '~/components/process-designer/ProcessEntityNode.vue';
 import ProcessServiceNode from '~/components/process-designer/ProcessServiceNode.vue';
 import ProcessSocketNode from '~/components/process-designer/ProcessSocketNode.vue';
+import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
 
@@ -626,11 +614,14 @@ const lifecycleStateOptions = computed(() => lifecycleStateIds.value.map(value =
 const lifecycleTransitions = computed(() => lifecycleRegion.value?.transitions || []);
 const selectedRoleAccessSummary = computed(() => selectedRoleId.value ? roleAccessSummary(selectedRoleId.value) : []);
 const compiledScreenPreview = computed(() => Object.values(compiledPreview.value?.screens || {})
-  .map(screen => ({
-    ...screen,
-    roleLabels: (screen.roleIds || []).map(roleId => roles.value[roleId]?.label || roleId),
-    requiredLabel: screen.required?.feature ? `${screen.required.feature}:${screen.required.level || 'read'}` : ''
-  }))
+  .map(screen => {
+    const normalized = normalizeScreenContract(screen);
+    return {
+      ...normalized,
+      roleLabels: (screen.roleIds || []).map(roleId => roles.value[roleId]?.label || roleId),
+      requiredLabel: screen.required?.feature ? `${screen.required.feature}:${screen.required.level || 'read'}` : ''
+    };
+  })
   .sort((left, right) => String(left.label || left.id).localeCompare(String(right.label || right.id))));
 
 watch(selectedScreenRecord, () => syncSelectedScreenUi(), { immediate: true });

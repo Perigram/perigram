@@ -18,7 +18,6 @@ const defaultFieldGroupsFor = (key) => {
 const previewFor = (key) => {
   if (['cassette', 'cassetteTemplate', 'cassetteDesign', 'cassetteInstance'].includes(key)) return 'thumbnail';
   if (['sheetDesign', 'remnant', 'geometryCapture'].includes(key)) return 'canvas';
-  if (key === 'project') return 'thumbnail';
   if (key === 'artifact') return 'attachment';
   return 'none';
 };

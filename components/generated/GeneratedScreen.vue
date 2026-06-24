@@ -129,24 +129,24 @@ const pendingActionLabel = computed(() => pendingAction.value?.label || t('commo
 const dialogSaveLabel = computed(() => pendingAction.value?.actionKind === 'createEntity' ? t('common.create') : t('common.save'));
 const errorMessage = computed(() => error.value?.data?.message || error.value?.message || t('generatedScreen.loadFailed'));
 
-async function executeAction(action, entity = null) {
+async function executeAction(action, entity = null, context = {}) {
   actionError.value = '';
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
     if (['createEntity', 'updateEntity'].includes(action.actionKind) && promptedFields(action).length) {
-      await openInputDialog(action, entity);
+      await openInputDialog(action, entity, context);
       return;
     }
-    await postAction(action, entity, promptData(collectActionInputFields(action), {}));
+    await postAction(action, entity, promptData(collectActionInputFields(action), {}), context);
   } catch (err) {
     showActionError(err);
   }
 }
 
-async function openInputDialog(action, entity = null) {
+async function openInputDialog(action, entity = null, context = {}) {
   pendingAction.value = action;
-  pendingEntity.value = entity;
+  pendingEntity.value = { entity, context };
   for (const key of Object.keys(promptValues)) delete promptValues[key];
   for (const key of Object.keys(promptOptions)) delete promptOptions[key];
   const fields = collectActionInputFields(action);
@@ -167,14 +167,19 @@ async function submitPromptedAction() {
   if (!pendingAction.value) return;
   submittingAction.value = true;
   try {
-    await postAction(pendingAction.value, pendingEntity.value, promptData(actionInputFields.value, promptValues));
+    await postAction(
+      pendingAction.value,
+      pendingEntity.value?.entity || null,
+      promptData(actionInputFields.value, promptValues),
+      pendingEntity.value?.context || {}
+    );
     closeInputDialog();
   } finally {
     submittingAction.value = false;
   }
 }
 
-async function postAction(action, entity = null, data = {}) {
+async function postAction(action, entity = null, data = {}, context = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
@@ -182,7 +187,7 @@ async function postAction(action, entity = null, data = {}) {
       method: 'POST',
       body: {
         entityId: entity?._id || entity?.identity?.uid || null,
-        entities: entity ? { [entity.origin?.type || entity.type || 'entity']: entity._id || entity.identity?.uid } : {},
+        entities: actionEntities(action, entity, context),
         data
       }
     });
@@ -191,6 +196,27 @@ async function postAction(action, entity = null, data = {}) {
   } catch (err) {
     showActionError(err);
   }
+}
+
+function actionEntities(action = {}, entity = null, context = {}) {
+  const entities = {};
+  const entityId = entity?._id || entity?.identity?.uid || '';
+  const entityType = entity?.origin?.type || entity?.type || context?.entityType || '';
+  if (entityId && entityType) entities[entityType] = entityId;
+  const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || '';
+  const parentId = parentType
+    ? screen.value.scope?.[`${parentType}Id`] || screen.value.scope?.entityId || resolveParentIdFromFilters(parentType, context?.source?.filters)
+    : '';
+  if (parentType && parentId) entities[parentType] = parentId;
+  return entities;
+}
+
+function resolveParentIdFromFilters(parentType = '', filters = {}) {
+  const value = filters?.[`${parentType}Id`];
+  if (typeof value === 'string' && value.startsWith('$screen.')) {
+    return String(value).slice('$screen.'.length).split('.').filter(Boolean).reduce((item, key) => item?.[key], screen.value);
+  }
+  return value || '';
 }
 
 function initialPromptValue(field = {}) {

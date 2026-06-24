@@ -6,7 +6,7 @@
     :surface="region.surface || 'detail'"
     :actions="effectiveActions"
     @refresh="$emit('refresh')"
-    @execute-action="(action, entity) => $emit('execute-action', action, entity)"
+    @execute-action="(action, entity, context) => $emit('execute-action', action, entity, context)"
   />
   <GeneratedEntityCollection
     v-else
@@ -16,8 +16,10 @@
     :template="template"
     :actions="effectiveActions"
     :screen-key="screenKey"
+    :region="region"
+    :source="sourceState.source"
     @refresh="$emit('refresh')"
-    @execute-action="(action, entity) => $emit('execute-action', action, entity)"
+    @execute-action="(action, entity, context) => $emit('execute-action', action, entity, context)"
   />
 </template>
 

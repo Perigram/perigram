@@ -4,7 +4,7 @@
       v-for="action in collectionActions"
       :key="action.actionId"
       :action-id="action.actionId"
-      @execute="selectedAction => $emit('execute-action', selectedAction, null)"
+      @execute="selectedAction => $emit('execute-action', selectedAction, null, actionContext)"
     />
   </div>
   <TableFrame v-if="template === 'table'">
@@ -102,7 +102,9 @@ const props = defineProps({
   surface: { type: String, default: 'card' },
   template: { type: String, default: 'entityList' },
   actions: { type: Array, default: () => [] },
-  screenKey: { type: String, default: '' }
+  screenKey: { type: String, default: '' },
+  region: { type: Object, default: () => ({}) },
+  source: { type: Object, default: () => ({}) }
 });
 
 defineEmits(['refresh', 'execute-action']);
@@ -112,6 +114,11 @@ const resolvedActions = computed(() => props.actions
   .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
   .filter(Boolean));
 const collectionActions = computed(() => resolvedActions.value.filter(action => action.actionKind === 'createEntity'));
+const actionContext = computed(() => ({
+  region: props.region,
+  source: props.source,
+  entityType: props.entityType
+}));
 const tableFields = computed(() => resolveEntityDisplayContract({
   entityType: props.entityType,
   surface: props.surface || 'table'

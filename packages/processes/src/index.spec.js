@@ -717,6 +717,56 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions.create_queue.inputs[0]).toMatchObject({ id: 'parent', entityType: 'project' });
   });
 
+  it('places parent-bound create actions on parent detail child regions', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_admin: { id: 'role_admin', label: 'Admin' }
+      },
+      actions: {
+        create_project: {
+          id: 'create_project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: SOURCE_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'admin', roleIds: ['role_admin'] },
+          outputs: [{ id: 'created', entityType: 'project', status: SOURCE_STATE }]
+        },
+        create_queue: {
+          id: 'create_queue',
+          actionKind: 'createEntity',
+          entityType: 'queue',
+          parentEntityType: 'project',
+          status: { to: INITIAL_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_admin'] },
+          inputs: [{ id: 'parent', entityType: 'project' }],
+          outputs: [{ id: 'created', entityType: 'queue', status: INITIAL_STATE }]
+        }
+      },
+      assignments: {
+        user_admin: { userId: 'user_admin', roleIds: ['role_admin'], status: 'active' }
+      }
+    }, domain);
+
+    const projectDetail = compiled.screens.auto_role_admin_project_detail;
+    expect(projectDetail.sources).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'queue_children',
+        entityType: 'queue',
+        mode: 'list',
+        filters: { projectId: '$screen.scope.entityId' }
+      })
+    ]));
+    expect(projectDetail.regions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sourceId: 'queue_children',
+        actions: ['create_queue']
+      })
+    ]));
+    expect(compiled.screens.auto_role_admin_queue.actions).not.toContain('create_queue');
+  });
+
   it('compiles typed construction and status definitions into actions and workflows', () => {
     const compiled = compileProcessDefinition({
       roles: {

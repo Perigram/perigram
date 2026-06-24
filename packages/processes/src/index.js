@@ -493,6 +493,7 @@ function compileRoles(process = {}, domain = {}) {
         actionKind: action.actionKind || 'createEntity',
         feature,
         entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || actionWindow?.outputs?.[0]?.entityType || null,
+        parentEntityType: action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || null,
         status: actionStatusForExposure(action, actionWindow, access),
         construction: normalizeConstruction(action.construction, action.entityType, domain),
         inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
@@ -835,7 +836,8 @@ function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) 
     screens,
     roles: compiledRoles,
     domain,
-    entityProfiles: processOrScreens.entityProfiles || {}
+    entityProfiles: processOrScreens.entityProfiles || {},
+    actions: processOrScreens.actions || {}
   });
   return Object.fromEntries(Object.entries({ ...screens, ...inferredScreens }).map(([id, screen]) => {
     const normalized = normalizeScreenContract(screen);
@@ -859,7 +861,7 @@ function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) 
   }));
 }
 
-function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, entityProfiles = {} } = {}) {
+function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, entityProfiles = {}, actions = {} } = {}) {
   const inferred = {};
   const existingKeys = new Set(Object.values(screens).flatMap(screen => {
     const roleIds = screen.roleIds?.length ? screen.roleIds : Object.keys(roles);
@@ -876,6 +878,13 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
       const id = `auto_${roleId}_${entityType}`;
       const detailId = `${id}_detail`;
       const required = aggregateScreenRequirement(feature, grants);
+      const directActions = inferredScreenActions(role.actions || [], feature, actions);
+      const childRegions = childRegionsForParentDetail({
+        role,
+        parentEntityType: entityType,
+        domain,
+        actions
+      });
       inferred[id] = {
         id,
         label: `${role.label || roleId} ${entityType}`,
@@ -885,9 +894,7 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
         entityType,
         required,
         roleIds: [roleId],
-        actions: (role.actions || [])
-          .filter(action => action.feature === feature)
-          .map(action => action.actionId)
+        actions: directActions
       };
       inferred[detailId] = {
         id: detailId,
@@ -904,25 +911,87 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
           mode: 'single',
           required,
           identifier: '$screen.scope.entityId'
-        }],
+        }, ...childRegions.sources],
         regions: [{
           id: 'main',
           slot: 'main',
           sourceId: entityType,
           surface: 'detail',
-          actions: (role.actions || [])
-            .filter(action => action.feature === feature)
-            .map(action => action.actionId)
-        }],
-        actions: (role.actions || [])
-          .filter(action => action.feature === feature)
-          .map(action => action.actionId)
+          actions: directActions
+        }, ...childRegions.regions],
+        actions: [...new Set([...directActions, ...childRegions.actionIds])]
       };
       existingKeys.add(`${roleId}:${feature}`);
     }
   }
 
   return inferred;
+}
+
+function inferredScreenActions(roleActions = [], feature, processActions = {}) {
+  return roleActions
+    .filter(action => action.feature === feature)
+    .filter(action => !isParentBoundCreateAction(action, processActions[action.actionId || action.id]))
+    .map(action => action.actionId);
+}
+
+function isParentBoundCreateAction(roleAction = {}, processAction = {}) {
+  const kind = roleAction.actionKind || processAction.actionKind || 'createEntity';
+  const parentEntityType = roleAction.parentEntityType
+    || processAction.parentEntityType
+    || processAction.inputs?.find(input => input.id === 'parent')?.entityType
+    || '';
+  return kind === 'createEntity' && Boolean(parentEntityType);
+}
+
+function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain = {}, actions = {} } = {}) {
+  const sourcesByEntity = new Map();
+  const regions = [];
+  const actionIds = [];
+  for (const action of role.actions || []) {
+    const actionId = action.actionId || action.id;
+    const processAction = actions[actionId] || {};
+    const kind = action.actionKind || processAction.actionKind || 'createEntity';
+    const actionParent = action.parentEntityType
+      || processAction.parentEntityType
+      || processAction.inputs?.find(input => input.id === 'parent')?.entityType
+      || '';
+    if (kind !== 'createEntity' || actionParent !== parentEntityType) continue;
+    const childEntityType = action.entityType || processAction.entityType || '';
+    if (!childEntityType) continue;
+    const childFeature = featureFromEntityType(domain, childEntityType);
+    if (!childFeature) continue;
+    const childGrants = (role.grants || []).filter(grant => grant.feature === childFeature);
+    const sourceId = `${childEntityType}_children`;
+    if (!sourcesByEntity.has(sourceId)) {
+      sourcesByEntity.set(sourceId, {
+        id: sourceId,
+        label: childEntityType,
+        entityType: childEntityType,
+        mode: 'list',
+        required: aggregateScreenRequirement(childFeature, childGrants),
+        filters: { [`${parentEntityType}Id`]: '$screen.scope.entityId' }
+      });
+    }
+    let region = regions.find(item => item.sourceId === sourceId);
+    if (!region) {
+      region = {
+        id: `${sourceId}_region`,
+        slot: 'main',
+        sourceId,
+        surface: 'card',
+        actions: []
+      };
+      regions.push(region);
+    }
+    if (actionId && !region.actions.includes(actionId)) region.actions.push(actionId);
+    if (actionId) actionIds.push(actionId);
+  }
+  return {
+    sources: [...sourcesByEntity.values()],
+    regions,
+    actionIds
+  };
 }
 
 function groupGrantsByFeature(grants = []) {
