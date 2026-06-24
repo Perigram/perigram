@@ -319,13 +319,24 @@ describe('process definitions access fallback', () => {
       lineage: { organizationId: 'org-1' },
       status: { state: 'ACTIVE' },
       data: {
+        statusDefinitions: {
+          status_deleted: {
+            id: 'status_deleted',
+            statusId: 'DELETED',
+            label: 'Deleted',
+            severity: 'danger',
+            color: 'danger',
+            icon: 'pi pi-trash'
+          }
+        },
         compiled: {
           actions: {
             delete_project: {
               id: 'delete_project',
               actionKind: 'changeStatus',
               entityType: 'project',
-              status: { to: 'DELETED', label: 'Deleted', severity: 'danger', color: 'danger', icon: 'pi pi-trash' },
+              statusRef: 'status_deleted',
+              status: { to: 'DELETED' },
               access: { level: 'admin', roleIds: ['role_creator'], statusTo: 'DELETED' }
             }
           }

@@ -270,7 +270,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
       targetId,
       targetState,
       auth,
-      context: processTransitionContext(action, data)
+      context: processTransitionContext(action, data, process.data)
     });
   }
 
@@ -285,10 +285,10 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   if (action.actionKind === 'createEntity') {
     const entityType = resolveActionEntityType(action);
     if (entityType === 'cassette_design' && action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
-      return await executeBakeCassetteDesign(action, data, organizationId, auth);
+      return await executeBakeCassetteDesign(action, data, organizationId, auth, process.data);
     }
     if (entityType === 'cassette' && action.construction?.mode === 'createDefaultOccsTemplate') {
-      return await executeCreateDefaultCassetteTemplate(action, data, organizationId, auth);
+      return await executeCreateDefaultCassetteTemplate(action, data, organizationId, auth, process.data);
     }
     if (entityType === 'cassette_design') {
       throw createError({ statusCode: 400, message: 'cassette_design requires typed construction' });
@@ -307,7 +307,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
       targetState,
       organizationId,
       auth.userId,
-      processStatusMetadata(action, `Created by process action ${action.id || actionId}`)
+      processStatusMetadata(action, `Created by process action ${action.id || actionId}`, process.data)
     );
     return {
       ...createdDto,
@@ -351,7 +351,7 @@ function camelCase(value = '') {
   return String(value).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
 }
 
-async function executeBakeCassetteDesign(action = {}, data = {}, organizationId, auth = {}) {
+async function executeBakeCassetteDesign(action = {}, data = {}, organizationId, auth = {}, processData = {}) {
   const templateId = data.templateId || data.cassetteId || data.data?.derivedFrom?.templateId
     || await defaultCassetteTemplateId(auth, organizationId, action);
   if (!templateId) throw createError({ statusCode: 400, message: 'Cassette template is required' });
@@ -374,12 +374,12 @@ async function executeBakeCassetteDesign(action = {}, data = {}, organizationId,
     targetState,
     organizationId,
     auth.userId,
-    processStatusMetadata(action, `Created by process action ${action.id}`)
+    processStatusMetadata(action, `Created by process action ${action.id}`, processData)
   );
   return { ...created, status };
 }
 
-async function executeCreateDefaultCassetteTemplate(action = {}, data = {}, organizationId, auth = {}) {
+async function executeCreateDefaultCassetteTemplate(action = {}, data = {}, organizationId, auth = {}, processData = {}) {
   const created = await cassetteService.createDefaultOccsTemplate(
     createActionPayload(action, data, {}),
     auth.userId,
@@ -397,22 +397,22 @@ async function executeCreateDefaultCassetteTemplate(action = {}, data = {}, orga
     targetState,
     organizationId,
     auth.userId,
-    processStatusMetadata(action, `Created by process action ${action.id}`)
+    processStatusMetadata(action, `Created by process action ${action.id}`, processData)
   );
   return { ...created, status };
 }
 
-function processStatusMetadata(action = {}, note = '') {
-  const display = statusDisplayMetadata(action.status);
+function processStatusMetadata(action = {}, note = '', processData = {}) {
+  const display = actionStatusDisplayMetadata(action, processData);
   return {
     note,
     ...(display ? { display } : {})
   };
 }
 
-function processTransitionContext(action = {}, data = {}) {
+function processTransitionContext(action = {}, data = {}, processData = {}) {
   const source = data?.statusMeta || data?.context || {};
-  const display = statusDisplayMetadata(action.status);
+  const display = actionStatusDisplayMetadata(action, processData);
   if (!display) return source;
   if (source?.metadata || source?.lifecycle) {
     return {
@@ -427,6 +427,23 @@ function processTransitionContext(action = {}, data = {}) {
     ...source,
     display
   };
+}
+
+function actionStatusDisplayMetadata(action = {}, processData = {}) {
+  return statusDisplayMetadata({
+    ...statusDefinitionForAction(action, processData),
+    ...(action.status || {})
+  });
+}
+
+function statusDefinitionForAction(action = {}, processData = {}) {
+  const statusRef = action.statusRef;
+  if (statusRef && processData?.statusDefinitions?.[statusRef]) return processData.statusDefinitions[statusRef];
+  const target = action.status?.to || action.access?.statusTo;
+  if (!target) return {};
+  return Object.values(processData?.statusDefinitions || {}).find(definition => (
+    definition?.statusId === target || definition?.id === target
+  )) || {};
 }
 
 function statusDisplayMetadata(status = {}) {
