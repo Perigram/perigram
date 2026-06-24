@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Fix public entity shared import for Nuxt dev
+    Files changed: shared/entity-field-access.js
+    Docs updated: shared/README.md, TODO.org
+    Notes: `entity-field-access.js` now imports the sibling
+      `public-entities.js` file relatively. The `#shared/public-entities.js`
+      package import resolved to `/shared/public-entities.js` in Nuxt dev,
+      which failed because the generated server runtime does not own that
+      absolute path.
+
     [2026-06-24] Link generated collection names to detail screens
     Files changed: components/generated/GeneratedEntityCollection.vue,
       pages/screens/[screenKey].vue
