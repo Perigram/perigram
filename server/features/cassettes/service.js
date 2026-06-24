@@ -300,7 +300,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
 
   const cassette = new Cassette(raw);
 
-  if (userPermissions && !hasLineagePermission(userPermissions, cassette.lineage, 'cassettes', 'read')) {
+  if (userPermissions && !hasLineagePermission(userPermissions, cassette, 'cassettes', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 

@@ -206,4 +206,42 @@ describe('Cassette Management & Ownership', () => {
       readOnlyActiveAuth
     )).rejects.toThrow(/Permission denied/);
   });
+
+  it('allows single cassette reads through status-scoped process grants', async () => {
+    const created2 = await cassetteService.create({ name: 'Created2 Template' }, user1.userId, user1.organizationId, null, user1.permissions);
+    const active = await cassetteService.create({ name: 'Active Template' }, user1.userId, user1.organizationId, null, user1.permissions);
+    await db.collection('cassettes').updateOne(
+      { _id: created2._id },
+      { $set: { 'status.state.primary': 'CREATED2' } }
+    );
+
+    const created2Auth = {
+      userId: 'status-reader',
+      organizationId: user1.organizationId,
+      memberships: [{ organizationId: user1.organizationId, permissions: {} }],
+      effectivePermissions: {
+        cassettes: [{
+          level: 'write',
+          rule: { fact: 'primaryStatus', equals: 'CREATED2' }
+        }]
+      }
+    };
+
+    const allowed = await cassetteService.getById(
+      created2._id.toString(),
+      'status-reader',
+      user1.organizationId,
+      null,
+      created2Auth
+    );
+
+    expect(allowed._id.toString()).toBe(created2._id.toString());
+    await expect(cassetteService.getById(
+      active._id.toString(),
+      'status-reader',
+      user1.organizationId,
+      null,
+      created2Auth
+    )).rejects.toThrow(/Permission denied/);
+  });
 });
