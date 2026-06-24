@@ -42,13 +42,27 @@
       @refresh="$emit('refresh')"
     >
       <template v-if="detailRouteFor(entity)" #title>
-        <button
-          type="button"
-          class="min-w-0 max-w-full text-left text-primary underline-offset-4 hover:underline"
-          @click.stop="openEntity(entity)"
-        >
-          <IdentityBlock :entity="entity" />
-        </button>
+        <TraceChain :entity="entity" class="mb-2" />
+        <div class="flex flex-col gap-3 min-w-0 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+          <div class="flex min-w-0 flex-1 items-start">
+            <button
+              type="button"
+              class="min-w-0 max-w-full text-left text-primary underline-offset-4 hover:underline"
+              @click.stop="openEntity(entity)"
+            >
+              <IdentityBlock :entity="entity" />
+            </button>
+          </div>
+          <div v-if="entity.status" class="min-w-0 max-w-full shrink self-start sm:max-w-56" @click.stop>
+            <EntityStatus
+              :entity="entity"
+              :entity-type="entityType"
+              variant="inline"
+              @refresh="$emit('refresh')"
+              @transitioned="$emit('refresh')"
+            />
+          </div>
+        </div>
       </template>
       <EntitySurfaceContent :entity="entity" :entity-type="entityType" :surface="surface" />
       <template v-if="entityActionsFor(entity).length" #footer>
@@ -72,8 +86,10 @@ import DataTable from 'primevue/datatable';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
@@ -85,7 +101,8 @@ const props = defineProps({
   items: { type: Array, default: () => [] },
   surface: { type: String, default: 'card' },
   template: { type: String, default: 'entityList' },
-  actions: { type: Array, default: () => [] }
+  actions: { type: Array, default: () => [] },
+  screenKey: { type: String, default: '' }
 });
 
 defineEmits(['refresh', 'execute-action']);
@@ -112,12 +129,24 @@ function openEntity(entity) {
 function detailRouteFor(entity) {
   const identifier = entityIdentifier(entity);
   if (!identifier) return null;
-  const screen = authStore.screenManifest
-    .map(item => normalizeScreenContract(item))
+  const manifest = authStore.screenManifest.map(item => normalizeScreenContract(item));
+  const pairedScreenKey = props.screenKey ? `${props.screenKey}_detail` : '';
+  const pairedScreen = pairedScreenKey
+    ? manifest.find(item => item.screenKey === pairedScreenKey && item.template === 'entityDetail' && item.sources.some(source => source.entityType === props.entityType))
+    : null;
+  if (pairedScreen || pairedScreenKey) {
+    return {
+      path: pairedScreen?.route || generatedScreenRoute(pairedScreenKey),
+      query: {
+        entityId: identifier,
+        [`${props.entityType}Id`]: identifier
+      }
+    };
+  }
+  const screen = manifest
     .find(item => item.template === 'entityDetail' && item.sources.some(source => source.entityType === props.entityType));
   if (!screen) {
-    const baseScreen = authStore.screenManifest
-      .map(item => normalizeScreenContract(item))
+    const baseScreen = manifest
       .find(item => item.template !== 'entityDetail' && item.sources.some(source => source.entityType === props.entityType));
     if (!baseScreen) return null;
     return {

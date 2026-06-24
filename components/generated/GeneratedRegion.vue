@@ -15,6 +15,7 @@
     :surface="region.surface || 'card'"
     :template="template"
     :actions="effectiveActions"
+    :screen-key="screenKey"
     @refresh="$emit('refresh')"
     @execute-action="(action, entity) => $emit('execute-action', action, entity)"
   />
@@ -29,7 +30,8 @@ const props = defineProps({
   region: { type: Object, required: true },
   sourceState: { type: Object, required: true },
   template: { type: String, default: 'entityList' },
-  screenActions: { type: Array, default: () => [] }
+  screenActions: { type: Array, default: () => [] },
+  screenKey: { type: String, default: '' }
 });
 
 defineEmits(['refresh', 'execute-action']);

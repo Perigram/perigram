@@ -7,6 +7,7 @@
       <template v-if="regionBySlot.left" #left>
         <GeneratedRegion
           :region="regionBySlot.left"
+          :screen-key="screen.screenKey || screen.id"
           :source-state="sourceState(regionBySlot.left.sourceId)"
           :template="screen.template"
           :screen-actions="screen.actions || []"
@@ -17,6 +18,7 @@
       <GeneratedRegion
         v-if="regionBySlot.center || regionBySlot.main"
         :region="regionBySlot.center || regionBySlot.main"
+        :screen-key="screen.screenKey || screen.id"
         :source-state="sourceState((regionBySlot.center || regionBySlot.main).sourceId)"
         :template="screen.template"
         :screen-actions="screen.actions || []"
@@ -26,6 +28,7 @@
       <template v-if="regionBySlot.right" #right>
         <GeneratedRegion
           :region="regionBySlot.right"
+          :screen-key="screen.screenKey || screen.id"
           :source-state="sourceState(regionBySlot.right.sourceId)"
           :template="screen.template"
           :screen-actions="screen.actions || []"
@@ -39,6 +42,7 @@
         v-for="region in screen.regions"
         :key="region.id"
         :region="region"
+        :screen-key="screen.screenKey || screen.id"
         :source-state="sourceState(region.sourceId)"
         :template="screen.template"
         :screen-actions="screen.actions || []"
