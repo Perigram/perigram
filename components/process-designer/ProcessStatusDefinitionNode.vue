@@ -37,15 +37,11 @@ const toneColor = computed(() => ({
 const displayValue = computed(() => {
   const statusId = props.data.statusId || props.data.refId || 'STATUS';
   const label = String(props.data.label || '').trim();
-  if (!label || label === statusId || isLegacyNodeLabel(label)) return statusId;
+  if (!label || label === statusId) return statusId;
   return label;
 });
 const nodeFrameClass = computed(() => [
   'relative min-w-56 rounded-ui border bg-content px-2 py-2 pt-3 shadow-card transition-colors',
   props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
 ]);
-
-function isLegacyNodeLabel(label = '') {
-  return ['project', 'queue', 'cassette', 'cassette_design', 'sheet_design'].includes(label);
-}
 </script>

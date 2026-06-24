@@ -568,7 +568,7 @@ const selectedService = computed(() => selectedNode.value?.type === 'service' ? 
 const selectedSocket = computed(() => selectedNode.value?.type === 'socket' ? ensureRecord('sockets', selectedNode.value, createSocket) : {});
 const selectedStatusDefinition = computed(() => selectedNode.value?.type === 'statusDefinition' ? ensureRecord('statusDefinitions', selectedNode.value, createStatusDefinition) : {});
 const selectedValueInput = computed(() => selectedNode.value?.type === 'valueInput' ? ensureRecord('valueInputs', selectedNode.value, createValueInput) : {});
-const selectedEntityFeature = computed(() => selectedEntity.value.entityType?.replace(/_/g, 's') || 'projects');
+const selectedEntityFeature = computed(() => selectedEntity.value.entityType ? featureForEntityType(selectedEntity.value.entityType) : defaultFeature());
 
 const roles = computed(() => draft.value?.data?.roles || {});
 const servicePrincipals = computed(() => draft.value?.data?.servicePrincipals || {});
@@ -594,16 +594,10 @@ const selectedScreenSourceOptions = computed(() => (selectedScreenRecord.value?.
   label: source.id || source.entityType,
   value: source.id
 })));
-const navigationRouteOptions = computed(() => [
-  { label: t('features.projects'), value: '/projects', feature: 'projects' },
-  { label: t('features.warehouses'), value: '/warehouses', feature: 'warehouses' },
-  { label: t('features.catalogs'), value: '/catalog', feature: 'catalogs' },
-  { label: t('features.requisitions'), value: '/requisitions', feature: 'requisitions' },
-  { label: t('features.assets'), value: '/assets/cassettes', feature: 'cassettes' },
-  { label: t('organization.teamManagement'), value: '/organization/users', feature: 'users' },
-  { label: t('processDesigner.title'), value: '/organization/process', feature: 'organizations' }
-]);
-const screenFeatureOptions = computed(() => [...new Map(navigationRouteOptions.value.map(item => [item.feature, { label: item.label, value: item.feature }])).values()]);
+const screenFeatureOptions = computed(() => (cncDomain.entities || []).map(entity => ({
+  label: entity.label || entity.type,
+  value: featureForEntityType(entity.type)
+})));
 const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
 const fieldOptionsForSelectedAction = computed(() => fieldOptions(selectedAction.value.entityType));
 const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocket.value.entityType));
@@ -1000,11 +994,19 @@ function paletteLabel(item) {
   return item.label?.startsWith('processDesigner.') ? t(item.label) : item.label;
 }
 
+function defaultEntityType() {
+  return (cncDomain.entities || [])[0]?.type || '';
+}
+
+function defaultFeature() {
+  return featureForEntityType(defaultEntityType());
+}
+
 function createEntityProfile(id) {
   const workflow = createCreatedWorkflow();
   const profile = {
     id,
-    entityType: 'project',
+    entityType: defaultEntityType(),
     label: id,
     lifecycle: { mode: 'defaultCreated', workflow },
     fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
@@ -1024,7 +1026,7 @@ function createAction(id, actionKind = 'createEntity') {
     id,
     label: actionKind === 'changeStatus' ? '' : actionKindLabel(actionKind),
     actionKind,
-    entityType: ['changeStatus', 'runCommand', 'updateEntity'].includes(actionKind) ? '' : 'project',
+    entityType: ['changeStatus', 'runCommand', 'updateEntity'].includes(actionKind) ? '' : defaultEntityType(),
     commandId: '',
     parentEntityType: '',
     status: { from: '', to: '' },
@@ -1045,7 +1047,7 @@ function createSocket(id, direction = 'outbound') {
     id,
     label: id,
     direction,
-    entityType: 'project',
+    entityType: defaultEntityType(),
     projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
     receiverLifecycle: { mode: 'defaultCreated', workflow: null },
     access: { sendRoles: [], receiveRoles: [] }
@@ -1133,6 +1135,8 @@ function addScreen() {
 }
 
 function createScreen(id) {
+  const entityType = defaultEntityType();
+  const feature = featureForEntityType(entityType);
   return {
     id,
     label: id,
@@ -1140,21 +1144,21 @@ function createScreen(id) {
     template: 'entityList',
     route: `/screens/${id}`,
     placement: 'hub',
-    entityType: 'project',
+    entityType,
     roleIds: selectedRoleId.value ? [selectedRoleId.value] : [],
-    required: { feature: 'projects', level: 'read' },
+    required: { feature, level: 'read' },
     bindings: {},
     sources: [{
-      id: 'project',
-      entityType: 'project',
+      id: entityType || id,
+      entityType,
       mode: 'list',
-      required: { feature: 'projects', level: 'read' },
+      required: { feature, level: 'read' },
       filters: {}
     }],
     regions: [{
       id: 'main',
       slot: 'main',
-      sourceId: 'project',
+      sourceId: entityType || id,
       surface: 'card',
       actions: []
     }],
@@ -1170,7 +1174,7 @@ function removeSelectedScreen() {
 
 function syncSelectedScreenUi() {
   if (!selectedScreenRecord.value) return;
-  selectedScreenRecord.value.required ||= { feature: 'projects', level: 'read' };
+  selectedScreenRecord.value.required ||= { feature: defaultFeature(), level: 'read' };
   selectedScreenRecord.value.roleIds ||= [];
   selectedScreenRecord.value.bindings ||= {};
   selectedScreenRecord.value.actions ||= [];
@@ -1204,9 +1208,9 @@ function ensureSelectedScreenSource() {
   if (!screen) return {};
   screen.sources ||= [];
   if (!screen.sources.length) {
-    const entityType = screen.entityType || 'project';
+    const entityType = screen.entityType || defaultEntityType();
     screen.sources.push({
-      id: entityType,
+      id: entityType || 'source',
       entityType,
       mode: screen.template === 'entityDetail' ? 'single' : 'list',
       required: screen.required || { feature: featureForEntityType(entityType), level: 'read' },
@@ -1237,7 +1241,7 @@ function addSelectedScreenSource() {
   const screen = selectedScreenRecord.value;
   if (!screen) return;
   screen.sources ||= [];
-  const entityType = screen.entityType || 'project';
+  const entityType = screen.entityType || defaultEntityType();
   const id = uniqueRecordId('source', Object.fromEntries(screen.sources.map(source => [source.id, source])));
   screen.sources.push({
     id,
@@ -1276,23 +1280,6 @@ function removeSelectedScreenRegion(index) {
   const screen = selectedScreenRecord.value;
   if (!screen?.regions || screen.regions.length <= 1) return;
   screen.regions.splice(index, 1);
-}
-
-function routeScreenId(option = {}) {
-  const route = option.value || '';
-  return `${option.feature || 'route'}.${route.replace(/^\//, '').replaceAll('/', '.')}`;
-}
-
-function featureEntityType(feature) {
-  return ({
-    projects: 'project',
-    warehouses: 'warehouse',
-    catalogs: 'catalog',
-    requisitions: 'requisition',
-    cassettes: 'cassette',
-    users: 'user',
-    organizations: 'organization'
-  })[feature] || null;
 }
 
 function featureForEntityType(entityType) {
@@ -1543,7 +1530,8 @@ function syncStatusDefinition(status = {}) {
 }
 
 function isLegacyStatusNodeLabel(label = '') {
-  return ['project', 'queue', 'cassette', 'cassette_design', 'sheet_design'].includes(String(label || '').trim());
+  const value = String(label || '').trim();
+  return (cncDomain.entities || []).some(entity => entity.type === value);
 }
 
 function syncValueInput(input = {}) {

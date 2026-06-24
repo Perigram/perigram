@@ -1385,8 +1385,7 @@ function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityT
   };
 }
 
-function defaultConstructionMode(entityType = '') {
-  if (entityType === 'cassette_design') return 'bakeCassetteDesignFromTemplate';
+function defaultConstructionMode() {
   return 'genericCreate';
 }
 
