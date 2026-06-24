@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Fix generated create action placement
+    Files changed: components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedScreen.vue, packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: components/README.md, packages/processes/README.md, TODO.org
+    Notes: Generated collections no longer inject parent-bound actions from the
+      whole user action manifest. The compiler places create actions on their
+      target entity screens and only adds contextual parent-screen actions when
+      the parent is supported by a domain child relation or direct construction
+      entity input. Stale unrelated parent values such as cassette parent for
+      queue creation are stripped during compilation.
+
     [2026-06-24] Restore root cassette create action visibility
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js

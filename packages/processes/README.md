@@ -89,6 +89,17 @@ a real parent entity type. Stale same-entity parent values from older graphs are
 stripped unless the domain summary registry declares that entity as its own
 parent relation, so a root create action remains a list-level action instead of
 being hidden on entity detail screens.
+Parent contracts are valid only when the domain declares either a child lineage
+relation for the created entity or a direct construction entity input for that
+parent type. Stale unrelated parent values are stripped during compilation; for
+example, `cassette -> queue` is not valid when the domain declares queues under
+projects. A create action is always compiled onto its target entity screen so
+users can create the target from that list with a parent selector when needed.
+The parent entity detail screen may also receive the action as contextual
+chrome when the parent contract is valid. Entity detail screens do not inherit
+root create actions for their own entity type; detail actions are for the
+opened entity, such as status/update transitions, plus valid contextual
+parent-child creation.
 Compilation hydrates create-action construction and prompt policy from the
 domain construction contract. A sparse visual action for `cassette_design`
 therefore still compiles with required `name` and `templateId` prompt fields,
@@ -202,12 +213,13 @@ to that child region instead of the unscoped queue list screen. A
 project-to-create-cassette graph does not create a cassette child collection
 unless the domain summary registry explicitly declares cassette as a project
 child.
-Parent-bound create actions that do not have a domain child relation are still
-valid parent-context actions. The compiler attaches them to the parent
-`entityDetail` main region instead of dropping them or inventing a child list.
-For example, a cassette-to-create-cassette-design action can render on the
-cassette detail page even though cassette designs are constructed from a
-template rather than listed as cassette lineage children.
+Parent-bound create actions that do not have a domain child relation but do
+have a direct construction parent input are still valid parent-context actions.
+The compiler attaches them to the parent `entityDetail` main region instead of
+dropping them or inventing a child list. For example, a
+cassette-to-create-cassette-design action can render on the cassette detail
+page even though cassette designs are constructed from a template rather than
+listed as cassette lineage children.
 Navigation is compiled from the screen manifest. When a role has access grants
 but no authored screen for that entity feature, the compiler creates a generated
 entity-list screen for that role/feature so process-active users do not fall
