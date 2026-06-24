@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Make graph-derived child actions executable in detail screens
+    Files changed: components/generated/GeneratedScreen.vue,
+      components/generated/GeneratedRegion.vue,
+      components/generated/GeneratedEntityDetail.vue
+    Docs updated: components/README.md, composables/README.md, TODO.org
+    Notes: Generated entity-detail screens now render child regions inside the
+      parent `EntityPage` body. Generated create dialogs support `entityList`
+      construction inputs through domain endpoint-backed multi-select controls
+      and normalize selected cassette designs into queue job rows.
+
     [2026-06-24] Add graph-derived child screens and designer screen previews
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js,

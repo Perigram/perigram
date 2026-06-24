@@ -185,6 +185,9 @@ Collection actions also receive the current screen/region context. If an action
 declares a parent entity type, the generated screen sends the active parent id
 from `$screen.scope` in the `entities` map, so child constructors such as queue
 creation inside a project detail page receive their lineage parent.
+Generated action dialogs render entity-list construction fields as multi-select
+controls backed by the domain UI endpoint registry. Submitted values are
+normalized into the action input path before posting to the process runtime.
 When a generated source comes from a role with several status-scoped grants for
 the same entity feature, `useGeneratedScreen` derives a role-local
 `primaryStatuses` list from the source requirement and passes it to

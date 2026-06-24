@@ -130,7 +130,10 @@ browser. Collection-level generated actions must emit the compiled action
 manifest item itself, not an entity placeholder, because create actions do not
 have an existing entity row. Parent-bound collection actions also emit the
 source and region context so the generated screen can pass the active parent id
-from screen scope to the process action endpoint. Entity-bound generated actions are filtered before
+from screen scope to the process action endpoint. Entity-detail templates render
+child collection regions inside the `EntityPage` body so parent-child graph
+flows, such as project-to-queue creation, stay in the opened parent context.
+Entity-bound generated actions are filtered before
 rendering: the action entity type must match the region source, and
 status-change actions render only when the entity's current primary status
 matches the compiled `status.from` / `access.statusFrom`. Create and update actions read
@@ -139,8 +142,10 @@ read `construction.inputs`. Promptable fields open a `StandardDialog`, default
 values can come from process block/value nodes, and non-prompt fields with
 wired defaults are still included in the submitted payload. This lets the
 visual graph provide constructor/editor data without forcing a dialog field for
-every wired input. Entity construction fields render as entity selectors when
-the domain has a canonical list source; cassette template fields list only
+every wired input. Entity construction fields render as entity or entity-list
+selectors when the domain has a canonical list source; entity-list values are
+normalized into the constructor payload shape required by the target domain
+input, such as queue job items from selected cassette designs. Cassette template fields list only
 construction-ready templates and preselect the first available required
 template so process-created designs do not select empty draft templates or
 submit missing template ids. Buttons derive semantic labels and icons from the compiled
