@@ -294,7 +294,7 @@ function requiredParentType(action = {}, entity = null, context = {}) {
 }
 
 async function loadParentSelectionOptions(parentType = '', context = {}, action = {}) {
-  const contextOptions = Array.isArray(context?.parentOptions) ? context.parentOptions : [];
+  const contextOptions = context?.parentEntityType === parentType && Array.isArray(context?.parentOptions) ? context.parentOptions : [];
   const options = contextOptions.length ? contextOptions : await entityOptions(parentType);
   return options.filter(option => !option.entity || actionAppliesToEntity(action, option.entity, parentType));
 }

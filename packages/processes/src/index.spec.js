@@ -385,7 +385,39 @@ describe('@cutkit/processes compiler', () => {
       inputs: [expect.objectContaining({ id: 'parent', entityType: '' })]
     });
     expect(compiled.screens.auto_role_cassette_cassette.actions).toContain('create_cassette');
-    expect(compiled.screens.auto_role_cassette_cassette_detail.actions).toContain('create_cassette');
+    expect(compiled.screens.auto_role_cassette_cassette_detail.actions).not.toContain('create_cassette');
+  });
+
+  it('strips create parent inputs unsupported by domain relations or construction inputs', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_queue: { id: 'role_queue', label: 'Queue role' }
+      },
+      actions: {
+        create_queue: {
+          id: 'create_queue',
+          actionKind: 'createEntity',
+          entityType: 'queue',
+          parentEntityType: 'cassette',
+          status: { to: 'CREATED' },
+          access: { level: 'write', roleIds: ['role_queue'] },
+          inputs: [{ id: 'parent', label: 'cassette', entityType: 'cassette', required: false }]
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_queue'],
+          bindings: {},
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.create_queue.parentEntityType).toBeNull();
+    expect(compiled.roles.role_queue.actions[0].parentEntityType).toBeNull();
+    expect(compiled.screens.auto_role_queue_queue.actions).toContain('create_queue');
+    expect(compiled.screens.auto_role_queue_cassette).toBeUndefined();
   });
 
   it('exposes manual status actions through inherited access windows', () => {
@@ -810,7 +842,7 @@ describe('@cutkit/processes compiler', () => {
         actions: ['create_queue']
       })
     ]));
-    expect(compiled.screens.auto_role_admin_queue.actions).not.toContain('create_queue');
+    expect(compiled.screens.auto_role_admin_queue.actions).toContain('create_queue');
   });
 
   it('does not infer child regions without a domain parent relation', () => {
@@ -884,6 +916,8 @@ describe('@cutkit/processes compiler', () => {
     expect(detail.sources.map(source => source.entityType)).toEqual(['cassette']);
     expect(detail.regions.find(region => region.id === 'main').actions).toContain('create_design');
     expect(compiled.userAccess.user_admin.screens.find(screen => screen.screenKey === 'auto_role_admin_cassette_detail').actions).toContain('create_design');
+    expect(compiled.screens.auto_role_admin_cassette_design.actions).toContain('create_design');
+    expect(compiled.screens.auto_role_admin_cassette_design_detail.actions).not.toContain('create_design');
   });
 
   it('compiles typed construction and status definitions into actions and workflows', () => {

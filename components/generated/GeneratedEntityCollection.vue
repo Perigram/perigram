@@ -115,10 +115,7 @@ const resolvedActions = computed(() => props.actions
   .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
   .filter(Boolean));
 const collectionActions = computed(() => dedupeActions([
-  ...resolvedActions.value.filter(action => action.actionKind === 'createEntity'),
-  ...authStore.actionManifest
-    .filter(action => parentBoundCreateAppliesToEntityType(action, props.entityType))
-    .filter(action => props.items.some(entity => actionAppliesToEntity(action, entity, props.entityType)))
+  ...resolvedActions.value.filter(action => action.actionKind === 'createEntity')
 ]));
 const actionContext = computed(() => ({
   ...(props.actionContext || {}),

@@ -781,7 +781,15 @@ function effectiveActionParentEntityType(action = {}, domain = {}, incoming = nu
   if (!parentType) return '';
   const entityType = action.entityType || action.outputs?.find(output => output.entityType)?.entityType || '';
   if (parentType === entityType && !incoming && !parentRelationForChild(domain, entityType, parentType)) return '';
+  if (!incoming && !parentSupportedByDomain(domain, entityType, parentType)) return '';
   return parentType;
+}
+
+function parentSupportedByDomain(domain = {}, entityType = '', parentType = '') {
+  if (!entityType || !parentType) return false;
+  if (parentRelationForChild(domain, entityType, parentType)) return true;
+  const inputs = constructionContract(domain, entityType).inputs || [];
+  return inputs.some(input => input.type === 'entity' && input.entityType === parentType);
 }
 
 function actionInputsForExposure(action = {}, parentEntityType = '') {
@@ -968,7 +976,8 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
       const id = `auto_${roleId}_${entityType}`;
       const detailId = `${id}_detail`;
       const required = aggregateScreenRequirement(feature, grants);
-      const directActions = inferredScreenActions(role.actions || [], feature, actions, domain);
+      const directActions = inferredScreenActions(role.actions || [], feature);
+      const detailDirectActions = inferredDetailScreenActions(role.actions || [], feature);
       const childRegions = childRegionsForParentDetail({
         role,
         parentEntityType: entityType,
@@ -1008,9 +1017,9 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
           slot: 'main',
           sourceId: entityType,
           surface: 'detail',
-          actions: [...new Set([...directActions, ...contextualActions])]
+          actions: [...new Set([...detailDirectActions, ...contextualActions])]
         }, ...childRegions.regions],
-        actions: [...new Set([...directActions, ...contextualActions, ...childRegions.actionIds])]
+        actions: [...new Set([...detailDirectActions, ...contextualActions, ...childRegions.actionIds])]
       };
       existingKeys.add(`${roleId}:${feature}`);
     }
@@ -1019,10 +1028,16 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
   return inferred;
 }
 
-function inferredScreenActions(roleActions = [], feature, processActions = {}, domain = {}) {
+function inferredScreenActions(roleActions = [], feature) {
   return roleActions
     .filter(action => action.feature === feature)
-    .filter(action => !isParentBoundCreateAction(action, processActions[action.actionId || action.id], domain))
+    .map(action => action.actionId);
+}
+
+function inferredDetailScreenActions(roleActions = [], feature) {
+  return roleActions
+    .filter(action => action.feature === feature)
+    .filter(action => (action.actionKind || 'createEntity') !== 'createEntity')
     .map(action => action.actionId);
 }
 
