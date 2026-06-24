@@ -4,6 +4,33 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Fix generated runtime action visibility and cassette-design screens
+    Files changed: server/core/machines/service.js,
+      server/core/machines/service.spec.js, utils/status-actions.js,
+      packages/processes/src/index.js, packages/processes/src/index.spec.js,
+      packages/domain-cnc/src/field-access.js,
+      components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedScreen.vue, pages/screens/[screenKey].vue,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: server/core/machines/README.md,
+      packages/domain-cnc/README.md, TODO.org
+    Notes: Status actions now include matching compiled process `changeStatus`
+      actions from the current role assignment through `/api/status/actions`.
+      Generated entity names can open synthesized detail screens when the
+      client manifest lacks a compiled detail screen. Process feature
+      resolution and field access now target `cassette_designs` for
+      `cassette_design` records, so created designs appear in the generated
+      cassette-design screen after recompilation. Generated action failures no
+      longer rethrow after showing UI feedback.
+
+    [2026-06-24] Include process status actions in status API
+    Files changed: server/core/machines/service.js, utils/status-actions.js
+    Docs updated: server/core/machines/README.md, TODO.org
+    Notes: `/api/status/actions` now appends current-role compiled process
+      `changeStatus` actions when the entity type and current primary status
+      match. `EntityStatus` consumes that server response, so process status
+      actions can appear in the status menu without local UI synthesis.
+
     [2026-06-24] Expose inherited status actions and generated detail screens
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js,

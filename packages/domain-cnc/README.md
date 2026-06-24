@@ -119,6 +119,11 @@ Field access is also declared here. `cncEntityFieldAccess` maps each entity UI
 key to a feature permission and read/write/admin field path lists. Runtime code
 treats missing policy paths as hidden, so adding a card field requires adding a
 matching field policy entry instead of relying on ad hoc component checks.
+Derived entities with their own collections must use their exact feature key in
+field access. For example, `cassette_design` records use
+`cassette_designs`, not the broader `cassettes` template feature, so generated
+process screens, DTO redaction, and process grants all target the same entity
+collection.
 The user policy intentionally exposes team-list identity fields (`identity`,
 `data.email`, role, and membership summary) at `users:read`, while copied
 permission JSON remains admin-only compatibility data.
