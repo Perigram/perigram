@@ -2208,6 +2208,9 @@
     "readRoles": "Роли чтения",
     "writeRoles": "Роли записи",
     "adminRoles": "Роли администрирования",
+    "accessRead": "чтение · просмотр",
+    "accessWrite": "запись · создание/редактирование/запуск",
+    "accessAdmin": "админ · удаление/согласование",
     "publicFields": "Публичные поля",
     "writeFields": "Поля записи",
     "privateFields": "Приватные поля",
@@ -2228,6 +2231,8 @@
     "receiveRoles": "Роли получения",
     "receiverLifecycle": "Жизненный цикл получателя",
     "projectedCount": "{count} в проекции",
+    "actionsCount": "{count} действий",
+    "noCompiledScreens": "Нет скомпилированных экранов",
     "userId": "ID пользователя",
     "roleIds": "ID ролей",
     "bindingsJson": "JSON привязок",
@@ -2284,6 +2289,7 @@
     "notFound": "Экран недоступен",
     "noScreens": "Экраны процесса недоступны",
     "actionCompleted": "Действие выполнено",
-    "actionFailed": "Не удалось выполнить действие"
+    "actionFailed": "Не удалось выполнить действие",
+    "noOptions": "Нет доступных вариантов для {field}"
   }
 }

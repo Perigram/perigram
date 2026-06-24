@@ -2208,6 +2208,9 @@
     "readRoles": "Read roles",
     "writeRoles": "Write roles",
     "adminRoles": "Admin roles",
+    "accessRead": "read · view",
+    "accessWrite": "write · create/edit/run",
+    "accessAdmin": "admin · delete/approve",
     "publicFields": "Public fields",
     "writeFields": "Writable fields",
     "privateFields": "Private fields",
@@ -2228,6 +2231,8 @@
     "receiveRoles": "Receive roles",
     "receiverLifecycle": "Receiver lifecycle",
     "projectedCount": "{count} projected",
+    "actionsCount": "{count} actions",
+    "noCompiledScreens": "No compiled screens",
     "userId": "User ID",
     "roleIds": "Role IDs",
     "bindingsJson": "Bindings JSON",
@@ -2284,6 +2289,7 @@
     "notFound": "Screen is not available",
     "noScreens": "No process screens are available",
     "actionCompleted": "Action completed",
-    "actionFailed": "Action failed"
+    "actionFailed": "Action failed",
+    "noOptions": "No available options for {field}"
   }
 }

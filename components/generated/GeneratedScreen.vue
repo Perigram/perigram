@@ -133,11 +133,15 @@ async function executeAction(action, entity = null) {
   actionError.value = '';
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
-  if (['createEntity', 'updateEntity'].includes(action.actionKind) && promptedFields(action).length) {
-    await openInputDialog(action, entity);
-    return;
+  try {
+    if (['createEntity', 'updateEntity'].includes(action.actionKind) && promptedFields(action).length) {
+      await openInputDialog(action, entity);
+      return;
+    }
+    await postAction(action, entity, promptData(collectActionInputFields(action), {}));
+  } catch (err) {
+    showActionError(err);
   }
-  await postAction(action, entity, promptData(collectActionInputFields(action), {}));
 }
 
 async function openInputDialog(action, entity = null) {
@@ -185,13 +189,7 @@ async function postAction(action, entity = null, data = {}) {
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
     await load();
   } catch (err) {
-    actionError.value = err?.data?.message || err?.message || t('generatedScreen.actionFailed');
-    toast.add({
-      severity: 'error',
-      summary: t('common.error'),
-      detail: actionError.value,
-      life: 4000
-    });
+    showActionError(err);
   }
 }
 
@@ -207,6 +205,9 @@ async function loadPromptOptions(fields = []) {
     .map(async (field) => {
       const options = await entityOptions(field.entityType);
       promptOptions[field.id] = options;
+      if (field.required && !options.length) {
+        throw new Error(t('generatedScreen.noOptions', { field: field.label || field.id }));
+      }
       if (field.required && !promptValues[field.id] && options[0]?.value) {
         promptValues[field.id] = options[0].value;
       }
@@ -215,12 +216,22 @@ async function loadPromptOptions(fields = []) {
 
 async function entityOptions(entityType) {
   if (entityType === 'cassette') {
-    const items = await $fetch('/api/cassettes').catch(() => []);
+    const items = await $fetch('/api/cassettes');
     return items
       .filter(isConstructableCassetteTemplate)
       .map(entityOption);
   }
   return [];
+}
+
+function showActionError(err) {
+  actionError.value = err?.data?.message || err?.message || t('generatedScreen.actionFailed');
+  toast.add({
+    severity: 'error',
+    summary: t('common.error'),
+    detail: actionError.value,
+    life: 4000
+  });
 }
 
 function isConstructableCassetteTemplate(template = {}) {

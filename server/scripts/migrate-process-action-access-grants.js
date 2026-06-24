@@ -7,17 +7,31 @@ function normalizeTriggerMode(mode) {
   return 'manual';
 }
 
-function normalizeAction(action = {}) {
+function normalizeAccessLevel(level) {
+  return ['read', 'write', 'admin'].includes(level) ? level : 'write';
+}
+
+function normalizeAccessGrants(action = {}) {
+  const level = normalizeAccessLevel(action.access?.level);
+  if (Array.isArray(action.access?.grants)) {
+    return action.access.grants
+      .filter(grant => grant?.roleId)
+      .map(grant => ({ roleId: grant.roleId, level: normalizeAccessLevel(grant.level || level) }));
+  }
   const triggerRoleIds = Array.isArray(action.trigger?.roleIds) ? action.trigger.roleIds : [];
   const accessRoleIds = Array.isArray(action.access?.roleIds) ? action.access.roleIds : triggerRoleIds;
+  return [...new Set(accessRoleIds)].map(roleId => ({ roleId, level }));
+}
+
+function normalizeAction(action = {}) {
+  const grants = normalizeAccessGrants(action);
   return {
     ...action,
     trigger: {
       mode: normalizeTriggerMode(action.trigger?.mode)
     },
     access: {
-      level: ['read', 'write', 'admin'].includes(action.access?.level) ? action.access.level : 'write',
-      roleIds: accessRoleIds,
+      grants,
       statusFrom: action.actionKind === 'changeStatus' ? (action.access?.statusFrom || action.status?.from || '') : (action.access?.statusFrom || ''),
       statusTo: action.actionKind === 'changeStatus' ? (action.access?.statusTo || action.status?.to || '') : (action.access?.statusTo || '')
     }

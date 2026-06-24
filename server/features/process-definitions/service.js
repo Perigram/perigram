@@ -270,7 +270,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
       targetId,
       targetState,
       auth,
-      context: data?.statusMeta || data?.context || {}
+      context: processTransitionContext(action, data)
     });
   }
 
@@ -307,7 +307,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
       targetState,
       organizationId,
       auth.userId,
-      { note: `Created by process action ${action.id || actionId}` }
+      processStatusMetadata(action, `Created by process action ${action.id || actionId}`)
     );
     return {
       ...createdDto,
@@ -374,7 +374,7 @@ async function executeBakeCassetteDesign(action = {}, data = {}, organizationId,
     targetState,
     organizationId,
     auth.userId,
-    { note: `Created by process action ${action.id}` }
+    processStatusMetadata(action, `Created by process action ${action.id}`)
   );
   return { ...created, status };
 }
@@ -397,9 +397,46 @@ async function executeCreateDefaultCassetteTemplate(action = {}, data = {}, orga
     targetState,
     organizationId,
     auth.userId,
-    { note: `Created by process action ${action.id}` }
+    processStatusMetadata(action, `Created by process action ${action.id}`)
   );
   return { ...created, status };
+}
+
+function processStatusMetadata(action = {}, note = '') {
+  const display = statusDisplayMetadata(action.status);
+  return {
+    note,
+    ...(display ? { display } : {})
+  };
+}
+
+function processTransitionContext(action = {}, data = {}) {
+  const source = data?.statusMeta || data?.context || {};
+  const display = statusDisplayMetadata(action.status);
+  if (!display) return source;
+  if (source?.metadata || source?.lifecycle) {
+    return {
+      ...source,
+      metadata: {
+        ...(source.metadata || {}),
+        display
+      }
+    };
+  }
+  return {
+    ...source,
+    display
+  };
+}
+
+function statusDisplayMetadata(status = {}) {
+  const display = {
+    ...(status.label ? { label: status.label } : {}),
+    ...(status.color || status.severity ? { color: status.color || status.severity } : {}),
+    ...(status.severity || status.color ? { severity: status.severity || status.color } : {}),
+    ...(status.icon ? { icon: status.icon } : {})
+  };
+  return Object.keys(display).length ? display : null;
 }
 
 async function defaultCassetteTemplateId(auth = {}, organizationId, action = {}) {

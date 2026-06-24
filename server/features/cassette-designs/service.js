@@ -28,10 +28,14 @@ function toDTO(design, userPermissions = null) {
   return serializeForAccess('cassetteDesign', new CassetteDesign(design), userPermissions);
 }
 
-function hasCassetteDesignPermission(userPermissions, lineage, level) {
-  const user = userPermissions || {};
-  return hasLineagePermission(user, lineage, 'cassettes', level) ||
-    hasLineagePermission(user, lineage, 'projects', level);
+function hasCassetteDesignPermission(userPermissions, design, level) {
+  return hasLineagePermission(userPermissions || {}, design, 'cassette_designs', level);
+}
+
+function normalizePrimaryStatuses(value) {
+  if (Array.isArray(value)) return value.flatMap(normalizePrimaryStatuses);
+  if (typeof value !== 'string') return [];
+  return value.split(',').map(item => item.trim()).filter(Boolean);
 }
 
 async function derivedFromTemplate(templateId, parameters = {}, explicitDerivedFrom = null) {
@@ -139,7 +143,7 @@ export async function getById(id, userId, userRole, userPermissions) {
 
   const design = new CassetteDesign(raw);
 
-  if (userPermissions && !hasCassetteDesignPermission(userPermissions, design.lineage, 'read')) {
+  if (userPermissions && !hasCassetteDesignPermission(userPermissions, design, 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -163,7 +167,7 @@ export async function exportDxf(id, userId, userRole, userPermissions) {
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   const design = new CassetteDesign(raw);
 
-  if (userPermissions && !hasCassetteDesignPermission(userPermissions, design.lineage, 'read')) {
+  if (userPermissions && !hasCassetteDesignPermission(userPermissions, design, 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -198,10 +202,24 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
     processedFilter['lineage.templateId'] = toFlexibleId(processedFilter.templateId);
     delete processedFilter.templateId;
   }
+  const statuses = normalizePrimaryStatuses(processedFilter.primaryStatuses);
+  if (statuses.length) processedFilter['status.state.primary'] = { $in: statuses };
+  else if (processedFilter.status || processedFilter.primaryStatus) {
+    processedFilter['status.state.primary'] = processedFilter.status || processedFilter.primaryStatus;
+  }
+  delete processedFilter.primaryStatuses;
+  delete processedFilter.primaryStatus;
+  delete processedFilter.status;
 
   const finalFilter = { ...lineageFilter, ...processedFilter };
   const designs = await repository.find(finalFilter);
-  return serializeManyForAccess('cassetteDesign', designs.map(design => new CassetteDesign(design)), userPermissions);
+  return serializeManyForAccess(
+    'cassetteDesign',
+    designs
+      .map(design => new CassetteDesign(design))
+      .filter(design => hasCassetteDesignPermission(userPermissions, design, 'read')),
+    userPermissions
+  );
 }
 
 export async function update(id, updates, userId, userRole, userPermissions) {
@@ -209,7 +227,7 @@ export async function update(id, updates, userId, userRole, userPermissions) {
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   const design = new CassetteDesign(raw);
 
-  if (!hasCassetteDesignPermission(userPermissions, design.lineage, 'write')) {
+  if (!hasCassetteDesignPermission(userPermissions, design, 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -238,7 +256,7 @@ export async function remove(id, userId, userRole, userPermissions) {
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   const design = new CassetteDesign(raw);
 
-  if (!hasCassetteDesignPermission(userPermissions, design.lineage, 'admin')) {
+  if (!hasCassetteDesignPermission(userPermissions, design, 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 

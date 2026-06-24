@@ -33,26 +33,49 @@
       />
     </div>
 
-    <div class="nodrag mt-2 grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] gap-1 rounded-ui border border-content-border p-1">
+    <div class="nodrag mt-2 flex flex-col gap-1 rounded-ui border border-content-border p-1">
+      <div
+        v-for="(grant, index) in accessGrants"
+        :key="`${grant.roleId || 'role'}-${index}`"
+        class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-1"
+      >
         <Select
-          :model-value="action.access?.level || 'write'"
+          :model-value="grant.roleId"
+          :options="roleOptionsForGrant(grant.roleId)"
+          option-label="label"
+          option-value="value"
+          class="nodrag min-w-0"
+          size="small"
+          @update:model-value="value => updateGrant(index, { roleId: value })"
+        />
+        <Select
+          :model-value="grant.level || 'write'"
           :options="data.accessLevelOptions || []"
           option-label="label"
           option-value="value"
           class="nodrag min-w-0"
           size="small"
-          @update:model-value="value => updateAccess({ level: value })"
+          @update:model-value="value => updateGrant(index, { level: value })"
         />
-        <MultiSelect
-          :model-value="action.access?.roleIds || []"
-          :options="data.roleOptions || []"
-          option-label="label"
-          option-value="value"
-          display="chip"
-          class="nodrag min-w-0"
+        <Button
+          icon="pi pi-times"
+          text
+          rounded
           size="small"
-          @update:model-value="value => updateAccess({ roleIds: value })"
+          class="!h-8 !w-8"
+          :aria-label="$t('common.delete')"
+          @click="removeGrant(index)"
         />
+      </div>
+      <Button
+        v-if="availableRoleOptions.length"
+        icon="pi pi-plus"
+        :label="$t('processDesigner.addRole')"
+        text
+        size="small"
+        class="self-start"
+        @click="addGrant"
+      />
         <div v-if="effectiveAccessLabels.length" class="col-span-2 flex min-w-0 flex-wrap gap-1 px-1">
           <span
             v-for="item in effectiveAccessLabels"
@@ -180,6 +203,15 @@ const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || props.
 const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || props.data.outputLabels || []));
 const effectiveAccessLabels = computed(() => props.data.effectiveAccessLabels || []);
 const inheritedAccessLabels = computed(() => props.data.inheritedAccessLabels || []);
+const accessGrants = computed(() => {
+  const access = action.value.access || {};
+  if (Array.isArray(access.grants) && access.grants.length) {
+    return access.grants.map(grant => ({ roleId: grant.roleId || '', level: grant.level || access.level || 'write' }));
+  }
+  return (access.roleIds || []).map(roleId => ({ roleId, level: access.level || 'write' }));
+});
+const selectedGrantRoleIds = computed(() => new Set(accessGrants.value.map(grant => grant.roleId).filter(Boolean)));
+const availableRoleOptions = computed(() => (props.data.roleOptions || []).filter(option => !selectedGrantRoleIds.value.has(option.value)));
 const eventLabel = computed(() => props.data.eventLabel || t('processDesigner.actionCompleted'));
 const actionKindLabel = computed(() => props.data.actionKindLabel || props.data.actionKind || t('common.actions.title'));
 const showEntitySelector = computed(() => ['createEntity', 'sendToOrganization'].includes(action.value.actionKind));
@@ -225,6 +257,36 @@ function updateAccess(updates) {
       ...updates
     }
   }, { syncIo: true });
+}
+
+function roleOptionsForGrant(currentRoleId) {
+  return (props.data.roleOptions || []).filter(option => option.value === currentRoleId || !selectedGrantRoleIds.value.has(option.value));
+}
+
+function addGrant() {
+  const next = availableRoleOptions.value[0];
+  if (!next) return;
+  updateAccess({ grants: [...accessGrants.value, { roleId: next.value, level: 'write' }] });
+}
+
+function updateGrant(index, updates) {
+  const grants = accessGrants.value.map((grant, grantIndex) => (
+    grantIndex === index ? { ...grant, ...updates } : grant
+  ));
+  updateAccess({ grants: normalizeGrants(grants) });
+}
+
+function removeGrant(index) {
+  updateAccess({ grants: normalizeGrants(accessGrants.value.filter((_, grantIndex) => grantIndex !== index)) });
+}
+
+function normalizeGrants(grants = []) {
+  const seen = new Set();
+  return grants.filter(grant => {
+    if (!grant.roleId || seen.has(grant.roleId)) return false;
+    seen.add(grant.roleId);
+    return true;
+  });
 }
 
 function resetAccess() {

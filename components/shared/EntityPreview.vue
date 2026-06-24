@@ -1,7 +1,7 @@
 <template>
   <template v-if="mode !== 'none'">
     <CassetteThumbnail
-      v-if="mode === 'thumbnail' && isCassetteLike"
+      v-if="isCassetteLike"
       :cassette="entity"
       :cassette-id="cassetteId"
     />

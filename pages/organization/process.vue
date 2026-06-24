@@ -36,14 +36,14 @@
         />
       </div>
 
-      <div class="absolute left-[14rem] right-[30rem] top-3 z-10 flex min-w-0 items-center justify-end gap-1 rounded-ui border border-content-border bg-content p-1 shadow-card">
+      <div class="absolute right-[30rem] top-3 z-10 flex min-w-0 items-center justify-end gap-1 rounded-ui border border-content-border bg-content p-1 shadow-card">
           <Select
             v-if="processOptions.length"
             v-model="selectedProcessId"
             :options="processOptions"
             option-label="label"
             option-value="value"
-            class="w-52"
+            class="w-64"
             size="small"
             @change="selectProcessDefinition"
           />
@@ -56,7 +56,6 @@
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
             <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
-            <Tab value="principals">{{ $t('processDesigner.principals') }}</Tab>
             <Tab value="screens">{{ $t('organization.screens') }}</Tab>
           </TabList>
           <TabPanels class="min-h-0 flex-1 overflow-y-auto">
@@ -290,33 +289,29 @@
               </div>
             </TabPanel>
 
-            <TabPanel value="principals">
-              <div class="flex flex-col gap-4">
-                <div class="flex justify-end">
-                  <Button icon="pi pi-plus" :label="$t('processDesigner.addPrincipal')" size="small" @click="addServicePrincipal" />
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  <Tag
-                    v-for="principal in servicePrincipalList"
-                    :key="principal.id"
-                    :value="principal.label || principal.id"
-                    :severity="selectedPrincipalId === principal.id ? 'success' : 'secondary'"
-                    class="cursor-pointer"
-                    @click="selectedPrincipalId = principal.id"
-                  />
-                </div>
-                <div v-if="selectedPrincipalRecord" class="flex flex-col gap-3">
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.label') }}</label>
-                    <InputText v-model="selectedPrincipalRecord.label" />
-                  </div>
-                  <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedPrincipal" />
-                </div>
-              </div>
-            </TabPanel>
-
             <TabPanel value="screens">
               <div class="flex flex-col gap-4">
+                <Message v-if="compiledPreviewError" severity="error">{{ compiledPreviewError }}</Message>
+                <div class="flex flex-col gap-2">
+                  <div
+                    v-for="screen in compiledScreenPreview"
+                    :key="screen.id"
+                    class="rounded-ui border border-content-border p-2"
+                  >
+                    <div class="flex min-w-0 items-center justify-between gap-2">
+                      <span class="min-w-0 truncate text-sm font-medium">{{ screen.label }}</span>
+                      <Tag :value="screen.template" size="small" />
+                    </div>
+                    <div class="mt-2 flex flex-wrap gap-1">
+                      <Tag v-if="screen.entityType" :value="screen.entityType" size="small" severity="info" />
+                      <Tag v-if="screen.requiredLabel" :value="screen.requiredLabel" size="small" severity="secondary" />
+                      <Tag v-for="role in screen.roleLabels" :key="role" :value="role" size="small" severity="success" />
+                      <Tag v-if="screen.actions?.length" :value="$t('processDesigner.actionsCount', { count: screen.actions.length })" size="small" severity="warn" />
+                    </div>
+                    <small class="mt-1 block truncate text-muted-color">{{ screen.route || screen.id }}</small>
+                  </div>
+                  <StateBlock v-if="!compiledScreenPreview.length && !compiledPreviewError" :message="$t('processDesigner.noCompiledScreens')" />
+                </div>
                 <div class="flex justify-end">
                   <Button icon="pi pi-plus" :label="$t('processDesigner.addScreen')" size="small" @click="addScreen" />
                 </div>
@@ -449,7 +444,7 @@ import Textarea from 'primevue/textarea';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { canvasToDefinition, definitionToCanvas } from '~/packages/processes/src/index.js';
+import { canvasToDefinition, compileProcessDefinition, definitionToCanvas } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncEntityConstruction, cncEntityFieldAccess, cncWorkflows } from '@cutkit/domain-cnc';
@@ -482,6 +477,8 @@ const selectedPrincipalId = ref(null);
 const selectedScreenId = ref(null);
 const newStateId = ref('');
 const canvasFrame = ref(null);
+const compiledPreview = ref(null);
+const compiledPreviewError = ref('');
 const { getViewport } = useVueFlow();
 
 const palette = [
@@ -524,9 +521,9 @@ const screenPlacementOptions = [
   { label: 'hidden', value: 'hidden' }
 ];
 const accessLevelOptions = [
-  { label: 'read', value: 'read' },
-  { label: 'write', value: 'write' },
-  { label: 'admin', value: 'admin' }
+  { label: t('processDesigner.accessRead'), value: 'read' },
+  { label: t('processDesigner.accessWrite'), value: 'write' },
+  { label: t('processDesigner.accessAdmin'), value: 'admin' }
 ];
 const valueTypeOptions = ['string', 'number', 'object', 'entity'].map(value => ({ label: value, value }));
 const blockOptions = [
@@ -627,8 +624,16 @@ const lifecycleStateIds = computed(() => Object.keys(lifecycleRegion.value?.stat
 const lifecycleStateOptions = computed(() => lifecycleStateIds.value.map(value => ({ label: value, value })));
 const lifecycleTransitions = computed(() => lifecycleRegion.value?.transitions || []);
 const selectedRoleAccessSummary = computed(() => selectedRoleId.value ? roleAccessSummary(selectedRoleId.value) : []);
+const compiledScreenPreview = computed(() => Object.values(compiledPreview.value?.screens || {})
+  .map(screen => ({
+    ...screen,
+    roleLabels: (screen.roleIds || []).map(roleId => roles.value[roleId]?.label || roleId),
+    requiredLabel: screen.required?.feature ? `${screen.required.feature}:${screen.required.level || 'read'}` : ''
+  }))
+  .sort((left, right) => String(left.label || left.id).localeCompare(String(right.label || right.id))));
 
 watch(selectedScreenRecord, () => syncSelectedScreenUi(), { immediate: true });
+watch([draft, nodes, edges], () => recomputeProcessPreview(), { deep: true });
 
 onMounted(() => {
   loadActiveOrCreateLocal();
@@ -783,6 +788,7 @@ function setDraft(value) {
   selectedRoleId.value = Object.keys(value?.data?.roles || {})[0] || null;
   selectedPrincipalId.value = Object.keys(value?.data?.servicePrincipals || {})[0] || null;
   selectedScreenId.value = Object.keys(value?.data?.screens || {})[0] || null;
+  recomputeProcessPreview();
 }
 
 function addNode(item) {
@@ -892,10 +898,29 @@ function syncEdgeSelection() {
 
 function serializeProcess() {
   syncNodeData();
+  return processDefinitionSnapshot();
+}
+
+function processDefinitionSnapshot() {
   return canvasToDefinition(
     { nodes: nodes.value.map(stripRuntimeNodeData), edges: edges.value.map(stripRuntimeEdgeData), viewport: draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 } },
     draft.value?.data || {}
   );
+}
+
+function recomputeProcessPreview() {
+  if (!draft.value?.data) {
+    compiledPreview.value = null;
+    compiledPreviewError.value = '';
+    return;
+  }
+  try {
+    compiledPreview.value = compileProcessDefinition(processDefinitionSnapshot(), cncDomain);
+    compiledPreviewError.value = '';
+  } catch (error) {
+    compiledPreview.value = null;
+    compiledPreviewError.value = error.message || String(error);
+  }
 }
 
 function syncNodeData() {
@@ -929,7 +954,7 @@ function syncNodeData() {
     node.data.statusTo = record.status?.to;
     node.data.direction = record.direction;
     node.data.lifecycleMode = record.lifecycle?.mode;
-    node.data.roleCount = record.allowedRoles ? countRoleBindings(record.allowedRoles) : (record.access?.roleIds?.length || 0);
+    node.data.roleCount = record.allowedRoles ? countRoleBindings(record.allowedRoles) : normalizeDesignerAccess(record.access).grants.length;
     node.data.runPrincipalLabels = principalLabels(record.access?.runPrincipals || []);
     node.data.sendRoleLabels = roleLabels(record.access?.sendRoles || []);
     node.data.receiveRoleLabels = roleLabels(record.access?.receiveRoles || []);
@@ -1012,7 +1037,7 @@ function createAction(id, actionKind = 'createEntity') {
     status: { from: '', to: '' },
     mutation: { fields: [] },
     projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
-    access: { level: 'write', roleIds: [] },
+    access: { grants: [] },
     trigger: { mode: 'manual' },
     inputs: [],
     outputs: [],
@@ -1073,8 +1098,9 @@ function removeSelectedRole() {
   }
   for (const action of Object.values(draft.value.data.actions || {})) {
     action.trigger ||= { mode: 'manual' };
-    action.access ||= { level: 'write', roleIds: [] };
-    action.access.roleIds = (action.access.roleIds || []).filter(roleId => roleId !== removedRoleId);
+    action.access = normalizeDesignerAccess(action.access);
+    action.access.grants = action.access.grants.filter(grant => grant.roleId !== removedRoleId);
+    action.access.roleIds = action.access.grants.map(grant => grant.roleId);
   }
   for (const assignment of Object.values(draft.value.data.assignments || {})) {
     assignment.roleIds = (assignment.roleIds || []).filter(roleId => roleId !== removedRoleId);
@@ -1307,7 +1333,7 @@ function syncSelectedAction() {
 
 function syncActionIo(action = {}, node = null) {
   action.trigger ||= { mode: 'manual' };
-  action.access ||= { level: 'write', roleIds: [] };
+  action.access = normalizeDesignerAccess(action.access);
   action.trigger.mode = normalizeTriggerMode(action.trigger.mode);
   delete action.trigger.roleIds;
   action.access.level = normalizeAccessLevel(action.access.level);
@@ -1336,9 +1362,11 @@ function syncActionIo(action = {}, node = null) {
     action.status.from ||= action.access.statusFrom || '';
     action.entityType = '';
     action.status.to ||= '';
-    if (node && !action.access.modified && inheritedAccess.roleIds?.length) {
-      action.access.level = inheritedAccess.level || action.access.level;
-      action.access.roleIds = [...inheritedAccess.roleIds];
+    if (node && !action.access.modified && inheritedAccess.grants?.length) {
+      action.access = normalizeDesignerAccess({
+        ...action.access,
+        grants: inheritedAccess.grants.map(grant => ({ ...grant }))
+      });
     }
     action.access.statusFrom = action.status.from || '';
     action.access.statusTo = action.status.to || '';
@@ -1436,7 +1464,7 @@ function applyStatusDefinitionToAction(action = {}) {
   syncStatusDefinition(status);
   action.status ||= {};
   action.status.to = status.statusId;
-  action.access ||= { level: 'write', roleIds: [] };
+  action.access = normalizeDesignerAccess(action.access);
   action.access.statusTo = status.statusId;
 }
 
@@ -1508,10 +1536,15 @@ function initialStatusForProfile(profile = {}) {
 function syncStatusDefinition(status = {}) {
   status.statusId ||= String(status.label || 'STATUS').trim().toUpperCase().replace(/\s+/g, '_');
   if (status.label === 'Created' && status.statusId !== 'CREATED') status.label = '';
+  if (isLegacyStatusNodeLabel(status.label)) status.label = '';
   status.label ??= '';
   status.severity ||= status.color || 'info';
   status.color = status.severity;
   status.icon ||= 'pi pi-circle-fill';
+}
+
+function isLegacyStatusNodeLabel(label = '') {
+  return ['project', 'queue', 'cassette', 'cassette_design', 'sheet_design'].includes(String(label || '').trim());
 }
 
 function syncValueInput(input = {}) {
@@ -1615,6 +1648,24 @@ function normalizeTriggerMode(mode) {
 
 function normalizeAccessLevel(level) {
   return ['read', 'write', 'admin'].includes(level) ? level : 'write';
+}
+
+function normalizeDesignerAccess(access = {}) {
+  const level = normalizeAccessLevel(access?.level);
+  const grants = Array.isArray(access?.grants)
+    ? access.grants
+        .filter(grant => grant?.roleId)
+        .map(grant => ({ roleId: grant.roleId, level: normalizeAccessLevel(grant.level || level) }))
+    : (access?.roleIds || []).map(roleId => ({ roleId, level }));
+  const normalizedLevel = grants.reduce((current, grant) => (
+    accessLevelRank[grant.level] > accessLevelRank[current] ? grant.level : current
+  ), level);
+  return {
+    ...(access || {}),
+    level: normalizedLevel,
+    roleIds: [...new Set(grants.map(grant => grant.roleId))],
+    grants
+  };
 }
 
 function createInputSockets(entityType) {
@@ -1820,7 +1871,7 @@ function enrichNodeData(node) {
       eventLabel: node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null,
       direction: record.direction,
       lifecycleMode: record.lifecycle?.mode,
-      roleCount: record.allowedRoles ? countRoleBindings(record.allowedRoles) : (record.access?.roleIds?.length || 0),
+      roleCount: record.allowedRoles ? countRoleBindings(record.allowedRoles) : normalizeDesignerAccess(record.access).grants.length,
       runPrincipalLabels: principalLabels(record.access?.runPrincipals || []),
       sendRoleLabels: roleLabels(record.access?.sendRoles || []),
       receiveRoleLabels: roleLabels(record.access?.receiveRoles || []),
@@ -1851,11 +1902,11 @@ function updateActionRecord(actionId, updates = {}, options = {}) {
   if (!action) return;
   Object.assign(action, updates);
   if (updates.access && !options.inheritAccess) {
-    action.access ||= { level: 'write', roleIds: [] };
+    action.access = normalizeDesignerAccess(action.access);
     action.access.modified = true;
   }
   if (updates.status && action.actionKind === 'changeStatus') {
-    action.access ||= { level: 'write', roleIds: [] };
+    action.access = normalizeDesignerAccess(action.access);
     action.access.statusFrom = action.status?.from || '';
     action.access.statusTo = action.status?.to || '';
   }
@@ -1868,13 +1919,13 @@ function resetActionAccess(actionId) {
   if (!action || action.actionKind !== 'changeStatus') return;
   const node = nodes.value.find(item => item.data?.refId === actionId);
   const inherited = node ? inferIncomingEntityContract(node.id).access : null;
-  if (!inherited?.roleIds?.length) return;
+  if (!inherited?.grants?.length) return;
   action.access = {
     ...(action.access || {}),
-    level: inherited.level || 'write',
-    roleIds: [...inherited.roleIds],
+    grants: inherited.grants.map(grant => ({ ...grant })),
     modified: false
   };
+  action.access = normalizeDesignerAccess(action.access);
   syncActionIo(action, node);
   syncNodeData();
 }
@@ -1965,7 +2016,7 @@ function roleAccessSummary(roleId) {
     }
   }
   for (const action of Object.values(draft.value?.data?.actions || {})) {
-    if ((action.access?.roleIds || []).includes(roleId)) {
+    if (normalizeDesignerAccess(action.access).roleIds.includes(roleId)) {
       const summary = actionAccessSummary(action);
       if (summary) items.push(summary);
     }
@@ -2017,7 +2068,7 @@ function applySemanticConnection(connection = {}) {
     action.statusRef = status.id || source.data?.refId;
     action.status ||= {};
     action.status.to = status.statusId;
-    action.access ||= { level: 'write', roleIds: [] };
+    action.access = normalizeDesignerAccess(action.access);
     action.access.statusTo = status.statusId;
     syncActionIo(action, target);
     return;
@@ -2200,8 +2251,9 @@ function inferIncomingEntityContract(nodeId) {
     entityType: match?.entityType || sourceRecord?.entityType || '',
     status: typeof match?.status === 'string' ? match.status : '',
     access: sourceRecord?.access ? {
-      level: normalizeAccessLevel(sourceRecord.access.level),
-      roleIds: [...(sourceRecord.access.roleIds || [])]
+      level: normalizeDesignerAccess(sourceRecord.access).level,
+      roleIds: [...normalizeDesignerAccess(sourceRecord.access).roleIds],
+      grants: normalizeDesignerAccess(sourceRecord.access).grants.map(grant => ({ ...grant }))
     } : null
   };
 }
@@ -2219,7 +2271,7 @@ function effectiveActionAccessLabels(action = {}, node = {}) {
   const entityType = actionEntityType(action) || inferIncomingEntityContract(node.id).entityType;
   if (!entityType) return [];
   const targetStatus = actionTargetStatus(action);
-  const currentRoleIds = new Set(action.access?.roleIds || []);
+  const currentRoleIds = new Set(normalizeDesignerAccess(action.access).roleIds);
   const accessByRole = new Map();
 
   for (const profile of Object.values(draft.value?.data?.entityProfiles || {})) {
@@ -2236,8 +2288,8 @@ function effectiveActionAccessLabels(action = {}, node = {}) {
     if (actionEntityType(otherAction) !== entityType) continue;
     const otherStatus = actionTargetStatus(otherAction);
     if (targetStatus && otherStatus && targetStatus !== otherStatus) continue;
-    for (const roleId of otherAction.access?.roleIds || []) {
-      addEffectiveRoleAccess(accessByRole, roleId, normalizeAccessLevel(otherAction.access?.level), otherStatus);
+    for (const grant of normalizeDesignerAccess(otherAction.access).grants) {
+      addEffectiveRoleAccess(accessByRole, grant.roleId, normalizeAccessLevel(grant.level), otherStatus);
     }
   }
 
@@ -2249,10 +2301,10 @@ function effectiveActionAccessLabels(action = {}, node = {}) {
 function inheritedActionAccessLabels(action = {}, node = {}) {
   if (action.actionKind !== 'changeStatus') return [];
   const inherited = inferIncomingEntityContract(node.id).access;
-  if (!inherited?.roleIds?.length) return [];
-  return inherited.roleIds.map(roleId => [
-    roles.value[roleId]?.label || roleId,
-    inherited.level || 'write'
+  if (!inherited?.grants?.length) return [];
+  return inherited.grants.map(grant => [
+    roles.value[grant.roleId]?.label || grant.roleId,
+    grant.level || 'write'
   ].join(' · '));
 }
 

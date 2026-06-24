@@ -1,17 +1,14 @@
 <template>
   <div :class="nodeFrameClass">
     <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui" :style="{ backgroundColor: toneColor }"></div>
-    <div class="flex items-center gap-2">
-      <div class="min-w-0 flex-1">
-        <Tag
-          :severity="data.severity || 'secondary'"
-          :value="data.label || data.statusId || data.refId"
-          :icon="data.icon || 'pi pi-circle-fill'"
-          size="small"
-          class="max-w-full"
-        />
-      </div>
-      <span class="truncate text-xs font-semibold uppercase" :style="{ color: toneColor }">{{ data.statusId || data.refId }}</span>
+    <div class="flex min-w-0 items-center">
+      <Tag
+        :severity="data.severity || 'secondary'"
+        :value="displayValue"
+        :icon="data.icon || 'pi pi-circle-fill'"
+        size="small"
+        class="max-w-full"
+      />
     </div>
     <Handle id="status" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2" :style="{ borderColor: toneColor, backgroundColor: toneColor }" />
   </div>
@@ -37,8 +34,18 @@ const toneColor = computed(() => ({
   secondary: 'var(--p-surface-500)',
   contrast: 'var(--p-surface-700)'
 })[props.data.severity || props.data.color] || 'var(--p-amber-500)');
+const displayValue = computed(() => {
+  const statusId = props.data.statusId || props.data.refId || 'STATUS';
+  const label = String(props.data.label || '').trim();
+  if (!label || label === statusId || isLegacyNodeLabel(label)) return statusId;
+  return label;
+});
 const nodeFrameClass = computed(() => [
   'relative min-w-56 rounded-ui border bg-content px-2 py-2 pt-3 shadow-card transition-colors',
   props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
 ]);
+
+function isLegacyNodeLabel(label = '') {
+  return ['project', 'queue', 'cassette', 'cassette_design', 'sheet_design'].includes(label);
+}
 </script>

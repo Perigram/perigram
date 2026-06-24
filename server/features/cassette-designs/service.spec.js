@@ -41,7 +41,7 @@ describe('cassette design DXF export', () => {
     await db.collection('cassette_designs').deleteMany({});
     organizationId = new ObjectId();
     auth = {
-      memberships: [{ organizationId, permissions: { cassettes: 'read' } }]
+      memberships: [{ organizationId, permissions: { cassette_designs: 'read' } }]
     };
   });
 
@@ -115,9 +115,46 @@ describe('cassette design DXF export', () => {
     expect(dxf).toContain('fold.route');
     expect(dxf).toContain('LWPOLYLINE');
   });
+
+  it('lists and reads designs through status-scoped process grants', async () => {
+    const processOrgId = 'org-process';
+    await db.collection('cassette_designs').insertMany([
+      cassetteDesign({ _id: 'received-design', organizationId: processOrgId, status: 'RECEIVED' }),
+      cassetteDesign({ _id: 'draft-design', organizationId: processOrgId, status: 'DRAFT' })
+    ]);
+    const processAuth = {
+      userId: 'installer',
+      organizationId: processOrgId,
+      memberships: [{ organizationId: processOrgId, permissions: {} }],
+      effectivePermissions: {
+        cassette_designs: [{
+          level: 'write',
+          rule: { fact: 'primaryStatus', equals: 'RECEIVED' }
+        }]
+      }
+    };
+    await expect(db.collection('cassette_designs').find({
+      'lineage.organizationId': processOrgId,
+      'status.state.primary': { $in: ['RECEIVED', 'DRAFT'] }
+    }).toArray()).resolves.toHaveLength(2);
+
+    const listed = await cassetteDesignsService.list(
+      'installer',
+      organizationId,
+      null,
+      processAuth,
+      { primaryStatuses: 'RECEIVED,DRAFT' }
+    );
+
+    expect(listed.map(item => item._id)).toEqual(['received-design']);
+    await expect(cassetteDesignsService.getById('received-design', 'installer', null, processAuth))
+      .resolves.toMatchObject({ _id: 'received-design' });
+    await expect(cassetteDesignsService.getById('draft-design', 'installer', null, processAuth))
+      .rejects.toThrow(/Permission denied/);
+  });
 });
 
-function cassetteDesign({ _id, organizationId, templateId = new ObjectId(), layerData = [], dxfId = null }, geometryOverrides = {}) {
+function cassetteDesign({ _id, organizationId, templateId = new ObjectId(), layerData = [], dxfId = null, status = 'ACTIVE' }, geometryOverrides = {}) {
   return {
     _id,
     identity: { uid: _id, name: _id, slug: _id },
@@ -125,7 +162,14 @@ function cassetteDesign({ _id, organizationId, templateId = new ObjectId(), laye
       organizationId,
       templateId
     },
-    status: { state: 'ACTIVE' },
+    status: {
+      state: {
+        schemaVersion: 2,
+        primary: status,
+        active: { main: status },
+        regions: { main: { state: status, path: [status] } }
+      }
+    },
     data: {
       layerData,
       polygonParts: [],

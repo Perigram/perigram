@@ -9,15 +9,23 @@ import { STATUS_MAPPINGS } from '~/utils/status-engine';
 
 const props = defineProps({
   state: { type: String, required: true },
-  iconOnly: { type: Boolean, default: false }
+  iconOnly: { type: Boolean, default: false },
+  display: { type: Object, default: null }
 });
 
 const config = computed(() => {
     const s = props.state?.toUpperCase() || 'UNKNOWN';
-    return STATUS_MAPPINGS[s] || STATUS_MAPPINGS[s.toLowerCase()] || { 
+    const mapped = STATUS_MAPPINGS[s] || STATUS_MAPPINGS[s.toLowerCase()] || {
         label: s, 
         severity: 'secondary', 
         icon: 'pi pi-question-circle' 
+    };
+    const display = props.display && typeof props.display === 'object' ? props.display : {};
+    return {
+        ...mapped,
+        label: display.label || mapped.label,
+        severity: display.severity || display.color || mapped.severity,
+        icon: display.icon || mapped.icon
     };
 });
 </script>

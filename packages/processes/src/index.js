@@ -504,9 +504,9 @@ function compileRoles(process = {}, domain = {}) {
 }
 
 function actionExposureRoleIds(access = {}, actionWindow = null) {
-  const explicit = access.roleIds || [];
+  const explicit = access.grants?.map(grant => grant.roleId).filter(Boolean) || access.roleIds || [];
   if (explicit.length) return explicit;
-  return [...new Set((actionWindow?.outputs || []).flatMap(output => output.roleIds || []))];
+  return [...new Set((actionWindow?.outputs || []).flatMap(output => output.roleGrants?.map(grant => grant.roleId) || output.roleIds || []))];
 }
 
 function actionStatusForExposure(action = {}, actionWindow = null, access = {}) {
@@ -640,6 +640,7 @@ function incomingWindowForAction(actionId, action = {}, graphContext, windows) {
     status: input.status || '',
     level: normalizeActionAccess(action.access).level,
     roleIds: [],
+    roleGrants: [],
     scope: null,
     sourcePath: `input:${actionId}:${input.id || 'entity'}`
   };
@@ -658,11 +659,12 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
   const entityType = actionEntityType(action) || incoming?.entityType || '';
   const statusTo = actionTargetState(action, process) || access.statusTo || incoming?.status || '';
   const feature = entityType ? resolveEntityFeature(domain, entityType) : null;
-  const inheritedRoles = incoming?.roleIds || [];
-  const explicitRoles = access.roleIds || [];
-  const useInherited = kind === 'changeStatus' && !access.modified && inheritedRoles.length;
-  const roleIds = useInherited ? inheritedRoles : explicitRoles;
-  const level = useInherited ? (incoming.level || access.level) : access.level;
+  const inheritedRoleGrants = incoming?.roleGrants || grantsFromRoleIds(incoming?.roleIds || [], incoming?.level || access.level);
+  const explicitRoleGrants = access.grants || grantsFromRoleIds(access.roleIds || [], access.level);
+  const useInherited = kind === 'changeStatus' && !access.modified && inheritedRoleGrants.length;
+  const roleGrants = useInherited ? inheritedRoleGrants : explicitRoleGrants;
+  const roleIds = [...new Set(roleGrants.map(grant => grant.roleId).filter(Boolean))];
+  const level = maxGrantLevel(roleGrants, useInherited ? (incoming.level || access.level) : access.level);
   const scope = deriveActionWindowScope(action, incoming);
   const outputs = [];
   const grants = [];
@@ -676,14 +678,13 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
       feature,
       status,
       level,
-      roleIds: [...new Set(roleIds)],
+      roleIds,
+      roleGrants,
       scope,
       sourcePath: [incoming?.sourcePath, actionId, status].filter(Boolean).join('>')
     };
     outputs.push(window);
-    if (window.roleIds.length) {
-      grants.push(windowGrant(window, action, access));
-    }
+    grants.push(...windowGrants(window, action, access));
   }
 
   return {
@@ -694,6 +695,20 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
     grants,
     primaryGrant: grants[0] || null
   };
+}
+
+function grantsFromRoleIds(roleIds = [], level = 'write') {
+  return [...new Set(roleIds)]
+    .filter(Boolean)
+    .map(roleId => ({ roleId, level: normalizeAccessLevel(level) }));
+}
+
+function maxGrantLevel(grants = [], fallback = 'write') {
+  return grants.reduce((level, grant) => (
+    ACCESS_ORDER[normalizeAccessLevel(grant.level)] > ACCESS_ORDER[level]
+      ? normalizeAccessLevel(grant.level)
+      : level
+  ), normalizeAccessLevel(fallback));
 }
 
 function outputSocketId(action = {}, kind = '') {
@@ -723,11 +738,22 @@ function deriveActionWindowScope(action = {}, incoming = null) {
   return inheritedScope;
 }
 
-function windowGrant(window = {}, action = {}, access = {}) {
+function windowGrants(window = {}, action = {}, access = {}) {
+  const byLevel = new Map();
+  for (const roleGrant of window.roleGrants || grantsFromRoleIds(window.roleIds || [], window.level)) {
+    if (!roleGrant.roleId) continue;
+    const level = normalizeAccessLevel(roleGrant.level || window.level);
+    if (!byLevel.has(level)) byLevel.set(level, []);
+    byLevel.get(level).push(roleGrant.roleId);
+  }
+  return [...byLevel.entries()].map(([level, roleIds]) => windowGrant(window, action, access, level, [...new Set(roleIds)]));
+}
+
+function windowGrant(window = {}, action = {}, access = {}, level = window.level, roleIds = window.roleIds || []) {
   const grant = {
     feature: window.feature,
-    level: window.level || 'read',
-    roleIds: window.roleIds || [],
+    level: normalizeAccessLevel(level || window.level || 'read'),
+    roleIds,
     sourceActionId: action.id,
     sourcePath: window.sourcePath
   };
@@ -1247,14 +1273,25 @@ function entityTypeLabel(entityType = '') {
 }
 
 function normalizeActionAccess(access = {}) {
+  const level = normalizeAccessLevel(access.level);
+  const grants = Array.isArray(access.grants)
+    ? access.grants
+        .filter(grant => grant?.roleId)
+        .map(grant => ({ roleId: grant.roleId, level: normalizeAccessLevel(grant.level || level) }))
+    : grantsFromRoleIds(Array.isArray(access.roleIds) ? access.roleIds : [], level);
   return {
-    level: ['read', 'write', 'admin'].includes(access.level) ? access.level : 'write',
-    roleIds: Array.isArray(access.roleIds) ? access.roleIds : [],
+    level: maxGrantLevel(grants, level),
+    roleIds: [...new Set(grants.map(grant => grant.roleId))],
+    grants,
     modified: Boolean(access.modified),
     scope: access.scope && typeof access.scope === 'object' && !Array.isArray(access.scope) ? { ...access.scope } : null,
     statusFrom: typeof access.statusFrom === 'string' ? access.statusFrom : '',
     statusTo: typeof access.statusTo === 'string' ? access.statusTo : ''
   };
+}
+
+function normalizeAccessLevel(level) {
+  return ['read', 'write', 'admin'].includes(level) ? level : 'write';
 }
 
 function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors, statusDefinitions = {} }) {
@@ -1289,8 +1326,9 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
     if (entityType && !entities.has(entityType)) errors.push(`Action ${actionId} input uses unknown entity type ${entityType}`);
     validateFieldList(action.mutation?.fields, domain, entityType, `action ${actionId} update fields`, errors);
   }
-  if (!action.access || !Array.isArray(action.access.roleIds) || !['read', 'write', 'admin'].includes(action.access.level)) {
-    errors.push(`Action ${actionId} must define access with level and roleIds`);
+  const normalizedAccess = normalizeActionAccess(action.access);
+  if (!action.access || !Array.isArray(normalizedAccess.grants) || !['read', 'write', 'admin'].includes(normalizedAccess.level)) {
+    errors.push(`Action ${actionId} must define access grants`);
   }
   if (kind === 'sendToOrganization') {
     validateFieldList(action.projection?.fields, domain, action.entityType, `action ${actionId} projection fields`, errors);
@@ -1300,7 +1338,7 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
   if (!['manual', 'event'].includes(triggerMode)) {
     errors.push(`Action ${actionId} uses unknown trigger mode ${triggerMode}`);
   }
-  for (const roleId of normalizeActionAccess(action.access).roleIds) {
+  for (const roleId of normalizedAccess.roleIds) {
     if (!roles[roleId]) errors.push(`Action ${actionId} references missing access role ${roleId}`);
   }
   if (action.statusRef && !statusDefinitions[action.statusRef]) {

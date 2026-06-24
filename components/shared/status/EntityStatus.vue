@@ -34,7 +34,7 @@ const props = defineProps({
 const emit = defineEmits(['transitioned', 'refresh']);
 const { t } = useI18n();
 const toast = useToast();
-const { state, regions } = useStatus(toRef(props, 'entity'));
+const { state, regions, metadata } = useStatus(toRef(props, 'entity'));
 const { transition, fetchActions, isTransitioning } = useStatusController();
 const op = ref();
 const serverActions = ref([]);
@@ -212,6 +212,8 @@ function actionKey(action = {}) {
 }
 
 const secondaryRegions = computed(() => regions.value.filter(region => region.id !== 'main'));
+const statusDisplay = computed(() => metadata.value?.display || null);
+const regionDisplay = computed(() => metadata.value?.regions || {});
 
 function normalizeLabel(value = '') {
     return String(value)
@@ -246,11 +248,12 @@ function normalizeEventType(type) {
   >
     <template v-if="!isExpanded">
       <div class="flex min-w-0 max-w-48 flex-wrap items-center justify-end gap-1.5 sm:max-w-56">
-        <StatusBadge :state="state" class="cursor-pointer min-w-0 max-w-full shrink" @click.stop="toggle" />
+        <StatusBadge :state="state" :display="statusDisplay" class="cursor-pointer min-w-0 max-w-full shrink" @click.stop="toggle" />
         <StatusBadge
           v-for="region in secondaryRegions"
           :key="region.id"
           :state="region.state"
+          :display="regionDisplay[region.id]"
           icon-only
           class="cursor-pointer shrink-0"
           @click.stop="toggle"
@@ -318,11 +321,12 @@ function normalizeEventType(type) {
     <template v-else>
         <div class="flex flex-col gap-2 min-w-0 max-w-full">
             <div class="flex flex-wrap items-center gap-2 min-w-0">
-                <StatusBadge :state="state" class="max-w-full" />
+                <StatusBadge :state="state" :display="statusDisplay" class="max-w-full" />
                 <StatusBadge
                     v-for="region in secondaryRegions"
                     :key="region.id"
                     :state="region.state"
+                    :display="regionDisplay[region.id]"
                     icon-only
                     class="shrink-0"
                 />

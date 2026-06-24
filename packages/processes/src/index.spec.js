@@ -1136,6 +1136,45 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('keeps per-role action access levels separate', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_writer: { id: 'role_writer' },
+        role_admin: { id: 'role_admin' }
+      },
+      actions: {
+        create_project: {
+          id: 'create_project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: INITIAL_STATE },
+          trigger: { mode: 'manual' },
+          access: {
+            grants: [
+              { roleId: 'role_writer', level: 'write' },
+              { roleId: 'role_admin', level: 'admin' }
+            ]
+          },
+          inputs: [],
+          outputs: [{ id: 'created', entityType: 'project', status: INITIAL_STATE }]
+        }
+      },
+      assignments: {
+        user_writer: { userId: 'user_writer', roleIds: ['role_writer'], status: 'active' },
+        user_admin: { userId: 'user_admin', roleIds: ['role_admin'], status: 'active' }
+      }
+    }, domain);
+
+    expect(compiled.userAccess.user_writer.permissions.projects[0]).toMatchObject({
+      level: 'write',
+      rule: { fact: 'primaryStatus', equals: INITIAL_STATE }
+    });
+    expect(compiled.userAccess.user_admin.permissions.projects[0]).toMatchObject({
+      level: 'admin',
+      rule: { fact: 'primaryStatus', equals: INITIAL_STATE }
+    });
+  });
+
   it('derives status action grants for the resulting status contract', () => {
     const compiled = compileProcessDefinition({
       roles: {
