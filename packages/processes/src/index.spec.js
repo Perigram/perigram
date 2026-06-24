@@ -1359,6 +1359,7 @@ describe('@cutkit/processes compiler', () => {
     ]);
     expect(compiled.userAccess.user_source.actions.map(action => action.actionId)).toContain('activate_project');
     expect(compiled.userAccess.user_target.actions.map(action => action.actionId)).not.toContain('activate_project');
+    expect(compiled.workflows.project.regions.main.transitions[0].processRoleIds).toEqual(['role_source']);
   });
 
   it('carries scoped parent lineage into child entity action grants', () => {

@@ -20,6 +20,7 @@
     :screen-key="screenKey"
     :region="region"
     :source="sourceState.source"
+    :action-context="actionContext"
     @refresh="$emit('refresh')"
     @execute-action="(action, entity, context) => $emit('execute-action', action, entity, context)"
   />
@@ -35,7 +36,8 @@ const props = defineProps({
   sourceState: { type: Object, required: true },
   template: { type: String, default: 'entityList' },
   screenActions: { type: Array, default: () => [] },
-  screenKey: { type: String, default: '' }
+  screenKey: { type: String, default: '' },
+  actionContext: { type: Object, default: () => ({}) }
 });
 
 defineEmits(['refresh', 'execute-action']);

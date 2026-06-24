@@ -55,6 +55,7 @@
         :source-state="sourceState(region.sourceId)"
         :template="screen.template"
         :screen-actions="[]"
+        :action-context="detailActionContext"
         @refresh="load"
         @execute-action="executeAction"
       />
@@ -159,6 +160,13 @@ const regionBySlot = computed(() => Object.fromEntries(
 ));
 const detailMainRegion = computed(() => screen.value.regions.find(region => sourceState(region.sourceId).source?.mode === 'single') || screen.value.regions[0] || null);
 const detailChildRegions = computed(() => screen.value.regions.filter(region => region !== detailMainRegion.value));
+const detailActionContext = computed(() => {
+  const state = detailMainRegion.value ? sourceState(detailMainRegion.value.sourceId) : null;
+  return {
+    parentEntity: state?.entity || null,
+    parentEntityType: state?.source?.entityType || ''
+  };
+});
 const actionInputFields = computed(() => collectActionInputFields(pendingAction.value));
 const promptFields = computed(() => promptedFields(pendingAction.value));
 const pendingActionLabel = computed(() => pendingAction.value?.label || t('common.create'));
@@ -241,11 +249,18 @@ function actionEntities(action = {}, entity = null, context = {}) {
   const entityType = entity?.origin?.type || entity?.type || resolvedContext?.entityType || '';
   if (entityId && entityType) entities[entityType] = entityId;
   const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || '';
+  const contextParentId = parentType && resolvedContext.parentEntityType === parentType
+    ? entityIdentifier(resolvedContext.parentEntity)
+    : '';
   const parentId = parentType
-    ? screen.value.scope?.[`${parentType}Id`] || screen.value.scope?.entityId || resolveParentIdFromFilters(parentType, resolvedContext?.source?.filters)
+    ? contextParentId || screen.value.scope?.[`${parentType}Id`] || screen.value.scope?.entityId || resolveParentIdFromFilters(parentType, resolvedContext?.source?.filters)
     : '';
   if (parentType && parentId) entities[parentType] = parentId;
   return entities;
+}
+
+function entityIdentifier(entity = null) {
+  return entity?._id || entity?.identity?.uid || entity?.id || '';
 }
 
 function resolveParentIdFromFilters(parentType = '', filters = {}) {

@@ -269,6 +269,7 @@ function compileLifecycle(profile = {}, domain = {}) {
 
 function compileWorkflows(process = {}, domain = {}) {
   const workflows = {};
+  const actionWindows = compileActionAccessWindows(process, domain);
   for (const profile of Object.values(process.entityProfiles || {})) {
     workflows[profile.entityType] = compileLifecycle(profile, domain);
   }
@@ -278,7 +279,7 @@ function compileWorkflows(process = {}, domain = {}) {
     workflowBuilderFromWorkflow(workflow)
   ]));
 
-  for (const action of Object.values(process.actions || {})) {
+  for (const [actionId, action] of Object.entries(process.actions || {})) {
     const kind = action.actionKind || 'createEntity';
     if (!['createEntity', 'changeStatus'].includes(kind)) continue;
     const entityType = actionEntityType(action);
@@ -297,10 +298,11 @@ function compileWorkflows(process = {}, domain = {}) {
     addWorkflowState(builder, from);
     addWorkflowState(builder, to);
     const access = normalizeActionAccess(action.access);
+    const executableRoleIds = actionExposureRoleIds(action, access, actionWindows.get(actionId));
     const transition = {
       from,
       to,
-      processRoleIds: [...(access.roleIds || [])]
+      processRoleIds: executableRoleIds
     };
     const feature = resolveEntityFeature(domain, entityType);
     if (feature && access.roleIds?.length) {

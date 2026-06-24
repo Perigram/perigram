@@ -104,7 +104,8 @@ const props = defineProps({
   actions: { type: Array, default: () => [] },
   screenKey: { type: String, default: '' },
   region: { type: Object, default: () => ({}) },
-  source: { type: Object, default: () => ({}) }
+  source: { type: Object, default: () => ({}) },
+  actionContext: { type: Object, default: () => ({}) }
 });
 
 defineEmits(['refresh', 'execute-action']);
@@ -115,6 +116,7 @@ const resolvedActions = computed(() => props.actions
   .filter(Boolean));
 const collectionActions = computed(() => resolvedActions.value.filter(action => action.actionKind === 'createEntity'));
 const actionContext = computed(() => ({
+  ...(props.actionContext || {}),
   region: props.region,
   source: props.source,
   entityType: props.entityType
