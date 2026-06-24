@@ -1,12 +1,13 @@
 <template>
-  <GeneratedScreen v-if="screen" :screen="screen" />
+  <StateBlock v-if="refreshingAuth" state="loading" :message="$t('common.loading')" />
+  <GeneratedScreen v-else-if="screen" :screen="screen" />
   <StandardPage v-else>
     <StateBlock state="error" :message="$t('generatedScreen.notFound')" />
   </StandardPage>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
@@ -20,6 +21,7 @@ definePageMeta({
 
 const route = useRoute();
 const authStore = useAuthStore();
+const refreshingAuth = ref(true);
 
 const screenKey = computed(() => Array.isArray(route.params.screenKey)
   ? route.params.screenKey.join('/')
@@ -37,6 +39,19 @@ const screen = computed(() => {
     }
   };
 });
+
+onMounted(() => refreshProcessManifest());
+
+watch(screenKey, () => refreshProcessManifest());
+
+async function refreshProcessManifest() {
+  refreshingAuth.value = true;
+  try {
+    await authStore.setUser();
+  } finally {
+    refreshingAuth.value = false;
+  }
+}
 
 function synthesizedDetailScreen(key = '') {
   if (!String(key).endsWith('_detail')) return null;
