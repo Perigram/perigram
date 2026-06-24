@@ -77,6 +77,10 @@ layer standards, system pens, and system tools carry
 `data.visibility.public: true`; `hasEntityAccess()` and field redaction allow
 read-level access to those marked records directly. Write/admin access still
 requires explicit grants or ownership.
+Server modules that are imported by Nitro dev must import shared contracts with
+repository-relative paths. Do not use `~/shared/...` from those files, because
+the generated dev server can resolve it to `/shared/...` instead of the
+workspace path.
 
 ## Required Checks
 

@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Fix server shared imports for Nuxt dev
+    Files changed: server/core/access/service.js,
+      server/utils/auth-helpers.js, server/features/catalogs/service.js,
+      server/features/requisitions/service.js,
+      server/features/users/service.js,
+      server/features/process-definitions/service.js
+    Docs updated: server/README.md, TODO.org
+    Notes: Server modules no longer import shared access helpers through
+      `~/shared/...`; Nitro dev compiled that alias to `/shared/*.js`. These
+      modules now use repository-relative imports for shared contracts.
+
     [2026-06-24] Fix public entity shared import for Nuxt dev
     Files changed: shared/entity-field-access.js
     Docs updated: shared/README.md, TODO.org
