@@ -508,7 +508,8 @@ function compileRoles(process = {}, domain = {}) {
 }
 
 function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
-  if ((action.actionKind || 'createEntity') === 'changeStatus') {
+  const kind = action.actionKind || 'createEntity';
+  if (kind === 'changeStatus') {
     const incoming = actionWindow?.input;
     const incomingRoleGrants = incoming?.roleGrants || grantsFromRoleIds(incoming?.roleIds || [], incoming?.level || access.level);
     const executable = incomingRoleGrants
@@ -517,9 +518,18 @@ function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
       .filter(Boolean);
     if (executable.length) return [...new Set(executable)];
   }
-  const explicit = access.grants?.map(grant => grant.roleId).filter(Boolean) || access.roleIds || [];
+  const explicitGrants = access.grants?.length ? access.grants : grantsFromRoleIds(access.roleIds || [], access.level);
+  const explicit = explicitGrants
+    .filter(grant => ACCESS_ORDER[normalizeAccessLevel(grant.level)] >= ACCESS_ORDER.write)
+    .map(grant => grant.roleId)
+    .filter(Boolean);
   if (explicit.length) return explicit;
-  return [...new Set((actionWindow?.outputs || []).flatMap(output => output.roleGrants?.map(grant => grant.roleId) || output.roleIds || []))];
+  return [...new Set((actionWindow?.outputs || []).flatMap(output => {
+    const grants = output.roleGrants || grantsFromRoleIds(output.roleIds || [], output.level || access.level);
+    return grants
+      .filter(grant => ACCESS_ORDER[normalizeAccessLevel(grant.level)] >= ACCESS_ORDER.write)
+      .map(grant => grant.roleId);
+  }))];
 }
 
 function actionStatusForExposure(action = {}, actionWindow = null, access = {}, process = {}) {

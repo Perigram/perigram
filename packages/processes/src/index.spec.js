@@ -420,6 +420,38 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.screens.auto_role_queue_cassette).toBeUndefined();
   });
 
+  it('does not expose create actions to roles with read-only target grants', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_writer: { id: 'role_writer', label: 'Writer' },
+        role_reader: { id: 'role_reader', label: 'Reader' }
+      },
+      actions: {
+        create_cassette: {
+          id: 'create_cassette',
+          actionKind: 'createEntity',
+          entityType: 'cassette',
+          status: { to: 'CREATED' },
+          access: {
+            grants: [
+              { roleId: 'role_writer', level: 'write' },
+              { roleId: 'role_reader', level: 'read' }
+            ]
+          }
+        }
+      },
+      assignments: {
+        user_writer: { userId: 'user_writer', roleIds: ['role_writer'], status: 'active' },
+        user_reader: { userId: 'user_reader', roleIds: ['role_reader'], status: 'active' }
+      }
+    }, domain);
+
+    expect(compiled.roles.role_writer.actions.map(action => action.actionId)).toContain('create_cassette');
+    expect(compiled.roles.role_reader.actions.map(action => action.actionId)).not.toContain('create_cassette');
+    expect(compiled.userAccess.user_writer.actions.map(action => action.actionId)).toContain('create_cassette');
+    expect(compiled.userAccess.user_reader.actions.map(action => action.actionId)).not.toContain('create_cassette');
+  });
+
   it('exposes manual status actions through inherited access windows', () => {
     const compiled = compileProcessDefinition({
       roles: {
