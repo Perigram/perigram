@@ -51,14 +51,7 @@ const props = defineProps({
 defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
-const candidateActionIds = computed(() => [...new Set([
-  ...props.actions,
-  ...authStore.actionManifest
-    .filter(action => action.actionKind === 'createEntity')
-    .filter(action => (action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType) === props.entityType)
-    .filter(action => !props.excludedActions.includes(action.actionId))
-    .map(action => action.actionId)
-])]);
+const candidateActionIds = computed(() => props.actions.filter(actionId => !props.excludedActions.includes(actionId)));
 const visibleActions = computed(() => candidateActionIds.value.filter((actionId) => {
   const action = authStore.actionManifest.find(item => item.actionId === actionId);
   return actionAppliesToEntity(action, props.entity, props.entityType);
