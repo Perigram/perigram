@@ -145,6 +145,15 @@ resulting status instead of leaving an older additive grant behind. Parent-scope
 windows carry lineage scope forward: a queue created from a project window scoped to
 `$assignment.projectId` receives a `scope.projectId` grant, so access for one
 project branch does not apply to queues under another project branch.
+Command actions inherit the incoming entity window for their domain-declared
+output entities unless the command action explicitly defines its own access
+grants or marks access as modified. Output entity types come from the domain
+command `output.entities` contract, not from frontend assumptions. When the
+domain summary registry declares an output as a child of the input entity, the
+compiler carries lineage scope through that parent relation; for example,
+`solveNesting` outputs `nesting_run` and `sheet_design` records under the
+source queue, so those results receive the same role window as the queue unless
+a later graph node changes it.
 Stored active process definitions keep compiled runtime contracts in MongoDB.
 After compiler changes that alter generated screens, action exposure, workflow
 output, or grants, run

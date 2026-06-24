@@ -35,6 +35,11 @@ material context (`materialMode: WAREHOUSE`, `inventoryItems`, and normalized
 `nesting_run` and `sheet_design` entities only. DXF/SVG/PDF files are requested
 later through the artifacts service and `AttachmentKind` contracts, not as
 primary nesting-run outputs.
+`summaries.js` declares both `nesting_run` and `sheet_design` as queue children
+because nesting output access, generated queue detail regions, and aggregate
+summary sync all use the same lineage relation contract. Services that create
+those outputs must persist `lineage.queueId` and, when available,
+`lineage.projectId`.
 Queue workflow UI actions start with `DRAFT -> NESTING`; any system-only
 `DRAFT -> READY` recovery transition is marked `display: 'hidden'` so operators
 cannot skip nesting from status controls. Queues can be moved to `ARCHIVED`

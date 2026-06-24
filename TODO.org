@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Inherit command output access and standardize generated queue layout
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      packages/domain-cnc/src/summaries.js, components/QueueEditor.vue,
+      components/shared/WorkspaceLanes.vue
+    Docs updated: packages/processes/README.md, packages/domain-cnc/README.md,
+      components/README.md, TODO.org
+    Notes: Run-command actions with typed entity inputs now inherit the source
+      entity access window for domain-declared output entities unless the graph
+      explicitly overrides access. The domain summary registry declares
+      sheet_design as a queue child so nesting outputs share queue lineage
+      semantics. Generated queue details use a stacked WorkspaceLanes layout
+      inside EntityPage while route workspaces keep the three-lane layout.
+
     [2026-06-24] Fix generated queue detail assumptions and cassette designer save access
     Files changed: components/QueueEditor.vue,
       components/generated/GeneratedQueueDetail.vue,
