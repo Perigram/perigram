@@ -270,7 +270,7 @@ export async function list(userId, userOrg, userRole, userPermissions, query = {
   const { limit, skip, status, primaryStatus, primaryStatuses, ...rest } = query;
 
   const lineageFilter = getLineageFilter(userPermissions);
-  const processedFilter = { ...rest };
+  const processedFilter = normalizeLineageQuery(rest);
 
   const statuses = normalizePrimaryStatuses(primaryStatuses);
   if (statuses.length) processedFilter['status.state.primary'] = { $in: statuses };
@@ -286,6 +286,17 @@ export async function list(userId, userOrg, userRole, userPermissions, query = {
   return cassettes
     .map(toDTO)
     .filter(cassette => hasLineagePermission(userPermissions, cassette, 'cassettes', 'read'));
+}
+
+function normalizeLineageQuery(query = {}) {
+  const normalized = { ...query };
+  for (const key of ['projectId', 'queueId', 'warehouseId', 'cassetteId']) {
+    if (normalized[key] !== undefined) {
+      normalized[`lineage.${key}`] = toFlexibleId(normalized[key]);
+      delete normalized[key];
+    }
+  }
+  return normalized;
 }
 
 function normalizePrimaryStatuses(value) {

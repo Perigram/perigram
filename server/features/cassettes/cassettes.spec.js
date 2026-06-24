@@ -172,9 +172,14 @@ describe('Cassette Management & Ownership', () => {
   it('filters cassette lists by generated-screen statuses and detail-equivalent access', async () => {
     const active = await cassetteService.create({ name: 'Active Template' }, user1.userId, user1.organizationId, null, user1.permissions);
     const draft = await cassetteService.create({ name: 'Draft Template' }, user1.userId, user1.organizationId, null, user1.permissions);
+    const projectScoped = await cassetteService.create({ name: 'Project Template' }, user1.userId, user1.organizationId, null, user1.permissions);
     await db.collection('cassettes').updateOne(
       { _id: draft._id },
       { $set: { 'status.state.primary': 'DRAFT' } }
+    );
+    await db.collection('cassettes').updateOne(
+      { _id: projectScoped._id },
+      { $set: { 'lineage.projectId': 'project-a', 'status.state.primary': 'DRAFT' } }
     );
 
     const readOnlyActiveAuth = {
@@ -198,6 +203,20 @@ describe('Cassette Management & Ownership', () => {
     );
 
     expect(result.map(item => item._id.toString())).toEqual([active._id.toString()]);
+    const scopedReadAuth = {
+      ...readOnlyActiveAuth,
+      effectivePermissions: {
+        cassettes: [{ level: 'read' }]
+      }
+    };
+    const scoped = await cassetteService.list(
+      'status-reader',
+      user1.organizationId,
+      null,
+      scopedReadAuth,
+      { primaryStatuses: 'ACTIVE,DRAFT', projectId: 'project-a' }
+    );
+    expect(scoped.map(item => item._id.toString())).toEqual([projectScoped._id.toString()]);
     await expect(cassetteService.getById(
       draft._id.toString(),
       'status-reader',

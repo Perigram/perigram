@@ -31,6 +31,9 @@ const domain = {
   commands: {
     solveNesting: { id: 'solveNesting' }
   },
+  summaries: [
+    { entityType: 'queue', parentType: 'project', parentIdKey: 'projectId' }
+  ],
   workflows: {
     project: {
       schemaVersion: 2,
@@ -765,6 +768,41 @@ describe('@cutkit/processes compiler', () => {
       })
     ]));
     expect(compiled.screens.auto_role_admin_queue.actions).not.toContain('create_queue');
+  });
+
+  it('does not infer child regions without a domain parent relation', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_admin: { id: 'role_admin', label: 'Admin' }
+      },
+      actions: {
+        create_project: {
+          id: 'create_project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: SOURCE_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'admin', roleIds: ['role_admin'] },
+          outputs: [{ id: 'created', entityType: 'project', status: SOURCE_STATE }]
+        },
+        create_cassette: {
+          id: 'create_cassette',
+          actionKind: 'createEntity',
+          entityType: 'cassette',
+          parentEntityType: 'project',
+          status: { to: INITIAL_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_admin'] },
+          inputs: [{ id: 'parent', entityType: 'project' }],
+          outputs: [{ id: 'created', entityType: 'cassette', status: INITIAL_STATE }]
+        }
+      },
+      assignments: {
+        user_admin: { userId: 'user_admin', roleIds: ['role_admin'], status: 'active' }
+      }
+    }, domain);
+
+    expect(compiled.screens.auto_role_admin_project_detail.sources.map(source => source.entityType)).not.toContain('cassette');
   });
 
   it('compiles typed construction and status definitions into actions and workflows', () => {

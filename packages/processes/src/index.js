@@ -970,6 +970,8 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
     if (kind !== 'createEntity' || actionParent !== parentEntityType) continue;
     const childEntityType = action.entityType || processAction.entityType || '';
     if (!childEntityType) continue;
+    const parentRelation = parentRelationForChild(domain, childEntityType, parentEntityType);
+    if (!parentRelation) continue;
     const childFeature = featureFromEntityType(domain, childEntityType);
     if (!childFeature) continue;
     const childGrants = (role.grants || []).filter(grant => grant.feature === childFeature);
@@ -981,7 +983,7 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
         entityType: childEntityType,
         mode: 'list',
         required: aggregateScreenRequirement(childFeature, childGrants),
-        filters: { [`${parentEntityType}Id`]: '$screen.scope.entityId' }
+        filters: { [parentRelation.parentIdKey]: '$screen.scope.entityId' }
       });
     }
     let region = regions.find(item => item.sourceId === sourceId);
@@ -1003,6 +1005,14 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
     regions,
     actionIds
   };
+}
+
+function parentRelationForChild(domain = {}, childEntityType = '', parentEntityType = '') {
+  return (domain.summaries || []).find(summary => (
+    summary.entityType === childEntityType
+    && summary.parentType === parentEntityType
+    && summary.parentIdKey
+  )) || null;
 }
 
 function groupGrantsByFeature(grants = []) {
