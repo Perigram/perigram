@@ -6,7 +6,7 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import { createIdentity, createStatus, createData } from '~/server/core/blocks/index.js';
 import { Material } from './model.js';
-import { markPublicSystemData } from '../../../shared/public-entities.js';
+import { markPublicSystemData } from '#shared/public-entities.js';
 
 function toDTO(material) {
   if (!material) return null;

@@ -6,7 +6,7 @@ import * as repository from './repository.js';
 import { createIdentity, createStatus, createData } from '../../core/blocks/index.js';
 import { createError } from 'h3';
 import { ToolProfile } from './model.js';
-import { markPublicSystemData } from '../../../shared/public-entities.js';
+import { markPublicSystemData } from '#shared/public-entities.js';
 
 function toDTO(tool) {
   if (!tool) return null;

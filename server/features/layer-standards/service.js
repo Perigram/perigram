@@ -3,7 +3,7 @@ import { createError } from 'h3';
 import { createIdentity, createData, createStatus } from '../../core/blocks/index.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { LayerStandard } from './model.js';
-import { markPublicSystemData } from '../../../shared/public-entities.js';
+import { markPublicSystemData } from '#shared/public-entities.js';
 
 /**
  * Layer Standards Service - v24 Standardized
