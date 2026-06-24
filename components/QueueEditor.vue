@@ -1,6 +1,6 @@
 <template>
     <div class="flex h-full min-h-0 min-w-0 flex-col">
-        <WorkspaceLanes :center-scroll="false">
+        <WorkspaceLanes :center-scroll="false" :layout="showQueueNavigation ? 'lanes' : 'stack'">
             <template v-if="showQueueNavigation && queues?.length > 0" #left>
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>

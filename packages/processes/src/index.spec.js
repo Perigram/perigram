@@ -20,6 +20,8 @@ const domain = {
   entities: [
     { type: 'project' },
     { type: 'queue' },
+    { type: 'nesting_run', collection: 'nesting_runs' },
+    { type: 'sheet_design', collection: 'sheet_designs' },
     { type: 'cassette' },
     { type: 'cassette_design', collection: 'cassette_designs' },
     { type: 'catalog' },
@@ -29,10 +31,15 @@ const domain = {
     { type: 'user' }
   ],
   commands: {
-    solveNesting: { id: 'solveNesting' }
+    solveNesting: {
+      id: 'solveNesting',
+      output: { entities: ['nesting_run', 'sheet_design'] }
+    }
   },
   summaries: [
-    { entityType: 'queue', parentType: 'project', parentIdKey: 'projectId' }
+    { entityType: 'queue', parentType: 'project', parentIdKey: 'projectId' },
+    { entityType: 'nesting_run', parentType: 'queue', parentIdKey: 'queueId' },
+    { entityType: 'sheet_design', parentType: 'queue', parentIdKey: 'queueId' }
   ],
   workflows: {
     project: {
@@ -1501,6 +1508,57 @@ describe('@cutkit/processes compiler', () => {
         scope: { projectId: 'project-a' },
         rule: { fact: 'primaryStatus', equals: INITIAL_STATE }
       }
+    ]);
+  });
+
+  it('inherits command output grants from the source entity window', () => {
+    const compiled = compileProcessDefinition({
+      graph: {
+        nodes: [
+          { id: 'create_queue', type: 'action', position: {}, data: { refId: 'create_queue' } },
+          { id: 'solve_nesting', type: 'action', position: {}, data: { refId: 'solve_nesting' } }
+        ],
+        edges: [
+          {
+            id: 'create_queue-solve_nesting',
+            source: 'create_queue',
+            target: 'solve_nesting',
+            sourceHandle: 'output',
+            targetHandle: 'input:queue'
+          }
+        ]
+      },
+      roles: {
+        role_operator: { id: 'role_operator' }
+      },
+      actions: {
+        create_queue: {
+          id: 'create_queue',
+          actionKind: 'createEntity',
+          entityType: 'queue',
+          status: { to: SOURCE_STATE },
+          trigger: { mode: 'manual' },
+          access: { grants: [{ roleId: 'role_operator', level: 'write' }] },
+          outputs: [{ id: 'created', entityType: 'queue', status: SOURCE_STATE }]
+        },
+        solve_nesting: {
+          id: 'solve_nesting',
+          actionKind: 'runCommand',
+          commandId: 'solveNesting',
+          trigger: { mode: 'event' },
+          inputs: [{ id: 'queue', entityType: 'queue', status: SOURCE_STATE }]
+        }
+      },
+      assignments: {
+        user_operator: { userId: 'user_operator', roleIds: ['role_operator'], status: 'active' }
+      }
+    }, domain);
+
+    expect(compiled.userAccess.user_operator.permissions.nesting_runs).toEqual([
+      { level: 'write' }
+    ]);
+    expect(compiled.userAccess.user_operator.permissions.sheet_designs).toEqual([
+      { level: 'write' }
     ]);
   });
 

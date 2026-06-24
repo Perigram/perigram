@@ -2,6 +2,7 @@ export const cncSummaries = [
   { entityType: 'queue', parentType: 'project', parentIdKey: 'projectId', countField: 'queueCount' },
   { entityType: 'cassette_instance', parentType: 'project', parentIdKey: 'projectId', countField: 'instanceCount' },
   { entityType: 'nesting_run', parentType: 'queue', parentIdKey: 'queueId', countField: 'runCount' },
+  { entityType: 'sheet_design', parentType: 'queue', parentIdKey: 'queueId', countField: 'sheetDesignCount' },
   { entityType: 'sheet', parentType: 'queue', parentIdKey: 'queueId', countField: 'sheetCount', sumFields: { area: 'totalArea' } },
   { entityType: 'color', parentType: 'catalog', parentIdKey: 'catalogId', countField: 'colorCount' }
 ];

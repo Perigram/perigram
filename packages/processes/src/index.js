@@ -673,7 +673,11 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
   const feature = entityType ? resolveEntityFeature(domain, entityType) : null;
   const inheritedRoleGrants = incoming?.roleGrants || grantsFromRoleIds(incoming?.roleIds || [], incoming?.level || access.level);
   const explicitRoleGrants = access.grants || grantsFromRoleIds(access.roleIds || [], access.level);
-  const useInherited = kind === 'changeStatus' && !access.modified && inheritedRoleGrants.length;
+  const hasExplicitRoleGrants = hasExplicitActionRoleGrants(action.access);
+  const useInherited = inheritedRoleGrants.length && (
+    (kind === 'changeStatus' && !access.modified) ||
+    (kind === 'runCommand' && !hasExplicitRoleGrants && !access.modified)
+  );
   const roleGrants = useInherited ? inheritedRoleGrants : explicitRoleGrants;
   const roleIds = [...new Set(roleGrants.map(grant => grant.roleId).filter(Boolean))];
   const level = maxGrantLevel(roleGrants, useInherited ? (incoming.level || access.level) : access.level);
@@ -697,6 +701,29 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
     };
     outputs.push(window);
     grants.push(...windowGrants(window, action, access));
+  }
+
+  if (kind === 'runCommand' && incoming) {
+    const commandOutputs = commandOutputEntityTypes(domain, action.commandId);
+    for (const outputEntityType of commandOutputs) {
+      const outputFeature = resolveEntityFeature(domain, outputEntityType);
+      if (!outputFeature) continue;
+      const outputScope = deriveCommandOutputScope(outputEntityType, incoming, domain);
+      const window = {
+        id: outputEntityType,
+        handleId: `output:${outputEntityType}`,
+        entityType: outputEntityType,
+        feature: outputFeature,
+        status: '',
+        level,
+        roleIds,
+        roleGrants,
+        scope: outputScope,
+        sourcePath: [incoming?.sourcePath, actionId, outputEntityType].filter(Boolean).join('>')
+      };
+      outputs.push(window);
+      grants.push(...windowGrants(window, action, access));
+    }
   }
 
   return {
@@ -723,6 +750,12 @@ function maxGrantLevel(grants = [], fallback = 'write') {
   ), normalizeAccessLevel(fallback));
 }
 
+function hasExplicitActionRoleGrants(access = {}) {
+  if (Array.isArray(access.grants)) return access.grants.some(grant => grant?.roleId);
+  if (Array.isArray(access.roleIds)) return access.roleIds.some(Boolean);
+  return false;
+}
+
 function outputSocketId(action = {}, kind = '') {
   return action.outputs?.find(output => output.entityType)?.id || (kind === 'createEntity' ? 'created' : 'entity');
 }
@@ -746,6 +779,23 @@ function deriveActionWindowScope(action = {}, incoming = null) {
   if (inheritedScope?.entityId && !inheritedScope[parentKey]) {
     const { entityId, ...lineageScope } = inheritedScope;
     return { ...lineageScope, [parentKey]: entityId };
+  }
+  return inheritedScope;
+}
+
+function commandOutputEntityTypes(domain = {}, commandId = '') {
+  const output = domain.commands?.[commandId]?.output || {};
+  return [...new Set(output.entities || [])].filter(Boolean);
+}
+
+function deriveCommandOutputScope(outputEntityType = '', incoming = null, domain = {}) {
+  const inheritedScope = incoming?.scope ? { ...incoming.scope } : null;
+  if (!incoming?.entityType) return inheritedScope;
+  const relation = parentRelationForChild(domain, outputEntityType, incoming.entityType);
+  if (!relation) return inheritedScope;
+  if (inheritedScope?.entityId && !inheritedScope[relation.parentIdKey]) {
+    const { entityId, ...lineageScope } = inheritedScope;
+    return { ...lineageScope, [relation.parentIdKey]: entityId };
   }
   return inheritedScope;
 }
@@ -1442,7 +1492,8 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
     validateFieldList(action.mutation?.fields, domain, entityType, `action ${actionId} update fields`, errors);
   }
   const normalizedAccess = normalizeActionAccess(action.access);
-  if (!action.access || !Array.isArray(normalizedAccess.grants) || !['read', 'write', 'admin'].includes(normalizedAccess.level)) {
+  const canInheritAccess = kind === 'runCommand' && action.inputs?.some(input => input.entityType);
+  if ((!action.access && !canInheritAccess) || !Array.isArray(normalizedAccess.grants) || !['read', 'write', 'admin'].includes(normalizedAccess.level)) {
     errors.push(`Action ${actionId} must define access grants`);
   }
   if (kind === 'sendToOrganization') {
