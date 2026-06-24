@@ -62,7 +62,7 @@
           <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
-                <div v-if="selectedNode.type !== 'action'" class="flex flex-col gap-1">
+                <div v-if="!['action', 'statusDefinition'].includes(selectedNode.type)" class="flex flex-col gap-1">
                   <label>{{ $t('processDesigner.label') }}</label>
                   <InputText v-model="selectedRecord.label" />
                 </div>
@@ -1507,6 +1507,7 @@ function initialStatusForProfile(profile = {}) {
 
 function syncStatusDefinition(status = {}) {
   status.statusId ||= String(status.label || 'STATUS').trim().toUpperCase().replace(/\s+/g, '_');
+  if (status.label === 'Created' && status.statusId !== 'CREATED') status.label = '';
   status.label ??= '';
   status.severity ||= status.color || 'info';
   status.color = status.severity;

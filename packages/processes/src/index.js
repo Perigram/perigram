@@ -1080,10 +1080,7 @@ function compileActions(actions = {}, process = {}, domain = {}) {
     entityType: action.entityType || null,
     parentEntityType: action.parentEntityType || null,
     commandId: action.commandId || null,
-    status: {
-      ...(action.status || {}),
-      ...(actionTargetState(action, process) ? { to: actionTargetState(action, process) } : {})
-    },
+    status: compileActionStatus(action, process),
     mutation: action.mutation || { fields: [] },
     projection: action.projection || null,
     construction: normalizeConstruction(action.construction, action.entityType, domain),
@@ -1099,6 +1096,16 @@ function compileActions(actions = {}, process = {}, domain = {}) {
   }]));
 }
 
+function compileActionStatus(action = {}, process = {}) {
+  const target = actionTargetState(action, process);
+  const metadata = action.statusRef ? statusDefinitionMetadata(process.statusDefinitions?.[action.statusRef]) : {};
+  return {
+    ...(action.status || {}),
+    ...metadata,
+    ...(target ? { to: target } : {})
+  };
+}
+
 function actionTargetState(action = {}, process = {}) {
   const statusRef = action.statusRef;
   const referenced = statusRef ? process.statusDefinitions?.[statusRef] : null;
@@ -1107,6 +1114,16 @@ function actionTargetState(action = {}, process = {}) {
     || action.access?.statusTo
     || action.outputs?.find(output => output.status)?.status
     || '';
+}
+
+function statusDefinitionMetadata(definition = {}) {
+  if (!definition) return {};
+  return {
+    ...(definition.label ? { label: definition.label } : {}),
+    ...(definition.color || definition.severity ? { color: definition.color || definition.severity } : {}),
+    ...(definition.severity || definition.color ? { severity: definition.severity || definition.color } : {}),
+    ...(definition.icon ? { icon: definition.icon } : {})
+  };
 }
 
 function compileStatusDefinitions(statusDefinitions = {}) {

@@ -725,7 +725,6 @@ describe('@cutkit/processes compiler', () => {
       statusDefinitions: {
         status_review: {
           id: 'status_review',
-          entityType: 'cassette_design',
           statusId: 'REVIEW',
           label: 'Review',
           severity: 'warn',
@@ -771,6 +770,12 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.actions.create_design.status).toMatchObject({ to: 'REVIEW' });
+    expect(compiled.actions.create_design.status).toMatchObject({
+      label: 'Review',
+      color: 'warn',
+      severity: 'warn',
+      icon: 'pi pi-eye'
+    });
     expect(compiled.actions.create_design.construction.mode).toBe('bakeCassetteDesignFromTemplate');
     expect(compiled.statusDefinitions.status_review).toMatchObject({ statusId: 'REVIEW', severity: 'warn', color: 'warn' });
     expect(compiled.valueInputs.design_name).toMatchObject({
