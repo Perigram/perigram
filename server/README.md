@@ -71,6 +71,13 @@ and navigation for the current user. The access engine still evaluates the same
 shared grant shape; process activation changes the grant source, not the
 permission evaluator.
 
+System catalogue entities can be public-read without grants. Materials, system
+layer standards, system pens, and system tools carry
+`lineage.scope: "system"`, `lineage.public: true`, and
+`data.visibility.public: true`; `hasEntityAccess()` and field redaction allow
+read-level access to those marked records directly. Write/admin access still
+requires explicit grants or ownership.
+
 ## Required Checks
 
 ```bash

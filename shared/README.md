@@ -34,9 +34,12 @@ Access uses feature keys such as `projects`, `queues`, `cassettes`,
 `materials`, `layer_standards`, `users`, and `organizations` with levels
 `none`, `read`, `write`, and `admin`.
 
-Default presets always floor `materials` and `layer_standards` to at least
-`read`, because system tools, pens, and layer catalogs are part of the base
-app runtime rather than optional user content.
+System materials, layer standards, pens, and tools are not granted through
+default presets. They are read from the public system catalogue marker
+(`lineage.scope: "system"`, `lineage.public: true`, and
+`data.visibility.public: true`) documented in the server architecture. User and
+process grants still control mutable inventory/catalogue records and all
+write/admin operations.
 
 Permission values may be legacy strings (`queues: 'write'`) or grant objects /
 arrays:
@@ -57,6 +60,12 @@ Scopes are matched against entity lineage (`organizationId`, `projectId`,
 `from->to`, target state, or `{ from, to }`. Workbench test access uses the
 same permission object shape, so fixture ownership and per-run access overrides
 exercise production access code.
+
+Entity relation access is explicit rather than inherited. A `projects:admin`
+grant does not automatically imply `queues:admin` for child queues; the process
+compiler or caller must emit a separate `queues` grant, optionally scoped with
+`scope.projectId` so it applies only to queues under the intended project
+branch.
 
 Lineage ID facts such as `lineage.projectId` read directly from the checked
 entity. Lineage entity traits use facts such as

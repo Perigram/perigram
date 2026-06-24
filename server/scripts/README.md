@@ -15,7 +15,7 @@ node server/scripts/seed-layer-standards.js  # OCCS layer standards from docs/sp
 node server/scripts/seed-system-pens.js      # OCCS/default system pens
 node server/scripts/seed-system-tools.js     # 6 common tools
 node server/scripts/migrate-entity-revisions.js # Backfill cassette geometry revisions and design provenance
-node server/scripts/repair-system-data-permissions.js # Floor stored user grants so system pens/layers/tools stay visible
+node server/scripts/migrate-public-system-data.js # Mark system materials/layers/pens/tools public-read
 node server/scripts/migrate-org-types-to-processes.js # Backfill active process definitions from stored organization type labels
 node server/scripts/migrate-process-action-access-grants.js # Move process action role grants from trigger records to access records
 node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize stored screens into generated UI contracts
@@ -65,9 +65,15 @@ node server/scripts/migrate-process-create-status-grants.js # Normalize create c
 
 ## System Data Characteristics
 
-- **Read-Only:** System data has no user owner (`lineage.userId = null`)
-- **Cannot be Modified:** Users cannot edit or delete system templates
-- **Can be Copied:** Users can create custom templates based on system ones
+- **Public read:** System materials, layer standards, pens, and tools are marked
+  with `lineage.scope: "system"`, `lineage.public: true`, and
+  `data.visibility.public: true`. The access engine reads that marker directly;
+  no user or process role receives `materials` or `layer_standards` grants just
+  to view these catalogues.
+- **Read-only:** System pens/tools cannot be edited or deleted through user
+  ownership operations.
+- **Can be copied:** Users can create custom templates based on system ones
+  where the owning feature supports user-owned copies.
 
 ## Reset / Re-seed
 
@@ -109,13 +115,10 @@ Use `server/scripts/assign-default-pens.js` only as a repair helper for
 standards missing `data.defaultPenId`; it uses the same OCCS code/group pen
 mapping instead of round-robin assignment.
 
-Use `server/scripts/repair-system-data-permissions.js` when a preset change
-needs to be applied to already-created user records. It rewrites stored user
-permissions in place, keeping stronger grants intact while flooring
-`materials` and `layer_standards` to `read`. Run it from a Node environment
-that can import the repo's `shared/`, `server/db/`, and `server/utils/`
-modules; the production app image does not include those standalone source
-dependencies for direct script execution.
+Use `server/scripts/migrate-public-system-data.js` after adopting or repairing
+the public system catalogue contract. It marks existing records in `materials`,
+system `layer_standards`, system `pen_templates`, and system `tool_profiles`
+as public-read without modifying user grants.
 
 Use `server/scripts/migrate-org-types-to-processes.js` once when introducing
 process definitions to existing data. It maps stored `organization.data.type`

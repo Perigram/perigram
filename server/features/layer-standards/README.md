@@ -40,6 +40,10 @@ Important `data` fields:
 
 ## Patterns
 
+- System layer standards are marked public-read with `lineage.scope: "system"`,
+  `lineage.public: true`, and `data.visibility.public: true`. The shared access
+  engine reads that marker directly; process/user roles do not need
+  `layer_standards` grants just to view the catalogue.
 - `GET /api/layer-standards` is public-read. Unauthenticated callers receive
   the system/default catalogue without organization pen overrides; authenticated
   organization users receive the same standards with their org override merged

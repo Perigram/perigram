@@ -33,7 +33,12 @@ This component manages the display styles (pens) for DXF layers, including color
 - `remove(id, userId)`: Deletes a user-owned pen.
 
 ## Patterns and Conventions
-- **System Pens:** Pens with `lineage.userId: null` are read-only and available to all users. `GET /api/templates/pens` is public-read; unauthenticated callers receive only system pens, while authenticated callers also receive their own pens.
+- **System Pens:** Pens with `lineage.userId: null` are marked public-read with
+  `lineage.scope: "system"`, `lineage.public: true`, and
+  `data.visibility.public: true`. They are read-only and available through the
+  shared public-system-data access rule rather than copied permission grants.
+  `GET /api/templates/pens` is public-read; unauthenticated callers receive
+  only system pens, while authenticated callers also receive their own pens.
 - **Ownership:** User IDs are strings from OAuth providers.
 - **Color Format:** Colors must be in 6-digit Hex format with `#` prefix.
 - **Seeding:** `server/scripts/seed-system-pens.js` imports this feature directly from Node, so service imports must use relative server paths rather than the Nuxt `~` alias. It upserts system pens by `identity.name` and refreshes stroke data so existing layer-standard `defaultPenId` references keep working after pen color changes.

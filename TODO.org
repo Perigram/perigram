@@ -4,6 +4,31 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Make system catalogue data public-read
+    Files changed: shared/public-entities.js, shared/entity-field-access.js,
+      shared/entity-field-access.spec.js, shared/permission-templates.js,
+      shared/ui-permissions.spec.js, server/core/access/service.js,
+      server/core/access/service.spec.js, server/api/materials/index.get.js,
+      server/features/materials/service.js,
+      server/features/layer-standards/service.js,
+      server/features/pen-templates/service.js,
+      server/features/tool-profiles/service.js,
+      server/scripts/migrate-public-system-data.js,
+      server/scripts/repair-system-data-permissions.js
+    Docs updated: shared/README.md, server/README.md,
+      server/features/materials/README.md,
+      server/features/layer-standards/README.md,
+      server/features/pen-templates/README.md,
+      server/features/tool-profiles/README.md,
+      server/features/users/README.md, server/scripts/README.md, TODO.org
+    Notes: System materials, layer standards, pens, and tools now use a
+      marker-based public-read contract instead of role permission grants. New
+      system records are marked with `lineage.scope: "system"`,
+      `lineage.public: true`, and `data.visibility.public: true`; access and
+      field redaction allow read-level access to those records while keeping
+      writes/admin gated. The migration was run in `cutkit_app_dev` and marked
+      1 material, 22 layer standards, 14 pens, and 6 tools.
+
     [2026-06-24] Filter generated process row actions by entity status
     Files changed: components/generated/GeneratedEntityCollection.vue,
       components/generated/GeneratedEntityDetail.vue,
