@@ -496,7 +496,7 @@ function compileRoles(process = {}, domain = {}) {
         feature,
         entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || actionWindow?.outputs?.[0]?.entityType || null,
         parentEntityType: action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || null,
-        status: actionStatusForExposure(action, actionWindow, access),
+        status: actionStatusForExposure(action, actionWindow, access, process),
         construction: normalizeConstruction(action.construction, action.entityType, domain),
         inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
         inputs: action.inputs || []
@@ -521,11 +521,11 @@ function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
   return [...new Set((actionWindow?.outputs || []).flatMap(output => output.roleGrants?.map(grant => grant.roleId) || output.roleIds || []))];
 }
 
-function actionStatusForExposure(action = {}, actionWindow = null, access = {}) {
-  const status = { ...(action.status || {}) };
+function actionStatusForExposure(action = {}, actionWindow = null, access = {}, process = {}) {
+  const status = compileActionStatus(action, process);
   const inputStatus = actionWindow?.input?.status || '';
   if (!status.from && inputStatus) status.from = inputStatus;
-  const targetStatus = actionTargetState(action) || access.statusTo || actionWindow?.outputs?.[0]?.status || '';
+  const targetStatus = actionTargetState(action, process) || access.statusTo || actionWindow?.outputs?.[0]?.status || '';
   if (!status.to && targetStatus) status.to = targetStatus;
   return status;
 }

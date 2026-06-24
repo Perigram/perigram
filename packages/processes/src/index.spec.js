@@ -927,6 +927,9 @@ describe('@cutkit/processes compiler', () => {
 
   it('labels status-change actions from their target status definition', () => {
     const compiled = compileProcessDefinition({
+      roles: {
+        role_admin: { id: 'role_admin', label: 'Admin' }
+      },
       statusDefinitions: {
         status_deleted: {
           id: 'status_deleted',
@@ -943,7 +946,7 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'changeStatus',
           statusRef: 'status_deleted',
           status: { from: 'CREATED' },
-          access: { level: 'admin', roleIds: [] },
+          access: { level: 'admin', roleIds: ['role_admin'] },
           inputs: [{ id: 'entity', entityType: 'queue', status: 'CREATED' }],
           outputs: [{ id: 'entity', entityType: 'queue', status: 'DELETED' }]
         }
@@ -952,6 +955,12 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.actions.delete_queue.label).toBe('Deleted');
     expect(compiled.actions.delete_queue.status).toMatchObject({
+      to: 'DELETED',
+      label: 'Deleted',
+      severity: 'danger',
+      icon: 'pi pi-ban'
+    });
+    expect(compiled.roles.role_admin.actions[0].status).toMatchObject({
       to: 'DELETED',
       label: 'Deleted',
       severity: 'danger',
