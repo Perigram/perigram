@@ -4,6 +4,14 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Refresh process manifests before generated screens render
+    Files changed: pages/screens/[screenKey].vue
+    Docs updated: pages/README.md, TODO.org
+    Notes: Generated screen routes now refresh the authenticated user/process
+      manifest on mount and screen-key changes before rendering. This prevents
+      stale action manifests from keeping removed process actions visible after
+      a process recompile or assignment/access change.
+
     [2026-06-24] Stop generated details from injecting global parent actions
     Files changed: components/generated/GeneratedEntityDetail.vue
     Docs updated: components/README.md, TODO.org

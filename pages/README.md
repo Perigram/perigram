@@ -24,7 +24,10 @@ Authenticated route groups continue to use `layout: 'app'` and `middleware:
 active organization processes. It looks up the current user's compiled screen
 manifest from the auth store and renders it through the fixed generated screen
 runtime. Process navigation points to `/screens/:screenKey`; the route does not
-load arbitrary Vue components from process data.
+load arbitrary Vue components from process data. On mount and screen-key changes
+it refreshes `/api/auth/me` before rendering, so generated screens use the
+current active process screen/action manifest instead of stale client-side
+process assignments.
 
 Operational pages use shared UI shell primitives:
 
