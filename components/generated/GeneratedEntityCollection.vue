@@ -114,19 +114,23 @@ const authStore = useAuthStore();
 const resolvedActions = computed(() => props.actions
   .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
   .filter(Boolean));
-const rowActionCandidates = computed(() => [
-  ...resolvedActions.value,
-  ...authStore.actionManifest.filter(action => parentBoundCreateAppliesToEntityType(action, props.entityType))
-]);
-const collectionActions = computed(() => resolvedActions.value.filter(action => (
-  action.actionKind === 'createEntity'
-  && !parentBoundCreateAppliesToEntityType(action, props.entityType)
-)));
+const collectionActions = computed(() => dedupeActions([
+  ...resolvedActions.value.filter(action => action.actionKind === 'createEntity'),
+  ...authStore.actionManifest
+    .filter(action => parentBoundCreateAppliesToEntityType(action, props.entityType))
+    .filter(action => props.items.some(entity => actionAppliesToEntity(action, entity, props.entityType)))
+]));
 const actionContext = computed(() => ({
   ...(props.actionContext || {}),
   region: props.region,
   source: props.source,
-  entityType: props.entityType
+  entityType: props.entityType,
+  parentEntityType: props.entityType,
+  parentOptions: props.items.map(entity => ({
+    label: entity.identity?.name || entity.identity?.uid || entity._id,
+    value: entity._id || entity.identity?.uid,
+    entity
+  }))
 }));
 const tableFields = computed(() => resolveEntityDisplayContract({
   entityType: props.entityType,
@@ -134,7 +138,14 @@ const tableFields = computed(() => resolveEntityDisplayContract({
 }).fields.slice(0, 6));
 
 function entityActionsFor(entity) {
-  return rowActionCandidates.value.filter(action => actionAppliesToEntity(action, entity, props.entityType));
+  return resolvedActions.value.filter(action => (
+    !parentBoundCreateAppliesToEntityType(action, props.entityType)
+    && actionAppliesToEntity(action, entity, props.entityType)
+  ));
+}
+
+function dedupeActions(actions = []) {
+  return [...new Map(actions.map(action => [action.actionId || action.id, action])).values()];
 }
 
 function openEntity(entity) {

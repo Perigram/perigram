@@ -88,6 +88,15 @@
         <span>{{ pendingActionLabel }}</span>
       </template>
       <div class="flex flex-col gap-3">
+        <label v-if="parentSelectionRequired" class="flex flex-col gap-1">
+          <span class="text-xs text-muted-color">{{ parentSelectionLabel }}</span>
+          <Select
+            v-model="promptValues[parentSelectionFieldId]"
+            :options="parentSelectionOptions"
+            option-label="label"
+            option-value="value"
+          />
+        </label>
         <label v-for="field in promptFields" :key="field.id" class="flex flex-col gap-1">
           <span class="text-xs text-muted-color">{{ field.label || field.id }}</span>
           <Textarea
@@ -138,6 +147,7 @@ import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -174,13 +184,18 @@ const promptFields = computed(() => promptedFields(pendingAction.value));
 const pendingActionLabel = computed(() => pendingAction.value?.label || t('common.create'));
 const dialogSaveLabel = computed(() => pendingAction.value?.actionKind === 'createEntity' ? t('common.create') : t('common.save'));
 const errorMessage = computed(() => error.value?.data?.message || error.value?.message || t('generatedScreen.loadFailed'));
+const parentSelectionFieldId = '__parentEntityId';
+const parentSelectionType = computed(() => requiredParentType(pendingAction.value, pendingEntity.value?.entity, pendingEntity.value?.context));
+const parentSelectionRequired = computed(() => Boolean(parentSelectionType.value));
+const parentSelectionLabel = computed(() => parentSelectionType.value ? parentSelectionType.value.replace(/_/g, ' ') : '');
+const parentSelectionOptions = computed(() => promptOptions[parentSelectionFieldId] || pendingEntity.value?.context?.parentOptions || []);
 
 async function executeAction(action, entity = null, context = {}) {
   actionError.value = '';
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
-    if (['createEntity', 'updateEntity'].includes(action.actionKind) && promptedFields(action).length) {
+    if (['createEntity', 'updateEntity'].includes(action.actionKind) && (promptedFields(action).length || requiredParentType(action, entity, context))) {
       await openInputDialog(action, entity, context);
       return;
     }
@@ -198,6 +213,13 @@ async function openInputDialog(action, entity = null, context = {}) {
   const fields = collectActionInputFields(action);
   for (const field of fields) {
     promptValues[field.id] = initialPromptValue(field);
+  }
+  const parentType = requiredParentType(action, entity, context);
+  if (parentType) {
+    const options = await loadParentSelectionOptions(parentType, context, action);
+    if (!options.length) throw new Error(t('generatedScreen.noOptions', { field: parentType }));
+    promptOptions[parentSelectionFieldId] = options;
+    promptValues[parentSelectionFieldId] = options[0]?.value || '';
   }
   await loadPromptOptions(promptedFields(action));
   inputDialogVisible.value = true;
@@ -217,7 +239,7 @@ async function submitPromptedAction() {
       pendingAction.value,
       pendingEntity.value?.entity || null,
       promptData(actionInputFields.value, promptValues),
-      pendingEntity.value?.context || {}
+      contextWithSelectedParent(pendingEntity.value?.context || {})
     );
     closeInputDialog();
   } finally {
@@ -255,10 +277,39 @@ function actionEntities(action = {}, entity = null, context = {}) {
     ? entityIdentifier(resolvedContext.parentEntity)
     : '';
   const parentId = parentType
-    ? contextParentId || screen.value.scope?.[`${parentType}Id`] || screen.value.scope?.entityId || resolveParentIdFromFilters(parentType, resolvedContext?.source?.filters)
+    ? contextParentId || resolvedContext.parentEntityId || screen.value.scope?.[`${parentType}Id`] || screen.value.scope?.entityId || resolveParentIdFromFilters(parentType, resolvedContext?.source?.filters)
     : '';
   if (parentType && parentId) entities[parentType] = parentId;
   return entities;
+}
+
+function requiredParentType(action = {}, entity = null, context = {}) {
+  const parentType = action?.parentEntityType || action?.inputs?.find(input => input.id === 'parent')?.entityType || '';
+  if (!parentType) return '';
+  if (entityIdentifier(entity)) return '';
+  const resolvedContext = context?.value || context || {};
+  if (resolvedContext.parentEntityType === parentType && (entityIdentifier(resolvedContext.parentEntity) || resolvedContext.parentEntityId)) return '';
+  if (screen.value.scope?.[`${parentType}Id`] || screen.value.scope?.entityId || resolveParentIdFromFilters(parentType, resolvedContext?.source?.filters)) return '';
+  return parentType;
+}
+
+async function loadParentSelectionOptions(parentType = '', context = {}, action = {}) {
+  const contextOptions = Array.isArray(context?.parentOptions) ? context.parentOptions : [];
+  const options = contextOptions.length ? contextOptions : await entityOptions(parentType);
+  return options.filter(option => !option.entity || actionAppliesToEntity(action, option.entity, parentType));
+}
+
+function contextWithSelectedParent(context = {}) {
+  const parentType = requiredParentType(pendingAction.value, pendingEntity.value?.entity, context);
+  if (!parentType) return context;
+  const parentId = promptValues[parentSelectionFieldId];
+  const selected = (promptOptions[parentSelectionFieldId] || []).find(option => option.value === parentId);
+  return {
+    ...context,
+    parentEntityType: parentType,
+    parentEntityId: parentId,
+    parentEntity: selected?.entity || null
+  };
 }
 
 function entityIdentifier(entity = null) {
@@ -334,7 +385,8 @@ function entityOption(entity = {}, entityType = '') {
   return {
     label: entity.identity?.name || entity.identity?.uid || entity._id,
     value: entity._id || entity.identity?.uid,
-    entityType
+    entityType,
+    entity
   };
 }
 
