@@ -396,7 +396,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.screens.auto_role_cassette_cassette_detail.actions).not.toContain('create_cassette');
   });
 
-  it('does not expose create actions with missing required lineage parents', () => {
+  it('strips create parent inputs unsupported by domain relations or construction inputs', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_queue: { id: 'role_queue', label: 'Queue role' }
@@ -426,7 +426,11 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions.create_queue.inputs).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 'parent', entityType: '', required: false })
     ]));
-    expect(compiled.roles.role_queue.actions).toEqual([]);
+    expect(compiled.roles.role_queue.actions[0]).toMatchObject({
+      actionId: 'create_queue',
+      parentEntityType: null
+    });
+    expect(compiled.screens.auto_role_queue_queue.actions).toContain('create_queue');
     expect(compiled.screens.auto_role_queue_cassette).toBeUndefined();
   });
 
@@ -1201,8 +1205,16 @@ describe('@cutkit/processes compiler', () => {
       expect.objectContaining({ id: 'parent', entityType: '', required: false }),
       expect.objectContaining({ id: 'data:jobItems', required: false })
     ]));
-    expect(compiled.roles.role_admin.actions).toEqual([]);
-    expect(compiled.userAccess.user_admin.actions).toEqual([]);
+    const exposedQueueAction = compiled.userAccess.user_admin.actions[0];
+    expect(exposedQueueAction.parentEntityType).toBeNull();
+    expect(exposedQueueAction.inputs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'parent', entityType: '', required: false }),
+      expect.objectContaining({ id: 'data:jobItems', required: false })
+    ]));
+    expect(exposedQueueAction.construction.inputs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'jobItems', required: false })
+    ]));
+    expect(exposedQueueAction.inputPolicy.fields).not.toContainEqual(expect.objectContaining({ id: 'jobItems' }));
   });
 
   it('normalizes stale construction modes when an action entity type changes', () => {

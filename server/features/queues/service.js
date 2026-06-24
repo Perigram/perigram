@@ -84,21 +84,15 @@ export function buildNestingCommandParameters(queue = {}, overrides = {}) {
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { projectId, name, job } = data;
-  
-  if (!projectId) {
-    throw createError({ statusCode: 400, message: 'Project ID is required' });
-  }
-  
-  const project = await projectsService.getById(projectId);
-  if (!project) throw createError({ statusCode: 404, message: 'Project not found' });
-
-  const lineage = inheritLineage(project, 'project');
+  const lineage = projectId
+    ? inheritLineage(await requireProject(projectId), 'project')
+    : { organizationId: userOrg };
 
   if (!hasLineagePermission(userPermissions, lineage, 'queues', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  const queueNumber = await repository.getNextQueueNumber(projectId);
+  const queueNumber = await repository.getNextQueueNumber({ projectId, organizationId: userOrg });
   const uid = `q-${generateRandomString(8)}`;
 
   const queue = new Queue({
@@ -115,12 +109,19 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
   const createdRaw = await repository.create(queue);
 
-  // Trigger summary update on project
-  aggregator.syncParentSummary('queue', lineage).catch(err => {
-    console.error('[Queues Service] Failed to sync parent summary:', err.message);
-  });
+  if (lineage.projectId) {
+    aggregator.syncParentSummary('queue', lineage).catch(err => {
+      console.error('[Queues Service] Failed to sync parent summary:', err.message);
+    });
+  }
 
   return serializeForAccess('queue', new Queue(createdRaw), userPermissions);
+}
+
+async function requireProject(projectId) {
+  const project = await projectsService.getById(projectId);
+  if (!project) throw createError({ statusCode: 404, message: 'Project not found' });
+  return project;
 }
 
 export async function getById(uid, userId, userOrg, userRole, userPermissions) {

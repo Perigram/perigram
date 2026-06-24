@@ -91,6 +91,19 @@ describe('Production Queues & Nesting Status', () => {
     expect(result.lineage.projectId).toBe(projectId);
   });
 
+  it('creates an organization-root queue when project id is not provided', async () => {
+    const result = await queueService.create({
+      name: 'Root production run',
+      job: { items: [] }
+    }, mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
+
+    expect(result.identity.name).toBe('Root production run');
+    expect(result.status.state.primary).toBe('DRAFT');
+    expect(result.lineage.organizationId).toBe(mockUser.organizationId);
+    expect(result.lineage.projectId).toBeUndefined();
+    expect(result.data.queueNumber).toBe(1);
+  });
+
   it('stores nesting settings on the queue and migrates legacy nesting params', async () => {
     const queueId = new ObjectId();
     await db.collection('queues').insertOne({

@@ -484,7 +484,6 @@ function compileRoles(process = {}, domain = {}) {
       }
     }
     if ((action.trigger?.mode || 'manual') !== 'manual') continue;
-    if (actionHasUnresolvedRequiredParent(action, domain)) continue;
     const exposedRoleIds = actionExposureRoleIds(action, access, actionWindow);
     for (const roleId of exposedRoleIds) {
       if (!roles[roleId]) continue;
@@ -794,18 +793,6 @@ function effectiveActionParentEntityType(action = {}, domain = {}, incoming = nu
   if (parentType === entityType && !incoming && !parentRelationForChild(domain, entityType, parentType)) return '';
   if (!incoming && !parentSupportedByDomain(domain, entityType, parentType)) return '';
   return parentType;
-}
-
-function requiredLineageParentType(action = {}, domain = {}, entityType = '') {
-  if ((action.actionKind || 'createEntity') !== 'createEntity') return '';
-  return parentRelationForChild(domain, entityType)?.parentType || '';
-}
-
-function actionHasUnresolvedRequiredParent(action = {}, domain = {}) {
-  const entityType = action.entityType || action.outputs?.find(output => output.entityType)?.entityType || '';
-  const requiredParentType = requiredLineageParentType(action, domain, entityType);
-  if (!requiredParentType) return false;
-  return effectiveActionParentEntityType(action, domain) !== requiredParentType;
 }
 
 function parentSupportedByDomain(domain = {}, entityType = '', parentType = '') {
