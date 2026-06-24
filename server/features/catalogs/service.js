@@ -1,7 +1,7 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { normalizePermissionGrants } from '../../../shared/access-control.js';
+import { normalizePermissionGrants } from '#shared/access-control.js';
 import { Catalog } from './model.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';

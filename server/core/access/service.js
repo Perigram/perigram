@@ -1,7 +1,7 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { actionToLevel, hasPermissionGrant } from '../../../shared/access-control.js';
-import { isPublicReadEntity } from '../../../shared/public-entities.js';
+import { actionToLevel, hasPermissionGrant } from '#shared/access-control.js';
+import { isPublicReadEntity } from '#shared/public-entities.js';
 
 export function assertEntityAccess({ entity, entityType, feature = entityType, level = 'read', action = null, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });

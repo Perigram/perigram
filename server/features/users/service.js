@@ -9,7 +9,7 @@ import { toFlexibleId } from '../../utils/objectid.js';
 import { ObjectId } from 'mongodb';
 import { hasEntityAccess } from '../../core/access/service.js';
 import * as processDefinitionsService from '../process-definitions/service.js';
-import { hasPermissionGrant } from '../../../shared/access-control.js';
+import { hasPermissionGrant } from '#shared/access-control.js';
 
 /**
  * Users Service - v24 Absolute Final
