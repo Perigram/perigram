@@ -6,6 +6,7 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import { createIdentity, createStatus, createData } from '../../core/blocks/index.js';
 import { PenTemplate } from './model.js';
+import { markPublicSystemData } from '../../../shared/public-entities.js';
 
 function toDTO(pen) {
   if (!pen) return null;
@@ -47,7 +48,7 @@ export async function create(data, userId) {
   
   const origin = createStatus('ACTIVE', userId || 'SYSTEM', { note: 'Pen template created' });
 
-  const created = await repository.create({
+  const doc = {
     identity: createIdentity(data.name),
     origin,
     status: origin,
@@ -57,7 +58,9 @@ export async function create(data, userId) {
     data: createData({
       stroke: data.stroke
     })
-  });
+  };
+
+  const created = await repository.create(userId ? doc : markPublicSystemData(doc));
   return toDTO(created);
 }
 

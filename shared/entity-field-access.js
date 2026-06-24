@@ -7,6 +7,7 @@ import {
   getEntityFieldAccessPolicy,
   normalizeFieldAccessEntityType
 } from '@cutkit/domain-cnc';
+import { isPublicReadEntity } from '#shared/public-entities.js';
 
 const POLICY_LEVELS = ['read', 'write', 'admin'];
 
@@ -98,6 +99,12 @@ export function canDisplayEntityField({
     ? getActivePermissionsFromAuth(auth, entity)
     : permissions;
 
+  if ((descriptor.level || policy.level) === 'read' && isPublicReadEntity({
+    entity,
+    entityType: normalizeFieldAccessEntityType(entityType),
+    feature: descriptor.feature || policy.feature
+  })) return true;
+
   return hasPermissionGrant({
     permissions: activePermissions,
     feature: descriptor.feature || policy.feature,
@@ -129,7 +136,11 @@ export function allowedEntityFieldPolicies({ entityType, permissions = {}, auth 
     : permissions;
 
   return getActiveEntityFieldPolicyEntries(entityType, auth).filter(entry =>
-    hasPermissionGrant({
+    (entry.level === 'read' && isPublicReadEntity({
+      entity,
+      entityType: normalizeFieldAccessEntityType(entityType),
+      feature: entry.feature
+    })) || hasPermissionGrant({
       permissions: activePermissions,
       feature: entry.feature,
       level: entry.level,

@@ -3,6 +3,7 @@ import { createError } from 'h3';
 import { createIdentity, createData, createStatus } from '../../core/blocks/index.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { LayerStandard } from './model.js';
+import { markPublicSystemData } from '../../../shared/public-entities.js';
 
 /**
  * Layer Standards Service - v24 Standardized
@@ -35,7 +36,7 @@ function buildLayerStandardDocument(data, userId, userOrg) {
   const lineage = userOrg ? { organizationId: toFlexibleId(userOrg) } : {};
   const origin = createStatus('ACTIVE', userId || 'SYSTEM', { note: 'Layer standard created' });
 
-  return {
+  const doc = {
     identity: createIdentity(name || code),
     origin,
     status: origin,
@@ -58,6 +59,7 @@ function buildLayerStandardDocument(data, userId, userOrg) {
       source: source || null
     })
   };
+  return userOrg ? doc : markPublicSystemData(doc);
 }
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {

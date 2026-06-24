@@ -5,16 +5,12 @@ import { resolveUiPermission } from './ui-permissions.js';
 
 describe('UI Permission Matrix', () => {
     describe('system data defaults', () => {
-        const systemFeatures = ['materials', 'layer_standards'];
-        const presets = Object.entries(PERMISSION_TEMPLATES);
-
-        for (const [role, permissions] of presets) {
-            for (const feature of systemFeatures) {
-                it(`${role} can read ${feature}`, () => {
-                    expect(hasPermissionGrant({ permissions, feature, level: 'read' })).toBe(true);
-                });
+        it('does not grant catalogue permissions through role presets', () => {
+            for (const permissions of Object.values(PERMISSION_TEMPLATES)) {
+                expect(hasPermissionGrant({ permissions, feature: 'materials', level: 'read' })).toBe(false);
+                expect(hasPermissionGrant({ permissions, feature: 'layer_standards', level: 'read' })).toBe(false);
             }
-        }
+        });
     });
 
     describe('manufacturer preset grants', () => {

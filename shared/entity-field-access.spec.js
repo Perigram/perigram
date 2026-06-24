@@ -75,6 +75,21 @@ describe('entity field access', () => {
     ]);
   });
 
+  it('keeps public system catalogue read fields visible without grants', () => {
+    const material = {
+      _id: 'mat-1',
+      identity: { name: 'ACM' },
+      lineage: { scope: 'system', public: true },
+      data: { code: 'ACM', description: 'Panel', visibility: { public: true } }
+    };
+
+    expect(redactEntityForAccess(material, 'material', { permissions: {} })).toMatchObject({
+      _id: 'mat-1',
+      identity: { name: 'ACM' },
+      data: { code: 'ACM', description: 'Panel' }
+    });
+  });
+
   it('honors scoped permission grants', () => {
     const permissions = {
       projects: { level: 'read', scope: { projectId: 'project-1' } }

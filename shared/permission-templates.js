@@ -11,8 +11,6 @@ export const PERMISSION_TEMPLATES = {
       level: 'admin',
       actions: { create: false, edit: false, delete: false, view: true, approve: true, reject: true, fulfill: true }
     },
-    materials: 'admin',
-    layer_standards: { level: 'write', actions: { setPen: true } },
     users: 'admin',
     organizations: 'write'
   },
@@ -26,8 +24,6 @@ export const PERMISSION_TEMPLATES = {
     warehouses: 'admin',
     catalogs: { level: 'read', actions: { view: true, view_all: true, create: false, edit: false, delete: false } },
     requisitions: 'admin',
-    materials: 'admin',
-    layer_standards: { level: 'write', actions: { setPen: true } },
     users: 'admin',
     organizations: 'write'
   },
@@ -41,8 +37,6 @@ export const PERMISSION_TEMPLATES = {
     warehouses: 'none',
     catalogs: 'none',
     requisitions: 'read',
-    materials: 'read',
-    layer_standards: 'read',
     users: 'admin',
     organizations: 'write'
   },
@@ -56,8 +50,6 @@ export const PERMISSION_TEMPLATES = {
     warehouses: 'none',
     catalogs: 'none',
     requisitions: 'none',
-    materials: 'read',
-    layer_standards: { level: 'write', actions: { setPen: true } },
     users: 'none',
     organizations: 'write'
   }

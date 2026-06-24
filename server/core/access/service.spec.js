@@ -56,6 +56,36 @@ describe('access engine', () => {
     })).toBe(false);
   });
 
+  it('allows public system catalogue entities to be read without grants only at read level', () => {
+    const material = {
+      lineage: { scope: 'system', public: true },
+      data: { visibility: { public: true } }
+    };
+    const ungrantedAuth = { userId: 'u-public', memberships: [] };
+
+    expect(hasEntityAccess({
+      entity: material,
+      entityType: 'material',
+      feature: 'materials',
+      level: 'read',
+      auth: null
+    })).toBe(true);
+    expect(hasEntityAccess({
+      entity: material,
+      entityType: 'material',
+      feature: 'materials',
+      level: 'read',
+      auth: ungrantedAuth
+    })).toBe(true);
+    expect(hasEntityAccess({
+      entity: material,
+      entityType: 'material',
+      feature: 'materials',
+      level: 'write',
+      auth: ungrantedAuth
+    })).toBe(false);
+  });
+
   it('checks command requirements before handler execution', () => {
     const command = {
       access: {

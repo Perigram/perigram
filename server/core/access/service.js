@@ -1,6 +1,7 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { hasPermissionGrant } from '~/shared/access-control.js';
+import { actionToLevel, hasPermissionGrant } from '~/shared/access-control.js';
+import { isPublicReadEntity } from '~/shared/public-entities.js';
 
 export function assertEntityAccess({ entity, entityType, feature = entityType, level = 'read', action = null, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
@@ -69,7 +70,10 @@ export function createLineageFilter(auth) {
 }
 
 export function hasEntityAccess({ entity, feature, level = 'read', action = null, auth, entityType = null, transition = null, context = {} }) {
-  if (!auth || !feature) return false;
+  if (!feature) return false;
+  const requiredLevel = action ? actionToLevel(action, level) : level;
+  if (requiredLevel === 'read' && isPublicReadEntity({ entity, entityType, feature })) return true;
+  if (!auth) return false;
 
   const orgId = entity?.lineage?.organizationId?.toString();
   const membership = orgId
