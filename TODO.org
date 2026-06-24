@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Restore root cassette create action visibility
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: packages/processes/README.md, TODO.org
+    Notes: Process compilation now resolves create-action parent contracts
+      through one helper and strips stale same-entity parent values unless the
+      domain declares a real self-parent relation. Root create actions with
+      optional canvas parent sockets stay list-level generated-screen actions.
+      Recompiled active process definitions after the change so the current
+      cassette create action appears on cassette list screens.
+
     [2026-06-24] Remove concrete entity defaults from process designer
     Files changed: pages/organization/process.vue,
       components/process-designer/ProcessStatusDefinitionNode.vue,

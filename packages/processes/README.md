@@ -83,6 +83,12 @@ construction modes. For example, `cassette_design` creation compiles as
 `bakeCassetteDesignFromTemplate` and runtime execution delegates to the
 cassette template construction service, preserving baked geometry and editor
 contracts instead of creating a generic row.
+Root create actions may still carry a generic optional parent socket for canvas
+connectability. Compilation treats a parent as semantic only when it resolves to
+a real parent entity type. Stale same-entity parent values from older graphs are
+stripped unless the domain summary registry declares that entity as its own
+parent relation, so a root create action remains a list-level action instead of
+being hidden on entity detail screens.
 Compilation hydrates create-action construction and prompt policy from the
 domain construction contract. A sparse visual action for `cassette_design`
 therefore still compiles with required `name` and `templateId` prompt fields,
