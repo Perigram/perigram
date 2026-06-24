@@ -2,12 +2,16 @@
   <div :class="nodeFrameClass">
     <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui" :style="{ backgroundColor: toneColor }"></div>
     <div class="flex items-center gap-2">
-      <i :class="data.icon || 'pi pi-circle-fill'" :style="{ color: toneColor }"></i>
       <div class="min-w-0 flex-1">
-        <div class="truncate text-xs font-semibold uppercase" :style="{ color: toneColor }">{{ data.statusId || data.refId }}</div>
-        <div class="truncate text-xs text-muted-color">{{ data.label || data.entityType }}</div>
+        <Tag
+          :severity="data.severity || 'secondary'"
+          :value="data.label || data.statusId || data.refId"
+          :icon="data.icon || 'pi pi-circle-fill'"
+          size="small"
+          class="max-w-full"
+        />
       </div>
-      <Tag v-if="data.severity" :severity="data.severity" :value="data.severity" size="small" />
+      <span class="truncate text-xs font-semibold uppercase" :style="{ color: toneColor }">{{ data.statusId || data.refId }}</span>
     </div>
     <Handle id="status" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2" :style="{ borderColor: toneColor, backgroundColor: toneColor }" />
   </div>

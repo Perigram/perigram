@@ -26,16 +26,16 @@
     </div>
 
     <div class="mt-3 grid grid-cols-2 gap-2">
-      <div v-if="!isInbound" class="relative rounded-ui border border-content-border py-1 pl-3 pr-2">
-        <Handle id="entity-projection" type="target" :position="Position.Left" class="!left-0 !-translate-x-1/2 !border-violet-500 !bg-violet-500" />
+      <div v-if="!isInbound" :class="socketClass('entity', 'left')">
+        <Handle id="entity-projection" type="target" :position="Position.Left" :class="handleClass('entity', 'left')" />
         <Tag :value="inputLabel" size="small" severity="secondary" />
       </div>
-      <div v-else class="relative col-span-2 rounded-ui border border-content-border py-1 pl-2 pr-3 text-right">
-        <Handle id="output" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-violet-500 !bg-violet-500" />
+      <div v-else :class="[socketClass('entity', 'right'), 'col-span-2']">
+        <Handle id="output" type="source" :position="Position.Right" :class="handleClass('entity', 'right')" />
         <Tag :value="receivedLabel" size="small" severity="success" />
       </div>
-      <div v-if="!isInbound" class="relative rounded-ui border border-content-border py-1 pl-2 pr-3 text-right">
-        <Handle id="output" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-violet-500 !bg-violet-500" />
+      <div v-if="!isInbound" :class="socketClass('projection', 'right')">
+        <Handle id="output" type="source" :position="Position.Right" :class="handleClass('projection', 'right')" />
         <div class="flex flex-wrap gap-1">
           <Tag v-for="field in visibleProjectedFields" :key="field" :value="field" size="small" />
           <Tag v-if="hiddenProjectedFieldCount > 0" :value="`+${hiddenProjectedFieldCount}`" size="small" />
@@ -72,4 +72,26 @@ const hiddenProjectedFieldCount = computed(() => Math.max(projectedFields.value.
 const receiveRoleLabels = computed(() => props.data.receiveRoleLabels || []);
 const sendRoleLabels = computed(() => props.data.sendRoleLabels || []);
 const accessRoleLabels = computed(() => isInbound.value ? receiveRoleLabels.value : sendRoleLabels.value);
+
+function socketClass(kind, side) {
+  return [
+    'relative rounded-ui border py-1',
+    side === 'left' ? 'pl-3 pr-2' : 'pl-2 pr-3 text-right',
+    socketTone(kind).row
+  ];
+}
+
+function handleClass(kind, side) {
+  return [
+    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2',
+    socketTone(kind).handle
+  ];
+}
+
+function socketTone(kind) {
+  return ({
+    entity: { row: 'border-sky-300 bg-sky-50/60', handle: '!border-sky-500 !bg-sky-500' },
+    projection: { row: 'border-fuchsia-300 bg-fuchsia-50/60', handle: '!border-fuchsia-500 !bg-fuchsia-500' }
+  })[kind] || { row: 'border-content-border', handle: '!border-violet-500 !bg-violet-500' };
+}
 </script>

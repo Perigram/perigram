@@ -1,6 +1,6 @@
 <template>
   <StandardPage>
-    <div class="relative h-[calc(100vh-8rem)] min-h-[36rem] overflow-hidden rounded-ui border border-content-border bg-subtle">
+    <div ref="canvasFrame" class="relative h-[calc(100vh-8rem)] min-h-[36rem] overflow-hidden rounded-ui border border-content-border bg-subtle">
       <VueFlow
         v-model:nodes="nodes"
         v-model:edges="edges"
@@ -202,10 +202,6 @@
 
                 <template v-else-if="selectedNode.type === 'statusDefinition'">
                   <div class="grid grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.entityType') }}</label>
-                      <Select v-model="selectedStatusDefinition.entityType" :options="entityTypeOptions" option-label="label" option-value="value" />
-                    </div>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('processDesigner.stateId') }}</label>
                       <InputText v-model="selectedStatusDefinition.statusId" />
@@ -434,7 +430,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { VueFlow } from '@vue-flow/core';
+import { VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
@@ -485,6 +481,8 @@ const selectedRoleId = ref(null);
 const selectedPrincipalId = ref(null);
 const selectedScreenId = ref(null);
 const newStateId = ref('');
+const canvasFrame = ref(null);
+const { getViewport } = useVueFlow();
 
 const palette = [
   { type: 'action', actionKind: 'createEntity', icon: 'pi pi-plus-circle', label: 'create' },
@@ -557,7 +555,7 @@ const statusIconOptions = [
   { label: 'archived', value: 'pi pi-box' }
 ];
 const accessLevelRank = { read: 1, write: 2, admin: 3 };
-const defaultEdgeOptions = { type: 'smoothstep' };
+const defaultEdgeOptions = { type: 'default' };
 
 const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.status?.state?.primary === 'ACTIVE');
@@ -796,7 +794,7 @@ function addNode(item) {
   const node = {
     id,
     type,
-    position: { x: 260 + nodes.value.length * 32, y: 140 + nodes.value.length * 24 },
+    position: activeViewportCenter(),
     data: { refId, label: refId }
   };
   const record = ensureRecord(recordKeyForType(type), { data: { refId }, type }, factoryForType(type));
@@ -867,10 +865,24 @@ function decorateEdges(items = []) {
 
 function decorateEdge(edge = {}) {
   const selected = edge.id === selectedEdgeId.value;
+  const type = edge.type === 'smoothstep' || edge.type === 'step' ? 'default' : (edge.type || 'default');
   return {
     ...edge,
+    type,
     animated: selected,
     style: selected ? { stroke: 'var(--p-primary-color)', strokeWidth: 3 } : undefined
+  };
+}
+
+function activeViewportCenter() {
+  const viewport = getViewport?.() || draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 };
+  const zoom = Number(viewport.zoom) || 1;
+  const rect = canvasFrame.value?.getBoundingClientRect?.();
+  const width = rect?.width || 1200;
+  const height = rect?.height || 720;
+  return {
+    x: Math.round((width / 2 - Number(viewport.x || 0)) / zoom - 140),
+    y: Math.round((height / 2 - Number(viewport.y || 0)) / zoom - 80)
   };
 }
 
@@ -1023,7 +1035,7 @@ function createSocket(id, direction = 'outbound') {
 }
 
 function createStatusDefinition(id) {
-  return { id, label: 'Created', entityType: 'project', statusId: 'CREATED', severity: 'info', color: 'info', icon: 'pi pi-circle-fill' };
+  return { id, label: 'Created', statusId: 'CREATED', severity: 'info', color: 'info', icon: 'pi pi-circle-fill' };
 }
 
 function createValueInput(id) {
@@ -1331,10 +1343,10 @@ function syncActionIo(action = {}, node = null) {
     action.access.statusFrom = action.status.from || '';
     action.access.statusTo = action.status.to || '';
     action.inputs = [
-      { id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: action.status.from || '' },
+      { id: 'entity', label: incomingEntityType || t('processDesigner.incomingEntity'), entityType: incomingEntityType, status: action.status.from || '' },
       { id: 'status', label: t('processDesigner.targetStatus'), kind: 'status', required: true }
     ];
-    action.outputs = [{ id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: action.status.to || '' }];
+    action.outputs = [{ id: 'entity', label: incomingEntityType || t('processDesigner.sameEntity'), entityType: incomingEntityType, status: action.status.to || '' }];
     return;
   }
   if (action.actionKind === 'updateEntity') {
@@ -1353,10 +1365,10 @@ function syncActionIo(action = {}, node = null) {
         }))
       : [{ id: 'field', label: t('processDesigner.field'), dataPath: '', kind: 'data', required: false }];
     action.inputs = [
-      { id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: incoming.status || '' },
+      { id: 'entity', label: incomingEntityType || t('processDesigner.incomingEntity'), entityType: incomingEntityType, status: incoming.status || '' },
       ...fieldInputs
     ];
-    action.outputs = [{ id: 'entity', label: incomingEntityType, entityType: incomingEntityType, status: incoming.status || '' }];
+    action.outputs = [{ id: 'entity', label: incomingEntityType || t('processDesigner.sameEntity'), entityType: incomingEntityType, status: incoming.status || '' }];
     return;
   }
   if (action.actionKind === 'sendToOrganization') {
@@ -1494,7 +1506,6 @@ function initialStatusForProfile(profile = {}) {
 }
 
 function syncStatusDefinition(status = {}) {
-  status.entityType ||= 'project';
   status.statusId ||= String(status.label || status.id || 'CREATED').trim().toUpperCase().replace(/\s+/g, '_');
   status.label ||= status.statusId;
   status.severity ||= status.color || 'info';
@@ -1643,8 +1654,22 @@ function ioSpec(io = {}) {
   return {
     id: io.id || io.entityType || detail,
     label: ioLabel(io),
-    detail
+    detail,
+    kind: socketKind(io),
+    required: Boolean(io.required)
   };
+}
+
+function socketKind(io = {}) {
+  if (io.kind === 'event') return 'event';
+  if (io.kind === 'status') return 'status';
+  if (['string', 'number', 'object'].includes(io.kind)) return 'data';
+  if (io.projection) return 'projection';
+  if (io.block) return 'block';
+  if (io.entityType) return 'entity';
+  if (io.kind) return io.kind;
+  if (io.dataPath) return 'data';
+  return 'data';
 }
 
 function commandInputs(command = {}) {
@@ -1962,7 +1987,7 @@ function onConnect(connection) {
   edges.value.push(decorateEdge({
     ...connection,
     id: `${connection.source}-${connection.sourceHandle}-${connection.target}-${connection.targetHandle}-${Date.now()}`,
-    type: 'smoothstep',
+    type: 'default',
     data: { kind: connection.sourceHandle || connection.targetHandle || 'link' }
   }));
   applySemanticConnection(connection);
@@ -1991,7 +2016,6 @@ function applySemanticConnection(connection = {}) {
     action.statusRef = status.id || source.data?.refId;
     action.status ||= {};
     action.status.to = status.statusId;
-    if (action.actionKind === 'createEntity') action.entityType = status.entityType || action.entityType;
     action.access ||= { level: 'write', roleIds: [] };
     action.access.statusTo = status.statusId;
     syncActionIo(action, target);
@@ -2020,7 +2044,6 @@ function applySemanticConnection(connection = {}) {
 }
 
 function applyStatusDefinitionToEntity(status = {}, profile = {}) {
-  profile.entityType = status.entityType || profile.entityType;
   profile.lifecycle = {
     mode: 'custom',
     workflow: workflowForEntity(profile)

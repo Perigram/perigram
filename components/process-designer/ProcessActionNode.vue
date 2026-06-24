@@ -23,17 +23,6 @@
         size="small"
         @update:model-value="value => updateAndSync({ commandId: value })"
       />
-      <MultiSelect
-        v-else-if="action.actionKind === 'updateEntity'"
-        :model-value="action.mutation?.fields || []"
-        :options="data.fieldOptions || []"
-        option-label="label"
-        option-value="value"
-        display="chip"
-        class="min-w-0"
-        size="small"
-        @update:model-value="value => updateMutation({ fields: value })"
-      />
       <InputText
         v-else
         :model-value="action.label || data.label || data.refId"
@@ -95,6 +84,17 @@
 
     <div v-if="hasInlineControls" class="nodrag mt-2 grid grid-cols-2 gap-1">
       <MultiSelect
+        v-if="action.actionKind === 'updateEntity'"
+        :model-value="action.mutation?.fields || []"
+        :options="data.fieldOptions || []"
+        option-label="label"
+        option-value="value"
+        display="chip"
+        class="col-span-2 min-w-0"
+        size="small"
+        @update:model-value="value => updateMutation({ fields: value })"
+      />
+      <MultiSelect
         v-if="action.actionKind === 'sendToOrganization'"
         :model-value="action.projection?.fields || []"
         :options="data.fieldOptions || []"
@@ -112,26 +112,20 @@
         <div
           v-for="(input, index) in inputSpecs"
           :key="input.id"
-          class="relative min-w-0 rounded-ui border border-content-border px-2 py-0.5 pl-3"
+          :class="socketClass(input, 'left')"
         >
-          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" class="!left-0 !-translate-x-1/2 !border-emerald-500 !bg-emerald-500" />
-          <div class="min-w-0">
-            <span class="block truncate text-xs">{{ input.label }}</span>
-            <div v-if="input.detail" class="truncate text-xs text-muted-color">{{ input.detail }}</div>
-          </div>
+          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" />
+          <span class="block truncate text-xs">{{ input.label }}</span>
         </div>
       </div>
       <div class="flex flex-col gap-1">
         <div
           v-for="(output, index) in outputSpecs"
           :key="output.id"
-          class="relative min-w-0 rounded-ui border border-content-border px-2 py-0.5 pr-3 text-right"
+          :class="socketClass(output, 'right')"
         >
-          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-emerald-500 !bg-emerald-500" />
-          <div class="min-w-0">
-            <span class="block truncate text-xs">{{ output.label }}</span>
-            <div v-if="output.detail" class="truncate text-xs text-muted-color">{{ output.detail }}</div>
-          </div>
+          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" />
+          <span class="block truncate text-xs">{{ output.label }}</span>
         </div>
       </div>
     </div>
@@ -189,14 +183,15 @@ const inheritedAccessLabels = computed(() => props.data.inheritedAccessLabels ||
 const eventLabel = computed(() => props.data.eventLabel || t('processDesigner.actionCompleted'));
 const actionKindLabel = computed(() => props.data.actionKindLabel || props.data.actionKind || t('common.actions.title'));
 const showEntitySelector = computed(() => ['createEntity', 'sendToOrganization'].includes(action.value.actionKind));
-const hasInlineControls = computed(() => ['sendToOrganization'].includes(action.value.actionKind));
+const hasInlineControls = computed(() => ['sendToOrganization', 'updateEntity'].includes(action.value.actionKind));
 function normalizeSpecs(items = []) {
   return items.map((item, index) => {
-    if (typeof item === 'string') return { id: `${item}-${index}`, label: item, detail: '' };
+    if (typeof item === 'string') return { id: `${item}-${index}`, label: item, kind: 'data' };
     return {
       id: item.id || item.label || index,
       label: item.label || item.entityType || item.id,
-      detail: item.detail || ''
+      kind: item.kind || 'data',
+      required: Boolean(item.required)
     };
   });
 }
@@ -252,5 +247,33 @@ function updateMutation(updates) {
       ...updates
     }
   }, { syncIo: true });
+}
+
+function socketClass(item, side) {
+  return [
+    'relative min-w-0 rounded-ui border px-2 py-0.5',
+    side === 'left' ? 'pl-3' : 'pr-3 text-right',
+    socketTone(item).row
+  ];
+}
+
+function handleClass(item, side) {
+  return [
+    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2',
+    socketTone(item).handle
+  ];
+}
+
+function socketTone(item = {}) {
+  return ({
+    entity: { row: 'border-sky-300 bg-sky-50/60', handle: '!border-sky-500 !bg-sky-500' },
+    block: { row: 'border-cyan-300 bg-cyan-50/60', handle: '!border-cyan-500 !bg-cyan-500' },
+    data: { row: 'border-emerald-300 bg-emerald-50/60', handle: '!border-emerald-500 !bg-emerald-500' },
+    status: { row: 'border-amber-300 bg-amber-50/60', handle: '!border-amber-500 !bg-amber-500' },
+    event: { row: 'border-violet-300 bg-violet-50/60', handle: '!border-violet-500 !bg-violet-500' },
+    projection: { row: 'border-fuchsia-300 bg-fuchsia-50/60', handle: '!border-fuchsia-500 !bg-fuchsia-500' },
+    attachment: { row: 'border-orange-300 bg-orange-50/60', handle: '!border-orange-500 !bg-orange-500' },
+    task: { row: 'border-slate-300 bg-slate-50/60', handle: '!border-slate-500 !bg-slate-500' }
+  })[item.kind] || { row: 'border-content-border', handle: '!border-emerald-500 !bg-emerald-500' };
 }
 </script>

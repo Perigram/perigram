@@ -17,9 +17,9 @@
         <div
           v-for="(input, index) in inputSpecs"
           :key="input.id"
-          class="relative min-w-0 rounded-ui border border-content-border px-2 py-0.5 pl-3"
+          :class="socketClass(input, 'left')"
         >
-          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" class="!left-0 !-translate-x-1/2 !border-sky-500 !bg-sky-500" />
+          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" />
           <span class="block truncate text-xs">{{ input.label }}</span>
         </div>
       </div>
@@ -27,9 +27,9 @@
         <div
           v-for="(output, index) in outputSpecs"
           :key="output.id"
-          class="relative min-w-0 rounded-ui border border-content-border px-2 py-0.5 pr-3 text-right"
+          :class="socketClass(output, 'right')"
         >
-          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-sky-500 !bg-sky-500" />
+          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" />
           <span class="block truncate text-xs">{{ output.label }}</span>
         </div>
       </div>
@@ -104,12 +104,37 @@ const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || []))
 function normalizeSpecs(items = []) {
   return items.map((item, index) => ({
     id: item.id || item.label || index,
-    label: item.label || item.entityType || item.block || item.id
+    label: item.label || item.entityType || item.block || item.id,
+    kind: item.kind || 'data'
   }));
 }
 
 function socketHandleId(kind, item, index, items) {
   if (items.length === 1) return kind;
   return `${kind}:${item.id || index}`;
+}
+
+function socketClass(item, side) {
+  return [
+    'relative min-w-0 rounded-ui border px-2 py-0.5',
+    side === 'left' ? 'pl-3' : 'pr-3 text-right',
+    socketTone(item).row
+  ];
+}
+
+function handleClass(item, side) {
+  return [
+    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2',
+    socketTone(item).handle
+  ];
+}
+
+function socketTone(item = {}) {
+  return ({
+    entity: { row: 'border-sky-300 bg-sky-50/60', handle: '!border-sky-500 !bg-sky-500' },
+    block: { row: 'border-cyan-300 bg-cyan-50/60', handle: '!border-cyan-500 !bg-cyan-500' },
+    status: { row: 'border-amber-300 bg-amber-50/60', handle: '!border-amber-500 !bg-amber-500' },
+    data: { row: 'border-emerald-300 bg-emerald-50/60', handle: '!border-emerald-500 !bg-emerald-500' }
+  })[item.kind] || { row: 'border-content-border', handle: '!border-sky-500 !bg-sky-500' };
 }
 </script>
