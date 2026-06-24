@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Align workflow transition run roles with process action exposure
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      components/generated/GeneratedScreen.vue,
+      components/generated/GeneratedRegion.vue,
+      components/generated/GeneratedEntityCollection.vue
+    Docs updated: packages/processes/README.md, TODO.org
+    Notes: Child create actions now derive parent ids from the loaded detail
+      entity before URL scope. Compiled workflow transitions use incoming
+      write/admin process roles for `processRoleIds`, matching generated action
+      exposure and avoiding target-grant roles blocking transition execution.
+
     [2026-06-24] Separate status transition run access from target grants
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js, components/generated/GeneratedScreen.vue
