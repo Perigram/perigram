@@ -1,7 +1,7 @@
 <template>
     <div class="flex h-full min-h-0 min-w-0 flex-col">
         <WorkspaceLanes :center-scroll="false">
-            <template v-if="queues?.length > 0" #left>
+            <template v-if="showQueueNavigation && queues?.length > 0" #left>
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>
                     <Button
@@ -21,7 +21,7 @@
                         :key="option._id"
                         :queue="option"
                         variant="compact"
-                        :show-delete="isSelectedQueue(option)"
+                        :show-delete="showQueueNavigation && isSelectedQueue(option)"
                         :show-summary="false"
                         :show-footer-actions="false"
                         :expandable="false"
@@ -34,7 +34,7 @@
             </template>
 
             <div class="flex h-full min-h-0 min-w-0 flex-col gap-4">
-                <div v-if="queues?.length > 0" class="flex shrink-0 gap-2 xl:hidden">
+                <div v-if="showQueueNavigation && queues?.length > 0" class="flex shrink-0 gap-2 xl:hidden">
                     <Select
                         :modelValue="queue._id"
                         :options="queueOptions"
@@ -85,7 +85,7 @@
                     </template>
                     <template #actions>
                         <Button
-                            v-if="queueState === 'DRAFT'"
+                            v-if="canEditQueue"
                             :label="$t('nesting.calculateLayout')"
                             icon="pi pi-play"
                             size="small"
@@ -94,7 +94,7 @@
                             :disabled="!isNestingReady"
                         />
                     </template>
-                    <div class="flex flex-col gap-6" v-if="queueState === 'DRAFT'">
+                    <div class="flex flex-col gap-6" v-if="canEditQueue">
                         <div class="flex flex-col gap-4">
                             <!-- Virtual Mode -->
                             <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="flex flex-col gap-3">
@@ -184,7 +184,7 @@
                         <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text severity="secondary" size="small" />
                         <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text severity="secondary" size="small" />
                         <Button
-                            v-if="queueState === 'DRAFT'"
+                            v-if="canEditQueue"
                             :label="$t('queues.addFromTemplate')"
                             icon="pi pi-plus"
                             text
@@ -193,7 +193,7 @@
                             @click="showAddDialog = true"
                         />
                         <FileUpload
-                            v-if="queueState === 'DRAFT'"
+                            v-if="canEditQueue"
                             mode="basic"
                             name="file"
                             accept=".dxf"
@@ -212,7 +212,7 @@
                                     :entry="entry"
                                     :cassette="getCassetteData(entry.cassetteTemplateId)"
                                     :parameters="getEntryParameters(entry)"
-                                    :disabled="queueState !== 'DRAFT'"
+                            :disabled="!canEditQueue"
                                     @update-quantity="value => updateEntryQuantity(entry, value)"
                                     @update-dimension="(param, value) => updateEntryDimension(entry, param, value)"
                                     @remove="confirmDelete(entry)"
@@ -221,7 +221,7 @@
                         </ResponsiveGrid>
 
                         <TableFrame v-else>
-                            <DataTable :value="entries" dataKey="_key" :editMode="queueState === 'DRAFT' ? 'cell' : null" @cell-edit-complete="onRowEditSave">
+                            <DataTable :value="entries" dataKey="_key" :editMode="canEditQueue ? 'cell' : null" @cell-edit-complete="onRowEditSave">
                                 <Column field="cassetteTemplateId" :header="$t('queues.cassette')">
                                     <template #body="{ data }"><span>{{ getCassetteName(data.cassetteTemplateId) }}</span></template>
                                 </Column>
@@ -237,7 +237,7 @@
                                         <InputNumber v-if="isParametricEntry(data)" v-model="data.dimensions[param]" fluid size="small" />
                                     </template>
                                 </Column>
-                                <Column v-if="queueState === 'DRAFT'" style="width: var(--ck-table-action-column-width)">
+                                <Column v-if="canEditQueue" style="width: var(--ck-table-action-column-width)">
                                     <template #body="{ data }"><Button icon="pi pi-trash" severity="danger" text :aria-label="$t('common.delete')" @click="confirmDelete(data)" size="small" /></template>
                                 </Column>
                             </DataTable>
@@ -349,11 +349,14 @@ import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
 import { getPrimaryState } from '~/packages/core/src/index.js';
+import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
     queue: { type: Object, required: true },
     queues: { type: Array, default: () => [] },
-    projectSlug: { type: String, required: true }
+    projectSlug: { type: String, required: true },
+    showQueueNavigation: { type: Boolean, default: true },
+    editMode: { type: String, default: 'workflow' }
 });
 
 const emit = defineEmits(['updated', 'select-queue', 'create-queue', 'queue-deleted']);
@@ -364,6 +367,7 @@ const authStore = useAuthStore();
 
 const queueState = computed(() => getPrimaryState(props.queue.status, 'UNKNOWN'));
 const queueName = computed(() => props.queue.identity?.name || props.queue.identity?.slug || t('common.unnamed'));
+const showQueueNavigation = computed(() => props.showQueueNavigation);
 
 const queuesStore = useQueuesStore();
 const cassettesStore = useCassettesStore();
@@ -389,6 +393,16 @@ const queueList = computed(() => [...props.queues].reverse());
 const toolOptions = computed(() => namedSelectOptions(tools.value, t('common.unnamed')));
 const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, t('common.unnamed')));
 const canCreateQueue = computed(() => authStore.can('queues', 'create'));
+const canEditQueue = computed(() => {
+    if (props.editMode !== 'process') return queueState.value === 'DRAFT';
+    return hasPermissionGrant({
+        permissions: authStore.activePermissions,
+        feature: 'queues',
+        level: 'write',
+        entity: props.queue,
+        entityType: 'queue'
+    });
+});
 const isSelectedQueue = (item = {}) => item._id?.toString() === props.queue._id?.toString();
 const materialSourceOptions = computed(() => [
     { label: t('nesting.virtualMode'), value: 'VIRTUAL' },
@@ -797,10 +811,9 @@ const handleRunStatusChanged = async () => {
 };
 
 onMounted(async () => {
-    const [cassetteResult, designResult, projectRes, whRes] = await Promise.all([
+    const [cassetteResult, designResult, whRes] = await Promise.all([
         cassettesStore.fetchCassettes(),
         $fetch('/api/cassette-designs'),
-        $fetch(`/api/project/${props.projectSlug}`),
         $fetch('/api/warehouses')
     ]);
     cassettes.value = cassetteResult || [];

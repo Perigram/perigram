@@ -445,7 +445,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
   const cassette = new Cassette(raw);
 
-  if (!hasLineagePermission(userPermissions, cassette.lineage, 'cassettes', 'write')) {
+  if (!hasLineagePermission(userPermissions, cassette, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -481,7 +481,7 @@ export async function updateLayerMapping(id, mapping, userId, userOrg, userRole,
   if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
   const cassette = new Cassette(raw);
 
-  if (!hasLineagePermission(userPermissions, cassette.lineage, 'cassettes', 'write')) {
+  if (!hasLineagePermission(userPermissions, cassette, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -504,7 +504,7 @@ export async function updateParameters(id, parameters, userId, userOrg, userRole
   if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
   const cassette = new Cassette(raw);
 
-  if (!hasLineagePermission(userPermissions, cassette.lineage, 'cassettes', 'write')) {
+  if (!hasLineagePermission(userPermissions, cassette, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -522,7 +522,7 @@ export async function updateParameters(id, parameters, userId, userOrg, userRole
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const cassette = await getById(toFlexibleId(id), userId, userOrg, userRole, userPermissions);
 
-  if (!hasLineagePermission(userPermissions, cassette.lineage, 'cassettes', 'admin')) {
+  if (!hasLineagePermission(userPermissions, cassette, 'cassettes', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
