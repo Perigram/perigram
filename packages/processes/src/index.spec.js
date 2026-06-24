@@ -805,6 +805,44 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.screens.auto_role_admin_project_detail.sources.map(source => source.entityType)).not.toContain('cassette');
   });
 
+  it('places non-child parent-bound create actions on the parent detail region', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_admin: { id: 'role_admin', label: 'Admin' }
+      },
+      actions: {
+        create_cassette: {
+          id: 'create_cassette',
+          actionKind: 'createEntity',
+          entityType: 'cassette',
+          status: { to: SOURCE_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'admin', roleIds: ['role_admin'] },
+          outputs: [{ id: 'created', entityType: 'cassette', status: SOURCE_STATE }]
+        },
+        create_design: {
+          id: 'create_design',
+          actionKind: 'createEntity',
+          entityType: 'cassette_design',
+          parentEntityType: 'cassette',
+          status: { to: TARGET_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_admin'] },
+          inputs: [{ id: 'parent', entityType: 'cassette', status: SOURCE_STATE }],
+          outputs: [{ id: 'created', entityType: 'cassette_design', status: TARGET_STATE }]
+        }
+      },
+      assignments: {
+        user_admin: { userId: 'user_admin', roleIds: ['role_admin'], status: 'active' }
+      }
+    }, domain);
+
+    const detail = compiled.screens.auto_role_admin_cassette_detail;
+    expect(detail.sources.map(source => source.entityType)).toEqual(['cassette']);
+    expect(detail.regions.find(region => region.id === 'main').actions).toContain('create_design');
+    expect(compiled.userAccess.user_admin.screens.find(screen => screen.screenKey === 'auto_role_admin_cassette_detail').actions).toContain('create_design');
+  });
+
   it('compiles typed construction and status definitions into actions and workflows', () => {
     const compiled = compileProcessDefinition({
       roles: {

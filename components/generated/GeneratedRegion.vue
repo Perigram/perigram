@@ -5,6 +5,8 @@
     :entity-type="sourceState.source.entityType"
     :surface="region.surface || 'detail'"
     :actions="effectiveActions"
+    :screen-key="screenKey"
+    :excluded-actions="excludedActions"
     @refresh="$emit('refresh')"
     @execute-action="(action, entity, context) => $emit('execute-action', action, entity, context)"
   >
@@ -37,6 +39,7 @@ const props = defineProps({
   template: { type: String, default: 'entityList' },
   screenActions: { type: Array, default: () => [] },
   screenKey: { type: String, default: '' },
+  excludedActions: { type: Array, default: () => [] },
   actionContext: { type: Object, default: () => ({}) }
 });
 

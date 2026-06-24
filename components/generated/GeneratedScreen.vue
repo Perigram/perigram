@@ -44,6 +44,7 @@
       :source-state="sourceState(detailMainRegion.sourceId)"
       :template="screen.template"
       :screen-actions="screen.actions || []"
+      :excluded-actions="detailChildActionIds"
       @refresh="load"
       @execute-action="executeAction"
     >
@@ -160,6 +161,7 @@ const regionBySlot = computed(() => Object.fromEntries(
 ));
 const detailMainRegion = computed(() => screen.value.regions.find(region => sourceState(region.sourceId).source?.mode === 'single') || screen.value.regions[0] || null);
 const detailChildRegions = computed(() => screen.value.regions.filter(region => region !== detailMainRegion.value));
+const detailChildActionIds = computed(() => [...new Set(detailChildRegions.value.flatMap(region => region.actions || []))]);
 const detailActionContext = computed(() => {
   const state = detailMainRegion.value ? sourceState(detailMainRegion.value.sourceId) : null;
   return {

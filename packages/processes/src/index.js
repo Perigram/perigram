@@ -896,6 +896,7 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
         domain,
         actions
       });
+      const contextualActions = contextualParentActions(role.actions || [], entityType, domain, actions);
       inferred[id] = {
         id,
         label: `${role.label || roleId} ${entityType}`,
@@ -928,9 +929,9 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
           slot: 'main',
           sourceId: entityType,
           surface: 'detail',
-          actions: directActions
+          actions: [...new Set([...directActions, ...contextualActions])]
         }, ...childRegions.regions],
-        actions: [...new Set([...directActions, ...childRegions.actionIds])]
+        actions: [...new Set([...directActions, ...contextualActions, ...childRegions.actionIds])]
       };
       existingKeys.add(`${roleId}:${feature}`);
     }
@@ -943,6 +944,19 @@ function inferredScreenActions(roleActions = [], feature, processActions = {}) {
   return roleActions
     .filter(action => action.feature === feature)
     .filter(action => !isParentBoundCreateAction(action, processActions[action.actionId || action.id]))
+    .map(action => action.actionId);
+}
+
+function contextualParentActions(roleActions = [], parentEntityType = '', domain = {}, processActions = {}) {
+  return roleActions
+    .filter((roleAction) => {
+      const processAction = processActions[roleAction.actionId || roleAction.id] || {};
+      if (!isParentBoundCreateAction(roleAction, processAction)) return false;
+      const actionParent = roleAction.parentEntityType || processAction.parentEntityType || processAction.inputs?.find(input => input.id === 'parent')?.entityType || '';
+      if (actionParent !== parentEntityType) return false;
+      const childEntityType = roleAction.entityType || processAction.entityType || '';
+      return !parentRelationForChild(domain, childEntityType, parentEntityType);
+    })
     .map(action => action.actionId);
 }
 
