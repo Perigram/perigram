@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Link generated collection names to detail screens
+    Files changed: components/generated/GeneratedEntityCollection.vue,
+      pages/screens/[screenKey].vue
+    Docs updated: components/README.md, TODO.org
+    Notes: Generated list/table screens now resolve a matching generated
+      `entityDetail` screen for the same entity type and route name clicks to
+      it with the selected entity id in screen query scope. The screen page
+      merges query scope into the screen contract so single-source loaders can
+      fetch the selected entity without hardcoding legacy app routes.
+
     [2026-06-24] Make system catalogue data public-read
     Files changed: shared/public-entities.js, shared/entity-field-access.js,
       shared/entity-field-access.spec.js, shared/permission-templates.js,

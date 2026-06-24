@@ -140,6 +140,12 @@ template so process-created designs do not select empty draft templates or
 submit missing template ids. Buttons derive semantic labels and icons from the compiled
 action kind, entity type, and target status when an old manifest still contains
 a generic label such as `Create`.
+Generated collections may turn `identity.name` into a link only through the
+screen manifest: the collection looks for an `entityDetail` screen with a
+source for the same entity type and routes to `/screens/:screenKey` with
+`entityId` and `{entityType}Id` query scope. The screen page merges that query
+scope into the screen contract before the single-source loader runs. Do not
+hardcode generated rows to legacy feature routes.
 
 Lifecycle transitions belong in `EntityStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,
