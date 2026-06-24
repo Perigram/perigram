@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Use package imports for public entity helpers
+    Files changed: server/features/materials/service.js,
+      server/features/layer-standards/service.js,
+      server/features/pen-templates/service.js,
+      server/features/tool-profiles/service.js
+    Docs updated: server/README.md, TODO.org
+    Notes: Replaced remaining deep relative imports of
+      `shared/public-entities.js` in Nitro-imported feature services with
+      `#shared/public-entities.js`. The generated dev bundle was still
+      preserving those paths as `../../../../../../shared/public-entities.js`.
+
     [2026-06-24] Use package shared imports in Nitro server modules
     Files changed: server/core/access/service.js,
       server/utils/auth-helpers.js, server/features/catalogs/service.js,
