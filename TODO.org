@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Move parent-bound create actions to generated collection toolbar
+    Files changed: components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedScreen.vue
+    Docs updated: components/README.md, TODO.org
+    Notes: Parent-bound create actions now render once in the matching
+      collection toolbar and open the generated action dialog with a required
+      parent selector when no parent entity context is already available. The
+      selector uses the current collection rows where possible and filters
+      parent candidates through the same action visibility rules.
+
     [2026-06-24] Show parent-bound create actions on generated collection rows
     Files changed: components/generated/GeneratedEntityCollection.vue,
       components/generated/action-visibility.js,
