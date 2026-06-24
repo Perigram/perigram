@@ -93,6 +93,11 @@ a complete OCCS template. When stored actions carry a construction mode that no
 longer belongs to the selected entity type, compilation normalizes the mode to
 the current domain default and the process-construction migration persists that
 normalization before recompiling active runtime contracts.
+The compiler fallback construction mode is only `genericCreate`; any
+entity-specific constructor such as baked cassette designs or OCCS template
+creation must be declared by the domain construction registry. This keeps the
+process compiler reusable and prevents hidden domain behavior from living in the
+generic package.
 Update actions consume an entity from the incoming data socket, expose one data
 input socket per selected mutable field, validate those fields against the
 active domain field-access policy, and compile into write/admin grants on the

@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+    [2026-06-24] Remove concrete entity defaults from process designer
+    Files changed: pages/organization/process.vue,
+      components/process-designer/ProcessStatusDefinitionNode.vue,
+      packages/processes/src/index.js
+    Docs updated: pages/organization/README.md,
+      components/process-designer/README.md, packages/processes/README.md,
+      TODO.org
+    Notes: Process designer entity/action/socket/screen defaults and screen
+      feature options now derive from the active domain entity registry instead
+      of named CNC routes or entity literals. Status-node stale label cleanup
+      compares against registry entity types, and the process compiler only
+      falls back to generic construction; entity-specific constructors must
+      come from domain construction contracts.
+
     [2026-06-24] Hide empty create-action parent sockets
     Files changed: pages/organization/process.vue
     Docs updated: pages/organization/README.md,

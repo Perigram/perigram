@@ -118,6 +118,12 @@ nodes also render compact role/level chips for inherited access and roles that
 already have matching entity access from entity profiles or other status/action
 grants.
 
+Node components must not embed concrete domain entity names. Domain-specific
+construction modes, entity lists, feature keys, and stale-label cleanup are
+owned by the route-level domain registry and process compiler. Status-definition
+nodes only decide whether to display the authored label or the status id; they
+do not know which entity types exist.
+
 The route-level process designer computes a live compiled preview from the
 current graph after node, edge, role, and screen edits. The service-identity
 editor is not a top-level tab; service principals remain internal records edited

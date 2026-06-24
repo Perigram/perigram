@@ -65,6 +65,10 @@ entity display surfaces, required access, assignment binding, and process
 action ids. It does not expose raw JSON as the normal authoring surface. When
 activated, compiled user screens are routed through `/screens/:screenKey`; the
 semantic route entered in the designer is retained as process metadata.
+Screen feature choices, new screen defaults, and new canvas entity/action/socket
+defaults are derived from the domain entity registry. The designer must not
+hardcode app navigation routes or concrete CNC entity names as generic process
+defaults; concrete starter graphs belong in process templates.
 
 The inspector edits compiler-owned fields directly:
 
@@ -137,6 +141,9 @@ directly on the node, edit only status id, label, severity, and icon, and apply
 to whichever entity lifecycle or action target they are wired into. New status
 nodes start from a neutral `STATUS` id with no label, so lifecycle meaning is
 authored by the process designer rather than guessed by the palette.
+When normalizing stale status-node labels, the designer only compares against
+entity types from the active domain registry. It does not keep a baked list of
+domain names in the Vue surface.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched
