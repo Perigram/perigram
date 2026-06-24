@@ -218,7 +218,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.screens.auto_role_operator_queue).toMatchObject({
       entityType: 'queue',
       roleIds: ['role_operator'],
-      required: { feature: 'queues', level: 'write' },
+      required: { feature: 'queues', level: 'read' },
       actions: ['action_accept']
     });
     expect(compiled.screens.auto_role_operator_queue_detail).toMatchObject({
@@ -317,7 +317,7 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.screens.auto_role_project_project.required).toEqual({
       feature: 'projects',
-      level: 'admin',
+      level: 'read',
       rule: {
         any: [
           { fact: 'primaryStatus', equals: 'CREATED' },
@@ -330,7 +330,7 @@ describe('@cutkit/processes compiler', () => {
       entityType: 'project',
       required: {
         feature: 'projects',
-        level: 'admin',
+        level: 'read',
         rule: {
           any: [
             { fact: 'primaryStatus', equals: 'CREATED' },

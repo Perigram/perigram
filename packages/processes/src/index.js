@@ -914,7 +914,7 @@ function aggregateScreenRequirement(feature, grants = []) {
     const grant = grants[0];
     return {
       feature,
-      level: grant.level || 'read',
+      level: 'read',
       scope: grant.scope,
       transitions: grant.transitions,
       rule: grant.rule
@@ -924,16 +924,10 @@ function aggregateScreenRequirement(feature, grants = []) {
   const scopes = grants.map(grant => grant.scope).filter(Boolean);
   return {
     feature,
-    level: maxAccessLevel(grants.map(grant => grant.level || 'read')),
+    level: 'read',
     ...(rules.length ? { rule: { any: rules } } : {}),
     ...(scopes.length === 1 ? { scope: scopes[0] } : {})
   };
-}
-
-function maxAccessLevel(levels = []) {
-  return levels.reduce((current, level) => (
-    ACCESS_ORDER[level] > ACCESS_ORDER[current] ? level : current
-  ), 'read');
 }
 
 function entityTypeFromFeature(domain = {}, feature) {
