@@ -1393,10 +1393,12 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
   const declaredInputs = Array.isArray(construction.inputs) ? construction.inputs : [];
   const inputsById = new Map((contract.inputs || []).map(input => [input.id || input.path, { ...input }]));
   for (const input of declaredInputs) {
-    inputsById.set(input.id || input.path, {
-      ...(inputsById.get(input.id || input.path) || {}),
-      ...input
-    });
+    const key = input.id || input.path;
+    const contractInput = inputsById.get(key);
+    inputsById.set(key, contractInput
+      ? mergeConstructionInput(contractInput, input)
+      : { ...input }
+    );
   }
   const requestedMode = construction.mode || contract.defaultMode || defaultConstructionMode(entityType);
   const modes = Array.isArray(contract.modes) ? contract.modes : [];
@@ -1405,6 +1407,16 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
       ? requestedMode
       : (contract.defaultMode || modes[0] || defaultConstructionMode(entityType)),
     inputs: [...inputsById.values()]
+  };
+}
+
+function mergeConstructionInput(contractInput = {}, declaredInput = {}) {
+  return {
+    ...declaredInput,
+    ...contractInput,
+    default: declaredInput.default ?? contractInput.default,
+    value: declaredInput.value ?? contractInput.value,
+    prompt: declaredInput.prompt ?? contractInput.prompt
   };
 }
 
@@ -1424,10 +1436,16 @@ function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityT
       .map(input => [input.id || input.path, { ...input }])
   );
   for (const field of policyFields) {
-    fieldsById.set(field.id || field.path, {
-      ...(fieldsById.get(field.id || field.path) || {}),
-      ...field
-    });
+    const key = field.id || field.path;
+    const constructionField = normalizedConstruction.inputs.find(input => (input.id || input.path) === key);
+    const merged = constructionField
+      ? mergeConstructionInput(constructionField, field)
+      : {
+          ...(fieldsById.get(key) || {}),
+          ...field
+        };
+    if (merged.prompt || merged.required || !constructionField) fieldsById.set(key, merged);
+    else fieldsById.delete(key);
   }
   const fields = [...fieldsById.values()];
   return {

@@ -10,7 +10,7 @@ export const cncEntityConstruction = {
     modes: ['genericCreate'],
     defaultMode: 'genericCreate',
     inputs: [
-      { id: 'jobItems', label: 'Queue items', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: true },
+      { id: 'jobItems', label: 'Queue items', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: false },
       { id: 'materialPool', label: 'Material pool', path: 'job.materialPool', type: 'entityList', accepts: ['material_pile', 'sheet', 'remnant'], required: false },
       { id: 'nestingParams', label: 'Nesting parameters', path: 'nestingParams', type: 'object', required: false }
     ]

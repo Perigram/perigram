@@ -81,6 +81,14 @@ const domain = {
     }
   },
   construction: {
+    queue: {
+      modes: ['genericCreate'],
+      defaultMode: 'genericCreate',
+      inputs: [
+        { id: 'jobItems', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: false },
+        { id: 'materialPool', path: 'job.materialPool', type: 'entityList', accepts: ['material_pile', 'sheet', 'remnant'], required: false }
+      ]
+    },
     cassette: {
       modes: ['createDefaultOccsTemplate'],
       defaultMode: 'createDefaultOccsTemplate',
@@ -1140,6 +1148,52 @@ describe('@cutkit/processes compiler', () => {
       expect.objectContaining({ id: 'name', prompt: true, required: true }),
       expect.objectContaining({ id: 'templateId', prompt: true, required: true })
     ]));
+  });
+
+  it('does not require queue job items during queue creation', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_admin: { id: 'role_admin' }
+      },
+      actions: {
+        create_queue: {
+          id: 'create_queue',
+          actionKind: 'createEntity',
+          entityType: 'queue',
+          status: { to: 'DRAFT' },
+          construction: {
+            inputs: [
+              { id: 'jobItems', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: true }
+            ]
+          },
+          inputPolicy: {
+            fields: [
+              { id: 'jobItems', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: true }
+            ]
+          },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_admin'] },
+          outputs: [{ id: 'created', entityType: 'queue', status: 'DRAFT' }]
+        }
+      },
+      assignments: {
+        user_admin: {
+          userId: 'user_admin',
+          roleIds: ['role_admin'],
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.create_queue.construction.inputs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'jobItems', required: false }),
+      expect.objectContaining({ id: 'materialPool', required: false })
+    ]));
+    const exposedQueueAction = compiled.userAccess.user_admin.actions[0];
+    expect(exposedQueueAction.construction.inputs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'jobItems', required: false })
+    ]));
+    expect(exposedQueueAction.inputPolicy.fields).not.toContainEqual(expect.objectContaining({ id: 'jobItems' }));
   });
 
   it('normalizes stale construction modes when an action entity type changes', () => {
