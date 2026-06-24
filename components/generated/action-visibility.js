@@ -14,6 +14,12 @@ export function actionAppliesToEntity(action = {}, entity = {}, entityType = '')
   return true;
 }
 
+export function parentBoundCreateAppliesToEntityType(action = {}, entityType = '') {
+  if (!action || action.actionKind !== 'createEntity' || !entityType) return false;
+  const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || '';
+  return parentType === entityType;
+}
+
 export function entityPrimaryStatus(entity = {}) {
   const state = entity.status?.state;
   if (typeof state === 'string') return state;

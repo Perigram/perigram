@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actionAppliesToEntity } from './action-visibility.js';
+import { actionAppliesToEntity, parentBoundCreateAppliesToEntityType } from './action-visibility.js';
 
 describe('generated action visibility', () => {
   it('shows status actions only on entities in the source status', () => {
@@ -29,6 +29,18 @@ describe('generated action visibility', () => {
     expect(actionAppliesToEntity(action, { status: { state: { primary: 'CREATED' } } }, 'cassette')).toBe(true);
     expect(actionAppliesToEntity(action, { status: { state: { primary: 'DELETED' } } }, 'cassette')).toBe(false);
     expect(actionAppliesToEntity(action, { status: { state: { primary: 'CREATED' } } }, 'project')).toBe(false);
+  });
+
+  it('identifies parent-bound create actions for collection rows', () => {
+    expect(parentBoundCreateAppliesToEntityType({
+      actionKind: 'createEntity',
+      entityType: 'cassette_design',
+      parentEntityType: 'cassette'
+    }, 'cassette')).toBe(true);
+    expect(parentBoundCreateAppliesToEntityType({
+      actionKind: 'createEntity',
+      entityType: 'cassette'
+    }, 'cassette')).toBe(false);
   });
 
   it('hides entity actions from other entity lists', () => {

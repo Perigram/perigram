@@ -93,7 +93,7 @@ import TraceChain from '~/components/shared/links/TraceChain.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
-import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 
 const props = defineProps({
@@ -114,7 +114,14 @@ const authStore = useAuthStore();
 const resolvedActions = computed(() => props.actions
   .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
   .filter(Boolean));
-const collectionActions = computed(() => resolvedActions.value.filter(action => action.actionKind === 'createEntity'));
+const rowActionCandidates = computed(() => [
+  ...resolvedActions.value,
+  ...authStore.actionManifest.filter(action => parentBoundCreateAppliesToEntityType(action, props.entityType))
+]);
+const collectionActions = computed(() => resolvedActions.value.filter(action => (
+  action.actionKind === 'createEntity'
+  && !parentBoundCreateAppliesToEntityType(action, props.entityType)
+)));
 const actionContext = computed(() => ({
   ...(props.actionContext || {}),
   region: props.region,
@@ -127,7 +134,7 @@ const tableFields = computed(() => resolveEntityDisplayContract({
 }).fields.slice(0, 6));
 
 function entityActionsFor(entity) {
-  return resolvedActions.value.filter(action => actionAppliesToEntity(action, entity, props.entityType));
+  return rowActionCandidates.value.filter(action => actionAppliesToEntity(action, entity, props.entityType));
 }
 
 function openEntity(entity) {
