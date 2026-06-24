@@ -459,26 +459,66 @@ function createActionExecutionAuth(auth = {}, action = {}) {
   const permissions = {
     ...(auth.effectivePermissions || {})
   };
-  permissions[feature] = [
-    ...normalizePermissionGrants(permissions[feature]),
-    {
-      level: action.access?.level || 'write',
-      actions: { create: true }
-    }
-  ];
+  appendExecutionGrant(permissions, feature, {
+    level: action.access?.level || 'write',
+    actions: { create: true }
+  });
+  for (const source of constructionSourceGrants(action)) {
+    appendExecutionGrant(permissions, source.feature, {
+      level: source.level,
+      actions: source.actions
+    });
+  }
   return {
     ...auth,
     effectivePermissions: permissions
   };
 }
 
+function appendExecutionGrant(permissions, feature, grant) {
+  if (!feature) return;
+  permissions[feature] = [
+    ...normalizePermissionGrants(permissions[feature]),
+    grant
+  ];
+}
+
+function constructionSourceGrants(action = {}) {
+  const sources = [];
+  if (action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
+    sources.push({ entityType: 'cassette', level: 'write', actions: { view: true, update: true } });
+  }
+  for (const field of [
+    ...(action.construction?.inputs || []),
+    ...(action.inputPolicy?.fields || []),
+    ...(action.inputs || [])
+  ]) {
+    if (field?.type === 'entity' && field.entityType) {
+      sources.push({ entityType: field.entityType, level: field.access?.level || 'read', actions: { view: true } });
+    }
+  }
+  const seen = new Set();
+  return sources.flatMap(source => {
+    const feature = resolveEntityFeature(source.entityType);
+    const key = `${feature}:${source.level}`;
+    if (!feature || seen.has(key)) return [];
+    seen.add(key);
+    return [{ ...source, feature }];
+  });
+}
+
 function resolveActionFeature(action = {}) {
-  const entityType = resolveActionEntityType(action);
+  return resolveEntityFeature(resolveActionEntityType(action));
+}
+
+function resolveEntityFeature(entityType = '') {
+  entityType = normalizeEntityType(entityType);
   const domain = getDomain();
+  const entity = (domain?.entities || []).find(item => item.type === entityType);
+  if (entity?.collection) return entity.collection;
   const fieldPolicy = getEntityFieldAccessPolicy(entityType) || domain?.fieldAccess?.[entityType];
   if (fieldPolicy?.feature) return fieldPolicy.feature;
-  const entity = (domain?.entities || []).find(item => item.type === entityType);
-  return entity?.collection || entityType;
+  return entityType;
 }
 
 function pickMutationData(data = {}, action = {}) {

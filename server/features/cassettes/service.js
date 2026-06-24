@@ -267,14 +267,14 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, query = {}) {
-  const { limit, skip, status, ...rest } = query;
+  const { limit, skip, status, primaryStatus, primaryStatuses, ...rest } = query;
 
   const lineageFilter = getLineageFilter(userPermissions);
   const processedFilter = { ...rest };
 
-  if (status) {
-    processedFilter['status.state.primary'] = status;
-  }
+  const statuses = normalizePrimaryStatuses(primaryStatuses);
+  if (statuses.length) processedFilter['status.state.primary'] = { $in: statuses };
+  else if (status || primaryStatus) processedFilter['status.state.primary'] = status || primaryStatus;
 
   const finalFilter = { ...lineageFilter, ...processedFilter };
 
@@ -283,7 +283,15 @@ export async function list(userId, userOrg, userRole, userPermissions, query = {
     skip: skip ? parseInt(skip) : 0
   });
 
-  return cassettes.map(toDTO);
+  return cassettes
+    .map(toDTO)
+    .filter(cassette => hasLineagePermission(userPermissions, cassette, 'cassettes', 'read'));
+}
+
+function normalizePrimaryStatuses(value) {
+  if (Array.isArray(value)) return value.flatMap(normalizePrimaryStatuses);
+  if (typeof value !== 'string') return [];
+  return value.split(',').map(item => item.trim()).filter(Boolean);
 }
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {

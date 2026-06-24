@@ -353,6 +353,16 @@ describe('process definitions access fallback', () => {
       expect.any(Object),
       { name: 'Facade A' }
     );
+    expect(cassetteService.createDesignFromTemplate.mock.calls[0][5]).toEqual(expect.objectContaining({
+      effectivePermissions: expect.objectContaining({
+        cassette_designs: expect.arrayContaining([
+          expect.objectContaining({ level: 'admin', actions: { create: true } })
+        ]),
+        cassettes: expect.arrayContaining([
+          expect.objectContaining({ level: 'write', actions: { view: true, update: true } })
+        ])
+      })
+    }));
     expect(statusService.setInitialStateForOrganization).toHaveBeenCalledWith(
       'cassette_design',
       'design-created',
@@ -415,6 +425,13 @@ describe('process definitions access fallback', () => {
       undefined,
       expect.any(Object)
     );
+    expect(cassetteService.findDefaultConstructableTemplate.mock.calls[0][3]).toEqual(expect.objectContaining({
+      effectivePermissions: expect.objectContaining({
+        cassettes: expect.arrayContaining([
+          expect.objectContaining({ level: 'write', actions: { view: true, update: true } })
+        ])
+      })
+    }));
     expect(cassetteService.createDesignFromTemplate).toHaveBeenCalledWith(
       'default-template',
       {},

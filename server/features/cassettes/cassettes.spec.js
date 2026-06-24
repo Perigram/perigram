@@ -168,4 +168,42 @@ describe('Cassette Management & Ownership', () => {
       { memberships: [] }
     )).rejects.toThrow(/Permission denied/);
   });
+
+  it('filters cassette lists by generated-screen statuses and detail-equivalent access', async () => {
+    const active = await cassetteService.create({ name: 'Active Template' }, user1.userId, user1.organizationId, null, user1.permissions);
+    const draft = await cassetteService.create({ name: 'Draft Template' }, user1.userId, user1.organizationId, null, user1.permissions);
+    await db.collection('cassettes').updateOne(
+      { _id: draft._id },
+      { $set: { 'status.state.primary': 'DRAFT' } }
+    );
+
+    const readOnlyActiveAuth = {
+      userId: 'status-reader',
+      organizationId: user1.organizationId,
+      memberships: [{ organizationId: user1.organizationId, permissions: {} }],
+      effectivePermissions: {
+        cassettes: [{
+          level: 'read',
+          rule: { fact: 'primaryStatus', equals: 'ACTIVE' }
+        }]
+      }
+    };
+
+    const result = await cassetteService.list(
+      'status-reader',
+      user1.organizationId,
+      null,
+      readOnlyActiveAuth,
+      { primaryStatuses: 'ACTIVE,DRAFT' }
+    );
+
+    expect(result.map(item => item._id.toString())).toEqual([active._id.toString()]);
+    await expect(cassetteService.getById(
+      draft._id.toString(),
+      'status-reader',
+      user1.organizationId,
+      null,
+      readOnlyActiveAuth
+    )).rejects.toThrow(/Permission denied/);
+  });
 });
