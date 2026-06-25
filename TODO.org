@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Prefer baked cassette-design preview geometry over DXF
+    Files changed: components/CassetteThumbnail.vue,
+      components/entities/CassetteDesign/README.md,
+      components/shared/README.md, TODO.org
+    Docs updated: components/entities/CassetteDesign/README.md,
+      components/shared/README.md, TODO.org
+    Notes: Cassette thumbnails now choose baked geometry/layer previews before
+      DXF so cassette-design cards and generated previews can show numeric
+      dimension annotations. The thumbnail frame now adds fixed inner padding
+      so the previewed part does not fill the full card height.
+
+*** Agent Notes
     [2026-06-25] Fix generated carousel sizing and async nesting sheet output discovery
     Files changed: components/generated/GeneratedHomeScreen.vue,
       components/QueueEditor.vue, server/features/process-definitions/service.js,
