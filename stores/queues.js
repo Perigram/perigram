@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 export const useQueuesStore = defineStore('queues', () => {
     const queues = ref([]);
@@ -17,8 +18,21 @@ export const useQueuesStore = defineStore('queues', () => {
         }
     }
 
+    function hasActiveNestingRun(queueRuns = []) {
+        return queueRuns.some(run => getPrimaryState(run.status) === 'NESTING');
+    }
+
+    function sortQueueRuns(queueRuns = []) {
+        return [...queueRuns].sort((left, right) => runOrder(left) - runOrder(right));
+    }
+
+    function runOrder(run = {}) {
+        return Number(run.data?.runNumber ?? run.runNumber ?? Number.MAX_SAFE_INTEGER);
+    }
+
     async function pollQueueStatus(queueId) {
         if (pollingIntervals.value[queueId]) return;
+        if (!hasActiveNestingRun(runs.value[queueId] || [])) return;
 
         pollingIntervals.value[queueId] = setInterval(async () => {
             try {
@@ -36,8 +50,7 @@ export const useQueuesStore = defineStore('queues', () => {
                 }
 
                 const queueRuns = await fetchRuns(queueId);
-                const hasNestingRuns = queueRuns.some(run => run.status?.state === 'NESTING');
-                if (!hasNestingRuns) {
+                if (!hasActiveNestingRun(queueRuns)) {
                     stopPolling(queueId);
                     // Nesting just completed; use a fresh object so repeated
                     // runs for the same queue still trigger Vue watchers.
@@ -53,8 +66,7 @@ export const useQueuesStore = defineStore('queues', () => {
     function checkTransientStatuses() {
         queues.value.forEach(queue => {
             const queueRuns = runs.value[queue._id] || [];
-            const hasNestingRuns = queueRuns.some(run => run.status?.state === 'NESTING');
-            if (hasNestingRuns) {
+            if (hasActiveNestingRun(queueRuns)) {
                 pollQueueStatus(queue._id);
             }
         });
@@ -224,8 +236,9 @@ export const useQueuesStore = defineStore('queues', () => {
     async function fetchRuns(queueId) {
         try {
             const data = await $fetch(`/api/nesting-runs`, { query: { queueId } });
-            runs.value[queueId] = data;
-            return data;
+            const sorted = sortQueueRuns(data);
+            runs.value[queueId] = sorted;
+            return sorted;
         } catch (err) {
             error.value = err.message;
             return [];
@@ -250,6 +263,7 @@ export const useQueuesStore = defineStore('queues', () => {
         chooseRun,
         deleteRun,
         stopPolling,
+        pollQueueStatus,
         fetchRuns
     };
 });

@@ -796,6 +796,7 @@ const onCustomSheetUpload = (event) => {
 
 const runSheetCount = (run = {}) => Number(run.data?.results?.sheetCount || run.summary?.sheetCount || run.layoutCount || 0);
 const runParams = (run = {}) => run.data?.params || run.params || {};
+const latestRunId = (runsForQueue = queueRuns.value) => runsForQueue.at(-1)?._id?.toString?.() || null;
 
 const loadQueueData = async () => {
     try {
@@ -1012,20 +1013,26 @@ const saveQueue = async () => {
 const runNesting = async () => {
     nestingInProgress.value = true;
     try {
+        const queueId = props.queue._id || props.queue.identity?.uid;
         if (processRunNestingAction.value) {
             if (canEditQueue.value) await saveQueue();
             await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(processRunNestingAction.value.actionId)}/execute`, {
                 method: 'POST',
                 body: {
-                    entityId: props.queue._id || props.queue.identity?.uid,
-                    entities: { queue: props.queue._id || props.queue.identity?.uid },
+                    entityId: queueId,
+                    entities: { queue: queueId },
                     parameters: nestingCommandParameters.value
                 }
             });
+            const refreshedRuns = await queuesStore.fetchRuns(queueId);
+            selectedRunId.value = latestRunId(refreshedRuns);
+            queuesStore.pollQueueStatus(queueId);
             emit('updated');
         } else {
             await saveQueue();
-            await queuesStore.startNesting(props.queue._id);
+            await queuesStore.startNesting(queueId);
+            const refreshedRuns = await queuesStore.fetchRuns(queueId);
+            selectedRunId.value = latestRunId(refreshedRuns);
         }
         await loadSheetDesigns();
         toast.add({ severity: 'info', summary: t('queues.nestingStarted'), life: 3000 });
