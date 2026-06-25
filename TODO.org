@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Hide default entity-detail trace and generated page titles
+    Files changed: components/shared/EntityPage.vue,
+      components/generated/GeneratedScreen.vue,
+      components/shared/README.md, TODO.org
+    Docs updated: components/shared/README.md, TODO.org
+    Notes: Entity detail headers now hide lineage breadcrumbs by default, and
+      generated `entityDetail` screens no longer render a second generic
+      `StandardPage` title above the entity header.
+
+*** Agent Notes
     [2026-06-25] Remove generated card trace/title overrides
     Files changed: components/generated/GeneratedEntityCollection.vue,
       components/generated/GeneratedHomeScreen.vue,
