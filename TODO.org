@@ -4,6 +4,32 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Fix generated home carousel sizing and admin delete actions
+    Files changed: components/generated/GeneratedHomeScreen.vue,
+      components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedEntityDetail.vue,
+      components/generated/GeneratedDeleteButton.vue,
+      components/generated/delete-visibility.js,
+      components/generated/delete-visibility.spec.js,
+      server/api/queue/[id]/index.delete.js,
+      server/api/cassette-designs/[id].delete.js,
+      packages/domain-cnc/src/entities.js, framework.manifest.json,
+      shared/design-system.spec.js
+    Docs updated: components/README.md, server/api/README.md,
+      server/features/queues/README.md,
+      server/features/cassette-designs/README.md,
+      packages/domain-cnc/README.md, TODO.org
+    Notes: Generated home sections now render fixed-width non-shrinking cards
+      inside horizontal overflow instead of compressing all cards to the
+      viewport. Generated home/list/detail surfaces render a shared delete icon
+      only when the active permissions grant admin/delete for the exact entity;
+      the button uses the domain UI endpoint and `useEntity().remove()`.
+      Domain entity definitions now declare `operations.delete` so generated UI
+      does not show destructive controls for entities without a canonical
+      delete operation.
+      Queue and cassette-design DELETE routes were added to expose existing
+      admin-guarded service removal methods.
+
     [2026-06-25] Refresh process queue nesting runs after async completion
     Files changed: stores/queues.js, stores/queues.spec.js,
       components/QueueEditor.vue

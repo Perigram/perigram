@@ -137,6 +137,12 @@ The user policy intentionally exposes team-list identity fields (`identity`,
 `data.email`, role, and membership summary) at `users:read`, while copied
 permission JSON remains admin-only compatibility data.
 
+Entity definitions may declare operation capabilities such as
+`operations.delete`. Generated UI uses those capabilities together with
+process-derived access grants before showing destructive controls. A delete
+button requires both the domain capability and an active `delete`/admin grant
+for the exact entity; endpoint presence alone is not enough.
+
 ## Related
 
 - [@cutkit/core](../core/README.md)

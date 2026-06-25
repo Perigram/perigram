@@ -146,6 +146,9 @@ not invent static dashboard widgets, hardcoded domain routes, or per-card
 create buttons. Each home section resolves its open-list button from the
 compiled region route or the matching compiled entity-list screen in the
 current screen manifest; it must not construct list routes from entity names.
+Home sections are true horizontal carousels: entity cards keep a stable
+non-shrinking width and overflow horizontally instead of shrinking every card
+to fit the viewport.
 Generated screen titles, home section headers, generated breadcrumbs, and
 generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,
@@ -204,6 +207,11 @@ clickable; generated cards must keep the standard identity/status row.
 Generated collection cards render visible process actions as generated buttons
 in the card footer. The action must be present in the user's compiled action
 manifest and match the current entity status before the footer renders it.
+Generated collection, home, and detail surfaces also render the standard
+generated delete icon when the active process grants `delete`/admin access for
+the exact entity and the domain UI endpoint has a canonical single-entity route.
+The delete control calls the same `useEntity(...).remove()` boundary as other
+entity UI and refreshes the generated screen after success.
 Parent-bound create actions render once in the matching generated collection
 toolbar only when at least one visible row can satisfy the parent contract; the
 input dialog then asks for that parent entity and filters the selector to rows

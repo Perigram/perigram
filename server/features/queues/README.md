@@ -55,7 +55,7 @@ Defines a specific nesting job, bridging the digital production intent with phys
    There is no queue-level `CUT` state.
 5. **Archiving / Removal**: Queue status controls can transition any queue state
    to `ARCHIVED`; destructive deletion remains an entity removal action guarded
-   by queue delete access.
+   by queue delete/admin access through `DELETE /api/queue/:id`.
 
 ## Read Model Helpers
 

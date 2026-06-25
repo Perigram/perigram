@@ -44,6 +44,10 @@ Routes are grouped into sub-directories corresponding to features:
   user-management access contract and support string organization ids.
 - `sheet-designs/`: Lineage-scoped sheet design list/detail and direct DXF
   export.
+- `queue/:id` and `cassette-designs/:id`: Single-entity DELETE routes delegate
+  to feature `remove()` services, which enforce admin/delete access. Generated
+  process screens use these canonical routes through `useEntity().remove()`
+  instead of calling feature-specific browser code.
 - `status/`: Authenticated status action and history endpoints. History
   handlers delegate to the statuses feature and return response-only actor
   display data for audit rows.

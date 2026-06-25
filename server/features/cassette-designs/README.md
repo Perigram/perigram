@@ -38,6 +38,10 @@ Aligned with `@PROPOSED_DATA_MODEL.md` Section 5:
   ObjectId/string id. Entity UI uses this canonical endpoint through
   `useEntity('cassetteDesign')`; cards must not fetch cassette designs through
   template or cassette fallback routes.
+- `DELETE /api/cassette-designs/:id` removes a design through the
+  cassette-design feature service and requires admin/delete access for that
+  exact design. Generated process screens call this route through the shared
+  entity delete control when the active process grants it.
 - `GET /api/cassette-designs/:id/export` downloads the design DXF. The service
   regenerates a layer-aware DXF from stored preview layers, `layerData`, or
   `polygonParts` before using `data.geometry.dxfId` from the `cassettes` GridFS
