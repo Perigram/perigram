@@ -1874,6 +1874,74 @@ describe('@cutkit/processes compiler', () => {
     ]);
   });
 
+  it('places manual command actions on the input entity detail screen', () => {
+    const compiled = compileProcessDefinition({
+      graph: {
+        nodes: [
+          { id: 'create_queue', type: 'action', position: {}, data: { refId: 'create_queue' } },
+          { id: 'send_queue', type: 'action', position: {}, data: { refId: 'send_queue' } },
+          { id: 'solve_nesting', type: 'action', position: {}, data: { refId: 'solve_nesting' } }
+        ],
+        edges: [
+          { id: 'create-send', source: 'create_queue', target: 'send_queue', sourceHandle: 'output', targetHandle: 'input:entity' },
+          { id: 'send-solve', source: 'send_queue', target: 'solve_nesting', sourceHandle: 'output', targetHandle: 'input:queue' }
+        ]
+      },
+      roles: {
+        role_operator: { id: 'role_operator' }
+      },
+      actions: {
+        create_queue: {
+          id: 'create_queue',
+          actionKind: 'createEntity',
+          entityType: 'queue',
+          status: { to: SOURCE_STATE },
+          trigger: { mode: 'manual' },
+          access: { grants: [{ roleId: 'role_operator', level: 'write' }] },
+          outputs: [{ id: 'created', entityType: 'queue', status: SOURCE_STATE }]
+        },
+        send_queue: {
+          id: 'send_queue',
+          actionKind: 'changeStatus',
+          entityType: 'queue',
+          status: { from: SOURCE_STATE, to: TARGET_STATE },
+          trigger: { mode: 'manual' },
+          access: { grants: [{ roleId: 'role_operator', level: 'write' }], modified: true }
+        },
+        solve_nesting: {
+          id: 'solve_nesting',
+          actionKind: 'runCommand',
+          commandId: 'solveNesting',
+          trigger: { mode: 'manual' },
+          inputs: [{ id: 'queue', entityType: 'queue' }],
+          outputs: [
+            { id: 'nesting_run', entityType: 'nesting_run', multiple: true },
+            { id: 'sheet_design', entityType: 'sheet_design', multiple: true }
+          ]
+        }
+      },
+      assignments: {
+        user_operator: { userId: 'user_operator', roleIds: ['role_operator'], status: 'active' }
+      }
+    }, domain);
+
+    const userAccess = compiled.userAccess.user_operator;
+    const commandAction = userAccess.actions.find(action => action.actionId === 'solve_nesting');
+    const queueDetail = userAccess.screens.find(screen => screen.id === 'auto_role_operator_queue_detail');
+
+    expect(commandAction).toMatchObject({
+      actionKind: 'runCommand',
+      commandId: 'solveNesting',
+      feature: 'queues',
+      entityType: 'queue',
+      status: { from: TARGET_STATE }
+    });
+    expect(queueDetail.actions).toContain('solve_nesting');
+    expect(queueDetail.regions[0].actions).toContain('solve_nesting');
+    expect(userAccess.permissions.nesting_runs).toEqual([{ level: 'write' }]);
+    expect(userAccess.permissions.sheet_designs).toEqual([{ level: 'write' }]);
+  });
+
   it('synthesizes workflows and transition access from action nodes', () => {
     const compiled = compileProcessDefinition({
       roles: {

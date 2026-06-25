@@ -550,7 +550,7 @@ function compileRoles(process = {}, domain = {}) {
     const exposedRoleIds = actionExposureRoleIds(action, access, actionWindow);
     for (const roleId of exposedRoleIds) {
       if (!roles[roleId]) continue;
-      const feature = actionWindow?.primaryGrant?.feature || grantFromAction(action, access, domain)?.feature || null;
+      const feature = exposedActionFeature(action, actionWindow, access, domain);
       const parentEntityType = effectiveActionParentEntityType(action, domain);
       roles[roleId].actions.push({
         actionId: action.id || actionId,
@@ -569,6 +569,14 @@ function compileRoles(process = {}, domain = {}) {
     }
   }
   return roles;
+}
+
+function exposedActionFeature(action = {}, actionWindow = null, access = {}, domain = {}) {
+  const kind = action.actionKind || 'createEntity';
+  if (kind === 'runCommand' && actionWindow?.input?.feature) {
+    return actionWindow.input.feature;
+  }
+  return actionWindow?.primaryGrant?.feature || grantFromAction(action, access, domain)?.feature || null;
 }
 
 function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {

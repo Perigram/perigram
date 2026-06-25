@@ -46,7 +46,6 @@ const effectiveTitle = computed(() => props.title || '');
             :entity-type="entityType"
             variant="inline"
             :actions="statusActions"
-            :show-history="false"
             @refresh="$emit('refresh')"
             @transitioned="$emit('refresh')"
           />
