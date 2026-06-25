@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Split queue nesting command controls from process run results
+    Files changed: components/QueueEditor.vue,
+      components/entities/NestingRun/NestingRunCard.vue, stores/queues.js,
+      stores/queues.spec.js
+    Docs updated: components/README.md, stores/README.md, TODO.org
+    Notes: Generated queue details now hide the nesting command/settings panel
+      unless the opened queue has a resolved manual `solveNesting` process
+      action. Users with only `nesting_runs:read` can still see readable run
+      results in the support region without receiving command controls.
+      Nesting run cards now display metrics and sheet-design output for
+      process-authored result states when solver data exists instead of only
+      rendering domain `COMPLETE/CHOSEN` as non-empty output. Queue polling
+      keeps watching the latest process-created run until solver output is
+      written, while ignoring older empty runs behind a newer completed run.
+
     [2026-06-25] Fix process command outputs and typed create prompts
     Files changed: components/generated/GeneratedScreen.vue,
       packages/domain-cnc/src/entity-construction.js,

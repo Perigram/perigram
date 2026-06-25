@@ -63,4 +63,9 @@ Pinia stores for client state and API orchestration.
   Generated process queue actions that run `solveNesting` must start the same
   queue polling path as `/api/queue/:id/nest`; otherwise the UI will keep the
   freshly-created run snapshot and miss the asynchronous task completion update.
+  Process-authored run statuses can be applied before the async nesting worker
+  writes `data.results` and `data.sheetDesignIds`, so polling treats the latest
+  run as active until it has solver output, even when its primary status is no
+  longer the domain `NESTING` state. Older empty historical runs are ignored
+  when a newer run already has results.
 - Internal demo pages may pre-seed `entities.registry` with DTO-shaped mock entities so shared trace components render examples without calling authenticated APIs.

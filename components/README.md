@@ -178,10 +178,17 @@ buttons. Entity-local operational editors should use the canonical
 main/supporting proportions from
 `EntityWorkspace` rather than inventing local stacked or sidebar grids.
 The queue detail support region for nesting runs follows the same contract:
-process mode renders it only when the user has a resolved `solveNesting`
-action or at least one loaded `nesting_run` passes entity-scoped read access.
-Run cards gate destructive controls with `nesting_runs` grants for the concrete
-run, not with parent queue or global feature permissions.
+process mode separates command controls from result viewing. The nesting
+command/settings panel renders only when the opened queue detail receives a
+resolved manual `solveNesting` run-command action. The run result region may
+render for users who only have entity-scoped `nesting_runs:read` on concrete
+runs, but it must not expose command settings or a run button. Run cards gate
+destructive controls with `nesting_runs` grants for the concrete run, not with
+parent queue or global feature permissions. Process-authored result states
+such as organization-specific cut/done labels still render run metrics and
+sheet-design output when `data.results`, `data.sheetDesignIds`, or scoped
+sheet-design context exists; run cards must not treat only domain
+`COMPLETE/CHOSEN` as displayable output.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page.
 Entity-bound generated actions are filtered before
