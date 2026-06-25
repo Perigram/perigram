@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Enforce library-owned cassette creation and summary sync
+    Files changed: server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js,
+      server/features/cassettes/service.js,
+      server/features/cassettes/cassettes.spec.js
+    Docs updated: server/features/process-definitions/README.md,
+      server/features/cassettes/README.md, server/features/libraries/README.md,
+      TODO.org
+    Notes: Parent-scoped create actions now require the compiled parent entity
+      id before calling domain constructors. Library-owned cassette templates
+      persist `lineage.libraryId` and synchronously update the parent
+      `summary.cassetteCount`, with focused tests covering both contracts.
+
+*** Agent Notes
     [2026-06-25] Preserve opened parent context for generated child creates
     Files changed: components/generated/action-context.js,
       components/generated/action-context.spec.js,

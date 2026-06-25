@@ -77,7 +77,12 @@ process-created template therefore opens in `CassetteDesignerV2` with an
 editable OCCS document instead of `data.definition: null`.
 If the graph action has a `library` parent input, process execution passes
 `libraryId` into the typed constructor and the cassette service persists it
-under `lineage.libraryId`.
+under `lineage.libraryId`. A parent-scoped process action must provide that
+parent id; the process runtime rejects the action before calling this service
+when the compiled parent input is missing. After a library-owned template is
+created, the cassette service synchronizes the parent library summary through
+the domain aggregation contract, so `summary.cassetteCount` reflects persisted
+children instead of UI-local inference.
 
 `GET /api/cassettes/:id/export` remains a template-level DXF export. Parametric
 exports use evaluated `layerData` when available, so folds, marks, dimensions,
