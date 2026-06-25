@@ -56,4 +56,11 @@ Pinia stores for client state and API orchestration.
   terminal states. Queue nesting completion is emitted as an event object
   (`{ queueId, completedAt }`) rather than a bare queue id so repeated runs for
   the same queue still trigger component watchers and related entity refetches.
+  Queue nesting polling reads lifecycle state through `getPrimaryState()` so it
+  works for both legacy string statuses and v2 process/status-machine blocks.
+  Fetched queue runs are sorted by `data.runNumber` before being written into
+  the store so UI selectors can treat the last run as the newest run.
+  Generated process queue actions that run `solveNesting` must start the same
+  queue polling path as `/api/queue/:id/nest`; otherwise the UI will keep the
+  freshly-created run snapshot and miss the asynchronous task completion update.
 - Internal demo pages may pre-seed `entities.registry` with DTO-shaped mock entities so shared trace components render examples without calling authenticated APIs.

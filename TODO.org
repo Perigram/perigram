@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Refresh process queue nesting runs after async completion
+    Files changed: stores/queues.js, stores/queues.spec.js,
+      components/QueueEditor.vue
+    Docs updated: stores/README.md, TODO.org
+    Notes: Queue nesting polling now uses `getPrimaryState()` so v2
+      status-machine blocks keep polling while a run is `NESTING`. Generated
+      process `solveNesting` actions now fetch runs, focus the newly-created
+      run, and start the same polling path as the queue nesting endpoint so the
+      UI refreshes after the async worker completes. Queue run fetches now sort
+      by run number before updating the store so latest-run focus is stable.
+
     [2026-06-25] Make queue nesting event emission workflow-aware
     Files changed: server/features/nesting/operations.js,
       server/features/nesting/operations.spec.js,
