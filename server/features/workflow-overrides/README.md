@@ -10,6 +10,11 @@ Organization-scoped lifecycle override storage for entity status machines.
 - Enforces organization-scoped admin access for the target entity domain.
 - Resolves the active organization override for the status engine, falling back
   to the domain workflow when no override exists.
+- When an active process supplies a workflow, runtime resolution merges
+  domain-owned system intent transitions into that process workflow. Process
+  statuses remain user-authored, but hidden service intents such as
+  `nestingSolveCompleted` cannot disappear from entities that are produced by
+  commands/tasks.
 
 ## Data Contract
 

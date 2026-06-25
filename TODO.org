@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Preserve nesting solver system intents in process workflows
+    Files changed: server/features/workflow-overrides/service.js,
+      server/core/machines/service.spec.js,
+      server/scripts/repair-nesting-run-completions.js
+    Docs updated: server/core/machines/README.md,
+      server/features/workflow-overrides/README.md,
+      server/features/nesting/README.md,
+      server/features/nesting-runs/README.md, server/scripts/README.md,
+      TODO.org
+    Notes: Active process workflows now merge domain-owned system intent
+      transitions so custom `nesting_run` statuses cannot hide the
+      `nestingSolveCompleted`/failure path used by the nesting task executor.
+      Existing completed-but-still-NESTING runs in the dev database were
+      repaired without rerunning the solver or recreating sheet designs.
+
     [2026-06-25] Tighten cassette preview layers and cassette-design geometry preference
     Files changed: components/CassetteThumbnail.vue,
       components/shared/EntityPreview.vue,

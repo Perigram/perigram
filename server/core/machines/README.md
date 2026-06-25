@@ -17,6 +17,11 @@ The system consists of three main parts: the transition engine, the dynamic hook
   Process lifecycle profiles and action-only graph status changes are
   normalized v2 machines and drive real entity status, action lookup, lifecycle
   validation, hooks, and audit events.
+  Runtime resolution keeps domain-owned system intent transitions available
+  when a process workflow overrides an entity lifecycle. Service-owned flows
+  such as `nesting_run` solver completion still need their hidden
+  `NESTING -> COMPLETE` / `NESTING -> ERROR` intents even when the user-facing
+  process adds custom statuses.
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and
   resolves collections through the runtime/domain entity registry.
 

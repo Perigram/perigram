@@ -23,6 +23,10 @@ Command handler and compatibility job metadata for queue nesting.
   compatibility job, and returns solver completion/failure effects for the task
   runtime to apply. Queue lifecycle changes now happen through the declared
   effect policy rather than directly inside the executor.
+  Active process workflows may add custom `nesting_run` statuses, but runtime
+  workflow resolution preserves the domain system completion/failure intents
+  required by this executor. A solver HTTP 200 is not the terminal business
+  state until the app-side `nesting.solveCompleted` event transitions the run.
 - Run summaries use explicit worker `efficiency`/`remnantArea` metrics when
   present. Current `lbf` responses usually expose only `solution.density` and
   layout placements, so `operations.js` falls back to density and then placed

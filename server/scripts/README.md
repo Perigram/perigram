@@ -23,6 +23,7 @@ node server/scripts/migrate-process-role-memberships.js # Clear preset permissio
 node server/scripts/migrate-process-create-status-grants.js # Normalize create construction/input policies and recompile process contracts
 node server/scripts/migrate-process-compiled-runtime.js # Recompile active process runtime contracts after compiler changes
 node server/scripts/migrate-queue-job-item-entity-types.js # Backfill queue job item entityType/id contract
+node server/scripts/repair-nesting-run-completions.js # Complete runs that already have solver results but were blocked by missing process system intents
 ```
 
 ## What Gets Created
@@ -164,6 +165,12 @@ Use `server/scripts/migrate-queue-job-item-entity-types.js` after adopting the
 canonical queue job item source contract. It inspects existing queue item ids
 against `cassette_designs` and `cassettes`, writes `entityType` plus canonical
 `id`, and preserves the nesting `type`, quantity, and parameters.
+
+Use `server/scripts/repair-nesting-run-completions.js` after fixing process
+workflow resolution for domain system intents. It finds `nesting_run` records
+that are still in `NESTING` but already have solver `data.results` and
+`data.sheetDesignIds`, then writes the normal `COMPLETE` status snapshot and
+status event without calling the nesting worker or recreating sheet designs.
 
 ## Entity Revision Migration
 
