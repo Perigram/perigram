@@ -171,6 +171,17 @@ const parseViewBox = (value) => {
   return { x: parts[0], y: parts[1], width: Math.max(parts[2], 1), height: Math.max(parts[3], 1) };
 };
 
+const applyPreviewInset = (box) => {
+  if (!['thumbnail', 'card'].includes(props.mode)) return box;
+  const inset = Math.max(box.width, box.height) * 0.08;
+  return {
+    x: box.x - inset,
+    y: box.y - inset,
+    width: box.width + inset * 2,
+    height: box.height + inset * 2
+  };
+};
+
 const loadStores = async () => {
   await Promise.all([
     standardsStore.fetchStandards?.(),
@@ -286,7 +297,7 @@ const refresh = async () => {
       visibleLayers.value = nextDrawing?.layers?.map(layer => layer.name) || [];
     }
     if (!previousViewBox || previousViewBox !== nextDrawing?.viewBox) {
-      viewBox.value = parseViewBox(nextDrawing?.viewBox);
+      viewBox.value = applyPreviewInset(parseViewBox(nextDrawing?.viewBox));
     }
     emit('ready', nextDrawing);
   } catch (err) {
@@ -413,7 +424,7 @@ const handleWheel = (event) => {
 const zoomIn = () => zoomAt(null, 0.8);
 const zoomOut = () => zoomAt(null, 1.25);
 const resetView = () => {
-  viewBox.value = parseViewBox(drawing.value?.viewBox);
+  viewBox.value = applyPreviewInset(parseViewBox(drawing.value?.viewBox));
 };
 const showAllLayers = () => {
   visibleLayerSelection.value = [...layerNames.value];

@@ -271,17 +271,6 @@ function normalizeEventType(type) {
           class="shrink-0"
           @click.stop="runAction(action)"
         />
-        <Button
-          v-if="hasOverflowContent"
-          icon="pi pi-ellipsis-h"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="$t('common.more')"
-          data-status-menu-trigger="true"
-          @click.stop="toggle"
-        />
       </div>
 
       <Popover ref="op">

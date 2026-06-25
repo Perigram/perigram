@@ -65,6 +65,28 @@ describe('drawing preview contract', () => {
     expect(drawing.foldedPreview).toEqual({ faces: [{ nodeId: 'face_1' }], folds: [] });
   });
 
+  it('can prefer baked layerData over stored preview layers for geometry-first previews', () => {
+    const drawing = normalizeGeometryDrawing({
+      __cutkitPreferLayerData: true,
+      data: {
+        geometry: {
+          preview: {
+            viewBox: '0 0 100 50',
+            layers: [{ name: 'dimension.cassette', standardCode: 'dimension.cassette', paths: [{ kind: 'text', x: 50, y: 25, text: 'PREVIEW' }] }]
+          }
+        },
+        layerData: [
+          {
+            layer: 'cut.outer',
+            coordinates: [[0, 0, 0], [100, 0, 0], [100, 50, 0], [0, 50, 0], [0, 0, 0]]
+          }
+        ]
+      }
+    });
+
+    expect(drawing.layers.map(layer => layer.standardCode)).toEqual(['cut.outer']);
+  });
+
   it('normalizes polygon geometry with holes when no layers are stored', () => {
     const drawing = normalizeGeometryDrawing({
       data: {

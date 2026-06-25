@@ -1,18 +1,16 @@
 <template>
   <div ref="container" class="w-full" data-entity-card-interactive="true" @click.stop>
-    <div class="rounded-ui border border-content-border bg-subtle p-3">
-      <DrawingCanvas
-        v-if="canvasSource"
-        :source="canvasSource"
-        :source-type="canvasSourceType"
-        :layer-mapping="canvasLayerMapping"
-        :visible-layer-names="previewVisibleLayerNames"
-        mode="thumbnail"
-        @ready="handleDrawingReady"
-      />
-      <div v-else class="flex aspect-[5/3] w-full items-center justify-center text-muted-color">
-        <i :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-image'" />
-      </div>
+    <DrawingCanvas
+      v-if="canvasSource"
+      :source="canvasSource"
+      :source-type="canvasSourceType"
+      :layer-mapping="canvasLayerMapping"
+      :visible-layer-names="previewVisibleLayerNames"
+      mode="thumbnail"
+      @ready="handleDrawingReady"
+    />
+    <div v-else class="flex aspect-[5/3] w-full items-center justify-center rounded-ui border border-content-border bg-subtle text-muted-color">
+      <i :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-image'" />
     </div>
   </div>
 </template>
@@ -102,7 +100,9 @@ const setDxfSource = (dxfId, mapping = {}) => {
 };
 
 const setGeometrySource = (cassette) => {
-  canvasSource.value = cassette;
+  canvasSource.value = props.preferGeometry
+    ? { ...cassette, __cutkitPreferLayerData: true }
+    : cassette;
   canvasSourceType.value = 'geometry-preview';
   canvasLayerMapping.value = {};
 };

@@ -358,6 +358,11 @@ export const normalizeGeometryDrawing = (source, options = {}) => {
   const points = Array.isArray(preview.points) ? preview.points : geometry.points;
   const polygon = preview.polygon || geometry.polygon || null;
   const bakedDrawing = normalizeLayerDataDrawing(source, options);
+  const preferLayerData = Boolean(source?.__cutkitPreferLayerData);
+
+  if (preferLayerData && bakedDrawing) {
+    return bakedDrawing;
+  }
 
   if (layers.length > 0) {
     return applyLayerPens({

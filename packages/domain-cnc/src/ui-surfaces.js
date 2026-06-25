@@ -72,7 +72,7 @@ export function createEntitySurfaceContracts(entityContracts = []) {
           relations: 'inlineRefs',
           actions: 'footer',
           status: entry.status,
-          trace: entry.trace ? 'breadcrumb' : 'hidden'
+          trace: 'hidden'
         },
         detail: {
           preview: preview === 'none' ? 'none' : 'hero',

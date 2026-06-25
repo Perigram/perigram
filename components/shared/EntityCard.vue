@@ -120,12 +120,12 @@
                 </template>
                 <template v-else>
                     <TraceChain v-if="effectiveShowTrace" :entity="entity" class="mb-2" />
-                    <div class="flex flex-col sm:flex-row sm:flex-wrap sm:justify-between sm:items-start gap-3 min-w-0">
-                        <div class="flex min-w-0 flex-1 items-start gap-2">
+                    <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                        <div class="flex min-w-0 flex-1 items-center gap-2">
                             <slot name="before-identity" />
                             <IdentityBlock :entity="entity" />
                         </div>
-                        <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink self-start sm:max-w-56" @click.stop>
+                        <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
                             <EntityStatus
                                 :entity="entity"
                                 :entity-type="entityType"
