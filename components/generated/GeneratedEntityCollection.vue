@@ -65,13 +65,18 @@
         </div>
       </template>
       <EntitySurfaceContent :entity="entity" :entity-type="entityType" :surface="surface" />
-      <template v-if="entityActionsFor(entity).length" #footer>
+      <template v-if="entityActionsFor(entity).length || entityCanDelete(entity)" #footer>
         <div class="flex flex-wrap justify-end gap-2">
           <GeneratedActionButton
             v-for="action in entityActionsFor(entity)"
             :key="action.actionId"
             :action-id="action.actionId"
             @execute="action => $emit('execute-action', action, entity)"
+          />
+          <GeneratedDeleteButton
+            :entity="entity"
+            :entity-type="entityType"
+            @deleted="$emit('refresh')"
           />
         </div>
       </template>
@@ -91,9 +96,12 @@ import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
+import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 import { actionAppliesToEntity, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
+import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 
 const props = defineProps({
@@ -111,6 +119,7 @@ const props = defineProps({
 defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
+const domainUi = useCutkitDomainUi();
 const resolvedActions = computed(() => props.actions
   .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
   .filter(Boolean));
@@ -139,6 +148,15 @@ function entityActionsFor(entity) {
     !parentBoundCreateAppliesToEntityType(action, props.entityType)
     && actionAppliesToEntity(action, entity, props.entityType)
   ));
+}
+
+function entityCanDelete(entity = {}) {
+  return canDeleteGeneratedEntity({
+    authStore,
+    domainUi,
+    entity,
+    entityType: props.entityType
+  });
 }
 
 function dedupeActions(actions = []) {

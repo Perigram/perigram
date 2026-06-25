@@ -27,7 +27,7 @@
         <EntityCard
           v-for="entity in section.items.slice(0, 12)"
           :key="entity._id || entity.id || entity.identity?.uid"
-          class="min-w-64 max-w-72"
+          class="w-[18rem] min-w-[18rem] shrink-0"
           :entity="entity"
           :entity-type="section.source.entityType"
           :surface="section.region.surface || 'card'"
@@ -55,13 +55,18 @@
             </div>
           </template>
           <EntitySurfaceContent :entity="entity" :entity-type="section.source.entityType" :surface="section.region.surface || 'card'" />
-          <template v-if="entityActionsFor(section, entity).length" #footer>
+          <template v-if="entityActionsFor(section, entity).length || entityCanDelete(section, entity)" #footer>
             <div class="flex flex-wrap justify-end gap-2">
               <GeneratedActionButton
                 v-for="action in entityActionsFor(section, entity)"
                 :key="action.actionId"
                 :action-id="action.actionId"
                 @execute="selectedAction => $emit('execute-action', selectedAction, entity)"
+              />
+              <GeneratedDeleteButton
+                :entity="entity"
+                :entity-type="section.source.entityType"
+                @deleted="$emit('refresh')"
               />
             </div>
           </template>
@@ -81,9 +86,12 @@ import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
+import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { actionAppliesToEntity, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
+import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { generatedRegionLabel } from '~/utils/generated-labels.js';
 
 const props = defineProps({
@@ -94,6 +102,7 @@ const props = defineProps({
 defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
+const domainUi = useCutkitDomainUi();
 const { t, te } = useI18n();
 
 const sections = computed(() => props.screen.regions
@@ -117,6 +126,15 @@ function entityActionsFor(section = {}, entity = {}) {
     !parentBoundCreateAppliesToEntityType(action, section.source.entityType)
     && actionAppliesToEntity(action, entity, section.source.entityType)
   ));
+}
+
+function entityCanDelete(section = {}, entity = {}) {
+  return canDeleteGeneratedEntity({
+    authStore,
+    domainUi,
+    entity,
+    entityType: section.source.entityType
+  });
 }
 
 function resolvedRegionActions(region = {}) {

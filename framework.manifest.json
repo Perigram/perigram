@@ -1452,6 +1452,12 @@
       "source": "queue",
       "target": "sheet",
       "via": "lineage.queueId"
+    },
+    {
+      "kind": "summary",
+      "source": "queue",
+      "target": "sheet_design",
+      "via": "lineage.queueId"
     }
   ],
   "routes": [
@@ -1613,6 +1619,13 @@
     {
       "countField": "runCount",
       "entityType": "nesting_run",
+      "parentIdKey": "queueId",
+      "parentType": "queue",
+      "sumFields": {}
+    },
+    {
+      "countField": "sheetDesignCount",
+      "entityType": "sheet_design",
       "parentIdKey": "queueId",
       "parentType": "queue",
       "sumFields": {}

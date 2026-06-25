@@ -409,6 +409,14 @@ describe('Design system manifest', () => {
     expect(queueEditor).not.toContain('@artifact-click');
   });
 
+  it('keeps generated home cards as horizontal carousel items', () => {
+    const generatedHome = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedHomeScreen.vue'), 'utf8');
+
+    expect(generatedHome).toContain('overflow-x-auto');
+    expect(generatedHome).toContain('shrink-0');
+    expect(generatedHome).not.toContain('min-w-64 max-w-72');
+  });
+
   it('keeps manual workbench forms explicit about type and lineage choices', () => {
     const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
     const manualEntities = fs.readFileSync(path.join(REPO_ROOT, 'test-data/workbench-manual-entities.js'), 'utf8');
