@@ -148,7 +148,10 @@ compiled region route or the matching compiled entity-list screen in the
 current screen manifest; it must not construct list routes from entity names.
 Home sections are true horizontal carousels: entity cards keep a stable
 non-shrinking width and overflow horizontally instead of shrinking every card
-to fit the viewport.
+to fit the viewport. The fixed width belongs on the carousel item wrapper, not
+on `<EntityCard>` itself, because shared entity cards have variant root
+branches and cannot be relied on to receive layout sizing through attribute
+fallthrough.
 Generated screen titles, home section headers, generated breadcrumbs, and
 generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,
@@ -187,8 +190,10 @@ destructive controls with `nesting_runs` grants for the concrete run, not with
 parent queue or global feature permissions. Process-authored result states
 such as organization-specific cut/done labels still render run metrics and
 sheet-design output when `data.results`, `data.sheetDesignIds`, or scoped
-sheet-design context exists; run cards must not treat only domain
-`COMPLETE/CHOSEN` as displayable output.
+sheet-design context exists. Queue details load sheet designs by the concrete
+readable run ids as well as queue lineage, so a run output card can display the
+layouts it owns without requiring a broad sheet-design list screen. Run cards
+must not treat only domain `COMPLETE/CHOSEN` as displayable output.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page.
 Entity-bound generated actions are filtered before

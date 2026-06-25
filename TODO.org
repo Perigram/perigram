@@ -4,6 +4,24 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Fix generated carousel sizing and async nesting sheet output discovery
+    Files changed: components/generated/GeneratedHomeScreen.vue,
+      components/QueueEditor.vue, server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js,
+      server/features/sheet-designs/service.js
+    Docs updated: components/README.md,
+      server/features/process-definitions/README.md,
+      server/features/sheet-designs/README.md,
+      server/features/nesting/README.md, TODO.org
+    Notes: Generated home carousel card width is now owned by a real flex item
+      wrapper instead of relying on `EntityCard` attribute fallthrough. Async
+      run-command outputs that return task/job refs are no longer projected to
+      downstream process statuses at command-return time, preventing
+      `solveNesting` from moving a run out of its solver lifecycle before the
+      task completion event can finalize it. Queue detail sheet-design loading
+      now passes concrete readable nesting-run ids so run cards can display the
+      `sheet_design` records linked by `data.sheetDesignIds`.
+
     [2026-06-25] Split queue nesting command controls from process run results
     Files changed: components/QueueEditor.vue,
       components/entities/NestingRun/NestingRunCard.vue, stores/queues.js,

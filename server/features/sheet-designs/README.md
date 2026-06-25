@@ -75,9 +75,12 @@ stock was allowed for the generated layout.
 legacy callers that update an existing sheet design in place. New nesting runs
 create per-layout sheet designs directly through `createFromRun()`.
 
-GET/list APIs require authenticated lineage context. `queueId` and `projectId`
-query parameters are mapped to `lineage.queueId` and `lineage.projectId`, then
-combined with the server-derived access filter.
+GET/list APIs require authenticated lineage context. `queueId`, `projectId`,
+and `runId`/`runIds` query parameters are mapped to `lineage.queueId`,
+`lineage.projectId`, and `lineage.runId`, then combined with the
+server-derived access filter. Queue detail workspaces use the run-id query for
+sheet layouts that belong to the concrete `nesting_run` records already
+visible in that queue, instead of relying on a broad sheet-design list screen.
 
 `listForRunOutput(queueId, runId, sheetDesignIds)` is an internal service
 lookup used by queue production output creation. It returns full sheet-design

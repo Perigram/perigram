@@ -16,7 +16,11 @@ Command handler and compatibility job metadata for queue nesting.
   `sheet_design` entities are created only after the worker returns, one entity
   per physical sheet layout in `solution.layouts[]`. Generated files are
   requested separately through artifact/attachment commands; the queue nesting
-  API does not request attachments unless explicitly told to.
+  API does not request attachments unless explicitly told to. Because
+  `solveNesting` is asynchronous, active-process command-output status
+  projection must not move the returned `nesting_run` to a downstream process
+  status before the `nesting.solve` task completes; task completion owns the
+  final run status and the `sheetDesignIds` link.
 - The registered `nesting.solve` task executor builds the FastAPI payload from
   cassette polygon parts or dimension fallback rectangles, carries baked OCCS
   `layerData` as request-side source layers, calls `NESTING_WORKER_URL`,
