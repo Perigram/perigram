@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Prefer graph parent input edges when compiling create actions
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js, packages/processes/README.md,
+      TODO.org
+    Docs updated: packages/processes/README.md, TODO.org
+    Notes: Create-action parent inference now uses graph edges into
+      `input:parent` before stale saved action metadata. The active dev
+      database was recompiled with
+      `server/scripts/migrate-process-compiled-runtime.js` (77 scanned, 77
+      recompiled), fixing the library detail screen so it contains a cassette
+      child region with the cassette create action.
+
     [2026-06-25] Add cassette library entity
     Files changed: packages/domain-cnc/src/entities.js,
       packages/domain-cnc/src/entity-construction.js,

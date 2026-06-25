@@ -86,6 +86,10 @@ construction modes. For example, `cassette_design` creation compiles as
 `bakeCassetteDesignFromTemplate` and runtime execution delegates to the
 cassette template construction service, preserving baked geometry and editor
 contracts instead of creating a generic row.
+When a graph edge connects an action output to another action's `parent` input,
+that edge is authoritative over stale stored `parentEntityType` or parent input
+metadata. This keeps detail-screen child regions aligned with the visual graph
+after entity types are changed on existing nodes.
 Root create actions may still carry a generic optional parent socket for canvas
 connectability. Compilation treats a parent as semantic only when it resolves to
 a real parent entity type. Stale same-entity parent values from older graphs are
