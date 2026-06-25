@@ -4,6 +4,22 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Tighten default card chrome and geometry-first preview ownership
+    Files changed: components/CassetteThumbnail.vue,
+      components/shared/DrawingCanvas.vue,
+      components/shared/EntityCard.vue,
+      components/shared/status/EntityStatus.vue,
+      utils/drawingPreview.js, utils/drawingPreview.spec.js,
+      packages/domain-cnc/src/ui-surfaces.js,
+      components/shared/README.md, TODO.org
+    Docs updated: components/shared/README.md, TODO.org
+    Notes: Geometry-first cassette-design previews now prefer baked `layerData`
+      over stored preview layers, preview inset moved into the canvas/viewBox,
+      inline status uses the badge as the only popover trigger, default entity
+      cards hide trace breadcrumbs, and the default title/status row stays on
+      one wrapped line.
+
+*** Agent Notes
     [2026-06-25] Fix nesting-run sheet output access and no-op status actions
     Files changed: packages/domain-cnc/src/field-access.js,
       packages/processes/src/index.js, packages/processes/src/index.spec.js,
