@@ -379,6 +379,16 @@ describe('process definitions access fallback', () => {
     executeCommand.mockResolvedValueOnce({
       data: { runId: 'nesting-run-1' }
     });
+    getAppRegistry.mockReturnValueOnce({
+      getCommandDefinition: () => ({
+        access: {
+          executionGrants: [
+            { feature: 'cassettes', level: 'read', actions: { view: true } },
+            { feature: 'cassette_designs', level: 'read', actions: { view: true } }
+          ]
+        }
+      })
+    });
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-active',
       identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
@@ -427,6 +437,12 @@ describe('process definitions access fallback', () => {
         effectivePermissions: expect.objectContaining({
           queues: expect.arrayContaining([
             expect.objectContaining({ level: 'write', actions: { run: true } })
+          ]),
+          cassettes: expect.arrayContaining([
+            expect.objectContaining({ level: 'read', actions: { view: true } })
+          ]),
+          cassette_designs: expect.arrayContaining([
+            expect.objectContaining({ level: 'read', actions: { view: true } })
           ])
         })
       })

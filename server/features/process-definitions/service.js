@@ -509,14 +509,21 @@ function getEntityServiceForAction(action = {}) {
 
 function createActionExecutionAuth(auth = {}, action = {}) {
   const feature = resolveActionFeature(action);
-  if (!feature) return auth;
   const permissions = {
     ...(auth.effectivePermissions || {})
   };
-  appendExecutionGrant(permissions, feature, {
-    level: action.access?.level || 'write',
-    actions: executionActionsForAction(action)
-  });
+  if (feature) {
+    appendExecutionGrant(permissions, feature, {
+      level: action.access?.level || 'write',
+      actions: executionActionsForAction(action)
+    });
+  }
+  for (const grant of commandExecutionGrants(action)) {
+    appendExecutionGrant(permissions, grant.feature, {
+      level: grant.level || 'read',
+      actions: grant.actions || { view: true }
+    });
+  }
   for (const source of constructionSourceGrants(action)) {
     appendExecutionGrant(permissions, source.feature, {
       level: source.level,
@@ -527,6 +534,14 @@ function createActionExecutionAuth(auth = {}, action = {}) {
     ...auth,
     effectivePermissions: permissions
   };
+}
+
+function commandExecutionGrants(action = {}) {
+  if (action.actionKind !== 'runCommand' || !action.commandId) return [];
+  const command = getAppRegistry().getCommandDefinition(action.commandId);
+  return Array.isArray(command?.access?.executionGrants)
+    ? command.access.executionGrants.filter(grant => grant?.feature)
+    : [];
 }
 
 function executionActionsForAction(action = {}) {

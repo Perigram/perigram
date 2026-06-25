@@ -135,11 +135,13 @@ export const useNavigationStore = defineStore('navigation', () => {
         let currentSectionId = parts[0];
         if (currentSectionId === 'project') currentSectionId = 'projects';
         
-        const currentHub = hubs.value.find((s) => 
-            s.id === currentSectionId || 
-            path.startsWith(s.to) ||
-            (currentSectionId === 'admin' && s.id === 'admin')
-        );
+        const currentHub = parts[0] === 'screens'
+            ? hubs.value.find((s) => s.to === `/${parts[0]}/${parts[1]}` || s.id === parts[1])
+            : hubs.value.find((s) =>
+                s.id === currentSectionId ||
+                path.startsWith(s.to) ||
+                (currentSectionId === 'admin' && s.id === 'admin')
+            );
 
         if (currentHub) {
             nav.push({
@@ -153,11 +155,13 @@ export const useNavigationStore = defineStore('navigation', () => {
             const currentScreen = visibleProcessScreens.value.find(screen => (screen.screenKey || screen.id) === parts[1]);
             if (currentScreen) {
                 const siblings = visibleProcessScreens.value.map(screen => siblingOption(screenName(screen), screen.route));
-                nav.push({
-                    name: screenName(currentScreen),
-                    to: currentScreen.route,
-                    siblings
-                });
+                if (!currentHub || currentHub.to !== currentScreen.route) {
+                    nav.push({
+                        name: screenName(currentScreen),
+                        to: currentScreen.route,
+                        siblings
+                    });
+                }
             }
         }
 

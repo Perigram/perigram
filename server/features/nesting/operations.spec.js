@@ -127,7 +127,7 @@ describe('nesting operation worker payloads', () => {
   });
 
   it('allows queue managers to choose nesting runs', () => {
-    const chosenTransition = cncWorkflows.nesting_run.transitions.find(transition => transition.from === 'COMPLETE' && transition.to === 'CHOSEN');
+    const chosenTransition = cncWorkflows.nesting_run.regions.main.transitions.find(transition => transition.from === 'COMPLETE' && transition.to === 'CHOSEN');
 
     expect(chosenTransition.access.permissions).toEqual([
       { feature: 'queues', level: 'write' }
@@ -135,9 +135,10 @@ describe('nesting operation worker payloads', () => {
   });
 
   it('declares queue lifecycle transitions used by nesting solve and run selection', () => {
-    const startTransition = cncWorkflows.queue.transitions.find(transition => transition.from === 'DRAFT' && transition.to === 'NESTING');
-    const finishTransition = cncWorkflows.queue.transitions.find(transition => transition.from === 'NESTING' && transition.to === 'READY');
-    const failTransition = cncWorkflows.queue.transitions.find(transition => transition.from === 'NESTING' && transition.to === 'DRAFT');
+    const transitions = cncWorkflows.queue.regions.main.transitions;
+    const startTransition = transitions.find(transition => transition.from === 'DRAFT' && transition.to === 'NESTING');
+    const finishTransition = transitions.find(transition => transition.from === 'NESTING' && transition.to === 'READY');
+    const failTransition = transitions.find(transition => transition.from === 'NESTING' && transition.to === 'DRAFT');
 
     expect(startTransition.access.permissions).toEqual([{ feature: 'queues', level: 'write' }]);
     expect(finishTransition.access.system).toBe(true);

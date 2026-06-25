@@ -95,6 +95,10 @@ export const cncCommands = {
     access: {
       permissions: [
         { feature: 'queues', level: 'write' }
+      ],
+      executionGrants: [
+        { feature: 'cassettes', level: 'read', actions: { view: true } },
+        { feature: 'cassette_designs', level: 'read', actions: { view: true } }
       ]
     }
   },

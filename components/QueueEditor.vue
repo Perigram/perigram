@@ -417,6 +417,7 @@ const processRunNestingAction = computed(() => {
         .find(action => action?.actionKind === 'runCommand' && action.commandId === 'solveNesting') || null;
 });
 const canRunNesting = computed(() => canEditQueue.value || Boolean(processRunNestingAction.value));
+const requestErrorMessage = (error) => error?.data?.message || error?.response?._data?.message || error?.message || t('common.error');
 const isSelectedQueue = (item = {}) => item._id?.toString() === props.queue._id?.toString();
 const materialSourceOptions = computed(() => [
     { label: t('nesting.virtualMode'), value: 'VIRTUAL' },
@@ -999,7 +1000,7 @@ const runNesting = async () => {
         }
         await loadSheetDesigns();
         toast.add({ severity: 'info', summary: t('queues.nestingStarted'), life: 3000 });
-    } catch (e) { toast.add({ severity: 'error', summary: t('queues.nestingFailed'), detail: e.message, life: 3000 }); }
+    } catch (e) { toast.add({ severity: 'error', summary: t('queues.nestingFailed'), detail: requestErrorMessage(e), life: 5000 }); }
     finally { nestingInProgress.value = false; }
 };
 

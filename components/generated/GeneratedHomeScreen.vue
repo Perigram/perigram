@@ -13,13 +13,13 @@
             @execute="selectedAction => $emit('execute-action', selectedAction, null, actionContext(section))"
           />
           <Button
-            v-if="section.region.route"
+            v-if="sectionRoute(section)"
             icon="pi pi-arrow-right"
             text
             rounded
             size="small"
             :aria-label="sectionLabel(section)"
-            @click="navigateTo(section.region.route)"
+            @click="navigateTo(sectionRoute(section))"
           />
         </div>
       </div>
@@ -138,6 +138,21 @@ function actionContext(section = {}) {
       entity
     }))
   };
+}
+
+function sectionRoute(section = {}) {
+  if (section.region.route) return section.region.route;
+  const entityType = section.source.entityType;
+  const screen = authStore.screenManifest.find(item => (
+    item.template === 'entityList'
+    && item.entityType === entityType
+    && (item.screenKey || item.id) === section.region.screenKey
+  )) || authStore.screenManifest.find(item => (
+    item.template === 'entityList'
+    && item.entityType === entityType
+    && item.placement === 'hub'
+  ));
+  return screen?.route || '';
 }
 
 function sectionLabel(section = {}) {
