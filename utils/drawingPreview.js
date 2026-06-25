@@ -117,6 +117,27 @@ const normalizePolygonPoints = (points = []) => {
   return normalized;
 };
 
+const withoutClosingPoint = (points = []) => {
+  if (points.length < 2) return points;
+  const first = points[0];
+  const last = points[points.length - 1];
+  return Math.abs(first[0] - last[0]) <= 0.001 && Math.abs(first[1] - last[1]) <= 0.001
+    ? points.slice(0, -1)
+    : points;
+};
+
+const polygonArea = (points = []) => {
+  const normalized = withoutClosingPoint(normalizePolygonPoints(points));
+  if (normalized.length < 3) return 0;
+  let area = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    const current = normalized[index];
+    const next = normalized[(index + 1) % normalized.length];
+    area += current[0] * next[1] - next[0] * current[1];
+  }
+  return Math.abs(area / 2);
+};
+
 const polygonPath = (points = []) => {
   const normalized = normalizePolygonPoints(points);
   if (normalized.length < 3) return null;
@@ -266,6 +287,41 @@ const dimensionTextPoint = (geometry = {}) => {
   return [text.x, text.y];
 };
 
+const dimensionPathsFromBoundary = (coordinates = []) => {
+  const points = withoutClosingPoint(normalizePolygonPoints(coordinates));
+  if (points.length < 2) return [];
+  return points.map((point, index) => {
+    const next = points[(index + 1) % points.length];
+    const dx = next[0] - point[0];
+    const dy = next[1] - point[1];
+    const length = Math.hypot(dx, dy);
+    if (length <= 0.001) return null;
+    return {
+      kind: 'text',
+      x: (point[0] + next[0]) / 2,
+      y: (point[1] + next[1]) / 2,
+      text: Number.isInteger(Math.round(length)) ? String(Math.round(length)) : String(length.toFixed(2).replace(/\.?0+$/, '')),
+      fill: 'layer',
+      fontSize: 12,
+      textAnchor: 'middle',
+      dominantBaseline: 'middle'
+    };
+  }).filter(Boolean);
+};
+
+const largestBoundaryCoordinates = ({ layerData = [], polygonParts = [] } = {}) => {
+  const cutOuterCandidates = layerData
+    .filter(entry => ['cut.outer'].includes(entry.layer || entry.name || entry.standardCode))
+    .map(entry => normalizePolygonPoints(entry.coordinates || []))
+    .filter(points => points.length >= 4);
+  const polygonCandidates = polygonParts
+    .map(part => normalizePolygonPoints(part.coordinates || []))
+    .filter(points => points.length >= 4);
+  const candidates = [...cutOuterCandidates, ...polygonCandidates];
+  if (!candidates.length) return null;
+  return candidates.sort((left, right) => polygonArea(right) - polygonArea(left))[0];
+};
+
 const layerDataEntryPaths = (entry = {}) => {
   const geometry = entry.geometry || {};
   if (geometry.type === 'text') {
@@ -303,11 +359,13 @@ const normalizeLayerDataDrawing = (source, options = {}) => {
   const geometryData = data.geometry?.data || {};
   const layerData = Array.isArray(data.layerData) ? data.layerData : (Array.isArray(geometryData.layerData) ? geometryData.layerData : []);
   const polygonParts = Array.isArray(data.polygonParts) ? data.polygonParts : (Array.isArray(geometryData.polygonParts) ? geometryData.polygonParts : []);
+  const dimensionStrategy = source?.__cutkitDimensionStrategy || null;
   const layers = [];
   const boundsPoints = [];
 
   for (const entry of layerData) {
     const layerName = entry.layer || entry.name || entry.standardCode || 'geometry';
+    if (dimensionStrategy === 'boundary' && layerName === 'dimension.cassette') continue;
     const descriptor = normalizeLayerDescriptor({
       name: layerName,
       standardCode: entry.standardCode || entry.code || layerName,
@@ -324,6 +382,19 @@ const normalizeLayerDataDrawing = (source, options = {}) => {
     if (entry.geometry?.to) boundsPoints.push(entry.geometry.to);
     const textPoint = entry.geometry?.type === 'dimension' ? dimensionTextPoint(entry.geometry) : null;
     if (textPoint) boundsPoints.push(textPoint);
+  }
+
+  if (dimensionStrategy === 'boundary') {
+    const boundaryCoordinates = largestBoundaryCoordinates({ layerData, polygonParts });
+    const dimensionPaths = dimensionPathsFromBoundary(boundaryCoordinates || []);
+    if (dimensionPaths.length) {
+      mergeLayerPaths(layers, normalizeLayerDescriptor({
+        name: 'dimension.cassette',
+        standardCode: 'dimension.cassette',
+        role: 'dimension'
+      }, 'dimension.cassette'), dimensionPaths);
+      boundsPoints.push(...dimensionPaths.map(path => [path.x, path.y]));
+    }
   }
 
   if (!layers.length && polygonParts.length) {
