@@ -2,7 +2,7 @@
   <Panel>
     <template #header>
       <div class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
-        <EntityInlineRef :type="sourceType" :entity="cassette" :id="sourceId" />
+        <EntityInlineRef :type="sourceType" :entity="cassette" :id="sourceId" :fetch="Boolean(cassette)" />
         <div class="flex items-center gap-1" data-entity-card-interactive="true" @click.stop>
           <InputNumber
             :model-value="entry.quantity"
@@ -29,6 +29,7 @@
 
     <div class="flex flex-col gap-4">
       <CassetteThumbnail
+        v-if="cassette"
         :cassette-id="sourceId"
         :cassette="cassette"
         :dimensions="entry.dimensions"
@@ -77,5 +78,9 @@ const props = defineProps({
 const emit = defineEmits(['update-quantity', 'update-dimension', 'remove']);
 
 const sourceId = computed(() => props.entry.cassetteTemplateId || props.entry.id);
-const sourceType = computed(() => (props.cassette?.data?.geometry ? 'cassetteDesign' : 'cassetteTemplate'));
+const sourceType = computed(() => {
+  if (props.entry.entityType === 'cassette_design') return 'cassetteDesign';
+  if (props.entry.entityType === 'cassette') return 'cassetteTemplate';
+  return props.cassette?.data?.geometry ? 'cassetteDesign' : 'cassetteTemplate';
+});
 </script>

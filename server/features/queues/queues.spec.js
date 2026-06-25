@@ -81,7 +81,7 @@ describe('Production Queues & Nesting Status', () => {
     const data = { 
       name: 'Morning Shift Run',
       projectId,
-      job: { items: [{ entryId: 'E1', cassetteTemplateId: new ObjectId().toString(), quantity: 10 }] }
+      job: { items: [{ entryId: 'E1', id: new ObjectId().toString(), entityType: 'cassette', quantity: 10 }] }
     };
     const result = await queueService.create(data, mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
 
@@ -102,6 +102,28 @@ describe('Production Queues & Nesting Status', () => {
     expect(result.lineage.organizationId).toBe(mockUser.organizationId);
     expect(result.lineage.projectId).toBeUndefined();
     expect(result.data.queueNumber).toBe(1);
+  });
+
+  it('normalizes queue job item source identity', () => {
+    expect(queueService.normalizeQueueJobItems([
+      { id: 'design-1', entityType: 'cassette_design', quantity: 2 },
+      { id: 'template-1', entityType: 'cassette', dimensions: { A: 100 } },
+      { id: 'ambiguous-1', quantity: 1 }
+    ])).toEqual([
+      {
+        id: 'design-1',
+        entityType: 'cassette_design',
+        quantity: 2,
+        parameters: {}
+      },
+      {
+        id: 'template-1',
+        entityType: 'cassette',
+        quantity: 1,
+        dimensions: { A: 100 },
+        parameters: { A: 100 }
+      }
+    ]);
   });
 
   it('stores nesting settings on the queue and migrates legacy nesting params', async () => {

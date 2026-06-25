@@ -213,7 +213,7 @@
                                 <QueueEntryCard
                                     v-if="entry"
                                     :entry="entry"
-                                    :cassette="getCassetteData(entry.cassetteTemplateId)"
+                                    :cassette="getEntryCassetteData(entry)"
                                     :parameters="getEntryParameters(entry)"
                             :disabled="!canEditQueue"
                                     @update-quantity="value => updateEntryQuantity(entry, value)"
@@ -418,6 +418,14 @@ const processRunNestingAction = computed(() => {
 });
 const canRunNesting = computed(() => canEditQueue.value || Boolean(processRunNestingAction.value));
 const requestErrorMessage = (error) => error?.data?.message || error?.response?._data?.message || error?.message || t('common.error');
+const optionalList = async (loader) => {
+    try {
+        const result = await loader();
+        return Array.isArray(result) ? result : [];
+    } catch {
+        return [];
+    }
+};
 const isSelectedQueue = (item = {}) => item._id?.toString() === props.queue._id?.toString();
 const materialSourceOptions = computed(() => [
     { label: t('nesting.virtualMode'), value: 'VIRTUAL' },
@@ -581,13 +589,23 @@ const entryKeyFor = (item = {}, index = 0) => (
     `entry_${item.id || item.cassetteTemplateId || 'unknown'}_${index}`
 );
 
-const makeQueueEntry = (item = {}, index = 0) => ({
-    ...item,
-    _key: entryKeyFor(item, index),
-    cassetteTemplateId: item.cassetteTemplateId || item.id,
-    dimensions: item.parameters || item.dimensions || {},
-    type: item.type || 'STATIC'
-});
+const queueItemEntityType = (item = {}, entity = null) => (
+    item.entityType ||
+    (entity?.data?.geometry ? 'cassette_design' : 'cassette')
+);
+
+const makeQueueEntry = (item = {}, index = 0) => {
+    const id = item.id || '';
+    return {
+        ...item,
+        id,
+        _key: entryKeyFor({ ...item, id }, index),
+        cassetteTemplateId: id,
+        entityType: queueItemEntityType(item),
+        dimensions: item.parameters || item.dimensions || {},
+        type: item.type || 'STATIC'
+    };
+};
 
 const getCassetteData = (id) => {
     const idStr = id?.toString();
@@ -836,9 +854,9 @@ const handleRunStatusChanged = async () => {
 
 onMounted(async () => {
     const [cassetteResult, designResult, whRes] = await Promise.all([
-        cassettesStore.fetchCassettes(),
-        $fetch('/api/cassette-designs'),
-        $fetch('/api/warehouses')
+        optionalList(() => cassettesStore.fetchCassettes()),
+        optionalList(() => $fetch('/api/cassette-designs')),
+        optionalList(() => $fetch('/api/warehouses'))
     ]);
     cassettes.value = cassetteResult || [];
     cassetteDesigns.value = designResult || [];
@@ -906,11 +924,15 @@ const onNewCassetteChange = () => {
 
 const syncEntryWithCassette = (entry) => {
     const data = getEntryCassetteData(entry);
-    if (!data) return entry;
+    if (!data) {
+        entry.entityType = queueItemEntityType(entry);
+        return entry;
+    }
 
     const isDesign = !!data.data?.geometry;
     const type = (!isDesign && getCassetteParameters(data).length > 0) ? 'PARAMETRIC' : 'STATIC';
     entry.type = type;
+    entry.entityType = queueItemEntityType(entry, data);
 
     if (type === 'PARAMETRIC') {
         entry.dimensions = entry.dimensions || {};
@@ -951,6 +973,7 @@ const addEntry = async (item = null) => {
     entries.value.push(syncEntryWithCassette({
         ...entryData,
         _key: `entry_${data._id}_${Date.now()}_${entries.value.length}`,
+        entityType: queueItemEntityType({}, data),
         type,
         id: data._id
     }));
@@ -967,7 +990,13 @@ const saveQueue = async () => {
             props.queue._id,
             {
                 job: {
-                    items: entries.value.map(e => ({ type: e.type, id: e.id, quantity: e.quantity, parameters: e.dimensions })),
+                    items: entries.value.map(e => ({
+                        type: e.type,
+                        entityType: e.entityType,
+                        id: e.id || e.cassetteTemplateId,
+                        quantity: e.quantity,
+                        parameters: e.dimensions
+                    })),
                     materialPool: selectedMaterialPool.value
                 },
                 nestingSettings: nestingOptions.value
@@ -1083,8 +1112,8 @@ const loadInstances = async () => {
 const onCassetteUploaded = async (newItem) => {
     showUploadDialog.value = false;
     const [cRes, dRes] = await Promise.all([
-        cassettesStore.fetchCassettes(),
-        $fetch('/api/cassette-designs')
+        optionalList(() => cassettesStore.fetchCassettes()),
+        optionalList(() => $fetch('/api/cassette-designs'))
     ]);
     cassettes.value = cRes || [];
     cassetteDesigns.value = dRes || [];

@@ -36,6 +36,7 @@ const props = defineProps({
   type: { type: String, required: true },
   id: { type: [String, Number, Object], default: null },
   entity: { type: Object, default: null },
+  fetch: { type: Boolean, default: true },
   fields: { type: Array, default: () => ['serial'] }
 });
 
@@ -69,7 +70,7 @@ watch(
   () => [props.entity, normalizedId.value, props.type, contextEntity.value?._id],
   async () => {
     loaded.value = null;
-    if (props.entity || contextEntity.value || !normalizedId.value) return;
+    if (props.entity || contextEntity.value || !normalizedId.value || !props.fetch) return;
     loaded.value = await entityApi.fetch(normalizedId.value, { silent: true }).catch(() => null);
   },
   { immediate: true }

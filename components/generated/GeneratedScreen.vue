@@ -441,7 +441,8 @@ function normalizeEntityListValue(field = {}, value = []) {
   if (field.path === 'job.items' || field.accepts?.includes('cassette_design')) {
     return ids.map((id, index) => ({
       entryId: `${field.id || 'entry'}_${index + 1}`,
-      cassetteDesignId: id,
+      id,
+      entityType: 'cassette_design',
       quantity: 1
     }));
   }

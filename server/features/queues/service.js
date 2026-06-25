@@ -81,6 +81,33 @@ export function buildNestingCommandParameters(queue = {}, overrides = {}) {
   };
 }
 
+export function normalizeQueueJob(job = {}) {
+  const source = job && typeof job === 'object' ? job : {};
+  return {
+    ...source,
+    items: normalizeQueueJobItems(source.items || []),
+    materialPool: Array.isArray(source.materialPool) ? source.materialPool : []
+  };
+}
+
+export function normalizeQueueJobItems(items = []) {
+  return (Array.isArray(items) ? items : [])
+    .map(normalizeQueueJobItem)
+    .filter(item => item.id && item.entityType);
+}
+
+function normalizeQueueJobItem(item = {}) {
+  const id = item.id || '';
+  const entityType = item.entityType || '';
+  return {
+    ...item,
+    id,
+    entityType,
+    quantity: Number(item.quantity || item.count || 1),
+    parameters: item.parameters || item.dimensions || {}
+  };
+}
+
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { projectId, name, job } = data;
@@ -99,7 +126,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     identity: { uid, name: name || `Queue #${queueNumber}` },
     lineage,
     data: {
-      job: job || { items: [], materialPool: [] },
+      job: normalizeQueueJob(job || { items: [], materialPool: [] }),
       nestingSettings: normalizeQueueNestingSettings(data.nestingSettings || data.nestingParams || {}),
       queueNumber
     }
@@ -217,7 +244,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   queue.data = { ...queue.data, ...dataUpdates };
   
   // Handle root level updates that should go to job/params
-  if (updates.job) queue.data.job = updates.job;
+  if (updates.job) queue.data.job = normalizeQueueJob(updates.job);
   const nestingSettingsUpdate = updates.nestingSettings || updates.nestingParams;
   if (nestingSettingsUpdate) {
     queue.data.nestingSettings = normalizeQueueNestingSettings(nestingSettingsUpdate, queue.data.nestingSettings || queue.data.nestingParams);
