@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Keep generated lifecycle actions inside EntityStatus
+    Files changed: components/generated/action-visibility.js,
+      components/generated/action-visibility.spec.js,
+      components/generated/GeneratedEntityDetail.vue,
+      components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedHomeScreen.vue,
+      components/README.md, TODO.org
+    Docs updated: components/README.md, TODO.org
+    Notes: Generated header and card action surfaces now exclude
+      `changeStatus` actions so lifecycle transitions are shown only through
+      the shared `EntityStatus` status control instead of a duplicate vague
+      action button near the status badge.
+
     [2026-06-25] Place process command panels on input entity screens
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js,
