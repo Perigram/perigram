@@ -257,6 +257,10 @@ input dialog then asks for that parent entity and filters the selector to rows
 whose status/action rules match. The same actions render in matching
 entity-detail action areas without a parent selector because the opened entity
 is already the parent.
+Child collection regions inside an entity detail must preserve the opened
+parent context when executing create actions. They may not replace that context
+with the child collection entity type, otherwise a `library -> cassette` action
+loses the concrete library id and creates unscoped children.
 `EntityStatus` remains owned by the canonical workflow/status API and must not
 receive locally synthesized process actions.
 Generated action setup and execution failures must be visible in the screen:

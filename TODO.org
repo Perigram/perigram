@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Preserve opened parent context for generated child creates
+    Files changed: components/generated/action-context.js,
+      components/generated/action-context.spec.js,
+      components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedScreen.vue, components/README.md,
+      TODO.org
+    Docs updated: components/README.md, TODO.org
+    Notes: Generated child collection toolbars now keep the parent entity from
+      the opened detail screen instead of overwriting it with the child
+      collection type. Create actions such as library -> cassette now submit
+      `entities.library` from the opened library, and unrelated detail
+      `entityId` values no longer satisfy arbitrary parent requirements.
+
+*** Agent Notes
     [2026-06-25] Prefer graph parent input edges when compiling create actions
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js, packages/processes/README.md,
