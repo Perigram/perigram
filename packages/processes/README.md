@@ -195,6 +195,10 @@ compiler carries lineage scope through that parent relation; for example,
 `solveNesting` outputs `nesting_run` and `sheet_design` records under the
 source queue, so those results receive the same role window as the queue unless
 a later graph node changes it.
+At runtime, a command output wired into a downstream change-status node receives
+that process-authored target state after the command returns its entity refs.
+The state projection is derived from graph edges and typed output handles such
+as `output:nesting_run`; it is not a domain-specific queue rule.
 Manual command actions preserve `commandId` in each compiled user action
 manifest entry. Generated entity tools use that id to place domain-specific
 command panels, such as the queue nesting panel, while execution still goes
@@ -204,6 +208,10 @@ After compiler changes that alter generated screens, action exposure, workflow
 output, or grants, run
 `server/scripts/migrate-process-compiled-runtime.js` to recompile existing
 active definitions from their canonical process data.
+After runtime changes that introduce command-output status projection, run
+`server/scripts/migrate-process-command-output-statuses.js` so existing command
+outputs are moved into the active process status windows derived from the
+current graph.
 
 Screen records are route-level UI entries attached to roles and are the source
 for process-composed app navigation. They compile into generated screen

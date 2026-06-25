@@ -96,7 +96,13 @@ default OCCS template document instead of an empty generic row.
 Queue creation is intentionally a shell creation contract: `jobItems`,
 `materialPool`, and nesting parameters are optional construction inputs because
 queue composition belongs to the queue editor and nesting command readiness
-checks, not to the initial create action dialog.
+checks, not to the initial create action dialog. Queue creation still requires
+a prompted `name` input so process-generated queues do not enter the system as
+unnamed shells.
+`cassette_design` creation uses `bakeCassetteDesignFromTemplate` with a
+prompted `name`, a source `cassette` template, and typed `cassetteParameters`.
+The frontend must derive those parameter controls from the chosen cassette's
+OCCS definition instead of asking users to enter a raw object string.
 `entity-create-inputs.js` projects those construction contracts into
 process-designer data sockets for older imports; new code should read
 `cncEntityConstruction` directly. Post-creation data mutation belongs in an

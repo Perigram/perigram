@@ -112,6 +112,15 @@ transient read access to the cassette templates/designs referenced by the saved
 queue job, while queue job edits still require the separate `queues:write`
 entity grant. A queue write grant alone does not expose the command action, and
 a command action grant does not expose queue mutation controls.
+When a run-command action returns entity refs and the visual graph wires a
+typed output handle into a downstream `changeStatus` node, execution applies
+that target process status to each returned entity through the status runtime.
+This keeps command-created records, such as `solveNesting` `nesting_run`
+outputs, inside the same status-scoped access windows as records created by
+ordinary process action nodes. The migration script
+`server/scripts/migrate-process-command-output-statuses.js` applies the same
+graph-derived status projection to existing active-process command outputs; it
+must not hardcode status names.
 Activation and the process-construction migration normalize stored create
 actions whose construction mode no longer belongs to the selected entity type
 before recompiling the active runtime contract.

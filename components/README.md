@@ -202,6 +202,15 @@ template so process-created designs do not select empty draft templates or
 submit missing template ids. Buttons derive semantic labels and icons from the compiled
 action kind, entity type, and target status when an old manifest still contains
 a generic label such as `Create`.
+Generated create dialogs are field-driven: a required prompted field inside
+`inputPolicy.fields` opens the dialog even when the action-level prompt flag is
+false. Queue creation therefore asks for a queue name before creating the
+shell. Cassette-design creation uses a typed `cassetteParameters` field: once a
+cassette template or parent cassette is selected, the dialog renders one
+numeric control per OCCS parameter discovered from that cassette definition.
+When the action is already scoped to a cassette parent, the template selector
+is hidden and the current parent cassette supplies both the construction
+template id and the parameter set.
 Generated collections may turn `identity.name` into a link only through the
 screen manifest: the collection looks for an `entityDetail` screen with a
 single source for the same entity type, preferring the detail screen paired

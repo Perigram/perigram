@@ -22,6 +22,7 @@ node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize store
 node server/scripts/migrate-process-role-memberships.js # Clear preset permissions from process-role memberships and recover tenant admins
 node server/scripts/migrate-process-create-status-grants.js # Normalize create construction/input policies and recompile process contracts
 node server/scripts/migrate-process-compiled-runtime.js # Recompile active process runtime contracts after compiler changes
+node server/scripts/migrate-process-command-output-statuses.js # Apply graph-derived process statuses to existing command output entities
 node server/scripts/migrate-queue-job-item-entity-types.js # Backfill queue job item entityType/id contract
 node server/scripts/repair-nesting-run-completions.js # Complete runs that already have solver results but were blocked by missing process system intents
 ```
@@ -165,6 +166,14 @@ Use `server/scripts/migrate-queue-job-item-entity-types.js` after adopting the
 canonical queue job item source contract. It inspects existing queue item ids
 against `cassette_designs` and `cassettes`, writes `entityType` plus canonical
 `id`, and preserves the nesting `type`, quantity, and parameters.
+
+Use `server/scripts/migrate-process-command-output-statuses.js` after adding
+runtime projection from command output handles to downstream process status
+nodes. It scans active process graphs, finds `runCommand -> changeStatus`
+edges, builds v2 status snapshots from the compiled workflow, and updates
+existing command output entities whose current status is outside the active
+process state window. It supports `--dry-run` and must remain graph-derived,
+not status-name-specific.
 
 Use `server/scripts/repair-nesting-run-completions.js` after fixing process
 workflow resolution for domain system intents. It finds `nesting_run` records

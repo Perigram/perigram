@@ -4,6 +4,28 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Fix process command outputs and typed create prompts
+    Files changed: components/generated/GeneratedScreen.vue,
+      packages/domain-cnc/src/entity-construction.js,
+      packages/processes/src/index.spec.js,
+      server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js,
+      server/scripts/migrate-process-command-output-statuses.js
+    Docs updated: components/README.md, packages/domain-cnc/README.md,
+      packages/processes/README.md, server/features/process-definitions/README.md,
+      server/features/nesting-runs/README.md, scripts/README.md,
+      server/scripts/README.md, TODO.org
+    Notes: Queue creation now prompts for a name through the domain
+      construction contract. Cassette-design creation uses a typed
+      `cassetteParameters` field whose controls are derived from the selected
+      cassette's OCCS definition; parent-scoped cassette creation hides the
+      duplicate template selector and submits the parent cassette id to the
+      typed constructor. Run-command execution now projects returned entity
+      refs into downstream process statuses when the graph wires a typed output
+      handle to a change-status node. Existing local nesting runs were migrated
+      with the graph-derived command-output status migration so they fall back
+      inside the active process access window.
+
     [2026-06-25] Fix generated home carousel sizing and admin delete actions
     Files changed: components/generated/GeneratedHomeScreen.vue,
       components/generated/GeneratedEntityCollection.vue,

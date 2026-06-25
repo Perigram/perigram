@@ -20,6 +20,12 @@ script explicitly installs its own resolver.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
   string `status.state` / `origin.state` values and `status_events` records to
   the v2 structured status shape. Supports `--dry-run`.
+- `server/scripts/migrate-process-command-output-statuses.js`: Active-process
+  data migration for command outputs. It reads graph edges from `runCommand`
+  action nodes into downstream `changeStatus` nodes, builds proper process
+  status snapshots from the compiled workflow, inserts status events, and
+  updates existing output entities that are outside the active process status
+  window. Supports `--dry-run`.
 - `seed-*.js`: Local seed helpers for layer standards and tool profiles.
 - `test-*.js`, `debug_*.js`, `check-data.js`, `check-jobs.js`: Manual
   diagnostics for local database, auth, jobs, and data shape investigations.
