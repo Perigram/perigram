@@ -304,12 +304,6 @@ function compileWorkflows(process = {}, domain = {}) {
       to,
       processRoleIds: executableRoleIds
     };
-    const feature = resolveEntityFeature(domain, entityType);
-    if (feature && access.roleIds?.length) {
-      transition.access = {
-        permissions: [{ feature, entityType, level: 'write' }]
-      };
-    }
     upsertWorkflowTransition(builder, transition);
   }
 

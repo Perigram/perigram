@@ -45,6 +45,7 @@ export function assertTransitionAccess({ transition, entity, auth }) {
     if (!hasRequiredRole) {
       throw createError({ statusCode: 403, message: 'Permission denied for process transition role' });
     }
+    return true;
   }
 
   for (const requirement of access.permissions || []) {

@@ -1679,9 +1679,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.userAccess.user_source.actions.map(action => action.actionId)).toContain('activate_project');
     expect(compiled.userAccess.user_target.actions.map(action => action.actionId)).not.toContain('activate_project');
     expect(compiled.workflows.project.regions.main.transitions[0].processRoleIds).toEqual(['role_source']);
-    expect(compiled.workflows.project.regions.main.transitions[0].access.permissions).toEqual([
-      { feature: 'projects', entityType: 'project', level: 'write' }
-    ]);
+    expect(compiled.workflows.project.regions.main.transitions[0].access).toBeUndefined();
   });
 
   it('carries scoped parent lineage into child entity action grants', () => {
@@ -1832,11 +1830,9 @@ describe('@cutkit/processes compiler', () => {
     expect(workflow.regions.main.transitions[0]).toMatchObject({
       from: SOURCE_STATE,
       to: TARGET_STATE,
-      processRoleIds: ['role_operator'],
-      access: {
-        permissions: [{ feature: 'projects', entityType: 'project', level: 'write' }]
-      }
+      processRoleIds: ['role_operator']
     });
+    expect(workflow.regions.main.transitions[0].access).toBeUndefined();
   });
 
   it('creates compilable starter process definitions from legacy organization types', () => {

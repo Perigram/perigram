@@ -154,6 +154,96 @@ describe('status service lifecycle payloads', () => {
     ]));
   });
 
+  it('executes process-role transitions without requiring target-status grants on the source entity', async () => {
+    await db.collection('process_definitions').insertOne({
+      _id: 'process-active-transition-role',
+      identity: { uid: 'process-active-transition-role', name: 'Process' },
+      lineage: { organizationId: 'org-1' },
+      status: {
+        state: {
+          schemaVersion: 2,
+          primary: 'ACTIVE',
+          active: { main: 'ACTIVE' },
+          regions: { main: { state: 'ACTIVE', path: ['ACTIVE'] } }
+        }
+      },
+      data: {
+        compiled: {
+          workflows: {
+            queue: {
+              schemaVersion: 2,
+              primaryRegion: 'main',
+              regions: {
+                main: {
+                  initial: 'Создано',
+                  states: {
+                    'Создано': { canUpdateMeta: true },
+                    'Отправлено': { canUpdateMeta: true }
+                  },
+                  transitions: [{
+                    from: 'Создано',
+                    to: 'Отправлено',
+                    processRoleIds: ['role_cutter'],
+                    access: {
+                      permissions: [{ feature: 'queues', entityType: 'queue', level: 'write' }]
+                    }
+                  }]
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    await db.collection('queues').insertOne({
+      _id: 'queue-process-transition-1',
+      identity: { uid: 'queue-process-transition-1', name: 'Queue' },
+      lineage: { organizationId: 'org-1' },
+      status: {
+        state: {
+          schemaVersion: 2,
+          primary: 'Создано',
+          active: { main: 'Создано' },
+          regions: { main: { state: 'Создано', path: ['Создано'] } }
+        },
+        userId: 'creator',
+        timestamp: new Date(),
+        metadata: {}
+      }
+    });
+
+    const auth = {
+      userId: 'operator-1',
+      memberships: [{ organizationId: 'org-1', permissions: {} }],
+      roleAssignments: {
+        roleIds: ['role_cutter'],
+        actions: []
+      },
+      effectivePermissions: {
+        queues: [{
+          level: 'write',
+          transitions: [{ from: 'Создано', to: 'Отправлено' }],
+          rule: { fact: 'primaryStatus', equals: 'Отправлено' }
+        }]
+      }
+    };
+
+    const actions = await statusService.getActions('queue', 'queue-process-transition-1', auth);
+    expect(actions.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ from: 'Создано', to: 'Отправлено' })
+    ]));
+
+    await statusService.transitionWithResult({
+      entityType: 'queue',
+      targetId: 'queue-process-transition-1',
+      targetState: 'Отправлено',
+      auth
+    });
+
+    const queue = await db.collection('queues').findOne({ _id: 'queue-process-transition-1' });
+    expect(queue.status.state.primary).toBe('Отправлено');
+  });
+
   it('keeps domain system intents available when an active process defines custom statuses', async () => {
     await db.collection('process_definitions').insertOne({
       _id: 'process-active-system-intents',
