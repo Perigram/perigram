@@ -707,19 +707,25 @@ function buildActionGraphContext(process = {}) {
     const targetActionId = actionIdByNodeId.get(String(edge.target));
     const sourceActionId = actionIdByNodeId.get(String(edge.source));
     if (!targetActionId || !sourceActionId) continue;
-    incomingByActionId.set(targetActionId, {
+    const incoming = incomingByActionId.get(targetActionId) || [];
+    incoming.push({
       sourceActionId,
       sourceHandle: edge.sourceHandle || null,
       targetHandle: edge.targetHandle || null
     });
+    incomingByActionId.set(targetActionId, incoming);
   }
 
   return { actionNodeById, actionIdByNodeId, incomingByActionId };
 }
 
 function incomingWindowForAction(actionId, action = {}, graphContext, windows) {
-  const edge = graphContext.incomingByActionId.get(actionId);
-  if (edge) return outputWindowForHandle(windows.get(edge.sourceActionId), edge.sourceHandle);
+  const edges = graphContext.incomingByActionId.get(actionId) || [];
+  for (const edge of edges) {
+    const sourceWindow = outputWindowForHandle(windows.get(edge.sourceActionId), edge.sourceHandle);
+    if (sourceWindow) return sourceWindow;
+  }
+  if (edges.length) return null;
   const input = action.inputs?.find(item => item.entityType);
   if (!input) return null;
   return {

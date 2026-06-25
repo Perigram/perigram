@@ -27,7 +27,7 @@ export const cncEntityFieldAccess = {
     admin: ['data.*', 'attachments.*']
   },
   sheetDesign: {
-    feature: 'queues',
+    feature: 'sheet_designs',
     read: [...COMMON_READ_FIELDS, 'specs.*', 'data.geometry.*', 'data.cassetteDesigns', 'data.materialPool', 'data.instanceIds', 'data.sheetIndex'],
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']

@@ -410,7 +410,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Sheet design not found' });
   const design = new SheetDesign(raw);
-  if (userPermissions?.memberships && !hasLineagePermission(userPermissions, design.lineage, 'queues', 'read')) {
+  if (userPermissions?.memberships && !hasLineagePermission(userPermissions, design, 'sheet_designs', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return serializeForAccess('sheetDesign', design, userPermissions);
@@ -467,7 +467,13 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   }
   const finalFilter = { ...queryFilter, ...lineageFilter };
   const designs = await repository.find(finalFilter);
-  return serializeManyForAccess('sheetDesign', designs.map(design => new SheetDesign(design)), userPermissions);
+  return serializeManyForAccess(
+    'sheetDesign',
+    designs
+      .map(design => new SheetDesign(design))
+      .filter(design => !userPermissions?.memberships || hasLineagePermission(userPermissions, design, 'sheet_designs', 'read')),
+    userPermissions
+  );
 }
 
 function normalizeQueryList(value) {

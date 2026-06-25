@@ -242,6 +242,7 @@ function appendProcessStatusActions(actions = [], { auth = {}, entityType = '', 
     const to = action.status?.to || action.access?.statusTo || '';
     if (!to) continue;
     if (from && from !== primaryState) continue;
+    if (to === primaryState) continue;
     const key = `${from || primaryState}->${to}`;
     if (existingTargets.has(key)) continue;
     actions.push({

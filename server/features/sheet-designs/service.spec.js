@@ -1,5 +1,27 @@
-import { describe, expect, it } from 'vitest';
-import { cassetteDesignsForNestingResult, nestingResultForLayout, nestingResultToPreview } from './service.js';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoClient } from 'mongodb';
+import {
+  cassetteDesignsForNestingResult,
+  nestingResultForLayout,
+  nestingResultToPreview
+} from './service.js';
+
+const { mockedConnectDB } = vi.hoisted(() => ({
+  mockedConnectDB: vi.fn()
+}));
+
+vi.mock('../../db/mongo.js', () => ({ connectDB: mockedConnectDB }));
+vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
+vi.mock('h3', () => ({
+  createError: vi.fn((err) => {
+    const error = new Error(err.message);
+    error.statusCode = err.statusCode;
+    return error;
+  })
+}));
+
+import * as sheetDesignsService from './service.js';
 
 describe('sheet design nesting preview', () => {
   it('projects worker placed items from source shape data and transformation', () => {
@@ -185,3 +207,70 @@ describe('sheet design nesting preview', () => {
     ]);
   });
 });
+
+describe('sheet design access', () => {
+  let connection;
+  let mongoServer;
+  let db;
+
+  beforeAll(async () => {
+    mongoServer = await MongoMemoryServer.create();
+    connection = await MongoClient.connect(mongoServer.getUri());
+    db = connection.db();
+    mockedConnectDB.mockReturnValue(db);
+  });
+
+  afterAll(async () => {
+    if (connection) await connection.close();
+    if (mongoServer) await mongoServer.stop();
+  });
+
+  beforeEach(async () => {
+    await db.collection('sheet_designs').deleteMany({});
+  });
+
+  it('uses sheet_designs grants for list and detail access', async () => {
+    await db.collection('sheet_designs').insertMany([
+      sheetDesign({ id: 'sheet-visible', status: 'CUT' }),
+      sheetDesign({ id: 'sheet-hidden', status: 'READY' })
+    ]);
+
+    const auth = {
+      userId: 'operator',
+      organizationId: 'org-1',
+      memberships: [{ organizationId: 'org-1', permissions: {} }],
+      effectivePermissions: {
+        sheet_designs: [{
+          level: 'read',
+          rule: { fact: 'primaryStatus', equals: 'CUT' }
+        }]
+      }
+    };
+
+    const listed = await sheetDesignsService.list('operator', 'org-1', null, auth, { queueId: 'queue-1' });
+
+    expect(listed.map(item => item.identity?.uid)).toEqual(['sheet-visible']);
+    await expect(sheetDesignsService.getById('sheet-visible', 'operator', 'org-1', null, auth))
+      .resolves.toMatchObject({ _id: 'sheet-visible' });
+    await expect(sheetDesignsService.getById('sheet-hidden', 'operator', 'org-1', null, auth))
+      .rejects.toThrow(/Permission denied/);
+  });
+});
+
+function sheetDesign({ id, status }) {
+  return {
+    _id: id,
+    identity: { uid: id, name: id, slug: id },
+    lineage: { organizationId: 'org-1', queueId: 'queue-1', runId: 'run-1' },
+    status: {
+      state: {
+        schemaVersion: 2,
+        primary: status,
+        active: { main: status },
+        regions: { main: { state: status, path: [status] } }
+      }
+    },
+    data: { geometry: { data: {}, preview: { layers: [] } } },
+    summary: {}
+  };
+}

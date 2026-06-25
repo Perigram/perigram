@@ -154,6 +154,39 @@ describe('status service lifecycle payloads', () => {
     ]));
   });
 
+  it('does not expose compiled process status actions that target the current state', async () => {
+    await db.collection('projects').insertOne({
+      _id: 'project-process-current',
+      identity: { uid: 'project-process-current', name: 'Current Project' },
+      lineage: { organizationId: 'org-1' },
+      status: {
+        state: { primary: 'CUT', active: { main: 'CUT' }, regions: { main: { state: 'CUT', path: ['CUT'] } } },
+        userId: 'creator',
+        timestamp: new Date(),
+        metadata: {}
+      }
+    });
+
+    const actions = await statusService.getActions('project', 'project-process-current', {
+      userId: 'operator-1',
+      memberships: [{ organizationId: 'org-1', permissions: { projects: 'admin' } }],
+      roleAssignments: {
+        roleIds: ['role_operator'],
+        actions: [{
+          actionId: 'mark_cut',
+          label: 'Mark cut',
+          actionKind: 'changeStatus',
+          entityType: 'project',
+          status: { to: 'CUT' }
+        }]
+      }
+    });
+
+    expect(actions.actions).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ to: 'CUT' })
+    ]));
+  });
+
   it('executes process-role transitions without requiring target-status grants on the source entity', async () => {
     await db.collection('process_definitions').insertOne({
       _id: 'process-active-transition-role',
