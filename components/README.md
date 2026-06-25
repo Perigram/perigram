@@ -177,6 +177,11 @@ registered entity workspaces are not duplicated as generic detail-header
 buttons. Entity-local operational editors should use the canonical
 main/supporting proportions from
 `EntityWorkspace` rather than inventing local stacked or sidebar grids.
+The queue detail support region for nesting runs follows the same contract:
+process mode renders it only when the user has a resolved `solveNesting`
+action or at least one loaded `nesting_run` passes entity-scoped read access.
+Run cards gate destructive controls with `nesting_runs` grants for the concrete
+run, not with parent queue or global feature permissions.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page.
 Entity-bound generated actions are filtered before

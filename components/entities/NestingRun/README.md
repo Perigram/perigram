@@ -28,6 +28,10 @@ chrome.
   completed run is advertised only by the canonical status actions API. The card
   does not inject `CHOSEN` locally, because the backend must run queue/material
   preflight before that button is visible.
+- Destructive run actions are gated by entity-scoped `nesting_runs` grants for
+  the concrete run. The card must not infer run management from parent
+  `queues:write` or global queue edit permissions, because process graphs can
+  expose queue editing and run visibility in different status windows.
 
 The injected context is used by development surfaces such as the admin
 workbench. The production queue editor passes related entities explicitly by

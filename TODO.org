@@ -178,6 +178,20 @@
       run-command action. Queue cards now gate edit/delete controls with
       entity-scoped permission grants for the concrete queue.
 
+    [2026-06-25] Scope nesting run panels to concrete run access
+    Files changed: components/QueueEditor.vue,
+      components/entities/NestingRun/NestingRunCard.vue,
+      server/features/nesting-runs/service.js, shared/design-system.spec.js
+    Docs updated: components/README.md,
+      components/entities/NestingRun/README.md,
+      server/features/nesting-runs/README.md, TODO.org
+    Notes: QueueEditor now hides the generated process nesting-run support
+      region unless the user has a resolved `solveNesting` action or readable
+      concrete runs. NestingRunCard destructive actions now require
+      entity-scoped `nesting_runs` delete/admin grants, and the nesting-runs
+      API filters list/detail responses through loaded run DTO access so
+      status-scoped process windows are preserved.
+
     [2026-06-25] Translate generated process labels
     Files changed: components/generated/GeneratedActionButton.vue,
       components/generated/GeneratedHomeScreen.vue,
