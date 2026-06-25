@@ -66,12 +66,19 @@ export const useNavigationStore = defineStore('navigation', () => {
         authStore.screenManifest,
         authStore.activePermissions
     ));
+    const processScreenSiblings = computed(() => visibleProcessScreens.value.filter(screen => {
+        if (screen.template === 'entityDetail') return false;
+        return (screen.placement || 'hub') === 'hub';
+    }));
     const routeMatches = (candidate, route) => Boolean(candidate && route)
         && (candidate === route || candidate.startsWith(`${route}/`) || route.startsWith(`${candidate}/`));
 
     const screenName = (screen) => generatedScreenLabel(screen, { t, te });
 
     const routeIcon = (route) => hubConfigs.find(config => routeMatches(config.to, route))?.icon || 'pi pi-th-large';
+    const baseScreenKey = (key) => String(key || '').endsWith('_detail')
+        ? String(key).slice(0, -'_detail'.length)
+        : key;
 
     const processAllowsRoute = (route) => {
         if (authStore.processActive) {
@@ -83,8 +90,7 @@ export const useNavigationStore = defineStore('navigation', () => {
 
     const hubs = computed(() => {
         if (authStore.processActive) {
-            return visibleProcessScreens.value
-                .filter(screen => (screen.placement || 'hub') === 'hub')
+            return processScreenSiblings.value
                 .map(screen => ({
                     id: screen.screenKey || screen.id || screen.route,
                     name: screenName(screen),
@@ -136,7 +142,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         if (currentSectionId === 'project') currentSectionId = 'projects';
         
         const currentHub = parts[0] === 'screens'
-            ? hubs.value.find((s) => s.to === `/${parts[0]}/${parts[1]}` || s.id === parts[1])
+            ? hubs.value.find((s) => s.to === `/${parts[0]}/${baseScreenKey(parts[1])}` || s.id === baseScreenKey(parts[1]))
             : hubs.value.find((s) =>
                 s.id === currentSectionId ||
                 path.startsWith(s.to) ||
@@ -154,8 +160,9 @@ export const useNavigationStore = defineStore('navigation', () => {
         if (parts[0] === 'screens' && parts[1]) {
             const currentScreen = visibleProcessScreens.value.find(screen => (screen.screenKey || screen.id) === parts[1]);
             if (currentScreen) {
-                const siblings = visibleProcessScreens.value.map(screen => siblingOption(screenName(screen), screen.route));
-                if (!currentHub || currentHub.to !== currentScreen.route) {
+                const siblingScreens = processScreenSiblings.value;
+                const siblings = siblingScreens.map(screen => siblingOption(screenName(screen), screen.route));
+                if (currentScreen.template !== 'entityDetail' && (!currentHub || currentHub.to !== currentScreen.route)) {
                     nav.push({
                         name: screenName(currentScreen),
                         to: currentScreen.route,

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { API_ROUTES } from '~/composables/apiRoutes';
 import { resolveUiPermission } from '~/shared/ui-permissions';
 import { hasPermissionGrant } from '~/shared/access-control';
+import { composeEffectiveScreens } from '~/utils/process-navigation';
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref({});
@@ -26,7 +27,7 @@ export const useAuthStore = defineStore('auth', () => {
     });
     const tenantPermissions = computed(() => activeMembership.value?.permissions || {});
     const navigationManifest = computed(() => user.value?.navigation || []);
-    const screenManifest = computed(() => user.value?.screens || []);
+    const screenManifest = computed(() => composeEffectiveScreens(user.value?.screens || []));
     const actionManifest = computed(() => user.value?.roleAssignments?.actions || []);
     const fieldPolicies = computed(() => user.value?.fieldPolicies || {});
     const processActive = computed(() => user.value?.process?.active === true);
