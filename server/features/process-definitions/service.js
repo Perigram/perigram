@@ -332,8 +332,15 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
 
 function createActionPayload(action = {}, data = {}, entities = {}) {
   const payload = { ...(data || {}) };
-  if (action.parentEntityType && entities?.[action.parentEntityType]) {
-    payload[`${camelCase(action.parentEntityType)}Id`] ||= entities[action.parentEntityType];
+  if (action.parentEntityType) {
+    const parentId = entities?.[action.parentEntityType];
+    if (!parentId) {
+      throw createError({
+        statusCode: 400,
+        message: `${action.parentEntityType} parent is required`
+      });
+    }
+    payload[`${camelCase(action.parentEntityType)}Id`] ||= parentId;
   }
   return normalizeCreationPayload(payload);
 }

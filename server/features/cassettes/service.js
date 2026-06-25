@@ -9,6 +9,7 @@ import {
   createData
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
+import { aggregator } from '../../core/machines/aggregator.js';
 import standardSlugify from 'standard-slugify';
 import { generateRandomString } from '../../utils/strings.js';
 import { GridFSBucket } from 'mongodb';
@@ -182,6 +183,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
   const cassette = await repository.create(cassetteData);
   const { cassette: updated } = await ensureGeometryRevision(cassette, userId, 'template-created');
+  await syncParentSummary(updated);
   return toDTO(updated);
 }
 
@@ -306,6 +308,11 @@ function normalizePrimaryStatuses(value) {
   if (Array.isArray(value)) return value.flatMap(normalizePrimaryStatuses);
   if (typeof value !== 'string') return [];
   return value.split(',').map(item => item.trim()).filter(Boolean);
+}
+
+async function syncParentSummary(cassette = {}) {
+  if (!cassette.lineage?.libraryId) return;
+  await aggregator.syncParentSummary('cassette', cassette.lineage);
 }
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {

@@ -36,6 +36,7 @@ describe('Cassette Management & Ownership', () => {
 
   beforeEach(async () => {
     await db.collection('cassettes').deleteMany({});
+    await db.collection('libraries').deleteMany({});
   });
 
   const user1 = {
@@ -84,6 +85,13 @@ describe('Cassette Management & Ownership', () => {
 
   it('creates a named default OCCS cassette template for process construction', async () => {
     const libraryId = new ObjectId();
+    await db.collection('libraries').insertOne({
+      _id: libraryId,
+      identity: { name: 'Default Library', slug: 'default-library' },
+      lineage: { organizationId: user1.organizationId },
+      summary: { cassetteCount: 0 }
+    });
+
     const result = await cassetteService.createDefaultOccsTemplate(
       { name: 'Generated Template', libraryId },
       user1.userId,
@@ -100,6 +108,9 @@ describe('Cassette Management & Ownership', () => {
     });
     expect(result.data.parameters).toEqual(['A', 'B', 'R']);
     expect(result.lineage.libraryId.toString()).toBe(libraryId.toString());
+
+    const library = await db.collection('libraries').findOne({ _id: libraryId });
+    expect(library.summary.cassetteCount).toBe(1);
   });
 
   it('should update an OCCS cassette definition under the canonical definition field', async () => {

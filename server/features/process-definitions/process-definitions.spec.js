@@ -806,6 +806,43 @@ describe('process definitions access fallback', () => {
     expect(result.status.state.primary).toBe('ACTIVE');
   });
 
+  it('rejects parent-bound create actions without the required parent entity', async () => {
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        actions: {},
+        compiled: {
+          actions: {
+            create_template: {
+              id: 'create_template',
+              actionKind: 'createEntity',
+              entityType: 'cassette',
+              parentEntityType: 'library',
+              construction: { mode: 'createDefaultOccsTemplate' },
+              access: { level: 'admin', roleIds: ['role_designer'] }
+            }
+          }
+        }
+      }
+    });
+
+    await expect(executeActiveProcessAction({
+      actionId: 'create_template',
+      data: { name: 'Facade Template' }
+    }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: {
+        actions: [{ actionId: 'create_template' }]
+      }
+    })).rejects.toThrow(/library parent is required/);
+
+    expect(cassetteService.createDefaultOccsTemplate).not.toHaveBeenCalled();
+  });
+
   it('derives create parent ids from graph entity inputs', async () => {
     const create = vi.fn(async () => ({
       toJSON: () => ({
